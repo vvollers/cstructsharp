@@ -32,11 +32,11 @@ public class StaticReadBlockOwnershipTests
             Assert.AreEqual((long)size + 1, source.Position);
         }
 
-        if (size <= StaticReadPlan.MaximumBlockSize)
+        if (size <= ReadBlock.Size)
         {
             Assert.AreEqual(1, source.BlockReads);
             Assert.AreEqual(0, source.ByteReads);
-            Assert.AreEqual(StaticReadPlan.MaximumBlockSize, source.RentalLength);
+            Assert.AreEqual(ReadBlock.Size, source.RentalLength);
             Assert.IsTrue(returns.Returned, "The observed fixed-block rental must be returned before parsing exits.");
         }
         else

@@ -15,9 +15,6 @@ using CStructSharp.Values;
 /// </summary>
 internal sealed class StaticReadPlan
 {
-    /// <summary>Largest composite a stream source reads as one pooled block before executing its plan.</summary>
-    public const int MaximumBlockSize = 64 * 1024;
-
     /// <summary>Test hook: disables plan execution on the current thread so the general reader can be compared against it.</summary>
     [System.ThreadStatic]
     private static bool disabledForTesting;

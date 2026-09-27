@@ -170,9 +170,8 @@ public sealed partial class CStruct
         if (target.BitStorageSize > 0)
         {
             state.CurrentBitOffset = target.BitOffset;
-            state.CurrentBitfieldType = selectedField.BitUnitType;
+            state.BitfieldUnitOpen = true;
             state.CurrentBitfieldSize = target.BitStorageSize;
-            state.CurrentFieldAlignment = selectedField.Alignment;
             state.NextPosition = checked(target.Address + target.BitStorageSize);
             state.BitfieldUnitSeeded = true;
         }

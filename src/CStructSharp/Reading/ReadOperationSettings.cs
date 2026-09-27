@@ -17,21 +17,7 @@ internal readonly record struct ReadOperationSettings(
     /// <summary>Copies every read choice before variable enumeration, stream access, or another caller callback.</summary>
     public static ReadOperationSettings SnapshotReadOptions(ReadOptions? options)
     {
-        if (options is null)
-        {
-            return new ReadOperationSettings(
-                PointerAddressingMode.Absolute,
-                true,
-                64,
-                null,
-                1_000_000,
-                16 * 1024 * 1024,
-                64 * 1024 * 1024,
-                256,
-                0,
-                false);
-        }
-
+        options ??= ReadOptions.Default;
         return new ReadOperationSettings(
             options.AddressingMode,
             options.DereferencePointers,

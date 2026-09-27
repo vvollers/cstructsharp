@@ -1,12 +1,11 @@
 namespace CStructSharp.Tests;
 
 using CStructSharp.Addressing;
-using CStructSharp.Syntax;
+using CStructSharp.Compilation;
 
 /// <summary>
 ///     Exercises <see cref="ResolvedTarget"/> and <see cref="TargetResolutionContext"/> directly, independent of a
-///     real path-resolution traversal. Only reachable indirectly through the public API before these types were
-///     extracted from the God-Object <c>CStruct</c> partial class.
+///     real path-resolution traversal.
 /// </summary>
 [TestClass]
 public class ResolvedTargetTests
@@ -28,38 +27,19 @@ public class ResolvedTargetTests
     }
 
     /// <summary>
-    ///     The constructor must snapshot the debug-prefix and selected-index lists rather than retaining the
-    ///     caller's own mutable collection, so a later mutation of the caller's list cannot change an already
-    ///     published, supposedly immutable target. (An array is kept as it is: the traversal context builds a fresh
-    ///     one per step and never mutates it, which is what the address benchmarks pay for otherwise.)
+    ///     A target must snapshot the debug-prefix and selected-index lists rather than retaining the caller's own
+    ///     mutable collection, so a later mutation of the caller's list cannot change an already published,
+    ///     supposedly immutable target. (An array is kept as it is: the traversal context builds a fresh one per step
+    ///     and never mutates it, which is what the address benchmarks pay for otherwise.)
     /// </summary>
     [TestMethod]
-    public void Constructor_CopiesListsInsteadOfRetainingTheCallersMutableCollection()
+    public void Field_CopiesListsInsteadOfRetainingTheCallersMutableCollection()
     {
         var debugPrefix = new List<string> { "a", };
         var selectedIndexes = new List<int> { 1, };
+        var context = new TargetResolutionContext(debugPrefix, selectedIndexes);
 
-        ResolvedTarget target = new(
-            address: 0,
-            kind: ResolvedTargetKind.Field,
-            targetComposite: null,
-            debugPrefix: debugPrefix,
-            codecName: null,
-            isArray: false,
-            arrayLength: null,
-            selectedArrayIndex: null,
-            selectedIndexes: selectedIndexes,
-            bitOffset: 0,
-            bitStorageSize: 0,
-            unionStorageAddress: null,
-            unionStorageSize: null,
-            pointerStorageAddress: null,
-            pointerTargetAddress: null,
-            pointerAccessorsConsumed: 0,
-            remainingPointerDepth: 0,
-            alignment: 1,
-            fixedSize: null,
-            containingStructureDepth: 0);
+        ResolvedTarget target = ResolvedTarget.Field(Value(), 0, default, 0, 0, 0, context);
 
         debugPrefix.Add("b");
         selectedIndexes.Add(2);
@@ -68,23 +48,47 @@ public class ResolvedTargetTests
         Assert.HasCount(1, target.SelectedIndexes);
     }
 
-    /// <summary>Entering a field appends it to the debug prefix and leaves unrelated union/pointer state untouched.</summary>
+    /// <summary>Each factory records its kind and the field it reads, and a field target keeps the pointer levels it declares.</summary>
+    [TestMethod]
+    public void Factories_RecordKindAndFields()
+    {
+        var context = new TargetResolutionContext(["root",], []);
+        CompiledField value = Value();
+
+        ResolvedTarget field = ResolvedTarget.Field(value, 4, new ArraySelection(true, null, 2), 0, 0, 1, context);
+        Assert.AreEqual(ResolvedTargetKind.ArrayElement, field.Kind);
+        Assert.AreSame(value, field.EffectiveCompiledField);
+        Assert.AreSame(value, field.WritableCompiledField);
+        Assert.AreEqual(1, field.ContainingStructureDepth);
+
+        ResolvedTarget address = ResolvedTarget.PointerAddress(value, 4, 8, default, 0, context);
+        Assert.AreEqual(ResolvedTargetKind.PointerAddress, address.Kind);
+        Assert.AreEqual(8, address.Alignment);
+        Assert.IsNull(address.WritableCompiledField);
+
+        ResolvedTarget pointed = ResolvedTarget.PointerValue(value, value, 200, 0, default, 0, context.FollowPointer(200));
+        Assert.AreEqual(ResolvedTargetKind.PointerValue, pointed.Kind);
+        Assert.AreEqual(200L, pointed.PointerTargetAddress);
+        Assert.IsTrue(pointed.TraversesPointer);
+    }
+
+    /// <summary>Entering a field appends it to the debug prefix and leaves the pointer state untouched.</summary>
     [TestMethod]
     public void EnterField_AppendsFieldAndIndex_PreservesUnrelatedState()
     {
         var context = new TargetResolutionContext(
             debugPrefix: ["root",],
             selectedIndexes: [],
-            unionStorageAddress: 100,
-            unionStorageSize: 8);
+            pointerTargetAddress: 100,
+            pointerAccessorsConsumed: 1);
 
         TargetResolutionContext next = context.EnterField("child", selectedIndexes: [5,]);
 
         Assert.HasCount(2, next.DebugPrefix);
         Assert.AreEqual("child", next.DebugPrefix[1]);
         CollectionAssert.AreEqual(new[] { 5, }, next.SelectedIndexes.ToArray());
-        Assert.AreEqual(100L, next.UnionStorageAddress);
-        Assert.AreEqual(8, next.UnionStorageSize);
+        Assert.AreEqual(100L, next.PointerTargetAddress);
+        Assert.AreEqual(1, next.PointerAccessorsConsumed);
     }
 
     /// <summary>Entering a field without an array index leaves the selected-index list unchanged.</summary>
@@ -98,28 +102,14 @@ public class ResolvedTargetTests
         CollectionAssert.AreEqual(new[] { 7, }, next.SelectedIndexes.ToArray());
     }
 
-    /// <summary>Entering a union records its storage address and size while leaving the debug prefix untouched.</summary>
+    /// <summary>Following a pointer records its target address and increments the consumed count.</summary>
     [TestMethod]
-    public void EnterUnion_RecordsStorageAddressAndSize()
-    {
-        var context = new TargetResolutionContext(debugPrefix: ["root",], selectedIndexes: []);
-
-        TargetResolutionContext next = context.EnterUnion(address: 64, size: 16);
-
-        Assert.AreEqual(64L, next.UnionStorageAddress);
-        Assert.AreEqual(16, next.UnionStorageSize);
-        Assert.HasCount(1, next.DebugPrefix);
-    }
-
-    /// <summary>Following a pointer records its storage and target address and increments the consumed count.</summary>
-    [TestMethod]
-    public void FollowPointer_RecordsAddressesAndIncrementsConsumedCount()
+    public void FollowPointer_RecordsTargetAndIncrementsConsumedCount()
     {
         var context = new TargetResolutionContext(debugPrefix: [], selectedIndexes: [], pointerAccessorsConsumed: 2);
 
-        TargetResolutionContext next = context.FollowPointer(storageAddress: 40, targetAddress: 200);
+        TargetResolutionContext next = context.FollowPointer(targetAddress: 200);
 
-        Assert.AreEqual(40L, next.PointerStorageAddress);
         Assert.AreEqual(200L, next.PointerTargetAddress);
         Assert.AreEqual(3, next.PointerAccessorsConsumed);
     }
@@ -136,31 +126,20 @@ public class ResolvedTargetTests
             selectedIndexes: [],
             pointerAccessorsConsumed: int.MaxValue);
 
-        Assert.Throws<OverflowException>(() => context.FollowPointer(storageAddress: 0, targetAddress: 0));
+        Assert.Throws<OverflowException>(() => context.FollowPointer(targetAddress: 0));
     }
 
+    /// <summary>Creates a field target with the given array selection and pointer traversal count.</summary>
     private static ResolvedTarget MakeTarget(int? selectedArrayIndex = null, int pointerAccessorsConsumed = 0)
     {
-        return new ResolvedTarget(
-            address: 0,
-            kind: ResolvedTargetKind.Field,
-            targetComposite: null,
-            debugPrefix: [],
-            codecName: null,
-            isArray: selectedArrayIndex.HasValue,
-            arrayLength: null,
-            selectedArrayIndex: selectedArrayIndex,
-            selectedIndexes: [],
-            bitOffset: 0,
-            bitStorageSize: 0,
-            unionStorageAddress: null,
-            unionStorageSize: null,
-            pointerStorageAddress: null,
-            pointerTargetAddress: null,
-            pointerAccessorsConsumed: pointerAccessorsConsumed,
-            remainingPointerDepth: 0,
-            alignment: 1,
-            fixedSize: null,
-            containingStructureDepth: 0);
+        var context = new TargetResolutionContext([], [], pointerAccessorsConsumed: pointerAccessorsConsumed);
+        return ResolvedTarget.Field(Value(), 0, new ArraySelection(selectedArrayIndex.HasValue, null, selectedArrayIndex), 0, 0, 0, context);
+    }
+
+    /// <summary>Returns the compiled <c>value</c> field of a one-field struct.</summary>
+    private static CompiledField Value()
+    {
+        var layout = new CStruct("struct root { uint32 value; };");
+        return ((CompiledCompositeType)layout.CompiledModel.Composites[layout.GetStruct("root")].Definition!).Fields[0];
     }
 }

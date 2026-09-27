@@ -12,7 +12,7 @@ using System.Collections.Generic;
 internal sealed class CStructLayoutCache
 {
     private const int DefaultCapacity = 64;
-    private const long DefaultMaximumSourceBytes = 8L * 1024 * 1024;
+    private const long DefaultMaximumSourceChars = 8L * 1024 * 1024;
     private static readonly CStructCompilationOptions DefaultOptions = new();
 
     private readonly object gate = new();
@@ -22,7 +22,10 @@ internal sealed class CStructLayoutCache
     private readonly long maximumSourceChars;
     private long retainedSourceChars;
 
-    public CStructLayoutCache(int capacity = DefaultCapacity, long maximumSourceChars = DefaultMaximumSourceBytes)
+    /// <summary>Creates an empty cache bounded by entry count and by the total length of the retained layout sources.</summary>
+    /// <param name="capacity">The most compiled layouts kept.</param>
+    /// <param name="maximumSourceChars">The most source characters (UTF-16 code units) kept across all entries; a longer layout is never cached.</param>
+    public CStructLayoutCache(int capacity = DefaultCapacity, long maximumSourceChars = DefaultMaximumSourceChars)
     {
         this.capacity = capacity;
         this.maximumSourceChars = maximumSourceChars;

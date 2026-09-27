@@ -64,6 +64,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   benchmark drift workflow watches only files that exist.
 - The memory contract (`contracts/memory/v1.json`) describes the `Opaque` type kind, and its validator checks the
   matrix against every `MemoryTypeKind` member.
+- `tools/quality/remap-mutation-equivalents.mjs --write --drop-blocked` deletes reviewed equivalent mutants whose code
+  changed or was removed, so the next mutation run reports them again for review.
 
 ## 0.10.0 — 2026-09-26
 

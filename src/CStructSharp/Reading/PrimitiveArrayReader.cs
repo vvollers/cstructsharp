@@ -22,8 +22,7 @@ using CStructSharp.Values;
 /// </summary>
 internal static class PrimitiveArrayReader
 {
-    private const int BlockSize = 64 * 1024;
-
+    /// <summary>Decodes one block of source bytes into elements, reversing byte order when <paramref name="littleEndian"/> differs from the host.</summary>
     private delegate void BlockDecoder<T>(ReadOnlySpan<byte> source, Span<T> destination, bool littleEndian);
 
     /// <summary>Reads <paramref name="count"/> elements into a typed array and returns it as the array value.</summary>
@@ -156,7 +155,7 @@ internal static class PrimitiveArrayReader
         int elementSize = codec.Size;
         object? last = null;
         long remaining = (long)count * elementSize;
-        int blockCapacity = (int)Math.Min(remaining, BlockSize) / elementSize * elementSize;
+        int blockCapacity = (int)Math.Min(remaining, ReadBlock.Size) / elementSize * elementSize;
         byte[] block = ArrayPool<byte>.Shared.Rent(Math.Max(blockCapacity, elementSize));
         try
         {
@@ -192,7 +191,7 @@ internal static class PrimitiveArrayReader
     {
         var result = new T[count];
         long remaining = (long)count * elementSize;
-        int blockCapacity = (int)Math.Min(remaining, BlockSize) / elementSize * elementSize;
+        int blockCapacity = (int)Math.Min(remaining, ReadBlock.Size) / elementSize * elementSize;
         int decoded = 0;
         byte[]? block = null;
         try

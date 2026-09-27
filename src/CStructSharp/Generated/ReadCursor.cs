@@ -271,14 +271,13 @@ public ref struct ReadCursor
     /// <returns>The array's bytes.</returns>
     public ReadOnlySpan<byte> TakeInBlocks(int count, int elementSize, string member, string? memberType)
     {
-        const int BlockSize = 64 * 1024;
         long total = (long)count * elementSize;
         if (total <= 0)
         {
             return ReadOnlySpan<byte>.Empty;
         }
 
-        int blockCapacity = (int)Math.Min(total, BlockSize) / elementSize * elementSize;
+        int blockCapacity = (int)Math.Min(total, ReadBlock.Size) / elementSize * elementSize;
         long remainingElementsBytes = total;
         int start = this.position;
         while (remainingElementsBytes > 0)

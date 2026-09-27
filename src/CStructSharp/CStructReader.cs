@@ -59,8 +59,7 @@ public partial class CStruct
         {
             // A nested object cannot share the unfinished primitive storage unit of a preceding bitfield.
             state.Stream.Position = state.NextPosition;
-            state.CurrentBitOffset = 0;
-            state.CurrentBitfieldType = null;
+            state.ResetBitfieldUnit();
         }
 
         if (!state.Aligned || unionPosition != -1)
@@ -92,8 +91,7 @@ public partial class CStruct
         {
             // An inline composite member of a union starts at the union's address like every member.
             state.Stream.Position = unionPosition;
-            state.CurrentBitOffset = 0;
-            state.CurrentBitfieldType = null;
+            state.ResetBitfieldUnit();
         }
 
         if (alignInlineStructStart)
@@ -106,8 +104,7 @@ public partial class CStruct
                 (long inlineFieldStart, _, _) = cursor!.AdvanceToField(fieldDescriptor);
                 this.ValidateOffsetAssertionAtRuntime(fieldDescriptor, inlineFieldStart, state.Variables);
                 state.Stream.Position = inlineFieldStart;
-                state.CurrentBitOffset = 0;
-                state.CurrentBitfieldType = null;
+                state.ResetBitfieldUnit();
             }
             else
             {
@@ -280,8 +277,7 @@ public partial class CStruct
                             state.NextPosition = separatorEnd;
                         }
 
-                        state.CurrentBitOffset = 0;
-                        state.CurrentBitfieldType = null;
+                        state.ResetBitfieldUnit();
                         break;
                     }
 
@@ -359,8 +355,7 @@ public partial class CStruct
                     {
                         // Rewind before each union member so all interpretations use the same bytes.
                         state.Stream.Position = unionPosition;
-                        state.CurrentBitOffset = 0;
-                        state.CurrentBitfieldType = null;
+                        state.ResetBitfieldUnit();
                     }
 
                     bool useLegacyPlacement = cursor is null || unionPosition != -1;
@@ -373,8 +368,7 @@ public partial class CStruct
                             // complete storage unit. Doing this before type dispatch keeps enums and named structs on
                             // the same rule.
                             state.Stream.Position = state.NextPosition;
-                            state.CurrentBitOffset = 0;
-                            state.CurrentBitfieldType = null;
+                            state.ResetBitfieldUnit();
                         }
                     }
                     else
@@ -388,13 +382,12 @@ public partial class CStruct
                         if (compiledField.BitSize > 0)
                         {
                             state.CurrentBitOffset = bitOffset;
-                            state.CurrentBitfieldType = compiledField.BitUnitType;
+                            state.BitfieldUnitOpen = true;
                             state.CurrentBitfieldSize = unitSize;
                         }
                         else
                         {
-                            state.CurrentBitOffset = 0;
-                            state.CurrentBitfieldType = null;
+                            state.ResetBitfieldUnit();
                         }
                     }
 
@@ -426,7 +419,7 @@ public partial class CStruct
                     // per-character loop below would have no other observable effect: no debug records, cursor
                     // placement outside a union, and no layout variable to capture from each character. The block is
                     // taken only when the whole extent is present and within the budget; otherwise the loop runs.
-                    bool bulkCharacters = isArray && !state.Debug && !useLegacyPlacement && unionPosition == -1 && numFieldValues > 0 &&
+                    bool bulkCharacters = isArray && !state.Debug && !useLegacyPlacement && numFieldValues > 0 &&
                                           compiledField.IsCharElement && !compiledField.IsWideCharElement && !compiledField.IsPointer &&
                                           compiledField.BitSize == 0 && compiledField.Array.Dimensions.Length == 1 && compiledField.Name.Length > 0 &&
                                           !compiledField.CapturesLayoutVariable && !state.CaptureAllLayoutVariables && !StaticReadPlan.DisabledForTesting;
@@ -514,8 +507,7 @@ public partial class CStruct
                                 list.Add(container);
                             }
 
-                            state.CurrentBitOffset = 0;
-                            state.CurrentBitfieldType = null;
+                            state.ResetBitfieldUnit();
                             state.NextPosition = state.Stream.Position;
                             firstElement = numFieldValues;
                         }
@@ -668,9 +660,7 @@ public partial class CStruct
                                     (compiledField.BitStorageSize ??
                                      throw new InvalidOperationException(
                                          "Compiled bitfield has no storage size: " + compiledField.Name)) * 8);
-                                int activeUnitSize = state.CurrentBitfieldType is null
-                                                         ? 0
-                                                         : state.CurrentBitfieldSize;
+                                int activeUnitSize = state.BitfieldUnitOpen ? state.CurrentBitfieldSize : 0;
 
                                 // Legacy placement only sees a union member or a root bitfield, which always opens
                                 // its own unit; the rule below is the MSVC size rule for completeness.
@@ -680,13 +670,12 @@ public partial class CStruct
                                 if (startsNewStorageUnit)
                                 {
                                     state.Stream.Position = state.NextPosition;
-                                    state.CurrentBitOffset = 0;
-                                    state.CurrentBitfieldType = null;
+                                    state.ResetBitfieldUnit();
                                 }
 
                                 if (state.CurrentBitOffset == 0)
                                 {
-                                    state.CurrentBitfieldType = compiledField.BitUnitType;
+                                    state.BitfieldUnitOpen = true;
                                     state.CurrentBitfieldSize = compiledField.BitStorageSize ??
                                                                 throw new InvalidOperationException(
                                                                     "Compiled bitfield has no storage size: " +
@@ -698,21 +687,11 @@ public partial class CStruct
 
                             if (useLegacyPlacement && state.Aligned && unionPosition == -1 && !positionIsResolvedTarget)
                             {
-                                // A union's compiled start already establishes its boundary; every member begins exactly
-                                // there, including when a pointer target is not naturally aligned in the containing stream.
-                                // Ordinary fields align at their own boundaries, while bitfields in one unit share bytes.
-                                int structAlignment = compiledField.Alignment;
-                                if (structAlignment != state.CurrentFieldAlignment && state.CurrentBitOffset > 0)
-                                {
-                                    curPos = state.NextPosition;
-                                    state.CurrentBitOffset = 0;
-                                    state.CurrentBitfieldType = null;
-                                }
-
-                                state.Stream.Position = LayoutMath.AlignUp(curPos, structAlignment);
+                                // Only a root declaration gets here: a union member starts exactly at the union's compiled
+                                // start (even when a pointer target is not naturally aligned in the containing stream), and
+                                // a resolved target at its resolved address. A root starts at its own boundary.
+                                state.Stream.Position = LayoutMath.AlignUp(curPos, compiledField.Alignment);
                                 curPos = state.Stream.Position;
-
-                                state.CurrentFieldAlignment = structAlignment;
                             }
 
                             // Fixed-width numerics are decoded straight from a memory-backed cursor; every
@@ -769,7 +748,7 @@ public partial class CStruct
                                 if (bitOffsetInBytes > elementByteSize)
                                 {
                                     state.CurrentBitOffset -= elementBitSize;
-                                    state.CurrentBitfieldType = null;
+                                    state.BitfieldUnitOpen = false;
                                 }
                                 else
                                 {
@@ -954,7 +933,7 @@ public partial class CStruct
             return true;
         }
 
-        if (count <= StaticReadPlan.MaximumBlockSize)
+        if (count <= ReadBlock.Size)
         {
             byte[] block = System.Buffers.ArrayPool<byte>.Shared.Rent(count);
             try
@@ -993,23 +972,23 @@ public partial class CStruct
         return sizes;
     }
 
-    /// <summary>Checks the requested path, prepares variables, and chooses ordinary or debug parsing.</summary>
-    private (StructValue Root, IReadOnlyList<PathSegment> Segments) ParseStreamInternal(
+    /// <summary>Reads a whole root declaration, choosing ordinary or debug parsing.</summary>
+    /// <param name="stream">The source, positioned at the root.</param>
+    /// <param name="segments">The parsed one-segment path that names the root.</param>
+    /// <param name="variables">The caller's layout variables.</param>
+    /// <param name="options">The operation's read settings.</param>
+    /// <param name="debug">Whether to record debug byte ranges.</param>
+    /// <param name="debugData">The debug records, or a shared empty list for an ordinary read.</param>
+    /// <returns>The container holding the root's value under its name.</returns>
+    private StructValue ParseStreamInternal(
         Stream stream,
-        string elementNameOrPath,
+        IReadOnlyList<PathSegment> segments,
         LayoutVariableInput variables,
         ReadOperationSettings options,
         bool debug,
         out List<DebugData> debugData)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        if (string.IsNullOrWhiteSpace(elementNameOrPath))
-        {
-            throw new CStructPathException("Path is empty.");
-        }
-
-        // Normalize optional settings once before passing them through the rest of the parsing pipeline.
-        ReadOperationSettings effectiveOptions = options;
         if (debug && !stream.CanSeek)
         {
             throw new ArgumentException(
@@ -1019,12 +998,6 @@ public partial class CStruct
 
         // Copy caller variables and resolve layout-wide definitions without mutating caller-owned state.
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
-        IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
-        if (segments.Count == 0)
-        {
-            throw new CStructPathException("Path is empty.");
-        }
-
         string rootName = segments[0].Name;
         if (!this.compiledModelQueries.TryGetCompiledDeclaration(rootName, out _))
         {
@@ -1038,7 +1011,7 @@ public partial class CStruct
             {
                 // Debug reads use the same parser but additionally retain byte ranges and layout stacks for each value.
                 (List<DebugData> DebugData, StructValue Result) parsed
-                    = this.ParseStreamRootDebug(stream, rootName, effectiveVariables, effectiveOptions);
+                    = this.ParseStreamRootDebug(stream, rootName, effectiveVariables, options);
                 debugData = parsed.DebugData;
                 root = parsed.Result;
             }
@@ -1047,7 +1020,7 @@ public partial class CStruct
                 // Keep a non-null empty list so callers can handle both modes through the same return shape; the
                 // non-debug callers discard it, so one shared empty instance serves every plain parse.
                 debugData = NoDebugData;
-                root = this.ParseStreamRoot(stream, rootName, effectiveVariables, effectiveOptions);
+                root = this.ParseStreamRoot(stream, rootName, effectiveVariables, options);
             }
         }
         catch (CStructException exception)
@@ -1056,8 +1029,7 @@ public partial class CStruct
             throw;
         }
 
-        // The root contains the full parsed structure; the original segments select the requested child afterwards.
-        return (root, segments);
+        return root;
     }
 
     /// <summary>Creates the root object and reads one named layout element without collecting debug byte ranges.</summary>

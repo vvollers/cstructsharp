@@ -391,9 +391,9 @@ public sealed partial class CStruct
         IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
         if (segments.Count == 1)
         {
-            (StructValue root, _) = this.ParseStreamInternal(
+            StructValue root = this.ParseStreamInternal(
                 stream,
-                elementNameOrPath,
+                segments,
                 variables,
                 effectiveOptions,
                 debug,

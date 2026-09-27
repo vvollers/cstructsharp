@@ -119,10 +119,13 @@ internal sealed class CStructElementWriterState
     /// <summary>Whether a qualified prefix is active - the one check a capture site pays.</summary>
     public bool HasQualifiedPrefix => this.hasQualifiedPrefix;
 
+    /// <summary>Gets or sets the bits of the open bitfield storage unit already used, counted from the unit's low bit.</summary>
     public int CurrentBitOffset { get; set; }
 
-    public string? CurrentBitfieldType { get; set; }
+    /// <summary>Gets or sets whether a bitfield storage unit is open, so a following bitfield may share it.</summary>
+    public bool BitfieldUnitOpen { get; set; }
 
+    /// <summary>Gets or sets the size, in bytes, of the last opened bitfield storage unit.</summary>
     public int CurrentBitfieldSize { get; set; }
 
     /// <summary>
@@ -130,8 +133,6 @@ internal sealed class CStructElementWriterState
     ///     cursor already placed; the legacy per-field placement then uses it as is instead of re-deriving a unit.
     /// </summary>
     public bool BitfieldUnitSeeded { get; set; }
-
-    public int CurrentFieldAlignment { get; set; }
 
     public long NextPosition { get; set; }
 
@@ -220,5 +221,12 @@ internal sealed class CStructElementWriterState
                 this.Variables.Remove(prefix + name);
             }
         }
+    }
+
+    /// <summary>Closes the open bitfield storage unit, so the next bitfield starts a new one.</summary>
+    public void ResetBitfieldUnit()
+    {
+        this.CurrentBitOffset = 0;
+        this.BitfieldUnitOpen = false;
     }
 }

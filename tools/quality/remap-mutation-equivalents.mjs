@@ -6,12 +6,14 @@
  * entry was reviewed against, which must still match its recorded hash), maps each mutant's lines through the
  * diff to the working tree, and checks that the mutated lines are textually identical. It then prints every mutant
  * that lies within `--context` lines of a changed hunk, with its reason and the current code, for manual review.
- * A mutant whose lines were changed or removed cannot be carried: review it and edit or delete its entry by hand.
+ * A mutant whose lines were changed or removed cannot be carried: edit its entry by hand, or drop it.
  *
- *   node tools/quality/remap-mutation-equivalents.mjs --base <revision> [--context 15] [--write]
+ *   node tools/quality/remap-mutation-equivalents.mjs --base <revision> [--context 15] [--write [--drop-blocked]]
  *
  * Without --write the tool only reports. With --write it rewrites the moved locations and the new source hashes,
- * and refuses when any mutant cannot be carried. Carrying a location is not a proof: read every reported mutant.
+ * and refuses when any mutant cannot be carried unless --drop-blocked deletes those entries. Dropping only removes a
+ * suppression: the next mutation run reports the mutant again (if it still exists) for a fresh review. Carrying a
+ * location is not a proof: read every reported mutant.
  */
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -19,8 +21,12 @@ import path from "node:path";
 import { mutationSource } from "../lib/mutation-partitions.mjs";
 import { assertCondition, main, parseArguments, repositoryRoot, runCommand } from "../lib/tooling.mjs";
 
-const options = parseArguments(process.argv.slice(2), { base: "string", context: "number", write: "flag" }, { defaults: { context: 15, write: false } });
+const options = parseArguments(process.argv.slice(2), { base: "string", context: "number", write: "flag", "drop-blocked": "flag" }, { defaults: { context: 15, write: false, "drop-blocked": false } });
 const policyPath = path.join(repositoryRoot, "contracts/quality/mutation-equivalents.json");
+const DROPPED = Symbol("dropped");
+
+/** The key that identifies one mutant of one file: its pattern and exact location. */
+const mutantKey = (pattern, startLine, startColumn, endLine, endColumn) => `${pattern}\u0000${startLine}:${startColumn}:${endLine}:${endColumn}`;
 
 /** The SHA-256 of source text after the line-ending normalization the mutation gate applies. */
 function sourceHash(text) {
@@ -64,6 +70,7 @@ await main(() => {
   const moves = new Map();
   const hashes = new Map();
   const blocked = [];
+  const drops = new Set();
   let reviewed = 0;
 
   for (const entry of policy.files) {
@@ -88,6 +95,7 @@ await main(() => {
                         oldLines.slice(start.line - 1, end.line).join("\n") === newLines.slice(newStart - 1, newEnd).join("\n");
       if (!identical) {
         blocked.push(`${entry.pattern}: ${label} — its lines changed; review and edit the entry by hand.`);
+        drops.add(mutantKey(entry.pattern, start.line, start.column, end.line, end.column));
         continue;
       }
 
@@ -103,7 +111,7 @@ await main(() => {
   console.log(`\n${hashes.size} stale files, ${moves.size} moved mutants, ${reviewed} near changes to review, ${blocked.length} that cannot be carried.`);
   for (const message of blocked) console.log(`BLOCKED ${message}`);
   if (!options.write) return;
-  assertCondition(blocked.length === 0, "Refusing to write while some mutants cannot be carried.");
+  assertCondition(blocked.length === 0 || options["drop-blocked"], "Refusing to write while some mutants cannot be carried; pass --drop-blocked to delete them.");
 
   // Rewrite in place so the file keeps its hand-kept compact layout: one location object per line.
   let pattern = null;
@@ -112,10 +120,14 @@ await main(() => {
     if (file) pattern = file[1];
     if (hashes.has(pattern) && /"sourceSha256": "/.test(line)) return line.replace(/"sourceSha256": "[0-9a-f]+"/, `"sourceSha256": "${hashes.get(pattern)}"`);
     const location = /"location": \{"start":\{"line":(\d+),"column":(\d+)\},"end":\{"line":(\d+),"column":(\d+)\}\}/.exec(line);
-    const delta = location && moves.get(`${pattern}\u0000${location[1]}:${location[2]}:${location[3]}:${location[4]}`);
+    const key = location && mutantKey(pattern, location[1], location[2], location[3], location[4]);
+    if (key && drops.has(key)) return DROPPED;
+    const delta = key && moves.get(key);
     if (!delta) return line;
     return line.replace(location[0], `"location": {"start":{"line":${Number(location[1]) + delta},"column":${location[2]}},"end":{"line":${Number(location[3]) + delta},"column":${location[4]}}}`);
   });
-  fs.writeFileSync(policyPath, lines.join("\n"));
-  console.log("Wrote moved locations and source hashes.");
+  // A mutant is three lines (name, location, reason): drop a blocked one whole, then the comma it may leave before "]".
+  const kept = lines.filter((line, index) => line !== DROPPED && lines[index + 1] !== DROPPED && lines[index - 1] !== DROPPED);
+  fs.writeFileSync(policyPath, kept.join("\n").replace(/\},\n(\s*\])/g, "}\n$1"));
+  console.log(`Wrote moved locations and source hashes${drops.size ? `; dropped ${drops.size} entries` : ""}.`);
 });

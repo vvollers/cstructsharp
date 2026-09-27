@@ -2,41 +2,37 @@ namespace CStructSharp.Addressing;
 
 using System.Collections.Generic;
 
-/// <summary>Tracks semantic context while traversal descends through fields, unions, arrays, and pointers.</summary>
+/// <summary>Tracks semantic context while traversal descends through fields, arrays, and pointers.</summary>
 internal sealed class TargetResolutionContext
 {
     /// <summary>Creates a traversal context from already snapshotted path metadata.</summary>
+    /// <param name="debugPrefix">The path names from the root so far.</param>
+    /// <param name="selectedIndexes">Every array index the path supplied so far.</param>
+    /// <param name="pointerTargetAddress">The address the last followed pointer stored, if any.</param>
+    /// <param name="pointerAccessorsConsumed">How many <c>.value</c> accessors the path followed so far.</param>
     public TargetResolutionContext(
         IReadOnlyList<string> debugPrefix,
         IReadOnlyList<int> selectedIndexes,
-        long? unionStorageAddress = null,
-        int? unionStorageSize = null,
-        long? pointerStorageAddress = null,
         long? pointerTargetAddress = null,
         int pointerAccessorsConsumed = 0)
     {
         this.DebugPrefix = debugPrefix;
         this.SelectedIndexes = selectedIndexes;
-        this.UnionStorageAddress = unionStorageAddress;
-        this.UnionStorageSize = unionStorageSize;
-        this.PointerStorageAddress = pointerStorageAddress;
         this.PointerTargetAddress = pointerTargetAddress;
         this.PointerAccessorsConsumed = pointerAccessorsConsumed;
     }
 
+    /// <summary>Gets the path names from the root so far.</summary>
     public IReadOnlyList<string> DebugPrefix { get; }
 
+    /// <summary>Gets how many <c>.value</c> accessors the path followed so far.</summary>
     public int PointerAccessorsConsumed { get; }
 
-    public long? PointerStorageAddress { get; }
-
+    /// <summary>Gets the address the last followed pointer stored, or <see langword="null"/> before any pointer.</summary>
     public long? PointerTargetAddress { get; }
 
+    /// <summary>Gets every array index the path supplied so far, in path order.</summary>
     public IReadOnlyList<int> SelectedIndexes { get; }
-
-    public long? UnionStorageAddress { get; }
-
-    public int? UnionStorageSize { get; }
 
     /// <summary>
     ///     Returns a context with one declared field and every index supplied for it (zero or more, one
@@ -51,35 +47,16 @@ internal sealed class TargetResolutionContext
         return new TargetResolutionContext(
             debugPrefix,
             combinedIndexes,
-            this.UnionStorageAddress,
-            this.UnionStorageSize,
-            this.PointerStorageAddress,
             this.PointerTargetAddress,
             this.PointerAccessorsConsumed);
     }
 
-    /// <summary>Returns a context for fields that overlap in one union storage range.</summary>
-    public TargetResolutionContext EnterUnion(long address, int size)
+    /// <summary>Returns a context after following one explicit pointer <c>.value</c> accessor to <paramref name="targetAddress"/>.</summary>
+    public TargetResolutionContext FollowPointer(long targetAddress)
     {
         return new TargetResolutionContext(
             this.DebugPrefix,
             this.SelectedIndexes,
-            address,
-            size,
-            this.PointerStorageAddress,
-            this.PointerTargetAddress,
-            this.PointerAccessorsConsumed);
-    }
-
-    /// <summary>Returns a context after following one explicit pointer <c>.value</c> accessor.</summary>
-    public TargetResolutionContext FollowPointer(long storageAddress, long targetAddress)
-    {
-        return new TargetResolutionContext(
-            this.DebugPrefix,
-            this.SelectedIndexes,
-            this.UnionStorageAddress,
-            this.UnionStorageSize,
-            storageAddress,
             targetAddress,
             checked(this.PointerAccessorsConsumed + 1));
     }

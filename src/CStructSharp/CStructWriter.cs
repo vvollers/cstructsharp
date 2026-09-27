@@ -112,7 +112,7 @@ public partial class CStruct
         {
             // This field finished the unit. The next field starts in a fresh primitive value.
             state.CurrentBitOffset -= elementBitSize;
-            state.CurrentBitfieldType = null;
+            state.BitfieldUnitOpen = false;
         }
         else
         {
@@ -126,50 +126,46 @@ public partial class CStruct
     private void WriteCStructElement(
         CStructElement element,
         object data,
-        CStructElementWriterState state,
-        long unionPosition = -1)
+        CStructElementWriterState state)
     {
-        while (true)
+        switch (element)
         {
-            switch (element)
+        case Struct s:
+            this.WriteStruct(this.compiledSizeQueries.GetCompiledComposite(s), data, state);
+            return;
+
+        case Typedef t:
             {
-            case Struct s:
-                this.WriteStruct(this.compiledSizeQueries.GetCompiledComposite(s), data, state);
-                return;
-
-            case Typedef t:
+                if (t.Struct is not null)
                 {
-                    if (t.Struct is not null)
-                    {
-                        // Match the reader's established root-inline-typedef projection.
-                        this.WriteStruct(this.compiledSizeQueries.GetCompiledComposite(t.Struct), data, state);
-                        return;
-                    }
-
-                    // Root aliases use the same immutable field projection as aliases nested inside a struct.
-                    this.WriteFieldValue(this.compiledModelQueries.GetCompiledRootField(t), data, state, -1);
+                    // Match the reader's established root-inline-typedef projection.
+                    this.WriteStruct(this.compiledSizeQueries.GetCompiledComposite(t.Struct), data, state);
                     return;
                 }
 
-            case CstructEnum enm:
-                this.WriteFieldValue(this.compiledModelQueries.GetCompiledRootField(enm), data, state, -1);
+                // Root aliases use the same immutable field projection as aliases nested inside a struct.
+                this.WriteFieldValue(this.compiledModelQueries.GetCompiledRootField(t), data, state, -1);
                 return;
-
-            case Defines d:
-                // Defines influence later array sizes and expressions; writing one only updates the working variable map.
-                state.Variables[d.Name.Name] = new Literal(
-                    this.layoutExpressionEvaluator.Evaluate(
-                        d.Value,
-                        state.Variables,
-                        "definition " + d.Name.Name,
-                        ExpressionFailureDomain.Write));
-                return;
-            case Field f:
-                throw new InvalidOperationException(
-                    "Root field execution requires a compiled descriptor: " + f.Name.Name);
-            default:
-                throw new InvalidOperationException("Unsupported element type for writing: " + element.GetType().Name);
             }
+
+        case CstructEnum enm:
+            this.WriteFieldValue(this.compiledModelQueries.GetCompiledRootField(enm), data, state, -1);
+            return;
+
+        case Defines d:
+            // Defines influence later array sizes and expressions; writing one only updates the working variable map.
+            state.Variables[d.Name.Name] = new Literal(
+                this.layoutExpressionEvaluator.Evaluate(
+                    d.Value,
+                    state.Variables,
+                    "definition " + d.Name.Name,
+                    ExpressionFailureDomain.Write));
+            return;
+        case Field f:
+            throw new InvalidOperationException(
+                "Root field execution requires a compiled descriptor: " + f.Name.Name);
+        default:
+            throw new InvalidOperationException("Unsupported element type for writing: " + element.GetType().Name);
         }
     }
 
@@ -262,8 +258,7 @@ public partial class CStruct
                     (long separatorEnd, _, _) = cursor.AdvanceToField(field);
                     state.Stream.Position = separatorEnd;
                     state.NextPosition = separatorEnd;
-                    state.CurrentBitOffset = 0;
-                    state.CurrentBitfieldType = null;
+                    state.ResetBitfieldUnit();
                     variableScope?.CompleteField(field, state.Variables);
                     continue;
                 }
@@ -699,8 +694,7 @@ public partial class CStruct
         {
             // Each union member begins at the same address, just as it does while reading.
             state.Stream.Position = unionPosition;
-            state.CurrentBitOffset = 0;
-            state.CurrentBitfieldType = null;
+            state.ResetBitfieldUnit();
         }
 
         if (useLegacyPlacement)
@@ -708,8 +702,7 @@ public partial class CStruct
             if (state.CurrentBitOffset > 0 && compiledField.BitSize == 0)
             {
                 // A normal field cannot share a partly used bitfield storage unit. Move past that unit first.
-                state.CurrentBitOffset = 0;
-                state.CurrentBitfieldType = null;
+                state.ResetBitfieldUnit();
                 state.Stream.Position = state.NextPosition;
             }
 
@@ -724,9 +717,7 @@ public partial class CStruct
                     (compiledField.BitStorageSize ??
                      throw new InvalidOperationException(
                          "Compiled bitfield has no storage size: " + compiledField.Name)) * 8);
-                int activeUnitSize = state.CurrentBitfieldType is null
-                                         ? 0
-                                         : state.CurrentBitfieldSize;
+                int activeUnitSize = state.BitfieldUnitOpen ? state.CurrentBitfieldSize : 0;
 
                 // Legacy placement only sees a union member or a root bitfield, which always opens its own unit;
                 // the rule below is the MSVC size rule for completeness.
@@ -736,13 +727,12 @@ public partial class CStruct
                 if (startsNewStorageUnit)
                 {
                     state.Stream.Position = state.NextPosition;
-                    state.CurrentBitOffset = 0;
-                    state.CurrentBitfieldType = null;
+                    state.ResetBitfieldUnit();
                 }
 
                 if (state.CurrentBitOffset == 0)
                 {
-                    state.CurrentBitfieldType = compiledField.BitUnitType;
+                    state.BitfieldUnitOpen = true;
                     state.CurrentBitfieldSize = compiledField.BitStorageSize ??
                                                 throw new InvalidOperationException(
                                                     "Compiled bitfield has no storage size: " +
@@ -755,19 +745,9 @@ public partial class CStruct
             if (state.Aligned && !positionIsResolvedTarget)
             {
                 // Apply alignment after resolving the real field type, because pointers and aliases can change its boundary.
-                int structAlignment = valueField.Alignment;
-                if (structAlignment != state.CurrentFieldAlignment && state.CurrentBitOffset > 0)
-                {
-                    curPos = state.NextPosition;
-                    state.CurrentBitOffset = 0;
-                    state.CurrentBitfieldType = null;
-                }
-
                 // Advance to the next boundary. The bytes skipped here are the layout's padding.
-                state.Stream.Position = LayoutMath.AlignUp(curPos, structAlignment);
+                state.Stream.Position = LayoutMath.AlignUp(curPos, valueField.Alignment);
                 curPos = state.Stream.Position;
-
-                state.CurrentFieldAlignment = structAlignment;
             }
         }
         else
@@ -781,13 +761,12 @@ public partial class CStruct
             if (compiledField.BitSize > 0)
             {
                 state.CurrentBitOffset = bitOffset;
-                state.CurrentBitfieldType = compiledField.BitUnitType;
+                state.BitfieldUnitOpen = true;
                 state.CurrentBitfieldSize = unitSize;
             }
             else
             {
-                state.CurrentBitOffset = 0;
-                state.CurrentBitfieldType = null;
+                state.ResetBitfieldUnit();
             }
         }
 
@@ -1015,7 +994,7 @@ public partial class CStruct
 
         foreach (char c in padded)
         {
-            this.WritePrimitiveValue(compiledField, state.Stream, c, compiledField.Name);
+            this.WritePrimitiveValue(compiledField, state.Stream, c);
         }
     }
 
@@ -1086,7 +1065,7 @@ public partial class CStruct
         }
 
         long length = (long)count * field.Codec.Size;
-        if (length > StaticReadPlan.MaximumBlockSize || !CanWriteBlock(state, (int)length))
+        if (length > ReadBlock.Size || !CanWriteBlock(state, (int)length))
         {
             return false;
         }
@@ -1257,16 +1236,19 @@ public partial class CStruct
         }
 
         // The remaining case is a normal primitive type registered when this layout was created.
-        this.WritePrimitiveValue(compiledField, state.Stream, value, compiledField.Name);
+        this.WritePrimitiveValue(compiledField, state.Stream, value);
         return null;
     }
 
-    /// <summary>Translates only expected caller-value conversion failures from a compiled primitive codec.</summary>
+    /// <summary>Encodes a caller value with a field's compiled primitive codec at the stream position.</summary>
+    /// <remarks>An in-place update of a variable-length (LEB128 or unsized custom) value must keep its existing encoded length. Only expected caller-value conversion failures become <see cref="CStructWriteException"/>.</remarks>
+    /// <param name="field">The field whose codec encodes the value.</param>
+    /// <param name="stream">The destination, positioned at the value.</param>
+    /// <param name="value">The caller value.</param>
     private void WritePrimitiveValue(
         CompiledField field,
         Stream stream,
-        object value,
-        string fieldName)
+        object value)
     {
         Action<Stream, object> writer = this.codecs.WriterOf(field) ??
                                         throw new InvalidOperationException(
@@ -1436,9 +1418,8 @@ public partial class CStruct
                     // A later bitfield starts at the same byte address as its predecessors. Seed the shared writer
                     // state from the semantic target so only the selected bit range changes.
                     state.CurrentBitOffset = target.BitOffset;
-                    state.CurrentBitfieldType = writableCompiledField.BitUnitType;
+                    state.BitfieldUnitOpen = true;
                     state.CurrentBitfieldSize = target.BitStorageSize;
-                    state.CurrentFieldAlignment = target.Alignment;
                     state.NextPosition = checked(target.Address + target.BitStorageSize);
                     state.BitfieldUnitSeeded = true;
                 }
@@ -1569,8 +1550,7 @@ public partial class CStruct
             }
 
             object subData = rootData!;
-            if (childSegments.Count > 0 &&
-                WriteDataBinding.TryGetMemberValue(rootData!, childSegments[0].Name, out _))
+            if (WriteDataBinding.TryGetMemberValue(rootData!, childSegments[0].Name, out _))
             {
                 // If the caller supplied a complete root object, walk down to the matching nested source value.
                 subData = WriteDataBinding.ResolveDataPath(rootData!, childSegments);

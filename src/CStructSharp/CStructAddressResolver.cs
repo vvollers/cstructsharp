@@ -76,39 +76,16 @@ public partial class CStruct
             bool rootIsArray = rootField is not null &&
                                rootField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime or CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated;
             int? rootArrayLength = rootIsArray ? this.GetBoundedArrayCount(rootField!, state, rootStart) : null;
-
-            // The compiled symbol already knows whether the root has a static extent (null for a runtime-sized
-            // struct); asking the size query and catching its layout exception cost three exceptions on every
-            // read of the common runtime-sized root.
-            int? fixedSize = rootTargetStruct is null
-                                 ? rootField?.FixedStorageSize
-                                 : rootTargetStruct.Symbol.FixedSize;
             int alignment = rootTargetStruct is null
                                 ? rootField?.Alignment ?? 1
                                 : rootTargetStruct.Symbol.Alignment;
-            return new ResolvedTarget(
+            return ResolvedTarget.Root(
                 rootStart,
-                ResolvedTargetKind.Root,
+                targetElement.Name.Name,
                 rootTargetStruct ?? rootField?.TargetComposite,
-                new[] { targetElement.Name.Name, },
-                rootField?.CodecName ?? targetElement.Name.Name,
-                rootIsArray,
-                rootArrayLength,
-                null,
-                Array.Empty<int>(),
-                0,
-                0,
-                rootTargetStruct is { IsUnion: true, } ? rootStart : null,
-                rootTargetStruct is { IsUnion: true, } ? fixedSize : null,
-                null,
-                null,
-                0,
-                0,
-                alignment,
-                fixedSize,
-                0,
                 rootField,
-                rootField);
+                new ArraySelection(rootIsArray, rootArrayLength, null),
+                alignment);
         }
 
         if (resolvedRoot is not Struct rootStruct)
@@ -159,13 +136,6 @@ public partial class CStruct
         if (pathIndex >= segments.Count)
         {
             throw new CStructPathException("Path ended before selecting a field.");
-        }
-
-        if (composite.IsUnion)
-        {
-            context = context.EnterUnion(
-                structStart,
-                this.compiledSizeQueries.GetCompiledStructSizeInBytes(composite, state.Variables, false));
         }
 
         PathSegment requested = segments[pathIndex];
@@ -310,6 +280,7 @@ public partial class CStruct
                                 CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated;
         int? arrayLength = remainingIsArray ? this.GetBoundedArrayCount(resolvedField, state, elementStart) : null;
         int? selectedArrayIndex = segment.Indexes.Count > 0 && !remainingIsArray ? segment.Indexes[^1] : null;
+        var selection = new ArraySelection(declaredIsArray, arrayLength, selectedArrayIndex);
 
         context = context.EnterField(compiledField.Name, segment.Indexes);
 
@@ -323,11 +294,9 @@ public partial class CStruct
             return this.CreateFieldTarget(
                 resolvedField,
                 elementStart,
-                declaredIsArray,
-                selectedArrayIndex,
+                selection,
                 bitOffset,
                 bitStorageSize,
-                arrayLength,
                 state,
                 context);
         }
@@ -342,14 +311,7 @@ public partial class CStruct
                     throw new CStructPathException("Pointer .address must be the terminal path segment.");
                 }
 
-                return this.CreatePointerAddressTarget(
-                    resolvedField,
-                    elementStart,
-                    declaredIsArray,
-                    arrayLength,
-                    selectedArrayIndex,
-                    state,
-                    context);
+                return ResolvedTarget.PointerAddress(resolvedField, elementStart, this.PointerSize, selection, state.StructureDepth, context);
             }
 
             if (!string.Equals(next.Name, "value", StringComparison.Ordinal) || next.Indexes.Count > 0)
@@ -364,9 +326,7 @@ public partial class CStruct
                 pathIndex + 1,
                 state,
                 context,
-                declaredIsArray,
-                arrayLength,
-                selectedArrayIndex);
+                selection);
         }
 
         if (resolvedField.Composite is { } nestedStruct)
@@ -391,9 +351,7 @@ public partial class CStruct
         int valueSegmentIndex,
         CStructOperationContext state,
         TargetResolutionContext context,
-        bool isArray,
-        int? arrayLength,
-        int? selectedArrayIndex)
+        ArraySelection selection)
     {
         if (!state.DereferencePointers)
         {
@@ -419,7 +377,7 @@ public partial class CStruct
             1);
 
         long target = this.ReadPointerTargetAddress(pointerStorage, state);
-        context = context.FollowPointer(pointerStorage, target);
+        context = context.FollowPointer(target);
         (long Address, string TypeName, int PointerDepth) targetKey =
             (target, compiledField.TypeSpelling, compiledField.PointerDepth);
         if (target != 0 && !state.ActivePointerTargets.Add(targetKey))
@@ -436,9 +394,7 @@ public partial class CStruct
                     compiledField,
                     target,
                     compiledField.PointerDepth - 1,
-                    isArray,
-                    arrayLength,
-                    selectedArrayIndex,
+                    selection,
                     state,
                     context);
             }
@@ -465,14 +421,7 @@ public partial class CStruct
 
                     CompiledField remainingAddressField =
                         this.CreatePointerTargetCompiledField(compiledField, compiledField.PointerDepth - 1);
-                    return this.CreatePointerAddressTarget(
-                        remainingAddressField,
-                        target,
-                        isArray,
-                        arrayLength,
-                        selectedArrayIndex,
-                        state,
-                        context);
+                    return ResolvedTarget.PointerAddress(remainingAddressField, target, this.PointerSize, selection, state.StructureDepth, context);
                 }
 
                 if (!string.Equals(next.Name, "value", StringComparison.Ordinal))
@@ -489,9 +438,7 @@ public partial class CStruct
                     valueSegmentIndex + 1,
                     state,
                     context,
-                    isArray,
-                    arrayLength,
-                    selectedArrayIndex);
+                    selection);
             }
 
             if (compiledField.TargetComposite is { } targetStruct)
@@ -526,96 +473,18 @@ public partial class CStruct
     private ResolvedTarget CreateFieldTarget(
         CompiledField resolvedField,
         long address,
-        bool isArray,
-        int? selectedArrayIndex,
+        ArraySelection selection,
         int bitOffset,
         int bitStorageSize,
-        int? arrayLength,
         CStructOperationContext state,
         TargetResolutionContext context)
     {
-        int alignment = resolvedField.Alignment;
-
-        // The peeled shape's own precomputed storage size is already correct for every case (unindexed, a
-        // multidimensional sub-array, or one fully selected element), since every dimension beyond the outermost
-        // is always fixed (Seam 4) and TotalFixedElementCount already accounts for all of them. Only a genuinely
-        // 1-D runtime/flexible-count array (the one shape whose static storage size is never known) falls back to
-        // multiplying the leaf element size by this specific target's own runtime-evaluated length.
-        int? fixedSize = resolvedField.FixedStorageSize ??
-                         (resolvedField.FixedElementSize.HasValue
-                              ? checked(resolvedField.FixedElementSize.Value * (arrayLength ?? 1))
-                              : null);
-        long? unionStorageAddress = context.UnionStorageAddress;
-        int? unionStorageSize = context.UnionStorageSize;
-        if (resolvedField.TargetComposite is { IsUnion: true, } union)
-        {
-            unionStorageAddress = address;
-            unionStorageSize = union.Symbol.FixedSize;
-        }
-
         if (resolvedField.Composite is not null)
         {
             state.EnsureStructureDepth(state.StructureDepth + 1);
         }
 
-        return new ResolvedTarget(
-            address,
-            selectedArrayIndex.HasValue ? ResolvedTargetKind.ArrayElement : ResolvedTargetKind.Field,
-            resolvedField.TargetComposite,
-            context.DebugPrefix,
-            resolvedField.CodecName,
-            isArray,
-            arrayLength,
-            selectedArrayIndex,
-            context.SelectedIndexes,
-            bitOffset,
-            bitStorageSize,
-            unionStorageAddress,
-            unionStorageSize,
-            resolvedField.PointerDepth > 0 ? address : context.PointerStorageAddress,
-            context.PointerTargetAddress,
-            context.PointerAccessorsConsumed,
-            resolvedField.PointerDepth,
-            alignment,
-            fixedSize,
-            state.StructureDepth,
-            resolvedField,
-            resolvedField);
-    }
-
-    /// <summary>Creates a target for pointer storage selected by a contextual <c>.address</c> accessor.</summary>
-    private ResolvedTarget CreatePointerAddressTarget(
-        CompiledField compiledField,
-        long address,
-        bool isArray,
-        int? arrayLength,
-        int? selectedArrayIndex,
-        CStructOperationContext state,
-        TargetResolutionContext context)
-    {
-        return new ResolvedTarget(
-            address,
-            ResolvedTargetKind.PointerAddress,
-            compiledField.TargetComposite,
-            context.DebugPrefix,
-            "pointer",
-            isArray,
-            arrayLength,
-            selectedArrayIndex,
-            context.SelectedIndexes,
-            0,
-            0,
-            context.UnionStorageAddress,
-            context.UnionStorageSize,
-            address,
-            context.PointerTargetAddress,
-            context.PointerAccessorsConsumed,
-            compiledField.PointerDepth,
-            this.PointerSize,
-            this.PointerSize,
-            state.StructureDepth,
-            compiledField,
-            null);
+        return ResolvedTarget.Field(resolvedField, address, selection, bitOffset, bitStorageSize, state.StructureDepth, context);
     }
 
     /// <summary>Creates a target for the storage reached by one or more contextual <c>.value</c> accessors.</summary>
@@ -623,52 +492,18 @@ public partial class CStruct
         CompiledField compiledField,
         long address,
         int remainingPointerDepth,
-        bool isArray,
-        int? arrayLength,
-        int? selectedArrayIndex,
+        ArraySelection selection,
         CStructOperationContext state,
         TargetResolutionContext context)
     {
         CompiledField writableCompiledField =
             this.CreatePointerTargetCompiledField(compiledField, remainingPointerDepth);
-        int alignment = writableCompiledField.Alignment;
-        int? fixedSize = writableCompiledField.FixedElementSize;
-        long? unionStorageAddress = context.UnionStorageAddress;
-        int? unionStorageSize = context.UnionStorageSize;
-        if (remainingPointerDepth == 0 && compiledField.TargetComposite is { IsUnion: true, } union)
-        {
-            unionStorageAddress = address;
-            unionStorageSize = union.Symbol.FixedSize;
-        }
-
         if (remainingPointerDepth == 0 && compiledField.TargetComposite is not null)
         {
             state.EnsureStructureDepth(state.StructureDepth + 1);
         }
 
-        return new ResolvedTarget(
-            address,
-            ResolvedTargetKind.PointerValue,
-            compiledField.TargetComposite,
-            context.DebugPrefix,
-            writableCompiledField.CodecName,
-            isArray,
-            arrayLength,
-            selectedArrayIndex,
-            context.SelectedIndexes,
-            0,
-            0,
-            unionStorageAddress,
-            unionStorageSize,
-            context.PointerStorageAddress,
-            address,
-            context.PointerAccessorsConsumed,
-            remainingPointerDepth,
-            alignment,
-            fixedSize,
-            state.StructureDepth,
-            compiledField,
-            writableCompiledField);
+        return ResolvedTarget.PointerValue(compiledField, writableCompiledField, address, remainingPointerDepth, selection, state.StructureDepth, context);
     }
 
     /// <summary>Builds the exact compiled writable field remaining after explicit pointer dereferences.</summary>
@@ -1007,11 +842,9 @@ public partial class CStruct
         {
             // A data-sized array's count is not known without a position; its element type's own limits are still
             // checked once through the element walk that follows a real resolution.
-            int count = compiledField.Array.Kind == CompiledArrayKind.Scalar
+            int count = compiledField.Array.Kind is CompiledArrayKind.Scalar or CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated
                             ? 1
-                            : compiledField.Array.Kind is CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated
-                                ? 1
-                                : this.GetBoundedArrayCount(compiledField, state, 0);
+                            : this.GetBoundedArrayCount(compiledField, state, 0);
             if (count == 0 || compiledField.Composite is not { } nested)
             {
                 continue;
@@ -1032,7 +865,7 @@ public partial class CStruct
     /// <summary>
     ///     Validates a field's runtime-resolved placement against its own <c>@N</c> offset assertion,
     ///     when present. Skips fields already validated eagerly at construction time by
-    ///     <c>CStructCompiledModel.PlaceCompiledFields</c> - <see cref="CompiledField.FixedOffset"/> is exactly the
+    ///     <c>LayoutCompilation.PlaceCompiledFields</c> - <see cref="CompiledField.FixedOffset"/> is exactly the
     ///     signal for "already checked," since it is set only when that pass could compute the offset statically.
     ///     This closes the gap for a field whose offset depends on an earlier runtime-length sibling, where no
     ///     static check was possible.

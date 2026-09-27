@@ -93,15 +93,14 @@ public partial class CStruct
             if (state.Stream.TryReadSpanWithinBudget(plan.Size, out ReadOnlySpan<byte> staticBytes))
             {
                 this.ExecuteStaticPlan(plan, staticBytes, destination, state);
-                state.CurrentBitOffset = 0;
-                state.CurrentBitfieldType = null;
+                state.ResetBitfieldUnit();
                 state.NextPosition = state.Stream.Position;
                 return;
             }
 
             // A stream source (FileStream, a MemoryStream without an exposed buffer) reads the composite's extent
             // into a pooled block first; composites beyond the block size stay on the general reader.
-            if (plan.Size <= StaticReadPlan.MaximumBlockSize)
+            if (plan.Size <= ReadBlock.Size)
             {
                 byte[] block = ArrayPool<byte>.Shared.Rent(plan.Size);
                 try
@@ -109,8 +108,7 @@ public partial class CStruct
                     if (state.Stream.TryReadBlockWithinBudget(block.AsSpan(0, plan.Size)))
                     {
                         this.ExecuteStaticPlan(plan, block.AsSpan(0, plan.Size), destination, state);
-                        state.CurrentBitOffset = 0;
-                        state.CurrentBitfieldType = null;
+                        state.ResetBitfieldUnit();
                         state.NextPosition = state.Stream.Position;
                         return;
                     }
@@ -195,8 +193,7 @@ public partial class CStruct
         // rather than state.Stream.Position, which a shared bitfield read may have rewound mid-unit for extraction.
         // It also returns the stream from the last followed pointer target to the end of this struct.
         state.Stream.Position = cursor.FinishComposite(composite.Symbol.Alignment);
-        state.CurrentBitOffset = 0;
-        state.CurrentBitfieldType = null;
+        state.ResetBitfieldUnit();
         state.NextPosition = state.Stream.Position;
     }
 
@@ -450,8 +447,7 @@ public partial class CStruct
             state.ExitStructure();
             state.Stream.Position = unionEnd;
             state.NextPosition = unionEnd;
-            state.CurrentBitOffset = 0;
-            state.CurrentBitfieldType = null;
+            state.ResetBitfieldUnit();
         }
 
         // Padding may contribute a debug record and occupies raw storage, but is never a decoded member view.

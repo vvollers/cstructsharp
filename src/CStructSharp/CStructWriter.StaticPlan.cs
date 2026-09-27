@@ -38,7 +38,7 @@ public partial class CStruct
     private bool TryWriteStaticPlan(CompiledCompositeType composite, object data, CStructElementWriterState state)
     {
         if (state.Options is UpdateOptions || StaticReadPlan.DisabledForTesting || composite.StaticPlan is not { SupportsWrite: true } plan ||
-            plan.Size > StaticReadPlan.MaximumBlockSize || state.StructureDepth + plan.NestingDepth > state.MaxNestingDepth ||
+            plan.Size > ReadBlock.Size || state.StructureDepth + plan.NestingDepth > state.MaxNestingDepth ||
             plan.MaximumArrayCount > state.Options.MaxArrayElements)
         {
             return false;
@@ -94,8 +94,7 @@ public partial class CStruct
             ArrayPool<byte>.Shared.Return(block);
         }
 
-        state.CurrentBitOffset = 0;
-        state.CurrentBitfieldType = null;
+        state.ResetBitfieldUnit();
         state.NextPosition = Math.Max(state.NextPosition, stream.Position);
         return true;
     }

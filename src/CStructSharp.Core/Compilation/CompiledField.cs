@@ -296,12 +296,6 @@ internal sealed class CompiledField
     /// <summary>Compile-time codec identity; <see cref="PrimitiveCodec.None"/> for pointers and composites.</summary>
     public PrimitiveCodec Codec { get; }
 
-    /// <summary>
-    ///     The name that decides whether consecutive bitfields share a storage unit: the storage codec's terminal
-    ///     name, so an enum or flag bitfield shares the unit of its backing type (and of other enums on that type).
-    /// </summary>
-    public string BitUnitType => this.CodecName;
-
     /// <summary>The layout's neutral byte order, needed to resolve suffix-less codec spellings of derived fields.</summary>
     public bool LayoutLittleEndian => this.Codec.LayoutLittleEndian;
 

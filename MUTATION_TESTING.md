@@ -124,7 +124,8 @@ node tools/quality/remap-mutation-equivalents.mjs --base <revision the entries w
 
 It maps each mutant through the diff, refuses mutants whose lines changed, and prints the mutants close to a changed
 hunk with their reasons and the current code. Read each printed case, then rerun with `--write` to record the new
-locations and hashes. A mutant whose own lines changed needs a new proof by hand, or removal.
+locations and hashes. A mutant whose own lines changed needs a new proof by hand, or removal: `--write
+--drop-blocked` removes every such entry, and the next mutation run reports the mutant again if it still exists.
 
 The validator reports individually qualified equivalent survivors separately. Their Stryker status remains
 `Survived`: they stay in the raw score's denominator and are never counted as killed, timed out or ignored.
