@@ -22,7 +22,7 @@ retain instability and canary warnings, and do not refresh baselines merely to m
 ## Run the .NET benchmarks
 
 ```sh
-dotnet build ./CStructSharp.NonWeb.sln -c Release
+dotnet build ./CStructSharp.NonWeb.slnf -c Release
 # Phase 0 scenario matrix, both target frameworks, Short job (1 launch, 3 warmups, 5 iterations):
 CSTRUCTSHARP_BENCHMARK_JOB=Short CSTRUCTSHARP_BENCHMARK_RUNTIMES=net10.0,net8.0 \
   dotnet run --project benchmarks/CStructSharp.Benchmarks -c Release -f net10.0 --no-build -- --filter '*Baseline0*'
@@ -65,7 +65,7 @@ canary, paths, typed reads, serialize and update, debug ranges, async and segmen
 minutes:
 
 ```sh
-dotnet build ./CStructSharp.NonWeb.sln -c Release
+dotnet build ./CStructSharp.NonWeb.slnf -c Release
 CSTRUCTSHARP_BENCHMARK_JOB=Short dotnet run --project benchmarks/CStructSharp.Benchmarks -c Release -f net10.0 \
   --no-build -- --filter '*' --anyCategories Impact
 ```
@@ -75,7 +75,7 @@ To compare a change with the code before it, build a second checkout of the earl
 
 ```sh
 git worktree add ../cstructsharp-before HEAD
-dotnet build ../cstructsharp-before/CStructSharp.NonWeb.sln -c Release
+dotnet build ../cstructsharp-before/CStructSharp.NonWeb.slnf -c Release
 node tools/quality/quick-perf-check.mjs --baseline ../cstructsharp-before --categories Impact --rounds 1
 git worktree remove ../cstructsharp-before
 ```
@@ -194,7 +194,7 @@ meaningful; comparing absolute times across machines is not.
 
 ### Run it
 
-The project is kept out of `CStructSharp.sln` and `CStructSharp.NonWeb.sln` so that its third-party packages never
+The project is kept out of `CStructSharp.sln` (and so out of the `CStructSharp.NonWeb.slnf` filter) so that its third-party packages never
 enter the library build, its tests, or the release gate.
 
 ```sh

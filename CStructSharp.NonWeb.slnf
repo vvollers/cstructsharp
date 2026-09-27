@@ -1,0 +1,17 @@
+{
+  "solution": {
+    "path": "CStructSharp.sln",
+    "projects": [
+      "benchmarks\\CStructSharp.Benchmarks\\CStructSharp.Benchmarks.csproj",
+      "benchmarks\\CStructSharp.FixtureTool\\CStructSharp.FixtureTool.csproj",
+      "docs\\examples\\memory-analysis\\MemoryAnalysis.csproj",
+      "src\\CStructSharp\\CStructSharp.csproj",
+      "src\\CStructSharp.Generators\\CStructSharp.Generators.csproj",
+      "tests\\CStructSharp.Fuzz\\CStructSharp.Fuzz.csproj",
+      "tests\\CStructSharp.Generated.Parity\\CStructSharp.Generated.Parity.csproj",
+      "tests\\CStructSharp.Generators.Modern.Tests\\CStructSharp.Generators.Modern.Tests.csproj",
+      "tests\\CStructSharp.Generators.Tests\\CStructSharp.Generators.Tests.csproj",
+      "tests\\CStructSharpTests\\CStructSharpTests.csproj"
+    ]
+  }
+}

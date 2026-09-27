@@ -17,7 +17,7 @@ test("generator and shared build changes schedule advisory PR performance report
     "src/CStructSharp.Core/Parsing/LayoutParser.cs",
     "src/CStructSharp/CStructOperations.Async.cs",
     "Directory.Build.props", "Directory.Build.targets", "Directory.Packages.props",
-    "global.json", "NuGet.Config", "nuget.config", "CStructSharp.NonWeb.sln",
+    "global.json", "NuGet.Config", "nuget.config", "CStructSharp.NonWeb.slnf",
   ]) {
     // One changed file must be enough to schedule the report.
     assert.ok(patterns.some((pattern) => path.matchesGlob(changed, pattern)), changed);

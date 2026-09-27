@@ -28,6 +28,6 @@ Keep these reference pages nearby:
   [documentation maintenance](maintenance.md) cover the site.
 - [Traceability codes](work-items.md) explains the `LANG-nn`/`QA-nn` tags the contracts carry.
 
-Routine development uses `CStructSharp.NonWeb.sln`. The WebAssembly adapter and browser apps are optional and
+Routine development uses `CStructSharp.NonWeb.slnf`. The WebAssembly adapter and browser apps are optional and
 are tested together only during final integration, because rebuilding them for every core or documentation change
 adds substantial time without improving those focused checks.

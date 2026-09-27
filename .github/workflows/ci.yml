@@ -12,7 +12,7 @@ on:
       - "contracts/**"
       - "docs/examples/**"
       - "CStructSharp.sln"
-      - "CStructSharp.NonWeb.sln"
+      - "CStructSharp.NonWeb.slnf"
       - "global.json"
       - "Directory.Build.props"
       - ".config/**"
@@ -29,7 +29,7 @@ on:
       - "contracts/**"
       - "docs/examples/**"
       - "CStructSharp.sln"
-      - "CStructSharp.NonWeb.sln"
+      - "CStructSharp.NonWeb.slnf"
       - "global.json"
       - "Directory.Build.props"
       - ".config/**"
@@ -68,9 +68,6 @@ jobs:
           cache: true
           cache-dependency-path: "**/*.csproj"
 
-      - name: Verify .sln project-list parity
-        run: node tools/quality/solution-parity.mjs
-
       - name: Restore .NET tools
         run: dotnet tool restore
 
@@ -93,13 +90,13 @@ jobs:
           node tools/quality/changed-documentation.mjs --base "$DIFF_BASE" --language csharp
 
       - name: Restore dependencies
-        run: dotnet restore ./CStructSharp.NonWeb.sln
+        run: dotnet restore ./CStructSharp.NonWeb.slnf
 
       - name: Build
-        run: dotnet build ./CStructSharp.NonWeb.sln -c Release --no-restore
+        run: dotnet build ./CStructSharp.NonWeb.slnf -c Release --no-restore
 
       - name: Verify formatting and analyzer style
-        run: dotnet format ./CStructSharp.NonWeb.sln --verify-no-changes --severity warn --no-restore
+        run: dotnet format ./CStructSharp.NonWeb.slnf --verify-no-changes --severity warn --no-restore
 
       - name: Run synthetic memory consumer on both frameworks
         run: |
@@ -202,10 +199,10 @@ jobs:
           global-json-file: global.json
 
       - name: Restore dependencies
-        run: dotnet restore ./CStructSharp.NonWeb.sln
+        run: dotnet restore ./CStructSharp.NonWeb.slnf
 
       - name: Build
-        run: dotnet build ./CStructSharp.NonWeb.sln -c Release --no-restore
+        run: dotnet build ./CStructSharp.NonWeb.slnf -c Release --no-restore
 
       - name: Test .NET 8 and .NET 10
         run: dotnet test ./tests/CStructSharpTests/CStructSharpTests.csproj -c Release --no-build --logger trx --results-directory ./artifacts/test-results/${{ matrix.os }}

@@ -21,7 +21,7 @@ on:
       - "global.json"
       - "NuGet.Config"
       - "nuget.config"
-      - "CStructSharp.NonWeb.sln"
+      - "CStructSharp.NonWeb.slnf"
       - "benchmarks/**"
       - "contracts/performance/**"
       - "tools/quality/convert-benchmark-baseline.mjs"

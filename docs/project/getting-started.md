@@ -41,13 +41,13 @@ cd CStructSharp
 ```
 
 `git clone` downloads the repository and creates the `cstructsharp` repository directory. `cd` makes it the working directory
-for the commands that follow. Confirm that `CStructSharp.NonWeb.sln` and `global.json` are present before continuing.
+for the commands that follow. Confirm that `CStructSharp.NonWeb.slnf` and `global.json` are present before continuing.
 
 ## Restore pinned tools and packages
 
 ```sh
 dotnet tool restore
-dotnet restore CStructSharp.NonWeb.sln
+dotnet restore CStructSharp.NonWeb.slnf
 ```
 
 The first command installs the exact local versions recorded in `.config/dotnet-tools.json`, including DocFX,
@@ -60,7 +60,7 @@ package/build state.
 ## Build and test the baseline
 
 ```sh
-dotnet build CStructSharp.NonWeb.sln -c Release --no-restore
+dotnet build CStructSharp.NonWeb.slnf -c Release --no-restore
 dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release --no-build
 ```
 

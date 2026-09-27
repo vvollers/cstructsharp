@@ -106,7 +106,7 @@ make the comparison pass.
 less than 60% line coverage, or less than 50% branch coverage when it has at least ten branches. A high-risk
 file has less than 75% line coverage, or less than 65% branch coverage with at least ten branches.
 
-Collect the same whole-library measurement used by CI after building `CStructSharp.NonWeb.sln` in Release:
+Collect the same whole-library measurement used by CI after building `CStructSharp.NonWeb.slnf` in Release:
 
 ```sh
 node tools/quality/collect-library-coverage.mjs

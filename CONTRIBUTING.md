@@ -11,16 +11,17 @@ understand every release check before fixing a small bug.
 Run the normal build and test commands from the repository root:
 
 ```sh
-dotnet restore CStructSharp.NonWeb.sln
-dotnet build CStructSharp.NonWeb.sln -c Release --no-restore
+dotnet restore CStructSharp.NonWeb.slnf
+dotnet build CStructSharp.NonWeb.slnf -c Release --no-restore
 dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release --no-build
 ```
 
 The test command runs on both `net8.0` and `net10.0`. If it fails before you make a change, save the first error and
 your `dotnet --info` output. That makes it much easier to tell a setup problem from a code problem.
 
-Use `CStructSharp.NonWeb.sln` for normal library work. It leaves out the WebAssembly project and keeps the build
-smaller. Build the web projects only when your change affects the browser bridge or the web apps.
+Use `CStructSharp.NonWeb.slnf` for normal library work. It is a solution filter over `CStructSharp.sln` that leaves out
+the WebAssembly project and keeps the build smaller. A new project is added to `CStructSharp.sln` and, unless it is
+a web project, listed in the filter. Build the web projects only when your change affects the browser bridge or the web apps.
 
 ## A good workflow for a code change
 

@@ -31,8 +31,9 @@ and which direction their dependencies point.
 | `tools/` | Node validation, measurement, packaging, release, and documentation scripts; `lib/` holds their shared helpers | Takes explicit files/projects as inputs |
 | `.github/workflows/` | Continuous integration, scheduled mutation, docs, and release-candidate automation | Runs pinned actions and repository scripts |
 
-`CStructSharp.NonWeb.sln` contains core, the generator, tests, fuzz, and benchmarks. Use it for routine development.
-`CStructSharp.sln` adds the WASM project and belongs to final integration. The package-consumer project stays outside
+`CStructSharp.NonWeb.slnf` is a solution filter over `CStructSharp.sln` that loads core, the generator, tests, fuzz,
+and benchmarks. Use it for routine development. `CStructSharp.sln` also contains the WASM project; add a new project
+there and list it in the filter unless it is a web project. The package-consumer project stays outside
 both solutions because its package does not exist during the solution's initial restore.
 
 ## Dependency direction

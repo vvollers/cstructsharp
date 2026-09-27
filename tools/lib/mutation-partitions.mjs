@@ -25,7 +25,9 @@ export function mutationInvocation(root, configuration, output, patterns = []) {
   assert.equal(config.project, "src/CStructSharp/CStructSharp.csproj");
   assert.deepEqual(config["test-projects"], ["tests/CStructSharpTests/CStructSharpTests.csproj"]);
   const project = path.resolve(root, config.project);
-  const args = ["stryker", "--config-file", path.resolve(configuration), "--solution", path.join(root, "CStructSharp.NonWeb.sln"),
+  // No --solution: Stryker builds the test project and its references directly, so the WASM project in the
+  // solution (and its workload) is never needed.
+  const args = ["stryker", "--config-file", path.resolve(configuration),
     "--project", path.basename(project), "--test-project", path.resolve(root, config["test-projects"][0]),
     "--target-framework", "net10.0", "--configuration", "Release", "--output", path.resolve(output),
     "--skip-version-check", "--log-to-file"];

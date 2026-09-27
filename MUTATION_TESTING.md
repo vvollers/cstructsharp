@@ -44,7 +44,6 @@ dotnet tool restore
 cd src/CStructSharp
 dotnet stryker \
   --config-file ../../stryker-config.json \
-  --solution ../../CStructSharp.NonWeb.sln \
   --project CStructSharp.csproj \
   --test-project ../../tests/CStructSharpTests/CStructSharpTests.csproj \
   --target-framework net10.0 \
@@ -154,7 +153,6 @@ commit (and runs every test as usual):
 cd src/CStructSharp
 timeout 90m dotnet stryker \
   --config-file ../../stryker-config.json \
-  --solution ../../CStructSharp.NonWeb.sln \
   --project CStructSharp.csproj \
   --test-project ../../tests/CStructSharpTests/CStructSharpTests.csproj \
   --target-framework net10.0 \
@@ -213,7 +211,6 @@ When you change a risky file, start by mutating only that file. For example:
 cd src/CStructSharp
 dotnet stryker \
   --config-file ../../stryker-config.json \
-  --solution ../../CStructSharp.NonWeb.sln \
   --project CStructSharp.csproj \
   --test-project ../../tests/CStructSharpTests/CStructSharpTests.csproj \
   --target-framework net10.0 \

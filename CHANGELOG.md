@@ -34,6 +34,18 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 - A read reuses its pointer bookkeeping (the cycle-detection set and the deferred-pointer list) from a per-thread
   cache instead of allocating it, so a read that follows pointers allocates less than before.
 
+### Documentation and tooling
+
+- `CStructSharp.NonWeb.sln` is replaced by the solution filter `CStructSharp.NonWeb.slnf` over `CStructSharp.sln`.
+  Use it exactly as before (`dotnet build CStructSharp.NonWeb.slnf -c Release`); a new project is added only to
+  `CStructSharp.sln` and listed in the filter. Mutation testing no longer passes a solution to Stryker.
+- CI: one `web.yml` workflow replaces the explorer, inspector and npm package workflows and builds the WASM
+  publication once. `ci.yml`, `web.yml` and `docs.yml` run only when their area changes, plus weekly. Every workflow
+  reads Node from `.node-version`, and the npm package is also tested on Node 26.
+- The full documentation gate runs on Windows: tools start npm without a shell.
+- A new `Impact` benchmark category (about 30 cases, 5 minutes) checks a change quickly; `benchmarks/README.md`
+  describes before/after comparisons with `quick-perf-check.mjs`.
+
 ## 0.10.0 — 2026-09-26
 
 ### Performance

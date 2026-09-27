@@ -28,8 +28,8 @@ target.
 ## Build the routine development solution
 
 ```sh
-dotnet restore CStructSharp.NonWeb.sln
-dotnet build CStructSharp.NonWeb.sln -c Release --no-restore
+dotnet restore CStructSharp.NonWeb.slnf
+dotnet build CStructSharp.NonWeb.slnf -c Release --no-restore
 ```
 
 This compiles core, tests, fuzzing support, and benchmarks. It deliberately excludes the WebAssembly adapter.

@@ -61,7 +61,7 @@ and update the current contracts, tests, and documentation without retaining unu
 - Use the SDK in `global.json` and the Node version in `.node-version` (CI pins it). Minimums: Node 22.14 for `tools/`
   and the npm package, Node 24 for the documentation checks; each app uses its declared Node/npm versions and lockfile.
   Run commands from the repository root unless an app directory is specified.
-- Managed changes: `dotnet build CStructSharp.NonWeb.sln -c Release`, then
+- Managed changes: `dotnet build CStructSharp.NonWeb.slnf -c Release`, then
   `dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release --no-build` (both target frameworks).
   Add regression tests for behavior changes; use focused tests while iterating, then the required area checks.
 - Vue changes: from the affected app, run `npm run lint`, `npm run format:check`, `npm run test:unit`,
