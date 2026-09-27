@@ -1,28 +1,35 @@
 namespace CStructSharp.Compilation;
 
+using System.Threading;
 using CStructSharp.Reading;
 
 /// <summary>The runtime half of a compiled composite: the cached span read plan and layout fingerprint.</summary>
 internal sealed partial class CompiledCompositeType
 {
+    // Stands for "built, and this composite has no static plan", so the cache is a single reference.
+    private static readonly object NoStaticPlan = new();
+
     // Boxed so that publishing it is one reference write: a 16-byte ulong? could be read half-written by another thread.
     private System.Runtime.CompilerServices.StrongBox<ulong>? fingerprint;
-    private StaticReadPlan? staticPlan;
-    private bool staticPlanBuilt;
+
+    // Null until built, then the plan or NoStaticPlan. One reference, published with a release write, means another
+    // thread sees either nothing (and builds the same plan itself) or a complete result, never "built" without a plan.
+    private object? staticPlanState;
 
     /// <summary>The span read plan when every member is statically placed; null otherwise. Built on first use.</summary>
     public StaticReadPlan? StaticPlan
     {
         get
         {
-            if (!this.staticPlanBuilt)
+            object? state = Volatile.Read(ref this.staticPlanState);
+            if (state is null)
             {
                 // Built after the whole model is bound; a benign race builds the same plan twice.
-                this.staticPlan = StaticReadPlan.TryBuild(this);
-                this.staticPlanBuilt = true;
+                state = (object?)StaticReadPlan.TryBuild(this) ?? NoStaticPlan;
+                Volatile.Write(ref this.staticPlanState, state);
             }
 
-            return this.staticPlan;
+            return state as StaticReadPlan;
         }
     }
 

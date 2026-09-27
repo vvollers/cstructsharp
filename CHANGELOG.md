@@ -38,6 +38,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 - A `switch` with about 256 or more cases compiles. Construction no longer compiles each member's combined
   condition, which selection never uses; the expression limits (such as `MaxExpressionTokens`) apply to each
   selector on its own, so nested short conditions are no longer rejected for their combined length.
+- A struct's cached fast read plan is published safely across threads. On weakly ordered processors such as ARM,
+  a thread could see the plan as built but missing and keep that struct on the slower general reader.
 
 ### Performance
 
