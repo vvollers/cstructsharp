@@ -1,16 +1,20 @@
 namespace CStructSharp.Benchmarks;
 
 using System.Diagnostics;
-using CStructSharp.Benchmarks.Baseline0;
+using CStructSharp.Benchmarks.Scenarios;
 
 /// <summary>
 ///     Manual steady-state loop for sampling profilers (perf, dotnet-trace). Invoked as
 ///     <c>dotnet run -- --profile &lt;scenario&gt; [seconds]</c>; it warms for two seconds, then loops the scenario for
-///     the requested duration so an external profiler can attach or wrap the process. Scenarios mirror the four
-///     benchmarks named in the Phase 0 plan plus the JS-facing real-format parse.
+///     the requested duration so an external profiler can attach or wrap the process. Each scenario runs one benchmark
+///     case: compilation, array, nested, conditional, runtime-count and real-format parses, typed reads and writes.
 /// </summary>
 internal static class ProfileDriver
 {
+    /// <summary>Runs the scenario named in the arguments: two seconds of warm-up, then the measured loop.</summary>
+    /// <param name="args">The command line: <c>--profile</c>, the scenario (default <c>ParsePrimitiveArray1KiB</c>) and the seconds (default 10).</param>
+    /// <returns>The process exit code, zero.</returns>
+    /// <exception cref="ArgumentException">The scenario is unknown.</exception>
     public static int Run(string[] args)
     {
         string scenario = args.Length > 1 ? args[1] : "ParsePrimitiveArray1KiB";
@@ -24,6 +28,10 @@ internal static class ProfileDriver
         return 0;
     }
 
+    /// <summary>Calls an action repeatedly for a duration.</summary>
+    /// <param name="action">The scenario's operation.</param>
+    /// <param name="seconds">The wall-clock duration.</param>
+    /// <returns>The number of calls made.</returns>
     private static long RunFor(Func<object> action, double seconds)
     {
         long calls = 0;
@@ -39,22 +47,26 @@ internal static class ProfileDriver
         return calls;
     }
 
+    /// <summary>Sets up the benchmark class behind a scenario and returns its operation.</summary>
+    /// <param name="scenario">The scenario name.</param>
+    /// <returns>The operation to loop.</returns>
+    /// <exception cref="ArgumentException">The scenario is unknown.</exception>
     private static Func<object> CreateAction(string scenario)
     {
         switch (scenario)
         {
         case "CompileSmall":
             {
-                var benchmark = new CompilationBenchmarks();
+                var benchmark = new Scenarios.CompileBenchmarks { Fixture = "compile-small", };
                 benchmark.Setup();
-                return () => benchmark.CompileSmall();
+                return () => benchmark.Compile();
             }
 
         case "CompileMedium":
             {
-                var benchmark = new CompilationBenchmarks();
+                var benchmark = new Scenarios.CompileBenchmarks { Fixture = "compile-medium-128", };
                 benchmark.Setup();
-                return () => benchmark.CompileMedium();
+                return () => benchmark.Compile();
             }
 
         case "ParsePrimitiveArray1KiB":
@@ -73,21 +85,21 @@ internal static class ProfileDriver
 
         case "SerializeNested256":
             {
-                var benchmark = new Baseline0.WriteBenchmarks();
+                var benchmark = new Scenarios.WriteBenchmarks();
                 benchmark.Setup();
                 return () => benchmark.Serialize_Nested256_Expando_ToArray();
             }
 
         case "SerializePocoToSpan":
             {
-                var benchmark = new WriteAndUpdateBenchmarks();
+                var benchmark = new Scenarios.WriteBenchmarks();
                 benchmark.Setup();
-                return () => benchmark.SerializePocoToSpan();
+                return () => benchmark.Serialize_Prim_Poco_ToSpan();
             }
 
         case "ReadTypedNested256":
             {
-                var benchmark = new Baseline0.PathAndTypedBenchmarks();
+                var benchmark = new Scenarios.PathAndTypedBenchmarks();
                 benchmark.Setup();
                 return () => benchmark.ReadTyped_Nested256();
             }

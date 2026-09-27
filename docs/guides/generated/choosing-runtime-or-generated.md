@@ -46,7 +46,8 @@ The nested fixture (`Nested256`) shows the same four numbers for a struct with a
 where the generated `Parse` has 256 objects to create and the view has none.
 
 Numbers are from one machine and one run; the point is the ratios, not the microseconds. The release gate
-(`contracts/performance/non-web-rc1.json`) keeps the generated headline cases from regressing.
+(`contracts/performance/release-gate.json`), checked before each release, keeps the generated headline cases from
+regressing.
 
 ## Check yourself
 

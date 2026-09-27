@@ -113,8 +113,18 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   publication once. `ci.yml`, `web.yml` and `docs.yml` run only when their area changes, plus weekly. Every workflow
   reads Node from `.node-version`, and the npm package is also tested on Node 26.
 - The full documentation gate runs on Windows: tools start npm without a shell.
-- A new `Impact` benchmark category (about 30 cases, 5 minutes) checks a change quickly; `benchmarks/README.md`
+- A new `Impact` benchmark category (about 40 cases, 7 minutes) checks a change quickly; `benchmarks/README.md`
   describes before/after comparisons with `quick-perf-check.mjs`.
+- Benchmarks: one suite. The fixture-driven classes live in `Scenarios/` (category `Scenario`), the hand-written
+  duplicates of their compile, serialize, update and scalar-read cases are removed, and the release-gate category is
+  `Gate`. Every benchmark class and method is documented, and the generated benchmark layouts are checked against
+  their fixtures in setup. The performance contracts are named by role: `release-gate.json` (re-recorded with the
+  Gate job for the merged cases), `drift-scenarios.json`, `web-size-budget.json` and `web-drift.json`; their
+  published copies under `/docs/contracts/performance/` move with them. The release gate is documented as the manual
+  pre-release check it is, and the drift workflow runs the `Impact` cases against the matching scenario baseline
+  (`compare-benchmark-baseline.mjs --matching-only`).
+- Explorer: the generated test catalog loads as its own chunk, so the entry bundle holds application code only
+  (226 KB instead of 1.5 MB). The web size budget is re-measured, with the entry-bundle limit lowered to 256 KiB.
 - The feature-operation matrix no longer lists API compatibility baselines; the API contracts own them. The
   benchmark drift workflow watches only files that exist.
 - The memory contract (`contracts/memory/v1.json`) describes the `Opaque` type kind, and its validator checks the

@@ -5,7 +5,7 @@ import { gzipSync } from "node:zlib";
 import { validateWasmPublication } from "./wasm-publication.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
-const policy = JSON.parse(fs.readFileSync(path.join(root, "contracts/performance/web-rc1.json"), "utf8"));
+const policy = JSON.parse(fs.readFileSync(path.join(root, "contracts/performance/web-size-budget.json"), "utf8"));
 function measure(relative) {
   const directory = path.join(root, relative);
   const entries = fs.readdirSync(directory, { recursive: true, withFileTypes: true })
@@ -27,6 +27,6 @@ const report = { schemaVersion: 1, policy: policy.name, values, maximums: policy
 fs.mkdirSync(path.join(root, "artifacts/performance"), { recursive: true });
 fs.writeFileSync(path.join(root, "artifacts/performance/web.json"), `${JSON.stringify(report, null, 2)}\n`);
 console.log(JSON.stringify(report, null, 2));
-// Historical frontend budgets remain an explicit manual check. Publication size
-// and browser startup are enforced by their existing automated gates.
+// The frontend budgets are a manual check (--check). Publication size and browser startup are enforced by their
+// automated gates.
 if (process.argv.includes("--check") && exceeded.length) throw new Error(exceeded.join("\n"));

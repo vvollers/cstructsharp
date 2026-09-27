@@ -4,7 +4,7 @@
 // compare-summaries.mjs. Both checkouts must already be built in Release; nothing else should run meanwhile.
 //
 // Usage: node tools/quality/quick-perf-check.mjs --baseline <checkout dir> [--filter '*ReadBenchmarks*' ...]
-//        [--categories ReleaseGate,Baseline0] [--threshold 0.03] [--label <name>] [--rounds 2]
+//        [--categories Impact] [--threshold 0.03] [--label <name>] [--rounds 2]
 // Each side is measured `rounds` times, interleaved (before, after, before, after, ...), and the best median and
 // allocation per case is kept: a transient slowdown on either side then cannot masquerade as a change.
 import { execFileSync } from "node:child_process";

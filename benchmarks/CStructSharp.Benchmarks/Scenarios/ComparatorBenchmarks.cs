@@ -1,4 +1,4 @@
-namespace CStructSharp.Benchmarks.Baseline0;
+namespace CStructSharp.Benchmarks.Scenarios;
 
 using System.Buffers.Binary;
 using System.Dynamic;
@@ -11,7 +11,7 @@ using BenchmarkDotNet.Configs;
 ///     category pairs the hand-written floor (Baseline = true) with the library's parse of the same bytes, so the
 ///     Ratio column reports how far the schema-driven path is from a direct reader. Not apples-to-apples by design.
 /// </summary>
-[BenchmarkCategory("Baseline0", "Comparator")]
+[BenchmarkCategory("Scenario", "Comparator")]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
 public class ComparatorBenchmarks
 {

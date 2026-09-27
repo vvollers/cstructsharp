@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// Records a Phase 0 baseline contract (contracts/performance/non-web-rc2.json) from one or more normalized
+// Records a scenario drift baseline (contracts/performance/drift-scenarios.json) from one or more normalized
 // benchmark summaries (convert-benchmark-baseline.mjs output). Cases are keyed by type|method|parameters|runtime so
 // net8.0 and net10.0 are recorded separately. Environment capture (dotnet --info, CPU, OS, git revision, fixture
-// manifest hash) is embedded as baselineEvidence, matching the non-web-rc1 fields.
+// manifest hash) is embedded as baselineEvidence, matching the release-gate fields.
 //
-// Usage: node tools/quality/record-benchmark-baseline.mjs --output contracts/performance/non-web-rc2.json
-//        --summary <summary.json> [--summary <more.json>] [--budget-id non-web-rc2] [--job Short]
+// Usage: node tools/quality/record-benchmark-baseline.mjs --output contracts/performance/drift-scenarios.json
+//        --summary <summary.json> [--summary <more.json>] [--budget-id drift-scenarios] [--job Short]
 //        [--merge --note "E2.6a accepted"]   # replace only the cases present in the summaries, keep the rest
 import fs from "node:fs";
 import os from "node:os";
@@ -57,14 +57,14 @@ cases.sort((a, b) => a.type.localeCompare(b.type) || a.method.localeCompare(b.me
 const fixtureManifest = path.join(repositoryRoot, "benchmarks/fixtures/manifest.json");
 const contract = {
   schemaVersion: 1,
-  budgetId: option("--budget-id", "non-web-rc2"),
+  budgetId: option("--budget-id", "drift-scenarios"),
   status: "baseline",
-  description: "Phase 0 baseline of the scenario-matrix benchmarks (Baseline0 category) on both packaged target frameworks. Consumed by tools/quality/compare-benchmark-baseline.mjs as a soft drift report, not by the enforced rc1 release gate.",
+  description: "Baseline of the scenario benchmarks (Scenario category) on both packaged target frameworks, measured with the Short job. Consumed by tools/quality/compare-benchmark-baseline.mjs as a soft drift report; the benchmark drift workflow compares the Impact cases it contains.",
   date: new Date().toISOString().slice(0, 10),
   benchmark: {
     generator: "BenchmarkDotNet",
     generatorVersion: hostEnvironment?.BenchmarkDotNetVersion ?? "0.15.8",
-    category: "Baseline0",
+    category: "Scenario",
     job: option("--job", "Short"),
     runtimes: [...new Set(cases.map((c) => c.runtime))],
     minimumSamples: Math.min(...cases.map((c) => c.samples)),

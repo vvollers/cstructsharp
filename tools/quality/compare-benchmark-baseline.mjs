@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 // Soft drift report for BenchmarkDotNet summaries (schemaVersion 1, as produced by convert-benchmark-baseline.mjs
-// ) against a recorded baseline contract (contracts/performance/non-web-rc*.json).
+// ) against a recorded baseline contract (contracts/performance/release-gate.json or drift-scenarios.json).
 // Reports cases whose median grew more than the policy's soft ratio (default +10 %) or whose allocation grew more
 // than the soft allocation ratio (default +5 %), plus unstable cases (RSD above the limit). Exit code is 0 unless
 // --strict is given, so CI can surface drift without blocking merges until runner variance is characterized.
+// --matching-only compares only the baseline cases the summary contains, for a run of a category subset (such as
+// Impact) against a wider baseline; the cases it skips are counted, not reported as missing.
 //
 // Usage: node tools/quality/compare-benchmark-baseline.mjs --baseline <contract.json> --summary <summary.json>
-//        [--markdown <out.md>] [--strict] [--median-ratio 0.10] [--allocation-ratio 0.05]
+//        [--markdown <out.md>] [--strict] [--matching-only] [--median-ratio 0.10] [--allocation-ratio 0.05]
 import fs from "node:fs";
 
 const args = process.argv.slice(2);
@@ -18,7 +20,7 @@ const flag = (name) => args.includes(name);
 const baselinePath = option("--baseline");
 const summaryPath = option("--summary");
 if (!baselinePath || !summaryPath) {
-  console.error("Usage: compare-benchmark-baseline.mjs --baseline <contract.json> --summary <summary.json> [--markdown out.md] [--strict]");
+  console.error("Usage: compare-benchmark-baseline.mjs --baseline <contract.json> --summary <summary.json> [--markdown out.md] [--strict] [--matching-only]");
   process.exit(2);
 }
 
@@ -31,7 +33,7 @@ const rsdLimit = Number(baseline.benchmark?.maximumRelativeStandardDeviation ?? 
 const minimumMedianNs = Number(policy.minimumMedianNanoseconds ?? 200);
 const minimumAllocationBytes = Number(policy.minimumAllocationBytes ?? 256);
 
-// Baselines recorded per runtime (non-web-rc2) key on the runtime as well; single-runtime gates (non-web-rc1) do not.
+// Baselines recorded per runtime (drift-scenarios) key on the runtime as well; the single-runtime gate does not.
 const useRuntime = baseline.benchmark.cases.some((c) => c.runtime);
 const runtimeOf = (c) => c.runtime ?? (c.displayInfo?.match(/Runtime=([^,)]+)/)?.[1] ?? "").trim();
 const key = (c) => `${c.type}|${c.method}|${c.parameters ?? ""}${useRuntime ? `|${c.runtime ?? ""}` : ""}`;
@@ -48,9 +50,15 @@ let regressions = 0;
 let improvements = 0;
 let unstable = 0;
 let missing = 0;
+let notRun = 0;
+const matchingOnly = flag("--matching-only");
 for (const expected of baseline.benchmark.cases) {
   const k = key(expected);
   const actual = current.get(k);
+  if (!actual && matchingOnly) {
+    notRun++;
+    continue;
+  }
   if (!actual) {
     missing++;
     rows.push({ key: k, status: "missing" });
@@ -75,7 +83,8 @@ const lines = [];
 lines.push(`### Benchmark drift vs ${baseline.budgetId ?? baseline.name ?? baselinePath}`);
 lines.push("");
 lines.push(`Soft thresholds: median +${(medianRatio * 100).toFixed(0)}%, allocation +${(allocationRatio * 100).toFixed(0)}%, RSD limit ${rsdLimit}. ` +
-  `${rows.length} cases: ${regressions} regressed, ${improvements} improved, ${unstable} unstable, ${missing} missing.`);
+  `${rows.length} cases: ${regressions} regressed, ${improvements} improved, ${unstable} unstable, ${missing} missing.` +
+  (matchingOnly ? ` ${notRun} baseline cases were not in this run.` : ""));
 lines.push("");
 lines.push("| Case | Status | Baseline median | Median | Δ | Baseline alloc | Alloc | Δ | RSD |");
 lines.push("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");

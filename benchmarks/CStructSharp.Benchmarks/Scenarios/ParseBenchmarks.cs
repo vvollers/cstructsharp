@@ -1,4 +1,4 @@
-namespace CStructSharp.Benchmarks.Baseline0;
+namespace CStructSharp.Benchmarks.Scenarios;
 
 using BenchmarkDotNet.Attributes;
 
@@ -6,12 +6,13 @@ using BenchmarkDotNet.Attributes;
 ///     Warm steady-state parse of every fixture in the scenario matrix, through both the zero-copy span overload
 ///     and the seekable-stream overload. Sizes above 64 KiB use the larger read budgets recorded in the fixture.
 /// </summary>
-[BenchmarkCategory("Baseline0", "Parse")]
+[BenchmarkCategory("Scenario", "Parse")]
 public class ParseBenchmarks
 {
     private FixtureCase fixture = null!;
     private MemoryStream stream = null!;
 
+    /// <summary>Gets or sets the fixture id: records, real file formats and parity cases.</summary>
     [Params(
         "prim-le-record",
         "prim-le-x1k",
@@ -66,6 +67,7 @@ public class ParseBenchmarks
         "parity-primitive-root-256")]
     public string Fixture { get; set; } = null!;
 
+    /// <summary>Loads the fixture and opens a stream over its bytes.</summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -73,18 +75,23 @@ public class ParseBenchmarks
         this.stream = new MemoryStream(this.fixture.Bytes, writable: false);
     }
 
+    /// <summary>Disposes the stream.</summary>
     [GlobalCleanup]
     public void Cleanup()
     {
         this.stream.Dispose();
     }
 
+    /// <summary>Parses the fixture from memory: the reference.</summary>
+    /// <returns>The parsed root.</returns>
     [Benchmark(Baseline = true)]
     public object ParseSpan()
     {
         return this.fixture.ParseSpan();
     }
 
+    /// <summary>Parses the fixture from a seekable memory stream.</summary>
+    /// <returns>The parsed root.</returns>
     [Benchmark]
     public object ParseStream()
     {

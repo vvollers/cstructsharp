@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Soft drift report for JS harness results against contracts/performance/web-benchmark-rc1.json.
+// Soft drift report for JS harness results against contracts/performance/web-drift.json.
 // Usage: node bench/check.mjs [--baseline <contract>] [--node <node-latest.json>] [--browser <browser-latest.json>]
 //        [--markdown out.md] [--strict]
 import fs from "node:fs";
@@ -8,7 +8,7 @@ import { repositoryRoot } from "./fixtures.mjs";
 
 const args = process.argv.slice(2);
 const option = (name, fallback) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : fallback; };
-const baselinePath = option("--baseline", path.join(repositoryRoot, "contracts/performance/web-benchmark-rc1.json"));
+const baselinePath = option("--baseline", path.join(repositoryRoot, "contracts/performance/web-drift.json"));
 const baseline = JSON.parse(fs.readFileSync(baselinePath, "utf8"));
 const policy = baseline.softPolicy ?? {};
 const medianRatio = Number(option("--median-ratio", policy.medianGrowthRatio ?? 0.10));

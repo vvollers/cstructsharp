@@ -12,7 +12,7 @@ retain instability and canary warnings, and do not refresh baselines merely to m
 
 | Path | Purpose |
 | --- | --- |
-| `CStructSharp.Benchmarks/` | BenchmarkDotNet host. Original release-gate cases (`ReleaseGate` category) plus the Phase 0 `Baseline0/` scenario-matrix cases and hand-written comparators; `GeneratedBenchmarks` (category `Generated`) compares generated code with the runtime, `AsyncBenchmarks` (category `Async`) the stream forms with their awaitable twins, `SequenceBenchmarks` (category `Sequences`) segmented input and record sequences (`ParseMany`, `Records`, the view enumerator) with the loops a caller would write. The release gate holds 18 cases: 15 runtime, 2 generated parses, and the generated view enumerator. `--profile <scenario>` runs a manual loop for sampling profilers. |
+| `CStructSharp.Benchmarks/` | BenchmarkDotNet host. `Scenarios/` holds one fixture-driven class per operation (category `Scenario`: compile, parse, stream, path and typed reads, write, update, debug, malformed input, hand-written comparators); the classes beside it measure single operations (addresses, reads, text writes, memory analysis in category `Memory`); `GeneratedBenchmarks` (category `Generated`) compares generated code with the runtime, `AsyncBenchmarks` (category `Async`) the stream forms with their awaitable twins, `SequenceBenchmarks` (category `Sequences`) segmented input and record sequences (`ParseMany`, `Records`, the view enumerator) with the loops a caller would write. The `Gate` category selects the release-gate cases, and `Impact` the quick before/after subset. `--profile <scenario>` runs a manual loop for sampling profilers. |
 | `CStructSharp.Comparison/` | The serializer comparison shown in the root README: a fixed 79-byte record and a data-dependent record deserialized and serialized by CStructSharp and by other .NET serializers. It is outside both solutions; see [Compare with other serializers](#compare-with-other-serializers). |
 | `CStructSharp.FixtureTool/` | Fills and verifies `fixtures/` expectations with the managed library; also the shared fixture loader the benchmarks use. |
 | `fixtures/` | Seeded fixture corpus shared by .NET, Node, and browser harnesses (see its README). |
@@ -23,15 +23,15 @@ retain instability and canary warnings, and do not refresh baselines merely to m
 
 ```sh
 dotnet build ./CStructSharp.NonWeb.slnf -c Release
-# Phase 0 scenario matrix, both target frameworks, Short job (1 launch, 3 warmups, 5 iterations):
+# Scenario matrix, both target frameworks, Short job (1 launch, 3 warmups, 5 iterations):
 CSTRUCTSHARP_BENCHMARK_JOB=Short CSTRUCTSHARP_BENCHMARK_RUNTIMES=net10.0,net8.0 \
-  dotnet run --project benchmarks/CStructSharp.Benchmarks -c Release -f net10.0 --no-build -- --filter '*Baseline0*'
+  dotnet run --project benchmarks/CStructSharp.Benchmarks -c Release -f net10.0 --no-build -- --filter '*' --anyCategories Scenario
 # Release-gate cases, Gate job (3 launches, 5 warmups, 8 iterations), net10.0 only:
 CSTRUCTSHARP_BENCHMARK_JOB=Gate dotnet run --project benchmarks/CStructSharp.Benchmarks -c Release -f net10.0 --no-build -- \
-  --filter '*' --anyCategories ReleaseGate
+  --filter '*' --anyCategories Gate
 # Cold start (5 fresh processes, one measured call each):
 CSTRUCTSHARP_BENCHMARK_JOB=ColdStart dotnet run --project benchmarks/CStructSharp.Benchmarks -c Release -f net10.0 --no-build -- \
-  --filter '*Baseline0.CompileBenchmarks*'
+  --filter '*Scenarios.CompileBenchmarks*'
 ```
 
 Environment variables: `CSTRUCTSHARP_BENCHMARK_JOB` = `Dry` | `Short` | `Gate` | `ColdStart`;
@@ -43,11 +43,16 @@ Normalize and compare:
 
 ```sh
 node tools/quality/convert-benchmark-baseline.mjs <results dir or report-full.json> artifacts/summary.json
-node tools/quality/compare-benchmark-baseline.mjs --baseline contracts/performance/non-web-rc2.json --summary artifacts/summary.json
-node tools/quality/non-web-release-budgets.mjs --benchmark-summary-path artifacts/summary.json   # rc1 hard gate
+node tools/quality/compare-benchmark-baseline.mjs --baseline contracts/performance/drift-scenarios.json --summary artifacts/summary.json
+node tools/quality/non-web-release-budgets.mjs --benchmark-summary-path artifacts/summary.json   # release gate
 ```
 
-`convert-benchmark-baseline.mjs` is the only converter.
+`convert-benchmark-baseline.mjs` is the only converter. Add `--matching-only` to the comparison when the summary
+holds a subset of the baseline (for example the `Impact` cases against the scenario baseline).
+
+The release gate (`contracts/performance/release-gate.json`) is a manual pre-release check: run the `Gate` cases
+with the Gate job on a quiet machine, convert the report, and pass it to `non-web-release-budgets.mjs`. CI runs only
+the tool's self-test, because shared runners are too noisy for timing budgets.
 
 The "Typical costs" table in `docs/guides/performance.md` is rendered from a converted summary (plus the JS
 harness's `node-latest.json` and the web artifact measurement) by
@@ -57,11 +62,11 @@ performance contracts.
 
 ## Check a change quickly: the Impact category
 
-The full suite takes about 45 minutes. The `Impact` category is a subset of about 30 cases that covers every
+The full suite takes about 45 minutes. The `Impact` category is a subset of about 40 cases that covers every
 execution path a change can affect: compilation, span parses of eleven fixtures chosen for their differences
 (`ImpactParseBenchmarks`: fixed records, nested structs, big-endian arrays, runtime counts, conditions, strings, a
 real file header, pointers, bitfields, unions, alias spellings), generated parse, view and serialize, a hand-written
-canary, paths, typed reads, serialize and update, debug ranges, async and segmented input. One run takes about five
+canary, paths, typed reads, serialize and update, debug ranges, async and segmented input. One run takes about seven
 minutes:
 
 ```sh
@@ -248,7 +253,7 @@ node benchmarks/js/bench/profile-browser.mjs real-png 2000 artifacts/profiles   
 
 ## Anti-benchmarking rules
 
-The `Baseline0.ComparatorBenchmarks.HandWritten_*` cases exercise no library code, so they are the canary for a
+The `Scenarios.ComparatorBenchmarks.HandWritten_*` cases exercise no library code, so they are the canary for a
 recording run: if any of them drifts more than 10 % against the contract, the machine was perturbed during the run
 (this happens on shared VMs) — discard the run and repeat it rather than re-recording from it.
 

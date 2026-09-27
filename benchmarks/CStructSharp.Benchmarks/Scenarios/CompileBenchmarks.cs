@@ -1,19 +1,21 @@
-namespace CStructSharp.Benchmarks.Baseline0;
+namespace CStructSharp.Benchmarks.Scenarios;
 
 using BenchmarkDotNet.Attributes;
 using CStructSharp.FixtureTool;
 
 /// <summary>S-COMPILE: schema parsing and compiled-layout construction, including the repeated-schema workload.</summary>
-[BenchmarkCategory("Baseline0", "Compile")]
+[BenchmarkCategory("Scenario", "Compile")]
 public class CompileBenchmarks
 {
     private string definition = null!;
     private FixtureOptions options = null!;
     private string[] roundRobin = null!;
 
+    /// <summary>Gets or sets the fixture whose definition is compiled: synthetic structs of growing size, nesting, a Windows header, and real file formats.</summary>
     [Params("compile-small", "compile-medium-128", "compile-large-512", "compile-nested", "compile-windows-header", "real-png", "real-pe-exe", "real-tar")]
     public string Fixture { get; set; } = null!;
 
+    /// <summary>Loads the fixture's definition and options, and the 100 distinct definitions of <c>compile-k100</c>.</summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -23,7 +25,10 @@ public class CompileBenchmarks
         this.roundRobin = FixtureCase.LoadDocument("compile-k100").Definitions!.ToArray();
     }
 
+    /// <summary>Compiles the fixture's definition with its options.</summary>
+    /// <returns>The compiled layout.</returns>
     [Benchmark]
+    [BenchmarkCategory("Gate", "Impact")]
     public CStruct Compile()
     {
         return new CStruct(this.definition, this.options.PointerSize, this.options.Aligned, this.options.LittleEndian);

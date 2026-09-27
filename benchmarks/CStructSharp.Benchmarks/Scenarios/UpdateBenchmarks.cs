@@ -1,9 +1,9 @@
-namespace CStructSharp.Benchmarks.Baseline0;
+namespace CStructSharp.Benchmarks.Scenarios;
 
 using BenchmarkDotNet.Attributes;
 
 /// <summary>S-UPDATE: in-place field updates on small and large targets through the staging update stream.</summary>
-[BenchmarkCategory("Baseline0", "Update")]
+[BenchmarkCategory("Scenario", "Update")]
 public class UpdateBenchmarks
 {
     private FixtureCase prim = null!;
@@ -20,6 +20,7 @@ public class UpdateBenchmarks
     private MemoryStream unionStream = null!;
     private UpdateOptions largeArrayOptions = null!;
 
+    /// <summary>Loads the fixtures, copies each into a writable stream, and raises the traversal limits for the 1 MiB array.</summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -42,6 +43,7 @@ public class UpdateBenchmarks
         };
     }
 
+    /// <summary>Disposes the writable streams.</summary>
     [GlobalCleanup]
     public void Cleanup()
     {
@@ -51,6 +53,8 @@ public class UpdateBenchmarks
         }
     }
 
+    /// <summary>Updates <c>root.c</c>, a four-byte scalar of the 28-byte record.</summary>
+    /// <returns>The stream position after the update.</returns>
     [Benchmark]
     public long Update_Scalar_4B()
     {
@@ -59,7 +63,10 @@ public class UpdateBenchmarks
         return this.primStream.Position;
     }
 
+    /// <summary>Updates one bitfield of the fourth record, which reads and rewrites its storage unit.</summary>
+    /// <returns>The stream position after the update.</returns>
     [Benchmark]
+    [BenchmarkCategory("Impact")]
     public long Update_Bitfield()
     {
         this.bitfieldStream.Position = 0;
@@ -67,6 +74,8 @@ public class UpdateBenchmarks
         return this.bitfieldStream.Position;
     }
 
+    /// <summary>Updates the middle element of a 1 KiB byte array.</summary>
+    /// <returns>The stream position after the update.</returns>
     [Benchmark]
     public long Update_ArrayElement_1K()
     {
@@ -75,6 +84,8 @@ public class UpdateBenchmarks
         return this.array1KStream.Position;
     }
 
+    /// <summary>Updates the last element of a 1 MiB byte array.</summary>
+    /// <returns>The stream position after the update.</returns>
     [Benchmark]
     public long Update_ArrayElement_1M()
     {
@@ -83,8 +94,10 @@ public class UpdateBenchmarks
         return this.array1MStream.Position;
     }
 
-    /// <summary>Updates the scalar inside the pointer target (the pointer-extent bug that blocked this path is fixed).</summary>
+    /// <summary>Updates the scalar inside the pointer target, which the update reaches by following the stored pointer.</summary>
+    /// <returns>The stream position after the update.</returns>
     [Benchmark]
+    [BenchmarkCategory("Gate")]
     public long Update_PointerTarget()
     {
         this.pointerStream.Position = 0;
@@ -92,6 +105,8 @@ public class UpdateBenchmarks
         return this.pointerStream.Position;
     }
 
+    /// <summary>Updates the larger member of a union in the eighth record.</summary>
+    /// <returns>The stream position after the update.</returns>
     [Benchmark]
     public long Update_UnionMember()
     {
@@ -100,6 +115,9 @@ public class UpdateBenchmarks
         return this.unionStream.Position;
     }
 
+    /// <summary>Copies a fixture's bytes into a writable memory stream.</summary>
+    /// <param name="fixture">The fixture.</param>
+    /// <returns>The stream.</returns>
     private static MemoryStream Writable(FixtureCase fixture)
     {
         return new MemoryStream(fixture.Bytes.ToArray(), writable: true);

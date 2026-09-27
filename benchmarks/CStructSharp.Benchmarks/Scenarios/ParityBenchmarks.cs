@@ -1,4 +1,4 @@
-namespace CStructSharp.Benchmarks.Baseline0;
+namespace CStructSharp.Benchmarks.Scenarios;
 
 using System.Buffers;
 using System.Globalization;
@@ -11,7 +11,7 @@ using CStructSharp.Codecs;
 ///     source. The fixture-backed parity cases (aliases, inline unions, flags, data-sized arrays, a synthetic root)
 ///     run through the ordinary Parse/Write/Update benchmarks.
 /// </summary>
-[BenchmarkCategory("Baseline0", "Parity")]
+[BenchmarkCategory("Scenario", "Parity")]
 public class ParityBenchmarks
 {
     private const string Prelude = "typedef uint32 DWORD_T; typedef uint16 WORD_T; flag ACCESS : uint16 { READ, WRITE, EXEC }; #define HEADER_SIZE 12\n";
@@ -22,6 +22,7 @@ public class ParityBenchmarks
     private CStructCompilationOptions preludeOptions = null!;
     private byte[] varintBytes = null!;
 
+    /// <summary>Compiles the codec layout and the byte-order source layout, and prepares the prelude options and codec input.</summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -70,6 +71,7 @@ public class ParityBenchmarks
         return this.siblingSource.WithEndianness(isLittleEndian: false);
     }
 
+    /// <summary>An unsigned LEB128 integer: seven bits per byte, low group first, the high bit set on every byte but the last.</summary>
     private sealed class Varint : ICustomCodec
     {
         public string Name => "varint";
@@ -78,6 +80,11 @@ public class ParityBenchmarks
 
         public int Alignment => 1;
 
+        /// <summary>Decodes one integer of at most ten bytes.</summary>
+        /// <param name="source">The bytes at the member's offset.</param>
+        /// <param name="value">The decoded <see cref="ulong"/>, or <see langword="null"/> when decoding fails.</param>
+        /// <param name="bytesConsumed">The number of bytes the integer occupies.</param>
+        /// <returns><see cref="OperationStatus.Done"/>, <see cref="OperationStatus.NeedMoreData"/> for a cut integer, or <see cref="OperationStatus.InvalidData"/> after ten bytes.</returns>
         public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesConsumed)
         {
             ulong result = 0;
@@ -97,6 +104,11 @@ public class ParityBenchmarks
             return source.Length >= 10 ? OperationStatus.InvalidData : OperationStatus.NeedMoreData;
         }
 
+        /// <summary>Encodes one integer.</summary>
+        /// <param name="destination">The bytes at the member's offset.</param>
+        /// <param name="value">A value convertible to <see cref="ulong"/>.</param>
+        /// <param name="bytesWritten">The number of bytes written.</param>
+        /// <returns><see cref="OperationStatus.Done"/>, or <see cref="OperationStatus.DestinationTooSmall"/> when the encoding does not fit.</returns>
         public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)
         {
             ulong remaining = Convert.ToUInt64(value, CultureInfo.InvariantCulture);

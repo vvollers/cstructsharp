@@ -194,10 +194,13 @@ compressed sizes.
 Performance work follows a recorded-baseline discipline. `benchmarks/fixtures/` is a seeded corpus shared by the
 .NET, Node, and browser harnesses; `CStructSharp.FixtureTool fill` records the expected result of every fixture
 from the managed library and `verify` re-checks it, so a performance change that alters any parsed value fails
-before it is measured. `contracts/performance/non-web-rc1.json` is the enforced release gate (Gate job, medians
-and allocations with generous multipliers); `non-web-rc2.json` and `web-benchmark-rc1.json` are the wider
-baselines used by the soft drift report (`tools/quality/compare-benchmark-baseline.mjs`,
-`benchmarks/js/bench/check.mjs`, and the non-failing `benchmark-drift` workflow). Re-record a baseline only for an
+before it is measured. `contracts/performance/release-gate.json` is the release gate: the maintainer runs the `Gate`
+benchmark category with the Gate job before a release, and `tools/quality/non-web-release-budgets.mjs` compares the
+medians and allocations with generous multipliers. No workflow runs it with real data, because shared CI runners are
+too noisy for a timing budget. `drift-scenarios.json` and `web-drift.json` are the wider baselines used by the soft
+drift report (`tools/quality/compare-benchmark-baseline.mjs`, `benchmarks/js/bench/check.mjs`, and the
+non-failing `benchmark-drift` workflow, which runs the `Impact` cases and compares those the scenario baseline
+contains). `web-size-budget.json` holds the size and startup limits of the browser build. Re-record a baseline only for an
 accepted change, with the `--merge` mode of `tools/quality/record-benchmark-baseline.mjs` or
 `benchmarks/js/bench/record.mjs`, and record what moved in the contract's `updates` note. The complete procedure (jobs,
 runtimes, profiling, browser harness, AOT variant) is in `benchmarks/README.md` and `benchmarks/js/README.md` in the repository.

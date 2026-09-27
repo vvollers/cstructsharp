@@ -30,7 +30,7 @@ export const END_MARKER = "<!-- typical-costs:end -->";
  * user terms what it measures; the summary supplies the median and the allocation.
  */
 export const MANAGED_ROWS = [
-  { type: "CompilationBenchmarks", method: "CompileSmall", parameters: "", operation: "Compile a two-field struct (`struct root { uint8 kind; uint32 value; };`)" },
+  { type: "CompileBenchmarks", method: "Compile", parameters: "Fixture=compile-small", operation: "Compile a two-field struct (`struct root { uint8 kind; uint32 value; };`)" },
   { type: "CompileBenchmarks", method: "Compile", parameters: "Fixture=real-png", operation: "Compile the PNG header fixture (an enum and two structs)" },
   { type: "CompileBenchmarks", method: "GetOrCompile_Hit", parameters: "Fixture=real-png", operation: "`GetOrCompile` hit for the same source (cache lookup)" },
   { type: "ReadBenchmarks", method: "ParseSmallRootMemory", parameters: "", operation: "`Parse` a five-byte record with a `count`-sized array from memory" },
@@ -40,8 +40,8 @@ export const MANAGED_ROWS = [
   { type: "AddressBenchmarks", method: "ResolveFixedNestedArray", parameters: "Index=127", operation: "`ResolveAddress` of `items[127]` in a fixed nested array" },
   { type: "DebugBenchmarks", method: "ParseWithDebug", parameters: "Fixture=real-png", operation: "`ParseWithDebug` of the PNG fixture (byte ranges for every value)" },
   { type: "MalformedBenchmarks", method: "ParseAndCatch", parameters: "Fixture=malformed-truncated", operation: "Truncated input: `Parse` throws and the caller catches" },
-  { type: "WriteAndUpdateBenchmarks", method: "SerializePocoToSpan", parameters: "", operation: "`Serialize` a mapped class into a caller-provided span" },
-  { type: "WriteAndUpdateBenchmarks", method: "UpdatePointerTarget", parameters: "", operation: "`Update` one value behind a pointer in place" },
+  { type: "WriteBenchmarks", method: "Serialize_Prim_Poco_ToSpan", parameters: "", operation: "`Serialize` a mapped class into a caller-provided span" },
+  { type: "UpdateBenchmarks", method: "Update_PointerTarget", parameters: "", operation: "`Update` one value behind a pointer in place" },
   { type: "LargeStreamBenchmarks", method: "Parse16M_MemoryStream", parameters: "", operation: "`Parse` a 16 MiB record from a `MemoryStream`" },
 ];
 

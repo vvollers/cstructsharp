@@ -1,9 +1,9 @@
-namespace CStructSharp.Benchmarks.Baseline0;
+namespace CStructSharp.Benchmarks.Scenarios;
 
 using BenchmarkDotNet.Attributes;
 
 /// <summary>The 16 MiB stream case runs once per iteration because a single parse takes hundreds of milliseconds.</summary>
-[BenchmarkCategory("Baseline0", "Stream", "Large")]
+[BenchmarkCategory("Scenario", "Stream", "Large")]
 public class LargeStreamBenchmarks
 {
     private FixtureCase fixture = null!;
@@ -11,6 +11,7 @@ public class LargeStreamBenchmarks
     private BufferedStream bufferedStream = null!;
     private string tempPath = null!;
 
+    /// <summary>Loads the 16 MiB fixture and opens it as a memory stream and as a file behind a 1 MiB buffer.</summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -21,6 +22,7 @@ public class LargeStreamBenchmarks
         this.bufferedStream = new BufferedStream(new FileStream(this.tempPath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 1), 1024 * 1024);
     }
 
+    /// <summary>Disposes the streams and deletes the temporary file.</summary>
     [GlobalCleanup]
     public void Cleanup()
     {
@@ -29,6 +31,8 @@ public class LargeStreamBenchmarks
         File.Delete(this.tempPath);
     }
 
+    /// <summary>Parses the 16 MiB record from a memory stream.</summary>
+    /// <returns>The parsed root.</returns>
     [Benchmark(Baseline = true)]
     [InvocationCount(1)]
     public object Parse16M_MemoryStream()
@@ -36,6 +40,8 @@ public class LargeStreamBenchmarks
         return this.fixture.Parse(this.memoryStream);
     }
 
+    /// <summary>Parses the same record from an unbuffered file stream wrapped in a 1 MiB <see cref="BufferedStream"/>.</summary>
+    /// <returns>The parsed root.</returns>
     [Benchmark]
     [InvocationCount(1)]
     public object Parse16M_BufferedFileStream_1M()

@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "budgetId": "non-web-rc2",
+  "budgetId": "drift-scenarios",
   "status": "baseline",
-  "description": "Phase 0 baseline of the scenario-matrix benchmarks (Baseline0 category) on both packaged target frameworks. Consumed by tools/quality/compare-benchmark-baseline.mjs as a soft drift report, not by the enforced rc1 release gate.",
+  "description": "Baseline of the scenario benchmarks (Scenario category) on both packaged target frameworks, measured with the Short job. Consumed by tools/quality/compare-benchmark-baseline.mjs as a soft drift report; the benchmark drift workflow compares the Impact cases it contains.",
   "date": "2026-09-14",
   "benchmark": {
     "generator": "BenchmarkDotNet",
     "generatorVersion": "0.15.8",
-    "category": "Baseline0",
+    "category": "Scenario",
     "job": "Short",
     "runtimes": [
       ".NET 10.0",

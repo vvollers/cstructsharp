@@ -5,7 +5,7 @@ using BenchmarkDotNet.Attributes;
 /// <summary>
 ///     Indexed address resolution into a 10,000-element array of a fixed-size struct. Lives in its own class so its
 ///     <see cref="FixedSizeStructArrayIndex"/> parameter does not attach to the <see cref="ReadBenchmarks"/>
-///     release-gate cases, whose contract keys (contracts/performance/non-web-rc1.json) have no parameters.
+///     release-gate cases, whose contract keys (contracts/performance/release-gate.json) have no parameters.
 /// </summary>
 [BenchmarkCategory("IndexedArrayAccess")]
 public class IndexedArrayAccessBenchmarks
@@ -22,6 +22,7 @@ public class IndexedArrayAccessBenchmarks
     [Params(0, 1, 10, 100, 1000, 9999)]
     public int FixedSizeStructArrayIndex { get; set; }
 
+    /// <summary>Compiles the layout, opens a zeroed 60,000-byte stream, and builds the element path.</summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -31,6 +32,7 @@ public class IndexedArrayAccessBenchmarks
         this.fixedSizeStructArrayElementPath = $"root.items[{this.FixedSizeStructArrayIndex}].id";
     }
 
+    /// <summary>Disposes the stream.</summary>
     [GlobalCleanup]
     public void Cleanup()
     {

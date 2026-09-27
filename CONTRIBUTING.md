@@ -234,9 +234,9 @@ Most contributions do not need this section. Before preparing a release candidat
 - pass managed tests on both target frameworks;
 - pass formatting, coverage, risk, mutation, dependency-audit, API, language, fuzz, and documentation checks;
 - pass package, symbol-package, and package-consumer validation;
-- pass the benchmark and package limits in
-  `contracts/performance/non-web-rc1.json`;
-- run `node tools/quality/non-web-release-budgets.mjs --self-test`;
+- run the `Gate` benchmark category with the Gate job and pass the benchmark and package limits in
+  `contracts/performance/release-gate.json` (`node tools/quality/non-web-release-budgets.mjs`; CI runs only its
+  `--self-test`);
 - build the full WebAssembly and Vue application and pass its audit, browser, compatibility, reproducibility, and
   size checks when the browser is part of the release;
 - update `CHANGELOG.md` and check the package version, license, repository URL, documentation URL, release notes, and

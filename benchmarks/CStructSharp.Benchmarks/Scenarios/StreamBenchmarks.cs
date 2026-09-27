@@ -1,9 +1,9 @@
-namespace CStructSharp.Benchmarks.Baseline0;
+namespace CStructSharp.Benchmarks.Scenarios;
 
 using BenchmarkDotNet.Attributes;
 
 /// <summary>S-STREAM: the same payload through memory, file, and buffered-file streams (all must be seekable).</summary>
-[BenchmarkCategory("Baseline0", "Stream")]
+[BenchmarkCategory("Scenario", "Stream")]
 public class StreamBenchmarks
 {
     private FixtureCase fixture = null!;
@@ -12,9 +12,11 @@ public class StreamBenchmarks
     private BufferedStream bufferedStream = null!;
     private string tempPath = null!;
 
+    /// <summary>Gets or sets the fixture id.</summary>
     [Params("array-u8-65536", "array-u8-1048576", "prim-le-x1k")]
     public string Fixture { get; set; } = null!;
 
+    /// <summary>Loads the fixture, writes it to a temporary file, and opens the memory, unbuffered-file and buffered-file streams.</summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -26,6 +28,7 @@ public class StreamBenchmarks
         this.bufferedStream = new BufferedStream(new FileStream(this.tempPath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 1), 64 * 1024);
     }
 
+    /// <summary>Disposes the streams and deletes the temporary file.</summary>
     [GlobalCleanup]
     public void Cleanup()
     {
@@ -35,18 +38,24 @@ public class StreamBenchmarks
         File.Delete(this.tempPath);
     }
 
+    /// <summary>Parses the fixture from a memory stream: the reference.</summary>
+    /// <returns>The parsed root.</returns>
     [Benchmark(Baseline = true)]
     public object Parse_MemoryStream()
     {
         return this.fixture.Parse(this.memoryStream);
     }
 
+    /// <summary>Parses the fixture from a file stream with a one-byte buffer, so every read reaches the operating system.</summary>
+    /// <returns>The parsed root.</returns>
     [Benchmark]
     public object Parse_FileStream_Unbuffered()
     {
         return this.fixture.Parse(this.fileStream);
     }
 
+    /// <summary>Parses the fixture from the same file behind a 64 KiB <see cref="BufferedStream"/>.</summary>
+    /// <returns>The parsed root.</returns>
     [Benchmark]
     public object Parse_BufferedFileStream_64K()
     {

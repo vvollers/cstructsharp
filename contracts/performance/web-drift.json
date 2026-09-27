@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "name": "web-benchmark-rc1",
+  "name": "web-drift",
   "status": "baseline",
-  "description": "Phase 0 baseline of the JS/WASM bridge (benchmarks/js): boundary micro-cases, retained-layout core parse and JSON projection, public API, compiled handle, stream sources, DataView comparators, and cold start in Node and headless Chromium. Consumed by benchmarks/js/bench/check.mjs as a soft drift report.",
+  "description": "Baseline of the JS/WASM bridge (benchmarks/js): boundary micro-cases, retained-layout core parse and JSON projection, public API, compiled handle, stream sources, DataView comparators, and cold start in Node and headless Chromium. Consumed by benchmarks/js/bench/check.mjs as a soft drift report.",
   "date": "2026-09-14",
   "softPolicy": {
     "medianGrowthRatio": 0.1,

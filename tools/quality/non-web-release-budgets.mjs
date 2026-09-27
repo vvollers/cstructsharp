@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * Enforces the non-web release budgets (contracts/performance/non-web-rc1.json): the BenchmarkDotNet release-gate
- * summary against its noise-aware timing and allocation budgets, and the NuGet package pair against its size
- * budgets. `--self-test` checks the policy and the gate logic with synthetic inputs.
+ * Checks the non-web release budgets (contracts/performance/release-gate.json): a BenchmarkDotNet summary of the
+ * Gate category, measured with the Gate job, against its noise-aware timing and allocation budgets, and the NuGet
+ * package pair against its size budgets. The maintainer runs it by hand before a release; CI runs only
+ * `--self-test`, which checks the policy and the gate logic with synthetic inputs.
  *
  *   node tools/quality/non-web-release-budgets.mjs [--policy-path <json>] [--self-test]
  *     [--benchmark-summary-path <json>] [--package-artifact-path <json>]
@@ -14,7 +15,7 @@ import { assertCondition, main, parseArguments, repositoryRoot } from "../lib/to
 const options = parseArguments(
   process.argv.slice(2),
   { "policy-path": "string", "benchmark-summary-path": "string", "package-artifact-path": "string", "self-test": "flag" },
-  { defaults: { "policy-path": path.join(repositoryRoot, "contracts/performance/non-web-rc1.json"), "self-test": false } },
+  { defaults: { "policy-path": path.join(repositoryRoot, "contracts/performance/release-gate.json"), "self-test": false } },
 );
 const isFile = (file) => fs.existsSync(file) && fs.statSync(file).isFile();
 const caseKey = (benchmark) => `${benchmark.type ?? ""}|${benchmark.method ?? ""}|${benchmark.parameters ?? ""}`;
@@ -115,13 +116,12 @@ await main(() => {
   assertCondition(isFile(options["policy-path"]), `Non-Web release budget policy '${options["policy-path"]}' does not exist.`);
   const policy = JSON.parse(fs.readFileSync(options["policy-path"], "utf8"));
   assertCondition(policy.schemaVersion === 1, "Unsupported non-Web release budget schema.");
-  assertCondition(policy.budgetId === "non-web-rc1", "Unexpected non-Web release budget id.");
-  assertCondition(policy.status === "enforced", "Non-Web release budgets are not enforced.");
-  assertCondition(policy.workItem === "QA-08", "Non-Web release budgets are not assigned to QA-08.");
+  assertCondition(policy.budgetId === "release-gate", "Unexpected non-Web release budget id.");
   const benchmark = policy.benchmark;
   assertCondition(benchmark.generator === "BenchmarkDotNet", "The benchmark policy names an unexpected generator.");
   assertCondition(benchmark.generatorVersion === "0.15.8", "The benchmark policy must pin BenchmarkDotNet 0.15.8.");
   assertCondition(benchmark.targetFramework === "net10.0", "The benchmark policy must target net10.0.");
+  assertCondition(benchmark.category === "Gate", "The benchmark policy must name the Gate category.");
   assertCondition(
     benchmark.job.launchCount === 3 && benchmark.job.warmupCount === 5 && benchmark.job.iterationCount === 8,
     "The benchmark release-gate job must retain 3 launches, 5 warmups, and 8 measured iterations.",
@@ -130,7 +130,7 @@ await main(() => {
   assertCondition(benchmark.maximumMedianMultiplier >= 1, "The benchmark median multiplier is invalid.");
   assertCondition(benchmark.maximumRelativeStandardDeviation > 0 && benchmark.maximumRelativeStandardDeviation <= 0.5, "The benchmark dispersion limit must be in (0, 0.5].");
   const policyCases = benchmark.cases ?? [];
-  assertCondition(policyCases.length === 18, "The non-Web benchmark gate must contain exactly 18 cases (15 runtime, 3 generated).");
+  assertCondition(policyCases.length > 0, "The non-Web benchmark gate lists no cases.");
   const keys = policyCases.map(caseKey);
   assertCondition(new Set(keys).size === keys.length, "The non-Web benchmark policy contains duplicate cases.");
   for (const entry of policyCases) {
@@ -139,11 +139,10 @@ await main(() => {
   }
   const pkg = policy.package;
   assertCondition(pkg.baseline.files === 2, "The package baseline must contain exactly two files.");
-  assertCondition(pkg.maximumBytes > pkg.baseline.bytes && pkg.maximumGzipBytes > pkg.baseline.gzipBytes, "The package pair budgets must exceed the frozen QA-07 baseline.");
+  assertCondition(pkg.maximumBytes > pkg.baseline.bytes && pkg.maximumGzipBytes > pkg.baseline.gzipBytes, "The package pair budgets must exceed the package baseline.");
   const packageExtensions = pkg.extensions ?? [];
   assertCondition(packageExtensions.length === 2, "The package policy must contain exactly .nupkg and .snupkg budgets.");
   assertCondition(packageExtensions.map((entry) => entry.extension).sort().join(",") === ".nupkg,.snupkg", "The package policy must contain exactly .nupkg and .snupkg budgets.");
-  assertCondition(typeof policy.webIntegration === "string" && policy.webIntegration.trim().length > 0, "The non-Web release budget policy has no final Web/WASM boundary.");
 
   if (options["self-test"]) {
     const synthetic = {

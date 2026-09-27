@@ -19,6 +19,7 @@ public class StringReadBenchmarks
     private MemoryStream bufferedStream = null!;
     private NonBufferingStream nonBufferingStream = null!;
 
+    /// <summary>Compiles a terminated ASCII string layout and builds a 1 MiB string plus terminator in both streams.</summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -29,6 +30,7 @@ public class StringReadBenchmarks
         this.nonBufferingStream = new NonBufferingStream(this.largeStringBytes);
     }
 
+    /// <summary>Disposes both streams.</summary>
     [GlobalCleanup]
     public void Cleanup()
     {
@@ -36,6 +38,8 @@ public class StringReadBenchmarks
         this.nonBufferingStream.Dispose();
     }
 
+    /// <summary>Parses the 1 MiB string from a memory stream: the reference.</summary>
+    /// <returns>The parsed root.</returns>
     [Benchmark(Baseline = true)]
     public StructValue ParseLargeTerminatedStringFromMemoryStream()
     {
@@ -43,6 +47,8 @@ public class StringReadBenchmarks
         return this.terminatedStringLayout.Parse(this.bufferedStream, "root");
     }
 
+    /// <summary>Parses the same string from a stream that returns at most four bytes per read.</summary>
+    /// <returns>The parsed root.</returns>
     [Benchmark]
     public StructValue ParseLargeTerminatedStringFromNonBufferingStream()
     {
@@ -60,6 +66,8 @@ public class StringReadBenchmarks
         private const int MaxBytesPerRead = 4;
         private readonly MemoryStream inner;
 
+        /// <summary>Initializes the stream over a byte array.</summary>
+        /// <param name="bytes">The stream's contents.</param>
         public NonBufferingStream(byte[] bytes)
         {
             this.inner = new MemoryStream(bytes, writable: false);
@@ -79,30 +87,50 @@ public class StringReadBenchmarks
             set => this.inner.Position = value;
         }
 
+        /// <summary>Does nothing: the stream is read-only.</summary>
         public override void Flush()
         {
         }
 
+        /// <summary>Reads at most four bytes, however many were requested.</summary>
+        /// <param name="buffer">The destination array.</param>
+        /// <param name="offset">The index in <paramref name="buffer"/> to start writing at.</param>
+        /// <param name="count">The number of bytes requested.</param>
+        /// <returns>The number of bytes read; zero at the end.</returns>
         public override int Read(byte[] buffer, int offset, int count)
         {
             return this.inner.Read(buffer, offset, Math.Min(count, MaxBytesPerRead));
         }
 
+        /// <summary>Moves the position.</summary>
+        /// <param name="offset">The offset relative to <paramref name="origin"/>.</param>
+        /// <param name="origin">The reference point.</param>
+        /// <returns>The new position.</returns>
         public override long Seek(long offset, SeekOrigin origin)
         {
             return this.inner.Seek(offset, origin);
         }
 
+        /// <summary>Always throws: the stream is read-only.</summary>
+        /// <param name="value">The ignored length.</param>
+        /// <exception cref="NotSupportedException">Always.</exception>
         public override void SetLength(long value)
         {
             throw new NotSupportedException("This stream is read-only.");
         }
 
+        /// <summary>Always throws: the stream is read-only.</summary>
+        /// <param name="buffer">The ignored source.</param>
+        /// <param name="offset">The ignored offset.</param>
+        /// <param name="count">The ignored count.</param>
+        /// <exception cref="NotSupportedException">Always.</exception>
         public override void Write(byte[] buffer, int offset, int count)
         {
             throw new NotSupportedException("This stream is read-only.");
         }
 
+        /// <summary>Disposes the underlying memory stream.</summary>
+        /// <param name="disposing"><see langword="true"/> when called from <see cref="Stream.Dispose()"/>.</param>
         protected override void Dispose(bool disposing)
         {
             if (disposing)

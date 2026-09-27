@@ -1,8 +1,8 @@
 name: Benchmark drift report
 
-# Non-failing performance drift report. Runs the release-gate benchmark cases with the Short job on the CI runner,
-# normalizes the report with the Node converter, and compares medians and allocations against the recorded
-# release-gate baseline with soft thresholds (+10 % median, +5 % allocation). Findings land in the job summary and as
+# Non-failing performance drift report. Runs the Impact benchmark cases with the Short job on the CI runner,
+# normalizes the report with the Node converter, and compares medians and allocations against the matching cases of
+# the recorded scenario baseline with soft thresholds (+10 % median, +5 % allocation). Findings land in the job summary and as
 # an artifact; the job never fails on drift because ubuntu-latest runner variance has not been characterized yet.
 # Flip `--strict` on once it has.
 
@@ -29,7 +29,7 @@ permissions:
 
 jobs:
   drift:
-    name: Release-gate drift (non-failing)
+    name: Impact drift (non-failing)
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -52,7 +52,7 @@ jobs:
       - name: Build benchmarks (Release)
         run: dotnet build ./benchmarks/CStructSharp.Benchmarks/CStructSharp.Benchmarks.csproj -c Release -f net10.0
 
-      - name: Run release-gate cases (Short job, net10.0)
+      - name: Run Impact cases (Short job, net10.0)
         env:
           CSTRUCTSHARP_BENCHMARK_JOB: Short
           CSTRUCTSHARP_BENCHMARK_RUNTIMES: net10.0
@@ -60,19 +60,20 @@ jobs:
         run: >-
           dotnet run --project ./benchmarks/CStructSharp.Benchmarks/CStructSharp.Benchmarks.csproj
           -c Release -f net10.0 --no-build --
-          --filter "*" --anyCategories ReleaseGate
+          --filter "*" --anyCategories Impact
 
       - name: Normalize report
         run: node ./tools/quality/convert-benchmark-baseline.mjs artifacts/drift/benchmarks/results artifacts/drift/summary.json
 
-      - name: Compare against the release-gate baseline (soft thresholds)
+      - name: Compare against the scenario baseline (soft thresholds)
         id: compare
         continue-on-error: true
         run: >-
           node ./tools/quality/compare-benchmark-baseline.mjs
-          --baseline ./contracts/performance/non-web-rc1.json
+          --baseline ./contracts/performance/drift-scenarios.json
+          --matching-only
           --summary artifacts/drift/summary.json
-          --markdown artifacts/drift/drift-rc1.md
+          --markdown artifacts/drift/drift.md
           --median-ratio 0.10 --allocation-ratio 0.05
 
       - name: Publish job summary
@@ -81,7 +82,7 @@ jobs:
           {
             echo "Runner medians are expected to differ from the recorded (developer machine) baselines; read the Δ column relative to previous runs of this workflow, not as an absolute gate."
             echo
-            cat artifacts/drift/drift-rc1.md 2>/dev/null || echo "The release-gate comparison did not run."
+            cat artifacts/drift/drift.md 2>/dev/null || echo "The scenario comparison did not run."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload drift artifacts
@@ -91,6 +92,6 @@ jobs:
           name: benchmark-drift
           path: |
             artifacts/drift/summary.json
-            artifacts/drift/drift-rc1.md
+            artifacts/drift/drift.md
             artifacts/drift/benchmarks/results/*.json
           if-no-files-found: warn

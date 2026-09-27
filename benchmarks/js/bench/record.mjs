@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Records contracts/performance/web-benchmark-rc1.json from the latest Node, browser, and cold-start results.
-// Usage: node bench/record.mjs [--output <contract>] [--name web-benchmark-rc1]
+// Records contracts/performance/web-drift.json from the latest Node, browser, and cold-start results.
+// Usage: node bench/record.mjs [--output <contract>] [--name web-drift]
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -8,7 +8,7 @@ import { repositoryRoot } from "./fixtures.mjs";
 
 const args = process.argv.slice(2);
 const option = (name, fallback) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : fallback; };
-const output = option("--output", path.join(repositoryRoot, "contracts/performance/web-benchmark-rc1.json"));
+const output = option("--output", path.join(repositoryRoot, "contracts/performance/web-drift.json"));
 const results = path.join(repositoryRoot, "artifacts/js-bench/results");
 const read = (file) => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : null);
 const sha = (file) => crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex").toUpperCase();
@@ -35,9 +35,9 @@ const toCase = (r) => ({
 
 const contract = {
   schemaVersion: 1,
-  name: option("--name", "web-benchmark-rc1"),
+  name: option("--name", "web-drift"),
   status: "baseline",
-  description: "Phase 0 baseline of the JS/WASM bridge (benchmarks/js): boundary micro-cases, retained-layout core parse and JSON projection, public API, compiled handle, stream sources, DataView comparators, and cold start in Node and headless Chromium. Consumed by benchmarks/js/bench/check.mjs as a soft drift report.",
+  description: "Baseline of the JS/WASM bridge (benchmarks/js): boundary micro-cases, retained-layout core parse and JSON projection, public API, compiled handle, stream sources, DataView comparators, and cold start in Node and headless Chromium. Consumed by benchmarks/js/bench/check.mjs as a soft drift report.",
   date: new Date().toISOString().slice(0, 10),
   softPolicy: { medianGrowthRatio: 0.10, allocationGrowthRatio: 0.05, maximumRelativeStandardDeviation: 0.35 },
   baselineEvidence: {

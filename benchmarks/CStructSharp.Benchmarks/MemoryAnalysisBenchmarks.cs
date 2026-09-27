@@ -6,6 +6,7 @@ using CStructSharp.Memory;
 using CStructSharp.Memory.Metadata;
 
 /// <summary>Measures independent memory workloads, keeping import cost separate from reused layout reads.</summary>
+[BenchmarkCategory("Memory")]
 public class MemoryAnalysisBenchmarks
 {
     private MemorySession session = null!;

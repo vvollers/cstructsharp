@@ -3,8 +3,8 @@ namespace CStructSharp.Benchmarks;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
-using CStructSharp.Benchmarks.Baseline0;
 using CStructSharp.Benchmarks.GeneratedLayouts;
+using CStructSharp.Benchmarks.Scenarios;
 using CStructSharp.Values;
 
 /// <summary>
@@ -30,11 +30,15 @@ public class AsyncBenchmarks
     private MemoryStream updateTarget = null!;
     private PrimRecordLayout.Root generatedRecord = null!;
 
+    /// <summary>
+    ///     Loads the record and nested fixtures, opens the exposed, hidden-buffer and file streams, and prepares the values
+    ///     and targets the write and update cases use.
+    /// </summary>
     [GlobalSetup]
     public void Setup()
     {
-        this.primRecord = FixtureCase.Load("prim-le-record");
-        this.nested = FixtureCase.Load("nested-x256");
+        this.primRecord = FixtureCase.LoadMatching("prim-le-record", typeof(PrimRecordLayout));
+        this.nested = FixtureCase.LoadMatching("nested-x256", typeof(NestedLayout));
         this.primRecordExposed = new MemoryStream(this.primRecord.Bytes, writable: false);
         this.primRecordHidden = new MemoryStream(this.primRecord.Bytes, 0, this.primRecord.Bytes.Length, writable: false, publiclyVisible: false);
         this.nestedExposed = new MemoryStream(this.nested.Bytes, writable: false);
@@ -48,6 +52,7 @@ public class AsyncBenchmarks
         this.generatedRecord = PrimRecordLayout.Parse(this.primRecord.Bytes);
     }
 
+    /// <summary>Closes the file stream and deletes its temporary file.</summary>
     [GlobalCleanup]
     public void Cleanup()
     {
@@ -56,6 +61,9 @@ public class AsyncBenchmarks
     }
 
     // ---- prim-le-record ---------------------------------------------------------------------------------------------
+
+    /// <summary>Runtime <c>Parse(Stream)</c> of the 28-byte record from a memory stream: the synchronous reference.</summary>
+    /// <returns>The parsed record.</returns>
     [Benchmark(Baseline = true)]
     [BenchmarkCategory("PrimRecord")]
     public StructValue Runtime_PrimRecord_ParseStream()
@@ -64,14 +72,18 @@ public class AsyncBenchmarks
         return this.primRecord.Layout.Parse(this.primRecordExposed, "root");
     }
 
+    /// <summary>Runtime <c>ParseAsync</c> of a memory stream that exposes its buffer, so the bytes are read in place.</summary>
+    /// <returns>The parse, already complete.</returns>
     [Benchmark]
-    [BenchmarkCategory("Impact", "PrimRecord", "ReleaseGate")]
+    [BenchmarkCategory("Impact", "PrimRecord", "Gate")]
     public ValueTask<StructValue> Runtime_PrimRecord_ParseAsync_MemoryStream()
     {
         this.primRecordExposed.Position = 0;
         return this.primRecord.Layout.ParseAsync(this.primRecordExposed, "root");
     }
 
+    /// <summary>Runtime <c>ParseAsync</c> of a memory stream that hides its buffer, so the bytes are copied into a pooled buffer.</summary>
+    /// <returns>The parse.</returns>
     [Benchmark]
     [BenchmarkCategory("PrimRecord")]
     public ValueTask<StructValue> Runtime_PrimRecord_ParseAsync_HiddenBuffer()
@@ -80,6 +92,8 @@ public class AsyncBenchmarks
         return this.primRecord.Layout.ParseAsync(this.primRecordHidden, "root");
     }
 
+    /// <summary>Runtime <c>ParseAsync</c> of a file opened for asynchronous I/O.</summary>
+    /// <returns>The parse.</returns>
     [Benchmark]
     [BenchmarkCategory("PrimRecord")]
     public ValueTask<StructValue> Runtime_PrimRecord_ParseAsync_File()
@@ -88,6 +102,7 @@ public class AsyncBenchmarks
         return this.primRecord.Layout.ParseAsync(this.primRecordFile, "root");
     }
 
+    /// <summary>Runtime <c>Write</c> of the record to a memory stream.</summary>
     [Benchmark]
     [BenchmarkCategory("PrimRecordWrite")]
     public void Runtime_PrimRecord_WriteStream()
@@ -96,6 +111,8 @@ public class AsyncBenchmarks
         this.primRecord.Layout.Write(this.writeTarget, "root", this.primRecordValue);
     }
 
+    /// <summary>Runtime <c>WriteAsync</c> of the record to the same memory stream.</summary>
+    /// <returns>The write.</returns>
     [Benchmark]
     [BenchmarkCategory("PrimRecordWrite")]
     public ValueTask Runtime_PrimRecord_WriteAsync()
@@ -104,6 +121,7 @@ public class AsyncBenchmarks
         return this.primRecord.Layout.WriteAsync(this.writeTarget, "root", this.primRecordValue);
     }
 
+    /// <summary>Runtime <c>Update</c> of <c>root.c</c> in a memory stream.</summary>
     [Benchmark]
     [BenchmarkCategory("PrimRecordUpdate")]
     public void Runtime_PrimRecord_UpdateStream()
@@ -112,6 +130,8 @@ public class AsyncBenchmarks
         this.primRecord.Layout.Update(this.updateTarget, "root.c", 7u);
     }
 
+    /// <summary>Runtime <c>UpdateAsync</c> of <c>root.c</c> in the same memory stream.</summary>
+    /// <returns>The update.</returns>
     [Benchmark]
     [BenchmarkCategory("PrimRecordUpdate")]
     public ValueTask Runtime_PrimRecord_UpdateAsync()
@@ -120,6 +140,8 @@ public class AsyncBenchmarks
         return this.primRecord.Layout.UpdateAsync(this.updateTarget, "root.c", 7u);
     }
 
+    /// <summary>Generated <c>Parse(Stream)</c> of the record from the hidden-buffer stream.</summary>
+    /// <returns>The generated record.</returns>
     [Benchmark]
     [BenchmarkCategory("GeneratedPrimRecord")]
     public PrimRecordLayout.Root Generated_PrimRecord_ParseStream()
@@ -128,6 +150,8 @@ public class AsyncBenchmarks
         return PrimRecordLayout.Parse(this.primRecordHidden);
     }
 
+    /// <summary>Generated <c>ParseAsync</c> of the record from the hidden-buffer stream.</summary>
+    /// <returns>The parse.</returns>
     [Benchmark]
     [BenchmarkCategory("GeneratedPrimRecord")]
     public ValueTask<PrimRecordLayout.Root> Generated_PrimRecord_ParseAsync()
@@ -136,6 +160,8 @@ public class AsyncBenchmarks
         return PrimRecordLayout.ParseAsync(this.primRecordHidden);
     }
 
+    /// <summary>Generated <c>ParseAsync</c> of the record from the asynchronous file.</summary>
+    /// <returns>The parse.</returns>
     [Benchmark]
     [BenchmarkCategory("GeneratedPrimRecord")]
     public ValueTask<PrimRecordLayout.Root> Generated_PrimRecord_ParseAsync_File()
@@ -144,6 +170,7 @@ public class AsyncBenchmarks
         return PrimRecordLayout.ParseAsync(this.primRecordFile);
     }
 
+    /// <summary>Generated <c>Write</c> of the record to a memory stream.</summary>
     [Benchmark]
     [BenchmarkCategory("GeneratedPrimRecordWrite")]
     public void Generated_PrimRecord_WriteStream()
@@ -152,6 +179,8 @@ public class AsyncBenchmarks
         PrimRecordLayout.Write(this.writeTarget, this.generatedRecord);
     }
 
+    /// <summary>Generated <c>WriteAsync</c> of the record to the same memory stream.</summary>
+    /// <returns>The write.</returns>
     [Benchmark]
     [BenchmarkCategory("GeneratedPrimRecordWrite")]
     public ValueTask Generated_PrimRecord_WriteAsync()
@@ -161,6 +190,9 @@ public class AsyncBenchmarks
     }
 
     // ---- nested-x256: 6,400 bytes --------------------------------------------------------------------------------------
+
+    /// <summary>Runtime <c>Parse(Stream)</c> of the 6,400-byte nested fixture: the synchronous reference.</summary>
+    /// <returns>The parsed root.</returns>
     [Benchmark(Baseline = true)]
     [BenchmarkCategory("Nested256")]
     public StructValue Runtime_Nested256_ParseStream()
@@ -169,6 +201,8 @@ public class AsyncBenchmarks
         return this.nested.Layout.Parse(this.nestedExposed, "root");
     }
 
+    /// <summary>Runtime <c>ParseAsync</c> of the nested fixture from a stream that exposes its buffer.</summary>
+    /// <returns>The parse, already complete.</returns>
     [Benchmark]
     [BenchmarkCategory("Nested256")]
     public ValueTask<StructValue> Runtime_Nested256_ParseAsync_MemoryStream()
@@ -177,6 +211,8 @@ public class AsyncBenchmarks
         return this.nested.Layout.ParseAsync(this.nestedExposed, "root");
     }
 
+    /// <summary>Runtime <c>ParseAsync</c> of the nested fixture from a stream that hides its buffer.</summary>
+    /// <returns>The parse.</returns>
     [Benchmark]
     [BenchmarkCategory("Nested256")]
     public ValueTask<StructValue> Runtime_Nested256_ParseAsync_HiddenBuffer()

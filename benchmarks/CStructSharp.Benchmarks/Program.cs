@@ -9,8 +9,16 @@ using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Reports;
 using BenchmarkDotNet.Running;
 
+/// <summary>
+///     The BenchmarkDotNet host. <c>CSTRUCTSHARP_BENCHMARK_JOB</c> picks the job shape (Dry, Short, Gate, ColdStart),
+///     <c>CSTRUCTSHARP_BENCHMARK_RUNTIMES</c> the runtimes, and <c>CSTRUCTSHARP_BENCHMARK_ARTIFACTS</c> the output
+///     directory; <c>--profile</c> runs <see cref="ProfileDriver"/> instead.
+/// </summary>
 internal static class Program
 {
+    /// <summary>Runs the benchmarks the command line selects, or a profiling loop.</summary>
+    /// <param name="args">BenchmarkDotNet arguments such as <c>--filter</c>, or <c>--profile &lt;scenario&gt; [seconds]</c>.</param>
+    /// <returns>Zero when every case produced results; 1 when a case failed; 2 for an unknown job or runtime.</returns>
     public static int Main(string[] args)
     {
         if (args.Length > 0 && args[0] == "--profile")
@@ -24,7 +32,7 @@ internal static class Program
         string requestedJob = Environment.GetEnvironmentVariable("CSTRUCTSHARP_BENCHMARK_JOB") ?? "Short";
 
         // Runtimes are selected independently of the job shape so the same case list can be measured on every
-        // packaged target framework. The default stays net10.0 so existing release-gate runs are unchanged.
+        // packaged target framework. The default is net10.0, the runtime the release gate is measured on.
         string requestedRuntimes = Environment.GetEnvironmentVariable("CSTRUCTSHARP_BENCHMARK_RUNTIMES") ?? "net10.0";
         var runtimes = new List<Runtime>();
         foreach (string moniker in requestedRuntimes.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))

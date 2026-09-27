@@ -1,7 +1,7 @@
 namespace CStructSharp.Benchmarks;
 
 using BenchmarkDotNet.Attributes;
-using CStructSharp.Benchmarks.Baseline0;
+using CStructSharp.Benchmarks.Scenarios;
 
 /// <summary>
 ///     The parse part of the <c>Impact</c> category: one span parse for each kind of layout the general reader and

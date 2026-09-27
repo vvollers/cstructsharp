@@ -5,6 +5,11 @@ using BenchmarkDotNet.Attributes;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
+/// <summary>
+///     Runtime reads of small hand-written layouts: primitive arrays of 1 KiB and 1 MiB, nested structs with and without
+///     alignment, a bounded pointer graph, a five-byte record with a counted array (parsed, and read into a mapped
+///     class), and one selected scalar; from a reused stream, a new stream per call, or memory.
+/// </summary>
 [BenchmarkCategory("Read")]
 public class ReadBenchmarks
 {
@@ -26,6 +31,7 @@ public class ReadBenchmarks
     private byte[] typedBytes = null!;
     private ReadOptions largeArrayOptions = null!;
 
+    /// <summary>Compiles the layouts and creates their input streams and byte arrays.</summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -65,6 +71,7 @@ public class ReadBenchmarks
         };
     }
 
+    /// <summary>Disposes the input streams.</summary>
     [GlobalCleanup]
     public void Cleanup()
     {
@@ -77,14 +84,18 @@ public class ReadBenchmarks
         this.typedStream.Dispose();
     }
 
+    /// <summary>Parses <c>uint8[1024]</c> from a stream.</summary>
+    /// <returns>The parsed root.</returns>
     [Benchmark]
-    [BenchmarkCategory("ReleaseGate")]
+    [BenchmarkCategory("Gate")]
     public StructValue ParsePrimitiveArray1KiB()
     {
         this.array1KiBStream.Position = 0;
         return this.array1KiBLayout.Parse(this.array1KiBStream, "root");
     }
 
+    /// <summary>Parses <c>uint8[1048576]</c> from a stream, with read limits raised to allow it.</summary>
+    /// <returns>The parsed root.</returns>
     [Benchmark]
     [InvocationCount(1)]
     public StructValue ParsePrimitiveArray1MiB()
@@ -97,6 +108,8 @@ public class ReadBenchmarks
             this.largeArrayOptions);
     }
 
+    /// <summary>Parses 16 five-byte structs and a tail, packed without padding.</summary>
+    /// <returns>The parsed root.</returns>
     [Benchmark]
     public StructValue ParseNestedUnaligned()
     {
@@ -104,6 +117,8 @@ public class ReadBenchmarks
         return this.nestedUnalignedLayout.Parse(this.nestedUnalignedStream, "root");
     }
 
+    /// <summary>Parses the same structs with C alignment, so each struct is padded to eight bytes.</summary>
+    /// <returns>The parsed root.</returns>
     [Benchmark]
     public StructValue ParseNestedAligned()
     {
@@ -111,6 +126,8 @@ public class ReadBenchmarks
         return this.nestedAlignedLayout.Parse(this.nestedAlignedStream, "root");
     }
 
+    /// <summary>Parses a two-node linked list with a pointer-depth limit of two.</summary>
+    /// <returns>The parsed root.</returns>
     [BenchmarkCategory("Impact")]
     [Benchmark]
     public StructValue ParseBoundedPointerGraph()
@@ -123,13 +140,8 @@ public class ReadBenchmarks
             new ReadOptions { MaxPointerDepth = 2, MaxTotalBytesRead = 32, });
     }
 
-    [Benchmark]
-    public ParseResult ParseWithDebug()
-    {
-        this.array1KiBStream.Position = 0;
-        return this.array1KiBLayout.ParseWithDebug(this.array1KiBStream, "root");
-    }
-
+    /// <summary>Parses the five-byte record (a count and two children) from a reused stream.</summary>
+    /// <returns>The parsed root.</returns>
     [Benchmark]
     [BenchmarkCategory("TypedRead")]
     public StructValue ParseSmallRoot()
@@ -138,6 +150,8 @@ public class ReadBenchmarks
         return this.typedLayout.Parse(this.typedStream, "root");
     }
 
+    /// <summary>Parses the five-byte record from a memory stream created for each call.</summary>
+    /// <returns>The parsed root.</returns>
     [Benchmark]
     [BenchmarkCategory("TypedRead", "MemoryIo")]
     public StructValue ParseSmallRootNewMemoryStream()
@@ -146,13 +160,17 @@ public class ReadBenchmarks
         return this.typedLayout.Parse(stream, "root");
     }
 
+    /// <summary>Parses the five-byte record from memory.</summary>
+    /// <returns>The parsed root.</returns>
     [Benchmark]
-    [BenchmarkCategory("TypedRead", "MemoryIo", "ReleaseGate")]
+    [BenchmarkCategory("TypedRead", "MemoryIo", "Gate")]
     public StructValue ParseSmallRootMemory()
     {
         return this.typedLayout.Parse(this.typedBytes.AsSpan(), "root");
     }
 
+    /// <summary>Reads the five-byte record into <see cref="TypedRoot"/> from a reused stream.</summary>
+    /// <returns>The mapped record.</returns>
     [Benchmark]
     [BenchmarkCategory("TypedRead")]
     public TypedRoot ReadTypedSmallRoot()
@@ -161,29 +179,17 @@ public class ReadBenchmarks
         return this.typedLayout.ReadValue<TypedRoot>(this.typedStream, "root");
     }
 
+    /// <summary>Reads the five-byte record into <see cref="TypedRoot"/> from memory.</summary>
+    /// <returns>The mapped record.</returns>
     [Benchmark]
-    [BenchmarkCategory("Impact", "TypedRead", "MemoryIo", "ReleaseGate")]
+    [BenchmarkCategory("Impact", "TypedRead", "MemoryIo", "Gate")]
     public TypedRoot ReadTypedSmallRootMemory()
     {
         return this.typedLayout.ReadValue<TypedRoot>(this.typedBytes.AsSpan(), "root");
     }
 
-    [Benchmark]
-    [BenchmarkCategory("Impact", "ScalarRead")]
-    public object? ReadSelectedScalarNatural()
-    {
-        this.scalarStream.Position = 0;
-        return this.scalarLayout.ReadValue(this.scalarStream, "root.value");
-    }
-
-    [Benchmark]
-    [BenchmarkCategory("ScalarRead")]
-    public ushort ReadSelectedScalarTyped()
-    {
-        this.scalarStream.Position = 0;
-        return this.scalarLayout.ReadValue<ushort>(this.scalarStream, "root.value");
-    }
-
+    /// <summary>Reads <c>root.value</c> as a <see cref="ushort"/> from a memory stream created for each call.</summary>
+    /// <returns>The value.</returns>
     [Benchmark]
     [BenchmarkCategory("ScalarRead", "MemoryIo")]
     public ushort ReadSelectedScalarTypedNewMemoryStream()
@@ -192,27 +198,37 @@ public class ReadBenchmarks
         return this.scalarLayout.ReadValue<ushort>(stream, "root.value");
     }
 
+    /// <summary>Reads <c>root.value</c> as a <see cref="ushort"/> from memory.</summary>
+    /// <returns>The value.</returns>
     [Benchmark]
-    [BenchmarkCategory("Impact", "ScalarRead", "MemoryIo", "ReleaseGate")]
+    [BenchmarkCategory("Impact", "ScalarRead", "MemoryIo", "Gate")]
     public ushort ReadSelectedScalarTypedMemory()
     {
         return this.scalarLayout.ReadValue<ushort>(this.scalarBytes.AsSpan(), "root.value");
     }
 
+    /// <summary>The mapped class of <c>struct child</c>.</summary>
     public sealed class TypedChild : ICStructMapped<TypedChild>
     {
         public ushort Value { get; set; }
 
+        /// <summary>Creates a child from its parsed value.</summary>
+        /// <param name="source">The parsed <c>child</c>.</param>
+        /// <returns>The mapped child.</returns>
         public static TypedChild ReadFrom(StructValue source)
         {
             return new TypedChild { Value = source.Get<ushort>("value"), };
         }
 
+        /// <summary>Copies a child into a value for writing.</summary>
+        /// <param name="value">The mapped child.</param>
+        /// <param name="target">The <c>child</c> value to fill.</param>
         public static void WriteTo(TypedChild value, StructValue target)
         {
             target["value"] = value.Value;
         }
 
+        /// <summary>Registers the mapping when the module loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -220,23 +236,31 @@ public class ReadBenchmarks
         }
     }
 
+    /// <summary>The mapped class of <c>struct root</c>: a count and that many children.</summary>
     public sealed class TypedRoot : ICStructMapped<TypedRoot>
     {
         public byte Count { get; set; }
 
         public TypedChild[] Children { get; set; } = [];
 
+        /// <summary>Creates a root from its parsed value.</summary>
+        /// <param name="source">The parsed <c>root</c>.</param>
+        /// <returns>The mapped root.</returns>
         public static TypedRoot ReadFrom(StructValue source)
         {
             return new TypedRoot { Count = source.Get<byte>("count"), Children = source.Get<TypedChild[]>("children"), };
         }
 
+        /// <summary>Copies a root into a value for writing.</summary>
+        /// <param name="value">The mapped root.</param>
+        /// <param name="target">The <c>root</c> value to fill.</param>
         public static void WriteTo(TypedRoot value, StructValue target)
         {
             target["count"] = value.Count;
             target["children"] = value.Children;
         }
 
+        /// <summary>Registers the mapping when the module loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
