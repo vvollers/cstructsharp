@@ -1,4 +1,4 @@
-import { computed, onMounted, onScopeDispose, ref, shallowRef } from "vue";
+import { computed, onScopeDispose, ref, shallowRef } from "vue";
 import { detectFile } from "../detect-file";
 import {
   rawFileSchema,
@@ -7,7 +7,7 @@ import {
   type InspectorExample,
 } from "../schema-catalog";
 import { formatLayout } from "@cstructsharp/app-shared/format-layout";
-import { getVersion, initWasm, isLoaded } from "@cstructsharp/app-shared/wasm/adapter";
+import { useWasmRuntime } from "@cstructsharp/app-shared/composables/useWasmRuntime";
 import { hexToBytes } from "@cstructsharp/app-shared/hex";
 import type { ParseWithDebugOptions } from "@cstructsharp/app-shared/wasm/contract";
 import { useParseSession } from "./useParseSession";
@@ -32,9 +32,7 @@ export function useInspector() {
   const detectionMessage = ref("");
   let fileController: AbortController | null = null;
 
-  const wasmStatus = ref<"loading" | "ready" | "error">("loading");
-  const wasmVersion = ref("");
-  const wasmError = ref("");
+  const { status: wasmStatus, version: wasmVersion, error: wasmError } = useWasmRuntime();
   const schemaDisabled = computed(
     () => wasmStatus.value !== "ready" || parse.isRunning.value || isLoadingFile.value,
   );
@@ -181,19 +179,6 @@ export function useInspector() {
     if (!schemaDisabled.value)
       return parse.run(definition.value, fileSource.value ?? bytes.value, options);
   }
-
-  onMounted(async () => {
-    try {
-      await initWasm();
-      if (!isLoaded()) throw new Error("WASM finished loading without usable exports.");
-
-      wasmVersion.value = getVersion();
-      wasmStatus.value = "ready";
-    } catch (error) {
-      wasmStatus.value = "error";
-      wasmError.value = error instanceof Error ? error.message : String(error);
-    }
-  });
 
   // Stop outstanding file work if the app that created this composable is removed.
   onScopeDispose(cancelFileLoad);

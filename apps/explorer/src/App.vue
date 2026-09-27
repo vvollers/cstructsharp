@@ -1,96 +1,65 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from "vue";
+/**
+ * The explorer page: the lesson and test catalog, the selected example with its operation panel, and the result.
+ * Routing, the runtime and the operation state live in composables; this component connects them to the panels.
+ */
+import { computed, ref } from "vue";
 
-import OperationPanel, { type OperationRequest } from "./components/OperationPanel.vue";
+import OperationPanel from "./components/OperationPanel.vue";
 import ResultPanel from "./components/ResultPanel.vue";
 import TestNavigator from "./components/TestNavigator.vue";
 import LessonNavigator from "./components/LessonNavigator.vue";
-import { lessons, compareLessonResult, type LessonOperation } from "./lessons";
-import { isRunnable, type TestManifest } from "./demo-types";
+import type { TestManifest } from "./demo-types";
 import rawTestDemos from "./generated/test-demos.json";
 import { formatTestTitle } from "./format-test-title";
-import {
-  getVersion,
-  initWasm,
-  isLoaded,
-  parseWithDebug,
-  serialize,
-  updateStream,
-} from "@cstructsharp/app-shared/wasm/adapter";
-import { bytesToHex, hexToBytes } from "@cstructsharp/app-shared/hex";
-import {
-  INTEROP_CONTRACT_VERSION,
-  type InteropResult,
-} from "@cstructsharp/app-shared/wasm/contract";
+import { useCatalogRoute } from "./composables/useCatalogRoute";
+import { useOperationRun } from "./composables/useOperationRun";
+import { useWasmRuntime } from "@cstructsharp/app-shared/composables/useWasmRuntime";
 
 const testManifest = rawTestDemos as TestManifest;
-const mode = ref<"learn" | "tests">("learn");
-const selectedLessonId = ref("header");
-const selectedLesson = computed(() =>
-  mode.value === "learn"
-    ? (lessons.find((item) => item.id === selectedLessonId.value) ?? lessons[0]!)
-    : null,
-);
-const resetCount = ref(0);
-const stale = ref(false);
-const expected = ref<LessonOperation["expected"] | null>(null);
-const expectationMatches = ref<boolean | null>(null);
-const routeMessage = ref("");
 const docsBase = new URL(
   import.meta.env.VITE_DOCS_BASE_URL || "../docs/",
   new URL(import.meta.env.BASE_URL, window.location.origin),
 ).href.replace(/\/?$/, "/");
-const catalogExpanded = ref(window.innerWidth > 900);
-const narrowViewport = window.matchMedia("(max-width: 900px)");
-function updateCatalog(event: MediaQueryListEvent): void {
-  catalogExpanded.value = !event.matches;
-}
-function readRoute(): void {
-  const route = new URLSearchParams(window.location.hash.slice(1));
-  const lessonId = route.get("lesson");
-  const testId = route.get("test");
-  routeMessage.value = "";
-  if (testId && testManifest.tests.some((item) => item.id === testId)) {
-    mode.value = "tests";
-    selectedTestId.value = testId;
-  } else {
-    mode.value = "learn";
-    selectedLessonId.value = lessons.some((item) => item.id === lessonId) ? lessonId! : "header";
-    if (lessonId && lessonId !== selectedLessonId.value)
-      routeMessage.value = "That lesson was not found. Start with the header lesson below.";
-  }
-}
-function selectLesson(id: string): void {
-  window.location.hash = new URLSearchParams({ lesson: id }).toString();
-  if (narrowViewport.matches) catalogExpanded.value = false;
-}
-function selectTest(id: string): void {
-  selectedTestId.value = id;
-  if (id) window.location.hash = new URLSearchParams({ test: id }).toString();
-}
-function changeMode(value: "learn" | "tests"): void {
-  if (value === "learn") selectLesson(selectedLessonId.value);
-  else selectTest(selectedTestId.value);
-}
-const firstRunnable = testManifest.tests.find(isRunnable);
-const selectedTestId = ref(firstRunnable?.id ?? testManifest.tests[0]?.id ?? "");
-const selectedTest = computed(
-  () =>
-    selectedLesson.value ??
-    testManifest.tests.find((test) => test.id === selectedTestId.value) ??
-    null,
-);
-const selectedRunnable = computed(() =>
-  isRunnable(selectedTest.value) ? selectedTest.value : null,
-);
 
-const wasmStatus = ref<"loading" | "ready" | "error">("loading");
-const wasmVersion = ref("");
-const wasmError = ref("");
-const isProcessing = ref(false);
-const result = shallowRef<InteropResult | null>(null);
-const resultBytes = shallowRef<Uint8Array>(new Uint8Array());
-const binaryHexInput = ref("");
+const {
+  mode,
+  selectedLessonId,
+  selectedLesson,
+  selectedTestId,
+  selectedTest,
+  selectedRunnable,
+  routeMessage,
+  catalogExpanded,
+  selectLesson,
+  selectTest,
+  changeMode,
+} = useCatalogRoute(testManifest);
+const { status: wasmStatus, version: wasmVersion, error: wasmError } = useWasmRuntime();
+const {
+  isProcessing,
+  result,
+  resultBytes,
+  binaryHexInput,
+  stale,
+  expected,
+  expectationMatches,
+  run,
+  reset,
+  applyEditedBytes,
+} = useOperationRun({
+  example: selectedRunnable,
+  lesson: selectedLesson,
+  ready: computed(() => wasmStatus.value === "ready"),
+});
+
+// Remounts the operation panel, so a reset restores its initial inputs as well as the hex.
+const resetCount = ref(0);
+/** Restores the example's inputs and clears the result. */
+function resetExample(): void {
+  resetCount.value++;
+  reset();
+}
 
 const statusText = computed(() => {
   if (wasmStatus.value === "ready") {
@@ -101,137 +70,6 @@ const statusText = computed(() => {
   }
   return "Loading WebAssembly…";
 });
-
-watch(selectedTest, () => {
-  result.value = null;
-  resultBytes.value = new Uint8Array();
-  stale.value = false;
-  expected.value = null;
-  expectationMatches.value = null;
-});
-
-function resetExample(): void {
-  resetCount.value++;
-  binaryHexInput.value = selectedRunnable.value?.binaryHex ?? "";
-  result.value = null;
-  resultBytes.value = new Uint8Array();
-  stale.value = false;
-  expected.value = null;
-  expectationMatches.value = null;
-}
-
-watch(
-  selectedRunnable,
-  (test) => {
-    binaryHexInput.value = test?.binaryHex ?? "";
-  },
-  { immediate: true },
-);
-
-onMounted(async () => {
-  readRoute();
-  window.addEventListener("hashchange", readRoute);
-  narrowViewport.addEventListener("change", updateCatalog);
-  try {
-    await initWasm();
-    if (!isLoaded()) {
-      throw new Error("The runtime finished loading without usable exports.");
-    }
-    wasmVersion.value = getVersion();
-    wasmStatus.value = "ready";
-  } catch (error) {
-    wasmStatus.value = "error";
-    wasmError.value = error instanceof Error ? error.message : "Unknown initialization error";
-  }
-});
-onUnmounted(() => {
-  window.removeEventListener("hashchange", readRoute);
-  narrowViewport.removeEventListener("change", updateCatalog);
-});
-
-function failure(operation: OperationRequest["operation"], error: unknown): InteropResult {
-  return {
-    contractVersion: INTEROP_CONTRACT_VERSION,
-    operation,
-    success: false,
-    root: null,
-    data: null,
-    debug: [],
-    error: {
-      code: "browser-error",
-      message: error instanceof Error ? error.message : "The browser operation failed.",
-      offset: null,
-      path: null,
-      member: null,
-      memberType: null,
-      line: null,
-      column: null,
-    },
-  };
-}
-
-function successBytes(result: InteropResult): Uint8Array {
-  return result.success && result.data instanceof Uint8Array ? result.data : new Uint8Array();
-}
-
-function parseJson(value: string): unknown {
-  return JSON.parse(value, (_key, current: unknown) => current);
-}
-
-/**
- * Takes bytes edited in the result's hex view as the next input: the hex field shows them and the result is marked
- * stale until the operation runs again.
- * @param bytes The edited bytes.
- */
-function applyEditedBytes(bytes: Uint8Array): void {
-  resultBytes.value = bytes;
-  binaryHexInput.value = bytesToHex(bytes);
-  stale.value = true;
-}
-
-async function run(request: OperationRequest): Promise<void> {
-  if (wasmStatus.value !== "ready") {
-    return;
-  }
-
-  isProcessing.value = true;
-  stale.value = false;
-  expected.value = selectedLesson.value?.operations[request.operation]?.expected ?? null;
-  expectationMatches.value = null;
-  result.value = null;
-  resultBytes.value = new Uint8Array();
-  await Promise.resolve();
-
-  try {
-    if (request.operation === "parse") {
-      const bytes = hexToBytes(request.binaryHex);
-      resultBytes.value = bytes;
-      result.value = parseWithDebug(request.definition, bytes, request.options);
-    } else if (request.operation === "serialize") {
-      result.value = serialize(request.definition, parseJson(request.jsonValue), request.options);
-      resultBytes.value = successBytes(result.value);
-    } else {
-      result.value = updateStream(
-        request.definition,
-        hexToBytes(request.binaryHex),
-        request.path,
-        parseJson(request.jsonValue),
-        request.options,
-      );
-      resultBytes.value = successBytes(result.value);
-    }
-  } catch (error) {
-    result.value = failure(request.operation, error);
-  } finally {
-    if (expected.value && result.value)
-      expectationMatches.value = compareLessonResult(
-        expected.value,
-        result.value,
-        resultBytes.value,
-      );
-    isProcessing.value = false;
-  }
-}
 </script>
 
 <template>
@@ -384,9 +222,7 @@ h1 span {
   color: var(--color-accent);
 }
 
-header p,
-.source,
-.section-intro {
+header p {
   color: var(--color-text-muted);
   font-size: 13px;
 }
@@ -458,8 +294,7 @@ main {
   cursor: pointer;
   padding: 0.5rem 0;
 }
-.catalog-modes button,
-.reset-example {
+.catalog-modes button {
   color: var(--color-text);
   background: var(--color-bg-tertiary);
   border: 1px solid var(--color-text-muted);
@@ -482,24 +317,12 @@ pre {
   font-size: 20px;
 }
 
-.section-intro {
-  margin: 4px 0 18px;
-}
-
 .example-context {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   align-items: start;
   align-content: start;
-}
-
-.eyebrow {
-  color: var(--color-accent);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .example-context h2 {
@@ -523,10 +346,6 @@ pre {
   color: var(--color-accent);
   font-size: 12px;
   white-space: nowrap;
-}
-
-.unsupported {
-  color: var(--color-text-muted);
 }
 
 footer {

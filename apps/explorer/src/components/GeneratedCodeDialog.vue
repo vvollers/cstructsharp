@@ -3,8 +3,7 @@ import { nextTick, ref } from "vue";
 import LayoutEditor from "./LayoutEditor.vue";
 import type { OperationRequest } from "./OperationPanel.vue";
 import { generateExample } from "../generate-example";
-import { parseWithDebug, serialize, updateStream } from "@cstructsharp/app-shared/wasm/adapter";
-import { hexToBytes } from "@cstructsharp/app-shared/hex";
+import { runOperation } from "../run-operation";
 
 type Language = "csharp" | "javascript";
 const dialog = ref<HTMLDialogElement | null>(null);
@@ -15,6 +14,12 @@ const error = ref("");
 const copyStatus = ref("");
 const revision = ref(0);
 let opener: HTMLElement | null = null;
+/**
+ * Opens the dialog with C# and JavaScript code for a request. The operation runs again on this snapshot, so the
+ * code never describes a stale result panel.
+ * @param request The operation panel's request.
+ * @param tab The language shown first.
+ */
 function open(request: OperationRequest, tab: Language) {
   opener = document.activeElement as HTMLElement;
   language.value = tab;
@@ -23,19 +28,7 @@ function open(request: OperationRequest, tab: Language) {
   revision.value++;
   try {
     // Run a fresh operation on this snapshot; never reuse a potentially stale result panel.
-    const result =
-      request.operation === "parse"
-        ? parseWithDebug(request.definition, hexToBytes(request.binaryHex), request.options)
-        : request.operation === "serialize"
-          ? serialize(request.definition, JSON.parse(request.jsonValue), request.options)
-          : updateStream(
-              request.definition,
-              hexToBytes(request.binaryHex),
-              request.path,
-              JSON.parse(request.jsonValue),
-              request.options,
-            );
-    sources.value = generateExample(request, result);
+    sources.value = generateExample(request, runOperation(request).result);
   } catch (caught) {
     error.value = `Could not generate the example: ${caught instanceof Error ? caught.message : String(caught)}. Check the operation panel inputs and try again.`;
   }
