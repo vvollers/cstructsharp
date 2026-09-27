@@ -114,6 +114,9 @@ public class CompiledExecutionParityTests
         Assert.AreEqual(8L, valueStream.Position);
     }
 
+    /// <summary>Asserts the record read through a union member has the fixture's values.</summary>
+    /// <param name="union">The union value.</param>
+    /// <param name="operation">The entry point, for the failure message.</param>
     private static void AssertUnionChild(UnionValue union, string operation)
     {
         dynamic child = union.Members["item"]!;

@@ -1,6 +1,8 @@
 namespace CStructSharp.Tests;
 
 using CStructSharp.Diagnostics;
+using CStructSharp.Parsing;
+using CStructSharp.Syntax;
 using CStructSharp.Values;
 
 /// <summary>
@@ -121,5 +123,43 @@ public class TypedefFormTests
     {
         var layout = new CStruct("typedef unsigned long long u64_t; typedef uint8 byte_t, *pbyte_t; struct root { u64_t a; byte_t b; pbyte_t p; };", pointerSize: 2);
         Assert.AreEqual(8 + 1 + 2, layout.GetStructSizeInBytes("root"));
+    }
+
+    /// <summary>
+    ///     typedef int myint gives int another name.
+    /// </summary>
+    /// <remarks>
+    ///     The parsed alias must be myint and its target must be int. An alias introduces no additional field or
+    ///     storage; later declarations can use the new name for the existing type.
+    /// </remarks>
+    [TestMethod]
+    public void Typedef_NamesItsTargetType()
+    {
+        var def = (Typedef)LayoutParser.ParseElement("typedef int myint;");
+        Assert.AreEqual("myint", def.Name.Name);
+        Assert.AreEqual("int", def.Type.Name);
+    }
+
+    /// <summary>
+    ///     The declaration defines a two-field struct tagged mystruct_t and gives it the alias mystruct.
+    /// </summary>
+    /// <remarks>
+    ///     Both names must survive parsing, and the embedded fields must remain int a followed by int b. The alias and
+    ///     the struct tag are related names, not two copies of the record's bytes.
+    /// </remarks>
+    [TestMethod]
+    public void TypedefStruct_KeepsTagAliasAndFields()
+    {
+        var def = (Typedef)LayoutParser.ParseElement(
+                                                                              "typedef struct mystruct_t { int a; int b; } mystruct;");
+        Assert.AreEqual("mystruct", def.Name.Name);
+        Assert.AreEqual("struct", def.Type.Name);
+        Assert.IsNotNull(def.Struct);
+        Assert.AreEqual("mystruct_t", def.Struct.Name.Name);
+        Assert.HasCount(2, def.Struct.Fields);
+        Assert.AreEqual("a", def.Struct.Fields[0].Name.Name);
+        Assert.AreEqual("int", def.Struct.Fields[0].Type.Name);
+        Assert.AreEqual("b", def.Struct.Fields[1].Name.Name);
+        Assert.AreEqual("int", def.Struct.Fields[1].Type.Name);
     }
 }

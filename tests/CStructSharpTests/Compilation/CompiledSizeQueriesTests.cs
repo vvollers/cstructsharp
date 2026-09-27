@@ -23,6 +23,9 @@ public class CompiledSizeQueriesTests
                                   };
                                   """;
 
+    /// <summary>Compiles the fixture layout and builds size queries over its composites alone.</summary>
+    /// <param name="aligned">Whether the layout is aligned.</param>
+    /// <returns>The queries and the layout.</returns>
     private static (CompiledSizeQueries Queries, CStruct CStruct) CreateQueries(bool aligned = false)
     {
         var cstruct = new CStruct(Layout, aligned: aligned);

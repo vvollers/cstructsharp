@@ -5,11 +5,11 @@ using System.IO;
 using CStructSharp.Diagnostics;
 
 /// <summary>
-///     Verifies the explicit per-struct/union alignment override (<c>struct/union @align(N)</c>): it
-///     clamps every one of that composite's own fields' alignment to at most N (matching <c>#pragma pack(N)</c>
-///     semantics, not <c>alignas</c>, which can also increase alignment), a field's own explicit override always
-///     wins outright, and it has no effect in packed mode - the same scope decision the field-level override
-///     already established.
+///     Verifies the explicit per-struct/union alignment override (<c>struct/union @align(N)</c>): it clamps every one
+///     of that composite's own fields' alignment to at most N (matching <c>#pragma pack(N)</c> semantics, not
+///     <c>alignas</c>, which can also increase alignment), a field's own explicit override always wins outright, it has
+///     no effect in packed mode, and a named inline type keeps its annotation and inherited packing wherever it is
+///     used.
 /// </summary>
 [TestClass]
 public class CompositeAlignmentOverrideTests
@@ -167,5 +167,24 @@ public class CompositeAlignmentOverrideTests
         using var updateStream = new MemoryStream(bytes);
         cstruct.Update(updateStream, "root.b", 0xAABBCCDDu);
         CollectionAssert.AreEqual(new byte[] { 1, 0xDD, 0xCC, 0xBB, 0xAA, }, updateStream.ToArray());
+    }
+
+    /// <summary>A hoisted type keeps its own explicit alignment or inherits the active packing cap.</summary>
+    /// <param name="source">The declaration and any active packing directive.</param>
+    /// <param name="alignment">The expected alignment cap of the named type.</param>
+    /// <param name="size">The complete type extent in bytes.</param>
+    /// <param name="offset">The value member's byte offset.</param>
+    [TestMethod]
+    [DataRow("#pragma pack(1)\nstruct @align(2) child { uint8 prefix; uint32 value; };", 2, 6, 2)]
+    [DataRow("#pragma pack(1)\nstruct root { struct @align(2) child { uint8 prefix; uint32 value; } item; };", 2, 6, 2)]
+    [DataRow("#pragma pack(1)\nstruct root { struct child { uint8 prefix; uint32 value; } item; };", 1, 5, 1)]
+    [DataRow("struct root { struct child { uint8 prefix; uint32 value; } item; };", 4, 8, 4)]
+    public void TaggedTypes_RetainTheirAlignment(string source, int alignment, int size, int offset)
+    {
+        var layout = new CStruct(source, aligned: true);
+        Assert.AreEqual(alignment, layout.GetStructAlignmentInBytes("child"));
+        Assert.AreEqual(size, layout.GetStructSizeInBytes("child"));
+        using var stream = new MemoryStream(new byte[size]);
+        Assert.AreEqual((long)offset, layout.ResolveAddress(stream, "child.value"));
     }
 }

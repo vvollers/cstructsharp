@@ -3,7 +3,10 @@ namespace CStructSharp.Tests;
 using CStructSharp.Parsing;
 using CStructSharp.Syntax;
 
-/// <summary>Groups tests for structs so changes to this behavior are caught.</summary>
+/// <summary>
+///     Checks the parsed model of struct declarations: field names and order, arrays, bitfield widths, and an unsized
+///     array.
+/// </summary>
 [TestClass]
 public class StructTests
 {
@@ -15,7 +18,7 @@ public class StructTests
     ///     here; no integer values are read from a byte buffer.
     /// </remarks>
     [TestMethod]
-    public void TestSimpleStruct()
+    public void Struct_KeepsItsFieldsInOrder()
     {
         var mystruct = (Struct)LayoutParser.ParseElement("struct mystruct { int a; int b; };");
         Assert.AreEqual("mystruct", mystruct.Name.Name);
@@ -35,7 +38,7 @@ public class StructTests
     ///     not prove every declared combination can be executed.
     /// </remarks>
     [TestMethod]
-    public void TestStructWithArrays()
+    public void Struct_KeepsArrayCountsAndNestedRecords()
     {
         const string mystructTxt = """
                                    struct mbr_s {
@@ -100,7 +103,7 @@ public class StructTests
     ///     this distinction in the parsed declaration, rather than testing how those bits are stored in a stream.
     /// </remarks>
     [TestMethod]
-    public void TestStructWithBitfields()
+    public void Struct_KeepsBitfieldWidths()
     {
         var mystruct
             = (Struct)LayoutParser.ParseElement("struct mystruct { int a : 4; int b : 2; byte c; };");
@@ -125,7 +128,7 @@ public class StructTests
     ///     Recognizing that syntax does not determine how many bytes a later read should consume.
     /// </remarks>
     [TestMethod]
-    public void TestUknownArraySize()
+    public void UnsizedArray_KeepsItsUnknownCount()
     {
         var mystruct = (Struct)LayoutParser.ParseElement("struct mystruct { char a[]; };");
         Assert.AreEqual("mystruct", mystruct.Name.Name);

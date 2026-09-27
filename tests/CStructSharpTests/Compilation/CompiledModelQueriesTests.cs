@@ -14,6 +14,8 @@ public class CompiledModelQueriesTests
                                   struct root { uint8 count; };
                                   """;
 
+    /// <summary>Compiles the fixture layout and wraps its model in the queries under test.</summary>
+    /// <returns>The queries and the layout.</returns>
     private static (CompiledModelQueries Queries, CStruct CStruct) CreateQueries()
     {
         var cstruct = new CStruct(Layout);

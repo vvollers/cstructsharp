@@ -156,21 +156,37 @@ public class SymbolValidationTests
         return new Field(new Identifier("uint8"), new Identifier(name), Field.NoArray, Field.Width(0));
     }
 
+    /// <summary>A struct or union declaration with the given fields.</summary>
+    /// <param name="name">The declaration name.</param>
+    /// <param name="isUnion">Whether it is a union.</param>
+    /// <param name="fields">The fields.</param>
+    /// <returns>The declaration.</returns>
     private static Struct MakeStruct(string name, bool isUnion, params Field[] fields)
     {
         return new Struct(new Identifier(name), [.. fields,], isUnion);
     }
 
+    /// <summary>A struct or union declaration without fields.</summary>
+    /// <param name="name">The declaration name.</param>
+    /// <param name="isUnion">Whether it is a union.</param>
+    /// <returns>The declaration.</returns>
     private static Struct EmptyStruct(string name, bool isUnion)
     {
         return MakeStruct(name, isUnion);
     }
 
+    /// <summary>An enum declaration without members.</summary>
+    /// <param name="name">The declaration name.</param>
+    /// <returns>The declaration.</returns>
     private static CstructEnum EmptyEnum(string name)
     {
         return new CstructEnum(new Identifier(name), ImmutableArray<EnumValue>.Empty);
     }
 
+    /// <summary>An enum declaration whose members have no explicit values.</summary>
+    /// <param name="name">The declaration name.</param>
+    /// <param name="memberNames">The member names, in order.</param>
+    /// <returns>The declaration.</returns>
     private static CstructEnum MakeEnum(string name, params string[] memberNames)
     {
         ImmutableArray<EnumValue> values =

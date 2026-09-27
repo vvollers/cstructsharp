@@ -134,9 +134,9 @@
     "unionTraversal": "Every union read route uses one overlapping-member executor; a struct member begins at the union address but its own child fields advance sequentially.",
     "debug": "Debug capture observes the same compiled read and does not interpret a second field loop.",
     "evidence": [
-      "tests/CStructSharpTests/CompiledExecutionParityTests.cs#AlignedCompositeSelections_ConsumeTheCompleteCompiledExtent",
-      "tests/CStructSharpTests/CompiledExecutionParityTests.cs#UnionStructMember_UsesSequentialCompiledFieldTraversal",
-      "tests/CStructSharpTests/CompiledIntermediateRepresentationTests.cs#PrimitiveTypedefSlice_UsesCompiledFactsAcrossEveryOperation",
+      "tests/CStructSharpTests/Compilation/CompiledExecutionParityTests.cs#AlignedCompositeSelections_ConsumeTheCompleteCompiledExtent",
+      "tests/CStructSharpTests/Compilation/CompiledExecutionParityTests.cs#UnionStructMember_UsesSequentialCompiledFieldTraversal",
+      "tests/CStructSharpTests/Compilation/CompiledIntermediateRepresentationTests.cs#PrimitiveTypedefSlice_UsesCompiledFactsAcrossEveryOperation",
       "tests/CStructSharpTests/ReviewRegressionTests.cs#ParseStream_PointerToUnion_RewindsEveryMemberToTargetAddress",
       "tests/CStructSharpTests/AsyncReadTests.cs#AsyncReads_AgreeWithTheStreamForms",
       "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_ReadTheSameAsynchronously"
@@ -814,7 +814,7 @@
           "Each declarator is treated as an ordinary field of its own compiled shape; no distinct value contract applies."
         ],
         "evidence": [
-          "tests/CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_SupportWriteSerializeReadValueAndUpdate"
+          "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#MultipleDeclarators_SupportWriteSerializeReadValueAndUpdate"
         ]
       },
       "bytes": {
@@ -823,7 +823,7 @@
           "Each declarator's own primitive/array/bitfield codec supplies its exact-byte contract."
         ],
         "evidence": [
-          "tests/CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_SupportWriteSerializeReadValueAndUpdate"
+          "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#MultipleDeclarators_SupportWriteSerializeReadValueAndUpdate"
         ]
       }
     },
@@ -835,7 +835,7 @@
           "A qualifier is discarded during parsing; the compiled field carries no distinct representation of it, so no separate value contract applies."
         ],
         "evidence": [
-          "tests/CStructSharpTests/LayoutSafetyTests.cs#Qualifiers_BeforeTheType_AreDiscardedWithNoEffect"
+          "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#Qualifiers_BeforeTheType_AreDiscardedWithNoEffect"
         ]
       },
       "bytes": {
@@ -844,7 +844,7 @@
           "The qualified field's own primitive/array/bitfield codec supplies its exact-byte contract, unaffected by the discarded qualifier."
         ],
         "evidence": [
-          "tests/CStructSharpTests/LayoutSafetyTests.cs#Qualifiers_BeforeTheType_AreDiscardedWithNoEffect"
+          "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#Qualifiers_BeforeTheType_AreDiscardedWithNoEffect"
         ]
       }
     },
@@ -856,7 +856,7 @@
           "The override replaces which alignment value the field's placement uses; the field's own codec supplies its value contract unchanged."
         ],
         "evidence": [
-          "tests/CStructSharpTests/AlignmentOverrideTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate"
+          "tests/CStructSharpTests/Compilation/AlignmentOverrideTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate"
         ]
       },
       "bytes": {
@@ -865,8 +865,8 @@
           "Exact bytes match only when the enclosing layout is constructed with aligned: true; in packed mode the override has no effect on placement or padding."
         ],
         "evidence": [
-          "tests/CStructSharpTests/AlignmentOverrideTests.cs#BasicOverride_PadsToTheOverriddenAlignment",
-          "tests/CStructSharpTests/AlignmentOverrideTests.cs#PackedMode_HasNoEffect"
+          "tests/CStructSharpTests/Compilation/AlignmentOverrideTests.cs#BasicOverride_PadsToTheOverriddenAlignment",
+          "tests/CStructSharpTests/Compilation/AlignmentOverrideTests.cs#PackedMode_HasNoEffect"
         ]
       }
     },
@@ -878,7 +878,7 @@
           "The assertion never changes placement; it only validates the field's already-computed offset, so the field's own codec supplies its value contract unchanged."
         ],
         "evidence": [
-          "tests/CStructSharpTests/OffsetAssertionTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate"
+          "tests/CStructSharpTests/Compilation/OffsetAssertionTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate"
         ]
       },
       "bytes": {
@@ -887,8 +887,8 @@
           "Exact bytes match the unannotated field's own contract; a runtime-dependent field's assertion is validated at the first operation that reaches it instead of at construction, but the byte contract itself is unaffected either way."
         ],
         "evidence": [
-          "tests/CStructSharpTests/OffsetAssertionTests.cs#MatchingAssertion_Succeeds",
-          "tests/CStructSharpTests/OffsetAssertionTests.cs#RuntimeDependentField_ConstructionSucceedsButTheFirstOperationChecksTheAssertion"
+          "tests/CStructSharpTests/Compilation/OffsetAssertionTests.cs#MatchingAssertion_Succeeds",
+          "tests/CStructSharpTests/Compilation/OffsetAssertionTests.cs#RuntimeDependentField_ConstructionSucceedsButTheFirstOperationChecksTheAssertion"
         ]
       }
     },
@@ -900,7 +900,7 @@
           "The override changes only which alignment value each unannotated field's placement uses; every field's own codec supplies its value contract unchanged."
         ],
         "evidence": [
-          "tests/CStructSharpTests/CompositeAlignmentOverrideTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate"
+          "tests/CStructSharpTests/Compilation/CompositeAlignmentOverrideTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate"
         ]
       },
       "bytes": {
@@ -909,8 +909,8 @@
           "Exact bytes match only when the enclosing layout is constructed with aligned: true; in packed mode the override has no effect on placement or padding, the same as the field-level override."
         ],
         "evidence": [
-          "tests/CStructSharpTests/CompositeAlignmentOverrideTests.cs#FullClamp_ActsAsPackedForOneComposite",
-          "tests/CStructSharpTests/CompositeAlignmentOverrideTests.cs#PackedMode_HasNoEffect"
+          "tests/CStructSharpTests/Compilation/CompositeAlignmentOverrideTests.cs#FullClamp_ActsAsPackedForOneComposite",
+          "tests/CStructSharpTests/Compilation/CompositeAlignmentOverrideTests.cs#PackedMode_HasNoEffect"
         ]
       }
     },
@@ -1072,7 +1072,7 @@
           "A tag keyword is a compile-time hint checked against the referenced declaration's actual kind; once accepted, the field compiles to the identical shape as the bare-name form, so no distinct value contract applies."
         ],
         "evidence": [
-          "tests/CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_SupportsWriteSerializeReadValueAndUpdate"
+          "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#TagKeyword_SupportsWriteSerializeReadValueAndUpdate"
         ]
       },
       "bytes": {
@@ -1081,7 +1081,7 @@
           "The referenced declaration's own exact-byte contract applies unchanged, regardless of whether a tag keyword was written."
         ],
         "evidence": [
-          "tests/CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_SupportsWriteSerializeReadValueAndUpdate"
+          "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#TagKeyword_SupportsWriteSerializeReadValueAndUpdate"
         ]
       }
     },
@@ -2602,13 +2602,13 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_ReadTheSameAsSeparateFieldDeclarations",
+          "test": "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#MultipleDeclarators_ReadTheSameAsSeparateFieldDeclarations",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_SupportWriteSerializeReadValueAndUpdate",
+          "test": "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#MultipleDeclarators_SupportWriteSerializeReadValueAndUpdate",
           "operations": [
             "write",
             "serialize",
@@ -2617,25 +2617,25 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_LeadingPointerStarAppliesOnlyToItsOwnDeclarator",
+          "test": "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#MultipleDeclarators_LeadingPointerStarAppliesOnlyToItsOwnDeclarator",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_EachDeclaratorHasItsOwnArrayAndBitWidth",
+          "test": "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#MultipleDeclarators_EachDeclaratorHasItsOwnArrayAndBitWidth",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_WorkInsideAUnion",
+          "test": "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#MultipleDeclarators_WorkInsideAUnion",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_DuplicateNameAcrossDeclarators_StillRejected",
+          "test": "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#MultipleDeclarators_DuplicateNameAcrossDeclarators_StillRejected",
           "operations": [
             "parse"
           ]
@@ -2696,32 +2696,32 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#Qualifiers_BeforeTheType_AreDiscardedWithNoEffect",
+          "test": "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#Qualifiers_BeforeTheType_AreDiscardedWithNoEffect",
           "operations": [
             "parse",
             "address"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#Qualifiers_AfterAPointerStar_AreDiscardedWithNoEffect",
+          "test": "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#Qualifiers_AfterAPointerStar_AreDiscardedWithNoEffect",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#Qualifiers_InsideALaterDeclarator_AreDiscardedWithNoEffect",
+          "test": "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#Qualifiers_InsideALaterDeclarator_AreDiscardedWithNoEffect",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#Qualifiers_TokenOutsideTheClosedSet_StillRejected",
+          "test": "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#Qualifiers_TokenOutsideTheClosedSet_StillRejected",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#Qualifiers_AfterTheDeclaratorName_StillRejected",
+          "test": "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#Qualifiers_AfterTheDeclaratorName_StillRejected",
           "operations": [
             "parse"
           ]
@@ -2774,47 +2774,47 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/AlignmentOverrideTests.cs#BasicOverride_PadsToTheOverriddenAlignment",
+          "test": "tests/CStructSharpTests/Compilation/AlignmentOverrideTests.cs#BasicOverride_PadsToTheOverriddenAlignment",
           "operations": [
             "parse",
             "address"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/AlignmentOverrideTests.cs#PackedMode_HasNoEffect",
+          "test": "tests/CStructSharpTests/Compilation/AlignmentOverrideTests.cs#PackedMode_HasNoEffect",
           "operations": [
             "parse",
             "serialize"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/AlignmentOverrideTests.cs#DefineDrivenOverride_Works",
+          "test": "tests/CStructSharpTests/Compilation/AlignmentOverrideTests.cs#DefineDrivenOverride_Works",
           "operations": [
             "parse",
             "address"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/AlignmentOverrideTests.cs#PerDeclaratorScoping_OnlyAffectsItsOwnName",
+          "test": "tests/CStructSharpTests/Compilation/AlignmentOverrideTests.cs#PerDeclaratorScoping_OnlyAffectsItsOwnName",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/AlignmentOverrideTests.cs#PointerFieldOverride_Works",
+          "test": "tests/CStructSharpTests/Compilation/AlignmentOverrideTests.cs#PointerFieldOverride_Works",
           "operations": [
             "parse",
             "address"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/AlignmentOverrideTests.cs#NonPowerOfTwo_IsRejected",
+          "test": "tests/CStructSharpTests/Compilation/AlignmentOverrideTests.cs#NonPowerOfTwo_IsRejected",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/AlignmentOverrideTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate",
+          "test": "tests/CStructSharpTests/Compilation/AlignmentOverrideTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate",
           "operations": [
             "serialize",
             "write",
@@ -2871,52 +2871,52 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/OffsetAssertionTests.cs#MatchingAssertion_Succeeds",
+          "test": "tests/CStructSharpTests/Compilation/OffsetAssertionTests.cs#MatchingAssertion_Succeeds",
           "operations": [
             "parse",
             "address"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/OffsetAssertionTests.cs#Mismatch_IsRejectedNamingBothValues",
+          "test": "tests/CStructSharpTests/Compilation/OffsetAssertionTests.cs#Mismatch_IsRejectedNamingBothValues",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/OffsetAssertionTests.cs#ModeSensitivity_ChecksTheActualComputedOffsetForEachMode",
+          "test": "tests/CStructSharpTests/Compilation/OffsetAssertionTests.cs#ModeSensitivity_ChecksTheActualComputedOffsetForEachMode",
           "operations": [
             "parse",
             "address"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/OffsetAssertionTests.cs#RuntimeDependentField_ConstructionSucceedsButTheFirstOperationChecksTheAssertion",
+          "test": "tests/CStructSharpTests/Compilation/OffsetAssertionTests.cs#RuntimeDependentField_ConstructionSucceedsButTheFirstOperationChecksTheAssertion",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/OffsetAssertionTests.cs#RuntimeDependentField_CheckedViaSinglePathReadValueToo",
+          "test": "tests/CStructSharpTests/Compilation/OffsetAssertionTests.cs#RuntimeDependentField_CheckedViaSinglePathReadValueToo",
           "operations": [
             "address",
             "read-value"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/OffsetAssertionTests.cs#RuntimeDependentField_CheckedOnSerializeToo",
+          "test": "tests/CStructSharpTests/Compilation/OffsetAssertionTests.cs#RuntimeDependentField_CheckedOnSerializeToo",
           "operations": [
             "serialize"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/OffsetAssertionTests.cs#DefineDrivenAssertion_Works",
+          "test": "tests/CStructSharpTests/Compilation/OffsetAssertionTests.cs#DefineDrivenAssertion_Works",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/OffsetAssertionTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate",
+          "test": "tests/CStructSharpTests/Compilation/OffsetAssertionTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate",
           "operations": [
             "serialize",
             "write",
@@ -2973,47 +2973,47 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/CompositeAlignmentOverrideTests.cs#FullClamp_ActsAsPackedForOneComposite",
+          "test": "tests/CStructSharpTests/Compilation/CompositeAlignmentOverrideTests.cs#FullClamp_ActsAsPackedForOneComposite",
           "operations": [
             "parse",
             "address"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/CompositeAlignmentOverrideTests.cs#PartialClamp_ReducesButDoesNotEliminatePadding",
+          "test": "tests/CStructSharpTests/Compilation/CompositeAlignmentOverrideTests.cs#PartialClamp_ReducesButDoesNotEliminatePadding",
           "operations": [
             "parse",
             "address"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/CompositeAlignmentOverrideTests.cs#FieldLevelOverride_WinsOverTheCompositeClamp",
+          "test": "tests/CStructSharpTests/Compilation/CompositeAlignmentOverrideTests.cs#FieldLevelOverride_WinsOverTheCompositeClamp",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/CompositeAlignmentOverrideTests.cs#PackedMode_HasNoEffect",
+          "test": "tests/CStructSharpTests/Compilation/CompositeAlignmentOverrideTests.cs#PackedMode_HasNoEffect",
           "operations": [
             "parse",
             "serialize"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/CompositeAlignmentOverrideTests.cs#PropagatesToAContainingComposite",
+          "test": "tests/CStructSharpTests/Compilation/CompositeAlignmentOverrideTests.cs#PropagatesToAContainingComposite",
           "operations": [
             "parse",
             "address"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/CompositeAlignmentOverrideTests.cs#NonPowerOfTwo_IsRejected",
+          "test": "tests/CStructSharpTests/Compilation/CompositeAlignmentOverrideTests.cs#NonPowerOfTwo_IsRejected",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/CompositeAlignmentOverrideTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate",
+          "test": "tests/CStructSharpTests/Compilation/CompositeAlignmentOverrideTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate",
           "operations": [
             "serialize",
             "write",
@@ -3387,7 +3387,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/CompositeAlignmentTests.cs#AlignedNestedStruct_UsesParentFieldBoundaryEverywhere",
+          "test": "tests/CStructSharpTests/Compilation/CompositeAlignmentTests.cs#AlignedNestedStruct_UsesParentFieldBoundaryEverywhere",
           "operations": [
             "parse",
             "debug",
@@ -3464,7 +3464,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ScopedInlineTypeTests.cs#RepeatedDeepInlineNames_AgreeAcrossEveryOperation",
+          "test": "tests/CStructSharpTests/Compilation/ScopedInlineTypeTests.cs#RepeatedDeepInlineNames_AgreeAcrossEveryOperation",
           "operations": [
             "parse",
             "debug",
@@ -3545,7 +3545,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/TypedefResolutionTests.cs#Typedefs_WorkForStructPointersAndArraysAndRejectInvalidChains",
+          "test": "tests/CStructSharpTests/Compilation/TypedefResolutionTests.cs#Typedefs_WorkForStructPointersAndArraysAndRejectInvalidChains",
           "operations": [
             "parse",
             "debug",
@@ -3562,25 +3562,25 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ScopedInlineTypeTests.cs#AnonymousTypedefStruct_IsAcceptedAndUsableAtTheRootPath",
+          "test": "tests/CStructSharpTests/Compilation/ScopedInlineTypeTests.cs#AnonymousTypedefStruct_IsAcceptedAndUsableAtTheRootPath",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ScopedInlineTypeTests.cs#AnonymousTypedefUnion_IsAcceptedAndReadsWritesLikeANamedUnion",
+          "test": "tests/CStructSharpTests/Compilation/ScopedInlineTypeTests.cs#AnonymousTypedefUnion_IsAcceptedAndReadsWritesLikeANamedUnion",
           "operations": [
             "serialize"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ScopedInlineTypeTests.cs#NamedTagTypedefUnion_IsAcceptedAndReadsWritesLikeANamedUnion",
+          "test": "tests/CStructSharpTests/Compilation/ScopedInlineTypeTests.cs#NamedTagTypedefUnion_IsAcceptedAndReadsWritesLikeANamedUnion",
           "operations": [
             "serialize"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ScopedInlineTypeTests.cs#AnonymousTypedefStruct_SupportsNestedInlineStructFields",
+          "test": "tests/CStructSharpTests/Compilation/ScopedInlineTypeTests.cs#AnonymousTypedefStruct_SupportsNestedInlineStructFields",
           "operations": [
             "parse"
           ]
@@ -3729,40 +3729,40 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_StructBeforeAStructReference_CompilesToTheIdenticalShape",
+          "test": "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#TagKeyword_StructBeforeAStructReference_CompilesToTheIdenticalShape",
           "operations": [
             "parse",
             "address"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_UnionBeforeAUnionReference_CompilesToTheIdenticalShape",
+          "test": "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#TagKeyword_UnionBeforeAUnionReference_CompilesToTheIdenticalShape",
           "operations": [
             "parse",
             "address"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_EnumBeforeAnEnumReference_CompilesToTheIdenticalShape",
+          "test": "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#TagKeyword_EnumBeforeAnEnumReference_CompilesToTheIdenticalShape",
           "operations": [
             "parse",
             "address"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_AgainstATypedefAliasOfAStruct_ResolvesToTheTerminalKind",
+          "test": "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#TagKeyword_AgainstATypedefAliasOfAStruct_ResolvesToTheTerminalKind",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_MismatchedAgainstTheActualDeclarationKind_IsRejected",
+          "test": "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#TagKeyword_MismatchedAgainstTheActualDeclarationKind_IsRejected",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_SupportsWriteSerializeReadValueAndUpdate",
+          "test": "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#TagKeyword_SupportsWriteSerializeReadValueAndUpdate",
           "operations": [
             "serialize",
             "write",
@@ -4023,7 +4023,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/CompositeAlignmentTests.cs#AlignedCompositeFields_ShareOneParentBoundaryRule",
+          "test": "tests/CStructSharpTests/Compilation/CompositeAlignmentTests.cs#AlignedCompositeFields_ShareOneParentBoundaryRule",
           "operations": [
             "parse",
             "debug",
@@ -4199,7 +4199,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/DuplicateNameValidationTests.cs#DuplicateLayout_BlocksEveryOperationBeforeStreamAccess",
+          "test": "tests/CStructSharpTests/Compilation/DuplicateNameValidationTests.cs#DuplicateLayout_BlocksEveryOperationBeforeStreamAccess",
           "operations": [
             "parse",
             "debug",
@@ -4211,7 +4211,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#Constructor_UsesLayoutExceptionForSyntaxAndDuplicateTopLevelNames",
+          "test": "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#Constructor_UsesLayoutExceptionForSyntaxAndDuplicateTopLevelNames",
           "operations": [
             "parse",
             "debug",
@@ -4235,7 +4235,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#Constructor_UsesLayoutExceptionForSyntaxAndDuplicateTopLevelNames",
+          "test": "tests/CStructSharpTests/Compilation/LayoutSafetyTests.cs#Constructor_UsesLayoutExceptionForSyntaxAndDuplicateTopLevelNames",
           "operations": [
             "read-value"
           ]
@@ -4969,7 +4969,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ScopedInlineTypeTests.cs#TypedefBackingNames_AreGlobalTags",
+          "test": "tests/CStructSharpTests/Compilation/ScopedInlineTypeTests.cs#TypedefBackingNames_AreGlobalTags",
           "operations": [
             "parse",
             "debug"

@@ -15,6 +15,10 @@ using CStructSharp.Syntax;
 [TestClass]
 public class CompositeFieldPlacementCursorTests
 {
+    /// <summary>Compiles a layout and returns its <c>root</c> composite.</summary>
+    /// <param name="layout">The layout text.</param>
+    /// <param name="aligned">Whether the layout is aligned.</param>
+    /// <returns>The compiled root.</returns>
     private static CompiledCompositeType CompileRoot(string layout, bool aligned)
     {
         var cstruct = new CStruct(layout, aligned: aligned);

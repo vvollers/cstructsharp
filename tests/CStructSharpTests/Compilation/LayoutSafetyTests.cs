@@ -810,39 +810,60 @@ public class LayoutSafetyTests
     /// <summary>Models a valid write-only transport whose lack of positioning makes layout-aware writing unsupported.</summary>
     private sealed class WriteOnlyNonSeekableStream : Stream
     {
+        /// <summary>Gets false: the stream cannot be read.</summary>
         public override bool CanRead => false;
 
+        /// <summary>Gets false: the stream has no position.</summary>
         public override bool CanSeek => false;
 
+        /// <summary>Gets true: the stream accepts writes.</summary>
         public override bool CanWrite => true;
 
+        /// <summary>Not supported: the stream has no length.</summary>
         public override long Length => throw new NotSupportedException();
 
+        /// <summary>Not supported: the stream has no position.</summary>
         public override long Position
         {
             get => throw new NotSupportedException();
             set => throw new NotSupportedException();
         }
 
+        /// <summary>Does nothing; writes are discarded.</summary>
         public override void Flush()
         {
         }
 
+        /// <summary>Not supported: the stream cannot be read.</summary>
+        /// <param name="buffer">The destination, unused.</param>
+        /// <param name="offset">The first index, unused.</param>
+        /// <param name="count">The byte count, unused.</param>
+        /// <returns>Never returns.</returns>
         public override int Read(byte[] buffer, int offset, int count)
         {
             throw new NotSupportedException();
         }
 
+        /// <summary>Not supported: the stream has no position.</summary>
+        /// <param name="offset">The offset, unused.</param>
+        /// <param name="origin">The origin, unused.</param>
+        /// <returns>Never returns.</returns>
         public override long Seek(long offset, SeekOrigin origin)
         {
             throw new NotSupportedException();
         }
 
+        /// <summary>Not supported: the stream has no length.</summary>
+        /// <param name="value">Unused.</param>
         public override void SetLength(long value)
         {
             throw new NotSupportedException();
         }
 
+        /// <summary>Accepts and discards the bytes.</summary>
+        /// <param name="buffer">The bytes.</param>
+        /// <param name="offset">The first byte's index.</param>
+        /// <param name="count">The byte count.</param>
         public override void Write(byte[] buffer, int offset, int count)
         {
         }

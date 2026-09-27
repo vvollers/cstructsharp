@@ -4,7 +4,7 @@ using CStructSharp.Diagnostics;
 
 /// <summary>Checks compiled layout call diagnostics, root capture plans and storage extents at their boundaries.</summary>
 [TestClass]
-public class LayoutModelResidualTests
+public class LayoutModelBoundaryTests
 {
     /// <summary>Unknown-type hints are absent for unknown names and identify the declarator after a known type.</summary>
     /// <param name="definition">An invalid field declaration.</param>
