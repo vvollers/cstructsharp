@@ -9,6 +9,7 @@ import OperationPanel from "./components/OperationPanel.vue";
 import ResultPanel from "./components/ResultPanel.vue";
 import TestNavigator from "./components/TestNavigator.vue";
 import LessonNavigator from "./components/LessonNavigator.vue";
+import LessonNotes from "./components/LessonNotes.vue";
 import type { TestManifest } from "./demo-types";
 import rawTestDemos from "./generated/test-demos.json";
 import { formatTestTitle } from "./format-test-title";
@@ -146,6 +147,7 @@ const statusText = computed(() => {
                   .join(" ")
               }}
             </p>
+            <LessonNotes v-if="selectedLesson" :lesson="selectedLesson" :docs-base="docsBase" />
           </template>
           <p v-else>No matching examples.</p>
         </section>

@@ -1,14 +1,23 @@
 import { expect, test } from "@playwright/test";
 import { lessons } from "../../src/lessons";
 
-test("the explanation panel is one column with direct failure recovery", async ({ page }) => {
+test("the explanation panel shows the lesson's exercise with its answer folded away", async ({
+  page,
+}) => {
   await page.goto("/#lesson=truncated");
   const panel = page.locator(".example-context");
-  await expect(panel.locator("details")).toHaveCount(0);
-  await expect(panel.getByRole("link")).toHaveCount(0);
-  await expect(panel.locator(".example-explanation")).toContainText("Paste 02 00 06 00 00 00");
-  await expect(panel).not.toContainText("Try it:");
-  await expect(panel).not.toContainText("This lesson practices");
+  await expect(panel.locator(".example-explanation")).toContainText("only three bytes");
+  await expect(panel.locator(".example-explanation")).not.toContainText("Paste 02 00 06 00 00 00");
+  await expect(panel).toContainText("Before you start: Complete the file header lesson.");
+  await expect(panel).toContainText("Try it: Paste 02 00 06 00 00 00 into the hex editor");
+  const answer = panel.locator("details");
+  await expect(answer.getByText("reads kind 2 and length 6")).toBeHidden();
+  await answer.getByText("Show the answer").click();
+  await expect(answer.getByText("reads kind 2 and length 6")).toBeVisible();
+  await expect(panel.getByRole("link", { name: "Read the guide for this topic" })).toHaveAttribute(
+    "href",
+    /guides\/errors-and-recovery\.html$/,
+  );
   const heading = await panel.getByRole("heading").boundingBox();
   const text = await panel.locator(".example-explanation").boundingBox();
   expect(text!.y).toBeGreaterThan(heading!.y + heading!.height);
@@ -94,7 +103,7 @@ test("settings popup updates the summary, applies options, and resets with the l
 test("the byte-limit lesson recovers at the documented budget", async ({ page }) => {
   await page.goto("/#lesson=limits");
   await expect(page.locator(".status-badge")).toContainText("Ready", { timeout: 60_000 });
-  await expect(page.locator(".example-explanation")).toContainText("increase Total bytes to 6");
+  await expect(page.locator(".example-context")).toContainText("increase Total bytes to 6");
   const run = page.getByRole("button", { name: "Run parse", exact: true });
   await run.click();
   await expect(page.locator(".result-panel")).toContainText("read-budget");

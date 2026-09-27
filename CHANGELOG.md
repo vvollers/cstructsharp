@@ -47,6 +47,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Added
 
+- Explorer lessons show what to know first, an exercise to try, the answer behind a disclosure, and a link to the
+  guide for the topic. The lesson explanations describe the starting example and no longer give the answer away.
 - A syntax error's `CStructLayoutException` sets `Line` and `Column`, as a declaration error's does. The message is
   unchanged: it already names the position (`unexpected '$' at line 1, column 30; expected '}'.`).
 - `@count(N)` on a pointer declarator reads `N` consecutive elements at the target: `uint8 *iv @count(iv_len);`
