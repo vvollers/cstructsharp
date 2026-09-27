@@ -663,7 +663,7 @@ public partial class CStruct
             }
             else if (compiledField.IsWideCharElement)
             {
-                valueField = compiledField.SelectPointerTarget(0, CharacterFieldTypes.GetStringPointerHandlerKey(compiledField.EffectiveField.Type), this.PointerSize);
+                valueField = compiledField.SelectPointerTarget(0, CharacterFieldTypes.GetStringPointerHandlerKey(compiledField.TypeSpelling), this.PointerSize);
             }
         }
 

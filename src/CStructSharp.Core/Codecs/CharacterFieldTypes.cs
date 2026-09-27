@@ -14,24 +14,25 @@ internal static class CharacterFieldTypes
     public static readonly Identifier WcharType = new("wchar");
 
     /// <summary>Chooses the zero-terminated string reader that matches a character pointer type.</summary>
+    /// <param name="type">The type as written, without pointer stars of its own.</param>
+    /// <returns>The terminated codec's name.</returns>
     public static string GetStringPointerHandlerKey(Identifier type)
+        => type.PointerDepth == 0 || PrimitiveCodecs.IsVariableLengthType(type.Name) ? GetStringPointerHandlerKey(type.Name) : CstringType.Name;
+
+    /// <summary>Chooses the zero-terminated string reader that matches a character type name.</summary>
+    /// <param name="typeName">The resolved type name.</param>
+    /// <returns>The terminated codec's name.</returns>
+    public static string GetStringPointerHandlerKey(string typeName)
     {
-        if (PrimitiveCodecs.IsVariableLengthType(type.Name))
+        if (PrimitiveCodecs.IsVariableLengthType(typeName))
         {
-            return type.Name;
+            return typeName;
         }
 
-        if (type.Equals(WcharBigEndianType))
-        {
-            return "string>";
-        }
-
-        if (type.Equals(WcharLittleEndianType))
-        {
-            return "string<";
-        }
-
-        return type.Equals(WcharType) ? StringType.Name : CstringType.Name;
+        return typeName == WcharBigEndianType.Name ? "string>"
+               : typeName == WcharLittleEndianType.Name ? "string<"
+               : typeName == WcharType.Name ? StringType.Name
+               : CstringType.Name;
     }
 
     /// <summary>Returns whether a non-pointer field is a fixed array of narrow or wide characters.</summary>

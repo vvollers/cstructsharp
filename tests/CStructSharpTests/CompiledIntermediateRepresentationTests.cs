@@ -44,7 +44,7 @@ public class CompiledIntermediateRepresentationTests
         Assert.AreEqual(3, compiledRoot.Fields.Length);
 
         CompiledField count = compiledRoot.Fields[0];
-        Assert.AreEqual("uint16", count.EffectiveField.Type.Name);
+        Assert.AreEqual("uint16", count.TypeSpelling);
         Assert.AreEqual("uint16", count.CodecName);
         Assert.AreEqual(2, count.Alignment);
         Assert.AreEqual(2, count.FixedElementSize);
@@ -240,7 +240,7 @@ public class CompiledIntermediateRepresentationTests
             (CompiledCompositeType)textPointerLayout.CompiledModel.Composites[textRoot].Definition!;
         CompiledField textPointer = compiledTextRoot.FieldsByName["text"];
         CompiledField terminatedTarget = textPointer.SelectPointerTarget(0, "cstring", 2);
-        Assert.AreEqual("cstring", terminatedTarget.EffectiveField.Type.Name);
+        Assert.AreEqual("cstring", terminatedTarget.TypeSpelling);
         Assert.AreEqual(0, terminatedTarget.PointerDepth);
         Assert.AreEqual(1, terminatedTarget.Alignment);
         Assert.IsNull(terminatedTarget.FixedElementSize);

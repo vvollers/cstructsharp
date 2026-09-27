@@ -37,7 +37,7 @@ public class ReaderQualifiedPrefixAllocationTests
         Action wrapped = () =>
         {
             fieldInput.Position = 0;
-            readField(field.EffectiveField, destination, fieldState, null, -1, false, field, null, false);
+            readField(field.Declaration, destination, fieldState, null, -1, false, field, null, false);
         };
 
         // Use the same dispatcher without a prefix, then account for exactly one required prefix restoration.
@@ -45,7 +45,7 @@ public class ReaderQualifiedPrefixAllocationTests
         Action control = () =>
         {
             controlInput.Position = 0;
-            readField(field.EffectiveField, controlValue, controlState, null, -1, false, field, null, false);
+            readField(field.Declaration, controlValue, controlState, null, -1, false, field, null, false);
             prefixState.QualifiedPrefix = "outer.";
         };
         for (int index = 0; index < 100; index++)

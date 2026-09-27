@@ -80,7 +80,7 @@ public class CompositeFieldPlacementCursorTests
             Assert.AreEqual((long)field.FixedOffset!.Value, fieldStart, field.Declaration.Name.Name);
             Assert.AreEqual(field.BitOffset, bitOffset, field.Declaration.Name.Name);
 
-            if (field.EffectiveField.BitSize == 0)
+            if (field.BitSize == 0)
             {
                 cursor.CompleteField(fieldStart + (field.FixedStorageSize ?? 0));
             }

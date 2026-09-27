@@ -510,7 +510,7 @@ public partial class CStruct
     {
         bool isTerminatedTarget = remainingPointerDepth == 0 && field.HasTerminatedCodec;
         string? terminatedCodec = isTerminatedTarget
-                                      ? CharacterFieldTypes.GetStringPointerHandlerKey(field.EffectiveField.Type)
+                                      ? CharacterFieldTypes.GetStringPointerHandlerKey(field.TypeSpelling)
                                       : null;
         return field.SelectPointerTarget(
             remainingPointerDepth,

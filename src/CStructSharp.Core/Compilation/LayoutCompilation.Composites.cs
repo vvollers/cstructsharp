@@ -57,7 +57,7 @@ internal sealed partial class LayoutCompilation
             {
                 // Separator padding belongs to placement, not to either neighboring run's storage window.
                 CompiledField field = fields[index];
-                bits += field.EffectiveField.BitSize;
+                bits += field.BitSize;
                 index++;
             }
 
@@ -455,7 +455,7 @@ internal sealed partial class LayoutCompilation
             {
                 // Bit runs never span a variable-length field, so an unknown position means the run is unreachable
                 // statically; the runtime cursor places it.
-                (long UnitStart, int UnitSize, int BitOffset)? unit = cursor.AdvanceToBitfield(field.BitStorageSize.Value, field.Alignment, field.EffectiveField.BitSize, field.BitRunBits, field.BitStorageIsLittleEndian ?? true, field.Declaration.Name.Name);
+                (long UnitStart, int UnitSize, int BitOffset)? unit = cursor.AdvanceToBitfield(field.BitStorageSize.Value, field.Alignment, field.BitSize, field.BitRunBits, field.BitStorageIsLittleEndian ?? true, field.Declaration.Name.Name);
                 result.Add(unit is { } placed ? field.WithPlacement(ToOffset(placed.UnitStart), placed.BitOffset, placed.UnitSize) : field.WithPlacement(null, 0));
                 continue;
             }

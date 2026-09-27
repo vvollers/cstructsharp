@@ -390,9 +390,9 @@ internal sealed partial class LayoutCompilation
                     kind,
                     field.Array.Dimensions.Select(dimension => dimension.FixedCount).ToArray(),
                     field.FixedOffset,
-                    field.EffectiveField.BitSize > 0 ? field.BitUnitSize ?? field.BitStorageSize : field.IsZeroWidthBitfield ? 0 : field.FixedStorageSize,
-                    field.EffectiveField.BitSize > 0 || field.IsZeroWidthBitfield ? field.EffectiveField.BitSize : null,
-                    field.EffectiveField.BitSize > 0 ? field.BitOffset : null,
+                    field.BitSize > 0 ? field.BitUnitSize ?? field.BitStorageSize : field.IsZeroWidthBitfield ? 0 : field.FixedStorageSize,
+                    field.BitSize > 0 || field.IsZeroWidthBitfield ? field.BitSize : null,
+                    field.BitSize > 0 ? field.BitOffset : null,
                     composite.PromotedFields.Contains(field),
                     declaration.Condition is not null,
                     promoted)

@@ -180,15 +180,7 @@ public sealed partial class CStruct
 
         // Resolution already placed the whole field. Aligning again can move an unaligned union view, or
         // incorrectly add alignment padding between the elements of a selected enum array.
-        this.HandleCStructElement(
-            selectedField.EffectiveField,
-            container,
-            state,
-            null,
-            -1,
-            false,
-            selectedField,
-            positionIsResolvedTarget: true);
+        this.ReadField(selectedField, container, state, null, -1, null, positionIsResolvedTarget: true);
         return ExtractOnlyValue(container, selectedField.Name);
     }
 

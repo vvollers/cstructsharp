@@ -236,21 +236,16 @@ public partial class CStruct
                         continue;
                     }
 
-                    // The root field projection carries the alias name, including for structs and pointers.
-                    // Its Field branch adds that name to the debug path exactly once.
-                    fieldDescriptor = this.compiledModelQueries.GetCompiledRootField(t);
-                    el = fieldDescriptor.EffectiveField;
-
-                    unionPosition = -1;
-                    continue;
+                    // The root field projection carries the alias name, including for structs and pointers, and adds
+                    // that name to the debug path exactly once.
+                    this.ReadField(this.compiledModelQueries.GetCompiledRootField(t), currentContainer, state, debugStack, -1, cursor, positionIsResolvedTarget);
+                    break;
                 }
 
             case CstructEnum enm:
                 // A direct enum root uses the same synthetic compiled scalar field as an enum typedef.
-                fieldDescriptor = this.compiledModelQueries.GetCompiledRootField(enm);
-                el = fieldDescriptor.EffectiveField;
-                unionPosition = -1;
-                continue;
+                this.ReadField(this.compiledModelQueries.GetCompiledRootField(enm), currentContainer, state, debugStack, -1, cursor, positionIsResolvedTarget);
+                break;
 
             case Defines d:
                 // Definitions do not consume bytes; they prepare an expression value for array lengths and later fields.

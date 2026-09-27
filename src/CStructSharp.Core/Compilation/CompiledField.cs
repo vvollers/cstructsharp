@@ -14,6 +14,10 @@ internal sealed class CompiledField
     private CountedPointerTarget? countedTarget;
 
     /// <summary>Creates the compiled view of a declared field from its resolved type, codecs, and storage facts.</summary>
+    /// <remarks>
+    ///     <paramref name="effectiveField"/> is the declaration with its type resolved (a typedef's terminal type, its array
+    ///     shape and pointer depth merged in); its name, type spelling, width and pointer depth are read, not kept.
+    /// </remarks>
     public CompiledField(
         Field declaration,
         Field effectiveField,
@@ -32,7 +36,6 @@ internal sealed class CompiledField
         bool layoutLittleEndian)
     {
         this.Declaration = declaration;
-        this.EffectiveField = effectiveField;
         this.Type = type;
         this.CodecId = codecId;
         this.TerminatedCodecId = terminatedCodecId;
@@ -62,11 +65,10 @@ internal sealed class CompiledField
         this.IsFixedPoint = this.Codec.IsFixedPoint;
     }
 
-    /// <summary>Derived copies keep the parent's resolved codec when the pointer depth is unchanged.</summary>
-    private CompiledField(CompiledField parent, Field effectiveField, int alignment, int? fixedElementSize, CompiledArrayShape array, int? fixedStorageSize, bool isUnsizedCharacterArray, int? bitStorageSize, bool? bitStorageIsLittleEndian, int? fixedOffset, int bitOffset, int codecId)
+    /// <summary>A derived view (an array element, a pointer target, a placed field) of <paramref name="parent"/>; it keeps the parent's resolved codec when the pointer depth is unchanged.</summary>
+    private CompiledField(CompiledField parent, string typeSpelling, int bitSize, bool isZeroWidthBitfield, int pointerDepth, int alignment, int? fixedElementSize, CompiledArrayShape array, int? fixedStorageSize, bool isUnsizedCharacterArray, int? bitStorageSize, bool? bitStorageIsLittleEndian, int? fixedOffset, int bitOffset, int codecId)
     {
         this.Declaration = parent.Declaration;
-        this.EffectiveField = effectiveField;
         this.Type = parent.Type;
         this.CodecId = codecId;
         this.TerminatedCodecId = parent.TerminatedCodecId;
@@ -79,13 +81,13 @@ internal sealed class CompiledField
         this.BitStorageIsLittleEndian = bitStorageIsLittleEndian;
         this.FixedOffset = fixedOffset;
         this.BitOffset = bitOffset;
-        this.Name = effectiveField.Name.Name;
-        this.TypeSpelling = effectiveField.Type.Name;
-        this.BitSize = effectiveField.BitSize;
-        this.IsZeroWidthBitfield = effectiveField.HasBitfieldDeclarator && this.BitSize == 0;
+        this.Name = parent.Name;
+        this.TypeSpelling = typeSpelling;
+        this.BitSize = bitSize;
+        this.IsZeroWidthBitfield = isZeroWidthBitfield;
         this.BitUnitSize = parent.BitUnitSize;
         this.BitRunBits = parent.BitRunBits;
-        this.PointerDepth = effectiveField.PointerDepth;
+        this.PointerDepth = pointerDepth;
         this.SetCharacterFacts();
         this.CapturesLayoutVariable = parent.CapturesLayoutVariable;
         this.AssertedOffset = parent.AssertedOffset;
@@ -161,8 +163,6 @@ internal sealed class CompiledField
 
     public Field Declaration { get; }
 
-    public Field EffectiveField { get; }
-
     public int? FixedElementSize { get; }
 
     public int? FixedOffset { get; }
@@ -231,7 +231,7 @@ internal sealed class CompiledField
     /// </summary>
     public string DisplayTypeSpelling =>
         this.Array.Kind == CompiledArrayKind.Flexible && this.IsCharacterArray
-            ? CharacterFieldTypes.GetStringPointerHandlerKey(this.EffectiveField.Type)
+            ? CharacterFieldTypes.GetStringPointerHandlerKey(this.TypeSpelling)
             : this.TypeSpelling;
 
     /// <summary>Whether this view is an array of characters that reads as a string rather than a list.</summary>
@@ -362,16 +362,6 @@ internal sealed class CompiledField
         CompiledArrayShape nextShape = this.Array.PeelOuterDimension();
         bool isScalarResult = nextShape.Dimensions.IsEmpty;
 
-        // A derived/peeled field's own ArrayCount is never inspected downstream - array-ness for this shape is
-        // driven entirely by CompiledArrayShape (nextShape), not by this Field's own declaration data, which only
-        // ever matters during the one-time CompileComposite pass this method never runs during.
-        var field = new Field(
-            this.EffectiveField.Type,
-            this.EffectiveField.Name,
-            Field.NoArray,
-            Field.Width(this.EffectiveField.BitSize),
-            this.PointerDepth);
-
         int? nextStorageSize = isScalarResult || this.FixedElementSize is not int elementSize
                                     ? this.FixedElementSize
                                     : nextShape.TotalFixedElementCount is int remainingCount
@@ -380,7 +370,10 @@ internal sealed class CompiledField
 
         return new CompiledField(
             this,
-            field,
+            this.TypeSpelling,
+            this.BitSize,
+            false,
+            this.PointerDepth,
             this.Alignment,
             this.FixedElementSize,
             nextShape,
@@ -414,10 +407,6 @@ internal sealed class CompiledField
         string? terminatedCodecName,
         int pointerSize)
     {
-        Identifier type = terminatedCodecName is null
-                              ? this.EffectiveField.Type
-                              : new Identifier(terminatedCodecName);
-        var field = new Field(type, this.EffectiveField.Name, Field.NoArray, NoneExpr.Instance, remainingPointerDepth);
         bool targetIsTerminated = remainingPointerDepth == 0 && terminatedCodecName is not null;
         int alignment = remainingPointerDepth > 0 ? pointerSize : targetIsTerminated ? 1 : this.Type.Symbol.Alignment;
         int? elementSize = remainingPointerDepth > 0
@@ -427,7 +416,10 @@ internal sealed class CompiledField
                                    : this.Type.Symbol.FixedSize;
         return new CompiledField(
             this,
-            field,
+            terminatedCodecName ?? this.TypeSpelling,
+            0,
+            false,
+            remainingPointerDepth,
             alignment,
             elementSize,
             CompiledArrayShape.Scalar,
@@ -445,7 +437,10 @@ internal sealed class CompiledField
     {
         var placed = new CompiledField(
             this,
-            this.EffectiveField,
+            this.TypeSpelling,
+            this.BitSize,
+            this.IsZeroWidthBitfield,
+            this.PointerDepth,
             this.Alignment,
             this.FixedElementSize,
             this.Array,
