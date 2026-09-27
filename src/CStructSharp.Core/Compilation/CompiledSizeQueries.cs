@@ -64,7 +64,7 @@ internal sealed class CompiledSizeQueries
                     this.GetCompiledFieldStorageSize(field, variables, requireFixedSize));
             }
 
-            return this.aligned ? LayoutMath.AlignUp(largest, composite.Symbol.Alignment) : largest;
+            return checked((int)PlacementCursor.UnionEnd(largest, composite.Symbol.Alignment, this.aligned));
         }
 
         // Drives the same cursor CStructAddressResolver/CStructReader/CStructWriter use, but sources each field's

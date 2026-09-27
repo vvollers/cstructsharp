@@ -80,6 +80,19 @@ internal sealed partial class LayoutCompilation
         return false;
     }
 
+    /// <summary>Converts a placement position to a build-time offset, which must fit an Int32; an unknown position stays unknown.</summary>
+    /// <param name="position">The position, or <see langword="null"/>.</param>
+    /// <returns>The offset, or <see langword="null"/>.</returns>
+    /// <exception cref="OverflowException">The position exceeds the Int32 range.</exception>
+    private static int? ToOffset(long? position) => position is long value ? checked((int)value) : null;
+
+    /// <summary>
+    ///     Adds the names every expression of one declaration can read: a struct's own and nested field expressions,
+    ///     a typedef's struct, a <c>#define</c> value, and enum member values.
+    /// </summary>
+    /// <param name="element">The declaration.</param>
+    /// <param name="referenced">The collected names, created on first use.</param>
+    /// <param name="pending">The work stack for nested expressions, created on first use.</param>
     private static void CollectExpressionReferences(CStructElement element, ref HashSet<string>? referenced, ref Stack<Expr>? pending)
     {
         switch (element)
@@ -1035,23 +1048,17 @@ internal sealed partial class LayoutCompilation
                               : null;
             }
 
-            if (largest.HasValue && this.Aligned)
-            {
-                largest = LayoutMath.AlignUp(largest.Value, compositeAlignment);
-            }
-
-            fixedSize = largest;
+            fixedSize = largest.HasValue ? ToOffset(PlacementCursor.UnionEnd(largest.Value, compositeAlignment, this.Aligned)) : null;
             return result.ToImmutable();
         }
 
         MeasureBitfieldRuns(fields);
-        int? current = 0;
-        var bitfields = new BitfieldPlacement(this.BitfieldPacking, this.Aligned, this.highBitFirst);
+        var cursor = new PlacementCursor(0, this.Aligned, this.BitfieldPacking, this.highBitFirst);
         foreach (CompiledField field in fields)
         {
             if (field.Declaration.Condition is not null)
             {
-                current = null;
+                cursor.CompleteField(null);
                 if (field.BitStorageSize.HasValue)
                 {
                     throw new CStructLayoutException("Place conditional bitfields inside a named struct group.");
@@ -1061,39 +1068,20 @@ internal sealed partial class LayoutCompilation
             if (field.IsZeroWidthBitfield)
             {
                 // A separator has no storage; it only moves the bit position for the next bitfield.
-                if (current.HasValue)
-                {
-                    bitfields.PlaceSeparator(current.Value, field.BitStorageSize ?? 1, field.Alignment, field.BitRunBits);
-                    current = checked((int)bitfields.RunEnd);
-                }
-
-                result.Add(field.WithPlacement(current, 0));
+                result.Add(field.WithPlacement(ToOffset(cursor.AdvanceToSeparator(field.BitStorageSize ?? 1, field.Alignment, field.BitRunBits)), 0));
                 continue;
             }
 
             if (field.BitStorageSize.HasValue)
             {
-                if (!current.HasValue)
-                {
-                    // Bit runs never span a variable-length field, so an unknown position means the run is
-                    // unreachable statically; the runtime cursor places it.
-                    result.Add(field.WithPlacement(null, 0));
-                    continue;
-                }
-
-                (long unitStart, int unitSize, int bitOffset) = bitfields.Place(current.Value, field.BitStorageSize.Value, field.Alignment, field.EffectiveField.BitSize, field.BitRunBits, field.BitStorageIsLittleEndian ?? true, field.Declaration.Name.Name);
-                current = checked((int)bitfields.RunEnd);
-                result.Add(field.WithPlacement(checked((int)unitStart), bitOffset, unitSize));
+                // Bit runs never span a variable-length field, so an unknown position means the run is unreachable
+                // statically; the runtime cursor places it.
+                (long UnitStart, int UnitSize, int BitOffset)? unit = cursor.AdvanceToBitfield(field.BitStorageSize.Value, field.Alignment, field.EffectiveField.BitSize, field.BitRunBits, field.BitStorageIsLittleEndian ?? true, field.Declaration.Name.Name);
+                result.Add(unit is { } placed ? field.WithPlacement(ToOffset(placed.UnitStart), placed.BitOffset, placed.UnitSize) : field.WithPlacement(null, 0));
                 continue;
             }
 
-            bitfields.Close();
-            if (current.HasValue && this.Aligned)
-            {
-                current = LayoutMath.AlignUp(current.Value, field.Alignment);
-            }
-
-            int? offset = current;
+            int? offset = ToOffset(cursor.AdvanceToField(field.Alignment));
             if (offset.HasValue && field.Declaration.OffsetAssertionExpression is not null)
             {
                 int asserted = this.layoutExpressionEvaluator.Evaluate(
@@ -1113,18 +1101,13 @@ internal sealed partial class LayoutCompilation
                 }
             }
 
-            current = current.HasValue && field.FixedStorageSize.HasValue
-                          ? checked(current.Value + field.FixedStorageSize.Value)
-                          : null;
+            cursor.CompleteField(offset.HasValue && field.FixedStorageSize.HasValue
+                                     ? checked(offset.Value + field.FixedStorageSize.Value)
+                                     : null);
             result.Add(field.WithPlacement(offset, 0));
         }
 
-        if (current.HasValue && this.Aligned)
-        {
-            current = LayoutMath.AlignUp(current.Value, compositeAlignment);
-        }
-
-        fixedSize = current;
+        fixedSize = ToOffset(cursor.Finish(compositeAlignment));
         return result.ToImmutable();
     }
 

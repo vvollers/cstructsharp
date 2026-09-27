@@ -13,9 +13,7 @@ using CStructSharp.Compilation;
 /// </remarks>
 public struct CompositeCursor
 {
-    private readonly bool aligned;
-    private BitfieldPlacement bitfields;
-    private long current;
+    private PlacementCursor cursor;
 
     /// <summary>Creates placement state without owning or reading any binary storage.</summary>
     /// <param name="start">The composite's byte offset in the containing read/write cursor's coordinate system.</param>
@@ -24,13 +22,11 @@ public struct CompositeCursor
     /// <param name="highBitFirst">Whether the first bitfield occupies the high end of its storage unit.</param>
     private CompositeCursor(long start, bool aligned, BitfieldPacking packing, bool highBitFirst)
     {
-        this.current = start;
-        this.aligned = aligned;
-        this.bitfields = new BitfieldPlacement(packing, aligned, highBitFirst);
+        this.cursor = new PlacementCursor(start, aligned, packing, highBitFirst);
     }
 
     /// <summary>Gets the position the next field starts from (before its own alignment).</summary>
-    public readonly long Current => this.current;
+    public readonly long Current => this.cursor.Current!.Value;
 
     /// <summary>Starts placing a composite at <paramref name="start"/>.</summary>
     /// <param name="start">The composite's first byte.</param>
@@ -44,12 +40,7 @@ public struct CompositeCursor
     /// <summary>Places an ordinary field: closes any bitfield run and aligns when the layout is aligned.</summary>
     /// <param name="alignment">The field type's alignment in bytes.</param>
     /// <returns>The field's start.</returns>
-    public long AdvanceToField(int alignment)
-    {
-        this.bitfields.Close();
-        this.current = this.aligned ? LayoutMath.AlignUp(this.current, alignment) : this.current;
-        return this.current;
-    }
+    public long AdvanceToField(int alignment) => this.cursor.AdvanceToField(alignment)!.Value;
 
     /// <summary>Places a bitfield in the open run (or opens one) and returns its storage unit and bit offset.</summary>
     /// <param name="declaredSize">The declared storage type's size in bytes.</param>
@@ -61,8 +52,7 @@ public struct CompositeCursor
     /// <returns>The unit's start and size, and the field's bit offset within it.</returns>
     public BitfieldSlot AdvanceToBitfield(int declaredSize, int alignment, int width, int runBits, bool littleEndian, string member)
     {
-        (long unitStart, int unitSize, int bitOffset) = this.bitfields.Place(this.current, declaredSize, alignment, width, runBits, littleEndian, member);
-        this.current = this.bitfields.RunEnd;
+        (long unitStart, int unitSize, int bitOffset) = this.cursor.AdvanceToBitfield(declaredSize, alignment, width, runBits, littleEndian, member)!.Value;
         return new BitfieldSlot(unitStart, unitSize, bitOffset);
     }
 
@@ -71,25 +61,19 @@ public struct CompositeCursor
     /// <param name="alignment">The separator's declared alignment.</param>
     /// <param name="runBits">The compiled bit length of the run.</param>
     /// <returns>The position after the separator.</returns>
-    public long AdvanceToSeparator(int declaredSize, int alignment, int runBits)
-    {
-        this.bitfields.PlaceSeparator(this.current, declaredSize, alignment, runBits);
-        this.current = this.bitfields.RunEnd;
-        return this.current;
-    }
+    public long AdvanceToSeparator(int declaredSize, int alignment, int runBits) => this.cursor.AdvanceToSeparator(declaredSize, alignment, runBits)!.Value;
 
     /// <summary>Records where an ordinary field ended, so the next field is placed after it.</summary>
     /// <param name="fieldEnd">The position after the field.</param>
     public void CompleteField(long fieldEnd)
     {
-        this.current = fieldEnd;
+        this.cursor.CompleteField(fieldEnd);
     }
 
     /// <summary>The composite's end: its current extent, padded to its alignment when the layout is aligned.</summary>
     /// <param name="structAlignment">The composite's alignment.</param>
     /// <returns>The position after the composite.</returns>
-    public readonly long Finish(int structAlignment)
-        => this.aligned ? LayoutMath.AlignUp(this.current, structAlignment) : this.current;
+    public readonly long Finish(int structAlignment) => this.cursor.Finish(structAlignment)!.Value;
 }
 
 /// <summary>Where a bitfield lives: its storage unit's start and size, and its bit offset within the unit.</summary>

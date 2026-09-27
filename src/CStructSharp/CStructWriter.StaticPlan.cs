@@ -96,7 +96,6 @@ public partial class CStruct
         }
 
         state.ResetBitfieldUnit();
-        state.NextPosition = Math.Max(state.NextPosition, stream.Position);
         return true;
     }
 

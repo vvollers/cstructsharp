@@ -11,19 +11,20 @@ using CStructSharp.Syntax;
 /// </summary>
 internal sealed class CompositeFieldPlacementCursor
 {
-    private readonly bool aligned;
-    private BitfieldPlacement bitfields;
-    private long current;
+    private PlacementCursor cursor;
 
+    /// <summary>Starts placing a composite's fields at a known position.</summary>
+    /// <param name="start">The composite's first byte.</param>
+    /// <param name="aligned">Whether the layout applies the portable alignment rules.</param>
+    /// <param name="packing">The bitfield storage-sharing rule.</param>
+    /// <param name="highBitFirst">Whether the first bitfield occupies the high end of its storage unit.</param>
     public CompositeFieldPlacementCursor(long start, bool aligned, BitfieldPacking packing, bool highBitFirst = false)
     {
-        this.current = start;
-        this.aligned = aligned;
-        this.bitfields = new BitfieldPlacement(packing, aligned, highBitFirst);
+        this.cursor = new PlacementCursor(start, aligned, packing, highBitFirst);
     }
 
     /// <summary>Gets the cursor's current position, including a struct's final tail after every field has been placed.</summary>
-    public long Current => this.current;
+    public long Current => this.cursor.Current!.Value;
 
     /// <summary>
     ///     Advances to one field's start, placing a bitfield in its storage unit (opening a new one when the packing
@@ -34,9 +35,7 @@ internal sealed class CompositeFieldPlacementCursor
     {
         if (compiledField.IsZeroWidthBitfield)
         {
-            this.bitfields.PlaceSeparator(this.current, compiledField.BitStorageSize ?? 1, compiledField.Alignment, compiledField.BitRunBits);
-            this.current = this.bitfields.RunEnd;
-            return (this.current, 0, 0);
+            return (this.cursor.AdvanceToSeparator(compiledField.BitStorageSize ?? 1, compiledField.Alignment, compiledField.BitRunBits)!.Value, 0, 0);
         }
 
         if (compiledField.BitSize > 0)
@@ -44,25 +43,22 @@ internal sealed class CompositeFieldPlacementCursor
             int declaredSize = compiledField.BitStorageSize ??
                                throw new InvalidOperationException(
                                    "Compiled bitfield has no storage size: " + compiledField.Name);
-            (long unitStart, int unitSize, int bitOffset) = this.bitfields.Place(this.current, declaredSize, compiledField.Alignment, compiledField.BitSize, compiledField.BitRunBits, compiledField.BitStorageIsLittleEndian ?? true, compiledField.Name);
-            this.current = this.bitfields.RunEnd;
+            (long unitStart, int unitSize, int bitOffset) = this.cursor.AdvanceToBitfield(declaredSize, compiledField.Alignment, compiledField.BitSize, compiledField.BitRunBits, compiledField.BitStorageIsLittleEndian ?? true, compiledField.Name)!.Value;
             return (unitStart, bitOffset, unitSize);
         }
 
-        this.bitfields.Close();
-        this.current = this.aligned ? LayoutMath.AlignUp(this.current, compiledField.Alignment) : this.current;
-        return (this.current, 0, 0);
+        return (this.cursor.AdvanceToField(compiledField.Alignment)!.Value, 0, 0);
     }
 
     /// <summary>Records where a just-placed non-bitfield field actually ends, so the next field starts after it.</summary>
     public void CompleteField(long fieldEnd)
     {
-        this.current = fieldEnd;
+        this.cursor.CompleteField(fieldEnd);
     }
 
     /// <summary>Rounds the composite's own tail up to its own alignment, reproducing C-compiler trailing padding.</summary>
     public long FinishComposite(int structAlignment)
     {
-        return this.aligned ? LayoutMath.AlignUp(this.current, structAlignment) : this.current;
+        return this.cursor.Finish(structAlignment)!.Value;
     }
 }

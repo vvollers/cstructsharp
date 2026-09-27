@@ -134,11 +134,9 @@ internal sealed class CStructElementWriterState
 
     /// <summary>
     ///     Whether the current bitfield state (offset, unit size) was seeded from a resolved target that the placement
-    ///     cursor already placed; the legacy per-field placement then uses it as is instead of re-deriving a unit.
+    ///     cursor already placed; the standalone write then uses it as is instead of opening a new unit.
     /// </summary>
     public bool BitfieldUnitSeeded { get; set; }
-
-    public long NextPosition { get; set; }
 
     /// <summary>Copies every update choice before variable enumeration, payload access, or stream traversal.</summary>
     public static UpdateOptions SnapshotUpdateOptions(UpdateOptions? options)

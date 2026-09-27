@@ -116,9 +116,8 @@ public partial class CStruct
         }
         else
         {
-            // More bitfields fit here, so remember where the complete storage unit ends for the next normal field.
+            // More bitfields fit here; the placement cursor already reserved the whole unit for the next normal field.
             state.Stream.Position = curPos;
-            state.NextPosition = curPos + byteSize;
         }
     }
 
@@ -257,7 +256,6 @@ public partial class CStruct
                     // A `: 0` separator writes nothing; the cursor applies its placement effect.
                     (long separatorEnd, _, _) = cursor.AdvanceToField(field);
                     state.Stream.Position = separatorEnd;
-                    state.NextPosition = separatorEnd;
                     state.ResetBitfieldUnit();
                     variableScope?.CompleteField(field, state.Variables);
                     continue;
@@ -356,7 +354,6 @@ public partial class CStruct
         long unionEnd = checked(unionPosition + unionSize);
         state.Stream.Write(stagedBytes, 0, stagedBytes.Length);
         state.Stream.Position = unionEnd;
-        state.NextPosition = unionEnd;
         cursor.CompleteField(unionEnd);
     }
 
@@ -423,7 +420,6 @@ public partial class CStruct
         {
             state.Stream.Write(rawStorage!, 0, rawStorage!.Length);
             state.Stream.Position = unionEnd;
-            state.NextPosition = unionEnd;
             return;
         }
 
@@ -486,7 +482,6 @@ public partial class CStruct
 
         state.Stream.Write(stagedBytes, 0, stagedBytes.Length);
         state.Stream.Position = unionEnd;
-        state.NextPosition = unionEnd;
     }
 
     /// <summary>
@@ -688,7 +683,10 @@ public partial class CStruct
 
         bool positionIsResolvedTarget = state.PositionIsResolvedTarget;
         state.PositionIsResolvedTarget = false;
-        bool useLegacyPlacement = cursor is null || unionPosition != -1 || positionIsResolvedTarget;
+
+        // A standalone field has no composite cursor: a root declaration, a union member (placed at the union's start)
+        // or a resolved path target (placed at its address). It starts with no open bitfield unit.
+        bool standalone = cursor is null || unionPosition != -1 || positionIsResolvedTarget;
 
         if (unionPosition != -1)
         {
@@ -697,15 +695,8 @@ public partial class CStruct
             state.ResetBitfieldUnit();
         }
 
-        if (useLegacyPlacement)
+        if (standalone)
         {
-            if (state.CurrentBitOffset > 0 && compiledField.BitSize == 0)
-            {
-                // A normal field cannot share a partly used bitfield storage unit. Move past that unit first.
-                state.ResetBitfieldUnit();
-                state.Stream.Position = state.NextPosition;
-            }
-
             if (compiledField.BitSize > 0 && state.BitfieldUnitSeeded)
             {
                 // A resolved target arrives with its placed unit; nothing to derive.
@@ -713,48 +704,26 @@ public partial class CStruct
             }
             else if (compiledField.BitSize > 0)
             {
-                int bitCapacity = checked(
-                    (compiledField.BitStorageSize ??
-                     throw new InvalidOperationException(
-                         "Compiled bitfield has no storage size: " + compiledField.Name)) * 8);
-                int activeUnitSize = state.BitfieldUnitOpen ? state.CurrentBitfieldSize : 0;
-
-                // Legacy placement only sees a union member or a root bitfield, which always opens its own unit;
-                // the rule below is the MSVC size rule for completeness.
-                bool startsNewStorageUnit = state.CurrentBitOffset > 0 &&
-                                            (activeUnitSize != bitCapacity / 8 ||
-                                             state.CurrentBitOffset + compiledField.BitSize > bitCapacity);
-                if (startsNewStorageUnit)
-                {
-                    state.Stream.Position = state.NextPosition;
-                    state.ResetBitfieldUnit();
-                }
-
-                if (state.CurrentBitOffset == 0)
-                {
-                    state.BitfieldUnitOpen = true;
-                    state.CurrentBitfieldSize = compiledField.BitStorageSize ??
-                                                throw new InvalidOperationException(
-                                                    "Compiled bitfield has no storage size: " +
-                                                    compiledField.Name);
-                }
+                // A standalone bitfield opens its own storage unit.
+                state.BitfieldUnitOpen = true;
+                state.CurrentBitfieldSize = compiledField.BitStorageSize ??
+                                            throw new InvalidOperationException(
+                                                "Compiled bitfield has no storage size: " +
+                                                compiledField.Name);
             }
 
-            long curPos = state.Stream.Position;
-
-            if (state.Aligned && !positionIsResolvedTarget)
+            // Only a root declaration aligns here, as in the reader: a union member starts exactly at the union's start
+            // and a resolved target at its address. The alignment is the real field type's, after pointers and aliases.
+            if (state.Aligned && unionPosition == -1 && !positionIsResolvedTarget)
             {
-                // Apply alignment after resolving the real field type, because pointers and aliases can change its boundary.
-                // Advance to the next boundary. The bytes skipped here are the layout's padding.
-                state.Stream.Position = LayoutMath.AlignUp(curPos, valueField.Alignment);
-                curPos = state.Stream.Position;
+                state.Stream.Position = LayoutMath.AlignUp(state.Stream.Position, valueField.Alignment);
             }
         }
         else
         {
             // The cursor already knows this field's start (and, for a bitfield, whether it continues the active
             // storage unit or opens a new one) - apply its decision once, for every array element, instead of
-            // re-deriving it per element the way the legacy path above does.
+            // re-deriving it per element.
             (long fieldStart, int bitOffset, int unitSize) = cursor!.AdvanceToField(valueField);
             this.ValidateOffsetAssertionAtRuntime(valueField, fieldStart, state.Variables);
             state.Stream.Position = fieldStart;
@@ -810,7 +779,7 @@ public partial class CStruct
                              WriteValueMaterialization.ConvertToBoundedCharString(value!, numFieldValues, compiledField.Name);
                 this.WriteFixedCharArray(compiledField, str, numFieldValues, state);
             }
-            else if (!unknownArray && !useLegacyPlacement && numFieldValues <= state.Options.MaxArrayElements &&
+            else if (!unknownArray && !standalone && numFieldValues <= state.Options.MaxArrayElements &&
                      this.TryWriteTypedArrayBlock(compiledField, value, numFieldValues, state))
             {
                 // Written as one block: the same bytes and budget charge as the element loop below.
@@ -859,11 +828,7 @@ public partial class CStruct
             writtenEnumValue = this.WriteSingleFieldValue(valueField, value!, state);
         }
 
-        // A partially filled bitfield intentionally leaves Position at the start of its shared unit. Preserve the
-        // recorded end in that case so the next ordinary field, a union reservation, or struct tail starts after it.
-        state.NextPosition = Math.Max(state.NextPosition, state.Stream.Position);
-
-        if (!useLegacyPlacement && compiledField.BitSize == 0)
+        if (!standalone && compiledField.BitSize == 0)
         {
             // Bitfields skip this: the cursor already reserved their whole storage unit's span when it opened,
             // mirroring how CStructAddressResolver's own cursor usage never completes a bitfield.
@@ -1105,7 +1070,7 @@ public partial class CStruct
     private void CompleteStructTailPadding(CompiledCompositeType composite, CStructElementWriterState state, CompositeFieldPlacementCursor cursor)
     {
         // The cursor already tracks the position past any dangling bitfield unit's full reserved span - trust it
-        // rather than state.Stream.Position/NextPosition, which a shared bitfield write may have rewound mid-unit.
+        // rather than state.Stream.Position, which a shared bitfield write may have rewound mid-unit.
         state.Stream.Position = cursor.Current;
 
         if (!this.Aligned)
@@ -1128,8 +1093,6 @@ public partial class CStruct
         {
             state.WriteZeroes(paddingLength);
         }
-
-        state.NextPosition = state.Stream.Position;
     }
 
     /// <summary>Writes a pointer address after applying the configured absolute or relative addressing rule.</summary>
@@ -1404,7 +1367,6 @@ public partial class CStruct
                     state.CurrentBitOffset = target.BitOffset;
                     state.BitfieldUnitOpen = true;
                     state.CurrentBitfieldSize = target.BitStorageSize;
-                    state.NextPosition = checked(target.Address + target.BitStorageSize);
                     state.BitfieldUnitSeeded = true;
                 }
 
