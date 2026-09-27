@@ -22,6 +22,9 @@ const isFile = (file) => fs.existsSync(file) && fs.statSync(file).isFile();
 const blank = (value) => value === undefined || value === null || String(value).trim() === "";
 const sortedJoin = (items) => [...items].map(String).sort().join(",");
 const strings = (items) => (items ?? []).map(String);
+/** Returns the member names of the managed MemoryTypeKind enum, which the memory contract matrix must list exactly once each. */
+const memoryTypeKinds = () =>
+  [...fs.readFileSync(path.join(repositoryRoot, "src/CStructSharp/Memory/MemoryTypeKind.cs"), "utf8").matchAll(/^\s{4}([A-Z][A-Za-z]*),?\s*$/gm)].map((match) => match[1]);
 const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 function assertUniqueIds(items, collectionName) {
@@ -261,7 +264,7 @@ await main(() => {
   for (const relativePath of matrix.domainContracts ?? []) {
     const domain = JSON.parse(fs.readFileSync(path.join(repositoryRoot, relativePath), "utf8"));
     assertCondition(domain.contractId === "managed-memory-v1", "Unknown domain contract.");
-    assertCondition(domain.matrix.length === 6, "Memory matrix must describe all six type kinds.");
+    assertCondition(sortedJoin(domain.matrix.map((row) => row.kind)) === sortedJoin(memoryTypeKinds()), `Memory matrix kinds must match MemoryTypeKind: ${memoryTypeKinds().join(", ")}.`);
     for (const row of domain.matrix) {
       for (const operation of domain.operations) assertCondition(Object.hasOwn(row, operation), `Memory kind '${row.kind}' omits operation '${operation}'.`);
     }

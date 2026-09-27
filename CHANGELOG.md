@@ -62,6 +62,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   describes before/after comparisons with `quick-perf-check.mjs`.
 - The feature-operation matrix no longer lists API compatibility baselines; the API contracts own them. The
   benchmark drift workflow watches only files that exist.
+- The memory contract (`contracts/memory/v1.json`) describes the `Opaque` type kind, and its validator checks the
+  matrix against every `MemoryTypeKind` member.
 
 ## 0.10.0 — 2026-09-26
 

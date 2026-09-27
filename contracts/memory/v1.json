@@ -13,7 +13,8 @@
     { "kind": "Struct", "read": "StructValue", "inspect": true, "resolve": true, "serialize": "named dictionary, zero gaps", "plan-update": "preserve gaps", "commit": "requires writable backing" },
     { "kind": "Union", "read": "StructValue with all interpretations", "inspect": true, "resolve": true, "serialize": "raw bytes or explicit MemoryUnionSelection", "plan-update": "selected field preserves unrelated bytes; whole union clears unused storage", "commit": "requires writable backing" },
     { "kind": "Array", "read": "bounded object array", "inspect": true, "resolve": "fixed indices", "serialize": "exact count IList", "plan-update": "fixed extent", "commit": "requires writable backing" },
-    { "kind": "Incomplete", "read": false, "inspect": false, "resolve": "storage-free descriptor only", "serialize": false, "plan-update": false, "commit": false }
+    { "kind": "Incomplete", "read": false, "inspect": false, "resolve": "storage-free descriptor only", "serialize": false, "plan-update": false, "commit": false },
+    { "kind": "Opaque", "read": "raw byte[] of the declared size", "inspect": true, "resolve": "whole value only; no members", "serialize": "exact-size raw byte[]", "plan-update": "raw bytes", "commit": "requires writable backing" }
   ],
   "failureRules": ["never zero-fill holes", "checked unsigned extent arithmetic", "cancellation propagates", "budgets shared across nested operations", "no ownership transfer", "source changes invalidate cached bytes", "patch expectations prevalidated", "commit failure identifies completed prefix and uncertain fragment", "no atomicity or rollback promise"],
   "metadata": { "btf": "v1 reachable value types and split tables; no ELF extraction", "isf": "6.2.0 reachable type subset; no profile matching or relocations", "portable": "fixed compiled layouts only" },

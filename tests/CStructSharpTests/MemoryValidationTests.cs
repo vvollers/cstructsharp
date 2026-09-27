@@ -144,7 +144,7 @@ public class MemoryValidationTests
     /// <see cref="MemoryTypeKind.Opaque"/> placeholder, noted in <see cref="MemorySchema.Diagnostics"/>, instead
     /// of failing the whole schema - "outer" is perfectly consistent on its own terms, it just happens to embed
     /// "inner", whose one member is placed past inner's own declared extent. Strict validation (the default)
-    /// still rejects the identical metadata outright, and a session reads and writes the placeholder as raw bytes
+    /// still rejects the identical metadata outright, and a session reads, inspects, plans and writes the placeholder as raw bytes
     /// rather than a decoded member.
     /// </summary>
     [TestMethod]
@@ -167,6 +167,8 @@ public class MemoryValidationTests
         var region = new MemoryRegion(new ByteArrayMemorySource("image", new byte[] { 42, }), 0, 1);
         var read = (StructValue)session.Read(region, "outer")!;
         CollectionAssert.AreEqual(new byte[] { 42, }, (byte[])read["field"]!);
+        CollectionAssert.AreEqual(new byte[] { 42, }, (byte[])session.Inspect(region, "outer", "field").Value!);
+        CollectionAssert.AreEqual(new byte[] { 9, }, session.PlanUpdate(region, "outer", "field", new byte[] { 9, }).Fragments[0].Replacement);
 
         byte[] written = session.Serialize("outer", new StructValue { ["field"] = new byte[] { 7, }, });
         CollectionAssert.AreEqual(new byte[] { 7, }, written);
