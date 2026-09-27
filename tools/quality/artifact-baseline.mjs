@@ -10,7 +10,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { gzipSync } from "node:zlib";
-import { assertCondition, main, parseArguments, repositoryRoot, runCommand } from "../lib/tooling.mjs";
+import { assertCondition, main, parseArguments, repositoryRoot, runCommand, runNpm } from "../lib/tooling.mjs";
 
 const options = parseArguments(process.argv.slice(2), { "wasm-directory": "string", "frontend-directory": "string", "package-directory": "string", "output-path": "string" });
 assertCondition(options["output-path"], "Option --output-path is required.");
@@ -51,8 +51,15 @@ function measureDirectory(directory) {
   };
 }
 
+/** The trimmed `--version` output of a command that is started directly, or null when it is unavailable. */
 const versionOf = (command) => {
   const result = runCommand(command, ["--version"], { allowFailure: true });
+  return result.error || result.status !== 0 ? null : result.stdout.trim();
+};
+
+/** The npm version, or null when npm is unavailable. */
+const npmVersion = () => {
+  const result = runNpm(["--version"], { allowFailure: true });
   return result.error || result.status !== 0 ? null : result.stdout.trim();
 };
 
@@ -72,7 +79,7 @@ await main(() => {
       processArchitecture: process.arch,
       dotnetSdk: versionOf("dotnet"),
       node: process.version,
-      npm: versionOf(process.platform === "win32" ? "npm.cmd" : "npm"),
+      npm: npmVersion(),
     },
     wasm,
     frontend,

@@ -11,7 +11,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { assertCondition, main, parseArguments, repositoryRoot, runCommand, runDotnet } from "../lib/tooling.mjs";
+import { assertCondition, main, parseArguments, repositoryRoot, runCommand, runDotnet, runNpm } from "../lib/tooling.mjs";
 import { isFile, isIgnored, lines, listFiles, repositoryFiles, toPosix } from "../lib/files.mjs";
 import { apiDirectory, documentationRoot, documentationSourceFiles, relativeLinkTargets, resolveTarget, siteDirectory, sourcePages, sourceTocs, tocHrefs } from "../lib/docs.mjs";
 import { findAll, parseXml } from "../lib/xml.mjs";
@@ -42,6 +42,7 @@ const TEXT_EXTENSIONS = new Set([".cs", ".csproj", ".js", ".json", ".md", ".mjs"
 const IGNORED_DIRECTORIES = ["agent" + "docs", ".local-" + "docs"];
 const IGNORED_DOCS_PATTERN = new RegExp(`(?:^|[\\s"'\`()=:])(?:${IGNORED_DIRECTORIES.map((name) => name.replace(".", "\\.")).join("|")})[\\\\/]`, "i");
 
+/** Runs a Node script, echoes its output, and fails the gate with `failure` when it exits non-zero. */
 function runNode(script, args = [], failure) {
   console.log(`==> ${script}${args.length ? ` ${args.join(" ")}` : ""}`);
   const result = runCommand(process.execPath, [script, ...args], { allowFailure: true });
@@ -50,9 +51,11 @@ function runNode(script, args = [], failure) {
   assertCondition(result.status === 0, failure);
 }
 
-function runNpm(args, cwd, failure) {
+/** Runs npm in `cwd`, echoes its output, and fails the gate with `failure` when it cannot start or exits non-zero. */
+function runNpmStep(args, cwd, failure) {
   console.log(`==> npm ${args.join(" ")}`);
-  const result = runCommand(process.platform === "win32" ? "npm.cmd" : "npm", args, { cwd, allowFailure: true });
+  const result = runNpm(args, { cwd, allowFailure: true });
+  if (result.error) throw new Error(`${failure} ${result.error.message}`);
   process.stdout.write(result.stdout ?? "");
   process.stderr.write(result.stderr ?? "");
   assertCondition(result.status === 0, failure);
@@ -149,10 +152,10 @@ await main(() => {
   for (const framework of ["net8.0", "net10.0"]) {
     runDotnet(["run", "--project", path.join(documentationRoot, "examples/memory-analysis/MemoryAnalysis.csproj"), "-c", "Release", "-f", framework], { label: `memory documentation examples ${framework}` });
   }
-  runNpm(["ci", "--ignore-scripts"], documentationRoot, "Pinned documentation Node dependency restore failed.");
-  runNpm(["audit", "--audit-level=high"], documentationRoot, "Documentation Node dependency audit failed.");
+  runNpmStep(["ci", "--ignore-scripts"], documentationRoot, "Pinned documentation Node dependency restore failed.");
+  runNpmStep(["audit", "--audit-level=high"], documentationRoot, "Documentation Node dependency audit failed.");
   for (const script of ["lint:workflow-yaml", "lint:markdown", "lint:spelling", "install:browser", "test:browser"]) {
-    runNpm(["run", script], documentationRoot, `Documentation Node script '${script}' failed.`);
+    runNpmStep(["run", script], documentationRoot, `Documentation Node script '${script}' failed.`);
   }
 
   const docfxConfigText = fs.readFileSync(docfxConfigPath, "utf8");

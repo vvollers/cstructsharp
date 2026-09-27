@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { npmCommand } from "../lib/tooling.mjs";
 
 export const root = fileURLToPath(new URL("../../", import.meta.url));
 export const npmArtifacts = path.join(root, "artifacts", "npm");
@@ -14,10 +15,10 @@ export function run(command, args, options = {}) {
     );
   return result.stdout;
 }
-/** The npm CLI: the one that started this script when run through `npm run`, otherwise the `npm` on PATH. */
+/** Runs npm with `args` without a shell (see `npmCommand`) and returns its stdout; throws on failure. */
 export function npm(args, options = {}) {
-  if (process.env.npm_execpath) return run(process.execPath, [process.env.npm_execpath, ...args], options);
-  return run(process.platform === "win32" ? "npm.cmd" : "npm", args, { ...options, shell: process.platform === "win32" });
+  const { command, prefix } = npmCommand();
+  return run(command, [...prefix, ...args], options);
 }
 export function releaseVersion() {
   const project = fs.readFileSync(path.join(root, "src/CStructSharp", "CStructSharp.csproj"), "utf8");

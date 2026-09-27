@@ -1,8 +1,9 @@
 /**
- * Shared helpers for the Node tools under tools/: fail-fast assertions, a logged `dotnet` runner, and a small
- * `--name value` argument parser. Every tool exits 1 with its message on the first failed check.
+ * Shared helpers for the Node tools under tools/: fail-fast assertions, a logged `dotnet` runner, command and npm
+ * runners, and a small `--name value` argument parser. Every tool exits 1 with its message on the first failed check.
  */
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -24,7 +25,7 @@ export async function main(run) {
 }
 
 /**
- * Parses `--name value` and `--flag` arguments (case-insensitive names, `-name` accepted for the PowerShell habit).
+ * Parses `--name value` and `--flag` arguments (case-insensitive names; a single leading dash is also accepted).
  * `spec` maps each name to its kind: "string", "number", "flag", or "list" (repeatable / comma-separated).
  */
 export function parseArguments(argv, spec, { defaults = {} } = {}) {
@@ -56,6 +57,7 @@ export function parseArguments(argv, spec, { defaults = {} } = {}) {
   return values;
 }
 
+/** Quotes an argument for the logged command line when it contains whitespace or a double quote. */
 function displayArgument(argument) {
   return /[\s"]/.test(argument) ? `'${argument.replaceAll("'", "''")}'` : argument;
 }
@@ -77,12 +79,34 @@ export function runDotnet(args, { label = args.join(" "), cwd = repositoryRoot, 
   return seconds;
 }
 
-/** Runs any command, returning its stdout; throws with the output when it exits non-zero. */
+/**
+ * Runs any command and returns the `spawnSync` result. Without `allowFailure` it throws when the command cannot be
+ * started or exits non-zero; with it, both cases are returned (a start failure as `result.error`, status null).
+ */
 export function runCommand(command, args, { cwd = repositoryRoot, env, allowFailure = false } = {}) {
   const result = spawnSync(command, args, { cwd, env, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
+  if (allowFailure) return result;
   if (result.error) throw result.error;
-  if (result.status !== 0 && !allowFailure) {
+  if (result.status !== 0) {
     throw new Error(`${command} ${args.join(" ")} failed (${result.status}):\n${result.stdout ?? ""}\n${result.stderr ?? ""}`);
   }
   return result;
+}
+
+/**
+ * The command and leading arguments that start npm without a shell: the npm CLI that launched this script through
+ * `npm run`, otherwise the npm CLI installed next to this Node executable. Windows cannot start `npm.cmd` without a
+ * shell, so the JavaScript entry point is run with Node directly; the plain `npm` command is the fallback.
+ */
+export function npmCommand() {
+  const bundled = path.join(path.dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js");
+  const launcher = process.env.npm_execpath;
+  const entry = launcher?.endsWith(".js") ? launcher : fs.existsSync(bundled) ? bundled : null;
+  return entry ? { command: process.execPath, prefix: [entry] } : { command: "npm", prefix: [] };
+}
+
+/** Runs npm with `args` through {@link runCommand}, with the same options and failure behavior. */
+export function runNpm(args, options = {}) {
+  const { command, prefix } = npmCommand();
+  return runCommand(command, [...prefix, ...args], options);
 }
