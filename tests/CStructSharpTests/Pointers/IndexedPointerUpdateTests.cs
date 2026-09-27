@@ -740,8 +740,10 @@ public class IndexedPointerUpdateTests
 
         public override bool CanWrite => true;
 
+        /// <inheritdoc/>
         public override long Length => this.inner.Length;
 
+        /// <inheritdoc/>
         public override long Position
         {
             get => this.inner.Position;
@@ -750,43 +752,58 @@ public class IndexedPointerUpdateTests
 
         public List<long> ReadStarts { get; } = [];
 
+        /// <inheritdoc/>
         public override void Flush()
         {
             this.inner.Flush();
         }
 
+        /// <summary>Records where the read starts, then reads from the inner stream.</summary>
+        /// <param name="buffer">The destination.</param>
+        /// <param name="offset">The first index to fill.</param>
+        /// <param name="count">The most bytes to read.</param>
+        /// <returns>The bytes read.</returns>
         public override int Read(byte[] buffer, int offset, int count)
         {
             this.ReadStarts.Add(this.inner.Position);
             return this.inner.Read(buffer, offset, count);
         }
 
+        /// <summary>Records where the read starts, then reads from the inner stream.</summary>
+        /// <param name="buffer">The destination.</param>
+        /// <returns>The bytes read.</returns>
         public override int Read(Span<byte> buffer)
         {
             this.ReadStarts.Add(this.inner.Position);
             return this.inner.Read(buffer);
         }
 
+        /// <inheritdoc/>
         public override long Seek(long offset, SeekOrigin origin)
         {
             return this.inner.Seek(offset, origin);
         }
 
+        /// <inheritdoc/>
         public override void SetLength(long value)
         {
             this.inner.SetLength(value);
         }
 
+        /// <inheritdoc/>
         public override void Write(byte[] buffer, int offset, int count)
         {
             this.inner.Write(buffer, offset, count);
         }
 
+        /// <inheritdoc/>
         public override void Write(ReadOnlySpan<byte> buffer)
         {
             this.inner.Write(buffer);
         }
 
+        /// <summary>Copies the stream's bytes.</summary>
+        /// <returns>The bytes.</returns>
         public byte[] ToArray()
         {
             return this.inner.ToArray();

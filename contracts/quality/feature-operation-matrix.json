@@ -1346,7 +1346,7 @@
           "tests/CStructSharpTests/Parsing/TypedefFormTests.cs#DeclaratorList_DeclaresEveryAlias",
           "tests/CStructSharpTests/Arrays/LiteralTypedefCountBoundaryTests.cs#ArrayAlias_RejectsInvalidLiteralCount",
           "tests/CStructSharpTests/Arrays/LiteralTypedefCountBoundaryTests.cs#ArrayAlias_AcceptsNonnegativeLiteralCount",
-          "tests/CStructSharpTests/PointerArrayAliasBoundaryTests.cs#PointerAlias_CannotHideAnArrayTarget"
+          "tests/CStructSharpTests/Pointers/PointerArrayAliasBoundaryTests.cs#PointerAlias_CannotHideAnArrayTarget"
         ]
       },
       "bytes": {
@@ -1627,7 +1627,7 @@
           "The stored address, the count field, and the optional dereferenced elements are parsed, but serialization writes the pointer address rather than relocating, resizing, or serializing the counted target."
         ],
         "evidence": [
-          "tests/CStructSharpTests/CountedPointerTests.cs#SerializeWriteAndUpdate_StoreTheAddressOnly"
+          "tests/CStructSharpTests/Pointers/CountedPointerTests.cs#SerializeWriteAndUpdate_StoreTheAddressOnly"
         ]
       },
       "bytes": {
@@ -1636,7 +1636,7 @@
           "Exact-byte round-trip applies to the pointer and count storage inside the selected root extent; the counted target's bytes are outside that serialization."
         ],
         "evidence": [
-          "tests/CStructSharpTests/CountedPointerTests.cs#SerializeWriteAndUpdate_StoreTheAddressOnly"
+          "tests/CStructSharpTests/Pointers/CountedPointerTests.cs#SerializeWriteAndUpdate_StoreTheAddressOnly"
         ]
       }
     }
@@ -2497,7 +2497,7 @@
           "operations": ["serialize", "write"]
         },
         {
-          "test": "tests/CStructSharpTests/IndexedPointerUpdateTests.cs#PrimitiveArrayElement_OperationsAgree",
+          "test": "tests/CStructSharpTests/Pointers/IndexedPointerUpdateTests.cs#PrimitiveArrayElement_OperationsAgree",
           "operations": [
             "parse",
             "debug",
@@ -3837,7 +3837,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/IndexedPointerUpdateTests.cs#PointerTargets_UseTheirFinalDeclaredCodecs",
+          "test": "tests/CStructSharpTests/Pointers/IndexedPointerUpdateTests.cs#PointerTargets_UseTheirFinalDeclaredCodecs",
           "operations": [
             "parse",
             "debug",
@@ -3848,14 +3848,14 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/NullPointerBindingTests.cs#Serialize_NullPointerMembers_AgreeAcrossBindingShapes",
+          "test": "tests/CStructSharpTests/Pointers/NullPointerBindingTests.cs#Serialize_NullPointerMembers_AgreeAcrossBindingShapes",
           "operations": [
             "serialize",
             "write"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/NullPointerBindingTests.cs#SelectedAndRootPointerWrites_AcceptNull",
+          "test": "tests/CStructSharpTests/Pointers/NullPointerBindingTests.cs#SelectedAndRootPointerWrites_AcceptNull",
           "operations": [
             "serialize",
             "write",
@@ -3940,7 +3940,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/IndexedPointerUpdateTests.cs#MultiLevelPointerTargets_AgreeAcrossWidthsAndEndianness",
+          "test": "tests/CStructSharpTests/Pointers/IndexedPointerUpdateTests.cs#MultiLevelPointerTargets_AgreeAcrossWidthsAndEndianness",
           "operations": [
             "parse",
             "debug",
@@ -6018,31 +6018,31 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/CountedPointerTests.cs#CountNamedAfterThePointer_ReadsTheCountedElements",
+          "test": "tests/CStructSharpTests/Pointers/CountedPointerTests.cs#CountNamedAfterThePointer_ReadsTheCountedElements",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/CountedPointerTests.cs#CountedTargets_UseTheirElementTypes",
+          "test": "tests/CStructSharpTests/Pointers/CountedPointerTests.cs#CountedTargets_UseTheirElementTypes",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/CountedPointerTests.cs#CountedTargets_ApplyTheArrayAndTargetLimits",
+          "test": "tests/CStructSharpTests/Pointers/CountedPointerTests.cs#CountedTargets_ApplyTheArrayAndTargetLimits",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/CountedPointerTests.cs#DebugRecords_IndexCountedStructElements",
+          "test": "tests/CStructSharpTests/Pointers/CountedPointerTests.cs#DebugRecords_IndexCountedStructElements",
           "operations": [
             "debug"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/CountedPointerTests.cs#SerializeWriteAndUpdate_StoreTheAddressOnly",
+          "test": "tests/CStructSharpTests/Pointers/CountedPointerTests.cs#SerializeWriteAndUpdate_StoreTheAddressOnly",
           "operations": [
             "serialize",
             "write",
@@ -6050,7 +6050,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/CountedPointerTests.cs#CountedTargetPaths_AreRejectedButAddressesResolve",
+          "test": "tests/CStructSharpTests/Pointers/CountedPointerTests.cs#CountedTargetPaths_AreRejectedButAddressesResolve",
           "operations": [
             "address",
             "read-value"

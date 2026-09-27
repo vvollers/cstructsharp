@@ -143,6 +143,8 @@ public class NullPointerBindingTests
                 new Dictionary<string, object?> { ["items"] = null, }));
     }
 
+    /// <summary>Each caller data shape holding a null pointer and a tail byte.</summary>
+    /// <returns>The shape's name and value.</returns>
     private static IEnumerable<(string Name, object Value)> NullPointerShapes()
     {
         yield return ("mapped-class", new NullablePointerProperty { Ptr = null, Tail = 0xA5, });
@@ -153,6 +155,8 @@ public class NullPointerBindingTests
         yield return ("json-shaped-expando", CreateExpando("ptr", null, "tail", 165L));
     }
 
+    /// <summary>Each caller data shape holding null for a non-pointer field.</summary>
+    /// <returns>The shape's name and value.</returns>
     private static IEnumerable<(string Name, object Value)> NullNonPointerShapes()
     {
         yield return ("mapped-class", new NullablePrimitiveProperty { Value = null, });
@@ -160,6 +164,9 @@ public class NullPointerBindingTests
         yield return ("expando", CreateExpando("value", null));
     }
 
+    /// <summary>An expando object with the given members.</summary>
+    /// <param name="namesAndValues">Alternating member names and values.</param>
+    /// <returns>The object.</returns>
     private static ExpandoObject CreateExpando(params object?[] namesAndValues)
     {
         IDictionary<string, object?> result = new ExpandoObject();
@@ -178,17 +185,24 @@ public class NullPointerBindingTests
 
         public byte Tail { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static NullablePointerProperty ReadFrom(StructValue source)
         {
             return new NullablePointerProperty { Ptr = source.Get<long?>("ptr"), Tail = source.Get<byte>("tail"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(NullablePointerProperty value, StructValue target)
         {
             target["ptr"] = value.Ptr;
             target["tail"] = value.Tail;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -201,16 +215,23 @@ public class NullPointerBindingTests
     {
         public byte? Value { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static NullablePrimitiveProperty ReadFrom(StructValue source)
         {
             return new NullablePrimitiveProperty { Value = source.Get<byte?>("value"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(NullablePrimitiveProperty value, StructValue target)
         {
             target["value"] = value.Value;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {

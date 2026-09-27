@@ -57,6 +57,8 @@ public class LargeFilePointerTests
         Assert.Throws<CStructReadLimitException>(() => layout.Parse(source, "root", options: new ReadOptions { MaxTotalBytesRead = 8, }));
     }
 
+    /// <summary>A sparse source holding the root at 0 and the three list nodes at their far offsets.</summary>
+    /// <returns>The source.</returns>
     private static SparseSource CreateSource()
     {
         byte[] header = new byte[28];
@@ -67,6 +69,10 @@ public class LargeFilePointerTests
         return new SparseSource(new Dictionary<long, byte[]> { [0] = header, [Far] = Node(111, Middle), [Middle] = Node(222, Near), [Near] = Node(333, 0), });
     }
 
+    /// <summary>Encodes one list node: its value and the address of the next node.</summary>
+    /// <param name="value">The node's value.</param>
+    /// <param name="next">The next node's address, or 0.</param>
+    /// <returns>The node's bytes.</returns>
     private static byte[] Node(uint value, long next)
     {
         byte[] bytes = new byte[12];
@@ -75,6 +81,11 @@ public class LargeFilePointerTests
         return bytes;
     }
 
+    /// <summary>
+    ///     A read-only stream as long as the farthest node that stores only the given pieces and reads zeroes elsewhere, so a
+    ///     pointer can lead terabytes away without a large buffer. It counts the bytes read.
+    /// </summary>
+    /// <param name="pieces">The stored bytes by start offset.</param>
     private sealed class SparseSource(Dictionary<long, byte[]> pieces) : Stream
     {
         public long BytesRead { get; private set; }
@@ -89,8 +100,16 @@ public class LargeFilePointerTests
 
         public override long Position { get; set; }
 
+        /// <summary>Reads through the span overload.</summary>
+        /// <param name="buffer">The destination.</param>
+        /// <param name="offset">The first index to fill.</param>
+        /// <param name="count">The most bytes to read.</param>
+        /// <returns>The bytes read.</returns>
         public override int Read(byte[] buffer, int offset, int count) => this.Read(buffer.AsSpan(offset, count));
 
+        /// <summary>Copies the stored pieces that overlap the requested range and zeroes the rest.</summary>
+        /// <param name="buffer">The destination.</param>
+        /// <returns>The bytes read.</returns>
         public override int Read(Span<byte> buffer)
         {
             int count = (int)Math.Min(buffer.Length, Math.Max(0, this.Length - this.Position));
@@ -110,6 +129,10 @@ public class LargeFilePointerTests
             return count;
         }
 
+        /// <summary>Moves the position within the stream's full length.</summary>
+        /// <param name="offset">The offset from the origin.</param>
+        /// <param name="origin">The origin.</param>
+        /// <returns>The new position.</returns>
         public override long Seek(long offset, SeekOrigin origin)
         {
             long basis = origin switch
@@ -123,12 +146,19 @@ public class LargeFilePointerTests
             return this.Position;
         }
 
+        /// <summary>Does nothing: the stream is read-only.</summary>
         public override void Flush()
         {
         }
 
+        /// <summary>Not supported: the stream is read-only.</summary>
+        /// <param name="value">The length, unused.</param>
         public override void SetLength(long value) => throw new NotSupportedException();
 
+        /// <summary>Not supported: the stream is read-only.</summary>
+        /// <param name="buffer">The source, unused.</param>
+        /// <param name="offset">The first index, unused.</param>
+        /// <param name="count">The byte count, unused.</param>
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 }

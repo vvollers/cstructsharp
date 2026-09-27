@@ -395,6 +395,9 @@ public class PointerArithmeticTests
         }
     }
 
+    /// <summary>Caller data whose <c>ptr</c> member holds the value.</summary>
+    /// <param name="value">The pointer value.</param>
+    /// <returns>The data.</returns>
     private static ExpandoObject CreatePointerData(object value)
     {
         dynamic data = new ExpandoObject();
