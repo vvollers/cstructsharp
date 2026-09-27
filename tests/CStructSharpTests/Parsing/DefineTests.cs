@@ -3,7 +3,9 @@ namespace CStructSharp.Tests;
 using CStructSharp.Parsing;
 using CStructSharp.Syntax;
 
-/// <summary>Groups tests for defines so changes to this behavior are caught.</summary>
+/// <summary>
+///     Checks <c>#define</c> declarations: the name and value a definition keeps, and an expression it evaluates.
+/// </summary>
 [TestClass]
 public class DefineTests
 {
@@ -15,7 +17,7 @@ public class DefineTests
     ///     can later determine array lengths; this test checks the expression itself without reading binary data.
     /// </remarks>
     [TestMethod]
-    public void TestMoreComplexDefine()
+    public void Define_EvaluatesWithPrecedenceAndVariables()
     {
         var test1 = (Syntax.Defines)LayoutParser.ParseElement(
          "#define SUPERCOMPLEX_VAR6 2+myvariable*4");
@@ -32,7 +34,7 @@ public class DefineTests
     ///     A define supplies a reusable constant; it does not add a field or occupy bytes in a binary record.
     /// </remarks>
     [TestMethod]
-    public void TestSimpleDefine()
+    public void Define_KeepsItsNameAndValue()
     {
         var test1 = (Syntax.Defines)LayoutParser.ParseElement("#define ABC 123");
         Assert.AreEqual("ABC", test1.Name.Name);

@@ -3,9 +3,12 @@ namespace CStructSharp.Tests;
 using System.Text;
 using CStructSharp.Diagnostics;
 
-/// <summary>Groups tests for parsing so changes to this behavior are caught.</summary>
+/// <summary>
+///     Checks complete reads of small layouts: byte and wide-character arrays, a defined record count, long fields,
+///     bitfields and an enum field.
+/// </summary>
 [TestClass]
-public class Parsing
+public class ParsingTests
 {
     /// <summary>
     ///     The brackets reserve two adjacent bytes inside mystruct; they do not store a pointer.
@@ -15,7 +18,7 @@ public class Parsing
     ///     is needed for a one-byte element.
     /// </remarks>
     [TestMethod]
-    public void ArrayParsingTest()
+    public void ByteArray_ReadsAdjacentElements()
     {
         const string structDef = "struct mystruct { byte a[2]; };";
 
@@ -38,7 +41,7 @@ public class Parsing
     ///     parsing only the earlier substruct declaration.
     /// </remarks>
     [TestMethod]
-    public void ComplexParsingTest()
+    public void DefinedCount_SizesAnArrayOfRecords()
     {
         const string structDef = """
                                  struct substruct { byte a; byte b; };
@@ -71,7 +74,7 @@ public class Parsing
     ///     the field values.
     /// </remarks>
     [TestMethod]
-    public void ComplexParsingTestWithDebug()
+    public void DefinedCount_ReadsRecordsWithDebugRanges()
     {
         const string structDef = """
                                  struct substruct { byte a; byte b; };
@@ -107,7 +110,7 @@ public class Parsing
     ///     10 and b = 20 from the resulting 16 bytes.
     /// </remarks>
     [TestMethod]
-    public void LongParsingTest()
+    public void LongFields_ReadEightBytes()
     {
         const string structDef = "struct mystruct { long a; long b; };";
 
@@ -134,7 +137,7 @@ public class Parsing
     ///     must still read 10 after the final partial group.
     /// </remarks>
     [TestMethod]
-    public void ParsingBitFieldTest()
+    public void Bitfields_ReadLowBitsFirstAroundAnOrdinaryField()
     {
         const string structDef = """
                                  struct mystruct { 
@@ -188,7 +191,7 @@ public class Parsing
     ///     group.
     /// </remarks>
     [TestMethod]
-    public void ParsingBitFieldWithStructTest()
+    public void AlignedBitfields_FollowALeadingField()
     {
         const string structDef = """
                                  struct mystruct {
@@ -245,7 +248,7 @@ public class Parsing
     ///     integer values without storing the names themselves.
     /// </remarks>
     [TestMethod]
-    public void ParsingEnumTest()
+    public void EnumField_ReadsMemberNames()
     {
         const string structDef = """
                                  enum myenum : uint8 { Red = 5, Green, Blue = 9 };
@@ -271,7 +274,7 @@ public class Parsing
     ///     to give names to positions in a binary record.
     /// </remarks>
     [TestMethod]
-    public void SimpleParsingTest()
+    public void TwoByteRecord_ReadsBothFields()
     {
         const string structDef = "struct mystruct { byte a; byte b; };";
 
@@ -294,7 +297,7 @@ public class Parsing
     ///     wchar_t rule.
     /// </remarks>
     [TestMethod]
-    public void WCharParseArrayTest()
+    public void WideCharArray_ReadsOneString()
     {
         const string structDef = "struct mystruct { wchar a[4]; };";
 
@@ -317,7 +320,7 @@ public class Parsing
     ///     array therefore have different result shapes even when their bytes match.
     /// </remarks>
     [TestMethod]
-    public void WCharParsingTest()
+    public void WideCharFields_ReadOneCharacterEach()
     {
         const string structDef = "struct mystruct { wchar a; wchar b; wchar c; wchar d;};";
 

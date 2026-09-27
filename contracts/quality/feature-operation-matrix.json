@@ -1342,8 +1342,8 @@
           "Every array-typedef count is checked as a nonnegative Int32 during construction, including unused aliases; zero remains valid."
         ],
         "evidence": [
-          "tests/CStructSharpTests/TypedefFormTests.cs#ArrayTypedef_RoundTripsThroughEveryOperation",
-          "tests/CStructSharpTests/TypedefFormTests.cs#DeclaratorList_DeclaresEveryAlias",
+          "tests/CStructSharpTests/Parsing/TypedefFormTests.cs#ArrayTypedef_RoundTripsThroughEveryOperation",
+          "tests/CStructSharpTests/Parsing/TypedefFormTests.cs#DeclaratorList_DeclaresEveryAlias",
           "tests/CStructSharpTests/LiteralTypedefCountBoundaryTests.cs#ArrayAlias_RejectsInvalidLiteralCount",
           "tests/CStructSharpTests/LiteralTypedefCountBoundaryTests.cs#ArrayAlias_AcceptsNonnegativeLiteralCount",
           "tests/CStructSharpTests/PointerArrayAliasBoundaryTests.cs#PointerAlias_CannotHideAnArrayTarget"
@@ -1355,7 +1355,7 @@
           "The resolved declaration's byte image is the alias's byte image; no alias adds storage."
         ],
         "evidence": [
-          "tests/CStructSharpTests/TypedefFormTests.cs#ArrayTypedef_RoundTripsThroughEveryOperation"
+          "tests/CStructSharpTests/Parsing/TypedefFormTests.cs#ArrayTypedef_RoundTripsThroughEveryOperation"
         ]
       }
     },
@@ -1367,7 +1367,7 @@
           "A trailing variable name after a named body is ignored; an anonymous body's trailing name is the type, so the value shape is the body's shape."
         ],
         "evidence": [
-          "tests/CStructSharpTests/TopLevelDeclarationTests.cs#AnonymousBody_RoundTripsThroughEveryOperation"
+          "tests/CStructSharpTests/Parsing/TopLevelDeclarationTests.cs#AnonymousBody_RoundTripsThroughEveryOperation"
         ]
       },
       "bytes": {
@@ -1376,7 +1376,7 @@
           "The body's byte image is unchanged by the declaration form."
         ],
         "evidence": [
-          "tests/CStructSharpTests/TopLevelDeclarationTests.cs#AnonymousBody_RoundTripsThroughEveryOperation"
+          "tests/CStructSharpTests/Parsing/TopLevelDeclarationTests.cs#AnonymousBody_RoundTripsThroughEveryOperation"
         ]
       }
     },
@@ -1388,8 +1388,8 @@
           "Text, bytes, empty, and macro constants are published but never serialized; only integer defines and #pragma pack affect the value shape, and the same Defined set must be supplied for every operation."
         ],
         "evidence": [
-          "tests/CStructSharpTests/PreprocessorTests.cs#PragmaPack_RoundTripsThroughEveryOperation",
-          "tests/CStructSharpTests/PreprocessorTests.cs#Defines_PublishEveryConstantKind"
+          "tests/CStructSharpTests/Parsing/PreprocessorTests.cs#PragmaPack_RoundTripsThroughEveryOperation",
+          "tests/CStructSharpTests/Parsing/PreprocessorTests.cs#Defines_PublishEveryConstantKind"
         ]
       },
       "bytes": {
@@ -1398,7 +1398,7 @@
           "A #pragma pack clamp is part of the compiled placement, so parsing and serialization agree on the byte image."
         ],
         "evidence": [
-          "tests/CStructSharpTests/PreprocessorTests.cs#PragmaPack_RoundTripsThroughEveryOperation"
+          "tests/CStructSharpTests/Parsing/PreprocessorTests.cs#PragmaPack_RoundTripsThroughEveryOperation"
         ]
       }
     },
@@ -2000,7 +2000,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/LiteralTests.cs#TestIntegerLiteralSuffix",
+          "test": "tests/CStructSharpTests/Parsing/LiteralTests.cs#IntegerSuffix_IsAcceptedAndIgnored",
           "operations": [
             "parse"
           ]
@@ -4928,38 +4928,38 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/TypedefFormTests.cs#DeclaratorList_DeclaresEveryAlias",
+          "test": "tests/CStructSharpTests/Parsing/TypedefFormTests.cs#DeclaratorList_DeclaresEveryAlias",
           "operations": [
             "parse",
             "address"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/TypedefFormTests.cs#TagOnlyTypedef_DeclaresTheTag",
+          "test": "tests/CStructSharpTests/Parsing/TypedefFormTests.cs#TagOnlyTypedef_DeclaresTheTag",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/TypedefFormTests.cs#Tag_IsGlobalAndUnique",
+          "test": "tests/CStructSharpTests/Parsing/TypedefFormTests.cs#Tag_IsGlobalAndUnique",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/TypedefFormTests.cs#TagAlias_ResolvesExistingTag",
+          "test": "tests/CStructSharpTests/Parsing/TypedefFormTests.cs#TagAlias_ResolvesExistingTag",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/TypedefFormTests.cs#ArrayTypedef_AddsInnerDimensions",
+          "test": "tests/CStructSharpTests/Parsing/TypedefFormTests.cs#ArrayTypedef_AddsInnerDimensions",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/TypedefFormTests.cs#ArrayTypedef_RoundTripsThroughEveryOperation",
+          "test": "tests/CStructSharpTests/Parsing/TypedefFormTests.cs#ArrayTypedef_RoundTripsThroughEveryOperation",
           "operations": [
             "debug",
             "serialize",
@@ -5025,25 +5025,25 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/TopLevelDeclarationTests.cs#AnonymousBody_TrailingNameIsTheType",
+          "test": "tests/CStructSharpTests/Parsing/TopLevelDeclarationTests.cs#AnonymousBody_TrailingNameIsTheType",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/TopLevelDeclarationTests.cs#NamedBody_TrailingVariableIsIgnored",
+          "test": "tests/CStructSharpTests/Parsing/TopLevelDeclarationTests.cs#NamedBody_TrailingVariableIsIgnored",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/TopLevelDeclarationTests.cs#ForwardDeclaration_IsAccepted",
+          "test": "tests/CStructSharpTests/Parsing/TopLevelDeclarationTests.cs#ForwardDeclaration_IsAccepted",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/TopLevelDeclarationTests.cs#AnonymousBody_RoundTripsThroughEveryOperation",
+          "test": "tests/CStructSharpTests/Parsing/TopLevelDeclarationTests.cs#AnonymousBody_RoundTripsThroughEveryOperation",
           "operations": [
             "debug",
             "address",
@@ -5101,49 +5101,49 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/PreprocessorTests.cs#Defines_PublishEveryConstantKind",
+          "test": "tests/CStructSharpTests/Parsing/PreprocessorTests.cs#Defines_PublishEveryConstantKind",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/PreprocessorTests.cs#Conditionals_SelectDeclarations",
+          "test": "tests/CStructSharpTests/Parsing/PreprocessorTests.cs#Conditionals_SelectDeclarations",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/PreprocessorTests.cs#Undef_RemovesTheConstant",
+          "test": "tests/CStructSharpTests/Parsing/PreprocessorTests.cs#Undef_RemovesTheConstant",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/PreprocessorTests.cs#Include_IsRecorded",
+          "test": "tests/CStructSharpTests/Parsing/PreprocessorTests.cs#Include_IsRecorded",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/PreprocessorTests.cs#PragmaPack_ClampsFollowingComposites",
+          "test": "tests/CStructSharpTests/Parsing/PreprocessorTests.cs#PragmaPack_ClampsFollowingComposites",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/PreprocessorTests.cs#LineContinuation_JoinsLines",
+          "test": "tests/CStructSharpTests/Parsing/PreprocessorTests.cs#LineContinuation_JoinsLines",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/PreprocessorTests.cs#ContinuedNumericPrefix_RemainsOneTextDefinition",
+          "test": "tests/CStructSharpTests/Parsing/PreprocessorTests.cs#ContinuedNumericPrefix_RemainsOneTextDefinition",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/PreprocessorTests.cs#PragmaPack_RoundTripsThroughEveryOperation",
+          "test": "tests/CStructSharpTests/Parsing/PreprocessorTests.cs#PragmaPack_RoundTripsThroughEveryOperation",
           "operations": [
             "debug",
             "address",

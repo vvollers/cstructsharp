@@ -5,7 +5,7 @@ using CStructSharp.Parsing;
 
 /// <summary>Checks directive line boundaries, initial packing and failed function-pointer recognition.</summary>
 [TestClass]
-public class ParserResidualBoundaryTests
+public class ParserDirectiveBoundaryTests
 {
     /// <summary>Adjacent continued lines remain one text definition even when the body starts with a number.</summary>
     [TestMethod]

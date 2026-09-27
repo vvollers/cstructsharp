@@ -4,7 +4,10 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Introspection;
 using CStructSharp.Parsing;
 
-/// <summary>Checks direct enum-member errors and token separation in continued opaque definitions.</summary>
+/// <summary>
+///     Checks the single-declaration parser entry points: enum-member errors, incomplete declarations, and token
+///     separation in continued opaque definitions.
+/// </summary>
 [TestClass]
 public class ParserEntryBoundaryTests
 {
@@ -34,5 +37,20 @@ public class ParserEntryBoundaryTests
         Assert.AreEqual(LayoutConstantKind.Macro, layout.Constants["MACRO"].Kind);
         Assert.AreEqual("(x) LEFT RIGHT", layout.Constants["MACRO"].Value);
         Assert.AreEqual(1, layout.GetStructSizeInBytes("root"));
+    }
+
+    /// <summary>Incomplete declarations preserve their specific missing-token explanation.</summary>
+    /// <param name="source">A truncated declaration or a directive crossing an invalid line boundary.</param>
+    /// <param name="expected">The missing token or directive boundary named by the parser.</param>
+    [TestMethod]
+    [DataRow("typedef enum Tag", "'{'")]
+    [DataRow("#ifdef\nNAME\n#endif", "an identifier on the #ifdef line")]
+    [DataRow("#ifdef\r\nNAME\r\n#endif", "an identifier on the #ifdef line")]
+    [DataRow("#ifdef ABSENT\n", "#endif")]
+    public void IncompleteDeclaration_ExplainsItsOwnBoundary(string source, string expected)
+    {
+        // A complete-layout parser has additional end checks that could conceal the missing local validation.
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseElement(source));
+        StringAssert.Contains(failure.Message, expected);
     }
 }

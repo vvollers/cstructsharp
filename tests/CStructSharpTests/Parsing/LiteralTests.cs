@@ -3,7 +3,10 @@ namespace CStructSharp.Tests;
 using CStructSharp.Diagnostics;
 using CStructSharp.Parsing;
 
-/// <summary>Groups tests for literals so changes to this behavior are caught.</summary>
+/// <summary>
+///     Checks integer literals and the digit parsers behind them: binary, octal, decimal and hexadecimal digits,
+///     separators, signs and suffixes.
+/// </summary>
 [TestClass]
 public class LiteralTests
 {
@@ -15,7 +18,7 @@ public class LiteralTests
     ///     not whether a complete binary number is valid.
     /// </remarks>
     [TestMethod]
-    public void TestBinaryChar()
+    public void BinaryDigit_AcceptsOnlyZeroOneAndSeparator()
     {
         const string binaryChars = "01_";
         const string nonBinaryChars = "Z%Q 2982-";
@@ -39,7 +42,7 @@ public class LiteralTests
     ///     binary digits must fail.
     /// </remarks>
     [TestMethod]
-    public void TestBinaryLiteral()
+    public void BinaryLiteral_ReadsBaseTwoWithSeparatorsAndSign()
     {
         Assert.AreEqual(0b1, LayoutParser.ParseLiteral("0b1", 2).Evaluate());
         Assert.AreEqual(-0b1000, LayoutParser.ParseLiteral("-0b1000", 2).Evaluate());
@@ -57,7 +60,7 @@ public class LiteralTests
     ///     because binary notation only has digits 0 and 1.
     /// </remarks>
     [TestMethod]
-    public void TestBinaryString()
+    public void BinaryDigits_NormalizeToText()
     {
         Assert.IsTrue(LayoutParser.ParseDigits("1001001", 2).Equals("1001001"));
         Assert.IsTrue(LayoutParser.ParseDigits("1001_0110", 2).Equals("10010110"));
@@ -73,7 +76,7 @@ public class LiteralTests
     ///     digits from interpreting an entire signed number.
     /// </remarks>
     [TestMethod]
-    public void TestDecimalChars()
+    public void DecimalDigit_AcceptsDigitsAndSeparator()
     {
         const string decimalChars = "0123456789_";
         const string nonDecimalChars = "Z%Q -";
@@ -97,7 +100,7 @@ public class LiteralTests
     ///     decimal token.
     /// </remarks>
     [TestMethod]
-    public void TestDecimalLiteral()
+    public void DecimalLiteral_ReadsSeparatorsAndSign()
     {
         Assert.AreEqual(12345, LayoutParser.ParseLiteral("12345", 10).Evaluate());
         Assert.AreEqual(-12345, LayoutParser.ParseLiteral("-12345", 10).Evaluate());
@@ -115,7 +118,7 @@ public class LiteralTests
     ///     deliberately tested separately.
     /// </remarks>
     [TestMethod]
-    public void TestDecimalString()
+    public void DecimalDigits_NormalizeToText()
     {
         Assert.IsTrue(LayoutParser.ParseDigits("12314", 10).Equals("12314"));
         Assert.IsTrue(LayoutParser.ParseDigits("12_314", 10).Equals("12314"));
@@ -131,7 +134,7 @@ public class LiteralTests
     ///     semicolon ends the token and that letters outside the hex alphabet are rejected.
     /// </remarks>
     [TestMethod]
-    public void TestHexLiteral()
+    public void HexadecimalLiteral_ReadsBaseSixteenWithSeparatorsAndSign()
     {
         Assert.AreEqual(0x12345, LayoutParser.ParseLiteral("0x12345", 16).Evaluate());
         Assert.AreEqual(-0x12345, LayoutParser.ParseLiteral("-0x12345", 16).Evaluate());
@@ -149,7 +152,7 @@ public class LiteralTests
     ///     not yet convert the accepted text into an integer.
     /// </remarks>
     [TestMethod]
-    public void TestHexString()
+    public void HexadecimalDigits_NormalizeToText()
     {
         Assert.IsTrue(LayoutParser.ParseDigits("89AF2", 16).Equals("89AF2"));
         Assert.IsTrue(LayoutParser.ParseDigits("89__AF2", 16).Equals("89AF2"));
@@ -165,7 +168,7 @@ public class LiteralTests
     ///     completed token is left for another parser; this is not a whole-file validation test.
     /// </remarks>
     [TestMethod]
-    public void TestLiteral()
+    public void Literal_ChoosesItsBaseFromThePrefix()
     {
         Assert.AreEqual(0b1, LayoutParser.ParseLiteral("0b1").Evaluate());
         Assert.AreEqual(Convert.ToInt32("673747", 8), LayoutParser.ParseLiteral("0o673747").Evaluate());
@@ -202,7 +205,7 @@ public class LiteralTests
     ///     Results are compared with C# base-eight conversion, and a token beginning with 9 must fail.
     /// </remarks>
     [TestMethod]
-    public void TestOctalLiteral()
+    public void OctalLiteral_ReadsBaseEightWithSeparatorsAndSign()
     {
         Assert.AreEqual(
                         Convert.ToInt32("673747", 8),
@@ -230,7 +233,7 @@ public class LiteralTests
     ///     conversion makes token-boundary errors easier to locate.
     /// </remarks>
     [TestMethod]
-    public void TestOctalString()
+    public void OctalDigits_NormalizeToText()
     {
         Assert.IsTrue(LayoutParser.ParseDigits("767226", 8).Equals("767226"));
         Assert.IsTrue(LayoutParser.ParseDigits("767_226", 8).Equals("767226"));
@@ -247,7 +250,7 @@ public class LiteralTests
     ///     information Portable needs. This still stops exactly at a semicolon, just like every other literal test.
     /// </remarks>
     [TestMethod]
-    public void TestIntegerLiteralSuffix()
+    public void IntegerSuffix_IsAcceptedAndIgnored()
     {
         Assert.AreEqual(1, LayoutParser.ParseLiteral("1U", 10).Evaluate());
         Assert.AreEqual(1, LayoutParser.ParseLiteral("1u", 10).Evaluate());
@@ -275,7 +278,7 @@ public class LiteralTests
     ///     hexadecimal constants in layout definitions.
     /// </remarks>
     [TestMethod]
-    public void TextHexadecimalChar()
+    public void HexadecimalDigit_AcceptsBothCases()
     {
         const string hexChars = "0123456789ABCDEFabcdef_";
         const string nonHexChars = "Z%Q ";
@@ -299,7 +302,7 @@ public class LiteralTests
     ///     from a stream.
     /// </remarks>
     [TestMethod]
-    public void TextOctalChar()
+    public void OctalDigit_AcceptsZeroToSeven()
     {
         const string octalChars = "01234567_";
         const string nonOctalChars = "89abQ";
@@ -313,5 +316,21 @@ public class LiteralTests
         {
             Assert.IsFalse(LayoutParser.IsDigitOrSeparator(c, 8), c.ToString());
         }
+    }
+
+    /// <summary>ASCII punctuation cannot become a hexadecimal digit through case folding.</summary>
+    /// <param name="source">A prefixed literal containing an invalid hexadecimal character.</param>
+    [TestMethod]
+    [DataRow("0x@")]
+    [DataRow("0x`")]
+    [DataRow("0xG")]
+    [DataRow("0x/")]
+    public void HexadecimalLiterals_RejectNonDigits(string source)
+    {
+        // Require hexadecimal input; automatic literal parsing may accept just the leading decimal zero.
+        Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseLiteral(source, 16));
+
+        // The expression entry point must consume the complete input instead of accepting a valid prefix.
+        Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseExpression(source));
     }
 }
