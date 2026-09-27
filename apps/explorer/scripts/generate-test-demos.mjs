@@ -547,13 +547,38 @@ function extractStringVariables(body) {
   return vars;
 }
 
+/**
+ * Returns the argument text of the first `new CStruct(...)` call, up to its matching parenthesis. String literals
+ * are skipped whole, so a parenthesis inside the layout text (for example `@count(n)`) does not end the call.
+ */
+function cstructConstructorArguments(body) {
+  const constructor = /new\s+CStruct\s*\(/.exec(body);
+  if (!constructor) return null;
+
+  const start = constructor.index + constructor[0].length;
+  let depth = 1;
+  for (let i = start; i < body.length; i++) {
+    const ch = body[i];
+    if (ch === '"' || (ch === "@" && body[i + 1] === '"')) {
+      const literal = parseStringLiteralFromIndex(body, i);
+      if (!literal) return null;
+      i = literal.end - 1;
+      continue;
+    }
+    if (ch === "(") depth++;
+    if (ch === ")" && --depth === 0) return body.slice(start, i);
+  }
+  return null;
+}
+
+/** Reads the parser options (alignment, byte order, pointer width) from the test's `new CStruct(...)` call. */
 function extractCStructOptions(body) {
-  const m = body.match(/new\s+CStruct\s*\((?<args>[\s\S]*?)\)/m);
-  if (!m?.groups?.args) {
+  const argumentText = cstructConstructorArguments(body);
+  if (!argumentText) {
     return { aligned: false, littleEndian: true, pointerSize: 8 };
   }
 
-  const args = splitArgs(m.groups.args);
+  const args = splitArgs(argumentText);
   let aligned = false;
   let littleEndian = true;
   let pointerSize = 8;

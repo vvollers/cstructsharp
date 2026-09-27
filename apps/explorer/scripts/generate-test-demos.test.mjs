@@ -78,6 +78,13 @@ test("demo generation keeps extracted inputs complete and constructor options in
   assert.equal(bigEndianTraversal.parserOptions.pointerSize, 1);
   assert.equal(bigEndianTraversal.parserOptions.littleEndian, false);
 
+  // A parenthesis inside the layout text (`@count(n)`) must not end the constructor's argument list.
+  const countedPointer = byId.get(
+    "CountedPointerTests.SerializeWriteAndUpdate_StoreTheAddressOnly",
+  );
+  assert.equal(countedPointer.runnable, true);
+  assert.equal(countedPointer.parserOptions.pointerSize, 1);
+
   const partialCollection = byId.get(
     "StringEncodingTests.ExplicitUtf16NewlineHandlers_StopAtEncodedTerminator",
   );
