@@ -228,7 +228,7 @@ public class StaticWritePlanTests
     [TestMethod]
     public void EveryFixture_SerializesIdenticallyWithAndWithoutThePlan()
     {
-        string directory = FindFixtureDirectory();
+        string directory = TestFixtures.BenchmarkFixtures;
         int compared = 0;
         foreach (string path in Directory.GetFiles(Path.Combine(directory, "cases"), "*.json").Order(StringComparer.Ordinal))
         {
@@ -240,7 +240,7 @@ public class StaticWritePlanTests
                 continue;
             }
 
-            byte[] bytes = Materialize(directory, root.GetProperty("bytes"));
+            byte[] bytes = TestFixtures.Materialize(root.GetProperty("bytes"));
             JsonElement options = root.GetProperty("options");
             var layout = new CStruct(
                 root.GetProperty("definition").GetString()!,
@@ -259,13 +259,9 @@ public class StaticWritePlanTests
                 continue;
             }
 
-            (byte[]? planned, Exception? plannedError) = Try(() => layout.Serialize(rootName, parsed));
-            (byte[]? general, Exception? generalError) = Try(() => layout.Serialize(rootName, parsed, options: ExecutionPaths.GeneralWrite()));
-            Assert.AreEqual(WithoutOffset(generalError?.Message), WithoutOffset(plannedError?.Message), id);
-            if (general is not null)
-            {
-                CollectionAssert.AreEqual(general, planned, id);
-            }
+            OperationOutcome planned = OperationOutcome.Of(() => layout.Serialize(rootName, parsed));
+            OperationOutcome general = OperationOutcome.Of(() => layout.Serialize(rootName, parsed, options: ExecutionPaths.GeneralWrite()));
+            OperationOutcome.AssertSame(general, planned, id, compareOffsets: false);
 
             compared++;
         }
@@ -299,30 +295,9 @@ public class StaticWritePlanTests
             }),
         })
         {
-            (byte[]? planned, Exception? plannedError) = Try(() => write(data, options));
-            (byte[]? general, Exception? generalError) = Try(() => write(data, ExecutionPaths.GeneralOnly(options)));
-            string caseLabel = label + " / " + destination;
-            Assert.AreEqual(generalError?.GetType(), plannedError?.GetType(), caseLabel);
-            Assert.AreEqual(WithoutOffset(generalError?.Message), WithoutOffset(plannedError?.Message), caseLabel);
-            if (general is not null)
-            {
-                CollectionAssert.AreEqual(general, planned, caseLabel);
-            }
-        }
-    }
-
-    /// <summary>Runs a write and records its bytes or its library failure.</summary>
-    /// <param name="write">The write.</param>
-    /// <returns>The bytes, or the failure.</returns>
-    private static (byte[]? Result, Exception? Error) Try(Func<byte[]> write)
-    {
-        try
-        {
-            return (write(), null);
-        }
-        catch (CStructException exception)
-        {
-            return (null, exception);
+            OperationOutcome planned = OperationOutcome.Of(() => write(data, options));
+            OperationOutcome general = OperationOutcome.Of(() => write(data, ExecutionPaths.GeneralOnly(options)));
+            OperationOutcome.AssertSame(general, planned, label + " / " + destination, compareOffsets: false);
         }
     }
 
@@ -371,69 +346,6 @@ public class StaticWritePlanTests
             leaves = [new LeafPoco { k = 5, v = 6 }, new LeafPoco { k = 7, v = 8 }],
             tail = 0x99,
         };
-    }
-
-    /// <summary>The input bytes a benchmark fixture describes: hex, a file, or xorshift bytes from a seed.</summary>
-    /// <param name="directory">The fixture directory.</param>
-    /// <param name="spec">The input description.</param>
-    /// <returns>The bytes.</returns>
-    private static byte[] Materialize(string directory, JsonElement spec)
-    {
-        switch (spec.GetProperty("kind").GetString())
-        {
-        case "hex":
-            return Convert.FromHexString(spec.GetProperty("hex").GetString()!);
-        case "file":
-            return File.ReadAllBytes(Path.Combine(directory, spec.GetProperty("file").GetString()!));
-        default:
-            {
-                uint x = spec.GetProperty("seed").GetUInt32();
-                int size = spec.GetProperty("size").GetInt32();
-                byte[] result = new byte[size];
-                if (x == 0)
-                {
-                    x = 1;
-                }
-
-                for (int index = 0; index < size; index++)
-                {
-                    x ^= x << 13;
-                    x ^= x >> 17;
-                    x ^= x << 5;
-                    result[index] = (byte)(x & 0xff);
-                }
-
-                return result;
-            }
-        }
-    }
-
-    /// <summary>Finds the benchmark fixture directory above the test output directory.</summary>
-    /// <returns>The directory.</returns>
-    private static string FindFixtureDirectory()
-    {
-        string? directory = AppContext.BaseDirectory;
-        while (directory is not null)
-        {
-            string candidate = Path.Combine(directory, "benchmarks", "fixtures", "manifest.json");
-            if (File.Exists(candidate))
-            {
-                return Path.GetDirectoryName(candidate)!;
-            }
-
-            directory = Path.GetDirectoryName(directory);
-        }
-
-        throw new DirectoryNotFoundException("benchmarks/fixtures/manifest.json not found");
-    }
-
-    /// <summary>
-    ///     The plan validates every value before it writes anything while the general writer stops mid-struct, so
-    ///     the reported stop offset legitimately differs; everything else in the message must agree.
-    /// </summary>
-    private static string? WithoutOffset(string? message)
-    {
-        return message is null ? null : System.Text.RegularExpressions.Regex.Replace(message, @",? ?offset \d+", string.Empty);
     }
 
     /// <summary>A mapped class for the tests' <c>LeafPoco</c> record, read and written through the runtime.</summary>

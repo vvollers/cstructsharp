@@ -18,7 +18,7 @@ public class MemoryCursorParityTests
     [TestMethod]
     public void EveryFixture_ParsesIdenticallyThroughMemoryAndStreamPaths()
     {
-        string directory = FindFixtureDirectory();
+        string directory = TestFixtures.BenchmarkFixtures;
         int compared = 0;
         foreach (string path in Directory.GetFiles(Path.Combine(directory, "cases"), "*.json").Order(StringComparer.Ordinal))
         {
@@ -29,7 +29,7 @@ public class MemoryCursorParityTests
                 continue;
             }
 
-            byte[] bytes = Materialize(directory, root.GetProperty("bytes"));
+            byte[] bytes = TestFixtures.Materialize(root.GetProperty("bytes"));
             JsonElement options = root.GetProperty("options");
             var layout = new CStruct(
                 root.GetProperty("definition").GetString()!,
@@ -40,27 +40,21 @@ public class MemoryCursorParityTests
             ReadOptions readOptions = CreateReadOptions(root.GetProperty("readOptions"));
             string id = root.GetProperty("id").GetString()!;
 
-            (object? spanResult, string? spanError) = Try(() => layout.Parse(bytes.AsSpan(), rootName, options: readOptions));
+            OperationOutcome span = OperationOutcome.Of(() => layout.Parse(bytes.AsSpan(), rootName, options: readOptions));
             using var memoryStream = new MemoryStream(bytes, writable: false);
-            (object? memoryResult, string? memoryError) = Try(() => layout.Parse(memoryStream, rootName, options: readOptions));
+            OperationOutcome memory = OperationOutcome.Of(() => layout.Parse(memoryStream, rootName, options: readOptions));
             using var chunked = new ChunkedMemoryStream(bytes, 7, writable: false);
-            (object? chunkedResult, string? chunkedError) = Try(() => layout.Parse(chunked, rootName, options: readOptions));
+            OperationOutcome chunkedOutcome = OperationOutcome.Of(() => layout.Parse(chunked, rootName, options: readOptions));
 
             // The same memory-backed source through the general reader only (static read plans disabled).
             using var unplanned = new MemoryStream(bytes, writable: false);
-            (object? unplannedResult, string? unplannedError) = Try(() => layout.Parse(unplanned, rootName, options: readOptions with { ExecutionPath = ExecutionPath.GeneralOnly }));
+            OperationOutcome unplannedOutcome = OperationOutcome.Of(() => layout.Parse(unplanned, rootName, options: readOptions with { ExecutionPath = ExecutionPath.GeneralOnly }));
 
-            Assert.AreEqual(spanError, memoryError, id);
-            Assert.AreEqual(spanError, chunkedError, id);
-            Assert.AreEqual(spanError, unplannedError, id);
+            OperationOutcome.AssertSame(span, memory, id + ": span vs MemoryStream");
+            OperationOutcome.AssertSame(span, chunkedOutcome, id + ": span vs chunked stream");
+            OperationOutcome.AssertSame(span, unplannedOutcome, id + ": plan vs general reader");
             Assert.AreEqual(chunked.Position, memoryStream.Position, id + ": final position");
             Assert.AreEqual(unplanned.Position, memoryStream.Position, id + ": final position without plan");
-            if (spanError is null)
-            {
-                Assert.IsTrue(StructurallyEqual(spanResult, memoryResult), id + ": span vs MemoryStream");
-                Assert.IsTrue(StructurallyEqual(spanResult, chunkedResult), id + ": span vs chunked stream");
-                Assert.IsTrue(StructurallyEqual(spanResult, unplannedResult), id + ": plan vs general reader");
-            }
 
             compared++;
         }
@@ -88,74 +82,6 @@ public class MemoryCursorParityTests
         Assert.AreEqual(0L, resolve.Position, "ResolveAddress restores the position");
     }
 
-    /// <summary>Runs a parse and records its value or the type name of its library failure.</summary>
-    /// <param name="parse">The parse.</param>
-    /// <returns>The value, or the failure's type name.</returns>
-    private static (object? Result, string? Error) Try(Func<object> parse)
-    {
-        try
-        {
-            return (parse(), null);
-        }
-        catch (CStructException exception)
-        {
-            return (null, exception.GetType().Name);
-        }
-    }
-
-    /// <summary>Whether two parsed values have the same members, items and scalars, compared recursively.</summary>
-    /// <param name="left">The first value.</param>
-    /// <param name="right">The second value.</param>
-    /// <returns>Whether they are equal.</returns>
-    private static bool StructurallyEqual(object? left, object? right)
-    {
-        switch (left)
-        {
-        case null:
-            return right is null;
-        case StructValue leftStruct:
-            {
-                if (right is not StructValue rightStruct)
-                {
-                    return false;
-                }
-
-                IDictionary<string, object?> l = leftStruct;
-                IDictionary<string, object?> r = rightStruct;
-                return l.Count == r.Count && l.All(pair => r.TryGetValue(pair.Key, out object? other) && StructurallyEqual(pair.Value, other));
-            }
-
-        case UnionValue leftUnion:
-            return right is UnionValue rightUnion && leftUnion.UnionName == rightUnion.UnionName &&
-                   leftUnion.Members.Count == rightUnion.Members.Count &&
-                   leftUnion.Members.All(pair => StructurallyEqual(pair.Value, rightUnion.Members[pair.Key]));
-        case Pointer leftPointer:
-            return right is Pointer rightPointer && leftPointer.Address == rightPointer.Address && StructurallyEqual(leftPointer.Value, rightPointer.Value);
-        case EnumValueResult leftEnum:
-            return right is EnumValueResult rightEnum && leftEnum.Value == rightEnum.Value && leftEnum.Name == rightEnum.Name;
-        case System.Collections.IList leftList:
-            {
-                if (right is not System.Collections.IList rightList || leftList.Count != rightList.Count)
-                {
-                    return false;
-                }
-
-                for (int index = 0; index < leftList.Count; index++)
-                {
-                    if (!StructurallyEqual(leftList[index], rightList[index]))
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
-            }
-
-        default:
-            return left.Equals(right);
-        }
-    }
-
     /// <summary>The read options a benchmark fixture describes, or the defaults.</summary>
     /// <param name="element">The fixture's options, or JSON null.</param>
     /// <returns>The options.</returns>
@@ -175,59 +101,5 @@ public class MemoryCursorParityTests
             MaxStringBytes = element.TryGetProperty("maxStringBytes", out JsonElement strings) && strings.ValueKind == JsonValueKind.Number ? strings.GetInt64() : defaults.MaxStringBytes,
             MaxPointerDepth = element.TryGetProperty("maxPointerDepth", out JsonElement depth) && depth.ValueKind == JsonValueKind.Number ? depth.GetInt32() : defaults.MaxPointerDepth,
         };
-    }
-
-    /// <summary>The input bytes a benchmark fixture describes: hex, a file, or xorshift bytes from a seed.</summary>
-    /// <param name="directory">The fixture directory.</param>
-    /// <param name="spec">The input description.</param>
-    /// <returns>The bytes.</returns>
-    private static byte[] Materialize(string directory, JsonElement spec)
-    {
-        switch (spec.GetProperty("kind").GetString())
-        {
-        case "hex":
-            return Convert.FromHexString(spec.GetProperty("hex").GetString()!);
-        case "file":
-            return File.ReadAllBytes(Path.Combine(directory, spec.GetProperty("file").GetString()!));
-        default:
-            {
-                uint x = spec.GetProperty("seed").GetUInt32();
-                int size = spec.GetProperty("size").GetInt32();
-                byte[] result = new byte[size];
-                if (x == 0)
-                {
-                    x = 1;
-                }
-
-                for (int index = 0; index < size; index++)
-                {
-                    x ^= x << 13;
-                    x ^= x >> 17;
-                    x ^= x << 5;
-                    result[index] = (byte)(x & 0xff);
-                }
-
-                return result;
-            }
-        }
-    }
-
-    /// <summary>Finds the benchmark fixture directory above the test output directory.</summary>
-    /// <returns>The directory.</returns>
-    private static string FindFixtureDirectory()
-    {
-        string? directory = AppContext.BaseDirectory;
-        while (directory is not null)
-        {
-            string candidate = Path.Combine(directory, "benchmarks", "fixtures", "manifest.json");
-            if (File.Exists(candidate))
-            {
-                return Path.GetDirectoryName(candidate)!;
-            }
-
-            directory = Path.GetDirectoryName(directory);
-        }
-
-        throw new DirectoryNotFoundException("benchmarks/fixtures/manifest.json not found");
     }
 }

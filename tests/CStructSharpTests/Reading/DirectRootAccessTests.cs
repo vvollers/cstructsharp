@@ -304,26 +304,25 @@ public class DirectRootAccessTests
     /// <summary>Asserts that the typed conversion and the general conversion (as its callers cast it) agree for one input.</summary>
     private static void AssertSameConversion<T>(object? input)
     {
-        (object? fast, Exception? fastError) = Run(() => TypedValueConverter.Convert<T>(input, "root.value"));
-        (object? general, Exception? generalError) = Run(() => (T)TypedValueConverter.Convert(input, typeof(T), "root.value")!);
-        string label = typeof(T).Name + " from " + (input?.GetType().Name ?? "null");
-        AssertSameOutcome(general, generalError, fast, fastError, label);
+        OperationOutcome fast = OperationOutcome.Of(() => TypedValueConverter.Convert<T>(input, "root.value"), typeof(ArgumentException), typeof(OperationCanceledException), typeof(InvalidCastException));
+        OperationOutcome general = OperationOutcome.Of(() => (T)TypedValueConverter.Convert(input, typeof(T), "root.value")!, typeof(ArgumentException), typeof(OperationCanceledException), typeof(InvalidCastException));
+        OperationOutcome.AssertSame(general, fast, typeof(T).Name + " from " + (input?.GetType().Name ?? "null"));
     }
 
     /// <summary>Asserts that a read behaves the same with the caller's options and with the direct path excluded from them.</summary>
     private static void AssertSame(Func<ReadOptions?, object?> operation, ReadOptions? options, string label)
     {
-        (object? fast, Exception? fastError) = Run(() => operation(options));
-        (object? general, Exception? generalError) = Run(() => operation((options ?? new ReadOptions()) with { ExecutionPath = ExecutionPath.NoDirectAccess }));
-        AssertSameOutcome(general, generalError, fast, fastError, label);
+        OperationOutcome fast = OperationOutcome.Of(() => operation(options), typeof(ArgumentException), typeof(OperationCanceledException), typeof(InvalidCastException));
+        OperationOutcome general = OperationOutcome.Of(() => operation((options ?? new ReadOptions()) with { ExecutionPath = ExecutionPath.NoDirectAccess }), typeof(ArgumentException), typeof(OperationCanceledException), typeof(InvalidCastException));
+        OperationOutcome.AssertSame(general, fast, label);
     }
 
     /// <summary>Asserts that a write to a new array behaves the same with the caller's options and with the direct path excluded from them.</summary>
     private static void AssertSameWrite(Func<WriteOptions?, object?> operation, WriteOptions? options, string label)
     {
-        (object? fast, Exception? fastError) = Run(() => operation(options));
-        (object? general, Exception? generalError) = Run(() => operation(WithoutDirectAccess(options)));
-        AssertSameOutcome(general, generalError, fast, fastError, label);
+        OperationOutcome fast = OperationOutcome.Of(() => operation(options), typeof(ArgumentException), typeof(OperationCanceledException), typeof(InvalidCastException));
+        OperationOutcome general = OperationOutcome.Of(() => operation(WithoutDirectAccess(options)), typeof(ArgumentException), typeof(OperationCanceledException), typeof(InvalidCastException));
+        OperationOutcome.AssertSame(general, fast, label);
     }
 
     /// <summary>Asserts that a span write behaves the same with the caller's options and with the direct path excluded, destination bytes included.</summary>
@@ -331,53 +330,14 @@ public class DirectRootAccessTests
     {
         byte[] fastDestination = Enumerable.Repeat((byte)0xCC, capacity).ToArray();
         byte[] generalDestination = Enumerable.Repeat((byte)0xCC, capacity).ToArray();
-        (object? fast, Exception? fastError) = Run(() => write(fastDestination, options));
-        (object? general, Exception? generalError) = Run(() => write(generalDestination, WithoutDirectAccess(options)));
-        AssertSameOutcome(general, generalError, fast, fastError, label);
+        OperationOutcome fast = OperationOutcome.Of(() => write(fastDestination, options), typeof(ArgumentException), typeof(OperationCanceledException), typeof(InvalidCastException));
+        OperationOutcome general = OperationOutcome.Of(() => write(generalDestination, WithoutDirectAccess(options)), typeof(ArgumentException), typeof(OperationCanceledException), typeof(InvalidCastException));
+        OperationOutcome.AssertSame(general, fast, label);
         CollectionAssert.AreEqual(generalDestination, fastDestination, label + ": destination");
     }
 
     /// <summary>Returns the write options with direct span access excluded.</summary>
     private static WriteOptions WithoutDirectAccess(WriteOptions? options) => (options ?? new WriteOptions()) with { ExecutionPath = ExecutionPath.NoDirectAccess };
-
-    /// <summary>Compares two outcomes: exception type, message, path, offset and inner exception, or the rendered value.</summary>
-    private static void AssertSameOutcome(object? general, Exception? generalError, object? fast, Exception? fastError, string label)
-    {
-        Assert.AreEqual(generalError?.GetType(), fastError?.GetType(), label + ": " + (fastError ?? generalError)?.Message);
-        Assert.AreEqual(generalError?.Message, fastError?.Message, label);
-        Assert.AreEqual((generalError as CStructException)?.Path, (fastError as CStructException)?.Path, label + ": path");
-        Assert.AreEqual((generalError as CStructException)?.Offset, (fastError as CStructException)?.Offset, label + ": offset");
-        Assert.AreEqual(generalError?.InnerException?.GetType(), fastError?.InnerException?.GetType(), label + ": inner");
-        Assert.AreEqual(Render(general), Render(fast), label);
-    }
-
-    /// <summary>Runs an operation, capturing the exceptions the library documents instead of throwing them.</summary>
-    private static (object? Result, Exception? Error) Run(Func<object?> operation)
-    {
-        try
-        {
-            return (operation(), null);
-        }
-        catch (Exception exception) when (exception is CStructException or ArgumentException or OperationCanceledException or InvalidCastException)
-        {
-            return (null, exception);
-        }
-    }
-
-    /// <summary>Renders a result as text for comparison, member order included.</summary>
-    private static string Render(object? value)
-    {
-        return value switch
-        {
-            null => "null",
-            StructValue s => "{" + string.Join(",", s.Select(pair => pair.Key + ":" + Render(pair.Value))) + "}",
-            EnumValueResult e => e.Enum + "." + (e.Name ?? "?") + "=" + e.Value,
-            PlainRecord p => $"plain({p.A},{p.B},{Render(p.C)})",
-            string text => "\"" + text + "\"",
-            System.Collections.IEnumerable items => "[" + string.Join(",", items.Cast<object?>().Select(Render)) + "]",
-            _ => value.GetType().Name + ":" + value,
-        };
-    }
 
     /// <summary>A hand-written mapped class for <c>plain</c>.</summary>
     internal sealed class PlainRecord : ICStructMapped<PlainRecord>

@@ -57,9 +57,9 @@ public class GeneralPathBlockTests
             foreach ((string label, byte[] input, ReadOptions? options) in cases)
             {
                 string caseLabel = $"aligned={aligned} {label}";
-                AssertSameRead(o => Render(layout.Parse(input, "packet", options: o)), options, caseLabel + " / span");
-                AssertSameRead(o => Render(layout.Parse(new MemoryStream(input, writable: false), "packet", options: o)), options, caseLabel + " / stream");
-                AssertSameRead(o => Render(layout.Parse(new ChunkedMemoryStream(input, 3, writable: false), "packet", options: o)), options, caseLabel + " / chunked");
+                AssertSameRead(o => OperationOutcome.Render(layout.Parse(input, "packet", options: o)), options, caseLabel + " / span");
+                AssertSameRead(o => OperationOutcome.Render(layout.Parse(new MemoryStream(input, writable: false), "packet", options: o)), options, caseLabel + " / stream");
+                AssertSameRead(o => OperationOutcome.Render(layout.Parse(new ChunkedMemoryStream(input, 3, writable: false), "packet", options: o)), options, caseLabel + " / chunked");
             }
         }
     }
@@ -167,30 +167,17 @@ public class GeneralPathBlockTests
     /// <summary>Runs a read with the caller's options and with only the general reader, and asserts the same outcome.</summary>
     private static void AssertSameRead(Func<ReadOptions?, string> operation, ReadOptions? options, string label)
     {
-        string block = Outcome(() => operation(options));
-        string element = Outcome(() => operation((options ?? new ReadOptions()) with { ExecutionPath = ExecutionPath.GeneralOnly }));
-        Assert.AreEqual(element, block, label);
+        OperationOutcome block = OperationOutcome.Of(() => operation(options));
+        OperationOutcome element = OperationOutcome.Of(() => operation((options ?? new ReadOptions()) with { ExecutionPath = ExecutionPath.GeneralOnly }));
+        OperationOutcome.AssertSame(element, block, label);
     }
 
     /// <summary>Runs a write with the caller's options and with only the general writer, and asserts the same outcome.</summary>
     private static void AssertSameWrite(Func<WriteOptions?, string> operation, WriteOptions? options, string label)
     {
-        string block = Outcome(() => operation(options));
-        string element = Outcome(() => operation((options ?? new WriteOptions()) with { ExecutionPath = ExecutionPath.GeneralOnly }));
-        Assert.AreEqual(element, block, label);
-    }
-
-    /// <summary>The result text, or the failure's type, message, path and offset.</summary>
-    private static string Outcome(Func<string> operation)
-    {
-        try
-        {
-            return operation();
-        }
-        catch (CStructException exception)
-        {
-            return Describe(exception);
-        }
+        OperationOutcome block = OperationOutcome.Of(() => operation(options));
+        OperationOutcome element = OperationOutcome.Of(() => operation((options ?? new WriteOptions()) with { ExecutionPath = ExecutionPath.GeneralOnly }));
+        OperationOutcome.AssertSame(element, block, label);
     }
 
     /// <summary>A failure's type, message, path and offset, or <c>none</c>.</summary>
@@ -199,18 +186,5 @@ public class GeneralPathBlockTests
         return exception is CStructException failure
                    ? failure.GetType().Name + ": " + failure.Message + " | " + failure.Path + " | " + failure.Offset
                    : exception?.GetType().Name ?? "none";
-    }
-
-    /// <summary>Renders a parsed value, member order included.</summary>
-    private static string Render(object? value)
-    {
-        return value switch
-        {
-            null => "null",
-            StructValue s => "{" + string.Join(",", s.Select(pair => pair.Key + ":" + Render(pair.Value))) + "}",
-            string text => "\"" + text + "\"",
-            System.Collections.IEnumerable items => "[" + string.Join(",", items.Cast<object?>().Select(Render)) + "]",
-            _ => value.GetType().Name + ":" + value,
-        };
     }
 }

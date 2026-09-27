@@ -134,10 +134,10 @@ public class StaticReadPlanTests
         {
             using var withPlan = new MemoryStream(bytes, writable: false);
             withPlan.Position = start;
-            string fast = Render(layout.Parse(withPlan, "root"));
+            string fast = OperationOutcome.Render(layout.Parse(withPlan, "root"));
             using var withoutPlan = new MemoryStream(bytes, writable: false);
             withoutPlan.Position = start;
-            string general = Render(layout.Parse(withoutPlan, "root", options: ExecutionPaths.GeneralOnly()));
+            string general = OperationOutcome.Render(layout.Parse(withoutPlan, "root", options: ExecutionPaths.GeneralOnly()));
             Assert.AreEqual(general, fast, $"start {start}");
             Assert.AreEqual(withoutPlan.Position, withPlan.Position, $"start {start}: position");
         }
@@ -199,7 +199,7 @@ public class StaticReadPlanTests
     [TestMethod]
     public void FixtureRoots_KeepTheirStaticPlans()
     {
-        string directory = FindFixtureDirectory();
+        string directory = TestFixtures.BenchmarkFixtures;
         var eligible = new List<string>();
         var unplanned = new List<string>();
         foreach (string path in Directory.GetFiles(Path.Combine(directory, "cases"), "*.json").Order(StringComparer.Ordinal))
@@ -261,48 +261,12 @@ public class StaticReadPlanTests
         {
             using Stream? withPlan = create();
             using Stream? withoutPlan = create();
-            (object? fast, Exception? fastError) = Try(() => withPlan is null ? layout.Parse(bytes, "root", options: options) : layout.Parse(withPlan, "root", options: options));
-            (object? general, Exception? generalError) = Try(() => withoutPlan is null ? layout.Parse(bytes, "root", options: ExecutionPaths.GeneralOnly(options)) : layout.Parse(withoutPlan, "root", options: ExecutionPaths.GeneralOnly(options)));
+            OperationOutcome fast = OperationOutcome.Of(() => withPlan is null ? layout.Parse(bytes, "root", options: options) : layout.Parse(withPlan, "root", options: options));
+            OperationOutcome general = OperationOutcome.Of(() => withoutPlan is null ? layout.Parse(bytes, "root", options: ExecutionPaths.GeneralOnly(options)) : layout.Parse(withoutPlan, "root", options: ExecutionPaths.GeneralOnly(options)));
             string caseLabel = label + " / " + source;
-            Assert.AreEqual(generalError?.GetType(), fastError?.GetType(), caseLabel);
-            Assert.AreEqual((generalError as CStructException)?.Offset, (fastError as CStructException)?.Offset, caseLabel + ": failure offset");
+            OperationOutcome.AssertSame(general, fast, caseLabel);
             Assert.AreEqual(withoutPlan?.Position, withPlan?.Position, caseLabel + ": final position");
-            if (fastError is null)
-            {
-                Assert.AreEqual(Render(general), Render(fast), caseLabel);
-            }
         }
-    }
-
-    /// <summary>Runs a parse and records its value or its library failure.</summary>
-    /// <param name="parse">The parse.</param>
-    /// <returns>The value, or the failure.</returns>
-    private static (object? Result, Exception? Error) Try(Func<object> parse)
-    {
-        try
-        {
-            return (parse(), null);
-        }
-        catch (CStructException exception)
-        {
-            return (null, exception);
-        }
-    }
-
-    /// <summary>Renders a parsed value as comparable text.</summary>
-    /// <param name="value">The value.</param>
-    /// <returns>The text.</returns>
-    private static string Render(object? value)
-    {
-        return value switch
-        {
-            null => "null",
-            StructValue s => "{" + string.Join(",", s.Select(pair => pair.Key + ":" + Render(pair.Value))) + "}",
-            EnumValueResult e => e.Enum + "." + (e.Name ?? "?") + "=" + e.Value,
-            string text => "\"" + text + "\"",
-            System.Collections.IEnumerable items => "[" + string.Join(",", items.Cast<object?>().Select(Render)) + "]",
-            _ => value.GetType().Name + ":" + value,
-        };
     }
 
     /// <summary>A composite root with a static read plan; a synthetic root (<c>uint32[256]</c>) has no composite and reads through the bulk primitive path instead.</summary>
@@ -310,24 +274,5 @@ public class StaticReadPlanTests
     {
         return layout.CompiledModel.Symbols.TryGetValue(rootName, out CompiledTypeReference reference) &&
                reference.Symbol.Definition is CompiledCompositeType { StaticPlan: not null, };
-    }
-
-    /// <summary>Finds the benchmark fixture directory above the test output directory.</summary>
-    /// <returns>The directory.</returns>
-    private static string FindFixtureDirectory()
-    {
-        string? directory = AppContext.BaseDirectory;
-        while (directory is not null)
-        {
-            string candidate = Path.Combine(directory, "benchmarks", "fixtures", "manifest.json");
-            if (File.Exists(candidate))
-            {
-                return Path.GetDirectoryName(candidate)!;
-            }
-
-            directory = Path.GetDirectoryName(directory);
-        }
-
-        throw new DirectoryNotFoundException("benchmarks/fixtures/manifest.json not found");
     }
 }

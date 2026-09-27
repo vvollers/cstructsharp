@@ -138,7 +138,7 @@ public class TypedReadPlanTests
         RootExact fast = layout.ReadValue<RootExact>(withPlan, "root");
         using var withoutPlan = new MemoryStream(Bytes, writable: false);
         RootExact general = layout.ReadValue<RootExact>(withoutPlan, "root", options: ExecutionPaths.GeneralOnly());
-        Assert.AreEqual(Render(general), Render(fast));
+        Assert.AreEqual(OperationOutcome.Render(general), OperationOutcome.Render(fast));
         Assert.AreEqual(withoutPlan.Position, withPlan.Position);
 
         var aligned = new CStruct("struct root { uint8 a; uint32 b; uint8 c; };", aligned: true);
@@ -147,10 +147,10 @@ public class TypedReadPlanTests
         {
             using var fastStream = new MemoryStream(bytes, writable: false);
             fastStream.Position = start;
-            string fastText = Render(aligned.ReadValue<Small>(fastStream, "root"));
+            string fastText = OperationOutcome.Render(aligned.ReadValue<Small>(fastStream, "root"));
             using var generalStream = new MemoryStream(bytes, writable: false);
             generalStream.Position = start;
-            string generalText = Render(aligned.ReadValue<Small>(generalStream, "root", options: ExecutionPaths.GeneralOnly()));
+            string generalText = OperationOutcome.Render(aligned.ReadValue<Small>(generalStream, "root", options: ExecutionPaths.GeneralOnly()));
             Assert.AreEqual(generalText, fastText, $"start {start}");
             Assert.AreEqual(generalStream.Position, fastStream.Position, $"start {start}: position");
         }
@@ -159,35 +159,9 @@ public class TypedReadPlanTests
     /// <summary>Asserts that a typed read gives the same value or failure with the static plan and with only the general reader.</summary>
     private static void AssertSameOutcome<T>(CStruct layout, byte[] bytes, string path, ReadOptions? options, string label)
     {
-        (string? fast, Exception? fastError) = Try(() => Render(layout.ReadValue<T>(bytes, path, options: options)));
-        (string? general, Exception? generalError) = Try(() => Render(layout.ReadValue<T>(bytes, path, options: ExecutionPaths.GeneralOnly(options))));
-        Assert.AreEqual(generalError?.GetType(), fastError?.GetType(), label);
-        Assert.AreEqual(generalError?.Message, fastError?.Message, label);
-        Assert.AreEqual((generalError as CStructException)?.Path, (fastError as CStructException)?.Path, label + ": failure path");
-        Assert.AreEqual(general, fast, label);
-    }
-
-    /// <summary>Runs a read and records its rendered value or its library failure.</summary>
-    /// <param name="read">The read.</param>
-    /// <returns>The value, or the failure.</returns>
-    private static (string? Result, Exception? Error) Try(Func<string> read)
-    {
-        try
-        {
-            return (read(), null);
-        }
-        catch (CStructException exception)
-        {
-            return (null, exception);
-        }
-    }
-
-    /// <summary>Renders a value as JSON for comparison.</summary>
-    /// <param name="value">The value.</param>
-    /// <returns>The JSON.</returns>
-    private static string Render(object? value)
-    {
-        return JsonSerializer.Serialize(value, value?.GetType() ?? typeof(object), new JsonSerializerOptions { IncludeFields = true, });
+        OperationOutcome fast = OperationOutcome.Of(() => layout.ReadValue<T>(bytes, path, options: options));
+        OperationOutcome general = OperationOutcome.Of(() => layout.ReadValue<T>(bytes, path, options: ExecutionPaths.GeneralOnly(options)));
+        OperationOutcome.AssertSame(general, fast, label);
     }
 
     /// <summary>A mapped class for the tests' <c>Leaf</c> record, read and written through the runtime.</summary>

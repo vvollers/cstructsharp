@@ -114,9 +114,9 @@ public class ConditionalExecutionOptimizationTests
                         {
                             var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(depth, nodes));
                             var variables = new Dictionary<string, Expr> { ["a"] = new Literal(a), ["b"] = new Literal(b) };
-                            Assert.AreEqual(
-                                Capture(() => evaluator.CreateSession(variables).Evaluate(expression)),
-                                Capture(() => evaluator.Evaluate(expression, variables)),
+                            OperationOutcome.AssertSame(
+                                OperationOutcome.Of(() => evaluator.Evaluate(expression, variables), typeof(Exception)),
+                                OperationOutcome.Of(() => evaluator.CreateSession(variables).Evaluate(expression), typeof(Exception)),
                                 $"{source}, a={a}, b={b}, depth={depth}, nodes={nodes}");
                         }
                     }
@@ -176,20 +176,5 @@ public class ConditionalExecutionOptimizationTests
         // Allow runtime/tiered-JIT differences while rejecting the previous per-primitive collection growth.
         long budget = grouped ? 400_000 : 2_400_000;
         Assert.IsTrue(allocated <= budget, $"Compiler allocated {allocated} bytes; budget is {budget}.");
-    }
-
-    /// <summary>Runs an operation and records either its value or the type of its failure.</summary>
-    /// <param name="operation">The operation.</param>
-    /// <returns>The failure's type and 0, or no type and the value.</returns>
-    private static (Type? Error, int Value) Capture(Func<int> operation)
-    {
-        try
-        {
-            return (null, operation());
-        }
-        catch (Exception error)
-        {
-            return (error.GetType(), 0);
-        }
     }
 }

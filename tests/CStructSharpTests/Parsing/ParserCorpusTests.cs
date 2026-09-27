@@ -284,7 +284,7 @@ public class ParserCorpusTests
             "struct root { uint8 a /*c*/ [ /*c*/ 2 /*c*/ ] /*c*/ : /*c*/ 2 /*c*/ @ /*c*/ 4 /*c*/ , /*c*/ b ; };",
         ];
 
-        string path = Path.Combine(FindRepositoryRoot(), "tests", "CStructSharpTests", "ParserTokenConventions.json");
+        string path = Path.Combine(TestFixtures.RepositoryRoot, "tests", "CStructSharpTests", "ParserTokenConventions.json");
         using JsonDocument expected = JsonDocument.Parse(File.ReadAllText(path), DeepJson);
         Assert.HasCount(spellings.Length, expected.RootElement.EnumerateObject().ToArray(), "every spelling has an expected tree");
         foreach (string spelling in spellings)
@@ -564,7 +564,7 @@ public class ParserCorpusTests
     /// <summary>Collects every distinct layout in the repository's fixtures, contracts, demos, documentation and test literals.</summary>
     private static IReadOnlyList<(string Id, string Source)> LoadCorpus()
     {
-        string root = FindRepositoryRoot();
+        string root = TestFixtures.RepositoryRoot;
         var corpus = new List<(string Id, string Source)>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
@@ -856,23 +856,6 @@ public class ParserCorpusTests
 
         value = null;
         return index;
-    }
-
-    /// <summary>Walks up from the test output directory to the repository root.</summary>
-    private static string FindRepositoryRoot()
-    {
-        string? directory = AppContext.BaseDirectory;
-        while (directory is not null)
-        {
-            if (File.Exists(Path.Combine(directory, "CStructSharp.sln")))
-            {
-                return directory;
-            }
-
-            directory = Path.GetDirectoryName(directory);
-        }
-
-        throw new DirectoryNotFoundException("CStructSharp.sln not found above " + AppContext.BaseDirectory);
     }
 
     /// <summary>
