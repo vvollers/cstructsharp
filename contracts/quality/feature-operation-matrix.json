@@ -2000,7 +2000,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/Literals.cs#TestIntegerLiteralSuffix",
+          "test": "tests/CStructSharpTests/LiteralTests.cs#TestIntegerLiteralSuffix",
           "operations": [
             "parse"
           ]
