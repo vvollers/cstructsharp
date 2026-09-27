@@ -38,7 +38,7 @@ public sealed class MemorySchema
     /// <param name="maxFields">Maximum total number of fields across all definitions.</param>
     /// <param name="pointerSize">Target pointer width in bytes; it describes the analyzed image, not the analyzing process.</param>
     /// <param name="cancellationToken">Checked between definitions during validation and compilation.</param>
-    /// <param name="bestEffort">When true, a definition that fails its own validation is demoted to a same-sized <see cref="MemoryTypeKind.Opaque"/> placeholder and noted in <see cref="Diagnostics"/>, instead of the whole schema failing; when false (the default), any validation failure throws, exactly as before this parameter existed.</param>
+    /// <param name="bestEffort">When true, a definition that fails its own validation is demoted to a same-sized <see cref="MemoryTypeKind.Opaque"/> placeholder and noted in <see cref="Diagnostics"/>, instead of the whole schema failing; when false (the default), any validation failure throws.</param>
     public MemorySchema(IEnumerable<MemoryTypeDefinition> types, bool isLittleEndian = true, CStructCompilationOptions? options = null, int maxTypes = 100_000, int maxFields = 1_000_000, int pointerSize = 8, CancellationToken cancellationToken = default, bool bestEffort = false)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -71,9 +71,9 @@ public sealed class MemorySchema
         // Pass 2: validate each definition on its own and compile its scalar and bit-slice codecs. In best-effort
         // mode, a definition that fails is demoted in place to a same-sized Opaque placeholder rather than
         // aborting the whole schema: real-world metadata, especially a torn or partial forensic capture, can be
-        // locally corrupt while the rest of the graph remains perfectly readable, and because the placeholder
-        // keeps the original size exactly, no other definition's own validation is affected by the substitution
-        // (nothing but this pass ever inspects a referenced type's fields, only its size and kind).
+        // locally corrupt while the rest of the graph remains perfectly readable. The placeholder keeps the
+        // original size, which is all most references check; the one exception is a bitfield, whose storage must
+        // be a scalar, so pass 2b demotes the users of a demoted scalar whatever order they were validated in.
         var diagnostics = new List<string>();
         foreach (MemoryTypeDefinition type in new List<MemoryTypeDefinition>(definitions.Values))
         {
@@ -84,11 +84,44 @@ public sealed class MemorySchema
             }
             catch (ArgumentException error) when (bestEffort)
             {
-                definitions[type.Id] = new MemoryTypeDefinition(type.Id, type.Name, MemoryTypeKind.Opaque, type.Size, provenance: type.Provenance);
-                diagnostics.Add($"{type.Id}: demoted to a {type.Size}-byte opaque placeholder - {error.Message}");
+                Demote(definitions, type, error.Message, diagnostics);
             }
         }
 
+        // Pass 2b: a struct validated before its bitfield storage scalar was demoted still holds a bit slice of what
+        // is now raw bytes. Demote such users until no more change, so the outcome never depends on the order.
+        for (bool changed = bestEffort; changed;)
+        {
+            changed = false;
+            foreach (MemoryTypeDefinition type in new List<MemoryTypeDefinition>(definitions.Values))
+            {
+                if (type.Kind is not (MemoryTypeKind.Struct or MemoryTypeKind.Union))
+                {
+                    continue;
+                }
+
+                foreach (MemoryField field in type.Fields)
+                {
+                    if (field.BitWidth is not null && definitions.TryGetValue(field.TypeId, out MemoryTypeDefinition? storage) && storage.Kind == MemoryTypeKind.Opaque)
+                    {
+                        Demote(definitions, type, DemotedStorageMessage(storage.Id), diagnostics);
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // A demoted definition may have registered bit-slice codecs before it failed; they no longer describe it.
+        foreach ((string Type, string Field) key in new List<(string Type, string Field)>(this.bitLayouts.Keys))
+        {
+            if (definitions[key.Type].Kind == MemoryTypeKind.Opaque)
+            {
+                this.bitLayouts.Remove(key);
+            }
+        }
+
+        diagnostics.Sort(StringComparer.Ordinal);
         this.Diagnostics = diagnostics.AsReadOnly();
 
         // Pass 3: reject by-value recursion across the whole graph.
@@ -116,7 +149,7 @@ public sealed class MemorySchema
     /// <summary>Gets the generated Portable storage views. Their names are placement labels; semantic names live in <see cref="Types"/>.</summary>
     public CStruct CompiledLayout { get; }
 
-    /// <summary>Gets one note per definition that best-effort validation demoted to <see cref="MemoryTypeKind.Opaque"/>; empty unless the schema was constructed with <c>bestEffort: true</c>.</summary>
+    /// <summary>Gets one note per definition that best-effort validation demoted to <see cref="MemoryTypeKind.Opaque"/>, in ordinal order; empty unless the schema was constructed with <c>bestEffort: true</c>.</summary>
     public IReadOnlyList<string> Diagnostics { get; }
 
     /// <summary>Gets the core compilation options shared by every codec the schema compiles.</summary>
@@ -175,6 +208,26 @@ public sealed class MemorySchema
     /// the integer lives in the last byte. Two slices may share a storage unit as long as their bits are disjoint.
     /// </para>
     /// </remarks>
+    /// <summary>The demotion reason for a struct or union whose bitfield storage type <paramref name="storageId"/> was demoted.</summary>
+    private static string DemotedStorageMessage(string storageId) => $"its bitfield storage type '{storageId}' was demoted.";
+
+    /// <summary>Replaces a definition with a same-sized <see cref="MemoryTypeKind.Opaque"/> placeholder and records why.</summary>
+    /// <param name="definitions">The schema's definitions, updated in place.</param>
+    /// <param name="type">The definition to demote.</param>
+    /// <param name="reason">Why it was demoted.</param>
+    /// <param name="diagnostics">The notes that become <see cref="Diagnostics"/>.</param>
+    private static void Demote(Dictionary<string, MemoryTypeDefinition> definitions, MemoryTypeDefinition type, string reason, List<string> diagnostics)
+    {
+        definitions[type.Id] = new MemoryTypeDefinition(type.Id, type.Name, MemoryTypeKind.Opaque, type.Size, provenance: type.Provenance);
+        diagnostics.Add($"{type.Id}: demoted to a {type.Size}-byte opaque placeholder - {reason}");
+    }
+
+    /// <summary>
+    ///     Checks one definition against the others (kind, size, member extents, bitfield storage, overlap) and compiles
+    ///     its scalar and bit-slice codecs.
+    /// </summary>
+    /// <param name="type">The definition to check.</param>
+    /// <exception cref="ArgumentException">The definition is invalid.</exception>
     private void Validate(MemoryTypeDefinition type)
     {
         if (!Enum.IsDefined(type.Kind))
@@ -245,6 +298,11 @@ public sealed class MemorySchema
             long length = (long)member.Size * 8;
             if (field.BitWidth is int width)
             {
+                if (member.Kind == MemoryTypeKind.Opaque)
+                {
+                    throw new ArgumentException(DemotedStorageMessage(member.Id));
+                }
+
                 if (member.Kind != MemoryTypeKind.Scalar || member.Size is not (1 or 2 or 4 or 8) || width > (member.Size * 8) - field.BitOffset!.Value)
                 {
                     throw new ArgumentException("Invalid bitfield storage extent.");

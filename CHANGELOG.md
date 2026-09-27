@@ -40,6 +40,9 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   selector on its own, so nested short conditions are no longer rejected for their combined length.
 - A struct's cached fast read plan is published safely across threads. On weakly ordered processors such as ARM,
   a thread could see the plan as built but missing and keep that struct on the slower general reader.
+- Best-effort memory schemas (`new MemorySchema(..., bestEffort: true)`, used by BTF and ISF import) give the same
+  result whatever order the definitions arrive in. A struct with a bitfield stored in a scalar that was demoted to
+  an opaque placeholder is now always demoted too, and `Diagnostics` lists its notes in ordinal order.
 
 ### Performance
 

@@ -172,6 +172,27 @@ public class MemoryValidationTests
         CollectionAssert.AreEqual(new byte[] { 7, }, written);
     }
 
+    /// <summary>
+    ///     A struct whose bitfield storage scalar is demoted is demoted too, with the same note, whichever of the two
+    ///     is validated first: a bit slice of raw placeholder bytes has no meaning.
+    /// </summary>
+    [TestMethod]
+    public void BestEffort_DemotesBitfieldUsersOfADemotedScalar_InAnyOrder()
+    {
+        // The scalar's declared size (2) disagrees with its uint8 codec, so it is demoted; the holder is valid on its own.
+        var scalar = new MemoryTypeDefinition("bad", "bad", MemoryTypeKind.Scalar, 2, scalarType: "uint8");
+        var holder = new MemoryTypeDefinition("holder", "holder", MemoryTypeKind.Struct, 2, [new("flag", "bad", 0, bitOffset: 0, bitWidth: 1),]);
+
+        foreach (MemoryTypeDefinition[] order in new[] { new[] { scalar, holder, }, new[] { holder, scalar, }, })
+        {
+            var schema = new MemorySchema(order, bestEffort: true);
+            Assert.AreEqual(MemoryTypeKind.Opaque, schema.GetType("bad").Kind);
+            Assert.AreEqual(MemoryTypeKind.Opaque, schema.GetType("holder").Kind);
+            Assert.HasCount(2, schema.Diagnostics);
+            StringAssert.Contains(schema.Diagnostics[1], "its bitfield storage type 'bad' was demoted");
+        }
+    }
+
     /// <summary>Bit descriptions require paired, positive bounds and source metadata remains immutable.</summary>
     [TestMethod]
     public void Descriptors_ValidateAndSnapshot()
