@@ -2,9 +2,12 @@ namespace CStructSharp.Tests;
 
 using CStructSharp.Diagnostics;
 
-/// <summary>Groups tests for path access so changes to this behavior are caught.</summary>
+/// <summary>
+///     Checks reads and address lookups by path: array and string lengths, array elements, sub-objects, nested strings,
+///     filtered debug records, and the addresses of fields, elements and pointer targets.
+/// </summary>
 [TestClass]
-public class PathAccess
+public class PathAccessTests
 {
     /// <summary>
     ///     items[3] declares three uint8 elements, so the returned length must be 3.
@@ -114,7 +117,7 @@ public class PathAccess
     ///     text.
     /// </remarks>
     [TestMethod]
-    public void ParseStream_Path_StringInNestedArray_IsExpected_V2()
+    public void ParseStream_Path_StringInNestedArray_ReturnsValue()
     {
         const string d = """
                          struct inner { char name[4]; };

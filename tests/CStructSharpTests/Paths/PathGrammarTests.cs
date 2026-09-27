@@ -1,11 +1,16 @@
 namespace CStructSharp.Tests;
 
+using System.Collections.Concurrent;
 using System.Linq;
+using System.Reflection;
 using CStructSharp;
 using CStructSharp.Addressing;
 using CStructSharp.Diagnostics;
 
-/// <summary>Verifies the complete lexical grammar shared by every public path-based operation.</summary>
+/// <summary>
+///     Verifies the complete lexical grammar shared by every public path-based operation - decimal-only indexes
+///     included - and the bounded cache of parsed paths.
+/// </summary>
 [TestClass]
 public class PathGrammarTests
 {
@@ -101,5 +106,60 @@ public class PathGrammarTests
     public void Parse_RejectsTextOutsideThePathGrammar(string? path)
     {
         Assert.Throws<CStructPathException>(() => CStructPathResolver.Parse(path!));
+    }
+
+    /// <summary>The cache fills to its declared capacity, then parses new paths without retaining more entries.</summary>
+    [TestMethod]
+    [DoNotParallelize]
+    public void Retention_StopsAtTheDeclaredCapacity()
+    {
+        // Inspect only the retained-entry count, not cached result identity. Reflection keeps this resource
+        // invariant test from requiring a production API solely for test access to private cache storage.
+        FieldInfo? cacheField = typeof(CStructPathResolver).GetField("Cache", BindingFlags.NonPublic | BindingFlags.Static);
+        FieldInfo? capacityField = typeof(CStructPathResolver).GetField("CacheCapacity", BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.IsNotNull(cacheField);
+        Assert.IsNotNull(capacityField);
+        var cache = (ConcurrentDictionary<string, PathSegment[]>)cacheField.GetValue(null)!;
+        int capacity = (int)capacityField.GetRawConstantValue()!;
+        KeyValuePair<string, PathSegment[]>[] previous = cache.ToArray();
+        cache.Clear();
+
+        try
+        {
+            for (int index = 0; index < capacity * 2; index++)
+            {
+                string member = "member" + index;
+                IReadOnlyList<PathSegment> parsed = CStructPathResolver.Parse("root." + member);
+                Assert.AreEqual(2, parsed.Count);
+                Assert.AreEqual("root", parsed[0].Name);
+                Assert.AreEqual(member, parsed[1].Name);
+                Assert.AreEqual(Math.Min(index + 1, capacity), cache.Count, "Retained paths must respect the sequential capacity boundary.");
+            }
+        }
+        finally
+        {
+            // Restore the exact prior cache entries, even when a mutant causes an assertion to fail.
+            cache.Clear();
+            foreach (KeyValuePair<string, PathSegment[]> entry in previous)
+            {
+                cache.TryAdd(entry.Key, entry.Value);
+            }
+        }
+    }
+
+    /// <summary>A numeric prefix followed by NUL characters is not a valid decimal path index.</summary>
+    /// <param name="index">The invalid index spelling before its closing bracket.</param>
+    [TestMethod]
+    [DataRow("0\0")]
+    [DataRow("1\0")]
+    [DataRow("1\0\0")]
+    public void DecimalIndex_RejectsTrailingNulCharacters(string index)
+    {
+        string path = "root.items[" + index + "]";
+
+        // The path grammar is stricter than any permissive trailing-character handling in numeric conversion.
+        CStructPathException failure = Assert.Throws<CStructPathException>(() => CStructPathResolver.Parse(path));
+
+        StringAssert.StartsWith(failure.Message, "Invalid array index:");
     }
 }

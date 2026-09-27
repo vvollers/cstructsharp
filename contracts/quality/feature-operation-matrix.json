@@ -3669,7 +3669,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ResolvedTargetOperationTests.cs#PathOperations_UnionMember_Agree",
+          "test": "tests/CStructSharpTests/Paths/ResolvedTargetOperationTests.cs#PathOperations_UnionMember_Agree",
           "operations": [
             "parse",
             "debug",
