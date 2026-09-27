@@ -124,10 +124,10 @@
   },
   {
    "pattern": "Codecs/PrimitiveCodecs.cs",
-   "sourceSha256": "8cc4ae2b935782cfa7823232a3505f29705c12abade990af562151fd1c2fa4ab",
+   "sourceSha256": "6d38c16097d0b9a4bbafea8326a67b89303e67f64257fb075b258c9ca24cc593",
    "mutants": [
     { "mutatorName": "Remove checked expression", "replacement": "(long)valueBytes + terminatorBytes",
-     "location": {"start":{"line":153,"column":37},"end":{"line":153,"column":80}},
+     "location": {"start":{"line":154,"column":37},"end":{"line":154,"column":80}},
      "reason": "Both Encoding.GetByteCount results are nonnegative Int32 values. The left operand is widened to Int64 before addition, so their sum is at most 2 * Int32.MaxValue, far below Int64.MaxValue. Removing checked from this sum cannot change overflow behavior, budget validation or the later allocation." }
    ]
   },
@@ -145,19 +145,19 @@
   },
   {
    "pattern": "CStructPrimitiveCodecs.cs",
-   "sourceSha256": "5fcf8003d698390ff5b594c6e184e07f443ee81bcbf05b6fb54ae5b6f851bb26",
+   "sourceSha256": "96d7d949716e1d98ddd1d29d0b5fe97f2642eca5653b2492976a4ee4372c5188",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":71,"column":13},"end":{"line":71,"column":132}},
+     "location": {"start":{"line":72,"column":13},"end":{"line":72,"column":132}},
      "reason": "BuildCodecTable is private and has two callers. GetSharedCodecTable passes a catalog from PrimitiveCatalog.For (no custom descriptors) and an empty instance array. RegisterCustomCodecs constructs one descriptor and one instance in the same loop; WithCustomCodecs validates and retains every descriptor or throws before BuildCodecTable. Both immutable arrays therefore have identical lengths at this guard. Removing its unreachable throw cannot change supported behavior." },
     { "mutatorName": "String mutation", "replacement": "\"\"",
-     "location": {"start":{"line":71,"column":49},"end":{"line":71,"column":130}},
+     "location": {"start":{"line":72,"column":49},"end":{"line":72,"column":130}},
      "reason": "This diagnostic is guarded by different custom descriptor and instance counts. Both private callers construct matching counts: zero for the shared primitive catalog, or one descriptor and instance per registered codec. WithCustomCodecs retains all validated descriptors or throws first. No caller can reach this message with unequal immutable arrays." },
     { "mutatorName": "Boolean mutation", "replacement": "true",
-     "location": {"start":{"line":101,"column":83},"end":{"line":101,"column":88}},
+     "location": {"start":{"line":102,"column":83},"end":{"line":102,"column":88}},
      "reason": "This canonical ufixed8_8 big-endian reader always passes width 16 to FixedPointCodec.Read. That method selects ReadUInt16 solely from width == 16, and never inspects signed on this branch. Flipping only signed leaves the raw value, byte order, consumed bytes and DecodeFixedPoint call unchanged for every input." },
     { "mutatorName": "Boolean mutation", "replacement": "true",
-     "location": {"start":{"line":102,"column":82},"end":{"line":102,"column":87}},
+     "location": {"start":{"line":103,"column":82},"end":{"line":103,"column":87}},
      "reason": "This canonical ufixed8_8 little-endian reader always passes width 16. FixedPointCodec.Read unconditionally uses ReadUInt16 for that width; signed is consulted only for the 32-bit branch. Changing this unused argument preserves reads, failures, byte consumption and decoded values." }
    ]
   },
@@ -1045,10 +1045,10 @@
   },
   {
    "pattern": "Addressing/CStructPointerArithmetic.cs",
-   "sourceSha256": "e3666e5e9e65dd4a7ecbc6c31df15e1081613c063151b46941897793dd2bc7a2",
+   "sourceSha256": "a4e5604dcfaddd212b5b1420e23c084935f5bd09f3b9b03dceb7108f285cd555",
    "mutants": [
     { "mutatorName": "Block removal mutation", "replacement": "{}",
-     "location": {"start":{"line":36,"column":9},"end":{"line":38,"column":10}},
+     "location": {"start":{"line":37,"column":9},"end":{"line":39,"column":10}},
      "reason": "Only null bypasses this block originally. Without it, null does not match Pointer and reaches Convert.ToInt64(object), whose null result is also zero. No conversion callback or failure is introduced; every non-null value follows the identical path." }
    ]
   },

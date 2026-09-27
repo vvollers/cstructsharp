@@ -3,6 +3,7 @@ namespace CStructSharp;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using CStructSharp.Codecs;
@@ -162,10 +163,10 @@ public partial class CStruct
         // Mirror the reader map with canonical writers so serialize and update use the exact same type vocabulary.
         return new Dictionary<string, Action<Stream, object>>
         {
-            ["uleb128_32"] = (stream, value) => Leb128Codec.WriteUnsigned(stream, Convert.ToUInt32(value)),
-            ["uleb128_64"] = (stream, value) => Leb128Codec.WriteUnsigned(stream, Convert.ToUInt64(value)),
-            ["sleb128_32"] = (stream, value) => Leb128Codec.WriteSigned(stream, Convert.ToInt32(value)),
-            ["sleb128_64"] = (stream, value) => Leb128Codec.WriteSigned(stream, Convert.ToInt64(value)),
+            ["uleb128_32"] = (stream, value) => Leb128Codec.WriteUnsigned(stream, Convert.ToUInt32(value, CultureInfo.InvariantCulture)),
+            ["uleb128_64"] = (stream, value) => Leb128Codec.WriteUnsigned(stream, Convert.ToUInt64(value, CultureInfo.InvariantCulture)),
+            ["sleb128_32"] = (stream, value) => Leb128Codec.WriteSigned(stream, Convert.ToInt32(value, CultureInfo.InvariantCulture)),
+            ["sleb128_64"] = (stream, value) => Leb128Codec.WriteSigned(stream, Convert.ToInt64(value, CultureInfo.InvariantCulture)),
             ["fixed16_16>"] = (stream, value) => FixedPointCodec.Write(stream, value, false, 32, 16, true),
             ["fixed16_16<"] = (stream, value) => FixedPointCodec.Write(stream, value, true, 32, 16, true),
             ["ufixed16_16>"] = (stream, value) => FixedPointCodec.Write(stream, value, false, 32, 16, false),
@@ -176,96 +177,96 @@ public partial class CStruct
             ["ufixed8_8<"] = (stream, value) => FixedPointCodec.Write(stream, value, true, 16, 8, false),
             ["uuid"] = (stream, value) => IdentifierCodec.Write(stream, value, true),
             ["guid"] = (stream, value) => IdentifierCodec.Write(stream, value, false),
-            ["byte"] = (stream, value) => stream.WriteByte(Convert.ToByte(value)),
+            ["byte"] = (stream, value) => stream.WriteByte(Convert.ToByte(value, CultureInfo.InvariantCulture)),
             ["int8"]
-                                 = (stream, value) => stream.WriteByte(unchecked((byte)Convert.ToSByte(value))),
-            ["uint8"] = (stream, value) => stream.WriteByte(Convert.ToByte(value)),
-            ["bool"] = (stream, value) => stream.WriteByte((byte)(Convert.ToBoolean(value) ? 1 : 0)),
+                                 = (stream, value) => stream.WriteByte(unchecked((byte)Convert.ToSByte(value, CultureInfo.InvariantCulture))),
+            ["uint8"] = (stream, value) => stream.WriteByte(Convert.ToByte(value, CultureInfo.InvariantCulture)),
+            ["bool"] = (stream, value) => stream.WriteByte((byte)(Convert.ToBoolean(value, CultureInfo.InvariantCulture) ? 1 : 0)),
             ["char"] = (stream, value) => stream.WriteByte(PrimitiveCodecs.ConvertToNarrowCharacter(value)),
-            ["latin1"] = (stream, value) => stream.WriteByte(Convert.ToByte(value)),
-            ["cp437"] = (stream, value) => stream.WriteByte(Convert.ToByte(value)),
-            ["utf16le"] = (stream, value) => stream.WriteByte(Convert.ToByte(value)),
-            ["utf16be"] = (stream, value) => stream.WriteByte(Convert.ToByte(value)),
-            ["utf8"] = (stream, value) => stream.WriteByte(Convert.ToByte(value)),
-            ["wchar>"] = (stream, value) => BinaryPrimitiveIO.WriteChar(stream, Convert.ToChar(value), false),
-            ["wchar<"] = (stream, value) => BinaryPrimitiveIO.WriteChar(stream, Convert.ToChar(value), true),
-            ["int16>"] = (stream, value) => BinaryPrimitiveIO.WriteInt16(stream, Convert.ToInt16(value), false),
-            ["int16<"] = (stream, value) => BinaryPrimitiveIO.WriteInt16(stream, Convert.ToInt16(value), true),
-            ["uint16>"] = (stream, value) => BinaryPrimitiveIO.WriteUInt16(stream, Convert.ToUInt16(value), false),
-            ["uint16<"] = (stream, value) => BinaryPrimitiveIO.WriteUInt16(stream, Convert.ToUInt16(value), true),
-            ["int24>"] = (stream, value) => BinaryPrimitiveIO.WriteInt24(stream, Convert.ToInt32(value), false),
-            ["int24<"] = (stream, value) => BinaryPrimitiveIO.WriteInt24(stream, Convert.ToInt32(value), true),
-            ["uint24>"] = (stream, value) => BinaryPrimitiveIO.WriteUInt24(stream, Convert.ToUInt32(value), false),
-            ["uint24<"] = (stream, value) => BinaryPrimitiveIO.WriteUInt24(stream, Convert.ToUInt32(value), true),
-            ["int32>"] = (stream, value) => BinaryPrimitiveIO.WriteInt32(stream, Convert.ToInt32(value), false),
-            ["int32<"] = (stream, value) => BinaryPrimitiveIO.WriteInt32(stream, Convert.ToInt32(value), true),
-            ["uint32>"] = (stream, value) => BinaryPrimitiveIO.WriteUInt32(stream, Convert.ToUInt32(value), false),
-            ["uint32<"] = (stream, value) => BinaryPrimitiveIO.WriteUInt32(stream, Convert.ToUInt32(value), true),
-            ["int48>"] = (stream, value) => BinaryPrimitiveIO.WriteInt48(stream, Convert.ToInt64(value), false),
-            ["int48<"] = (stream, value) => BinaryPrimitiveIO.WriteInt48(stream, Convert.ToInt64(value), true),
-            ["uint48>"] = (stream, value) => BinaryPrimitiveIO.WriteUInt48(stream, Convert.ToUInt64(value), false),
-            ["uint48<"] = (stream, value) => BinaryPrimitiveIO.WriteUInt48(stream, Convert.ToUInt64(value), true),
+            ["latin1"] = (stream, value) => stream.WriteByte(Convert.ToByte(value, CultureInfo.InvariantCulture)),
+            ["cp437"] = (stream, value) => stream.WriteByte(Convert.ToByte(value, CultureInfo.InvariantCulture)),
+            ["utf16le"] = (stream, value) => stream.WriteByte(Convert.ToByte(value, CultureInfo.InvariantCulture)),
+            ["utf16be"] = (stream, value) => stream.WriteByte(Convert.ToByte(value, CultureInfo.InvariantCulture)),
+            ["utf8"] = (stream, value) => stream.WriteByte(Convert.ToByte(value, CultureInfo.InvariantCulture)),
+            ["wchar>"] = (stream, value) => BinaryPrimitiveIO.WriteChar(stream, Convert.ToChar(value, CultureInfo.InvariantCulture), false),
+            ["wchar<"] = (stream, value) => BinaryPrimitiveIO.WriteChar(stream, Convert.ToChar(value, CultureInfo.InvariantCulture), true),
+            ["int16>"] = (stream, value) => BinaryPrimitiveIO.WriteInt16(stream, Convert.ToInt16(value, CultureInfo.InvariantCulture), false),
+            ["int16<"] = (stream, value) => BinaryPrimitiveIO.WriteInt16(stream, Convert.ToInt16(value, CultureInfo.InvariantCulture), true),
+            ["uint16>"] = (stream, value) => BinaryPrimitiveIO.WriteUInt16(stream, Convert.ToUInt16(value, CultureInfo.InvariantCulture), false),
+            ["uint16<"] = (stream, value) => BinaryPrimitiveIO.WriteUInt16(stream, Convert.ToUInt16(value, CultureInfo.InvariantCulture), true),
+            ["int24>"] = (stream, value) => BinaryPrimitiveIO.WriteInt24(stream, Convert.ToInt32(value, CultureInfo.InvariantCulture), false),
+            ["int24<"] = (stream, value) => BinaryPrimitiveIO.WriteInt24(stream, Convert.ToInt32(value, CultureInfo.InvariantCulture), true),
+            ["uint24>"] = (stream, value) => BinaryPrimitiveIO.WriteUInt24(stream, Convert.ToUInt32(value, CultureInfo.InvariantCulture), false),
+            ["uint24<"] = (stream, value) => BinaryPrimitiveIO.WriteUInt24(stream, Convert.ToUInt32(value, CultureInfo.InvariantCulture), true),
+            ["int32>"] = (stream, value) => BinaryPrimitiveIO.WriteInt32(stream, Convert.ToInt32(value, CultureInfo.InvariantCulture), false),
+            ["int32<"] = (stream, value) => BinaryPrimitiveIO.WriteInt32(stream, Convert.ToInt32(value, CultureInfo.InvariantCulture), true),
+            ["uint32>"] = (stream, value) => BinaryPrimitiveIO.WriteUInt32(stream, Convert.ToUInt32(value, CultureInfo.InvariantCulture), false),
+            ["uint32<"] = (stream, value) => BinaryPrimitiveIO.WriteUInt32(stream, Convert.ToUInt32(value, CultureInfo.InvariantCulture), true),
+            ["int48>"] = (stream, value) => BinaryPrimitiveIO.WriteInt48(stream, Convert.ToInt64(value, CultureInfo.InvariantCulture), false),
+            ["int48<"] = (stream, value) => BinaryPrimitiveIO.WriteInt48(stream, Convert.ToInt64(value, CultureInfo.InvariantCulture), true),
+            ["uint48>"] = (stream, value) => BinaryPrimitiveIO.WriteUInt48(stream, Convert.ToUInt64(value, CultureInfo.InvariantCulture), false),
+            ["uint48<"] = (stream, value) => BinaryPrimitiveIO.WriteUInt48(stream, Convert.ToUInt64(value, CultureInfo.InvariantCulture), true),
             ["int128>"] = (stream, value) => BinaryPrimitiveIO.WriteInt128(stream, WideIntegerConversion.ToInt128(value), false),
             ["int128<"] = (stream, value) => BinaryPrimitiveIO.WriteInt128(stream, WideIntegerConversion.ToInt128(value), true),
             ["uint128>"] = (stream, value) => BinaryPrimitiveIO.WriteUInt128(stream, WideIntegerConversion.ToUInt128(value), false),
             ["uint128<"] = (stream, value) => BinaryPrimitiveIO.WriteUInt128(stream, WideIntegerConversion.ToUInt128(value), true),
             ["float16>"] = (stream, value) => BinaryPrimitiveIO.WriteHalf(stream, WideIntegerConversion.ToHalf(value), false),
             ["float16<"] = (stream, value) => BinaryPrimitiveIO.WriteHalf(stream, WideIntegerConversion.ToHalf(value), true),
-            ["int64>"] = (stream, value) => BinaryPrimitiveIO.WriteInt64(stream, Convert.ToInt64(value), false),
-            ["int64<"] = (stream, value) => BinaryPrimitiveIO.WriteInt64(stream, Convert.ToInt64(value), true),
-            ["uint64>"] = (stream, value) => BinaryPrimitiveIO.WriteUInt64(stream, Convert.ToUInt64(value), false),
-            ["uint64<"] = (stream, value) => BinaryPrimitiveIO.WriteUInt64(stream, Convert.ToUInt64(value), true),
-            ["float32>"] = (stream, value) => BinaryPrimitiveIO.WriteSingle(stream, Convert.ToSingle(value), false),
-            ["float32<"] = (stream, value) => BinaryPrimitiveIO.WriteSingle(stream, Convert.ToSingle(value), true),
-            ["float64>"] = (stream, value) => BinaryPrimitiveIO.WriteDouble(stream, Convert.ToDouble(value), false),
-            ["float64<"] = (stream, value) => BinaryPrimitiveIO.WriteDouble(stream, Convert.ToDouble(value), true),
+            ["int64>"] = (stream, value) => BinaryPrimitiveIO.WriteInt64(stream, Convert.ToInt64(value, CultureInfo.InvariantCulture), false),
+            ["int64<"] = (stream, value) => BinaryPrimitiveIO.WriteInt64(stream, Convert.ToInt64(value, CultureInfo.InvariantCulture), true),
+            ["uint64>"] = (stream, value) => BinaryPrimitiveIO.WriteUInt64(stream, Convert.ToUInt64(value, CultureInfo.InvariantCulture), false),
+            ["uint64<"] = (stream, value) => BinaryPrimitiveIO.WriteUInt64(stream, Convert.ToUInt64(value, CultureInfo.InvariantCulture), true),
+            ["float32>"] = (stream, value) => BinaryPrimitiveIO.WriteSingle(stream, Convert.ToSingle(value, CultureInfo.InvariantCulture), false),
+            ["float32<"] = (stream, value) => BinaryPrimitiveIO.WriteSingle(stream, Convert.ToSingle(value, CultureInfo.InvariantCulture), true),
+            ["float64>"] = (stream, value) => BinaryPrimitiveIO.WriteDouble(stream, Convert.ToDouble(value, CultureInfo.InvariantCulture), false),
+            ["float64<"] = (stream, value) => BinaryPrimitiveIO.WriteDouble(stream, Convert.ToDouble(value, CultureInfo.InvariantCulture), true),
             ["ascii_string_zero"]
                                  = (stream, value) => PrimitiveCodecs.WriteTerminatedString(
                                                                              stream,
                                                                              PrimitiveCodecs.StrictAsciiEncoding,
-                                                                             Convert.ToString(value) ?? string.Empty,
+                                                                             Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty,
                                                                              '\0'),
             ["ascii_string_newline"]
                                  = (stream, value) => PrimitiveCodecs.WriteTerminatedString(
                                                                              stream,
                                                                              PrimitiveCodecs.StrictAsciiEncoding,
-                                                                             Convert.ToString(value) ?? string.Empty,
+                                                                             Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty,
                                                                              '\n'),
             ["utf8_string_zero"]
                                  = (stream, value) => PrimitiveCodecs.WriteTerminatedString(
                                                                              stream,
                                                                              PrimitiveCodecs.StrictUtf8Encoding,
-                                                                             Convert.ToString(value) ?? string.Empty,
+                                                                             Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty,
                                                                              '\0'),
             ["utf8_string_newline"]
                                  = (stream, value) => PrimitiveCodecs.WriteTerminatedString(
                                                                              stream,
                                                                              PrimitiveCodecs.StrictUtf8Encoding,
-                                                                             Convert.ToString(value) ?? string.Empty,
+                                                                             Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty,
                                                                              '\n'),
             ["unicode_string_zero>"]
                                  = (stream, value) => PrimitiveCodecs.WriteTerminatedString(
                                                                              stream,
                                                                              PrimitiveCodecs.StrictUtf16BigEndianEncoding,
-                                                                             Convert.ToString(value) ?? string.Empty,
+                                                                             Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty,
                                                                              '\0'),
             ["unicode_string_zero<"]
                                  = (stream, value) => PrimitiveCodecs.WriteTerminatedString(
                                                                              stream,
                                                                              PrimitiveCodecs.StrictUtf16LittleEndianEncoding,
-                                                                             Convert.ToString(value) ?? string.Empty,
+                                                                             Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty,
                                                                              '\0'),
             ["unicode_string_newline>"]
                                  = (stream, value) => PrimitiveCodecs.WriteTerminatedString(
                                                                              stream,
                                                                              PrimitiveCodecs.StrictUtf16BigEndianEncoding,
-                                                                             Convert.ToString(value) ?? string.Empty,
+                                                                             Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty,
                                                                              '\n'),
             ["unicode_string_newline<"]
                                  = (stream, value) => PrimitiveCodecs.WriteTerminatedString(
                                                                              stream,
                                                                              PrimitiveCodecs.StrictUtf16LittleEndianEncoding,
-                                                                             Convert.ToString(value) ?? string.Empty,
+                                                                             Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty,
                                                                              '\n'),
         };
     }

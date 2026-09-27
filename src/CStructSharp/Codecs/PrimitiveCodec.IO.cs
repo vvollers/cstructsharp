@@ -1,6 +1,7 @@
 namespace CStructSharp.Codecs;
 
 using System;
+using System.Globalization;
 using CStructSharp.Generated;
 
 /// <summary>The runtime half of a primitive descriptor: reading and writing one numeric value through a span, via <see cref="Codec"/>.</summary>
@@ -24,43 +25,43 @@ internal readonly partial record struct PrimitiveCodec
         switch (this.Kind)
         {
         case PrimitiveCodecKind.UInt8:
-            bytes[0] = value is byte b ? b : Convert.ToByte(value);
+            bytes[0] = value is byte b ? b : Convert.ToByte(value, CultureInfo.InvariantCulture);
             break;
         case PrimitiveCodecKind.Int8:
-            bytes[0] = unchecked((byte)(value is sbyte sb ? sb : Convert.ToSByte(value)));
+            bytes[0] = unchecked((byte)(value is sbyte sb ? sb : Convert.ToSByte(value, CultureInfo.InvariantCulture)));
             break;
         case PrimitiveCodecKind.Bool:
-            bytes[0] = (byte)((value is bool flag ? flag : Convert.ToBoolean(value)) ? 1 : 0);
+            bytes[0] = (byte)((value is bool flag ? flag : Convert.ToBoolean(value, CultureInfo.InvariantCulture)) ? 1 : 0);
             break;
         case PrimitiveCodecKind.Int16:
-            Codec.WriteInt16(bytes, value is short s ? s : Convert.ToInt16(value), le);
+            Codec.WriteInt16(bytes, value is short s ? s : Convert.ToInt16(value, CultureInfo.InvariantCulture), le);
             break;
         case PrimitiveCodecKind.UInt16:
-            Codec.WriteUInt16(bytes, value is ushort us ? us : Convert.ToUInt16(value), le);
+            Codec.WriteUInt16(bytes, value is ushort us ? us : Convert.ToUInt16(value, CultureInfo.InvariantCulture), le);
             break;
         case PrimitiveCodecKind.Int24:
-            Codec.WriteInt24(bytes, value is int i24 ? i24 : Convert.ToInt32(value), le);
+            Codec.WriteInt24(bytes, value is int i24 ? i24 : Convert.ToInt32(value, CultureInfo.InvariantCulture), le);
             break;
         case PrimitiveCodecKind.UInt24:
-            Codec.WriteUInt24(bytes, value is uint u24 ? u24 : Convert.ToUInt32(value), le);
+            Codec.WriteUInt24(bytes, value is uint u24 ? u24 : Convert.ToUInt32(value, CultureInfo.InvariantCulture), le);
             break;
         case PrimitiveCodecKind.Int32:
-            Codec.WriteInt32(bytes, value is int i ? i : Convert.ToInt32(value), le);
+            Codec.WriteInt32(bytes, value is int i ? i : Convert.ToInt32(value, CultureInfo.InvariantCulture), le);
             break;
         case PrimitiveCodecKind.UInt32:
-            Codec.WriteUInt32(bytes, value is uint u ? u : Convert.ToUInt32(value), le);
+            Codec.WriteUInt32(bytes, value is uint u ? u : Convert.ToUInt32(value, CultureInfo.InvariantCulture), le);
             break;
         case PrimitiveCodecKind.Int64:
-            Codec.WriteInt64(bytes, value is long l ? l : Convert.ToInt64(value), le);
+            Codec.WriteInt64(bytes, value is long l ? l : Convert.ToInt64(value, CultureInfo.InvariantCulture), le);
             break;
         case PrimitiveCodecKind.UInt64:
-            Codec.WriteUInt64(bytes, value is ulong ul ? ul : Convert.ToUInt64(value), le);
+            Codec.WriteUInt64(bytes, value is ulong ul ? ul : Convert.ToUInt64(value, CultureInfo.InvariantCulture), le);
             break;
         case PrimitiveCodecKind.Float32:
-            Codec.WriteSingle(bytes, value is float f ? f : Convert.ToSingle(value), le);
+            Codec.WriteSingle(bytes, value is float f ? f : Convert.ToSingle(value, CultureInfo.InvariantCulture), le);
             break;
         case PrimitiveCodecKind.Float64:
-            Codec.WriteDouble(bytes, value is double d ? d : Convert.ToDouble(value), le);
+            Codec.WriteDouble(bytes, value is double d ? d : Convert.ToDouble(value, CultureInfo.InvariantCulture), le);
             break;
         default:
             throw new InvalidOperationException("Codec is not a fixed-width numeric: " + this.Kind);

@@ -28,6 +28,9 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 ### Fixed
 
 - A generated layout with an array of pointers (`node *items[2];`) no longer fails to compile.
+- Writing a string value to a numeric field no longer depends on the current culture: `"1.5"` written to a `float64`
+  under a comma-decimal culture such as de-DE now stores 1.5 instead of 15. Every conversion of a caller value to a
+  field uses the invariant culture.
 
 ### Performance
 

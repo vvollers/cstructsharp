@@ -1,6 +1,7 @@
 namespace CStructSharp.Expressions;
 
 using System;
+using System.Globalization;
 
 /// <summary>
 ///     Converts parsed or caller-supplied scalars into the Int32 domain of the layout expression language without
@@ -83,12 +84,12 @@ internal static class Int32Capture
 
     private static bool TryFromDouble(double value, out int result)
     {
-        // Convert.ToInt32(double) accepts exactly the open interval (-2147483648.5, 2147483647.5) and rejects NaN
+        // Convert.ToInt32(double, CultureInfo.InvariantCulture) accepts exactly the open interval (-2147483648.5, 2147483647.5) and rejects NaN
         // (both comparisons are false for NaN). Within that interval the framework conversion cannot throw, so it
         // is reused to keep the half-to-even rounding bit-identical.
         if (value >= 0 ? value < 2147483647.5 : value >= -2147483648.5)
         {
-            result = Convert.ToInt32(value);
+            result = Convert.ToInt32(value, CultureInfo.InvariantCulture);
             return true;
         }
 
@@ -119,7 +120,7 @@ internal static class Int32Capture
 
         try
         {
-            result = Convert.ToInt32(value);
+            result = Convert.ToInt32(value, CultureInfo.InvariantCulture);
             return true;
         }
         catch (Exception exception) when (exception is OverflowException or InvalidCastException or FormatException)

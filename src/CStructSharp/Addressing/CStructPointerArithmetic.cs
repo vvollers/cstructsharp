@@ -1,6 +1,7 @@
 namespace CStructSharp.Addressing;
 
 using System;
+using System.Globalization;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
@@ -44,7 +45,7 @@ internal static class CStructPointerArithmetic
 
         try
         {
-            return Convert.ToInt64(value);
+            return Convert.ToInt64(value, CultureInfo.InvariantCulture);
         }
         catch (Exception exception) when (exception is InvalidCastException or FormatException or OverflowException)
         {

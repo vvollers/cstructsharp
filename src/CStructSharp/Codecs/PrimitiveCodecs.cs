@@ -2,6 +2,7 @@ namespace CStructSharp.Codecs;
 
 using System;
 using System.Buffers;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using CStructSharp.Diagnostics;
@@ -177,7 +178,7 @@ internal static partial class PrimitiveCodecs
     /// <summary>Converts one CLR character to the raw one-byte domain used by the layout's <c>char</c> type.</summary>
     public static byte ConvertToNarrowCharacter(object value)
     {
-        char character = Convert.ToChar(value);
+        char character = Convert.ToChar(value, CultureInfo.InvariantCulture);
         if (character > byte.MaxValue)
         {
             throw new CStructWriteException(WriteFailures.NarrowCharacter(character));

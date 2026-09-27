@@ -50,7 +50,7 @@ public static class StaticHelpers
         for (int i = 0; i < data.Length; i++)
         {
             // Each pair starts at twice the output index and is parsed using hexadecimal rather than decimal rules.
-            data[i] = byte.Parse(digits.ToString(i * 2, 2), NumberStyles.HexNumber);
+            data[i] = byte.Parse(digits.ToString(i * 2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
         }
 
         return data;
