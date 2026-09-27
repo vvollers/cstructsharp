@@ -82,14 +82,15 @@ internal static class Int32Capture
         return true;
     }
 
+    /// <summary>Converts a double to Int32 with Convert.ToInt32's half-to-even rounding, without throwing on overflow or NaN.</summary>
     private static bool TryFromDouble(double value, out int result)
     {
-        // Convert.ToInt32(double, CultureInfo.InvariantCulture) accepts exactly the open interval (-2147483648.5, 2147483647.5) and rejects NaN
+        // Convert.ToInt32(double) accepts exactly the open interval (-2147483648.5, 2147483647.5) and rejects NaN
         // (both comparisons are false for NaN). Within that interval the framework conversion cannot throw, so it
         // is reused to keep the half-to-even rounding bit-identical.
         if (value >= 0 ? value < 2147483647.5 : value >= -2147483648.5)
         {
-            result = Convert.ToInt32(value, CultureInfo.InvariantCulture);
+            result = Convert.ToInt32(value);
             return true;
         }
 
@@ -110,6 +111,7 @@ internal static class Int32Capture
         return true;
     }
 
+    /// <summary>Converts any other convertible value (including text) with the invariant culture, returning false instead of throwing.</summary>
     private static bool TrySlowPath(object value, out int result)
     {
         if (value is not IConvertible)
