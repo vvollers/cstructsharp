@@ -63,6 +63,36 @@ public class LayoutVariableCaptureValueTests
         Assert.Throws<InvalidOperationException>(() => LayoutVariableCapture.Capture(variables, "n", Field("n"), new ThrowsUnexpectedException()));
     }
 
+    /// <summary>The not-a-number state compares by what the field holds and names the field when an expression uses it.</summary>
+    [TestMethod]
+    public void NotANumberVariable_ComparesByReasonAndNamesTheField()
+    {
+        var text = new NotANumberVariable("text");
+        Assert.IsTrue(text.Equals(new NotANumberVariable("text")));
+        Assert.AreEqual(new NotANumberVariable("text").GetHashCode(), text.GetHashCode());
+        Assert.IsFalse(text.Equals(new NotANumberVariable("an array")));
+        Assert.IsFalse(text.Equals(new Literal(1)));
+        Assert.AreEqual("NotANumber: text", text.ToString());
+        StringAssert.StartsWith(text.CreateFailure("tag").Message, "'tag' is text, but layout expressions can only use integer fields");
+    }
+
+    /// <summary>The generated-code helpers fail with the runtime's texts: a 128-bit member outside Int32, and a shared non-integer member.</summary>
+    [TestMethod]
+    public void GeneratedHelpers_MatchTheRuntimeDiagnostics()
+    {
+        Assert.AreEqual(7, CStructSharp.Generated.Expressions.RequireInt32Wide((Int128)7, "n"));
+        Assert.AreEqual(7, CStructSharp.Generated.Expressions.RequireInt32Wide((UInt128)7, "n"));
+        StringAssert.StartsWith(
+            Assert.Throws<InvalidOperationException>(() => CStructSharp.Generated.Expressions.RequireInt32Wide(Int128.MaxValue, "n")).Message,
+            "'n' is 170141183460469231731687303715884105727, which is outside the 32-bit range");
+        StringAssert.StartsWith(
+            Assert.Throws<InvalidOperationException>(() => CStructSharp.Generated.Expressions.RequireInt32Wide(UInt128.MaxValue, "n")).Message,
+            "'n' is 340282366920938463463374607431768211455, which is outside the 32-bit range");
+        Assert.AreEqual(
+            new NotANumberVariable("text").CreateFailure("tag").Message,
+            Assert.Throws<InvalidOperationException>(() => CStructSharp.Generated.Expressions.NotAnInteger("tag", "text")).Message);
+    }
+
     /// <summary>Returns a compiled field of the fixture layout.</summary>
     /// <param name="name">The field name.</param>
     /// <returns>The field.</returns>
