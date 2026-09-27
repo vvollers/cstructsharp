@@ -720,12 +720,17 @@ public partial class CStruct
                             // A bitfield whose placed unit differs from its declared type (a packed SysV window) is
                             // read as a raw unsigned unit of that size; every other field takes its codec.
                             bool windowedUnit = compiledField.BitSize > 0 && state.CurrentBitfieldSize != compiledField.Codec.Size;
+
+                            // Inside a struct traversal (the cursor path) a pointer's target is followed after the
+                            // struct's last field, so its @count may name a later field; elsewhere it is followed now.
                             object content = compiledField.PointerDepth > 0
-                                                 ? this.ReadPointerValue(
-                                                                         compiledField.PointerDepth,
-                                                                         compiledField,
-                                                                         state,
-                                                                         elementDebugStack)
+                                                 ? useLegacyPlacement || !compiledField.FollowsAfterStruct
+                                                     ? this.ReadPointerValue(
+                                                                             compiledField.PointerDepth,
+                                                                             compiledField,
+                                                                             state,
+                                                                             elementDebugStack)
+                                                     : this.ReadDeferredPointer(compiledField, state, elementDebugStack)
                                                  : windowedUnit
                                                      ? BinaryPrimitiveIO.ReadBitfieldUnit(state.Stream, state.CurrentBitfieldSize, compiledField.BitStorageIsLittleEndian ?? true)
                                                      : compiledField.Codec.IsFixedWidthNumeric &&
@@ -1146,11 +1151,22 @@ public partial class CStruct
     }
 
     /// <summary>Reads the value found at a pointer target after the address has passed safety checks.</summary>
+    /// <param name="field">The pointer field or its target view; its compiled type is the target's type.</param>
+    /// <param name="state">The read state, positioned at the target.</param>
+    /// <param name="debugStack">The debug path for a composite target's records.</param>
+    /// <param name="elementCount">The evaluated <c>@count</c> of a counted target; ignored otherwise.</param>
+    /// <returns>The decoded target: one value, or the elements of a counted target.</returns>
     private object ReadPointerTargetValue(
         CompiledField field,
         CStructOperationContext state,
-        DebugPath? debugStack)
+        DebugPath? debugStack,
+        int elementCount = 1)
     {
+        if (field.HasCountedTarget)
+        {
+            return this.ReadCountedTarget(field, state, debugStack, elementCount);
+        }
+
         // The target view has no pointer depth left, so its compiled type is the value's own type.
         if (field.Type.Symbol.Definition is CompiledEnumType enm)
         {
@@ -1181,6 +1197,104 @@ public partial class CStruct
         return this.codecs.ReaderOf(field)?.Invoke(state.Stream) ??
                throw new InvalidOperationException(
                    "Compiled pointer target has no reader: " + field.TypeSpelling);
+    }
+
+    /// <summary>
+    ///     Evaluates a counted pointer's <c>@count(N)</c> against the operation's variables and applies the array
+    ///     limits, exactly as a runtime array length is checked.
+    /// </summary>
+    /// <param name="field">A pointer field with a counted target.</param>
+    /// <param name="state">The read state whose variables hold the containing struct's fields.</param>
+    /// <returns>The number of target elements.</returns>
+    /// <exception cref="CStructReadException">The count is negative or cannot be evaluated.</exception>
+    /// <exception cref="CStructReadLimitException">The count exceeds <see cref="ReadOptions.MaxArrayElements"/>.</exception>
+    private int EvaluatePointerCount(CompiledField field, CStructOperationContext state)
+    {
+        CompiledArrayShape elements = field.PointerElements!;
+        int count = elements.FixedCount ??
+                    this.layoutExpressionEvaluator.Evaluate(
+                        elements.CountExpression!,
+                        state.Variables,
+                        "pointer element count for " + field.Name,
+                        ExpressionFailureDomain.Read);
+        if (count < 0)
+        {
+            throw new CStructReadException(ReadFailures.NegativeArrayLength(field.Name));
+        }
+
+        if (count > state.MaxArrayElements)
+        {
+            throw new CStructReadLimitException(ReadFailures.ArrayLengthLimit(count, state.MaxArrayElements));
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    ///     Reads the consecutive elements of a counted pointer target from the current position: characters become
+    ///     a string, fixed-width numbers a typed array, and structs, unions, enums and other values a list.
+    /// </summary>
+    /// <param name="field">The pointer field or its target view.</param>
+    /// <param name="state">The read state, positioned at the first element.</param>
+    /// <param name="debugStack">The pointer's debug path; composite elements are recorded as <c>name[i]</c>.</param>
+    /// <param name="count">The evaluated element count.</param>
+    /// <returns>The target's value.</returns>
+    private object ReadCountedTarget(CompiledField field, CStructOperationContext state, DebugPath? debugStack, int count)
+    {
+        CompiledField element = field.CountedElement(this.PointerSize);
+        if (element.IsCharElement || element.IsWideCharElement)
+        {
+            Func<Stream, object> readCharacter = this.codecs.ReaderOf(element) ??
+                                                 throw new InvalidOperationException("Counted text has no reader: " + field.TypeSpelling);
+            var characters = new StringBuilder(count);
+            for (int index = 0; index < count; index++)
+            {
+                characters.Append((char)readCharacter(state.Stream));
+            }
+
+            string text = state.FixedText(characters.ToString());
+            if (element.IsWideCharElement)
+            {
+                try
+                {
+                    _ = this.GetWideCharacterEncoding(element).GetByteCount(text);
+                }
+                catch (EncoderFallbackException exception)
+                {
+                    throw new CStructReadException(ReadFailures.WideTextInvalid, exception);
+                }
+            }
+
+            return text;
+        }
+
+        if (element.Codec.IsFixedWidthNumeric && element.Enum is null)
+        {
+            return count == 0 ? new List<object?>(0) : PrimitiveArrayReader.Read(state.Stream, element.Codec, count);
+        }
+
+        var values = new List<object?>(count);
+        for (int index = 0; index < count; index++)
+        {
+            state.CancellationToken.ThrowIfCancellationRequested();
+            if (element.Type.Symbol.Definition is CompiledCompositeType composite)
+            {
+                // Each element starts where the previous one ended; a struct read ends after its tail padding.
+                DebugPath? elementPath = state.Debug && debugStack is not null ? new DebugPath(debugStack.Parent, debugStack.Name + "[" + index + "]") : debugStack;
+                values.Add(this.ParseCompiledStructAt(state, state.Stream.Position, composite, elementPath, state.StructureDepth, state.PointerDereferenceDepth, state.Debug).Result);
+            }
+            else if (element.Enum is { } enm)
+            {
+                values.Add(this.ReadEnumValue(element, enm, state.Stream));
+            }
+            else
+            {
+                values.Add(this.codecs.ReaderOf(element)?.Invoke(state.Stream) ??
+                           throw new InvalidOperationException("Counted target has no reader: " + field.TypeSpelling));
+            }
+        }
+
+        return values;
     }
 
     /// <summary>Decodes one enum through its validated backing domain and declaration-order symbolic table.</summary>
@@ -1225,30 +1339,153 @@ public partial class CStruct
     ///     Reads a pointer and, when allowed, follows it to its target.
     ///     It restores the original stream position before returning so a pointer field consumes only its address in the parent layout.
     /// </summary>
+    /// <param name="pointerDepth">The pointer levels to read and follow.</param>
+    /// <param name="field">The pointer field, which describes the final target.</param>
+    /// <param name="state">The read state, positioned at the stored address.</param>
+    /// <param name="debugStack">The debug path for the target's records.</param>
+    /// <param name="elementCount">The evaluated @count of a counted target, or -1 to evaluate it at the final level.</param>
+    /// <returns>The pointer, dereferenced when it was followed.</returns>
     private Pointer ReadPointerValue(
         int pointerDepth,
         CompiledField field,
         CStructOperationContext state,
-        DebugPath? debugStack)
+        DebugPath? debugStack,
+        int elementCount = -1)
     {
         // Reading the address always advances the parent stream by exactly one pointer storage width.
         long address = this.ReadPointerAddress(state);
+        return this.FollowPointerAddress(address, pointerDepth, field, state, debugStack, elementCount);
+    }
+
+    /// <summary>
+    ///     Reads a pointer field inside a struct and defers its target: the returned unresolved pointer is stored in
+    ///     the result now and resolved by <see cref="FollowPendingPointers"/> after the struct's last field is read.
+    ///     A pointer that will not be followed (null, <c>void *</c>, following disabled, or a union view) is
+    ///     returned in its final form immediately.
+    /// </summary>
+    /// <param name="field">The pointer field; its full pointer depth is read.</param>
+    /// <param name="state">The read state; the stream advances by one pointer width.</param>
+    /// <param name="debugStack">The field's debug path, kept for the target's debug records.</param>
+    /// <returns>The pointer as stored in the result.</returns>
+    private Pointer ReadDeferredPointer(
+        CompiledField field,
+        CStructOperationContext state,
+        DebugPath? debugStack)
+    {
+        long address = this.ReadPointerAddress(state);
+        if (address == 0 || !state.DereferencePointers || state.SuppressPointerDereference ||
+            (field.PointerDepth == 1 && field.Type.TerminalName == "void"))
+        {
+            // None of these seeks, so the immediate form is the final one.
+            return this.FollowPointerAddress(address, field.PointerDepth, field, state, debugStack);
+        }
+
+        var placeholder = new Pointer(address, null, field.PointerDepth, false);
+        state.PendingPointers.Add(new PendingPointer(placeholder, field, debugStack, state.Stream.Position));
+        return placeholder;
+    }
+
+    /// <summary>
+    ///     Follows the pointers a struct deferred, in field order, and resolves each stored pointer in place. The
+    ///     struct's own fields are all read, so each target's count and every later sibling are available as layout
+    ///     variables. The stream position is left for the caller to restore.
+    /// </summary>
+    /// <param name="state">The read state holding the deferred pointers.</param>
+    /// <param name="start">The number of deferred pointers that belong to enclosing structs and stay queued.</param>
+    private void FollowPendingPointers(CStructOperationContext state, int start)
+    {
+        List<PendingPointer> pending = state.PendingPointers;
+        int end = pending.Count;
+
+        // A target struct defers and follows its own pointers before its read returns, so each follow leaves the
+        // list exactly as long as it found it and the indexes below stay valid.
+        for (int index = start; index < end; index++)
+        {
+            PendingPointer entry = pending[index];
+            try
+            {
+                state.Stream.Position = entry.AddressEnd;
+
+                // The count is evaluated before any pointer level is checked or followed, in the order generated
+                // readers use, so both report the same first failure.
+                int elementCount = entry.Field.HasCountedTarget ? this.EvaluatePointerCount(entry.Field, state) : 1;
+                object? target = this.FollowPointerTarget(entry.Placeholder.Address, entry.Field.PointerDepth, entry.Field, state, entry.DebugStack, elementCount);
+                if (target is not null)
+                {
+                    entry.Placeholder.Resolve(target);
+                }
+            }
+            catch (CStructException exception) when (exception.NoteMember(entry.Field.Name, entry.Field.DisplayTypeSpelling))
+            {
+                // Never entered: the filter names the pointer field, as a failure during its own read would.
+                throw;
+            }
+        }
+
+        pending.RemoveRange(start, end - start);
+    }
+
+    /// <summary>
+    ///     Follows an already read pointer address to its target when the options allow it, and restores the stream
+    ///     position afterwards so the pointer consumes only its address in the parent layout.
+    /// </summary>
+    /// <param name="address">The stored address; 0 is the null pointer.</param>
+    /// <param name="pointerDepth">The pointer levels still to follow, at least 1.</param>
+    /// <param name="field">The pointer field, which describes the final target.</param>
+    /// <param name="state">The read state with the pointer limits and cycle tracking.</param>
+    /// <param name="debugStack">The debug path for the target's records.</param>
+    /// <param name="elementCount">The evaluated @count of a counted target, or -1 to evaluate it when the final level is reached.</param>
+    /// <returns>The pointer, dereferenced when it was followed.</returns>
+    /// <exception cref="CStructReadException">The target is outside the input, cyclic, or cannot be decoded.</exception>
+    private Pointer FollowPointerAddress(
+        long address,
+        int pointerDepth,
+        CompiledField field,
+        CStructOperationContext state,
+        DebugPath? debugStack,
+        int elementCount = -1)
+    {
+        object? target = this.FollowPointerTarget(address, pointerDepth, field, state, debugStack, elementCount);
+        return target is null ? new Pointer(address, null, pointerDepth, false) : new Pointer(address, target, pointerDepth, true);
+    }
+
+    /// <summary>
+    ///     Follows an already read pointer address and returns its decoded target, or <see langword="null"/> when the
+    ///     pointer is null or is not followed (following disabled, a union view, or a <c>void *</c>). The stream
+    ///     position is restored afterwards.
+    /// </summary>
+    /// <param name="address">The stored address; 0 is the null pointer.</param>
+    /// <param name="pointerDepth">The pointer levels still to follow, at least 1.</param>
+    /// <param name="field">The pointer field, which describes the final target.</param>
+    /// <param name="state">The read state with the pointer limits and cycle tracking.</param>
+    /// <param name="debugStack">The debug path for the target's records.</param>
+    /// <param name="elementCount">The evaluated @count of a counted target, or -1 to evaluate it when the final level is reached.</param>
+    /// <returns>The target value (another <see cref="Pointer"/> above the last level), or <see langword="null"/>.</returns>
+    /// <exception cref="CStructReadException">The target is outside the input, cyclic, or cannot be decoded.</exception>
+    private object? FollowPointerTarget(
+        long address,
+        int pointerDepth,
+        CompiledField field,
+        CStructOperationContext state,
+        DebugPath? debugStack,
+        int elementCount)
+    {
         if (address == 0)
         {
             // A null pointer has no target to seek to and is represented explicitly without dereferencing.
-            return new Pointer(address, null, pointerDepth);
+            return null;
         }
 
         if (!state.DereferencePointers || state.SuppressPointerDereference)
         {
             // Callers can inspect addresses only; retain that choice on the Pointer result for downstream consumers.
-            return new Pointer(address, null, pointerDepth, false);
+            return null;
         }
 
         if (pointerDepth == 1 && field.Type.TerminalName == "void")
         {
             // A `void *` (or a function pointer) is an opaque address: there is nothing typed to read at its target.
-            return new Pointer(address, null, pointerDepth, false);
+            return null;
         }
 
         if (!state.Stream.CanSeek)
@@ -1281,8 +1518,14 @@ public partial class CStruct
             throw new CStructReadException(ReadFailures.PointerTargetOutside(targetAddress));
         }
 
+        if (elementCount < 0)
+        {
+            // Only a pointer followed in place gets here without a count; a deferred pointer evaluated it up front.
+            elementCount = pointerDepth == 1 && field.HasCountedTarget ? this.EvaluatePointerCount(field, state) : 1;
+        }
+
         // Apply the optional fixed-target budget before seeking, preventing unexpectedly large referenced reads.
-        this.EnsurePointerTargetSize(pointerDepth, field, state);
+        this.EnsurePointerTargetSize(pointerDepth, field, state, elementCount);
 
         (long Address, string TypeName, int PointerDepth) targetKey =
             (targetAddress, field.TypeSpelling, pointerDepth);
@@ -1304,9 +1547,10 @@ public partial class CStruct
                                                        pointerDepth - 1,
                                                        field,
                                                        state,
-                                                       debugStack)
-                               : this.ReadPointerTargetValue(field, state, debugStack);
-            return new Pointer(address, value, pointerDepth, true);
+                                                       debugStack,
+                                                       elementCount)
+                               : this.ReadPointerTargetValue(field, state, debugStack, elementCount);
+            return value;
         }
         finally
         {
@@ -1318,10 +1562,15 @@ public partial class CStruct
     }
 
     /// <summary>Checks an optional caller limit before reading a fixed-size pointer target.</summary>
+    /// <param name="pointerDepth">The pointer levels still to follow; above 1 the target is another pointer.</param>
+    /// <param name="field">The pointer field.</param>
+    /// <param name="state">The read state holding the limit.</param>
+    /// <param name="elementCount">The number of target elements: the evaluated <c>@count</c>, otherwise 1.</param>
     private void EnsurePointerTargetSize(
         int pointerDepth,
         CompiledField field,
-        CStructOperationContext state)
+        CStructOperationContext state,
+        int elementCount)
     {
         if (!state.MaxPointerTargetBytes.HasValue)
         {
@@ -1331,7 +1580,9 @@ public partial class CStruct
 
         long? targetSize = pointerDepth > 1
                                ? this.PointerSize
-                               : this.GetFixedTargetSize(field);
+                               : field.HasCountedTarget
+                                   ? field.Type.Symbol.FixedSize * (long)elementCount
+                                   : this.GetFixedTargetSize(field);
         if (!targetSize.HasValue)
         {
             // A fixed budget cannot safely approve a string or an unsized structure whose eventual length is unknown.

@@ -14,6 +14,7 @@ internal sealed partial class LayoutEmitter
     private readonly HashSet<string> pointerReaders = new(StringComparer.Ordinal);
     private readonly List<CompiledField> pendingPointerReaders = new();
 
+    /// <summary>Emits the read of one array field: its count, then a bulk decode, a text read, or an element loop (addresses only for a deferred pointer array).</summary>
     private void EmitArray(SourceWriter writer, CompiledField field, GeneratedMember generated, ReaderScope scope, string property, bool inUnion, string member, string memberType)
     {
         // The element count, as the runtime derives it before reading.
@@ -82,6 +83,18 @@ internal sealed partial class LayoutEmitter
                 writer.Line("global::System.ReadOnlySpan<byte> bytes = cursor." + take + "(count, " + Int(codec.Size) + ", " + member + ", " + memberType + ");");
                 writer.Line(BulkDecode(codec, elementType));
                 writer.Close();
+            }
+            else if (!inUnion && this.deferredPointers.TryGetValue(field, out DeferredPointer? deferred))
+            {
+                // A deferred pointer array takes only its addresses here; the struct reader follows them after its
+                // last field, from the recorded first address.
+                deferred.Bind(property, member, memberType);
+                writer.Line("var elements = new " + elementType + "[count];");
+                writer.Line(deferred.Position + " = cursor.Position;");
+                writer.Open("for (int index = 0; index < count; index++)");
+                writer.Line("elements[index] = " + this.DeferredAddressRead(field, generated, member, memberType) + ";");
+                writer.Close();
+                writer.Line(deferred.Elements + " = elements;");
             }
             else
             {
@@ -203,16 +216,35 @@ internal sealed partial class LayoutEmitter
         }
     }
 
+    /// <summary>
+    ///     Emits the two readers of one pointer shape: <c>ReadPointer_*</c> takes the stored address and follows it at
+    ///     once (union members and inner pointer levels), and <c>FollowPointer_*</c> follows an address a struct
+    ///     reader took earlier and deferred until its last field. A counted target's readers take the evaluated
+    ///     <c>@count</c> as a parameter because the count is a struct-level expression.
+    /// </summary>
     private void EmitPointerReader(SourceWriter writer, CompiledField field)
     {
         GeneratedMember shape = this.model.DescribePointer(field);
-        string type = shape.TypeName;
+
+        // A pointer array (`node *items[2]`) shares the reader of one element: strip the array levels from its type.
+        string type = ElementType(shape.TypeName, field.Array.Kind == CompiledArrayKind.Scalar ? 0 : Math.Max(1, field.Array.Dimensions.Length));
         string targetType = type.Substring("global::CStructSharp.Generated.Pointer<".Length, type.Length - "global::CStructSharp.Generated.Pointer<".Length - 1);
         bool isVoid = field.PointerDepth == 1 && field.Type.TerminalName == "void";
-        long? fixedTargetSize = field.PointerDepth > 1 ? this.request.PointerSize : field.HasTerminatedCodec ? null : field.Type.Symbol.FixedSize;
-        writer.Line("/// <summary>Reads a <c>" + DescribeDeclaration(field).Replace(" " + field.Name, string.Empty) + "</c> pointer: the address, then the target when pointers are followed.</summary>");
-        writer.Open("private static " + type + " Read" + PointerReaderName(field) + "(ref " + Cursor + " cursor, " + VariablesType + " variables, string? member, string? memberType)");
+        bool counted = field.HasCountedTarget;
+        string countParameter = counted ? "int count, " : string.Empty;
+        string countArgument = counted ? "count, " : string.Empty;
+        string fixedTargetSize = FixedPointerTargetSize(field, this.request.PointerSize);
+        string declaration = DescribeDeclaration(field).Replace(" " + field.Name, string.Empty);
+
+        writer.Line("/// <summary>Reads a <c>" + declaration + "</c> pointer: the address, then the target when pointers are followed.</summary>");
+        writer.Open("private static " + type + " Read" + PointerReaderName(field) + "(ref " + Cursor + " cursor, " + VariablesType + " variables, " + countParameter + "string? member, string? memberType)");
         writer.Line("long address = cursor.TakePointerAddress(PointerSize, LittleEndian, member ?? " + SourceWriter.Literal(field.Name) + ", memberType);");
+        writer.Line("return Follow" + PointerReaderName(field) + "(ref cursor, variables, address, " + countArgument + "member, memberType);");
+        writer.Close();
+        writer.Line();
+
+        writer.Line("/// <summary>Follows a <c>" + declaration + "</c> pointer whose address was already read, when pointers are followed; the cursor returns to its position.</summary>");
+        writer.Open("private static " + type + " Follow" + PointerReaderName(field) + "(ref " + Cursor + " cursor, " + VariablesType + " variables, long address, " + countParameter + "string? member, string? memberType)");
         if (isVoid)
         {
             // A void * is an opaque address: there is nothing typed to read at its target.
@@ -224,18 +256,20 @@ internal sealed partial class LayoutEmitter
         writer.Open("if (address == 0 || !cursor.FollowsPointers)");
         writer.Line("return new " + type + "(address, " + Int(field.PointerDepth) + ");");
         writer.Close();
-        writer.Line("int resume = cursor.EnterPointer(address, " + Int(field.PointerDepth) + ", " + (fixedTargetSize is { } size ? size.ToString(CultureInfo.InvariantCulture) + "L" : "null") + ", " + SourceWriter.Literal(field.TypeSpelling) + ", member ?? " + SourceWriter.Literal(field.Name) + ", memberType);");
+        writer.Line("int resume = cursor.EnterPointer(address, " + Int(field.PointerDepth) + ", " + fixedTargetSize + ", " + SourceWriter.Literal(field.TypeSpelling) + ", member ?? " + SourceWriter.Literal(field.Name) + ", memberType);");
         writer.Open("try");
         string read;
         if (field.PointerDepth > 1)
         {
-            CompiledField inner = field.SelectPointerTarget(field.PointerDepth - 1, PrimitiveCatalog.CanonicalNames.Length > field.TerminatedCodecId && field.TerminatedCodecId >= 0 ? PrimitiveCatalog.CanonicalNames[field.TerminatedCodecId] : null, this.request.PointerSize);
+            // A counted target keeps its element type at every level; only a plain character pointer ends in a terminated string.
+            string? terminated = !counted && PrimitiveCatalog.CanonicalNames.Length > field.TerminatedCodecId && field.TerminatedCodecId >= 0 ? PrimitiveCatalog.CanonicalNames[field.TerminatedCodecId] : null;
+            CompiledField inner = field.SelectPointerTarget(field.PointerDepth - 1, terminated, this.request.PointerSize);
             this.RequirePointerReader(inner);
-            read = "Read" + PointerReaderName(inner) + "(ref cursor, variables, member, memberType)";
+            read = "Read" + PointerReaderName(inner) + "(ref cursor, variables, " + countArgument + "member, memberType)";
         }
         else
         {
-            read = this.PointerTargetRead(field, shape, targetType);
+            read = counted ? this.CountedTargetRead(writer, field, shape, targetType) : this.PointerTargetRead(field, shape, targetType);
         }
 
         writer.Line("return new " + type + "(address, " + Int(field.PointerDepth) + ", " + read + ", true);");
@@ -246,6 +280,62 @@ internal sealed partial class LayoutEmitter
         writer.Close();
     }
 
+    /// <summary>
+    ///     The C# expression for the byte budget check of one pointer level: the pointer width above the last level,
+    ///     the element size times <c>count</c> for a counted target, the target's fixed size, or <c>null</c> when the
+    ///     target has no fixed size.
+    /// </summary>
+    private static string FixedPointerTargetSize(CompiledField field, int pointerSize)
+    {
+        if (field.PointerDepth > 1)
+        {
+            return pointerSize.ToString(CultureInfo.InvariantCulture) + "L";
+        }
+
+        if (field.HasCountedTarget)
+        {
+            return field.Type.Symbol.FixedSize is { } elementSize ? "(long)count * " + Int(elementSize) : "null";
+        }
+
+        return field.HasTerminatedCodec || field.Type.Symbol.FixedSize is not { } size ? "null" : size.ToString(CultureInfo.InvariantCulture) + "L";
+    }
+
+    /// <summary>
+    ///     Emits the read of a counted target's <c>count</c> elements into a local and returns that local: characters
+    ///     as one string, fixed-width numbers in one block, and every other element type one at a time, matching
+    ///     the runtime's counted-target reader.
+    /// </summary>
+    private string CountedTargetRead(SourceWriter writer, CompiledField field, GeneratedMember shape, string targetType)
+    {
+        string member = "member ?? " + SourceWriter.Literal(field.Name);
+        const string memberType = "memberType";
+        CompiledField element = field.CountedElement(this.request.PointerSize);
+        if (element.IsCharElement || element.IsWideCharElement)
+        {
+            string littleEndian = Bool(element.ExplicitWideCharacterEncoding is null ? this.request.LittleEndian : element.Codec.LittleEndian);
+            return element.IsWideCharElement
+                       ? "cursor.TakeWideText(count, " + littleEndian + ", " + member + ", " + memberType + ")"
+                       : "cursor.TakeFixedText(count, " + member + ", " + memberType + ")";
+        }
+
+        string elementType = targetType.Substring(0, targetType.Length - 2);
+        writer.Line("var elements = new " + elementType + "[count];");
+        if (element.Codec.IsFixedWidthNumeric && shape.Enum is null && shape.Composite is null)
+        {
+            writer.Open("if (count > 0)");
+            writer.Line("global::System.ReadOnlySpan<byte> bytes = cursor.TakeArray(count, " + Int(element.Codec.Size) + ", " + member + ", " + memberType + ");");
+            writer.Line(BulkDecode(element.Codec, elementType));
+            writer.Close();
+            return "elements";
+        }
+
+        writer.Open("for (int index = 0; index < count; index++)");
+        writer.Line("elements[index] = " + this.PointerTargetRead(field, shape, elementType) + ";");
+        writer.Close();
+        return "elements";
+    }
+
+    /// <summary>The C# expression that reads one pointer target value at the cursor.</summary>
     private string PointerTargetRead(CompiledField field, GeneratedMember shape, string targetType)
     {
         string member = "member ?? " + SourceWriter.Literal(field.Name);

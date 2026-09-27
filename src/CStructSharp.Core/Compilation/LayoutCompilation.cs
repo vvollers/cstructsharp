@@ -760,6 +760,7 @@ internal sealed partial class LayoutCompilation
                     field.OffsetAssertionExpression,
                     field.HasBitfieldDeclarator)
                 {
+                    PointerCountExpression = field.PointerCountExpression,
                     Condition = NormalizeCaseConstants(field.Condition, caseConstants),
                     BranchConditions = field.BranchConditions.Count == 0 ? Array.Empty<ConditionalBranch>() : field.BranchConditions.Select(item =>
                         new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray(),

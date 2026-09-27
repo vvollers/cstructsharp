@@ -244,6 +244,12 @@ public static class PortableMemorySchema
                 }
                 else if (field.PointerDepth > 0)
                 {
+                    if (field.HasCountedTarget)
+                    {
+                        // A memory schema pointer targets one value; projecting a counted target would drop its count.
+                        throw new ArgumentException("A @count pointer has no memory projection; read it with the stream API: " + field.Name);
+                    }
+
                     id = "__pointer_" + this.generated++;
                     this.AddPointer(id, field.TypeName, field.PointerDepth, depth + 1);
                 }

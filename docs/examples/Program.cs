@@ -41,6 +41,7 @@ internal static partial class Program
         ("generated-async", () => GeneratedAsync().GetAwaiter().GetResult()),
         ("inspect-ranges", InspectRanges),
         ("follow-pointer", FollowPointer),
+        ("counted-pointer", CountedPointer),
         ("preserve-union", PreserveUnion),
         ("preserve-enum", PreserveEnum),
         ("fixed-text", FixedText),
@@ -415,7 +416,23 @@ internal static partial class Program
     }
     #endregion
 
+    #region api-reference-counted-pointer
+    /// <summary>Reads a pointer whose element count is stored in a field declared after it.</summary>
+    private static void CountedPointer()
+    {
+        // The IV's length is stored after the pointer, as in the PKCS#11 CK_GCM_MESSAGE_PARAMS struct.
+        var layout = new CStruct("struct params { uint8 *iv @count(iv_len); uint8 iv_len; uint8 data[3]; };", pointerSize: 1);
+        StructValue value = layout.Parse(new byte[] { 0x02, 0x03, 0xA1, 0xA2, 0xA3, }, "params");
+        Pointer iv = value.Get<Pointer>("iv");
+        Equal(2L, iv.Address);
+        var bytes = (IList<object?>)iv.Value!;
+        Equal(3, bytes.Count);
+        Equal((byte)0xA3, (byte)bytes[2]!);
+    }
+    #endregion
+
     #region api-reference-union
+    /// <summary>Reads every view of a union from the same storage bytes.</summary>
     private static void PreserveUnion()
     {
         var layout = new CStruct("union choice { uint8 small; uint16 large; };");

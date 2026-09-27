@@ -13,6 +13,9 @@ internal sealed class DebugPath(DebugPath? parent, string name)
 
     public DebugPath? Parent { get; } = parent;
 
+    /// <summary>The last segment of the path, such as <c>iv</c> in <c>rec.iv</c>.</summary>
+    public string Name => this.name;
+
     /// <summary>Adapts selected-path metadata only when a caller requested debug output.</summary>
     public static DebugPath? FromNames(IEnumerable<string> names)
     {

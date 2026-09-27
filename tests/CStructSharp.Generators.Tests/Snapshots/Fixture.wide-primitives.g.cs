@@ -498,6 +498,12 @@ namespace Demo
         private static global::CStructSharp.Generated.Pointer<object> ReadPointer_void_1(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             long address = cursor.TakePointerAddress(PointerSize, LittleEndian, member ?? "p", memberType);
+            return FollowPointer_void_1(ref cursor, variables, address, member, memberType);
+        }
+
+        /// <summary>Follows a <c>void *p</c> pointer whose address was already read, when pointers are followed; the cursor returns to its position.</summary>
+        private static global::CStructSharp.Generated.Pointer<object> FollowPointer_void_1(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, long address, string? member, string? memberType)
+        {
             return new global::CStructSharp.Generated.Pointer<object>(address, 1);
         }
 

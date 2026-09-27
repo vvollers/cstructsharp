@@ -22,6 +22,11 @@ internal sealed partial class LayoutEmitter
     // The conditional groups whose selector the reader being emitted has already evaluated (cleared per composite).
     private readonly HashSet<ConditionalGroup> decidedGroups = new(ReferenceEqualityComparer.Instance);
 
+    // The pointer fields of the struct reader being emitted whose targets are followed after its last field, in
+    // declaration order (cleared per composite); the runtime defers the same fields.
+    private readonly Dictionary<CompiledField, DeferredPointer> deferredPointers = new(ReferenceEqualityComparer.Instance);
+    private readonly List<DeferredPointer> deferredPointerOrder = new();
+
     /// <summary>Emits best-effort cursor restoration without replacing the original acquisition or decode failure.</summary>
     /// <param name="writer">The generated source destination, immediately after a stream operation's try block.</param>
     private static void EmitStreamFailureRestoration(SourceWriter writer)
@@ -289,6 +294,8 @@ internal sealed partial class LayoutEmitter
         writer.Line("var value = new " + name + "();");
         var scope = new ReaderScope(this, composite);
         this.decidedGroups.Clear();
+        this.deferredPointers.Clear();
+        this.deferredPointerOrder.Clear();
         if (composite.IsUnion)
         {
             this.EmitUnionBody(writer, composite, scope);
@@ -296,7 +303,9 @@ internal sealed partial class LayoutEmitter
         else
         {
             writer.Line("var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);");
+            this.PrepareDeferredPointers(writer, composite.Composite);
             this.EmitFields(writer, composite.Composite, scope, "value", "placement");
+            this.EmitDeferredPointerFollows(writer, scope);
             writer.Line("cursor.Seek(placement.Finish(" + composite.Composite.Symbol.Alignment.ToString(CultureInfo.InvariantCulture) + "), member, memberType);");
         }
 
@@ -640,12 +649,19 @@ internal sealed partial class LayoutEmitter
         writer.Close();
     }
 
+    /// <summary>Emits the read of a named field into its property and publishes it to later expressions; a deferred pointer reads only its address.</summary>
     private void EmitValue(SourceWriter writer, CompiledField field, GeneratedMember generated, ReaderScope scope, string target, bool inUnion, string member, string memberType)
     {
         string property = target + "." + generated.PropertyName;
         if (field.Array.Kind == CompiledArrayKind.Scalar)
         {
-            writer.Line(property + " = " + this.ScalarRead(field, generated, member, memberType) + ";");
+            // A deferred pointer takes only its address here; its target is followed after the struct's last field.
+            string? deferred = inUnion ? null : this.DeferredAddressRead(field, generated, member, memberType);
+            writer.Line(property + " = " + (deferred ?? this.ScalarRead(field, generated, member, memberType)) + ";");
+            if (deferred is not null)
+            {
+                this.RecordDeferredScalar(writer, field, property, member, memberType);
+            }
         }
         else
         {
@@ -665,7 +681,9 @@ internal sealed partial class LayoutEmitter
         if (field.PointerDepth > 0)
         {
             this.RequirePointerReader(field);
-            return "Read" + PointerReaderName(field) + "(ref cursor, variables, " + member + ", " + memberType + ")";
+
+            // Only a union member reads a counted pointer in place, and a union never follows it, so its count is unused.
+            return "Read" + PointerReaderName(field) + "(ref cursor, variables, " + (field.HasCountedTarget ? "0, " : string.Empty) + member + ", " + memberType + ")";
         }
 
         if (generated.Composite is not null)
@@ -780,7 +798,8 @@ internal sealed partial class LayoutEmitter
                    : field.Type.Symbol.Definition as CompiledCompositeType;
     }
 
-    private static string PointerReaderName(CompiledField field) => "Pointer_" + Sanitize(field.TypeSpelling) + "_" + Int(field.PointerDepth);
+    /// <summary>The name suffix of the readers for one pointer shape: target type, depth, and whether the target is counted.</summary>
+    private static string PointerReaderName(CompiledField field) => "Pointer_" + Sanitize(field.TypeSpelling) + "_" + Int(field.PointerDepth) + (field.HasCountedTarget ? "_Counted" : string.Empty);
 
     private static string Sanitize(string name)
     {

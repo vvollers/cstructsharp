@@ -1346,6 +1346,21 @@
       "id": "indexed-nested-reference",
       "definition": "struct h { uint8 n; }; struct root { h items[2]; uint8 v[items[0].n]; };",
       "category": "expression"
+    },
+    {
+      "id": "count-on-non-pointer",
+      "definition": "struct root { uint8 value @count(2); };",
+      "category": "pointer element count"
+    },
+    {
+      "id": "count-on-pointer-array",
+      "definition": "struct root { uint8 *values[2] @count(2); };",
+      "category": "pointer element count"
+    },
+    {
+      "id": "count-on-void-pointer",
+      "definition": "struct root { void *raw @count(2); };",
+      "category": "pointer element count"
     }
   ],
   "aliasSpellings": [

@@ -921,6 +921,7 @@ namespace Demo
             cursor.EnterComposite(member ?? "root", memberType);
             var value = new Root();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
+            int deferredPointer0 = -1;
             // uint8 magic
             {
                 cursor.Seek(placement.AdvanceToField(1), "magic", "uint8");
@@ -989,8 +990,14 @@ namespace Demo
             // uint16 *link
             {
                 cursor.Seek(placement.AdvanceToField(2), "link", "uint16");
-                value.Link = ReadPointer_uint16_1(ref cursor, variables, "link", "uint16");
+                value.Link = new global::CStructSharp.Generated.Pointer<ushort>(cursor.TakePointerAddress(PointerSize, LittleEndian, "link", "uint16"), 1);
+                deferredPointer0 = cursor.Position;
                 placement.CompleteField(cursor.Position);
+            }
+            if (deferredPointer0 >= 0 && value.Link.Address != 0 && cursor.FollowsPointers)
+            {
+                cursor.Position = deferredPointer0;
+                value.Link = FollowPointer_uint16_1(ref cursor, variables, value.Link.Address, "link", "uint16");
             }
             cursor.Seek(placement.Finish(4), member, memberType);
             cursor.ExitComposite();
@@ -1001,6 +1008,12 @@ namespace Demo
         private static global::CStructSharp.Generated.Pointer<ushort> ReadPointer_uint16_1(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             long address = cursor.TakePointerAddress(PointerSize, LittleEndian, member ?? "link", memberType);
+            return FollowPointer_uint16_1(ref cursor, variables, address, member, memberType);
+        }
+
+        /// <summary>Follows a <c>uint16 *link</c> pointer whose address was already read, when pointers are followed; the cursor returns to its position.</summary>
+        private static global::CStructSharp.Generated.Pointer<ushort> FollowPointer_uint16_1(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, long address, string? member, string? memberType)
+        {
             if (address == 0 || !cursor.FollowsPointers)
             {
                 return new global::CStructSharp.Generated.Pointer<ushort>(address, 1);

@@ -405,10 +405,18 @@ public partial class CStruct
             throw new CStructReadLimitException(ReadFailures.PointerDepthLimit);
         }
 
+        if (compiledField.HasCountedTarget)
+        {
+            // The count may name a sibling declared after the pointer, which path resolution never reads.
+            throw new CStructPathException(
+                "A path cannot select the target of a @count pointer; read the containing struct instead: " + compiledField.Name);
+        }
+
         this.EnsurePointerTargetSize(
             compiledField.PointerDepth,
             compiledField,
-            state);
+            state,
+            1);
 
         long target = this.ReadPointerTargetAddress(pointerStorage, state);
         context = context.FollowPointer(pointerStorage, target);

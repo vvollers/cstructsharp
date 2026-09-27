@@ -131,6 +131,29 @@ stream coordinate range, and stay within the supplied memory region or readable 
   <text x="6" y="150" fill="currentColor" opacity="0.7" font-size="11">Absolute: target = address. Relative: target = Origin (O, here 8) + address. Address 0 stays null.</text>
 </svg>
 
+## Pointers with a separate count
+
+A pointer refers to where data starts, not how much of it there is. C interfaces store the element count in a
+separate field, often after the pointer. Add `@count(N)` to the pointer declarator to read `N` elements at the
+target:
+
+```c
+struct params {
+    uint8 *iv @count(iv_len);
+    uint8 iv_len;
+    uint8 data[3];
+};
+```
+
+With `pointerSize: 1`, bytes `02 03 A1 A2 A3` store coordinate 2 in `iv` and the count 3 in `iv_len`, so the target
+is the three bytes `A1 A2 A3` at offsets 2 to 4:
+
+[!code-csharp[Read a pointer counted by a later field](../examples/Program.cs#api-reference-counted-pointer)]
+
+The count can name `iv_len` even though it is declared after `iv`, because a struct follows its pointers only after
+its last field is read. [Counted pointer targets](../language/pointers-and-addressing.md#counted-pointer-targets)
+lists the value shapes, the limits, and what writing does.
+
 ## Paths and multiple levels
 
 After a pointer field:

@@ -444,6 +444,10 @@ namespace CStructSharp.Generated.Parity.Layouts.Manual
     /// <summary>Manual: <c>nested-references</c>.</summary>
     [CStructLayout("struct h { uint8 n; uint8 pad; }; struct root { h hdr; uint8 v[hdr.n]; uint8 tail; };", Root = "root", PointerSize = 8, Aligned = false, LittleEndian = true)]
     public static partial class NestedReferences { }
+
+    /// <summary>Manual: <c>counted-pointers</c>.</summary>
+    [CStructLayout("struct root { uint8 *iv @count(len); uint8 len; uint8 data[2]; };", Root = "root", PointerSize = 1, Aligned = false, LittleEndian = true)]
+    public static partial class CountedPointers { }
 }
 
 namespace CStructSharp.Generated.Parity.Layouts.Shapes

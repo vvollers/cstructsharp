@@ -1240,6 +1240,7 @@ namespace Demo
             cursor.EnterComposite(member ?? "root", memberType);
             var value = new Root();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
+            int deferredPointer0 = -1;
             // X x
             {
                 cursor.Seek(placement.AdvanceToField(1), "x", "X");
@@ -1249,7 +1250,8 @@ namespace Demo
             // X *p
             {
                 cursor.Seek(placement.AdvanceToField(8), "p", "X");
-                value.P = ReadPointer_X_1(ref cursor, variables, "p", "X");
+                value.P = new global::CStructSharp.Generated.Pointer<X>(cursor.TakePointerAddress(PointerSize, LittleEndian, "p", "X"), 1);
+                deferredPointer0 = cursor.Position;
                 placement.CompleteField(cursor.Position);
             }
             // _X raw
@@ -1285,6 +1287,11 @@ namespace Demo
                 value.Pr = elements;
                 placement.CompleteField(cursor.Position);
             }
+            if (deferredPointer0 >= 0 && value.P.Address != 0 && cursor.FollowsPointers)
+            {
+                cursor.Position = deferredPointer0;
+                value.P = FollowPointer_X_1(ref cursor, variables, value.P.Address, "p", "X");
+            }
             cursor.Seek(placement.Finish(8), member, memberType);
             cursor.ExitComposite();
             return value;
@@ -1318,6 +1325,12 @@ namespace Demo
         private static global::CStructSharp.Generated.Pointer<X> ReadPointer_X_1(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             long address = cursor.TakePointerAddress(PointerSize, LittleEndian, member ?? "p", memberType);
+            return FollowPointer_X_1(ref cursor, variables, address, member, memberType);
+        }
+
+        /// <summary>Follows a <c>X *p</c> pointer whose address was already read, when pointers are followed; the cursor returns to its position.</summary>
+        private static global::CStructSharp.Generated.Pointer<X> FollowPointer_X_1(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, long address, string? member, string? memberType)
+        {
             if (address == 0 || !cursor.FollowsPointers)
             {
                 return new global::CStructSharp.Generated.Pointer<X>(address, 1);

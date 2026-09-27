@@ -75,6 +75,7 @@ internal sealed partial class LayoutCompilation
         return builder.ToString();
     }
 
+    /// <summary>Renders one struct or union back to Portable text, including each declarator's suffixes.</summary>
     private void RenderComposite(StringBuilder builder, Struct composite, string indent)
     {
         builder.Append(indent).Append(composite.IsUnion ? "union " : "struct ");
@@ -127,6 +128,11 @@ internal sealed partial class LayoutCompilation
             else if (field.OffsetAssertionExpression is not null)
             {
                 builder.Append(" @").Append(ExpressionPrinter.Print(field.OffsetAssertionExpression));
+            }
+
+            if (field.PointerCountExpression is not null)
+            {
+                builder.Append(" @count(").Append(ExpressionPrinter.Print(field.PointerCountExpression)).Append(')');
             }
 
             builder.Append(';');
@@ -225,6 +231,7 @@ internal sealed partial class LayoutCompilation
             Array.Empty<int>());
     }
 
+    /// <summary>Describes the fields of a compiled composite for the public layout introspection.</summary>
     private IReadOnlyList<LayoutFieldInfo> DescribeFields(CompiledCompositeType composite)
     {
         var fields = new List<LayoutFieldInfo>(composite.Fields.Length);
@@ -259,7 +266,10 @@ internal sealed partial class LayoutCompilation
                     field.EffectiveField.BitSize > 0 ? field.BitOffset : null,
                     composite.PromotedFields.Contains(field),
                     declaration.Condition is not null,
-                    promoted));
+                    promoted)
+                {
+                    HasCountedTarget = field.HasCountedTarget,
+                });
         }
 
         return fields;

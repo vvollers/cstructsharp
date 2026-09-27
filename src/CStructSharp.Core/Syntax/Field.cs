@@ -127,6 +127,12 @@ internal class Field : CStructElement
     /// <summary>The optional <c>@N</c> offset assertion written after this declarator, or null when none was written.</summary>
     internal Expr? OffsetAssertionExpression { get; }
 
+    /// <summary>
+    ///     The optional <c>@count(N)</c> element count written after a pointer declarator, or null when none was
+    ///     written. It makes the pointer's final target an array of N elements instead of one value.
+    /// </summary>
+    internal Expr? PointerCountExpression { get; init; }
+
     /// <summary>Checks whether another value represents the same layout data.</summary>
     public override bool Equals(CStructElement? other)
     {
@@ -135,7 +141,8 @@ internal class Field : CStructElement
                this.Name.Equals(f.Name) &&
                this.ArrayCount.SequenceEqual(f.ArrayCount) &&
                this.BitSizeExpression.Equals(f.BitSizeExpression) &&
-               this.PointerDepth == f.PointerDepth;
+               this.PointerDepth == f.PointerDepth &&
+               Equals(this.PointerCountExpression, f.PointerCountExpression);
     }
 
     /// <summary>Returns the primitive alignment for this field, using pointer size for pointer fields.</summary>

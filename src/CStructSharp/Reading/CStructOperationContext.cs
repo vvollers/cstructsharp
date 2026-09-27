@@ -18,7 +18,9 @@ internal sealed class CStructOperationContext
     private bool hasQualifiedPrefix;
 
     private List<DebugData>? debugMapping;
-    private HashSet<(long Address, string TypeName, int PointerDepth)>? activePointerTargets;
+
+    // Rented on the first pointer and returned by Complete; one field keeps the per-read state small.
+    private PointerTraversal? pointers;
 
     /// <summary>Creates the read state from a stream, compiled lookup tables, and optional read settings.</summary>
     public CStructOperationContext(
@@ -103,8 +105,20 @@ internal sealed class CStructOperationContext
     /// <summary>Optional active-branch trace used only for staged update validation.</summary>
     internal List<(string Path, long Start, long End)>? ConditionalLayoutTrace { get; set; }
 
-    /// <summary>Allocated on first pointer dereference: layouts without pointers never touch it.</summary>
-    public HashSet<(long Address, string TypeName, int PointerDepth)> ActivePointerTargets => this.activePointerTargets ??= new HashSet<(long, string, int)>();
+    /// <summary>Rented on first pointer dereference: layouts without pointers never touch it.</summary>
+    public HashSet<(long Address, string TypeName, int PointerDepth)> ActivePointerTargets => (this.pointers ??= PointerTraversal.Rent()).ActiveTargets;
+
+    /// <summary>
+    ///     The number of pointers read inside a struct whose targets are not yet followed. A struct remembers the
+    ///     count on entry and follows the entries added after it once its last field is read.
+    /// </summary>
+    public int PendingPointerCount => this.pointers?.Pending.Count ?? 0;
+
+    /// <summary>
+    ///     The pointers waiting for their containing struct to finish. Rented on the first pointer read inside a
+    ///     struct and kept for the rest of the operation, so layouts without pointers never touch it.
+    /// </summary>
+    public List<PendingPointer> PendingPointers => (this.pointers ??= PointerTraversal.Rent()).Pending;
 
     public long PointerOrigin { get; }
 
@@ -180,13 +194,32 @@ internal sealed class CStructOperationContext
 
     public long NextPosition { get; set; }
 
-    /// <summary>Claims one nested-struct level and rejects input that exceeds the caller's recursion budget.</summary>
-    /// <summary>Writes the cursor position back to the caller's stream; call once when the operation ends, before any error context is captured.</summary>
+    /// <summary>Removes every deferred pointer queued after <paramref name="count"/> entries.</summary>
+    /// <param name="count">The number of entries, belonging to enclosing structs, that stay queued.</param>
+    public void DiscardPendingPointers(int count)
+    {
+        if (this.pointers?.Pending is { } pending && pending.Count > count)
+        {
+            pending.RemoveRange(count, pending.Count - count);
+        }
+    }
+
+    /// <summary>
+    ///     Writes the cursor position back to the caller's stream and returns the pointer bookkeeping to the thread's
+    ///     cache; call once when the operation ends, before any error context is captured.
+    /// </summary>
     public void Complete()
     {
         this.Stream.FlushPosition();
+        if (this.pointers is { } pointers)
+        {
+            // The results hold only the resolved pointers; the bookkeeping goes back to this thread's cache.
+            this.pointers = null;
+            PointerTraversal.Return(pointers);
+        }
     }
 
+    /// <summary>Claims one nested-struct level and rejects input that exceeds the caller's recursion budget.</summary>
     public void EnterStructure()
     {
         this.CancellationToken.ThrowIfCancellationRequested();

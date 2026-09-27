@@ -91,16 +91,19 @@ union-field      = field | inline-struct-field ;
 field            = { type-qualifier }, [ tag-keyword ], type-name, declarator, { ",", declarator }, ";" ;
 declarator       = named-declarator | anonymous-bitfield ;
 named-declarator = { type-qualifier }, pointer-stars, { type-qualifier }, identifier, [ array ], [ bit-width ],
-                   [ placement-suffix ]
+                   declarator-suffixes
                  | "(", "*", identifier, ")", "(", { non-line-end-character }, ")" ;
 anonymous-bitfield
-                 = bit-width, [ placement-suffix ] ;
+                 = bit-width, declarator-suffixes ;
 type-qualifier   = "const" | "volatile" | "restrict" ;
 tag-keyword      = "struct" | "union" | "enum" ;
 pointer-stars    = { "*" } ;
 array            = { "[", [ expression | "EOF" ], "]" } ;
 bit-width        = ":", expression ;
+declarator-suffixes
+                 = [ pointer-count ], [ placement-suffix ], [ pointer-count ] ;
 placement-suffix = alignment-override | offset-assertion ;
+pointer-count    = "@count", "(", expression, ")" ;
 alignment-override
                  = "@align", "(", expression, ")" ;
 offset-assertion = "@", expression ;
@@ -207,7 +210,10 @@ field's own natural alignment already having none there. `@N`'s value must be no
 the declarator's actual computed offset only when that offset is statically known at construction time; if not
 statically known, it is instead checked the first time any operation actually reaches the field. It is not
 supported on a bitfield declarator. See
-[Layout, alignment, and padding](layout-alignment-and-padding.md#explicit-field-alignment-override). A
+[Layout, alignment, and padding](layout-alignment-and-padding.md#explicit-field-alignment-override). A pointer
+declarator may also carry one `@count(N)` suffix, before or after its placement suffix; it makes the pointer's final
+target `N` consecutive values instead of one. `N` may name a field declared after the pointer. See
+[counted pointer targets](pointers-and-addressing.md#counted-pointer-targets). A
 `struct`/`union` declaration may itself carry `[ alignment-override ]` immediately before its opening brace,
 clamping every one of that composite's own fields' alignment to at most `N` (matching `#pragma pack(N)` semantics)
 unless a field carries its own explicit `@align(N)`, which always wins outright instead of being further clamped;
@@ -288,7 +294,9 @@ The table explains each production and links to the page that defines its additi
 | `pointer-stars` | Zero or more data-pointer levels |
 | `array` | Zero or more fixed/runtime dimension counts or character-string markers, outermost first |
 | `bit-width` | One named nonzero portable bit slice, or unnamed reserved padding for `anonymous-bitfield` |
+| `declarator-suffixes` | The optional trailing suffixes of a declarator: one placement suffix and one pointer count, in either order |
 | `placement-suffix` | At most one trailing alignment override or offset assertion per declarator |
+| `pointer-count` | `@count(N)`: the number of consecutive elements a pointer's final target holds |
 | `alignment-override` | An explicit per-declarator alignment override, effective only when `aligned: true` |
 | `offset-assertion` | An explicit per-declarator byte-offset assertion, checked when statically computable |
 | `expression` | Complete checked integer expression, optionally a conditional `c ? a : b` |

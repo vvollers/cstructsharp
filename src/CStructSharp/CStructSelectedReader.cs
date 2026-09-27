@@ -126,6 +126,12 @@ public partial class CStruct
         var variableScope = composite.HasDirectConditionalFields ? new ConditionalVariableScope(composite, state.Variables) : null;
         var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount) : null;
 
+        // Pointers read by this struct's fields queue their targets after the enclosing structs' entries. A promoted
+        // anonymous member reads into its parent's value and leaves its pointers for the parent to follow, so their
+        // counts can name any field of the struct they appear in.
+        int pendingStart = state.PendingPointerCount;
+        bool followsOwnPointers = ReferenceEquals(destination.Shape, composite.Shape);
+
         state.EnterStructure();
         try
         {
@@ -162,9 +168,23 @@ public partial class CStruct
 
                 variableScope?.CompleteField(field, state.Variables);
             }
+
+            if (followsOwnPointers && state.PendingPointerCount > pendingStart)
+            {
+                // Every field is read, so each target's @count and every later sibling are known. Following here,
+                // still inside the struct, keeps the nesting depth a target read had when it was followed in place.
+                this.FollowPendingPointers(state, pendingStart);
+            }
         }
         finally
         {
+            if (followsOwnPointers)
+            {
+                // After a failure, drop this struct's unfollowed pointers so a caller that reuses the state (a
+                // record sequence, a conditional retry) never follows them later.
+                state.DiscardPendingPointers(pendingStart);
+            }
+
             state.ExitStructure();
         }
 
@@ -173,6 +193,7 @@ public partial class CStruct
 
         // The cursor already tracks the position past any dangling bitfield unit's full reserved span - trust it
         // rather than state.Stream.Position, which a shared bitfield read may have rewound mid-unit for extraction.
+        // It also returns the stream from the last followed pointer target to the end of this struct.
         state.Stream.Position = cursor.FinishComposite(composite.Symbol.Alignment);
         state.CurrentBitOffset = 0;
         state.CurrentBitfieldType = null;

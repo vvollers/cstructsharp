@@ -10,6 +10,10 @@ using CStructSharp.Syntax;
 /// <summary>Stores one completely resolved field shape and all operation-time codec/layout facts.</summary>
 internal sealed class CompiledField
 {
+    // One reference for the rare @count facts: descriptors are copied per operation, so each field costs every read.
+    private CountedPointerTarget? countedTarget;
+
+    /// <summary>Creates the compiled view of a declared field from its resolved type, codecs, and storage facts.</summary>
     public CompiledField(
         Field declaration,
         Field effectiveField,
@@ -84,6 +88,7 @@ internal sealed class CompiledField
         this.PointerDepth = effectiveField.PointerDepth;
         this.SetCharacterFacts();
         this.CapturesLayoutVariable = parent.CapturesLayoutVariable;
+        this.countedTarget = parent.countedTarget;
         this.Codec = this.PointerDepth == parent.PointerDepth
                          ? parent.Codec
                          : this.PointerDepth > 0
@@ -120,6 +125,28 @@ internal sealed class CompiledField
     ///     overrides this.
     /// </summary>
     public bool CapturesLayoutVariable { get; internal set; } = true;
+
+    /// <summary>
+    ///     The element count of the pointer's final target, from a <c>@count(N)</c> suffix: the target is N
+    ///     consecutive values of the pointed-to type, read as an array. <see langword="null"/> for a pointer to one
+    ///     value and for every non-pointer field. Derived views (pointer levels, placement) keep it.
+    /// </summary>
+    public CompiledArrayShape? PointerElements
+    {
+        get => this.countedTarget?.Elements;
+        internal init => this.countedTarget = value is null ? null : new CountedPointerTarget(value);
+    }
+
+    /// <summary>Whether the pointer's final target is an array counted by <c>@count(N)</c>.</summary>
+    public bool HasCountedTarget => this.countedTarget is not null;
+
+    /// <summary>
+    ///     Whether a struct reader follows this pointer field after the struct's last field instead of in place: every
+    ///     named pointer and pointer array read by a struct (not a union), except an opaque <c>void *</c>. The runtime
+    ///     and the generated readers use this same rule, so both report the same first failure.
+    /// </summary>
+    public bool FollowsAfterStruct => this.PointerDepth > 0 && !this.IsUnnamed && this.Array.Kind != CompiledArrayKind.Flexible &&
+                                      !(this.PointerDepth == 1 && this.Type.TerminalName == "void");
 
     public int Alignment { get; }
 
@@ -318,6 +345,21 @@ internal sealed class CompiledField
             this.FixedOffset,
             this.BitOffset,
             this.CodecId);
+    }
+
+    /// <summary>
+    ///     The scalar view of one element of a counted target (<c>uint8</c> for <c>uint8 *iv @count(n)</c>), created
+    ///     on first use and shared by every derived view of the field.
+    /// </summary>
+    /// <param name="pointerSize">The layout's pointer width in bytes.</param>
+    /// <returns>The element view with its own codec, enum, or composite.</returns>
+    /// <exception cref="InvalidOperationException">The field has no counted target.</exception>
+    public CompiledField CountedElement(int pointerSize)
+    {
+        CountedPointerTarget target = this.countedTarget ?? throw new InvalidOperationException("The field has no counted target: " + this.Name);
+
+        // A benign race may create the view twice; both are equal.
+        return target.Element ??= this.SelectPointerTarget(0, null, pointerSize);
     }
 
     /// <summary>Creates an immutable target view after explicit pointer accessors consume part of the shape.</summary>

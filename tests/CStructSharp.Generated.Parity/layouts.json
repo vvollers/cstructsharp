@@ -1328,6 +1328,21 @@
       "variables": {}
     },
     {
+      "source": "Manual",
+      "id": "counted-pointers",
+      "className": "CountedPointers",
+      "definition": "struct root { uint8 *iv @count(len); uint8 len; uint8 data[2]; };",
+      "root": "root",
+      "pointerSize": 1,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "0202AABB",
+      "variables": {}
+    },
+    {
       "source": "Shapes",
       "id": "bits-u8-u16-sysv",
       "className": "BitsU8U16Sysv",

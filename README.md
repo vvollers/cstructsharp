@@ -236,8 +236,9 @@ a browser to build protocol tools, file inspectors, and binary editors.
   assert expected field offsets with `@N`. Type widths follow portable rules, and pointer width is configured
   explicitly, so the format's interpretation stays independent of the host process.
 - **Navigate beyond sequential records.** Describe stored pointers, pointer arrays, and multiple levels of
-  indirection. Read targets using absolute or relative addressing, or inspect stored addresses without following
-  them. Select nested values with paths such as `packet.samples[2].value` or `root.ptr.value`.
+  indirection, and give a pointer its element count with `@count(len)`, even when `len` is stored after it. Read
+  targets using absolute or relative addressing, or inspect stored addresses without following them. Select nested
+  values with paths such as `packet.samples[2].value` or `root.ptr.value`.
 - **Generate the code.** Put a layout on a `[CStructLayout]` class and the source generator in the same package
   writes typed classes, `Parse`/`Serialize`/`Write`, `readonly ref struct` views that allocate nothing, typed
   in-place setters, and size and offset constants at build time - the same parser, the same placement, and the

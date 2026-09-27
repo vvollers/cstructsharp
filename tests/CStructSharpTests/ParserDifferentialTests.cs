@@ -618,6 +618,15 @@ public class ParserDifferentialTests
             return null;
         }
 
+        // The reference reads `@count(N)` as an offset assertion calling a function named count, which compilation
+        // always rejected (only sizeof and offsetof are calls); the language now gives the spelling its pointer-count
+        // meaning. The trees differ by design, so such sources are compared for acceptance only.
+        if (referenceDump is not null && HasCountSuffix(source))
+        {
+            accepted = candidateDump is not null;
+            return null;
+        }
+
         // The reference reads a sizeof/offsetof argument as an ordinary call expression; the parser reads it as a
         // type spelling (words and pointer stars, so `sizeof(unsigned int)` works) and rejects an operator inside
         // the parentheses at parse time, where evaluation would reject it anyway.
@@ -770,6 +779,12 @@ public class ParserDifferentialTests
         return Regex.IsMatch(source, @"\b(?:sizeof|offsetof)\s*\([^()]*[|&^+\-/*%<>!~=?:,][^()]*\)");
     }
 
+    /// <summary>Whether the source spells a @count(N) suffix, which the frozen reference parses as an offset call.</summary>
+    /// <param name="source">The compared source.</param>
+    /// <returns>Whether the reference and the current parser build different trees by design.</returns>
+    private static bool HasCountSuffix(string source) => Regex.IsMatch(source, @"@count\s*\(");
+
+    /// <summary>Whether the source glues a keyword to the next word, which the frozen reference reads as the keyword.</summary>
     private static bool HasGluedKeyword(string source)
     {
         foreach (string keyword in new[] { "struct", "union", "enum", "typedef", "flag", "#define", "#undef", "#ifdef", "#ifndef", })

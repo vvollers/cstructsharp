@@ -356,6 +356,7 @@ internal sealed class GeneratedModel
         return WrapArray(element, field.Array.Dimensions.Length == 0 ? 1 : field.Array.Dimensions.Length);
     }
 
+    /// <summary>The <c>Pointer&lt;T&gt;</c> type of a pointer field: one wrapper per level around the target type, an array for a counted target.</summary>
     private string PointerTypeName(CompiledField field, GeneratedComposite? composite, GeneratedEnum? memberEnum)
     {
         string target;
@@ -380,6 +381,12 @@ internal sealed class GeneratedModel
         {
             // A pointer field carries no codec of its own; its target type's canonical name resolves the codec.
             target = PrimitiveTypeName(PrimitiveCodec.Resolve(field.Type.Symbol.Name, field.LayoutLittleEndian).Kind);
+        }
+
+        if (field.HasCountedTarget && target != "string")
+        {
+            // A @count target is an array of the pointed-to type; counted characters stay one string.
+            target += "[]";
         }
 
         for (int depth = 0; depth < field.PointerDepth; depth++)

@@ -64,6 +64,88 @@ Serialization writes a coordinate. It does not move or allocate target objects. 
 array item may receive `null`, which encodes zero. Null for a pointer collection or non-pointer value is a shape
 error.
 
+## When pointer targets are read
+
+A struct is read in two passes. The first pass reads every field in declaration order; a pointer field contributes
+only its stored coordinate. The second pass follows the struct's pointers, in declaration order, once its last field
+is read. Pointers inside a nested struct are followed when that nested struct is complete, and pointers of an
+anonymous promoted struct are followed with the struct it is promoted into.
+
+Two things follow from this rule:
+
+- A pointer target can depend on any field of the same struct, including one declared after the pointer. This is
+  what makes [counted pointer targets](#counted-pointer-targets) work.
+- When the input has several problems, the first one reported is the first problem in the struct's own fields. A
+  truncated field after a pointer is reported before a pointer whose target lies outside the input.
+
+For:
+
+```c
+struct box { uint8 v; };
+struct rec {
+    box *p;
+    uint8 tail;
+};
+```
+
+with a one-byte pointer and input `02 07 09`, `ParseWithDebug` lists `rec.p` (offset 0), then `rec.tail` (offset 1),
+then the target's `rec.p.v` (offset 2). A failure while following a pointer still names the pointer field and
+reports the offset just after its coordinate, as it would if the pointer were followed in place. Pointers in a union
+view are never followed, so this rule does not apply to them.
+
+## Counted pointer targets
+
+In C, a pointer does not know how many values it points at. Interfaces therefore store the count in another field.
+The PKCS#11 interface for cryptographic tokens, for example, pairs `CK_BYTE_PTR pIv` with `CK_ULONG ulIvLen`. Recent
+GCC and Clang releases can record such a pairing with the
+[`counted_by` attribute](https://gcc.gnu.org/onlinedocs/gcc/Common-Variable-Attributes.html). CStructSharp uses a
+`@count(N)` suffix on the pointer declarator:
+
+```c
+struct params {
+    uint8 *iv @count(iv_len);
+    uint8 iv_len;
+    uint8 data[3];
+};
+```
+
+`N` is an ordinary expression, evaluated like a [runtime array length](arrays-and-strings.md#runtime-expression-arrays)
+once the struct's fields are read. It may name any field of the same struct, including one declared after the
+pointer, as well as definitions and caller variables. The target is `N` consecutive values of the pointed-to type,
+starting at the pointer's target coordinate.
+
+With a one-byte pointer and input `02 03 A1 A2 A3`:
+
+```text
+offset   0          1        2    3    4
+bytes   02         03       A1   A2   A3
+field   iv         iv_len   data[0..2]
+value   target 2   3        the iv target: A1 A2 A3
+```
+
+`iv` stores coordinate 2 and `iv_len` is 3, so `iv.Value` holds the three bytes at offsets 2, 3, and 4. The target
+overlaps `data` in this example; a real format usually stores it elsewhere.
+
+The target's value depends on its element type:
+
+| Element type | `Pointer.Value` |
+| --- | --- |
+| `char`, `wchar` | One string of `N` characters, decoded as a character buffer of that length |
+| Fixed-width number | An array of `N` numbers |
+| Struct, union, enum, or other type | A list of `N` values, read one after another |
+
+A null pointer has no target, whatever its count. A negative count fails the read, and the count is checked against
+`MaxArrayElements`. `MaxPointerTargetBytes` applies to the whole target: `N` times the element size, so a target whose
+element has no fixed size is refused while that limit is set. The count applies to the final level of a multi-level
+pointer. It is rejected at construction on a field that is not a pointer, on an array of pointers, and on a
+`void *`, which has no element type.
+
+Writing works as for every pointer: serialization, writes, and updates store the coordinate and never place or resize
+the target. A path cannot select a counted target (`params.iv.value`), because its count may name a field that path
+resolution does not read; read the containing struct instead. `params.iv.address` still selects the stored
+coordinate. The [memory API](../guides/memory-schemas.md) projects one value per pointer and refuses a counted
+pointer.
+
 ## Multi-level pointers
 
 `T **field` stores a pointer whose target contains another pointer. Each level has its own encoded coordinate:
@@ -94,15 +176,17 @@ A pointer to a struct uses the same declaration-order traversal as a direct stru
 bounded overlapping views into `UnionValue`. CStructSharp does not automatically follow pointer members in every
 unselected union view; choose an explicit path when that traversal is intended.
 
-Pointer arrays use the configured pointer-width stride. Pointers to supported character shapes may produce the
-corresponding terminated string. Every intermediate pointer and target read counts toward the same total-read limit.
+Pointer arrays use the configured pointer-width stride; their elements are followed in index order after the
+containing struct's fields. Pointers to supported character shapes may produce the corresponding terminated string,
+and a [counted target](#counted-pointer-targets) is an array of the pointed-to type. Every intermediate pointer and
+target read counts toward the same total-read limit.
 
 ## Limits and failure categories
 
 Read-like operations use:
 
 - `MaxPointerDepth` (default 64);
-- `MaxPointerTargetBytes` for one fixed target;
+- `MaxPointerTargetBytes` for one fixed target, or for all elements of a counted target;
 - `MaxArrayElements`;
 - `MaxStringBytes`;
 - `MaxTotalBytesRead`; and

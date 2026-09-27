@@ -93,6 +93,7 @@ internal sealed partial class LayoutCompilation
         }
     }
 
+    /// <summary>Adds the names every expression of one field can read: dimensions, bit width, conditions, suffixes, and the pointer count.</summary>
     private static void CollectFieldReferences(Field field, ref HashSet<string>? referenced, ref Stack<Expr>? pending)
     {
         IReadOnlyList<Expr> dimensions = field.ArrayCount;
@@ -105,6 +106,7 @@ internal sealed partial class LayoutCompilation
         AddReferences(field.Condition, ref referenced, ref pending);
         AddReferences(field.AlignmentOverrideExpression, ref referenced, ref pending);
         AddReferences(field.OffsetAssertionExpression, ref referenced, ref pending);
+        AddReferences(field.PointerCountExpression, ref referenced, ref pending);
         IReadOnlyList<ConditionalBranch> branches = field.BranchConditions;
         for (int index = 0; index < branches.Count; index++)
         {
@@ -878,6 +880,8 @@ internal sealed partial class LayoutCompilation
                         "A data-sized array needs a fixed-size, non-text element type: " + field.Name.Name);
                 }
 
+                CompiledArrayShape? pointerElements = this.CompilePointerCount(field, effectiveField, type, pointerDepth, arrayShape);
+
                 int? storageSize = elementSize.HasValue && arrayShape.TotalFixedElementCount.HasValue
                                        ? checked(elementSize.Value * arrayShape.TotalFixedElementCount.Value)
                                        : null;
@@ -935,7 +939,10 @@ internal sealed partial class LayoutCompilation
                     bitfieldStorage?.IsLittleEndian,
                     null,
                     0,
-                    this.IsLittleEndian);
+                    this.IsLittleEndian)
+                {
+                    PointerElements = pointerElements,
+                };
                 fields.Add(compiledField);
             }
 
@@ -1102,6 +1109,52 @@ internal sealed partial class LayoutCompilation
 
         fixedSize = current;
         return result.ToImmutable();
+    }
+
+    /// <summary>
+    ///     Compiles a pointer declarator's <c>@count(N)</c> into the one-dimensional array shape of its final target:
+    ///     <c>uint8 *iv @count(iv_len)</c> points at <c>iv_len</c> consecutive <c>uint8</c> values.
+    /// </summary>
+    /// <param name="field">The declared field, carrying the count expression.</param>
+    /// <param name="effectiveField">The field after typedef resolution, which knows the real pointer depth.</param>
+    /// <param name="type">The resolved target type.</param>
+    /// <param name="pointerDepth">The resolved pointer depth; a typedef such as <c>CK_BYTE_PTR</c> contributes to it.</param>
+    /// <param name="arrayShape">The declarator's own array shape, which must be scalar.</param>
+    /// <returns>The target array shape, or <see langword="null"/> when the declarator has no <c>@count</c>.</returns>
+    /// <exception cref="CStructLayoutException">The count is on a non-pointer, an array of pointers, or a <c>void</c> target, or it is not a plain count.</exception>
+    private CompiledArrayShape? CompilePointerCount(Field field, Field effectiveField, CompiledTypeReference type, int pointerDepth, CompiledArrayShape arrayShape)
+    {
+        if (field.PointerCountExpression is not { } count)
+        {
+            return null;
+        }
+
+        string name = field.Name.Name;
+        if (pointerDepth == 0)
+        {
+            throw new CStructLayoutException("@count applies only to a pointer declarator: " + name);
+        }
+
+        if (arrayShape.Kind != CompiledArrayKind.Scalar)
+        {
+            throw new CStructLayoutException("@count cannot be combined with an array of pointers: " + name);
+        }
+
+        if (type.TerminalName == "void")
+        {
+            throw new CStructLayoutException("@count needs a typed target; a void pointer has no element type: " + name);
+        }
+
+        if (ReferenceEquals(count, Field.UnknownArraysize) || count is Identifier { Name: "EOF", })
+        {
+            throw new CStructLayoutException("@count needs an element count expression: " + name);
+        }
+
+        // The target is compiled like a one-dimensional array declarator `T name[N]`, so a literal count is fixed and
+        // a named count is evaluated from the operation's variables when the pointer is followed.
+        this.expressionEvaluator.Compile(count);
+        var targetArray = new Field(effectiveField.Type, field.Name, [count,], 0, 0);
+        return this.CompileSingleArrayDimension(targetArray, count);
     }
 
     /// <summary>Compiles one scalar, fixed, runtime-counted, or flexible array strategy.</summary>

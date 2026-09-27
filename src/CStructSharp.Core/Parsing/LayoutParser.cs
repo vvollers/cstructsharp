@@ -1513,7 +1513,7 @@ internal sealed class LayoutParser
 
         List<Expr?> dimensions = this.ParseArrayDimensions();
         Expr? bitSize = this.TryParseBitSize();
-        (Expr? alignmentOverride, Expr? offsetAssertion) = this.ParsePlacementSuffix();
+        (Expr? alignmentOverride, Expr? offsetAssertion, Expr? pointerCount) = this.ParseDeclaratorSuffixes();
 
         bool firstDeclaratorIsAnonymous = words.Count == 1 && bitSize is not null;
         Identifier typeIdentifier = firstDeclaratorIsAnonymous ? new Identifier(words[0].Name) { SourceOffset = words[0].SourceOffset, } : BuildTypeIdentifier(words);
@@ -1536,7 +1536,8 @@ internal sealed class LayoutParser
                 dimensions,
                 bitSize,
                 alignmentOverride,
-                offsetAssertion),
+                offsetAssertion,
+                pointerCount),
         };
 
         while (this.TryToken(','))
@@ -1544,7 +1545,7 @@ internal sealed class LayoutParser
             List<Identifier> declaratorWords = this.ParseQualifiedWords();
             List<Expr?> declaratorDimensions = this.ParseArrayDimensions();
             Expr? declaratorBitSize = this.TryParseBitSize();
-            (Expr? declaratorAlignment, Expr? declaratorOffset) = this.ParsePlacementSuffix();
+            (Expr? declaratorAlignment, Expr? declaratorOffset, Expr? declaratorCount) = this.ParseDeclaratorSuffixes();
             if (declaratorWords.Count == 0 && declaratorBitSize is null)
             {
                 throw new CStructLayoutException(
@@ -1566,7 +1567,8 @@ internal sealed class LayoutParser
                     declaratorDimensions,
                     declaratorBitSize,
                     declaratorAlignment,
-                    declaratorOffset));
+                    declaratorOffset,
+                    declaratorCount));
         }
 
         this.ExpectToken(';');
@@ -1617,6 +1619,7 @@ internal sealed class LayoutParser
         throw this.Fail("')'");
     }
 
+    /// <summary>Builds one parsed declarator, carrying its placement suffix and optional pointer count.</summary>
     private static Field MakeField(
         Identifier type,
         string? typeKeywordHint,
@@ -1625,7 +1628,8 @@ internal sealed class LayoutParser
         List<Expr?> dimensions,
         Expr? bitSize,
         Expr? alignmentOverride,
-        Expr? offsetAssertion)
+        Expr? offsetAssertion,
+        Expr? pointerCount = null)
     {
         // `_` is the conventional name of a reserved/padding field (dissect headers use it, several times per
         // struct). Such a field is unnamed, like an anonymous bitfield: read and skipped, written as zeroes, never
@@ -1638,7 +1642,10 @@ internal sealed class LayoutParser
             pointerDepth,
             typeKeywordHint,
             alignmentOverride,
-            offsetAssertion);
+            offsetAssertion)
+        {
+            PointerCountExpression = pointerCount,
+        };
     }
 
     /// <summary>Joins every word but the last with single spaces, skipping words that were only pointer stars.</summary>
@@ -1772,25 +1779,44 @@ internal sealed class LayoutParser
     }
 
     /// <summary>
-    ///     A declarator carries at most one trailing placement suffix: <c>@align(N)</c> (alignment override)
-    ///     or <c>@N</c> (offset assertion), tried in that order since <c>@align(</c> is the more specific prefix.
+    ///     A declarator carries at most one trailing placement suffix - <c>@align(N)</c> (alignment override)
+    ///     or <c>@N</c> (offset assertion) - and at most one <c>@count(N)</c> pointer element count, in either
+    ///     order. The named forms are tried first because an offset assertion may itself start with a name.
     /// </summary>
-    private (Expr? AlignmentOverride, Expr? OffsetAssertion) ParsePlacementSuffix()
+    private (Expr? AlignmentOverride, Expr? OffsetAssertion, Expr? PointerCount) ParseDeclaratorSuffixes()
     {
-        if (this.AtEnd || this.source[this.position] != '@')
+        Expr? alignment = null;
+        Expr? offset = null;
+        Expr? count = null;
+        while (!this.AtEnd && this.source[this.position] == '@')
         {
-            return (null, null);
+            if (this.TryParseNamedSuffix("@count") is { } parsedCount)
+            {
+                if (count is not null)
+                {
+                    throw new CStructLayoutException(SyntaxErrorPrefix + "A declarator can have only one @count suffix.");
+                }
+
+                count = parsedCount;
+                continue;
+            }
+
+            if (alignment is not null || offset is not null)
+            {
+                // A second placement suffix is not part of the grammar; the declarator must end here.
+                break;
+            }
+
+            alignment = this.TryParseAlignmentOverride();
+            if (alignment is null)
+            {
+                this.position++;
+                this.SkipTrivia();
+                offset = this.ParseExpr();
+            }
         }
 
-        Expr? alignment = this.TryParseAlignmentOverride();
-        if (alignment is not null)
-        {
-            return (alignment, null);
-        }
-
-        this.position++;
-        this.SkipTrivia();
-        return (null, this.ParseExpr());
+        return (alignment, offset, count);
     }
 
     /// <summary>
@@ -1799,13 +1825,22 @@ internal sealed class LayoutParser
     /// </summary>
     private Expr? TryParseAlignmentOverride()
     {
-        if (!this.StartsWith("@align"))
+        return this.TryParseNamedSuffix("@align");
+    }
+
+    /// <summary>
+    ///     <c>keyword(expression)</c> for a named suffix such as <c>@align</c> or <c>@count</c>; otherwise the cursor
+    ///     is unchanged. The keyword not followed by <c>(</c> is left for the caller.
+    /// </summary>
+    private Expr? TryParseNamedSuffix(string keyword)
+    {
+        if (!this.StartsWith(keyword))
         {
             return null;
         }
 
         int start = this.position;
-        this.position += "@align".Length;
+        this.position += keyword.Length;
         this.SkipTrivia();
         if (!this.TryToken('('))
         {

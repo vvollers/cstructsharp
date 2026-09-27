@@ -1412,6 +1412,36 @@
         "unsupportedId": "indexed-nested-reference",
         "errorCode": "InvalidLayout"
       }
+    },
+    {
+      "id": "counted-pointers",
+      "featureId": "counted-pointers",
+      "manual": "docs/language/pointers-and-addressing.md#counted-pointer-targets",
+      "valid": {
+        "definition": "struct root { uint8 *iv @count(len); uint8 len; uint8 data[2]; };",
+        "root": "root",
+        "pointerSize": 1,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 4,
+        "alignment": 1,
+        "bytes": "0202AABB",
+        "offsets": {
+          "root.iv.address": 0,
+          "root.len": 1,
+          "root.data": 2
+        },
+        "values": {
+          "root.iv.address": "2",
+          "root.iv.isDereferenced": "false",
+          "root.len": "2"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "count-on-non-pointer",
+        "errorCode": "InvalidLayout"
+      }
     }
   ]
 }

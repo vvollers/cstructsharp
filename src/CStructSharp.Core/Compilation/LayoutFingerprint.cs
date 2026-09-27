@@ -57,6 +57,7 @@ internal static class LayoutFingerprint
                 .Append(field.IsWideCharElement ? "w" : string.Empty)
                 .Append(field.Declaration.Condition is not null || field.ConditionalBranches.Length > 0 ? "?" : string.Empty)
                 .Append(field.Declaration.OffsetAssertionExpression is not null ? "!" : string.Empty)
+                .Append(field.HasCountedTarget ? "#" : string.Empty)
                 .Append(composite.PromotedFields.Contains(field) ? "^" : string.Empty);
             if (field.Enum is { } enumeration)
             {

@@ -102,6 +102,71 @@ public class ReaderParityTests
         static string Strip(string source) => string.Join("\n", source.Split('\n').Where(line => !line.Contains("public const string Definition = ", StringComparison.Ordinal)));
     }
 
+    /// <summary>
+    ///     Pointers followed after their struct, including <c>@count(N)</c> targets whose count is declared after the
+    ///     pointer: both readers produce the same value and, for every truncated prefix and invalid count, the same
+    ///     first failure.
+    /// </summary>
+    [TestMethod]
+    public void DeferredAndCountedPointers_MatchTheRuntime()
+    {
+        const string LittleOne = "PointerSize = 1, Aligned = false, LittleEndian = true";
+        RunParity(
+            "counted-gcm",
+            "typedef uint8 *byte_ptr; struct params { byte_ptr iv @count(iv_len); uint16 iv_len; byte_ptr tag @count(tag_bits / 8); uint16 tag_bits; };",
+            "Root = \"params\", " + LittleOne,
+            "params",
+            [8, 3, 0, 11, 16, 0, 0, 0, 0xA1, 0xA2, 0xA3, 0xB1, 0xB2,],
+            new Dictionary<string, int>(),
+            null,
+            null);
+        RunParity(
+            "counted-structs",
+            "struct blob { uint16 a; uint8 b; }; struct rec { blob *items @count(n); uint8 n; uint8 tail; };",
+            "Root = \"rec\", " + LittleOne,
+            "rec",
+            [3, 2, 9, 1, 0, 2, 3, 0, 4,],
+            new Dictionary<string, int>(),
+            null,
+            null);
+        RunParity(
+            "counted-text",
+            "struct rec { char *name @count(len); uint8 len; };",
+            "Root = \"rec\", " + LittleOne,
+            "rec",
+            [2, 3, (byte)'a', (byte)'b', (byte)'c',],
+            new Dictionary<string, int>(),
+            null,
+            null);
+        RunParity(
+            "deferred-pointer-array",
+            "struct node { uint8 v; }; struct rec { node *items[2]; uint8 tail; };",
+            "Root = \"rec\", " + LittleOne,
+            "rec",
+            [3, 4, 9, 7, 8,],
+            new Dictionary<string, int>(),
+            null,
+            null);
+        RunParity(
+            "counted-negative",
+            "struct rec { uint8 *iv @count(n); int8 n; };",
+            "Root = \"rec\", " + LittleOne,
+            "rec",
+            [2, 0xFF, 0,],
+            new Dictionary<string, int>(),
+            null,
+            "CStructReadException");
+        RunParity(
+            "counted-limit",
+            "struct rec { uint16 *v @count(n); uint8 n; };",
+            "Root = \"rec\", " + LittleOne,
+            "rec",
+            [2, 3, 1, 0, 2, 0, 3, 0,],
+            new Dictionary<string, int>(),
+            new ReadOptions { MaxPointerTargetBytes = 5, },
+            "CStructReadLimitException");
+    }
+
     /// <summary>Runs one ad-hoc case through both readers: the value (or the expected failure) and the truncation sweep.</summary>
     internal static void RunParity(string id, string definition, string arguments, string root, byte[] bytes, IReadOnlyDictionary<string, int> fixtureVariables, ReadOptions? options, string? expectedError)
     {

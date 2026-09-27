@@ -6,6 +6,34 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+### Breaking changes
+
+- **Breaking (behaviour):** a struct now follows its pointers after its last field is read, in declaration order,
+  instead of at each pointer field. The runtime reader and generated code follow the same rule. Values are
+  unchanged. Two things change: `ParseWithDebug` lists a pointer's target records after the struct's own fields,
+  and when an input has several problems, a truncated or invalid field after a pointer is now reported before a
+  pointer whose target cannot be read. Pointer failures still name the pointer field and the offset just after its
+  address. Migration: code that relies on debug-record order should look records up by path.
+
+### Added
+
+- `@count(N)` on a pointer declarator reads `N` consecutive elements at the target: `uint8 *iv @count(iv_len);`
+  gives `Pointer.Value` a byte array (a string for `char`, a list for structs and other types). `N` may name a field
+  declared after the pointer, so C interfaces such as PKCS#11's `CK_GCM_MESSAGE_PARAMS` (`pIv` before `ulIvLen`) can
+  be described as they are. The count obeys `MaxArrayElements`, and `MaxPointerTargetBytes` applies to the whole
+  target. Generated code reads counted targets as `Pointer<T[]>`. Writing stores the address only, as for every
+  pointer. A path cannot select a counted target (`root.iv.value`), and the memory API does not project counted
+  pointers.
+
+### Fixed
+
+- A generated layout with an array of pointers (`node *items[2];`) no longer fails to compile.
+
+### Performance
+
+- A read reuses its pointer bookkeeping (the cycle-detection set and the deferred-pointer list) from a per-thread
+  cache instead of allocating it, so a read that follows pointers allocates less than before.
+
 ## 0.10.0 — 2026-09-26
 
 ### Performance

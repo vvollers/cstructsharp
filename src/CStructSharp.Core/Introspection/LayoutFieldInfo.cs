@@ -68,4 +68,7 @@ public sealed class LayoutFieldInfo
 
     /// <summary>Gets the fields of an anonymous promoted member; empty otherwise.</summary>
     public IReadOnlyList<LayoutFieldInfo> PromotedFields { get; }
+
+    /// <summary>Whether the field is a pointer whose target is an array counted by <c>@count(N)</c>.</summary>
+    internal bool HasCountedTarget { get; init; }
 }

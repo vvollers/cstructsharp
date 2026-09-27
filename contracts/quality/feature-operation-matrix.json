@@ -1656,6 +1656,27 @@
           "tests/CStructSharpTests/NestedReferenceTests.cs#DottedReference_RoundTripsThroughEveryOperation"
         ]
       }
+    },
+    {
+      "featureId": "counted-pointers",
+      "value": {
+        "status": "conditional",
+        "conditions": [
+          "The stored address, the count field, and the optional dereferenced elements are parsed, but serialization writes the pointer address rather than relocating, resizing, or serializing the counted target."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/CountedPointerTests.cs#SerializeWriteAndUpdate_StoreTheAddressOnly"
+        ]
+      },
+      "bytes": {
+        "status": "conditional",
+        "conditions": [
+          "Exact-byte round-trip applies to the pointer and count storage inside the selected root extent; the counted target's bytes are outside that serialization."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/CountedPointerTests.cs#SerializeWriteAndUpdate_StoreTheAddressOnly"
+        ]
+      }
     }
   ],
   "knownContractLimits": [
@@ -5989,6 +6010,102 @@
       "limitations": [
         "The head of a dotted path must be a scalar struct or union field (not an array element or a pointer target); an element's field is reached through the bare name after the element is read.",
         "A dotted path that names no struct field is an undefined identifier when evaluated, like any other unknown name."
+      ]
+    },
+    {
+      "id": "counted-pointers",
+      "manual": "docs/language/pointers-and-addressing.md#counted-pointer-targets",
+      "fixture": "counted-pointers",
+      "title": "Pointer targets counted by @count(N)",
+      "support": "limited",
+      "generated": "parity",
+      "dimensions": {
+        "endian": [
+          "little"
+        ],
+        "alignment": [
+          "unaligned"
+        ],
+        "cardinality": [
+          "runtime-array"
+        ],
+        "indirection": [
+          "pointer"
+        ],
+        "placement": [
+          "nested",
+          "typedef"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "over-budget",
+          "invalid-layout",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "limited",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "limited",
+        "read-value": "limited"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/CountedPointerTests.cs#CountNamedAfterThePointer_ReadsTheCountedElements",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/CountedPointerTests.cs#CountedTargets_UseTheirElementTypes",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/CountedPointerTests.cs#CountedTargets_ApplyTheArrayAndTargetLimits",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/CountedPointerTests.cs#DebugRecords_IndexCountedStructElements",
+          "operations": [
+            "debug"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/CountedPointerTests.cs#SerializeWriteAndUpdate_StoreTheAddressOnly",
+          "operations": [
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/CountedPointerTests.cs#CountedTargetPaths_AreRejectedButAddressesResolve",
+          "operations": [
+            "address",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharp.Generators.Tests/ReaderParityTests.cs#DeferredAndCountedPointers_MatchTheRuntime",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        }
+      ],
+      "limitations": [
+        "A path cannot select a counted target (`root.iv.value`), because its count may name a field declared after the pointer that path resolution does not read; read the containing struct, or select `root.iv.address`.",
+        "Writing stores the address only, as for every pointer: serialization, writes, and updates never place or resize a target.",
+        "The memory API projects one value per pointer and rejects a counted pointer."
       ]
     }
   ],

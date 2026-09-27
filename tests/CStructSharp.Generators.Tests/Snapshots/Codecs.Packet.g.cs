@@ -517,6 +517,7 @@ namespace Demo
             cursor.EnterComposite(member ?? "root", memberType);
             var value = new Root();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
+            int deferredPointer0 = -1;
             // uint8 head
             {
                 cursor.Seek(placement.AdvanceToField(1), "head", "uint8");
@@ -538,7 +539,8 @@ namespace Demo
             // rgb *ptr
             {
                 cursor.Seek(placement.AdvanceToField(1), "ptr", "rgb");
-                value.Ptr = ReadPointer_rgb_1(ref cursor, variables, "ptr", "rgb");
+                value.Ptr = new global::CStructSharp.Generated.Pointer<object?>(cursor.TakePointerAddress(PointerSize, LittleEndian, "ptr", "rgb"), 1);
+                deferredPointer0 = cursor.Position;
                 placement.CompleteField(cursor.Position);
             }
             // blob items[2]
@@ -561,6 +563,11 @@ namespace Demo
                 value.Tail = cursor.Take(1, "tail", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
+            if (deferredPointer0 >= 0 && value.Ptr.Address != 0 && cursor.FollowsPointers)
+            {
+                cursor.Position = deferredPointer0;
+                value.Ptr = FollowPointer_rgb_1(ref cursor, variables, value.Ptr.Address, "ptr", "rgb");
+            }
             cursor.Seek(placement.Finish(1), member, memberType);
             cursor.ExitComposite();
             return value;
@@ -570,6 +577,12 @@ namespace Demo
         private static global::CStructSharp.Generated.Pointer<object?> ReadPointer_rgb_1(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             long address = cursor.TakePointerAddress(PointerSize, LittleEndian, member ?? "ptr", memberType);
+            return FollowPointer_rgb_1(ref cursor, variables, address, member, memberType);
+        }
+
+        /// <summary>Follows a <c>rgb *ptr</c> pointer whose address was already read, when pointers are followed; the cursor returns to its position.</summary>
+        private static global::CStructSharp.Generated.Pointer<object?> FollowPointer_rgb_1(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, long address, string? member, string? memberType)
+        {
             if (address == 0 || !cursor.FollowsPointers)
             {
                 return new global::CStructSharp.Generated.Pointer<object?>(address, 1);

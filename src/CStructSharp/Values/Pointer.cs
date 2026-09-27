@@ -72,16 +72,35 @@ public sealed class Pointer
     /// <summary>
     ///     Gets a value indicating whether the parser followed this pointer to obtain <see cref="Value"/>.
     /// </summary>
-    public bool IsDereferenced { get; }
+    public bool IsDereferenced { get; private set; }
 
     /// <summary>Gets whether pointer storage contains the null address.</summary>
     public bool IsNull => this.Address == 0;
 
     /// <summary>Gets the parsed target, another <see cref="Pointer"/>, or <see langword="null"/> when not followed.</summary>
-    public object? Value { get; }
+    public object? Value { get; private set; }
 
     /// <summary>Gets the next pointer in a multi-level chain, when the parsed target is another pointer.</summary>
     public Pointer? Next => this.Value as Pointer;
+
+    /// <summary>
+    ///     Attaches the target of a pointer the reader followed after its containing struct was complete. The reader
+    ///     stores the unresolved pointer in its result first and resolves it before the result is returned, so a
+    ///     caller never observes the change.
+    /// </summary>
+    /// <param name="value">The decoded target, or the next <see cref="Pointer"/> level.</param>
+    /// <exception cref="InvalidOperationException">The pointer is null or already resolved.</exception>
+    internal void Resolve(object value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        if (this.IsNull || this.IsDereferenced)
+        {
+            throw new InvalidOperationException("Only an unresolved non-null pointer can be resolved.");
+        }
+
+        this.Value = value;
+        this.IsDereferenced = true;
+    }
 
     /// <summary>Returns the parsed target value, or <see langword="null"/> when the pointer was not followed.</summary>
     /// <returns>The parsed target, another <see cref="Pointer"/>, or <see langword="null"/>.</returns>
