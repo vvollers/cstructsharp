@@ -49,14 +49,18 @@ internal static class LayoutFingerprint
                 .Append('[').Append(((int)field.Array.Kind).ToString(CultureInfo.InvariantCulture))
                 .Append(',').Append(field.Array.Dimensions.Length.ToString(CultureInfo.InvariantCulture))
                 .Append(',').Append(Number(field.Array.FixedCount))
+                .Append(',').Append(Dimensions(field.Array))
                 .Append(',').Append(Number(field.FixedElementSize)).Append(']')
                 .Append('*').Append(field.PointerDepth.ToString(CultureInfo.InvariantCulture))
                 .Append('~').Append(field.BitSize.ToString(CultureInfo.InvariantCulture))
+                .Append('.').Append(field.BitOffset.ToString(CultureInfo.InvariantCulture))
+                .Append('/').Append(Number(field.BitUnitSize)).Append('/').Append(Number(field.BitStorageSize))
+                .Append(field.BitStorageIsLittleEndian switch { true => "l", false => "b", null => "-" })
                 .Append(field.IsZeroWidthBitfield ? "z" : string.Empty)
                 .Append(field.IsCharacterArray ? "c" : string.Empty)
                 .Append(field.IsWideCharElement ? "w" : string.Empty)
                 .Append(field.Declaration.Condition is not null || field.ConditionalBranches.Length > 0 ? "?" : string.Empty)
-                .Append(field.Declaration.OffsetAssertionExpression is not null ? "!" : string.Empty)
+                .Append(field.AssertedOffset is int asserted ? "!" + asserted.ToString(CultureInfo.InvariantCulture) : string.Empty)
                 .Append(field.HasCountedTarget ? "#" : string.Empty)
                 .Append(composite.PromotedFields.Contains(field) ? "^" : string.Empty);
             if (field.Enum is { } enumeration)
@@ -81,6 +85,20 @@ internal static class LayoutFingerprint
         }
 
         text.Append('}');
+    }
+
+    /// <summary>Every dimension's fixed count, outermost first, with <c>-</c> for a runtime-sized one.</summary>
+    /// <param name="array">The array shape.</param>
+    /// <returns>The counts, separated by <c>x</c>.</returns>
+    private static string Dimensions(CompiledArrayShape array)
+    {
+        var text = new StringBuilder();
+        foreach (CompiledArrayDimension dimension in array.Dimensions)
+        {
+            text.Append(Number(dimension.FixedCount)).Append('x');
+        }
+
+        return text.ToString();
     }
 
     /// <summary>An optional number as text, with <c>-</c> for none.</summary>

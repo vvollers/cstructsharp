@@ -58,7 +58,7 @@ namespace Demo
         }
 
         /// <summary>Gets the fingerprint of the layout struct <c>plain</c> the direct members below were generated for.</summary>
-        public static ulong FixedLayoutFingerprint => 0x2C2C6E51328FA36CUL;
+        public static ulong FixedLayoutFingerprint => 0xAE7BE6B14F43FD24UL;
 
         /// <summary>Reads an instance from the struct's 65 bytes, each property from its member's constant offset: what <see cref="ReadFrom"/> reads from the parsed struct.</summary>
         /// <param name="source">The struct's bytes.</param>
@@ -72,14 +72,14 @@ namespace Demo
             {
                 return false;
             }
-            if (!global::CStructSharp.MappedTypes.TryReadFixed<global::Demo.Vec>(source.Slice(2, 8), 0xC1D35AD086106B16UL, trimFixedText, out global::Demo.Vec? member1))
+            if (!global::CStructSharp.MappedTypes.TryReadFixed<global::Demo.Vec>(source.Slice(2, 8), 0x21E6F24AE88B8AECUL, trimFixedText, out global::Demo.Vec? member1))
             {
                 return false;
             }
             var member2 = new global::Demo.Vec[2];
             for (int index = 0; index < 2; index++)
             {
-                if (!global::CStructSharp.MappedTypes.TryReadFixed<global::Demo.Vec>(source.Slice(10 + index * 8, 8), 0xC1D35AD086106B16UL, trimFixedText, out global::Demo.Vec? item))
+                if (!global::CStructSharp.MappedTypes.TryReadFixed<global::Demo.Vec>(source.Slice(10 + index * 8, 8), 0x21E6F24AE88B8AECUL, trimFixedText, out global::Demo.Vec? item))
                 {
                     return false;
                 }
@@ -125,7 +125,7 @@ namespace Demo
             // id
             global::CStructSharp.Generated.Codec.WriteUInt16(target.Slice(0, 2), value.Id, true);
             // pos
-            if (value.Pos is null || !global::CStructSharp.MappedTypes.TryWriteFixed<global::Demo.Vec>(value.Pos, target.Slice(2, 8), 0xC1D35AD086106B16UL))
+            if (value.Pos is null || !global::CStructSharp.MappedTypes.TryWriteFixed<global::Demo.Vec>(value.Pos, target.Slice(2, 8), 0x21E6F24AE88B8AECUL))
             {
                 return false;
             }
@@ -136,7 +136,7 @@ namespace Demo
             }
             for (int index = 0; index < 2; index++)
             {
-                if (value.Path[index] is null || !global::CStructSharp.MappedTypes.TryWriteFixed<global::Demo.Vec>(value.Path[index], target.Slice(10 + index * 8, 8), 0xC1D35AD086106B16UL))
+                if (value.Path[index] is null || !global::CStructSharp.MappedTypes.TryWriteFixed<global::Demo.Vec>(value.Path[index], target.Slice(10 + index * 8, 8), 0x21E6F24AE88B8AECUL))
                 {
                     return false;
                 }

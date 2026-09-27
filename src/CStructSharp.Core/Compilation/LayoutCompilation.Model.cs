@@ -63,6 +63,8 @@ internal sealed partial class LayoutCompilation
     }
 
     /// <summary>Builds the operation-time model after parsed declarations have passed all layout validation.</summary>
+    /// <returns>The compiled model.</returns>
+    /// <exception cref="CStructLayoutException">The layout is invalid, or its sizes overflow.</exception>
     private CompiledLayoutModel CompileIntermediateRepresentation()
     {
         try
@@ -73,9 +75,10 @@ internal sealed partial class LayoutCompilation
         {
             throw;
         }
-        catch (Exception exception) when (exception is ArgumentException or ArithmeticException or
-                                          InvalidOperationException or KeyNotFoundException)
+        catch (OverflowException exception)
         {
+            // Checked size and offset arithmetic overflows on a layout too large to address; any other exception here
+            // is a bug and propagates as itself.
             throw new CStructLayoutException(
                 "Layout could not be converted to the compiled intermediate representation.",
                 exception);
