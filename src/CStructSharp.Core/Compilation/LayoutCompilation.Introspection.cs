@@ -75,6 +75,138 @@ internal sealed partial class LayoutCompilation
         return builder.ToString();
     }
 
+    /// <summary>
+    ///     Emits the group lines that take the rendering from the arms in <paramref name="open"/> (outermost first) to
+    ///     the arms of the next member, <paramref name="target"/>: closes groups the member is not in, moves to the next
+    ///     arm of a group it continues, and opens groups it enters. <paramref name="open"/> is updated in place.
+    /// </summary>
+    /// <param name="builder">The layout text being built.</param>
+    /// <param name="open">The arms currently open, outermost first.</param>
+    /// <param name="target">The arms of the next member, or none to close everything.</param>
+    /// <param name="indent">The indentation of the composite's own members.</param>
+    private static void MoveToBranches(StringBuilder builder, List<ConditionalBranch> open, IReadOnlyList<ConditionalBranch> target, string indent)
+    {
+        int common = 0;
+        while (common < open.Count && common < target.Count && open[common] == target[common])
+        {
+            common++;
+        }
+
+        // The next member continues the group at this level in a later arm: keep the group, change the arm.
+        bool nextArm = common < open.Count && common < target.Count && ReferenceEquals(open[common].Group, target[common].Group);
+        int keep = nextArm ? common + 1 : common;
+        while (open.Count > keep)
+        {
+            int level = open.Count - 1;
+            CloseGroup(builder, open[level], LevelIndent(indent, level));
+            open.RemoveAt(level);
+        }
+
+        if (nextArm)
+        {
+            MoveToArm(builder, open[common], target[common].Arm, LevelIndent(indent, common));
+            open[common] = target[common];
+            common++;
+        }
+
+        for (int level = common; level < target.Count; level++)
+        {
+            OpenGroup(builder, target[level], LevelIndent(indent, level));
+            open.Add(target[level]);
+        }
+    }
+
+    /// <summary>The indentation of a group line at nesting <paramref name="level"/> inside a composite.</summary>
+    private static string LevelIndent(string indent, int level) => indent + new string(' ', 4 * level);
+
+    /// <summary>Whether a group is a <c>switch</c> (it has case labels) rather than an <c>if</c>.</summary>
+    private static bool IsSwitch(ConditionalGroup group) => group.CaseLabels is not null || group.CaseArms is not null;
+
+    /// <summary>The number of <c>case</c> arms of a switch group, excluding <c>default</c>.</summary>
+    private static int CaseCount(ConditionalGroup group) => group.CaseLabels?.Count ?? group.CaseArms!.Count;
+
+    /// <summary>Emits the <c>case</c> line of switch arm <paramref name="arm"/>, or the <c>default</c> line for arm -1.</summary>
+    private static void AppendArm(StringBuilder builder, ConditionalGroup group, int arm, string indent)
+    {
+        if (arm < 0)
+        {
+            builder.Append(indent).AppendLine("default: {");
+            return;
+        }
+
+        // A normalized group keeps each label's value (value -> arm); a parsed group keeps the label expressions.
+        string label = group.CaseLabels is { } labels
+                           ? ExpressionPrinter.Print(labels[arm])
+                           : group.CaseArms!.First(pair => pair.Value == arm).Key.ToString(CultureInfo.InvariantCulture);
+        builder.Append(indent).Append("case ").Append(label).AppendLine(": {");
+    }
+
+    /// <summary>
+    ///     Emits empty <c>case</c> arms <paramref name="from"/> (inclusive) to <paramref name="to"/> (exclusive). An empty
+    ///     arm must still be rendered: without it, its value would select <c>default</c>.
+    /// </summary>
+    private static void AppendEmptyArms(StringBuilder builder, ConditionalGroup group, int from, int to, string indent)
+    {
+        for (int arm = from; arm < to; arm++)
+        {
+            AppendArm(builder, group, arm, indent);
+            builder.Append(indent).AppendLine("}");
+        }
+    }
+
+    /// <summary>Opens the group of <paramref name="branch"/> and its arm; an if-group entered at its else arm gets an empty then arm.</summary>
+    private static void OpenGroup(StringBuilder builder, ConditionalBranch branch, string indent)
+    {
+        ConditionalGroup group = branch.Group;
+        string selector = ExpressionPrinter.Print(group.Selector);
+        if (!IsSwitch(group))
+        {
+            builder.Append(indent).Append("if (").Append(selector).AppendLine(") {");
+            if (branch.Arm == 0)
+            {
+                builder.Append(indent).AppendLine("} else {");
+            }
+
+            return;
+        }
+
+        builder.Append(indent).Append("switch (").Append(selector).AppendLine(") {");
+        AppendEmptyArms(builder, group, 0, branch.Arm < 0 ? CaseCount(group) : branch.Arm, indent);
+        AppendArm(builder, group, branch.Arm, indent);
+    }
+
+    /// <summary>Closes the current arm of a group and opens the later arm <paramref name="arm"/> of the same group.</summary>
+    private static void MoveToArm(StringBuilder builder, ConditionalBranch current, int arm, string indent)
+    {
+        ConditionalGroup group = current.Group;
+        if (!IsSwitch(group))
+        {
+            builder.Append(indent).AppendLine("} else {");
+            return;
+        }
+
+        builder.Append(indent).AppendLine("}");
+        AppendEmptyArms(builder, group, current.Arm + 1, arm < 0 ? CaseCount(group) : arm, indent);
+        AppendArm(builder, group, arm, indent);
+    }
+
+    /// <summary>Closes the open arm of a group and the group itself, rendering any later empty switch arms.</summary>
+    private static void CloseGroup(StringBuilder builder, ConditionalBranch branch, string indent)
+    {
+        builder.Append(indent).AppendLine("}");
+        if (!IsSwitch(branch.Group))
+        {
+            return;
+        }
+
+        if (branch.Arm >= 0)
+        {
+            AppendEmptyArms(builder, branch.Group, branch.Arm + 1, CaseCount(branch.Group), indent);
+        }
+
+        builder.Append(indent).AppendLine("}");
+    }
+
     /// <summary>Renders one struct or union back to Portable text, including each declarator's suffixes.</summary>
     private void RenderComposite(StringBuilder builder, Struct composite, string indent)
     {
@@ -91,6 +223,11 @@ internal sealed partial class LayoutCompilation
 
         builder.AppendLine("{");
         string inner = indent + "    ";
+
+        // Conditional members are rendered as the if/switch groups they were declared in, not one condition per
+        // member: a group is decided once, at its first member, so separate per-member conditions could select
+        // differently after an earlier member of the arm changes a variable the selector reads.
+        var open = new List<ConditionalBranch>();
         foreach (Field field in composite.Fields)
         {
             if (field is SwitchCaseValidation)
@@ -98,18 +235,15 @@ internal sealed partial class LayoutCompilation
                 continue;
             }
 
+            MoveToBranches(builder, open, field.BranchConditions, inner);
+            string fieldIndent = inner + new string(' ', 4 * open.Count);
             if (field is Struct nested)
             {
-                this.RenderComposite(builder, nested, inner);
+                this.RenderComposite(builder, nested, fieldIndent);
                 continue;
             }
 
-            builder.Append(inner);
-            if (field.Condition is not null)
-            {
-                builder.Append("if (").Append(ExpressionPrinter.Print(field.Condition)).Append(") { ");
-            }
-
+            builder.Append(fieldIndent);
             builder.Append(field.Type.Name).Append(' ').Append(new string('*', field.PointerDepth)).Append(field.Name.Name.Length == 0 && field.BitSize == 0 && !field.HasBitfieldDeclarator ? "_" : field.Name.Name);
             foreach (Expr dimension in field.ArrayCount)
             {
@@ -135,15 +269,10 @@ internal sealed partial class LayoutCompilation
                 builder.Append(" @count(").Append(ExpressionPrinter.Print(field.PointerCountExpression)).Append(')');
             }
 
-            builder.Append(';');
-            if (field.Condition is not null)
-            {
-                builder.Append(" }");
-            }
-
-            builder.AppendLine();
+            builder.AppendLine(";");
         }
 
+        MoveToBranches(builder, open, Array.Empty<ConditionalBranch>(), inner);
         builder.Append(indent).Append('}');
         if (composite.Name.Name.Length > 0 && indent.Length > 0)
         {

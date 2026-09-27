@@ -31,6 +31,10 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 - Writing a string value to a numeric field no longer depends on the current culture: `"1.5"` written to a `float64`
   under a comma-decimal culture such as de-DE now stores 1.5 instead of 15. Every conversion of a caller value to a
   field uses the invariant culture.
+- `CStruct.ToDefinition()` renders conditional members as the `if`/`switch` groups they were declared in. It
+  dropped the condition of a conditional inline struct and the empty arms of a switch, and rendered one condition
+  per member, which could select differently from the original; the rendered text now reads every input like the
+  original layout.
 
 ### Performance
 
