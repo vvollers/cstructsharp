@@ -1,4 +1,4 @@
-import type { DebugItem } from "./wasm/cstruct-contract";
+import type { DebugItem } from "@cstructsharp/app-shared/wasm/contract";
 
 /**
  * Split a parser path into the steps needed to walk the JSON result.

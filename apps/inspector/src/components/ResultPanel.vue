@@ -10,7 +10,7 @@ import {
   type JSONEditorSelection,
 } from "vanilla-jsoneditor";
 
-import type { InteropResult } from "../wasm/cstruct-contract";
+import type { InteropResult } from "@cstructsharp/app-shared/wasm/contract";
 
 const props = defineProps<{
   result: InteropResult | null;

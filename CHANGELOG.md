@@ -128,6 +128,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 - The explorer and the inspector form one npm workspace in `apps/` with one lockfile and a shared source package
   (`apps/shared`, imported as `@cstructsharp/app-shared`); run `npm ci` once in `apps/`. Both apps now use the
   same dependency versions, and the `dompurify` override applies to both from the workspace manifest.
+- Both apps load and validate the WebAssembly runtime through one shared adapter (`apps/shared/src/wasm`) whose
+  types come from the npm package declarations, instead of two hand-copied modules.
 - API baselines are named by role: `contracts/api/managed` and `contracts/api/browser` (published under
   `/docs/contracts/api/`). The managed manifest keeps the approved hash of every revision and the review text of the
   current one; the release history is this changelog. The `frozen` status, work-item code and stale package version

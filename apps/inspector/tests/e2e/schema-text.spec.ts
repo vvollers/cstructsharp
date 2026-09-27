@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { schemaForFile } from "../../src/schema-catalog";
-import type { RawWasmAdapter } from "../../src/wasm/cstruct-contract";
+import type { RawWasmAdapter } from "@cstructsharp/app-shared/wasm/contract";
 
 test("bounded legacy and UTF-16 encodings survive the real WASM writer", async ({ page }) => {
   await page.goto("/");

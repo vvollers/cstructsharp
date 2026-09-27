@@ -4,12 +4,12 @@ import { mount } from "@vue/test-utils";
 import { detectFile } from "../detect-file";
 import { sampleExamples } from "../schema-catalog";
 import { parseFailure } from "./useParseSession";
-import { parseSourceWithDebug } from "../wasm/cstruct-wasm";
+import { parseSourceWithDebug } from "@cstructsharp/app-shared/wasm/adapter";
 import { useInspector, type Inspector } from "./useInspector";
 
 vi.mock("../detect-file", () => ({ detectFile: vi.fn() }));
-vi.mock("../wasm/cstruct-wasm", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../wasm/cstruct-wasm")>()),
+vi.mock("@cstructsharp/app-shared/wasm/adapter", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@cstructsharp/app-shared/wasm/adapter")>()),
   initWasm: vi.fn().mockResolvedValue(undefined),
   isLoaded: () => true,
   getVersion: () => "test",

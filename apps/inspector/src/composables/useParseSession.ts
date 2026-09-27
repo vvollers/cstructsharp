@@ -8,8 +8,8 @@ import {
   INTEROP_CONTRACT_VERSION,
   type InteropResult,
   type ParseWithDebugOptions,
-} from "../wasm/cstruct-contract";
-import { parseSourceWithDebug } from "../wasm/cstruct-wasm";
+} from "@cstructsharp/app-shared/wasm/contract";
+import { parseSourceWithDebug } from "@cstructsharp/app-shared/wasm/adapter";
 
 /**
  * Runs the parser and keeps its result together with the selected fields.

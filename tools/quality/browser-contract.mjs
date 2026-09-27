@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Checks the browser wire contract baseline (contracts/api/browser/contract.json) against the sources that
- * implement it: the canonical TypeScript declarations, the explorer's contract module, the managed bridge, and
+ * implement it: the canonical TypeScript declarations, the apps' shared contract module, the managed bridge, and
  * the JavaScript bootstrap. Exit code 1 names the first missing piece.
  *
  *   node tools/quality/browser-contract.mjs
@@ -19,7 +19,7 @@ const read = (relative) => {
 
 const baseline = JSON.parse(read("contracts/api/browser/contract.json"));
 const declarations = read("packages/cstructsharp/index.d.ts");
-const contract = read("apps/explorer/src/wasm/cstruct-contract.ts") + "\n" + declarations;
+const contract = read("apps/shared/src/wasm/contract.ts") + "\n" + declarations;
 const boundary = read("src/CStructSharp.Wasm/CStructInteropBoundary.cs");
 const exports = read("src/CStructSharp.Wasm/CStructExports.cs") + "\n" + read("src/CStructSharp.Wasm/StaticPlanExport.cs");
 const bootstrap = read("packages/cstructsharp/src/bootstrap.js");

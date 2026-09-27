@@ -6,7 +6,7 @@ import {
   findDebugEntryIndicesByPath,
   tokenizePath,
 } from "./debug-path";
-import type { DebugItem } from "./wasm/cstruct-contract";
+import type { DebugItem } from "@cstructsharp/app-shared/wasm/contract";
 
 function debugItem(overrides: Partial<DebugItem>): DebugItem {
   return {

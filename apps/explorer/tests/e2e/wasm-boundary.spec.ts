@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test";
-import type { InteropResult as Envelope, RawWasmAdapter } from "../../src/wasm/cstruct-contract";
+import type {
+  InteropResult as Envelope,
+  RawWasmAdapter,
+} from "@cstructsharp/app-shared/wasm/contract";
 
 /**
  * Wraps the raw JSExport boundary - which transports binary data as a native Uint8Array, not Base64

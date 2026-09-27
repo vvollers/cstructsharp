@@ -1,5 +1,5 @@
 import type { TestEntry } from "./demo-types";
-import type { InteropResult, ParseWithDebugOptions } from "./wasm/cstruct-contract";
+import type { InteropResult, ParseWithDebugOptions } from "@cstructsharp/app-shared/wasm/contract";
 
 /** The operations the panel can run for a lesson. */
 export type LessonOperationKind = "parse" | "serialize" | "update";

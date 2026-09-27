@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Source shared by the explorer and the inspector: components and modules both applications compile from source.",
   "exports": {
-    "./*": "./src/*"
+    "./*.vue": "./src/*.vue",
+    "./*": "./src/*.ts"
   },
   "scripts": {
     "format": "prettier --write .",

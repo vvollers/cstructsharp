@@ -3,7 +3,7 @@ import { ref, watch } from "vue";
 import LayoutEditor from "./LayoutEditor.vue";
 import SchemaSettings, { type SchemaSettingsValues } from "./SchemaSettings.vue";
 import type { InspectorExample } from "../schema-catalog";
-import type { ParseWithDebugOptions } from "../wasm/cstruct-contract";
+import type { ParseWithDebugOptions } from "@cstructsharp/app-shared/wasm/contract";
 
 const props = defineProps<{
   disabled: boolean;

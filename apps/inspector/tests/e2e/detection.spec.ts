@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { schemaForFile, detectorExtensions } from "../../src/schema-catalog";
-import type { RawWasmAdapter } from "../../src/wasm/cstruct-contract";
+import type { RawWasmAdapter } from "@cstructsharp/app-shared/wasm/contract";
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");

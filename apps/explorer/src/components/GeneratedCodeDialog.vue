@@ -3,7 +3,8 @@ import { nextTick, ref } from "vue";
 import LayoutEditor from "./LayoutEditor.vue";
 import type { OperationRequest } from "./OperationPanel.vue";
 import { generateExample } from "../generate-example";
-import { hexToBytes, parseWithDebug, serialize, updateStream } from "../wasm/cstruct-wasm";
+import { parseWithDebug, serialize, updateStream } from "@cstructsharp/app-shared/wasm/adapter";
+import { hexToBytes } from "@cstructsharp/app-shared/hex";
 
 type Language = "csharp" | "javascript";
 const dialog = ref<HTMLDialogElement | null>(null);

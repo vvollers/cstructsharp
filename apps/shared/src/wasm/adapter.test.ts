@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { InteropResult, RawWasmAdapter } from "./cstruct-contract";
+import type { InteropResult, RawWasmAdapter } from "./contract";
 
 const validParseResult: InteropResult = {
   contractVersion: 8,
@@ -20,8 +20,14 @@ const validParseResult: InteropResult = {
   error: null,
 };
 
+/**
+ * Publishes a fake ready adapter on window whose calls return the valid envelope unless overridden.
+ * @param overrides Adapter members to replace.
+ * @returns The installed adapter.
+ */
 function installAdapter(overrides: Partial<RawWasmAdapter> = {}): RawWasmAdapter {
   const adapter: RawWasmAdapter = {
+    compile: vi.fn() as unknown as RawWasmAdapter["compile"],
     exports: {},
     ready: true,
     error: null,
@@ -67,7 +73,7 @@ describe("CStructSharp WASM browser boundary", () => {
 
   it("forwards the complete v5 option object and the binary input unchanged", async () => {
     const adapter = installAdapter();
-    const { parseWithDebug } = await import("./cstruct-wasm");
+    const { parseWithDebug } = await import("./adapter");
     const bytes = Uint8Array.from({ length: 1_048_576 }, (_, index) => index & 0xff);
     const options = {
       root: "root",
@@ -126,7 +132,7 @@ describe("CStructSharp WASM browser boundary", () => {
     ["stale contract version", { ...validParseResult, contractVersion: 7 }],
   ])("rejects a structurally invalid envelope: %s", async (_name, response) => {
     installAdapter({ parseWithDebug: vi.fn(() => JSON.stringify(response)) });
-    const { parseWithDebug } = await import("./cstruct-wasm");
+    const { parseWithDebug } = await import("./adapter");
 
     expect(() => parseWithDebug("struct root { byte value; };", new Uint8Array([42]))).toThrow(
       /invalid parse response envelope/i,
@@ -135,7 +141,7 @@ describe("CStructSharp WASM browser boundary", () => {
 
   it("returns the encoded bytes directly on a successful serialize/update, with no envelope decoding", async () => {
     const adapter = installAdapter();
-    const { serialize, updateStream } = await import("./cstruct-wasm");
+    const { serialize, updateStream } = await import("./adapter");
 
     const serialized = serialize("struct root { byte value; };", { value: 42 });
     expect(serialized.success).toBe(true);
@@ -170,7 +176,7 @@ describe("CStructSharp WASM browser boundary", () => {
         throw new Error(errorJson);
       }),
     });
-    const { serialize } = await import("./cstruct-wasm");
+    const { serialize } = await import("./adapter");
 
     const result = serialize("struct root { byte value; };", { value: 42 });
     expect(result.success).toBe(false);
@@ -194,7 +200,7 @@ describe("CStructSharp WASM browser boundary", () => {
         throw new Error("not json");
       }),
     });
-    const { serialize } = await import("./cstruct-wasm");
+    const { serialize } = await import("./adapter");
 
     expect(() => serialize("struct root { byte value; };", { value: 42 })).toThrow(
       /invalid serialize error/i,
@@ -202,7 +208,7 @@ describe("CStructSharp WASM browser boundary", () => {
   });
 
   it("removes a failed bootstrap script before a retry", async () => {
-    const { initWasm } = await import("./cstruct-wasm");
+    const { initWasm } = await import("./adapter");
     const first = initWasm();
     const firstScript = document.head.querySelector<HTMLScriptElement>(
       "script[data-cstructsharp-wasm]",

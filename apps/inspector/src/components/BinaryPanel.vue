@@ -5,7 +5,7 @@ import { DEFAULT_ASCII_CATEGORY_CELL_CLASS_RESOLVER, VueHex } from "vuehex";
 import { useBinarySource } from "../composables/useBinarySource";
 
 import { computeFieldGroups, findDebugEntryIndexByOffset } from "../debug-path";
-import type { DebugItem } from "../wasm/cstruct-contract";
+import type { DebugItem } from "@cstructsharp/app-shared/wasm/contract";
 
 const props = defineProps<{
   bytes: Uint8Array;

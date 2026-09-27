@@ -4,7 +4,7 @@ import { env } from "node:process";
 import { expect, test } from "@playwright/test";
 import { fileTypeFromBuffer } from "file-type";
 import { schemaForFile } from "../../src/schema-catalog";
-import type { RawWasmAdapter } from "../../src/wasm/cstruct-contract";
+import type { RawWasmAdapter } from "@cstructsharp/app-shared/wasm/contract";
 
 // Optional compatibility audit against a local copy of file-type's upstream fixtures.
 // No network access or third-party fixture redistribution is needed for normal CI.

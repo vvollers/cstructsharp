@@ -3,7 +3,7 @@ import { computed, ref, watch } from "vue";
 
 import { VueHex } from "vuehex";
 
-import type { DebugItem, InteropResult } from "../wasm/cstruct-contract";
+import type { DebugItem, InteropResult } from "@cstructsharp/app-shared/wasm/contract";
 import { formatParsedJson } from "../format-parsed-json";
 import LayoutEditor from "./LayoutEditor.vue";
 

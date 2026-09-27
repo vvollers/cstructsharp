@@ -42,7 +42,7 @@ The header keeps its ready status short; hover over it to inspect the full runti
 | `components/InspectorHeader.vue`, `ExampleList.vue`  | Runtime/source status and searchable schema catalog                                                         |
 | `components/LayoutEditor.vue`, `cstruct-language.ts` | Editor component lifecycle; lazy Monaco setup, worker, highlighting and language help                       |
 | `schema-catalog.ts`                                  | One registry for file extensions, detection layouts, sample definitions/bytes, and sidebar descriptions     |
-| `wasm/cstruct-wasm.ts`                               | Runtime loading and validation of the browser bridge's result envelope                                      |
+| `@cstructsharp/app-shared/wasm/adapter`              | Runtime loading and validation of the browser bridge's result envelope (shared with the explorer)           |
 
 The flow is **panel event → session action → refs → panels**. Document changes cancel pending reads/parses
 and clear result selection. File loads publish the preview, full Blob and optional detected schema together;
@@ -95,7 +95,7 @@ features through lessons and expected results; it is not used for the inspector'
 
 ### Build and verification
 
-`src/` owns the UI and definitions; `wasm/` holds declarations copied from the runtime package.
+`src/` owns the UI and definitions; the WASM boundary and its types come from `apps/shared`.
 From the repository root run `node tools/packaging/publish-wasm.mjs`. Install dependencies with `npm ci` in `apps/`
 (the apps workspace). Then, in this directory, run `npm run build`, `npm run test:unit`, and `npm run test:e2e`.
 `npm run copy:wasm` copies and validates existing runtime artifacts without rebuilding them.

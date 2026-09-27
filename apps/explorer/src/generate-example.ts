@@ -1,6 +1,6 @@
 import type { OperationRequest } from "./components/OperationPanel.vue";
-import type { InteropResult } from "./wasm/cstruct-contract";
-import { hexToBytes } from "./wasm/cstruct-wasm";
+import type { InteropResult } from "@cstructsharp/app-shared/wasm/contract";
+import { hexToBytes } from "@cstructsharp/app-shared/hex";
 
 const csString = (value: string) => JSON.stringify(value);
 const csText = (value: string) => '@"' + value.replace(/"/g, '""') + '"';

@@ -11,8 +11,8 @@ import type {
   ParseWithDebugOptions,
   SerializeOptions,
   UpdateOptions,
-} from "../wasm/cstruct-contract";
-import { hexToBytes } from "../wasm/cstruct-wasm";
+} from "@cstructsharp/app-shared/wasm/contract";
+import { hexToBytes } from "@cstructsharp/app-shared/hex";
 import type { LessonOperation } from "../lessons";
 
 export type PanelOperation = "parse" | "serialize" | "update";

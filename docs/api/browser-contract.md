@@ -63,7 +63,7 @@ or testing the adapter; this page is an orientation guide, not a substitute for 
 Managed and browser compatibility are reviewed independently. Changing a managed method does not automatically
 approve a change to the browser JSON. A browser-facing change must increase the interface version and update the
 saved browser description as part of the same reviewed change; `node tools/quality/browser-contract.mjs`
-checks the description against the canonical declarations (`packages/cstructsharp/index.d.ts`), the explorer's
+checks the description against the canonical declarations (`packages/cstructsharp/index.d.ts`), the apps' shared
 contract module, the managed bridge, and the bootstrap.
 
 Routine documentation validation checks this page against tracked sources and saved data. It deliberately does not

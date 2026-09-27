@@ -11,14 +11,17 @@ import rawTestDemos from "./generated/test-demos.json";
 import { formatTestTitle } from "./format-test-title";
 import {
   getVersion,
-  hexToBytes,
   initWasm,
   isLoaded,
   parseWithDebug,
   serialize,
   updateStream,
-} from "./wasm/cstruct-wasm";
-import { INTEROP_CONTRACT_VERSION, type InteropResult } from "./wasm/cstruct-contract";
+} from "@cstructsharp/app-shared/wasm/adapter";
+import { hexToBytes } from "@cstructsharp/app-shared/hex";
+import {
+  INTEROP_CONTRACT_VERSION,
+  type InteropResult,
+} from "@cstructsharp/app-shared/wasm/contract";
 
 const testManifest = rawTestDemos as TestManifest;
 const mode = ref<"learn" | "tests">("learn");

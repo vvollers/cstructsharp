@@ -1,9 +1,9 @@
 /**
- * Typed browser boundary for the CStructSharp WebAssembly module.
+ * Typed browser boundary for the CStructSharp WebAssembly module, shared by the explorer and the inspector.
  *
- * The managed bridge always returns one versioned envelope. Keeping all JSON
- * validation here means the rest of the Vue application can work with a
- * predictable contract instead of handling three subtly different responses.
+ * The bootstrap script publishes the package adapter on `window.CStructSharpWasm`. Every envelope is validated here
+ * before an app reads it, so the rest of each app works with the contract in `contract.ts` instead of checking
+ * three differently shaped responses.
  */
 
 import {
@@ -15,21 +15,18 @@ import {
   type RawWasmAdapter,
   type SerializeCallOptions,
   type UpdateCallOptions,
-} from "./cstruct-contract";
+} from "./contract";
 
-type CStructSharpWasmReady = RawWasmAdapter;
-
+/** The global the bootstrap publishes when the runtime failed to load. */
 interface CStructSharpWasmFailed {
   exports: null;
   ready: false;
   error: string;
 }
 
-type CStructSharpWasmGlobal = CStructSharpWasmReady | CStructSharpWasmFailed;
-
 declare global {
   interface Window {
-    CStructSharpWasm?: CStructSharpWasmGlobal;
+    CStructSharpWasm?: RawWasmAdapter | CStructSharpWasmFailed;
   }
 }
 
@@ -37,8 +34,9 @@ let initPromise: Promise<void> | null = null;
 const bootstrapSelector = "script[data-cstructsharp-wasm]";
 
 /**
- * Load the .NET runtime once. A failed attempt is deliberately not cached, so
- * callers can retry after a transient network or asset-loading failure.
+ * Loads the .NET runtime once. A failed attempt is not cached, so callers can retry after a transient network or
+ * asset-loading failure; the failed bootstrap script is removed first.
+ * @returns A promise that settles when the runtime is ready, or rejects with the load failure or a 30 s timeout.
  */
 export async function initWasm(): Promise<void> {
   if (window.CStructSharpWasm?.ready) {
@@ -56,6 +54,7 @@ export async function initWasm(): Promise<void> {
     }
 
     let timeoutId = 0;
+    /** Removes both listeners and the timeout; with removeScript, also the bootstrap script so a retry reloads it. */
     const cleanup = (removeScript = false): void => {
       window.clearTimeout(timeoutId);
       window.removeEventListener("cstructsharp-wasm-ready", handleReady);
@@ -64,6 +63,7 @@ export async function initWasm(): Promise<void> {
         document.head.querySelector(bootstrapSelector)?.remove();
       }
     };
+    /** Settles the attempt when the bootstrap reports readiness. */
     const handleReady = (): void => {
       cleanup(true);
       if (window.CStructSharpWasm?.ready) {
@@ -72,6 +72,7 @@ export async function initWasm(): Promise<void> {
         reject(new Error("WASM reported readiness without callable exports."));
       }
     };
+    /** Rejects the attempt with the bootstrap's failure detail. */
     const handleFailure = (event: Event): void => {
       cleanup(true);
       const detail =
@@ -118,10 +119,19 @@ export async function initWasm(): Promise<void> {
   return initPromise;
 }
 
+/**
+ * Reports whether the runtime has loaded.
+ * @returns True once {@link initWasm} has succeeded.
+ */
 export function isLoaded(): boolean {
   return window.CStructSharpWasm?.ready ?? false;
 }
 
+/**
+ * Reads the managed library version.
+ * @returns The version text.
+ * @throws Error when the runtime has not loaded.
+ */
 export function getVersion(): string {
   return requireReadyWasm().getVersion();
 }
@@ -132,20 +142,48 @@ export function getVersion(): string {
  * @param binaryData The input bytes.
  * @param options Compile and parse options.
  * @returns The validated parse envelope.
+ * @throws TypeError when the bridge returns an envelope that breaks the contract.
  */
 export function parseWithDebug(
   cstructDefinition: string,
   binaryData: Uint8Array,
   options?: ParseWithDebugOptions,
 ): InteropResult {
-  const resultJson = requireReadyWasm().parseWithDebug(
-    cstructDefinition,
-    binaryData,
-    options ?? null,
-  );
-  return parseInteropResult(resultJson, "parse");
+  const json = requireReadyWasm().parseWithDebug(cstructDefinition, binaryData, options ?? null);
+  let value: unknown;
+  try {
+    value = JSON.parse(json);
+  } catch {
+    throw new TypeError("WASM returned an invalid parse response envelope.");
+  }
+
+  return validateInteropResult(value, "parse");
 }
 
+/**
+ * Parses any binary source through the worker and records every value's byte range.
+ * @param definition Portable layout source.
+ * @param source The input: a Blob (staged, never copied whole) or bytes.
+ * @param options Compile and parse options.
+ * @returns The validated parse envelope.
+ * @throws TypeError when the bridge returns an envelope that breaks the contract.
+ */
+export async function parseSourceWithDebug(
+  definition: string,
+  source: Blob | Uint8Array,
+  options?: ParseWithDebugOptions,
+): Promise<InteropResult> {
+  const result = await requireReadyWasm().parseSource(definition, source, options ?? null, true);
+  return validateInteropResult(result, "parse");
+}
+
+/**
+ * Encodes a value as the layout's bytes.
+ * @param cstructDefinition Portable layout source.
+ * @param data The value to encode; bigint members are sent as exact decimal text.
+ * @param options Compile and serialize options.
+ * @returns A serialize envelope whose data is the bytes, or the structured error.
+ */
 export function serialize(
   cstructDefinition: string,
   data: unknown,
@@ -160,6 +198,15 @@ export function serialize(
   );
 }
 
+/**
+ * Replaces one value in a copy of the input bytes.
+ * @param cstructDefinition Portable layout source.
+ * @param binaryData The input bytes; they are not modified.
+ * @param elementNameOrPath The member or path to replace.
+ * @param value The new value.
+ * @param options Compile and update options.
+ * @returns An update envelope whose data is the complete updated bytes, or the structured error.
+ */
 export function updateStream(
   cstructDefinition: string,
   binaryData: Uint8Array,
@@ -184,6 +231,10 @@ export function updateStream(
  * there's no envelope object left to carry an Error field alongside a native byte-array success payload. The
  * thrown error's message is the same JSON-serialized ErrorDetails shape the "parse" envelope's Error field
  * already uses, so this reconstructs an identical InteropResult either way.
+ * @param operation The operation the envelope reports.
+ * @param options The call options; their `root` is echoed in the envelope.
+ * @param invoke Calls the export.
+ * @returns The envelope.
  */
 function runBinaryOperation(
   operation: "serialize" | "update",
@@ -214,6 +265,13 @@ function runBinaryOperation(
   }
 }
 
+/**
+ * Reads the structured error a failing byte-returning export throws.
+ * @param cause The thrown value; its message is JSON-serialized ErrorDetails.
+ * @param operation The operation, for the error message.
+ * @returns The error details.
+ * @throws TypeError when the message is not an ErrorDetails payload.
+ */
 function parseBridgeError(cause: unknown, operation: InteropOperation): ErrorDetails {
   const message = cause instanceof Error ? cause.message : String(cause);
   let parsed: unknown;
@@ -231,29 +289,11 @@ function parseBridgeError(cause: unknown, operation: InteropOperation): ErrorDet
 }
 
 /**
- * Convert a hexadecimal string only after validating the entire input. Silent
- * truncation of an odd final nibble or parseInt's partial parsing would produce
- * plausible-looking but incorrect binary test data.
+ * Returns the loaded adapter.
+ * @returns The adapter.
+ * @throws Error when the runtime has not loaded.
  */
-export function hexToBytes(hex: string): Uint8Array {
-  const cleanHex = hex.replace(/\s/g, "");
-  if (cleanHex.length % 2 !== 0) {
-    throw new TypeError("Hex input must contain a whole number of bytes.");
-  }
-
-  if (!/^[0-9a-f]*$/i.test(cleanHex)) {
-    throw new TypeError("Hex input contains a non-hexadecimal character.");
-  }
-
-  const bytes = new Uint8Array(cleanHex.length / 2);
-  for (let index = 0; index < bytes.length; index++) {
-    bytes[index] = Number.parseInt(cleanHex.slice(index * 2, index * 2 + 2), 16);
-  }
-
-  return bytes;
-}
-
-function requireReadyWasm(): CStructSharpWasmReady {
+function requireReadyWasm(): RawWasmAdapter {
   const wasm = window.CStructSharpWasm;
   if (!wasm?.ready) {
     throw new Error("WASM not initialized. Call initWasm() first.");
@@ -262,14 +302,20 @@ function requireReadyWasm(): CStructSharpWasmReady {
   return wasm;
 }
 
-function parseInteropResult(json: string, expectedOperation: InteropOperation): InteropResult {
-  let value: Partial<InteropResult>;
-  try {
-    value = JSON.parse(json) as Partial<InteropResult>;
-  } catch {
-    throw new TypeError(`WASM returned an invalid ${expectedOperation} response envelope.`);
-  }
-
+/**
+ * Checks that an envelope from the bridge matches the contract before an app reads it.
+ * @param result The envelope object the adapter returned.
+ * @param expectedOperation The operation the call performed.
+ * @returns The same envelope, typed.
+ * @throws TypeError when the envelope breaks the contract.
+ */
+function validateInteropResult(
+  result: unknown,
+  expectedOperation: InteropOperation,
+): InteropResult {
+  const value = (
+    typeof result === "object" && result !== null ? result : {}
+  ) as Partial<InteropResult>;
   if (
     value.contractVersion !== INTEROP_CONTRACT_VERSION ||
     value.operation !== expectedOperation ||
@@ -287,6 +333,11 @@ function parseInteropResult(json: string, expectedOperation: InteropOperation): 
   return value as InteropResult;
 }
 
+/**
+ * Checks one debug range: integer offsets, a path and type, and the value text or null.
+ * @param value The candidate.
+ * @returns True when it is a DebugItem.
+ */
 function isDebugItem(value: unknown): boolean {
   if (typeof value !== "object" || value === null) {
     return false;
@@ -302,6 +353,11 @@ function isDebugItem(value: unknown): boolean {
   );
 }
 
+/**
+ * Checks an envelope's error field: null, or a code and message with optional location fields.
+ * @param value The candidate.
+ * @returns True when it is null or ErrorDetails.
+ */
 function isErrorDetails(value: unknown): boolean {
   if (value === null) {
     return true;
@@ -324,6 +380,11 @@ function isErrorDetails(value: unknown): boolean {
   );
 }
 
+/**
+ * Serializes a value for the bridge, sending bigint as exact decimal text.
+ * @param value The value.
+ * @returns The JSON text.
+ */
 function stringifyInteropValue(value: unknown): string {
   return JSON.stringify(value, (_key, current: unknown) =>
     typeof current === "bigint" ? current.toString(10) : current,
