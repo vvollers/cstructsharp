@@ -2,7 +2,7 @@
 
 `v1.json` records address rules, defaults, the operation matrix, and the importer subset for memory analysis.
 Behavioral checks are the named managed test classes, run on both supported frameworks. Public signatures
-are recorded in `contracts/api/managed-rc1` with the rest of the library.
+are recorded in `contracts/api/managed` with the rest of the library.
 
 Use `MemorySession` for unsigned or mapped sources, preserve stored pointers as `StoredPointer`, and follow
 targets explicitly with `.value`. Union reads expose all interpretations, so creation requires raw bytes or

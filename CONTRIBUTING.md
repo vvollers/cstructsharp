@@ -83,7 +83,7 @@ while a round-trip test may require the exact original bytes. The
 
 ### Public .NET API
 
-The public .NET API is compared with the files in `contracts/api/managed-rc1/`. Run:
+The public .NET API is compared with the files in `contracts/api/managed/`. Run:
 
 ```sh
 node tools/quality/managed-api-baseline.mjs compare
@@ -99,7 +99,7 @@ not replace the baseline simply to make the check green. For an intentional publ
 
 ### Browser bridge and web apps
 
-The browser API has its own compatibility files in `contracts/api/browser-rc1/`. Run the browser
+The browser API has its own compatibility files in `contracts/api/browser/`. Run the browser
 contract check when exports, options, result envelopes, error categories, or number handling change:
 
 ```bash

@@ -75,4 +75,4 @@ disposed. A reserved writable span must not outlive a growth operation or cursor
 - A type that needs no I/O belongs in `src/CStructSharp.Core/` so the generator sees it too; a type that reads or
   writes bytes stays here.
 - Public types outside the root live in `Values`, `Introspection`, `Diagnostics`, `Codecs`, and `Memory`. Adding a
-  public type elsewhere changes the API baseline in `contracts/api/managed-rc1` and needs a review entry there.
+  public type elsewhere changes the API baseline in `contracts/api/managed` and needs a review entry there.

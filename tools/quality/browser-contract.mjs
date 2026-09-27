@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Checks the browser wire contract baseline (contracts/api/browser-rc1/contract.json) against the sources that
+ * Checks the browser wire contract baseline (contracts/api/browser/contract.json) against the sources that
  * implement it: the canonical TypeScript declarations, the explorer's contract module, the managed bridge, and
  * the JavaScript bootstrap. Exit code 1 names the first missing piece.
  *
@@ -17,7 +17,7 @@ const read = (relative) => {
   return fs.readFileSync(file, "utf8");
 };
 
-const baseline = JSON.parse(read("contracts/api/browser-rc1/contract.json"));
+const baseline = JSON.parse(read("contracts/api/browser/contract.json"));
 const declarations = read("packages/cstructsharp/index.d.ts");
 const contract = read("apps/explorer/src/wasm/cstruct-contract.ts") + "\n" + declarations;
 const boundary = read("src/CStructSharp.Wasm/CStructInteropBoundary.cs");
@@ -38,11 +38,10 @@ const fail = (message) => {
   throw new Error(message);
 };
 
-if (baseline.schemaVersion !== 1 || baseline.name !== "browser-rc1") {
-  fail("Browser baseline schema/name is not the supported browser-rc1 revision.");
+if (baseline.schemaVersion !== 1 || baseline.name !== "browser") {
+  fail("Browser baseline schema/name is not the supported browser contract.");
 }
-// packageVersion records the historical freeze. Later package releases can retain the same wire contract;
-// compare the actual version, fields, and exports below rather than requiring the old release number.
+// The wire contract is versioned by contractVersion, independently of the package version.
 const version = baseline.contractVersion;
 if (!new RegExp(`INTEROP_CONTRACT_VERSION\\s*=\\s*${version}\\s+as const`).test(contract)) {
   fail("TypeScript contract version differs from the browser baseline.");

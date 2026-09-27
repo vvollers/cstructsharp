@@ -1,7 +1,7 @@
 [
-  "api/browser-rc1/contract.json",
-  "api/managed-rc1/CStructSharp.public-api.txt",
-  "api/managed-rc1/manifest.json",
+  "api/browser/contract.json",
+  "api/managed/CStructSharp.public-api.txt",
+  "api/managed/manifest.json",
   "documentation/external-link-allowlist.json",
   "documentation/pages-v1.json",
   "documentation/validator-fixtures.json",

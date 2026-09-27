@@ -20,7 +20,7 @@ const options = parseArguments(
   {
     defaults: {
       "api-directory": path.join(repositoryRoot, "docs/api"),
-      "baseline-path": path.join(repositoryRoot, "contracts/api/managed-rc1/CStructSharp.public-api.txt"),
+      "baseline-path": path.join(repositoryRoot, "contracts/api/managed/CStructSharp.public-api.txt"),
       "docfx-config-path": path.join(repositoryRoot, "docs/docfx.json"),
       "site-api-directory": path.join(repositoryRoot, "docs/_site/api"),
       "search-index-path": path.join(repositoryRoot, "docs/_site/index.json"),
@@ -145,7 +145,7 @@ await main(() => {
   }
   const sortedTypeNames = [...typeNames].sort();
   // The managed API manifest counts the top-level exported types; nested public types (indented deeper) add to it.
-  const manifest = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "contracts/api/managed-rc1/manifest.json"), "utf8"));
+  const manifest = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "contracts/api/managed/manifest.json"), "utf8"));
   const nestedTypeCount = baselineLines.filter((line) => /^ {5,}public (?:abstract |sealed |static |readonly )*(?:class|enum|struct|interface) /.test(line)).length;
   const expectedTypeCount = Number(manifest.exportedTypes) + nestedTypeCount;
   assertCondition(sortedTypeNames.length === expectedTypeCount, `Expected ${expectedTypeCount} baseline types, found ${sortedTypeNames.length}.`);

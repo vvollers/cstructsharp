@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "name": "browser",
+  "contractVersion": 8,
+  "managedExports": [
+    "GetVersion",
+    "ParseBytes",
+    "Serialize",
+    "UpdateStream",
+    "ResolveAddress",
+    "GetStaticPlan"
+  ],
+  "operations": [
+    "parse",
+    "serialize",
+    "update",
+    "resolveAddress",
+    "compile"
+  ],
+  "envelopeFields": [
+    "contractVersion",
+    "operation",
+    "success",
+    "root",
+    "data",
+    "debug",
+    "error"
+  ],
+  "errorFields": [
+    "code",
+    "message",
+    "path",
+    "offset",
+    "member",
+    "memberType",
+    "line",
+    "column"
+  ],
+  "debugFields": [
+    "start",
+    "end",
+    "path",
+    "type",
+    "value"
+  ],
+  "optionFields": [
+    "addressingMode",
+    "aligned",
+    "bitfieldAllocation",
+    "bitfieldPacking",
+    "cLongWidth",
+    "clearUnionStorage",
+    "dereferencePointers",
+    "littleEndian",
+    "maxArrayElements",
+    "maxDefinitionLength",
+    "maxExpressionNestingDepth",
+    "maxExpressionTokens",
+    "maxLayoutNestingDepth",
+    "maxNestingDepth",
+    "maxPointerDepth",
+    "maxPointerTargetBytes",
+    "maxStringBytes",
+    "maxTotalBytesRead",
+    "maxTotalBytesWritten",
+    "maxTraversalBytesRead",
+    "maxTraversalNestingDepth",
+    "maxTraversalPointerDepth",
+    "maxTraversalPointerTargetBytes",
+    "maxTraversalStringBytes",
+    "origin",
+    "pointerSize",
+    "redactDiagnostics",
+    "requireExistingPointerTarget",
+    "root",
+    "trimFixedText",
+    "unknownMembers"
+  ],
+  "errorCodes": [
+    "invalid-input",
+    "invalid-json",
+    "invalid-layout",
+    "invalid-path",
+    "operation-failed",
+    "read-budget",
+    "read-failed",
+    "write-budget",
+    "write-failed"
+  ],
+  "compatibilityPolicy": "Exact until a reviewed contract-version increment updates this baseline.",
+  "evidence": {
+    "unitTests": 12,
+    "bootstrapTests": 3,
+    "browserTests": 8,
+    "browserEngine": "Playwright Chromium"
+  },
+  "history": [
+    {
+      "contractVersion": 8,
+      "date": "2026-09-18"
+    },
+    {
+      "contractVersion": 7,
+      "date": "2026-09-18"
+    },
+    {
+      "contractVersion": 7,
+      "date": "2026-09-14"
+    },
+    {
+      "contractVersion": 6,
+      "date": "2026-09-12"
+    },
+    {
+      "contractVersion": 6,
+      "date": "2026-09-12"
+    },
+    {
+      "contractVersion": 7,
+      "date": "2026-09-14"
+    },
+    {
+      "contractVersion": 7,
+      "date": "2026-09-16"
+    },
+    {
+      "contractVersion": 8,
+      "date": "2026-09-27",
+      "change": "Managed export ParseWithDebug removed: the adapter parses with debug ranges through ParseBytes(definition, bytes, options, true), which returns the identical envelope. The unused SerializeCompiled and UpdateCompiled worker exports are removed. The JavaScript API, envelope, options and error codes are unchanged."
+    }
+  ]
+}

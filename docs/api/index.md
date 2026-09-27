@@ -47,8 +47,8 @@ The namespaces group the public surface by role:
 DocFX generates these pages from the `Release/net10.0` core assembly and its XML comments. The compatibility checks
 also compare the public signatures produced for .NET 8 and .NET 10.
 
-The reviewed signature list is named `managed-rc1` and is stored under
-[`contracts/api/managed-rc1`](../../contracts/api/managed-rc1/manifest.json). An *API baseline* is a saved description
+The reviewed signature list is stored under
+[`contracts/api/managed`](../../contracts/api/managed/manifest.json). An *API baseline* is a saved description
 of the public surface. It lets maintainers notice a changed method, default value, nullability annotation, or
 attribute during review instead of after packaging.
 

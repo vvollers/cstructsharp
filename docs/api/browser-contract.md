@@ -13,8 +13,7 @@ serialization, or update without exposing every .NET type to JavaScript. It is v
 API because JSON passed between browser code and WebAssembly has different compatibility concerns from a C# method
 call.
 
-The reviewed `browser-rc1` description targets package candidate `0.2.0-preview` and uses browser interface version
-8. It records six managed entry points:
+The reviewed browser description uses browser interface version 8. It records six managed entry points:
 
 - `GetVersion`
 - `ParseBytes` (parses byte inputs on the calling thread, with debug ranges when its `debug` argument is true)
@@ -56,14 +55,14 @@ to locate a selected field without decoding its value. Release history and migra
 [changelog](https://github.com/vvollers/cstructsharp/blob/main/CHANGELOG.md).
 
 The complete list of accepted options and error categories is in the
-[machine-readable browser description](../../contracts/api/browser-rc1/contract.json). Use that JSON file when changing
+[machine-readable browser description](../../contracts/api/browser/contract.json). Use that JSON file when changing
 or testing the adapter; this page is an orientation guide, not a substitute for the exact field list.
 
 ## Compatibility and testing
 
 Managed and browser compatibility are reviewed independently. Changing a managed method does not automatically
 approve a change to the browser JSON. A browser-facing change must increase the interface version and update the
-saved `browser-rc1` description as part of the same reviewed change; `node tools/quality/browser-contract.mjs`
+saved browser description as part of the same reviewed change; `node tools/quality/browser-contract.mjs`
 checks the description against the canonical declarations (`packages/cstructsharp/index.d.ts`), the explorer's
 contract module, the managed bridge, and the bootstrap.
 

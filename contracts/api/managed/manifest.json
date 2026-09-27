@@ -1,0 +1,363 @@
+{
+  "schemaVersion": 1,
+  "baselineId": "managed",
+  "baselineRevision": 54,
+  "packageVersion": "0.10.0",
+  "assembly": "CStructSharp.dll",
+  "exportedTypes": 88,
+  "generator": {
+    "package": "PublicApiGenerator.Tool",
+    "version": "11.5.4",
+    "command": "generate-public-api"
+  },
+  "canonical": {
+    "path": "contracts/api/managed/CStructSharp.public-api.txt",
+    "lines": 1101,
+    "normalizedSha256": "E4A87DF925BEC1962879DE8A000CD8B0DE395B451E676A67DF0F6E7AFA394CC8"
+  },
+  "frameworks": [
+    {
+      "tfm": "net8.0",
+      "targetFramework": ".NETCoreApp,Version=v8.0",
+      "frameworkDisplayName": ".NET 8.0",
+      "normalizedSha256": "AFF52AAC55ABA760EC146850640FD6EB023DFB5E2A42FD26CB5FA84B1927845D",
+      "aotCompatible": false
+    },
+    {
+      "tfm": "net10.0",
+      "targetFramework": ".NETCoreApp,Version=v10.0",
+      "frameworkDisplayName": ".NET 10.0",
+      "normalizedSha256": "5600870B1E819CB7CF5D94F61E7C55B207675A30BD8532D7E19F045F203F41E3",
+      "aotCompatible": true
+    }
+  ],
+  "history": [
+    {
+      "revision": 1,
+      "date": "2026-07-26",
+      "packageVersion": "0.2.0-preview",
+      "combinedSha256": "77A43017F644467A68C5D8BA23D092E83CFDB279385B971B046BF7774627ACD7"
+    },
+    {
+      "revision": 2,
+      "date": "2026-09-07",
+      "packageVersion": "0.2.11",
+      "combinedSha256": "9E737ED34E38701F1E5391E7023337ECF09B9BAD2695F803A596A3EA93A27440"
+    },
+    {
+      "revision": 3,
+      "date": "2026-09-09",
+      "packageVersion": "0.2.12",
+      "combinedSha256": "FE394A2AAED6E5B99190B5E977C3754184EC69AE9640E12406F6666A112A7DF5"
+    },
+    {
+      "revision": 4,
+      "date": "2026-09-09",
+      "packageVersion": "0.3.0",
+      "combinedSha256": "041A46DF3FD32D682B70098914F2188CBB27DF56C17F08CF1069F92B2F0C5E1F"
+    },
+    {
+      "revision": 5,
+      "date": "2026-09-12",
+      "packageVersion": "0.3.0",
+      "combinedSha256": "B4D9EECDC3F403222143ED3382DC4A479D4B2172268BBAFFB5923388948750C5"
+    },
+    {
+      "revision": 6,
+      "date": "2026-09-13",
+      "packageVersion": "0.3.0",
+      "combinedSha256": "7325E054A1803D54C05175CD1C4335B9254C2E91C40B72F0F766936AF44F4A25"
+    },
+    {
+      "revision": 7,
+      "date": "2026-09-13",
+      "packageVersion": "0.3.0",
+      "combinedSha256": "49BDF192E39CD208547B6048F12251D80F2B81981B1D537555BDAE5E3F57355D"
+    },
+    {
+      "revision": 8,
+      "date": "2026-09-16",
+      "packageVersion": "0.4.0",
+      "combinedSha256": "0804A9A4BE302F887D06B84CF7783C1B2283691BD74D2D066AB4C31698F6D77D"
+    },
+    {
+      "revision": 9,
+      "date": "2026-09-17",
+      "packageVersion": "0.4.3",
+      "combinedSha256": "48DC5B3E46A542E95FF6C437C362DC6526EDDAF04E6E1C7A7C3F4BA49C5D6A14"
+    },
+    {
+      "revision": 10,
+      "date": "2026-09-17",
+      "packageVersion": "0.5.0",
+      "combinedSha256": "B9EF5E27F9C98949A2CB5A5886E3C73939E37B582E1BFE8D4B8D014920155A4C"
+    },
+    {
+      "revision": 11,
+      "date": "2026-09-18",
+      "packageVersion": "0.5.0",
+      "combinedSha256": "5B861D6179FA2764BF342FAF4A84A746A8764057441F5E52512DFF00C985C40A"
+    },
+    {
+      "revision": 12,
+      "date": "2026-09-18",
+      "packageVersion": "0.5.0",
+      "combinedSha256": "D23765D99C515B24DE83E696BDAA99862AE596F03F9F7C41095764AAD4496693"
+    },
+    {
+      "revision": 13,
+      "date": "2026-09-18",
+      "packageVersion": "0.5.0",
+      "combinedSha256": "B5BD3C904170C079A88547E458A1C3D0FA278FE0AB7DCC84A5F5AB5D88931903"
+    },
+    {
+      "revision": 14,
+      "date": "2026-09-18",
+      "packageVersion": "0.5.0",
+      "combinedSha256": "71070C6210222586388B248F44AB550DAC5F46706E4A1B9C39BCE860C1A5D6AA"
+    },
+    {
+      "revision": 15,
+      "date": "2026-09-18",
+      "packageVersion": "0.5.0",
+      "combinedSha256": "42E4F9971F694ECFDD79327DD76CF79132C5C22C4FEA5563CC4A9A7533340FE1"
+    },
+    {
+      "revision": 16,
+      "date": "2026-09-18",
+      "packageVersion": "0.5.0",
+      "combinedSha256": "16D21A4BA0465710F7C1B872D6C491A23DC63232898F6A609DA8146AD7D94E8B"
+    },
+    {
+      "revision": 17,
+      "date": "2026-09-18",
+      "packageVersion": "0.5.0",
+      "combinedSha256": "1D108658C9B50BEEA2F772EC1674930F3366F47B005F933A93BD3A2EC8658A5F"
+    },
+    {
+      "revision": 18,
+      "date": "2026-09-18",
+      "packageVersion": "0.5.0",
+      "combinedSha256": "3B24040DB399A1ADD64BC04CE9CCF15E50D13736E3654E5A1E1DD1C8862E6E1F"
+    },
+    {
+      "revision": 19,
+      "date": "2026-09-18",
+      "packageVersion": "0.5.0",
+      "combinedSha256": "BAF55AF79A6B923DA6B35CD291D29A5C4977043FDF40CEC1F35736894E636BD5"
+    },
+    {
+      "revision": 20,
+      "date": "2026-09-20",
+      "packageVersion": "0.6.0",
+      "combinedSha256": "7746FA679175FBE8A9EE7A73E07FFC644D65F200BEBA0E2A42FE1B946333E1B2"
+    },
+    {
+      "revision": 21,
+      "date": "2026-09-20",
+      "packageVersion": "0.6.0",
+      "combinedSha256": "F160EDF834FCFF182D9454FF6551581BE7CD0361B38915B03BDD75F44371572A"
+    },
+    {
+      "revision": 22,
+      "date": "2026-09-20",
+      "packageVersion": "0.6.0",
+      "combinedSha256": "BE86561BD57C89CB2003CF1948181CD9BE2EC10D8EBD0A1EC1A363C97D56C5B3"
+    },
+    {
+      "revision": 23,
+      "date": "2026-09-20",
+      "packageVersion": "0.6.0",
+      "combinedSha256": "861947875F69C7FAC6078110CAD1BA1519714548B170B5DB60BE3E5C97D32EA3"
+    },
+    {
+      "revision": 24,
+      "date": "2026-09-20",
+      "packageVersion": "0.6.0",
+      "combinedSha256": "F86FA97A71954FF63A2A5089F942D7D277BFACEF8E13390A0B9CE29F794F66C6"
+    },
+    {
+      "revision": 25,
+      "date": "2026-09-20",
+      "packageVersion": "0.6.0",
+      "combinedSha256": "66F163D48516349B1EB064C46572CF483667AFFB642678E1BE5877D552ABA896"
+    },
+    {
+      "revision": 26,
+      "date": "2026-09-20",
+      "packageVersion": "0.6.0",
+      "combinedSha256": "58E4452AAB9F82330F244057398BF0E50F91B15BD37DB4210CD1A06E327D5BB2"
+    },
+    {
+      "revision": 27,
+      "date": "2026-09-20",
+      "packageVersion": "0.6.0",
+      "combinedSha256": "6A5ED34AE083F40DE603FE656FEDE2EB009BF1450F539DDB08D41E254306C897"
+    },
+    {
+      "revision": 28,
+      "date": "2026-09-20",
+      "packageVersion": "0.6.0",
+      "combinedSha256": "5AE54C74F3C6D7527D67BE04ABC2E936AAFDB37BB9D983ECD9DD17C58D6AF93E"
+    },
+    {
+      "revision": 29,
+      "date": "2026-09-20",
+      "packageVersion": "0.6.0",
+      "combinedSha256": "76DEF6E2B1ADE5D2492773BAA8C04C4AC1A92FFA88D3A4F1714B3AE506198784"
+    },
+    {
+      "revision": 30,
+      "date": "2026-09-20",
+      "packageVersion": "0.6.0",
+      "combinedSha256": "1B9E5B1C4C498C25C085CF68ED4079C0C96309229E3A7F1DE3A75218C6EBFB64"
+    },
+    {
+      "revision": 31,
+      "date": "2026-09-20",
+      "packageVersion": "0.6.0",
+      "combinedSha256": "0996E9DF89323892B8DE59F01A2DB099992157FA71C912A4ED2EA0A4F8EB60D1"
+    },
+    {
+      "revision": 32,
+      "date": "2026-09-21",
+      "packageVersion": "0.7.0",
+      "combinedSha256": "9834105870D66666EA0C0FCC44732A71C6B84FCCBCACCAEEFEF1C556722B8971"
+    },
+    {
+      "revision": 33,
+      "date": "2026-09-21",
+      "packageVersion": "0.7.0",
+      "combinedSha256": "87068A17BD0A95A53842EF5C33A4B11522221FFB0D3B06077DA0692F213E1538"
+    },
+    {
+      "revision": 34,
+      "date": "2026-09-21",
+      "packageVersion": "0.7.0",
+      "combinedSha256": "CCCB4675F2845CF6240AC4251DDE098A5B7B48618FA13C21EC0B0442531B3528"
+    },
+    {
+      "revision": 35,
+      "date": "2026-09-21",
+      "packageVersion": "0.7.0",
+      "combinedSha256": "E1B5D0D0FE0AA91DFCE70DBFA749B43231201FFD60BCEBF2E4AB4881ED6B6776"
+    },
+    {
+      "revision": 36,
+      "date": "2026-09-21",
+      "packageVersion": "0.7.0",
+      "combinedSha256": "AA5106BAC83DA856575FCA3D2A67AF22840D784F47E2994D1B7EF18E2FA14EBD"
+    },
+    {
+      "revision": 37,
+      "date": "2026-09-21",
+      "packageVersion": "0.7.0",
+      "combinedSha256": "8D2300E2BEDC1B887D3B01B492506F35743F01D8FBF9732338EA200D9DB63621"
+    },
+    {
+      "revision": 38,
+      "date": "2026-09-21",
+      "packageVersion": "0.7.0",
+      "combinedSha256": "E7F7FC5E9228593A588DD22B67EF4031AEBCB09ED700BC6150F3438FE9EE4799"
+    },
+    {
+      "revision": 39,
+      "date": "2026-09-21",
+      "packageVersion": "0.7.0",
+      "combinedSha256": "04DB8D36CAC948600CD114CB1976F7EA2B572191E74A96D8DE16AC29353311A0"
+    },
+    {
+      "revision": 40,
+      "date": "2026-09-21",
+      "packageVersion": "0.7.0",
+      "combinedSha256": "26C3C00121C9B9C0EA910F662AF65E89021A626B299630780B91BB347788393E"
+    },
+    {
+      "revision": 41,
+      "date": "2026-09-21",
+      "packageVersion": "0.7.0",
+      "combinedSha256": "DCEF94F3F13FE05534581F7AC22910CA7D530204C2F0ED921FA48066171B364A"
+    },
+    {
+      "revision": 42,
+      "date": "2026-09-21",
+      "packageVersion": "0.7.0",
+      "combinedSha256": "66A4B4DA7DEDA37CCD01EFA2B6F9736DA97B7D5C3C58222734AFB8B7B515C798"
+    },
+    {
+      "revision": 43,
+      "date": "2026-09-24",
+      "packageVersion": "0.8.3",
+      "combinedSha256": "1C46F118E6F59ED1137D5B94D08C919343C828AF276A1A50CCB249331AAEEE0B"
+    },
+    {
+      "revision": 44,
+      "date": "2026-09-24",
+      "packageVersion": "0.8.3",
+      "combinedSha256": "AC6EB3861ADCC81F443FD12F962D9A4B8800A8ABE3E2C022AB78B5EF1BD3C403"
+    },
+    {
+      "revision": 45,
+      "date": "2026-09-26",
+      "packageVersion": "0.9.1",
+      "combinedSha256": "72584A872C7518439D3AF4337354DFAC057EEC62BC6AA0557C86163EE52B551B"
+    },
+    {
+      "revision": 46,
+      "date": "2026-09-26",
+      "packageVersion": "0.9.1",
+      "combinedSha256": "EF212A5485AFBEDEFC859DEC14CA1D9C797C1443AEF1CE63AD12A2A9783D94EC"
+    },
+    {
+      "revision": 47,
+      "date": "2026-09-26",
+      "packageVersion": "0.9.1",
+      "combinedSha256": "7BFD3C94493EEA5FC164208E6A7A10B3B545A7591309E9F6FE700BB14B80A53D"
+    },
+    {
+      "revision": 48,
+      "date": "2026-09-27",
+      "packageVersion": "0.10.0",
+      "combinedSha256": "EA54461F77375A2597FBB111DD3B4AF6A31FA480AF0DA0249573E04A703826A6"
+    },
+    {
+      "revision": 49,
+      "date": "2026-09-27",
+      "packageVersion": "0.10.0",
+      "combinedSha256": "56B87D7AB88DA4BFDE3D54B88D08197AF75331B1A3E03840571B0B86CDF2570F"
+    },
+    {
+      "revision": 50,
+      "date": "2026-09-27",
+      "packageVersion": "0.10.0",
+      "combinedSha256": "629CB8E31E2AE4F5E8FC5CFBFDC3E3A9A6EBCF0CF6DF2686BB4070777BB431C6"
+    },
+    {
+      "revision": 51,
+      "date": "2026-09-27",
+      "packageVersion": "0.10.0",
+      "combinedSha256": "AFAFE4B50158FC00F64C496310923CEDE54DFB17F3EFF2C26A07617FC48B0685"
+    },
+    {
+      "revision": 52,
+      "date": "2026-09-27",
+      "packageVersion": "0.10.0",
+      "combinedSha256": "FDBA12B3C478D36BDA622E9281E29EDD44B5F5ED871C104BAF57E9109409BEE6"
+    },
+    {
+      "revision": 53,
+      "date": "2026-09-27",
+      "packageVersion": "0.10.0",
+      "combinedSha256": "9B2B037D55C03CC12A0C84C0622AFD4B8AECF1993D5CFDAA71CBC29CB3E805A8"
+    },
+    {
+      "revision": 54,
+      "kind": "breaking",
+      "date": "2026-09-27",
+      "packageVersion": "0.10.0",
+      "combinedSha256": "793D7999699C3AEBF0C168F7CC375951A7742EB0AE9AD89066A06F452BDF6289",
+      "rationale": "BTF and ISF imports take one MetadataImportOptions record (PointerSize, BestEffort, MaxTypes); ISF becomes a parsed IsfMetadata document with an Import method, like BtfMetadata.",
+      "releaseImpact": "Pass new MetadataImportOptions { PointerSize = ..., BestEffort = ... } to BtfMetadata.Import; replace IsfMetadata.Import(json, root, ...) with new IsfMetadata(json, isLittleEndian, maxBytes).Import(root, options)."
+    }
+  ]
+}

@@ -125,6 +125,10 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   (`compare-benchmark-baseline.mjs --matching-only`).
 - Explorer: the generated test catalog loads as its own chunk, so the entry bundle holds application code only
   (226 KB instead of 1.5 MB). The web size budget is re-measured, with the entry-bundle limit lowered to 256 KiB.
+- API baselines are named by role: `contracts/api/managed` and `contracts/api/browser` (published under
+  `/docs/contracts/api/`). The managed manifest keeps the approved hash of every revision and the review text of the
+  current one; the release history is this changelog. The `frozen` status, work-item code and stale package version
+  are removed.
 - The feature-operation matrix no longer lists API compatibility baselines; the API contracts own them. The
   benchmark drift workflow watches only files that exist.
 - The memory contract (`contracts/memory/v1.json`) describes the `Opaque` type kind, and its validator checks the

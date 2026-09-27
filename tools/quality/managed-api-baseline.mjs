@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Frozen managed API baseline: compares the public surface of src/CStructSharp against
-// contracts/api/managed-rc1 (compare, the CI gate), or rewrites that baseline from the current source after an
+// Managed API baseline: compares the public surface of src/CStructSharp against
+// contracts/api/managed (compare, the CI gate), or rewrites that baseline from the current source after an
 // intentional public change (update).
 //
 // Usage: node tools/quality/managed-api-baseline.mjs [compare]
@@ -14,7 +14,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const manifestPath = path.join(root, "contracts/api/managed-rc1/manifest.json");
+const manifestPath = path.join(root, "contracts/api/managed/manifest.json");
 const projectPath = path.join(root, "src/CStructSharp/CStructSharp.csproj");
 const outputRoot = path.join(root, "artifacts/api-compat/managed-current");
 const frameworks = ["net8.0", "net10.0"];
@@ -41,7 +41,7 @@ function fail(message) {
 }
 
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-if (manifest.schemaVersion !== 1 || manifest.baselineId !== "managed-rc1") fail("Unexpected managed API baseline manifest.");
+if (manifest.schemaVersion !== 1 || manifest.baselineId !== "managed") fail("Unexpected managed API baseline manifest.");
 const canonicalPath = path.join(root, manifest.canonical.path);
 const canonicalText = normalize(fs.readFileSync(canonicalPath, "utf8"));
 if (mode === "compare") {
@@ -56,7 +56,7 @@ if (mode === "compare") {
   if (latest.combinedSha256 !== hashOf(combined)) fail("The latest managed API history entry does not approve the current baseline hashes.");
 }
 
-/** The frozen generator, restored through the repository tool manifest. */
+/** The pinned generator, restored through the repository tool manifest. */
 function generatorCommand() {
   const packages = execFileSync("dotnet", ["nuget", "locals", "global-packages", "--list"], { encoding: "utf8" });
   const directory = packages.match(/^[^:]+:\s*(.+)$/m)?.[1]?.trim();
@@ -116,7 +116,7 @@ if (mode === "compare") {
     }
   }
   if (failures.length > 0) fail(`Managed API compatibility failed.\n${failures.join("\n")}\nRun 'node tools/quality/managed-api-baseline.mjs update --kind ... --rationale ... --impact ...' after reviewing the change.`);
-  console.log(`Frozen managed API compatibility validation passed (baseline ${manifest.baselineId} revision ${manifest.baselineRevision}).`);
+  console.log(`Managed API compatibility validation passed (baseline ${manifest.baselineId} revision ${manifest.baselineRevision}).`);
   process.exit(0);
 }
 
@@ -154,6 +154,14 @@ manifest.packageVersion = versionPrefix;
 for (const entry of manifest.frameworks) entry.normalizedSha256 = hashOf(expectedFor(entry, canonical));
 const combined = manifest.frameworks.map((entry) => `${entry.tfm}:${entry.normalizedSha256}`).join("\n") + "\n";
 manifest.baselineRevision += 1;
+// Earlier revisions keep only their approved hash; the review text of a change belongs to its CHANGELOG entry.
+const previous = manifest.history[manifest.history.length - 1];
+manifest.history[manifest.history.length - 1] = {
+  revision: previous.revision,
+  date: previous.date,
+  packageVersion: previous.packageVersion,
+  combinedSha256: previous.combinedSha256,
+};
 manifest.history.push({
   revision: manifest.baselineRevision,
   kind,
