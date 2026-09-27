@@ -944,7 +944,7 @@
           "A promoted member's own fields carry a real value the same way a named inline struct's fields do; promotion changes only where that value appears in the result/POCO shape, not the value contract itself."
         ],
         "evidence": [
-          "tests/CStructSharpTests/AnonymousPromotedMemberTests.cs#ParseStream_SplicesPromotedMemberFieldsDirectlyIntoTheParentContainer"
+          "tests/CStructSharpTests/Unions/AnonymousPromotedMemberTests.cs#ParseStream_SplicesPromotedMemberFieldsDirectlyIntoTheParentContainer"
         ]
       },
       "bytes": {
@@ -953,7 +953,7 @@
           "Exact bytes match the equivalent named-inline-struct fixture - promotion never changes placement, size, or alignment, only path/POCO/JSON visibility."
         ],
         "evidence": [
-          "tests/CStructSharpTests/AnonymousPromotedMemberTests.cs#Serialize_WritesAFlatValueThroughAPromotedMember"
+          "tests/CStructSharpTests/Unions/AnonymousPromotedMemberTests.cs#Serialize_WritesAFlatValueThroughAPromotedMember"
         ]
       }
     },
@@ -1050,7 +1050,7 @@
         ],
         "evidence": [
           "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#ExplicitUnionCase_PreservesRawStorageAndWriteSelection",
-          "tests/CStructSharpTests/UnionValueTests.cs#UnionValue_SelectionCanBeAddedAndRemovedWithoutLosingRawStorage"
+          "tests/CStructSharpTests/Unions/UnionValueTests.cs#UnionValue_SelectionCanBeAddedAndRemovedWithoutLosingRawStorage"
         ]
       },
       "bytes": {
@@ -1060,7 +1060,7 @@
         ],
         "evidence": [
           "tests/CStructSharpTests/ReviewRegressionTests.cs#Serialize_ParsedUnion_PreservesCompleteRawStorage",
-          "tests/CStructSharpTests/UnionValueTests.cs#ExplicitMemberWrite_UsesCompleteUnionStoragePolicy"
+          "tests/CStructSharpTests/Unions/UnionValueTests.cs#ExplicitMemberWrite_UsesCompleteUnionStoragePolicy"
         ]
       }
     },
@@ -1410,8 +1410,8 @@
           "A named inline union round-trips as a UnionValue; an anonymous union writes through whichever promoted member the caller supplies (the widest wins when several are supplied), so a value round trip is exact only through the member that was read."
         ],
         "evidence": [
-          "tests/CStructSharpTests/InlineUnionTests.cs#NamedInlineUnion_ReadsAsUnionValue",
-          "tests/CStructSharpTests/InlineUnionTests.cs#AnonymousUnion_WritesThroughASuppliedMember"
+          "tests/CStructSharpTests/Unions/InlineUnionTests.cs#NamedInlineUnion_ReadsAsUnionValue",
+          "tests/CStructSharpTests/Unions/InlineUnionTests.cs#AnonymousUnion_WritesThroughASuppliedMember"
         ]
       },
       "bytes": {
@@ -1420,8 +1420,8 @@
           "The union's raw storage is preserved by UnionValue and by writing the widest member, so the byte image round-trips."
         ],
         "evidence": [
-          "tests/CStructSharpTests/InlineUnionTests.cs#NamedInlineUnion_ReadsAsUnionValue",
-          "tests/CStructSharpTests/InlineUnionTests.cs#AnonymousUnion_WritesThroughASuppliedMember"
+          "tests/CStructSharpTests/Unions/InlineUnionTests.cs#NamedInlineUnion_ReadsAsUnionValue",
+          "tests/CStructSharpTests/Unions/InlineUnionTests.cs#AnonymousUnion_WritesThroughASuppliedMember"
         ]
       }
     },
@@ -3175,38 +3175,38 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/AnonymousPromotedMemberTests.cs#SizeAndAlignment_MatchTheEquivalentNamedInlineStruct",
+          "test": "tests/CStructSharpTests/Unions/AnonymousPromotedMemberTests.cs#SizeAndAlignment_MatchTheEquivalentNamedInlineStruct",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/AnonymousPromotedMemberTests.cs#Collision_PromotedVsParent_IsRejected",
+          "test": "tests/CStructSharpTests/Unions/AnonymousPromotedMemberTests.cs#Collision_PromotedVsParent_IsRejected",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/AnonymousPromotedMemberTests.cs#ParseStream_SplicesPromotedMemberFieldsDirectlyIntoTheParentContainer",
+          "test": "tests/CStructSharpTests/Unions/AnonymousPromotedMemberTests.cs#ParseStream_SplicesPromotedMemberFieldsDirectlyIntoTheParentContainer",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/AnonymousPromotedMemberTests.cs#ParseStreamWithDebug_SkipsThePromotedMembersOwnLevelInTheDebugPath",
+          "test": "tests/CStructSharpTests/Unions/AnonymousPromotedMemberTests.cs#ParseStreamWithDebug_SkipsThePromotedMembersOwnLevelInTheDebugPath",
           "operations": [
             "debug"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/AnonymousPromotedMemberTests.cs#Serialize_WritesAFlatValueThroughAPromotedMember",
+          "test": "tests/CStructSharpTests/Unions/AnonymousPromotedMemberTests.cs#Serialize_WritesAFlatValueThroughAPromotedMember",
           "operations": [
             "serialize",
             "write"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/AnonymousPromotedMemberTests.cs#PathOperations_ResolveThroughAPromotedMember",
+          "test": "tests/CStructSharpTests/Unions/AnonymousPromotedMemberTests.cs#PathOperations_ResolveThroughAPromotedMember",
           "operations": [
             "address",
             "update",
@@ -3215,13 +3215,13 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/AnonymousPromotedMemberTests.cs#ReadValueOfT_ReadsAPromotedScalarField",
+          "test": "tests/CStructSharpTests/Unions/AnonymousPromotedMemberTests.cs#ReadValueOfT_ReadsAPromotedScalarField",
           "operations": [
             "read-value"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/AnonymousPromotedMemberTests.cs#SiblingInteraction_NamedNestedStructPointerAndArray_AllWorkIndependently",
+          "test": "tests/CStructSharpTests/Unions/AnonymousPromotedMemberTests.cs#SiblingInteraction_NamedNestedStructPointerAndArray_AllWorkIndependently",
           "operations": [
             "parse",
             "address",
@@ -3648,20 +3648,20 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/UnionValueTests.cs#ParseStream_UnionArraysAndNestedUnionsUseCompleteStride",
+          "test": "tests/CStructSharpTests/Unions/UnionValueTests.cs#ParseStream_UnionArraysAndNestedUnionsUseCompleteStride",
           "operations": [
             "parse",
             "serialize"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/UnionValueTests.cs#ParseStreamWithDebug_RecordsCompleteUnionStorage",
+          "test": "tests/CStructSharpTests/Unions/UnionValueTests.cs#ParseStreamWithDebug_RecordsCompleteUnionStorage",
           "operations": [
             "debug"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/UnionValueTests.cs#ExplicitMemberWrite_UsesCompleteUnionStoragePolicy",
+          "test": "tests/CStructSharpTests/Unions/UnionValueTests.cs#ExplicitMemberWrite_UsesCompleteUnionStoragePolicy",
           "operations": [
             "serialize",
             "write",
@@ -5203,7 +5203,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/InlineUnionTests.cs#NamedInlineUnion_ReadsAsUnionValue",
+          "test": "tests/CStructSharpTests/Unions/InlineUnionTests.cs#NamedInlineUnion_ReadsAsUnionValue",
           "operations": [
             "parse",
             "serialize",
@@ -5211,13 +5211,13 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/InlineUnionTests.cs#AnonymousUnion_PromotesMembers",
+          "test": "tests/CStructSharpTests/Unions/InlineUnionTests.cs#AnonymousUnion_PromotesMembers",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/InlineUnionTests.cs#AnonymousUnion_MembersAreAddressable",
+          "test": "tests/CStructSharpTests/Unions/InlineUnionTests.cs#AnonymousUnion_MembersAreAddressable",
           "operations": [
             "address",
             "update",
@@ -5225,26 +5225,26 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/InlineUnionTests.cs#AnonymousUnion_WritesThroughASuppliedMember",
+          "test": "tests/CStructSharpTests/Unions/InlineUnionTests.cs#AnonymousUnion_WritesThroughASuppliedMember",
           "operations": [
             "serialize",
             "write"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/InlineUnionTests.cs#AnonymousUnion_DebugPathsSkipTheAnonymousLevel",
+          "test": "tests/CStructSharpTests/Unions/InlineUnionTests.cs#AnonymousUnion_DebugPathsSkipTheAnonymousLevel",
           "operations": [
             "debug"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/InlineUnionTests.cs#Union_AcceptsInlineComposites",
+          "test": "tests/CStructSharpTests/Unions/InlineUnionTests.cs#Union_AcceptsInlineComposites",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/InlineUnionTests.cs#AnonymousUnion_RejectsNameCollisions",
+          "test": "tests/CStructSharpTests/Unions/InlineUnionTests.cs#AnonymousUnion_RejectsNameCollisions",
           "operations": [
             "parse"
           ]

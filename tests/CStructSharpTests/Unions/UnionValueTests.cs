@@ -10,7 +10,10 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 using Microsoft.CSharp.RuntimeBinder;
 
-/// <summary>Verifies the explicit, byte-exact value model shared by every union operation.</summary>
+/// <summary>
+///     Verifies the explicit, byte-exact value model shared by every union operation, including a selected member
+///     staged through a caller's mapper and an extent checked before the output receives bytes.
+/// </summary>
 [TestClass]
 public class UnionValueTests
 {
@@ -487,5 +490,119 @@ public class UnionValueTests
             cstruct.Serialize("choice", UnionValue.FromMember("choice", "pointer", null)));
         Assert.Throws<CStructWriteException>(
             () => cstruct.Serialize("choice", UnionValue.FromMember("choice", "value", null)));
+    }
+
+    /// <summary>A two-byte union cannot start one byte below the largest signed stream position.</summary>
+    /// <param name="promoted">Whether the union is anonymous inside a root struct.</param>
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void UnionExtent_RejectsAddressOverflowBeforeOutput(bool promoted)
+    {
+        string definition = promoted
+            ? "struct root { union { uint16 wide; uint8 small; }; };"
+            : "union root { uint16 wide; uint8 small; };";
+        var layout = new CStruct(definition);
+        object data = promoted
+            ? new Dictionary<string, object?> { ["small"] = (byte)7, }
+            : UnionValue.FromMember("root", "small", (byte)7);
+        using var destination = new NearLimitStream();
+
+        // The union's end must be representable before its staged bytes reach the destination budget wrapper.
+        Assert.Throws<OverflowException>(() => layout.Write(destination, "root", data));
+        Assert.AreEqual(long.MaxValue - 1, destination.Position);
+        Assert.AreEqual(0, destination.WriteCalls);
+    }
+
+    /// <summary>Expected conversion failures become write errors; domain errors and unexpected failures retain their identity.</summary>
+    /// <param name="kind">The mapper's deliberate failure category.</param>
+    [TestMethod]
+    [DataRow("invalid-operation")]
+    [DataRow("argument")]
+    [DataRow("arithmetic")]
+    [DataRow("format")]
+    [DataRow("invalid-cast")]
+    [DataRow("not-supported")]
+    [DataRow("domain")]
+    [DataRow("unexpected")]
+    public void SelectedMember_ClassifiesMapperFailuresWithoutWriting(string kind)
+    {
+        Exception original = kind switch
+        {
+            "invalid-operation" => new InvalidOperationException("mapper failure"),
+            "argument" => new ArgumentException("mapper failure"),
+            "arithmetic" => new ArithmeticException("mapper failure"),
+            "format" => new FormatException("mapper failure"),
+            "invalid-cast" => new InvalidCastException("mapper failure"),
+            "not-supported" => new NotSupportedException("mapper failure"),
+            "domain" => new CStructWriteException("mapper failure"),
+            _ => new IOException("unexpected mapper failure"),
+        };
+        MappedTypes.Register<FailingMapper>();
+        var layout = new CStruct("union choice { struct { uint8 value; } record; uint8 raw; };");
+        UnionValue value = UnionValue.FromMember("choice", "record", new FailingMapper(original));
+        byte[] bytes = [0xAA, 0xBB, 0xCC,];
+        using var destination = new MemoryStream(bytes.ToArray()) { Position = 1, };
+        if (kind == "unexpected")
+        {
+            // A mapper's unexpected I/O failure is not a caller-value conversion failure.
+            Assert.AreSame(original, Assert.Throws<IOException>(() => layout.Write(destination, "choice", value)));
+        }
+        else
+        {
+            // Conversion errors gain the selected member's name, while an existing domain error is preserved.
+            CStructWriteException failure = Assert.Throws<CStructWriteException>(() => layout.Write(destination, "choice", value));
+            if (kind == "domain")
+            {
+                Assert.AreSame(original, failure);
+            }
+            else
+            {
+                Assert.AreSame(original, failure.InnerException);
+                StringAssert.StartsWith(failure.Message, "Cannot write selected union member 'choice.record'");
+            }
+        }
+
+        Assert.AreEqual(1L, destination.Position);
+        CollectionAssert.AreEqual(bytes, destination.ToArray());
+    }
+
+    /// <summary>Exposes a large existing stream position without allocating the corresponding storage.</summary>
+    private sealed class NearLimitStream : MemoryStream
+    {
+        /// <summary>Gets the simulated existing extent.</summary>
+        public override long Length => long.MaxValue;
+
+        /// <summary>Gets or sets the simulated absolute position.</summary>
+        public override long Position { get; set; } = long.MaxValue - 1;
+
+        /// <summary>Gets the number of physical array writes attempted by the union writer.</summary>
+        public int WriteCalls { get; private set; }
+
+        /// <summary>Records a physical write without allocating or changing the simulated storage.</summary>
+        /// <param name="buffer">The staged union bytes.</param>
+        /// <param name="offset">The first staged byte.</param>
+        /// <param name="count">The number of staged bytes.</param>
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            this.WriteCalls++;
+        }
+    }
+
+    /// <summary>Raises one caller-selected failure while materializing a selected struct member.</summary>
+    /// <param name="failure">The exact exception that WriteTo must propagate.</param>
+    private sealed class FailingMapper(Exception failure) : ICStructMapped<FailingMapper>
+    {
+        private Exception Failure { get; } = failure;
+
+        /// <summary>Rejects reads because this fixture exercises only writer-side mapper failures.</summary>
+        /// <param name="source">Unused parsed input.</param>
+        /// <returns>No mapped value is produced.</returns>
+        public static FailingMapper ReadFrom(StructValue source) => throw new NotSupportedException();
+
+        /// <summary>Throws the fixture's exact exception before assigning any target member.</summary>
+        /// <param name="value">The caller's failing mapper.</param>
+        /// <param name="target">The untouched staging value.</param>
+        public static void WriteTo(FailingMapper value, StructValue target) => throw value.Failure;
     }
 }

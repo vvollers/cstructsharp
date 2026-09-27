@@ -2,7 +2,10 @@ namespace CStructSharp.Tests;
 
 using CStructSharp.Diagnostics;
 
-/// <summary>Checks runtime union array counts retain read-domain diagnostics.</summary>
+/// <summary>
+///     Checks runtime counts measured inside unions, including a union array's count, keep their read-domain
+///     diagnostics.
+/// </summary>
 [TestClass]
 public class UnionCountDomainBoundaryTests
 {
@@ -32,5 +35,15 @@ public class UnionCountDomainBoundaryTests
         using var source = new MemoryStream(new byte[1]);
         CStructReadException error = Assert.Throws<CStructReadException>(() => layout.ReadValue(source, "choice", variables: variables));
         StringAssert.Contains(error.Message, "Array length cannot be negative");
+    }
+
+    /// <summary>A zero outer count does not turn an invalid nested runtime count into a construction error.</summary>
+    [TestMethod]
+    public void NestedInvalidCount_UsesTheReadFailureDomain()
+    {
+        var layout = new CStruct("#define count 1\nstruct item { uint8 data[count]; }; union choice { item values[0]; }; struct root { choice prefix; uint8 tail; };");
+        using var source = new MemoryStream(new byte[] { 99, });
+        var variables = new Dictionary<string, int> { ["count"] = -1, };
+        Assert.Throws<CStructReadException>(() => layout.ResolveAddress(source, "root.tail", variables));
     }
 }

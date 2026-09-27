@@ -7,7 +7,8 @@ using CStructSharp.Values;
 
 /// <summary>
 ///     Inline unions inside structs (named and anonymous), inline structs inside unions, and the promotion of an
-///     anonymous union's members into the containing struct - the NTFS/PE header shapes.
+///     anonymous union's members into the containing struct - the NTFS/PE header shapes - and a union's size when its
+///     largest member does not end on its alignment.
 /// </summary>
 [TestClass]
 public class InlineUnionTests
@@ -183,6 +184,20 @@ public class InlineUnionTests
         Assert.AreEqual(expected, Convert.ToHexString(namedData));
     }
 
+    /// <summary>Only aligned layouts round the union's three-byte largest member up to a two-byte boundary.</summary>
+    /// <param name="aligned">Whether natural alignment and tail padding are enabled.</param>
+    /// <param name="expectedSize">The resulting union extent in bytes.</param>
+    [TestMethod]
+    [DataRow(false, 3)]
+    [DataRow(true, 4)]
+    public void UnionTail_RoundsTheLargestMemberOnlyWhenAligned(bool aligned, int expectedSize)
+    {
+        var layout = new CStruct("union choice { uint8 bytes[3]; uint16 number; };", aligned: aligned);
+
+        Assert.AreEqual(expectedSize, layout.GetStructSizeInBytes("choice"));
+        Assert.AreEqual(expectedSize, layout.CompiledModel.Symbols["choice"].Symbol.FixedSize);
+    }
+
     /// <summary>A mapped class for the NTFS <c>file_name</c> shape, whose properties bind to promoted union and struct members.</summary>
     internal sealed class FileName : ICStructMapped<FileName>
     {
@@ -209,6 +224,9 @@ public class InlineUnionTests
             };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(FileName value, StructValue target)
         {
             target["Attributes"] = value.Attributes;
@@ -218,6 +236,7 @@ public class InlineUnionTests
             target["NameLength"] = value.NameLength;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
