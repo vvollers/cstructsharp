@@ -5,7 +5,7 @@ using CStructSharp.Values;
 
 /// <summary>Groups tests for test pointer so changes to this behavior are caught.</summary>
 [TestClass]
-public class TestPointer
+public class DissectPointerTests
 {
     /// <summary>
     ///     args[4] reserves four two-byte pointer slots even though argc is 2.
@@ -16,7 +16,7 @@ public class TestPointer
     ///     supplied byte stream, not process memory.
     /// </remarks>
     [TestMethod]
-    public void TestPointerArray()
+    public void PointerArray_ReadsEverySlot()
     {
         const string d = """
                          struct mainargs {
@@ -68,7 +68,7 @@ public class TestPointer
     ///     stored address and the decoded target so confusing pointer width with target width cannot pass unnoticed.
     /// </remarks>
     [TestMethod]
-    public void TestPointerBasic()
+    public void Pointer_ReadsItsTarget()
     {
         const string d = """
                          struct ptrtest {
@@ -106,7 +106,7 @@ public class TestPointer
     ///     for the final integer.
     /// </remarks>
     [TestMethod]
-    public void TestPointerDepth()
+    public void TriplePointer_FollowsEveryLevel()
     {
         const string d = """
                          struct ptrtest {
@@ -141,7 +141,7 @@ public class TestPointer
     ///     Dereference() and Value must expose the same already-decoded target.
     /// </remarks>
     [TestMethod]
-    public void TestPointerPointer()
+    public void PointerToPointer_FollowsBothLevels()
     {
         const string d = """
                          struct test {
@@ -187,7 +187,7 @@ public class TestPointer
     ///     field interpretation as a direct read.
     /// </remarks>
     [TestMethod]
-    public void TestPointerPointerStruct()
+    public void PointerChain_ReadsTheTargetRecord()
     {
         const string d = """
                          struct test {
@@ -241,7 +241,7 @@ public class TestPointer
     ///     interpretation.
     /// </remarks>
     [TestMethod]
-    public void TestPointerStruct()
+    public void PointerToStruct_ReadsTheRecord()
     {
         const string d = """
                          struct test {

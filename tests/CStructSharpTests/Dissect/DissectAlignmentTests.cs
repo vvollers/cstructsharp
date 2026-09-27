@@ -5,7 +5,7 @@ using CStructSharp.Values;
 
 /// <summary>Groups tests for test align so changes to this behavior are caught.</summary>
 [TestClass]
-public class TestAlign
+public class DissectAlignmentTests
 {
     /// <summary>
     ///     Both a and b begin at byte zero because union members overlap.
@@ -16,7 +16,7 @@ public class TestAlign
     ///     offset 8.
     /// </remarks>
     [TestMethod]
-    public void Test_Align_Union()
+    public void Union_MembersStartAtZero()
     {
         const string d = """
                          union test {
@@ -51,7 +51,7 @@ public class TestAlign
     ///     whole record takes 64 bytes. The stored values match these offsets, making misplaced reads easy to detect.
     /// </remarks>
     [TestMethod]
-    public void TestAlignArray()
+    public void Array_AlignsForItsElementType()
     {
         const string d = """
                          struct test {
@@ -103,7 +103,7 @@ public class TestAlign
     ///     GCC/Clang placement of the same declaration.
     /// </remarks>
     [TestMethod]
-    public void TestAlignBitField()
+    public void Bitfields_ShareStorageUnderMsvc()
     {
         const string d = """
                          struct test {
@@ -144,7 +144,7 @@ public class TestAlign
     ///     (<c>12 12 10 00 02 00 00 00 18 00 00 00 00 00 00 00</c>, recorded from gcc on x86-64).
     /// </summary>
     [TestMethod]
-    public void TestAlignBitField_SysV()
+    public void Bitfields_PackIntoOneCellUnderSysV()
     {
         const string d = """
                          struct test {
@@ -182,7 +182,7 @@ public class TestAlign
     ///     at 36, and g at 48; the decoded values confirm those positions.
     /// </remarks>
     [TestMethod]
-    public void TestAlignDynamic()
+    public void DataSizedArrays_KeepTheirAlignment()
     {
         const string d = """
                          struct test {
@@ -238,7 +238,7 @@ public class TestAlign
     ///     must read 24.
     /// </remarks>
     [TestMethod]
-    public void TestAlignNestedStruct()
+    public void NestedStruct_AlignsToItsWidestMember()
     {
         const string d = """
                          struct test {
@@ -277,7 +277,7 @@ public class TestAlign
     ///     the target, parsing must return to c and d at offsets 16 and 18 instead of continuing after the target.
     /// </remarks>
     [TestMethod]
-    public void TestAlignPointer()
+    public void Pointer_UsesThePointerWidth()
     {
         const string d = """
                          struct test {
@@ -318,7 +318,7 @@ public class TestAlign
     ///     every C compiler.
     /// </remarks>
     [TestMethod]
-    public void TestAlignStruct()
+    public void Struct_PadsEachFieldToItsWidth()
     {
         const string d = """
                          struct test {
@@ -360,7 +360,7 @@ public class TestAlign
     ///     an incorrect stride, which would shift all records after the first.
     /// </remarks>
     [TestMethod]
-    public void TestAlignStructArray()
+    public void StructArray_PadsEachRecord()
     {
         const string d = """
                          struct test {
@@ -405,7 +405,7 @@ public class TestAlign
     ///     padding bytes must not appear as a fourth element, so indexing b[3] must throw.
     /// </remarks>
     [TestMethod]
-    public void UnionTail()
+    public void UnionTail_RoundsUpWithoutAnExtraElement()
     {
         const string d = """
                          union test {
