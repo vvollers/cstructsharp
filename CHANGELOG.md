@@ -57,6 +57,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 - The full documentation gate runs on Windows: tools start npm without a shell.
 - A new `Impact` benchmark category (about 30 cases, 5 minutes) checks a change quickly; `benchmarks/README.md`
   describes before/after comparisons with `quick-perf-check.mjs`.
+- The feature-operation matrix no longer lists API compatibility baselines; the API contracts own them. The
+  benchmark drift workflow watches only files that exist.
 
 ## 0.10.0 — 2026-09-26
 

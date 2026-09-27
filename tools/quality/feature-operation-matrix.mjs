@@ -224,44 +224,6 @@ await main(() => {
   for (const reference of asyncEvidence) assertEvidenceReference(reference, "asyncContract");
   assertWorkItems([asyncContract.workItem], "asyncContract", true);
 
-  const managed = matrix.managedApiCompatibilityContract;
-  assertCondition(managed, "managedApiCompatibilityContract is required.");
-  assertCondition(managed.baselineId === "managed-rc1", "managedApiCompatibilityContract names an unexpected baseline.");
-  assertCondition(managed.baselineRevision === 1, "managedApiCompatibilityContract names an unexpected baseline revision.");
-  assertCondition(managed.status === "frozen", "managedApiCompatibilityContract must be frozen.");
-  assertCondition(managed.packageVersion === "0.2.0-preview", "managedApiCompatibilityContract names an unexpected package version.");
-  assertCondition(managed.exportedTypes === 20, "managedApiCompatibilityContract must retain the reviewed 20-type surface.");
-  assertCondition(managed.canonicalLines === 227, "managedApiCompatibilityContract must retain the reviewed 227-line surface.");
-  const managedFrameworks = strings(managed.frameworks);
-  assertCondition(sortedJoin(managedFrameworks) === sortedJoin(["net8.0", "net10.0"]), "managedApiCompatibilityContract must list exactly net8.0 and net10.0.");
-  for (const property of ["manifest", "canonical", "gate", "policy"]) {
-    assertCondition(!blank(managed[property]), `managedApiCompatibilityContract has no ${property}.`);
-    assertCondition(isFile(path.join(repositoryRoot, managed[property])), `managedApiCompatibilityContract ${property} '${managed[property]}' does not exist.`);
-  }
-  assertCondition(!blank(managed.browserIntegration), "managedApiCompatibilityContract has no browser-integration boundary.");
-  assertWorkItems([managed.workItem], "managedApiCompatibilityContract", true);
-
-  const browser = matrix.browserApiCompatibilityContract;
-  assertCondition(browser, "browserApiCompatibilityContract is required.");
-  assertCondition(browser.baselineId === "browser-rc1", "browserApiCompatibilityContract names an unexpected baseline.");
-  assertCondition(browser.status === "frozen", "browserApiCompatibilityContract must be frozen.");
-  assertCondition(browser.packageVersion === "0.2.0-preview", "browserApiCompatibilityContract names an unexpected package version.");
-  // The counts mirror the frozen browser baseline; browser-contract.mjs checks that baseline against the sources.
-  const browserBaseline = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "contracts/api/browser-rc1/contract.json"), "utf8"));
-  assertCondition(browser.contractVersion === browserBaseline.contractVersion, "browserApiCompatibilityContract must record the browser baseline contract version.");
-  assertCondition(browser.managedExports === browserBaseline.managedExports.length, "browserApiCompatibilityContract must record the browser baseline managed export count.");
-  assertCondition(browser.operations === browserBaseline.operations.length, "browserApiCompatibilityContract must record the browser baseline operation count.");
-  assertCondition(browser.optionFields === browserBaseline.optionFields.length, "browserApiCompatibilityContract must record the browser baseline option field count.");
-  assertCondition(browser.errorCodes === browserBaseline.errorCodes.length, "browserApiCompatibilityContract must record the browser baseline error code count.");
-  for (const property of ["manifest", "gate", "policy"]) {
-    assertCondition(!blank(browser[property]), `browserApiCompatibilityContract has no ${property}.`);
-    assertCondition(isFile(path.join(repositoryRoot, browser[property])), `browserApiCompatibilityContract ${property} '${browser[property]}' does not exist.`);
-  }
-  for (const evidencePath of browser.evidence ?? []) {
-    assertCondition(isFile(path.join(repositoryRoot, evidencePath)), `browserApiCompatibilityContract evidence '${evidencePath}' does not exist.`);
-  }
-  assertWorkItems([browser.workItem], "browserApiCompatibilityContract", true);
-
   const allowedRoundTripStatuses = Object.keys(matrix.roundTripStatuses ?? {});
   assertCondition(sortedJoin(allowedRoundTripStatuses) === sortedJoin(["blocked", "conditional", "notApplicable", "verified"]), "The round-trip status vocabulary must be exactly blocked, conditional, notApplicable, and verified.");
   assertUniqueIds((matrix.roundTripContracts ?? []).map((contract) => ({ id: contract.featureId })), "roundTripContracts");
@@ -315,7 +277,6 @@ await main(() => {
   console.log(`Memory I/O APIs: ${memoryInputApis.length + memoryOutputApis.length}`);
   console.log(`Compiled read/write routes: ${readRoutes.length + writeRoutes.length}`);
   console.log(`Shared read-like context routes: ${readLikeRoutes.length}`);
-  console.log(`Frozen managed API frameworks: ${managedFrameworks.length}`);
   console.log(`Known contract limits: ${matrix.knownContractLimits.length}`);
   console.log(`Deliberate exclusions: ${matrix.exclusions.length}`);
   console.log(`Manual valid/invalid pairs: ${manualFixtureById.size}`);

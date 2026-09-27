@@ -1,10 +1,10 @@
 name: Benchmark drift report
 
-# Non-failing performance drift report (performance plan Phase 0, item 7). Runs the release-gate benchmark cases
-# with the Short job on the CI runner, normalizes the report with the Node converter, and compares medians and
-# allocations against the recorded baselines with soft thresholds (+10 % median, +5 % allocation). Findings land in
-# the job summary and as an artifact; the job never fails on drift because ubuntu-latest runner variance has not
-# been characterized yet. Flip `--strict` on once it has.
+# Non-failing performance drift report. Runs the release-gate benchmark cases with the Short job on the CI runner,
+# normalizes the report with the Node converter, and compares medians and allocations against the recorded
+# release-gate baseline with soft thresholds (+10 % median, +5 % allocation). Findings land in the job summary and as
+# an artifact; the job never fails on drift because ubuntu-latest runner variance has not been characterized yet.
+# Flip `--strict` on once it has.
 
 on:
   schedule:
@@ -16,11 +16,7 @@ on:
       - "src/CStructSharp.Core/**"
       - "src/CStructSharp.Generators/**"
       - "Directory.Build.props"
-      - "Directory.Build.targets"
-      - "Directory.Packages.props"
       - "global.json"
-      - "NuGet.Config"
-      - "nuget.config"
       - "CStructSharp.NonWeb.slnf"
       - "benchmarks/**"
       - "contracts/performance/**"
@@ -79,23 +75,13 @@ jobs:
           --markdown artifacts/drift/drift-rc1.md
           --median-ratio 0.10 --allocation-ratio 0.05
 
-      - name: Compare against the Phase 0 baseline (net10.0 cases, soft thresholds)
-        continue-on-error: true
-        run: >-
-          node ./tools/quality/compare-benchmark-baseline.mjs
-          --baseline ./contracts/performance/non-web-rc2.json
-          --summary artifacts/drift/summary.json
-          --markdown artifacts/drift/drift-rc2.md
-
       - name: Publish job summary
         if: always()
         run: |
           {
             echo "Runner medians are expected to differ from the recorded (developer machine) baselines; read the Δ column relative to previous runs of this workflow, not as an absolute gate."
             echo
-            cat artifacts/drift/drift-rc1.md 2>/dev/null || echo "rc1 comparison did not run."
-            echo
-            cat artifacts/drift/drift-rc2.md 2>/dev/null || echo "rc2 comparison did not run."
+            cat artifacts/drift/drift-rc1.md 2>/dev/null || echo "The release-gate comparison did not run."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload drift artifacts
@@ -106,6 +92,5 @@ jobs:
           path: |
             artifacts/drift/summary.json
             artifacts/drift/drift-rc1.md
-            artifacts/drift/drift-rc2.md
             artifacts/drift/benchmarks/results/*.json
           if-no-files-found: warn
