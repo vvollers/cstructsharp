@@ -68,7 +68,7 @@ are written below `artifacts/mutation/permanent/`. The `artifacts/` directory is
 
 The scheduled/manual `mutation.yml` workflow runs the same permanent scope in 16 file-based partitions. It assigns
 larger source files first to the smallest group, using file size only as an initial scheduling estimate. Every one
-of the 71 configured files belongs to exactly one partition. No character ranges or changed-file filters are used.
+of the 75 configured files belongs to exactly one partition. No character ranges or changed-file filters are used.
 Each partition runs the full permitted test suite with coverage-based test selection disabled. The memory scope
 runs in an independent job with its existing per-test selection and 75% score floor.
 The runner uses source-project context and records the working directory and command arguments in its evidence.
@@ -95,13 +95,13 @@ node tools/quality/mutation-partitions.mjs --mode aggregate --input-directory ar
 Aggregation requires every partition, the same source revision and configuration, matching report hashes and
 source text, complete mutation outcomes, and valid references to killing/covering tests. It gives test and mutant
 identifiers a partition prefix so independently numbered reports cannot collide. The original full-scope validator
-then enforces all 71 files, the raw 75% score floor and zero unexplained surviving/uncovered/runtime-error mutations. Missing reports
+then enforces all 75 files, the raw 75% score floor and zero unexplained surviving/uncovered/runtime-error mutations. Missing reports
 fail; compile errors remain compile errors. Raw JSON/HTML reports and Stryker trace logs are retained even when a
 partition fails. A job timeout cannot be counted as a completed report.
 
 A declaration with no authored executable body may offer no mutation opportunities. Exact reviewed cases are
 recorded in `contracts/quality/mutation-non-mutable.json`, with their LF-normalized source hash, pinned Stryker
-version and reason. `ReadAttempt<T>` is such a positional record. It stays in the 71-file scope and must appear
+version and reason. `ReadAttempt<T>` is such a positional record. It stays in the 75-file scope and must appear
 exactly once with its current source and an explicitly empty mutation array. The validator reports it as
 **not applicable**, not as killed or successfully mutation-tested. A missing source/report, changed declaration,
 tool-version change, or ignored/compiler-rejected mutations cannot use this qualification. Review changed code
@@ -137,7 +137,8 @@ review again; a similar mutation at another location cannot borrow a proof. Ordi
 resource leaks and changed externally visible behavior are not equivalence. Keep the complete scope and raw 75%
 minimum even when all remaining survivors have individual proofs.
 
-The parser partition (`p00`) has a 315-minute execution limit within a 330-minute job budget. Every other permanent
+The `p00` partition, which holds only the largest scope file, has a 315-minute execution limit within a 330-minute job
+budget. Every other permanent
 partition and the independent memory job have a 180-minute execution limit within a 195-minute job budget.
 The remaining allowance covers normal setup and diagnostic uploads after a step times out; it does not turn a timeout
 into successful evidence.
@@ -187,7 +188,7 @@ linked files, and Stryker matches a pattern against a file's full path or its pa
 
 - mutates the main `src/CStructSharp` library;
 - uses `tests/CStructSharpTests` to test each mutation;
-- limits mutation to 71 files that contain the main parsing and binary-data logic, including the compile-time core in
+- limits mutation to 75 files that contain the main parsing and binary-data logic, including the compile-time core in
   `src/CStructSharp.Core`, the `Generated` support types the source generator's output calls, and the awaitable and
   record-sequence forms (`CStructOperations.Async.cs`, `.AsyncWrite.cs`, `.Sequences.cs`, `Streams/AsyncStreamBuffer.cs`,
   `Reading/RecordParser.cs`, `Generated/RecordSequence.cs`, `Values/ReadAttempt.cs`);
@@ -201,8 +202,9 @@ checking the percentage alone.
 
 ## The layout parser
 
-`Parsing/LayoutParser.cs`, the hand-written layout parser, is an ordinary member of the mutation list: its mutants must be
-detected like any other semantic file's.
+The hand-written layout parser - `Parsing/LayoutParser.cs` and its partial files for declarations, the preprocessor,
+struct and union members, and expressions - is an ordinary member of the mutation list: its mutants must be detected
+like any other semantic file's.
 
 A compile error is not treated as proof that a test found a bug. If a future Stryker or source change produces valid
 mutations for this file, the result must be reviewed and the tests should run against those mutations.

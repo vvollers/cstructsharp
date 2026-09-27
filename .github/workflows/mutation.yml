@@ -29,7 +29,7 @@ jobs:
     name: Permanent mutation ${{ matrix.id }} (${{ matrix.files }} files)
     needs: plan
     runs-on: ubuntu-latest
-    # The parser is the longest single-file partition; retain setup/upload headroom for every partition.
+    # p00 holds only the largest scope file, the longest single-file partition; retain setup/upload headroom for every partition.
     timeout-minutes: ${{ matrix.id == 'p00' && 330 || 195 }}
     strategy:
       fail-fast: false

@@ -44,8 +44,8 @@ test("a complete report explicitly accounts for the exact non-mutable declaratio
   const f = fixture(t);
   const result = validate(f);
   assert.equal(result.status, 0, result.output);
-  assert.match(result.output, /70\/70 detected/);
-  assert.match(result.output, /71 configured files; 1 reviewed non-mutable declarations/);
+  assert.match(result.output, /74\/74 detected/);
+  assert.match(result.output, /75 configured files; 1 reviewed non-mutable declarations/);
   assert.match(result.output, /Not applicable .*Values\/ReadAttempt.cs/);
 });
 
@@ -58,7 +58,7 @@ test("the real gate reports reviewed equivalent survivors with an unchanged raw 
   f.report.files[mutationSource(sample.pattern)].mutants.push({ ...reviewed, id: "equivalent", status: "Survived" });
   const result = validate(f);
   assert.equal(result.status, 0, result.output);
-  assert.match(result.output, /70\/71 detected \(98.59%\)/);
+  assert.match(result.output, /74\/75 detected \(98.67%\)/);
   assert.match(result.output, /1 survived/);
   assert.match(result.output, /Reviewed equivalent survivors: 1/);
   f.report.files[mutationSource(sample.pattern)].mutants[1].replacement = "false";

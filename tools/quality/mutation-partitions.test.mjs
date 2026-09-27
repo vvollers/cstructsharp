@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
-import { aggregateMutationPartitions, mutationInvocation, planMutationPartitions, requireCoreMutationTests } from "../lib/mutation-partitions.mjs";
+import { PERMANENT_SCOPE_SIZE, aggregateMutationPartitions, mutationInvocation, planMutationPartitions, requireCoreMutationTests } from "../lib/mutation-partitions.mjs";
 import { repositoryRoot } from "../lib/tooling.mjs";
 
 // A step timeout must leave ordinary setup/upload headroom; incomplete evidence must still fail aggregation.
@@ -58,18 +58,19 @@ function selectedFile(report) {
   return Object.values(report.report.files)[0];
 }
 
-// Test against the real allowlist, so new scheduling code cannot silently trim any of the reviewed 71 files.
+// Test against the real allowlist, so new scheduling code cannot silently trim any of the reviewed scope files.
 test("the repository plan includes every permanent source exactly once", () => {
   const config = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "stryker-config.json")))["stryker-config"];
   const plan = planMutationPartitions(repositoryRoot, config);
   assert.equal(plan.length, 16);
-  // The extended workflow budget belongs only to the complete parser file, not to another future partition.
+  // The extended workflow budget belongs to p00, which holds only the largest scope file.
+  const largest = [...plan.flatMap((partition) => partition.files)].sort((left, right) => right.bytes - left.bytes)[0];
   assert.deepEqual(plan.find((partition) => partition.id === "p00").files.map((file) => file.pattern),
-    ["**/CStructSharp.Core/Parsing/LayoutParser.cs"], "Review the extended parser time budget if partition ownership changes");
+    [largest.pattern], "Review the extended p00 time budget if partition ownership changes");
   const patterns = plan.flatMap((partition) => partition.files.map((file) => file.pattern));
-  assert.equal(patterns.length, 71);
+  assert.equal(patterns.length, PERMANENT_SCOPE_SIZE);
   assert.deepEqual([...patterns].sort(), [...config.mutate].sort());
-  assert.equal(new Set(patterns).size, 71);
+  assert.equal(new Set(patterns).size, PERMANENT_SCOPE_SIZE);
   assert.ok(plan.every((partition) => partition.files.length > 0));
 });
 

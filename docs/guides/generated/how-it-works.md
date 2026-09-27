@@ -13,8 +13,8 @@ with the runtime, or when you are about to change either.
 1. **Attribute.** Roslyn finds every class with `[CStructLayout]` (`ForAttributeWithMetadataName`, so classes
    without the attribute cost nothing) and the generator builds a small equatable *request*: the layout text or
    file name, the options, the class name, its namespace and containing types, `KeepNames`, `Root`.
-2. **Parse and compile.** The request's text goes through `LayoutParser` and `CStructCompiledModel` - the same
-   classes `new CStruct(text)` calls. The result is the compiled model: declarations, member types, fixed offsets
+2. **Parse and compile.** The request's text goes through `LayoutParser` and `LayoutCompilation.Create` - the same
+   code `new CStruct(text)` runs. The result is the compiled model: declarations, member types, fixed offsets
    where the layout makes them fixed, folded `#define`s, the bitfield allocation.
 3. **Model.** `GeneratedModel` walks the compiled model once and decides every C# name (PascalCase, collisions,
    reserved names) and every member's C# type. Name collisions become `CSG003` here, before any code exists.

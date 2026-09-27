@@ -10,6 +10,12 @@ export function mutationFileHash(filename) {
 }
 
 /** Resolves an existing exact permanent-scope pattern to its repository source path; broad globs are forbidden. */
+/**
+ * The number of files in the permanent mutation scope. The tools and their tests check the configured allowlist against
+ * it, so a file cannot leave the scope silently; a file split into partial files adds its parts here.
+ */
+export const PERMANENT_SCOPE_SIZE = 75;
+
 export function mutationSource(pattern) {
   const source = pattern.startsWith("**/CStructSharp.Core/") ? `src/${pattern.slice(3)}` : `src/CStructSharp/${pattern}`;
   assert.ok(!/[*!?{}]/.test(source) && !source.includes("..") && source.endsWith(".cs"), `Not an exact semantic file: ${pattern}`);

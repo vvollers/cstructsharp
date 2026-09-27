@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Validates the permanent mutation gate: the Stryker configuration (project, thresholds, the 71-file allowlist)
+ * Validates the permanent mutation gate: the Stryker configuration (project, thresholds, the fixed-size allowlist)
  * and a JSON report against it (every configured file measured or explicitly qualified as non-mutable,
  * no unexplained surviving/uncovered/runtime-error mutants,
  * score at or above 75 %).
@@ -12,7 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { assertCondition, main, parseArguments, repositoryRoot } from "../lib/tooling.mjs";
 import { loadNonMutableDeclarations, qualifyNonMutableDeclaration } from "../lib/mutation-declarations.mjs";
-import { requireCompletedMutants, requireCoreMutationTests } from "../lib/mutation-partitions.mjs";
+import { PERMANENT_SCOPE_SIZE, requireCompletedMutants, requireCoreMutationTests } from "../lib/mutation-partitions.mjs";
 import { loadEquivalentMutations, qualifyEquivalentMutations } from "../lib/mutation-equivalents.mjs";
 
 const options = parseArguments(process.argv.slice(2), { "config-path": "string", "report-path": "string" }, {
@@ -46,7 +46,7 @@ await main(() => {
   assertCondition(Number(config.thresholds.break) === 75, "The permanent mutation break threshold must be 75%.");
 
   const configuredFiles = (config.mutate ?? []).map((file) => String(file).replaceAll("\\", "/"));
-  assertCondition(configuredFiles.length === 71, `The permanent mutation allowlist must contain exactly 71 semantic files; found ${configuredFiles.length}.`);
+  assertCondition(configuredFiles.length === PERMANENT_SCOPE_SIZE, `The permanent mutation allowlist must contain exactly ${PERMANENT_SCOPE_SIZE} semantic files; found ${configuredFiles.length}.`);
   assertCondition(new Set(configuredFiles).size === configuredFiles.length, "The permanent mutation allowlist contains duplicate files.");
   assertCondition(configuredFiles.includes("**/CStructSharp.Core/Parsing/LayoutParser.cs"), "The layout parser must remain in the permanent mutation allowlist.");
   const nonMutableDeclarations = loadNonMutableDeclarations(repositoryRoot, configuredFiles);
@@ -108,7 +108,7 @@ await main(() => {
 
   const hash = crypto.createHash("sha256").update(fs.readFileSync(reportPath)).digest("hex").toUpperCase();
   console.log(
-    `Permanent mutation gate passed: ${detected}/${valid} detected (${scoreText}%), ${killed} killed, ${timedOut} timed out, ${survived} survived, ${noCoverage} uncovered, ${runtimeErrors} runtime errors; ${compileErrors} compile errors, ${ignored} ignored; ${testCount} tests; 71 configured files; ${qualifiedDeclarations.length} reviewed non-mutable declarations; SHA-256 ${hash}.`,
+    `Permanent mutation gate passed: ${detected}/${valid} detected (${scoreText}%), ${killed} killed, ${timedOut} timed out, ${survived} survived, ${noCoverage} uncovered, ${runtimeErrors} runtime errors; ${compileErrors} compile errors, ${ignored} ignored; ${testCount} tests; ${configuredFiles.length} configured files; ${qualifiedDeclarations.length} reviewed non-mutable declarations; SHA-256 ${hash}.`,
   );
   for (const declaration of qualifiedDeclarations) console.log(`Not applicable (no mutation opportunities): ${declaration}: ${nonMutableDeclarations.get(declaration).reason}`);
   console.log(`Reviewed equivalent survivors: ${qualifiedEquivalents.length}; retained in the raw score denominator, never counted as detected.`);

@@ -11,14 +11,14 @@ import path from "node:path";
 import { spawnSync, execFileSync } from "node:child_process";
 import { main, parseArguments, repositoryRoot } from "../lib/tooling.mjs";
 import { listFiles } from "../lib/files.mjs";
-import { aggregateMutationPartitions, mutationFileHash, mutationInvocation, planMutationPartitions, requireCompletedMutants, requireCoreMutationTests } from "../lib/mutation-partitions.mjs";
+import { PERMANENT_SCOPE_SIZE, aggregateMutationPartitions, mutationFileHash, mutationInvocation, planMutationPartitions, requireCompletedMutants, requireCoreMutationTests } from "../lib/mutation-partitions.mjs";
 
 const options = parseArguments(process.argv.slice(2), {
   mode: "string", partition: "string", "output-directory": "string", "input-directory": "string",
 }, { defaults: { "output-directory": "artifacts/mutation", "input-directory": "artifacts/mutation-input" } });
 const configPath = path.join(repositoryRoot, "stryker-config.json");
 const config = JSON.parse(fs.readFileSync(configPath, "utf8"))["stryker-config"];
-assert.equal(config.mutate.length, 71, "The complete permanent scope must retain its 71 reviewed files");
+assert.equal(config.mutate.length, PERMANENT_SCOPE_SIZE, `The complete permanent scope must retain its ${PERMANENT_SCOPE_SIZE} reviewed files`);
 const partitions = planMutationPartitions(repositoryRoot, config);
 const output = path.resolve(repositoryRoot, options["output-directory"]);
 
