@@ -370,6 +370,8 @@ public class FeatureOperationMatrixTests
                 new Dictionary<string, object?> { ["narrow"] = (byte)0xA5, }));
     }
 
+    /// <summary>Lists every fixed-width integer and character spelling with its storage width.</summary>
+    /// <returns>Each spelling paired with its width in bytes.</returns>
     private static IEnumerable<(string TypeName, int Width)> FixedPrimitiveCases()
     {
         yield return ("byte", 1);
@@ -457,6 +459,10 @@ public class FeatureOperationMatrixTests
         yield return ("_DWORD", 4);
     }
 
+    /// <summary>
+    ///     Lists representative feature layouts with their input bytes and the expected result of each core operation.
+    /// </summary>
+    /// <returns>The cases in a stable order.</returns>
     private static IEnumerable<MatrixCase> RepresentativeCases()
     {
         foreach ((string declaration, object value, object replacement, byte[] original, byte[] updated) in new (string, object, object, byte[], byte[])[]
@@ -721,6 +727,10 @@ public class FeatureOperationMatrixTests
             [0x12, 0x34, 0xBC, 0x9A,]);
     }
 
+    /// <summary>
+    ///     Loads the feature-operation matrix copied beside the test assembly; the test fails when it is missing.
+    /// </summary>
+    /// <returns>The parsed catalog, which the caller disposes.</returns>
     private static JsonDocument LoadCatalog()
     {
         string path = Path.Combine(AppContext.BaseDirectory, "feature-operation-matrix.json");
@@ -728,6 +738,23 @@ public class FeatureOperationMatrixTests
         return JsonDocument.Parse(File.ReadAllText(path));
     }
 
+    /// <summary>One representative feature layout and the results every core operation must produce for it.</summary>
+    /// <param name="Id">A stable case name used in failure messages.</param>
+    /// <param name="Layout">The layout definition, which declares a <c>root</c> struct.</param>
+    /// <param name="Input">The bytes to parse.</param>
+    /// <param name="Serialized">The bytes expected from serializing the parsed root.</param>
+    /// <param name="UpdatePath">The path that is read, resolved to an address, and updated.</param>
+    /// <param name="Replacement">The new value written at the update path.</param>
+    /// <param name="UpdateAddress">The expected byte offset of the value at the update path.</param>
+    /// <param name="Updated">The expected bytes after the update.</param>
+    /// <param name="LengthPath">An optional array path whose element count is checked.</param>
+    /// <param name="ExpectedLength">The expected element count at the length path.</param>
+    /// <param name="Variables">Runtime variable values, or null when the layout uses none.</param>
+    /// <param name="PointerSize">The pointer width in bytes.</param>
+    /// <param name="Aligned">Whether fields are placed at their natural alignment.</param>
+    /// <param name="LittleEndian">Whether the layout's default byte order is little-endian.</param>
+    /// <param name="RequireDebugRange">Whether a debug entry must cover the update address.</param>
+    /// <param name="ExpectedValue">An optional value that reading the update path must return.</param>
     private sealed record MatrixCase(
         string Id,
         string Layout,

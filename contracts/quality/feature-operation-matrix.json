@@ -137,9 +137,9 @@
       "tests/CStructSharpTests/Compilation/CompiledExecutionParityTests.cs#AlignedCompositeSelections_ConsumeTheCompleteCompiledExtent",
       "tests/CStructSharpTests/Compilation/CompiledExecutionParityTests.cs#UnionStructMember_UsesSequentialCompiledFieldTraversal",
       "tests/CStructSharpTests/Compilation/CompiledIntermediateRepresentationTests.cs#PrimitiveTypedefSlice_UsesCompiledFactsAcrossEveryOperation",
-      "tests/CStructSharpTests/ReviewRegressionTests.cs#ParseStream_PointerToUnion_RewindsEveryMemberToTargetAddress",
+      "tests/CStructSharpTests/Unions/InlineUnionTests.cs#ParseStream_PointerToUnion_RewindsEveryMemberToTargetAddress",
       "tests/CStructSharpTests/Async/AsyncReadTests.cs#AsyncReads_AgreeWithTheStreamForms",
-      "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_ReadTheSameAsynchronously"
+      "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#ValidFixtures_ReadTheSameAsynchronously"
     ],
     "workItem": "IR-02"
   },
@@ -516,11 +516,11 @@
     "reference": "docs/language/index.md",
     "validator": "tools/documentation/validate-canonical-reference.mjs",
     "tests": [
-      "tests/CStructSharpTests/CanonicalPortableReferenceTests.cs#PrimitiveTables_AgreeWithCompiledCodecs",
-      "tests/CStructSharpTests/CanonicalPortableReferenceTests.cs#LayoutExamples_PredictCompiledBytesAndOffsets",
-      "tests/CStructSharpTests/CanonicalPortableReferenceTests.cs#UnsupportedConstructs_FailDuringLayoutConstruction",
-      "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
-      "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories"
+      "tests/CStructSharpTests/Quality/CanonicalPortableReferenceTests.cs#PrimitiveTables_AgreeWithCompiledCodecs",
+      "tests/CStructSharpTests/Quality/CanonicalPortableReferenceTests.cs#LayoutExamples_PredictCompiledBytesAndOffsets",
+      "tests/CStructSharpTests/Quality/CanonicalPortableReferenceTests.cs#UnsupportedConstructs_FailDuringLayoutConstruction",
+      "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+      "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories"
     ],
     "workItem": "DOC-01"
   },
@@ -537,11 +537,11 @@
       "contracts/quality/compiler-fixtures/baselines/linux-x64-gcc.json"
     ],
     "tests": [
-      "tests/CStructSharpTests/CompilerDifferentialFixtureTests.cs#Baselines_AreObservationOnlyAndHaveCompleteProvenance",
-      "tests/CStructSharpTests/CompilerDifferentialFixtureTests.cs#FixedWidthAggregates_MatchExactPortableExamples",
-      "tests/CStructSharpTests/CompilerDifferentialFixtureTests.cs#NativeScalarDifferences_DoNotBecomePortableClaims",
-      "tests/CStructSharpTests/CompilerDifferentialFixtureTests.cs#Bitfields_PackedExampleVersusAlignedNativeImage",
-      "tests/CStructSharpTests/CompilerDifferentialFixtureTests.cs#Shapes_MatchEveryBaselineOfTheClaimedAbiFamily"
+      "tests/CStructSharpTests/Quality/CompilerDifferentialFixtureTests.cs#Baselines_AreObservationOnlyAndHaveCompleteProvenance",
+      "tests/CStructSharpTests/Quality/CompilerDifferentialFixtureTests.cs#FixedWidthAggregates_MatchExactPortableExamples",
+      "tests/CStructSharpTests/Quality/CompilerDifferentialFixtureTests.cs#NativeScalarDifferences_DoNotBecomePortableClaims",
+      "tests/CStructSharpTests/Quality/CompilerDifferentialFixtureTests.cs#Bitfields_PackedExampleVersusAlignedNativeImage",
+      "tests/CStructSharpTests/Quality/CompilerDifferentialFixtureTests.cs#Shapes_MatchEveryBaselineOfTheClaimedAbiFamily"
     ],
     "workItem": "QA-03"
   },
@@ -560,14 +560,14 @@
       "pointer-union"
     ],
     "tests": [
-      "tests/CStructSharpTests/ManagedFuzzTests.cs#Corpus_DefinesEveryBoundedManagedTarget",
-      "tests/CStructSharpTests/ManagedFuzzTests.cs#ReviewedRun_MatchesTheFrozenReplayManifest",
-      "tests/CStructSharpTests/ManagedFuzzTests.cs#CustomSeed_ReplaysIdentically",
-      "tests/CStructSharpTests/ManagedFuzzTests.cs#SingleInput_ReplaysSuccessAndDocumentedFailure",
-      "tests/CStructSharpTests/ManagedFuzzTests.cs#Run_RejectsUnreviewedBoundsAndUnknownTargets",
-      "tests/CStructSharpTests/ManagedFuzzCliTests.cs#Run_SupportsDiscoveryReportsAndSingleInputReplay",
-      "tests/CStructSharpTests/ManagedFuzzCliTests.cs#Run_RejectsInvalidOptionsAndValues",
-      "tests/CStructSharpTests/ManagedFuzzCliTests.cs#Corpus_RejectsMalformedDocumentsAndSeedModels"
+      "tests/CStructSharpTests/Quality/ManagedFuzzTests.cs#Corpus_DefinesEveryBoundedManagedTarget",
+      "tests/CStructSharpTests/Quality/ManagedFuzzTests.cs#ReviewedRun_MatchesTheFrozenReplayManifest",
+      "tests/CStructSharpTests/Quality/ManagedFuzzTests.cs#CustomSeed_ReplaysIdentically",
+      "tests/CStructSharpTests/Quality/ManagedFuzzTests.cs#SingleInput_ReplaysSuccessAndDocumentedFailure",
+      "tests/CStructSharpTests/Quality/ManagedFuzzTests.cs#Run_RejectsUnreviewedBoundsAndUnknownTargets",
+      "tests/CStructSharpTests/Quality/ManagedFuzzCliTests.cs#Run_SupportsDiscoveryReportsAndSingleInputReplay",
+      "tests/CStructSharpTests/Quality/ManagedFuzzCliTests.cs#Run_RejectsInvalidOptionsAndValues",
+      "tests/CStructSharpTests/Quality/ManagedFuzzCliTests.cs#Corpus_RejectsMalformedDocumentsAndSeedModels"
     ],
     "deferredTargets": [
       "json-wasm"
@@ -614,7 +614,7 @@
           "The caller supplies a CLR value representable by the declared primitive codec."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedFixedLayouts_ValueAndCanonicalBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedFixedLayouts_ValueAndCanonicalBytesRoundTrip"
         ]
       },
       "bytes": {
@@ -623,7 +623,7 @@
           "The same layout byte order and explicit endian override are used for parsing and serialization."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedFixedLayouts_ValueAndCanonicalBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedFixedLayouts_ValueAndCanonicalBytesRoundTrip"
         ]
       }
     },
@@ -683,7 +683,7 @@
           "The caller supplies a CLR value representable by the aliased fixed-width codec."
         ],
         "evidence": [
-          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations"
+          "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations"
         ]
       },
       "bytes": {
@@ -692,7 +692,7 @@
           "An alternate spelling produces identical bytes to its documented canonical spelling."
         ],
         "evidence": [
-          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations"
+          "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations"
         ]
       }
     },
@@ -704,7 +704,7 @@
           "Fixed character buffers normalize a shorter input string to the declared width by appending NUL characters."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
         ]
       },
       "bytes": {
@@ -713,7 +713,7 @@
           "Bytes are exact after the first canonical serialization, including the declared-width NUL padding."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
         ]
       }
     },
@@ -725,7 +725,7 @@
           "Text is valid for the selected encoding and does not contain that codec's terminator."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedTerminatedStrings_ValueAndCanonicalBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedTerminatedStrings_ValueAndCanonicalBytesRoundTrip"
         ]
       },
       "bytes": {
@@ -734,7 +734,7 @@
           "The input is the canonical encoding of valid text followed by exactly one complete codec terminator."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedTerminatedStrings_ValueAndCanonicalBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedTerminatedStrings_ValueAndCanonicalBytesRoundTrip"
         ]
       }
     },
@@ -746,7 +746,7 @@
           "The declaration resolves to a signed or unsigned 8/16/32/64-bit integral backing domain and supplied writes are exact in-domain integers or declared symbolic names."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedEnumAndBitfieldValues_ValueAndCanonicalBytesRoundTrip",
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedEnumAndBitfieldValues_ValueAndCanonicalBytesRoundTrip",
           "tests/CStructSharpTests/Enums/EnumDomainTests.cs#IntegerDomains_RoundTripBoundariesAcrossOperations"
         ]
       },
@@ -756,7 +756,7 @@
           "Known and unknown payloads use the complete declared signed/unsigned backing domain and the layout instance byte order."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedEnumAndBitfieldValues_ValueAndCanonicalBytesRoundTrip",
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedEnumAndBitfieldValues_ValueAndCanonicalBytesRoundTrip",
           "tests/CStructSharpTests/Enums/EnumDomainTests.cs#IntegerDomains_RoundTripBoundariesAcrossOperations"
         ]
       }
@@ -769,7 +769,7 @@
           "Declared unsigned slices obey the portable bitfield semantics and each supplied value fits its declared width."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedEnumAndBitfieldValues_ValueAndCanonicalBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedEnumAndBitfieldValues_ValueAndCanonicalBytesRoundTrip"
         ]
       },
       "bytes": {
@@ -778,7 +778,7 @@
           "Every bit in the storage unit is represented by declared portable slices; unnamed and zero-width forms remain excluded."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedEnumAndBitfieldValues_ValueAndCanonicalBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedEnumAndBitfieldValues_ValueAndCanonicalBytesRoundTrip"
         ]
       }
     },
@@ -790,7 +790,7 @@
           "The supplied collection has exactly the declared zero, one, or multiple element shape - an N-dimensional array's supplied value is the matching N-deep nested collection, one dimension of shape checking per level."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip",
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip",
           "tests/CStructSharpTests/Arrays/MultidimensionalArrayTests.cs#TwoDimensionalArray_RoundTripsThroughWriteAndParse",
           "tests/CStructSharpTests/Arrays/MultidimensionalArrayTests.cs#ThreeDimensionalArray_RoundTripsThroughWriteAndParse"
         ]
@@ -801,7 +801,7 @@
           "Every element representation has its own applicable exact-byte contract; a multidimensional array's elements are laid out in row-major order, the same sequential order a flat array of the same total count would use."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip",
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip",
           "tests/CStructSharpTests/Arrays/MultidimensionalArrayTests.cs#TwoDimensionalArray_RoundTripsThroughWriteAndParse"
         ]
       }
@@ -965,7 +965,7 @@
           "Parsing and serialization receive the same layout-variable bindings and the supplied collection matches the evaluated count."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
         ]
       },
       "bytes": {
@@ -974,7 +974,7 @@
           "The same variables produce the same element count and every element representation has its own applicable exact-byte contract."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
         ]
       }
     },
@@ -986,7 +986,7 @@
           "Every nested member representation has its own applicable value contract."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
         ]
       },
       "bytes": {
@@ -995,7 +995,7 @@
           "Every nested member is byte-stable and any aligned padding is already canonical."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
         ]
       }
     },
@@ -1007,7 +1007,7 @@
           "Every inline member representation has its own applicable value contract."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
         ]
       },
       "bytes": {
@@ -1016,7 +1016,7 @@
           "Every inline member is byte-stable and any aligned padding is already canonical."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
         ]
       }
     },
@@ -1028,7 +1028,7 @@
           "The resolved underlying representation has its own applicable value contract."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
         ]
       },
       "bytes": {
@@ -1037,7 +1037,7 @@
           "The resolved underlying representation has its own applicable byte contract."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
         ]
       }
     },
@@ -1049,7 +1049,7 @@
           "An untagged parse returns complete raw storage and decoded member views with no selected member; a new or edited write must explicitly select one member, and parsing the resulting bytes returns to the neutral unselected representation."
         ],
         "evidence": [
-          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#ExplicitUnionCase_PreservesRawStorageAndWriteSelection",
+          "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#ExplicitUnionCase_PreservesRawStorageAndWriteSelection",
           "tests/CStructSharpTests/Unions/UnionValueTests.cs#UnionValue_SelectionCanBeAddedAndRemovedWithoutLosingRawStorage"
         ]
       },
@@ -1059,7 +1059,7 @@
           "An unchanged parsed or FromRaw union writes its complete extent exactly; explicit selected-member serialization produces canonical zero-filled storage, while whole-union updates follow the documented clear/preserve policy."
         ],
         "evidence": [
-          "tests/CStructSharpTests/ReviewRegressionTests.cs#Serialize_ParsedUnion_PreservesCompleteRawStorage",
+          "tests/CStructSharpTests/Unions/UnionValueTests.cs#Serialize_ParsedUnion_PreservesCompleteRawStorage",
           "tests/CStructSharpTests/Unions/UnionValueTests.cs#ExplicitMemberWrite_UsesCompleteUnionStoragePolicy"
         ]
       }
@@ -1093,7 +1093,7 @@
           "The stored address and optional dereferenced view are parsed, but root serialization writes the pointer address rather than relocating or serializing the target graph."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedPointerStorage_AddressAndCanonicalRootBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedPointerStorage_AddressAndCanonicalRootBytesRoundTrip"
         ]
       },
       "bytes": {
@@ -1102,7 +1102,7 @@
           "Exact-byte round-trip applies to pointer storage inside the selected root extent; external target bytes are outside that serialization."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedPointerStorage_AddressAndCanonicalRootBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedPointerStorage_AddressAndCanonicalRootBytesRoundTrip"
         ]
       }
     },
@@ -1114,7 +1114,7 @@
           "Every parsed pointer level preserves its stored address, but root serialization writes only the top-level pointer storage."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedPointerStorage_AddressAndCanonicalRootBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedPointerStorage_AddressAndCanonicalRootBytesRoundTrip"
         ]
       },
       "bytes": {
@@ -1123,7 +1123,7 @@
           "Exact-byte round-trip applies only to pointer storage inside the selected root extent, not the external pointer chain or final target."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedPointerStorage_AddressAndCanonicalRootBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedPointerStorage_AddressAndCanonicalRootBytesRoundTrip"
         ]
       }
     },
@@ -1135,8 +1135,8 @@
           "Parsing and serialization use the same aligned mode, layout byte order, and explicit field overrides."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedFixedLayouts_ValueAndCanonicalBytesRoundTrip",
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedFixedLayouts_ValueAndCanonicalBytesRoundTrip",
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
         ]
       },
       "bytes": {
@@ -1145,8 +1145,8 @@
           "New serialization canonicalizes alignment gaps and tail padding to zero; arbitrary source padding bytes are not represented by the value model and are not promised to survive."
         ],
         "evidence": [
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedFixedLayouts_ValueAndCanonicalBytesRoundTrip",
-          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedFixedLayouts_ValueAndCanonicalBytesRoundTrip",
+          "tests/CStructSharpTests/Quality/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
         ]
       }
     },
@@ -1192,7 +1192,7 @@
           "Valid representable values with the documented type and byte order; see the executable representative cases."
         ],
         "evidence": [
-          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+          "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
         ]
       },
       "bytes": {
@@ -1201,7 +1201,7 @@
           "Canonical encodings, including any zero padding in bounded text buffers."
         ],
         "evidence": [
-          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+          "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
         ]
       }
     },
@@ -1213,7 +1213,7 @@
           "Valid representable values with the documented type and byte order; see the executable representative cases."
         ],
         "evidence": [
-          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+          "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
         ]
       },
       "bytes": {
@@ -1222,7 +1222,7 @@
           "Canonical encodings, including any zero padding in bounded text buffers."
         ],
         "evidence": [
-          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+          "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
         ]
       }
     },
@@ -1234,7 +1234,7 @@
           "Valid representable values with the documented type and byte order; see the executable representative cases."
         ],
         "evidence": [
-          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+          "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
         ]
       },
       "bytes": {
@@ -1243,7 +1243,7 @@
           "Only canonical encodings are byte-stable. Permitted padded LEB128 encodings are canonicalized during serialization."
         ],
         "evidence": [
-          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+          "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
         ]
       }
     },
@@ -1255,7 +1255,7 @@
           "Valid representable values with the documented type and byte order; see the executable representative cases."
         ],
         "evidence": [
-          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+          "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
         ]
       },
       "bytes": {
@@ -1264,7 +1264,7 @@
           "Canonical encodings, including any zero padding in bounded text buffers."
         ],
         "evidence": [
-          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+          "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
         ]
       }
     },
@@ -1276,7 +1276,7 @@
           "Valid representable values with the documented type and byte order; see the executable representative cases."
         ],
         "evidence": [
-          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+          "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
         ]
       },
       "bytes": {
@@ -1285,7 +1285,7 @@
           "Canonical encodings, including any zero padding in bounded text buffers."
         ],
         "evidence": [
-          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+          "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
         ]
       }
     },
@@ -1297,7 +1297,7 @@
           "Valid representable values with the documented type and byte order; see the executable representative cases."
         ],
         "evidence": [
-          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+          "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
         ]
       },
       "bytes": {
@@ -1306,7 +1306,7 @@
           "Canonical encodings, including any zero padding in bounded text buffers."
         ],
         "evidence": [
-          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+          "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
         ]
       }
     },
@@ -1319,7 +1319,7 @@
         ],
         "evidence": [
           "tests/CStructSharpTests/Primitives/PrimitiveSpellingTests.cs#Aliases_ResolveToCanonicalCodecs",
-          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations"
+          "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations"
         ]
       },
       "bytes": {
@@ -1328,8 +1328,8 @@
           "The same byte order, CLongWidth, and pointer size are used for parsing and serialization."
         ],
         "evidence": [
-          "tests/CStructSharpTests/CanonicalPortableReferenceTests.cs#AliasSpellings_BehaveLikeTheirCanonicalCodec",
-          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations"
+          "tests/CStructSharpTests/Quality/CanonicalPortableReferenceTests.cs#AliasSpellings_BehaveLikeTheirCanonicalCodec",
+          "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations"
         ]
       }
     },
@@ -1699,7 +1699,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations",
           "operations": [
             "parse",
             "debug",
@@ -1710,13 +1710,13 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/RobustnessTests.cs#ParseStream_RejectsTruncatedPrimitiveValues",
+          "test": "tests/CStructSharpTests/Quality/RobustnessTests.cs#ParseStream_RejectsTruncatedPrimitiveValues",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations",
           "operations": [
             "read-value"
           ]
@@ -1988,7 +1988,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations",
           "operations": [
             "parse",
             "debug",
@@ -2066,7 +2066,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "parse",
             "debug",
@@ -2089,7 +2089,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "read-value"
           ]
@@ -2147,7 +2147,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "parse",
             "debug",
@@ -2159,7 +2159,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#NamedStringLength_CoversEveryHandlerAndRejectsScalars",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#NamedStringLength_CoversEveryHandlerAndRejectsScalars",
           "operations": [
             "length"
           ]
@@ -2197,7 +2197,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "read-value"
           ]
@@ -2256,7 +2256,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "parse",
             "debug",
@@ -2267,7 +2267,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/RobustnessTests.cs#ParseStream_PreservesUnknownEnumValues",
+          "test": "tests/CStructSharpTests/Quality/RobustnessTests.cs#ParseStream_PreservesUnknownEnumValues",
           "operations": [
             "parse"
           ]
@@ -2292,7 +2292,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "read-value"
           ]
@@ -2355,7 +2355,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "parse",
             "debug",
@@ -2388,7 +2388,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "read-value"
           ]
@@ -2450,7 +2450,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "parse",
             "debug",
@@ -2508,7 +2508,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "read-value"
           ]
@@ -2641,7 +2641,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "test": "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
           "operations": [
             "parse",
             "address",
@@ -3282,7 +3282,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "parse",
             "debug",
@@ -3319,7 +3319,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "read-value"
           ]
@@ -3376,7 +3376,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "parse",
             "debug",
@@ -3398,7 +3398,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "read-value"
           ]
@@ -3453,7 +3453,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "parse",
             "debug",
@@ -3475,7 +3475,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "read-value"
           ]
@@ -3534,7 +3534,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "parse",
             "debug",
@@ -3556,7 +3556,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "read-value"
           ]
@@ -3637,7 +3637,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#ExplicitUnionCase_PreservesRawStorageAndWriteSelection",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#ExplicitUnionCase_PreservesRawStorageAndWriteSelection",
           "operations": [
             "parse",
             "debug",
@@ -3678,7 +3678,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#ExplicitUnionCase_PreservesRawStorageAndWriteSelection",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#ExplicitUnionCase_PreservesRawStorageAndWriteSelection",
           "operations": [
             "read-value"
           ]
@@ -3826,7 +3826,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "parse",
             "debug",
@@ -3869,7 +3869,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "read-value"
           ]
@@ -3929,7 +3929,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "parse",
             "debug",
@@ -3951,7 +3951,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "read-value"
           ]
@@ -4012,7 +4012,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "parse",
             "debug",
@@ -4034,7 +4034,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "read-value"
           ]
@@ -4117,7 +4117,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/RobustnessTests.cs#ParseStream_RejectsTruncatedPrimitiveValues",
+          "test": "tests/CStructSharpTests/Quality/RobustnessTests.cs#ParseStream_RejectsTruncatedPrimitiveValues",
           "operations": [
             "parse"
           ]
@@ -4296,7 +4296,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "parse",
             "debug",
@@ -4309,7 +4309,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "test": "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
           "operations": [
             "parse",
             "address",
@@ -4317,7 +4317,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories",
+          "test": "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories",
           "operations": [
             "parse"
           ]
@@ -4384,7 +4384,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "parse",
             "debug",
@@ -4397,7 +4397,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "test": "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
           "operations": [
             "parse",
             "address",
@@ -4405,7 +4405,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories",
+          "test": "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories",
           "operations": [
             "parse"
           ]
@@ -4471,7 +4471,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "parse",
             "debug",
@@ -4484,7 +4484,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "test": "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
           "operations": [
             "parse",
             "address",
@@ -4492,7 +4492,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories",
+          "test": "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories",
           "operations": [
             "parse"
           ]
@@ -4564,7 +4564,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "parse",
             "debug",
@@ -4576,7 +4576,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "test": "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
           "operations": [
             "parse",
             "address",
@@ -4584,7 +4584,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories",
+          "test": "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories",
           "operations": [
             "parse"
           ]
@@ -4651,7 +4651,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "parse",
             "debug",
@@ -4664,7 +4664,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "test": "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
           "operations": [
             "parse",
             "address",
@@ -4672,7 +4672,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories",
+          "test": "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories",
           "operations": [
             "parse"
           ]
@@ -4739,7 +4739,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "parse",
             "debug",
@@ -4752,7 +4752,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "test": "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
           "operations": [
             "parse",
             "address",
@@ -4760,7 +4760,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories",
+          "test": "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories",
           "operations": [
             "parse"
           ]
@@ -4823,7 +4823,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations",
+          "test": "tests/CStructSharpTests/Quality/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations",
           "operations": [
             "parse",
             "debug",
@@ -4871,7 +4871,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/CanonicalPortableReferenceTests.cs#AliasSpellings_BehaveLikeTheirCanonicalCodec",
+          "test": "tests/CStructSharpTests/Quality/CanonicalPortableReferenceTests.cs#AliasSpellings_BehaveLikeTheirCanonicalCodec",
           "operations": [
             "parse"
           ]
@@ -5728,7 +5728,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "test": "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
           "operations": [
             "parse",
             "address",
@@ -5807,7 +5807,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "test": "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
           "operations": [
             "parse",
             "address",
@@ -5879,7 +5879,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "test": "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
           "operations": [
             "parse",
             "address",

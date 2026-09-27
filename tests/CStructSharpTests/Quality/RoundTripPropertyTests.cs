@@ -226,6 +226,11 @@ public class RoundTripPropertyTests
         }
     }
 
+    /// <summary>
+    ///     Generates a root layout of one to seven randomly chosen fixed primitive fields and their values.
+    /// </summary>
+    /// <param name="random">The reproducible source that selects byte order, alignment, types, and values.</param>
+    /// <returns>The generated fixed-layout case.</returns>
     private static FixedCase GenerateFixedCase(PropertyTestSupport.StableRandom random)
     {
         int fieldCount = random.NextInt(7) + 1;
@@ -239,6 +244,11 @@ public class RoundTripPropertyTests
         return new FixedCase(random.NextBoolean(), random.NextBoolean(), fields);
     }
 
+    /// <summary>
+    ///     Serializes the case's values, parses the bytes back, and checks the size, every value, and that serializing
+    ///     the parsed result reproduces the first bytes.
+    /// </summary>
+    /// <param name="item">The fixed-layout case to check.</param>
     private static void AssertFixedCase(FixedCase item)
     {
         string layout = "struct root { " +
@@ -266,6 +276,12 @@ public class RoundTripPropertyTests
         CollectionAssert.AreEqual(first, cstruct.Serialize("root", parsed));
     }
 
+    /// <summary>
+    ///     Yields simpler variants of a failing fixed-layout case: unaligned, little-endian, fewer fields, or one field
+    ///     set to zero.
+    /// </summary>
+    /// <param name="item">The failing case to simplify.</param>
+    /// <returns>Candidate cases, each one step simpler than <paramref name="item"/>.</returns>
     private static IEnumerable<FixedCase> ShrinkFixedCase(FixedCase item)
     {
         if (item.Aligned)
@@ -298,6 +314,9 @@ public class RoundTripPropertyTests
         }
     }
 
+    /// <summary>Describes a fixed-layout case for a property failure message.</summary>
+    /// <param name="item">The case to describe.</param>
+    /// <returns>One line listing the options and each field's type and value.</returns>
     private static string FormatFixedCase(FixedCase item)
     {
         return $"endian={(item.LittleEndian ? "little" : "big")}; aligned={item.Aligned}; " +
@@ -307,6 +326,12 @@ public class RoundTripPropertyTests
                        (field, index) => $"field{index}:{field.TypeName}={FormatValue(field.Value)}"));
     }
 
+    /// <summary>
+    ///     Generates a composite case with zero to four child records and runtime array elements and a label of up to
+    ///     five letters.
+    /// </summary>
+    /// <param name="random">The reproducible source that selects options, counts, and values.</param>
+    /// <returns>The generated composite case.</returns>
     private static CompositeCase GenerateCompositeCase(PropertyTestSupport.StableRandom random)
     {
         int count = random.NextInt(5);
@@ -335,6 +360,12 @@ public class RoundTripPropertyTests
             label.ToString());
     }
 
+    /// <summary>
+    ///     Builds a layout with an alias, a struct array, an inline struct, a runtime-length array, and a five-byte
+    ///     text buffer; then checks that serialized values parse back and that re-serialization reproduces the bytes.
+    /// </summary>
+    /// <param name="item">The composite case to check.</param>
+    /// <remarks>The label reads back padded with NUL characters to the full buffer length.</remarks>
     private static void AssertCompositeCase(CompositeCase item)
     {
         const string prefix = """
@@ -379,6 +410,12 @@ public class RoundTripPropertyTests
         CollectionAssert.AreEqual(first, cstruct.Serialize("root", (object)parsed, variables));
     }
 
+    /// <summary>
+    ///     Yields simpler variants of a failing composite case: unaligned, little-endian, fewer elements, a shorter
+    ///     label, or zero scalar values.
+    /// </summary>
+    /// <param name="item">The failing case to simplify.</param>
+    /// <returns>Candidate cases, each one step simpler than <paramref name="item"/>.</returns>
     private static IEnumerable<CompositeCase> ShrinkCompositeCase(CompositeCase item)
     {
         if (item.Aligned)
@@ -414,6 +451,9 @@ public class RoundTripPropertyTests
         }
     }
 
+    /// <summary>Describes a composite case for a property failure message.</summary>
+    /// <param name="item">The case to describe.</param>
+    /// <returns>One line listing the options, scalar values, elements, and label.</returns>
     private static string FormatCompositeCase(CompositeCase item)
     {
         return $"endian={(item.LittleEndian ? "little" : "big")}; aligned={item.Aligned}; " +
@@ -422,6 +462,12 @@ public class RoundTripPropertyTests
                $"label={JsonSerializer.Serialize(item.Label)}";
     }
 
+    /// <summary>
+    ///     Generates enum and bitfield values that fit their declared widths: any 16-bit enum value, 5 bits for
+    ///     <c>low</c>, and 11 bits for <c>high</c>.
+    /// </summary>
+    /// <param name="random">The reproducible source that selects options and values.</param>
+    /// <returns>The generated enum and bitfield case.</returns>
     private static EnumBitfieldCase GenerateEnumBitfieldCase(PropertyTestSupport.StableRandom random)
     {
         return new EnumBitfieldCase(
@@ -434,6 +480,11 @@ public class RoundTripPropertyTests
             (byte)random.NextInt(256));
     }
 
+    /// <summary>
+    ///     Serializes an enum field and two bitfields that fill one 16-bit storage unit, then checks the parsed values
+    ///     and that re-serialization reproduces the bytes.
+    /// </summary>
+    /// <param name="item">The enum and bitfield case to check.</param>
     private static void AssertEnumBitfieldCase(EnumBitfieldCase item)
     {
         const string layout = """
@@ -466,6 +517,11 @@ public class RoundTripPropertyTests
         CollectionAssert.AreEqual(first, cstruct.Serialize("root", parsed));
     }
 
+    /// <summary>
+    ///     Yields simpler variants of a failing enum and bitfield case: unaligned, little-endian, or all values zero.
+    /// </summary>
+    /// <param name="item">The failing case to simplify.</param>
+    /// <returns>Candidate cases, each one step simpler than <paramref name="item"/>.</returns>
     private static IEnumerable<EnumBitfieldCase> ShrinkEnumBitfieldCase(EnumBitfieldCase item)
     {
         if (item.Aligned)
@@ -484,12 +540,19 @@ public class RoundTripPropertyTests
         }
     }
 
+    /// <summary>Describes an enum and bitfield case for a property failure message.</summary>
+    /// <param name="item">The case to describe.</param>
+    /// <returns>One line listing the options and every field value.</returns>
     private static string FormatEnumBitfieldCase(EnumBitfieldCase item)
     {
         return $"endian={(item.LittleEndian ? "little" : "big")}; aligned={item.Aligned}; prefix={item.Prefix}; " +
                $"enum={item.EnumValue}; low={item.Low}; high={item.High}; tail={item.Tail}";
     }
 
+    /// <summary>Generates printable ASCII text of up to 16 characters for one terminated-text type.</summary>
+    /// <param name="random">The reproducible source that selects byte order, text, and tail byte.</param>
+    /// <param name="typeName">The terminated-text type spelling that the case declares.</param>
+    /// <returns>The generated text case.</returns>
     private static StringCase GenerateStringCase(PropertyTestSupport.StableRandom random, string typeName)
     {
         int length = random.NextInt(17);
@@ -502,6 +565,11 @@ public class RoundTripPropertyTests
         return new StringCase(random.NextBoolean(), typeName, value.ToString(), (byte)random.NextInt(256));
     }
 
+    /// <summary>
+    ///     Serializes a terminated-text field followed by a tail byte, then checks that both values parse back and that
+    ///     re-serialization reproduces the bytes.
+    /// </summary>
+    /// <param name="item">The text case to check.</param>
     private static void AssertStringCase(StringCase item)
     {
         var cstruct = new CStruct(
@@ -520,6 +588,11 @@ public class RoundTripPropertyTests
         CollectionAssert.AreEqual(first, cstruct.Serialize("root", parsed));
     }
 
+    /// <summary>
+    ///     Yields simpler variants of a failing text case: little-endian, shorter text, or a zero tail byte.
+    /// </summary>
+    /// <param name="item">The failing case to simplify.</param>
+    /// <returns>Candidate cases, each one step simpler than <paramref name="item"/>.</returns>
     private static IEnumerable<StringCase> ShrinkStringCase(StringCase item)
     {
         if (!item.LittleEndian)
@@ -539,12 +612,21 @@ public class RoundTripPropertyTests
         }
     }
 
+    /// <summary>Describes a text case for a property failure message.</summary>
+    /// <param name="item">The case to describe.</param>
+    /// <returns>One line listing the byte order, type, JSON-quoted text, and tail byte.</returns>
     private static string FormatStringCase(StringCase item)
     {
         return $"endian={(item.LittleEndian ? "little" : "big")}; type={item.TypeName}; " +
                $"value={JsonSerializer.Serialize(item.Value)}; tail={item.Tail}";
     }
 
+    /// <summary>
+    ///     Generates a pointer case with depth one or two, a pointer size of 1, 2, or 4 bytes, and random target and
+    ///     tail values.
+    /// </summary>
+    /// <param name="random">The reproducible source that selects the options and values.</param>
+    /// <returns>The generated pointer case.</returns>
     private static PointerCase GeneratePointerCase(PropertyTestSupport.StableRandom random)
     {
         return new PointerCase(
@@ -555,6 +637,16 @@ public class RoundTripPropertyTests
             (byte)random.NextInt(256));
     }
 
+    /// <summary>
+    ///     Builds a buffer whose root pointer targets byte offset 16, parses it with dereferencing, and checks the
+    ///     addresses, depth, and target value.
+    /// </summary>
+    /// <param name="item">The pointer case to check.</param>
+    /// <remarks>
+    ///     At depth two, offset 16 holds a second pointer to offset 24. Serializing the parsed root must return only
+    ///     the root bytes (the pointer and the tail byte), and reading those bytes without dereferencing keeps the
+    ///     address.
+    /// </remarks>
     private static void AssertPointerCase(PointerCase item)
     {
         const int firstTarget = 16;
@@ -610,6 +702,12 @@ public class RoundTripPropertyTests
         Assert.AreEqual(item.Tail, (byte)reparsed.tail);
     }
 
+    /// <summary>
+    ///     Yields simpler variants of a failing pointer case: depth one, one-byte pointers, little-endian, or zero
+    ///     values.
+    /// </summary>
+    /// <param name="item">The failing case to simplify.</param>
+    /// <returns>Candidate cases, each one step simpler than <paramref name="item"/>.</returns>
     private static IEnumerable<PointerCase> ShrinkPointerCase(PointerCase item)
     {
         if (item.Depth > 1)
@@ -633,12 +731,18 @@ public class RoundTripPropertyTests
         }
     }
 
+    /// <summary>Describes a pointer case for a property failure message.</summary>
+    /// <param name="item">The case to describe.</param>
+    /// <returns>One line listing the depth, pointer size, byte order, target value, and tail byte.</returns>
     private static string FormatPointerCase(PointerCase item)
     {
         return $"depth={item.Depth}; pointerSize={item.PointerSize}; " +
                $"endian={(item.LittleEndian ? "little" : "big")}; target={item.TargetValue}; tail={item.Tail}";
     }
 
+    /// <summary>Converts a child record into the dynamic object shape that serialization accepts.</summary>
+    /// <param name="item">The child values to convert.</param>
+    /// <returns>An expando object with <c>tag</c> and <c>number</c> members.</returns>
     private static dynamic CreateChildData(ChildValue item)
     {
         dynamic value = new ExpandoObject();
@@ -647,6 +751,12 @@ public class RoundTripPropertyTests
         return value;
     }
 
+    /// <summary>Writes the low bytes of an unsigned value into a buffer in the requested byte order.</summary>
+    /// <param name="bytes">The buffer to modify.</param>
+    /// <param name="offset">The byte offset of the first written byte.</param>
+    /// <param name="value">The value to encode; higher bytes beyond the width are ignored.</param>
+    /// <param name="width">The number of bytes to write.</param>
+    /// <param name="littleEndian">Whether the least significant byte is written first.</param>
     private static void WriteUnsigned(
         byte[] bytes,
         int offset,
@@ -661,6 +771,11 @@ public class RoundTripPropertyTests
         }
     }
 
+    /// <summary>
+    ///     Formats a generated value for a failure message; characters appear as <c>U+XXXX</c> code points.
+    /// </summary>
+    /// <param name="value">The value to format.</param>
+    /// <returns>Invariant-culture text for the value.</returns>
     private static string FormatValue(object value)
     {
         return value switch
@@ -671,6 +786,10 @@ public class RoundTripPropertyTests
         };
     }
 
+    /// <summary>
+    ///     Loads the feature-operation matrix copied beside the test assembly; the test fails when it is missing.
+    /// </summary>
+    /// <returns>The parsed catalog, which the caller disposes.</returns>
     private static JsonDocument LoadCatalog()
     {
         string path = Path.Combine(AppContext.BaseDirectory, "feature-operation-matrix.json");
@@ -678,14 +797,37 @@ public class RoundTripPropertyTests
         return JsonDocument.Parse(File.ReadAllText(path));
     }
 
+    /// <summary>Pairs a fixed primitive spelling with a conversion from random bits to one of its values.</summary>
+    /// <param name="TypeName">The primitive spelling used in generated layouts.</param>
+    /// <param name="CreateValue">
+    ///     Converts 64 random bits to a representable value of the primitive's result type.
+    /// </param>
     private sealed record PrimitiveSpec(string TypeName, Func<ulong, object> CreateValue);
 
+    /// <summary>One generated field of a fixed-layout case.</summary>
+    /// <param name="TypeName">The primitive spelling of the field.</param>
+    /// <param name="Value">The value written to and expected from the field.</param>
     private sealed record PrimitiveField(string TypeName, object Value);
 
+    /// <summary>A generated layout of fixed primitive fields and the options it is compiled with.</summary>
+    /// <param name="LittleEndian">Whether the layout's default byte order is little-endian.</param>
+    /// <param name="Aligned">Whether fields are placed at their natural alignment.</param>
+    /// <param name="Fields">The fields in declaration order.</param>
     private sealed record FixedCase(bool LittleEndian, bool Aligned, IReadOnlyList<PrimitiveField> Fields);
 
+    /// <summary>The values of one <c>child</c> record in a composite case.</summary>
+    /// <param name="Tag">The <c>tag</c> byte.</param>
+    /// <param name="Number">The <c>number</c> word.</param>
     private sealed record ChildValue(byte Tag, ushort Number);
 
+    /// <summary>A generated composite layout case and the options it is compiled with.</summary>
+    /// <param name="LittleEndian">Whether the layout's default byte order is little-endian.</param>
+    /// <param name="Aligned">Whether fields are placed at their natural alignment.</param>
+    /// <param name="Head">The <c>head</c> byte.</param>
+    /// <param name="InlineCode">The <c>inlineValue.code</c> value.</param>
+    /// <param name="Children">The <c>children</c> elements; the fixed array length equals their count.</param>
+    /// <param name="Values">The runtime <c>values</c> elements; the variable <c>N</c> equals their count.</param>
+    /// <param name="Label">The <c>label</c> text of at most five characters.</param>
     private sealed record CompositeCase(
         bool LittleEndian,
         bool Aligned,
@@ -695,6 +837,14 @@ public class RoundTripPropertyTests
         IReadOnlyList<ushort> Values,
         string Label);
 
+    /// <summary>A generated enum and bitfield case and the options it is compiled with.</summary>
+    /// <param name="LittleEndian">Whether the layout's default byte order is little-endian.</param>
+    /// <param name="Aligned">Whether fields are placed at their natural alignment.</param>
+    /// <param name="Prefix">The <c>prefix</c> byte.</param>
+    /// <param name="EnumValue">The raw <c>state</c> enum value, which may have no name.</param>
+    /// <param name="Low">The 5-bit <c>low</c> bitfield value.</param>
+    /// <param name="High">The 11-bit <c>high</c> bitfield value.</param>
+    /// <param name="Tail">The <c>tail</c> byte.</param>
     private sealed record EnumBitfieldCase(
         bool LittleEndian,
         bool Aligned,
@@ -704,7 +854,18 @@ public class RoundTripPropertyTests
         ushort High,
         byte Tail);
 
+    /// <summary>A generated terminated-text case.</summary>
+    /// <param name="LittleEndian">Whether the layout's default byte order is little-endian.</param>
+    /// <param name="TypeName">The terminated-text type spelling.</param>
+    /// <param name="Value">The text to write and expect back.</param>
+    /// <param name="Tail">The byte stored after the text.</param>
     private sealed record StringCase(bool LittleEndian, string TypeName, string Value, byte Tail);
 
+    /// <summary>A generated pointer storage case.</summary>
+    /// <param name="Depth">The pointer level: 1 for a struct pointer, 2 for a pointer to a pointer.</param>
+    /// <param name="PointerSize">The pointer width in bytes.</param>
+    /// <param name="LittleEndian">Whether the layout's default byte order is little-endian.</param>
+    /// <param name="TargetValue">The 16-bit value stored at the final target.</param>
+    /// <param name="Tail">The byte stored after the root pointer.</param>
     private sealed record PointerCase(int Depth, byte PointerSize, bool LittleEndian, ushort TargetValue, byte Tail);
 }

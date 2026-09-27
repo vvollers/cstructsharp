@@ -8,7 +8,7 @@
 // afterwards so the managed library is the single source of truth for expectations.
 //
 // Real-format fixtures are imported from apps/inspector/src/schema-catalog.ts, which is itself verified byte-for-byte
-// by tests/CStructSharpTests/WellKnownFormatFixtures.cs. Conditional fixtures reuse the definitions in
+// by tests/CStructSharpTests/Quality/WellKnownFormatTests.cs. Conditional fixtures reuse the definitions in
 // conditional-cases.json (kept from the retired comparison harness). Everything else is synthetic and seeded, so re-running this script is a no-op diff.
 import fs from "node:fs";
 import { registerHooks } from "node:module";

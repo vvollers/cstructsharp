@@ -841,6 +841,28 @@ public class EnumDomainTests
         Assert.AreEqual(whole.InnerException.Message, selected.InnerException.Message);
     }
 
+    /// <summary>
+    ///     All four input bytes are FF, representing uint32 maximum 4294967295.
+    /// </summary>
+    /// <remarks>
+    ///     The enum only names value 1, so the result must have no symbolic name but retain that exact number.
+    ///     Narrowing through signed Int32 would incorrectly turn it into -1 or reject valid storage.
+    /// </remarks>
+    [TestMethod]
+    public void ParseStream_UnknownUInt32Enum_PreservesCompleteDomain()
+    {
+        const string definition = "enum state : uint32 { Known = 1 }; struct root { state value; };";
+        var cstruct = new CStruct(definition, isLittleEndian: true);
+        using var stream = new MemoryStream([0xFF, 0xFF, 0xFF, 0xFF,]);
+
+        dynamic parsed = cstruct.Parse(stream, "root");
+        var value = (EnumValueResult)parsed.value;
+
+        Assert.AreEqual("state", value.Enum);
+        Assert.IsNull(value.Name);
+        Assert.AreEqual(new BigInteger(uint.MaxValue), value.Value);
+    }
+
     /// <summary>Asserts an enum member's exact evaluated value.</summary>
     /// <param name="enm">The declaration.</param>
     /// <param name="name">The member name.</param>

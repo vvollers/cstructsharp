@@ -175,6 +175,14 @@ public class ManualLanguageFixtureTests
         };
     }
 
+    /// <summary>
+    ///     Resolves a dotted value path such as <c>root.items[1].tag</c> in a parsed result. The test fails when a
+    ///     segment is malformed or names a missing member or element.
+    /// </summary>
+    /// <param name="value">The parsed root value.</param>
+    /// <param name="rootName">The root type name, which the path may repeat as its first segment.</param>
+    /// <param name="path">The dotted path, with optional zero-based element indexes.</param>
+    /// <returns>The selected value, which may be null.</returns>
     private static object? SelectPath(object value, string rootName, string path)
     {
         string[] segments = path.Split('.');
@@ -198,6 +206,14 @@ public class ManualLanguageFixtureTests
         return current;
     }
 
+    /// <summary>
+    ///     Selects a named member from a dictionary result or, for other objects, from a public property whose name
+    ///     matches without regard to case. The test fails when the member is missing.
+    /// </summary>
+    /// <param name="value">The container to select from.</param>
+    /// <param name="name">The member name.</param>
+    /// <param name="path">The full value path, used in failure messages.</param>
+    /// <returns>The member value.</returns>
     private static object? SelectMember(object? value, string name, string path)
     {
         Assert.IsNotNull(value, $"Cannot select '{name}' from null while resolving '{path}'.");
@@ -222,6 +238,14 @@ public class ManualLanguageFixtureTests
         return property.GetValue(value);
     }
 
+    /// <summary>
+    ///     Selects an element by zero-based index from a list or other sequence; the test fails when it is out of
+    ///     range.
+    /// </summary>
+    /// <param name="value">The sequence to index.</param>
+    /// <param name="index">The zero-based element index.</param>
+    /// <param name="path">The full value path, used in failure messages.</param>
+    /// <returns>The element value.</returns>
     private static object? SelectIndex(object? value, int index, string path)
     {
         Assert.IsNotNull(value, $"Cannot index null while resolving '{path}'.");
@@ -236,6 +260,11 @@ public class ManualLanguageFixtureTests
         return items[index];
     }
 
+    /// <summary>Formats a value the way the manual fixtures writes expected values.</summary>
+    /// <param name="value">The value to format.</param>
+    /// <returns>
+    ///     Invariant-culture text, with lowercase Booleans and <c>&lt;null&gt;</c> for a null value.
+    /// </returns>
     private static string FormatValue(object? value)
     {
         return value switch
@@ -247,16 +276,28 @@ public class ManualLanguageFixtureTests
         };
     }
 
+    /// <summary>Loads the manual's feature fixture pairs from <c>manual-fixtures-v1.json</c>.</summary>
+    /// <returns>The fixture contract.</returns>
     private static ManualFixtureContract LoadFixtures()
     {
         return Deserialize<ManualFixtureContract>("manual-fixtures-v1.json");
     }
 
+    /// <summary>Loads the unsupported-construct list from <c>portable-v1.json</c>.</summary>
+    /// <returns>The part of the Portable contract these tests read.</returns>
     private static PortableContract LoadPortableContract()
     {
         return Deserialize<PortableContract>("portable-v1.json");
     }
 
+    /// <summary>
+    ///     Deserializes a JSON contract copied beside the test assembly, matching property names without regard to
+    ///     case.
+    /// </summary>
+    /// <typeparam name="T">The contract type to create.</typeparam>
+    /// <param name="fileName">The file name in the test output directory.</param>
+    /// <returns>The deserialized contract.</returns>
+    /// <exception cref="InvalidOperationException">The file contains JSON <c>null</c>.</exception>
     private static T Deserialize<T>(string fileName)
     {
         string path = Path.Combine(AppContext.BaseDirectory, fileName);
@@ -266,11 +307,13 @@ public class ManualLanguageFixtureTests
                throw new InvalidOperationException($"Fixture contract '{fileName}' is empty.");
     }
 
+    /// <summary>The manual fixture file: one valid and invalid pair per documented feature.</summary>
     private sealed class ManualFixtureContract
     {
         public FeaturePair[] FeaturePairs { get; init; } = [];
     }
 
+    /// <summary>A documented feature's valid example and its paired invalid form.</summary>
     private sealed class FeaturePair
     {
         public string Id { get; init; } = string.Empty;
@@ -280,6 +323,9 @@ public class ManualLanguageFixtureTests
         public InvalidFixture Invalid { get; init; } = new();
     }
 
+    /// <summary>
+    ///     A valid example: definition, options, bytes, and the size, alignment, offsets, and values it predicts.
+    /// </summary>
     private sealed class ValidFixture
     {
         public string Definition { get; init; } = string.Empty;
@@ -317,6 +363,10 @@ public class ManualLanguageFixtureTests
         public string? BitfieldAllocation { get; init; }
     }
 
+    /// <summary>
+    ///     An invalid form that fails at construction (stage <c>compile</c>, named by unsupported-construct id) or
+    ///     while reading its bytes.
+    /// </summary>
     private sealed class InvalidFixture
     {
         public string Stage { get; init; } = string.Empty;
@@ -340,11 +390,13 @@ public class ManualLanguageFixtureTests
         public long MaxStringBytes { get; init; }
     }
 
+    /// <summary>The part of <c>portable-v1.json</c> that lists unsupported constructs.</summary>
     private sealed class PortableContract
     {
         public UnsupportedConstruct[] UnsupportedConstructs { get; init; } = [];
     }
 
+    /// <summary>A declaration outside the Portable subset that construction must reject.</summary>
     private sealed class UnsupportedConstruct
     {
         public string Id { get; init; } = string.Empty;

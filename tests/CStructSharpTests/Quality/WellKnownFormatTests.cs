@@ -10,7 +10,7 @@ using CStructSharp.Values;
 ///     inspection alone.
 /// </summary>
 [TestClass]
-public class WellKnownFormatFixtures
+public class WellKnownFormatTests
 {
     /// <summary>A minimal 54-byte BMP header (BITMAPFILEHEADER + BITMAPINFOHEADER) with no pixel data.</summary>
     [TestMethod]
@@ -434,6 +434,7 @@ public class WellKnownFormatFixtures
     /// <summary>Builds the 512-byte ustar header bytes, computing the real POSIX header checksum.</summary>
     private static byte[] BuildUstarHeader()
     {
+        /// <summary>Encodes ASCII text into a zero-filled field of <c>length</c> bytes; the text must fit.</summary>
         static byte[] Field(string text, int length)
         {
             byte[] field = new byte[length];

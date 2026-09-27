@@ -7,7 +7,11 @@ using CStructSharp.Parsing;
 using CStructSharp.Syntax;
 using CStructSharp.Values;
 
-/// <summary>Groups tests for robustness tests so changes to this behavior are caught.</summary>
+/// <summary>
+///     Checks behavior on unusual or hostile input across features: chunked streams, truncated values, pointer targets
+///     outside the stream, pointer cycles and limits, unknown enum values, undefined identifiers, unsupported pointer
+///     sizes, forward and circular defines, and bitfield widths at and beyond their storage.
+/// </summary>
 [TestClass]
 public class RobustnessTests
 {

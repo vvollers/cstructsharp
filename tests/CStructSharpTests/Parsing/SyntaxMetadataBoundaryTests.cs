@@ -1,7 +1,10 @@
 namespace CStructSharp.Tests;
 
+using System.Collections.Immutable;
+using CStructSharp;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
+using CStructSharp.Streams;
 using CStructSharp.Syntax;
 using SyntaxEnum = CStructSharp.Syntax.Enum;
 
@@ -210,5 +213,87 @@ public class SyntaxMetadataBoundaryTests
         Assert.AreEqual(structA, structC);
         Assert.IsTrue(new HashSet<CStructElement> { structA, }.Contains(structB));
         Assert.AreNotEqual(structA, new Struct(new Identifier("other"), fieldsB, false));
+    }
+
+    /// <summary>
+    ///     Two independently built addition expressions for 1+2 must compare equal, hash equally, and evaluate to 3.
+    /// </summary>
+    /// <remarks>
+    ///     Changing an operator or operand must make them unequal. Unary expressions, defines, and the missing-
+    ///     expression marker receive similar checks, protecting structural comparisons used by layout models.
+    /// </remarks>
+    [TestMethod]
+    public void ExpressionValueObjects_HonorTheirEqualityAndValueContracts()
+    {
+        var binary = new BinaryOp(BinaryOperatorType.Add, new Literal(1), new Literal(2));
+        var equalBinary = new BinaryOp(BinaryOperatorType.Add, new Literal(1), new Literal(2));
+        Assert.AreEqual(3, binary.Evaluate());
+        Assert.IsTrue(binary.Equals(equalBinary));
+        Assert.AreEqual(binary.GetHashCode(), equalBinary.GetHashCode());
+        Assert.IsFalse(binary.Equals(new BinaryOp(BinaryOperatorType.Minus, new Literal(1), new Literal(2))));
+        Assert.IsFalse(binary.Equals(new BinaryOp(BinaryOperatorType.Add, new Literal(0), new Literal(2))));
+        Assert.IsFalse(binary.Equals(new BinaryOp(BinaryOperatorType.Add, new Literal(1), new Literal(0))));
+        Assert.IsFalse(binary.Equals(new Literal(3)));
+        Assert.AreEqual("BinaryOp: (Literal: 1 Add Literal: 2)", binary.ToString());
+
+        var unary = new UnaryOp(UnaryOperatorType.Neg, new Literal(3));
+        var equalUnary = new UnaryOp(UnaryOperatorType.Neg, new Literal(3));
+        Assert.AreEqual(-3, unary.Evaluate());
+        Assert.IsTrue(unary.Equals(equalUnary));
+        Assert.AreEqual(unary.GetHashCode(), equalUnary.GetHashCode());
+        Assert.IsFalse(unary.Equals(new UnaryOp(UnaryOperatorType.Complement, new Literal(3))));
+        Assert.IsFalse(unary.Equals(new UnaryOp(UnaryOperatorType.Neg, new Literal(4))));
+        Assert.IsFalse(unary.Equals(new Literal(-3)));
+        Assert.AreEqual("Unary: Neg(Literal: 3)", unary.ToString());
+
+        var define = new Defines(new Identifier("COUNT"), binary);
+        var equalDefine = new Defines(new Identifier("COUNT"), equalBinary);
+        Assert.IsTrue(define.Equals(equalDefine));
+        Assert.AreEqual(define.GetHashCode(), equalDefine.GetHashCode());
+        Assert.IsFalse(define.Equals(new Defines(new Identifier("OTHER"), equalBinary)));
+        Assert.IsFalse(define.Equals(new Defines(new Identifier("COUNT"), new Literal(3))));
+        Assert.IsFalse(define.Equals(new Struct(new Identifier("COUNT"), [], false)));
+        Assert.AreEqual("Define: [COUNT] = BinaryOp: (Literal: 1 Add Literal: 2)", define.ToString());
+
+        Assert.AreEqual(0, NoneExpr.Instance.Evaluate());
+        Assert.IsTrue(NoneExpr.Instance.Equals(new NoneExpr()));
+        Assert.AreEqual(new NoneExpr().GetHashCode(), NoneExpr.Instance.GetHashCode());
+        Assert.AreEqual("NoneExpr(0)", NoneExpr.Instance.ToString());
+    }
+
+    /// <summary>
+    ///     Two method(1,2) expression objects must compare by their target and arguments, not object identity.
+    /// </summary>
+    /// <remarks>
+    ///     Changing those parts must change equality. Evaluation must still reject calls because storing call syntax
+    ///     does not mean executing arbitrary functions is supported; display shows the call without evaluating it.
+    /// </remarks>
+    [TestMethod]
+    public void CallExpression_UsesStructuralArgumentsForEqualityAndHashing()
+    {
+        var call = new Call(
+            new Identifier("method"),
+            ImmutableArray.Create<Expr>(new Literal(1), new Literal(2)));
+        var equalCall = new Call(
+            new Identifier("method"),
+            ImmutableArray.Create<Expr>(new Literal(1), new Literal(2)));
+
+        Assert.AreEqual(2, call.Arguments.Length);
+        Assert.AreEqual(new Identifier("method"), call.Expr);
+        Assert.IsTrue(call.Equals(equalCall));
+        Assert.AreEqual(call.GetHashCode(), equalCall.GetHashCode());
+        Assert.IsFalse(
+            call.Equals(
+                new Call(
+                    new Identifier("other"),
+                    ImmutableArray.Create<Expr>(new Literal(1), new Literal(2)))));
+        Assert.IsFalse(
+            call.Equals(
+                new Call(
+                    new Identifier("method"),
+                    ImmutableArray.Create<Expr>(new Literal(1), new Literal(3)))));
+        Assert.IsFalse(call.Equals(new Literal(0)));
+        Assert.Throws<NotSupportedException>(() => call.Evaluate());
+        Assert.AreEqual("Call: [method](Literal: 1, Literal: 2)", call.ToString());
     }
 }

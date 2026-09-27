@@ -1,5 +1,6 @@
 namespace CStructSharp.Tests;
 
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
@@ -196,6 +197,56 @@ public class InlineUnionTests
 
         Assert.AreEqual(expectedSize, layout.GetStructSizeInBytes("choice"));
         Assert.AreEqual(expectedSize, layout.CompiledModel.Symbols["choice"].Symbol.FixedSize);
+    }
+
+    /// <summary>
+    ///     A pointer leads to two bytes representing 0x1234.
+    /// </summary>
+    /// <remarks>
+    ///     Both union views must begin at that same target address, with small reading its first byte and large reading
+    ///     both. The fixture checks byte order, alignment, raw storage, and debug positions so a union is not
+    ///     accidentally read like sequential struct fields.
+    /// </remarks>
+    /// <param name="aligned">Whether the layout applies portable field alignment.</param>
+    /// <param name="isLittleEndian">Whether multi-byte union members store their least-significant byte first.</param>
+    [TestMethod]
+    [DynamicData(nameof(RegressionTestSupport.AlignmentAndEndianMatrix), typeof(RegressionTestSupport))]
+    public void ParseStream_PointerToUnion_RewindsEveryMemberToTargetAddress(
+        bool aligned,
+        bool isLittleEndian)
+    {
+        var targetBytes = new byte[2];
+        RegressionTestSupport.WriteUnsigned(targetBytes, 0, 2, 0x1234, isLittleEndian);
+        using PointerFixture fixture = RegressionTestSupport.CreatePointerFixture(
+            "union choice { uint8 small; uint16 large; };",
+            "choice",
+            targetBytes,
+            isLittleEndian,
+            aligned: aligned);
+
+        dynamic parsed = fixture.Layout.Parse(fixture.Stream, "root");
+        var pointer = (Pointer)parsed.target;
+        var union = (UnionValue)pointer.Value!;
+        IReadOnlyDictionary<string, object?> members = union.Members;
+
+        Assert.IsFalse(union.HasSelection);
+        CollectionAssert.AreEqual(targetBytes, union.RawStorage!.Value.ToArray());
+        Assert.AreEqual(targetBytes[0], (byte)members["small"]!);
+        Assert.AreEqual((ushort)0x1234, (ushort)members["large"]!);
+        RegressionTestSupport.AssertPositionRestored(fixture.Stream, 1);
+
+        fixture.Stream.Position = 0;
+        (_, IReadOnlyList<DebugData> debug) = fixture.Layout.ParseWithDebug(fixture.Stream, "root");
+        Assert.IsTrue(
+            debug.Count(item => item.Start == fixture.TargetAddress) >= 2,
+            "Every pointer-target union member must start at the overlapping target address.");
+        RegressionTestSupport.AssertPositionRestored(fixture.Stream, 1);
+
+        fixture.Stream.Position = 0;
+        Assert.AreEqual(
+            fixture.TargetAddress,
+            fixture.Layout.ResolveAddress(fixture.Stream, "root.target.value.large"));
+        RegressionTestSupport.AssertPositionRestored(fixture.Stream, 0);
     }
 
     /// <summary>A mapped class for the NTFS <c>file_name</c> shape, whose properties bind to promoted union and struct members.</summary>

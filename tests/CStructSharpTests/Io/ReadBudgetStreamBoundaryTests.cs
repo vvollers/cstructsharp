@@ -1,7 +1,10 @@
 namespace CStructSharp.Tests;
 
+using System.Collections.Immutable;
+using CStructSharp;
 using CStructSharp.Diagnostics;
 using CStructSharp.Streams;
+using CStructSharp.Syntax;
 
 /// <summary>Checks memory-backed and delegated read-budget paths at slice, position and exact-budget boundaries.</summary>
 [TestClass]
@@ -228,6 +231,52 @@ public class ReadBudgetStreamBoundaryTests
         Assert.IsInstanceOfType<OverflowException>(failure.InnerException);
         Assert.AreEqual("Read operation exceeded the supported read-byte accounting range.", failure.Message);
         Assert.AreEqual(2L, source.Position);
+    }
+
+    /// <summary>
+    ///     The wrapper must read 11,22,33 through array, span, and single-byte APIs, report end-of-stream correctly,
+    ///     and permit seeking.
+    /// </summary>
+    /// <remarks>
+    ///     Writes and resizing must be rejected. Disposing it leaves the original stream readable because the caller
+    ///     still owns that stream.
+    /// </remarks>
+    [TestMethod]
+    public void ReadBudgetStream_ImplementsItsReadOnlyNonOwningContract()
+    {
+        var options = new ReadOptions { MaxStringBytes = 7, MaxTotalBytesRead = 100, };
+        Assert.Throws<ArgumentNullException>(() => new ReadBudgetStream(null!, options));
+
+        var inner = new MemoryStream([0x11, 0x22, 0x33,]);
+        var budget = new ReadBudgetStream(inner, options);
+        Assert.IsTrue(budget.CanRead);
+        Assert.IsTrue(budget.CanSeek);
+        Assert.IsFalse(budget.CanWrite);
+        Assert.AreEqual(3, budget.Length);
+        Assert.AreEqual(0, budget.Position);
+        Assert.AreEqual(7, budget.MaxStringBytes);
+
+        budget.Flush();
+        byte[] first = new byte[1];
+        Assert.AreEqual(1, budget.Read(first, 0, first.Length));
+        Assert.AreEqual((byte)0x11, first[0]);
+        Span<byte> second = stackalloc byte[1];
+        Assert.AreEqual(1, budget.Read(second));
+        Assert.AreEqual((byte)0x22, second[0]);
+        Assert.AreEqual(0x33, budget.ReadByte());
+        Assert.AreEqual(-1, budget.ReadByte());
+        Assert.AreEqual(0, budget.Read(first, 0, first.Length));
+
+        Assert.AreEqual(0, budget.Seek(0, SeekOrigin.Begin));
+        budget.Position = 1;
+        Assert.AreEqual(1, budget.Position);
+        Assert.Throws<NotSupportedException>(() => budget.SetLength(1));
+        Assert.Throws<NotSupportedException>(() => budget.Write(first, 0, first.Length));
+
+        budget.Dispose();
+        Assert.IsTrue(inner.CanRead);
+        Assert.AreEqual(0x22, inner.ReadByte());
+        inner.Dispose();
     }
 
     /// <summary>Exposes its array for borrowed reads but fails the independent flush operation.</summary>

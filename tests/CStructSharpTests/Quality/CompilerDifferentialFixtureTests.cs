@@ -165,6 +165,16 @@ public class CompilerDifferentialFixtureTests
         Assert.IsTrue(verified > 0, "No shape was verified against any baseline.");
     }
 
+    /// <summary>
+    ///     Compiles a shape's layout with the bitfield packing and pointer size of a baseline's compiler.
+    /// </summary>
+    /// <param name="portable">The shape's <c>portable</c> object with its layout and placement choice.</param>
+    /// <param name="baseline">The compiler baseline whose ABI family and facts select the options.</param>
+    /// <returns>The compiled layout.</returns>
+    /// <remarks>
+    ///     The C <c>long</c> width comes from the baseline facts only when the shape sets
+    ///     <c>cLongWidthFromFacts</c>; otherwise it stays 64 bits.
+    /// </remarks>
     private static CStruct Compile(JsonElement portable, JsonElement baseline)
     {
         bool longFromFacts = portable.TryGetProperty("cLongWidthFromFacts", out JsonElement fromFacts) && fromFacts.GetBoolean();
@@ -178,6 +188,9 @@ public class CompilerDifferentialFixtureTests
         return new CStruct(portable.GetProperty("layout").GetString()!, pointerSize: (byte)pointerSize, aligned: portable.GetProperty("aligned").GetBoolean(), compilationOptions: options);
     }
 
+    /// <summary>Selects MSVC bitfield packing for an MSVC-family baseline and SysV packing otherwise.</summary>
+    /// <param name="baseline">The compiler baseline.</param>
+    /// <returns>Compilation options that set only the bitfield packing.</returns>
     private static CStructCompilationOptions PackingFor(JsonElement baseline)
     {
         return new CStructCompilationOptions
@@ -186,6 +199,15 @@ public class CompilerDifferentialFixtureTests
         };
     }
 
+    /// <summary>
+    ///     Converts fixture JSON into the value shape that serialization accepts: dictionaries, lists, Booleans,
+    ///     numbers, and strings.
+    /// </summary>
+    /// <param name="element">The JSON value to convert.</param>
+    /// <returns>
+    ///     The converted value. Integers become <see cref="long"/>, or <see cref="ulong"/> when too large, and other
+    ///     numbers become <see cref="double"/>.
+    /// </returns>
     private static object? ToValue(JsonElement element)
     {
         switch (element.ValueKind)
@@ -224,6 +246,12 @@ public class CompilerDifferentialFixtureTests
         }
     }
 
+    /// <summary>
+    ///     Recursively compares expected fixture JSON with a parsed value; enum results compare by number.
+    /// </summary>
+    /// <param name="expected">The expected JSON value.</param>
+    /// <param name="actual">The parsed value.</param>
+    /// <param name="context">The path of the value, used in failure messages.</param>
     private static void AssertValues(JsonElement expected, object? actual, string context)
     {
         switch (expected.ValueKind)
@@ -270,6 +298,14 @@ public class CompilerDifferentialFixtureTests
         }
     }
 
+    /// <summary>
+    ///     Checks that a compiler-recorded aggregate has the size, alignment, bytes, and field offsets of a Portable
+    ///     example.
+    /// </summary>
+    /// <param name="expected">The Portable layout example.</param>
+    /// <param name="actual">The aggregate facts recorded from the compiler.</param>
+    /// <param name="offsetMap">Maps each recorded offset name to the example's offset path.</param>
+    /// <param name="file">The baseline file name, used in failure messages.</param>
     private static void AssertLayoutMatches(JsonElement expected, JsonElement actual, IReadOnlyDictionary<string, string> offsetMap, string file)
     {
         Assert.AreEqual(expected.GetProperty("size").GetInt32(), actual.GetProperty("size").GetInt32(), file);
@@ -283,6 +319,10 @@ public class CompilerDifferentialFixtureTests
         }
     }
 
+    /// <summary>
+    ///     Loads every checked-in compiler baseline in ordinal file-name order; the test fails when none exist.
+    /// </summary>
+    /// <returns>Each baseline's file name and a cloned root element that outlives its document.</returns>
     private static (string File, JsonElement Root)[] LoadBaselines()
     {
         string directory = Path.Combine(AppContext.BaseDirectory, "compiler-fixtures", "baselines");
@@ -295,6 +335,9 @@ public class CompilerDifferentialFixtureTests
         }).ToArray();
     }
 
+    /// <summary>Parses a JSON file copied beside the test assembly.</summary>
+    /// <param name="relativePath">The path relative to the test output directory.</param>
+    /// <returns>The parsed document, which the caller disposes.</returns>
     private static JsonDocument LoadJson(string relativePath)
     {
         return JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, relativePath)));

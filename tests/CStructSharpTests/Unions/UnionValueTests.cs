@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Dynamic;
 using System.Linq.Expressions;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
@@ -565,6 +566,25 @@ public class UnionValueTests
 
         Assert.AreEqual(1L, destination.Position);
         CollectionAssert.AreEqual(bytes, destination.ToArray());
+    }
+
+    /// <summary>
+    ///     The two bytes 34 12 describe both a small byte and a wider uint16 union member.
+    /// </summary>
+    /// <remarks>
+    ///     With no member explicitly selected, serialization must preserve both original bytes. Choosing the first
+    ///     member automatically would lose the second byte and change an untouched record.
+    /// </remarks>
+    [TestMethod]
+    public void Serialize_ParsedUnion_PreservesCompleteRawStorage()
+    {
+        var cstruct = new CStruct("union choice { uint8 small; uint16 large; };");
+        using var stream = new MemoryStream([0x34, 0x12,]);
+
+        object parsed = cstruct.ReadValue(stream, "choice")!;
+        byte[] serialized = cstruct.Serialize("choice", parsed);
+
+        CollectionAssert.AreEqual(new byte[] { 0x34, 0x12, }, serialized);
     }
 
     /// <summary>Exposes a large existing stream position without allocating the corresponding storage.</summary>

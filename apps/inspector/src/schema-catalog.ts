@@ -166,7 +166,7 @@ const dicomValueFields = `if (value_representation == 17729 || value_representat
  * The single registration list for the inspector. Each entry owns its file extensions, detection
  * layout and optional teaching samples. A sample can intentionally show a smaller structure than
  * the detection layout, but it is registered beside that layout rather than matched by an ID later.
- * The sample definitions and bytes are checked against tests/CStructSharpTests/WellKnownFormatFixtures.cs.
+ * The sample definitions and bytes are checked against tests/CStructSharpTests/Quality/WellKnownFormatTests.cs.
  */
 const formatDefinitions: FormatDefinition[] = [
   {
@@ -268,7 +268,7 @@ struct root {
           summary:
             "A minimal 54-byte BMP: the 14-byte BITMAPFILEHEADER plus the 40-byte BITMAPINFOHEADER, with no pixel data. Nested composites and an enum for the compression method.",
         },
-        sourceFixture: "WellKnownFormatFixtures.Bmp_FileAndInfoHeaders_DecodeExpectedFields",
+        sourceFixture: "WellKnownFormatTests.Bmp_FileAndInfoHeaders_DecodeExpectedFields",
       },
     ],
   },
@@ -322,7 +322,7 @@ struct root {
           summary:
             "The classic 44-byte canonical WAV header: RIFF/WAVE container, a PCM fmt subchunk (44.1kHz stereo 16-bit), and an empty data subchunk. FourCC tags decode as fixed char[4] buffers.",
         },
-        sourceFixture: "WellKnownFormatFixtures.Wav_RiffFmtAndDataChunks_DecodeExpectedFields",
+        sourceFixture: "WellKnownFormatTests.Wav_RiffFmtAndDataChunks_DecodeExpectedFields",
       },
     ],
   },
@@ -512,7 +512,7 @@ struct zip_directory {
             "Reads the first ZIP local file header at byte 0, including its filename and raw extra fields. Files of any supported size are read on demand. This is not an archive extractor: empty archives, self-extracting prefixes, and split archives need a different starting layout. Data-descriptor entries can leave CRC/sizes unset here; ZIP64 sizes live in extra fields. Filename bytes are shown as raw characters, without UTF-8/CP437 decoding.",
         },
         sourceFixture:
-          "WellKnownFormatFixtures.Zip_LocalFileHeader_DecodesBitflagsAndRuntimeLengthName",
+          "WellKnownFormatTests.Zip_LocalFileHeader_DecodesBitflagsAndRuntimeLengthName",
       },
     ],
   },
@@ -706,7 +706,7 @@ struct root {
           summary:
             "The 8-byte PNG signature plus a 1x1 RGB IHDR chunk. PNG is the one big-endian format in this catalog, modeled with the global littleEndian: false option since every multi-byte field is big-endian.",
         },
-        sourceFixture: "WellKnownFormatFixtures.Png_SignatureAndIhdrChunk_DecodeBigEndianFields",
+        sourceFixture: "WellKnownFormatTests.Png_SignatureAndIhdrChunk_DecodeBigEndianFields",
       },
     ],
   },
@@ -866,7 +866,7 @@ struct root {
           summary:
             "A JPEG SOI marker plus a standard JFIF APP0 segment (72 DPI, no thumbnail). Scoped to the JFIF header specifically - a full JPEG is a variable chain of marker segments, not representable as one fixed struct. Uses explicit per-field '>' suffixes rather than a global option, since only these fields are big-endian.",
         },
-        sourceFixture: "WellKnownFormatFixtures.Jpg_SoiAndJfifApp0Segment_DecodeExpectedFields",
+        sourceFixture: "WellKnownFormatTests.Jpg_SoiAndJfifApp0Segment_DecodeExpectedFields",
       },
     ],
   },
@@ -1017,7 +1017,7 @@ struct pe_header {
             "A minimal 90-byte PE image: a real 64-byte DOS header whose e_lfanew is a real CStruct pointer field (absolute addressing) dereferencing to a COFF file header + optional header magic - the flagship pointer-following showcase, using a real well-known offset (0x3C) from a real well-known format.",
         },
         sourceFixture:
-          "WellKnownFormatFixtures.Pe_DosHeaderPointerToCoffHeader_DecodesAcrossExeAndDll (EXE)",
+          "WellKnownFormatTests.Pe_DosHeaderPointerToCoffHeader_DecodesAcrossExeAndDll (EXE)",
       },
       {
         id: "pe-dll",
@@ -1034,7 +1034,7 @@ struct pe_header {
             "The same PE definition as the EXE example - a DLL is a PE file with the IMAGE_FILE_DLL characteristic bit (0x2000) set in its COFF header, the only byte that differs from the EXE sample.",
         },
         sourceFixture:
-          "WellKnownFormatFixtures.Pe_DosHeaderPointerToCoffHeader_DecodesAcrossExeAndDll (DLL)",
+          "WellKnownFormatTests.Pe_DosHeaderPointerToCoffHeader_DecodesAcrossExeAndDll (DLL)",
       },
     ],
   },
@@ -1088,7 +1088,7 @@ struct root {
           summary:
             "A 2-entry ICO directory (16x16 and 32x32 images). image_count drives the length of the trailing entries array - a runtime-sized array of a composite (struct) element type, not just a byte array.",
         },
-        sourceFixture: "WellKnownFormatFixtures.Ico_IconDirectory_DecodesCountDrivenEntryArray",
+        sourceFixture: "WellKnownFormatTests.Ico_IconDirectory_DecodesCountDrivenEntryArray",
       },
     ],
   },
@@ -1112,7 +1112,7 @@ struct root {
           summary:
             'A real 512-byte POSIX ustar header for a file named "hello.txt", with a correctly computed checksum. Fixed-width ASCII/octal text fields throughout - a different complexity flavor from the other binary-integer formats.',
         },
-        sourceFixture: "WellKnownFormatFixtures.Tar_UstarHeader_DecodesFixedWidthTextFields",
+        sourceFixture: "WellKnownFormatTests.Tar_UstarHeader_DecodesFixedWidthTextFields",
       },
     ],
   },

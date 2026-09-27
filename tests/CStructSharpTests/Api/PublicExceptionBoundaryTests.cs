@@ -1,8 +1,11 @@
 namespace CStructSharp.Tests;
 
 using System.Buffers;
+using System.Collections.Immutable;
 using System.Dynamic;
+using CStructSharp;
 using CStructSharp.Diagnostics;
+using CStructSharp.Streams;
 using CStructSharp.Syntax;
 
 /// <summary>
@@ -428,6 +431,44 @@ public class PublicExceptionBoundaryTests
             }
         });
         Assert.AreEqual("stream", failure.ParamName);
+    }
+
+    /// <summary>
+    ///     Public exception constructors must retain supplied messages, inner causes, and stable error codes for
+    ///     layout, path, read, write, and limit failures.
+    /// </summary>
+    /// <remarks>
+    ///     These small contracts help applications report useful errors without depending on private implementation
+    ///     details. A wrapped exception must retain the original cause so callers can inspect what actually failed.
+    /// </remarks>
+    [TestMethod]
+    public void SmallPublicWrappers_PreserveMessagesCausesAndValues()
+    {
+        var cause = new FormatException("cause");
+
+        Assert.IsNotNull(new CStructLayoutException().Message);
+        Assert.AreEqual("layout", new CStructLayoutException("layout").Message);
+        Assert.AreSame(cause, new CStructLayoutException("layout", cause).InnerException);
+        Assert.IsNotNull(new CStructPathException().Message);
+        Assert.AreEqual("path", new CStructPathException("path").Message);
+        Assert.AreSame(cause, new CStructPathException("path", cause).InnerException);
+        Assert.IsNotNull(new CStructReadException().Message);
+        Assert.AreEqual("read", new CStructReadException("read").Message);
+        Assert.AreSame(cause, new CStructReadException("read", cause).InnerException);
+        Assert.AreEqual("limit", new CStructReadLimitException("limit").Message);
+        Assert.AreEqual(CStructErrorCode.ReadLimitExceeded, new CStructReadLimitException().Code);
+        Assert.AreSame(cause, new CStructReadLimitException("limit", cause).InnerException);
+        Assert.IsNotNull(new CStructWriteException().Message);
+        Assert.AreEqual("write", new CStructWriteException("write").Message);
+        Assert.AreSame(cause, new CStructWriteException("write", cause).InnerException);
+        Assert.AreEqual(CStructErrorCode.InvalidLayout, new CStructLayoutException("layout").Code);
+        Assert.AreEqual(CStructErrorCode.InvalidPath, new CStructPathException("path").Code);
+        Assert.AreEqual(CStructErrorCode.ReadFailed, new CStructReadException("read").Code);
+        Assert.AreEqual(CStructErrorCode.ReadLimitExceeded, new CStructReadLimitException("limit").Code);
+        Assert.AreEqual(CStructErrorCode.WriteFailed, new CStructWriteException("write").Code);
+        Assert.AreEqual(CStructErrorCode.WriteLimitExceeded, new CStructWriteLimitException("limit").Code);
+        Assert.AreEqual(CStructErrorCode.WriteLimitExceeded, new CStructWriteLimitException().Code);
+        Assert.AreSame(cause, new CStructWriteLimitException("limit", cause).InnerException);
     }
 
     /// <summary>Compiles the fixture layout with one-byte pointers.</summary>

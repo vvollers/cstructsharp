@@ -133,6 +133,11 @@ public class ManagedFuzzCliTests
             """);
     }
 
+    /// <summary>
+    ///     Writes a corpus to a temporary file, checks that loading it throws <see cref="InvalidDataException"/>, and
+    ///     deletes the file.
+    /// </summary>
+    /// <param name="json">The corpus JSON text to load.</param>
     private static void AssertInvalidCorpus(string json)
     {
         string path = Path.Combine(
@@ -149,6 +154,8 @@ public class ManagedFuzzCliTests
         }
     }
 
+    /// <summary>Creates a uniquely named directory under the system temporary path.</summary>
+    /// <returns>The full directory path; the caller deletes the directory.</returns>
     private static string CreateTemporaryDirectory()
     {
         string path = Path.Combine(

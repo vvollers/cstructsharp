@@ -167,6 +167,8 @@ public class ManagedFuzzTests
             () => session.RunSingle("definition", new byte[LoadCorpus().MaxInputBytes + 1]));
     }
 
+    /// <summary>Loads the checked-in fuzz corpus copied beside the test assembly.</summary>
+    /// <returns>The loaded corpus.</returns>
     private static FuzzCorpus LoadCorpus()
     {
         return FuzzCorpus.Load(Path.Combine(AppContext.BaseDirectory, "fuzz-corpus.json"));

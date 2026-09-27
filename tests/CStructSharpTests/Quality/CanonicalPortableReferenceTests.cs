@@ -180,6 +180,14 @@ public class CanonicalPortableReferenceTests
         return primitive.Endian == "big" ? [0x00, 0x0A,] : [0x0A, 0x00,];
     }
 
+    /// <summary>
+    ///     Resolves a dotted value path such as <c>root.items[1].tag</c> in a parsed result. The test fails when a
+    ///     segment is malformed or names a missing member or element.
+    /// </summary>
+    /// <param name="value">The parsed root value.</param>
+    /// <param name="rootName">The root type name, which the path may repeat as its first segment.</param>
+    /// <param name="path">The dotted path, with optional zero-based element indexes.</param>
+    /// <returns>The selected value, which may be null.</returns>
     private static object? SelectPath(object value, string rootName, string path)
     {
         string[] segments = path.Split('.');
@@ -203,6 +211,14 @@ public class CanonicalPortableReferenceTests
         return current;
     }
 
+    /// <summary>
+    ///     Selects a named member from a dictionary result or, for other objects, from a public property whose name
+    ///     matches without regard to case. The test fails when the member is missing.
+    /// </summary>
+    /// <param name="value">The container to select from.</param>
+    /// <param name="name">The member name.</param>
+    /// <param name="path">The full value path, used in failure messages.</param>
+    /// <returns>The member value.</returns>
     private static object? SelectMember(object? value, string name, string path)
     {
         Assert.IsNotNull(value, $"Cannot select '{name}' from null while resolving '{path}'.");
@@ -227,6 +243,14 @@ public class CanonicalPortableReferenceTests
         return property.GetValue(value);
     }
 
+    /// <summary>
+    ///     Selects an element by zero-based index from a list or other sequence; the test fails when it is out of
+    ///     range.
+    /// </summary>
+    /// <param name="value">The sequence to index.</param>
+    /// <param name="index">The zero-based element index.</param>
+    /// <param name="path">The full value path, used in failure messages.</param>
+    /// <returns>The element value.</returns>
     private static object? SelectIndex(object? value, int index, string path)
     {
         Assert.IsNotNull(value, $"Cannot index null while resolving '{path}'.");
@@ -241,6 +265,11 @@ public class CanonicalPortableReferenceTests
         return items[index];
     }
 
+    /// <summary>Formats a value the way the contract writes expected values.</summary>
+    /// <param name="value">The value to format.</param>
+    /// <returns>
+    ///     Invariant-culture text, with lowercase Booleans and <c>&lt;null&gt;</c> for a null value.
+    /// </returns>
     private static string FormatValue(object? value)
     {
         return value switch
@@ -262,6 +291,7 @@ public class CanonicalPortableReferenceTests
                throw new InvalidOperationException("The canonical Portable contract is empty.");
     }
 
+    /// <summary>The parts of the Portable contract (<c>portable-v1.json</c>) that these tests execute.</summary>
     private sealed class PortableContract
     {
         public string Profile { get; init; } = string.Empty;
@@ -279,6 +309,9 @@ public class CanonicalPortableReferenceTests
         public UnsupportedConstruct[] UnsupportedConstructs { get; init; } = [];
     }
 
+    /// <summary>
+    ///     An alias spelling, the canonical codec it names, and its replacement when <c>CLongWidth</c> is 32.
+    /// </summary>
     private sealed class AliasSpelling
     {
         public string Spelling { get; init; } = string.Empty;
@@ -288,6 +321,9 @@ public class CanonicalPortableReferenceTests
         public string? CLongWidth32 { get; init; }
     }
 
+    /// <summary>
+    ///     A fixed-width primitive spelling with its size and alignment in bytes and its C# result type name.
+    /// </summary>
     private sealed class FixedPrimitive
     {
         public string Spelling { get; init; } = string.Empty;
@@ -299,6 +335,9 @@ public class CanonicalPortableReferenceTests
         public string Clr { get; init; } = string.Empty;
     }
 
+    /// <summary>
+    ///     A terminated-text primitive spelling with its encoding, terminator, byte order, and alignment.
+    /// </summary>
     private sealed class TerminatedPrimitive
     {
         public string Spelling { get; init; } = string.Empty;
@@ -312,6 +351,9 @@ public class CanonicalPortableReferenceTests
         public int Alignment { get; init; }
     }
 
+    /// <summary>
+    ///     A worked layout example: definition, options, exact bytes, field offsets, and expected values.
+    /// </summary>
     private sealed class LayoutExample
     {
         public string Id { get; init; } = string.Empty;
@@ -337,6 +379,7 @@ public class CanonicalPortableReferenceTests
         public string Bytes { get; init; } = string.Empty;
     }
 
+    /// <summary>A declaration outside the Portable subset that construction must reject.</summary>
     private sealed class UnsupportedConstruct
     {
         public string Id { get; init; } = string.Empty;
