@@ -69,9 +69,6 @@ function ignoredDocumentationDependencies() {
   const violations = [];
   for (const relative of repositoryFiles(repositoryRoot)) {
     const normalized = toPosix(relative);
-    // Archived agent reports are diagnostic evidence, not inputs to the library, application, package or
-    // documentation builds.
-    if (normalized.startsWith(`${IGNORED_DIRECTORIES[0]}/`)) continue;
     if (!TEXT_EXTENSIONS.has(path.extname(relative))) continue;
     const fullPath = path.join(repositoryRoot, relative);
     if (!isFile(fullPath)) continue;
@@ -127,7 +124,11 @@ await main(() => {
   runNode(path.join(here, "export-documentation-examples.mjs"), [], "Recipe generation failed.");
   runNode(path.join(here, "sync-documentation-facts.mjs"), ["--check"], "Derived documentation facts are stale.");
   const generatedRecipes = JSON.parse(fs.readFileSync(path.join(documentationRoot, "generated-files.json"), "utf8"));
-  assertCondition(generatedRecipes.length === 82, "Expected all 82 recipe exports (40 recipes, a .cs and a .md each, plus the recipe catalog and its toc).");
+  /** The ids of the exported recipe files with one extension: every recipe is a complete program and its page. */
+  const recipeIds = (extension) => generatedRecipes.filter((file) => file.startsWith("examples/recipes/") && file.endsWith(extension)).map((file) => path.basename(file, extension)).filter((id) => id !== "index").sort();
+  assertCondition(recipeIds(".cs").length > 0, "The recipe export produced no programs.");
+  assertCondition(recipeIds(".cs").join(",") === recipeIds(".md").join(","), "Every exported recipe needs both its program (.cs) and its page (.md).");
+  assertCondition(generatedRecipes.includes("guides/recipes/index.md"), "The recipe export produced no catalog.");
   for (const generated of generatedRecipes) assertCondition(fs.existsSync(path.join(documentationRoot, generated)), `Missing recipe export: ${generated}`);
   const broken = brokenRepositoryMarkdownLinks();
   assertCondition(broken.length === 0, `Repository Markdown contains missing local link targets:\n${broken.join("\n")}`);

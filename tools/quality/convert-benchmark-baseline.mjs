@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 // Normalizes a BenchmarkDotNet "*report-full.json" into the
 // schemaVersion 1 summary consumed by non-web-release-budgets.mjs and compare-benchmark-baseline.mjs.
-// The output is field-for-field identical to the PowerShell converter so either tool can feed the gate.
 //
 // Usage: node tools/quality/convert-benchmark-baseline.mjs <report-full.json | directory> <output.json>
 import fs from "node:fs";
@@ -17,8 +16,12 @@ if (!inputPath || !outputPath) {
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
-// A file is used as-is. A directory merges every "*report-full.json" it contains (one per benchmark class when
-// BenchmarkDotNet runs without --join); the PowerShell converter instead picks the newest single file.
+/**
+ * The reports to convert: a file as-is, or every "*report-full.json" in a directory (one per benchmark class when
+ * BenchmarkDotNet runs without --join).
+ * @param {string} target A report file or a directory of reports.
+ * @returns {string[]} Absolute report paths, sorted.
+ */
 function findReports(target) {
   const resolved = path.resolve(target);
   const stat = fs.statSync(resolved);
@@ -34,9 +37,12 @@ function findReports(target) {
   return files;
 }
 
+/**
+ * Rounds a nanosecond value to three decimals: far below any gate's resolution, and stable to diff.
+ * @param {number | string} value The measured value.
+ * @returns {number} The rounded value.
+ */
 function round3(value) {
-  // PowerShell [Math]::Round uses banker's rounding; BenchmarkDotNet values have enough digits that the
-  // difference is immaterial for gating, but keep three decimals for parity with the .ps1 output.
   return Math.round(Number(value) * 1000) / 1000;
 }
 
@@ -48,6 +54,12 @@ function git(args) {
   }
 }
 
+/**
+ * Converts one BenchmarkDotNet full report into summary benchmark entries.
+ * @param {object} source The parsed report.
+ * @param {string} sourceName The report's file name, recorded in the summary.
+ * @returns {object[]} One entry per benchmark case.
+ */
 function normalizeReport(source, sourceName) {
   const benchmarks = Array.isArray(source.Benchmarks) ? source.Benchmarks : [];
   if (benchmarks.length === 0) throw new Error("Benchmark report contains no cases.");
@@ -82,7 +94,7 @@ function normalizeReport(source, sourceName) {
       medianNanoseconds: round3(benchmark.Statistics.Median),
       standardDeviationNanoseconds: round3(benchmark.Statistics.StandardDeviation),
       allocatedBytes: round3(benchmark.Memory?.BytesAllocatedPerOperation ?? 0),
-      // Extra fields beyond the .ps1 output; the validator ignores unknown members.
+      // Extra fields for diagnosis; the validator ignores members it does not know.
       percentile95Nanoseconds: round3(benchmark.Statistics.Percentiles?.P95 ?? benchmark.Statistics.Median),
       relativeStandardDeviation:
         Number(benchmark.Statistics.Median) > 0

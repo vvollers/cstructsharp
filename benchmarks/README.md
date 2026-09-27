@@ -84,6 +84,15 @@ It prints each case's median and allocation before and after, and flags differen
 (default 3%). Short-job medians vary by a few percent between runs; confirm a flagged case with `--rounds 2`
 before treating it as a regression. Nothing else should run on the machine meanwhile.
 
+To compare two summaries you already have (for example a recorded run and a new one), convert each BenchmarkDotNet
+report with `tools/quality/convert-benchmark-baseline.mjs` and compare them:
+
+```sh
+node tools/quality/compare-summaries.mjs --before before.json --after after.json --threshold 0.05
+```
+
+`--strict` makes it exit with code 1 when a case's median or allocation grew beyond the threshold.
+
 ## Compare with other serializers
 
 `CStructSharp.Comparison/` produces the three tables in the root README's "Speed compared with other .NET

@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 // Frozen managed API baseline: compares the public surface of src/CStructSharp against
 // contracts/api/managed-rc1 (compare, the CI gate), or rewrites that baseline from the current source after an
-// intentional public change (update). Node port of Compare-ManagedApiBaseline.ps1 plus the manual refresh
-// procedure it documented.
+// intentional public change (update).
 //
 // Usage: node tools/quality/managed-api-baseline.mjs [compare]
 //        node tools/quality/managed-api-baseline.mjs update --kind additive|breaking|correction \

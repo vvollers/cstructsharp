@@ -32,7 +32,7 @@ export function isIgnored(repositoryRoot, relative) {
   return runCommand("git", ["-C", repositoryRoot, "check-ignore", "--quiet", "--", relative], { allowFailure: true }).status === 0;
 }
 
-/** Splits text into lines the way the PowerShell tools did (`\r?\n`). */
+/** Splits text into lines at `\n` or `\r\n`. */
 export const lines = (text) => text.split(/\r?\n/);
 
 /** Text with CRLF normalized to LF. */
