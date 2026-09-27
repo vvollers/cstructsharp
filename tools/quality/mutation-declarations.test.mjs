@@ -53,14 +53,15 @@ test("a complete report explicitly accounts for the exact non-mutable declaratio
 test("the real gate reports reviewed equivalent survivors with an unchanged raw denominator", (t) => {
   const f = fixture(t);
   const policy = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "contracts/quality/mutation-equivalents.json"), "utf8"));
-  const reviewed = policy.files.find((file) => file.pattern === "MappedTypes.cs").mutants[0];
-  f.report.files["src/CStructSharp/MappedTypes.cs"].mutants.push({ ...reviewed, id: "equivalent", status: "Survived" });
+  const sample = policy.files.find((file) => file.mutants.length > 0 && !file.pattern.includes("/"));
+  const reviewed = sample.mutants[0];
+  f.report.files[mutationSource(sample.pattern)].mutants.push({ ...reviewed, id: "equivalent", status: "Survived" });
   const result = validate(f);
   assert.equal(result.status, 0, result.output);
   assert.match(result.output, /70\/71 detected \(98.59%\)/);
   assert.match(result.output, /1 survived/);
   assert.match(result.output, /Reviewed equivalent survivors: 1/);
-  f.report.files["src/CStructSharp/MappedTypes.cs"].mutants[1].replacement = "false";
+  f.report.files[mutationSource(sample.pattern)].mutants[1].replacement = "false";
   assert.match(validate(f).output, /1 surviving mutants without reviewed equivalence/);
 });
 

@@ -128,6 +128,9 @@ await main(() => {
   });
   // A mutant is three lines (name, location, reason): drop a blocked one whole, then the comma it may leave before "]".
   const kept = lines.filter((line, index) => line !== DROPPED && lines[index + 1] !== DROPPED && lines[index - 1] !== DROPPED);
-  fs.writeFileSync(policyPath, kept.join("\n").replace(/\},\n(\s*\])/g, "}\n$1"));
+  // A file whose last mutant was dropped leaves the policy entirely: an entry needs at least one reviewed mutant.
+  const emptyEntry = /\n {2}\{\n {3}"pattern": "[^"]+",\n {3}"sourceSha256": "[0-9a-f]+",\n {3}"mutants": \[\n {3}\]\n {2}\},?/g;
+  const trailingComma = /\},\n(\s*\])/g;
+  fs.writeFileSync(policyPath, kept.join("\n").replace(trailingComma, "}\n$1").replace(emptyEntry, "").replace(trailingComma, "}\n$1"));
   console.log(`Wrote moved locations and source hashes${drops.size ? `; dropped ${drops.size} entries` : ""}.`);
 });

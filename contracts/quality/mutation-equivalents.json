@@ -1116,12 +1116,6 @@
    ]
   },
   {
-   "pattern": "MappedTypes.cs",
-   "sourceSha256": "9d27e355b5d97bb26bf337655a49dd3b786d26b746ce1860396fcb9939785055",
-   "mutants": [
-   ]
-  },
-  {
    "pattern": "Values/WriteDataBinding.cs",
    "sourceSha256": "80d1dacaf48de0b9487bb1068e918d7605e6e8c3ea7386eda3a7c8630bdd303d",
    "mutants": [
