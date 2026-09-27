@@ -52,12 +52,12 @@ public class LayoutVariableCaptureRuleTests
         byte[] bytes = [1, 65, 66, 7,];
         const string expected = "'n' is text, but layout expressions can only use integer fields";
 
-        AssertFails(() => _ = layout.Parse(bytes, "root"), expected);
-        AssertFails(() => _ = layout.ReadValue(bytes, "root.v"), expected);
-        AssertFails(() => _ = layout.ResolveAddress(bytes, "root.v"), expected);
-        AssertFails(() => layout.Update(bytes, "root.v", new byte[] { 9, }), expected);
-        AssertFails(
-            () => layout.Serialize("root", new Dictionary<string, object?> { ["n"] = 1, ["i"] = new Dictionary<string, object?> { ["n"] = "AB", }, ["v"] = new byte[] { 7, }, }),
+        StringAssert.Contains(Assert.Throws<Exception>(() => _ = layout.Parse(bytes, "root")).Message, expected);
+        StringAssert.Contains(Assert.Throws<Exception>(() => _ = layout.ReadValue(bytes, "root.v")).Message, expected);
+        StringAssert.Contains(Assert.Throws<Exception>(() => _ = layout.ResolveAddress(bytes, "root.v")).Message, expected);
+        StringAssert.Contains(Assert.Throws<Exception>(() => layout.Update(bytes, "root.v", new byte[] { 9, })).Message, expected);
+        StringAssert.Contains(
+            Assert.Throws<Exception>(() => layout.Serialize("root", new Dictionary<string, object?> { ["n"] = 1, ["i"] = new Dictionary<string, object?> { ["n"] = "AB", }, ["v"] = new byte[] { 7, }, })).Message,
             expected);
     }
 
@@ -70,11 +70,11 @@ public class LayoutVariableCaptureRuleTests
         var options = new ReadOptions { DereferencePointers = false, };
         const string expected = "'p' is 4294967296, which is outside the 32-bit range";
 
-        AssertFails(() => _ = layout.Parse(bytes, "root", options: options), expected);
-        AssertFails(() => _ = layout.ReadValue(bytes, "root.v", options: options), expected);
-        AssertFails(() => _ = layout.ResolveAddress(bytes, "root.v", options: options), expected);
-        AssertFails(() => layout.Update(bytes, "root.v", new byte[] { 9, }), expected);
-        AssertFails(() => _ = layout.Serialize("root", new Dictionary<string, object?> { ["p"] = 4294967296L, ["v"] = new byte[] { 7, }, }), expected);
+        StringAssert.Contains(Assert.Throws<Exception>(() => _ = layout.Parse(bytes, "root", options: options)).Message, expected);
+        StringAssert.Contains(Assert.Throws<Exception>(() => _ = layout.ReadValue(bytes, "root.v", options: options)).Message, expected);
+        StringAssert.Contains(Assert.Throws<Exception>(() => _ = layout.ResolveAddress(bytes, "root.v", options: options)).Message, expected);
+        StringAssert.Contains(Assert.Throws<Exception>(() => layout.Update(bytes, "root.v", new byte[] { 9, })).Message, expected);
+        StringAssert.Contains(Assert.Throws<Exception>(() => _ = layout.Serialize("root", new Dictionary<string, object?> { ["p"] = 4294967296L, ["v"] = new byte[] { 7, }, })).Message, expected);
     }
 
     /// <summary>An enum value outside the Int32 range fails with the exact number through every operation.</summary>
@@ -85,11 +85,11 @@ public class LayoutVariableCaptureRuleTests
         byte[] bytes = [0, 0, 0, 0, 1, 0, 0, 0, 7,];
         const string expected = "'e' is 4294967296, which is outside the 32-bit range";
 
-        AssertFails(() => _ = layout.Parse(bytes, "root"), expected);
-        AssertFails(() => _ = layout.ReadValue(bytes, "root.v"), expected);
-        AssertFails(() => _ = layout.ResolveAddress(bytes, "root.v"), expected);
-        AssertFails(() => layout.Update(bytes, "root.v", new byte[] { 9, }), expected);
-        AssertFails(() => _ = layout.Serialize("root", new Dictionary<string, object?> { ["e"] = "X", ["v"] = new byte[] { 7, }, }), expected);
+        StringAssert.Contains(Assert.Throws<Exception>(() => _ = layout.Parse(bytes, "root")).Message, expected);
+        StringAssert.Contains(Assert.Throws<Exception>(() => _ = layout.ReadValue(bytes, "root.v")).Message, expected);
+        StringAssert.Contains(Assert.Throws<Exception>(() => _ = layout.ResolveAddress(bytes, "root.v")).Message, expected);
+        StringAssert.Contains(Assert.Throws<Exception>(() => layout.Update(bytes, "root.v", new byte[] { 9, })).Message, expected);
+        StringAssert.Contains(Assert.Throws<Exception>(() => _ = layout.Serialize("root", new Dictionary<string, object?> { ["e"] = "X", ["v"] = new byte[] { 7, }, })).Message, expected);
     }
 
     /// <summary>Integer, character, bool, enum and pointer fields all read as numbers, identically when read and when resolved.</summary>
@@ -107,14 +107,5 @@ public class LayoutVariableCaptureRuleTests
         Assert.HasCount(8, (System.Collections.IList)value["v"]!);
         Assert.AreEqual(5L, layout.ResolveAddress(bytes, "root.v", options: options));
         Assert.AreEqual(8, layout.GetArrayLength(bytes, "root.v", options: options));
-    }
-
-    /// <summary>Asserts that an operation fails with a message containing <paramref name="expected"/>.</summary>
-    /// <param name="operation">The operation; its result is ignored.</param>
-    /// <param name="expected">Text the failure message must contain.</param>
-    private static void AssertFails(Action operation, string expected)
-    {
-        Exception failure = Assert.Throws<Exception>(operation);
-        StringAssert.Contains(failure.Message, expected);
     }
 }
