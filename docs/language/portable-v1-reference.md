@@ -31,12 +31,14 @@ There is no public API for selecting `MSVC`, `GCC`, `Clang`, `SysV`, `LP64`, `LL
 
 The files below let people, tests, and tools check the same details:
 
-- [`portable-v1.json`](../../contracts/language/portable-v1.json) records revision 1 of every primitive spelling,
-  predicted layout example, and representative unsupported C form.
+- [`portable-v1.json`](../../contracts/language/portable-v1.json) records revision 3 of every primitive and alias
+  spelling, the keywords, annotations (`@align`, `@count`) and preprocessor directives with an example of each,
+  predicted layout examples, and representative unsupported C forms. The explorer and the inspector build their
+  editor completion and hover help from this file.
 - [`manual-fixtures-v1.json`](../../contracts/language/manual-fixtures-v1.json) supplies one valid and one invalid case
   for each row in the [feature table](operation-matrix.md).
 
-`CanonicalPortableReferenceTests` executes the primitive and layout records on .NET 8 and .NET 10.
+`CanonicalPortableReferenceTests` executes the primitive, vocabulary and layout records on .NET 8 and .NET 10.
 `ManualLanguageFixtureTests` checks fixed sizes, alignments, offsets, values, bytes, and error categories on both
 frameworks. Repository validators make sure the JSON, feature table, test names, and linked manual headings still
 agree.

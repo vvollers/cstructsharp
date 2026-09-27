@@ -59,6 +59,12 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Fixed
 
+- The explorer and inspector editors offer and highlight every word the language accepts, from one vocabulary
+  built from the language contract: the inspector now knows `int48`, `uint48`, `int128`, `uint128` and `float16`,
+  the explorer the C alias spellings (`int`, `uint32_t`, ...), and both `flag`, `sizeof`, `offsetof`, `@count` and
+  every preprocessor directive. The explorer editor also completes and describes the names a layout declares. The
+  language contract (`portable-v1.json`, revision 3) gains the `vocabulary` table, with an example of each word
+  that the tests compile.
 - An update that keeps union storage (`UpdateOptions.ClearUnionStorage = false`) keeps the bytes of an anonymous
   union that the written member does not cover, as it already did for a named union; before, writing a struct that
   contains an anonymous union zeroed them. A failure to encode an anonymous union's member is reported as a

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "contractRevision": 2,
+  "contractRevision": 3,
   "profile": "Portable",
   "unnamedPadding": "Fixed non-composite storage named _ has no caller value and is written as zero bytes, including into existing buffers. Enum storage uses numeric zero; pointers to non-composite types use the null address. Composite targets, including pointers to them, and runtime-sized padding are rejected. Fixed-size custom-codec padding uses its declared size without invoking its value encoder. Write budgets and array limits still apply; read array-element limits also apply when optimized reads skip constructing padding values. Struct results and union views omit unnamed padding; debug ranges and raw union storage can retain it. Implicit alignment gaps are distinct and remain unchanged in existing storage.",
   "expressionDomain": "Ordinary layout expressions use checked signed Int32 arithmetic. A decoded integer outside that range remains valid field data; selecting it in a direct, conditional, or short-circuit expression reports the field name and value. Unselected operands are not evaluated.",
@@ -1999,5 +1999,143 @@
       "spelling": "LPCWSTR",
       "canonical": "wchar*"
     }
-  ]
+  ],
+  "vocabulary": {
+    "keywords": [
+      {
+        "spelling": "struct",
+        "summary": "Declares a named composite whose members follow one another in declaration order.",
+        "example": "struct root { uint8 kind; uint32 value; };"
+      },
+      {
+        "spelling": "union",
+        "summary": "Declares a composite whose members all start at offset 0 and share the same storage.",
+        "example": "union number { uint8 small; uint32 large; }; struct root { union number value; };"
+      },
+      {
+        "spelling": "enum",
+        "summary": "Declares named integer values over a storage type (`: type`, 1-byte unsigned when omitted).",
+        "example": "enum kind : uint8 { EMPTY = 0, FULL = 1 }; struct root { enum kind state; };"
+      },
+      {
+        "spelling": "flag",
+        "summary": "Declares named bit flags over a storage type; a value may combine several flags.",
+        "example": "flag access : uint16 { READ, WRITE, EXEC }; struct root { access mode; };"
+      },
+      {
+        "spelling": "typedef",
+        "summary": "Declares another name for an existing type, or names an inline struct or union.",
+        "example": "typedef uint32 word; struct root { word value; };"
+      },
+      {
+        "spelling": "const",
+        "summary": "Layout-neutral qualifier, accepted before a type or after a pointer star and then discarded.",
+        "example": "struct root { const uint8 value; };"
+      },
+      {
+        "spelling": "volatile",
+        "summary": "Layout-neutral qualifier, accepted before a type or after a pointer star and then discarded.",
+        "example": "struct root { volatile uint8 value; };"
+      },
+      {
+        "spelling": "restrict",
+        "summary": "Layout-neutral qualifier, accepted before a type or after a pointer star and then discarded.",
+        "example": "struct root { uint8 * restrict data; };"
+      },
+      {
+        "spelling": "void",
+        "summary": "The untyped pointer target: `void *` stores an address without a target layout.",
+        "example": "struct root { void *raw; };"
+      },
+      {
+        "spelling": "if",
+        "summary": "Includes a member group when its integer condition is nonzero.",
+        "example": "struct root { uint8 tag; if (tag == 1) { uint32 value; } else { uint16 small; } };"
+      },
+      {
+        "spelling": "else",
+        "summary": "Includes the alternative member group when the if condition is zero.",
+        "example": "struct root { uint8 tag; if (tag == 1) { uint32 value; } else { uint16 small; } };"
+      },
+      {
+        "spelling": "switch",
+        "summary": "Selects one member group by the value of an integer expression, without fall-through.",
+        "example": "struct root { uint8 tag; switch (tag) { case 1: { uint32 value; } default: { uint8 other; } } };"
+      },
+      {
+        "spelling": "case",
+        "summary": "A switch label: `case value: { members }`.",
+        "example": "struct root { uint8 tag; switch (tag) { case 1: { uint32 value; } default: { uint8 other; } } };"
+      },
+      {
+        "spelling": "default",
+        "summary": "The switch group used when no case label matches: `default: { members }`.",
+        "example": "struct root { uint8 tag; switch (tag) { case 1: { uint32 value; } default: { uint8 other; } } };"
+      },
+      {
+        "spelling": "sizeof",
+        "summary": "In an expression, the size in bytes of a fixed-size type: `sizeof(type)`.",
+        "example": "struct item { uint32 a; uint16 b; }; struct root { uint8 copy[sizeof(item)]; };"
+      },
+      {
+        "spelling": "offsetof",
+        "summary": "In an expression, the byte offset of a member in a fixed-size type: `offsetof(type, member)`.",
+        "example": "struct item { uint8 a; uint32 b; }; struct root { uint8 prefix[offsetof(item, b)]; };"
+      }
+    ],
+    "annotations": [
+      {
+        "spelling": "@align",
+        "summary": "Overrides the alignment of a member or composite with a power of two: `@align(N)`.",
+        "example": "struct root { uint8 a; uint32 b @align(8); };"
+      },
+      {
+        "spelling": "@count",
+        "summary": "Gives the number of elements a pointer targets: `type *name @count(N)`.",
+        "example": "struct root { uint8 *values @count(4); };"
+      }
+    ],
+    "directives": [
+      {
+        "spelling": "#define",
+        "summary": "Defines a named constant or text used by later declarations.",
+        "example": "#define COUNT 4\nstruct root { uint8 values[COUNT]; };"
+      },
+      {
+        "spelling": "#undef",
+        "summary": "Removes a definition.",
+        "example": "#define WIDE\n#undef WIDE\nstruct root { uint8 value; };"
+      },
+      {
+        "spelling": "#ifdef",
+        "summary": "Keeps the following lines when a name is defined.",
+        "example": "#define WIDE\n#ifdef WIDE\nstruct root { uint32 value; };\n#else\nstruct root { uint8 value; };\n#endif"
+      },
+      {
+        "spelling": "#ifndef",
+        "summary": "Keeps the following lines when a name is not defined.",
+        "example": "#ifndef NARROW\nstruct root { uint32 value; };\n#endif"
+      },
+      {
+        "spelling": "#else",
+        "summary": "Keeps the following lines when the matching #ifdef or #ifndef did not.",
+        "example": "#ifdef NARROW\nstruct root { uint8 value; };\n#else\nstruct root { uint32 value; };\n#endif"
+      },
+      {
+        "spelling": "#endif",
+        "summary": "Ends an #ifdef or #ifndef block.",
+        "example": "#ifndef NARROW\nstruct root { uint32 value; };\n#endif"
+      },
+      {
+        "spelling": "#include",
+        "summary": "Recorded but not resolved: the included file's declarations must be pasted into the layout.",
+        "example": "#include <stdint.h>\nstruct root { uint8 value; };"
+      },
+      {
+        "spelling": "#pragma",
+        "summary": "`#pragma pack(N)`, `pack(push, N)` and `pack(pop)` set the maximum member alignment; other pragmas are ignored.",
+        "example": "#pragma pack(push, 1)\nstruct root { uint8 a; uint32 b; };\n#pragma pack(pop)"
+      }
+    ]
+  }
 }

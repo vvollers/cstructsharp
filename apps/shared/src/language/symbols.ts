@@ -1,143 +1,10 @@
-// Pure DSL vocabulary/scanner logic for CStruct intellisense (see cstruct-language.ts for the Monaco
-// wiring that consumes it). Kept free of any monaco-editor import so it can be unit-tested directly
-// without pulling in Monaco's browser-only runtime.
+// The document symbol scan behind completion and hover: declared struct, union, enum and typedef names and #define
+// constants. It has no monaco-editor import, so it runs and is unit-tested without Monaco's browser-only runtime.
 
-export const CSTRUCT_KEYWORDS = [
-  "if",
-  "else",
-  "switch",
-  "case",
-  "default",
-  "struct",
-  "union",
-  "enum",
-  "typedef",
-  "const",
-  "volatile",
-  "restrict",
-];
-
-export const CSTRUCT_KEYWORD_DOCS: Record<string, string> = {
-  if: "Includes a field group when its integer predicate is nonzero.",
-  else: "Includes the alternative field group when the if predicate is zero.",
-  switch: "Selects a tagged field group without fall-through.",
-  case: "A switch tag followed by : { fields }.",
-  default: "Fallback switch group: default: { fields }.",
-  struct: "Declares a named sequential composite type.",
-  union: "Declares a named overlapping composite type - every field starts at offset 0.",
-  enum: "Declares a named integral enum. Defaults to 1-byte unsigned backing unless `: type` is given.",
-  typedef: "Declares an alias for an existing type, or names an inline struct/union.",
-  const:
-    "Layout-neutral qualifier - accepted before a type or after a pointer star, then discarded.",
-  volatile:
-    "Layout-neutral qualifier - accepted before a type or after a pointer star, then discarded.",
-  restrict:
-    "Layout-neutral qualifier - accepted before a type or after a pointer star, then discarded.",
-};
-
-// Canonical (non-suffixed) primitive/type spellings, from docs/language/primitive-types.md.
-// A `<`/`>` endianness suffix is typed by the user afterward and isn't offered as a separate entry.
-export const CSTRUCT_PRIMITIVE_TYPES: { name: string; detail: string }[] = [
-  { name: "byte", detail: "uint8 alias - 1 byte, unsigned 0..255" },
-  { name: "uint8", detail: "1 byte, unsigned 0..255" },
-  { name: "int8", detail: "1 byte, signed -128..127" },
-  { name: "bool", detail: "1 byte boolean - any nonzero byte reads as true" },
-  { name: "_Bool", detail: "bool alias" },
-  { name: "char", detail: "1 byte raw code unit, U+0000..U+00FF" },
-  {
-    name: "utf8",
-    detail: "UTF-8 byte code unit; utf8 text[N] decodes exactly N bytes as a string",
-  },
-  { name: "wchar", detail: "2 byte UTF-16 code unit" },
-  { name: "latin1", detail: "Byte-counted strict Latin-1 text buffer; scalar/index is a raw byte" },
-  { name: "cp437", detail: "Byte-counted strict CP437 text buffer; scalar/index is a raw byte" },
-  {
-    name: "utf16le",
-    detail: "Byte-counted strict UTF-16LE text buffer; scalar/index is a raw byte",
-  },
-  {
-    name: "utf16be",
-    detail: "Byte-counted strict UTF-16BE text buffer; scalar/index is a raw byte",
-  },
-  {
-    name: "uleb128_32",
-    detail: "Unsigned 32-bit LEB128; dynamic byte width, alignment 1; canonical writes",
-  },
-  {
-    name: "uleb128_64",
-    detail: "Unsigned 64-bit LEB128; dynamic byte width, alignment 1; canonical writes",
-  },
-  {
-    name: "sleb128_32",
-    detail: "Signed 32-bit LEB128; dynamic byte width, alignment 1; canonical writes",
-  },
-  {
-    name: "sleb128_64",
-    detail: "Signed 64-bit LEB128; dynamic byte width, alignment 1; canonical writes",
-  },
-  { name: "fixed16_16", detail: "Signed 32-bit storage / 65536; exact Double" },
-  { name: "ufixed16_16", detail: "Unsigned 32-bit storage / 65536; exact Double" },
-  { name: "fixed2_30", detail: "Signed 32-bit storage / 1073741824; exact Double" },
-  { name: "ufixed8_8", detail: "Unsigned 16-bit storage / 256; exact Double" },
-  { name: "uuid", detail: "16-byte network-order identifier; alignment 1" },
-  { name: "guid", detail: "16-byte Windows GUID; alignment 1" },
-  { name: "int24", detail: "3 bytes, alignment 1, signed -8388608..8388607 (supports < / >)" },
-  { name: "uint24", detail: "3 bytes, alignment 1, unsigned 0..16777215 (supports < / >)" },
-  { name: "int16", detail: "2 bytes, signed -32768..32767 (supports < / > endianness suffix)" },
-  { name: "uint16", detail: "2 bytes, unsigned 0..65535 (supports < / > endianness suffix)" },
-  { name: "int32", detail: "4 bytes, signed (supports < / > endianness suffix)" },
-  { name: "uint32", detail: "4 bytes, unsigned (supports < / > endianness suffix)" },
-  { name: "int64", detail: "8 bytes, signed (supports < / > endianness suffix)" },
-  { name: "uint64", detail: "8 bytes, unsigned (supports < / > endianness suffix)" },
-  { name: "float32", detail: "4 byte IEEE-754 binary32 (supports < / > endianness suffix)" },
-  { name: "float64", detail: "8 byte IEEE-754 binary64 (supports < / > endianness suffix)" },
-  { name: "float", detail: "float32 alias" },
-  { name: "double", detail: "float64 alias" },
-  { name: "short", detail: "int16 alias" },
-  { name: "ushort", detail: "uint16 alias" },
-  { name: "int", detail: "int32 alias" },
-  { name: "uint", detail: "uint32 alias" },
-  { name: "long", detail: "int64 alias - always 64-bit, unlike native C" },
-  { name: "ulong", detail: "uint64 alias - always 64-bit, unlike native C" },
-  { name: "signed", detail: "int32 alias" },
-  { name: "unsigned", detail: "uint32 alias" },
-  { name: "signed int", detail: "int32 alias" },
-  { name: "unsigned int", detail: "uint32 alias" },
-  { name: "signed short", detail: "int16 alias" },
-  { name: "unsigned short", detail: "uint16 alias" },
-  { name: "signed long", detail: "int64 alias" },
-  { name: "unsigned long", detail: "uint64 alias" },
-  { name: "long long", detail: "int64 alias" },
-  { name: "signed long long", detail: "int64 alias" },
-  { name: "unsigned long long", detail: "uint64 alias" },
-  { name: "signed char", detail: "int8 alias" },
-  { name: "unsigned char", detail: "uint8 alias" },
-  { name: "int8_t", detail: "int8 alias" },
-  { name: "uint8_t", detail: "uint8 alias" },
-  { name: "int16_t", detail: "int16 alias" },
-  { name: "uint16_t", detail: "uint16 alias" },
-  { name: "int32_t", detail: "int32 alias" },
-  { name: "uint32_t", detail: "uint32 alias" },
-  { name: "int64_t", detail: "int64 alias" },
-  { name: "uint64_t", detail: "uint64 alias" },
-  { name: "ascii_string_zero", detail: "NUL-terminated ASCII string" },
-  { name: "cstring", detail: "ascii_string_zero alias" },
-  { name: "ascii_string_newline", detail: "LF-terminated ASCII string" },
-  { name: "utf8_string_zero", detail: "NUL-terminated UTF-8 string" },
-  { name: "utf8_string_newline", detail: "LF-terminated UTF-8 string" },
-  {
-    name: "unicode_string_zero",
-    detail: "NUL-terminated UTF-16 string (supports < / > endianness suffix)",
-  },
-  { name: "string", detail: "unicode_string_zero alias" },
-  {
-    name: "unicode_string_newline",
-    detail: "LF-terminated UTF-16 string (supports < / > endianness suffix)",
-  },
-];
-
+/** The kind of a declared name: a composite, an enum, a typedef alias or a #define constant. */
 export type CStructSymbolKind = "struct" | "union" | "enum" | "typedef" | "define";
 
+/** A declared name with the one-line signature and the description completion and hover show. */
 export interface CStructSymbol {
   kind: CStructSymbolKind;
   name: string;
@@ -145,6 +12,12 @@ export interface CStructSymbol {
   documentation: string;
 }
 
+/**
+ * Blanks comments and string literals, keeping line breaks, so the scan sees only declarations at their original
+ * offsets.
+ * @param source The layout text.
+ * @returns The text with comments and strings replaced by spaces.
+ */
 function stripCommentsAndStrings(source: string): string {
   return source.replace(
     /\/\/[^\n]*|\/\*[\s\S]*?\*\/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g,
@@ -152,6 +25,12 @@ function stripCommentsAndStrings(source: string): string {
   );
 }
 
+/**
+ * Finds the brace that closes the one at an index.
+ * @param text The stripped text.
+ * @param openIndex The index of an opening brace.
+ * @returns The index of its closing brace, or -1 when it is not closed.
+ */
 function findMatchingBrace(text: string, openIndex: number): number {
   let depth = 0;
   for (let i = openIndex; i < text.length; i++) {
@@ -164,6 +43,12 @@ function findMatchingBrace(text: string, openIndex: number): number {
   return -1;
 }
 
+/**
+ * Counts the members a composite body declares, including every conditional branch but not the members of nested
+ * composites.
+ * @param body The text between a composite's braces.
+ * @returns The member count.
+ */
 function countTopLevelFields(body: string): number {
   // Conditional braces group declarations without introducing a result member.
   // Composite braces do introduce a member; skip their children when counting
@@ -193,6 +78,11 @@ function countTopLevelFields(body: string): number {
   return count;
 }
 
+/**
+ * Describes a composite body by its member count, noting when conditions decide which members exist.
+ * @param body The text between a composite's braces.
+ * @returns For example "3 fields".
+ */
 function describeFields(body: string): string {
   const fields = pluralize(countTopLevelFields(body), "field");
   return /\b(if|switch)\s*\(/.test(body)
@@ -200,6 +90,12 @@ function describeFields(body: string): string {
     : fields;
 }
 
+/**
+ * Formats a count with a singular or plural noun.
+ * @param count The count.
+ * @param noun The singular noun.
+ * @returns For example "1 field" or "2 fields".
+ */
 function pluralize(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? "" : "s"}`;
 }
@@ -214,6 +110,7 @@ export function collectSymbols(source: string): CStructSymbol[] {
   const text = stripCommentsAndStrings(source);
   const symbols: CStructSymbol[] = [];
   const seen = new Set<string>();
+  /** Records a symbol unless its name was already found. */
   const add = (symbol: CStructSymbol): void => {
     if (seen.has(symbol.name)) return;
     seen.add(symbol.name);

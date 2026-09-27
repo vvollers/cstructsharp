@@ -6,7 +6,7 @@ import "monaco-editor/languages/definitions/javascript/register";
 import EditorWorker from "monaco-editor/editor/editor.worker?worker";
 import { jsonDefaults } from "monaco-editor/languages/features/json/register";
 import JsonWorker from "monaco-editor/languages/features/json/json.worker?worker";
-import { registerCStructLanguage } from "./cstruct-language";
+import { registerCStructLanguage } from "@cstructsharp/app-shared/language/register";
 
 jsonDefaults.setDiagnosticsOptions({ allowComments: true, comments: "ignore" });
 registerCStructLanguage(monaco);

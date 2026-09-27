@@ -33,7 +33,7 @@ await main(() => {
   const reference = referenceFiles.map((file) => fs.readFileSync(file, "utf8")).join("\n");
 
   assertCondition(contract.schemaVersion === 1, "Unsupported canonical Portable contract schema version.");
-  assertCondition(contract.contractRevision === 2, "Unsupported canonical Portable contract revision.");
+  assertCondition(contract.contractRevision === 3, "Unsupported canonical Portable contract revision.");
   assertCondition(contract.profile === "Portable", "The canonical contract must describe the Portable profile.");
   assertCondition((contract.shippedProfiles ?? []).length === 1 && contract.shippedProfiles[0] === "Portable", "Portable must be the sole shipped profile.");
   const canonical = matrix.canonicalReference;
@@ -155,10 +155,28 @@ await main(() => {
     assertCondition(reference.includes(`\`${alias.spelling}\``), `The canonical reference does not name alias spelling '${alias.spelling}'.`);
   }
 
+  // Editors build their keyword, annotation and directive help from this table; the managed tests compile every example.
+  const vocabulary = contract.vocabulary ?? {};
+  const vocabularySpellings = [];
+  for (const group of ["keywords", "annotations", "directives"]) {
+    const entries = vocabulary[group] ?? [];
+    assertCondition(entries.length > 0, `The vocabulary has no ${group}.`);
+    for (const entry of entries) {
+      const spelling = String(entry.spelling ?? "");
+      assertCondition(!blank(spelling) && !blank(entry.summary) && !blank(entry.example), `Vocabulary entry '${spelling}' needs a spelling, a summary and an example.`);
+      assertCondition(new RegExp(`(^|[^\\w@#])${spelling.replace(/[#@]/g, "\\$&")}(?!\\w)`).test(entry.example), `Vocabulary example for '${spelling}' does not use it.`);
+      vocabularySpellings.push(spelling);
+    }
+  }
+  assertCondition(unique(vocabularySpellings), "The vocabulary contains duplicate spellings.");
+  assertCondition((vocabulary.annotations ?? []).every((entry) => String(entry.spelling).startsWith("@")), "Annotation spellings start with @.");
+  assertCondition((vocabulary.directives ?? []).every((entry) => String(entry.spelling).startsWith("#")), "Directive spellings start with #.");
+
   console.log("Canonical Portable reference validation passed.");
   console.log(`Fixed primitives: ${fixedSpellings.length}`);
   console.log(`Terminated primitives: ${terminatedSpellings.length}`);
   console.log(`Predictive layout examples: ${exampleIds.length}`);
   console.log(`Alias spellings: ${aliasSpellings.length}`);
   console.log(`Unsupported C constructs: ${unsupportedIds.length}`);
+  console.log(`Vocabulary entries: ${vocabularySpellings.length}`);
 });

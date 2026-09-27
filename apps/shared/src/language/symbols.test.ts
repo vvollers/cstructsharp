@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { collectSymbols } from "./cstruct-symbols";
+import { collectSymbols } from "./symbols";
 
 describe("collectSymbols", () => {
   it("counts conditional declarations while keeping nested composites as single members", () => {

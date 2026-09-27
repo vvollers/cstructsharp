@@ -50,6 +50,30 @@ public class CanonicalPortableReferenceTests
         }
     }
 
+    /// <summary>
+    ///     Every keyword, annotation and directive the editor vocabulary offers is accepted by the compiler.
+    /// </summary>
+    /// <remarks>
+    ///     The explorer and the inspector build their completion and hover help from this table, so each entry's
+    ///     example must compile: a spelling the parser does not accept cannot be offered to a user.
+    /// </remarks>
+    [TestMethod]
+    public void Vocabulary_ExamplesCompile()
+    {
+        VocabularyEntry[] entries =
+        [
+            .. Contract.Value.Vocabulary.Keywords,
+            .. Contract.Value.Vocabulary.Annotations,
+            .. Contract.Value.Vocabulary.Directives,
+        ];
+        Assert.IsNotEmpty(entries);
+        foreach (VocabularyEntry entry in entries)
+        {
+            StringAssert.Contains(entry.Example, entry.Spelling, entry.Spelling);
+            _ = new CStruct(entry.Example, pointerSize: 4, aligned: true);
+        }
+    }
+
     /// <summary>Every alias spelling in the contract behaves exactly like the canonical codec it names.</summary>
     [TestMethod]
     public void AliasSpellings_BehaveLikeTheirCanonicalCodec()
@@ -307,6 +331,8 @@ public class CanonicalPortableReferenceTests
         public LayoutExample[] LayoutExamples { get; init; } = [];
 
         public UnsupportedConstruct[] UnsupportedConstructs { get; init; } = [];
+
+        public Vocabulary Vocabulary { get; init; } = new();
     }
 
     /// <summary>
@@ -385,5 +411,25 @@ public class CanonicalPortableReferenceTests
         public string Id { get; init; } = string.Empty;
 
         public string Definition { get; init; } = string.Empty;
+    }
+
+    /// <summary>The words an editor offers beyond the type spellings: keywords, annotations and directives.</summary>
+    private sealed class Vocabulary
+    {
+        public VocabularyEntry[] Keywords { get; init; } = [];
+
+        public VocabularyEntry[] Annotations { get; init; } = [];
+
+        public VocabularyEntry[] Directives { get; init; } = [];
+    }
+
+    /// <summary>One vocabulary word with its one-sentence summary and a layout that uses it.</summary>
+    private sealed class VocabularyEntry
+    {
+        public string Spelling { get; init; } = string.Empty;
+
+        public string Summary { get; init; } = string.Empty;
+
+        public string Example { get; init; } = string.Empty;
     }
 }
