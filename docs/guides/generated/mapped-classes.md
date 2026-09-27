@@ -27,8 +27,8 @@ no public setter is left alone.
 ## Matching properties to members
 
 A property finds its layout member by name: the exact spelling first, then a case-insensitive match, then a match
-that ignores underscores - `FileName` finds `file_name`. `[CStructMember("name")]` names the member explicitly,
-which is how `FileName` maps to `name` in the example.
+that ignores underscores - `FileName` finds `file_name`. A step that finds two members ends the search without a
+match. `[CStructMember("name")]` names the member explicitly, which is how `FileName` maps to `name` in the example.
 
 With `Layout = "header"` on the attribute, the generator resolves the names at build time against the
 `[CStructLayout]` classes in the same project and reports `CSG102` for a property that matches nothing. Without

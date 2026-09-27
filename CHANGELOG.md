@@ -52,6 +52,10 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Fixed
 
+- A mapped class's property finds its layout member by the same rule at build time and at run time. When two layout
+  members matched a property case-insensitively (`flag` and `FLAG` for `Flag`), the generator went on to the
+  underscore rule and could bind the property to a third member, while the runtime left it unmatched; both now
+  leave it unmatched (the generator reports `CSG102`).
 - The analyzer's path check (CSG200) covers every `CStruct` method that takes a path, including `TryReadValue`,
   `GetAccessor` and `CreateView`, and the declaration name of `GetStructSizeInBytes`. It compiles a layout with the
   settings it is built with - a constructor's constant pointer size, alignment and byte order, or a

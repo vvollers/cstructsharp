@@ -47,8 +47,9 @@ FE FF 05 00
 same four bytes back.
 
 Each property finds its layout member by name: the exact spelling first, then a case-insensitive match (`X`
-finds `x`), then a match that ignores underscores (`BitDepth` finds `bit_depth`). `[CStructMember("name")]` on a
-property names the member explicitly. With `[CStructMapped(Layout = "point")]` the generator checks the names
+finds `x`), then a match that ignores underscores (`BitDepth` finds `bit_depth`). A step that finds two members
+(`flag` and `FLAG` for `Flag`) ends the search without a match. `[CStructMember("name")]` on a property names the
+member explicitly. With `[CStructMapped(Layout = "point")]` the generator checks the names
 against a `[CStructLayout]` class in the same project at build time and warns (`CSG102`) about a property that
 matches nothing; without it the names are resolved when the value is read, and a name the layout does not
 declare raises a `CStructPathException` that lists the members the struct does have. The

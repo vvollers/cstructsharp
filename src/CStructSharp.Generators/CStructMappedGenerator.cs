@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
+using CStructSharp.Introspection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -309,7 +310,13 @@ public sealed class CStructMappedGenerator : IIncrementalGenerator
         context.AddSource(request.HintName, SourceText.From(MappedEmitter.Emit(request, layoutMembers, composite), System.Text.Encoding.UTF8));
     }
 
-    /// <summary>The layout member a property maps to, by the mapper's rule, or <see langword="null"/> when the layout has none.</summary>
+    /// <summary>
+    ///     The layout member a property maps to: its <c>[CStructMember]</c> name when the layout has it, else the
+    ///     runtime's name rule (<see cref="MappedMemberNames"/>).
+    /// </summary>
+    /// <param name="member">The mapped property.</param>
+    /// <param name="layoutMembers">The layout struct's member names.</param>
+    /// <returns>The member name, or <see langword="null"/> when the layout has none for the property.</returns>
     internal static string? ResolveLayoutName(MappedMember member, IReadOnlyList<string> layoutMembers)
     {
         if (member.LayoutName is not null)
@@ -317,19 +324,6 @@ public sealed class CStructMappedGenerator : IIncrementalGenerator
             return layoutMembers.Contains(member.LayoutName) ? member.LayoutName : null;
         }
 
-        string? exact = layoutMembers.FirstOrDefault(name => name == member.PropertyName);
-        if (exact is not null)
-        {
-            return exact;
-        }
-
-        var insensitive = layoutMembers.Where(name => string.Equals(name, member.PropertyName, StringComparison.OrdinalIgnoreCase)).ToList();
-        if (insensitive.Count == 1)
-        {
-            return insensitive[0];
-        }
-
-        var collapsed = layoutMembers.Where(name => name.IndexOf('_') >= 0 && string.Equals(name.Replace("_", string.Empty), member.PropertyName, StringComparison.OrdinalIgnoreCase)).ToList();
-        return collapsed.Count == 1 ? collapsed[0] : null;
+        return MappedMemberNames.Match(layoutMembers, member.PropertyName);
     }
 }

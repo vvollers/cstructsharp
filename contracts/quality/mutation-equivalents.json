@@ -1117,14 +1117,8 @@
   },
   {
    "pattern": "MappedTypes.cs",
-   "sourceSha256": "969d2da3bb38ecdf5a68fd432f0794be1c32279bcf6fd194a58d5517541beef3",
+   "sourceSha256": "9d27e355b5d97bb26bf337655a49dd3b786d26b746ce1860396fcb9939785055",
    "mutants": [
-    { "mutatorName": "Equality mutation", "replacement": "exact > 0",
-     "location": {"start":{"line":67,"column":13},"end":{"line":67,"column":23}},
-     "reason": "Skipping the exact-match return for index zero preserves the resolved name: the case-insensitive search that follows returns names[0] itself for one match, or propertyName, an equal string, for several. The result is cached per shape, and StructShape.TryGetIndex compares by reference first and then ordinally, so an equal string finds the same slot. Only comparison work and string instance identity can differ, neither of which is part of MemberName's contract." },
-    { "mutatorName": "Block removal mutation", "replacement": "{}",
-     "location": {"start":{"line":68,"column":9},"end":{"line":70,"column":10}},
-     "reason": "Removing the exact-match return preserves the resolved name: with no exact match the later search already runs; with one, the case-insensitive search returns the same names element for a single match, or propertyName, an equal string, for several. The result is cached per shape, and StructShape.TryGetIndex compares by reference first and then ordinally, so an equal string finds the same slot. Only comparison work and string instance identity can differ, neither of which is part of MemberName's contract." }
    ]
   },
   {

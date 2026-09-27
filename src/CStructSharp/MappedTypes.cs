@@ -2,6 +2,7 @@ namespace CStructSharp;
 
 using System;
 using System.Collections.Concurrent;
+using CStructSharp.Introspection;
 using CStructSharp.Values;
 
 /// <summary>
@@ -36,9 +37,10 @@ public static partial class MappedTypes
 
     /// <summary>
     ///     Finds the layout member a mapped property maps to, for a generated mapper that did not resolve its layout
-    ///     at build time: the exact name, else the single case-insensitive match, else the single match after
-    ///     underscores are ignored (<c>bit_depth</c> for <c>BitDepth</c>), else <paramref name="propertyName"/>
-    ///     itself (which the following <c>Get</c> reports as missing, with the members that exist).
+    ///     at build time: the exact name, else the case-insensitive match, else the match after underscores are
+    ///     ignored (<c>bit_depth</c> for <c>BitDepth</c>) - the generator's rule. When no member matches, or a step
+    ///     finds two, it returns <paramref name="propertyName"/> itself, which the following <c>Get</c> reports as
+    ///     missing, with the members that exist.
     /// </summary>
     /// <param name="source">The value being mapped.</param>
     /// <param name="propertyName">The mapped property's name.</param>
@@ -60,49 +62,11 @@ public static partial class MappedTypes
     }
 
     /// <summary>Applies the matching rules of <see cref="MemberName"/> to one shape's member names.</summary>
+    /// <param name="names">The shape's member names.</param>
+    /// <param name="propertyName">The mapped property's name.</param>
+    /// <returns>The shape's own name instance, which the member lookup that follows finds by reference, or <paramref name="propertyName"/>.</returns>
     private static string ResolveMemberName(string[] names, string propertyName)
-    {
-        // Return the shape's own instance, which the member lookup that follows finds by reference.
-        int exact = Array.IndexOf(names, propertyName);
-        if (exact >= 0)
-        {
-            return names[exact];
-        }
-
-        string? found = null;
-        foreach (string name in names)
-        {
-            if (string.Equals(name, propertyName, StringComparison.OrdinalIgnoreCase))
-            {
-                if (found is not null)
-                {
-                    return propertyName;
-                }
-
-                found = name;
-            }
-        }
-
-        if (found is not null)
-        {
-            return found;
-        }
-
-        foreach (string name in names)
-        {
-            if (name.IndexOf('_') >= 0 && string.Equals(name.Replace("_", string.Empty), propertyName, StringComparison.OrdinalIgnoreCase))
-            {
-                if (found is not null)
-                {
-                    return propertyName;
-                }
-
-                found = name;
-            }
-        }
-
-        return found ?? propertyName;
-    }
+        => MappedMemberNames.Match(names, propertyName) ?? propertyName;
 
     /// <summary>Converts a value the reader produced (a pointer target, a union member) to <typeparamref name="T"/> with the rules of <c>Get&lt;T&gt;</c>.</summary>
     /// <typeparam name="T">The destination type.</typeparam>
