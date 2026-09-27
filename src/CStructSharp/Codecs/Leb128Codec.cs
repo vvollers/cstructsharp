@@ -9,8 +9,6 @@ internal static class Leb128Codec
 {
     private const int MaximumBytes = 10;
 
-    public static bool IsType(string name) => name is "uleb128_32" or "uleb128_64" or "sleb128_32" or "sleb128_64";
-
     /// <summary>Reads one LEB128 integer byte by byte, so the stream stops exactly after the terminating byte.</summary>
     public static ulong Read(Stream stream, int width, bool signed)
     {

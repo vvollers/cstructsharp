@@ -48,7 +48,7 @@ public class WriteCursorBoundaryTests
 
     /// <summary>A bitfield unit preserves its prefix and clears a newly exposed tail after a nonzero origin.</summary>
     [TestMethod]
-    public void Unit_ExtendsFromTheExistingEndAndAlignUsesTheCompositeOrigin()
+    public void Unit_ExtendsFromTheExistingEnd()
     {
         byte[] bytes = [1, 2, 3, 4, 5, 6, 7, 8];
         var cursor = new WriteCursor(bytes);
@@ -57,8 +57,7 @@ public class WriteCursorBoundaryTests
         CollectionAssert.AreEqual(new byte[] { 3, 0, 0, 0 }, unit.ToArray());
         Assert.AreEqual(6, cursor.Position);
         cursor.Seek(2, "bits", "uint32");
-        cursor.Align(4, 1, "bits", "uint32");
-        Assert.AreEqual(5, cursor.Position);
+        Assert.AreEqual(2, cursor.Position);
         Assert.AreEqual(6, cursor.Length);
     }
 

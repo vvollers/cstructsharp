@@ -48,7 +48,6 @@ public class ConcurrentReuseTests
         }
 
         AssertFrozenMetadata(cstruct.CStructElements, nameof(cstruct.CStructElements));
-        AssertFrozenMetadata(cstruct.FieldAlignments, nameof(cstruct.FieldAlignments));
         AssertFrozenMetadata(cstruct.Codecs.Catalog.CodecIds, "Codecs.Catalog.CodecIds");
 
         Type symbolType = typeof(CompiledTypeSymbol);

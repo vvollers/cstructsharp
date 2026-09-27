@@ -149,7 +149,7 @@ public class CompiledFieldViewTests
     private static CompiledField Field(CStruct layout, string name)
     {
         // Every fixture uses distinct member names, including nested members.
-        return layout.CompiledModel.Fields.Values.Single(field => field.Name == name);
+        return layout.CompiledModel.AllFields().Single(field => field.Name == name);
     }
 
     /// <summary>Supplies a large fixed-size custom symbol for metadata-only tests, without an executable codec.</summary>

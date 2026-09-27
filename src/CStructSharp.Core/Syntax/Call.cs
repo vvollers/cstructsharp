@@ -19,17 +19,6 @@ internal class Call : Expr
 
     public Expr Expr { get; }
 
-    public override int Value
-    {
-        get => this.Calc();
-    }
-
-    /// <summary>Reports that calls are not part of the supported expression language.</summary>
-    public override int Calc(Dictionary<string, Expr> variables)
-    {
-        return global::CStructSharp.Expressions.ExpressionEvaluator.Default.Evaluate(this, variables);
-    }
-
     /// <summary>Checks whether another value represents the same layout data.</summary>
     public override bool Equals(Expr? other)
     {
@@ -52,6 +41,6 @@ internal class Call : Expr
     /// <summary>Returns a short readable description for debugging and logs.</summary>
     public override string ToString()
     {
-        return $"Call: {this.Value}";
+        return $"Call: {this.Expr}({string.Join(", ", this.Arguments)})";
     }
 }

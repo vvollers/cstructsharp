@@ -20,9 +20,6 @@ internal sealed class WideValueVariable : Expr
     /// <summary>Gets the boxed integer as it was decoded or supplied.</summary>
     public object WideValue { get; }
 
-    /// <inheritdoc/>
-    public override int Value => throw this.CreateFailure("a value");
-
     /// <summary>The text for a member whose value an expression selected but which is outside the 32-bit range.</summary>
     public static string DescribeOutOfRange(string name, object value)
     {
@@ -30,12 +27,6 @@ internal sealed class WideValueVariable : Expr
                           ? formattable.ToString(null, CultureInfo.InvariantCulture)
                           : value.ToString() ?? string.Empty;
         return $"'{name}' is {text}, which is outside the 32-bit range that layout expressions support.";
-    }
-
-    /// <inheritdoc/>
-    public override int Calc(Dictionary<string, Expr> variables)
-    {
-        throw this.CreateFailure("a value");
     }
 
     /// <summary>Creates the diagnostic raised when an expression selects this variable through <paramref name="name"/>.</summary>

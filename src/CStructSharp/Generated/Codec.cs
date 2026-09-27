@@ -466,32 +466,6 @@ public static class Codec
 
     // ------------------------------------------------------------------------------------------ LEB128
 
-    /// <summary>
-    ///     Decodes one LEB128 integer of at most <paramref name="width"/> payload bits (32 or 64) from the start of
-    ///     <paramref name="source"/>. A signed value is sign-extended into the returned bits; cast the result to
-    ///     <see cref="int"/> or <see cref="long"/>.
-    /// </summary>
-    /// <param name="source">The bytes to decode from; the integer may end before the span does.</param>
-    /// <param name="width">32 or 64.</param>
-    /// <param name="signed">Whether the encoding is SLEB128.</param>
-    /// <param name="bytesConsumed">How many bytes the integer occupied.</param>
-    /// <returns>The decoded value.</returns>
-    /// <exception cref="CStructReadException">The integer is unterminated within the span or exceeds its width.</exception>
-    public static ulong ReadLeb128(ReadOnlySpan<byte> source, int width, bool signed, out int bytesConsumed)
-    {
-        var decoder = new Leb128Decoder(width, signed);
-        for (int index = 0; index < source.Length && index < MaximumLeb128Bytes; index++)
-        {
-            if (decoder.Push(source[index], out ulong value))
-            {
-                bytesConsumed = index + 1;
-                return value;
-            }
-        }
-
-        throw new CStructReadException(source.Length < MaximumLeb128Bytes ? Leb128Decoder.ShortRead : Leb128Decoder.Unterminated);
-    }
-
     /// <summary>Encodes an unsigned LEB128 integer; the destination needs at most ten bytes.</summary>
     /// <returns>The number of bytes written.</returns>
     /// <param name="destination">The bytes to write into.</param>

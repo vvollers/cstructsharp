@@ -68,7 +68,7 @@ public class CanonicalPortableReferenceTests
                 var aliased = new CStruct($"struct root {{ {alias.Spelling} value; }}", pointerSize: pointerSize);
                 var reference = new CStruct($"struct root {{ {canonical} value; }}", pointerSize: pointerSize);
                 Assert.AreEqual(reference.GetStructAlignmentInBytes("root"), aliased.GetStructAlignmentInBytes("root"), alias.Spelling);
-                if (!PrimitiveCodecs.IsVariableLengthType(canonical) && !Leb128Codec.IsType(canonical))
+                if (!PrimitiveCodecs.IsVariableLengthType(canonical) && !canonical.Contains("leb128", StringComparison.Ordinal))
                 {
                     Assert.AreEqual(reference.GetStructSizeInBytes("root"), aliased.GetStructSizeInBytes("root"), alias.Spelling);
                 }

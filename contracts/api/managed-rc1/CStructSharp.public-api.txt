@@ -371,7 +371,6 @@ namespace CStructSharp.Generated
         public static int ReadInt32(System.ReadOnlySpan<byte> source, bool littleEndian) { }
         public static long ReadInt48(System.ReadOnlySpan<byte> source, bool littleEndian) { }
         public static long ReadInt64(System.ReadOnlySpan<byte> source, bool littleEndian) { }
-        public static ulong ReadLeb128(System.ReadOnlySpan<byte> source, int width, bool signed, out int bytesConsumed) { }
         public static float ReadSingle(System.ReadOnlySpan<byte> source, bool littleEndian) { }
         public static System.UInt128 ReadUInt128(System.ReadOnlySpan<byte> source, bool littleEndian) { }
         public static ushort ReadUInt16(System.ReadOnlySpan<byte> source, bool littleEndian) { }
@@ -479,7 +478,6 @@ namespace CStructSharp.Generated
         public int Remaining { get; }
         public System.ReadOnlySpan<byte> Source { get; }
         public bool TrimFixedText { get; }
-        public void Align(int alignment, long origin, string member, string? memberType) { }
         public void Complete(CStructSharp.Diagnostics.CStructException exception) { }
         public int CountTerminated(int elementSize, string fieldName, string member, string? memberType) { }
         public int CountToEnd(int elementSize, string fieldName, string member, string? memberType) { }
@@ -497,7 +495,6 @@ namespace CStructSharp.Generated
         public System.ReadOnlySpan<byte> Peek(int count, string member, string? memberType) { }
         public int RequireArrayLength(long count, string member, string? memberType) { }
         public void RequireBoundedTextBytes(long count, string member, string? memberType) { }
-        public void RequireTerminatedStringBytes(long count, string member, string? memberType) { }
         public void Seek(long position, string? member, string? memberType) { }
         public void Skip(int count, string member, string? memberType) { }
         public System.ReadOnlySpan<byte> Take(int count, string member, string? memberType) { }
@@ -554,7 +551,6 @@ namespace CStructSharp.Generated
         public string? Path { get; }
         public int Position { get; set; }
         public System.ReadOnlySpan<byte> Written { get; }
-        public void Align(int alignment, long origin, string member, string? memberType) { }
         public void Complete(CStructSharp.Diagnostics.CStructException exception) { }
         public void Dispose() { }
         public void EnterComposite(string member, string? memberType) { }
@@ -562,7 +558,6 @@ namespace CStructSharp.Generated
         public CStructSharp.Diagnostics.CStructWriteException Fail(string message, string? member, string? memberType) { }
         public System.Exception FailExpression(System.Exception exception, string context, string? member, string? memberType) { }
         public CStructSharp.Diagnostics.CStructWriteLimitException FailLimit(string message, string? member, string? memberType) { }
-        public CStructSharp.Diagnostics.CStructWriteException FailUnwritable(object? value, string typeSpelling, string? acceptedRange, string member, System.Exception? cause = null) { }
         public void Pad(int count, string? member, string? memberType) { }
         public void RequireArrayLength(long count, string member, string? memberType) { }
         public void RequireStringBytes(long count, string member, string? memberType) { }

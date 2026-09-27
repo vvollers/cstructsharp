@@ -22,26 +22,24 @@ public class CoverageRiskTests
     {
         var binary = new BinaryOp(BinaryOperatorType.Add, new Literal(1), new Literal(2));
         var equalBinary = new BinaryOp(BinaryOperatorType.Add, new Literal(1), new Literal(2));
-        Assert.AreEqual(3, binary.Value);
-        Assert.AreEqual(3, binary.Calc());
+        Assert.AreEqual(3, binary.Evaluate());
         Assert.IsTrue(binary.Equals(equalBinary));
         Assert.AreEqual(binary.GetHashCode(), equalBinary.GetHashCode());
         Assert.IsFalse(binary.Equals(new BinaryOp(BinaryOperatorType.Minus, new Literal(1), new Literal(2))));
         Assert.IsFalse(binary.Equals(new BinaryOp(BinaryOperatorType.Add, new Literal(0), new Literal(2))));
         Assert.IsFalse(binary.Equals(new BinaryOp(BinaryOperatorType.Add, new Literal(1), new Literal(0))));
         Assert.IsFalse(binary.Equals(new Literal(3)));
-        Assert.AreEqual("BinaryOp: 3", binary.ToString());
+        Assert.AreEqual("BinaryOp: (Literal: 1 Add Literal: 2)", binary.ToString());
 
         var unary = new UnaryOp(UnaryOperatorType.Neg, new Literal(3));
         var equalUnary = new UnaryOp(UnaryOperatorType.Neg, new Literal(3));
-        Assert.AreEqual(-3, unary.Value);
-        Assert.AreEqual(-3, unary.Calc());
+        Assert.AreEqual(-3, unary.Evaluate());
         Assert.IsTrue(unary.Equals(equalUnary));
         Assert.AreEqual(unary.GetHashCode(), equalUnary.GetHashCode());
         Assert.IsFalse(unary.Equals(new UnaryOp(UnaryOperatorType.Complement, new Literal(3))));
         Assert.IsFalse(unary.Equals(new UnaryOp(UnaryOperatorType.Neg, new Literal(4))));
         Assert.IsFalse(unary.Equals(new Literal(-3)));
-        Assert.AreEqual("Unary: -3", unary.ToString());
+        Assert.AreEqual("Unary: Neg(Literal: 3)", unary.ToString());
 
         var define = new Defines(new Identifier("COUNT"), binary);
         var equalDefine = new Defines(new Identifier("COUNT"), equalBinary);
@@ -50,10 +48,9 @@ public class CoverageRiskTests
         Assert.IsFalse(define.Equals(new Defines(new Identifier("OTHER"), equalBinary)));
         Assert.IsFalse(define.Equals(new Defines(new Identifier("COUNT"), new Literal(3))));
         Assert.IsFalse(define.Equals(new Struct(new Identifier("COUNT"), [], false)));
-        Assert.AreEqual("Define: [COUNT] = BinaryOp: 3", define.ToString());
+        Assert.AreEqual("Define: [COUNT] = BinaryOp: (Literal: 1 Add Literal: 2)", define.ToString());
 
-        Assert.AreEqual(0, NoneExpr.Instance.Value);
-        Assert.AreEqual(0, NoneExpr.Instance.Calc());
+        Assert.AreEqual(0, NoneExpr.Instance.Evaluate());
         Assert.IsTrue(NoneExpr.Instance.Equals(new NoneExpr()));
         Assert.AreEqual(new NoneExpr().GetHashCode(), NoneExpr.Instance.GetHashCode());
         Assert.AreEqual("NoneExpr(0)", NoneExpr.Instance.ToString());
@@ -63,8 +60,8 @@ public class CoverageRiskTests
     ///     Two method(1,2) expression objects must compare by their target and arguments, not object identity.
     /// </summary>
     /// <remarks>
-    ///     Changing those parts must change equality. Evaluation, Value, and value-based display must still reject
-    ///     calls because storing call syntax does not mean executing arbitrary functions is supported.
+    ///     Changing those parts must change equality. Evaluation must still reject calls because storing call syntax
+    ///     does not mean executing arbitrary functions is supported; display shows the call without evaluating it.
     /// </remarks>
     [TestMethod]
     public void CallExpression_UsesStructuralArgumentsForEqualityAndHashing()
@@ -91,9 +88,8 @@ public class CoverageRiskTests
                     new Identifier("method"),
                     ImmutableArray.Create<Expr>(new Literal(1), new Literal(3)))));
         Assert.IsFalse(call.Equals(new Literal(0)));
-        Assert.Throws<NotSupportedException>(() => call.Calc());
-        Assert.Throws<NotSupportedException>(() => _ = call.Value);
-        Assert.Throws<NotSupportedException>(() => call.ToString());
+        Assert.Throws<NotSupportedException>(() => call.Evaluate());
+        Assert.AreEqual("Call: [method](Literal: 1, Literal: 2)", call.ToString());
     }
 
     /// <summary>

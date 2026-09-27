@@ -74,7 +74,7 @@ public class MemoryCoreCompatibilityTests
     {
         var expression = new ConditionalExpr(new Literal(1), new Literal(7), new Literal(9));
         var same = new ConditionalExpr(new Literal(1), new Literal(7), new Literal(9));
-        Assert.AreEqual(7, expression.Value);
+        Assert.AreEqual(7, expression.Evaluate());
         Assert.IsTrue(expression.Equals(same));
         Assert.AreEqual(expression.GetHashCode(), same.GetHashCode());
         Assert.IsFalse(expression.Equals(new Literal(7)));

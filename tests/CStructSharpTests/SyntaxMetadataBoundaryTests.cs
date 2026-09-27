@@ -107,12 +107,6 @@ public class SyntaxMetadataBoundaryTests
         Assert.IsTrue(inferred.IsPointer);
         Assert.AreEqual(0, overridden.PointerDepth);
         Assert.IsFalse(overridden.IsPointer);
-        var alignments = new Dictionary<string, int> { ["uint8"] = 1, };
-        Assert.AreEqual(8, inferred.GetAlignment(alignments, 8));
-        Assert.AreEqual(1, overridden.GetAlignment(alignments, 8));
-        Assert.IsTrue(inferred.IsKnown(new Dictionary<string, int>()));
-        Assert.IsTrue(overridden.IsKnown(alignments));
-        Assert.IsFalse(overridden.IsKnown(new Dictionary<string, int>()));
     }
 
     /// <summary>Parsed widths distinguish ordinary fields, explicit positive widths and invalid negative expressions.</summary>

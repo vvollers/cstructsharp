@@ -31,6 +31,6 @@ public class QualifiedIdentifierBoundaryTests
     public void QualifiedOperand_DoesNotConsumeTheFollowingOperator()
     {
         var sum = Assert.IsInstanceOfType<BinaryOp>(LayoutParser.ParseExpression("left.right+other"));
-        Assert.AreEqual(7, sum.Calc(new Dictionary<string, Expr> { ["left.right"] = new Literal(3), ["other"] = new Literal(4), }));
+        Assert.AreEqual(7, sum.Evaluate(new Dictionary<string, Expr> { ["left.right"] = new Literal(3), ["other"] = new Literal(4), }));
     }
 }

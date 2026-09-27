@@ -124,9 +124,6 @@ public sealed partial class CStruct
     /// <summary>The immutable compiled layout model (the compilation's), for tests and the WASM static-plan export.</summary>
     internal CompiledLayoutModel CompiledModel => this.compilation.CompiledModel;
 
-    /// <summary>The operation-variable resolver, exposed for tests that exercise supplied-variable resolution directly.</summary>
-    internal LayoutVariableResolver CompiledLayoutVariables => this.compilation.CompiledLayoutVariables;
-
     internal IReadOnlyDictionary<string, CStructElement> CStructElements => this.compilation.CStructElements;
 
     /// <summary>Gets whether composite fields use their portable alignment boundaries.</summary>
@@ -155,9 +152,6 @@ public sealed partial class CStruct
 
     /// <summary>Which compiler family's rule places adjacent bitfields (<see cref="CStructCompilationOptions.BitfieldPacking"/>).</summary>
     internal BitfieldPacking BitfieldPacking => this.compilation.BitfieldPacking;
-
-    /// <summary>Gets primitive-codec and exported-type alignments without exposing anonymous or backing-tag identities.</summary>
-    internal IReadOnlyDictionary<string, byte> FieldAlignments => this.compilation.FieldAlignments;
 
     /// <summary>The primitive vocabulary this layout reads with: the compile-time catalog and its runtime delegates.</summary>
     internal CodecTable Codecs => this.codecs;

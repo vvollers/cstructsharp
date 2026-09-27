@@ -17,17 +17,6 @@ internal class UnaryOp : Expr
 
     public UnaryOperatorType Type { get; }
 
-    public override int Value
-    {
-        get => this.Calc();
-    }
-
-    /// <summary>Calculates the value represented by this expression.</summary>
-    public override int Calc(Dictionary<string, Expr> variables)
-    {
-        return global::CStructSharp.Expressions.ExpressionEvaluator.Default.Evaluate(this, variables);
-    }
-
     /// <summary>Checks whether another value represents the same layout data.</summary>
     public override bool Equals(Expr? other)
     {
@@ -43,6 +32,6 @@ internal class UnaryOp : Expr
     /// <summary>Returns a short readable description for debugging and logs.</summary>
     public override string ToString()
     {
-        return $"Unary: {this.Value}";
+        return $"Unary: {this.Type}({this.Expr})";
     }
 }

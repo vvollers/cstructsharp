@@ -59,7 +59,7 @@ public class CStructOperationContextTests
         context.Variables["count"] = new Literal(3);
         context.QualifiedPrefix = "header.";
         context.PublishQualified("count");
-        Assert.AreEqual(3, context.Variables["header.count"].Value);
+        Assert.AreEqual(3, context.Variables["header.count"].Evaluate());
         context.Variables.Remove("count");
         context.PublishQualified("count");
         Assert.IsFalse(context.Variables.ContainsKey("header.count"));

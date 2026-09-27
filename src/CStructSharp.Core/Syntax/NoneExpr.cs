@@ -9,17 +9,6 @@ internal class NoneExpr : Expr
 
     public static readonly NoneExpr Instance = new();
 
-    public override int Value
-    {
-        get => VALUE;
-    }
-
-    /// <summary>Calculates the value represented by this expression.</summary>
-    public override int Calc(Dictionary<string, Expr> variables)
-    {
-        return global::CStructSharp.Expressions.ExpressionEvaluator.Default.Evaluate(this, variables);
-    }
-
     /// <summary>Checks whether another value represents the same layout data.</summary>
     public override bool Equals(Expr? other)
     {

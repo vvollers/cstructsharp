@@ -6,8 +6,7 @@ using CStructSharp.Generated;
 /// <summary>Stream adapters over the shared fixed-point rule (<see cref="Codec.DecodeFixedPoint"/>, <see cref="Codec.EncodeFixedPoint"/>).</summary>
 internal static class FixedPointCodec
 {
-    public static bool IsType(string name) => name is "fixed16_16" or "fixed16_16<" or "fixed16_16>" or "ufixed16_16" or "ufixed16_16<" or "ufixed16_16>" or "fixed2_30" or "fixed2_30<" or "fixed2_30>" or "ufixed8_8" or "ufixed8_8<" or "ufixed8_8>";
-
+    /// <summary>Reads one fixed-point value of <paramref name="width"/> bits with <paramref name="fraction"/> fraction bits from the stream.</summary>
     public static double Read(Stream stream, bool littleEndian, int width, int fraction, bool signed)
     {
         long raw = width == 16 ? BinaryPrimitiveIO.ReadUInt16(stream, littleEndian)
@@ -16,6 +15,7 @@ internal static class FixedPointCodec
         return Codec.DecodeFixedPoint(raw, fraction);
     }
 
+    /// <summary>Writes one fixed-point value, rejecting a value that is not exactly on the fixed-point grid.</summary>
     public static void Write(Stream stream, object value, bool littleEndian, int width, int fraction, bool signed)
     {
         long raw = Codec.EncodeFixedPoint(value, width, fraction, signed);

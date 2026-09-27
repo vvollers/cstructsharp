@@ -61,12 +61,10 @@ public class RuntimeLookupContractTests
         Assert.IsFalse(wide.Equals(new Literal(-1)));
         StringAssert.Contains(wide.ToString(), "18446744073709551615");
 
-        // Both expression entry points must retain the exact number in the diagnostic.
-        InvalidOperationException direct = Assert.ThrowsExactly<InvalidOperationException>(() => _ = wide.Value);
-        InvalidOperationException evaluated = Assert.ThrowsExactly<InvalidOperationException>(() => wide.Calc(new Dictionary<string, Expr>()));
-        Assert.AreEqual(direct.Message, evaluated.Message);
-        StringAssert.Contains(direct.Message, "18446744073709551615");
-        StringAssert.Contains(direct.Message, "outside the 32-bit range");
+        // An expression that selects the variable fails with the exact number in the diagnostic.
+        InvalidOperationException evaluated = Assert.ThrowsExactly<InvalidOperationException>(() => new Identifier("w").Evaluate(new Dictionary<string, Expr> { ["w"] = wide, }));
+        StringAssert.Contains(evaluated.Message, "18446744073709551615");
+        StringAssert.Contains(evaluated.Message, "outside the 32-bit range");
     }
 
     /// <summary>Reads one byte for delegate-identity checks; this is not a uint16 implementation.</summary>

@@ -193,8 +193,8 @@ public class RobustnessTests
     [TestMethod]
     public void Expressions_RejectUndefinedIdentifiersAndCalls()
     {
-        Assert.Throws<KeyNotFoundException>(() => CStructDefinitionParser.ParseExpression("missing").Calc());
-        Assert.Throws<NotSupportedException>(() => CStructDefinitionParser.ParseExpression("unsupported(1)").Calc());
+        Assert.Throws<KeyNotFoundException>(() => CStructDefinitionParser.ParseExpression("missing").Evaluate());
+        Assert.Throws<NotSupportedException>(() => CStructDefinitionParser.ParseExpression("unsupported(1)").Evaluate());
     }
 
     /// <summary>
@@ -290,7 +290,7 @@ public class RobustnessTests
 
         Assert.AreEqual(3, result.values.Count);
         Assert.AreEqual(1, variables.Count);
-        Assert.AreEqual(42, variables["external"].Calc());
+        Assert.AreEqual(42, variables["external"].Evaluate());
     }
 
     /// <summary>
@@ -322,7 +322,6 @@ public class RobustnessTests
         var cstruct = new CStruct("struct root { byte value; };");
 
         Assert.IsTrue(cstruct.CStructElements is System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string, CStructElement>> elements && elements.IsReadOnly);
-        Assert.IsTrue(cstruct.FieldAlignments is System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string, byte>> alignments && alignments.IsReadOnly);
         Assert.IsTrue(cstruct.Codecs.Catalog.CodecIds is System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string, int>> ids && ids.IsReadOnly);
     }
 

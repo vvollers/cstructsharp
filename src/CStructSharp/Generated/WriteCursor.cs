@@ -547,23 +547,6 @@ public ref struct WriteCursor
     /// <param name="memberType">The field's type spelling, for the diagnostics.</param>
     public void Pad(int count, string? member, string? memberType) => this.Reserve(count, member, memberType).Clear();
 
-    /// <summary>Pads to the next multiple of <paramref name="alignment"/> measured from <paramref name="origin"/>.</summary>
-    /// <param name="alignment">The alignment in bytes.</param>
-    /// <param name="origin">The position alignment is measured from.</param>
-    /// <param name="member">The layout field being aligned, for the diagnostics.</param>
-    /// <param name="memberType">The field's type spelling, for the diagnostics.</param>
-    public void Align(int alignment, long origin, string member, string? memberType)
-    {
-        if (alignment <= 1)
-        {
-            return;
-        }
-
-        long relative = this.position - origin;
-        long padding = (alignment - (relative % alignment)) % alignment;
-        this.Pad((int)padding, member, memberType);
-    }
-
     /// <summary>Enters a nested struct or union, enforcing <c>MaxNestingDepth</c>.</summary>
     /// <param name="member">The composite field being entered, for the diagnostics.</param>
     /// <param name="memberType">The field's type spelling, for the diagnostics.</param>
@@ -629,25 +612,6 @@ public ref struct WriteCursor
     {
         var exception = new CStructWriteLimitException(message);
         this.Attach(exception, member, memberType);
-        return exception;
-    }
-
-    /// <summary>
-    ///     The failure of a value that cannot be encoded as its field: the runtime's text stating what was supplied
-    ///     and what the field accepts (<c>Value 300 does not fit: uint8 accepts 0 to 255.</c>).
-    /// </summary>
-    /// <param name="value">The value the caller supplied.</param>
-    /// <param name="typeSpelling">The field's type spelling.</param>
-    /// <param name="acceptedRange">The integer range a fixed-width integer accepts (<c>0 to 255</c>), or <see langword="null"/>.</param>
-    /// <param name="member">The layout field, for the diagnostics.</param>
-    /// <param name="cause">The conversion exception, when one was raised.</param>
-    /// <returns>The exception to throw.</returns>
-    public readonly CStructWriteException FailUnwritable(object? value, string typeSpelling, string? acceptedRange, string member, Exception? cause = null)
-    {
-        ArgumentNullException.ThrowIfNull(typeSpelling);
-        string message = WriteFailures.UnwritableValue(value, typeSpelling, acceptedRange);
-        var exception = cause is null ? new CStructWriteException(message) : new CStructWriteException(message, cause);
-        this.Attach(exception, member, typeSpelling);
         return exception;
     }
 

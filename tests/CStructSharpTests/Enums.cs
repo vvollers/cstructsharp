@@ -25,11 +25,11 @@ public class Enums
         Assert.AreSame(Identifier.UINT32, enm.Type);
 
         Assert.AreEqual("Red", enm.Values[0].Name.Name);
-        Assert.AreEqual(5, enm.Values[0].Value.Calc());
+        Assert.AreEqual(5, enm.Values[0].Value.Evaluate());
         Assert.AreEqual("Green", enm.Values[1].Name.Name);
-        Assert.AreEqual(6, enm.Values[1].Value.Calc());
+        Assert.AreEqual(6, enm.Values[1].Value.Evaluate());
         Assert.AreEqual("Blue", enm.Values[2].Name.Name);
-        Assert.AreEqual(7, enm.Values[2].Value.Calc());
+        Assert.AreEqual(7, enm.Values[2].Value.Evaluate());
     }
 
     /// <summary>
@@ -50,11 +50,11 @@ public class Enums
         Assert.HasCount(3, enm.Values);
         Assert.AreEqual("uint8", enm.Type.Name);
         Assert.AreEqual("Dark", enm.Values[0].Name.Name);
-        Assert.AreEqual(0, enm.Values[0].Value.Calc());
+        Assert.AreEqual(0, enm.Values[0].Value.Evaluate());
         Assert.AreEqual("Grey", enm.Values[1].Name.Name);
-        Assert.AreEqual(0xFFF, enm.Values[1].Value.Calc());
+        Assert.AreEqual(0xFFF, enm.Values[1].Value.Evaluate());
         Assert.AreEqual("Light", enm.Values[2].Name.Name);
-        Assert.AreEqual(0b1001_0110 + 5, enm.Values[2].Value.Calc());
+        Assert.AreEqual(0b1001_0110 + 5, enm.Values[2].Value.Evaluate());
     }
 
     /// <summary>
@@ -69,15 +69,15 @@ public class Enums
     public void TestEnumValue()
     {
         EnumValue? enumValue1 = CStructDefinitionParser.ParseEnumValue("Red=2");
-        Assert.AreEqual(2, enumValue1.Value.Calc());
+        Assert.AreEqual(2, enumValue1.Value.Evaluate());
         Assert.AreEqual("Red", enumValue1.Name.Name);
 
         EnumValue? enumValue2 = CStructDefinitionParser.ParseEnumValue("  Blue =4 ");
-        Assert.AreEqual(4, enumValue2.Value.Calc());
+        Assert.AreEqual(4, enumValue2.Value.Evaluate());
         Assert.AreEqual("Blue", enumValue2.Name.Name);
 
         EnumValue? enumValue3 = CStructDefinitionParser.ParseEnumValue("     Green=   0xFF     ");
-        Assert.AreEqual(0xFF, enumValue3.Value.Calc());
+        Assert.AreEqual(0xFF, enumValue3.Value.Evaluate());
         Assert.AreEqual("Green", enumValue3.Name.Name);
 
         Assert.AreEqual("Yellow", CStructDefinitionParser.ParseEnumValue("Yellow").Name.Name);
@@ -96,9 +96,9 @@ public class Enums
     {
         List<EnumValue> enums = CStructDefinitionParser.ParseEnumValues(" Red = 5, Green, Blue=9 ").ToList();
         Assert.HasCount(3, enums);
-        Assert.AreEqual(5, enums[0].Value.Calc());
+        Assert.AreEqual(5, enums[0].Value.Evaluate());
         Assert.AreSame(NoneExpr.Instance, enums[1].Value);
-        Assert.AreEqual(9, enums[2].Value.Calc());
+        Assert.AreEqual(9, enums[2].Value.Evaluate());
         Assert.AreEqual("Red", enums[0].Name.Name);
         Assert.AreEqual("Green", enums[1].Name.Name);
         Assert.AreEqual("Blue", enums[2].Name.Name);
@@ -118,9 +118,9 @@ public class Enums
                                                         ToList();
 
         Assert.HasCount(3, enums);
-        Assert.AreEqual(5, enums[0].Value.Calc());
+        Assert.AreEqual(5, enums[0].Value.Evaluate());
         Assert.AreSame(NoneExpr.Instance, enums[1].Value);
-        Assert.AreEqual(0, enums[2].Value.Calc());
+        Assert.AreEqual(0, enums[2].Value.Evaluate());
         Assert.AreEqual("Silver", enums[0].Name.Name);
         Assert.AreEqual("Gold", enums[1].Name.Name);
         Assert.AreEqual("Diamond", enums[2].Name.Name);
@@ -129,9 +129,9 @@ public class Enums
                                                          ToList();
 
         Assert.HasCount(3, enums2);
-        Assert.AreEqual(5, enums2[0].Value.Calc());
+        Assert.AreEqual(5, enums2[0].Value.Evaluate());
         Assert.AreSame(NoneExpr.Instance, enums2[1].Value);
-        Assert.AreEqual(9, enums2[2].Value.Calc());
+        Assert.AreEqual(9, enums2[2].Value.Evaluate());
         Assert.AreEqual("SilverA", enums2[0].Name.Name);
         Assert.AreEqual("GoldB", enums2[1].Name.Name);
         Assert.AreEqual("DiamondC", enums2[2].Name.Name);
@@ -140,8 +140,8 @@ public class Enums
                                                          ToList();
 
         Assert.HasCount(3, enums3);
-        Assert.AreEqual(5, enums3[0].Value.Calc());
-        Assert.AreEqual(0xFF, enums3[1].Value.Calc());
+        Assert.AreEqual(5, enums3[0].Value.Evaluate());
+        Assert.AreEqual(0xFF, enums3[1].Value.Evaluate());
         Assert.AreSame(NoneExpr.Instance, enums3[2].Value);
         Assert.AreEqual("SilverD", enums3[0].Name.Name);
         Assert.AreEqual("GoldE", enums3[1].Name.Name);

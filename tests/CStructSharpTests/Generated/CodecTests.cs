@@ -104,7 +104,7 @@ public class CodecTests
         Assert.Throws<InvalidOperationException>(() => Codec.WriteUnsigned(new byte[0], 1, true));
     }
 
-    /// <summary>The span LEB128 decoder agrees with the runtime's stream decoder on values, widths, and failures.</summary>
+    /// <summary>The generated cursor's LEB128 decoder agrees with the runtime's stream decoder on values, widths, and failures.</summary>
     [TestMethod]
     public void Leb128_SpanAndStreamDecodersAgree()
     {
@@ -119,7 +119,7 @@ public class CodecTests
             int written = signed
                               ? Codec.WriteSLeb128(buffer, value)
                               : Codec.WriteULeb128(buffer, unchecked((ulong)value));
-            ulong decoded = Codec.ReadLeb128(buffer[..written], width, signed, out int consumed);
+            ulong decoded = TakeLeb128(buffer[..written].ToArray(), width, signed, out int consumed);
             Assert.AreEqual(written, consumed);
             Assert.AreEqual(unchecked((ulong)value), decoded, $"{width}/{signed}/{value}");
             using var stream = new MemoryStream(buffer[..written].ToArray());
@@ -129,16 +129,25 @@ public class CodecTests
 
         // The width check and the terminator rule are the same rule on both paths.
         byte[] tooWide = [0xFF, 0xFF, 0xFF, 0xFF, 0x1F];
-        CStructReadException spanError = Assert.Throws<CStructReadException>(() => Codec.ReadLeb128(tooWide, 32, false, out _));
+        CStructReadException spanError = Assert.Throws<CStructReadException>(() => TakeLeb128(tooWide, 32, false, out _));
         CStructReadException streamError = Assert.Throws<CStructReadException>(() => Leb128Codec.Read(new MemoryStream(tooWide), 32, false));
-        Assert.AreEqual(streamError.Message, spanError.Message);
+        StringAssert.Contains(spanError.Message, streamError.Message.TrimEnd('.'));
         StringAssert.Contains(spanError.Message, "exceeds its declared width");
 
         byte[] unterminated = [0x80, 0x80];
-        CStructReadException shortSpan = Assert.Throws<CStructReadException>(() => Codec.ReadLeb128(unterminated, 32, false, out _));
+        CStructReadException shortSpan = Assert.Throws<CStructReadException>(() => TakeLeb128(unterminated, 32, false, out _));
         CStructReadException shortStream = Assert.Throws<CStructReadException>(() => Leb128Codec.Read(new MemoryStream(unterminated), 32, false));
-        Assert.AreEqual(shortStream.Message, shortSpan.Message);
-        Assert.AreEqual("Not enough bytes: needed 1, available 0.", shortSpan.Message);
+        Assert.AreEqual("Not enough bytes: needed 1, available 0.", shortStream.Message);
+        StringAssert.Contains(shortSpan.Message, "Not enough bytes: needed 1, available 0");
+    }
+
+    /// <summary>Decodes one LEB128 integer from the start of <paramref name="bytes"/> through a generated read cursor.</summary>
+    private static ulong TakeLeb128(byte[] bytes, int width, bool signed, out int consumed)
+    {
+        var cursor = new ReadCursor(bytes);
+        ulong value = cursor.TakeLeb128(width, signed, "value", null);
+        consumed = cursor.Position;
+        return value;
     }
 
     /// <summary>Fixed-point decoding and encoding follow the runtime's grid: exact values pass, unrepresentable ones are rejected.</summary>

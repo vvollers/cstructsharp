@@ -22,7 +22,7 @@ public class Defines
         Assert.AreEqual("SUPERCOMPLEX_VAR6", test1.Name.Name);
         Dictionary<string, Expr> variables = new();
         variables["myvariable"] = new Literal(5);
-        Assert.AreEqual(22, test1.Value.Calc(variables));
+        Assert.AreEqual(22, test1.Value.Evaluate(variables));
     }
 
     /// <summary>
@@ -36,6 +36,6 @@ public class Defines
     {
         var test1 = (Syntax.Defines)CStructDefinitionParser.ParseElement("#define ABC 123");
         Assert.AreEqual("ABC", test1.Name.Name);
-        Assert.AreEqual(123, test1.Value.Calc());
+        Assert.AreEqual(123, test1.Value.Evaluate());
     }
 }

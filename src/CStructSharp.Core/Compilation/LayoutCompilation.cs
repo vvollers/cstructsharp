@@ -254,8 +254,6 @@ internal sealed partial class LayoutCompilation
 
     public bool HighBitFirst => this.highBitFirst;
 
-    public IReadOnlyDictionary<string, byte> FieldAlignments => this.fieldAlignments;
-
     public PrimitiveCatalog Catalog => this.catalog;
 
     public IReadOnlyDictionary<string, CompiledTypeReference> CustomSymbols => this.customSymbols;

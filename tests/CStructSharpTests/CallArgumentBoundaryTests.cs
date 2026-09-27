@@ -15,7 +15,7 @@ public class CallArgumentBoundaryTests
         var call = Assert.IsInstanceOfType<Call>(LayoutParser.ParseExpression("unsupported(1, 2 + 3)"));
         Assert.HasCount(2, call.Arguments);
         Assert.IsInstanceOfType<BinaryOp>(call.Arguments[1]);
-        Assert.AreEqual(5, call.Arguments[1].Calc());
+        Assert.AreEqual(5, call.Arguments[1].Evaluate());
     }
 
     /// <summary>The field-name argument of offsetof cannot contain an arithmetic expression.</summary>

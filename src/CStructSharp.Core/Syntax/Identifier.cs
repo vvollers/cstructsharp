@@ -41,17 +41,6 @@ internal class Identifier : Expr
 
     public int PointerDepth { get; }
 
-    public override int Value
-    {
-        get => this.Calc();
-    }
-
-    /// <summary>Looks up this name in the supplied expression values and calculates the referenced expression.</summary>
-    public override int Calc(Dictionary<string, Expr> variables)
-    {
-        return global::CStructSharp.Expressions.ExpressionEvaluator.Default.Evaluate(this, variables);
-    }
-
     /// <summary>Checks whether another value represents the same layout data.</summary>
     public override bool Equals(Expr? other)
     {

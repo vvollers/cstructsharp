@@ -1,5 +1,6 @@
 namespace CStructSharpTests;
 
+using CStructSharp;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
 using CStructSharp.Parsing;
@@ -60,7 +61,7 @@ public class ConditionalExpressionTests
                  })
         {
             Expr expression = CStructDefinitionParser.ParseExpression(source);
-            Assert.AreEqual(expected, expression.Calc(), source);
+            Assert.AreEqual(expected, expression.Evaluate(), source);
             Assert.AreEqual(new System.Numerics.BigInteger(expected), ExpressionEvaluator.Default.EvaluateExact(expression, null, 64), source);
         }
     }
@@ -69,8 +70,8 @@ public class ConditionalExpressionTests
     [TestMethod]
     public void ActiveOperands_PreserveFailures()
     {
-        Assert.Throws<KeyNotFoundException>(() => CStructDefinitionParser.ParseExpression("1 && missing").Calc());
-        Assert.Throws<DivideByZeroException>(() => CStructDefinitionParser.ParseExpression("0 || (1 / 0)").Calc());
+        Assert.Throws<KeyNotFoundException>(() => CStructDefinitionParser.ParseExpression("1 && missing").Evaluate());
+        Assert.Throws<DivideByZeroException>(() => CStructDefinitionParser.ParseExpression("0 || (1 / 0)").Evaluate());
         var variables = new Dictionary<string, Expr> { ["cycle"] = new Identifier("cycle") };
         Assert.AreEqual(1, ExpressionEvaluator.Default.Evaluate(CStructDefinitionParser.ParseExpression("1 || cycle"), variables));
         Assert.Throws<CStructLayoutException>(() => ExpressionEvaluator.Default.Evaluate(CStructDefinitionParser.ParseExpression("0 || cycle"), variables));

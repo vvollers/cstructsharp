@@ -20,9 +20,6 @@ internal sealed partial class LayoutCompilation
     /// <summary>Gets the immutable internal model for invariant tests and later compiled-executor migrations.</summary>
     internal CompiledLayoutModel CompiledModel => this.compiledLayout;
 
-    /// <summary>The operation-variable resolver, exposed for tests that exercise supplied-variable resolution directly.</summary>
-    internal LayoutVariableResolver CompiledLayoutVariables => this.layoutVariableResolver;
-
     /// <summary>The codec id a synthetic root of <paramref name="symbol"/> reads with (a primitive's own, an enum's underlying, else none).</summary>
     internal static int CodecIdOf(CompiledTypeSymbol symbol)
     {
@@ -393,8 +390,6 @@ internal sealed partial class LayoutCompilation
                     enm.Key.IsFlag));
         }
 
-        var compiledFields = ImmutableDictionary.CreateBuilder<Field, CompiledField>(
-            ReferenceEqualityComparer.Instance);
         var compilingComposites = new HashSet<Struct>(ReferenceEqualityComparer.Instance);
         foreach (Struct declaration in compositeSymbols.Keys)
         {
@@ -403,7 +398,6 @@ internal sealed partial class LayoutCompilation
                 compositeSymbols,
                 namedTypes,
                 resolvingAliases,
-                compiledFields,
                 compilingComposites,
                 sizeQueries);
         }
@@ -489,7 +483,6 @@ internal sealed partial class LayoutCompilation
             this.cStructElements.ToImmutableArray(),
             namedTypes.ToImmutable(),
             compositeSymbols.ToImmutableDictionary(ReferenceEqualityComparer.Instance),
-            compiledFields.ToImmutable(),
             rootFields.ToImmutable());
     }
 
@@ -641,7 +634,6 @@ internal sealed partial class LayoutCompilation
         IReadOnlyDictionary<Struct, CompiledTypeSymbol> compositeSymbols,
         ImmutableDictionary<string, CompiledTypeReference>.Builder namedTypes,
         HashSet<string> resolvingAliases,
-        ImmutableDictionary<Field, CompiledField>.Builder compiledFields,
         HashSet<Struct> compiling,
         CompiledSizeQueries sizeQueries)
     {
@@ -674,7 +666,7 @@ internal sealed partial class LayoutCompilation
 
                     if (target.Symbol.Declaration is Struct sized)
                     {
-                        _ = this.CompileComposite(sized, compositeSymbols, namedTypes, resolvingAliases, compiledFields, compiling, sizeQueries);
+                        _ = this.CompileComposite(sized, compositeSymbols, namedTypes, resolvingAliases, compiling, sizeQueries);
                         return new Literal(
                             sizeQueries.GetCompiledStructSizeInBytes(sizeQueries.GetCompiledComposite(sized), this.staticLayoutVariables, true));
                     }
@@ -689,7 +681,7 @@ internal sealed partial class LayoutCompilation
                     throw new CStructLayoutException($"offsetof needs a struct or union type: {fieldName}");
                 }
 
-                CompiledCompositeType compiled = this.CompileComposite(composite, compositeSymbols, namedTypes, resolvingAliases, compiledFields, compiling, sizeQueries);
+                CompiledCompositeType compiled = this.CompileComposite(composite, compositeSymbols, namedTypes, resolvingAliases, compiling, sizeQueries);
                 string memberName = ((Identifier)call.Arguments[1]).Name;
                 CompiledField? member = compiled.Fields.FirstOrDefault(item => item.Declaration.Name.Name == memberName);
                 if (member is null)
@@ -703,17 +695,17 @@ internal sealed partial class LayoutCompilation
             }
 
         case UnaryOp unary:
-            return new UnaryOp(unary.Type, this.FoldCalls(unary.Expr, fieldName, compositeSymbols, namedTypes, resolvingAliases, compiledFields, compiling, sizeQueries));
+            return new UnaryOp(unary.Type, this.FoldCalls(unary.Expr, fieldName, compositeSymbols, namedTypes, resolvingAliases, compiling, sizeQueries));
         case BinaryOp binary:
             return new BinaryOp(
                 binary.Type,
-                this.FoldCalls(binary.Left, fieldName, compositeSymbols, namedTypes, resolvingAliases, compiledFields, compiling, sizeQueries),
-                this.FoldCalls(binary.Right, fieldName, compositeSymbols, namedTypes, resolvingAliases, compiledFields, compiling, sizeQueries));
+                this.FoldCalls(binary.Left, fieldName, compositeSymbols, namedTypes, resolvingAliases, compiling, sizeQueries),
+                this.FoldCalls(binary.Right, fieldName, compositeSymbols, namedTypes, resolvingAliases, compiling, sizeQueries));
         case ConditionalExpr conditional:
             return new ConditionalExpr(
-                this.FoldCalls(conditional.Condition, fieldName, compositeSymbols, namedTypes, resolvingAliases, compiledFields, compiling, sizeQueries),
-                this.FoldCalls(conditional.WhenTrue, fieldName, compositeSymbols, namedTypes, resolvingAliases, compiledFields, compiling, sizeQueries),
-                this.FoldCalls(conditional.WhenFalse, fieldName, compositeSymbols, namedTypes, resolvingAliases, compiledFields, compiling, sizeQueries));
+                this.FoldCalls(conditional.Condition, fieldName, compositeSymbols, namedTypes, resolvingAliases, compiling, sizeQueries),
+                this.FoldCalls(conditional.WhenTrue, fieldName, compositeSymbols, namedTypes, resolvingAliases, compiling, sizeQueries),
+                this.FoldCalls(conditional.WhenFalse, fieldName, compositeSymbols, namedTypes, resolvingAliases, compiling, sizeQueries));
         default:
             return expression;
         }
@@ -725,7 +717,6 @@ internal sealed partial class LayoutCompilation
         IReadOnlyDictionary<Struct, CompiledTypeSymbol> compositeSymbols,
         ImmutableDictionary<string, CompiledTypeReference>.Builder namedTypes,
         HashSet<string> resolvingAliases,
-        ImmutableDictionary<Field, CompiledField>.Builder compiledFields,
         HashSet<Struct> compiling,
         CompiledSizeQueries sizeQueries)
     {
@@ -801,7 +792,6 @@ internal sealed partial class LayoutCompilation
                         compositeSymbols,
                         namedTypes,
                         resolvingAliases,
-                        compiledFields,
                         compiling,
                         sizeQueries);
                 }
@@ -815,7 +805,7 @@ internal sealed partial class LayoutCompilation
                     {
                         folded[index] = ReferenceEquals(arrayCount[index], Field.UnknownArraysize)
                                             ? arrayCount[index]
-                                            : this.FoldCalls(arrayCount[index], field.Name.Name, compositeSymbols, namedTypes, resolvingAliases, compiledFields, compiling, sizeQueries);
+                                            : this.FoldCalls(arrayCount[index], field.Name.Name, compositeSymbols, namedTypes, resolvingAliases, compiling, sizeQueries);
                         if (!ReferenceEquals(folded[index], Field.UnknownArraysize))
                         {
                             this.expressionEvaluator.Compile(folded[index]);
@@ -956,11 +946,6 @@ internal sealed partial class LayoutCompilation
             symbol.CompleteLayout(compositeAlignment, fixedSize);
             var definition = new CompiledCompositeType(symbol, placedFields);
             symbol.Bind(definition);
-            foreach (CompiledField field in placedFields)
-            {
-                compiledFields.Add(field.Declaration, field);
-            }
-
             return definition;
         }
         finally

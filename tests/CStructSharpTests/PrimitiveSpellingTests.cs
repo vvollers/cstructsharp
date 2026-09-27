@@ -18,7 +18,7 @@ public class PrimitiveSpellingTests
     {
         foreach ((string alias, string canonical) in PrimitiveSpellings.Aliases)
         {
-            if (PrimitiveCodecs.IsVariableLengthType(canonical) || Leb128Codec.IsType(canonical) || canonical == "void")
+            if (PrimitiveCodecs.IsVariableLengthType(canonical) || canonical.Contains("leb128", StringComparison.Ordinal) || canonical == "void")
             {
                 continue;
             }

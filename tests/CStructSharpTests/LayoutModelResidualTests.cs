@@ -68,7 +68,7 @@ public class LayoutModelResidualTests
     public void RuntimeDefine_CapturesItsUnderlyingField()
     {
         var layout = new CStruct("#define WIDTH count\nstruct root { uint8 count; uint8 values[WIDTH]; };");
-        Assert.IsTrue(layout.CompiledModel.Fields.Values.Single(field => field.Declaration.Name.Name == "count").CapturesLayoutVariable);
+        Assert.IsTrue(layout.CompiledModel.AllFields().Single(field => field.Declaration.Name.Name == "count").CapturesLayoutVariable);
         dynamic value = layout.Parse(new byte[] { 2, 17, 29, }, "root");
         Assert.AreEqual(2, ((IList<object?>)value.values).Count);
     }
@@ -83,7 +83,7 @@ public class LayoutModelResidualTests
             Assert.IsTrue(root.CapturesLayoutVariable, root.Declaration.Name.Name);
         }
 
-        Assert.IsTrue(layout.CompiledModel.Fields.Values.Single(field => field.Declaration.Name.Name == "unused").CapturesLayoutVariable);
+        Assert.IsTrue(layout.CompiledModel.AllFields().Single(field => field.Declaration.Name.Name == "unused").CapturesLayoutVariable);
     }
 
     /// <summary>Union tail alignment rounds a three-byte largest member only in aligned placement.</summary>

@@ -81,6 +81,6 @@ public class LayoutCaptureBoundaryTests
     private static CompiledField Field(CStruct layout, string name)
     {
         // Each fixture deliberately uses unique member names so this lookup cannot select an unrelated field.
-        return layout.CompiledModel.Fields.Values.Single(field => field.Declaration.Name.Name == name);
+        return layout.CompiledModel.AllFields().Single(field => field.Declaration.Name.Name == name);
     }
 }

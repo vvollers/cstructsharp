@@ -41,12 +41,12 @@ public class Literals
     [TestMethod]
     public void TestBinaryLiteral()
     {
-        Assert.AreEqual(0b1, CStructDefinitionParser.ParseLiteral("0b1", 2).Value);
-        Assert.AreEqual(-0b1000, CStructDefinitionParser.ParseLiteral("-0b1000", 2).Value);
-        Assert.AreEqual(0b1000_1000, CStructDefinitionParser.ParseLiteral("0b1000_1000", 2).Value);
-        Assert.AreEqual(-0b1001_0110, CStructDefinitionParser.ParseLiteral("-0b1001_0110", 2).Value);
-        Assert.AreEqual(0b001001, CStructDefinitionParser.ParseLiteral("0b001001;92", 2).Value);
-        Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLiteral("0b23456F", 2).Value);
+        Assert.AreEqual(0b1, CStructDefinitionParser.ParseLiteral("0b1", 2).Evaluate());
+        Assert.AreEqual(-0b1000, CStructDefinitionParser.ParseLiteral("-0b1000", 2).Evaluate());
+        Assert.AreEqual(0b1000_1000, CStructDefinitionParser.ParseLiteral("0b1000_1000", 2).Evaluate());
+        Assert.AreEqual(-0b1001_0110, CStructDefinitionParser.ParseLiteral("-0b1001_0110", 2).Evaluate());
+        Assert.AreEqual(0b001001, CStructDefinitionParser.ParseLiteral("0b001001;92", 2).Evaluate());
+        Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLiteral("0b23456F", 2).Evaluate());
     }
 
     /// <summary>
@@ -99,12 +99,12 @@ public class Literals
     [TestMethod]
     public void TestDecimalLiteral()
     {
-        Assert.AreEqual(12345, CStructDefinitionParser.ParseLiteral("12345", 10).Value);
-        Assert.AreEqual(-12345, CStructDefinitionParser.ParseLiteral("-12345", 10).Value);
-        Assert.AreEqual(123456, CStructDefinitionParser.ParseLiteral("123_456", 10).Value);
-        Assert.AreEqual(-123456, CStructDefinitionParser.ParseLiteral("-123_456", 10).Value);
-        Assert.AreEqual(1234, CStructDefinitionParser.ParseLiteral("1234;92", 10).Value);
-        Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLiteral("FFFFFF", 10).Value);
+        Assert.AreEqual(12345, CStructDefinitionParser.ParseLiteral("12345", 10).Evaluate());
+        Assert.AreEqual(-12345, CStructDefinitionParser.ParseLiteral("-12345", 10).Evaluate());
+        Assert.AreEqual(123456, CStructDefinitionParser.ParseLiteral("123_456", 10).Evaluate());
+        Assert.AreEqual(-123456, CStructDefinitionParser.ParseLiteral("-123_456", 10).Evaluate());
+        Assert.AreEqual(1234, CStructDefinitionParser.ParseLiteral("1234;92", 10).Evaluate());
+        Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLiteral("FFFFFF", 10).Evaluate());
     }
 
     /// <summary>
@@ -133,12 +133,12 @@ public class Literals
     [TestMethod]
     public void TestHexLiteral()
     {
-        Assert.AreEqual(0x12345, CStructDefinitionParser.ParseLiteral("0x12345", 16).Value);
-        Assert.AreEqual(-0x12345, CStructDefinitionParser.ParseLiteral("-0x12345", 16).Value);
-        Assert.AreEqual(0x123456, CStructDefinitionParser.ParseLiteral("0x123_456", 16).Value);
-        Assert.AreEqual(-0x123456, CStructDefinitionParser.ParseLiteral("-0x123_456", 16).Value);
-        Assert.AreEqual(0x1234, CStructDefinitionParser.ParseLiteral("0x1234;92", 16).Value);
-        Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLiteral("0xQQQQYYY", 16).Value);
+        Assert.AreEqual(0x12345, CStructDefinitionParser.ParseLiteral("0x12345", 16).Evaluate());
+        Assert.AreEqual(-0x12345, CStructDefinitionParser.ParseLiteral("-0x12345", 16).Evaluate());
+        Assert.AreEqual(0x123456, CStructDefinitionParser.ParseLiteral("0x123_456", 16).Evaluate());
+        Assert.AreEqual(-0x123456, CStructDefinitionParser.ParseLiteral("-0x123_456", 16).Evaluate());
+        Assert.AreEqual(0x1234, CStructDefinitionParser.ParseLiteral("0x1234;92", 16).Evaluate());
+        Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLiteral("0xQQQQYYY", 16).Evaluate());
     }
 
     /// <summary>
@@ -167,31 +167,31 @@ public class Literals
     [TestMethod]
     public void TestLiteral()
     {
-        Assert.AreEqual(0b1, CStructDefinitionParser.ParseLiteral("0b1").Value);
-        Assert.AreEqual(Convert.ToInt32("673747", 8), CStructDefinitionParser.ParseLiteral("0o673747").Value);
-        Assert.AreEqual(0x12345, CStructDefinitionParser.ParseLiteral("0x12345").Value);
-        Assert.AreEqual(12345, CStructDefinitionParser.ParseLiteral("12345").Value);
+        Assert.AreEqual(0b1, CStructDefinitionParser.ParseLiteral("0b1").Evaluate());
+        Assert.AreEqual(Convert.ToInt32("673747", 8), CStructDefinitionParser.ParseLiteral("0o673747").Evaluate());
+        Assert.AreEqual(0x12345, CStructDefinitionParser.ParseLiteral("0x12345").Evaluate());
+        Assert.AreEqual(12345, CStructDefinitionParser.ParseLiteral("12345").Evaluate());
 
-        Assert.AreEqual(0b1, CStructDefinitionParser.ParseLiteral("  0b1").Value);
-        Assert.AreEqual(Convert.ToInt32("673747", 8), CStructDefinitionParser.ParseLiteral("  0o673747").Value);
-        Assert.AreEqual(0x12345, CStructDefinitionParser.ParseLiteral("  0x12345").Value);
-        Assert.AreEqual(12345, CStructDefinitionParser.ParseLiteral("  12345").Value);
+        Assert.AreEqual(0b1, CStructDefinitionParser.ParseLiteral("  0b1").Evaluate());
+        Assert.AreEqual(Convert.ToInt32("673747", 8), CStructDefinitionParser.ParseLiteral("  0o673747").Evaluate());
+        Assert.AreEqual(0x12345, CStructDefinitionParser.ParseLiteral("  0x12345").Evaluate());
+        Assert.AreEqual(12345, CStructDefinitionParser.ParseLiteral("  12345").Evaluate());
 
-        Assert.AreEqual(0b1, CStructDefinitionParser.ParseLiteral("0b1  575").Value);
+        Assert.AreEqual(0b1, CStructDefinitionParser.ParseLiteral("0b1  575").Evaluate());
         Assert.AreEqual(
                         Convert.ToInt32("673747", 8),
-                        CStructDefinitionParser.ParseLiteral("0o673747  575").Value);
-        Assert.AreEqual(0x12345, CStructDefinitionParser.ParseLiteral("0x12345  575").Value);
-        Assert.AreEqual(12345, CStructDefinitionParser.ParseLiteral("12345  575").Value);
+                        CStructDefinitionParser.ParseLiteral("0o673747  575").Evaluate());
+        Assert.AreEqual(0x12345, CStructDefinitionParser.ParseLiteral("0x12345  575").Evaluate());
+        Assert.AreEqual(12345, CStructDefinitionParser.ParseLiteral("12345  575").Evaluate());
 
-        Assert.AreEqual(0b1, CStructDefinitionParser.ParseLiteral("  0b1  575").Value);
+        Assert.AreEqual(0b1, CStructDefinitionParser.ParseLiteral("  0b1  575").Evaluate());
         Assert.AreEqual(
                         Convert.ToInt32("673747", 8),
-                        CStructDefinitionParser.ParseLiteral("  0o673747  575").Value);
-        Assert.AreEqual(0x12345, CStructDefinitionParser.ParseLiteral("  0x12345  575").Value);
-        Assert.AreEqual(12345, CStructDefinitionParser.ParseLiteral("  12345  575").Value);
+                        CStructDefinitionParser.ParseLiteral("  0o673747  575").Evaluate());
+        Assert.AreEqual(0x12345, CStructDefinitionParser.ParseLiteral("  0x12345  575").Evaluate());
+        Assert.AreEqual(12345, CStructDefinitionParser.ParseLiteral("  12345  575").Evaluate());
 
-        Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLiteral("%tBEQOFKF").Value);
+        Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLiteral("%tBEQOFKF").Evaluate());
     }
 
     /// <summary>
@@ -206,20 +206,20 @@ public class Literals
     {
         Assert.AreEqual(
                         Convert.ToInt32("673747", 8),
-                        CStructDefinitionParser.ParseLiteral("0o673747", 8).Value);
+                        CStructDefinitionParser.ParseLiteral("0o673747", 8).Evaluate());
         Assert.AreEqual(
                         -Convert.ToInt32("673747", 8),
-                        CStructDefinitionParser.ParseLiteral("-0o673747", 8).Value);
+                        CStructDefinitionParser.ParseLiteral("-0o673747", 8).Evaluate());
         Assert.AreEqual(
                         Convert.ToInt32("673747", 8),
-                        CStructDefinitionParser.ParseLiteral("0o673_747", 8).Value);
+                        CStructDefinitionParser.ParseLiteral("0o673_747", 8).Evaluate());
         Assert.AreEqual(
                         -Convert.ToInt32("673747", 8),
-                        CStructDefinitionParser.ParseLiteral("-0o673_747", 8).Value);
+                        CStructDefinitionParser.ParseLiteral("-0o673_747", 8).Evaluate());
         Assert.AreEqual(
                         Convert.ToInt32("673747", 8),
-                        CStructDefinitionParser.ParseLiteral("0o673_747;92", 8).Value);
-        Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLiteral("0o98F98", 8).Value);
+                        CStructDefinitionParser.ParseLiteral("0o673_747;92", 8).Evaluate());
+        Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLiteral("0o98F98", 8).Evaluate());
     }
 
     /// <summary>
@@ -249,22 +249,22 @@ public class Literals
     [TestMethod]
     public void TestIntegerLiteralSuffix()
     {
-        Assert.AreEqual(1, CStructDefinitionParser.ParseLiteral("1U", 10).Value);
-        Assert.AreEqual(1, CStructDefinitionParser.ParseLiteral("1u", 10).Value);
-        Assert.AreEqual(100, CStructDefinitionParser.ParseLiteral("100UL", 10).Value);
-        Assert.AreEqual(100, CStructDefinitionParser.ParseLiteral("100LU", 10).Value);
-        Assert.AreEqual(100, CStructDefinitionParser.ParseLiteral("100LL", 10).Value);
-        Assert.AreEqual(100, CStructDefinitionParser.ParseLiteral("100ULL", 10).Value);
-        Assert.AreEqual(-5, CStructDefinitionParser.ParseLiteral("-5U", 10).Value);
-        Assert.AreEqual(1, CStructDefinitionParser.ParseLiteral("1U;92", 10).Value);
+        Assert.AreEqual(1, CStructDefinitionParser.ParseLiteral("1U", 10).Evaluate());
+        Assert.AreEqual(1, CStructDefinitionParser.ParseLiteral("1u", 10).Evaluate());
+        Assert.AreEqual(100, CStructDefinitionParser.ParseLiteral("100UL", 10).Evaluate());
+        Assert.AreEqual(100, CStructDefinitionParser.ParseLiteral("100LU", 10).Evaluate());
+        Assert.AreEqual(100, CStructDefinitionParser.ParseLiteral("100LL", 10).Evaluate());
+        Assert.AreEqual(100, CStructDefinitionParser.ParseLiteral("100ULL", 10).Evaluate());
+        Assert.AreEqual(-5, CStructDefinitionParser.ParseLiteral("-5U", 10).Evaluate());
+        Assert.AreEqual(1, CStructDefinitionParser.ParseLiteral("1U;92", 10).Evaluate());
 
-        Assert.AreEqual(0x1, CStructDefinitionParser.ParseLiteral("0x1UL", 16).Value);
-        Assert.AreEqual(0b1, CStructDefinitionParser.ParseLiteral("0b1U", 2).Value);
+        Assert.AreEqual(0x1, CStructDefinitionParser.ParseLiteral("0x1UL", 16).Evaluate());
+        Assert.AreEqual(0b1, CStructDefinitionParser.ParseLiteral("0b1U", 2).Evaluate());
         Assert.AreEqual(
                         Convert.ToInt32("17", 8),
-                        CStructDefinitionParser.ParseLiteral("0o17U", 8).Value);
+                        CStructDefinitionParser.ParseLiteral("0o17U", 8).Evaluate());
 
-        Assert.AreEqual(1, CStructDefinitionParser.ParseLiteral("1U").Value);
+        Assert.AreEqual(1, CStructDefinitionParser.ParseLiteral("1U").Evaluate());
     }
 
     /// <summary>

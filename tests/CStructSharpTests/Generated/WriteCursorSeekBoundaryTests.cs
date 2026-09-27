@@ -49,8 +49,6 @@ public class WriteCursorSeekBoundaryTests
         var cursor = WriteCursor.ForUpdate(bytes, options);
         cursor.Seek(4, "tail", "uint8");
         Assert.AreEqual(4, cursor.Position);
-        cursor.Align(1, 0, "tail", "uint8");
-        Assert.AreEqual(4, cursor.Position);
         CollectionAssert.AreEqual(bytes, cursor.Unit(0, 4, "bits", "uint32").ToArray());
         Assert.AreEqual(4, cursor.Position);
         CollectionAssert.AreEqual(new byte[] { 1, 2, 3, 4, }, bytes);

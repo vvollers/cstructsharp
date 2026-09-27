@@ -77,8 +77,7 @@ public class CompiledIntermediateRepresentationTests
         Assert.AreEqual("pointer", remainingPointer.CodecName);
         Assert.AreEqual(2, remainingPointer.FixedStorageSize);
         Assert.IsInstanceOfType(model.Declarations, typeof(System.Collections.Immutable.ImmutableDictionary<string, CStructElement>));
-        Assert.IsInstanceOfType(model.Fields, typeof(System.Collections.Immutable.ImmutableDictionary<Field, CompiledField>));
-        Assert.AreEqual(3, model.Fields.Count);
+        Assert.AreEqual(3, model.AllFields().Count());
         Assert.IsInstanceOfType(compiledRoot.Fields, typeof(System.Collections.Immutable.ImmutableArray<CompiledField>));
         Assert.IsInstanceOfType(
             compiledRoot.FieldsByName,
@@ -233,7 +232,6 @@ public class CompiledIntermediateRepresentationTests
         Assert.IsTrue(name.IsUnsizedCharacterArray);
         Assert.IsTrue(name.HasTerminatedCodec);
         Assert.IsNotNull(cstruct.Codecs.TerminatedReaderOf(name));
-        Assert.IsNotNull(cstruct.Codecs.TerminatedWriterOf(name));
         Assert.IsNull(payload.Symbol.FixedSize);
 
         var textPointerLayout = new CStruct("struct text_root { char *text; };", pointerSize: 2);

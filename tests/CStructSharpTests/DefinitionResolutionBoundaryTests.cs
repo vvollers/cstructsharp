@@ -57,7 +57,7 @@ public class DefinitionResolutionBoundaryTests
 
         var resolved = (LayoutVariables)resolver.Create(supplied);
         Assert.IsTrue(resolved.CaptureAll);
-        Assert.AreEqual(2, resolved["UNRELATED"].Value);
+        Assert.AreEqual(2, resolved["UNRELATED"].Evaluate());
         Assert.AreEqual(1, supplied.KeyVisits[^1], "Capture detection has its answer after the first key and must stop scanning.");
     }
 
@@ -100,7 +100,7 @@ public class DefinitionResolutionBoundaryTests
         Assert.IsInstanceOfType<LayoutVariables>(resolved);
         Assert.IsTrue(((LayoutVariables)resolved).CaptureAll);
         Assert.AreSame(expression, resolved["COUNT"]);
-        Assert.AreEqual(1, resolver.CreateStatic()["COUNT"].Value);
+        Assert.AreEqual(1, resolver.CreateStatic()["COUNT"].Evaluate());
     }
 
     /// <summary>A wide exact-enum expression retains its original interpretation without capturing unrelated fields.</summary>

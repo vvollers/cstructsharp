@@ -105,8 +105,6 @@ public class ReadCursorTests
         new ReadCursor(bytes, stringOptions).RequireBoundedTextBytes(2, "name", "utf8");
         CStructReadLimitException bounded = Assert.Throws<CStructReadLimitException>(() => new ReadCursor(bytes, stringOptions).RequireBoundedTextBytes(3, "name", "utf8"));
         StringAssert.StartsWith(bounded.Message, "Encoded text buffer exceeds the configured string byte limit");
-        CStructReadLimitException terminated = Assert.Throws<CStructReadLimitException>(() => new ReadCursor(bytes, stringOptions).RequireTerminatedStringBytes(3, "name", "cstring"));
-        StringAssert.StartsWith(terminated.Message, "String field exceeded the configured encoded-byte limit");
     }
 
     /// <summary>Composite nesting and pointer entry enforce depth, absolute and relative addressing, and cycle detection like the runtime.</summary>
@@ -185,8 +183,6 @@ public class ReadCursorTests
             over.Take(4, "a", "uint8");
             over.Take(1, "b", "uint8");
         });
-        cursor.RequireTerminatedStringBytes(3, "s", "cstring");
-        Assert.Throws<CStructReadLimitException>(() => new ReadCursor(bytes, new ReadOptions { MaxStringBytes = 3, }).RequireTerminatedStringBytes(4, "s", "cstring"));
 
         var inner = new InvalidOperationException("why");
         CStructReadException withCause = cursor.Fail("text", "m", "uint8", inner);
@@ -201,27 +197,11 @@ public class ReadCursorTests
         Assert.Throws<ArgumentNullException>(() => new ReadCursor(bytes).Complete(null!));
     }
 
-    /// <summary><c>Align</c> pads from the composite origin, not from the cursor's absolute position.</summary>
+    /// <summary>The cursor position cannot be set beyond the end of the source.</summary>
     [TestMethod]
-    public void Align_PadsFromTheOrigin()
+    public void Position_CannotMovePastTheEnd()
     {
-        var cursor = new ReadCursor(new byte[16]);
-        cursor.Take(1, "a", "uint8");
-        cursor.Align(4, 0, "b", "uint32");
-        Assert.AreEqual(4, cursor.Position);
-        cursor.Align(4, 0, "b", "uint32");
-        Assert.AreEqual(4, cursor.Position);
-        cursor.Align(8, 2, "c", "uint64");
-        Assert.AreEqual(10, cursor.Position);
-        cursor.Align(1, 0, "d", "uint8");
-        Assert.AreEqual(10, cursor.Position, "alignment 1 never pads");
-        cursor.Align(0, 0, "d", "uint8");
-        Assert.AreEqual(10, cursor.Position, "a packed field (alignment 0) never pads");
-        Assert.Throws<CStructReadException>(() =>
-        {
-            var short1 = new ReadCursor(new byte[3]) { Position = 3, };
-            short1.Align(4, 0, "b", "uint32");
-        });
+        Assert.AreEqual(3, new ReadCursor(new byte[3]) { Position = 3, }.Position);
         Assert.Throws<CStructReadException>(() => new ReadCursor(new byte[3]) { Position = 4, });
     }
 

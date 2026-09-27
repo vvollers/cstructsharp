@@ -50,12 +50,6 @@ internal sealed class CodecTable
         return field.TerminatedCodecId < 0 ? null : this.readers[field.TerminatedCodecId];
     }
 
-    /// <summary>The terminated-string writer behind a <c>char *</c>-style pointer field, or <see langword="null"/>.</summary>
-    public Action<Stream, object>? TerminatedWriterOf(CompiledField field)
-    {
-        return field.TerminatedCodecId < 0 ? null : this.writers[field.TerminatedCodecId];
-    }
-
     /// <summary>The reader registered for a readable name (canonical, neutral, alias, or custom), or <see langword="null"/>.</summary>
     public Func<Stream, object>? ReaderOf(string name)
     {

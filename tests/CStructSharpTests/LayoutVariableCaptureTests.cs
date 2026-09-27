@@ -81,7 +81,7 @@ public class LayoutVariableCaptureTests
     public void SuppliedVariables_CannotReferenceFields_AndTheFallbackFlagPropagates()
     {
         var cstruct = new CStruct("struct root { uint8 unused; uint8 n; uint8 items[n]; };");
-        LayoutVariableResolver resolver = cstruct.CompiledLayoutVariables;
+        LayoutVariableResolver resolver = cstruct.Compilation.LayoutVariableResolver;
         Assert.IsFalse(LayoutVariableInput.FromIntegers(new Dictionary<string, int> { ["n"] = 1 }).Resolve(resolver) is LayoutVariables { CaptureAll: true });
         Assert.ThrowsExactly<CStructLayoutException>(() => LayoutVariableInput.FromExpressions(
             new Dictionary<string, Expr> { ["n"] = new BinaryOp(BinaryOperatorType.Add, new Identifier("unused"), new Literal(1)) }).Resolve(resolver));
@@ -91,9 +91,10 @@ public class LayoutVariableCaptureTests
         Assert.IsFalse(new LayoutVariables(new Dictionary<string, Expr>()).CaptureAll);
     }
 
+    /// <summary>Returns whether the uniquely named field records its value as a layout variable.</summary>
     private static bool CapturesVariable(CStruct cstruct, string fieldName)
     {
-        CompiledField field = cstruct.CompiledModel.Fields.Values.Single(candidate => candidate.Declaration.Name.Name == fieldName);
+        CompiledField field = cstruct.CompiledModel.AllFields().Single(candidate => candidate.Declaration.Name.Name == fieldName);
         return field.CapturesLayoutVariable;
     }
 }

@@ -37,13 +37,10 @@ public class ScopedInlineTypeTests
         Assert.AreEqual((ushort)0x1234, (ushort)second.value.large);
         Assert.AreEqual(1, cstruct.GetStructSizeInBytes("first"));
         Assert.AreEqual(2, cstruct.GetStructSizeInBytes("second"));
-        Struct firstDeclaration = cstruct.GetStruct("first");
-        Assert.AreEqual((byte)1, firstDeclaration.GetAlignment(cstruct.FieldAlignments, cstruct.PointerSize));
-        Assert.IsTrue(firstDeclaration.IsKnown(cstruct.FieldAlignments));
+        Assert.AreEqual(1, cstruct.GetStructAlignmentInBytes("first"));
         CollectionAssert.AreEquivalent(
             new[] { "first", "second", },
             cstruct.CStructElements.Keys.ToArray());
-        Assert.IsFalse(cstruct.FieldAlignments.ContainsKey("value"));
     }
 
     /// <summary>
@@ -182,9 +179,9 @@ public class ScopedInlineTypeTests
         Assert.AreEqual(0x12345678U, (uint)parsed.second.large);
         Assert.AreEqual(8, cstruct.GetStructSizeInBytes("root"));
         Assert.IsTrue(cstruct.CStructElements.ContainsKey("shared"));
-        Assert.AreEqual((byte)1, cstruct.FieldAlignments["small_payload"]);
-        Assert.AreEqual((byte)1, cstruct.FieldAlignments["shared"]);
-        Assert.AreEqual((byte)4, cstruct.FieldAlignments["large_payload"]);
+        Assert.AreEqual(1, cstruct.GetStructAlignmentInBytes("small_payload"));
+        Assert.AreEqual(1, cstruct.GetStructAlignmentInBytes("shared"));
+        Assert.AreEqual(4, cstruct.GetStructAlignmentInBytes("large_payload"));
 
         stream.Position = 0;
         (dynamic _, IReadOnlyList<DebugData> debug) = cstruct.ParseWithDebug(stream, "root");

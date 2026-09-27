@@ -145,17 +145,6 @@ internal class Field : CStructElement
                Equals(this.PointerCountExpression, f.PointerCountExpression);
     }
 
-    /// <summary>Returns the primitive alignment for this field, using pointer size for pointer fields.</summary>
-    public virtual T GetAlignment<T>(IReadOnlyDictionary<string, T> alignments, T pointerSize)
-    {
-        if (this.IsPointer)
-        {
-            return pointerSize;
-        }
-
-        return alignments[this.Type.Name];
-    }
-
     /// <summary>Returns a hash code that matches this value's equality rules.</summary>
     public override int GetHashCode()
     {
@@ -166,12 +155,6 @@ internal class Field : CStructElement
         }
 
         return HashCode.Combine(this.Type, this.Name, arrayCountHash.ToHashCode(), this.BitSizeExpression, this.PointerDepth);
-    }
-
-    /// <summary>Returns whether the field's type is known to the supplied lookup.</summary>
-    public virtual bool IsKnown<T>(IReadOnlyDictionary<string, T> dict)
-    {
-        return this.IsPointer || dict.ContainsKey(this.Type.Name);
     }
 
     /// <summary>Returns a short readable description for debugging and logs.</summary>

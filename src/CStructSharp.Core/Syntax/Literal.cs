@@ -30,16 +30,11 @@ internal class Literal : Expr
     /// <summary>Gets the exact mathematical integer represented by this literal.</summary>
     public BigInteger ExactValue { get; }
 
-    public override int Value => checked((int)this.int32Projection);
+    /// <summary>Gets the literal as an Int32, throwing <see cref="OverflowException"/> when it lies outside that range.</summary>
+    public int Value => checked((int)this.int32Projection);
 
     /// <summary>Gets the value consumed by ordinary checked Int32 layout expressions.</summary>
     internal BigInteger Int32Projection => this.int32Projection;
-
-    /// <summary>Calculates the value represented by this expression.</summary>
-    public override int Calc(Dictionary<string, Expr> variables)
-    {
-        return global::CStructSharp.Expressions.ExpressionEvaluator.Default.Evaluate(this, variables);
-    }
 
     /// <summary>Checks whether another value represents the same layout data.</summary>
     public override bool Equals(Expr? other)

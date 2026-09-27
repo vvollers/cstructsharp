@@ -14,6 +14,10 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   and when an input has several problems, a truncated or invalid field after a pointer is now reported before a
   pointer whose target cannot be read. Pointer failures still name the pointer field and the offset just after its
   address. Migration: code that relies on debug-record order should look records up by path.
+- **Breaking (API):** five generated-support members that generated code never calls are removed:
+  `Codec.ReadLeb128`, `ReadCursor.Align`, `ReadCursor.RequireTerminatedStringBytes`, `WriteCursor.Align` and
+  `WriteCursor.FailUnwritable`. Generated layouts are unaffected. Migration: decode LEB128 with
+  `ReadCursor.TakeLeb128`; for alignment, move `Position` to the padded offset (writers: `Pad` the gap).
 
 ### Added
 

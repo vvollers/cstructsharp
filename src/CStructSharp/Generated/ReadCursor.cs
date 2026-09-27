@@ -695,23 +695,6 @@ public ref struct ReadCursor
         this.position += count;
     }
 
-    /// <summary>Moves to the next multiple of <paramref name="alignment"/> measured from <paramref name="origin"/>.</summary>
-    /// <param name="alignment">The alignment in bytes.</param>
-    /// <param name="origin">The position alignment is measured from.</param>
-    /// <param name="member">The layout field being aligned, for the diagnostics.</param>
-    /// <param name="memberType">The field's type spelling, for the diagnostics.</param>
-    public void Align(int alignment, long origin, string member, string? memberType)
-    {
-        if (alignment <= 1)
-        {
-            return;
-        }
-
-        long relative = this.position - origin;
-        long padding = (alignment - (relative % alignment)) % alignment;
-        this.Skip((int)padding, member, memberType);
-    }
-
     /// <summary>Enters a nested struct or union, enforcing <c>MaxNestingDepth</c>.</summary>
     /// <param name="member">The composite field being entered, for the diagnostics.</param>
     /// <param name="memberType">The field's type spelling, for the diagnostics.</param>
@@ -856,19 +839,6 @@ public ref struct ReadCursor
         if (count > this.settings.MaxStringBytes)
         {
             throw this.FailLimit(ReadFailures.BoundedTextLimit, member, memberType);
-        }
-    }
-
-    /// <summary>Validates a terminated string's encoded length (terminator included) against <c>MaxStringBytes</c>.</summary>
-    /// <param name="count">The number of bytes.</param>
-    /// <param name="member">The string field, for the diagnostics.</param>
-    /// <param name="memberType">The field's type spelling, for the diagnostics.</param>
-    /// <exception cref="CStructReadLimitException">The string exceeds the limit.</exception>
-    public readonly void RequireTerminatedStringBytes(long count, string member, string? memberType)
-    {
-        if (count > this.settings.MaxStringBytes)
-        {
-            throw this.FailLimit(ReadFailures.TerminatedStringLimit, member, memberType);
         }
     }
 

@@ -46,12 +46,6 @@ internal class Struct : Field
                this.Fields.SequenceEqual(s.Fields);
     }
 
-    /// <summary>Returns the previously calculated alignment for this named struct.</summary>
-    public override T GetAlignment<T>(IReadOnlyDictionary<string, T> alignments, T pointerSize)
-    {
-        return alignments[this.Name.Name];
-    }
-
     /// <summary>Returns a hash code that matches this value's equality rules.</summary>
     public override int GetHashCode()
     {
@@ -64,12 +58,6 @@ internal class Struct : Field
         }
 
         return hash.ToHashCode();
-    }
-
-    /// <summary>Returns whether this struct already has a calculated entry in the supplied lookup.</summary>
-    public override bool IsKnown<T>(IReadOnlyDictionary<string, T> dict)
-    {
-        return dict.ContainsKey(this.Name.Name);
     }
 
     /// <summary>Returns a short readable description for debugging and logs.</summary>

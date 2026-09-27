@@ -112,42 +112,17 @@ public class WriteCursorTests
         Assert.Throws<ArgumentOutOfRangeException>(() => new WriteCursor(new byte[1], new WriteOptions { MaxArrayElements = -1, }));
     }
 
-    /// <summary><c>FailUnwritable</c> reproduces the runtime's <c>Value ... does not fit</c> diagnostics for every primitive kind.</summary>
+    /// <summary><c>FailExpression</c> wraps an operator failure in the runtime's <c>Cannot evaluate</c> text and passes other failures through.</summary>
     [TestMethod]
-    public void FailUnwritable_MatchesTheRuntimeValueDiagnostics()
+    public void FailExpression_WrapsOperatorFailuresLikeTheRuntime()
     {
-        var layout = new CStruct("struct root { uint8 a; uint16 b; };");
         var cursor = new WriteCursor(new byte[3], path: "root");
-        cursor.Reserve(1, "a", "uint8");
-
-        CStructWriteException range = Assert.Throws<CStructWriteException>(
-            () => layout.Serialize("root", new Dictionary<string, object?> { ["a"] = 1, ["b"] = 70000, }));
-        CStructWriteException generatedRange = cursor.FailUnwritable(70000, "uint16", "0 to 65535", "b", new OverflowException());
-        cursor.Complete(generatedRange);
-
-        // The runtime's static write plan validates the whole block before writing a byte, so it reports offset 0
-        // where the sequential generated writer has already placed 'a'; the words, field, and path are the same.
-        Assert.AreEqual(WithoutOffset(range.Message), WithoutOffset(generatedRange.Message));
-        Assert.AreEqual(0L, range.Offset);
-        Assert.AreEqual("Value 70000 does not fit: uint16 accepts 0 to 65535 (field 'b' (uint16), in 'root', offset 1).", generatedRange.Message);
-        Assert.IsInstanceOfType<OverflowException>(generatedRange.InnerException);
-
-        CStructWriteException kind = Assert.Throws<CStructWriteException>(
-            () => layout.Serialize("root", new Dictionary<string, object?> { ["a"] = 1, ["b"] = "abc", }));
-        CStructWriteException generatedKind = cursor.FailUnwritable("abc", "uint16", "0 to 65535", "b");
-        cursor.Complete(generatedKind);
-        Assert.AreEqual(WithoutOffset(kind.Message), WithoutOffset(generatedKind.Message));
-        Assert.AreEqual("Value \"abc\" cannot be written as uint16 (field 'b' (uint16), in 'root', offset 1).", generatedKind.Message);
-        Assert.IsNull(generatedKind.InnerException);
-
         Exception expression = cursor.FailExpression(new DivideByZeroException("Attempted to divide by zero."), "array length for items", "items", "uint8");
         Assert.IsInstanceOfType<CStructWriteException>(expression);
         StringAssert.StartsWith(expression.Message, "Cannot evaluate array length for items: Attempted to divide by zero");
         var unrelated = new ArgumentNullException("x");
         Assert.AreSame(unrelated, cursor.FailExpression(unrelated, "array length for items", "items", "uint8"));
     }
-
-    private static string WithoutOffset(string message) => System.Text.RegularExpressions.Regex.Replace(message, @", offset \d+", string.Empty);
 
     /// <summary>The inclusive boundaries of <c>Reserve</c> and the string limit, the option validation of the constructor, and the member and cause a failure carries.</summary>
     [TestMethod]
@@ -175,15 +150,6 @@ public class WriteCursorTests
         Assert.Throws<CStructWriteLimitException>(() => new WriteCursor(new byte[4], new WriteOptions { MaxStringBytes = 3, }).RequireStringBytes(4, "s", "cstring"));
         Assert.Throws<CStructWriteLimitException>(() => new WriteCursor(new byte[4]).RequireStringBytes(-1, "s", "cstring"));
 
-        var inner = new FormatException("why");
-        CStructWriteException withCause = cursor.FailUnwritable(300, "uint8", "0 to 255", "m", inner);
-        Assert.AreSame(inner, withCause.InnerException);
-        Assert.AreEqual("m", withCause.Member);
-        Assert.AreEqual("uint8", withCause.MemberType);
-        Assert.AreEqual("root", withCause.Path);
-        Assert.IsNull(cursor.FailUnwritable(300, "uint8", "0 to 255", "m").InnerException);
-        Assert.Throws<ArgumentNullException>(() => new WriteCursor(new byte[4]).FailUnwritable(1, null!, null, "m"));
-
         var arithmetic = new DivideByZeroException();
         var expression = (CStructWriteException)cursor.FailExpression(arithmetic, "array length for items", "items", "uint8");
         Assert.AreEqual("items", expression.Member);
@@ -193,39 +159,6 @@ public class WriteCursorTests
         Assert.AreSame(unrelated, cursor.FailExpression(unrelated, "array length", "items", "uint8"), "a non-expression failure passes through untouched");
         Assert.Throws<ArgumentNullException>(() => new WriteCursor(new byte[4]).FailExpression(null!, "array length", "m", "uint8"));
         Assert.Throws<ArgumentNullException>(() => new WriteCursor(new byte[4]).Complete(null!));
-    }
-
-    /// <summary><c>Align</c> writes zero bytes up to the next aligned position.</summary>
-    [TestMethod]
-    public void Align_PadsWithZeroes()
-    {
-        var destination = new byte[8];
-        destination.AsSpan().Fill(0xFF);
-        var cursor = new WriteCursor(destination);
-        cursor.Reserve(1, "a", "uint8")[0] = 1;
-        cursor.Align(4, 0, "b", "uint32");
-        Assert.AreEqual(4, cursor.Position);
-        cursor.Align(4, 0, "b", "uint32");
-        Assert.AreEqual(4, cursor.Position, "already aligned: nothing written");
-        cursor.Align(1, 0, "b", "uint8");
-        cursor.Align(0, 0, "b", "uint8");
-        Assert.AreEqual(4, cursor.Position, "alignment 1 or a packed field never pads");
-        cursor.Align(4, 2, "b", "uint32");
-        Assert.AreEqual(6, cursor.Position, "alignment is measured from the composite origin (2), not from offset 0");
-        cursor.Position = 2;
-        Assert.AreEqual(6, cursor.Length);
-        CollectionAssert.AreEqual(new byte[] { 1, 0, 0, 0, 0, 0, 0xFF, 0xFF }, destination);
-
-        // The position stays within what was written; Seek pads forward with zeros, and a cursor over existing
-        // bytes (an update) may move anywhere inside them.
-        Assert.Throws<CStructWriteException>(() => new WriteCursor(new byte[2]) { Position = 3, });
-        cursor.Seek(6, "c", "uint16");
-        CollectionAssert.AreEqual(new byte[] { 1, 0, 0, 0, 0, 0, 0xFF, 0xFF }, destination);
-        var update = WriteCursor.ForUpdate(destination);
-        update.Position = 7;
-        update.Reserve(1, "d", "uint8")[0] = 9;
-        Assert.AreEqual(8, update.Length);
-        Assert.AreEqual(9, destination[7]);
     }
 
     /// <summary>A growable cursor collects its bytes into an array, and its text helpers produce the runtime writer's bytes and failures.</summary>
