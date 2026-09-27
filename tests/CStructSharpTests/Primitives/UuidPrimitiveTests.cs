@@ -5,7 +5,7 @@ using CStructSharp.Diagnostics;
 
 /// <summary>Verifies UUID network order and Windows GUID field order independently of layout endianness.</summary>
 [TestClass]
-public class IdentifierTests
+public class UuidPrimitiveTests
 {
     /// <summary>A UUID is never an integer count: naming one in a count fails layout construction.</summary>
     /// <param name="type">The UUID spelling.</param>

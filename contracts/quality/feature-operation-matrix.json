@@ -635,7 +635,7 @@
           "A parsed non-canonical nonzero byte reads as true; writing that same value back always produces the canonical 0x01, so a value round trip is exact only starting from an already-canonical 0x00/0x01 byte."
         ],
         "evidence": [
-          "tests/CStructSharpTests/BooleanPrimitiveTests.cs#UpdateStream_CanonicalizesEvenOverANonCanonicalByte"
+          "tests/CStructSharpTests/Primitives/BooleanPrimitiveTests.cs#UpdateStream_CanonicalizesEvenOverANonCanonicalByte"
         ]
       },
       "bytes": {
@@ -644,7 +644,7 @@
           "A canonical 0x00/0x01 byte round trips exactly; byte order does not apply, since the codec is one byte wide."
         ],
         "evidence": [
-          "tests/CStructSharpTests/BooleanPrimitiveTests.cs#FullRoundTrip_WriteSerializeReadValueUpdate"
+          "tests/CStructSharpTests/Primitives/BooleanPrimitiveTests.cs#FullRoundTrip_WriteSerializeReadValueUpdate"
         ]
       }
     },
@@ -656,12 +656,12 @@
           "The codec bit-reinterprets rather than numerically converts, so any bit pattern the caller's float/double value actually holds - including NaN payloads, subnormals, and negative zero - round trips exactly; this is a guarantee about the codec, not about the .NET runtime, since a signaling NaN may already be quieted by an ordinary floating-point operation before the codec ever receives it."
         ],
         "evidence": [
-          "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32_QuietNaNPayloadRoundTripsExactly",
-          "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float64_NaNPayloadRoundTripsExactly",
-          "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32_NegativeZeroRoundTripsAsDistinctBitPattern",
-          "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float64_NegativeZeroRoundTripsAsDistinctBitPattern",
-          "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32_SubnormalRoundTripsExactly",
-          "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float64_SubnormalRoundTripsExactly"
+          "tests/CStructSharpTests/Primitives/FloatingPointPrimitiveTests.cs#Float32_QuietNaNPayloadRoundTripsExactly",
+          "tests/CStructSharpTests/Primitives/FloatingPointPrimitiveTests.cs#Float64_NaNPayloadRoundTripsExactly",
+          "tests/CStructSharpTests/Primitives/FloatingPointPrimitiveTests.cs#Float32_NegativeZeroRoundTripsAsDistinctBitPattern",
+          "tests/CStructSharpTests/Primitives/FloatingPointPrimitiveTests.cs#Float64_NegativeZeroRoundTripsAsDistinctBitPattern",
+          "tests/CStructSharpTests/Primitives/FloatingPointPrimitiveTests.cs#Float32_SubnormalRoundTripsExactly",
+          "tests/CStructSharpTests/Primitives/FloatingPointPrimitiveTests.cs#Float64_SubnormalRoundTripsExactly"
         ]
       },
       "bytes": {
@@ -670,8 +670,8 @@
           "Exact bytes match the documented byte order for both the neutral (layout-default) and explicit float32</float32>/float64</float64> suffix spellings."
         ],
         "evidence": [
-          "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#ExplicitEndianSuffix_ProducesTheDocumentedByteOrder",
-          "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#FullRoundTrip_WriteSerializeReadValueUpdate"
+          "tests/CStructSharpTests/Primitives/FloatingPointPrimitiveTests.cs#ExplicitEndianSuffix_ProducesTheDocumentedByteOrder",
+          "tests/CStructSharpTests/Primitives/FloatingPointPrimitiveTests.cs#FullRoundTrip_WriteSerializeReadValueUpdate"
         ]
       }
     },
@@ -1318,7 +1318,7 @@
           "An alias resolves to its canonical codec, so the canonical codec's value domain applies (the long family follows CLongWidth, the pointer-sized family follows the pointer size)."
         ],
         "evidence": [
-          "tests/CStructSharpTests/PrimitiveSpellingTests.cs#Aliases_ResolveToCanonicalCodecs",
+          "tests/CStructSharpTests/Primitives/PrimitiveSpellingTests.cs#Aliases_ResolveToCanonicalCodecs",
           "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations"
         ]
       },
@@ -1521,8 +1521,8 @@
           "int48/uint48 and int128/uint128 round-trip every value of their width; float16 is bit-exact for finite and infinite values, while a NaN payload is preserved as bits, not as a distinguishable CLR value."
         ],
         "evidence": [
-          "tests/CStructSharpTests/WidePrimitiveTests.cs#WidePrimitives_RoundTripThroughEveryOperation",
-          "tests/CStructSharpTests/WidePrimitiveTests.cs#Float16_IsBitExact"
+          "tests/CStructSharpTests/Primitives/WidePrimitiveTests.cs#WidePrimitives_RoundTripThroughEveryOperation",
+          "tests/CStructSharpTests/Primitives/WidePrimitiveTests.cs#Float16_IsBitExact"
         ]
       },
       "bytes": {
@@ -1531,7 +1531,7 @@
           "The layout byte order (or explicit < and > suffix) is used for parsing and serialization."
         ],
         "evidence": [
-          "tests/CStructSharpTests/WidePrimitiveTests.cs#WidePrimitives_RoundTripThroughEveryOperation"
+          "tests/CStructSharpTests/Primitives/WidePrimitiveTests.cs#WidePrimitives_RoundTripThroughEveryOperation"
         ]
       }
     },
@@ -1564,7 +1564,7 @@
           "A long-family value round-trips within the selected width's domain."
         ],
         "evidence": [
-          "tests/CStructSharpTests/PrimitiveSpellingTests.cs#CLongWidth_RoundTripsThroughEveryOperation"
+          "tests/CStructSharpTests/Primitives/PrimitiveSpellingTests.cs#CLongWidth_RoundTripsThroughEveryOperation"
         ]
       },
       "bytes": {
@@ -1573,7 +1573,7 @@
           "The same CLongWidth is used for parsing and serialization."
         ],
         "evidence": [
-          "tests/CStructSharpTests/PrimitiveSpellingTests.cs#CLongWidth_RoundTripsThroughEveryOperation"
+          "tests/CStructSharpTests/Primitives/PrimitiveSpellingTests.cs#CLongWidth_RoundTripsThroughEveryOperation"
         ]
       }
     },
@@ -1769,20 +1769,20 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/BooleanPrimitiveTests.cs#ZeroAndOne_ParseAsFalseAndTrue",
+          "test": "tests/CStructSharpTests/Primitives/BooleanPrimitiveTests.cs#ZeroAndOne_ParseAsFalseAndTrue",
           "operations": [
             "parse",
             "address"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/BooleanPrimitiveTests.cs#NonCanonicalNonzeroByte_ParsesAsTrue",
+          "test": "tests/CStructSharpTests/Primitives/BooleanPrimitiveTests.cs#NonCanonicalNonzeroByte_ParsesAsTrue",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/BooleanPrimitiveTests.cs#FullRoundTrip_WriteSerializeReadValueUpdate",
+          "test": "tests/CStructSharpTests/Primitives/BooleanPrimitiveTests.cs#FullRoundTrip_WriteSerializeReadValueUpdate",
           "operations": [
             "serialize",
             "write",
@@ -1791,13 +1791,13 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/BooleanPrimitiveTests.cs#BoolArray_ElementsAreIndependent",
+          "test": "tests/CStructSharpTests/Primitives/BooleanPrimitiveTests.cs#BoolArray_ElementsAreIndependent",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/BooleanPrimitiveTests.cs#UnderscoreBoolAlias_CompilesIdenticallyToBool",
+          "test": "tests/CStructSharpTests/Primitives/BooleanPrimitiveTests.cs#UnderscoreBoolAlias_CompilesIdenticallyToBool",
           "operations": [
             "parse"
           ]
@@ -1854,41 +1854,41 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32_QuietNaNPayloadRoundTripsExactly",
+          "test": "tests/CStructSharpTests/Primitives/FloatingPointPrimitiveTests.cs#Float32_QuietNaNPayloadRoundTripsExactly",
           "operations": [
             "parse",
             "serialize"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float64_NaNPayloadRoundTripsExactly",
+          "test": "tests/CStructSharpTests/Primitives/FloatingPointPrimitiveTests.cs#Float64_NaNPayloadRoundTripsExactly",
           "operations": [
             "parse",
             "serialize"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32_NegativeZeroRoundTripsAsDistinctBitPattern",
+          "test": "tests/CStructSharpTests/Primitives/FloatingPointPrimitiveTests.cs#Float32_NegativeZeroRoundTripsAsDistinctBitPattern",
           "operations": [
             "parse",
             "serialize"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32_SubnormalRoundTripsExactly",
+          "test": "tests/CStructSharpTests/Primitives/FloatingPointPrimitiveTests.cs#Float32_SubnormalRoundTripsExactly",
           "operations": [
             "parse",
             "serialize"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#ExplicitEndianSuffix_ProducesTheDocumentedByteOrder",
+          "test": "tests/CStructSharpTests/Primitives/FloatingPointPrimitiveTests.cs#ExplicitEndianSuffix_ProducesTheDocumentedByteOrder",
           "operations": [
             "serialize"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#FullRoundTrip_WriteSerializeReadValueUpdate",
+          "test": "tests/CStructSharpTests/Primitives/FloatingPointPrimitiveTests.cs#FullRoundTrip_WriteSerializeReadValueUpdate",
           "operations": [
             "write",
             "serialize",
@@ -1897,38 +1897,38 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32Array_ElementsAreIndependent",
+          "test": "tests/CStructSharpTests/Primitives/FloatingPointPrimitiveTests.cs#Float32Array_ElementsAreIndependent",
           "operations": [
             "parse",
             "serialize"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#FloatAlias_CompilesIdenticallyToFloat32",
+          "test": "tests/CStructSharpTests/Primitives/FloatingPointPrimitiveTests.cs#FloatAlias_CompilesIdenticallyToFloat32",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#DoubleAlias_CompilesIdenticallyToFloat64",
+          "test": "tests/CStructSharpTests/Primitives/FloatingPointPrimitiveTests.cs#DoubleAlias_CompilesIdenticallyToFloat64",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32AsBitfieldStorage_IsRejected",
+          "test": "tests/CStructSharpTests/Primitives/FloatingPointPrimitiveTests.cs#Float32AsBitfieldStorage_IsRejected",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32AsEnumBacking_IsRejected",
+          "test": "tests/CStructSharpTests/Primitives/FloatingPointPrimitiveTests.cs#Float32AsEnumBacking_IsRejected",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#LongDouble_IsRejected",
+          "test": "tests/CStructSharpTests/Primitives/FloatingPointPrimitiveTests.cs#LongDouble_IsRejected",
           "operations": [
             "parse"
           ]
@@ -2473,7 +2473,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/CustomCodecBoundaryTests.cs#CustomPadding_WritesZeroStorageWithoutInvokingTheCodec",
+          "test": "tests/CStructSharpTests/Primitives/CustomCodecBoundaryTests.cs#CustomPadding_WritesZeroStorageWithoutInvokingTheCodec",
           "operations": ["serialize", "write"]
         },
         {
@@ -4323,7 +4323,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/BinaryTypePropertyTests.cs#FixedStorage_GeneratedBitPatternsRoundTrip",
+          "test": "tests/CStructSharpTests/Primitives/BinaryTypePropertyTests.cs#FixedStorage_GeneratedBitPatternsRoundTrip",
           "operations": [
             "parse",
             "serialize",
@@ -4411,7 +4411,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/BinaryTypePropertyTests.cs#BoundedText_GeneratedCutsNeverBorrowFollowingBytes",
+          "test": "tests/CStructSharpTests/Primitives/BinaryTypePropertyTests.cs#BoundedText_GeneratedCutsNeverBorrowFollowingBytes",
           "operations": [
             "parse",
             "serialize"
@@ -4498,13 +4498,13 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/BinaryTypePropertyTests.cs#Leb128_FinalOctetsMatchIntegerDomain",
+          "test": "tests/CStructSharpTests/Primitives/BinaryTypePropertyTests.cs#Leb128_FinalOctetsMatchIntegerDomain",
           "operations": [
             "read-value"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/BinaryTypePropertyTests.cs#Leb128_GeneratedValuesAndTruncations",
+          "test": "tests/CStructSharpTests/Primitives/BinaryTypePropertyTests.cs#Leb128_GeneratedValuesAndTruncations",
           "operations": [
             "read-value",
             "serialize"
@@ -4590,7 +4590,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/BinaryTypePropertyTests.cs#FixedStorage_GeneratedBitPatternsRoundTrip",
+          "test": "tests/CStructSharpTests/Primitives/BinaryTypePropertyTests.cs#FixedStorage_GeneratedBitPatternsRoundTrip",
           "operations": [
             "parse",
             "serialize",
@@ -4678,7 +4678,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/BinaryTypePropertyTests.cs#FixedStorage_GeneratedBitPatternsRoundTrip",
+          "test": "tests/CStructSharpTests/Primitives/BinaryTypePropertyTests.cs#FixedStorage_GeneratedBitPatternsRoundTrip",
           "operations": [
             "parse",
             "serialize",
@@ -4766,7 +4766,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/BinaryTypePropertyTests.cs#ConditionalTags_ExhaustiveSelectionAndAtomicUpdates",
+          "test": "tests/CStructSharpTests/Primitives/BinaryTypePropertyTests.cs#ConditionalTags_ExhaustiveSelectionAndAtomicUpdates",
           "operations": [
             "parse",
             "debug",
@@ -4835,37 +4835,37 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/PrimitiveSpellingTests.cs#Aliases_ResolveToCanonicalCodecs",
+          "test": "tests/CStructSharpTests/Primitives/PrimitiveSpellingTests.cs#Aliases_ResolveToCanonicalCodecs",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/PrimitiveSpellingTests.cs#CLongWidth_SelectsTheLongFamilyWidthOnly",
+          "test": "tests/CStructSharpTests/Primitives/PrimitiveSpellingTests.cs#CLongWidth_SelectsTheLongFamilyWidthOnly",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/PrimitiveSpellingTests.cs#UserTypedef_ShadowsBuiltInAlias",
+          "test": "tests/CStructSharpTests/Primitives/PrimitiveSpellingTests.cs#UserTypedef_ShadowsBuiltInAlias",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/PrimitiveSpellingTests.cs#EnumBacking_AcceptsAliasSpellings",
+          "test": "tests/CStructSharpTests/Primitives/PrimitiveSpellingTests.cs#EnumBacking_AcceptsAliasSpellings",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/PrimitiveSpellingTests.cs#BitfieldStorage_AcceptsAliasesAndTypedefs",
+          "test": "tests/CStructSharpTests/Primitives/PrimitiveSpellingTests.cs#BitfieldStorage_AcceptsAliasesAndTypedefs",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/PrimitiveSpellingTests.cs#PointerSizedSpellings_FollowThePointerSize",
+          "test": "tests/CStructSharpTests/Primitives/PrimitiveSpellingTests.cs#PointerSizedSpellings_FollowThePointerSize",
           "operations": [
             "parse"
           ]
@@ -5624,7 +5624,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/WidePrimitiveTests.cs#Int48_ReadsAndWritesSixBytes",
+          "test": "tests/CStructSharpTests/Primitives/WidePrimitiveTests.cs#Int48_ReadsAndWritesSixBytes",
           "operations": [
             "parse",
             "serialize",
@@ -5632,7 +5632,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/WidePrimitiveTests.cs#Int128_ReadsAndWritesSixteenBytes",
+          "test": "tests/CStructSharpTests/Primitives/WidePrimitiveTests.cs#Int128_ReadsAndWritesSixteenBytes",
           "operations": [
             "parse",
             "serialize",
@@ -5640,21 +5640,21 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/WidePrimitiveTests.cs#Float16_IsBitExact",
+          "test": "tests/CStructSharpTests/Primitives/WidePrimitiveTests.cs#Float16_IsBitExact",
           "operations": [
             "parse",
             "serialize"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/WidePrimitiveTests.cs#VoidAndFunctionPointers_AreOpaqueAddresses",
+          "test": "tests/CStructSharpTests/Primitives/WidePrimitiveTests.cs#VoidAndFunctionPointers_AreOpaqueAddresses",
           "operations": [
             "parse",
             "serialize"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/WidePrimitiveTests.cs#WidePrimitives_RoundTripThroughEveryOperation",
+          "test": "tests/CStructSharpTests/Primitives/WidePrimitiveTests.cs#WidePrimitives_RoundTripThroughEveryOperation",
           "operations": [
             "debug",
             "address",
@@ -5784,19 +5784,19 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/PrimitiveSpellingTests.cs#CLongWidth_SelectsTheLongFamilyWidthOnly",
+          "test": "tests/CStructSharpTests/Primitives/PrimitiveSpellingTests.cs#CLongWidth_SelectsTheLongFamilyWidthOnly",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/PrimitiveSpellingTests.cs#CLongWidth_AppliesToEnumsBitfieldsAndCacheKey",
+          "test": "tests/CStructSharpTests/Primitives/PrimitiveSpellingTests.cs#CLongWidth_AppliesToEnumsBitfieldsAndCacheKey",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/PrimitiveSpellingTests.cs#CLongWidth_RoundTripsThroughEveryOperation",
+          "test": "tests/CStructSharpTests/Primitives/PrimitiveSpellingTests.cs#CLongWidth_RoundTripsThroughEveryOperation",
           "operations": [
             "debug",
             "address",

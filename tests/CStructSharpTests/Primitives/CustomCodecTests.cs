@@ -110,11 +110,19 @@ public class CustomCodecTests
 
         public int Alignment => 1;
 
+        /// <summary>Encodes a payload with its 16-bit little-endian length prefix.</summary>
+        /// <param name="payload">The payload.</param>
+        /// <returns>The encoded bytes.</returns>
         public static byte[] Encode(byte[] payload)
         {
             return [(byte)payload.Length, (byte)(payload.Length >> 8), .. payload];
         }
 
+        /// <summary>Decodes a length prefix and that many ASCII bytes, asking for more input until both are present.</summary>
+        /// <param name="source">The available bytes.</param>
+        /// <param name="value">Receives the decoded value.</param>
+        /// <param name="bytesConsumed">Receives the bytes the value used.</param>
+        /// <returns>Whether the value was decoded, needs more bytes, or is invalid.</returns>
         public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesConsumed)
         {
             value = null;
@@ -135,6 +143,11 @@ public class CustomCodecTests
             return OperationStatus.Done;
         }
 
+        /// <summary>Encodes the text as a length prefix and its ASCII bytes.</summary>
+        /// <param name="destination">The bytes to fill.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="bytesWritten">Receives the bytes written.</param>
+        /// <returns>Whether the value was written, needs more room, or is invalid.</returns>
         public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)
         {
             byte[] payload = Encoding.ASCII.GetBytes((string)value);
@@ -166,6 +179,11 @@ public class CustomCodecTests
 
         public int Alignment => 1;
 
+        /// <summary>Decodes one byte, or misbehaves as the byte selects: invalid data, an exception, or claiming nine bytes.</summary>
+        /// <param name="source">The available bytes.</param>
+        /// <param name="value">Receives the decoded value.</param>
+        /// <param name="bytesConsumed">Receives the bytes the value used.</param>
+        /// <returns>Whether the value was decoded, needs more bytes, or is invalid.</returns>
         public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesConsumed)
         {
             value = source[0];
@@ -178,6 +196,11 @@ public class CustomCodecTests
             };
         }
 
+        /// <summary>Encodes one byte, or reports invalid data for <c>"bad"</c> and throws for <c>"throw"</c>.</summary>
+        /// <param name="destination">The bytes to fill.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="bytesWritten">Receives the bytes written.</param>
+        /// <returns>Whether the value was written, needs more room, or is invalid.</returns>
         public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)
         {
             bytesWritten = 1;

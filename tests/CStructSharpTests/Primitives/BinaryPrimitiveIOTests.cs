@@ -73,18 +73,33 @@ public class BinaryPrimitiveIOTests
         AssertRoundTrips(BinaryPrimitiveIO.WriteDouble, BinaryPrimitiveIO.ReadDouble, 2.718281828459045);
     }
 
+    /// <summary>Reads an unsigned value as wide as the given bytes.</summary>
+    /// <param name="bytes">The encoded value.</param>
+    /// <param name="isLittleEndian">The byte order.</param>
+    /// <returns>The value.</returns>
     private static ulong ReadUnsignedBySize(byte[] bytes, bool isLittleEndian)
     {
         using var stream = new MemoryStream(bytes);
         return BinaryPrimitiveIO.ReadUnsignedBySize(stream, bytes.Length, isLittleEndian);
     }
 
+    /// <summary>Reads a value from bytes with a typed reader.</summary>
+    /// <typeparam name="T">The value type.</typeparam>
+    /// <param name="reader">The reader.</param>
+    /// <param name="bytes">The encoded value.</param>
+    /// <param name="isLittleEndian">The byte order.</param>
+    /// <returns>The value.</returns>
     private static T ReadTyped<T>(Func<Stream, bool, T> reader, byte[] bytes, bool isLittleEndian)
     {
         using var stream = new MemoryStream(bytes);
         return reader(stream, isLittleEndian);
     }
 
+    /// <summary>Asserts a writer and reader pair round-trips a value in both byte orders.</summary>
+    /// <typeparam name="T">The value type.</typeparam>
+    /// <param name="writer">The writer.</param>
+    /// <param name="reader">The reader.</param>
+    /// <param name="value">The value.</param>
     private static void AssertRoundTrips<T>(Action<Stream, T, bool> writer, Func<Stream, bool, T> reader, T value)
     {
         foreach (bool isLittleEndian in new[] { true, false, })

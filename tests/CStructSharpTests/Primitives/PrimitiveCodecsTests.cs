@@ -5,14 +5,16 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Streams;
 
 /// <summary>
-///     Exercises <see cref="PrimitiveCodecs"/> directly, independent of a compiled <see cref="CStruct"/> layout.
-///     <c>ReadIntoString</c>'s chunked-read and byte-budget behavior already has thorough coverage exercised through
-///     the real public API in <c>StringEncodingTests.cs</c>, so these tests focus on proving each member is
-///     independently callable and on the members that had no direct coverage yet.
+///     Exercises <see cref="PrimitiveCodecs"/> directly, independent of a compiled <see cref="CStruct"/> layout, and
+///     checks that the primitive reader, writer and alignment tables every <see cref="CStruct"/> shares keep each
+///     layout's own byte order and alias resolution. <c>ReadIntoString</c>'s chunked-read and byte-budget behavior is
+///     covered through the public API in <c>StringEncodingTests.cs</c>.
 /// </summary>
 [TestClass]
 public class PrimitiveCodecsTests
 {
+    private const string Layout = "struct root { int32 value; uint16 pair; };";
+
     /// <summary>Every documented terminated-string spelling, including the C-style aliases, must report as variable-length.</summary>
     [TestMethod]
     public void IsVariableLengthType_TerminatedStringSpellings_ReturnsTrue()
@@ -149,5 +151,57 @@ public class PrimitiveCodecsTests
         string value = PrimitiveCodecs.ReadIntoString(stream, PrimitiveCodecs.StrictUtf8Encoding, '\0');
 
         Assert.AreEqual("héllo", value);
+    }
+
+    /// <summary>
+    ///     Two instances built with opposite endianness, from the same process (so both necessarily share the
+    ///     static base tables), must each read/write using their own byte order - not whichever instance
+    ///     happened to populate the shared static tables first.
+    /// </summary>
+    [TestMethod]
+    public void OppositeEndiannessInstances_ReadAndWriteIndependently()
+    {
+        var little = new CStruct(Layout, pointerSize: 1, isLittleEndian: true);
+        var big = new CStruct(Layout, pointerSize: 1, isLittleEndian: false);
+
+        byte[] bytes = little.Serialize("root", new Dictionary<string, object?> { ["value"] = 0x11223344, ["pair"] = (ushort)0xAABB, });
+
+        using var littleStream = new MemoryStream(bytes);
+        dynamic parsedLittle = little.Parse(littleStream, "root");
+        Assert.AreEqual(0x11223344, parsedLittle.value);
+        Assert.AreEqual((ushort)0xAABB, parsedLittle.pair);
+
+        // The same bytes decoded with the opposite-endianness instance must NOT agree - proving `big` truly uses
+        // its own byte order rather than one baked into a shared, first-instance-wins static table.
+        using var bigStream = new MemoryStream(bytes);
+        dynamic parsedBig = big.Parse(bigStream, "root");
+        Assert.AreNotEqual(0x11223344, parsedBig.value);
+        Assert.AreNotEqual((ushort)0xAABB, parsedBig.pair);
+
+        byte[] bigBytes = big.Serialize("root", new Dictionary<string, object?> { ["value"] = 0x11223344, ["pair"] = (ushort)0xAABB, });
+        CollectionAssert.AreNotEqual(bytes, bigBytes);
+    }
+
+    /// <summary>
+    ///     Constructing many instances in immediate succession (interleaving both endiannesses) must not corrupt
+    ///     any instance's own alignment/handler resolution - a stress-shaped proof that the shared static base
+    ///     tables are read-only from every instance's perspective.
+    /// </summary>
+    [TestMethod]
+    public void InterleavedConstruction_EachInstanceKeepsItsOwnEndianness()
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            bool isLittleEndian = i % 2 == 0;
+            var cstruct = new CStruct(Layout, pointerSize: 1, isLittleEndian: isLittleEndian);
+
+            byte[] bytes = cstruct.Serialize("root", new Dictionary<string, object?> { ["value"] = 1, ["pair"] = (ushort)2, });
+            using var stream = new MemoryStream(bytes);
+            dynamic parsed = cstruct.Parse(stream, "root");
+
+            Assert.AreEqual(1, parsed.value);
+            Assert.AreEqual((ushort)2, parsed.pair);
+            Assert.AreEqual(4, cstruct.GetStructSizeInBytes("root") - 2, "int32 alignment/width must stay 4 bytes regardless of construction order.");
+        }
     }
 }

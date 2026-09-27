@@ -7,7 +7,7 @@ using CStructSharp.Compilation;
 
 /// <summary>Compile-time codec identity must agree with the primitive registry vocabulary and the layout byte order.</summary>
 [TestClass]
-public class PrimitiveCodecTests
+public class PrimitiveCodecIdentityTests
 {
     /// <summary>
     ///     Every readable name in the catalog (canonical, neutral, and alias spellings) resolves to a known kind whose
