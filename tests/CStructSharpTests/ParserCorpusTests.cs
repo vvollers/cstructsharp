@@ -872,9 +872,11 @@ public class ParserCorpusTests
         throw new DirectoryNotFoundException("CStructSharp.sln not found above " + AppContext.BaseDirectory);
     }
 
-    // Structural dump: every property the compiler reads, including the predicates and branch groups attached to
-    // conditional members and the exact/projected values of literals.
-    /// <summary>Renders parsed declarations as a canonical text tree for exact comparison.</summary>
+    /// <summary>
+    ///     Renders parsed declarations as a canonical text tree for exact comparison: every property the compiler reads,
+    ///     including the predicates and branch groups attached to conditional members and the exact and projected values
+    ///     of literals.
+    /// </summary>
     private static string Dump(IReadOnlyList<CStructElement> elements)
     {
         var writer = new DumpWriter();
