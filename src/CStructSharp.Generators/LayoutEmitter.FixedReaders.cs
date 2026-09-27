@@ -139,7 +139,7 @@ internal sealed partial class LayoutEmitter
             return known;
         }
 
-        FixedPlan? plan = depth > 64 ? null : this.BuildFixedPlan(composite, depth);
+        FixedPlan? plan = depth > FixedLayoutRule.MaximumNestingDepth ? null : this.BuildFixedPlan(composite, depth);
         this.fixedPlans[composite] = plan;
         return plan;
     }
@@ -151,7 +151,7 @@ internal sealed partial class LayoutEmitter
     private FixedPlan? BuildFixedPlan(GeneratedComposite composite, int depth)
     {
         CompiledCompositeType compiled = composite.Composite;
-        if (compiled.IsUnion || compiled.Symbol.FixedSize is not int size || compiled.HasDirectConditionalFields)
+        if (!FixedLayoutRule.IsFixedComposite(compiled) || compiled.Symbol.FixedSize is not int size)
         {
             return null;
         }
@@ -162,25 +162,17 @@ internal sealed partial class LayoutEmitter
         int arrays = 0;
         foreach (CompiledField field in compiled.Fields)
         {
-            // Every member named, placed at a build-time offset, unconditional, and neither a pointer nor a bitfield:
-            // the member-by-member reader then only seeks, takes and decodes, which the fixed reader reproduces.
-            if (field.FixedOffset is null || field.IsUnnamed || field.BitSize != 0 || field.IsZeroWidthBitfield || field.PointerDepth > 0 ||
-                field.ConditionalBranches.Length > 0 || field.Declaration.Condition is not null || field.Declaration.OffsetAssertionExpression is not null ||
-                scope.Member(field) is not { IsConditional: false } member)
+            // A fixed member (FixedLayoutRule) that is named: the member-by-member reader then only seeks, takes and
+            // decodes, which the fixed reader reproduces. Unnamed padding has no member, so it takes that reader.
+            if (!FixedLayoutRule.IsFixedMember(field) || field.IsUnnamed || scope.Member(field) is not { IsConditional: false } member)
             {
                 return null;
             }
 
             bool scalar = field.Array.Kind == CompiledArrayKind.Scalar;
-            int count = 1;
+            int count = field.Array.FixedCount ?? 1;
             if (!scalar)
             {
-                if (field.Array.Kind != CompiledArrayKind.Fixed || field.Array.Dimensions.Length != 1 || field.Array.FixedCount is not int fixedCount)
-                {
-                    return null;
-                }
-
-                count = fixedCount;
                 arrays = Math.Max(arrays, count);
             }
 

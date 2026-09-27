@@ -112,7 +112,7 @@ internal sealed class StaticReadPlan
     /// <returns>A fixed-offset read plan, or null when interpretation is required.</returns>
     public static StaticReadPlan? TryBuild(CompiledCompositeType composite)
     {
-        if (composite.Symbol.FixedSize is not int size || composite.HasDirectConditionalFields || composite.Symbol.Declaration is Struct { IsUnion: true })
+        if (!FixedLayoutRule.IsFixedComposite(composite) || composite.Symbol.FixedSize is not int size)
         {
             return null;
         }
@@ -136,7 +136,7 @@ internal sealed class StaticReadPlan
     /// <returns>Whether every field can be read through a fixed operation.</returns>
     private static bool TryAppend(CompiledCompositeType composite, StructShape shape, int baseOffset, List<StaticReadOperation> operations, int depth, ref bool hasUnnamedPadding, ref int maximumPaddingArrayCount)
     {
-        if (depth > 64 || composite.HasDirectConditionalFields)
+        if (depth > FixedLayoutRule.MaximumNestingDepth || composite.HasDirectConditionalFields)
         {
             return false;
         }
@@ -144,8 +144,7 @@ internal sealed class StaticReadPlan
         foreach (CompiledField field in composite.Fields)
         {
             Field declaration = field.Declaration;
-            if (field.FixedOffset is not int offset || declaration.Condition is not null || declaration.BranchConditions.Count > 0 ||
-                field.PointerDepth > 0 || declaration.BitSize != 0 || field.IsZeroWidthBitfield || declaration.OffsetAssertionExpression is not null)
+            if (!FixedLayoutRule.IsFixedMember(field) || field.FixedOffset is not int offset)
             {
                 return false;
             }
@@ -186,21 +185,14 @@ internal sealed class StaticReadPlan
             {
             case CompiledTypeKind.Struct:
                 {
+                    // The nested struct's own cached plan: built once per composite, shared by every struct that holds it.
                     if (field.Type.Symbol.Definition is not CompiledCompositeType nested ||
-                        nested.Symbol.Declaration is not Struct { IsUnion: false } nestedDeclaration || nested.Symbol.FixedSize is not int nestedSize)
+                        nested.Symbol.Declaration is not Struct { IsUnion: false } nestedDeclaration || nested.Symbol.FixedSize is not int nestedSize ||
+                        nested.StaticPlan is not { } nestedPlan || depth + nestedPlan.NestingDepth > FixedLayoutRule.MaximumNestingDepth)
                     {
                         return false;
                     }
 
-                    var nestedOperations = new List<StaticReadOperation>();
-                    bool nestedHasUnnamedPadding = false;
-                    int nestedMaximumPaddingArrayCount = 0;
-                    if (!TryAppend(nested, nested.Shape, 0, nestedOperations, depth + 1, ref nestedHasUnnamedPadding, ref nestedMaximumPaddingArrayCount))
-                    {
-                        return false;
-                    }
-
-                    var nestedPlan = new StaticReadPlan(nestedSize, nestedOperations.ToArray(), nestedHasUnnamedPadding, nestedMaximumPaddingArrayCount);
                     if (field.Array.Kind == CompiledArrayKind.Scalar)
                     {
                         operations.Add(new StaticReadOperation(StaticReadKind.Nested, slot, absoluteOffset, field, nestedDeclaration, nested, nestedPlan));

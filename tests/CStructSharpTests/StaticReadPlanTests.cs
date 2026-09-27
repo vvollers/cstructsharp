@@ -55,6 +55,22 @@ public class StaticReadPlanTests
         Assert.IsFalse(HasPlan("struct root { utf8 text[4]; };", "root"), "bounded text");
     }
 
+    /// <summary>
+    ///     A struct's plan reuses the cached plan of each nested struct, and a chain of nested structs has a plan down to
+    ///     nesting level 64 (the outermost struct is level 0) and none beyond it.
+    /// </summary>
+    [TestMethod]
+    public void StaticPlan_ReusesNestedPlans_AndStopsAtTheNestingLimit()
+    {
+        var layout = new CStruct("struct leaf { uint8 k; }; struct root { leaf x; leaf y; };");
+        StaticReadPlan root = Composite(layout, "root").StaticPlan!;
+        StaticReadPlan leaf = Composite(layout, "leaf").StaticPlan!;
+        Assert.IsTrue(root.Operations.All(operation => ReferenceEquals(leaf, operation.NestedPlan)));
+
+        Assert.IsTrue(HasPlan(NestedChain(FixedLayoutRule.MaximumNestingDepth), "s0"), "levels 0 to 64");
+        Assert.IsFalse(HasPlan(NestedChain(FixedLayoutRule.MaximumNestingDepth + 1), "s0"), "level 65");
+    }
+
     /// <summary>Full parses, every truncation, every read budget and small limits behave identically through the span (plan) and chunked-stream (general) paths.</summary>
     [TestMethod]
     public void StaticPlan_MatchesGeneralReader_OnValuesFailuresAndPositions()
@@ -144,6 +160,22 @@ public class StaticReadPlanTests
         AssertSameOutcome(zero, [2, 5, 6, 7], null, "two elements");
     }
 
+    /// <summary>Returns a compiled struct of a layout by name.</summary>
+    private static CompiledCompositeType Composite(CStruct layout, string name) => (CompiledCompositeType)layout.CompiledModel.Symbols[name].Symbol.Definition!;
+
+    /// <summary>A chain of structs <c>s0</c> to <c>s{levels}</c>, each holding the next, so <c>s0</c> nests <paramref name="levels"/> levels deep.</summary>
+    private static string NestedChain(int levels)
+    {
+        var text = new System.Text.StringBuilder($"struct s{levels} {{ uint8 v; }};");
+        for (int level = levels - 1; level >= 0; level--)
+        {
+            text.Append($" struct s{level} {{ s{level + 1} next; }};");
+        }
+
+        return text.ToString();
+    }
+
+    /// <summary>Returns whether a struct of a freshly compiled layout gets a static read plan.</summary>
     private static bool HasPlan(string definition, string root, bool aligned = false)
     {
         var layout = new CStruct(definition, aligned: aligned);
@@ -152,7 +184,7 @@ public class StaticReadPlanTests
         return composite.StaticPlan is not null;
     }
 
-    /// <summary>The same input with and without the plan (thread-static test hook) for a span, a MemoryStream without an exposed buffer (block path) and a 5-byte chunked stream.</summary>
+    /// <summary>The same input with and without the plan (the general-only execution path) for a span, a MemoryStream without an exposed buffer (block path) and a 5-byte chunked stream.</summary>
     private static void AssertSameOutcome(CStruct layout, byte[] bytes, ReadOptions? options, string label)
     {
         foreach ((string source, Func<Stream?> create) in new (string, Func<Stream?>)[]

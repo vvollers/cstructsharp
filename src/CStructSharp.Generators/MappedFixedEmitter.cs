@@ -140,16 +140,14 @@ internal static class MappedFixedEmitter
     /// </summary>
     private static bool IsFixed(CompiledCompositeType composite, int depth)
     {
-        if (depth > 64 || composite.IsUnion || composite.Symbol.FixedSize is null || composite.HasDirectConditionalFields)
+        if (depth > FixedLayoutRule.MaximumNestingDepth || !FixedLayoutRule.IsFixedComposite(composite))
         {
             return false;
         }
 
         foreach (CompiledField field in composite.Fields)
         {
-            if (field.FixedOffset is null || field.BitSize != 0 || field.IsZeroWidthBitfield || field.PointerDepth > 0 ||
-                field.Declaration.Condition is not null || field.ConditionalBranches.Length > 0 || field.Declaration.OffsetAssertionExpression is not null ||
-                (field.Array.Kind != CompiledArrayKind.Scalar && (field.Array.Kind != CompiledArrayKind.Fixed || field.Array.Dimensions.Length != 1 || field.Array.FixedCount is null)) ||
+            if (!FixedLayoutRule.IsFixedMember(field) ||
                 (field.Composite is { } nested && !IsFixed(nested, depth + 1)) ||
                 (field.Enum is { IsFlag: true }))
             {
@@ -172,7 +170,7 @@ internal static class MappedFixedEmitter
                 return true;
             }
 
-            if (depth < 64 && composite.PromotedFields.Contains(field) && field.Composite is { IsUnion: false } promoted && field.FixedOffset is int outer &&
+            if (depth < FixedLayoutRule.MaximumNestingDepth && composite.PromotedFields.Contains(field) && field.Composite is { IsUnion: false } promoted && field.FixedOffset is int outer &&
                 TryFindMember(promoted, name, depth + 1, out found, out int inner))
             {
                 offset = outer + inner;

@@ -174,7 +174,7 @@ internal sealed partial class LayoutEmitter
             return known;
         }
 
-        bool writable = depth <= 64 && this.FixedPlanOf(composite, 0) is not null && this.MembersAreFixedWritable(composite, depth);
+        bool writable = depth <= FixedLayoutRule.MaximumNestingDepth && this.FixedPlanOf(composite, 0) is not null && this.MembersAreFixedWritable(composite, depth);
         this.fixedWritable[composite] = writable;
         return writable;
     }
