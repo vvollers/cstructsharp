@@ -132,14 +132,16 @@ public sealed class CStructMappedGenerator : IIncrementalGenerator
                 return new MappedMember(property.Name, layoutName, display, MappedMemberKind.TypedPointer, elementDisplay, nullableValue, initOnly, string.Empty, span);
             }
 
-            if (definition is "System.Collections.Generic.List<T>" or "System.Collections.Generic.IList<T>" or "System.Collections.Generic.ICollection<T>")
+            MappedMemberKind? collection = definition switch
             {
-                return new MappedMember(property.Name, layoutName, display, Unsupported(element, mappedInterface, mappedAttribute) is { } inner ? MappedMemberKind.Unsupported : MappedMemberKind.List, elementDisplay, nullableValue, initOnly, Unsupported(element, mappedInterface, mappedAttribute) ?? string.Empty, span);
-            }
-
-            if (definition is "System.Collections.Generic.IReadOnlyList<T>" or "System.Collections.Generic.IReadOnlyCollection<T>" or "System.Collections.Generic.IEnumerable<T>")
+                "System.Collections.Generic.List<T>" or "System.Collections.Generic.IList<T>" or "System.Collections.Generic.ICollection<T>" => MappedMemberKind.List,
+                "System.Collections.Generic.IReadOnlyList<T>" or "System.Collections.Generic.IReadOnlyCollection<T>" or "System.Collections.Generic.IEnumerable<T>" => MappedMemberKind.ReadOnlyCollection,
+                _ => null,
+            };
+            if (collection is { } kind)
             {
-                return new MappedMember(property.Name, layoutName, display, Unsupported(element, mappedInterface, mappedAttribute) is { } inner ? MappedMemberKind.Unsupported : MappedMemberKind.ReadOnlyCollection, elementDisplay, nullableValue, initOnly, Unsupported(element, mappedInterface, mappedAttribute) ?? string.Empty, span);
+                string? elementUnsupported = Unsupported(element, mappedInterface, mappedAttribute);
+                return new MappedMember(property.Name, layoutName, display, elementUnsupported is null ? kind : MappedMemberKind.Unsupported, elementDisplay, nullableValue, initOnly, elementUnsupported ?? string.Empty, span);
             }
         }
 

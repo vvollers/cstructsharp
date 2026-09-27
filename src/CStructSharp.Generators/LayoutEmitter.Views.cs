@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Linq;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
+using static CStructSharp.Generators.Emit;
 
 /// <summary>
 ///     The views: one <c>readonly ref struct &lt;Type&gt;View</c> per composite over the composite's bytes, with a
@@ -31,6 +32,9 @@ internal sealed partial class LayoutEmitter
 
     private static string ViewName(GeneratedComposite composite) => composite.Name + "View";
 
+    /// <summary>Emits the view of one composite: a <c>ref struct</c> over its bytes whose statically placed members decode on access.</summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="composite">The composite.</param>
     private void EmitView(SourceWriter writer, GeneratedComposite composite)
     {
         string name = ViewName(composite);
@@ -73,7 +77,7 @@ internal sealed partial class LayoutEmitter
 
         writer.Line();
         writer.Line("/// <summary>Reads the whole value with the generated reader (every member, runtime-sized ones included).</summary>");
-        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+        writer.Line(VariablesDoc);
         writer.Line("/// <returns>The value.</returns>");
         writer.Open("public " + composite.Name + " ToObject(" + VariablesType + " variables = null)");
         writer.Line("var cursor = new " + Cursor + "(this.source, this.options, " + layout + ");");
@@ -160,7 +164,7 @@ internal sealed partial class LayoutEmitter
                 PrimitiveCodec storage = PrimitiveCodec.Resolve(member.Enum.Compiled.Integer.StorageType, field.Codec.LittleEndian);
                 writer.Line();
                 writer.Line(summary);
-                writer.Line("public " + member.TypeName + " " + member.PropertyName + " => (" + member.TypeName + ")" + this.NumericDecode(storage, bytes + ".Slice(" + Int(start) + ", " + Int(storage.Size) + ")") + ";");
+                writer.Line("public " + member.TypeName + " " + member.PropertyName + " => (" + member.TypeName + ")" + NumericDecode(storage, bytes + ".Slice(" + Int(start) + ", " + Int(storage.Size) + ")") + ";");
                 return;
             }
 
@@ -168,7 +172,7 @@ internal sealed partial class LayoutEmitter
             {
                 writer.Line();
                 writer.Line(summary);
-                writer.Line("public " + member.TypeName + " " + member.PropertyName + " => " + this.ScalarDecode(field.Codec, bytes + ".Slice(" + Int(start) + ", " + Int(field.Codec.Size) + ")") + ";");
+                writer.Line("public " + member.TypeName + " " + member.PropertyName + " => " + ScalarDecode(field.Codec, bytes + ".Slice(" + Int(start) + ", " + Int(field.Codec.Size) + ")") + ";");
             }
 
             return;
@@ -213,53 +217,18 @@ internal sealed partial class LayoutEmitter
         writer.Line("throw new global::System.ArgumentOutOfRangeException(nameof(index));");
         writer.Close();
         string slice = bytes + ".Slice(" + Int(start) + " + index * " + Int(element.Size) + ", " + Int(element.Size) + ")";
-        writer.Line("return " + (member.Enum is not null ? "(" + elementType + ")" + this.NumericDecode(element, slice) : this.ScalarDecode(element, slice)) + ";");
+        writer.Line("return " + (member.Enum is not null ? "(" + elementType + ")" + NumericDecode(element, slice) : ScalarDecode(element, slice)) + ";");
         writer.Close();
     }
 
     /// <summary>The expression decoding one fixed-width scalar (numeric, identifier, or fixed point) from a span of its size.</summary>
-    private string ScalarDecode(PrimitiveCodec codec, string span)
+    /// <param name="codec">The codec.</param>
+    /// <param name="span">An expression for exactly the value's bytes.</param>
+    /// <returns>The decode expression.</returns>
+    private static string ScalarDecode(PrimitiveCodec codec, string span) => codec.Kind switch
     {
-        string le = Bool(codec.LittleEndian);
-        return codec.Kind switch
-        {
-            PrimitiveCodecKind.Uuid => CodecClass + ".ReadGuid(" + span + ", true)",
-            PrimitiveCodecKind.Guid => CodecClass + ".ReadGuid(" + span + ", false)",
-            PrimitiveCodecKind.Fixed16_16 => CodecClass + ".DecodeFixedPoint(" + CodecClass + ".ReadInt32(" + span + ", " + le + "), 16)",
-            PrimitiveCodecKind.UFixed16_16 => CodecClass + ".DecodeFixedPoint(" + CodecClass + ".ReadUInt32(" + span + ", " + le + "), 16)",
-            PrimitiveCodecKind.Fixed2_30 => CodecClass + ".DecodeFixedPoint(" + CodecClass + ".ReadInt32(" + span + ", " + le + "), 30)",
-            PrimitiveCodecKind.UFixed8_8 => CodecClass + ".DecodeFixedPoint(" + CodecClass + ".ReadUInt16(" + span + ", " + le + "), 8)",
-            _ => this.NumericDecode(codec, span),
-        };
-    }
-
-    /// <summary>The expression decoding one fixed-width numeric from a span of its size (the reader's <c>NumericRead</c> over a span instead of the cursor).</summary>
-    private string NumericDecode(PrimitiveCodec codec, string span)
-    {
-        string le = Bool(codec.LittleEndian);
-        return codec.Kind switch
-        {
-            PrimitiveCodecKind.UInt8 or PrimitiveCodecKind.Latin1 or PrimitiveCodecKind.Cp437 or PrimitiveCodecKind.Utf8Unit or PrimitiveCodecKind.Utf16LeUnit or PrimitiveCodecKind.Utf16BeUnit => span + "[0]",
-            PrimitiveCodecKind.Int8 => "unchecked((sbyte)" + span + "[0])",
-            PrimitiveCodecKind.Bool => span + "[0] != 0",
-            PrimitiveCodecKind.Char => "(char)" + span + "[0]",
-            PrimitiveCodecKind.WChar => CodecClass + ".ReadChar(" + span + ", " + le + ")",
-            PrimitiveCodecKind.Int16 => CodecClass + ".ReadInt16(" + span + ", " + le + ")",
-            PrimitiveCodecKind.UInt16 => CodecClass + ".ReadUInt16(" + span + ", " + le + ")",
-            PrimitiveCodecKind.Int24 => CodecClass + ".ReadInt24(" + span + ", " + le + ")",
-            PrimitiveCodecKind.UInt24 => CodecClass + ".ReadUInt24(" + span + ", " + le + ")",
-            PrimitiveCodecKind.Int32 => CodecClass + ".ReadInt32(" + span + ", " + le + ")",
-            PrimitiveCodecKind.UInt32 => CodecClass + ".ReadUInt32(" + span + ", " + le + ")",
-            PrimitiveCodecKind.Int48 => CodecClass + ".ReadInt48(" + span + ", " + le + ")",
-            PrimitiveCodecKind.UInt48 => CodecClass + ".ReadUInt48(" + span + ", " + le + ")",
-            PrimitiveCodecKind.Int64 => CodecClass + ".ReadInt64(" + span + ", " + le + ")",
-            PrimitiveCodecKind.UInt64 => CodecClass + ".ReadUInt64(" + span + ", " + le + ")",
-            PrimitiveCodecKind.Int128 => CodecClass + ".ReadInt128(" + span + ", " + le + ")",
-            PrimitiveCodecKind.UInt128 => CodecClass + ".ReadUInt128(" + span + ", " + le + ")",
-            PrimitiveCodecKind.Float16 => CodecClass + ".ReadHalf(" + span + ", " + le + ")",
-            PrimitiveCodecKind.Float32 => CodecClass + ".ReadSingle(" + span + ", " + le + ")",
-            PrimitiveCodecKind.Float64 => CodecClass + ".ReadDouble(" + span + ", " + le + ")",
-            _ => throw new InvalidOperationException("Codec is not a fixed-width numeric: " + codec.Kind),
-        };
-    }
+        PrimitiveCodecKind.Uuid => CodecClass + ".ReadGuid(" + span + ", true)",
+        PrimitiveCodecKind.Guid => CodecClass + ".ReadGuid(" + span + ", false)",
+        _ => FixedPoint(codec.Kind) is not null ? FixedPointDecode(codec, span) : NumericDecode(codec, span),
+    };
 }

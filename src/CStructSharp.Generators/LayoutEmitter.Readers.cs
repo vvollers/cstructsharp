@@ -8,6 +8,7 @@ using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
+using static CStructSharp.Generators.Emit;
 
 /// <summary>
 ///     The readers: one <c>Read&lt;Type&gt;(ref ReadCursor, variables)</c> per composite that mirrors the runtime
@@ -17,8 +18,14 @@ using CStructSharp.Syntax;
 internal sealed partial class LayoutEmitter
 {
     private const string Cursor = "global::CStructSharp.Generated.ReadCursor";
-    private const string CodecClass = "global::CStructSharp.Generated.Codec";
     private const string VariablesType = "global::System.Collections.Generic.IReadOnlyDictionary<string, int>?";
+
+    // The variables parameter's type as a cref names it: generic arguments in braces, no nullable marker.
+    private const string VariablesCref = "global::System.Collections.Generic.IReadOnlyDictionary{string, int}";
+
+    // The documentation lines every generated read method shares.
+    private const string VariablesDoc = "/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>";
+    private const string ReadOptionsDoc = "/// <param name=\"options\">The read options; <see langword=\"null\"/> uses the documented defaults.</param>";
 
     // The conditional groups whose selector the reader being emitted has already evaluated (cleared per composite).
     private readonly HashSet<ConditionalGroup> decidedGroups = new(ReferenceEqualityComparer.Instance);
@@ -86,8 +93,6 @@ internal sealed partial class LayoutEmitter
         writer.Close();
     }
 
-    private static string Bool(bool value) => value ? "true" : "false";
-
     /// <summary>Emits input adapters that own pooled buffers and restore seekable stream origins on any failure.</summary>
     /// <param name="writer">The generated source destination.</param>
     /// <param name="composite">The composite whose typed readers are emitted.</param>
@@ -99,8 +104,8 @@ internal sealed partial class LayoutEmitter
         writer.Line();
         writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from the start of <paramref name=\"source\"/> with the generated reader; the same value, and the same failures, as the runtime's <c>Parse</c>.</summary>");
         writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
-        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
-        writer.Line("/// <param name=\"options\">The read options; <see langword=\"null\"/> uses the documented defaults.</param>");
+        writer.Line(VariablesDoc);
+        writer.Line(ReadOptionsDoc);
         writer.Line("/// <returns>The parsed value.</returns>");
         writer.Open("public static " + name + " " + method + "(global::System.ReadOnlySpan<byte> source, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
         writer.Line("var cursor = new " + Cursor + "(source, options, " + SourceWriter.Literal(composite.LayoutName) + ");");
@@ -113,18 +118,18 @@ internal sealed partial class LayoutEmitter
         writer.Close();
         writer.Close();
         writer.Line();
-        writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.ReadOnlySpan{byte}, " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.ReadOptions)\"/>");
+        writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.ReadOnlySpan{byte}, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
         writer.Line("public static " + name + " " + method + "(byte[] source, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
         writer.Line("    => " + method + "(new global::System.ReadOnlySpan<byte>(source ?? throw new global::System.ArgumentNullException(nameof(source))), variables, options);");
         writer.Line();
-        writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.ReadOnlySpan{byte}, " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.ReadOptions)\"/>");
+        writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.ReadOnlySpan{byte}, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
         writer.Line("public static " + name + " " + method + "(global::System.ReadOnlyMemory<byte> source, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
         writer.Line("    => " + method + "(source.Span, variables, options);");
         writer.Line();
         writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from a sequence of segments: a single segment is read in place, several are copied into a pooled buffer bounded by the total read budget.</summary>");
         writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
-        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
-        writer.Line("/// <param name=\"options\">The read options; <see langword=\"null\"/> uses the documented defaults.</param>");
+        writer.Line(VariablesDoc);
+        writer.Line(ReadOptionsDoc);
         writer.Line("/// <returns>The parsed value.</returns>");
         writer.Open("public static " + name + " " + method + "(global::System.Buffers.ReadOnlySequence<byte> source, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
         writer.Open("if (source.IsSingleSegment)");
@@ -141,8 +146,8 @@ internal sealed partial class LayoutEmitter
         writer.Line();
         writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from <paramref name=\"stream\"/>: the stream is buffered up to the total read budget (or its remaining length) and read through the span reader; a seekable stream is left after the value.</summary>");
         writer.Line("/// <param name=\"stream\">The stream, read from its current position.</param>");
-        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
-        writer.Line("/// <param name=\"options\">The read options; <see langword=\"null\"/> uses the documented defaults.</param>");
+        writer.Line(VariablesDoc);
+        writer.Line(ReadOptionsDoc);
         writer.Line("/// <returns>The parsed value.</returns>");
         writer.Open("public static " + name + " " + method + "(global::System.IO.Stream stream, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
         writer.Line("global::System.ArgumentNullException.ThrowIfNull(stream);");
@@ -161,8 +166,8 @@ internal sealed partial class LayoutEmitter
         writer.Line();
         writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from <paramref name=\"stream\"/> with the bytes read by <see cref=\"global::System.IO.Stream.ReadAsync(global::System.Memory{byte}, global::System.Threading.CancellationToken)\"/>: the same buffering and the same reader as the synchronous form; a seekable stream is left after the value (at its origin on failure), a stream that cannot seek is consumed up to the total read budget plus one byte. A stored absolute pointer address counts from the origin, as in the span form.</summary>");
         writer.Line("/// <param name=\"stream\">The stream, read from its current position.</param>");
-        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
-        writer.Line("/// <param name=\"options\">The read options; <see langword=\"null\"/> uses the documented defaults.</param>");
+        writer.Line(VariablesDoc);
+        writer.Line(ReadOptionsDoc);
         writer.Line("/// <param name=\"cancellationToken\">Ends the read while it waits for bytes or at the next boundary the reader checks; linked with the options' token.</param>");
         writer.Line("/// <returns>The parsed value.</returns>");
         writer.Open("public static async global::System.Threading.Tasks.ValueTask<" + name + "> " + method + "Async(global::System.IO.Stream stream, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default)");
@@ -201,9 +206,9 @@ internal sealed partial class LayoutEmitter
         if (isRoot)
         {
             writer.Line();
-            writer.Line("/// <summary>Reads the root declaration (<c>" + composite.LayoutName + "</c>); see <see cref=\"" + method + "(global::System.ReadOnlySpan{byte}, " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.ReadOptions)\"/>.</summary>");
+            writer.Line("/// <summary>Reads the root declaration (<c>" + composite.LayoutName + "</c>); see " + Cref(method + "(global::System.ReadOnlySpan{byte}, " + VariablesCref + ", global::CStructSharp.ReadOptions)") + ".</summary>");
             writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
-            writer.Line("/// <param name=\"options\">The read options; <see langword=\"null\"/> uses the documented defaults.</param>");
+            writer.Line(ReadOptionsDoc);
             writer.Line("/// <returns>The parsed value.</returns>");
             writer.Line("public static " + name + " Parse(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null) => " + method + "(source, null, options);");
             writer.Line();
@@ -213,13 +218,13 @@ internal sealed partial class LayoutEmitter
             writer.Line("/// <inheritdoc cref=\"Parse(global::System.ReadOnlySpan{byte}, global::CStructSharp.ReadOptions)\"/>");
             writer.Line("public static " + name + " Parse(global::System.ReadOnlyMemory<byte> source, global::CStructSharp.ReadOptions? options = null) => " + method + "(source.Span, null, options);");
             writer.Line();
-            writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.Buffers.ReadOnlySequence{byte}, " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.ReadOptions)\"/>");
+            writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.Buffers.ReadOnlySequence{byte}, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
             writer.Line("public static " + name + " Parse(global::System.Buffers.ReadOnlySequence<byte> source, global::CStructSharp.ReadOptions? options = null) => " + method + "(source, null, options);");
             writer.Line();
-            writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.IO.Stream, " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.ReadOptions)\"/>");
+            writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.IO.Stream, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
             writer.Line("public static " + name + " Parse(global::System.IO.Stream stream, global::CStructSharp.ReadOptions? options = null) => " + method + "(stream, null, options);");
             writer.Line();
-            writer.Line("/// <inheritdoc cref=\"" + method + "Async(global::System.IO.Stream, " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.ReadOptions, global::System.Threading.CancellationToken)\"/>");
+            writer.Line("/// <inheritdoc cref=\"" + method + "Async(global::System.IO.Stream, " + VariablesCref + ", global::CStructSharp.ReadOptions, global::System.Threading.CancellationToken)\"/>");
             writer.Line("public static global::System.Threading.Tasks.ValueTask<" + name + "> ParseAsync(global::System.IO.Stream stream, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default) => " + method + "Async(stream, null, options, cancellationToken);");
         }
 
@@ -250,12 +255,12 @@ internal sealed partial class LayoutEmitter
         foreach ((string type, string parameter, string kind) in inputs)
         {
             writer.Line();
-            writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from " + kind + " without throwing for a read, path, or limit failure: <see langword=\"false\"/> and the failure instead. Cancellation and argument errors throw as in <see cref=\"" + method + "(" + type.Replace('<', '{').Replace('>', '}') + ", " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.ReadOptions)\"/>.</summary>");
+            writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from " + kind + " without throwing for a read, path, or limit failure: <see langword=\"false\"/> and the failure instead. Cancellation and argument errors throw as in " + Cref(method + "(" + type.Replace('<', '{').Replace('>', '}') + ", " + VariablesCref + ", global::CStructSharp.ReadOptions)") + ".</summary>");
             writer.Line("/// <param name=\"" + parameter + "\">The input.</param>");
             writer.Line("/// <param name=\"value\">The parsed value, or <see langword=\"null\"/> when the read failed.</param>");
             writer.Line("/// <param name=\"failure\">The failure the throwing form would have raised, or <see langword=\"null\"/>.</param>");
-            writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
-            writer.Line("/// <param name=\"options\">The read options; <see langword=\"null\"/> uses the documented defaults.</param>");
+            writer.Line(VariablesDoc);
+            writer.Line(ReadOptionsDoc);
             writer.Line("/// <returns>Whether the read succeeded.</returns>");
             writer.Open("public static bool Try" + method + "(" + type + " " + parameter + ", " + MaybeNull + "out " + name + " value, out " + Failure + "? failure, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
             writer.Open("try");
@@ -270,15 +275,15 @@ internal sealed partial class LayoutEmitter
             writer.Close();
             writer.Close();
             writer.Line();
-            writer.Line("/// <inheritdoc cref=\"Try" + method + "(" + type.Replace('<', '{').Replace('>', '}') + ", out " + name + ", out " + Failure.Replace('<', '{').Replace('>', '}') + "?, " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.ReadOptions)\"/>");
+            writer.Line("/// <inheritdoc cref=\"Try" + method + "(" + type.Replace('<', '{').Replace('>', '}') + ", out " + name + ", out " + Failure.Replace('<', '{').Replace('>', '}') + "?, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
             writer.Line("public static bool Try" + method + "(" + type + " " + parameter + ", " + MaybeNull + "out " + name + " value, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null) => Try" + method + "(" + parameter + ", out value, out _, variables, options);");
             if (isRoot)
             {
                 writer.Line();
-                writer.Line("/// <inheritdoc cref=\"Try" + method + "(" + type.Replace('<', '{').Replace('>', '}') + ", out " + name + ", out " + Failure.Replace('<', '{').Replace('>', '}') + "?, " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.ReadOptions)\"/>");
+                writer.Line("/// <inheritdoc cref=\"Try" + method + "(" + type.Replace('<', '{').Replace('>', '}') + ", out " + name + ", out " + Failure.Replace('<', '{').Replace('>', '}') + "?, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
                 writer.Line("public static bool TryParse(" + type + " " + parameter + ", " + MaybeNull + "out " + name + " value, out " + Failure + "? failure, global::CStructSharp.ReadOptions? options = null) => Try" + method + "(" + parameter + ", out value, out failure, null, options);");
                 writer.Line();
-                writer.Line("/// <inheritdoc cref=\"Try" + method + "(" + type.Replace('<', '{').Replace('>', '}') + ", out " + name + ", out " + Failure.Replace('<', '{').Replace('>', '}') + "?, " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.ReadOptions)\"/>");
+                writer.Line("/// <inheritdoc cref=\"Try" + method + "(" + type.Replace('<', '{').Replace('>', '}') + ", out " + name + ", out " + Failure.Replace('<', '{').Replace('>', '}') + "?, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
                 writer.Line("public static bool TryParse(" + type + " " + parameter + ", " + MaybeNull + "out " + name + " value, global::CStructSharp.ReadOptions? options = null) => Try" + method + "(" + parameter + ", out value, out _, null, options);");
             }
         }
@@ -724,7 +729,7 @@ internal sealed partial class LayoutEmitter
 
         if (generated.Enum is not null)
         {
-            return "(" + generated.Enum.Name + ")" + this.NumericRead(field.Codec, member, memberType);
+            return "(" + generated.Enum.Name + ")" + NumericRead(field.Codec, member, memberType);
         }
 
         return this.PrimitiveRead(field, member, memberType);
@@ -733,9 +738,14 @@ internal sealed partial class LayoutEmitter
     private string PrimitiveRead(CompiledField field, string member, string memberType)
         => this.PrimitiveRead(field.Codec, field.Type.Symbol.Name, member, memberType);
 
+    /// <summary>The expression that reads one primitive at the cursor: text, an identifier, a LEB128 or fixed-point number, a custom codec's value, or a fixed-width numeric.</summary>
+    /// <param name="codec">The codec.</param>
+    /// <param name="typeName">The layout type name, which selects a custom codec's instance.</param>
+    /// <param name="member">The member-name expression for failures.</param>
+    /// <param name="memberType">The member-type expression for failures.</param>
+    /// <returns>The read expression.</returns>
     private string PrimitiveRead(PrimitiveCodec codec, string typeName, string member, string memberType)
     {
-        string le = Bool(codec.LittleEndian);
         switch (codec.Kind)
         {
         case PrimitiveCodecKind.TerminatedAscii:
@@ -755,50 +765,20 @@ internal sealed partial class LayoutEmitter
         case PrimitiveCodecKind.SLeb128_64:
             return "unchecked((long)cursor.TakeLeb128(64, true, " + member + ", " + memberType + "))";
         case PrimitiveCodecKind.Fixed16_16:
-            return CodecClass + ".DecodeFixedPoint(" + CodecClass + ".ReadInt32(cursor.Take(4, " + member + ", " + memberType + "), " + le + "), 16)";
         case PrimitiveCodecKind.UFixed16_16:
-            return CodecClass + ".DecodeFixedPoint(" + CodecClass + ".ReadUInt32(cursor.Take(4, " + member + ", " + memberType + "), " + le + "), 16)";
         case PrimitiveCodecKind.Fixed2_30:
-            return CodecClass + ".DecodeFixedPoint(" + CodecClass + ".ReadInt32(cursor.Take(4, " + member + ", " + memberType + "), " + le + "), 30)";
         case PrimitiveCodecKind.UFixed8_8:
-            return CodecClass + ".DecodeFixedPoint(" + CodecClass + ".ReadUInt16(cursor.Take(2, " + member + ", " + memberType + "), " + le + "), 8)";
+            return FixedPointDecode(codec, "cursor.Take(" + Int(codec.Size) + ", " + member + ", " + memberType + ")");
         case PrimitiveCodecKind.Custom:
             return "cursor.TakeCustom(CodecInstances.Value[" + Int(this.CodecIndex(typeName)) + "], " + member + ", " + memberType + ")";
         default:
-            return this.NumericRead(codec, member, memberType);
+            return NumericRead(codec, member, memberType);
         }
     }
 
     /// <summary>The expression that decodes one fixed-width numeric value (including the single-byte character units and wide integers).</summary>
-    private string NumericRead(PrimitiveCodec codec, string member, string memberType)
-    {
-        string le = Bool(codec.LittleEndian);
-        string take = "cursor.Take(" + Int(codec.Size) + ", " + member + ", " + memberType + ")";
-        return codec.Kind switch
-        {
-            PrimitiveCodecKind.UInt8 or PrimitiveCodecKind.Latin1 or PrimitiveCodecKind.Cp437 or PrimitiveCodecKind.Utf8Unit or PrimitiveCodecKind.Utf16LeUnit or PrimitiveCodecKind.Utf16BeUnit => take + "[0]",
-            PrimitiveCodecKind.Int8 => "unchecked((sbyte)" + take + "[0])",
-            PrimitiveCodecKind.Bool => take + "[0] != 0",
-            PrimitiveCodecKind.Char => "(char)" + take + "[0]",
-            PrimitiveCodecKind.WChar => CodecClass + ".ReadChar(" + take + ", " + le + ")",
-            PrimitiveCodecKind.Int16 => CodecClass + ".ReadInt16(" + take + ", " + le + ")",
-            PrimitiveCodecKind.UInt16 => CodecClass + ".ReadUInt16(" + take + ", " + le + ")",
-            PrimitiveCodecKind.Int24 => CodecClass + ".ReadInt24(" + take + ", " + le + ")",
-            PrimitiveCodecKind.UInt24 => CodecClass + ".ReadUInt24(" + take + ", " + le + ")",
-            PrimitiveCodecKind.Int32 => CodecClass + ".ReadInt32(" + take + ", " + le + ")",
-            PrimitiveCodecKind.UInt32 => CodecClass + ".ReadUInt32(" + take + ", " + le + ")",
-            PrimitiveCodecKind.Int48 => CodecClass + ".ReadInt48(" + take + ", " + le + ")",
-            PrimitiveCodecKind.UInt48 => CodecClass + ".ReadUInt48(" + take + ", " + le + ")",
-            PrimitiveCodecKind.Int64 => CodecClass + ".ReadInt64(" + take + ", " + le + ")",
-            PrimitiveCodecKind.UInt64 => CodecClass + ".ReadUInt64(" + take + ", " + le + ")",
-            PrimitiveCodecKind.Int128 => CodecClass + ".ReadInt128(" + take + ", " + le + ")",
-            PrimitiveCodecKind.UInt128 => CodecClass + ".ReadUInt128(" + take + ", " + le + ")",
-            PrimitiveCodecKind.Float16 => CodecClass + ".ReadHalf(" + take + ", " + le + ")",
-            PrimitiveCodecKind.Float32 => CodecClass + ".ReadSingle(" + take + ", " + le + ")",
-            PrimitiveCodecKind.Float64 => CodecClass + ".ReadDouble(" + take + ", " + le + ")",
-            _ => throw new InvalidOperationException("Codec is not a fixed-width numeric: " + codec.Kind),
-        };
-    }
+    private static string NumericRead(PrimitiveCodec codec, string member, string memberType)
+        => NumericDecode(codec, "cursor.Take(" + Int(codec.Size) + ", " + member + ", " + memberType + ")");
 
     private static string TerminatedEncoding(PrimitiveCodec codec)
     {
@@ -811,10 +791,14 @@ internal sealed partial class LayoutEmitter
         };
     }
 
+    /// <summary>A character as a C# literal; the terminators <c>\0</c> and <c>\n</c> are escaped.</summary>
+    /// <param name="character">A terminator character.</param>
+    /// <returns>The literal.</returns>
     private static string CharLiteral(char character) => character == '\0' ? "'\\0'" : character == '\n' ? "'\\n'" : "'" + character + "'";
 
-    private static string Int(int value) => value.ToString(CultureInfo.InvariantCulture);
-
+    /// <summary>The composite a field declares in place (an anonymous or tagged inline struct or union), or <see langword="null"/>.</summary>
+    /// <param name="field">The field.</param>
+    /// <returns>The inline composite.</returns>
     private CompiledCompositeType? InlineComposite(CompiledField field)
     {
         if (field.Declaration is not Struct inline)

@@ -181,6 +181,18 @@ public class ReaderParityTests
         RunParity("offset-nested-wrong", Layout.Replace("@2", "@3", StringComparison.Ordinal), "Root = \"root\", " + LittleOne, "root", [0, 1, 2, 3,], new Dictionary<string, int>(), null, "CStructLayoutException");
     }
 
+    /// <summary>
+    ///     Arrays of <c>bool</c> and <c>int8</c> are decoded and encoded in bulk: a fixed struct through the fixed reader
+    ///     and writer, a runtime-sized one member by member. Both match the runtime, and so do the written bytes.
+    /// </summary>
+    [TestMethod]
+    public void BooleanAndSignedByteArrays_MatchTheRuntime()
+    {
+        const string LittleOne = "PointerSize = 1, Aligned = false, LittleEndian = true";
+        RunParity("bulk-fixed", "struct root { bool flags[3]; int8 deltas[2]; uint8 tail; };", "Root = \"root\", " + LittleOne, "root", [1, 0, 1, 0xFF, 2, 9,], new Dictionary<string, int>(), null, null);
+        RunParity("bulk-runtime", "struct root { uint8 n; bool flags[n]; int8 deltas[n]; };", "Root = \"root\", " + LittleOne, "root", [2, 1, 0, 0x80, 0x7F,], new Dictionary<string, int>(), null, null);
+    }
+
     /// <summary>Runs one ad-hoc case through both readers: the value (or the expected failure) and the truncation sweep.</summary>
     internal static void RunParity(string id, string definition, string arguments, string root, byte[] bytes, IReadOnlyDictionary<string, int> fixtureVariables, ReadOptions? options, string? expectedError)
     {

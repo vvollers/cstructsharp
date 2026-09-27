@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
+using static CStructSharp.Generators.Emit;
 
 /// <summary>
 ///     The fixed readers: for a struct whose every member sits at an offset known at build time, a
@@ -98,7 +99,7 @@ internal sealed partial class LayoutEmitter
         {
             // The bulk decode the member-by-member reader applies to the same bytes.
             writer.Line("global::System.ReadOnlySpan<byte> bytes = source.Slice(" + Int(offset) + ", " + Int(count * field.Codec.Size) + ");");
-            writer.Line(BulkDecode(field.Codec, elementType));
+            writer.Line(BulkDecode(field.Codec, elementType, "bytes", "elements"));
         }
         else
         {
@@ -122,7 +123,7 @@ internal sealed partial class LayoutEmitter
         }
 
         string slice = source + ".Slice(" + offset + ", " + Int(field.Codec.Size) + ")";
-        return member.Enum is not null ? "(" + ElementType(member.TypeName, 1) + ")" + this.NumericDecode(field.Codec, slice) : this.NumericDecode(field.Codec, slice);
+        return member.Enum is not null ? "(" + ElementType(member.TypeName, 1) + ")" + NumericDecode(field.Codec, slice) : NumericDecode(field.Codec, slice);
     }
 
     /// <summary>

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
+using static CStructSharp.Generators.Emit;
 
 /// <summary>
 ///     The fixed writers: for a struct with a fixed reader whose members also encode without a possible failure
@@ -116,19 +117,13 @@ internal sealed partial class LayoutEmitter
 
             int count = field.Array.FixedCount ?? throw new InvalidOperationException("Fixed array without a count: " + field.Name);
             PrimitiveCodec codec = field.Codec;
-            bool bulk = member.Composite is null && member.Enum is null && codec.Kind is not (PrimitiveCodecKind.Int24 or PrimitiveCodecKind.UInt24 or PrimitiveCodecKind.Int48 or PrimitiveCodecKind.UInt48 or PrimitiveCodecKind.Char);
+            bool bulk = member.Composite is null && member.Enum is null && CanBulkEncode(codec);
             writer.Open(string.Empty);
             if (bulk)
             {
                 // The bulk encode the member-by-member writer applies, over the array's bytes.
                 writer.Line("global::System.Span<byte> bytes = target.Slice(" + Int(offset) + ", " + Int(count * codec.Size) + ");");
-                if (codec.Kind == PrimitiveCodecKind.Bool)
-                {
-                    // The boolean encoder loops over a count local.
-                    writer.Line("int count = " + Int(count) + ";");
-                }
-
-                writer.Line(BulkEncode(codec, ElementType(member.TypeName, 1), access));
+                writer.Line(BulkEncode(codec, ElementType(member.TypeName, 1), access, "bytes"));
             }
             else
             {

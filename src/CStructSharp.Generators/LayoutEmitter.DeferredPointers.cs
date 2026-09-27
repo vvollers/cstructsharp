@@ -2,6 +2,7 @@ namespace CStructSharp.Generators;
 
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
+using static CStructSharp.Generators.Emit;
 
 /// <summary>
 ///     Deferred pointers in the struct readers: a pointer field's address is read in declaration order, and its

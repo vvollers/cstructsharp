@@ -196,6 +196,11 @@ public partial class CStructExports
         return workerLayout ?? throw new InvalidOperationException("No compiled layout.");
     }
 
+    /// <summary>Serializes the browser's JSON value as the selected root, unwrapping a value still wrapped under the root's name.</summary>
+    /// <param name="cstruct">The compiled layout.</param>
+    /// <param name="dataJson">The value as JSON.</param>
+    /// <param name="options">The browser's options.</param>
+    /// <returns>The serialized bytes.</returns>
     private static byte[] SerializeCore(CStruct cstruct, string dataJson, InteropOptionsDto options)
     {
         ValidateJson(dataJson);
@@ -209,7 +214,7 @@ public partial class CStructExports
             data = inner;
         }
 
-        return cstruct.Serialize(root, data!, options: CreateWriteOptions(options));
+        return cstruct.Serialize(root, data!, options: CreateWriteOptions<WriteOptions>(options));
     }
 
     private static byte[] UpdateCore(CStruct cstruct, byte[] binaryData, string elementNameOrPath, string valueJson, InteropOptionsDto options)

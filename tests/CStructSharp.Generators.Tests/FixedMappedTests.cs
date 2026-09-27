@@ -20,7 +20,7 @@ public class FixedMappedTests
         struct vec { float32 x; float32 y; };
         struct vecb { float32 x; float32 y; uint8 flag; };
         struct rec { uint16 id; uint16> be; kind which; char tag[4]; vec pos; vec path[2]; uint32 samples[3]; int24 small; bool ok; struct { uint8 p; uint8 q; }; float64 last; };
-        struct plain { uint16 id; vec pos; vec path[2]; uint32 samples[3]; bool ok; int8 s; uint64 big; float64 d; struct { uint8 p; uint8 q; }; uint8 raw[3]; };
+        struct plain { uint16 id; vec pos; vec path[2]; uint32 samples[3]; bool ok; int8 s; uint64 big; float64 d; struct { uint8 p; uint8 q; }; uint8 raw[3]; bool flags[2]; int8 deltas[2]; };
         struct other { uint16 id; vecb pos; };
         struct crossed { uint16 id; vec pos; };
         struct dyn { uint8 n; uint8 items[n]; };
@@ -81,6 +81,8 @@ public class FixedMappedTests
             public byte? P { get; set; }
             public byte Q { get; set; }
             public byte[] Raw { get; set; } = [];
+            public bool[] Flags { get; set; } = [];
+            public sbyte[] Deltas { get; set; } = [];
         }
 
         // Maps only part of the struct: readable directly, never written directly.
@@ -163,12 +165,13 @@ public class FixedMappedTests
                 yield return ("null element", Copy(plain, value => value.Path = [new Vec(), null!]));
                 yield return ("null optional", Copy(plain, value => value.P = null));
                 yield return ("long raw", Copy(plain, value => value.Raw = [1, 2, 3, 4]));
+                yield return ("short flags", Copy(plain, value => value.Flags = [true]));
                 yield return ("wrapped", new Dictionary<string, object?> { ["plain"] = plain });
             }
 
             private static Plain Copy(Plain source, Action<Plain> change)
             {
-                var copy = new Plain { Id = source.Id, Pos = source.Pos, Path = source.Path, Samples = source.Samples, Ok = source.Ok, S = source.S, Big = source.Big, D = source.D, P = source.P, Q = source.Q, Raw = source.Raw };
+                var copy = new Plain { Id = source.Id, Pos = source.Pos, Path = source.Path, Samples = source.Samples, Ok = source.Ok, S = source.S, Big = source.Big, D = source.D, P = source.P, Q = source.Q, Raw = source.Raw, Flags = source.Flags, Deltas = source.Deltas };
                 change(copy);
                 return copy;
             }
@@ -187,6 +190,7 @@ public class FixedMappedTests
                 ["path"] = new object[] { new StructValue { ["x"] = 3f, ["y"] = 4f }, new StructValue { ["x"] = 5f, ["y"] = 6f } },
                 ["samples"] = new uint[] { 1, 2, 3 }, ["ok"] = true, ["s"] = (sbyte)-3, ["big"] = ulong.MaxValue, ["d"] = -0.5,
                 ["p"] = (byte)7, ["q"] = (byte)8, ["raw"] = new byte[] { 9, 10, 11 },
+                ["flags"] = new bool[] { true, false }, ["deltas"] = new sbyte[] { -1, 2 },
             };
 
             private static void Reads<T>(CStruct layout, string root, StructValue value, string label, List<string> failures)

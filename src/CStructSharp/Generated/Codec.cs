@@ -726,6 +726,17 @@ public static class Codec
         }
     }
 
+    /// <summary>Encodes booleans as one byte each: 1 for <see langword="true"/>, 0 for <see langword="false"/>.</summary>
+    /// <param name="source">The values to encode.</param>
+    /// <param name="destination">The bytes to write into, at least one per value.</param>
+    public static void EncodeBooleans(ReadOnlySpan<bool> source, Span<byte> destination)
+    {
+        for (int index = 0; index < source.Length; index++)
+        {
+            destination[index] = source[index] ? (byte)1 : (byte)0;
+        }
+    }
+
     /// <summary>Decodes packed signed three-byte integers.</summary>
     /// <param name="source">The bytes to read from.</param>
     /// <param name="destination">The bytes to write into.</param>

@@ -3,6 +3,7 @@ namespace CStructSharp.Generators;
 using System.Globalization;
 using System.Numerics;
 using CStructSharp.Compilation;
+using static CStructSharp.Generators.Emit;
 
 /// <summary>The types: one C# enum per layout enum, one class per struct or union, properties typed per §1.4.</summary>
 internal sealed partial class LayoutEmitter
@@ -56,6 +57,9 @@ internal sealed partial class LayoutEmitter
         };
     }
 
+    /// <summary>Emits the class of one struct or union: its properties (and a union's selection and raw storage), with their documentation.</summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="composite">The composite.</param>
     private void EmitComposite(SourceWriter writer, GeneratedComposite composite)
     {
         string kind = composite.IsUnion ? "union" : "struct";
@@ -87,7 +91,7 @@ internal sealed partial class LayoutEmitter
                 writer.Line("/// <summary>Whether <c>" + member.Field.Name + "</c> was selected by its condition and holds a value.</summary>");
                 writer.Line("public bool " + member.HasFlagName + " { get; set; }");
                 writer.Line();
-                writer.Line("/// <summary><c>" + DescribeDeclaration(member.Field) + "</c> (conditional; see <see cref=\"" + member.HasFlagName + "\"/>).</summary>");
+                writer.Line("/// <summary><c>" + DescribeDeclaration(member.Field) + "</c> (conditional; see " + Cref(member.HasFlagName) + ").</summary>");
                 writer.Line("public " + member.TypeName + (member.IsReferenceType ? "?" : string.Empty) + " " + member.PropertyName + " { get; set; }");
                 continue;
             }

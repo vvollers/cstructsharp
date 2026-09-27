@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Linq;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
+using static CStructSharp.Generators.Emit;
 
 /// <summary>
 ///     The operations beside reading and writing: the root class's <c>ICStructGenerated</c> implementation, the
@@ -41,7 +42,7 @@ internal sealed partial class LayoutEmitter
         string owner = this.request.ClassName;
         string contract = "global::CStructSharp.ICStructGenerated<" + name + ">";
         writer.Line();
-        writer.Line("/// <summary>The root declaration as <see cref=\"" + contract.Replace('<', '{').Replace('>', '}') + "\"/>.</summary>");
+        writer.Line("/// <summary>The root declaration as " + Cref(contract.Replace('<', '{').Replace('>', '}')) + ".</summary>");
         writer.Open("public sealed partial class " + name + " : " + contract);
         writer.Line("/// <inheritdoc/>");
         writer.Line("static global::CStructSharp.CStruct " + contract + ".Layout => " + owner + ".Layout;");
@@ -69,8 +70,8 @@ internal sealed partial class LayoutEmitter
         writer.Line();
         writer.Line("/// <summary>Reads the root declaration with the generated reader and the runtime's debug ranges (the runtime reads the same bytes once more to produce them).</summary>");
         writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
-        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
-        writer.Line("/// <param name=\"options\">The read options; <see langword=\"null\"/> uses the documented defaults.</param>");
+        writer.Line(VariablesDoc);
+        writer.Line(ReadOptionsDoc);
         writer.Line("/// <returns>The parsed value and one <see cref=\"global::CStructSharp.Diagnostics.DebugData\"/> per value read, in read order.</returns>");
         writer.Open("public static (" + name + " Value, global::System.Collections.Generic.IReadOnlyList<global::CStructSharp.Diagnostics.DebugData> Debug) ParseWithDebug(global::System.ReadOnlySpan<byte> source, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
         writer.Line(name + " value = Parse" + name + "(source, variables, options);");
@@ -80,16 +81,16 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <summary>Resolves a path (<c>" + root.LayoutName + ".field</c>, <c>items[2].value</c>, ...) to its byte address with the runtime layout.</summary>");
         writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
         writer.Line("/// <param name=\"path\">The path, in the runtime's path grammar.</param>");
-        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
-        writer.Line("/// <param name=\"options\">The read options; <see langword=\"null\"/> uses the documented defaults.</param>");
+        writer.Line(VariablesDoc);
+        writer.Line(ReadOptionsDoc);
         writer.Line("/// <returns>The address of the selected value.</returns>");
         writer.Line("public static long ResolveAddress(global::System.ReadOnlySpan<byte> source, string path, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.ResolveAddress(source, path, variables, options);");
         writer.Line();
         writer.Line("/// <summary>The element count of an array or string selected by a path, with the runtime layout.</summary>");
         writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
         writer.Line("/// <param name=\"path\">The path, in the runtime's path grammar.</param>");
-        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
-        writer.Line("/// <param name=\"options\">The read options; <see langword=\"null\"/> uses the documented defaults.</param>");
+        writer.Line(VariablesDoc);
+        writer.Line(ReadOptionsDoc);
         writer.Line("/// <returns>The element count.</returns>");
         writer.Line("public static int GetArrayLength(global::System.ReadOnlySpan<byte> source, string path, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.GetArrayLength(source, path, variables, options);");
         writer.Line();
@@ -98,17 +99,17 @@ internal sealed partial class LayoutEmitter
             writer.Line("/// <summary>Reads the root declaration (<c>" + root.LayoutName + "</c>) with the runtime layout and maps it to <typeparamref name=\"T\"/> (a <c>[CStructMapped]</c> class, a <see cref=\"global::CStructSharp.Values.StructValue\"/>, ...) with the conversions of <c>Get&lt;T&gt;</c>: <c>Layout.ReadValue&lt;T&gt;(" + parameter + ", RootName, ...)</c>.</summary>");
             writer.Line("/// <typeparam name=\"T\">The requested type.</typeparam>");
             writer.Line("/// <param name=\"" + parameter + "\">The input.</param>");
-            writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
-            writer.Line("/// <param name=\"options\">The read options; <see langword=\"null\"/> uses the documented defaults.</param>");
+            writer.Line(VariablesDoc);
+            writer.Line(ReadOptionsDoc);
             writer.Line("/// <returns>The mapped value.</returns>");
             writer.Line("public static T ReadValue<T>(" + type + " " + parameter + ", " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.ReadValue<T>(" + parameter + ", RootName, variables, options);");
             writer.Line();
-            writer.Line("/// <summary>The non-throwing form of <see cref=\"ReadValue{T}(" + type.Replace('<', '{').Replace('>', '}') + ", " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.ReadOptions)\"/>: <c>Layout.TryReadValue&lt;T&gt;(" + parameter + ", RootName, out value, ...)</c>.</summary>");
+            writer.Line("/// <summary>The non-throwing form of <see cref=\"ReadValue{T}(" + type.Replace('<', '{').Replace('>', '}') + ", " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>: <c>Layout.TryReadValue&lt;T&gt;(" + parameter + ", RootName, out value, ...)</c>.</summary>");
             writer.Line("/// <typeparam name=\"T\">The requested type.</typeparam>");
             writer.Line("/// <param name=\"" + parameter + "\">The input.</param>");
             writer.Line("/// <param name=\"value\">The mapped value, or the default when the read failed.</param>");
-            writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
-            writer.Line("/// <param name=\"options\">The read options; <see langword=\"null\"/> uses the documented defaults.</param>");
+            writer.Line(VariablesDoc);
+            writer.Line(ReadOptionsDoc);
             writer.Line("/// <returns>Whether the read succeeded.</returns>");
             writer.Line("public static bool TryReadValue<T>(" + type + " " + parameter + ", [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.TryReadValue<T>(" + parameter + ", RootName, out value, variables, options);");
             writer.Line();
@@ -118,7 +119,7 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <param name=\"target\">The bytes holding the value.</param>");
         writer.Line("/// <param name=\"path\">The path, in the runtime's path grammar.</param>");
         writer.Line("/// <param name=\"value\">The new value.</param>");
-        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+        writer.Line(VariablesDoc);
         writer.Line("/// <param name=\"options\">The update options; <see langword=\"null\"/> uses the documented defaults.</param>");
         writer.Line("public static void UpdatePath(global::System.Span<byte> target, string path, object value, " + VariablesType + " variables = null, global::CStructSharp.UpdateOptions? options = null) => Layout.Update(target, path, value, variables, options);");
     }
@@ -134,7 +135,7 @@ internal sealed partial class LayoutEmitter
         writer.Line();
         writer.Line("/// <summary>The runtime's <see cref=\"global::CStructSharp.Values.StructValue\"/> for a generated value: its bytes, parsed by the runtime layout (every member, in the layout's shape). Pointers keep their addresses and are not followed: the value's bytes hold no targets.</summary>");
         writer.Line("/// <param name=\"value\">The value to convert.</param>");
-        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+        writer.Line(VariablesDoc);
         writer.Line("/// <param name=\"options\">The read options for the runtime parse (limits, text trimming); <see langword=\"null\"/> uses the documented defaults.</param>");
         writer.Line("/// <returns>The struct value.</returns>");
         writer.Open("public static global::CStructSharp.Values.StructValue ToStructValue(" + name + " value, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
@@ -160,7 +161,7 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <summary>Maps a generated value to a mapped class through the runtime's <see cref=\"global::CStructSharp.Values.StructValue\"/>: <c>ToMapped&lt;MyRoot&gt;(value)</c>.</summary>");
         writer.Line("/// <typeparam name=\"T\">A class implementing <see cref=\"global::CStructSharp.ICStructMapped{TSelf}\"/>.</typeparam>");
         writer.Line("/// <param name=\"value\">The value to map.</param>");
-        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+        writer.Line(VariablesDoc);
         writer.Line("/// <returns>The mapped instance.</returns>");
         writer.Line("public static T ToMapped<T>(" + name + " value, " + VariablesType + " variables = null)");
         writer.Line("    where T : global::CStructSharp.ICStructMapped<T>");
@@ -169,7 +170,7 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <summary>Serializes a mapped instance as the root declaration through the runtime layout (its <c>WriteTo</c> supplies the members).</summary>");
         writer.Line("/// <typeparam name=\"T\">A class implementing <see cref=\"global::CStructSharp.ICStructMapped{TSelf}\"/>, registered with <see cref=\"global::CStructSharp.MappedTypes\"/>.</typeparam>");
         writer.Line("/// <param name=\"value\">The instance to write.</param>");
-        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+        writer.Line(VariablesDoc);
         writer.Line("/// <param name=\"options\">The write options; <see langword=\"null\"/> uses the documented defaults.</param>");
         writer.Line("/// <returns>The serialized bytes.</returns>");
         writer.Line("public static byte[] SerializeMapped<T>(T value, " + VariablesType + " variables = null, global::CStructSharp.WriteOptions? options = null)");
@@ -179,8 +180,8 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <summary>Reads the root declaration straight into a mapped class through the runtime layout.</summary>");
         writer.Line("/// <typeparam name=\"T\">A class implementing <see cref=\"global::CStructSharp.ICStructMapped{TSelf}\"/>.</typeparam>");
         writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
-        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
-        writer.Line("/// <param name=\"options\">The read options; <see langword=\"null\"/> uses the documented defaults.</param>");
+        writer.Line(VariablesDoc);
+        writer.Line(ReadOptionsDoc);
         writer.Line("/// <returns>The mapped instance.</returns>");
         writer.Line("public static T ParseMapped<T>(global::System.ReadOnlySpan<byte> source, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
         writer.Line("    where T : global::CStructSharp.ICStructMapped<T>");
@@ -376,6 +377,13 @@ internal sealed partial class LayoutEmitter
         }
     }
 
+    /// <summary>
+    ///     Emits the setter of one statically placed member: it stores the value (an array element by index) at the
+    ///     member's constant offset in the caller's bytes and leaves every other byte alone.
+    /// </summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="root">The root composite the member's path starts at.</param>
+    /// <param name="member">The member and its offset.</param>
     private void EmitSetter(SourceWriter writer, GeneratedComposite root, StaticMember member)
     {
         CompiledField field = member.Member.Field;
@@ -424,7 +432,7 @@ internal sealed partial class LayoutEmitter
             }
             else
             {
-                this.EmitPrimitiveWrite(writer, field.Codec, field.Type.Symbol.Name, field.TypeSpelling, "value", memberName, memberType);
+                this.EmitPrimitiveWrite(writer, field.Codec, field.Type.Symbol.Name, "value", memberName, memberType);
             }
         }
 

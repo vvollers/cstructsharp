@@ -8,6 +8,7 @@ using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
+using static CStructSharp.Generators.Emit;
 
 /// <summary>
 ///     The writers: one <c>Encode&lt;Type&gt;(ref WriteCursor, value, variables)</c> per composite that mirrors the
@@ -37,6 +38,13 @@ internal sealed partial class LayoutEmitter
         this.EmitFixedWriters(writer);
     }
 
+    /// <summary>
+    ///     Emits the public writers of one composite: <c>Serialize&lt;Name&gt;</c> into a new array, into a span, and to
+    ///     a stream; the root also gets the unnamed forms.
+    /// </summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="composite">The composite.</param>
+    /// <param name="isRoot">Whether it is the layout's root.</param>
     private void EmitSerializeOverloads(SourceWriter writer, GeneratedComposite composite, bool isRoot)
     {
         string name = composite.Name;
@@ -45,7 +53,7 @@ internal sealed partial class LayoutEmitter
         writer.Line();
         writer.Line("/// <summary>Writes one <c>" + composite.LayoutName + "</c> into a new array with the generated writer; the same bytes, and the same failures, as the runtime's <c>Serialize</c>.</summary>");
         writer.Line("/// <param name=\"value\">The value to write.</param>");
-        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+        writer.Line(VariablesDoc);
         writer.Line("/// <param name=\"options\">The write options; <see langword=\"null\"/> uses the documented defaults.</param>");
         writer.Line("/// <returns>The serialized bytes.</returns>");
         writer.Open("public static byte[] " + method + "(" + name + " value, " + VariablesType + " variables = null, global::CStructSharp.WriteOptions? options = null)");
@@ -66,7 +74,7 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <summary>Writes one <c>" + composite.LayoutName + "</c> into <paramref name=\"destination\"/>; a value that does not fit fails with the runtime's capacity message.</summary>");
         writer.Line("/// <param name=\"value\">The value to write.</param>");
         writer.Line("/// <param name=\"destination\">The bytes to write into.</param>");
-        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+        writer.Line(VariablesDoc);
         writer.Line("/// <param name=\"options\">The write options; <see langword=\"null\"/> uses the documented defaults.</param>");
         writer.Line("/// <returns>The number of bytes written.</returns>");
         writer.Open("public static int " + method + "(" + name + " value, global::System.Span<byte> destination, " + VariablesType + " variables = null, global::CStructSharp.WriteOptions? options = null)");
@@ -84,7 +92,7 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <summary>Writes one <c>" + composite.LayoutName + "</c> to <paramref name=\"stream\"/> at its current position.</summary>");
         writer.Line("/// <param name=\"stream\">The destination stream.</param>");
         writer.Line("/// <param name=\"value\">The value to write.</param>");
-        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+        writer.Line(VariablesDoc);
         writer.Line("/// <param name=\"options\">The write options; <see langword=\"null\"/> uses the documented defaults.</param>");
         writer.Open("public static void Write" + name + "(global::System.IO.Stream stream, " + name + " value, " + VariablesType + " variables = null, global::CStructSharp.WriteOptions? options = null)");
         writer.Line("global::System.ArgumentNullException.ThrowIfNull(stream);");
@@ -98,7 +106,7 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <summary>Writes one <c>" + composite.LayoutName + "</c> to <paramref name=\"stream\"/> with <see cref=\"global::System.IO.Stream.WriteAsync(global::System.ReadOnlyMemory{byte}, global::System.Threading.CancellationToken)\"/>: the value is serialized first (a validation failure writes nothing), then sent in one write.</summary>");
         writer.Line("/// <param name=\"stream\">The writable stream; the current position is the output origin.</param>");
         writer.Line("/// <param name=\"value\">The value to write.</param>");
-        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+        writer.Line(VariablesDoc);
         writer.Line("/// <param name=\"options\">The write options; <see langword=\"null\"/> uses the documented defaults.</param>");
         writer.Line("/// <param name=\"cancellationToken\">Ends the write before the bytes are sent or at the next boundary the writer checks; linked with the options' token.</param>");
         writer.Line("/// <returns>A task that completes when the bytes have been written.</returns>");
@@ -116,7 +124,7 @@ internal sealed partial class LayoutEmitter
         if (isRoot)
         {
             writer.Line();
-            writer.Line("/// <summary>Writes the root declaration (<c>" + composite.LayoutName + "</c>) into a new array; see <see cref=\"" + method + "(" + name + ", " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.WriteOptions)\"/>.</summary>");
+            writer.Line("/// <summary>Writes the root declaration (<c>" + composite.LayoutName + "</c>) into a new array; see " + Cref(method + "(" + name + ", " + VariablesCref + ", global::CStructSharp.WriteOptions)") + ".</summary>");
             writer.Line("/// <param name=\"value\">The value to write.</param>");
             writer.Line("/// <param name=\"options\">The write options; <see langword=\"null\"/> uses the documented defaults.</param>");
             writer.Line("/// <returns>The serialized bytes.</returns>");
@@ -135,7 +143,7 @@ internal sealed partial class LayoutEmitter
             writer.Line("/// <param name=\"options\">The write options; <see langword=\"null\"/> uses the documented defaults.</param>");
             writer.Line("public static void Write(global::System.IO.Stream stream, " + name + " value, global::CStructSharp.WriteOptions? options = null) => Write" + name + "(stream, value, null, options);");
             writer.Line();
-            writer.Line("/// <inheritdoc cref=\"Write" + name + "Async(global::System.IO.Stream, " + name + ", " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.WriteOptions, global::System.Threading.CancellationToken)\"/>");
+            writer.Line("/// <inheritdoc cref=\"Write" + name + "Async(global::System.IO.Stream, " + name + ", " + VariablesCref + ", global::CStructSharp.WriteOptions, global::System.Threading.CancellationToken)\"/>");
             writer.Line("public static global::System.Threading.Tasks.ValueTask WriteAsync(global::System.IO.Stream stream, " + name + " value, global::CStructSharp.WriteOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default) => Write" + name + "Async(stream, value, null, options, cancellationToken);");
         }
     }
@@ -563,12 +571,12 @@ internal sealed partial class LayoutEmitter
         }
 
         PrimitiveCodec codec = field.Codec;
-        bool bulk = field.PointerDepth == 0 && generated.Composite is null && generated.Enum is null && codec.IsFixedWidthNumeric && codec.Kind is not (PrimitiveCodecKind.Int24 or PrimitiveCodecKind.UInt24 or PrimitiveCodecKind.Int48 or PrimitiveCodecKind.UInt48 or PrimitiveCodecKind.Char);
+        bool bulk = field.PointerDepth == 0 && generated.Composite is null && generated.Enum is null && CanBulkEncode(codec);
         if (bulk)
         {
             writer.Open("if (count > 0)");
             writer.Line("global::System.Span<byte> bytes = cursor.Reserve(count * " + Int(codec.Size) + ", " + member + ", " + memberType + ");");
-            writer.Line(BulkEncode(codec, elementType, access));
+            writer.Line(BulkEncode(codec, elementType, access, "bytes"));
             writer.Close();
         }
         else
@@ -698,10 +706,21 @@ internal sealed partial class LayoutEmitter
             return;
         }
 
-        this.EmitPrimitiveWrite(writer, field.Codec, field.Type.Symbol.Name, field.TypeSpelling, access, member, memberType);
+        this.EmitPrimitiveWrite(writer, field.Codec, field.Type.Symbol.Name, access, member, memberType);
     }
 
-    private void EmitPrimitiveWrite(SourceWriter writer, PrimitiveCodec codec, string typeName, string typeSpelling, string access, string member, string memberType)
+    /// <summary>
+    ///     Emits the write of one primitive: text, an identifier, a LEB128 or fixed-point number, a custom codec's value,
+    ///     a range-checked three- or six-byte integer, a one-byte character, or a fixed-width numeric. A value the codec
+    ///     rejects fails naming the member, as the runtime writer does.
+    /// </summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="codec">The codec.</param>
+    /// <param name="typeName">The layout type name, which selects a custom codec's instance.</param>
+    /// <param name="access">The expression holding the value.</param>
+    /// <param name="member">The member-name expression for failures.</param>
+    /// <param name="memberType">The member-type expression for failures.</param>
+    private void EmitPrimitiveWrite(SourceWriter writer, PrimitiveCodec codec, string typeName, string access, string member, string memberType)
     {
         string le = Bool(codec.LittleEndian);
         switch (codec.Kind)
@@ -738,21 +757,10 @@ internal sealed partial class LayoutEmitter
         case PrimitiveCodecKind.Fixed2_30:
         case PrimitiveCodecKind.UFixed8_8:
             {
-                (int width, int fraction, bool signed) = codec.Kind switch
-                {
-                    PrimitiveCodecKind.Fixed16_16 => (32, 16, true),
-                    PrimitiveCodecKind.UFixed16_16 => (32, 16, false),
-                    PrimitiveCodecKind.Fixed2_30 => (32, 30, true),
-                    _ => (16, 8, false),
-                };
+                (int width, int fraction, bool signed) = FixedPoint(codec.Kind)!.Value;
                 writer.Open(string.Empty);
                 writer.Line("long raw;");
-                writer.Open("try");
-                writer.Line("raw = " + CodecClass + ".EncodeFixedPoint(" + access + ", " + Int(width) + ", " + Int(fraction) + ", " + Bool(signed) + ");");
-                writer.Close();
-                writer.Open("catch (global::CStructSharp.Diagnostics.CStructWriteException exception)");
-                writer.Line("throw cursor.WithMember(exception, " + member + ", " + memberType + ");");
-                writer.Close();
+                WithMember(writer, "raw = " + CodecClass + ".EncodeFixedPoint(" + access + ", " + Int(width) + ", " + Int(fraction) + ", " + Bool(signed) + ");", member, memberType);
                 string store = width == 16
                                    ? CodecClass + ".WriteUInt16(cursor.Reserve(2, " + member + ", " + memberType + "), unchecked((ushort)raw), " + le + ");"
                                    : CodecClass + ".WriteUInt32(cursor.Reserve(4, " + member + ", " + memberType + "), unchecked((uint)raw), " + le + ");";
@@ -765,12 +773,7 @@ internal sealed partial class LayoutEmitter
             writer.Line("cursor.WriteCustom(CodecInstances.Value[" + Int(this.CodecIndex(typeName)) + "], " + access + ", " + member + ", " + memberType + ");");
             return;
         case PrimitiveCodecKind.Char:
-            writer.Open("try");
-            writer.Line("cursor.Reserve(1, " + member + ", " + memberType + ")[0] = " + CodecClass + ".ToNarrowCharacter(" + access + ");");
-            writer.Close();
-            writer.Open("catch (global::CStructSharp.Diagnostics.CStructWriteException exception)");
-            writer.Line("throw cursor.WithMember(exception, " + member + ", " + memberType + ");");
-            writer.Close();
+            WithMember(writer, "cursor.Reserve(1, " + member + ", " + memberType + ")[0] = " + CodecClass + ".ToNarrowCharacter(" + access + ");", member, memberType);
             return;
         case PrimitiveCodecKind.Int24:
         case PrimitiveCodecKind.UInt24:
@@ -779,21 +782,9 @@ internal sealed partial class LayoutEmitter
             {
                 // The range is checked before any byte is reserved, so a failure reports the field's start like the runtime
                 // (the codec's own text: the runtime's writer delegate lets a CStructWriteException through unchanged).
-                string method = codec.Kind switch
-                {
-                    PrimitiveCodecKind.Int24 => "WriteInt24",
-                    PrimitiveCodecKind.UInt24 => "WriteUInt24",
-                    PrimitiveCodecKind.Int48 => "WriteInt48",
-                    _ => "WriteUInt48",
-                };
                 writer.Open(string.Empty);
                 writer.Line("global::System.Span<byte> encoded = stackalloc byte[" + Int(codec.Size) + "];");
-                writer.Open("try");
-                writer.Line(CodecClass + "." + method + "(encoded, " + access + ", " + le + ");");
-                writer.Close();
-                writer.Open("catch (global::CStructSharp.Diagnostics.CStructWriteException exception)");
-                writer.Line("throw cursor.WithMember(exception, " + member + ", " + memberType + ");");
-                writer.Close();
+                WithMember(writer, CodecClass + ".Write" + NumericSuffix(codec.Kind) + "(encoded, " + access + ", " + le + ");", member, memberType);
                 writer.Line("encoded.CopyTo(cursor.Reserve(" + Int(codec.Size) + ", " + member + ", " + memberType + "));");
                 writer.Close();
                 return;
@@ -808,48 +799,6 @@ internal sealed partial class LayoutEmitter
     /// <summary>The statement that stores one fixed-width numeric value (whose C# type already fits the codec) at the cursor.</summary>
     private string NumericWrite(PrimitiveCodec codec, string access, string member, string memberType)
         => NumericStore(codec, "cursor.Reserve(" + Int(codec.Size) + ", " + member + ", " + memberType + ")", access);
-
-    /// <summary>The statement that stores one fixed-width numeric value into <paramref name="span"/>, an expression for exactly its bytes.</summary>
-    private static string NumericStore(PrimitiveCodec codec, string span, string access)
-    {
-        string le = Bool(codec.LittleEndian);
-        return codec.Kind switch
-        {
-            PrimitiveCodecKind.UInt8 or PrimitiveCodecKind.Latin1 or PrimitiveCodecKind.Cp437 or PrimitiveCodecKind.Utf8Unit or PrimitiveCodecKind.Utf16LeUnit or PrimitiveCodecKind.Utf16BeUnit => span + "[0] = " + access + ";",
-            PrimitiveCodecKind.Int8 => span + "[0] = unchecked((byte)" + access + ");",
-            PrimitiveCodecKind.Bool => span + "[0] = (byte)(" + access + " ? 1 : 0);",
-            PrimitiveCodecKind.Char => span + "[0] = " + CodecClass + ".ToNarrowCharacter(" + access + ");",
-            PrimitiveCodecKind.WChar => CodecClass + ".WriteChar(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Int16 => CodecClass + ".WriteInt16(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.UInt16 => CodecClass + ".WriteUInt16(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Int24 => CodecClass + ".WriteInt24(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.UInt24 => CodecClass + ".WriteUInt24(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Int32 => CodecClass + ".WriteInt32(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.UInt32 => CodecClass + ".WriteUInt32(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Int48 => CodecClass + ".WriteInt48(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.UInt48 => CodecClass + ".WriteUInt48(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Int64 => CodecClass + ".WriteInt64(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.UInt64 => CodecClass + ".WriteUInt64(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Int128 => CodecClass + ".WriteInt128(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.UInt128 => CodecClass + ".WriteUInt128(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Float16 => CodecClass + ".WriteHalf(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Float32 => CodecClass + ".WriteSingle(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Float64 => CodecClass + ".WriteDouble(" + span + ", " + access + ", " + le + ");",
-            _ => throw new InvalidOperationException("Codec is not a fixed-width numeric: " + codec.Kind),
-        };
-    }
-
-    private static string BulkEncode(PrimitiveCodec codec, string elementType, string access)
-    {
-        string le = Bool(codec.LittleEndian);
-        return codec.Kind switch
-        {
-            PrimitiveCodecKind.UInt8 or PrimitiveCodecKind.Latin1 or PrimitiveCodecKind.Cp437 or PrimitiveCodecKind.Utf8Unit or PrimitiveCodecKind.Utf16LeUnit or PrimitiveCodecKind.Utf16BeUnit => "new global::System.ReadOnlySpan<byte>(" + access + ").CopyTo(bytes);",
-            PrimitiveCodecKind.Int8 => "global::System.Runtime.InteropServices.MemoryMarshal.AsBytes<sbyte>(" + access + ").CopyTo(bytes);",
-            PrimitiveCodecKind.Bool => "for (int index = 0; index < count; index++) { bytes[index] = (byte)(" + access + "[index] ? 1 : 0); }",
-            _ => CodecClass + ".EncodeIntegers<" + elementType + ">(" + access + ", bytes, " + le + ");",
-        };
-    }
 
     /// <summary>The statement that writes a terminated string with the field's encoding and terminator.</summary>
     /// <param name="field">The terminated-text field.</param>

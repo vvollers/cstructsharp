@@ -27,6 +27,8 @@ namespace Demo
                 P = source.TryGetValue("p", out _) ? source.Get<byte>("p") : null,
                 Q = source.Get<byte>("q"),
                 Raw = source.Get<byte[]>("raw"),
+                Flags = source.Get<bool[]>("flags"),
+                Deltas = source.Get<sbyte[]>("deltas"),
             };
         }
 
@@ -51,12 +53,14 @@ namespace Demo
             }
             target["q"] = value.Q;
             target["raw"] = value.Raw;
+            target["flags"] = value.Flags;
+            target["deltas"] = value.Deltas;
         }
 
         /// <summary>Gets the fingerprint of the layout struct <c>plain</c> the direct members below were generated for.</summary>
-        public static ulong FixedLayoutFingerprint => 0x3F67A1BC9AAC48A5UL;
+        public static ulong FixedLayoutFingerprint => 0x2C2C6E51328FA36CUL;
 
-        /// <summary>Reads an instance from the struct's 61 bytes, each property from its member's constant offset: what <see cref="ReadFrom"/> reads from the parsed struct.</summary>
+        /// <summary>Reads an instance from the struct's 65 bytes, each property from its member's constant offset: what <see cref="ReadFrom"/> reads from the parsed struct.</summary>
         /// <param name="source">The struct's bytes.</param>
         /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
         /// <param name="value">The instance when the method returns <see langword="true"/>.</param>
@@ -64,7 +68,7 @@ namespace Demo
         public static bool TryReadFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Plain value)
         {
             value = default!;
-            if (source.Length < 61)
+            if (source.Length < 65)
             {
                 return false;
             }
@@ -85,6 +89,10 @@ namespace Demo
             global::CStructSharp.Generated.Codec.DecodeIntegers<uint>(source.Slice(26, 12), member3, true);
             var member10 = new byte[3];
             source.Slice(58, 3).CopyTo(member10);
+            var member11 = new bool[2];
+            global::CStructSharp.Generated.Codec.DecodeBooleans(source.Slice(61, 2), member11);
+            var member12 = new sbyte[2];
+            source.Slice(63, 2).CopyTo(global::System.Runtime.InteropServices.MemoryMarshal.AsBytes<sbyte>(new global::System.Span<sbyte>(member12)));
             value = new Plain
             {
                 Id = global::CStructSharp.Generated.Codec.ReadUInt16(source.Slice(0, 2), true),
@@ -98,6 +106,8 @@ namespace Demo
                 P = source[56],
                 Q = source[57],
                 Raw = member10,
+                Flags = member11,
+                Deltas = member12,
             };
             return true;
         }
@@ -108,7 +118,7 @@ namespace Demo
         /// <returns><see langword="false"/> when the instance must be written member by member (a null or wrongly sized member, a nested class without direct members).</returns>
         public static bool TryWriteFixed(Plain value, global::System.Span<byte> target)
         {
-            if (value is null || target.Length < 61)
+            if (value is null || target.Length < 65)
             {
                 return false;
             }
@@ -159,6 +169,18 @@ namespace Demo
                 return false;
             }
             new global::System.ReadOnlySpan<byte>(value.Raw).CopyTo(target.Slice(58, 3));
+            // flags
+            if (value.Flags is null || value.Flags.Length != 2)
+            {
+                return false;
+            }
+            global::CStructSharp.Generated.Codec.EncodeBooleans(value.Flags, target.Slice(61, 2));
+            // deltas
+            if (value.Deltas is null || value.Deltas.Length != 2)
+            {
+                return false;
+            }
+            global::System.Runtime.InteropServices.MemoryMarshal.AsBytes<sbyte>(new global::System.ReadOnlySpan<sbyte>(value.Deltas)).CopyTo(target.Slice(63, 2));
             return true;
         }
 

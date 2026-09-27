@@ -355,6 +355,7 @@ namespace CStructSharp.Generated
             where T :  unmanaged { }
         public static void DecodeUInt24(System.ReadOnlySpan<byte> source, System.Span<uint> destination, bool littleEndian) { }
         public static string DecodeWideText(System.ReadOnlySpan<byte> source, bool littleEndian, CStructSharp.ReadOptions? options) { }
+        public static void EncodeBooleans(System.ReadOnlySpan<bool> source, System.Span<byte> destination) { }
         public static long EncodeFixedPoint(object value, int widthBits, int fractionBits, bool signed) { }
         public static void EncodeIntegers<T>(System.ReadOnlySpan<T> source, System.Span<byte> destination, bool littleEndian)
             where T :  unmanaged { }

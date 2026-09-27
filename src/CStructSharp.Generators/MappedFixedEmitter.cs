@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Linq;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
+using static CStructSharp.Generators.Emit;
 
 /// <summary>
 ///     The direct members of a layout-bound mapped class (<c>ICStructFixedMapped&lt;TSelf&gt;</c>): for a
@@ -19,7 +20,6 @@ using CStructSharp.Compilation;
 /// </summary>
 internal static class MappedFixedEmitter
 {
-    private const string Codec = "global::CStructSharp.Generated.Codec";
     private const string Mapped = "global::CStructSharp.MappedTypes";
 
     /// <summary>Plans the direct members of <paramref name="request"/> against <paramref name="composite"/>, or returns <see langword="null"/> when the class cannot have them.</summary>
@@ -197,7 +197,7 @@ internal static class MappedFixedEmitter
             if (type == "s" && field.IsCharacterArray && !field.IsWideCharElement && field.Codec.Size == 1 && field.Array.FixedCount is int length && !member.Member.IsNullableValue)
             {
                 // ReadFrom's Get<string> of a char[N]: one Latin-1 character per byte, TrimFixedText applied.
-                return Codec + ".DecodeFixedText(" + source + ".Slice(" + Int(member.Offset) + ", " + Int(length) + "), trimFixedText)";
+                return CodecClass + ".DecodeFixedText(" + source + ".Slice(" + Int(member.Offset) + ", " + Int(length) + "), trimFixedText)";
             }
 
             return null;
@@ -268,15 +268,7 @@ internal static class MappedFixedEmitter
             string keyword = type.Substring(3);
             writer.Line("var " + local + " = new " + keyword + "[" + Int(count) + "];");
             string bytes = "source.Slice(" + Int(member.Offset) + ", " + Int(count * field.Codec.Size) + ")";
-            writer.Line(field.Codec.Kind switch
-            {
-                PrimitiveCodecKind.UInt8 => bytes + ".CopyTo(" + local + ");",
-                PrimitiveCodecKind.Int8 => bytes + ".CopyTo(global::System.Runtime.InteropServices.MemoryMarshal.AsBytes<sbyte>(new global::System.Span<sbyte>(" + local + ")));",
-                PrimitiveCodecKind.Bool => Codec + ".DecodeBooleans(" + bytes + ", " + local + ");",
-                PrimitiveCodecKind.Int24 => Codec + ".DecodeInt24(" + bytes + ", " + local + ", " + Bool(field.Codec.LittleEndian) + ");",
-                PrimitiveCodecKind.UInt24 => Codec + ".DecodeUInt24(" + bytes + ", " + local + ", " + Bool(field.Codec.LittleEndian) + ");",
-                _ => Codec + ".DecodeIntegers<" + keyword + ">(" + bytes + ", " + local + ", " + Bool(field.Codec.LittleEndian) + ");",
-            });
+            writer.Line(BulkDecode(field.Codec, keyword, bytes, local));
             return;
         }
 
@@ -348,13 +340,7 @@ internal static class MappedFixedEmitter
         {
             string keyword = type.Substring(3);
             string bytes = "target.Slice(" + offset + ", " + Int(count * field.Codec.Size) + ")";
-            writer.Line(field.Codec.Kind switch
-            {
-                PrimitiveCodecKind.UInt8 => "new global::System.ReadOnlySpan<byte>(" + access + ").CopyTo(" + bytes + ");",
-                PrimitiveCodecKind.Int8 => "global::System.Runtime.InteropServices.MemoryMarshal.AsBytes<sbyte>(new global::System.ReadOnlySpan<sbyte>(" + access + ")).CopyTo(" + bytes + ");",
-                PrimitiveCodecKind.Bool => "for (int index = 0; index < " + Int(count) + "; index++) { target[" + offset + " + index] = (byte)(" + access + "[index] ? 1 : 0); }",
-                _ => Codec + ".EncodeIntegers<" + keyword + ">(" + access + ", " + bytes + ", " + Bool(field.Codec.LittleEndian) + ");",
-            });
+            writer.Line(BulkEncode(field.Codec, keyword, access, bytes));
             return;
         }
 
@@ -387,57 +373,32 @@ internal static class MappedFixedEmitter
         };
     }
 
-    /// <summary>The expression decoding one fixed-width number at a constant offset.</summary>
-    private static string Decode(PrimitiveCodec codec, string source, int offset)
+    /// <summary>The expression decoding one fixed-width number at a constant offset; a one-byte value indexes the source directly.</summary>
+    /// <param name="codec">The codec.</param>
+    /// <param name="source">The source span's name.</param>
+    /// <param name="offset">The value's offset in bytes.</param>
+    /// <returns>The decode expression.</returns>
+    private static string Decode(PrimitiveCodec codec, string source, int offset) => codec.Kind switch
     {
-        string span = source + ".Slice(" + Int(offset) + ", " + Int(codec.Size) + ")";
-        string le = Bool(codec.LittleEndian);
-        return codec.Kind switch
-        {
-            PrimitiveCodecKind.UInt8 => source + "[" + Int(offset) + "]",
-            PrimitiveCodecKind.Int8 => "unchecked((sbyte)" + source + "[" + Int(offset) + "])",
-            PrimitiveCodecKind.Bool => "(" + source + "[" + Int(offset) + "] != 0)",
-            PrimitiveCodecKind.Int16 => Codec + ".ReadInt16(" + span + ", " + le + ")",
-            PrimitiveCodecKind.UInt16 => Codec + ".ReadUInt16(" + span + ", " + le + ")",
-            PrimitiveCodecKind.Int24 => Codec + ".ReadInt24(" + span + ", " + le + ")",
-            PrimitiveCodecKind.UInt24 => Codec + ".ReadUInt24(" + span + ", " + le + ")",
-            PrimitiveCodecKind.Int32 => Codec + ".ReadInt32(" + span + ", " + le + ")",
-            PrimitiveCodecKind.UInt32 => Codec + ".ReadUInt32(" + span + ", " + le + ")",
-            PrimitiveCodecKind.Int64 => Codec + ".ReadInt64(" + span + ", " + le + ")",
-            PrimitiveCodecKind.UInt64 => Codec + ".ReadUInt64(" + span + ", " + le + ")",
-            PrimitiveCodecKind.Float32 => Codec + ".ReadSingle(" + span + ", " + le + ")",
-            PrimitiveCodecKind.Float64 => Codec + ".ReadDouble(" + span + ", " + le + ")",
-            _ => throw new InvalidOperationException("Not a fixed-width number: " + codec.Kind),
-        };
-    }
+        PrimitiveCodecKind.UInt8 => source + "[" + Int(offset) + "]",
+        PrimitiveCodecKind.Int8 => "unchecked((sbyte)" + source + "[" + Int(offset) + "])",
+        PrimitiveCodecKind.Bool => "(" + source + "[" + Int(offset) + "] != 0)",
+        _ => NumericDecode(codec, source + ".Slice(" + Int(offset) + ", " + Int(codec.Size) + ")"),
+    };
 
-    /// <summary>The statement encoding one fixed-width number at a constant offset.</summary>
-    private static string Encode(PrimitiveCodec codec, string target, int offset, string access)
+    /// <summary>The statement encoding one fixed-width number at a constant offset; a one-byte value indexes the target directly.</summary>
+    /// <param name="codec">The codec.</param>
+    /// <param name="target">The target span's name.</param>
+    /// <param name="offset">The value's offset in bytes.</param>
+    /// <param name="access">The expression holding the value.</param>
+    /// <returns>The store statement.</returns>
+    private static string Encode(PrimitiveCodec codec, string target, int offset, string access) => codec.Kind switch
     {
-        string span = target + ".Slice(" + Int(offset) + ", " + Int(codec.Size) + ")";
-        string le = Bool(codec.LittleEndian);
-        return codec.Kind switch
-        {
-            PrimitiveCodecKind.UInt8 => target + "[" + Int(offset) + "] = " + access + ";",
-            PrimitiveCodecKind.Int8 => target + "[" + Int(offset) + "] = unchecked((byte)" + access + ");",
-            PrimitiveCodecKind.Bool => target + "[" + Int(offset) + "] = (byte)(" + access + " ? 1 : 0);",
-            PrimitiveCodecKind.Int16 => Codec + ".WriteInt16(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.UInt16 => Codec + ".WriteUInt16(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Int32 => Codec + ".WriteInt32(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.UInt32 => Codec + ".WriteUInt32(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Int64 => Codec + ".WriteInt64(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.UInt64 => Codec + ".WriteUInt64(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Float32 => Codec + ".WriteSingle(" + span + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Float64 => Codec + ".WriteDouble(" + span + ", " + access + ", " + le + ");",
-            _ => throw new InvalidOperationException("Not a directly stored number: " + codec.Kind),
-        };
-    }
-
-    /// <summary>An integer as a C# literal.</summary>
-    private static string Int(int value) => value.ToString(CultureInfo.InvariantCulture);
-
-    /// <summary>A boolean as a C# literal.</summary>
-    private static string Bool(bool value) => value ? "true" : "false";
+        PrimitiveCodecKind.UInt8 => target + "[" + Int(offset) + "] = " + access + ";",
+        PrimitiveCodecKind.Int8 => target + "[" + Int(offset) + "] = unchecked((byte)" + access + ");",
+        PrimitiveCodecKind.Bool => target + "[" + Int(offset) + "] = (byte)(" + access + " ? 1 : 0);",
+        _ => NumericStore(codec, target + ".Slice(" + Int(offset) + ", " + Int(codec.Size) + ")", access),
+    };
 
     /// <summary>A fingerprint as a hexadecimal <c>ulong</c> literal.</summary>
     private static string Hex(ulong value) => "0x" + value.ToString("X16", CultureInfo.InvariantCulture) + "UL";

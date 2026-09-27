@@ -128,9 +128,13 @@ public partial class CStructExports
     }
 
     /// <summary>Creates bounded serialization choices from the browser options object.</summary>
-    private static WriteOptions CreateWriteOptions(InteropOptionsDto options)
+    /// <typeparam name="TOptions">The options type: <see cref="WriteOptions"/>, or <see cref="UpdateOptions"/>, which extends it.</typeparam>
+    /// <param name="options">The browser's options.</param>
+    /// <returns>The options, with every write choice set and bounded.</returns>
+    private static TOptions CreateWriteOptions<TOptions>(InteropOptionsDto options)
+        where TOptions : WriteOptions, new()
     {
-        return new WriteOptions
+        return new TOptions
         {
             AddressingMode = ParseAddressingMode(options.AddressingMode),
             UnknownMembers = ParseEnumOption<UnknownMemberPolicy>(options.UnknownMembers, "unknownMembers"),
@@ -158,19 +162,13 @@ public partial class CStructExports
         };
     }
 
-    /// <summary>Creates bounded update and traversal choices from the browser options object.</summary>
+    /// <summary>Creates bounded update and traversal choices from the browser options object: the write choices, then the update's own.</summary>
+    /// <param name="options">The browser's options.</param>
+    /// <returns>The options, with every choice set and bounded.</returns>
     private static UpdateOptions CreateUpdateOptions(InteropOptionsDto options)
     {
-        WriteOptions write = CreateWriteOptions(options);
-        return new UpdateOptions
+        return CreateWriteOptions<UpdateOptions>(options) with
         {
-            AddressingMode = write.AddressingMode,
-            UnknownMembers = write.UnknownMembers,
-            MaxArrayElements = write.MaxArrayElements,
-            MaxStringBytes = write.MaxStringBytes,
-            MaxTotalBytesWritten = write.MaxTotalBytesWritten,
-            MaxNestingDepth = write.MaxNestingDepth,
-            Origin = write.Origin,
             DereferencePointers = options.DereferencePointers ?? true,
             RequireExistingPointerTarget = options.RequireExistingPointerTarget ?? true,
             ClearUnionStorage = options.ClearUnionStorage ?? true,

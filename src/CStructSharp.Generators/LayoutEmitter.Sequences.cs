@@ -2,6 +2,7 @@ namespace CStructSharp.Generators;
 
 using System.Globalization;
 using CStructSharp.Diagnostics;
+using static CStructSharp.Generators.Emit;
 
 /// <summary>
 ///     Record sequences: <c>Records&lt;Name&gt;</c> over memory, a segmented sequence, or a stream and
@@ -43,6 +44,13 @@ internal sealed partial class LayoutEmitter
     private string RecordSize(GeneratedComposite composite)
         => composite.Composite.Symbol.FixedSize is not null ? "Sizes." + composite.Name : this.RecordStride(composite) is { } stride ? stride.ToString(CultureInfo.InvariantCulture) : "null";
 
+    /// <summary>
+    ///     Emits the record readers of one composite: <c>Records&lt;Name&gt;</c> over memory, a sequence, and a stream
+    ///     (synchronous and asynchronous), each yielding one value per record; the root also gets <c>Records</c>.
+    /// </summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="composite">The composite.</param>
+    /// <param name="isRoot">Whether it is the layout's root, which gets the unnamed forms.</param>
     private void EmitRecords(SourceWriter writer, GeneratedComposite composite, bool isRoot)
     {
         string name = composite.Name;
@@ -50,7 +58,7 @@ internal sealed partial class LayoutEmitter
         string layout = SourceWriter.Literal(composite.LayoutName);
         string size = this.RecordSize(composite);
         string reader = "global::CStructSharp.Generated.RecordReader<" + name + ">";
-        string cref = VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}");
+        string cref = VariablesCref;
         int? stride = this.RecordStride(composite);
         string pointerRule = stride is null
             ? "a runtime-sized <c>" + composite.LayoutName + "</c> advances by the bytes the previous record consumed"
@@ -58,15 +66,15 @@ internal sealed partial class LayoutEmitter
         writer.Line();
         writer.Line("/// <summary>Reads the records of <paramref name=\"source\"/> - one <c>" + composite.LayoutName + "</c> after another until the memory ends - on the enumeration step that reaches each; " + pointerRule + ". Trailing bytes shorter than one record fail on the step that meets them; a failure names the record by its index before the path (<c>[3]." + composite.LayoutName + "</c>). Each record is its own region: the read limits apply per record and a stored absolute pointer address counts from the record's first byte.</summary>");
         writer.Line("/// <param name=\"source\">The bytes of the records, with nothing else after them.</param>");
-        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+        writer.Line(VariablesDoc);
         writer.Line("/// <param name=\"options\">The read options each record is read with; <see langword=\"null\"/> uses the documented defaults.</param>");
         writer.Line("/// <returns>The records, read as they are enumerated.</returns>");
         writer.Line("public static " + Enumerable + name + "> " + method + "(global::System.ReadOnlyMemory<byte> source, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
         writer.Line("    => " + Sequence + ".FromMemory(source, " + size + ", " + layout + ", options, " + name + "RecordReader(variables));");
         writer.Line();
-        writer.Line("/// <summary>Reads the records of a sequence of segments (one segment in place, several through one pooled copy that lives as long as the enumeration); see <see cref=\"" + method + "(global::System.ReadOnlyMemory{byte}, " + cref + ", global::CStructSharp.ReadOptions)\"/>.</summary>");
+        writer.Line("/// <summary>Reads the records of a sequence of segments (one segment in place, several through one pooled copy that lives as long as the enumeration); see " + Cref(method + "(global::System.ReadOnlyMemory{byte}, " + cref + ", global::CStructSharp.ReadOptions)") + ".</summary>");
         writer.Line("/// <param name=\"source\">The bytes of the records, with nothing else after them.</param>");
-        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+        writer.Line(VariablesDoc);
         writer.Line("/// <param name=\"options\">The read options each record is read with; <see langword=\"null\"/> uses the documented defaults.</param>");
         writer.Line("/// <returns>The records, read as they are enumerated.</returns>");
         writer.Line("public static " + Enumerable + name + "> " + method + "(global::System.Buffers.ReadOnlySequence<byte> source, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
@@ -74,9 +82,9 @@ internal sealed partial class LayoutEmitter
         writer.Line();
         writer.Line("/// <summary>Reads the records of a stream from its current position: " + (stride is null
             ? "through a pooled window of the bytes left (at most the total read budget plus one) that refills from the start of a record it could not hold, which needs a seekable stream"
-            : "exactly one record at a time, byte-exact, from any readable stream") + "; a seekable stream sits at the record's end after each step. See <see cref=\"" + method + "(global::System.ReadOnlyMemory{byte}, " + cref + ", global::CStructSharp.ReadOptions)\"/>.</summary>");
+            : "exactly one record at a time, byte-exact, from any readable stream") + "; a seekable stream sits at the record's end after each step. See " + Cref(method + "(global::System.ReadOnlyMemory{byte}, " + cref + ", global::CStructSharp.ReadOptions)") + ".</summary>");
         writer.Line("/// <param name=\"stream\">The stream, read from its current position.</param>");
-        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+        writer.Line(VariablesDoc);
         writer.Line("/// <param name=\"options\">The read options each record is read with; <see langword=\"null\"/> uses the documented defaults.</param>");
         writer.Line("/// <returns>The records, read as they are enumerated.</returns>");
         writer.Open("public static " + Enumerable + name + "> " + method + "(global::System.IO.Stream stream, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
@@ -84,9 +92,9 @@ internal sealed partial class LayoutEmitter
         writer.Line("return " + Sequence + ".FromStream(stream, " + size + ", " + layout + ", options, " + name + "RecordReader(variables));");
         writer.Close();
         writer.Line();
-        writer.Line("/// <summary>Reads the records of a stream with <see cref=\"global::System.IO.Stream.ReadAsync(global::System.Memory{byte}, global::System.Threading.CancellationToken)\"/>, for <c>await foreach</c>; the rules of <see cref=\"" + method + "(global::System.IO.Stream, " + cref + ", global::CStructSharp.ReadOptions)\"/>, with the token linked to the options' token.</summary>");
+        writer.Line("/// <summary>Reads the records of a stream with <see cref=\"global::System.IO.Stream.ReadAsync(global::System.Memory{byte}, global::System.Threading.CancellationToken)\"/>, for <c>await foreach</c>; the rules of " + Cref(method + "(global::System.IO.Stream, " + cref + ", global::CStructSharp.ReadOptions)") + ", with the token linked to the options' token.</summary>");
         writer.Line("/// <param name=\"stream\">The stream, read from its current position.</param>");
-        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+        writer.Line(VariablesDoc);
         writer.Line("/// <param name=\"options\">The read options each record is read with; <see langword=\"null\"/> uses the documented defaults.</param>");
         writer.Line("/// <param name=\"cancellationToken\">Ends the enumeration while it waits for bytes, between records, or at the next boundary the reader checks.</param>");
         writer.Line("/// <returns>The records, read as they are enumerated.</returns>");
@@ -154,7 +162,7 @@ internal sealed partial class LayoutEmitter
         string layout = SourceWriter.Literal(composite.LayoutName);
         string stride = size.ToString(CultureInfo.InvariantCulture);
         writer.Line();
-        writer.Line("/// <summary>The records <see cref=\"" + view + ".Enumerate\"/> walks: a <c>foreach</c> source whose enumerator yields one <see cref=\"" + view + "\"/> per <c>" + composite.LayoutName + "</c>, allocating nothing.</summary>");
+        writer.Line("/// <summary>The records " + Cref(view + ".Enumerate") + " walks: a <c>foreach</c> source whose enumerator yields one " + Cref(view) + " per <c>" + composite.LayoutName + "</c>, allocating nothing.</summary>");
         writer.Open("public readonly ref struct " + view + "Enumerable");
         writer.Line("private readonly global::System.ReadOnlySpan<byte> source;");
         writer.Line("private readonly global::CStructSharp.ReadOptions? options;");

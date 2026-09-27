@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 52,
+  "baselineRevision": 53,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.10.0",
@@ -14,22 +14,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 1090,
-    "normalizedSha256": "19083F9680D21E2B59AB469D4F764E859A8276B769502D35EEF0A15087C486E7"
+    "lines": 1091,
+    "normalizedSha256": "607BC21A02D4FB62A51A64D02939ED609D7617B6670C48807489CF8AD6115D4A"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "136E28AC34E98C0DD11C5921DD44C8F7866C18F29FEBDE6EEA8515702378C22C",
+      "normalizedSha256": "FB3F50A3262AAFD55951F867B5D153C97CCF220B492FE5518DEE8599F7BB46B9",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "FD919A5A1CB3EE8434E7A95851A548DD7462C6D4B3DFB799006425E8D28BCF70",
+      "normalizedSha256": "83456C27B310BC62526E2D289D3ADAE63B98420FF05A918CC5EA90501E4B6A6B",
       "aotCompatible": true
     }
   ],
@@ -501,6 +501,15 @@
       "combinedSha256": "FDBA12B3C478D36BDA622E9281E29EDD44B5F5ED871C104BAF57E9109409BEE6",
       "rationale": "Generated writers format their data-dependent failures (too many elements, a length mismatch, raw union storage of the wrong size, an unknown union member) through the runtime's diagnostic catalog via four WriteCursor helpers, instead of copying the runtime's texts into generated code.",
       "releaseImpact": "Four additive generated-support members; messages are unchanged, so existing generated code keeps working."
+    },
+    {
+      "revision": 53,
+      "kind": "additive",
+      "date": "2026-09-27",
+      "packageVersion": "0.10.0",
+      "combinedSha256": "9B2B037D55C03CC12A0C84C0622AFD4B8AECF1993D5CFDAA71CBC29CB3E805A8",
+      "rationale": "Generated writers encode a bool array with Codec.EncodeBooleans, the counterpart of DecodeBooleans, so every bulk array encode is one call.",
+      "releaseImpact": "One additive generated-support member; existing generated code keeps its loop and still works."
     }
   ]
 }

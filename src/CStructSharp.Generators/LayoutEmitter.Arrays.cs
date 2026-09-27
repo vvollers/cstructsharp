@@ -8,6 +8,7 @@ using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
+using static CStructSharp.Generators.Emit;
 
 /// <summary>Array members: the element count (fixed, from an expression, to the end of the input, or terminated), the runtime's limits, and the element loop or bulk decode.</summary>
 internal sealed partial class LayoutEmitter
@@ -82,7 +83,7 @@ internal sealed partial class LayoutEmitter
                 // block reader for a multidimensional one, the per-element loop inside a union.
                 string take = inUnion ? "TakeElements" : field.Array.Dimensions.Length > 1 ? "TakeInBlocks" : "TakeArray";
                 writer.Line("global::System.ReadOnlySpan<byte> bytes = cursor." + take + "(count, " + Int(codec.Size) + ", " + member + ", " + memberType + ");");
-                writer.Line(BulkDecode(codec, elementType));
+                writer.Line(BulkDecode(codec, elementType, "bytes", "elements"));
                 writer.Close();
             }
             else if (!inUnion && this.deferredPointers.TryGetValue(field, out DeferredPointer? deferred))
@@ -177,26 +178,6 @@ internal sealed partial class LayoutEmitter
         }
 
         return element;
-    }
-
-    /// <summary>Builds a bulk array decoder using a writable destination on both older and newer compiler hosts.</summary>
-    /// <param name="codec">The element codec, including its byte order.</param>
-    /// <param name="elementType">The generated C# element type.</param>
-    /// <returns>A statement that decodes bytes into the existing elements array.</returns>
-    private static string BulkDecode(PrimitiveCodec codec, string elementType)
-    {
-        string le = Bool(codec.LittleEndian);
-        return codec.Kind switch
-        {
-            PrimitiveCodecKind.UInt8 => "bytes.CopyTo(elements);",
-
-            // An explicit writable span avoids C# 14 preferring the ReadOnlySpan overload for an array.
-            PrimitiveCodecKind.Int8 => "bytes.CopyTo(global::System.Runtime.InteropServices.MemoryMarshal.AsBytes<sbyte>(new global::System.Span<sbyte>(elements)));",
-            PrimitiveCodecKind.Bool => CodecClass + ".DecodeBooleans(bytes, elements);",
-            PrimitiveCodecKind.Int24 => CodecClass + ".DecodeInt24(bytes, elements, " + le + ");",
-            PrimitiveCodecKind.UInt24 => CodecClass + ".DecodeUInt24(bytes, elements, " + le + ");",
-            _ => CodecClass + ".DecodeIntegers<" + elementType + ">(bytes, elements, " + le + ");",
-        };
     }
 
     /// <summary>The expression that reads a terminated string with the field's encoding and terminator.</summary>
@@ -339,7 +320,7 @@ internal sealed partial class LayoutEmitter
         {
             writer.Open("if (count > 0)");
             writer.Line("global::System.ReadOnlySpan<byte> bytes = cursor.TakeArray(count, " + Int(element.Codec.Size) + ", " + member + ", " + memberType + ");");
-            writer.Line(BulkDecode(element.Codec, elementType));
+            writer.Line(BulkDecode(element.Codec, elementType, "bytes", "elements"));
             writer.Close();
             return "elements";
         }
@@ -374,7 +355,7 @@ internal sealed partial class LayoutEmitter
         {
             // An enum target is stored as its integer type.
             PrimitiveCodec storage = PrimitiveCodec.Resolve(shape.Enum.Compiled.Integer.StorageType, this.request.Settings.LittleEndian);
-            return "(" + shape.Enum.Name + ")" + this.NumericRead(storage, member, memberType);
+            return "(" + shape.Enum.Name + ")" + NumericRead(storage, member, memberType);
         }
 
         PrimitiveCodec target = PrimitiveCodec.Resolve(field.Type.Symbol.Name, this.request.Settings.LittleEndian);

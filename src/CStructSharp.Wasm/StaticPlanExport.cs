@@ -37,7 +37,7 @@ public partial class CStructExports
             InteropOptionsDto options = ParseOptions(optionsJson);
             CStruct cstruct = CreateCStruct(definition, options);
             string root = ResolveRoot(cstruct, options);
-            return DescribeStaticPlan(cstruct, root) ?? string.Empty;
+            return DescribeStaticPlan(cstruct, root, CreateReadOptions(options)) ?? string.Empty;
         }
         catch (Exception exception) when (exception is CStructException or ArgumentException or InvalidOperationException)
         {
@@ -45,7 +45,15 @@ public partial class CStructExports
         }
     }
 
-    internal static string? DescribeStaticPlan(CStruct cstruct, string root)
+    /// <summary>
+    ///     The static read plan of <paramref name="root"/> as JSON, or <see langword="null"/> when the root is not a fully
+    ///     fixed struct or the read's own limits do not cover the plan (the parse then takes the general reader).
+    /// </summary>
+    /// <param name="cstruct">The compiled layout.</param>
+    /// <param name="root">The root declaration.</param>
+    /// <param name="options">The read's options, as the parse will use them.</param>
+    /// <returns>The plan's JSON, or <see langword="null"/>.</returns>
+    internal static string? DescribeStaticPlan(CStruct cstruct, string root, ReadOptions options)
     {
         if (!cstruct.CompiledModel.Symbols.TryGetValue(root, out CompiledTypeReference entry) ||
             entry.Symbol.Definition is not CompiledCompositeType composite ||
@@ -55,9 +63,7 @@ public partial class CStructExports
             return null;
         }
 
-        var defaults = new ReadOptions();
-        if (plan.NestingDepth > defaults.MaxNestingDepth || plan.MaximumArrayCount > defaults.MaxArrayElements ||
-            plan.Size > defaults.MaxTotalBytesRead)
+        if (!ReadOperationSettings.SnapshotReadOptions(options).CoversPlan(plan))
         {
             return null;
         }
