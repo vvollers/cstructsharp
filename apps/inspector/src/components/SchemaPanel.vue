@@ -4,6 +4,7 @@ import LayoutEditor from "./LayoutEditor.vue";
 import SchemaSettings, { type SchemaSettingsValues } from "./SchemaSettings.vue";
 import type { InspectorExample } from "../schema-catalog";
 import type { ParseWithDebugOptions } from "@cstructsharp/app-shared/wasm/contract";
+import { OPTION_DEFAULTS } from "@cstructsharp/app-shared/options";
 
 const props = defineProps<{
   disabled: boolean;
@@ -24,6 +25,11 @@ const options = ref<SchemaSettingsValues>(initialOptions());
 // a setting changes. `deep` also detects edits to individual properties inside the options object.
 watch(options, () => emit("settings-change"), { deep: true });
 
+/**
+ * The settings a schema starts with: the example's parser options and root, and the library defaults for the
+ * read limits.
+ * @returns The initial settings.
+ */
 function initialOptions(): SchemaSettingsValues {
   const defaults = props.example?.parserOptions;
 
@@ -34,11 +40,11 @@ function initialOptions(): SchemaSettingsValues {
     pointerSize: defaults?.pointerSize ?? 8,
     addressingMode: defaults?.addressingMode ?? "Absolute",
     origin: "0",
-    dereferencePointers: true,
-    maxArrayElements: 1_000_000,
-    maxStringBytes: 16 * 1024 * 1024,
-    maxTotalBytesRead: 64 * 1024 * 1024,
-    maxNestingDepth: 256,
+    dereferencePointers: OPTION_DEFAULTS.dereferencePointers,
+    maxArrayElements: OPTION_DEFAULTS.maxArrayElements,
+    maxStringBytes: OPTION_DEFAULTS.maxStringBytes,
+    maxTotalBytesRead: OPTION_DEFAULTS.maxTotalBytesRead,
+    maxNestingDepth: OPTION_DEFAULTS.maxNestingDepth,
   };
 }
 

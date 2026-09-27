@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref, watch } from "vue";
 import type { editor } from "monaco-editor/editor";
-import { formatLayout } from "../format-layout";
+import { formatLayout } from "@cstructsharp/app-shared/format-layout";
 
 const props = defineProps<{
   modelValue: string;

@@ -19,4 +19,13 @@ describe("formatLayout", () => {
     expect(formatLayout('char value[sizeof("a;{b}")];')).toBe('char value[sizeof("a;{b}")];');
     expect(formatLayout(result)).toBe(result);
   });
+  it("puts each enum and flag value on its own line, but not the commas inside parentheses", () => {
+    expect(formatLayout("enum kind : uint8 { A = 1, B = (1, 2) };")).toBe(
+      "enum kind : uint8 {\n    A = 1,\n    B = (1, 2)\n};",
+    );
+    expect(formatLayout("flag access : uint16 { READ, WRITE };")).toBe(
+      "flag access : uint16 {\n    READ,\n    WRITE\n};",
+    );
+    expect(formatLayout("struct root { uint8 a, b; };")).toBe("struct root {\n    uint8 a, b;\n};");
+  });
 });

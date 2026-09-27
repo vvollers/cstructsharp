@@ -1,6 +1,7 @@
 import type { OperationRequest } from "./components/OperationPanel.vue";
 import type { InteropResult } from "@cstructsharp/app-shared/wasm/contract";
 import { hexToBytes } from "@cstructsharp/app-shared/hex";
+import { OPTION_DEFAULTS } from "@cstructsharp/app-shared/options";
 
 const csString = (value: string) => JSON.stringify(value);
 const csText = (value: string) => '@"' + value.replace(/"/g, '""') + '"';
@@ -13,29 +14,7 @@ const comment = (value: string) =>
     .join("\n");
 
 // Defaults shared by the managed APIs and the public browser wrapper.
-const defaults: Record<string, unknown> = {
-  root: null,
-  pointerSize: 8,
-  aligned: false,
-  littleEndian: true,
-  addressingMode: "Absolute",
-  origin: 0,
-  dereferencePointers: true,
-  maxPointerDepth: 64,
-  maxPointerTargetBytes: null,
-  maxArrayElements: 1000000,
-  maxStringBytes: 16777216,
-  maxNestingDepth: 256,
-  maxTotalBytesRead: 67108864,
-  maxTotalBytesWritten: 67108864,
-  requireExistingPointerTarget: true,
-  clearUnionStorage: true,
-  maxTraversalPointerDepth: 64,
-  maxTraversalPointerTargetBytes: null,
-  maxTraversalStringBytes: 16777216,
-  maxTraversalBytesRead: 67108864,
-  maxTraversalNestingDepth: 256,
-};
+const defaults: Record<string, unknown> = OPTION_DEFAULTS;
 const readOnlyOptions = new Set(["maxPointerDepth", "maxPointerTargetBytes", "maxTotalBytesRead"]);
 const updateOnlyOptions = new Set([
   "requireExistingPointerTarget",

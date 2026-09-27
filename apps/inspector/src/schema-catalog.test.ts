@@ -7,7 +7,7 @@ import {
   detectorExtensions,
   sampleExamples,
 } from "./schema-catalog";
-import { formatLayout } from "./format-layout";
+import { formatLayout } from "@cstructsharp/app-shared/format-layout";
 
 describe("standalone schema catalog", () => {
   it("lists each extension once and attaches samples through their declared extension", () => {

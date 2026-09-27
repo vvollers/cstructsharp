@@ -4,6 +4,7 @@ import { computed, ref, watch } from "vue";
 import { VueHex } from "vuehex";
 
 import type { DebugItem, InteropResult } from "@cstructsharp/app-shared/wasm/contract";
+import { errorRecoveryHint } from "@cstructsharp/app-shared/error-hints";
 import { formatParsedJson } from "../format-parsed-json";
 import LayoutEditor from "./LayoutEditor.vue";
 
@@ -79,28 +80,13 @@ function formatDebug(item: DebugItem): string {
   return `${item.path || "value"} · ${item.type} · value ${value} · offset ${item.start} · width ${item.end - item.start} bytes · bytes ${item.start}–${Math.max(item.start, item.end - 1)}`;
 }
 
-const recovery = computed(() => {
-  const hints: Record<string, string> = {
-    "invalid-layout":
-      "Check the declaration spelling and supported layout syntax. C headers may need translation.",
-    "invalid-path":
-      "Check the root and field names, including their letter case. Use dots between nested fields.",
-    "read-failed":
-      "Check that all required bytes are present and that the selected root, byte order, and pointer settings match the format.",
-    "read-budget":
-      "Compare the expected field sizes with Safety limits. Increase a limit only when the format requires that amount of data.",
-    "write-failed":
-      "Check the JSON field names, numeric ranges, and text capacity. An update cannot move later fields.",
-    "write-budget":
-      "Check the output size against Safety limits before increasing the allowed work.",
-    "browser-error":
-      "Check that bytes are pairs of hexadecimal digits and the value is valid JSON.",
-  };
-  return (
-    hints[props.result?.error?.code ?? ""] ??
-    "Review the code, path, and offset below and compare with the lesson's original inputs."
-  );
-});
+const recovery = computed(() =>
+  errorRecoveryHint(props.result?.error?.code, {
+    limits: "Safety limits",
+    fallback:
+      "Review the code, path, and offset below and compare with the lesson's original inputs.",
+  }),
+);
 
 function handleBytesEdited(bytes: Uint8Array): void {
   editorBytes.value = bytes;

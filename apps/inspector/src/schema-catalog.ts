@@ -1,4 +1,4 @@
-import { formatLayout } from "./format-layout";
+import { formatLayout } from "@cstructsharp/app-shared/format-layout";
 
 export interface FormatParserOptions {
   aligned: boolean;

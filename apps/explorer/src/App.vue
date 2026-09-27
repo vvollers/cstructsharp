@@ -17,7 +17,7 @@ import {
   serialize,
   updateStream,
 } from "@cstructsharp/app-shared/wasm/adapter";
-import { hexToBytes } from "@cstructsharp/app-shared/hex";
+import { bytesToHex, hexToBytes } from "@cstructsharp/app-shared/hex";
 import {
   INTEROP_CONTRACT_VERSION,
   type InteropResult,
@@ -178,10 +178,11 @@ function parseJson(value: string): unknown {
   return JSON.parse(value, (_key, current: unknown) => current);
 }
 
-function bytesToHex(bytes: Uint8Array): string {
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(" ");
-}
-
+/**
+ * Takes bytes edited in the result's hex view as the next input: the hex field shows them and the result is marked
+ * stale until the operation runs again.
+ * @param bytes The edited bytes.
+ */
 function applyEditedBytes(bytes: Uint8Array): void {
   resultBytes.value = bytes;
   binaryHexInput.value = bytesToHex(bytes);

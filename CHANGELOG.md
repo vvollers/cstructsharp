@@ -136,6 +136,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   same dependency versions, and the `dompurify` override applies to both from the workspace manifest.
 - Both apps load and validate the WebAssembly runtime through one shared adapter (`apps/shared/src/wasm`) whose
   types come from the npm package declarations, instead of two hand-copied modules.
+- The apps share the layout formatter (the explorer now also puts each enum and flag value on its own line), the
+  error recovery hints, the hex helpers, the option defaults and the settings tooltip.
 - API baselines are named by role: `contracts/api/managed` and `contracts/api/browser` (published under
   `/docs/contracts/api/`). The managed manifest keeps the approved hash of every revision and the review text of the
   current one; the release history is this changelog. The `frozen` status, work-item code and stale package version

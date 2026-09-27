@@ -17,6 +17,7 @@ export interface SchemaSettingsValues {
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import SettingStatusItem from "@cstructsharp/app-shared/components/SettingStatusItem.vue";
+import { formatBytes } from "@cstructsharp/app-shared/options";
 
 const options = defineModel<SchemaSettingsValues>({ required: true });
 const open = defineModel<boolean>("open", { default: false });
@@ -28,11 +29,6 @@ const endian = computed({
     options.value.littleEndian = value === "little";
   },
 });
-
-const formatBytes = (value: number): string =>
-  value >= 1_048_576 && value % 1_048_576 === 0
-    ? `${value / 1_048_576} MiB`
-    : `${value.toLocaleString()} B`;
 
 const settingsSummary = computed(() => [
   {

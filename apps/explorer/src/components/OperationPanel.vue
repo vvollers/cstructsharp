@@ -5,14 +5,15 @@ import { VueHex } from "vuehex";
 import SettingStatusItem from "@cstructsharp/app-shared/components/SettingStatusItem.vue";
 import LayoutEditor from "./LayoutEditor.vue";
 import GeneratedCodeDialog from "./GeneratedCodeDialog.vue";
-import { formatLayout } from "../format-layout";
+import { formatLayout } from "@cstructsharp/app-shared/format-layout";
 
 import type {
   ParseWithDebugOptions,
   SerializeOptions,
   UpdateOptions,
 } from "@cstructsharp/app-shared/wasm/contract";
-import { hexToBytes } from "@cstructsharp/app-shared/hex";
+import { bytesToHex, hexToBytes } from "@cstructsharp/app-shared/hex";
+import { formatBytes, OPTION_DEFAULTS } from "@cstructsharp/app-shared/options";
 import type { LessonOperation } from "../lessons";
 
 export type PanelOperation = "parse" | "serialize" | "update";
@@ -57,23 +58,21 @@ const path = ref(
 );
 const rootTypeName = ref(props.initialRootType ?? "");
 const aligned = ref(props.initialAligned ?? false);
-const pointerSize = ref(props.initialPointerSize ?? 8);
+const pointerSize = ref<number>(props.initialPointerSize ?? OPTION_DEFAULTS.pointerSize);
 const endian = ref<"little" | "big">(props.initialLittleEndian === false ? "big" : "little");
 const addressingMode = ref<"Absolute" | "Relative">("Absolute");
 const origin = ref("0");
-const dereferencePointers = ref(true);
-const maxArrayElements = ref(1_000_000);
-const maxStringBytes = ref(16 * 1024 * 1024);
-const maxTotalBytes = ref(props.initialOptions?.maxTotalBytesRead ?? 64 * 1024 * 1024);
-const maxNestingDepth = ref(256);
+const dereferencePointers = ref<boolean>(OPTION_DEFAULTS.dereferencePointers);
+const maxArrayElements = ref<number>(OPTION_DEFAULTS.maxArrayElements);
+const maxStringBytes = ref<number>(OPTION_DEFAULTS.maxStringBytes);
+const maxTotalBytes = ref<number>(
+  props.initialOptions?.maxTotalBytesRead ?? OPTION_DEFAULTS.maxTotalBytesRead,
+);
+const maxNestingDepth = ref<number>(OPTION_DEFAULTS.maxNestingDepth);
 
 const settingsDialog = ref<HTMLDialogElement | null>(null);
 const generatedCode = ref<InstanceType<typeof GeneratedCodeDialog> | null>(null);
 const settingsButton = ref<HTMLButtonElement | null>(null);
-const formatBytes = (value: number) =>
-  value >= 1048576 && value % 1048576 === 0
-    ? `${value / 1048576} MiB`
-    : `${value.toLocaleString()} B`;
 const settingsSummary = computed(() => [
   { label: "Root", value: rootTypeName.value.trim() || "first declaration", color: "#67e8f9" },
   {
@@ -167,10 +166,10 @@ function parseBinaryHex(value: string): Uint8Array {
   }
 }
 
-function bytesToHex(bytes: Uint8Array): string {
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(" ");
-}
-
+/**
+ * Keeps the hex input in step with bytes edited in the input hex view.
+ * @param bytes The edited bytes.
+ */
 function handleBinaryEdited(bytes: Uint8Array): void {
   binaryEditorBytes.value = bytes;
   binaryHex.value = bytesToHex(bytes);

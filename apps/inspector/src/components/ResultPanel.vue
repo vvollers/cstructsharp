@@ -10,6 +10,7 @@ import {
   type JSONEditorSelection,
 } from "vanilla-jsoneditor";
 
+import { errorRecoveryHint } from "@cstructsharp/app-shared/error-hints";
 import type { InteropResult } from "@cstructsharp/app-shared/wasm/contract";
 
 const props = defineProps<{
@@ -35,24 +36,12 @@ const parsedJson = computed<unknown>(() => {
   return { [props.result.root ?? "root"]: props.result.data };
 });
 
-const recovery = computed(() => {
-  const hints: Record<string, string> = {
-    "invalid-layout": "Check the declaration spelling and supported layout syntax.",
-    "invalid-path": "Check the root and field names, including their letter case.",
-    "read-failed":
-      "Check that all required bytes are present and that the root, byte order, and pointer settings match the format.",
-    "read-budget":
-      "Compare the expected field sizes with Decoded-data budgets in the schema settings.",
-    "invalid-input":
-      "Check the input and schema settings. File size is independent of the read safety limits.",
-    "file-read-failed": "Reload the file after checking its location and access permissions.",
-  };
-
-  return (
-    hints[props.result?.error?.code ?? ""] ??
-    "Review the code, path, and offset below and compare with the schema."
-  );
-});
+const recovery = computed(() =>
+  errorRecoveryHint(props.result?.error?.code, {
+    limits: "the decoded-data budgets in the schema settings",
+    fallback: "Review the code, path, and offset below and compare with the schema.",
+  }),
+);
 
 const selectionTypes: readonly string[] = Object.values(SelectionType);
 

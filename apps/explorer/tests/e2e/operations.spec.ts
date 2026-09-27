@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { formatLayout } from "../../src/format-layout";
+import { formatLayout } from "@cstructsharp/app-shared/format-layout";
 import webBudgetPolicy from "../../../../contracts/performance/web-size-budget.json" with { type: "json" };
 import testManifest from "../../src/generated/test-demos.json" with { type: "json" };
 

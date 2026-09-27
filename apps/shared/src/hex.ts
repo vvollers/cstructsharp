@@ -23,3 +23,12 @@ export function hexToBytes(hex: string): Uint8Array {
 
   return bytes;
 }
+
+/**
+ * Formats bytes as lowercase hex pairs separated by spaces, the form {@link hexToBytes} reads back.
+ * @param bytes The bytes.
+ * @returns For example "0a ff 00".
+ */
+export function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(" ");
+}
