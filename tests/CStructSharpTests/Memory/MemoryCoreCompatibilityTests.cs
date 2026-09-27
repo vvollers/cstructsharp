@@ -190,6 +190,9 @@ public class MemoryCoreCompatibilityTests
 
         public uint[] Packed { get; set; } = [];
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static ArrayRecord ReadFrom(StructValue source)
         {
             return new ArrayRecord
@@ -204,6 +207,9 @@ public class MemoryCoreCompatibilityTests
             };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(ArrayRecord value, StructValue target)
         {
             target["Signed"] = value.Signed;
@@ -215,6 +221,7 @@ public class MemoryCoreCompatibilityTests
             target["Packed"] = value.Packed;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {

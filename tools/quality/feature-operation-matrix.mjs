@@ -27,6 +27,11 @@ const memoryTypeKinds = () =>
   [...fs.readFileSync(path.join(repositoryRoot, "src/CStructSharp/Memory/MemoryTypeKind.cs"), "utf8").matchAll(/^\s{4}([A-Z][A-Za-z]*),?\s*$/gm)].map((match) => match[1]);
 const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+/** Returns whether a test class file of this name exists in any feature folder of the runtime test project. */
+const testClassExists = (name) =>
+  fs.readdirSync(path.join(repositoryRoot, "tests/CStructSharpTests"), { recursive: true })
+    .some((file) => path.basename(String(file)) === `${name}.cs` && !/^(?:bin|obj)[\\/]/.test(String(file)));
+
 function assertUniqueIds(items, collectionName) {
   const ids = items.map((item) => String(item.id));
   assertCondition(new Set(ids).size === ids.length, `${collectionName} contains duplicate ids.`);
@@ -268,7 +273,7 @@ await main(() => {
     for (const row of domain.matrix) {
       for (const operation of domain.operations) assertCondition(Object.hasOwn(row, operation), `Memory kind '${row.kind}' omits operation '${operation}'.`);
     }
-    for (const test of domain.tests) assertCondition(fs.existsSync(path.join(repositoryRoot, `tests/CStructSharpTests/${test}.cs`)), `Missing memory contract tests: ${test}.`);
+    for (const test of domain.tests) assertCondition(testClassExists(test), `Missing memory contract tests: ${test}.`);
   }
 
   console.log("Feature-operation matrix validation passed.");
