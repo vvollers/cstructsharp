@@ -2078,7 +2078,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/StringEncodingTests.cs#ExplicitEndianWideBuffers_OverrideLayoutAndRoundTrip",
+          "test": "tests/CStructSharpTests/Text/StringEncodingTests.cs#ExplicitEndianWideBuffers_OverrideLayoutAndRoundTrip",
           "operations": [
             "parse",
             "debug",
@@ -2165,7 +2165,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/StringEncodingTests.cs#NamedTerminatedEncodings_ValidTextRoundTripsWithoutFallback",
+          "test": "tests/CStructSharpTests/Text/StringEncodingTests.cs#NamedTerminatedEncodings_ValidTextRoundTripsWithoutFallback",
           "operations": [
             "parse",
             "serialize"

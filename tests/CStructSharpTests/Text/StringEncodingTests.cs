@@ -5,7 +5,10 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 using CStructSharp.Values;
 
-/// <summary>Exercises the byte-order and validation contract for narrow and wide character data.</summary>
+/// <summary>
+///     Exercises the byte-order and validation contract for narrow and wide character data, including a root named by
+///     its character-array type and a bounded character update that leaves later fields undecoded.
+/// </summary>
 [TestClass]
 public class StringEncodingTests
 {
@@ -549,6 +552,41 @@ public class StringEncodingTests
         }
     }
 
+    /// <summary>Fixed buffers pad the remaining character, while unsized text appends its terminator.</summary>
+    /// <param name="root">The fixed or terminated character-array spelling.</param>
+    /// <param name="expectedHex">The exact encoded bytes, including padding or termination.</param>
+    [TestMethod]
+    [DataRow("char[3]", "616200")]
+    [DataRow("wchar[3]", "610062000000")]
+    [DataRow("char[]", "616200")]
+    [DataRow("wchar[]", "610062000000")]
+    public void CharacterArrayRoot_WritesTextAndItsTrailingZero(string root, string expectedHex)
+    {
+        var layout = new CStruct("struct unused { uint8 value; };");
+
+        byte[] output = layout.Serialize(root, "ab");
+
+        CollectionAssert.AreEqual(Convert.FromHexString(expectedHex), output);
+    }
+
+    /// <summary>A complete fixed character field can be replaced even when later root fields are unavailable.</summary>
+    [TestMethod]
+    public void FixedCharacterUpdate_DoesNotRequireTheFollowingField()
+    {
+        var layout = new CStruct("struct root { char name[2]; uint32 tail; };");
+        byte[] bytes = [65, 66,];
+        using var source = new MemoryStream(bytes);
+
+        layout.Update(source, "root.name", "CD");
+
+        CollectionAssert.AreEqual(new byte[] { 67, 68, }, bytes);
+        Assert.AreEqual(2L, source.Length);
+    }
+
+    /// <summary>Encodes text as strict UTF-16, independently of the library's codecs.</summary>
+    /// <param name="value">The text.</param>
+    /// <param name="littleEndian">The byte order.</param>
+    /// <returns>The bytes.</returns>
     private static byte[] EncodeUtf16(string value, bool littleEndian)
     {
         return new UnicodeEncoding(!littleEndian, false, true).GetBytes(value);
