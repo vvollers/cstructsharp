@@ -295,39 +295,45 @@ public partial class CStruct
     }
 
     /// <summary>
-    ///     Writes an anonymous promoted union from the parent's data: the union has no name of its own, so the
-    ///     member to write is chosen from the members the data supplies - the widest one first, so a value that
-    ///     came from a parse (where every view is present) reproduces the complete storage - and the rest of the
-    ///     union extent is cleared, exactly as <see cref="UnionValue.FromMember"/> would do.
+    ///     Writes an anonymous promoted union from the parent's data. The union has no name of its own, so the member
+    ///     to write is chosen from the members the data supplies: the widest one, the first declared among equals, so a
+    ///     value that came from a parse (where every view is present) reproduces the complete storage. The member is
+    ///     then staged exactly as a named union's selected member is.
     /// </summary>
+    /// <param name="composite">The anonymous union.</param>
+    /// <param name="field">The union's member field in its parent.</param>
+    /// <param name="data">The parent's data, which carries the union's members.</param>
+    /// <param name="state">The write state, positioned anywhere; the union is placed by <paramref name="cursor"/>.</param>
+    /// <param name="cursor">The parent's placement cursor.</param>
+    /// <exception cref="CStructWriteException">No member is supplied, or the member cannot be written.</exception>
     private void WritePromotedUnion(CompiledCompositeType composite, CompiledField field, object data, CStructElementWriterState state, CompositeFieldPlacementCursor cursor)
     {
         (long unionPosition, _, _) = cursor.AdvanceToField(field);
         state.Stream.Position = unionPosition;
         int unionSize = this.compiledSizeQueries.GetCompiledStructSizeInBytes(composite, state.Variables, false);
 
+        // A member without a fixed size is runtime-sized and so counts as the widest.
         CompiledField? selected = null;
         object? selectedValue = null;
-        foreach (CompiledField member in composite.Fields.OrderByDescending(item => item.FixedStorageSize ?? int.MaxValue))
+        int selectedSize = -1;
+        foreach (CompiledField member in composite.Fields)
         {
+            int size = member.FixedStorageSize ?? int.MaxValue;
+            if (size <= selectedSize)
+            {
+                continue;
+            }
+
             if (composite.PromotedFields.Contains(member))
             {
                 if (this.SuppliesAnyPromotedMember(member, data, state))
                 {
-                    selected = member;
-                    selectedValue = data;
-                    break;
+                    (selected, selectedValue, selectedSize) = (member, data, size);
                 }
-
-                continue;
             }
-
-            string name = member.Name;
-            if (name.Length > 0 && WriteDataBinding.TryGetMemberValue(data, name, out object? value))
+            else if (member.Name.Length > 0 && WriteDataBinding.TryGetMemberValue(data, member.Name, out object? value))
             {
-                selected = member;
-                selectedValue = value;
-                break;
+                (selected, selectedValue, selectedSize) = (member, value, size);
             }
         }
 
@@ -338,18 +344,7 @@ public partial class CStruct
                 string.Join(", ", composite.Shape.Names));
         }
 
-        byte[] stagedBytes = new byte[unionSize];
-        using (var stagingStream = new MemoryStream(stagedBytes, writable: true))
-        {
-            var stagingState = new CStructElementWriterState(
-                stagingStream,
-                new LayoutVariables(state.Variables),
-                state.Aligned,
-                state.Options,
-                state.StructureDepth);
-            this.WriteFieldValue(selected, selectedValue!, stagingState, 0);
-        }
-
+        byte[] stagedBytes = this.StageUnionMember(composite, selected, selectedValue!, unionSize, state);
         long unionEnd = checked(unionPosition + unionSize);
         state.Stream.Write(stagedBytes, 0, stagedBytes.Length);
         state.Stream.Position = unionEnd;
@@ -431,11 +426,30 @@ public partial class CStruct
                 WriteFailures.UnknownUnionMember(union.Name, selectedMember));
         }
 
-        // Build the complete union extent away from the destination. New writes and clearing updates start at zero;
-        // preserving updates copy the existing extent before the selected member is overlaid.
+        byte[] stagedBytes = this.StageUnionMember(union, selected, unionValue.SelectedValue!, unionSize, state);
+        state.Stream.Write(stagedBytes, 0, stagedBytes.Length);
+        state.Stream.Position = unionEnd;
+    }
+
+    /// <summary>
+    ///     Builds a union's complete extent with one member written into it, away from the destination, so a failure
+    ///     leaves the destination unchanged. The extent starts as zeroes, or - for an update that keeps union storage
+    ///     (<see cref="UpdateOptions.ClearUnionStorage"/> false) - as the existing bytes, and the member is written over it.
+    /// </summary>
+    /// <param name="union">The union, named or anonymous.</param>
+    /// <param name="member">The member to write.</param>
+    /// <param name="value">The member's value; for a promoted member, the data that carries its fields.</param>
+    /// <param name="unionSize">The union's size in bytes.</param>
+    /// <param name="state">The write state, positioned at the union's first byte; the position is restored.</param>
+    /// <returns>The staged extent.</returns>
+    /// <exception cref="CStructReadException">Storage is kept but the existing extent is not complete.</exception>
+    /// <exception cref="CStructWriteException">The member cannot be written.</exception>
+    private byte[] StageUnionMember(CompiledCompositeType union, CompiledField member, object value, int unionSize, CStructElementWriterState state)
+    {
         byte[] stagedBytes = new byte[unionSize];
         if (state.Options is UpdateOptions { ClearUnionStorage: false, })
         {
+            long unionPosition = state.Stream.Position;
             try
             {
                 state.Stream.ReadExactly(stagedBytes);
@@ -452,35 +466,27 @@ public partial class CStruct
             }
         }
 
-        using (var stagingStream = new MemoryStream(stagedBytes, writable: true))
+        using var stagingStream = new MemoryStream(stagedBytes, writable: true);
+        var stagingState = new CStructElementWriterState(
+            stagingStream,
+            new LayoutVariables(state.Variables),
+            state.Aligned,
+            state.Options,
+            state.StructureDepth);
+        try
         {
-            var stagingState = new CStructElementWriterState(
-                stagingStream,
-                new LayoutVariables(state.Variables),
-                state.Aligned,
-                state.Options,
-                state.StructureDepth);
-            try
-            {
-                this.WriteFieldValue(selected, unionValue.SelectedValue!, stagingState, 0);
-            }
-            catch (CStructWriteException)
-            {
-                throw;
-            }
-            catch (Exception exception) when (exception is InvalidOperationException or
-                                              ArgumentException or ArithmeticException or
-                                              FormatException or InvalidCastException or
-                                              NotSupportedException)
-            {
-                throw new CStructWriteException(
-                    $"Cannot write selected union member '{union.Name}.{selectedMember}'.",
-                    exception);
-            }
+            this.WriteFieldValue(member, value, stagingState, 0);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or
+                                          ArgumentException or ArithmeticException or
+                                          FormatException or InvalidCastException or
+                                          NotSupportedException)
+        {
+            string memberName = union.Name.Length > 0 ? union.Name + "." + member.Name : member.Name;
+            throw new CStructWriteException($"Cannot write selected union member '{memberName}'.", exception);
         }
 
-        state.Stream.Write(stagedBytes, 0, stagedBytes.Length);
-        state.Stream.Position = unionEnd;
+        return stagedBytes;
     }
 
     /// <summary>

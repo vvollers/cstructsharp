@@ -59,6 +59,10 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Fixed
 
+- An update that keeps union storage (`UpdateOptions.ClearUnionStorage = false`) keeps the bytes of an anonymous
+  union that the written member does not cover, as it already did for a named union; before, writing a struct that
+  contains an anonymous union zeroed them. A failure to encode an anonymous union's member is reported as a
+  `CStructWriteException`, as for a named union.
 - ISF import no longer fails on a long chain of types: it stopped about 42 pointer hops from the root with
   "ISF type/depth budget exceeded". It now walks the graph with an explicit work list, as BTF import does, and is
   bounded by the descriptor budget instead.

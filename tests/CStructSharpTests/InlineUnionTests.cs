@@ -159,6 +159,31 @@ public class InlineUnionTests
         Assert.AreEqual(2, new CStruct("struct r { uint8 t; union { uint8 a; uint8 b; }; };").GetStructSizeInBytes("r"));
     }
 
+    /// <summary>
+    ///     Updating a struct that contains an anonymous union follows <see cref="UpdateOptions.ClearUnionStorage"/> as a
+    ///     named union does: kept storage keeps the bytes the written member does not cover, cleared storage zeroes them.
+    /// </summary>
+    /// <param name="clear">The update's <see cref="UpdateOptions.ClearUnionStorage"/>.</param>
+    /// <param name="expected">The six bytes after the update: <c>a</c>, the four-byte union, <c>b</c>.</param>
+    [TestMethod]
+    [DataRow(false, "0102FFFFFF03")]
+    [DataRow(true, "010200000003")]
+    public void AnonymousUnion_UpdateFollowsClearUnionStorage(bool clear, string expected)
+    {
+        var promoted = new CStruct("struct inner { uint8 a; union { uint32 wide; uint8 narrow; }; uint8 b; }; struct root { inner i; };");
+        var named = new CStruct("struct inner { uint8 a; union u { uint32 wide; uint8 narrow; } x; uint8 b; }; struct root { inner i; };");
+        var options = new UpdateOptions { ClearUnionStorage = clear, };
+
+        byte[] promotedData = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,];
+        promoted.Update(promotedData, "root.i", new StructValue { ["a"] = (byte)1, ["narrow"] = (byte)2, ["b"] = (byte)3, }, options: options);
+        byte[] namedData = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,];
+        named.Update(namedData, "root.i", new StructValue { ["a"] = (byte)1, ["x"] = UnionValue.FromMember("u", "narrow", (byte)2), ["b"] = (byte)3, }, options: options);
+
+        Assert.AreEqual(expected, Convert.ToHexString(promotedData));
+        Assert.AreEqual(expected, Convert.ToHexString(namedData));
+    }
+
+    /// <summary>A mapped class for the NTFS <c>file_name</c> shape, whose properties bind to promoted union and struct members.</summary>
     internal sealed class FileName : ICStructMapped<FileName>
     {
         public uint Attributes { get; set; }
