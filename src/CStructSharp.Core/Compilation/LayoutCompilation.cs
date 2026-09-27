@@ -678,11 +678,9 @@ internal sealed partial class LayoutCompilation
 
         foreach (Field field in strct.Fields.Where(field => field is not SwitchCaseValidation))
         {
-            if (field.Condition is not null)
-            {
-                this.expressionEvaluator.Compile(field.Condition);
-            }
-
+            // A field's flattened condition is never evaluated: selection uses its branch groups, whose selectors
+            // NormalizeConditionalGroup compiles. Compiling the flattened form would also fail for a large switch,
+            // whose default-arm condition nests one level per case.
             if (field is Struct nested)
             {
                 fields.Add(this.NormalizeStructExpressions(nested, caseConstants, normalizedGroups));

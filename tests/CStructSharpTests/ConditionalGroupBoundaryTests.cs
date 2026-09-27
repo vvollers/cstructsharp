@@ -50,6 +50,17 @@ public class ConditionalGroupBoundaryTests
             new CStruct("struct root { switch (unsupported(1)) { default: { uint8 value; } } };"));
     }
 
+    /// <summary>A switch with a thousand cases compiles and selects each arm, including the default.</summary>
+    [TestMethod]
+    public void LargeSwitch_CompilesAndSelects()
+    {
+        string cases = string.Join(" ", Enumerable.Range(0, 1000).Select(index => $"case {index}: {{ uint8 f{index}; }}"));
+        var layout = new CStruct($"struct root {{ uint16 k; switch (k) {{ {cases} default: {{ uint16 d; }} }} }};");
+
+        Assert.AreEqual((byte)7, layout.ReadValue<byte>(new byte[] { 0xE7, 0x03, 7, }, "root.f999"));
+        Assert.AreEqual((ushort)0x0102, layout.ReadValue<ushort>(new byte[] { 0xE8, 0x03, 2, 1, }, "root.d"));
+    }
+
     /// <summary>
     ///     The rendered definition reads every input like the original: conditional inline structs keep their
     ///     condition, a group decided once stays one group, and empty switch arms still take their values away from

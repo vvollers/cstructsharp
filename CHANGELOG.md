@@ -35,6 +35,9 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   dropped the condition of a conditional inline struct and the empty arms of a switch, and rendered one condition
   per member, which could select differently from the original; the rendered text now reads every input like the
   original layout.
+- A `switch` with about 256 or more cases compiles. Construction no longer compiles each member's combined
+  condition, which selection never uses; the expression limits (such as `MaxExpressionTokens`) apply to each
+  selector on its own, so nested short conditions are no longer rejected for their combined length.
 
 ### Performance
 
