@@ -9,7 +9,7 @@ using CStructSharp.Values;
 
 /// <summary>Verifies that one operation owns immutable choices before it invokes caller-controlled code.</summary>
 [TestClass]
-public class OperationContextTests
+public class OperationOwnershipTests
 {
     /// <summary>
     ///     Caller-controlled variable enumeration deliberately changes the supplied options after the operation begins.
@@ -148,11 +148,19 @@ public class OperationContextTests
         Assert.AreEqual(0L, stream.Position);
     }
 
+    /// <summary>Runs a read operation with a fresh options record limited to the given bytes.</summary>
+    /// <param name="operation">The operation.</param>
+    /// <param name="maxBytes">The byte limit.</param>
     private static void AssertReadSnapshot(Action<ReadOptions> operation, long maxBytes)
     {
         operation(new ReadOptions { MaxTotalBytesRead = maxBytes, });
     }
 
+    /// <summary>Variables that change an options property while the operation enumerates them.</summary>
+    /// <param name="target">The options record to change.</param>
+    /// <param name="propertyName">The property to change.</param>
+    /// <param name="value">The value to set.</param>
+    /// <returns>The variables.</returns>
     private static IReadOnlyDictionary<string, int> MutateDuringEnumeration(
         object target,
         string propertyName,
@@ -162,6 +170,10 @@ public class OperationContextTests
             () => SetInitProperty(target, propertyName, value));
     }
 
+    /// <summary>Sets an init-only property through reflection, as a misbehaving caller could.</summary>
+    /// <param name="target">The object.</param>
+    /// <param name="propertyName">The property.</param>
+    /// <param name="value">The value.</param>
     private static void SetInitProperty(object target, string propertyName, object value)
     {
         PropertyInfo property = target.GetType().GetProperty(propertyName) ??
@@ -169,12 +181,15 @@ public class OperationContextTests
         property.SetValue(target, value);
     }
 
+    /// <summary>A read-only variable dictionary that runs a callback whenever it is enumerated.</summary>
     private sealed class CallbackDictionary : IReadOnlyDictionary<string, int>
     {
         private readonly Action callback;
         private readonly IReadOnlyDictionary<string, int> values =
             new Dictionary<string, int> { ["UNUSED"] = 1, };
 
+        /// <summary>Creates the dictionary.</summary>
+        /// <param name="callback">The code to run on enumeration.</param>
         public CallbackDictionary(Action callback)
         {
             this.callback = callback;
@@ -195,39 +210,51 @@ public class OperationContextTests
 
         public int this[string key] => this.values[key];
 
+        /// <inheritdoc/>
         public bool ContainsKey(string key)
         {
             return this.values.ContainsKey(key);
         }
 
+        /// <summary>Runs the callback, then enumerates the variables.</summary>
+        /// <returns>The enumerator.</returns>
         public IEnumerator<KeyValuePair<string, int>> GetEnumerator()
         {
             this.callback();
             return this.values.GetEnumerator();
         }
 
+        /// <inheritdoc/>
         public bool TryGetValue(string key, out int value)
         {
             return this.values.TryGetValue(key, out value);
         }
 
+        /// <inheritdoc/>
         IEnumerator IEnumerable.GetEnumerator()
         {
             return this.GetEnumerator();
         }
     }
 
+    /// <summary>A mapped payload whose mapper runs caller code while a write is in flight.</summary>
     internal sealed class MutatingPayload : ICStructMapped<MutatingPayload>
     {
         private readonly Action callback;
         private readonly byte[] values;
 
+        /// <summary>Creates the payload.</summary>
+        /// <param name="callback">The code the mapper runs while the write is in flight.</param>
+        /// <param name="values">The values to write.</param>
         public MutatingPayload(Action callback, byte[] values)
         {
             this.callback = callback;
             this.values = values;
         }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static MutatingPayload ReadFrom(StructValue source)
         {
             return new MutatingPayload(() => { }, source.Get<byte[]>("values"));
@@ -240,6 +267,7 @@ public class OperationContextTests
             target["values"] = value.values;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {

@@ -167,6 +167,9 @@ public class TypedReadPlanTests
         Assert.AreEqual(general, fast, label);
     }
 
+    /// <summary>Runs a read and records its rendered value or its library failure.</summary>
+    /// <param name="read">The read.</param>
+    /// <returns>The value, or the failure.</returns>
     private static (string? Result, Exception? Error) Try(Func<string> read)
     {
         try
@@ -179,28 +182,39 @@ public class TypedReadPlanTests
         }
     }
 
+    /// <summary>Renders a value as JSON for comparison.</summary>
+    /// <param name="value">The value.</param>
+    /// <returns>The JSON.</returns>
     private static string Render(object? value)
     {
         return JsonSerializer.Serialize(value, value?.GetType() ?? typeof(object), new JsonSerializerOptions { IncludeFields = true, });
     }
 
+    /// <summary>A mapped class for the tests' <c>Leaf</c> record, read and written through the runtime.</summary>
     public sealed class Leaf : ICStructMapped<Leaf>
     {
         public byte K { get; set; }
 
         public uint V { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static Leaf ReadFrom(StructValue source)
         {
             return new Leaf { K = source.Get<byte>("k"), V = source.Get<uint>("v"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(Leaf value, StructValue target)
         {
             target["k"] = value.K;
             target["v"] = value.V;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -208,6 +222,7 @@ public class TypedReadPlanTests
         }
     }
 
+    /// <summary>A mapped class for the tests' <c>Inner</c> record, read and written through the runtime.</summary>
     public sealed class Inner : ICStructMapped<Inner>
     {
         public Leaf First { get; set; } = null!;
@@ -216,11 +231,17 @@ public class TypedReadPlanTests
 
         public ushort Pad { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static Inner ReadFrom(StructValue source)
         {
             return new Inner { First = source.Get<Leaf>("first"), Second = source.Get<Leaf>("second"), Pad = source.Get<ushort>("pad"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(Inner value, StructValue target)
         {
             target["first"] = value.First;
@@ -228,6 +249,7 @@ public class TypedReadPlanTests
             target["pad"] = value.Pad;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -235,6 +257,7 @@ public class TypedReadPlanTests
         }
     }
 
+    /// <summary>A mapped class for the tests' <c>RootExact</c> record, read and written through the runtime.</summary>
     public sealed class RootExact : ICStructMapped<RootExact>
     {
         public ushort Magic { get; set; }
@@ -259,6 +282,9 @@ public class TypedReadPlanTests
 
         public byte Tail { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static RootExact ReadFrom(StructValue source)
         {
             return new RootExact
@@ -277,6 +303,9 @@ public class TypedReadPlanTests
             };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(RootExact value, StructValue target)
         {
             target["magic"] = value.Magic;
@@ -292,6 +321,7 @@ public class TypedReadPlanTests
             target["tail"] = value.Tail;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -330,6 +360,9 @@ public class TypedReadPlanTests
             B = 2,
         }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static RootConverted ReadFrom(StructValue source)
         {
             return new RootConverted
@@ -348,6 +381,9 @@ public class TypedReadPlanTests
             };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(RootConverted value, StructValue target)
         {
             target["magic"] = value.magic;
@@ -363,6 +399,7 @@ public class TypedReadPlanTests
             target["tail"] = value.tail;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -370,6 +407,7 @@ public class TypedReadPlanTests
         }
     }
 
+    /// <summary>A mapped class for the tests' <c>InnerFields</c> record, read and written through the runtime.</summary>
     public sealed class InnerFields : ICStructMapped<InnerFields>
     {
         public Leaf first = null!;
@@ -384,6 +422,9 @@ public class TypedReadPlanTests
             return new InnerFields { first = source.Get<Leaf>("first"), second = source.Get<object>("second"), pad = source, };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(InnerFields value, StructValue target)
         {
             target["first"] = value.first;
@@ -391,6 +432,7 @@ public class TypedReadPlanTests
             target["pad"] = value.pad!["pad"];
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -398,6 +440,7 @@ public class TypedReadPlanTests
         }
     }
 
+    /// <summary>A mapped class for the tests' <c>RootUntyped</c> record, read and written through the runtime.</summary>
     public sealed class RootUntyped : ICStructMapped<RootUntyped>
     {
         public object? Magic { get; set; }
@@ -410,6 +453,9 @@ public class TypedReadPlanTests
 
         public StructValue? nested { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static RootUntyped ReadFrom(StructValue source)
         {
             return new RootUntyped
@@ -422,6 +468,9 @@ public class TypedReadPlanTests
             };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(RootUntyped value, StructValue target)
         {
             target["magic"] = value.Magic;
@@ -430,6 +479,7 @@ public class TypedReadPlanTests
             target["leaves"] = value.Leaves;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -437,22 +487,30 @@ public class TypedReadPlanTests
         }
     }
 
+    /// <summary>A mapped class for the tests' <c>RootMissingMember</c> record, read and written through the runtime.</summary>
     public sealed class RootMissingMember : ICStructMapped<RootMissingMember>
     {
         public ushort Magic { get; set; }
 
         public int Missing { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static RootMissingMember ReadFrom(StructValue source)
         {
             return new RootMissingMember { Magic = source.Get<ushort>("magic"), Missing = source.Get<int>("missing"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(RootMissingMember value, StructValue target)
         {
             target["magic"] = value.Magic;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -460,20 +518,28 @@ public class TypedReadPlanTests
         }
     }
 
+    /// <summary>A mapped class for the tests' <c>RootOverflow</c> record, read and written through the runtime.</summary>
     public sealed class RootOverflow : ICStructMapped<RootOverflow>
     {
         public byte Magic { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static RootOverflow ReadFrom(StructValue source)
         {
             return new RootOverflow { Magic = source.Get<byte>("magic"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(RootOverflow value, StructValue target)
         {
             target["magic"] = value.Magic;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -481,20 +547,28 @@ public class TypedReadPlanTests
         }
     }
 
+    /// <summary>A mapped class for the tests' <c>RootNotNumeric</c> record, read and written through the runtime.</summary>
     public sealed class RootNotNumeric : ICStructMapped<RootNotNumeric>
     {
         public bool Magic { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static RootNotNumeric ReadFrom(StructValue source)
         {
             return new RootNotNumeric { Magic = source.Get<bool>("magic"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(RootNotNumeric value, StructValue target)
         {
             target["magic"] = value.Magic;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -502,43 +576,59 @@ public class TypedReadPlanTests
         }
     }
 
+    /// <summary>A mapped class for the tests' <c>RootNestedFailure</c> record, read and written through the runtime.</summary>
     public sealed class RootNestedFailure : ICStructMapped<RootNestedFailure>
     {
         public LeafOverflow[] Leaves { get; set; } = [];
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static RootNestedFailure ReadFrom(StructValue source)
         {
             return new RootNestedFailure { Leaves = source.Get<LeafOverflow[]>("leaves"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(RootNestedFailure value, StructValue target)
         {
             target["leaves"] = value.Leaves;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
             MappedTypes.Register<RootNestedFailure>();
         }
 
+        /// <summary>A mapped class for the tests' <c>LeafOverflow</c> record, read and written through the runtime.</summary>
         public sealed class LeafOverflow : ICStructMapped<LeafOverflow>
         {
             public byte K { get; set; }
 
             public bool V { get; set; }
 
+            /// <summary>Builds the class from a parsed record.</summary>
+            /// <param name="source">The parsed record.</param>
+            /// <returns>The mapped value.</returns>
             public static LeafOverflow ReadFrom(StructValue source)
             {
                 return new LeafOverflow { K = source.Get<byte>("k"), V = source.Get<bool>("v"), };
             }
 
+            /// <summary>Copies the class into a record to write.</summary>
+            /// <param name="value">The mapped value.</param>
+            /// <param name="target">The record to fill.</param>
             public static void WriteTo(LeafOverflow value, StructValue target)
             {
                 target["k"] = value.K;
                 target["v"] = value.V;
             }
 
+            /// <summary>Registers the mapping when the test assembly loads.</summary>
             [ModuleInitializer]
             internal static void Register()
             {
@@ -552,16 +642,23 @@ public class TypedReadPlanTests
     {
         public ushort Magic { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static RootThrowingMapper ReadFrom(StructValue source)
         {
             throw new InvalidOperationException("rejected " + source.Get<ushort>("magic"));
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(RootThrowingMapper value, StructValue target)
         {
             target["magic"] = value.Magic;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -575,6 +672,7 @@ public class TypedReadPlanTests
         public ushort Magic { get; set; }
     }
 
+    /// <summary>A mapped class for the tests' <c>Small</c> record, read and written through the runtime.</summary>
     public sealed class Small : ICStructMapped<Small>
     {
         public byte A { get; set; }
@@ -583,11 +681,17 @@ public class TypedReadPlanTests
 
         public byte C { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static Small ReadFrom(StructValue source)
         {
             return new Small { A = source.Get<byte>("a"), B = source.Get<uint>("b"), C = source.Get<byte>("c"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(Small value, StructValue target)
         {
             target["a"] = value.A;
@@ -595,6 +699,7 @@ public class TypedReadPlanTests
             target["c"] = value.C;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {

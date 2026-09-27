@@ -108,7 +108,7 @@
       "tests/CStructSharpTests/BufferWriterStreamTests.cs#ForwardGapAcrossWindowBoundary_IsZeroInitialized",
       "tests/CStructSharpTests/SequenceInputTests.cs#SingleSegment_ReadsInPlace",
       "tests/CStructSharpTests/SequenceInputTests.cs#MultipleSegments_ReadLikeTheFlatBytes",
-      "tests/CStructSharpTests/RecordSequenceTests.cs#Records_ReadTheSameFromEveryInput"
+      "tests/CStructSharpTests/Reading/RecordSequenceTests.cs#Records_ReadTheSameFromEveryInput"
     ],
     "webIntegration": "Browser contract v4 accepts Uint8Array input and Base64 output through the shared parse/serialize/update bridge; bridge copying is measured separately from the zero-adapter managed memory APIs.",
     "workItem": "API-02"
@@ -157,11 +157,11 @@
     "selectedState": "Target location and selected-target consumption reuse the same context and cannot reset byte, array, structure, pointer, string, or cycle accounting.",
     "cycleKey": "Active pointer targets use value-tuple keys of address, compiled type name, and remaining pointer depth without allocating composite strings.",
     "evidence": [
-      "tests/CStructSharpTests/OperationContextTests.cs#ReadLikeOperations_SnapshotOptionsBeforeVariableEnumeration",
-      "tests/CStructSharpTests/OperationContextTests.cs#WriteOperation_SnapshotsOptionsBeforeCallerCallbacks",
-      "tests/CStructSharpTests/OperationContextTests.cs#UpdateOperation_SnapshotsTraversalOptionsBeforeVariableEnumeration",
-      "tests/CStructSharpTests/TraversalLimitTests.cs#SelectedRead_UsesOneTotalByteBudget",
-      "tests/CStructSharpTests/TraversalLimitTests.cs#SelectedPointerTarget_PreservesPathDereferenceDepth",
+      "tests/CStructSharpTests/Reading/OperationOwnershipTests.cs#ReadLikeOperations_SnapshotOptionsBeforeVariableEnumeration",
+      "tests/CStructSharpTests/Reading/OperationOwnershipTests.cs#WriteOperation_SnapshotsOptionsBeforeCallerCallbacks",
+      "tests/CStructSharpTests/Reading/OperationOwnershipTests.cs#UpdateOperation_SnapshotsTraversalOptionsBeforeVariableEnumeration",
+      "tests/CStructSharpTests/Reading/TraversalLimitTests.cs#SelectedRead_UsesOneTotalByteBudget",
+      "tests/CStructSharpTests/Reading/TraversalLimitTests.cs#SelectedPointerTarget_PreservesPathDereferenceDepth",
       "tests/CStructSharpTests/CancellationTests.cs#CancelledMidRead_StopsAtTheNextBoundary_AndTryFormsRestoreThePosition"
     ],
     "workItem": "IR-03"
@@ -209,8 +209,8 @@
       "tests/CStructSharpTests/AsyncWriteTests.cs#WriteAsync_WritesTheSyncBytes_AndNothingOnFailure",
       "tests/CStructSharpTests/AsyncWriteTests.cs#UpdateAsync_WritesBackOnlyTheChangedRuns",
       "tests/CStructSharpTests/AsyncWriteTests.cs#UpdateAsync_LeavesTheStreamUnchangedOnFailure",
-      "tests/CStructSharpTests/RecordSequenceTests.cs#ParseManyAsync_ReadsFilesForwardOnlyStreamsAndWindows",
-      "tests/CStructSharpTests/RecordSequenceTests.cs#StreamForms_LeaveThePositionAtTheRecordsEnd",
+      "tests/CStructSharpTests/Reading/RecordSequenceTests.cs#ParseManyAsync_ReadsFilesForwardOnlyStreamsAndWindows",
+      "tests/CStructSharpTests/Reading/RecordSequenceTests.cs#StreamForms_LeaveThePositionAtTheRecordsEnd",
       "tests/CStructSharpTests/CancellationTests.cs#CancelledMidRead_StopsAtTheNextBoundary_AndTryFormsRestoreThePosition",
       "tests/CStructSharp.Generators.Tests/SequenceTests.cs#Records_ReadWhatParseManyReads_FromEveryInput",
       "tests/CStructSharp.Generated.Parity/LayoutParityTests.cs#ManualFixtures_ValuesWritesAddressesAndTruncations_MatchTheRuntime"
@@ -2187,7 +2187,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/TraversalLimitTests.cs#WideStringLimit_AgreesAcrossReadAddressLengthAndUpdate",
+          "test": "tests/CStructSharpTests/Reading/TraversalLimitTests.cs#WideStringLimit_AgreesAcrossReadAddressLengthAndUpdate",
           "operations": [
             "parse",
             "debug",
@@ -2481,15 +2481,15 @@
           "operations": ["serialize", "write"]
         },
         {
-          "test": "tests/CStructSharpTests/ReaderPaddingLimitTests.cs#PaddingArray_RespectsElementLimit",
+          "test": "tests/CStructSharpTests/Reading/ReaderPaddingLimitTests.cs#PaddingArray_RespectsElementLimit",
           "operations": ["parse"]
         },
         {
-          "test": "tests/CStructSharpTests/ReaderPaddingLimitTests.cs#DebugPadding_IsNotAResultMember",
+          "test": "tests/CStructSharpTests/Reading/ReaderPaddingLimitTests.cs#DebugPadding_IsNotAResultMember",
           "operations": ["debug"]
         },
         {
-          "test": "tests/CStructSharpTests/ReaderPaddingLimitTests.cs#UnionPadding_IsNotAMemberView",
+          "test": "tests/CStructSharpTests/Reading/ReaderPaddingLimitTests.cs#UnionPadding_IsNotAMemberView",
           "operations": ["parse", "debug"]
         },
         {
@@ -4099,7 +4099,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/TraversalLimitTests.cs#RuntimeArrayLimit_AgreesAcrossReadLikeOperations",
+          "test": "tests/CStructSharpTests/Reading/TraversalLimitTests.cs#RuntimeArrayLimit_AgreesAcrossReadLikeOperations",
           "operations": [
             "parse",
             "debug",
@@ -4141,7 +4141,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ReadValueTests.cs#ReadValue_EnforcesReadBudgets",
+          "test": "tests/CStructSharpTests/Reading/ReadValueTests.cs#ReadValue_EnforcesReadBudgets",
           "operations": [
             "read-value"
           ]

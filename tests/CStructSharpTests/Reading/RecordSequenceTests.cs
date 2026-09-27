@@ -228,6 +228,10 @@ public class RecordSequenceTests
         await Assert.ThrowsAsync<OperationCanceledException>(async () => await Collect(layout.ParseManyAsync(new MemoryStream(Sized), "sized", options: new ReadOptions { CancellationToken = new CancellationToken(canceled: true), })));
     }
 
+    /// <summary>Each input form <c>ParseMany</c> accepts: memory, a single- and a multi-segment sequence, and a stream.</summary>
+    /// <param name="layout">The layout.</param>
+    /// <param name="root">The root to parse repeatedly.</param>
+    /// <returns>The form's name and a parse over it.</returns>
     private static IEnumerable<(string Kind, Func<byte[], IEnumerable<StructValue>> ParseMany)> Inputs(CStruct layout, string root)
     {
         yield return ("memory", bytes => layout.ParseMany(bytes, root));
@@ -236,6 +240,9 @@ public class RecordSequenceTests
         yield return ("stream", bytes => layout.ParseMany(new MemoryStream(bytes), root));
     }
 
+    /// <summary>Collects every record an asynchronous sequence yields.</summary>
+    /// <param name="records">The sequence.</param>
+    /// <returns>The records.</returns>
     private static async Task<List<StructValue>> Collect(IAsyncEnumerable<StructValue> records)
     {
         var list = new List<StructValue>();
@@ -247,6 +254,7 @@ public class RecordSequenceTests
         return list;
     }
 
+    /// <summary>A memory stream that reports it cannot be read.</summary>
     private sealed class WriteOnly : MemoryStream
     {
         public override bool CanRead => false;

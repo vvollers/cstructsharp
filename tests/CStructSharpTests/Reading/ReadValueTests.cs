@@ -430,20 +430,28 @@ public class ReadValueTests
         Assert.AreEqual(0L, stream.Position);
     }
 
+    /// <summary>A mapped class for the tests' <c>ChildModel</c> record, read and written through the runtime.</summary>
     internal sealed class ChildModel : ICStructMapped<ChildModel>
     {
         public int Value { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static ChildModel ReadFrom(StructValue source)
         {
             return new ChildModel { Value = source.Get<int>("value"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(ChildModel value, StructValue target)
         {
             target["value"] = value.Value;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -451,6 +459,7 @@ public class ReadValueTests
         }
     }
 
+    /// <summary>A mapped class for the tests' <c>RootModel</c> record, read and written through the runtime.</summary>
     internal sealed class RootModel : ICStructMapped<RootModel>
     {
         public int Count { get; set; }
@@ -461,6 +470,9 @@ public class ReadValueTests
 
         public Pointer Optional { get; set; } = null!;
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static RootModel ReadFrom(StructValue source)
         {
             return new RootModel
@@ -472,6 +484,9 @@ public class ReadValueTests
             };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(RootModel value, StructValue target)
         {
             target["count"] = value.Count;
@@ -480,6 +495,7 @@ public class ReadValueTests
             target["optional"] = value.Optional;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -487,22 +503,30 @@ public class ReadValueTests
         }
     }
 
+    /// <summary>A mapped class for the tests' <c>ItemFields</c> record, read and written through the runtime.</summary>
     internal sealed class ItemFields : ICStructMapped<ItemFields>
     {
 #pragma warning disable SA1401 // This fixture intentionally verifies that a mapper may fill a public field.
         public int Value = -1;
 #pragma warning restore SA1401
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static ItemFields ReadFrom(StructValue source)
         {
             return new ItemFields { Value = source.Get<int>("value"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(ItemFields value, StructValue target)
         {
             target["value"] = value.Value;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -510,20 +534,28 @@ public class ReadValueTests
         }
     }
 
+    /// <summary>A mapped class for the tests' <c>ByteValue</c> record, read and written through the runtime.</summary>
     internal sealed class ByteValue : ICStructMapped<ByteValue>
     {
         public byte Value { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static ByteValue ReadFrom(StructValue source)
         {
             return new ByteValue { Value = source.Get<byte>("value"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(ByteValue value, StructValue target)
         {
             target["value"] = value.Value;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -531,20 +563,28 @@ public class ReadValueTests
         }
     }
 
+    /// <summary>A mapped class for the tests' <c>MissingMember</c> record, read and written through the runtime.</summary>
     internal sealed class MissingMember : ICStructMapped<MissingMember>
     {
         public int Other { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static MissingMember ReadFrom(StructValue source)
         {
             return new MissingMember { Other = source.Get<int>("other"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(MissingMember value, StructValue target)
         {
             target["other"] = value.Other;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -552,20 +592,28 @@ public class ReadValueTests
         }
     }
 
+    /// <summary>A mapped class for the tests' <c>UpperValue</c> record, read and written through the runtime.</summary>
     internal sealed class UpperValue : ICStructMapped<UpperValue>
     {
         public byte VALUE { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static UpperValue ReadFrom(StructValue source)
         {
             return new UpperValue { VALUE = source.Get<byte>("Value"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(UpperValue value, StructValue target)
         {
             target["Value"] = value.VALUE;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -573,6 +621,7 @@ public class ReadValueTests
         }
     }
 
+    /// <summary>A class with no registered mapping, which a typed read must reject.</summary>
     private sealed class NotMapped
     {
         public byte Value { get; set; }

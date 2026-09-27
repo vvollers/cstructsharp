@@ -4,7 +4,10 @@ using CStructSharp;
 using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 
-/// <summary>Verifies that every read-like path traversal consumes the same caller-configured safety budgets.</summary>
+/// <summary>
+///     Verifies that every read-like path traversal consumes the same caller-configured safety budgets, and that an
+///     array-element budget of zero still lets scalar fields be measured.
+/// </summary>
 [TestClass]
 public class TraversalLimitTests
 {
@@ -707,6 +710,23 @@ public class TraversalLimitTests
             options: options);
         Assert.AreEqual(4L, resolved);
         Assert.AreEqual(0L, addressStream.Position);
+    }
+
+    /// <summary>Fixed primitives, variable-width integers and nested scalar records need no array-element allowance.</summary>
+    /// <param name="prefix">A scalar declaration occupying the first two input bytes.</param>
+    [TestMethod]
+    [DataRow("uint16 first;")]
+    [DataRow("uleb128_32 first;")]
+    [DataRow("struct { uint8 low; uint8 high; } first;")]
+    public void ScalarPrefix_CanBeMeasuredWithNoArrayAllowance(string prefix)
+    {
+        var layout = new CStruct("struct root { " + prefix + " uint8 tail; };");
+        using var source = new MemoryStream(new byte[] { 0x81, 0x01, 99, });
+        var options = new ReadOptions { MaxArrayElements = 0, };
+
+        Assert.AreEqual(2L, layout.ResolveAddress(source, "root.tail", options: options));
+        Assert.AreEqual(0L, source.Position);
+        Assert.AreEqual((byte)99, layout.ReadValue<byte>(source, "root.tail", options: options));
     }
 
     /// <summary>Asserts that a failed update is classified as a read limit and preserves caller state.</summary>
