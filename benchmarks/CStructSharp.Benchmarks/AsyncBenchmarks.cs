@@ -65,7 +65,7 @@ public class AsyncBenchmarks
     }
 
     [Benchmark]
-    [BenchmarkCategory("PrimRecord", "ReleaseGate")]
+    [BenchmarkCategory("Impact", "PrimRecord", "ReleaseGate")]
     public ValueTask<StructValue> Runtime_PrimRecord_ParseAsync_MemoryStream()
     {
         this.primRecordExposed.Position = 0;

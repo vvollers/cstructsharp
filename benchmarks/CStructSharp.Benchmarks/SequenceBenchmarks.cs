@@ -54,7 +54,7 @@ public class SequenceBenchmarks
     public StructValue Runtime_PrimRecord_SingleSegment() => this.primRecord.Layout.Parse(this.primRecordSingle, "root");
 
     [Benchmark]
-    [BenchmarkCategory("PrimRecord")]
+    [BenchmarkCategory("Impact", "PrimRecord")]
     public StructValue Runtime_PrimRecord_FourSegments() => this.primRecord.Layout.Parse(this.primRecordSplit, "root");
 
     [Benchmark]

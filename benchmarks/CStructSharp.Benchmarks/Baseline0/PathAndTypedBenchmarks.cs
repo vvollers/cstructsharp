@@ -45,6 +45,7 @@ public class PathAndTypedBenchmarks
         return this.primRecord.Layout.ReadValue<uint>(this.primRecord.Bytes.AsSpan(), "root.c");
     }
 
+    [BenchmarkCategory("Impact")]
     [Benchmark]
     public long ResolveAddress_Index()
     {

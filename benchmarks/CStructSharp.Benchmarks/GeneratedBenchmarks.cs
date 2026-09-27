@@ -55,11 +55,11 @@ public class GeneratedBenchmarks
     public StructValue Runtime_PrimRecord_Parse() => this.primRecord.Layout.Parse(this.primRecord.Bytes.AsSpan(), "root");
 
     [Benchmark]
-    [BenchmarkCategory("PrimRecord", "ReleaseGate")]
+    [BenchmarkCategory("Impact", "PrimRecord", "ReleaseGate")]
     public PrimRecordLayout.Root Generated_PrimRecord_Parse() => PrimRecordLayout.Parse(this.primRecord.Bytes);
 
     [Benchmark]
-    [BenchmarkCategory("PrimRecord")]
+    [BenchmarkCategory("Impact", "PrimRecord")]
     public double Generated_PrimRecord_View()
     {
         var view = new PrimRecordLayout.RootView(this.primRecord.Bytes);
@@ -67,7 +67,7 @@ public class GeneratedBenchmarks
     }
 
     [Benchmark]
-    [BenchmarkCategory("PrimRecord")]
+    [BenchmarkCategory("Impact", "PrimRecord")]
     public double HandWritten_PrimRecord()
     {
         ReadOnlySpan<byte> bytes = this.primRecord.Bytes;
@@ -81,15 +81,15 @@ public class GeneratedBenchmarks
     }
 
     [Benchmark]
-    [BenchmarkCategory("PrimRecordWrite")]
+    [BenchmarkCategory("Impact", "PrimRecordWrite")]
     public byte[] Runtime_PrimRecord_Serialize() => this.primRecord.Layout.Serialize("root", this.primRecordStructValue);
 
     [Benchmark]
-    [BenchmarkCategory("PrimRecordWrite")]
+    [BenchmarkCategory("Impact", "PrimRecordWrite")]
     public byte[] Generated_PrimRecord_Serialize() => PrimRecordLayout.Serialize(this.primRecordValue);
 
     [Benchmark]
-    [BenchmarkCategory("PrimRecordUpdate")]
+    [BenchmarkCategory("Impact", "PrimRecordUpdate")]
     public void Runtime_PrimRecord_Update() => this.primRecord.Layout.Update(this.updateTarget.AsSpan(), "root.c", 7u);
 
     [Benchmark]
@@ -97,7 +97,7 @@ public class GeneratedBenchmarks
     public void Generated_PrimRecord_Update() => PrimRecordLayout.Update.C(this.updateTarget, 7u);
 
     [Benchmark]
-    [BenchmarkCategory("PrimRecordDebug")]
+    [BenchmarkCategory("Impact", "PrimRecordDebug")]
     public IReadOnlyList<DebugData> Runtime_PrimRecord_ParseWithDebug() => this.primRecord.Layout.ParseWithDebug(this.primRecord.Bytes.AsSpan(), "root").Debug;
 
     [Benchmark]

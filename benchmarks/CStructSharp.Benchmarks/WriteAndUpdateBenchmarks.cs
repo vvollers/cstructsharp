@@ -110,6 +110,7 @@ public class WriteAndUpdateBenchmarks
         return this.objectLayout.Serialize("root", this.expandoData);
     }
 
+    [BenchmarkCategory("Impact")]
     [Benchmark]
     public byte[] SerializeDictionary()
     {
@@ -124,7 +125,7 @@ public class WriteAndUpdateBenchmarks
     }
 
     [Benchmark]
-    [BenchmarkCategory("MemoryIo", "ReleaseGate")]
+    [BenchmarkCategory("Impact", "MemoryIo", "ReleaseGate")]
     public int SerializePocoToSpan()
     {
         return this.objectLayout.Serialize(this.spanDestination.AsSpan(), "root", this.pocoData);
@@ -154,6 +155,7 @@ public class WriteAndUpdateBenchmarks
         return this.primitiveUpdateData[0];
     }
 
+    [BenchmarkCategory("Impact")]
     [Benchmark]
     public byte UpdateLaterBitfield()
     {

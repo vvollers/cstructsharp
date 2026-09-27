@@ -55,6 +55,35 @@ harness's `node-latest.json` and the web artifact measurement) by
 `--check` reports whether the page still matches the inputs. Re-render it when a release re-baselines the
 performance contracts.
 
+## Check a change quickly: the Impact category
+
+The full suite takes about 45 minutes. The `Impact` category is a subset of about 30 cases that covers every
+execution path a change can affect: compilation, span parses of eleven fixtures chosen for their differences
+(`ImpactParseBenchmarks`: fixed records, nested structs, big-endian arrays, runtime counts, conditions, strings, a
+real file header, pointers, bitfields, unions, alias spellings), generated parse, view and serialize, a hand-written
+canary, paths, typed reads, serialize and update, debug ranges, async and segmented input. One run takes about five
+minutes:
+
+```sh
+dotnet build ./CStructSharp.NonWeb.sln -c Release
+CSTRUCTSHARP_BENCHMARK_JOB=Short dotnet run --project benchmarks/CStructSharp.Benchmarks -c Release -f net10.0 \
+  --no-build -- --filter '*' --anyCategories Impact
+```
+
+To compare a change with the code before it, build a second checkout of the earlier revision and let
+`quick-perf-check.mjs` run both, interleaved, keeping the best median of each case:
+
+```sh
+git worktree add ../cstructsharp-before HEAD
+dotnet build ../cstructsharp-before/CStructSharp.NonWeb.sln -c Release
+node tools/quality/quick-perf-check.mjs --baseline ../cstructsharp-before --categories Impact --rounds 1
+git worktree remove ../cstructsharp-before
+```
+
+It prints each case's median and allocation before and after, and flags differences above `--threshold`
+(default 3%). Short-job medians vary by a few percent between runs; confirm a flagged case with `--rounds 2`
+before treating it as a regression. Nothing else should run on the machine meanwhile.
+
 ## Compare with other serializers
 
 `CStructSharp.Comparison/` produces the three tables in the root README's "Speed compared with other .NET

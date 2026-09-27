@@ -111,6 +111,7 @@ public class ReadBenchmarks
         return this.nestedAlignedLayout.Parse(this.nestedAlignedStream, "root");
     }
 
+    [BenchmarkCategory("Impact")]
     [Benchmark]
     public StructValue ParseBoundedPointerGraph()
     {
@@ -161,14 +162,14 @@ public class ReadBenchmarks
     }
 
     [Benchmark]
-    [BenchmarkCategory("TypedRead", "MemoryIo", "ReleaseGate")]
+    [BenchmarkCategory("Impact", "TypedRead", "MemoryIo", "ReleaseGate")]
     public TypedRoot ReadTypedSmallRootMemory()
     {
         return this.typedLayout.ReadValue<TypedRoot>(this.typedBytes.AsSpan(), "root");
     }
 
     [Benchmark]
-    [BenchmarkCategory("ScalarRead")]
+    [BenchmarkCategory("Impact", "ScalarRead")]
     public object? ReadSelectedScalarNatural()
     {
         this.scalarStream.Position = 0;
@@ -192,7 +193,7 @@ public class ReadBenchmarks
     }
 
     [Benchmark]
-    [BenchmarkCategory("ScalarRead", "MemoryIo", "ReleaseGate")]
+    [BenchmarkCategory("Impact", "ScalarRead", "MemoryIo", "ReleaseGate")]
     public ushort ReadSelectedScalarTypedMemory()
     {
         return this.scalarLayout.ReadValue<ushort>(this.scalarBytes.AsSpan(), "root.value");

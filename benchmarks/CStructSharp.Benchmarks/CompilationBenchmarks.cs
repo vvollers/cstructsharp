@@ -22,14 +22,14 @@ public class CompilationBenchmarks
     }
 
     [Benchmark]
-    [BenchmarkCategory("ReleaseGate")]
+    [BenchmarkCategory("Impact", "ReleaseGate")]
     public CStruct CompileSmall()
     {
         return new CStruct(this.smallDefinition);
     }
 
     [Benchmark]
-    [BenchmarkCategory("ReleaseGate")]
+    [BenchmarkCategory("Impact", "ReleaseGate")]
     public CStruct CompileMedium()
     {
         return new CStruct(this.mediumDefinition);
