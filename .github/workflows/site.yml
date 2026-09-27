@@ -28,14 +28,14 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 26.5.0
+          node-version-file: .node-version
       - name: Install documentation browser dependencies
         working-directory: docs
         run: |
           npm ci --ignore-scripts
           npm exec -- playwright install-deps chromium
       - name: Validate documentation
-        run: node tools/documentation/validate-documentation.mjs
+        run: node tools/documentation/validate-documentation.mjs --installed
       - name: Install WebAssembly workload
         run: dotnet workload restore ./src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj
       - name: Build and test explorer

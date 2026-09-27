@@ -3,7 +3,44 @@ name: CI
 on:
   workflow_call:
   push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "benchmarks/**"
+      - "tools/**"
+      - "contracts/**"
+      - "docs/examples/**"
+      - "CStructSharp.sln"
+      - "CStructSharp.NonWeb.sln"
+      - "global.json"
+      - "Directory.Build.props"
+      - ".config/**"
+      - "stryker-config.json"
+      - "stryker-memory-config.json"
+      - ".node-version"
+      - ".github/workflows/ci.yml"
   pull_request:
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "benchmarks/**"
+      - "tools/**"
+      - "contracts/**"
+      - "docs/examples/**"
+      - "CStructSharp.sln"
+      - "CStructSharp.NonWeb.sln"
+      - "global.json"
+      - "Directory.Build.props"
+      - ".config/**"
+      - "stryker-config.json"
+      - "stryker-memory-config.json"
+      - ".node-version"
+      - ".github/workflows/ci.yml"
+  schedule:
+    # A weekly full run catches an effect on the managed side that the path filter did not anticipate.
+    - cron: "11 3 * * 0"
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -40,7 +77,7 @@ jobs:
       - name: Set up Node.js for repository tooling
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 26.5.0
+          node-version-file: .node-version
 
       - name: Verify managed API baseline
         env:

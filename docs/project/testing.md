@@ -208,10 +208,23 @@ frontend and browser checks locally when changing that application. Release auto
 WASM explorer and runs frontend unit tests, explorer end-to-end tests, and the extracted browser starter checks.
 It also runs the starter and recipe programs against the candidate NuGet package.
 
-The npm package CI and release workflow test the installed tarball in Node.js 22.14 and 24.0 on Windows,
+The web and release workflows test the installed tarball in Node.js 22.14, 24.0, and 26.5 on Windows,
 Linux, and macOS, plus TypeScript and browser consumers. The browser checks cover Vite development and production,
 nested deployment paths, server rendering, and static assets. See [npm package checks](release-process.md#build-and-test-npm-locally)
 for the local commands.
+
+## Continuous integration
+
+Three workflows run on pull requests and on pushes to `main`, each only when a file in its area changes:
+
+| Workflow | Area | Runs |
+| --- | --- | --- |
+| `ci.yml` | Library, generator, tests, benchmarks, tools, contracts | Build, format, both-framework tests, coverage, contracts, packages, Native AOT, Windows/macOS tests |
+| `web.yml` | WASM bridge, npm package, explorer, inspector | Lint and unit tests without .NET; one WASM build shared by the package, explorer, inspector and onboarding browser tests; the npm package on every supported Node version and platform |
+| `docs.yml` | Documentation sources, the API reference's source, contracts | The complete documentation gate |
+
+Each also runs weekly on a schedule and on demand, so an effect that a path filter did not anticipate still shows up.
+The release workflow always runs all three. Every workflow reads its Node version from `.node-version`.
 
 ## Documentation
 

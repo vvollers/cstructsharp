@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 26.5.0
+          node-version-file: .node-version
       - name: Verify orchestration contracts
         run: node --test tools/quality/mutation-partitions.test.mjs
       - name: Produce every partition from the checked-out configuration
@@ -44,7 +44,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 26.5.0
+          node-version-file: .node-version
 
       - name: Restore tools and projects
         run: |
@@ -72,7 +72,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 26.5.0
+          node-version-file: .node-version
       - name: Download every partition separately
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -99,7 +99,7 @@ jobs:
           global-json-file: global.json
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 26.5.0
+          node-version-file: .node-version
       - name: Restore tools and projects
         run: |
           dotnet tool restore

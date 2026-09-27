@@ -51,7 +51,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 26.5.0
+          node-version-file: .node-version
 
       - name: Build benchmarks (Release)
         run: dotnet build ./benchmarks/CStructSharp.Benchmarks/CStructSharp.Benchmarks.csproj -c Release -f net10.0

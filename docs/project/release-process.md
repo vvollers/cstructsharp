@@ -14,15 +14,16 @@ the standalone WASM ZIP, and the documentation/explorer/inspector Pages site at 
 | `prepare` | Calculate a bump and verify artifacts; do not commit, tag, or publish |
 | `recover` | Reuse artifacts from `recovery_run_id`; do not bump or rebuild |
 
-Normal and prepare runs first call the same managed, explorer, inspector and documentation workflows used by
-ordinary CI. These jobs use the release workflow's exact source SHA. Managed verification includes whole-library
-coverage, generator/parity tests, API and quality contracts, formatting, package consumers, Native AOT, and the
-Windows/macOS managed tests. The frontend lint/unit jobs stay independent for quick feedback on pull requests.
+Normal and prepare runs first call the same managed (`ci.yml`), web (`web.yml`) and documentation (`docs.yml`)
+workflows used by ordinary CI, whatever their path filters would select. These jobs use the release workflow's exact
+source SHA. Managed verification includes whole-library coverage, generator/parity tests, API and quality contracts,
+formatting, package consumers, Native AOT, and the Windows/macOS managed tests. Web verification lints and unit-tests
+the apps, builds the WASM publication once, and runs the package, explorer, inspector and onboarding browser tests.
 Missing, failed or skipped shared jobs prevent the artifact-verification job from running.
 
 `verify` then checks out that exact main-branch source SHA, updates version files, builds the managed and
 WASM artifacts, and tests the installed npm tarball in Node, TypeScript, Vite development/production, SSR, and
-static hosting. Six additional jobs execute that tarball on Windows, Linux, and macOS with Node 22.14 and 24.0.
+static hosting. Nine additional jobs execute that tarball on Windows, Linux, and macOS with Node 22.14, 24.0, and 26.5.
 No installation scripts or .NET SDK are required by those consumers. npm preflight failures stop verification;
 only an explicit 404 is treated as a missing registry version.
 

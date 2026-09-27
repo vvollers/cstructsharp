@@ -58,7 +58,8 @@ and update the current contracts, tests, and documentation without retaining unu
 
 ## Validation and delivery
 
-- Use the SDK in `global.json`, Node 22.14 or later for `tools/`, and each package's declared Node/npm versions and lockfile.
+- Use the SDK in `global.json` and the Node version in `.node-version` (CI pins it). Minimums: Node 22.14 for `tools/`
+  and the npm package, Node 24 for the documentation checks; each app uses its declared Node/npm versions and lockfile.
   Run commands from the repository root unless an app directory is specified.
 - Managed changes: `dotnet build CStructSharp.NonWeb.sln -c Release`, then
   `dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release --no-build` (both target frameworks).

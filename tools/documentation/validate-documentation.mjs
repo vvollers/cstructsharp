@@ -6,7 +6,10 @@
  * browser), and the structural checks on DocFX configuration, pages, TOCs, reachability, tracked sources,
  * published contracts, generated pages, the search index, root-absolute URLs, and the site budget.
  *
- *   node tools/documentation/validate-documentation.mjs [--no-build] [--self-test]
+ *   node tools/documentation/validate-documentation.mjs [--no-build] [--installed] [--self-test]
+ *
+ * --installed skips `npm ci` in docs/ when the caller has already installed its pinned dependencies (as the
+ * documentation workflow does before installing the browser's system dependencies).
  */
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -16,7 +19,7 @@ import { isFile, isIgnored, lines, listFiles, repositoryFiles, toPosix } from ".
 import { apiDirectory, documentationRoot, documentationSourceFiles, relativeLinkTargets, resolveTarget, siteDirectory, sourcePages, sourceTocs, tocHrefs } from "../lib/docs.mjs";
 import { findAll, parseXml } from "../lib/xml.mjs";
 
-const options = parseArguments(process.argv.slice(2), { "no-build": "flag", "self-test": "flag" }, { defaults: { "no-build": false, "self-test": false } });
+const options = parseArguments(process.argv.slice(2), { "no-build": "flag", installed: "flag", "self-test": "flag" }, { defaults: { "no-build": false, installed: false, "self-test": false } });
 const here = path.join(repositoryRoot, "tools/documentation");
 const scripts = {
   build: path.join(here, "build-documentation.mjs"),
@@ -152,7 +155,9 @@ await main(() => {
   for (const framework of ["net8.0", "net10.0"]) {
     runDotnet(["run", "--project", path.join(documentationRoot, "examples/memory-analysis/MemoryAnalysis.csproj"), "-c", "Release", "-f", framework], { label: `memory documentation examples ${framework}` });
   }
-  runNpmStep(["ci", "--ignore-scripts"], documentationRoot, "Pinned documentation Node dependency restore failed.");
+  if (!options.installed) {
+    runNpmStep(["ci", "--ignore-scripts"], documentationRoot, "Pinned documentation Node dependency restore failed.");
+  }
   runNpmStep(["audit", "--audit-level=high"], documentationRoot, "Documentation Node dependency audit failed.");
   for (const script of ["lint:workflow-yaml", "lint:markdown", "lint:spelling", "install:browser", "test:browser"]) {
     runNpmStep(["run", script], documentationRoot, `Documentation Node script '${script}' failed.`);

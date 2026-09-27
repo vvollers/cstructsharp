@@ -54,17 +54,11 @@ jobs:
     if: inputs.mode != 'recover'
     uses: ./.github/workflows/ci.yml
 
-  explorer:
-    name: Explorer verification
+  web:
+    name: Web verification
     needs: validate
     if: inputs.mode != 'recover'
-    uses: ./.github/workflows/web-ci.yml
-
-  inspector:
-    name: Inspector verification
-    needs: validate
-    if: inputs.mode != 'recover'
-    uses: ./.github/workflows/inspector-ci.yml
+    uses: ./.github/workflows/web.yml
 
   documentation:
     name: Documentation verification
@@ -73,7 +67,7 @@ jobs:
     uses: ./.github/workflows/docs.yml
 
   verify:
-    needs: [validate, managed, explorer, inspector, documentation]
+    needs: [validate, managed, web, documentation]
     if: inputs.mode != 'recover' && github.ref == 'refs/heads/main'
     name: Build, test, and verify release artifacts
     runs-on: ubuntu-latest
@@ -99,7 +93,7 @@ jobs:
       - name: Set up Node.js for documentation
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 26.5.0
+          node-version-file: .node-version
           cache: npm
           cache-dependency-path: docs/package-lock.json
 
@@ -343,7 +337,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        node: [22.14.0, 24.0.0]
+        node: [22.14.0, 24.0.0, 26.5.0]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -386,7 +380,7 @@ jobs:
       - name: Set up publishing Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 26.5.0
+          node-version-file: .node-version
           registry-url: https://registry.npmjs.org/
       - name: Pin the OIDC-capable npm CLI
         run: npm install --global npm@12.0.2

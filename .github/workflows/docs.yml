@@ -5,7 +5,40 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "docs/**"
+      - "src/**"
+      - "tests/CStructSharpTests/**"
+      - "contracts/**"
+      - "tools/documentation/**"
+      - "tools/lib/**"
+      - "README.md"
+      - "CHANGELOG.md"
+      - "CONTRIBUTING.md"
+      - "MUTATION_TESTING.md"
+      - "global.json"
+      - ".config/**"
+      - ".node-version"
+      - ".github/workflows/docs.yml"
   pull_request:
+    paths:
+      - "docs/**"
+      - "src/**"
+      - "tests/CStructSharpTests/**"
+      - "contracts/**"
+      - "tools/documentation/**"
+      - "tools/lib/**"
+      - "README.md"
+      - "CHANGELOG.md"
+      - "CONTRIBUTING.md"
+      - "MUTATION_TESTING.md"
+      - "global.json"
+      - ".config/**"
+      - ".node-version"
+      - ".github/workflows/docs.yml"
+  schedule:
+    # A weekly full run catches an effect on the site that the path filter did not anticipate.
+    - cron: "11 5 * * 0"
   workflow_dispatch:
 
 permissions:
@@ -35,7 +68,7 @@ jobs:
       - name: Set up pinned Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 26.5.0
+          node-version-file: .node-version
           cache: npm
           cache-dependency-path: docs/package-lock.json
 
@@ -49,7 +82,7 @@ jobs:
         env:
           # DocFX otherwise replaces SourceLink commits with a PR's invalid N/merge ref.
           DOCFX_SOURCE_BRANCH_NAME: ${{ github.sha }}
-        run: node tools/documentation/validate-documentation.mjs
+        run: node tools/documentation/validate-documentation.mjs --installed
 
       - name: Upload documentation review artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
