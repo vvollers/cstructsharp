@@ -901,6 +901,19 @@ public partial class CStruct
         }
     }
 
+    /// <summary>Captures a field whose value the resolver does not read: only a non-integer field reaches here, and its capture makes the name unusable.</summary>
+    /// <param name="compiledField">The field.</param>
+    /// <param name="captures">Whether any expression can name the field.</param>
+    /// <param name="state">The operation state.</param>
+    private void CaptureWithoutValue(CompiledField compiledField, bool captures, CStructOperationContext state)
+    {
+        if (captures)
+        {
+            LayoutVariableCapture.Capture(state.Variables, compiledField.Name, compiledField, null);
+            state.PublishQualified(compiledField.Name);
+        }
+    }
+
     /// <summary>Reads one preceding scalar into the expression environment without following pointer targets.</summary>
     private void CaptureLayoutVariable(
         CompiledField compiledField,
@@ -909,18 +922,15 @@ public partial class CStruct
         int unitSize,
         CStructOperationContext state)
     {
-        if (compiledField.Array.Kind != CompiledArrayKind.Scalar)
-        {
-            return;
-        }
-
         // An unreferenced field still moves the stream exactly as before - reported failure offsets depend on
         // it - but publishes nothing.
         bool captures = compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables;
 
-        if (compiledField.PointerDepth == 0 && compiledField.IsFixedPoint)
+        // Arrays and fixed-point values are never read here; like every value that is not an integer, their capture
+        // only makes a shared name unusable, exactly as the reader's does.
+        if (compiledField.Array.Kind != CompiledArrayKind.Scalar || (compiledField.PointerDepth == 0 && compiledField.IsFixedPoint))
         {
-            state.Variables.Remove(compiledField.Name);
+            this.CaptureWithoutValue(compiledField, captures, state);
             return;
         }
 
@@ -938,8 +948,7 @@ public partial class CStruct
                         "Compiled enum has no storage reader: " + enm.Name);
             if (captures)
             {
-                BigInteger exact = enm.Integer.FromStorageValue(value);
-                this.UpdateExactLayoutVariable(state.Variables, compiledField.Name, exact);
+                LayoutVariableCapture.Capture(state.Variables, compiledField.Name, compiledField, enm.Integer.FromStorageValue(value));
                 state.PublishQualified(compiledField.Name);
             }
 
@@ -947,6 +956,7 @@ public partial class CStruct
         }
         else if (compiledField.Composite is not null || this.codecs.ReaderOf(compiledField) is not Func<Stream, object> reader)
         {
+            this.CaptureWithoutValue(compiledField, captures, state);
             return;
         }
         else if (compiledField.BitSize > 0 && unitSize != compiledField.Codec.Size)
@@ -972,7 +982,7 @@ public partial class CStruct
 
         // A parsed scalar shadows any caller/define value with the same spelling. Keeping the older value would
         // resolve a path against data contradicted by the stream. See LayoutVariableCapture for the exact rule.
-        LayoutVariableCapture.Capture(state.Variables, compiledField.Name, value);
+        LayoutVariableCapture.Capture(state.Variables, compiledField.Name, compiledField, value);
 
         state.PublishQualified(compiledField.Name);
     }

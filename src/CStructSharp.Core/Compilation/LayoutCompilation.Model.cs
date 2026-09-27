@@ -35,23 +35,49 @@ internal sealed partial class LayoutCompilation
         return this.CompileArrayShape(field);
     }
 
-    private static bool MayCaptureText(CompiledField field)
+    /// <summary>Marks whether a field is named by any layout expression, and collects the named non-integer fields.</summary>
+    /// <param name="field">The compiled field.</param>
+    /// <param name="referenced">Every name the layout's expressions read, or <see langword="null"/> when none.</param>
+    /// <param name="nonInteger">Receives each named field that cannot be an integer; created on the first one.</param>
+    private static void MarkField(CompiledField field, HashSet<string>? referenced, ref List<CompiledField>? nonInteger)
     {
-        if (field.PointerDepth > 0 || field.Type.Symbol.Kind is CompiledTypeKind.Struct or CompiledTypeKind.Union or CompiledTypeKind.Enum)
+        field.CapturesLayoutVariable = referenced is not null && referenced.Contains(field.Declaration.Name.Name);
+        if (field.CapturesLayoutVariable && field.NotANumberReason is not null)
         {
-            return false;
+            (nonInteger ??= []).Add(field);
         }
-
-        PrimitiveCodec codec = field.Codec;
-        return !(codec.IsFixedWidthNumeric || codec.IsLeb128 || codec.IsFixedPoint);
     }
 
-    /// <summary>Marks one field; returns whether it is referenced and can hold text (which widens capture to every field).</summary>
-    private static bool MarkField(CompiledField field, HashSet<string>? referenced)
+    /// <summary>Returns whether any field declared with <paramref name="name"/> holds an integer.</summary>
+    /// <param name="symbols">Every compiled type.</param>
+    /// <param name="rootFields">The compiled root fields.</param>
+    /// <param name="name">The declared field name.</param>
+    /// <returns>Whether an integer field of that name exists.</returns>
+    private static bool HasIntegerField(HashSet<CompiledTypeSymbol> symbols, ImmutableDictionary<CStructElement, CompiledField>.Builder rootFields, string name)
     {
-        bool isReferenced = referenced is not null && referenced.Contains(field.Declaration.Name.Name);
-        field.CapturesLayoutVariable = isReferenced;
-        return isReferenced && MayCaptureText(field);
+        foreach (CompiledTypeSymbol symbol in symbols)
+        {
+            if (symbol.Definition is CompiledCompositeType composite)
+            {
+                foreach (CompiledField field in composite.Fields)
+                {
+                    if (field.Declaration.Name.Name == name && field.NotANumberReason is null)
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        foreach (CompiledField field in rootFields.Values)
+        {
+            if (field.Declaration.Name.Name == name && field.NotANumberReason is null)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void CollectExpressionReferences(CStructElement element, ref HashSet<string>? referenced, ref Stack<Expr>? pending)
@@ -1237,12 +1263,12 @@ internal sealed partial class LayoutCompilation
     ///     Marks the fields whose values an expression can read back. The evaluator resolves identifiers only
     ///     through the layout's own expressions - array dimensions, conditions, switch selectors and cases, bit sizes,
     ///     alignment/offset assertions, <c>#define</c>s, enum values - so their identifier dependencies are the complete
-    ///     set of capturable names. One exception makes the set unbounded: a text field is captured as
-    ///     <c>Identifier(text)</c>, and evaluating it resolves the *text* as another name. If any referenced field can
-    ///     hold text, every field keeps its capture. Allocation-conscious on purpose: the release gate budgets a small
-    ///     layout's compilation to the byte, so the sets are created only when the first identifier appears and the
-    ///     fields are walked through their composites' arrays rather than through LINQ.
+    ///     set of capturable names. A name that only non-integer fields can supply fails construction. Allocation-
+    ///     conscious on purpose: the release gate budgets a small layout's compilation to the byte, so the sets are
+    ///     created only when the first identifier appears and the fields are walked through their composites' arrays
+    ///     rather than through LINQ.
     /// </summary>
+    /// <exception cref="CStructLayoutException">An expression names a field that can only be a non-integer value.</exception>
     private void MarkReferencedLayoutVariables(
         HashSet<CompiledTypeSymbol> symbols,
         ImmutableDictionary<CStructElement, CompiledField>.Builder rootFields)
@@ -1256,14 +1282,14 @@ internal sealed partial class LayoutCompilation
 
         List<string>? qualifiedHeads = ExpandQualifiedReferences(referenced);
 
-        bool captureAll = false;
+        List<CompiledField>? nonInteger = null;
         foreach (CompiledTypeSymbol symbol in symbols)
         {
             if (symbol.Definition is CompiledCompositeType composite)
             {
                 foreach (CompiledField field in composite.Fields)
                 {
-                    captureAll |= MarkField(field, referenced);
+                    MarkField(field, referenced, ref nonInteger);
                     if (qualifiedHeads is not null && field.Type.Symbol.Kind is CompiledTypeKind.Struct or CompiledTypeKind.Union &&
                         field.PointerDepth == 0 && field.Array.Kind == CompiledArrayKind.Scalar &&
                         qualifiedHeads.Contains(field.Declaration.Name.Name))
@@ -1277,28 +1303,29 @@ internal sealed partial class LayoutCompilation
 
         foreach (CompiledField field in rootFields.Values)
         {
-            captureAll |= MarkField(field, referenced);
+            MarkField(field, referenced, ref nonInteger);
         }
 
-        if (!captureAll)
+        // An expression can only use an integer. A name that only non-integer fields (text, arrays, structs,
+        // floating-point values, ...) supply, with no definition of that name, is a mistake in the layout; a name a
+        // numeric field or a definition shares stays valid, and the non-integer field makes it unusable while in effect.
+        if (nonInteger is null)
         {
             return;
         }
 
-        foreach (CompiledTypeSymbol symbol in symbols)
+        foreach (CompiledField field in nonInteger)
         {
-            if (symbol.Definition is CompiledCompositeType composite)
+            string name = field.Declaration.Name.Name;
+            bool defined = this.cStructElements.TryGetValue(name, out CStructElement? element) && element is Defines;
+            if (!defined && !HasIntegerField(symbols, rootFields, name))
             {
-                foreach (CompiledField field in composite.Fields)
+                throw new CStructLayoutException(
+                    $"Field '{name}' is {field.NotANumberReason}, but a layout expression uses it; layout expressions can only use integer fields (integers, characters, bool, enums and pointers).")
                 {
-                    field.CapturesLayoutVariable = true;
-                }
+                    SourceOffset = field.Declaration.Name.SourceOffset,
+                };
             }
-        }
-
-        foreach (CompiledField field in rootFields.Values)
-        {
-            field.CapturesLayoutVariable = true;
         }
     }
 

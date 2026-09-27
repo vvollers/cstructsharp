@@ -94,6 +94,34 @@ and the value is published while that field is read, written, or measured, so ev
 number. A path that names no such field is an undefined identifier when it is evaluated, like any other unknown
 name. The `nested-references` fixture checks `v[hdr.n]` through parsing, addressing, and serialization.
 
+## Which fields an expression can use
+
+An expression computes an integer, so it can only read fields whose value is an integer. These are integer types,
+characters (their character code), `bool` (1 or 0), enums (the member's number), and pointers (the stored address,
+not the value it points to). A custom codec's field counts when the value it decodes is an integer.
+
+Other fields have no single integer value: text (`char name[4]`, `utf8 name[8]`, `cstring`), arrays, structs, unions,
+floating-point and fixed-point numbers, and UUIDs. Naming one of them in an expression is a layout error, reported
+when the layout is built:
+
+```c
+struct root { char tag[4]; uint8 body[tag]; };
+```
+
+This fails with `Field 'tag' is text, but a layout expression uses it; layout expressions can only use integer
+fields (integers, characters, bool, enums and pointers).` To branch on a four-character tag, read it as a number and
+name the values with an enum:
+
+```c
+enum chunk : uint32 { IHDR = 0x52444849 };  // "IHDR" read little-endian
+struct root { chunk tag; switch (tag) { case chunk.IHDR: { uint32 width; } } };
+```
+
+A name can belong to more than one field, for example a numeric `n` in one struct and a text `n` in a nested one. The
+layout is then valid, and the value in effect is the last field read under that name. While that is the text field, an
+expression that uses `n` fails with `'n' is text, but layout expressions can only use integer fields ...`; it never
+falls back to an older value. The same holds when a `#define` shares the name with a non-integer field.
+
 ## Counts and bit widths use signed 32-bit values
 
 Ordinary layout expressions use checked `Int32` arithmetic:

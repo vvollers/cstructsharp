@@ -44,18 +44,12 @@ public class PrimitiveArrayReaderTests
         }
     }
 
-    /// <summary>The last array element remains the value a later array count sees, exactly as with the per-element reader.</summary>
+    /// <summary>An array is not an integer: using one as a count fails layout construction.</summary>
     [TestMethod]
-    public void LastElement_IsTheCapturedLayoutVariable()
+    public void ArrayCount_FailsConstruction()
     {
-        var layout = new CStruct("struct root { uint8 counts[3]; uint8 values[counts]; uint32 wide[2]; uint8 more[wide]; };");
-        Assert.ThrowsExactly<CStructReadException>(
-            () => layout.Parse(new byte[] { 9, 9, 2, 1, 2, 0, 0, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF, 1 }, "root"),
-            "an out-of-range last element removes the variable so the count cannot be evaluated");
-
-        dynamic parsed = layout.Parse(new byte[] { 9, 9, 2, 1, 2, 0, 0, 0, 0, 3, 0, 0, 0, 7, 8, 9 }, "root");
-        Assert.AreEqual(2, ((IList<object?>)parsed.values).Count);
-        Assert.AreEqual(3, ((IList<object?>)parsed.more).Count);
+        CStructLayoutException failure = Assert.ThrowsExactly<CStructLayoutException>(() => new CStruct("struct root { uint8 counts[3]; uint8 values[counts]; uint32 wide[2]; uint8 more[wide]; };"));
+        StringAssert.Contains(failure.Message, "Field 'counts' is an array");
     }
 
     /// <summary>Exceeding the total read budget inside a bulk array still raises the limit exception, and a short input still fails.</summary>

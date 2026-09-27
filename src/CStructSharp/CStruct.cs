@@ -257,25 +257,6 @@ public sealed partial class CStruct
     }
 
     /// <summary>
-    ///     Makes a scalar's exact value authoritative for later Int32 layout expressions without retaining a stale
-    ///     caller or definition value when the parsed/written scalar lies outside that expression domain.
-    /// </summary>
-    private void UpdateExactLayoutVariable(
-        Dictionary<string, Expr> variables,
-        string name,
-        BigInteger value)
-    {
-        if (value >= int.MinValue && value <= int.MaxValue)
-        {
-            variables[name] = new Literal((int)value);
-        }
-        else
-        {
-            variables.Remove(name);
-        }
-    }
-
-    /// <summary>
     ///     Reads the requested array/string count with variables from a read-only caller view. The variables are
     ///     snapshotted before traversal and are never modified.
     /// </summary>

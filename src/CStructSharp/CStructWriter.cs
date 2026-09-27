@@ -870,27 +870,11 @@ public partial class CStruct
             cursor!.CompleteField(state.Stream.Position);
         }
 
-        // Later fields may use this field in an expression, so keep the writer's variable map in step with the bytes.
-        if (!compiledField.CapturesLayoutVariable && !state.CaptureAllLayoutVariables)
+        // Later fields may use this field in an expression, so keep the writer's variable map in step with the bytes;
+        // see LayoutVariableCapture for the rule every path shares.
+        if (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
         {
-            // No expression in this layout can name the field: nothing to publish.
-        }
-        else if (writtenEnumValue is BigInteger exactEnumValue)
-        {
-            this.UpdateExactLayoutVariable(state.Variables, compiledField.Name, exactEnumValue);
-            state.PublishQualified(compiledField.Name);
-        }
-        else
-        {
-            if (compiledField.Codec.IsFixedPoint || compiledField.Codec.IsIdentifier)
-            {
-                state.Variables.Remove(compiledField.Name);
-            }
-            else
-            {
-                WriterVariableProjection.UpdateVariablesFromValue(state, compiledField.Name, value!);
-            }
-
+            LayoutVariableCapture.Capture(state.Variables, compiledField.Name, compiledField, writtenEnumValue is BigInteger exact ? exact : value);
             state.PublishQualified(compiledField.Name);
         }
     }

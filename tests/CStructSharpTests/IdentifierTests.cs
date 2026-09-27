@@ -7,19 +7,15 @@ using CStructSharp.Diagnostics;
 [TestClass]
 public class IdentifierTests
 {
-    /// <summary>Identifiers cannot act as integer counts through a stale caller value or writer string.</summary>
+    /// <summary>A UUID is never an integer count: naming one in a count fails layout construction.</summary>
+    /// <param name="type">The UUID spelling.</param>
     [TestMethod]
-    public void Identifiers_RemoveShadowedNumericVariables()
+    [DataRow("uuid")]
+    [DataRow("guid")]
+    public void UuidCount_FailsConstruction(string type)
     {
-        foreach (string type in new[] { "uuid", "guid" })
-        {
-            var parser = new CStruct($"struct root {{ {type} id; uint8 bytes[id]; }};", aligned: false);
-            var variables = new Dictionary<string, int> { ["id"] = 1 };
-            Assert.Throws<CStructReadException>(() => parser.Parse(new MemoryStream(new byte[17]), "root", variables: variables));
-            Assert.Throws<CStructReadException>(() => parser.ResolveAddress(new MemoryStream(new byte[17]), "root.bytes[0]", variables: variables));
-            Assert.Throws<CStructWriteException>(() => parser.Serialize("root", new Dictionary<string, object?> { ["id"] = Guid.Empty, ["bytes"] = new byte[] { 0 } }, variables: variables));
-            Assert.Throws<CStructWriteException>(() => parser.Serialize("root", new Dictionary<string, object?> { ["id"] = Guid.Empty.ToString("D"), ["bytes"] = new byte[] { 0 } }, variables: variables));
-        }
+        CStructLayoutException failure = Assert.ThrowsExactly<CStructLayoutException>(() => new CStruct($"struct root {{ {type} id; uint8 bytes[id]; }};", aligned: false));
+        StringAssert.Contains(failure.Message, "Field 'id' is a UUID");
     }
 
     /// <summary>Non-symmetric identifiers retain their bits, byte ranges, and typed managed value.</summary>

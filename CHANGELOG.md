@@ -8,6 +8,16 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Breaking changes
 
+- **Breaking (language):** a layout expression can only use integer fields: integers, characters (their code),
+  `bool` (1 or 0), enums (the member's number), pointers (the stored address), and custom-codec values that decode to an
+  integer. Naming text, an array, a struct or union, a floating-point, fixed-point or UUID field in an expression is
+  now a layout error when the layout is built. Before, text was read as the name of another variable, an array gave
+  its last element, and floats were rounded, and the reader, the path resolver and the writers disagreed on these
+  cases. Where a numeric field or a `#define` shares the name, the layout is valid and an expression that meets the
+  non-integer field's value fails with a message naming it. Integers outside the 32-bit range - including pointer
+  addresses and enum numbers - fail with their exact value in every operation. Migration: read the field as an
+  integer type or an enum (for a four-character tag, `enum chunk : uint32 { IHDR = 0x52444849 }` and
+  `switch (tag) { case chunk.IHDR: ... }`), or name a numeric field instead.
 - **Breaking (behaviour):** a struct now follows its pointers after its last field is read, in declaration order,
   instead of at each pointer field. The runtime reader and generated code follow the same rule. Values are
   unchanged. Two things change: `ParseWithDebug` lists a pointer's target records after the struct's own fields,

@@ -15,14 +15,12 @@ public class AddressTraversalBoundaryTests
         Assert.AreEqual((byte)99, layout.ReadValue<byte>(source, "root.tail", options: new ReadOptions { MaxTotalBytesRead = 1, }));
     }
 
-    /// <summary>A fixed-point member shadows a stale caller integer rather than supplying an array length.</summary>
+    /// <summary>A fixed-point member cannot supply an array length: naming it in a count fails layout construction.</summary>
     [TestMethod]
-    public void FixedPointPrefix_RemovesAStaleCallerCount()
+    public void FixedPointCount_FailsConstruction()
     {
-        var layout = new CStruct("struct root { fixed16_16 amount; uint8 items[amount]; uint8 tail; };");
-        using var source = new MemoryStream(new byte[] { 0, 0, 1, 0, 11, 12, 99, });
-        var variables = new Dictionary<string, int> { ["amount"] = 2, };
-        Assert.Throws<CStructReadException>(() => layout.ResolveAddress(source, "root.tail", variables: variables));
+        CStructLayoutException failure = Assert.ThrowsExactly<CStructLayoutException>(() => new CStruct("struct root { fixed16_16 amount; uint8 items[amount]; uint8 tail; };"));
+        StringAssert.Contains(failure.Message, "Field 'amount' is a fixed-point value");
     }
 
     /// <summary>A nested enum publishes the qualified count used to find a later field.</summary>

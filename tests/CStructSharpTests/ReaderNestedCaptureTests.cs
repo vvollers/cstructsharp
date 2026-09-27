@@ -4,18 +4,15 @@ namespace CStructSharp.Tests;
 [TestClass]
 public class ReaderNestedCaptureTests
 {
-    /// <summary>Nested scalar, enum and numeric-array counts retain every containing field name.</summary>
+    /// <summary>Nested scalar and enum counts retain every containing field name.</summary>
     /// <param name="countType">The primitive or enum count type.</param>
-    /// <param name="arrayCount">Whether the last numeric array element supplies the count.</param>
     [TestMethod]
-    [DataRow("uint8", false)]
-    [DataRow("kind", false)]
-    [DataRow("uint8", true)]
-    public void RuntimeNestedCount_PublishesTheCompletePath(string countType, bool arrayCount)
+    [DataRow("uint8")]
+    [DataRow("kind")]
+    public void RuntimeNestedCount_PublishesTheCompletePath(string countType)
     {
-        string dimensions = arrayCount ? "[2]" : string.Empty;
-        var layout = new CStruct("enum kind : uint8 { TWO = 2 }; struct inner { " + countType + " count" + dimensions + "; uint8 padding[count]; }; struct outer { inner child; }; struct root { outer header; uint8 values[header.child.count]; uint8 tail; };");
-        byte[] bytes = arrayCount ? [1, 2, 31, 32, 41, 42, 99,] : [2, 31, 32, 41, 42, 99,];
+        var layout = new CStruct("enum kind : uint8 { TWO = 2 }; struct inner { " + countType + " count; uint8 padding[count]; }; struct outer { inner child; }; struct root { outer header; uint8 values[header.child.count]; uint8 tail; };");
+        byte[] bytes = [2, 31, 32, 41, 42, 99,];
 
         dynamic parsed = layout.Parse(bytes.AsSpan(), "root");
 

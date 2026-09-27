@@ -10,8 +10,10 @@ using CStructSharp.Syntax;
 ///     original boxed value (no arithmetic representation is needed) so that an expression selecting it can fail with
 ///     the actual number, and costs one small object per capture instead of a <see cref="System.Numerics.BigInteger"/>.
 /// </summary>
-internal sealed class WideValueVariable : Expr
+internal sealed class WideValueVariable : UnusableVariable
 {
+    /// <summary>Creates the variable for an integer outside the Int32 range.</summary>
+    /// <param name="value">The boxed integer as it was decoded or supplied.</param>
     public WideValueVariable(object value)
     {
         this.WideValue = value;
@@ -29,8 +31,8 @@ internal sealed class WideValueVariable : Expr
         return $"'{name}' is {text}, which is outside the 32-bit range that layout expressions support.";
     }
 
-    /// <summary>Creates the diagnostic raised when an expression selects this variable through <paramref name="name"/>.</summary>
-    public InvalidOperationException CreateFailure(string name)
+    /// <inheritdoc/>
+    public override InvalidOperationException CreateFailure(string name)
     {
         return new InvalidOperationException(DescribeOutOfRange(name, this.WideValue));
     }

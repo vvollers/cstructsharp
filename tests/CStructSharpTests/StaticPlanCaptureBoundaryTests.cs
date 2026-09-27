@@ -1,34 +1,25 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Diagnostics;
+
 /// <summary>Checks count publication and inclusive array limits in fixed nested read plans.</summary>
 [TestClass]
 public class StaticPlanCaptureBoundaryTests
 {
-    /// <summary>A fixed nested numeric array publishes its last element under the complete containing path.</summary>
+    /// <summary>A nested array is not an integer: naming it through its containing path fails layout construction.</summary>
     [TestMethod]
-    public void NestedNumericArray_PublishesItsLastElement()
+    public void NestedNumericArray_FailsConstruction()
     {
-        var layout = new CStruct("struct inner { uint8 count[2]; }; struct outer { inner child; }; struct root { outer header; uint8 values[header.child.count]; uint8 tail; };");
-        byte[] bytes = [1, 2, 41, 42, 99,];
-
-        dynamic parsed = layout.Parse(bytes.AsSpan(), "root");
-
-        CollectionAssert.AreEqual(new object?[] { (byte)41, (byte)42, }, ((IEnumerable<object?>)parsed.values).ToArray());
-        Assert.AreEqual((byte)99, (byte)parsed.tail);
+        CStructLayoutException failure = Assert.ThrowsExactly<CStructLayoutException>(() => new CStruct("struct inner { uint8 count[2]; }; struct outer { inner child; }; struct root { outer header; uint8 values[header.child.count]; uint8 tail; };"));
+        StringAssert.Contains(failure.Message, "Field 'count' is an array");
     }
 
-    /// <summary>A fixed nested character array publishes its identifier for a later length expression.</summary>
+    /// <summary>Nested text is not an integer: naming it through its containing path fails layout construction.</summary>
     [TestMethod]
-    public void NestedCharacterArray_PublishesItsIdentifier()
+    public void NestedCharacterArray_FailsConstruction()
     {
-        var layout = new CStruct("#define AB 2\nstruct inner { char count[2]; }; struct outer { inner child; }; struct root { outer header; uint8 values[header.child.count]; uint8 tail; };");
-        byte[] bytes = [65, 66, 41, 42, 99,];
-
-        dynamic parsed = layout.Parse(bytes.AsSpan(), "root");
-
-        Assert.AreEqual("AB", (string)parsed.header.child.count);
-        CollectionAssert.AreEqual(new object?[] { (byte)41, (byte)42, }, ((IEnumerable<object?>)parsed.values).ToArray());
-        Assert.AreEqual((byte)99, (byte)parsed.tail);
+        CStructLayoutException failure = Assert.ThrowsExactly<CStructLayoutException>(() => new CStruct("#define AB 2\nstruct inner { char count[2]; }; struct outer { inner child; }; struct root { outer header; uint8 values[header.child.count]; uint8 tail; };"));
+        StringAssert.Contains(failure.Message, "Field 'count' is text");
     }
 
     /// <summary>Exactly the allowed element count is accepted for fixed character and numeric arrays.</summary>

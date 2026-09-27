@@ -1,9 +1,10 @@
 namespace CStructSharp.Tests;
 
 using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 
-/// <summary>Verifies the compiled variable-capture plan for nested expressions and indirect text references.</summary>
+/// <summary>Verifies the compiled variable-capture plan for nested expressions and the fields an expression may name.</summary>
 [TestClass]
 public class LayoutCaptureBoundaryTests
 {
@@ -49,29 +50,36 @@ public class LayoutCaptureBoundaryTests
         Assert.AreEqual(2, ((IList<object?>)parsed.values).Count);
     }
 
-    /// <summary>Two text references cannot cancel the fallback that captures potential indirect targets.</summary>
+    /// <summary>Text fields are not integers: comparing two of them in a condition fails layout construction.</summary>
     [TestMethod]
-    public void MultipleTextReferences_KeepTheCaptureAllFallback()
+    public void TextComparison_FailsConstruction()
     {
-        var layout = new CStruct("struct root { char left[4]; char right[4]; uint8 unused; if (left == right) { uint8 same; } };");
-        Assert.IsTrue(Field(layout, "left").CapturesLayoutVariable);
-        Assert.IsTrue(Field(layout, "right").CapturesLayoutVariable);
-        Assert.IsTrue(Field(layout, "unused").CapturesLayoutVariable);
-        Assert.IsTrue(Field(layout, "same").CapturesLayoutVariable);
+        CStructLayoutException failure = Assert.ThrowsExactly<CStructLayoutException>(() => new CStruct("struct root { char left[4]; char right[4]; uint8 unused; if (left == right) { uint8 same; } };"));
+        StringAssert.Contains(failure.Message, "Field 'left' is text");
     }
 
-    /// <summary>References to enum, pointer and composite values do not by themselves enable text indirection.</summary>
+    /// <summary>A reference to an enum or pointer value captures that field and no unrelated one.</summary>
     /// <param name="definition">A layout containing a non-text reference and an unrelated field.</param>
     [TestMethod]
     [DataRow("enum kind : uint8 { A = 1 }; struct root { kind value; uint8 unused; uint8 items[value]; };")]
     [DataRow("struct root { uint8 *value; uint8 unused; uint8 items[value]; };")]
-    [DataRow("struct child { uint8 n; }; struct root { child value; uint8 unused; if (value) { uint8 item; } };")]
-    [DataRow("union child { uint8 n; uint16 m; }; struct root { child value; uint8 unused; if (value) { uint8 item; } };")]
     public void NonTextReferences_DoNotCaptureUnrelatedValues(string definition)
     {
         var layout = new CStruct(definition);
         Assert.IsTrue(Field(layout, "value").CapturesLayoutVariable);
         Assert.IsFalse(Field(layout, "unused").CapturesLayoutVariable);
+    }
+
+    /// <summary>A struct or union is not an integer: naming one in a condition fails layout construction.</summary>
+    /// <param name="definition">A layout whose condition names a composite field.</param>
+    /// <param name="reason">What the diagnostic says the field is.</param>
+    [TestMethod]
+    [DataRow("struct child { uint8 n; }; struct root { child value; uint8 unused; if (value) { uint8 item; } };", "a struct")]
+    [DataRow("union child { uint8 n; uint16 m; }; struct root { child value; uint8 unused; if (value) { uint8 item; } };", "a union")]
+    public void CompositeReference_FailsConstruction(string definition, string reason)
+    {
+        CStructLayoutException failure = Assert.ThrowsExactly<CStructLayoutException>(() => new CStruct(definition));
+        StringAssert.Contains(failure.Message, "Field 'value' is " + reason);
     }
 
     /// <summary>Returns the uniquely named field whose capture and dependency metadata the test examines.</summary>

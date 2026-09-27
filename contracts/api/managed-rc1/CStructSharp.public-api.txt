@@ -432,11 +432,14 @@ namespace CStructSharp.Generated
         public static int Modulo(int left, int right) { }
         public static int Multiply(int left, int right) { }
         public static int Negate(int value) { }
+        public static int NotAnInteger(string name, string reason) { }
         public static int NotEqual(int left, int right) { }
         public static int Or(int left, int right) { }
         public static int Overflow() { }
         public static int RequireInt32(long value, string name) { }
         public static int RequireInt32(ulong value, string name) { }
+        public static int RequireInt32Wide(System.Int128 value, string name) { }
+        public static int RequireInt32Wide(System.UInt128 value, string name) { }
         public static int ShiftLeft(int value, int count) { }
         public static int ShiftRight(int value, int count) { }
         public static int Subtract(int left, int right) { }

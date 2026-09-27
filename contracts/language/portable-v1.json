@@ -1298,6 +1298,11 @@
       "category": "non-integer constant"
     },
     {
+      "id": "non-integer-field-in-expression",
+      "definition": "struct root { char tag[4]; uint8 value[tag]; };",
+      "category": "non-integer field"
+    },
+    {
       "id": "non-power-of-two-pack-pragma",
       "definition": "#pragma pack(3)\nstruct root { uint8 value; uint32 wide; };",
       "category": "alignment rule"

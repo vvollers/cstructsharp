@@ -247,6 +247,53 @@ internal sealed class CompiledField
     /// <summary>The enum or flag type read through this field (also when it is a bitfield), or <see langword="null"/>.</summary>
     public CompiledEnumType? Enum => this.PointerDepth == 0 ? this.Type.Symbol.Definition as CompiledEnumType : null;
 
+    /// <summary>
+    ///     Gets why this field cannot be used in a layout expression, as the phrase after "is" (<c>text</c>,
+    ///     <c>an array</c>, <c>a struct</c>, ...), or <see langword="null"/> when its value is an integer: an integer,
+    ///     character, <c>bool</c>, enum or pointer scalar, whose value (the character's code, 1 or 0, the enum's number,
+    ///     the pointer's stored address) is what an expression reads. A custom codec's scalar is allowed: the value it
+    ///     decodes decides at run time.
+    /// </summary>
+    public string? NotANumberReason
+    {
+        get
+        {
+            if (this.Array.Kind != CompiledArrayKind.Scalar)
+            {
+                return this.IsCharacterArray || this.Codec.IsBoundedText ? "text" : "an array";
+            }
+
+            if (this.PointerDepth > 0 || this.Enum is not null)
+            {
+                return null;
+            }
+
+            if (this.Composite is { } composite)
+            {
+                return composite.IsUnion ? "a union" : "a struct";
+            }
+
+            return this.Codec.Kind switch
+            {
+                PrimitiveCodecKind.Bool or PrimitiveCodecKind.UInt8 or PrimitiveCodecKind.Int8 or PrimitiveCodecKind.Char or
+                    PrimitiveCodecKind.Latin1 or PrimitiveCodecKind.Cp437 or PrimitiveCodecKind.Utf8Unit or PrimitiveCodecKind.Utf16LeUnit or
+                    PrimitiveCodecKind.Utf16BeUnit or PrimitiveCodecKind.WChar or PrimitiveCodecKind.Int16 or PrimitiveCodecKind.UInt16 or
+                    PrimitiveCodecKind.Int24 or PrimitiveCodecKind.UInt24 or PrimitiveCodecKind.Int32 or PrimitiveCodecKind.UInt32 or
+                    PrimitiveCodecKind.Int48 or PrimitiveCodecKind.UInt48 or PrimitiveCodecKind.Int64 or PrimitiveCodecKind.UInt64 or
+                    PrimitiveCodecKind.Int128 or PrimitiveCodecKind.UInt128 or PrimitiveCodecKind.ULeb128_32 or PrimitiveCodecKind.ULeb128_64 or
+                    PrimitiveCodecKind.SLeb128_32 or PrimitiveCodecKind.SLeb128_64 => null,
+
+                // A custom codec decides its own value type: an integer it decodes is a number, anything else is not.
+                PrimitiveCodecKind.Custom => null,
+                PrimitiveCodecKind.Float16 or PrimitiveCodecKind.Float32 or PrimitiveCodecKind.Float64 => "a floating-point value",
+                PrimitiveCodecKind.Fixed16_16 or PrimitiveCodecKind.UFixed16_16 or PrimitiveCodecKind.Fixed2_30 or PrimitiveCodecKind.UFixed8_8 => "a fixed-point value",
+                PrimitiveCodecKind.Uuid or PrimitiveCodecKind.Guid => "a UUID",
+                PrimitiveCodecKind.TerminatedAscii or PrimitiveCodecKind.TerminatedUtf8 or PrimitiveCodecKind.TerminatedUtf16 => "text",
+                _ => "a value that is not an integer",
+            };
+        }
+    }
+
     /// <summary>Whether the field is an inline struct or union member (<c>struct { ... } name;</c>), named or anonymous.</summary>
     public bool IsInlineComposite => this.Declaration is Struct;
 

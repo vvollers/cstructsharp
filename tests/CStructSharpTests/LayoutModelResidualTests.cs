@@ -73,17 +73,12 @@ public class LayoutModelResidualTests
         Assert.AreEqual(2, ((IList<object?>)value.values).Count);
     }
 
-    /// <summary>Multiple text-shaped typedef roots preserve the fallback that captures possible indirect targets.</summary>
+    /// <summary>Text-shaped typedef roots are not integers: using them in a count fails layout construction.</summary>
     [TestMethod]
-    public void ReferencedTextRoots_EnableCaptureForEveryRootAndMember()
+    public void ReferencedTextRoots_FailConstruction()
     {
-        var layout = new CStruct("typedef char left[4]; typedef char right[4]; typedef uint8 orphan; struct root { uint8 unused; uint8 values[left + right]; };");
-        foreach (var root in layout.CompiledModel.RootFields.Values)
-        {
-            Assert.IsTrue(root.CapturesLayoutVariable, root.Declaration.Name.Name);
-        }
-
-        Assert.IsTrue(layout.CompiledModel.AllFields().Single(field => field.Declaration.Name.Name == "unused").CapturesLayoutVariable);
+        CStructLayoutException failure = Assert.ThrowsExactly<CStructLayoutException>(() => new CStruct("typedef char left[4]; typedef char right[4]; typedef uint8 orphan; struct root { uint8 unused; uint8 values[left + right]; };"));
+        StringAssert.Contains(failure.Message, "is text");
     }
 
     /// <summary>Union tail alignment rounds a three-byte largest member only in aligned placement.</summary>

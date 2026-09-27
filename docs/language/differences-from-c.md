@@ -38,6 +38,7 @@ equivalence with every native compiler.
 | `unknown-preprocessor-directive` | `#error stop` | Only `#define`, `#undef`, `#include`, `#pragma`, `#ifdef`, `#ifndef`, `#else`, and `#endif` are recognized | Remove the line |
 | `unterminated-conditional` | `#ifdef X` with no `#endif` | Every conditional must be closed in the same source | Add the matching `#endif` |
 | `text-constant-in-expression` | `#define MAGIC "CD001"` then `value[MAGIC]` | A text, byte, bare, or macro constant is published on `CStruct.Constants` but has no integer value | Use an integer `#define` in expressions |
+| `non-integer-field-in-expression` | `char tag[4]` then `value[tag]` | Text, arrays, structs, unions, floating-point, fixed-point and UUID fields have no single integer value | Read the field as an integer or an enum, or use a numeric field |
 | `tag-kind-mismatch` | `struct root { union child value; };` where `child` is a `struct` | A tag keyword is checked against the referenced declaration's actual kind | Use the matching keyword, or omit it and write `child value;` |
 | `tag-alias-kind-mismatch` | `typedef union tag alias;` where `tag` is a `struct` | The same kind check applies to a tag alias | Use the matching keyword |
 | `duplicate-typedef-tag` | `typedef struct shared {...} a; typedef struct shared {...} b;` | A typedef's tag is a global type, as in C, and cannot be declared twice | Give each body its own tag, or use the anonymous form |

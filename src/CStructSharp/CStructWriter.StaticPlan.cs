@@ -8,6 +8,7 @@ using System.Numerics;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
+using CStructSharp.Expressions;
 using CStructSharp.Generated;
 using CStructSharp.Reading;
 using CStructSharp.Streams;
@@ -139,7 +140,7 @@ public partial class CStruct
                     WriteNumericValue(field, bytes.Slice(operation.Offset, field.Codec.Size), value, name);
                     if (captureState is not null)
                     {
-                        WriterVariableProjection.UpdateVariablesFromValue(captureState, name, value);
+                        LayoutVariableCapture.Capture(captureState.Variables, name, field, value);
                         captureState.PublishQualified(name);
                     }
 
@@ -152,7 +153,7 @@ public partial class CStruct
                         field.Codec.WriteNumeric(bytes.Slice(operation.Offset, field.Codec.Size), compiledEnum.Integer.ToStorageValue(enumValue));
                         if (captureState is not null)
                         {
-                            this.UpdateExactLayoutVariable(captureState.Variables, name, enumValue);
+                            LayoutVariableCapture.Capture(captureState.Variables, name, field, enumValue);
                             captureState.PublishQualified(name);
                         }
 
@@ -180,7 +181,7 @@ public partial class CStruct
 
                         if (captureState is not null)
                         {
-                            WriterVariableProjection.UpdateVariablesFromValue(captureState, name, value);
+                            LayoutVariableCapture.Capture(captureState.Variables, name, field, value);
                             captureState.PublishQualified(name);
                         }
 
@@ -206,7 +207,7 @@ public partial class CStruct
 
                     if (captureState is not null)
                     {
-                        WriterVariableProjection.UpdateVariablesFromValue(captureState, name, value);
+                        LayoutVariableCapture.Capture(captureState.Variables, name, field, value);
                         captureState.PublishQualified(name);
                     }
 
@@ -232,7 +233,7 @@ public partial class CStruct
 
                         if (captureState is not null)
                         {
-                            WriterVariableProjection.UpdateVariablesFromValue(captureState, name, value);
+                            LayoutVariableCapture.Capture(captureState.Variables, name, field, value);
                             captureState.PublishQualified(name);
                         }
 

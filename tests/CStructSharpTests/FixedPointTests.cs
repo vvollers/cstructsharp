@@ -7,12 +7,12 @@ using CStructSharp.Diagnostics;
 [TestClass]
 public class FixedPointTests
 {
-    /// <summary>An integer writer input does not make fixed-point storage a legal array count.</summary>
+    /// <summary>Fixed-point storage is never an array count, whatever a writer is given for it.</summary>
     [TestMethod]
-    public void IntegerInput_StillMasksFixedPointLayoutVariables()
+    public void FixedPointCount_FailsConstruction()
     {
-        var layout = new CStruct("struct root { fixed16_16 count; uint8 values[count]; };", aligned: false);
-        Assert.Throws<CStructException>(() => layout.Serialize("root", new Dictionary<string, object?> { ["count"] = 1, ["values"] = new byte[] { 42 } }));
+        CStructLayoutException failure = Assert.ThrowsExactly<CStructLayoutException>(() => new CStruct("struct root { fixed16_16 count; uint8 values[count]; };"));
+        StringAssert.Contains(failure.Message, "Field 'count' is a fixed-point value");
     }
 
     /// <summary>A decimal fraction must not disappear through a preliminary Double conversion.</summary>

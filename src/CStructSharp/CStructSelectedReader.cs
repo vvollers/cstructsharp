@@ -19,12 +19,6 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 /// <summary>Reads a selected nested object without materializing unrelated siblings.</summary>
 public partial class CStruct
 {
-    /// <summary>The general reader's scalar capture rule; see <see cref="LayoutVariableCapture"/>.</summary>
-    private static void CaptureScalar(CStructOperationContext state, string name, object? value)
-    {
-        LayoutVariableCapture.Capture(state.Variables, name, value);
-    }
-
     /// <summary>A <c>char[N]</c> buffer is one Latin-1 character per byte, exactly as the per-element <c>char</c> reader produces.</summary>
     private static string ReadLatin1Characters(ReadOnlySpan<byte> bytes)
     {
@@ -249,7 +243,7 @@ public partial class CStruct
                         destination.SetFreshSlot(operation.Slot, value);
                         if (state is not null && (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables))
                         {
-                            CaptureScalar(state, field.Declaration.Name.Name, value);
+                            LayoutVariableCapture.Capture(state.Variables, field.Declaration.Name.Name, field, value);
                             state.PublishQualified(field.Declaration.Name.Name);
                         }
 
@@ -263,7 +257,7 @@ public partial class CStruct
                         destination.SetFreshSlot(operation.Slot, value);
                         if (state is not null && (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables))
                         {
-                            this.UpdateExactLayoutVariable(state.Variables, field.Declaration.Name.Name, value.Value);
+                            LayoutVariableCapture.Capture(state.Variables, field.Declaration.Name.Name, field, value);
                             state.PublishQualified(field.Declaration.Name.Name);
                         }
 
@@ -282,7 +276,7 @@ public partial class CStruct
                         destination.SetFreshSlot(operation.Slot, text);
                         if (state is not null && (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables))
                         {
-                            state.Variables[field.Declaration.Name.Name] = new Identifier(text);
+                            LayoutVariableCapture.Capture(state.Variables, field.Declaration.Name.Name, field, text);
                             state.PublishQualified(field.Declaration.Name.Name);
                         }
 
@@ -306,7 +300,7 @@ public partial class CStruct
                         destination.SetFreshSlot(operation.Slot, values);
                         if (state is not null && (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables))
                         {
-                            CaptureScalar(state, field.Declaration.Name.Name, values[operation.Count - 1]);
+                            LayoutVariableCapture.Capture(state.Variables, field.Declaration.Name.Name, field, values);
                             state.PublishQualified(field.Declaration.Name.Name);
                         }
 

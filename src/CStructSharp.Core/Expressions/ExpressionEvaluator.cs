@@ -447,9 +447,9 @@ internal sealed class ExpressionEvaluator
                     throw new KeyNotFoundException("Undefined expression identifier: " + reference.Name);
                 }
 
-                if (expression is WideValueVariable wide)
+                if (expression is UnusableVariable unusable)
                 {
-                    throw wide.CreateFailure(reference.Name);
+                    throw unusable.CreateFailure(reference.Name);
                 }
 
                 CompiledExpression dependency = this.evaluator.GetProgram(expression);
@@ -542,10 +542,10 @@ internal sealed class ExpressionEvaluator
                     case ExpressionOpcode.Join:
                         break;
                     case ExpressionOpcode.Identifier:
-                        // A captured wide value is not an expression tree; EvaluateIdentifier reports its precise range failure.
+                        // An unusable variable (a wide value, a non-integer field) is not an expression tree; EvaluateIdentifier reports its failure.
                         if (instruction.Conditional &&
                             this.variables.TryGetValue(instruction.Name!, out Expr? selected) &&
-                            selected is not WideValueVariable)
+                            selected is not UnusableVariable)
                         {
                             this.ValidateDependencyDepth(this.evaluator.GetProgram(selected), dependencyDepth + instruction.Depth);
                         }
@@ -598,9 +598,9 @@ internal sealed class ExpressionEvaluator
                 throw new KeyNotFoundException("Undefined expression identifier: " + name);
             }
 
-            if (expression is WideValueVariable wide)
+            if (expression is UnusableVariable unusable)
             {
-                throw wide.CreateFailure(name);
+                throw unusable.CreateFailure(name);
             }
 
             if (!this.activeIdentifiers.Add(name))

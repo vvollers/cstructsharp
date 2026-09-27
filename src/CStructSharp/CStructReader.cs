@@ -475,11 +475,10 @@ public partial class CStruct
 
                         state.NextPosition = state.Stream.Position;
 
-                        // The per-element loop captured every element into the layout variables, so the value that
-                        // survives is the last one; reproduce exactly that.
+                        // An array is not an integer; the capture makes a shared name unusable, as every path does.
                         if (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
                         {
-                            LayoutVariableCapture.Capture(state.Variables, compiledField.Name, lastElement);
+                            LayoutVariableCapture.Capture(state.Variables, compiledField.Name, compiledField, lastElement);
 
                             state.PublishQualified(compiledField.Name);
                         }
@@ -590,12 +589,9 @@ public partial class CStruct
                                     containerDict[compiledField.Name] = newEnum;
                                 }
 
-                                if (!isArray && (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables))
+                                if (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
                                 {
-                                    this.UpdateExactLayoutVariable(
-                                        state.Variables,
-                                        compiledField.Name,
-                                        newEnum.Value);
+                                    LayoutVariableCapture.Capture(state.Variables, compiledField.Name, compiledField, newEnum);
                                     state.PublishQualified(compiledField.Name);
                                 }
                             }
@@ -783,41 +779,11 @@ public partial class CStruct
                                     containerDict[compiledField.Name] = content;
                                 }
 
-                                if (!compiledField.CapturesLayoutVariable && !state.CaptureAllLayoutVariables)
+                                if (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
                                 {
-                                    // No expression in this layout can name the field: skip the capture.
-                                }
-                                else if (content is Pointer p)
-                                {
-                                    // Expressions refer to the encoded pointer address, not the Pointer wrapper or target value.
-                                    // A valid signed stream address may exceed the expression language's Int32 domain: retain
-                                    // the pointer result, but remove any stale caller/define value shadowed by this field so
-                                    // later expressions fail instead of using data contradicted by the stream. The range check
-                                    // replaces a former try/catch around Convert.ToInt32, which threw for every such address.
-                                    if (Int32Capture.TryFromInt64(p.Address, out int address))
-                                    {
-                                        state.Variables[compiledField.Name] = new Literal(address);
-                                    }
-                                    else
-                                    {
-                                        state.Variables.Remove(compiledField.Name);
-                                    }
-                                }
-                                else if (content is string str)
-                                {
-                                    // Existing expression semantics preserve strings as identifiers for compatible layouts.
-                                    state.Variables[compiledField.Name] = new Identifier(str);
-                                }
-                                else if (compiledField.IsFixedPoint || content is Guid)
-                                {
-                                    state.Variables.Remove(compiledField.Name);
-                                }
-                                else if (content is IConvertible)
-                                {
-                                    // Scalars become literals so following array counts and expressions can use their name.
-                                    // The capture is exception-free: an out-of-range integer becomes an exact literal that
-                                    // fails with its value only when an expression selects it.
-                                    LayoutVariableCapture.Capture(state.Variables, compiledField.Name, content);
+                                    // Later counts and expressions read the value through the field's name; see
+                                    // LayoutVariableCapture for the rule every path shares.
+                                    LayoutVariableCapture.Capture(state.Variables, compiledField.Name, compiledField, content);
                                 }
 
                                 if (state.HasQualifiedPrefix && (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables))

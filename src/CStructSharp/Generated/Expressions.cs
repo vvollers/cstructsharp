@@ -173,6 +173,47 @@ public static class Expressions
         return (int)value;
     }
 
+    /// <summary>The 128-bit form of <see cref="RequireInt32(long, string)"/>, named apart so that narrower arguments keep resolving to it.</summary>
+    /// <param name="value">The captured member value.</param>
+    /// <param name="name">The member name, for the message.</param>
+    /// <returns>The value as an <see cref="int"/>.</returns>
+    /// <exception cref="InvalidOperationException">The value is outside the signed 32-bit range.</exception>
+    public static int RequireInt32Wide(Int128 value, string name)
+    {
+        if (value < int.MinValue || value > int.MaxValue)
+        {
+            throw OutOfRange(value, name);
+        }
+
+        return (int)value;
+    }
+
+    /// <summary>The unsigned 128-bit form of <see cref="RequireInt32(long, string)"/>.</summary>
+    /// <param name="value">The captured member value.</param>
+    /// <param name="name">The member name, for the message.</param>
+    /// <returns>The value as an <see cref="int"/>.</returns>
+    /// <exception cref="InvalidOperationException">The value is outside the signed 32-bit range.</exception>
+    public static int RequireInt32Wide(UInt128 value, string name)
+    {
+        if (value > int.MaxValue)
+        {
+            throw OutOfRange(value, name);
+        }
+
+        return (int)value;
+    }
+
+    /// <summary>
+    ///     A member that is not an integer (text, an array, a struct, a floating-point value, ...) used as an expression
+    ///     operand: the name is shared with an integer member, and this member's value is the one in effect, so the
+    ///     expression fails as the runtime evaluator does.
+    /// </summary>
+    /// <param name="name">The member name.</param>
+    /// <param name="reason">What the member holds, as the phrase after "is" (for example <c>text</c>).</param>
+    /// <returns>Never returns.</returns>
+    /// <exception cref="InvalidOperationException">Always.</exception>
+    public static int NotAnInteger(string name, string reason) => throw new InvalidOperationException(NotANumberVariable.Describe(name, reason));
+
     /// <summary>
     ///     A caller-supplied variable (<c>ReadOptions</c>'s <c>variables</c> argument) as an expression operand,
     ///     failing as the runtime evaluator does when the name was not supplied.

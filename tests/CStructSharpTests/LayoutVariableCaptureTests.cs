@@ -57,7 +57,7 @@ public class LayoutVariableCaptureTests
         }
     }
 
-    /// <summary>Only referenced fields are captured; a text field that an expression names disables the optimization for the whole layout.</summary>
+    /// <summary>Only the fields an expression names are captured.</summary>
     [TestMethod]
     public void CompiledFields_CaptureOnlyWhenReferenced()
     {
@@ -66,10 +66,6 @@ public class LayoutVariableCaptureTests
         Assert.IsFalse(CapturesVariable(plain, "unused"));
         Assert.IsFalse(CapturesVariable(plain, "items"));
         Assert.IsFalse(CapturesVariable(plain, "name"));
-
-        var textual = new CStruct("#define x 1\nstruct root { char kind[4]; uint8 unused; if (kind == x) { uint8 v; } };");
-        Assert.IsTrue(CapturesVariable(textual, "kind"));
-        Assert.IsTrue(CapturesVariable(textual, "unused"), "a referenced text field can name any field at evaluation time");
     }
 
     /// <summary>
