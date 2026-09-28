@@ -6,7 +6,7 @@ description: Run an independent mapped-memory consumer with unsigned pointers, b
 # Synthetic memory analysis
 
 This runnable project is the executable companion to the [memory guide series](../../guides/memory-analysis.md).
-It has two parts. `MemoryTutorialExamples.cs` contains the nine snippets that the guides include verbatim, each
+It has two parts. `MemoryTutorialExamples.cs` contains the snippets that the guides include verbatim, each
 ending in assertions that check the numbers the guides quote. `Program.cs` then runs a longer scenario that
 combines the same ideas into one small analysis. Nothing in it needs a real capture, profile, or live process:
 the program constructs its own metadata and byte image, so you can read every input byte in the source.
@@ -23,7 +23,7 @@ dotnet run --project docs/examples/memory-analysis -c Release -f net10.0
 dotnet run --project docs/examples/memory-analysis -c Release -f net8.0
 ```
 
-Success starts with `Nine memory guide examples passed.` and continues with the scenario's output. Any failed
+Success starts with `Memory guide examples passed.` and continues with the scenario's output. Any failed
 assertion exits the program with an error. The documentation validation script runs both commands, so the guides
 cannot drift from the implementation without a failing build.
 

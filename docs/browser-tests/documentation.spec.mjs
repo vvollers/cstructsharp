@@ -52,7 +52,7 @@ test("memory guides expose the worked source snippets and runnable consumer", as
     await expect(page.locator("article")).not.toContainText("[!code-csharp");
   }
   await page.goto("examples/memory-analysis/index.html");
-  await expect(page.locator("article")).toContainText("Nine memory guide examples passed.");
+  await expect(page.locator("article")).toContainText("Memory guide examples passed.");
   await expect(page.locator("article")).toContainText("-f net8.0");
 });
 

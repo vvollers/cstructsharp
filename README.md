@@ -459,8 +459,8 @@ JavaScript API, result conversion, and common loading errors.
 
 CStructSharp follows semantic versioning and is at major version 0: a minor release (0.5 → 0.6) may change the
 public API, the layout language, or the JavaScript contract, and the [changelog](https://github.com/vvollers/cstructsharp/blob/main/CHANGELOG.md)
-marks every such change **Breaking** with the migration; a patch release never does. Pin `0.5.*` in a project that
-must not absorb breaking changes. The managed API baseline (`contracts/api/managed`) and the browser contract
+marks every such change **Breaking** with the migration; a patch release never does. Pin the minor version you tested (for example
+`0.10.*`) in a project that must not absorb breaking changes. The managed API baseline (`contracts/api/managed`) and the browser contract
 (`contracts/api/browser`, `contractVersion` 8) are reviewed together with each change; a breaking JavaScript
 change increments the contract version.
 

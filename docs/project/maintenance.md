@@ -11,7 +11,7 @@ the tracked `docs` site together with the source and tests that support its clai
 ## Version policy
 
 The site describes current supported preview/main behavior. The project version and reviewed compatibility files
-identify the release candidate. Add documentation version selection only when two maintained release lines require
+identify the release being prepared. Add documentation version selection only when two maintained release lines require
 different instructions or reference pages.
 
 ## Update the right material
@@ -46,7 +46,7 @@ different instructions or reference pages.
 Every pull request runs structure, API/language, example, browser, search, and accessibility checks. Run the external
 link checker after changing outbound links and review each time-limited exception by its recorded date.
 
-At each release candidate:
+Before each release:
 
 1. Walk the install/first-parse and common recipe paths as a new reader.
 2. Check the language tutorial and exact references.

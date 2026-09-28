@@ -17,8 +17,8 @@ The core supports:
 - serializing new data to an array, span, buffer writer, or stream; and
 - replacing an existing value without moving the surrounding data.
 
-The library targets .NET 8 and .NET 10. The core project file records the development version; release assets identify published versions. The managed public
-surface contains 88 top-level types and is checked against a reviewed baseline (`contracts/api/managed`) so accidental signature changes
+The library targets .NET 8 and .NET 10. The core project file records the development version; release assets identify published versions. The managed public surface is checked
+against a reviewed baseline (`contracts/api/managed`) so accidental signature changes
 are caught.
 
 ## The Portable layout language

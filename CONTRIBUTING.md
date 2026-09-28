@@ -228,7 +228,7 @@ compiler would do on the current machine.
 
 ## Release checklist for maintainers
 
-Most contributions do not need this section. Before preparing a release candidate, maintainers should:
+Most contributions do not need this section. Before preparing a release, maintainers should:
 
 - follow the [project documentation](docs/project/index.md);
 - pass managed tests on both target frameworks;

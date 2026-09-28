@@ -152,6 +152,9 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   `npm run build:wasm` and checks that the build embeds exactly that publication; the inspector did not check it.
 - Source comments, tests and the language pages describe current behavior only; release history stays in this
   changelog. `differences-from-c.md` states which C forms are accepted and with what meaning.
+- Stale documentation facts are corrected: `MetadataImportResult.Diagnostics` also lists best-effort placeholders,
+  the memory example no longer states a snippet count, the README's version pin example is current, and the
+  maintenance pages describe releases without a release-candidate stage.
 - API baselines are named by role: `contracts/api/managed` and `contracts/api/browser` (published under
   `/docs/contracts/api/`). The managed manifest keeps the approved hash of every revision and the review text of the
   current one; the release history is this changelog. The `frozen` status, work-item code and stale package version

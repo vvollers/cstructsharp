@@ -132,7 +132,8 @@ bytes are outside the selected member, so their values do not affect the result,
 Use `using CStructSharp.Memory.Metadata;` and `using System.Text;` for the importer and the UTF-8 conversion.
 Take `RootTypeId` from the result rather than guessing the importer's ID spelling. Review `Diagnostics` alongside
 `Schema.Types` when deciding which imported types can be read by value; a successful import can retain address-only
-types as pointer targets without making those targets readable.
+types as pointer targets without making those targets readable, and a best-effort import lists the types it replaced
+with opaque placeholders.
 
 `new IsfMetadata(json)` parses the document once; `Import(rootName, options)` then compiles one root and
 everything it references, so several roots can share one parsed document. ISF import requires format `6.2.0`. It
