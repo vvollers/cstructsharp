@@ -2,7 +2,9 @@
 
 Notable changes to CStructSharp, newest first. Release versions and dates were reconstructed from the original
 Git history preserved before the repository history reset. Entries focus on features, fixes, and migration steps.
-Related changes are consolidated; routine formatting and benchmark bookkeeping are omitted.
+Related changes are consolidated; routine formatting and benchmark bookkeeping are omitted. From the Unreleased section
+onward, each version uses these headings in this order and omits the empty ones: *Breaking changes* (each with its
+migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and tooling*.
 
 ## Unreleased
 
@@ -47,11 +49,6 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Added
 
-- Inspector schemas are easier to read: DICOM and GLB conditions name their enum members (`dicom_vr.AE`,
-  `glb_chunk_kind.Json`) instead of magic numbers, one comparison per line, and a detected schema no longer starts
-  with repository policy comments.
-- Explorer lessons show what to know first, an exercise to try, the answer behind a disclosure, and a link to the
-  guide for the topic. The lesson explanations describe the starting example and no longer give the answer away.
 - A syntax error's `CStructLayoutException` sets `Line` and `Column`, as a declaration error's does. The message is
   unchanged: it already names the position (`unexpected '$' at line 1, column 30; expected '}'.`).
 - `@count(N)` on a pointer declarator reads `N` consecutive elements at the target: `uint8 *iv @count(iv_len);`
@@ -61,6 +58,14 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   target. Generated code reads counted targets as `Pointer<T[]>`. Writing stores the address only, as for every
   pointer. A path cannot select a counted target (`root.iv.value`), and the memory API does not project counted
   pointers.
+
+### Changed
+
+- Inspector schemas are easier to read: DICOM and GLB conditions name their enum members (`dicom_vr.AE`,
+  `glb_chunk_kind.Json`) instead of magic numbers, one comparison per line, and a detected schema no longer starts
+  with repository policy comments.
+- Explorer lessons show what to know first, an exercise to try, the answer behind a disclosure, and a link to the
+  guide for the topic. The lesson explanations describe the starting example and no longer give the answer away.
 
 ### Fixed
 
