@@ -76,18 +76,36 @@ CSTRUCTSHARP_BENCHMARK_JOB=Short dotnet run --project benchmarks/CStructSharp.Be
 ```
 
 To compare a change with the code before it, build a second checkout of the earlier revision and let
-`quick-perf-check.mjs` run both, interleaved, keeping the best median of each case:
+`quick-perf-check.mjs` run both, interleaved, keeping the best median of each case. The `Quick` job measures the
+whole `Impact` category on both sides, twice, in about a minute and a half:
 
 ```sh
 git worktree add ../cstructsharp-before HEAD
 dotnet build ../cstructsharp-before/CStructSharp.NonWeb.slnf -c Release
-node tools/quality/quick-perf-check.mjs --baseline ../cstructsharp-before --categories Impact --rounds 1
+node tools/quality/quick-perf-check.mjs --baseline ../cstructsharp-before --job Quick --categories Impact
 git worktree remove ../cstructsharp-before
 ```
 
-It prints each case's median and allocation before and after, and flags differences above `--threshold`
-(default 3%). Short-job medians vary by a few percent between runs; confirm a flagged case with `--rounds 2`
-before treating it as a regression. Nothing else should run on the machine meanwhile.
+It prints each case's median and allocation before and after, flags differences above `--threshold` (default
+3%), and reports how long the measurement took. Confirm a flagged case by rerunning only its class with
+`--filter '*PathAndTypedBenchmarks*' --rounds 3` (under a minute): a real change repeats, noise does not. Nothing
+else should run on the machine meanwhile.
+
+The `Quick` job is fast because it avoids BenchmarkDotNet's fixed costs rather than measuring less carefully per
+iteration:
+
+- It runs the benchmarks in the host process, so no project is generated, built, or started for each case.
+- Iterations last 25 ms instead of 500 ms, with one warmup and five measured iterations, and no separate
+  overhead evaluation (both sides pay the same empty-loop cost).
+- `quick-perf-check.mjs` starts the built host directly instead of through `dotnet run`.
+- The host runs with tiered compilation off (`DOTNET_TieredCompilation=0`), so every method is fully optimized on
+  its first call. With tiering on, a short in-process run measures a mix of unoptimized and optimized code that
+  changes from run to run; without it, both sides measure optimized code, only without dynamic PGO.
+
+Absolute Quick-job times are therefore higher than Short-job or release-gate times and are not comparable with
+them; use Quick for before/after comparisons only. The baseline checkout needs a benchmark host that knows the
+`Quick` job: for a revision older than the job, copy `benchmarks/CStructSharp.Benchmarks/Program.cs` into it before
+building. `--job Short` (the default) runs the out-of-process Short job, about seven minutes per side.
 
 To compare two summaries you already have (for example a recorded run and a new one), convert each BenchmarkDotNet
 report with `tools/quality/convert-benchmark-baseline.mjs` and compare them:

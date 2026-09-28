@@ -169,6 +169,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Documentation and tooling
 
+- `quick-perf-check.mjs --job Quick` compares the whole `Impact` category before and after a change, on both sides and
+  twice, in about a minute and a half: the `Quick` benchmark job runs in-process with 25 ms iterations and tiered
+  compilation off. `benchmarks/README.md` explains when its numbers are comparable.
 - Browser bridge internals: one JSON writer (`InteropJsonWriter`) produces every result, with one escaping rule and
   one safe-integer limit; the JavaScript limits and helpers shared by the package's modules live in
   `cstructsharp-shared.js`, staged next to each consumer; the JavaScript package takes the contract version from the
