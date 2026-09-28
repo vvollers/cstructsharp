@@ -1,5 +1,6 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Diagnostics;
 using CStructSharp.Memory;
 
 /// <summary>Independent byte fixtures for unsigned addressing, explicit metadata, and offline surgical patches.</summary>
@@ -107,7 +108,7 @@ public class MemoryAnalysisTests
         expected[8] = 0xaf;
         CollectionAssert.AreEqual(expected, source.ToArray());
         Assert.Throws<MemoryAccessException>(() => patch.Commit());
-        Assert.Throws<ArgumentOutOfRangeException>(() => session.PlanUpdate(region, "node", "state", 4));
+        Assert.Throws<CStructWriteException>(() => session.PlanUpdate(region, "node", "state", 4));
     }
 
     /// <summary>Overlay commits change only the overlay and never create bytes in holes.</summary>
@@ -136,7 +137,7 @@ public class MemoryAnalysisTests
         Assert.Throws<ArgumentException>(() => new MappedMemorySource("bad", [new(1, region), new(3, region),]));
         Assert.Throws<MemoryAccessException>(() => session.Read(region, "node", "pid", new MemoryAccessContext(maxBytes: 3)));
         Assert.Throws<OperationCanceledException>(() => session.Read(region, "node", "pid", new MemoryAccessContext(cancellationToken: new CancellationToken(true))));
-        Assert.Throws<ArgumentException>(() => new MemorySchema([new("bad", "bad", MemoryTypeKind.Struct, 1, fields: [new("self", "bad", 0),]),]));
+        Assert.Throws<CStructLayoutException>(() => new MemorySchema([new("bad", "bad", MemoryTypeKind.Struct, 1, fields: [new("self", "bad", 0),]),]));
     }
 
     /// <summary>Finite regions give EOF arrays a real boundary and preserve ownership of the caller's stream.</summary>

@@ -63,10 +63,11 @@ public sealed class MemoryAccessContext
     /// layer. Cancellation is checked first and has its own exception type.</remarks>
     /// <exception cref="OperationCanceledException">The caller has requested cancellation.</exception>
     /// <exception cref="MemoryAccessException">The charge would exceed the byte or request limit; the failure is <see cref="MemoryFailure.BudgetExceeded"/>.</exception>
-    /// <param name="sourceId">Label of the source charging the work, reported if the budget is exceeded.</param>
-    /// <param name="address">Address of the work being charged, reported if the budget is exceeded.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="bytes"/> is negative.</exception>
+    /// <param name="sourceId">Label of the source charging the work, reported if the budget is exceeded; null for work not tied to a source, such as staging serialized output.</param>
+    /// <param name="address">Address of the work being charged, reported if the budget is exceeded; null for work not tied to an address.</param>
     /// <param name="bytes">Bytes about to be read from a leaf source or staged as output; zero for translation-only work.</param>
-    public void Charge(string sourceId, ulong address, int bytes)
+    public void Charge(string? sourceId, ulong? address, int bytes)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(bytes);
         this.CancellationToken.ThrowIfCancellationRequested();
@@ -81,12 +82,15 @@ public sealed class MemoryAccessContext
 
     /// <summary>Checks cancellation and rejects a nesting depth beyond <see cref="MaxDepth"/>, without charging a request.</summary>
     /// <param name="depth">Current nesting depth of the value, path step, or source layer.</param>
+    /// <exception cref="OperationCanceledException">The caller has requested cancellation.</exception>
+    /// <exception cref="MemoryAccessException">The depth exceeds <see cref="MaxDepth"/>; the failure is <see cref="MemoryFailure.BudgetExceeded"/> and has no source coordinates.</exception>
     internal void CheckDepth(int depth)
     {
         this.CancellationToken.ThrowIfCancellationRequested();
         if (depth > this.MaxDepth)
         {
-            throw new MemoryAccessException(MemoryFailure.BudgetExceeded, "layout", 0, 0, "Memory traversal depth exceeded.");
+            // A depth limit belongs to the traversal, not to any one source address, so the coordinates stay unknown.
+            throw new MemoryAccessException(MemoryFailure.BudgetExceeded, null, null, 0, "Memory traversal depth exceeded.");
         }
     }
 

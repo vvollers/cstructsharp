@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
 using System.Buffers.Binary;
+using CStructSharp.Diagnostics;
 using CStructSharp.Memory;
 using CStructSharp.Memory.Metadata;
 using CStructSharp.Values;
@@ -50,9 +51,9 @@ public class MemoryAcceptanceBoundaryTests
             var values = (PrimitiveArray<ushort>)session.Read(region, "a")!;
             CollectionAssert.AreEqual(new object?[] { (ushort)1, (ushort)2, (ushort)3, }, values);
             Assert.AreEqual((ushort)3, session.Read(region, "a", "[2]"));
-            Assert.Throws<ArgumentOutOfRangeException>(() => session.Read(region, "a", "[3]"));
-            StringAssert.Contains(Assert.Throws<ArgumentException>(() => session.Read(region, "r", "x")).Message, "Ambiguous");
-            StringAssert.Contains(Assert.Throws<KeyNotFoundException>(() => session.Read(region, "r", "absent")).Message, "absent");
+            Assert.Throws<CStructPathException>(() => session.Read(region, "a", "[3]"));
+            StringAssert.Contains(Assert.Throws<CStructPathException>(() => session.Read(region, "r", "x")).Message, "Ambiguous");
+            StringAssert.Contains(Assert.Throws<CStructPathException>(() => session.Read(region, "r", "absent")).Message, "absent");
             Assert.Throws<MemoryAccessException>(() => session.Read(region, "r", context: new MemoryAccessContext(maxDepth: 1)));
         }
     }
@@ -79,12 +80,12 @@ public class MemoryAcceptanceBoundaryTests
 
                 foreach (int value in new[] { minimum - 1, maximum + 1, })
                 {
-                    Assert.Throws<ArgumentOutOfRangeException>(() => session.Serialize("r", new Dictionary<string, object?> { ["x"] = value, }));
+                    Assert.Throws<CStructWriteException>(() => session.Serialize("r", new Dictionary<string, object?> { ["x"] = value, }));
                 }
             }
 
             // A two-byte slice overlaps a field in its second physical byte in either byte order.
-            Assert.Throws<ArgumentException>(() => new MemorySchema([word, new("r", "r", MemoryTypeKind.Struct, 2, [new("x", "w", 0, 3, 9), new("y", "w", 0, 8, 1),]),], isLittleEndian: little));
+            Assert.Throws<CStructLayoutException>(() => new MemorySchema([word, new("r", "r", MemoryTypeKind.Struct, 2, [new("x", "w", 0, 3, 9), new("y", "w", 0, 8, 1),]),], isLittleEndian: little));
         }
     }
 
@@ -134,10 +135,10 @@ public class MemoryAcceptanceBoundaryTests
     {
         byte[] empty = MemoryBtfCoverageTests.Blob([], "\0");
         Assert.AreEqual(0, new BtfMetadata(empty).TypeCount);
-        Assert.Throws<ArgumentException>(() => new BtfMetadata(empty, maxBytes: 0));
-        Assert.Throws<ArgumentException>(() => new BtfMetadata(empty, maxTypes: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new BtfMetadata(empty, maxBytes: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new BtfMetadata(empty, maxTypes: 0));
         var basis = new BtfMetadata(MemoryBtfCoverageTests.Blob([1, 1U << 24, 4, 32, 1, 8U << 24, 1,], "\0u\0"));
-        Assert.Throws<ArgumentException>(() => new BtfMetadata(empty, basis, maxTypes: 1));
+        Assert.Throws<CStructLayoutException>(() => new BtfMetadata(empty, basis, maxTypes: 1));
         Assert.AreEqual(2, new BtfMetadata(empty, basis, maxTypes: 2).TypeCount);
         var chain = new BtfMetadata(empty);
         for (int index = 0; index < 128; index++)
@@ -145,16 +146,16 @@ public class MemoryAcceptanceBoundaryTests
             chain = new BtfMetadata(empty, chain);
         }
 
-        StringAssert.Contains(Assert.Throws<ArgumentException>(() => new BtfMetadata(empty, chain)).Message, "depth");
+        StringAssert.Contains(Assert.Throws<CStructLayoutException>(() => new BtfMetadata(empty, chain)).Message, "depth");
         byte[] bad = (byte[])empty.Clone();
         BinaryPrimitives.WriteUInt32LittleEndian(bad.AsSpan(20, 4), 2);
-        Assert.Throws<ArgumentException>(() => new BtfMetadata(bad));
+        Assert.Throws<CStructLayoutException>(() => new BtfMetadata(bad));
         bad = (byte[])empty.Clone();
         BinaryPrimitives.WriteUInt32LittleEndian(bad.AsSpan(4, 4), 23);
-        Assert.Throws<ArgumentException>(() => new BtfMetadata(bad));
+        Assert.Throws<CStructLayoutException>(() => new BtfMetadata(bad));
         byte[] invalidUtf8 = MemoryBtfCoverageTests.Blob([1, 1U << 24, 1, 8,], "\0a\0");
         invalidUtf8[^2] = 0xff;
-        Assert.Throws<System.Text.DecoderFallbackException>(() => new BtfMetadata(invalidUtf8));
+        Assert.IsInstanceOfType<System.Text.DecoderFallbackException>(Assert.Throws<CStructLayoutException>(() => new BtfMetadata(invalidUtf8)).InnerException);
     }
 
     /// <summary>Schema graph limits apply to aggregate members and deep by-value arrays, and cancellation prevents compilation.</summary>
@@ -162,9 +163,9 @@ public class MemoryAcceptanceBoundaryTests
     public void SchemaGraph_EnforcesAggregateAndDepthLimits()
     {
         var word = new MemoryTypeDefinition("w", "w", MemoryTypeKind.Scalar, 1, scalarType: "uint8");
-        Assert.Throws<ArgumentException>(() => new MemorySchema([word, new("a", "a", MemoryTypeKind.Struct, 1, [new("x", "w", 0),]), new("b", "b", MemoryTypeKind.Struct, 1, [new("x", "w", 0),]),], maxFields: 1));
-        Assert.Throws<ArgumentException>(() => new MemorySchema([new("i", "i", MemoryTypeKind.Incomplete, 0), new("r", "r", MemoryTypeKind.Struct, 0, [new("x", "i", 0),]),]));
-        Assert.Throws<ArgumentException>(() => new MemorySchema([word, new("r", "r", MemoryTypeKind.Struct, 0, [new("x", "w", 0),]),]));
+        Assert.Throws<CStructLayoutException>(() => new MemorySchema([word, new("a", "a", MemoryTypeKind.Struct, 1, [new("x", "w", 0),]), new("b", "b", MemoryTypeKind.Struct, 1, [new("x", "w", 0),]),], maxFields: 1));
+        Assert.Throws<CStructLayoutException>(() => new MemorySchema([new("i", "i", MemoryTypeKind.Incomplete, 0), new("r", "r", MemoryTypeKind.Struct, 0, [new("x", "i", 0),]),]));
+        Assert.Throws<CStructLayoutException>(() => new MemorySchema([word, new("r", "r", MemoryTypeKind.Struct, 0, [new("x", "w", 0),]),]));
         var definitions = new List<MemoryTypeDefinition>();
         for (int index = 0; index < 130; index++)
         {
@@ -172,7 +173,7 @@ public class MemoryAcceptanceBoundaryTests
         }
 
         definitions.Add(word);
-        StringAssert.Contains(Assert.Throws<ArgumentException>(() => new MemorySchema(definitions)).Message, "depth");
+        StringAssert.Contains(Assert.Throws<CStructLayoutException>(() => new MemorySchema(definitions)).Message, "depth");
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         Assert.Throws<OperationCanceledException>(() => new MemorySchema([word,], cancellationToken: cancellation.Token));
@@ -181,6 +182,6 @@ public class MemoryAcceptanceBoundaryTests
         var cancelled = new MemoryAccessContext(cancellationToken: cancellation.Token);
         Assert.Throws<OperationCanceledException>(() => session.Resolve(region, "w", context: cancelled));
         Assert.Throws<OperationCanceledException>(() => session.Serialize("w", (byte)1, cancelled));
-        Assert.Throws<ArgumentException>(() => new MemorySchema([new("s", "s", MemoryTypeKind.Scalar, 1, scalarType: " "),]));
+        Assert.Throws<CStructLayoutException>(() => new MemorySchema([new("s", "s", MemoryTypeKind.Scalar, 1, scalarType: " "),]));
     }
 }

@@ -69,10 +69,12 @@ source that advances its generation on every write.
 [!code-csharp[Handle a missing mapping and cancellation separately](../examples/memory-analysis/MemoryTutorialExamples.cs#memory-failure)]
 
 This snippet continues with the session and region from the cache example. A `MemoryAccessException` carries a
-stable `Failure` category plus the failing source label, address, and byte length. When the failure crosses a
-session call, the exception also records the requested `Path` and the logical root `LogicalRegion`. The failing
-address may be a backing-file offset while the logical root is a process address; display both with their source
-labels rather than comparing them as if they were the same coordinate system.
+stable `Failure` category plus the failing source label (`SourceId`), address (`Address`), and byte length. Both
+coordinates are null when the failure is not tied to a source address: a depth limit belongs to the traversal, and
+the byte budget of `Serialize` output belongs to bytes that no source holds yet. When the failure crosses a session
+call, the exception also records the requested `Path` (such as `Record.value`) and the logical root
+`LogicalRegion`. The failing address may be a backing-file offset while the logical root is a process address;
+display both with their source labels rather than comparing them as if they were the same coordinate system.
 
 | Failure | Typical interpretation |
 | --- | --- |
@@ -83,9 +85,21 @@ labels rather than comparing them as if they were the same coordinate system.
 | `SourceFailure` | A backing read failed or an adapter returned an invalid count |
 | `InvalidValue` | An addressed operation cannot use the value, such as following a null pointer |
 
-Not every error is a `MemoryAccessException`. Bad schema arguments and malformed paths throw argument or lookup
-exceptions; codec validation throws core exceptions. Cancellation uses `OperationCanceledException` before writes
-and may be wrapped by a patch commit failure once writing has begun. Walkers convert only `Unmapped` and
+Memory analysis reports failures with the same exception hierarchy as the rest of CStructSharp, described in
+[Errors and recovery](errors-and-recovery.md). `MemoryAccessException` is a `CStructReadException`: its `Code` is
+`ReadLimitExceeded` for `BudgetExceeded` and `ReadFailed` for every other category. The other failures of a
+memory operation use the core types directly:
+
+| Exception | Raised when |
+| --- | --- |
+| `CStructPathException` | A path is malformed or names no member, element, or pointer that can be followed, including an index past the declared count and an unknown root type ID |
+| `CStructWriteException` | A value for `Serialize` or `PlanUpdate` does not have the declared shape, or a bit-slice value is out of range; `MemoryPatchCommitException` is one too |
+| `CStructLayoutException` | A schema definition is invalid, or BTF, ISF, or Portable metadata is malformed or unsupported |
+| `ArgumentException` and its subclasses | A parameter breaks its contract, such as a null argument, a limit of zero or less, or a replacement of the wrong length |
+
+One `catch (CStructException)` therefore handles every expected failure while argument errors, which indicate a bug
+in the calling code, still propagate. Cancellation uses `OperationCanceledException` before writes and may be wrapped
+by a patch commit failure once writing has begun. Writing through a read-only source throws `NotSupportedException`. Walkers convert only `Unmapped` and
 `MissingBytes` into an `Unavailable` result, because those describe the image; everything else describes the
 operation and propagates. See [patch failure semantics](memory-updates.md).
 

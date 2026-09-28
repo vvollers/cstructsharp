@@ -178,6 +178,6 @@ public class CountedPointerTests
     {
         var layout = new CStruct("struct rec { uint8 *iv @count(2); uint8 n; };", pointerSize: 8);
 
-        Assert.Throws<ArgumentException>(() => PortableMemorySchema.Create(layout, "rec"));
+        Assert.Throws<CStructLayoutException>(() => PortableMemorySchema.Create(layout, "rec"));
     }
 }

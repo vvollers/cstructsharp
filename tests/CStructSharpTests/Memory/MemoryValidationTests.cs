@@ -1,5 +1,6 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Diagnostics;
 using CStructSharp.Memory;
 using CStructSharp.Values;
 
@@ -103,20 +104,20 @@ public class MemoryValidationTests
         ];
         foreach (MemoryTypeDefinition bad in invalid)
         {
-            ArgumentException error = Assert.Throws<ArgumentException>(() => new MemorySchema([scalar, bad,]));
+            CStructLayoutException error = Assert.Throws<CStructLayoutException>(() => new MemorySchema([scalar, bad,]));
             Assert.IsFalse(string.IsNullOrWhiteSpace(error.Message));
         }
 
         Assert.Throws<ArgumentNullException>(() => new MemorySchema(null!));
         Assert.Throws<ArgumentOutOfRangeException>(() => new MemorySchema([], maxTypes: 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => new MemorySchema([], maxFields: 0));
-        Assert.Throws<ArgumentException>(() => new MemorySchema([scalar, scalar,]));
-        Assert.Throws<ArgumentException>(() => new MemorySchema([scalar, new("s", "s", MemoryTypeKind.Struct, 0),], maxTypes: 1));
+        Assert.Throws<CStructLayoutException>(() => new MemorySchema([scalar, scalar,]));
+        Assert.Throws<CStructLayoutException>(() => new MemorySchema([scalar, new("s", "s", MemoryTypeKind.Struct, 0),], maxTypes: 1));
         var schema = new MemorySchema([scalar, new("s", "s", MemoryTypeKind.Struct, 1, [new("x", "u", 0),]),], maxTypes: 2, maxFields: 1);
         Assert.AreEqual("byte", schema.GetType("u").Name);
-        StringAssert.Contains(Assert.Throws<ArgumentException>(() => schema.GetType("missing")).Message, "missing");
-        StringAssert.Contains(Assert.Throws<ArgumentException>(() => schema.GetField("s", "missing")).Message, "missing");
-        Assert.Throws<ArgumentException>(() => new MemorySchema([scalar, new("s", "s", MemoryTypeKind.Struct, 2, [new("x", "u", 0), new("y", "u", 1),]),], maxFields: 1));
+        StringAssert.Contains(Assert.Throws<CStructPathException>(() => schema.GetType("missing")).Message, "missing");
+        StringAssert.Contains(Assert.Throws<CStructPathException>(() => schema.GetField("s", "missing")).Message, "missing");
+        Assert.Throws<CStructLayoutException>(() => new MemorySchema([scalar, new("s", "s", MemoryTypeKind.Struct, 2, [new("x", "u", 0), new("y", "u", 1),]),], maxFields: 1));
     }
 
     /// <summary>
@@ -136,7 +137,7 @@ public class MemoryValidationTests
         Assert.AreEqual(0, schema.GetType("marker").Size);
 
         var mismatched = new MemoryTypeDefinition("bad", "bad", MemoryTypeKind.Array, 3, elementTypeId: "empty", count: 3);
-        StringAssert.Contains(Assert.Throws<ArgumentException>(() => new MemorySchema([empty, mismatched,])).Message, "extent");
+        StringAssert.Contains(Assert.Throws<CStructLayoutException>(() => new MemorySchema([empty, mismatched,])).Message, "extent");
     }
 
     /// <summary>
@@ -154,7 +155,7 @@ public class MemoryValidationTests
         var inner = new MemoryTypeDefinition("inner", "inner", MemoryTypeKind.Struct, 1, [new("x", "u", 4),]);
         var outer = new MemoryTypeDefinition("outer", "outer", MemoryTypeKind.Struct, 1, [new("field", "inner", 0),]);
 
-        Assert.Throws<ArgumentException>(() => new MemorySchema([scalar, inner, outer,]));
+        Assert.Throws<CStructLayoutException>(() => new MemorySchema([scalar, inner, outer,]));
 
         var schema = new MemorySchema([scalar, inner, outer,], bestEffort: true);
         Assert.AreEqual(MemoryTypeKind.Opaque, schema.GetType("inner").Kind);

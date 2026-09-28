@@ -4,8 +4,11 @@ namespace CStructSharp.Memory;
 /// <remarks>
 /// An analyzer uses the category to decide what to do next: show a partial result, raise an explicit work limit,
 /// discard a stale edit, or report a transport problem. Missing data is never represented as an implicit zero
-/// value. Argument errors, codec errors, and cooperative cancellation use other exception types and therefore
-/// have no category here.
+/// value. <see cref="MemoryFailure.BudgetExceeded"/> is reported with the core code
+/// <see cref="CStructSharp.Diagnostics.CStructErrorCode.ReadLimitExceeded"/> and every other category with
+/// <see cref="CStructSharp.Diagnostics.CStructErrorCode.ReadFailed"/>. Argument errors, path errors, value-encoding
+/// errors, schema and metadata errors, and cooperative cancellation use other exception types and therefore have no
+/// category here.
 /// </remarks>
 public enum MemoryFailure
 {

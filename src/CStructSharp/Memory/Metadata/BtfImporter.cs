@@ -2,6 +2,7 @@ namespace CStructSharp.Memory.Metadata;
 
 using System.Globalization;
 using System.Text;
+using CStructSharp.Diagnostics;
 
 /// <summary>Converts the BTF types reachable from one root into memory type definitions, preserving recorded offsets.</summary>
 /// <remarks>
@@ -60,7 +61,7 @@ internal sealed class BtfImporter
     /// <summary>Imports a root and everything it reaches.</summary>
     /// <param name="rootId">The root type ID.</param>
     /// <param name="cancellationToken">Checked before each step.</param>
-    /// <exception cref="ArgumentException">A reachable type is invalid or unsupported, or the descriptor budget is exceeded.</exception>
+    /// <exception cref="CStructLayoutException">A reachable type is invalid or unsupported, or the descriptor budget is exceeded.</exception>
     public void Import(uint rootId, CancellationToken cancellationToken)
         => MetadataGraphWalk.Run(new Step(StepKind.Visit, rootId, null), this.Run, cancellationToken);
 
@@ -77,7 +78,7 @@ internal sealed class BtfImporter
     /// <param name="type">The enum record.</param>
     /// <param name="size">The enum's size in bytes.</param>
     /// <returns>The declaration.</returns>
-    /// <exception cref="ArgumentException">A member name is not a Portable identifier.</exception>
+    /// <exception cref="CStructLayoutException">A member name is not a Portable identifier.</exception>
     private static string EnumDeclaration(uint id, BtfType type, int size)
     {
         var declaration = new StringBuilder($"enum {EnumName(id)} : {(type.Flag ? "int" : "uint")}{size * 8} {{");
@@ -87,7 +88,7 @@ internal sealed class BtfImporter
             string name = type.Owner.String(type.Payload[i]);
             if (name.Length == 0 || name.Any(character => !char.IsAsciiLetterOrDigit(character) && character != '_'))
             {
-                throw new ArgumentException("BTF enum member cannot be represented as a Portable identifier.");
+                throw new CStructLayoutException("BTF enum member cannot be represented as a Portable identifier.");
             }
 
             ulong bits = type.Payload[i + 1] | (stride == 3 ? (ulong)type.Payload[i + 2] << 32 : 0);
@@ -142,7 +143,7 @@ internal sealed class BtfImporter
                 string scalar = (type.Kind == BtfKind.Float ? "float" : type.IsSignedInt ? "int" : "uint") + (size * 8);
                 if (type.Kind == BtfKind.Int && (((type.Payload[0] >> 16) & 255) != 0 || (type.Payload[0] & 255) != size * 8))
                 {
-                    throw new ArgumentException("Legacy BTF integer bit slices must be normalized as members before import.");
+                    throw new CStructLayoutException("Legacy BTF integer bit slices must be normalized as members before import.");
                 }
 
                 this.Add(key, new(key, displayName, MemoryTypeKind.Scalar, size, scalarType: scalar, provenance: provenance));
@@ -168,10 +169,10 @@ internal sealed class BtfImporter
             // Payload: element type, index type, element count.
             if (this.table.Resolve(type.Payload[1]).Kind != BtfKind.Int)
             {
-                throw new ArgumentException("BTF array index type must be an integer.");
+                throw new CStructLayoutException("BTF array index type must be an integer.");
             }
 
-            this.Add(key, new(key, displayName, MemoryTypeKind.Array, size, elementTypeId: BtfMetadata.Id(type.Payload[0]), count: checked((int)type.Payload[2]), provenance: provenance));
+            this.Add(key, new(key, displayName, MemoryTypeKind.Array, size, elementTypeId: BtfMetadata.Id(type.Payload[0]), count: BtfMetadata.ToInt32(type.Payload[2]), provenance: provenance));
             work.Push(new Step(StepKind.FinishReference, id, null));
             work.Push(new Step(StepKind.Visit, type.Payload[0], null));
             break;
@@ -191,7 +192,7 @@ internal sealed class BtfImporter
             this.building.Remove(id);
             break;
         default:
-            throw new ArgumentException($"BTF kind {(int)type.Kind} is not supported as a value type.");
+            throw new CStructLayoutException($"BTF kind {(int)type.Kind} is not supported as a value type.");
         }
     }
 
@@ -219,7 +220,7 @@ internal sealed class BtfImporter
             // A bitfield reads its bits from its own unsigned storage definition; the field records the signedness.
             BtfType member = this.table.Resolve(placement.MemberId);
             bool signed = member.Kind == BtfKind.Int ? member.IsSignedInt : member.Flag;
-            int storage = checked((int)member.Size);
+            int storage = BtfMetadata.ToInt32(member.Size);
             string memberKey = composite.Key + ":bits:" + index;
             this.Add(memberKey, new(memberKey, placement.Name, MemoryTypeKind.Scalar, storage, scalarType: "uint" + (storage * 8), provenance: composite.Provenance));
             composite.Fields.Add(new(placement.Name, memberKey, placement.Offset, placement.BitOffset, width, signed));
@@ -234,12 +235,12 @@ internal sealed class BtfImporter
     /// <summary>Adds a definition within the descriptor budget.</summary>
     /// <param name="key">The schema ID.</param>
     /// <param name="definition">The definition.</param>
-    /// <exception cref="ArgumentException">The budget is exceeded.</exception>
+    /// <exception cref="CStructLayoutException">The budget is exceeded.</exception>
     private void Add(string key, MemoryTypeDefinition definition)
     {
         if (this.Definitions.Count >= this.maxTypes)
         {
-            throw new ArgumentException("BTF import exceeds its descriptor budget.");
+            throw new CStructLayoutException("BTF import exceeds its descriptor budget.");
         }
 
         this.Definitions.Add(key, definition);

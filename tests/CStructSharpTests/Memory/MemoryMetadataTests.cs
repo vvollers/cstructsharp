@@ -2,6 +2,7 @@ namespace CStructSharp.Tests;
 
 using System.Buffers.Binary;
 using System.Text;
+using CStructSharp.Diagnostics;
 using CStructSharp.Memory;
 using CStructSharp.Memory.Metadata;
 
@@ -70,13 +71,13 @@ public class MemoryMetadataTests
         byte[] data = Btf();
         for (int length = 0; length < data.Length; length++)
         {
-            Assert.Throws<ArgumentException>(() => new BtfMetadata(data.AsMemory(0, length)));
+            Assert.Throws<CStructLayoutException>(() => new BtfMetadata(data.AsMemory(0, length)));
         }
 
-        Assert.Throws<ArgumentException>(() => new BtfMetadata(data, maxBytes: 16));
+        Assert.Throws<CStructLayoutException>(() => new BtfMetadata(data, maxBytes: 16));
         Word(data.AsSpan(56, 4), 99, true);
-        Assert.Throws<ArgumentException>(() => new BtfMetadata(data).Import(2));
-        Assert.Throws<System.Text.Json.JsonException>(() => new IsfMetadata("{"u8.ToArray()));
+        Assert.Throws<CStructLayoutException>(() => new BtfMetadata(data).Import(2));
+        Assert.IsInstanceOfType<System.Text.Json.JsonException>(Assert.Throws<CStructLayoutException>(() => new IsfMetadata("{"u8.ToArray())).InnerException);
     }
 
     /// <summary>ISF resolves a recursive node pointer and signed slices without external profiles or native ABI assumptions.</summary>

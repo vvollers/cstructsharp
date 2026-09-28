@@ -110,6 +110,8 @@ Removing the second mapping makes the read fail with `MemoryAccessException` who
 whose `Address` is `0xffff800000001000`. The library never fills a missing page with zeroes, because a zero that
 was never captured would look exactly like a real value of zero. Session failures also keep the requested `Path`
 and the logical root `LogicalRegion`, so an error message can show both the process address and the file offset.
+`MemoryAccessException` is a `CStructReadException`, and path, value, and schema errors use the other core
+exception types, so one `catch (CStructException)` covers memory analysis and ordinary parsing alike.
 
 Exercise: swap the two backing ranges so that logical `...0ffe` comes from image offset 4. The result becomes
 `0x56781234`. Changing mappings changes which bytes the layout sees; it does not change byte order or offsets.

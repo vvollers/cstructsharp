@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
 using System.Text;
+using CStructSharp.Diagnostics;
 using CStructSharp.Memory;
 using CStructSharp.Memory.Metadata;
 using CStructSharp.Values;
@@ -70,7 +71,7 @@ public class MemoryIsfCoverageTests
         Assert.AreEqual("ONE", ((EnumValueResult)session.Read(region, imported.RootTypeId, "choice")!).Name);
         Assert.AreEqual("ZERO_0", ((EnumValueResult)session.Read(region, imported.RootTypeId, "choiceAgain")!).Name);
         Assert.AreEqual(new StoredPointer(ulong.MaxValue), session.Read(region, imported.RootTypeId, "opaque"));
-        Assert.Throws<ArgumentException>(() => session.Resolve(region, imported.RootTypeId, "opaque.value"));
+        Assert.Throws<CStructPathException>(() => session.Resolve(region, imported.RootTypeId, "opaque.value"));
         var values = (StructValue)session.Read(region, imported.RootTypeId)!;
         Assert.AreEqual(42U, values["number"]);
     }
@@ -91,15 +92,15 @@ public class MemoryIsfCoverageTests
             ("\"ZERO_0\"", "\"bad-name\""),
         })
         {
-            ArgumentException error = Assert.Throws<ArgumentException>(() => Import(Profile.Replace(oldValue, replacement, StringComparison.Ordinal)));
+            CStructLayoutException error = Assert.Throws<CStructLayoutException>(() => Import(Profile.Replace(oldValue, replacement, StringComparison.Ordinal)));
             Assert.IsFalse(string.IsNullOrWhiteSpace(error.Message));
         }
 
-        Assert.Throws<KeyNotFoundException>(() => Import(Profile.Replace("\"name\":\"u16\"", "\"name\":\"absent\"", StringComparison.Ordinal)));
-        Assert.Throws<ArgumentException>(() => new IsfMetadata(Encoding.UTF8.GetBytes(Profile), maxBytes: 16));
+        Assert.Throws<CStructLayoutException>(() => Import(Profile.Replace("\"name\":\"u16\"", "\"name\":\"absent\"", StringComparison.Ordinal)));
+        Assert.Throws<CStructLayoutException>(() => new IsfMetadata(Encoding.UTF8.GetBytes(Profile), maxBytes: 16));
         Assert.Throws<OperationCanceledException>(() => new IsfMetadata(Encoding.UTF8.GetBytes(Profile), cancellationToken: new CancellationToken(true)));
         var metadata = new IsfMetadata(Encoding.UTF8.GetBytes(Profile));
-        Assert.Throws<ArgumentException>(() => metadata.Import("root", new MetadataImportOptions { MaxTypes = 1, }));
+        Assert.Throws<CStructLayoutException>(() => metadata.Import("root", new MetadataImportOptions { MaxTypes = 1, }));
         Assert.Throws<ArgumentOutOfRangeException>(() => metadata.Import("root", new MetadataImportOptions { MaxTypes = 0, }));
         Assert.Throws<ArgumentOutOfRangeException>(() => metadata.Import("root", new MetadataImportOptions { PointerSize = 3, }));
         Assert.Throws<OperationCanceledException>(() => metadata.Import("root", cancellationToken: new CancellationToken(true)));
@@ -148,7 +149,7 @@ public class MemoryIsfCoverageTests
         var metadata = new IsfMetadata(Encoding.UTF8.GetBytes(Broken));
 
         Assert.AreEqual(MemoryTypeKind.Struct, metadata.Import("plain").Schema.GetType("isf:user:plain").Kind);
-        Assert.Throws<ArgumentException>(() => metadata.Import("outer"));
+        Assert.Throws<CStructLayoutException>(() => metadata.Import("outer"));
         MetadataImportResult tolerant = metadata.Import("outer", new MetadataImportOptions { BestEffort = true, });
         Assert.AreEqual(MemoryTypeKind.Opaque, tolerant.Schema.GetType("isf:user:inner").Kind);
         StringAssert.Contains(string.Join('\n', tolerant.Diagnostics), "isf:user:inner");

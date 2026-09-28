@@ -2,6 +2,7 @@ namespace CStructSharp.Memory;
 
 using System.Collections.ObjectModel;
 using System.Text;
+using CStructSharp.Diagnostics;
 
 /// <summary>A validated, immutable graph of type definitions with explicit placement, compiled so the core codecs can decode its scalars.</summary>
 /// <remarks>
@@ -38,6 +39,15 @@ public sealed class MemorySchema
     /// <param name="pointerSize">Target pointer width in bytes; it describes the analyzed image, not the analyzing process.</param>
     /// <param name="cancellationToken">Checked between definitions during validation and compilation.</param>
     /// <param name="bestEffort">When true, a definition that fails its own validation is demoted to a same-sized <see cref="MemoryTypeKind.Opaque"/> placeholder and noted in <see cref="Diagnostics"/>, instead of the whole schema failing; when false (the default), any validation failure throws.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="types"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxTypes"/> or <paramref name="maxFields"/> is not positive, or <paramref name="pointerSize"/> is not 1, 2, 4, or 8.</exception>
+    /// <exception cref="CStructLayoutException">
+    ///     The definitions are invalid: they exceed the type or field budget, repeat an ID, reference an unknown ID,
+    ///     place a member outside its container, overlap struct members, disagree with a scalar codec's size, or
+    ///     contain a type by value within itself. In best-effort mode only whole-graph failures (budgets, duplicate
+    ///     IDs, by-value recursion) throw.
+    /// </exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public MemorySchema(IEnumerable<MemoryTypeDefinition> types, bool isLittleEndian = true, CStructCompilationOptions? options = null, int maxTypes = 100_000, int maxFields = 1_000_000, int pointerSize = 8, CancellationToken cancellationToken = default, bool bestEffort = false)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -57,11 +67,15 @@ public sealed class MemorySchema
             cancellationToken.ThrowIfCancellationRequested();
             if (definitions.Count >= maxTypes || type.Fields.Count > maxFields - fields)
             {
-                throw new ArgumentException("Metadata exceeds the type/member budget.", nameof(types));
+                throw new CStructLayoutException("Metadata exceeds the type/member budget.");
             }
 
             fields += type.Fields.Count;
-            definitions.Add(type.Id, type);
+            if (!definitions.TryAdd(type.Id, type))
+            {
+                throw new CStructLayoutException($"Duplicate memory type ID '{type.Id}'.");
+            }
+
             this.compiledNames.Add(type.Id, "m" + (definitions.Count - 1));
         }
 
@@ -81,7 +95,7 @@ public sealed class MemorySchema
             {
                 this.Validate(type);
             }
-            catch (ArgumentException error) when (bestEffort)
+            catch (CStructLayoutException error) when (bestEffort)
             {
                 Demote(definitions, type, error.Message, diagnostics);
             }
@@ -157,7 +171,13 @@ public sealed class MemorySchema
     /// <summary>Looks up a definition by ID; an unknown ID is an error, never a guessed type.</summary>
     /// <param name="id">Stable identity of the definition.</param>
     /// <returns>The definition with that ID.</returns>
-    public MemoryTypeDefinition GetType(string id) => this.Types.TryGetValue(id, out MemoryTypeDefinition? type) ? type : throw new ArgumentException($"Unknown memory type '{id}'.", nameof(id));
+    /// <exception cref="ArgumentNullException"><paramref name="id"/> is null.</exception>
+    /// <exception cref="CStructPathException">No definition has that ID.</exception>
+    public MemoryTypeDefinition GetType(string id)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        return this.Types.TryGetValue(id, out MemoryTypeDefinition? type) ? type : throw new CStructPathException($"Unknown memory type '{id}'.");
+    }
 
     /// <summary>Returns the generated name under which a type appears in <see cref="CompiledLayout"/>.</summary>
     /// <param name="typeId">Stable identity of the definition.</param>
@@ -168,18 +188,10 @@ public sealed class MemorySchema
     /// <param name="typeId">Stable identity of the containing struct or union.</param>
     /// <param name="name">Member name as declared in the definition.</param>
     /// <returns>The member's field descriptor.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="typeId"/> is null.</exception>
+    /// <exception cref="CStructPathException">No definition has ID <paramref name="typeId"/>, or it has no immediate member named <paramref name="name"/>.</exception>
     public MemoryField GetField(string typeId, string name)
-    {
-        foreach (MemoryField field in this.GetType(typeId).Fields)
-        {
-            if (field.Name == name)
-            {
-                return field;
-            }
-        }
-
-        throw new ArgumentException($"Unknown field '{typeId}.{name}'.", nameof(name));
-    }
+        => this.FindField(typeId, name) ?? throw new CStructPathException($"Unknown field '{typeId}.{name}'.");
 
     /// <summary>Returns the core spelling used to decode a scalar or pointer; a pointer is an unsigned integer of its width.</summary>
     /// <param name="type">A scalar or pointer definition.</param>
@@ -196,6 +208,24 @@ public sealed class MemorySchema
         return field?.BitWidth is not null ? this.bitLayouts[(parentId!, field.Name)] : this.scalarLayouts[type.Id];
     }
 
+    /// <summary>Finds an immediate member by name, or returns null when the definition has no such member.</summary>
+    /// <param name="typeId">Stable identity of the containing struct or union.</param>
+    /// <param name="name">Member name as declared in the definition.</param>
+    /// <returns>The member's field descriptor, or null.</returns>
+    /// <exception cref="CStructPathException">No definition has ID <paramref name="typeId"/>.</exception>
+    internal MemoryField? FindField(string typeId, string? name)
+    {
+        foreach (MemoryField field in this.GetType(typeId).Fields)
+        {
+            if (field.Name == name)
+            {
+                return field;
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>The demotion reason for a struct or union whose bitfield storage type <paramref name="storageId"/> was demoted.</summary>
     private static string DemotedStorageMessage(string storageId) => $"its bitfield storage type '{storageId}' was demoted.";
 
@@ -208,6 +238,18 @@ public sealed class MemorySchema
     {
         definitions[type.Id] = new MemoryTypeDefinition(type.Id, type.Name, MemoryTypeKind.Opaque, type.Size, provenance: type.Provenance);
         diagnostics.Add($"{type.Id}: demoted to a {type.Size}-byte opaque placeholder - {reason}");
+    }
+
+    /// <summary>Looks up a type that a definition refers to; a reference to an ID the schema lacks is a definition error.</summary>
+    /// <param name="owner">The definition holding the reference, named in the diagnostic.</param>
+    /// <param name="id">The referenced ID; null when an array names no element type.</param>
+    /// <returns>The referenced definition.</returns>
+    /// <exception cref="CStructLayoutException">The ID is null or names no definition in the schema.</exception>
+    private MemoryTypeDefinition Reference(MemoryTypeDefinition owner, string? id)
+    {
+        return id is not null && this.Types.TryGetValue(id, out MemoryTypeDefinition? type)
+            ? type
+            : throw new CStructLayoutException($"'{owner.Id}' references unknown memory type '{id}'.");
     }
 
     /// <summary>
@@ -228,32 +270,40 @@ public sealed class MemorySchema
     /// </para>
     /// </remarks>
     /// <param name="type">The definition to check.</param>
-    /// <exception cref="ArgumentException">The definition is invalid.</exception>
+    /// <exception cref="CStructLayoutException">The definition is invalid.</exception>
     private void Validate(MemoryTypeDefinition type)
     {
         if (!Enum.IsDefined(type.Kind))
         {
-            throw new ArgumentException("Unknown metadata type kind.");
+            throw new CStructLayoutException($"Unknown metadata type kind for '{type.Id}'.");
         }
 
         if (type.Kind is MemoryTypeKind.Scalar or MemoryTypeKind.Pointer)
         {
             if (type.Kind == MemoryTypeKind.Pointer)
             {
-                _ = new StoredPointer(0, type.Size);
+                if (type.Size is not (1 or 2 or 4 or 8))
+                {
+                    throw new CStructLayoutException($"Pointer '{type.Id}' must be 1, 2, 4, or 8 bytes wide.");
+                }
+
                 if (type.ElementTypeId is not null)
                 {
-                    _ = this.GetType(type.ElementTypeId);
+                    _ = this.Reference(type, type.ElementTypeId);
                 }
             }
 
             // Wrap the codec in a one-member struct so the core tells us its size; disagreement is a metadata error.
             string root = CodecRoot(type);
-            ArgumentException.ThrowIfNullOrWhiteSpace(root);
+            if (string.IsNullOrWhiteSpace(root))
+            {
+                throw new CStructLayoutException($"Scalar '{type.Id}' names no codec type.");
+            }
+
             var codec = new CStruct((type.Declaration ?? string.Empty) + $"\nstruct __memory_scalar {{ {root} value; }};", pointerSize: (byte)this.PointerSize, isLittleEndian: type.IsLittleEndian ?? this.IsLittleEndian, compilationOptions: this.Options);
             if (codec.GetStructSizeInBytes("__memory_scalar") != type.Size)
             {
-                throw new ArgumentException($"Scalar size disagrees with codec for '{type.Id}'.");
+                throw new CStructLayoutException($"Scalar size disagrees with codec for '{type.Id}'.");
             }
 
             this.scalarLayouts.Add(type.Id, codec);
@@ -265,19 +315,19 @@ public sealed class MemorySchema
             // recorded size of zero. This is not a hypothetical: kernel BTF genuinely declares empty marker
             // structs (for example Linux's lock_class_key, used only for its address, never its contents)
             // and arrays of them, so rejecting every zero-size element would reject correct metadata.
-            MemoryTypeDefinition element = this.GetType(type.ElementTypeId!);
-            if (element.Kind == MemoryTypeKind.Incomplete || checked(element.Size * type.Count) != type.Size)
+            MemoryTypeDefinition element = this.Reference(type, type.ElementTypeId);
+            if (element.Kind == MemoryTypeKind.Incomplete || (long)element.Size * type.Count != type.Size)
             {
-                throw new ArgumentException($"Invalid array extent for '{type.Id}'.");
+                throw new CStructLayoutException($"Invalid array extent for '{type.Id}'.");
             }
         }
         else if (type.Kind == MemoryTypeKind.Incomplete && (type.Size != 0 || type.Fields.Count != 0))
         {
-            throw new ArgumentException("Incomplete types have no storage.");
+            throw new CStructLayoutException($"Incomplete type '{type.Id}' has no storage.");
         }
         else if (type.Kind == MemoryTypeKind.Opaque && type.Fields.Count != 0)
         {
-            throw new ArgumentException("Opaque types have no members.");
+            throw new CStructLayoutException($"Opaque type '{type.Id}' has no members.");
         }
 
         var names = new HashSet<string>(StringComparer.Ordinal);
@@ -286,13 +336,13 @@ public sealed class MemorySchema
         {
             if (type.Kind is not (MemoryTypeKind.Struct or MemoryTypeKind.Union) || !names.Add(field.Name) || field.Name.Length == 0)
             {
-                throw new ArgumentException($"Invalid or duplicate member in '{type.Id}'.");
+                throw new CStructLayoutException($"Invalid or duplicate member in '{type.Id}'.");
             }
 
-            MemoryTypeDefinition member = this.GetType(field.TypeId);
+            MemoryTypeDefinition member = this.Reference(type, field.TypeId);
             if (member.Kind == MemoryTypeKind.Incomplete || field.Offset > type.Size || member.Size > type.Size - field.Offset)
             {
-                throw new ArgumentException($"Member '{type.Id}.{field.Name}' exceeds its containing extent.");
+                throw new CStructLayoutException($"Member '{type.Id}.{field.Name}' exceeds its containing extent.");
             }
 
             long start = (long)field.Offset * 8;
@@ -301,12 +351,12 @@ public sealed class MemorySchema
             {
                 if (member.Kind == MemoryTypeKind.Opaque)
                 {
-                    throw new ArgumentException(DemotedStorageMessage(member.Id));
+                    throw new CStructLayoutException(DemotedStorageMessage(member.Id));
                 }
 
                 if (member.Kind != MemoryTypeKind.Scalar || member.Size is not (1 or 2 or 4 or 8) || width > (member.Size * 8) - field.BitOffset!.Value)
                 {
-                    throw new ArgumentException("Invalid bitfield storage extent.");
+                    throw new CStructLayoutException($"Invalid bitfield storage extent for '{type.Id}.{field.Name}'.");
                 }
 
                 // Build "struct __bits { storage :BitOffset; storage value:BitWidth; }": the anonymous prefix skips
@@ -345,7 +395,7 @@ public sealed class MemorySchema
 
             if (field.Promoted && member.Kind is not (MemoryTypeKind.Struct or MemoryTypeKind.Union or MemoryTypeKind.Opaque))
             {
-                throw new ArgumentException("Only composite members can be promoted.");
+                throw new CStructLayoutException($"Only composite members can be promoted: '{type.Id}.{field.Name}'.");
             }
         }
 
@@ -358,7 +408,7 @@ public sealed class MemorySchema
             {
                 if (start < end && nextEnd > start)
                 {
-                    throw new ArgumentException($"Overlapping members in struct '{type.Id}'. Use a union for overlays.");
+                    throw new CStructLayoutException($"Overlapping members in struct '{type.Id}'. Use a union for overlays.");
                 }
 
                 end = Math.Max(end, nextEnd);
@@ -376,6 +426,7 @@ public sealed class MemorySchema
     /// <param name="visiting">Types on the current recursion path.</param>
     /// <param name="visited">Types already proven free of by-value cycles.</param>
     /// <param name="depth">Current recursion depth, bounded to protect the call stack.</param>
+    /// <exception cref="CStructLayoutException">A type contains itself by value, or the by-value graph is deeper than 128 levels.</exception>
     private void CheckRecursion(MemoryTypeDefinition type, HashSet<string> visiting, HashSet<string> visited, int depth)
     {
         if (visited.Contains(type.Id))
@@ -385,17 +436,17 @@ public sealed class MemorySchema
 
         if (depth > 128 || !visiting.Add(type.Id))
         {
-            throw new ArgumentException("By-value recursion or excessive metadata depth.");
+            throw new CStructLayoutException($"By-value recursion or excessive metadata depth at '{type.Id}'.");
         }
 
         if (type.Kind == MemoryTypeKind.Array)
         {
-            this.CheckRecursion(this.GetType(type.ElementTypeId!), visiting, visited, depth + 1);
+            this.CheckRecursion(this.Reference(type, type.ElementTypeId), visiting, visited, depth + 1);
         }
 
         foreach (MemoryField field in type.Fields)
         {
-            this.CheckRecursion(this.GetType(field.TypeId), visiting, visited, depth + 1);
+            this.CheckRecursion(this.Reference(type, field.TypeId), visiting, visited, depth + 1);
         }
 
         visiting.Remove(type.Id);
@@ -419,6 +470,8 @@ public sealed class MemorySchema
     /// </para>
     /// </remarks>
     /// <param name="cancellationToken">Checked between definitions.</param>
+    /// <returns>The compiled generated views.</returns>
+    /// <exception cref="CStructLayoutException">The core compiler places a view differently from the recorded metadata.</exception>
     private CStruct CompileViews(CancellationToken cancellationToken)
     {
         var source = new StringBuilder();
@@ -435,7 +488,7 @@ public sealed class MemorySchema
             for (int i = 0; i < type.Fields.Count; i++)
             {
                 MemoryField field = type.Fields[i];
-                source.Append("struct { uint8 _[").Append(field.Offset).Append("]; uint8 value[").Append(this.GetType(field.TypeId).Size).Append("]; } f").Append(i).Append(';');
+                source.Append("struct { uint8 _[").Append(field.Offset).Append("]; uint8 value[").Append(this.Reference(type, field.TypeId).Size).Append("]; } f").Append(i).Append(';');
             }
 
             source.AppendLine("};");
@@ -452,7 +505,7 @@ public sealed class MemorySchema
             cancellationToken.ThrowIfCancellationRequested();
             if (type.Kind != MemoryTypeKind.Incomplete && compiled.GetStructSizeInBytes(this.compiledNames[type.Id]) != type.Size)
             {
-                throw new ArgumentException($"Compiled metadata extent differs for '{type.Id}'.");
+                throw new CStructLayoutException($"Compiled metadata extent differs for '{type.Id}'.");
             }
 
             for (int index = 0; index < type.Fields.Count; index++)
@@ -460,7 +513,7 @@ public sealed class MemorySchema
                 string path = this.compiledNames[type.Id] + ".f" + index + ".value";
                 if (compiled.ResolveAddress(Stream.Null, path) != type.Fields[index].Offset)
                 {
-                    throw new ArgumentException($"Compiled metadata placement differs for '{type.Id}.{type.Fields[index].Name}'.");
+                    throw new CStructLayoutException($"Compiled metadata placement differs for '{type.Id}.{type.Fields[index].Name}'.");
                 }
             }
         }

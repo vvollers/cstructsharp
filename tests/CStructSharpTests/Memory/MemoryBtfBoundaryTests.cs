@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
 using System.Buffers.Binary;
+using CStructSharp.Diagnostics;
 using CStructSharp.Memory;
 using CStructSharp.Memory.Metadata;
 using CStructSharp.Values;
@@ -30,8 +31,8 @@ public class MemoryBtfBoundaryTests
         ];
         var metadata = new BtfMetadata(MemoryBtfCoverageTests.Blob(words, "\0i\0f\0T\0F\0U\0a\0b\0E\0NEG\0"));
         Assert.AreEqual(13, metadata.TypeCount);
-        Assert.Throws<ArgumentException>(() => metadata.FindType("E"));
-        Assert.Throws<KeyNotFoundException>(() => metadata.FindType("absent"));
+        Assert.Throws<CStructLayoutException>(() => metadata.FindType("E"));
+        Assert.Throws<CStructLayoutException>(() => metadata.FindType("absent"));
         MetadataImportResult signed = metadata.Import(6);
         Assert.AreEqual((sbyte)-1, new MemorySession(signed.Schema).Read(new MemoryRegion(new ByteArrayMemorySource("image", new byte[] { 255, }), 0, 1), signed.RootTypeId));
         MetadataImportResult floating = metadata.Import(2);
@@ -71,7 +72,7 @@ public class MemoryBtfBoundaryTests
         {
             byte[] corrupt = (byte[])seed.Clone();
             BinaryPrimitives.WriteUInt32LittleEndian(corrupt.AsSpan(offset, 4), value);
-            ArgumentException error = Assert.Throws<ArgumentException>(() => new BtfMetadata(corrupt));
+            CStructLayoutException error = Assert.Throws<CStructLayoutException>(() => new BtfMetadata(corrupt));
             Assert.IsFalse(string.IsNullOrWhiteSpace(error.Message));
         }
 
@@ -79,14 +80,14 @@ public class MemoryBtfBoundaryTests
         {
             byte[] corrupt = (byte[])seed.Clone();
             corrupt[offset] = offset == 2 ? (byte)2 : (byte)1;
-            Assert.Throws<ArgumentException>(() => new BtfMetadata(corrupt));
+            Assert.Throws<CStructLayoutException>(() => new BtfMetadata(corrupt));
         }
 
-        Assert.Throws<ArgumentException>(() => new BtfMetadata(seed, maxBytes: seed.Length - 1));
-        Assert.Throws<ArgumentException>(() => new BtfMetadata(seed, maxTypes: 0));
+        Assert.Throws<CStructLayoutException>(() => new BtfMetadata(seed, maxBytes: seed.Length - 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new BtfMetadata(seed, maxTypes: 0));
         var metadata = new BtfMetadata(seed, maxBytes: seed.Length, maxTypes: 1);
         Assert.AreEqual(1, metadata.TypeCount);
-        Assert.Throws<ArgumentException>(() => metadata.Import(2));
+        Assert.Throws<CStructLayoutException>(() => metadata.Import(2));
         Assert.Throws<OperationCanceledException>(() => new BtfMetadata(seed, cancellationToken: new CancellationToken(true)));
         Assert.Throws<OperationCanceledException>(() => metadata.Import(1, cancellationToken: new CancellationToken(true)));
     }
@@ -107,12 +108,12 @@ public class MemoryBtfBoundaryTests
         {
             var metadata = new BtfMetadata(MemoryBtfCoverageTests.Blob(words, "\0"));
             uint root = words.Length > 4 ? 2U : 1U;
-            Assert.Throws<ArgumentException>(() => metadata.Import(root));
+            Assert.Throws<CStructLayoutException>(() => metadata.Import(root));
         }
 
         byte[] truncated = MemoryBtfCoverageTests.Blob([0, 1U << 24, 1,], "\0");
-        Assert.Throws<ArgumentException>(() => new BtfMetadata(truncated));
+        Assert.Throws<CStructLayoutException>(() => new BtfMetadata(truncated));
         var baseMetadata = new BtfMetadata(MemoryBtfCoverageTests.Blob([0, 1U << 24, 1, 8,], "\0"));
-        Assert.Throws<ArgumentException>(() => new BtfMetadata(MemoryBtfCoverageTests.Blob([0, 2U << 24, 1,], string.Empty), baseMetadata, maxTypes: 1));
+        Assert.Throws<CStructLayoutException>(() => new BtfMetadata(MemoryBtfCoverageTests.Blob([0, 2U << 24, 1,], string.Empty), baseMetadata, maxTypes: 1));
     }
 }

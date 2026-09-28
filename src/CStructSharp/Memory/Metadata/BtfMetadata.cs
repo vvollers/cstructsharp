@@ -3,6 +3,7 @@ namespace CStructSharp.Memory.Metadata;
 using System.Buffers.Binary;
 using System.Globalization;
 using System.Text;
+using CStructSharp.Diagnostics;
 
 /// <summary>A parsed BTF v1 type table, optionally split on top of a base table, from which reachable types can be imported into a <see cref="MemorySchema"/>.</summary>
 /// <remarks>
@@ -28,6 +29,11 @@ using System.Text;
 /// which is why numeric IDs are the authoritative handle. The application obtains the blob; this class does not
 /// read ELF sections, discover symbols, or translate page tables.
 /// </para>
+/// <para>
+/// Malformed or unsupported metadata (a bad header, a truncated table, an invalid or cyclic reference, a value past
+/// the supported range) throws <see cref="CStructLayoutException"/>, as an invalid layout declaration does. Parameter
+/// errors keep their .NET exception types.
+/// </para>
 /// </remarks>
 public sealed class BtfMetadata
 {
@@ -50,11 +56,20 @@ public sealed class BtfMetadata
     /// <param name="maxBytes">Maximum accepted blob length, including header, type section, and string section.</param>
     /// <param name="maxTypes">Maximum number of types including those inherited from the base table.</param>
     /// <param name="cancellationToken">Checked once per type record.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxBytes"/> or <paramref name="maxTypes"/> is not positive.</exception>
+    /// <exception cref="CStructLayoutException">
+    ///     The blob is truncated, exceeds <paramref name="maxBytes"/> or <paramref name="maxTypes"/>, has an unsupported
+    ///     header, invalid section extents, an unknown kind, or an invalid string, or does not fit
+    ///     <paramref name="baseMetadata"/>.
+    /// </exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public BtfMetadata(ReadOnlyMemory<byte> data, BtfMetadata? baseMetadata = null, int maxBytes = 16 * 1024 * 1024, int maxTypes = 100_000, CancellationToken cancellationToken = default)
     {
-        if (maxBytes <= 0 || maxTypes <= 0 || data.Length > maxBytes || data.Length < 24)
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxTypes);
+        if (data.Length > maxBytes || data.Length < 24)
         {
-            throw new ArgumentException("BTF input is truncated or exceeds its budget.", nameof(data));
+            throw new CStructLayoutException("BTF input is truncated or exceeds its budget.");
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -64,56 +79,62 @@ public sealed class BtfMetadata
         this.IsLittleEndian = bytes[0] == 0x9f && bytes[1] == 0xeb;
         if ((!this.IsLittleEndian && !(bytes[0] == 0xeb && bytes[1] == 0x9f)) || bytes[2] != 1 || bytes[3] != 0)
         {
-            throw new ArgumentException("Unsupported BTF magic, version, or flags.", nameof(data));
+            throw new CStructLayoutException("Unsupported BTF magic, version, or flags.");
         }
 
         this.baseMetadata = baseMetadata;
         this.splitDepth = baseMetadata is null ? 0 : baseMetadata.splitDepth + 1;
         if (this.splitDepth > 128)
         {
-            throw new ArgumentException("Split BTF exceeds the base-chain depth limit.", nameof(baseMetadata));
+            throw new CStructLayoutException("Split BTF exceeds the base-chain depth limit.");
         }
 
         if (baseMetadata is not null && baseMetadata.IsLittleEndian != this.IsLittleEndian)
         {
-            throw new ArgumentException("Split BTF byte order differs from its base.", nameof(baseMetadata));
+            throw new CStructLayoutException("Split BTF byte order differs from its base.");
         }
 
         // A split table's string offsets continue after every base string section, so remember where ours begins.
-        this.baseStringLength = baseMetadata is null ? 0 : checked(baseMetadata.baseStringLength + baseMetadata.strings.Length);
+        this.baseStringLength = baseMetadata is null ? 0 : ToInt32((long)baseMetadata.baseStringLength + baseMetadata.strings.Length);
         uint header = this.Word(bytes, 4);
-        int typeStart = checked((int)(header + this.Word(bytes, 8)));
-        int typeLength = checked((int)this.Word(bytes, 12));
-        int stringStart = checked((int)(header + this.Word(bytes, 16)));
-        int stringLength = checked((int)this.Word(bytes, 20));
+        long typeStartWide = (long)header + this.Word(bytes, 8);
+        long typeLengthWide = this.Word(bytes, 12);
+        long stringStartWide = (long)header + this.Word(bytes, 16);
+        long stringLengthWide = this.Word(bytes, 20);
 
-        // Both sections must lie inside the blob, after the header, and must not overlap each other.
-        if (header < 24 || typeStart < header || stringStart < header || typeStart > bytes.Length - typeLength || stringStart > bytes.Length - stringLength ||
-            (typeLength > 0 && stringLength > 0 && typeStart < stringStart + stringLength && stringStart < typeStart + typeLength))
+        // Both sections must lie inside the blob, after the header, and must not overlap each other. The sums are
+        // 64-bit, so a hostile header cannot wrap around into a plausible extent; once inside the blob they fit an int.
+        if (header < 24 || typeStartWide + typeLengthWide > bytes.Length || stringStartWide + stringLengthWide > bytes.Length ||
+            (typeLengthWide > 0 && stringLengthWide > 0 && typeStartWide < stringStartWide + stringLengthWide && stringStartWide < typeStartWide + typeLengthWide))
         {
-            throw new ArgumentException("Invalid BTF section extents.", nameof(data));
+            throw new CStructLayoutException("Invalid BTF section extents.");
         }
+
+        int typeStart = (int)typeStartWide;
+        int typeLength = (int)typeLengthWide;
+        int stringStart = (int)stringStartWide;
+        int stringLength = (int)stringLengthWide;
 
         this.strings = bytes.AsSpan(stringStart, stringLength).ToArray();
         if (baseMetadata is null && (this.strings.Length == 0 || this.strings[0] != 0))
         {
-            throw new ArgumentException("Base BTF string table must begin with an empty string.", nameof(data));
+            throw new CStructLayoutException("Base BTF string table must begin with an empty string.");
         }
 
         this.types = baseMetadata is null ? new Dictionary<uint, BtfType>() : new Dictionary<uint, BtfType>(baseMetadata.types);
         if (this.types.Count > maxTypes)
         {
-            throw new ArgumentException("BTF base table exceeds the type budget.", nameof(maxTypes));
+            throw new CStructLayoutException("BTF base table exceeds the type budget.");
         }
 
         int position = typeStart;
-        int end = checked(typeStart + typeLength);
+        int end = typeStart + typeLength;
         while (position < end)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (this.types.Count >= maxTypes || end - position < 12)
             {
-                throw new ArgumentException("BTF type table is truncated or exceeds its budget.", nameof(data));
+                throw new CStructLayoutException("BTF type table is truncated or exceeds its budget.");
             }
 
             // Fixed part of every record: name offset, packed info word, and a size or referenced type ID.
@@ -129,7 +150,7 @@ public sealed class BtfMetadata
                 (count != 0 && kind is BtfKind.Int or BtfKind.Ptr or BtfKind.Array or BtfKind.Fwd or BtfKind.Typedef or BtfKind.Volatile or
                      BtfKind.Const or BtfKind.Restrict or BtfKind.Var or BtfKind.Float or BtfKind.DeclTag or BtfKind.TypeTag))
             {
-                throw new ArgumentException("BTF type contains reserved info bits or an invalid record count.");
+                throw new CStructLayoutException("BTF type contains reserved info bits or an invalid record count.");
             }
 
             // Payload length in 32-bit words by kind: INT/VAR/DECL_TAG carry one word, ARRAY three, STRUCT/UNION/
@@ -142,12 +163,12 @@ public sealed class BtfMetadata
                 BtfKind.Enum or BtfKind.FuncProto => checked(count * 2),
                 BtfKind.Ptr or BtfKind.Fwd or BtfKind.Typedef or BtfKind.Volatile or BtfKind.Const or BtfKind.Restrict or
                     BtfKind.Func or BtfKind.Float or BtfKind.TypeTag => 0,
-                _ => throw new ArgumentException($"Unknown BTF kind {(int)kind}; cannot determine its record length."),
+                _ => throw new CStructLayoutException($"Unknown BTF kind {(int)kind}; cannot determine its record length."),
             };
             position += 12;
             if (words > (end - position) / 4)
             {
-                throw new ArgumentException("Truncated BTF type payload.", nameof(data));
+                throw new CStructLayoutException("Truncated BTF type payload.");
             }
 
             var payload = new uint[words];
@@ -175,6 +196,7 @@ public sealed class BtfMetadata
     /// supply a numeric ID from the metadata producer instead.</remarks>
     /// <param name="name">Type name to look for.</param>
     /// <returns>The unique matching type ID.</returns>
+    /// <exception cref="CStructLayoutException">No type has that name, or several types do.</exception>
     public uint FindType(string name)
     {
         uint? found = null;
@@ -184,14 +206,14 @@ public sealed class BtfMetadata
             {
                 if (found.HasValue)
                 {
-                    throw new ArgumentException($"BTF name '{name}' is ambiguous.", nameof(name));
+                    throw new CStructLayoutException($"BTF name '{name}' is ambiguous.");
                 }
 
                 found = type.Id;
             }
         }
 
-        return found ?? throw new KeyNotFoundException(name);
+        return found ?? throw new CStructLayoutException($"BTF has no type named '{name}'.");
     }
 
     /// <summary>Compiles the type graph reachable from one root into a schema, keeping functions and forward declarations as address-only.</summary>
@@ -202,8 +224,9 @@ public sealed class BtfMetadata
     /// <param name="options">The pointer width, validation mode and descriptor budget; <see cref="MetadataImportOptions.Default"/> when null.</param>
     /// <param name="cancellationToken">Checked at each step of the walk and while compiling the schema.</param>
     /// <returns>The compiled reachable schema, the root's ID, and diagnostics.</returns>
-    /// <exception cref="ArgumentException">The reachable graph is invalid or exceeds the descriptor budget.</exception>
+    /// <exception cref="CStructLayoutException">The root ID is unknown, or the reachable graph is invalid, unsupported, or exceeds the descriptor budget.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The options are out of range.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public MetadataImportResult Import(uint rootTypeId, MetadataImportOptions? options = null, CancellationToken cancellationToken = default)
     {
         options ??= MetadataImportOptions.Default;
@@ -233,6 +256,7 @@ public sealed class BtfMetadata
     /// <param name="id">Type ID to describe; zero is <c>void</c>.</param>
     /// <param name="pointerSize">Target pointer width in bytes, used only to size a pointer or an array of pointers.</param>
     /// <returns>A shallow description of the type record at <paramref name="id"/>.</returns>
+    /// <exception cref="CStructLayoutException">The ID is unknown, its reference chain is invalid or cyclic, or a member or size is malformed.</exception>
     public BtfTypeDescription Describe(uint id, int pointerSize = 8)
     {
         BtfType type = this.Resolve(id);
@@ -248,7 +272,7 @@ public sealed class BtfMetadata
         if (kind == BtfKind.Array)
         {
             elementTypeId = type.Payload[0];
-            elementCount = checked((int)type.Payload[2]);
+            elementCount = ToInt32(type.Payload[2]);
         }
         else if (kind is BtfKind.Struct or BtfKind.Union)
         {
@@ -270,6 +294,13 @@ public sealed class BtfMetadata
     /// <returns>The schema ID.</returns>
     internal static string Id(uint id) => "btf:" + id.ToString(CultureInfo.InvariantCulture);
 
+    /// <summary>Converts a metadata count, size, or offset to <see cref="int"/>; a value outside that range is malformed metadata.</summary>
+    /// <param name="value">The value read or computed from the metadata.</param>
+    /// <returns>The value as an <see cref="int"/>.</returns>
+    /// <exception cref="CStructLayoutException">The value is negative or greater than <see cref="int.MaxValue"/>.</exception>
+    internal static int ToInt32(long value)
+        => value is >= 0 and <= int.MaxValue ? (int)value : throw new CStructLayoutException("BTF value is outside the supported range: " + value.ToString(CultureInfo.InvariantCulture));
+
     /// <summary>The name to show for a type: the declared record's own name (a typedef, say) when it has one, else the resolved storage record's.</summary>
     /// <param name="id">The declared type ID.</param>
     /// <param name="resolved">The record <paramref name="id"/> resolves to.</param>
@@ -288,6 +319,7 @@ public sealed class BtfMetadata
     /// <summary>Reads a zero-terminated UTF-8 string by table offset, delegating offsets below this table's start to the base table.</summary>
     /// <param name="offset">Offset into the combined string space of the base chain and this table.</param>
     /// <returns>The decoded string.</returns>
+    /// <exception cref="CStructLayoutException">The offset is outside the table, the string is unterminated, or it is not valid UTF-8.</exception>
     internal string String(uint offset)
     {
         if (offset < this.baseStringLength)
@@ -298,16 +330,23 @@ public sealed class BtfMetadata
         long local = (long)offset - this.baseStringLength;
         if (local < 0 || local >= this.strings.Length)
         {
-            throw new ArgumentException("BTF string offset is outside its table.");
+            throw new CStructLayoutException("BTF string offset is outside its table.");
         }
 
         int end = Array.IndexOf(this.strings, (byte)0, (int)local);
         if (end < 0)
         {
-            throw new ArgumentException("Unterminated BTF string.");
+            throw new CStructLayoutException("Unterminated BTF string.");
         }
 
-        return StrictUtf8.GetString(this.strings, (int)local, end - (int)local);
+        try
+        {
+            return StrictUtf8.GetString(this.strings, (int)local, end - (int)local);
+        }
+        catch (DecoderFallbackException exception)
+        {
+            throw new CStructLayoutException("BTF string is not valid UTF-8.", exception);
+        }
     }
 
     /// <summary>Follows modifier records (typedef, const, volatile, restrict, and tags) to the underlying type that has a storage meaning.</summary>
@@ -317,7 +356,7 @@ public sealed class BtfMetadata
     /// kinds the record's size word holds the referenced type ID.</remarks>
     /// <param name="id">Type ID to resolve; zero is <c>void</c>.</param>
     /// <returns>The first non-modifier record reached.</returns>
-    /// <exception cref="ArgumentException">The chain names a missing type, or reaches no storage record within 128 records (as a modifier cycle does not).</exception>
+    /// <exception cref="CStructLayoutException">The chain names a missing type, or reaches no storage record within 128 records (as a modifier cycle does not).</exception>
     internal BtfType Resolve(uint id)
     {
         // A cycle never reaches a storage record, so it runs into the hop limit; no visited set is needed.
@@ -341,7 +380,7 @@ public sealed class BtfMetadata
             id = type.Size;
         }
 
-        throw new ArgumentException("BTF contains an invalid or cyclic type reference.");
+        throw new CStructLayoutException("BTF contains an invalid or cyclic type reference.");
     }
 
     /// <summary>Computes a type's byte size from the metadata: pointers use the target width, arrays multiply, and incomplete kinds are zero.</summary>
@@ -349,11 +388,12 @@ public sealed class BtfMetadata
     /// <param name="pointerSize">Target pointer width in bytes.</param>
     /// <param name="depth">Nesting depth for arrays of arrays, bounded to protect the call stack.</param>
     /// <returns>The size in bytes.</returns>
+    /// <exception cref="CStructLayoutException">The type is not a value type, its reference chain is invalid, or its size is out of range.</exception>
     internal int Size(uint id, int pointerSize, int depth = 0)
     {
         if (depth > 128)
         {
-            throw new ArgumentException("BTF size graph exceeds its nesting limit.");
+            throw new CStructLayoutException("BTF size graph exceeds its nesting limit.");
         }
 
         // ARRAY payload: element type, index type, element count. INT/STRUCT/UNION/ENUM/FLOAT/ENUM64 carry a byte size.
@@ -361,10 +401,10 @@ public sealed class BtfMetadata
         return type.Kind switch
         {
             BtfKind.Ptr => pointerSize,
-            BtfKind.Array => checked((int)type.Payload[2] * this.Size(type.Payload[0], pointerSize, depth + 1)),
+            BtfKind.Array => ToInt32((long)type.Payload[2] * this.Size(type.Payload[0], pointerSize, depth + 1)),
             _ when type.IsIncomplete => 0,
-            BtfKind.Int or BtfKind.Struct or BtfKind.Union or BtfKind.Enum or BtfKind.Float or BtfKind.Enum64 => checked((int)type.Size),
-            _ => throw new ArgumentException($"BTF kind {(int)type.Kind} is not a value type."),
+            BtfKind.Int or BtfKind.Struct or BtfKind.Union or BtfKind.Enum or BtfKind.Float or BtfKind.Enum64 => ToInt32(type.Size),
+            _ => throw new CStructLayoutException($"BTF kind {(int)type.Kind} is not a value type."),
         };
     }
 
@@ -379,12 +419,13 @@ public sealed class BtfMetadata
     /// <param name="containingType">The resolved struct or union record the member belongs to.</param>
     /// <param name="payloadIndex">Index of the member's first payload word, a multiple of 3.</param>
     /// <returns>The member's placement.</returns>
+    /// <exception cref="CStructLayoutException">The member's name, type, offset, or bit slice is malformed.</exception>
     internal MemberPlacement ResolveMemberPlacement(BtfType containingType, int payloadIndex)
     {
         string name = containingType.Owner.String(containingType.Payload[payloadIndex]);
         uint memberId = containingType.Payload[payloadIndex + 1];
         uint encoded = containingType.Payload[payloadIndex + 2];
-        int bit = checked((int)(containingType.Flag ? encoded & 0xffffff : encoded));
+        int bit = ToInt32(containingType.Flag ? encoded & 0xffffff : encoded);
         int width = containingType.Flag ? (int)(encoded >> 24) : 0;
         BtfType member = this.Resolve(memberId);
         if (!containingType.Flag && member.Kind == BtfKind.Int)
@@ -394,16 +435,16 @@ public sealed class BtfMetadata
             int legacyWidth = (int)(member.Payload[0] & 255);
             if (legacyOffset + legacyWidth > member.Size * 8)
             {
-                throw new ArgumentException("Legacy BTF integer slice exceeds its storage type.");
+                throw new CStructLayoutException("Legacy BTF integer slice exceeds its storage type.");
             }
 
             if (legacyOffset != 0 || legacyWidth != member.Size * 8)
             {
-                bit = checked(bit + legacyOffset);
+                bit = ToInt32((long)bit + legacyOffset);
                 width = legacyWidth;
                 if (width == 0)
                 {
-                    throw new ArgumentException("A legacy BTF bitfield must have nonzero width.");
+                    throw new CStructLayoutException("A legacy BTF bitfield must have nonzero width.");
                 }
             }
         }
@@ -415,7 +456,7 @@ public sealed class BtfMetadata
         {
             if (bit % 8 != 0)
             {
-                throw new ArgumentException("Non-bitfield BTF member is not byte aligned.");
+                throw new CStructLayoutException("Non-bitfield BTF member is not byte aligned.");
             }
 
             return new MemberPlacement(name, memberId, bit / 8, null, null, promoted);
@@ -423,7 +464,7 @@ public sealed class BtfMetadata
 
         if (member.Kind is not (BtfKind.Int or BtfKind.Enum or BtfKind.Enum64) || width > 64)
         {
-            throw new ArgumentException("BTF bitfield requires integer or enum storage of at most 64 bits.");
+            throw new CStructLayoutException("BTF bitfield requires integer or enum storage of at most 64 bits.");
         }
 
         // The referenced type is the compiler's own storage unit for the slice (a bitfield's BTF member always
@@ -432,7 +473,7 @@ public sealed class BtfMetadata
         // bitfields sharing that unit actually share. Aligning the byte offset down to that unit's own size,
         // instead of truncating the absolute bit offset to whole bytes, keeps every sibling slice inside the same
         // storage word rather than implying a fresh word starts wherever this particular member happens to begin.
-        int storageBits = checked((int)member.Size * 8);
+        int storageBits = ToInt32((long)member.Size * 8);
         int unitBitOffset = (bit / storageBits) * storageBits;
         int bitInUnit = bit - unitBitOffset;
 

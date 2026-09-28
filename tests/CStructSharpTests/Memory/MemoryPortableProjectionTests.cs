@@ -1,5 +1,6 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Diagnostics;
 using CStructSharp.Memory;
 using CStructSharp.Values;
 
@@ -89,8 +90,8 @@ public class MemoryPortableProjectionTests
         CollectionAssert.AreEqual(new byte[] { 0x34, 0x12, }, scalar.Serialize("uint16", (ushort)0x1234));
         Assert.Throws<ArgumentNullException>(() => PortableMemorySchema.Create(null!, "Root"));
         Assert.Throws<ArgumentException>(() => PortableMemorySchema.Create(fixedLayout, string.Empty));
-        Assert.Throws<ArgumentException>(() => PortableMemorySchema.Create(new CStruct("struct Root { uint8 count; uint8 values[count]; };"), "Root"));
-        Assert.Throws<ArgumentException>(() => PortableMemorySchema.Create(new CStruct("struct Root { uint8 count; if (count) { uint8 value; } };"), "Root"));
+        Assert.Throws<CStructLayoutException>(() => PortableMemorySchema.Create(new CStruct("struct Root { uint8 count; uint8 values[count]; };"), "Root"));
+        Assert.Throws<CStructLayoutException>(() => PortableMemorySchema.Create(new CStruct("struct Root { uint8 count; if (count) { uint8 value; } };"), "Root"));
         MemorySchema incomplete = PortableMemorySchema.Create(fixedLayout, "void");
         Assert.AreEqual(MemoryTypeKind.Incomplete, incomplete.GetType("void").Kind);
     }

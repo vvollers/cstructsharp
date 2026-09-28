@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed",
-  "baselineRevision": 55,
+  "baselineRevision": 56,
   "packageVersion": "0.10.0",
   "assembly": "CStructSharp.dll",
   "exportedTypes": 87,
@@ -12,22 +12,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed/CStructSharp.public-api.txt",
-    "lines": 1095,
-    "normalizedSha256": "37928478DC0A09F3C9B5EBEC4E35F87EFA41B2D190966B5AF981268B40D4AE9D"
+    "lines": 1094,
+    "normalizedSha256": "DC6888147FFF282347DBFDE42AEB0A192789DD3517188F5381F186E0C21A144D"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "BE57B2C886E05B7425130BC7A6FF6A12A2D0CFD2AA1CB3115D9883F1AF856B52",
+      "normalizedSha256": "C3E441F8E30530C9328E02DBF24300B7CD42169ABA9636D667BC783BF0F050EA",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "622EFDEADAA81B850F3652DACA6B0879372A7CB53DAB77164BC95E70A14775D0",
+      "normalizedSha256": "042D10EA57DDF24F37C39542C3205F8B2227AEB692FB9CC107B155D377AA3A53",
       "aotCompatible": true
     }
   ],
@@ -358,12 +358,18 @@
     },
     {
       "revision": 55,
+      "date": "2026-09-28",
+      "packageVersion": "0.10.0",
+      "combinedSha256": "83E67C0CC5287B2C5A0A09F7D425B40FFF7975B0F2428A8809C30A47FC04D24C"
+    },
+    {
+      "revision": 56,
       "kind": "breaking",
       "date": "2026-09-28",
       "packageVersion": "0.10.0",
-      "combinedSha256": "83E67C0CC5287B2C5A0A09F7D425B40FFF7975B0F2428A8809C30A47FC04D24C",
-      "rationale": "Memory API uses the core value vocabulary: StoredPointer.Address, UnionValue for unions",
-      "releaseImpact": "Rename StoredPointer.Bits to Address (constructor parameter bits to address); replace MemoryUnionSelection(member, value) with UnionValue.FromMember(unionName, member, value) and raw byte[] union input with UnionValue.FromRaw(unionName, bytes); union reads return UnionValue and array reads return PrimitiveArray<T> or List<object?>"
+      "combinedSha256": "1292A64F8B96201363644600B3D2479CE91A4392B952A7D3734D85C3639ABF99",
+      "rationale": "Memory-analysis failures join the core CStructException hierarchy: MemoryAccessException derives from CStructReadException (ReadLimitExceeded for BudgetExceeded, otherwise ReadFailed) and uses the inherited Path; MemoryPatchCommitException derives from CStructWriteException; SourceId and Address are null when a failure has no source address, so MemoryAccessContext.Charge accepts null coordinates.",
+      "releaseImpact": "Catch CStructPathException instead of ArgumentException, ArgumentOutOfRangeException, or KeyNotFoundException for memory path errors; CStructWriteException instead of ArgumentException or ArgumentOutOfRangeException for values that do not fit a memory type; CStructLayoutException instead of ArgumentException, KeyNotFoundException, JsonException, or DecoderFallbackException for invalid schemas and malformed BTF, ISF, or Portable metadata. Read MemoryAccessException.Address and SourceId as nullable; Path is now CStructException.Path. Custom sources calling Charge are unaffected."
     }
   ]
 }

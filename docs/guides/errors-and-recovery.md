@@ -26,6 +26,14 @@ diagnostics; do not parse message wording as a program protocol.
 Null arguments, unsupported stream capabilities, and invalid option values remain ordinary argument exceptions.
 Cancellation and unexpected runtime defects are not wrapped as malformed binary data.
 
+[Memory analysis](memory-analysis.md) uses the same hierarchy. Memory that cannot be read throws
+`MemoryAccessException`, a `CStructReadException` whose `Code` is `ReadLimitExceeded` when its operation budget
+ran out and `ReadFailed` otherwise. An unresolvable memory path throws `CStructPathException`, a value that does not
+fit its memory type throws `CStructWriteException`, and an invalid memory schema or malformed BTF, ISF, or Portable
+type metadata throws `CStructLayoutException`. A patch commit that fails after writing began throws
+`MemoryPatchCommitException`, a `CStructWriteException`. See
+[memory reliability](memory-reliability.md#distinguish-absent-data-from-cancellation) for the memory categories.
+
 ## Choose throwing or non-throwing reads
 
 Use `ReadValue<T>` when an invalid value should follow the application's exception path. Use `TryReadValue<T>` when

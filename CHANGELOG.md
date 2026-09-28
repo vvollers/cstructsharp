@@ -10,6 +10,17 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Breaking changes
 
+- **Breaking (memory API):** memory-analysis failures are `CStructException`s, like the rest of the library.
+  `MemoryAccessException` derives from `CStructReadException` (`Code` is `ReadLimitExceeded` for a budget failure,
+  `ReadFailed` otherwise) and uses the inherited `Path`; its `SourceId` and `Address` are null when a failure has
+  no source address (a depth limit, or the output budget of `Serialize`). `MemoryPatchCommitException` derives
+  from `CStructWriteException`. A path that does not resolve throws `CStructPathException` (was `ArgumentException`
+  or `KeyNotFoundException`), a value that cannot be encoded `CStructWriteException`, and an invalid type
+  definition or malformed BTF/ISF metadata `CStructLayoutException`; null or out-of-range arguments keep the .NET
+  argument exceptions. A budget failure while planning an update names the selected region, not the root.
+  Migration: catch `CStructPathException`, `CStructWriteException` or `CStructLayoutException` where you caught
+  `ArgumentException` or `KeyNotFoundException` from `MemorySession`, `MemorySchema`, `BtfMetadata` or
+  `IsfMetadata`, or catch `CStructException` for all of them; read `ex.SourceId` and `ex.Address` as nullable.
 - **Breaking (memory API):** memory reads and writes use the core value types. A union reads as a `UnionValue`
   (its raw storage and every member's view, charged to the byte budget once for the storage and once per member)
   instead of a `StructValue`, and an array as a `PrimitiveArray<T>` (numeric or `bool` elements) or a

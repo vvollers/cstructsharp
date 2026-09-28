@@ -3,6 +3,7 @@ namespace CStructSharp.Memory;
 using System.Collections;
 using System.Globalization;
 using System.Numerics;
+using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
 /// <summary>Applies a <see cref="MemorySchema"/> to regions of caller-owned address spaces: resolve a path, read or inspect a value, serialize a record, or plan an update.</summary>
@@ -27,6 +28,15 @@ using CStructSharp.Values;
 /// supplied at construction, which may apply a relative base, strip a tag, or switch to another address space.
 /// The default resolver treats a nonzero stored value as an absolute address in the same source. Primitive decoding and
 /// encoding always go through the core compiled codecs; composite traversal applies the schema's explicit offsets.
+/// </para>
+/// <para>
+/// Failures use the core <see cref="CStructException"/> hierarchy. A path that cannot be parsed or resolved against
+/// the schema throws <see cref="CStructPathException"/>; a value that does not have the declared shape throws
+/// <see cref="CStructWriteException"/>; memory that cannot be read throws <see cref="MemoryAccessException"/>, a
+/// <see cref="CStructReadException"/>. When one of these crosses a session operation, the session records the
+/// requested <c>typeId.path</c> as <see cref="CStructException.Path"/> and, for a memory access failure, the root
+/// region as <see cref="MemoryAccessException.LogicalRegion"/>. Null arguments and cancellation keep their .NET
+/// exception types.
 /// </para>
 /// </remarks>
 public sealed class MemorySession
@@ -58,6 +68,10 @@ public sealed class MemorySession
     /// <param name="path">Member/index path from the root; pointer targets need an explicit <c>.value</c> step.</param>
     /// <param name="context">Shared operation budget and cancellation, or null to create a default budget.</param>
     /// <returns>The value, its selection metadata, and the ordered backing ranges.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="region"/> or <paramref name="path"/> is null.</exception>
+    /// <exception cref="CStructPathException"><paramref name="typeId"/> is unknown, or the path is malformed or names no member, element, or pointer that can be followed.</exception>
+    /// <exception cref="MemoryAccessException">The bytes needed to resolve or read the value are unavailable, a followed pointer is null, or the budget is exhausted.</exception>
+    /// <exception cref="OperationCanceledException">The context's token was cancelled.</exception>
     public MemoryInspection Inspect(MemoryRegion region, string typeId, string path = "", MemoryAccessContext? context = null)
     {
         try
@@ -68,10 +82,9 @@ public sealed class MemorySession
             MemoryPatch.Flatten(selection.Region, backing, context, 0);
             return new MemoryInspection(this.ReadCore(selection, context, 0), selection, backing.AsReadOnly());
         }
-        catch (MemoryAccessException exception)
+        catch (CStructException exception)
         {
-            exception.Path ??= typeId + (path.Length == 0 ? string.Empty : "." + path);
-            exception.LogicalRegion ??= region;
+            AttachContext(exception, typeId, path, region);
             throw;
         }
     }
@@ -89,6 +102,10 @@ public sealed class MemorySession
     /// <param name="path">Member/index path from the root; pointer targets need an explicit <c>.value</c> step.</param>
     /// <param name="context">Shared operation budget and cancellation, or null to create a default budget.</param>
     /// <returns>The decoded scalar, stored pointer, structure, or fixed array.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="region"/> or <paramref name="path"/> is null.</exception>
+    /// <exception cref="CStructPathException"><paramref name="typeId"/> is unknown, or the path is malformed or names no member, element, or pointer that can be followed.</exception>
+    /// <exception cref="MemoryAccessException">The bytes needed to resolve or read the value are unavailable, a followed pointer is null, or the budget is exhausted.</exception>
+    /// <exception cref="OperationCanceledException">The context's token was cancelled.</exception>
     public object? Read(MemoryRegion region, string typeId, string path = "", MemoryAccessContext? context = null)
     {
         try
@@ -97,10 +114,9 @@ public sealed class MemorySession
             MemorySelection selected = this.Resolve(region, typeId, path, context);
             return this.ReadCore(selected, context, 0);
         }
-        catch (MemoryAccessException exception)
+        catch (CStructException exception)
         {
-            exception.Path ??= typeId + (path.Length == 0 ? string.Empty : "." + path);
-            exception.LogicalRegion ??= region;
+            AttachContext(exception, typeId, path, region);
             throw;
         }
     }
@@ -124,6 +140,10 @@ public sealed class MemorySession
     /// <param name="path">Member/index path from the root; pointer targets need an explicit <c>.value</c> step.</param>
     /// <param name="context">Shared operation budget and cancellation, or null to create a default budget.</param>
     /// <returns>The selected storage location and its metadata; the value is not decoded.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="region"/> or <paramref name="path"/> is null.</exception>
+    /// <exception cref="CStructPathException"><paramref name="typeId"/> is unknown, or the path is malformed or names no member, element, or pointer that can be followed.</exception>
+    /// <exception cref="MemoryAccessException">The bytes needed to resolve or read the value are unavailable, a followed pointer is null, or the budget is exhausted.</exception>
+    /// <exception cref="OperationCanceledException">The context's token was cancelled.</exception>
     public MemorySelection Resolve(MemoryRegion region, string typeId, string path = "", MemoryAccessContext? context = null)
     {
         try
@@ -140,7 +160,7 @@ public sealed class MemorySession
             {
                 if (addressSelected)
                 {
-                    throw new ArgumentException("The address accessor must terminate a path.", nameof(path));
+                    throw new CStructPathException("The address accessor must terminate a path.");
                 }
 
                 context.CheckDepth(++depth);
@@ -156,7 +176,7 @@ public sealed class MemorySession
 
                     if (segment != "value" || type.ElementTypeId is null)
                     {
-                        throw new ArgumentException("A typed pointer path must use '.value'; opaque pointers cannot be followed.", nameof(path));
+                        throw new CStructPathException("A typed pointer path must use '.value'; opaque pointers cannot be followed.");
                     }
 
                     // Following a pointer is the one path step that reads data: the target address is in the bytes.
@@ -169,7 +189,7 @@ public sealed class MemorySession
                     MemoryTypeDefinition target = this.Schema.GetType(type.ElementTypeId);
                     if (target.Kind == MemoryTypeKind.Incomplete)
                     {
-                        throw new ArgumentException("Pointer target is incomplete.", nameof(path));
+                        throw new CStructPathException("Pointer target is incomplete.");
                     }
 
                     // The resolver decides what the bits mean; the session only trusts it for TargetSize bytes.
@@ -183,7 +203,8 @@ public sealed class MemorySession
                     int index = int.Parse(segment.AsSpan(1, segment.Length - 2), NumberStyles.None, CultureInfo.InvariantCulture);
                     if (index >= type.Count)
                     {
-                        throw new ArgumentOutOfRangeException(nameof(path), "Array index exceeds the declared count.");
+                        // As in the core path resolver, an index past the declared count is a path error.
+                        throw new CStructPathException(string.Create(CultureInfo.InvariantCulture, $"Array index {index} is out of range for '{type.Id}' with length {type.Count}."));
                     }
 
                     MemoryTypeDefinition element = this.Schema.GetType(type.ElementTypeId!);
@@ -197,16 +218,15 @@ public sealed class MemorySession
                 }
                 else
                 {
-                    throw new ArgumentException($"Cannot traverse '{segment}' through '{type.Id}'.", nameof(path));
+                    throw new CStructPathException($"Cannot traverse '{segment}' through '{type.Id}'.");
                 }
             }
 
             return selected;
         }
-        catch (MemoryAccessException exception)
+        catch (CStructException exception)
         {
-            exception.Path ??= typeId + (path.Length == 0 ? string.Empty : "." + path);
-            exception.LogicalRegion ??= region;
+            AttachContext(exception, typeId, path, region);
             throw;
         }
     }
@@ -225,19 +245,32 @@ public sealed class MemorySession
     /// <param name="value">Value in the declared shape for that type.</param>
     /// <param name="context">Shared operation budget and cancellation, or null to create a default budget.</param>
     /// <returns>A new owned byte array of the type's size containing the encoded value.</returns>
+    /// <exception cref="CStructPathException"><paramref name="typeId"/> is unknown or names an incomplete type.</exception>
+    /// <exception cref="CStructWriteException"><paramref name="value"/> does not have the declared shape, or a scalar codec rejects it.</exception>
+    /// <exception cref="MemoryAccessException">The output or the nesting exceeds the budget; the failure has no source coordinates.</exception>
+    /// <exception cref="OperationCanceledException">The context's token was cancelled.</exception>
     public byte[] Serialize(string typeId, object? value, MemoryAccessContext? context = null)
     {
-        context ??= new MemoryAccessContext();
-        context.CheckDepth(0);
-        MemoryTypeDefinition type = this.Schema.GetType(typeId);
-        if (type.Size > context.MaxBytes)
+        try
         {
-            throw new MemoryAccessException(MemoryFailure.BudgetExceeded, "serialize", 0, type.Size, "Output exceeds the byte budget.");
-        }
+            context ??= new MemoryAccessContext();
+            context.CheckDepth(0);
+            MemoryTypeDefinition type = this.Schema.GetType(typeId);
+            if (type.Size > context.MaxBytes)
+            {
+                // New output is not read from any source, so the failure has no source coordinates.
+                throw new MemoryAccessException(MemoryFailure.BudgetExceeded, null, null, type.Size, "Output exceeds the byte budget.");
+            }
 
-        var bytes = new byte[type.Size];
-        this.Encode(type, value, bytes, context, 0);
-        return bytes;
+            var bytes = new byte[type.Size];
+            this.Encode(type, value, bytes, context, 0);
+            return bytes;
+        }
+        catch (CStructException exception)
+        {
+            exception.AttachContext(typeId);
+            throw;
+        }
     }
 
     /// <summary>Stages a replacement of the selected storage, preserving every byte and bit the new value does not cover. Nothing is written.</summary>
@@ -254,6 +287,11 @@ public sealed class MemorySession
     /// <param name="value">New value in the declared shape of the selected type.</param>
     /// <param name="context">Shared operation budget and cancellation, or null to create a default budget.</param>
     /// <returns>An immutable preview of the physical writes; no backing bytes are changed.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="region"/> or <paramref name="path"/> is null.</exception>
+    /// <exception cref="CStructPathException"><paramref name="typeId"/> is unknown, or the path is malformed or names nothing writable.</exception>
+    /// <exception cref="CStructWriteException"><paramref name="value"/> does not have the declared shape, or a bit-slice value is out of range.</exception>
+    /// <exception cref="MemoryAccessException">The current bytes are unavailable, the selection exceeds the byte budget, or planning found a stale source.</exception>
+    /// <exception cref="OperationCanceledException">The context's token was cancelled.</exception>
     public MemoryPatch PlanUpdate(MemoryRegion region, string typeId, string path, object? value, MemoryAccessContext? context = null)
     {
         try
@@ -262,7 +300,7 @@ public sealed class MemorySession
             MemorySelection selected = this.Resolve(region, typeId, path, context);
             if (selected.Type.Size > context.MaxBytes)
             {
-                throw new MemoryAccessException(MemoryFailure.BudgetExceeded, region.Source.Id, region.Address, selected.Type.Size, "Patch exceeds the byte budget.");
+                throw new MemoryAccessException(MemoryFailure.BudgetExceeded, selected.Region.Source.Id, selected.Region.Address, selected.Type.Size, "Patch exceeds the byte budget.");
             }
 
             // Start from the current bytes so everything outside the new value is preserved.
@@ -281,10 +319,9 @@ public sealed class MemorySession
 
             return MemoryPatch.Create(selected.Region, bytes, context, expected);
         }
-        catch (MemoryAccessException exception)
+        catch (CStructException exception)
         {
-            exception.Path ??= typeId + (path.Length == 0 ? string.Empty : "." + path);
-            exception.LogicalRegion ??= region;
+            AttachContext(exception, typeId, path, region);
             throw;
         }
     }
@@ -296,11 +333,18 @@ public sealed class MemorySession
     /// <param name="region">Finite range to copy.</param>
     /// <param name="context">Shared budget charged by every underlying source read.</param>
     /// <returns>An owned array containing exactly the region's bytes.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">The region is longer than an array can hold.</exception>
+    /// <exception cref="MemoryAccessException">The region exceeds the byte budget, or its bytes are unavailable.</exception>
     internal static byte[] ReadBytes(MemoryRegion region, MemoryAccessContext context)
     {
-        if (region.Length > int.MaxValue || region.Length > context.MaxBytes)
+        if (region.Length > int.MaxValue)
         {
             throw new ArgumentOutOfRangeException(nameof(region), "Region is too large for a materialized value.");
+        }
+
+        if (region.Length > context.MaxBytes)
+        {
+            throw new MemoryAccessException(MemoryFailure.BudgetExceeded, region.Source.Id, region.Address, (int)region.Length, "Region exceeds the byte budget.");
         }
 
         var bytes = new byte[(int)region.Length];
@@ -339,6 +383,24 @@ public sealed class MemorySession
         }
     }
 
+    /// <summary>
+    ///     Records what the caller asked for on a failure that crosses a session operation: the requested
+    ///     <c>typeId.path</c> as the exception's path and, for a memory access failure, the root region. Context a
+    ///     lower layer already recorded is kept.
+    /// </summary>
+    /// <param name="exception">The failure leaving the operation.</param>
+    /// <param name="typeId">The requested root type ID.</param>
+    /// <param name="path">The requested member path; empty for the root.</param>
+    /// <param name="region">The caller's root region.</param>
+    private static void AttachContext(CStructException exception, string typeId, string? path, MemoryRegion region)
+    {
+        exception.AttachContext(string.IsNullOrEmpty(path) ? typeId : typeId + "." + path);
+        if (exception is MemoryAccessException access)
+        {
+            access.LogicalRegion ??= region;
+        }
+    }
+
     /// <summary>The default resolver: the stored bits are an absolute address in the source the pointer was read from.</summary>
     /// <param name="request">The pointer being followed and where it was found.</param>
     private static MemoryRegion ResolveAbsolute(PointerRequest request) => new(request.Storage.Source, request.Pointer.Address, request.TargetSize);
@@ -349,6 +411,7 @@ public sealed class MemorySession
     /// non-numeric indexes here means a typo can never fall through to a neighboring but wrong selection.</remarks>
     /// <param name="path">Path text; empty means the root value.</param>
     /// <returns>Tokens in order: member names and <c>[n]</c> index strings.</returns>
+    /// <exception cref="CStructPathException">The path is malformed.</exception>
     private static IReadOnlyList<string> Tokenize(string path)
     {
         if (path.Length == 0)
@@ -366,7 +429,7 @@ public sealed class MemorySession
                 int end = path.IndexOf(']', position);
                 if (end < 0 || !int.TryParse(path.AsSpan(position + 1, end - position - 1), NumberStyles.None, CultureInfo.InvariantCulture, out _))
                 {
-                    throw new ArgumentException("Invalid array index.", nameof(path));
+                    throw new CStructPathException("Invalid array index.");
                 }
 
                 position = end + 1;
@@ -380,7 +443,7 @@ public sealed class MemorySession
 
                 if (position == start)
                 {
-                    throw new ArgumentException("Empty path component.", nameof(path));
+                    throw new CStructPathException("Empty path component.");
                 }
             }
 
@@ -391,12 +454,12 @@ public sealed class MemorySession
             {
                 if (++position == path.Length)
                 {
-                    throw new ArgumentException("Trailing path separator.", nameof(path));
+                    throw new CStructPathException("Trailing path separator.");
                 }
             }
             else if (position < path.Length && path[position] != '[')
             {
-                throw new ArgumentException("Missing path separator.", nameof(path));
+                throw new CStructPathException("Missing path separator.");
             }
         }
 
@@ -411,16 +474,21 @@ public sealed class MemorySession
     /// <param name="field">Field whose width and signedness define the accepted range.</param>
     /// <param name="value">Integer to encode, in any form <see cref="Convert.ToString(object, IFormatProvider)"/> renders as digits.</param>
     /// <returns>The unsigned bit pattern to store.</returns>
+    /// <exception cref="CStructWriteException">The value is not an integer or does not fit the slice.</exception>
     private static ulong EncodeBits(MemoryField field, object? value)
     {
-        BigInteger integer = BigInteger.Parse(Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty, CultureInfo.InvariantCulture);
+        if (!BigInteger.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), NumberStyles.Integer, CultureInfo.InvariantCulture, out BigInteger integer))
+        {
+            throw new CStructWriteException($"Bit slice '{field.Name}' requires an integer value.");
+        }
+
         int width = field.BitWidth!.Value;
         BigInteger modulus = BigInteger.One << width;
         BigInteger minimum = field.Signed ? -(modulus >> 1) : BigInteger.Zero;
         BigInteger maximum = field.Signed ? (modulus >> 1) - 1 : modulus - 1;
         if (integer < minimum || integer > maximum)
         {
-            throw new ArgumentOutOfRangeException(nameof(value), "Value does not fit the bit slice.");
+            throw new CStructWriteException($"Value does not fit the bit slice '{field.Name}'.");
         }
 
         return (ulong)(integer < 0 ? integer + modulus : integer);
@@ -435,7 +503,19 @@ public sealed class MemorySession
     /// <param name="name">Member name to find.</param>
     /// <param name="context">Shared context, used for depth checks while descending into promoted members.</param>
     /// <param name="depth">Current path depth.</param>
+    /// <returns>The selection of the member.</returns>
+    /// <exception cref="CStructPathException">No member has that name, or two promoted members do.</exception>
     private MemorySelection FindMember(MemorySelection parent, string name, MemoryAccessContext context, int depth)
+        => this.TryFindMember(parent, name, context, depth) ?? throw new CStructPathException($"Member '{parent.Type.Id}.{name}' is absent.");
+
+    /// <summary>Like <see cref="FindMember"/> but returns null for an absent member, so promotion search can continue; ambiguity still throws.</summary>
+    /// <param name="parent">Selection of the struct or union being searched.</param>
+    /// <param name="name">Member name to find.</param>
+    /// <param name="context">Shared context for depth checks.</param>
+    /// <param name="depth">Current path depth.</param>
+    /// <returns>The selection of the member, or null when neither the composite nor its promoted members declare it.</returns>
+    /// <exception cref="CStructPathException">Two promoted members have that name.</exception>
+    private MemorySelection? TryFindMember(MemorySelection parent, string name, MemoryAccessContext context, int depth)
     {
         context.CheckDepth(depth);
         MemorySelection? found = null;
@@ -447,7 +527,7 @@ public sealed class MemorySession
             {
                 if (found is not null)
                 {
-                    throw new ArgumentException($"Ambiguous promoted member '{name}'.");
+                    throw new CStructPathException($"Ambiguous promoted member '{name}'.");
                 }
 
                 found = candidate;
@@ -459,7 +539,7 @@ public sealed class MemorySession
                 {
                     if (found is not null)
                     {
-                        throw new ArgumentException($"Ambiguous promoted member '{name}'.");
+                        throw new CStructPathException($"Ambiguous promoted member '{name}'.");
                     }
 
                     found = nested;
@@ -467,24 +547,7 @@ public sealed class MemorySession
             }
         }
 
-        return found ?? throw new KeyNotFoundException($"Member '{parent.Type.Id}.{name}' is absent.");
-    }
-
-    /// <summary>Like <see cref="FindMember"/> but returns null for an absent member, so promotion search can continue; ambiguity still throws.</summary>
-    /// <param name="parent">Selection of the promoted composite being searched.</param>
-    /// <param name="name">Member name to find.</param>
-    /// <param name="context">Shared context for depth checks.</param>
-    /// <param name="depth">Current path depth.</param>
-    private MemorySelection? TryFindMember(MemorySelection parent, string name, MemoryAccessContext context, int depth)
-    {
-        try
-        {
-            return this.FindMember(parent, name, context, depth);
-        }
-        catch (KeyNotFoundException)
-        {
-            return null;
-        }
+        return found;
     }
 
     /// <summary>Decodes a selection: scalars and pointers through the core codecs, composites by recursing over their explicit members.</summary>
@@ -581,7 +644,7 @@ public sealed class MemorySession
             return ReadBytes(selected.Region, context);
         }
 
-        throw new ArgumentException("Cannot read an incomplete type by value.");
+        throw new CStructPathException($"Cannot read incomplete type '{type.Id}' by value.");
     }
 
     /// <summary>
@@ -643,10 +706,12 @@ public sealed class MemorySession
     /// <param name="destination">Span of exactly the type's size to encode into.</param>
     /// <param name="context">Shared budget charged for staged bytes and each composite level.</param>
     /// <param name="depth">Current nesting depth for the depth limit.</param>
+    /// <exception cref="CStructWriteException">The value does not have the declared shape, or a scalar codec rejects it.</exception>
+    /// <exception cref="CStructPathException">The type is incomplete and has no storage to write.</exception>
     private void Encode(MemoryTypeDefinition type, object? value, Span<byte> destination, MemoryAccessContext context, int depth)
     {
         context.CheckDepth(depth);
-        context.Charge("serialize", 0, 0);
+        context.Charge(null, null, 0);
         if (type.Kind is MemoryTypeKind.Scalar or MemoryTypeKind.Pointer)
         {
             object? scalar = value;
@@ -654,28 +719,31 @@ public sealed class MemorySession
             {
                 if (value is not StoredPointer pointer || pointer.Width != type.Size)
                 {
-                    throw new ArgumentException("Pointer writes require StoredPointer with the declared width.", nameof(value));
+                    throw new CStructWriteException($"Pointer '{type.Id}' is written from a StoredPointer {type.Size} bytes wide.");
                 }
 
                 scalar = pointer.Address;
             }
 
-            ArgumentNullException.ThrowIfNull(scalar);
+            if (scalar is null)
+            {
+                throw new CStructWriteException($"Null is not a valid value for scalar '{type.Id}'.");
+            }
 
             // The schema checked that the codec's size is the metadata extent, so it writes exactly the destination.
             int written = this.Schema.GetCodec(type).Serialize(destination, MemorySchema.CodecRoot(type), scalar);
             if (written != destination.Length)
             {
-                throw new ArgumentException("Codec output differs from the metadata extent.");
+                throw new CStructWriteException($"Codec output for '{type.Id}' differs from the metadata extent.");
             }
 
-            context.Charge("serialize", 0, written);
+            context.Charge(null, null, written);
         }
         else if (type.Kind == MemoryTypeKind.Array)
         {
             if (value is not IList values || values.Count != type.Count)
             {
-                throw new ArgumentException("Array value must have the declared count.", nameof(value));
+                throw new CStructWriteException(string.Create(CultureInfo.InvariantCulture, $"Array '{type.Id}' is written from an IList of exactly {type.Count} elements."));
             }
 
             MemoryTypeDefinition element = this.Schema.GetType(type.ElementTypeId!);
@@ -693,36 +761,42 @@ public sealed class MemorySession
                 // is reproduced exactly (a union value that was read writes back unchanged).
                 if (value is not UnionValue union || !string.Equals(union.UnionName, type.Name, StringComparison.Ordinal))
                 {
-                    throw new ArgumentException($"Union '{type.Name}' is written from a UnionValue with that name (UnionValue.FromRaw or UnionValue.FromMember).", nameof(value));
+                    throw new CStructWriteException($"Union '{type.Name}' is written from a UnionValue with that name (UnionValue.FromRaw or UnionValue.FromMember).");
                 }
 
                 if (union.HasSelection)
                 {
                     destination.Clear();
-                    this.EncodeField(type, this.Schema.GetField(type.Id, union.SelectedMember!), union.SelectedValue, destination, context, depth);
+                    MemoryField selected = this.Schema.FindField(type.Id, union.SelectedMember)
+                        ?? throw new CStructWriteException(WriteFailures.UnknownUnionMember(type.Name, union.SelectedMember));
+                    this.EncodeField(type, selected, union.SelectedValue, destination, context, depth);
                     return;
                 }
 
                 byte[] raw = union.GetRawStorageArray();
                 if (raw.Length != type.Size)
                 {
-                    throw new ArgumentException($"Union '{type.Name}' raw storage must be {type.Size} bytes, not {raw.Length}.", nameof(value));
+                    throw new CStructWriteException(WriteFailures.RawStorageLengthMismatch(type.Name, type.Size, raw.Length));
                 }
 
-                context.Charge("serialize", 0, raw.Length);
+                context.Charge(null, null, raw.Length);
                 raw.CopyTo(destination);
                 return;
             }
 
             if (value is not IReadOnlyDictionary<string, object?> members)
             {
-                throw new ArgumentException("Struct writes require a named member dictionary.", nameof(value));
+                throw new CStructWriteException($"Struct '{type.Id}' is written from a dictionary of named member values.");
             }
 
             foreach (MemoryField field in type.Fields)
             {
                 // A promoted member may be supplied flattened in the parent dictionary, so pass the parent through.
-                object? memberValue = field.Promoted && !members.ContainsKey(field.Name) ? value : members[field.Name];
+                if (!members.TryGetValue(field.Name, out object? memberValue))
+                {
+                    memberValue = field.Promoted ? value : throw new CStructWriteException(WriteFailures.NoValueSupplied(field.Name));
+                }
+
                 this.EncodeField(type, field, memberValue, destination, context, depth);
             }
         }
@@ -732,15 +806,15 @@ public sealed class MemorySession
             // exactly the declared number of raw bytes rather than a decomposed member value.
             if (value is not byte[] raw || raw.Length != type.Size)
             {
-                throw new ArgumentException("Opaque writes require raw bytes of the declared size.", nameof(value));
+                throw new CStructWriteException(string.Create(CultureInfo.InvariantCulture, $"Opaque type '{type.Id}' is written from exactly {type.Size} raw bytes."));
             }
 
-            context.Charge("serialize", 0, raw.Length);
+            context.Charge(null, null, raw.Length);
             raw.CopyTo(destination);
         }
         else
         {
-            throw new ArgumentException("Cannot write an incomplete type.");
+            throw new CStructPathException($"Cannot write incomplete type '{type.Id}'.");
         }
     }
 
@@ -754,6 +828,7 @@ public sealed class MemorySession
     /// <param name="destination">Span of the whole containing record.</param>
     /// <param name="context">Shared budget charged for staged bytes.</param>
     /// <param name="depth">Current nesting depth for the depth limit.</param>
+    /// <exception cref="CStructWriteException">The value does not fit the member.</exception>
     private void EncodeField(MemoryTypeDefinition parent, MemoryField field, object? value, Span<byte> destination, MemoryAccessContext context, int depth)
     {
         MemoryTypeDefinition member = this.Schema.GetType(field.TypeId);
@@ -761,7 +836,7 @@ public sealed class MemorySession
         if (field.BitWidth is not null)
         {
             this.Schema.GetCodec(member, field, parent.Id).Update(target, "__bits.value", EncodeBits(field, value));
-            context.Charge("serialize", 0, target.Length);
+            context.Charge(null, null, target.Length);
         }
         else
         {

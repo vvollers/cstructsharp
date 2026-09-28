@@ -1,5 +1,6 @@
 namespace CStructSharp.Memory;
 
+using CStructSharp.Diagnostics;
 using CStructSharp.Introspection;
 
 /// <summary>Converts a compiled fixed-size Portable layout into a <see cref="MemorySchema"/>, using the offsets the compiler already computed.</summary>
@@ -32,6 +33,12 @@ public static class PortableMemorySchema
     /// <param name="layout">Compiled Portable layout to project.</param>
     /// <param name="rootType">Name of the fixed-size exported type to start from.</param>
     /// <returns>A validated schema whose type IDs are the layout's own type names.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="layout"/> or <paramref name="rootType"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="rootType"/> is empty or whitespace.</exception>
+    /// <exception cref="CStructLayoutException">
+    ///     The root is not a known type, or a reachable type has no memory projection: it is runtime-sized, has a
+    ///     conditional member or a <c>@count</c> pointer, or nests beyond the depth limit.
+    /// </exception>
     public static MemorySchema Create(CStruct layout, string rootType)
     {
         ArgumentNullException.ThrowIfNull(layout);
@@ -98,7 +105,7 @@ public static class PortableMemorySchema
 
             if (depth > 128)
             {
-                throw new ArgumentException("Alias graph exceeds its depth limit.");
+                throw new CStructLayoutException("Alias graph exceeds its depth limit.");
             }
 
             this.CompleteAlias(targetId, depth + 1);
@@ -123,14 +130,14 @@ public static class PortableMemorySchema
 
             if (depth > 128)
             {
-                throw new ArgumentException("Portable metadata exceeds the depth limit.");
+                throw new CStructLayoutException("Portable metadata exceeds the depth limit.");
             }
 
             if (this.declarations.TryGetValue(id, out LayoutDeclarationInfo? declaration))
             {
                 if (declaration.Size is not int size)
                 {
-                    throw new ArgumentException($"Type '{id}' is runtime-sized; use a finite region with the core stream API.");
+                    throw new CStructLayoutException($"Type '{id}' is runtime-sized; use a finite region with the core stream API.");
                 }
 
                 if (declaration.Kind is LayoutDeclarationKind.Struct or LayoutDeclarationKind.Union)
@@ -230,7 +237,7 @@ public static class PortableMemorySchema
             {
                 if (field.IsConditional || field.Offset is not int offset || field.Size is not int size)
                 {
-                    throw new ArgumentException("Conditional or runtime-sized Portable fields require an explicit bounded core read.");
+                    throw new CStructLayoutException("Conditional or runtime-sized Portable fields require an explicit bounded core read.");
                 }
 
                 if (field.Name.Length == 0 && !field.IsAnonymous)
@@ -252,7 +259,7 @@ public static class PortableMemorySchema
                     if (field.HasCountedTarget)
                     {
                         // A memory schema pointer targets one value; projecting a counted target would drop its count.
-                        throw new ArgumentException("A @count pointer has no memory projection; read it with the stream API: " + field.Name);
+                        throw new CStructLayoutException("A @count pointer has no memory projection; read it with the stream API: " + field.Name);
                     }
 
                     id = "__pointer_" + this.generated++;
@@ -266,7 +273,7 @@ public static class PortableMemorySchema
                     {
                         if (dimension is not >= 0)
                         {
-                            throw new ArgumentException("A fixed memory projection requires known nonnegative array dimensions.");
+                            throw new CStructLayoutException("A fixed memory projection requires known nonnegative array dimensions.");
                         }
 
                         // An empty array still has a known element type; probe it rather than dividing by zero.
@@ -278,7 +285,7 @@ public static class PortableMemorySchema
 
                 for (int i = field.Dimensions.Count - 1; i >= 0; i--)
                 {
-                    int count = field.Dimensions[i] ?? throw new ArgumentException("Unknown array count.");
+                    int count = field.Dimensions[i] ?? throw new CStructLayoutException("Unknown array count.");
                     string array = "__array_" + this.generated++;
                     this.Types.Add(array, new(array, array, MemoryTypeKind.Array, checked(this.Types[id].Size * count), elementTypeId: id, count: count));
                     id = array;

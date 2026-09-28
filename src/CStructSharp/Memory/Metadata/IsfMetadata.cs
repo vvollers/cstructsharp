@@ -3,6 +3,7 @@ namespace CStructSharp.Memory.Metadata;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using CStructSharp.Diagnostics;
 
 /// <summary>A parsed Volatility ISF 6.2.0 document, from which the value types reachable from one user type can be imported into a <see cref="MemorySchema"/>.</summary>
 /// <remarks>
@@ -22,6 +23,11 @@ using System.Text.Json;
 /// composite's identity before following its fields so recursive pointers terminate. Symbols are not evaluated,
 /// relocations are not applied, and no file is opened.
 /// </para>
+/// <para>
+/// A document that is not valid JSON, is not ISF 6.2.0, or lacks or mistypes a property the import needs throws
+/// <see cref="CStructLayoutException"/>, as an invalid layout declaration does. Parameter errors keep their .NET
+/// exception types.
+/// </para>
 /// </remarks>
 public sealed class IsfMetadata
 {
@@ -32,24 +38,35 @@ public sealed class IsfMetadata
     /// <param name="isLittleEndian">Byte order of the imported schemas; base types with an explicit order override it.</param>
     /// <param name="maxBytes">Maximum accepted document length in bytes. JSON nesting is limited to 128 levels.</param>
     /// <param name="cancellationToken">Checked before parsing.</param>
-    /// <exception cref="ArgumentException">The document exceeds its budget or is not ISF 6.2.0.</exception>
-    /// <exception cref="JsonException">The document is not valid JSON.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxBytes"/> is not positive.</exception>
+    /// <exception cref="CStructLayoutException">The document exceeds its budget, is not valid JSON, or is not ISF 6.2.0.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public IsfMetadata(ReadOnlyMemory<byte> json, bool isLittleEndian = true, int maxBytes = 16 * 1024 * 1024, CancellationToken cancellationToken = default)
     {
-        if (maxBytes <= 0 || json.Length > maxBytes)
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBytes);
+        if (json.Length > maxBytes)
         {
-            throw new ArgumentException("ISF metadata exceeds its byte budget.", nameof(json));
+            throw new CStructLayoutException("ISF metadata exceeds its byte budget.");
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        using JsonDocument document = JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = 128, });
-
-        // A cloned element owns its data, so the document can be released now.
-        this.root = document.RootElement.Clone();
-        if (!this.root.TryGetProperty("metadata", out JsonElement metadata) || !metadata.TryGetProperty("format", out JsonElement format) ||
-            format.GetString() != "6.2.0")
+        try
         {
-            throw new ArgumentException("Only ISF format 6.2.0 is supported.", nameof(json));
+            using JsonDocument document = JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = 128, });
+
+            // A cloned element owns its data, so the document can be released now.
+            this.root = document.RootElement.Clone();
+        }
+        catch (JsonException exception)
+        {
+            throw new CStructLayoutException("ISF metadata is not valid JSON.", exception);
+        }
+
+        if (this.root.ValueKind != JsonValueKind.Object || !this.root.TryGetProperty("metadata", out JsonElement metadata) ||
+            metadata.ValueKind != JsonValueKind.Object || !metadata.TryGetProperty("format", out JsonElement format) ||
+            format.ValueKind != JsonValueKind.String || !format.ValueEquals("6.2.0"))
+        {
+            throw new CStructLayoutException("Only ISF format 6.2.0 is supported.");
         }
 
         this.IsLittleEndian = isLittleEndian;
@@ -67,8 +84,14 @@ public sealed class IsfMetadata
     /// <param name="options">The pointer width, validation mode and descriptor budget; <see cref="MetadataImportOptions.Default"/> when null.</param>
     /// <param name="cancellationToken">Checked at each step of the walk and while compiling the schema.</param>
     /// <returns>The compiled reachable schema, the root's ID, and diagnostics.</returns>
-    /// <exception cref="ArgumentException">A reachable type is invalid or unsupported, or the descriptor budget is exceeded.</exception>
+    /// <exception cref="ArgumentException"><paramref name="rootName"/> is empty or whitespace.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="rootName"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The options are out of range.</exception>
+    /// <exception cref="CStructLayoutException">
+    ///     <paramref name="rootName"/> is not in <c>user_types</c>, or a reachable type is missing, malformed,
+    ///     unsupported, or exceeds the descriptor budget.
+    /// </exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public MetadataImportResult Import(string rootName, MetadataImportOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rootName);
@@ -132,10 +155,23 @@ public sealed class IsfMetadata
         /// <param name="rootName">The user type's name.</param>
         /// <param name="cancellationToken">Checked before each step.</param>
         /// <returns>The root's ID.</returns>
+        /// <exception cref="CStructLayoutException">The root or a reachable type is missing, malformed, unsupported, or over budget.</exception>
         internal string Import(string rootName, CancellationToken cancellationToken)
         {
             string id = UserId(rootName);
-            MetadataGraphWalk.Run(new Step(StepKind.UserType, id, default, null, rootName), this.Run, cancellationToken);
+            try
+            {
+                MetadataGraphWalk.Run(new Step(StepKind.UserType, id, default, null, rootName), this.Run, cancellationToken);
+            }
+            catch (Exception exception) when (exception is KeyNotFoundException or InvalidOperationException or FormatException or OverflowException or ArgumentException)
+            {
+                // The JSON accessors report a missing property as KeyNotFoundException, a wrongly typed one as
+                // InvalidOperationException or FormatException, and an out-of-range number as OverflowException; a
+                // descriptor constructor rejects a negative size or offset with ArgumentException. In an import each
+                // of these means the document is malformed, which is a layout error like any other invalid metadata.
+                throw new CStructLayoutException("Invalid ISF metadata: " + exception.Message, exception);
+            }
+
             return id;
         }
 
@@ -223,7 +259,7 @@ public sealed class IsfMetadata
                 this.Diagnostics.Add($"{id}: function type is address-only.");
                 break;
             default:
-                throw new ArgumentException($"Unsupported ISF descriptor '{kind}'.");
+                throw new CStructLayoutException($"Unsupported ISF descriptor '{kind}'.");
             }
         }
 
@@ -250,7 +286,7 @@ public sealed class IsfMetadata
             string endian = type.GetProperty("endian").GetString()!;
             if (endian is not ("little" or "big"))
             {
-                throw new ArgumentException("Invalid ISF byte order.");
+                throw new CStructLayoutException("Invalid ISF byte order.");
             }
 
             bool signed = type.GetProperty("signed").GetBoolean();
@@ -259,7 +295,7 @@ public sealed class IsfMetadata
                 "int" or "char" => (signed ? "int" : "uint") + (size * 8),
                 "float" => "float" + (size * 8),
                 "bool" when size == 1 => "bool",
-                _ => throw new ArgumentException($"Unsupported ISF base type '{kind}' of size {size}."),
+                _ => throw new CStructLayoutException($"Unsupported ISF base type '{kind}' of size {size}."),
             };
             this.Add(id, new(id, name, MemoryTypeKind.Scalar, size, scalarType: scalar, provenance: id, isLittleEndian: endian == "little"));
             return id;
@@ -282,7 +318,7 @@ public sealed class IsfMetadata
             {
                 "struct" or "class" => MemoryTypeKind.Struct,
                 "union" => MemoryTypeKind.Union,
-                var other => throw new ArgumentException($"Unsupported ISF user type kind '{other}'."),
+                var other => throw new CStructLayoutException($"Unsupported ISF user type kind '{other}'."),
             };
 
             this.Add(id, new(id, name, kind, size, provenance: id));
@@ -339,7 +375,7 @@ public sealed class IsfMetadata
             // A pointer may name its own storage base type; it must agree with the supplied pointer width.
             if (descriptor.TryGetProperty("base", out JsonElement pointerBase) && this.Types[this.ImportBase(pointerBase.GetString()!)].Size != this.pointerSize)
             {
-                throw new ArgumentException("ISF pointer base differs from the supplied pointer width.");
+                throw new CStructLayoutException("ISF pointer base differs from the supplied pointer width.");
             }
 
             this.Add(id, new(id, string.Empty, isArray ? MemoryTypeKind.Array : MemoryTypeKind.Pointer, size, elementTypeId: element, count: count, provenance: "ISF 6.2.0 " + (isArray ? "array" : "pointer")));
@@ -358,7 +394,7 @@ public sealed class IsfMetadata
             {
                 if (constant.Name.Length == 0 || constant.Name.Any(character => !char.IsAsciiLetterOrDigit(character) && character != '_'))
                 {
-                    throw new ArgumentException("ISF enum member cannot be represented as a Portable identifier.");
+                    throw new CStructLayoutException("ISF enum member cannot be represented as a Portable identifier.");
                 }
 
                 // Parsing the raw token as an integer rejects fractional or exponential constants instead of rounding.
@@ -373,12 +409,12 @@ public sealed class IsfMetadata
         /// <summary>Adds a descriptor within the descriptor budget.</summary>
         /// <param name="id">Descriptor ID.</param>
         /// <param name="type">Descriptor to add.</param>
-        /// <exception cref="ArgumentException">The budget is exceeded.</exception>
+        /// <exception cref="CStructLayoutException">The budget is exceeded.</exception>
         private void Add(string id, MemoryTypeDefinition type)
         {
             if (this.Types.Count >= this.maxTypes)
             {
-                throw new ArgumentException("ISF type budget exceeded.");
+                throw new CStructLayoutException("ISF type budget exceeded.");
             }
 
             this.Types.Add(id, type);

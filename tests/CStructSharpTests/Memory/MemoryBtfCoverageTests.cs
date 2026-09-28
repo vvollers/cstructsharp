@@ -205,7 +205,7 @@ public class MemoryBtfCoverageTests
         Assert.AreEqual(1, description.Members.Count);
         Assert.AreEqual(new BtfMemberDescription("inner", 1, 0, null, null), description.Members[0]);
 
-        Assert.Throws<ArgumentException>(() => metadata.Import(2));
+        Assert.Throws<CStructLayoutException>(() => metadata.Import(2));
     }
 
     /// <summary>Full unsigned ENUM64 storage round-trips without signed address conversion.</summary>
@@ -294,7 +294,7 @@ public class MemoryBtfCoverageTests
             "\0u32\0x\0Inner\0inner\0Outer\0"));
         uint outerId = metadata.FindType("Outer");
 
-        Assert.Throws<ArgumentException>(() => metadata.Import(outerId));
+        Assert.Throws<CStructLayoutException>(() => metadata.Import(outerId));
 
         MetadataImportResult result = metadata.Import(outerId, new MetadataImportOptions { BestEffort = true, });
         Assert.AreEqual(MemoryTypeKind.Opaque, result.Schema.GetType("btf:2").Kind);
@@ -316,7 +316,7 @@ public class MemoryBtfCoverageTests
                 var metadata = new BtfMetadata(bytes, maxTypes: 8);
                 _ = metadata.Import(1);
             }
-            catch (Exception error) when (error is ArgumentException or OverflowException or CStructException)
+            catch (CStructLayoutException)
             {
                 // Invalid metadata is rejected; runtime failures such as indexing bugs must escape this filter.
             }
@@ -336,6 +336,6 @@ public class MemoryBtfCoverageTests
         uint outerId = metadata.FindType("Outer");
 
         Assert.AreEqual(2, metadata.Import(outerId, new MetadataImportOptions { MaxTypes = 2, }).Schema.Types.Count);
-        StringAssert.Contains(Assert.Throws<ArgumentException>(() => metadata.Import(outerId, new MetadataImportOptions { MaxTypes = 1, })).Message, "descriptor budget");
+        StringAssert.Contains(Assert.Throws<CStructLayoutException>(() => metadata.Import(outerId, new MetadataImportOptions { MaxTypes = 1, })).Message, "descriptor budget");
     }
 }

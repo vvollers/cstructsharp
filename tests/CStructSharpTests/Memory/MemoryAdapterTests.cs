@@ -1,5 +1,6 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Diagnostics;
 using CStructSharp.Memory;
 
 /// <summary>Checks fixed Portable projection and bounded caching without host ABI assumptions.</summary>
@@ -18,7 +19,7 @@ public class MemoryAdapterTests
         var region = new MemoryRegion(new ByteArrayMemorySource("image", bytes), 0, bytes.Length);
         Assert.AreEqual(7U, session.Read(region, "Root", "nodes[1].id"));
         Assert.AreEqual(new StoredPointer(ulong.MaxValue), session.Read(region, "Root", "nodes[1].next.address"));
-        Assert.Throws<ArgumentException>(() => session.Resolve(region, "Root", "nodes[1].next.address.value"));
+        Assert.Throws<CStructPathException>(() => session.Resolve(region, "Root", "nodes[1].next.address.value"));
     }
 
     /// <summary>Cache hits avoid physical reads, eviction obeys capacity, and changes invalidate cached values.</summary>

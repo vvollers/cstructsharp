@@ -707,17 +707,16 @@ namespace CStructSharp.Memory
         public int MaxDepth { get; }
         public int MaxRequests { get; }
         public int Requests { get; }
-        public void Charge(string sourceId, ulong address, int bytes) { }
+        public void Charge(string? sourceId, ulong? address, int bytes) { }
     }
-    public sealed class MemoryAccessException : System.Exception
+    public sealed class MemoryAccessException : CStructSharp.Diagnostics.CStructReadException
     {
-        public MemoryAccessException(CStructSharp.Memory.MemoryFailure failure, string sourceId, ulong address, int length, string message, System.Exception? inner = null) { }
-        public ulong Address { get; }
+        public MemoryAccessException(CStructSharp.Memory.MemoryFailure failure, string? sourceId, ulong? address, int length, string message, System.Exception? inner = null) { }
+        public ulong? Address { get; }
         public CStructSharp.Memory.MemoryFailure Failure { get; }
         public int Length { get; }
         public CStructSharp.Memory.MemoryRegion? LogicalRegion { get; }
-        public string? Path { get; }
-        public string SourceId { get; }
+        public string? SourceId { get; }
     }
     public enum MemoryFailure
     {
@@ -759,7 +758,7 @@ namespace CStructSharp.Memory
         public void Commit(CStructSharp.Memory.MemoryAccessContext? context = null) { }
         public static CStructSharp.Memory.MemoryPatch Create(CStructSharp.Memory.MemoryRegion region, System.ReadOnlySpan<byte> replacement, CStructSharp.Memory.MemoryAccessContext? context = null, byte[]? expected = null) { }
     }
-    public sealed class MemoryPatchCommitException : System.Exception
+    public sealed class MemoryPatchCommitException : CStructSharp.Diagnostics.CStructWriteException
     {
         public long CompletedBytes { get; }
         public int FragmentIndex { get; }

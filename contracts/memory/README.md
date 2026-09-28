@@ -10,5 +10,9 @@ targets explicitly with `.value`. Reads return the core value types: `StructValu
 storage (`UnionValue.FromRaw`, or a value that was read) or one selected member (`UnionValue.FromMember`); a
 dictionary of overlapping members is not an unambiguous creation value.
 
+Failures follow `failureRules`: memory analysis uses the core `CStructException` hierarchy, so a memory access
+failure is a `CStructReadException`, and paths, values, and definitions fail with `CStructPathException`,
+`CStructWriteException`, and `CStructLayoutException`.
+
 Read the memory guide for importer coverage, generation and ownership requirements, source budgets, and the
 non-atomic patch commit contract. The browser bridge exposes standalone schemas and binary operations.

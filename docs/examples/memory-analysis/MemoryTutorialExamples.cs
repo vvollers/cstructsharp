@@ -1,6 +1,7 @@
 namespace CStructSharp.Docs.Examples;
 
 using System.Text;
+using global::CStructSharp.Diagnostics;
 using global::CStructSharp.Memory;
 using global::CStructSharp.Memory.Metadata;
 using global::CStructSharp.Values;
@@ -186,7 +187,7 @@ internal static class MemoryTutorialExamples
         {
             _ = new MemorySchema(types);
         }
-        catch (ArgumentException)
+        catch (CStructLayoutException)
         {
             strictFailed = true;
         }
@@ -365,6 +366,7 @@ internal static class MemoryTutorialExamples
         catch (MemoryAccessException error) when (error.Failure == MemoryFailure.Unmapped)
         {
             Require(error.Address == 0x1000 && error.Path == "Record.value", "Failure coordinates");
+            Require(error.Code == CStructErrorCode.ReadFailed, "Core read failure code");
             Require(error.LogicalRegion == missing, "Requested root retained");
         }
 

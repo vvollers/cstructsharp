@@ -2,6 +2,7 @@ namespace CStructSharp.Tests;
 
 using System.Globalization;
 using System.Numerics;
+using CStructSharp.Diagnostics;
 using CStructSharp.Memory;
 
 /// <summary>Cross-operation assertions for bit slices, explicit pointers, and fixed collection shapes.</summary>
@@ -53,7 +54,7 @@ public class MemoryOperationMatrixTests
                                 Assert.AreEqual((byte)((original[index] & ~byteMask) | created[index]), updated[index]);
                             }
 
-                            Assert.Throws<ArgumentOutOfRangeException>(() => session.PlanUpdate(region, "record", "bits", signed ? BigInteger.One << (width - 1) : mask + 1));
+                            Assert.Throws<CStructWriteException>(() => session.PlanUpdate(region, "record", "bits", signed ? BigInteger.One << (width - 1) : mask + 1));
                         }
                     }
                 }
@@ -111,16 +112,16 @@ public class MemoryOperationMatrixTests
         var session = new MemorySession(schema);
         var source = new ByteArrayMemorySource("image", new byte[8]);
         var region = new MemoryRegion(source, 0, 8);
-        Assert.Throws<ArgumentException>(() => session.Serialize("a", new byte[] { 1, }));
-        Assert.Throws<ArgumentException>(() => session.Serialize("a", 1));
-        Assert.Throws<ArgumentException>(() => session.Serialize("p", 0UL));
-        Assert.Throws<ArgumentException>(() => session.Serialize("p", new StoredPointer(0, 4)));
-        Assert.Throws<ArgumentException>(() => session.Serialize("x", 0));
-        Assert.Throws<ArgumentException>(() => session.Read(region, "x"));
+        Assert.Throws<CStructWriteException>(() => session.Serialize("a", new byte[] { 1, }));
+        Assert.Throws<CStructWriteException>(() => session.Serialize("a", 1));
+        Assert.Throws<CStructWriteException>(() => session.Serialize("p", 0UL));
+        Assert.Throws<CStructWriteException>(() => session.Serialize("p", new StoredPointer(0, 4)));
+        Assert.Throws<CStructPathException>(() => session.Serialize("x", 0));
+        Assert.Throws<CStructPathException>(() => session.Read(region, "x"));
         Assert.Throws<MemoryAccessException>(() => session.Serialize("a", new byte[] { 1, 2, }, new MemoryAccessContext(maxBytes: 1)));
         Assert.Throws<MemoryAccessException>(() => session.Read(region, "a", context: new MemoryAccessContext(maxRequests: 2)));
-        Assert.Throws<ArgumentOutOfRangeException>(() => session.Resolve(region, "a", "[2]"));
-        Assert.Throws<ArgumentException>(() => session.Resolve(region, "p", "value"));
+        Assert.Throws<CStructPathException>(() => session.Resolve(region, "a", "[2]"));
+        Assert.Throws<CStructPathException>(() => session.Resolve(region, "p", "value"));
         Assert.Throws<MemoryAccessException>(() => session.PlanUpdate(region, "p", string.Empty, new StoredPointer(0), new MemoryAccessContext(maxBytes: 1)));
         Assert.Throws<ArgumentException>(() => MemoryPatch.Create(region, new byte[7]));
         Assert.Throws<ArgumentException>(() => MemoryPatch.Create(region, new byte[8], expected: new byte[7]));

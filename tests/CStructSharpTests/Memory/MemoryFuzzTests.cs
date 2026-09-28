@@ -60,7 +60,7 @@ public class MemoryFuzzTests
                 Assert.IsTrue(result.Schema.GetType(result.RootTypeId).Size <= 16);
                 accepted++;
             }
-            catch (Exception error) when (error is JsonException or ArgumentException or InvalidOperationException or KeyNotFoundException or FormatException or OverflowException or CStructLayoutException)
+            catch (CStructLayoutException)
             {
                 rejected++;
             }

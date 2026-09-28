@@ -31,7 +31,9 @@ an explicit size that includes padding, and bit-packed members carry an explicit
 Portable language computes placement from declaration order, a memory schema records placement as given.
 
 Compile a schema once and reuse it in sessions that inspect many records or several address spaces. Validation
-happens at construction, so a bad description fails before any source is read.
+happens at construction, so a bad description fails before any source is read. An invalid definition, such as a
+reference to an unknown type ID or two overlapping struct members, throws `CStructLayoutException`, the same
+exception an invalid layout declaration throws. Malformed BTF, ISF, or Portable metadata throws it too.
 
 ## Three ways to obtain a schema
 
@@ -251,12 +253,12 @@ API: results and diagnostics always use the metadata's own names and IDs.
    constructor throws. What is wrong, and how would you describe a type where both really do share byte 0?
 2. A four-byte storage unit holds a signed 5-bit slice at bit offset 12. What is the range of values the slice can
    store, and what does an update to 20 do?
-3. `FindType("list_head")` throws `ArgumentException` saying the name is ambiguous. What does that tell you about
+3. `FindType("list_head")` throws `CStructLayoutException` saying the name is ambiguous. What does that tell you about
    the blob, and what should your program do?
 
 Answers: **struct members may not overlap**; declare the type as a `Union`, whose members are expected to share
 storage, or give the fields different offsets. **-16 to 15**, so an update to 20 throws
-`ArgumentOutOfRangeException` before any byte is staged. **The blob contains two or more types named
+`CStructWriteException` before any byte is staged. **The blob contains two or more types named
 `list_head`**, perhaps one from the base table and one from a module; ask the metadata producer for the numeric
 ID you want and call `Import` with that ID instead of a name.
 

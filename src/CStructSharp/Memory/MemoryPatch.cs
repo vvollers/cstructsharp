@@ -1,5 +1,7 @@
 namespace CStructSharp.Memory;
 
+using CStructSharp.Diagnostics;
+
 /// <summary>A prepared, immutable write: the logical range to change and the physical fragments, with expected and replacement bytes, that realize it.</summary>
 /// <remarks>
 /// <para>
@@ -52,6 +54,11 @@ public sealed class MemoryPatch
     /// <param name="context">Shared operation budget and cancellation, or null to create a default budget.</param>
     /// <param name="expected">Bytes the caller believes the region currently holds, or null to skip that check.</param>
     /// <returns>An immutable patch describing the fragments and their bytes.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="region"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="replacement"/> or <paramref name="expected"/> is not exactly <c>region.Length</c> bytes long.</exception>
+    /// <exception cref="CStructWriteException">Aliased mappings make two fragments cover the same physical bytes.</exception>
+    /// <exception cref="MemoryAccessException">The current bytes are unavailable, differ from <paramref name="expected"/>, changed while being read, or exceed the budget.</exception>
+    /// <exception cref="OperationCanceledException">The context's token was cancelled.</exception>
     public static MemoryPatch Create(MemoryRegion region, ReadOnlySpan<byte> replacement, MemoryAccessContext? context = null, byte[]? expected = null)
     {
         ArgumentNullException.ThrowIfNull(region);
@@ -173,6 +180,7 @@ public sealed class MemoryPatch
     /// edit spanning both would produce two fragments over the same bytes with possibly different replacements;
     /// the outcome would depend on write order, so such a patch is refused while planning.</remarks>
     /// <param name="regions">Terminal fragments produced by <see cref="Flatten"/>.</param>
+    /// <exception cref="CStructWriteException">Two fragments overlap within one source.</exception>
     private static void ValidateDistinctRanges(List<MemoryRegion> regions)
     {
         var bySource = new Dictionary<IMemorySource, List<MemoryRegion>>(ReferenceEqualityComparer.Instance);
@@ -195,7 +203,7 @@ public sealed class MemoryPatch
             {
                 if (ranges[index].Address - ranges[index - 1].Address < (ulong)ranges[index - 1].Length)
                 {
-                    throw new ArgumentException("A patch cannot contain overlapping physical ranges.");
+                    throw new CStructWriteException("A patch cannot contain overlapping physical ranges.");
                 }
             }
         }

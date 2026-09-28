@@ -47,8 +47,8 @@ depend on which member happened to be encoded last, so the writer never does tha
 what to write: `UnionValue.FromMember(unionName, member, value)` names one member, and
 `UnionValue.FromRaw(unionName, bytes)` supplies the union's exact bytes. A `UnionValue` you read has no chosen
 member, so writing it back copies its raw storage unchanged. The union name must equal the union type's
-`MemoryTypeDefinition.Name`; a value built for a different union is rejected with an `ArgumentException`, and so
-is any other kind of input, such as a plain `byte[]`.
+`MemoryTypeDefinition.Name`; a value built for a different union is rejected with a `CStructWriteException`, and
+so is any other kind of input, such as a plain `byte[]`.
 
 [!code-csharp[Create a union from one member or exact bytes](../examples/memory-analysis/MemoryTutorialExamples.cs#memory-union)]
 
@@ -119,7 +119,8 @@ read-only too; plan updates through the writable source or mapping beneath it.
 after earlier writes succeeded, and a budget or cancellation can also interrupt the write phase. Such failures
 raise `MemoryPatchCommitException`: `CompletedBytes` counts confirmed earlier fragments, `FragmentIndex` identifies
 the fragment whose completion is uncertain, and `InnerException` records the cause. That fragment may be partly
-changed. Validation failures before writing keep their ordinary exception types, because nothing was written.
+changed. `MemoryPatchCommitException` is a `CStructWriteException`, so a handler for write failures sees it too.
+Validation failures before writing keep their ordinary exception types, because nothing was written.
 
 Do not retry the same patch blindly, and do not assume that zero completed bytes means no mutation occurred.
 Inspect or discard the affected offline copy, then re-plan from a known state. A disposable overlay makes recovery
@@ -142,7 +143,7 @@ Answers: **yes**, `PlanUpdate` reads the storage unit and changes only the selec
 starts from zeroes and only knows the members you pass. **`Commit` throws `MemoryAccessException` with
 `StaleSource`** before writing anything, because the source's generation advanced; the expected bytes may no
 longer describe the image, and writing over an unknown state could corrupt it. **Planning throws
-`ArgumentException`** because the two fragments overlap physically; one edit must not write the same file bytes
+`CStructWriteException`** because the two fragments overlap physically; one edit must not write the same file bytes
 twice.
 
 See [reliability and ownership](memory-reliability.md) for budgets, cancellation, and source implementation rules.

@@ -64,6 +64,11 @@ MemoryAccessContext      one budget (bytes, requests, depth, cancellation) share
   a new one.
 - **Generations detect reported changes.** They are a change counter, not a snapshot or a lock; callers arrange
   consistency when a source cannot report changes.
+- **Failures use the core exception hierarchy.** Unreadable memory is a `MemoryAccessException`, a
+  `CStructReadException` whose code is `ReadLimitExceeded` for `BudgetExceeded`; paths throw
+  `CStructPathException`, values `CStructWriteException`, and definitions or metadata `CStructLayoutException`.
+  Only parameter-contract violations, read-only sources, and cancellation keep .NET exception types. Coordinates
+  that do not exist, such as the source of a depth limit, stay null rather than taking a placeholder.
 - **Validation precedes writes, but commit is not atomic.** `MemoryPatch` checks every fragment first and reports
   the uncertain fragment when a later write fails; it never promises rollback.
 

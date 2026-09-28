@@ -1,5 +1,6 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Diagnostics;
 using CStructSharp.Memory;
 using CStructSharp.Values;
 
@@ -35,7 +36,7 @@ public class MemoryExplicitLayoutTests
         ]);
         var session = new MemorySession(schema);
         CollectionAssert.AreEqual(new byte[] { 3, 0, }, session.Serialize("u", UnionValue.FromMember("u", "small", (byte)3)));
-        Assert.Throws<ArgumentException>(() => session.Serialize("u", new Dictionary<string, object?> { ["small"] = (byte)3, }));
+        Assert.Throws<CStructWriteException>(() => session.Serialize("u", new Dictionary<string, object?> { ["small"] = (byte)3, }));
         var source = new ByteArrayMemorySource("image", new byte[] { 0x34, 0x12, });
         var region = new MemoryRegion(source, 0, 2);
         session.PlanUpdate(region, "u", "small", (byte)9).Commit();
@@ -112,10 +113,10 @@ public class MemoryExplicitLayoutTests
     public void UnionWrite_RejectsWrongNameSizeOrShape()
     {
         MemorySession session = CreateUnionSession();
-        Assert.Throws<ArgumentException>(() => session.Serialize("u", UnionValue.FromMember("other", "small", (byte)7)));
-        Assert.Throws<ArgumentException>(() => session.Serialize("u", UnionValue.FromRaw("U", new byte[] { 1, 2, })));
-        Assert.Throws<ArgumentException>(() => session.Serialize("u", UnionValue.FromRaw("u", new byte[] { 1, 2, 3, })));
-        Assert.Throws<ArgumentException>(() => session.Serialize("u", new byte[] { 1, 2, }));
+        Assert.Throws<CStructWriteException>(() => session.Serialize("u", UnionValue.FromMember("other", "small", (byte)7)));
+        Assert.Throws<CStructWriteException>(() => session.Serialize("u", UnionValue.FromRaw("U", new byte[] { 1, 2, })));
+        Assert.Throws<CStructWriteException>(() => session.Serialize("u", UnionValue.FromRaw("u", new byte[] { 1, 2, 3, })));
+        Assert.Throws<CStructWriteException>(() => session.Serialize("u", new byte[] { 1, 2, }));
         CollectionAssert.AreEqual(new byte[] { 1, 2, }, session.Serialize("u", UnionValue.FromRaw("u", new byte[] { 1, 2, })));
     }
 
@@ -157,7 +158,7 @@ public class MemoryExplicitLayoutTests
     {
         var source = new ByteArrayMemorySource("image", new byte[1]);
         var mapped = new MappedMemorySource("virtual", [new(0, new MemoryRegion(source, 0, 1)), new(1, new MemoryRegion(source, 0, 1)),]);
-        Assert.Throws<ArgumentException>(() => MemoryPatch.Create(new MemoryRegion(mapped, 0, 2), new byte[] { 1, 2, }));
+        Assert.Throws<CStructWriteException>(() => MemoryPatch.Create(new MemoryRegion(mapped, 0, 2), new byte[] { 1, 2, }));
         CollectionAssert.AreEqual(new byte[1], source.ToArray());
     }
 }
