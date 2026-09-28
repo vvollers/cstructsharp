@@ -235,13 +235,18 @@ await main(() => {
     assertCondition(isIgnored(repositoryRoot, toPosix(path.relative(repositoryRoot, generated))), `Generated documentation file is not ignored: ${toPosix(path.relative(repositoryRoot, generated))}`);
   }
 
+  // The site publishes the contracts readers use (the ones the pages link to, the API and memory contracts) and
+  // nothing else: measurement baselines and review data stay in the repository.
   const contractDirectory = path.join(repositoryRoot, "contracts");
-  const contractSources = listFiles(contractDirectory, (file) => [".json", ".txt"].includes(path.extname(file)));
   const expectedContracts = JSON.parse(fs.readFileSync(path.join(contractDirectory, "published-files.json"), "utf8")).map(String).sort();
-  const actualContracts = contractSources.map((file) => toPosix(path.relative(contractDirectory, file))).filter((file) => file !== "published-files.json").sort();
-  assertCondition(expectedContracts.join("\n") === actualContracts.join("\n"), "Published contract inventory differs from required inputs.");
-  for (const source of contractSources) {
-    const relative = `contracts/${toPosix(path.relative(contractDirectory, source))}`;
+  const siteContracts = listFiles(path.join(siteDirectory, "contracts"), () => true).map((file) => toPosix(path.relative(path.join(siteDirectory, "contracts"), file))).sort();
+  assertCondition(expectedContracts.join("\n") === siteContracts.join("\n"), `Published contracts differ from contracts/published-files.json: ${siteContracts.join(", ")}.`);
+  const docfxContracts = JSON.parse(fs.readFileSync(path.join(documentationRoot, "docfx.json"), "utf8")).build.resource.find((item) => item.src === "../contracts").files.map(String).sort();
+  assertCondition(expectedContracts.join("\n") === docfxContracts.join("\n"), "docs/docfx.json publishes a different contract list than contracts/published-files.json.");
+  for (const relativeContract of expectedContracts) {
+    const source = path.join(contractDirectory, relativeContract);
+    assertCondition(isFile(source), `Listed published contract does not exist: ${relativeContract}`);
+    const relative = `contracts/${relativeContract}`;
     const published = path.join(siteDirectory, relative);
     assertCondition(isFile(published), `Published documentation contract is missing: ${relative}`);
     /** Returns the hexadecimal SHA-256 hash of a file's contents. */

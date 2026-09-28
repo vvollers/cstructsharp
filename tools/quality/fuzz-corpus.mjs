@@ -84,7 +84,6 @@ await main(() => {
   assertCondition(contract.project === "tests/CStructSharp.Fuzz/CStructSharp.Fuzz.csproj", "The feature-operation matrix names an unexpected fuzz project.");
   assertCondition(contract.validator === "tools/quality/fuzz-corpus.mjs", "The feature-operation matrix names an unexpected fuzz validator.");
   assertCondition(contract.guide === "docs/project/testing.md", "The feature-operation matrix names an unexpected fuzz guide.");
-  assertCondition(contract.workItem === "QA-04", "The feature-operation matrix must assign fuzz evidence to QA-04.");
   assertCondition(sameSet(expectedTargets, contract.targets ?? []), "The feature-operation matrix names a different managed fuzz target set.");
   assertCondition((contract.deferredTargets ?? []).length === 1 && contract.deferredTargets[0] === "json-wasm", "The feature-operation matrix must defer only the JSON/WASM fuzz target.");
   for (const relative of [contract.corpus, contract.project, contract.validator, contract.guide]) {

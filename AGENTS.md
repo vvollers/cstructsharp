@@ -39,8 +39,9 @@ and update the current contracts, tests, and documentation without retaining unu
 
 ## Project documentation and changelog
 
-- Update documentation in the same task as changes to behavior, API, schema coverage, setup, build, or deployment.
-  Check affected READMEs, `docs/` pages, XML API comments, executable examples, and contracts for consistency.
+- Update documentation in the same task as the change. The table in CONTRIBUTING.md
+  ([Documentation ownership and update triggers](CONTRIBUTING.md#documentation-ownership-and-update-triggers)) lists
+  what each kind of change must also review.
 - Manuals, guides, and examples must describe the current API and specifications directly. Replace stale explanations
   and examples; do not append project-development narratives, old/new comparisons, or references to superseded APIs.
   Keep project release history and migration notes in [CHANGELOG.md](CHANGELOG.md).

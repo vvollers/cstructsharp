@@ -30,7 +30,7 @@ node tools/quality/mutation-partitions.mjs --mode memory --output-directory arti
 ```
 
 This scope selects the `CStructSharp.Tests.Memory*` test classes and uses per-test coverage to select relevant
-tests for each mutation. The mutation score threshold is 75%; compile errors do not count as detected behavior.
+tests for each mutation. The score floor is `thresholds.break` in `stryker-config.json` (75%); compile errors do not count as detected behavior.
 Review timeouts separately from assertion kills. Stream-cursor corpus tests run in the normal suite and the
 parser mutation scope; they do not exercise the address-space APIs in this scope.
 Run mutation testing independently of normal builds, tests, and benchmarks because it replaces test output assemblies.
@@ -70,7 +70,7 @@ The scheduled/manual `mutation.yml` workflow runs the same permanent scope in 16
 larger source files first to the smallest group, using file size only as an initial scheduling estimate. Every one
 of the 80 configured files belongs to exactly one partition. No character ranges or changed-file filters are used.
 Each partition runs the full permitted test suite with coverage-based test selection disabled. The memory scope
-runs in an independent job with its existing per-test selection and 75% score floor.
+runs in an independent job with its existing per-test selection and the same score floor.
 The runner uses source-project context and records the working directory and command arguments in its evidence.
 
 Inspect the matrix locally without running mutations:
@@ -95,7 +95,7 @@ node tools/quality/mutation-partitions.mjs --mode aggregate --input-directory ar
 Aggregation requires every partition, the same source revision and configuration, matching report hashes and
 source text, complete mutation outcomes, and valid references to killing/covering tests. It gives test and mutant
 identifiers a partition prefix so independently numbered reports cannot collide. The original full-scope validator
-then enforces all 80 files, the raw 75% score floor and zero unexplained surviving/uncovered/runtime-error mutations. Missing reports
+then enforces all 80 files, the raw score floor and zero unexplained surviving/uncovered/runtime-error mutations. Missing reports
 fail; compile errors remain compile errors. Raw JSON/HTML reports and Stryker trace logs are retained even when a
 partition fails. A job timeout cannot be counted as a completed report.
 
@@ -134,7 +134,7 @@ The validator reports individually qualified equivalent survivors separately. Th
 `Survived`: they stay in the raw score's denominator and are never counted as killed, timed out or ignored.
 Every unexplained survivor still fails, as do uncovered and runtime-error mutations. A source/tool change requires
 review again; a similar mutation at another location cannot borrow a proof. Ordinary test gaps, missing reports,
-resource leaks and changed externally visible behavior are not equivalence. Keep the complete scope and raw 75%
+resource leaks and changed externally visible behavior are not equivalence. Keep the complete scope and raw
 minimum even when all remaining survivors have individual proofs.
 
 The `p00` partition, which holds only the largest scope file, has a 315-minute execution limit within a 330-minute job
@@ -194,7 +194,7 @@ linked files, and Stryker matches a pattern against a file's full path or its pa
   `Reading/RecordParser.cs`, `Generated/RecordSequence.cs`, `Values/ReadAttempt.cs`);
 - runs the complete test project instead of selecting tests from coverage data;
 - writes progress, JSON, and HTML reports; and
-- requires a mutation score of at least 75%.
+- requires the mutation score set in `stryker-config.json` (the `break` threshold).
 
 The report validator also checks that there are no unexplained surviving mutations, uncovered mutations, or mutations
 that fail at runtime. Only the exact reviewed equivalent survivors described above qualify. This is stricter than
@@ -249,7 +249,7 @@ mutations. The goal is to find weak tests, not to make the percentage look bette
 
 The reviewed scope replaces six obsolete partial-class filenames with their current enum, exception, bitfield,
 layout-math, read/write-state and symbol-validation implementations. It also includes the new conditional-selection,
-compiled scope/field/size metadata, debug-path and fixed-point helpers. This expands semantic coverage; the 75%
+compiled scope/field/size metadata, debug-path and fixed-point helpers. This expands semantic coverage; the score
 threshold, zero unexplained survivors, and zero uncovered/runtime-error requirements remain unchanged. Compiler-rejected mutations
 remain tool limitations, not detected behavior.
 

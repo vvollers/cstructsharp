@@ -101,8 +101,9 @@ make the comparison pass.
 
 ## Coverage and mutation testing
 
-*Coverage* records which lines and branches the tests execute. CI requires at least 78% aggregate line coverage and
-80% aggregate branch coverage. It also rejects every critical or high-risk runtime file. A critical file has
+*Coverage* records which lines and branches the tests execute. CI requires a minimum aggregate line and branch
+coverage (the `--minimum-line-percent` and `--minimum-branch-percent` arguments in `.github/workflows/ci.yml`). It
+also rejects every critical or high-risk runtime file. A critical file has
 less than 60% line coverage, or less than 50% branch coverage when it has at least ten branches. A high-risk
 file has less than 75% line coverage, or less than 65% branch coverage with at least ten branches.
 
@@ -132,7 +133,7 @@ core suite once on .NET 10.
 
 *Mutation testing* makes small changes to production code, such as reversing a condition, and checks whether tests
 fail. A surviving mutation can reveal an assertion gap even when line coverage is high. The permanent score floor is
-75%.
+`thresholds.break` in `stryker-config.json`.
 
 `coverage-risk.mjs` applies the population and risk policy to the collector's merged report.
 `mutation-report.mjs` checks the permanent-scope Stryker report. The exact pinned mutation command is in

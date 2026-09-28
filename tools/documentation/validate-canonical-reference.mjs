@@ -46,7 +46,6 @@ await main(() => {
   assertCondition(canonical.manualFixtures === "contracts/language/manual-fixtures-v1.json", "The feature-operation matrix has an unexpected manual-fixture contract path.");
   assertCondition(canonical.reference === "docs/language/index.md", "The feature-operation matrix has an unexpected human reference path.");
   assertCondition(canonical.validator === "tools/documentation/validate-canonical-reference.mjs", "The feature-operation matrix has an unexpected canonical validator path.");
-  assertCondition(canonical.workItem === "DOC-01", "The feature-operation matrix must assign the canonical reference to DOC-01.");
 
   const fixedSpellings = (contract.fixedPrimitives ?? []).map((item) => String(item.spelling));
   const terminatedSpellings = (contract.terminatedPrimitives ?? []).map((item) => String(item.spelling));

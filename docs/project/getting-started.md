@@ -106,4 +106,4 @@ git diff --check
 The first command lists modified and untracked files. The second catches whitespace errors. Neither command changes
 the working tree.
 
-Continue with the [repository map](repository-map.md) and [contributing workflow](contributing.md).
+Continue with the [repository map](repository-map.md) and [contributing guide](https://github.com/vvollers/cstructsharp/blob/main/CONTRIBUTING.md).

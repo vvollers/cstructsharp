@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
  * Checks .github/workflows/docs.yml against contracts/documentation/pages-v1.json: no web targets, every action
- * pinned to an immutable commit and to the reviewed pins, a read-only build job, no deployment permissions, and
- * the required triggers, validator, and artifact boundaries. `--self-test` proves the rules on a corrupted copy.
+ * pinned to an immutable commit SHA (Dependabot moves the pins; the contract names only the actions that must be
+ * used), a read-only build job, no deployment permissions, and the required triggers, validator, and artifact
+ * boundaries. `--self-test` proves the rules on a corrupted copy.
  *
  *   node tools/documentation/validate-documentation-workflow.mjs [--self-test]
  */
@@ -30,8 +31,8 @@ export function workflowRuleCodes(text, contract) {
   for (const use of text.matchAll(/^\s*uses:\s+([^@\s]+)@([^\s#]+)/gm)) {
     if (!/^[0-9a-f]{40}$/.test(use[2])) codes.push("non-immutable-action");
   }
-  for (const [name, pin] of Object.entries(contract.actions ?? {})) {
-    if (!text.includes(`uses: ${name}@${pin}`)) codes.push(`missing-action:${name}`);
+  for (const name of contract.requiredActions ?? []) {
+    if (!new RegExp(`uses:\\s+${name.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}@`).test(text)) codes.push(`missing-action:${name}`);
   }
   const build = /^ {2}build:\r?\n([\s\S]*)$/m.exec(text);
   const deploy = /^ {2}deploy:\r?\n([\s\S]*)$/m.exec(text);
@@ -50,17 +51,17 @@ await main(() => {
   assertCondition(isFile(workflowPath), `Documentation workflow does not exist: ${workflowPath}`);
   const text = fs.readFileSync(workflowPath, "utf8");
   if (options["self-test"]) {
-    const invalid = `${text.replace(`actions/checkout@${contract.actions["actions/checkout"]}`, "actions/checkout@v6").replace(VALIDATOR, "missing-validator.mjs")}\n# apps/explorer`;
+    const invalid = `${text.replace(/actions\/checkout@[0-9a-f]{40}/, "actions/checkout@v6").replace(/uses:\s+actions\/setup-node@[^\s#]+/g, "run: echo no node").replace(VALIDATOR, "missing-validator.mjs")}\n# apps/explorer`;
     const codes = workflowRuleCodes(invalid, contract);
     for (const expected of ["web-target", "moving-action-tag", "non-immutable-action"]) {
       assertCondition(codes.includes(expected), `Documentation workflow fail-first fixture did not trigger '${expected}'.`);
     }
-    assertCondition(codes.some((code) => code.startsWith("missing-action:")), "Documentation workflow fail-first fixture did not reject the replaced action pin.");
+    assertCondition(codes.includes("missing-action:actions/setup-node"), "Documentation workflow fail-first fixture did not reject the removed required action.");
     assertCondition(codes.some((code) => code.startsWith("missing-boundary:")), "Documentation workflow fail-first fixture did not reject the removed deployment boundary.");
     console.log("Documentation workflow self-test passed: moving pin, Web target, and deploy-boundary defects rejected.");
     return;
   }
   const errors = workflowRuleCodes(text, contract);
   assertCondition(errors.length === 0, `Documentation workflow validation failed:\n${errors.join("\n")}`);
-  console.log(`Documentation workflow validation passed: ${Object.keys(contract.actions ?? {}).length} immutable actions, read-only build, no deployment permissions.`);
+  console.log(`Documentation workflow validation passed: ${(contract.requiredActions ?? []).length} required actions, every action SHA-pinned, read-only build, no deployment permissions.`);
 });

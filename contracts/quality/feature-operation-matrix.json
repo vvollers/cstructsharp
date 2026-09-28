@@ -66,8 +66,7 @@
     "snapshot": "Caller entries are copied into isolated mutable operation state and are never modified.",
     "precedence": "Caller entries override matching layout #define names.",
     "compatibility": "The greenfield public API exposes one read-only integer shape; parser expression nodes remain internal.",
-    "evidence": "tests/CStructSharpTests/Variables/LayoutVariableCaptureTests.cs#PublicOperations_AcceptReadOnlyVariablesAndPreserveCallerState",
-    "workItem": "API-06"
+    "evidence": "tests/CStructSharpTests/Variables/LayoutVariableCaptureTests.cs#PublicOperations_AcceptReadOnlyVariablesAndPreserveCallerState"
   },
   "memoryIoContract": {
     "inputApis": [
@@ -110,8 +109,7 @@
       "tests/CStructSharpTests/Io/SequenceInputTests.cs#MultipleSegments_ReadLikeTheFlatBytes",
       "tests/CStructSharpTests/Reading/RecordSequenceTests.cs#Records_ReadTheSameFromEveryInput"
     ],
-    "webIntegration": "Browser contract v4 accepts Uint8Array input and Base64 output through the shared parse/serialize/update bridge; bridge copying is measured separately from the zero-adapter managed memory APIs.",
-    "workItem": "API-02"
+    "webIntegration": "The browser contract passes Uint8Array input and output through the shared parse/serialize/update bridge; bridge copying is measured separately from the zero-adapter managed memory APIs."
   },
   "compiledExecutionContract": {
     "readRoutes": [
@@ -140,8 +138,7 @@
       "tests/CStructSharpTests/Unions/InlineUnionTests.cs#ParseStream_PointerToUnion_RewindsEveryMemberToTargetAddress",
       "tests/CStructSharpTests/Async/AsyncReadTests.cs#AsyncReads_AgreeWithTheStreamForms",
       "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#ValidFixtures_ReadTheSameAsynchronously"
-    ],
-    "workItem": "IR-02"
+    ]
   },
   "operationContextContract": {
     "readLikeRoutes": [
@@ -163,8 +160,7 @@
       "tests/CStructSharpTests/Reading/TraversalLimitTests.cs#SelectedRead_UsesOneTotalByteBudget",
       "tests/CStructSharpTests/Reading/TraversalLimitTests.cs#SelectedPointerTarget_PreservesPathDereferenceDepth",
       "tests/CStructSharpTests/Api/CancellationTests.cs#CancelledMidRead_StopsAtTheNextBoundary_AndTryFormsRestoreThePosition"
-    ],
-    "workItem": "IR-03"
+    ]
   },
   "asyncContract": {
     "schemaVersion": 1,
@@ -214,8 +210,7 @@
       "tests/CStructSharpTests/Api/CancellationTests.cs#CancelledMidRead_StopsAtTheNextBoundary_AndTryFormsRestoreThePosition",
       "tests/CStructSharp.Generators.Tests/SequenceTests.cs#Records_ReadWhatParseManyReads_FromEveryInput",
       "tests/CStructSharp.Generated.Parity/LayoutParityTests.cs#ManualFixtures_ValuesWritesAddressesAndTruncations_MatchTheRuntime"
-    ],
-    "workItem": "API-07"
+    ]
   },
   "dimensions": {
     "endian": [
@@ -521,8 +516,7 @@
       "tests/CStructSharpTests/Quality/CanonicalPortableReferenceTests.cs#UnsupportedConstructs_FailDuringLayoutConstruction",
       "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
       "tests/CStructSharpTests/Quality/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories"
-    ],
-    "workItem": "DOC-01"
+    ]
   },
   "compilerEvidence": {
     "schemaVersion": 1,
@@ -542,8 +536,7 @@
       "tests/CStructSharpTests/Quality/CompilerDifferentialFixtureTests.cs#NativeScalarDifferences_DoNotBecomePortableClaims",
       "tests/CStructSharpTests/Quality/CompilerDifferentialFixtureTests.cs#Bitfields_PackedExampleVersusAlignedNativeImage",
       "tests/CStructSharpTests/Quality/CompilerDifferentialFixtureTests.cs#Shapes_MatchEveryBaselineOfTheClaimedAbiFamily"
-    ],
-    "workItem": "QA-03"
+    ]
   },
   "fuzzEvidence": {
     "schemaVersion": 1,
@@ -571,8 +564,7 @@
     ],
     "deferredTargets": [
       "json-wasm"
-    ],
-    "workItem": "QA-04"
+    ]
   },
   "generatedEvidence": {
     "schemaVersion": 1,
@@ -1644,11 +1636,7 @@
   "knownContractLimits": [
     {
       "id": "primitive-pointer-target-debug-range",
-      "summary": "Debug parsing records pointer storage and fields inside composite targets, but not the final primitive target range of a pointer or multi-pointer chain.",
-      "workItems": [
-        "PERF-06",
-        "API-04"
-      ]
+      "summary": "Debug parsing records pointer storage and fields inside composite targets, but not the final primitive target range of a pointer or multi-pointer chain."
     }
   ],
   "features": [
@@ -2205,9 +2193,6 @@
       ],
       "limitations": [
         "In-place replacement is non-extending and does not resize or relocate following layout fields; variable-length replacement must fit the caller's existing storage plan."
-      ],
-      "workItems": [
-        "SAF-03"
       ]
     },
     {
@@ -2298,11 +2283,7 @@
           ]
         }
       ],
-      "limitations": [],
-      "workItems": [
-        "COR-06",
-        "LANG-09"
-      ]
+      "limitations": []
     },
     {
       "id": "portable-bitfields",
@@ -2396,10 +2377,6 @@
       ],
       "limitations": [
         "Unnamed, zero-width, array, typedef-backed, enum-backed, and compiler-profile bitfield forms are deliberately rejected."
-      ],
-      "workItems": [
-        "LANG-10",
-        "LANG-16"
       ]
     },
     {
@@ -3684,8 +3661,7 @@
           ]
         }
       ],
-      "limitations": [],
-      "workItems": []
+      "limitations": []
     },
     {
       "id": "tag-keywords",
@@ -3774,8 +3750,7 @@
       "limitations": [
         "A tag keyword before a type reference is a hint checked against the referenced declaration's actual kind; it does not create a separate C tag namespace, so struct/union/enum names still share one ordinary-name scope.",
         "The tag-plus-alias typedef form (typedef struct ExistingTag alias;, without repeating the body) is not a supported declarator; the full typedef struct tag { ... } alias; declaration, or the bare tag name directly, must be used instead."
-      ],
-      "workItems": []
+      ]
     },
     {
       "id": "pointers",
@@ -4042,10 +4017,6 @@
       ],
       "limitations": [
         "The portable natural-alignment policy is global; source-level pack/alignment directives and named compiler profiles are not yet supported."
-      ],
-      "workItems": [
-        "LANG-15",
-        "LANG-16"
       ]
     },
     {
@@ -4147,10 +4118,7 @@
           ]
         }
       ],
-      "limitations": [],
-      "workItems": [
-        "SAF-03"
-      ]
+      "limitations": []
     },
     {
       "id": "invalid-layouts",
@@ -4241,11 +4209,7 @@
           ]
         }
       ],
-      "limitations": [],
-      "workItems": [
-        "SAF-06",
-        "API-04"
-      ]
+      "limitations": []
     },
     {
       "id": "integers-24",
@@ -6076,56 +6040,37 @@
       "id": "extended-precision-floating-point",
       "syntax": "long double",
       "rationale": "float32/float64 (with float/double aliases) are supported (ADR-015); long double has no single portable width to standardize on - 80-bit extended, 128-bit quad, or 64-bit, depending on compiler and target - so no fixed-width codec could represent it losslessly the way it can for float/double.",
-      "diagnosticPolicy": "Reject as an unknown field type during layout construction.",
-      "workItems": [
-        "LANG-04"
-      ]
+      "diagnosticPolicy": "Reject as an unknown field type during layout construction."
     },
     {
       "id": "runtime-sized-multidimensional-arrays",
       "syntax": "value[count][columns]",
       "rationale": "Only the outermost dimension of a multidimensional array may be a runtime expression (matching real C's own restriction); a fixed value[rows][columns] is supported.",
-      "diagnosticPolicy": "Reject a non-fixed dimension anywhere but the outermost, rather than silently misinterpreting the stride.",
-      "workItems": [
-        "LANG-05"
-      ]
+      "diagnosticPolicy": "Reject a non-fixed dimension anywhere but the outermost, rather than silently misinterpreting the stride."
     },
     {
       "id": "compiler-abi-profiles",
       "syntax": "named compiler/target layout behavior",
       "rationale": "No compiler profile may be claimed without approved identity/version rules and differential fixtures.",
-      "diagnosticPolicy": "Use only the documented portable policy; never infer the host compiler or process ABI.",
-      "workItems": [
-        "LANG-16",
-        "QA-03"
-      ]
+      "diagnosticPolicy": "Use only the documented portable policy; never infer the host compiler or process ABI."
     },
     {
       "id": "textual-macro-expansion",
       "syntax": "#define with parameters used in later source, token pasting, stringification, #if expressions",
       "rationale": "CStructSharp accepts the preprocessor lines a header carries (defines of every kind, conditionals over defined names, undef, include, pragma pack) but is not a general C preprocessor: a name is never substituted into later source text.",
-      "diagnosticPolicy": "Function-like macros are kept as opaque constants; #if/#elif and unknown directives are rejected.",
-      "workItems": [
-        "LANG-11"
-      ]
+      "diagnosticPolicy": "Function-like macros are kept as opaque constants; #if/#elif and unknown directives are rejected."
     },
     {
       "id": "attribute-packing-controls",
       "syntax": "__attribute__((packed)), __declspec(align(N)), alignas",
       "rationale": "#pragma pack and the composite @align(N) clamp cover the portable packing controls; compiler attribute syntax is not parsed.",
-      "diagnosticPolicy": "Reject attribute syntax; never infer host packing.",
-      "workItems": [
-        "LANG-15"
-      ]
+      "diagnosticPolicy": "Reject attribute syntax; never infer host packing."
     },
     {
       "id": "zero-width-bitfields",
       "syntax": "uint8 reserved : 0;",
       "rationale": "Native compilers disagree on zero-width separator semantics; typedef, alias, enum, and flag storage are now accepted, so only the zero-width form has no portable meaning.",
-      "diagnosticPolicy": "Reject during layout compilation with a storage-capability diagnostic.",
-      "workItems": [
-        "LANG-10"
-      ]
+      "diagnosticPolicy": "Reject during layout compilation with a storage-capability diagnostic."
     }
   ]
 }

@@ -34,8 +34,19 @@ a web project, listed in the filter. Build the web projects only when your chang
 7. Update comments and documentation if users will see different behavior.
 8. Review `git diff` before you ask someone else to review the change.
 
+A *fail-first* test shows the missing or incorrect behavior before the implementation changes, so it cannot pass
+because it never reached the relevant path. Keep it small: a complete supported layout, exact input values or bytes,
+the specific API call, and the expected result, position, bytes, or error code. Confirm on both frameworks that it
+fails for the intended reason, not because of a setup mistake.
+
+Many public overloads (stream, span, memory, debug, typed) share one prepared layout and operation code. Fix the
+shared reader, writer, path, or layout stage rather than copying a fix into each wrapper. Prefer one clear design
+over a compatibility shim for an internal path.
+
 Do not remove an existing test just because a new implementation makes it fail. First decide whether the old test
 describes a public promise. If the promise has intentionally changed, replace the test and explain the new behavior.
+Do not broaden a catch, suppress a real warning, lower a quality threshold, change a replay seed, or replace a
+reviewed baseline merely to make a check pass.
 
 ## Choose checks for the part you changed
 
@@ -159,18 +170,14 @@ current. A record made from an older fixture source is stale and fails validatio
 
 ## Test-quality requirements
 
-The normal CI checks these minimums:
+CI enforces a minimum line and branch coverage, no runtime file classified as critical or high coverage risk, and a
+minimum mutation score for the reviewed mutation-testing scope. The coverage limits are set in
+`.github/workflows/ci.yml` and the mutation score in `stryker-config.json`; the
+[testing guide](docs/project/testing.md#coverage-and-mutation-testing) explains how each is measured.
 
-- 78% line coverage;
-- 80% branch coverage;
-- no runtime files classified as critical or high coverage risk (exact compile-time metadata declarations require
-  the separate source-hash and generator-test qualification described in the testing guide); and
-- a 75% mutation score for the reviewed mutation-testing scope.
-
-These numbers are a backstop, not the goal of a test. A useful test should explain behavior and fail for a clear
+These limits are a backstop, not the goal of a test. A useful test should explain behavior and fail for a clear
 reason. Do not exclude difficult files, lower a threshold, or count a mutation compile error as a detected behavior
-just to improve a score. The
-[testing guide](docs/project/testing.md) explains how the measurements are made.
+just to improve a score.
 
 ## Documentation ownership and update triggers
 
@@ -193,16 +200,21 @@ Run the full documentation check whenever you change files in `docs/`:
 node tools/documentation/validate-documentation.mjs
 ```
 
-Update documentation alongside the code when you change:
+Update documentation in the same change as the code. This table is the one list of what each kind of change must
+also review:
 
-- a public API, default, exception, ownership rule, or limit;
-- layout syntax, primitive behavior, paths, field placement, or supported operations;
-- build steps, dependencies, tests, workflows, packaging, or release steps; or
-- documentation navigation, styling, search, templates, or deployment.
+| Change | Also review |
+| --- | --- |
+| Public method, type, default, exception, ownership, or limit | XML comments, generated API, relevant guide and example, managed API baseline, CHANGELOG |
+| Layout syntax or behavior | Parser and operation tests, grammar, language pages, Portable contract, fixtures, feature matrix |
+| Dynamic or typed value shape | Read/write guides, round-trip properties, mapping errors, browser representation |
+| Performance-sensitive code | The `Impact` benchmark comparison and allocation results |
+| Build, package, dependency, workflow, or release step | Both framework assets, package consumers, metadata, symbols, audit, size, the affected READMEs |
+| Browser bridge or apps | Browser contract, package browser tests, the apps' unit and e2e tests |
+| Documentation structure or presentation | Markdown, spelling, links, search, browser and accessibility tests, Pages artifact |
 
-API changes usually need updated XML comments, API-reference checks, examples, and the managed API comparison.
-Language changes usually need manual pages, contract data, fixtures, the feature matrix, and tests on both .NET
-versions. Website or navigation changes also need the browser and accessibility tests and the Pages artifact check.
+A product claim belongs in published documentation only after source, an executable test, or maintained reference
+data supports it. Documentation describes current behavior; release history belongs in `CHANGELOG.md`.
 
 Do not commit generated `_site` output, generated API YAML, browser reports, logs, or local planning notes. Examples
 and snippets that are published should be compiled or otherwise checked so they cannot quietly become outdated.

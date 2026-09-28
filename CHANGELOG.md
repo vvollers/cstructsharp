@@ -162,6 +162,14 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 - JavaScript and TypeScript are held to the same rule: `eslint-plugin-jsdoc` requires a doc comment on every function,
   method and class in the apps, the npm package sources and the repository tools, and every tool file states its
   purpose and usage in a header.
+- Governance is trimmed. The feature-operation matrix and the tools no longer use traceability codes (`LANG-05`,
+  `QA-04`, ...): a blocked or limited feature, a known limit and an exclusion state their reason as text, and
+  `docs/project/work-items.md` is gone. The documentation site publishes only the contracts readers use (the ones
+  the pages link to, the API baselines and the memory contract); the performance baselines, mutation proofs and
+  other review data are no longer under `/docs/contracts/`. `CONTRIBUTING.md` is the one contributing guide (the
+  docs-site page is retired) and holds the one table of documentation update triggers; coverage and mutation
+  limits are stated where they are configured. The documentation workflow check requires SHA-pinned actions
+  without copying the pins, so Dependabot action updates no longer break it. The onboarding study page is removed.
 - API baselines are named by role: `contracts/api/managed` and `contracts/api/browser` (published under
   `/docs/contracts/api/`). The managed manifest keeps the approved hash of every revision and the review text of the
   current one; the release history is this changelog. The `frozen` status, work-item code and stale package version

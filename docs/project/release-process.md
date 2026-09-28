@@ -136,7 +136,7 @@ node tools/packaging/test-onboarding-browser.mjs --archive-path artifacts/cstruc
 
 Replace VERSION with the archive version. These checks use isolated package consumers and an extracted browser
 bundle. The release workflow is the authoritative publishing procedure.
-See [onboarding review](onboarding-review.md) and [browser development](web-development.md).
+See [browser development](web-development.md).
 
 ## Release URLs
 

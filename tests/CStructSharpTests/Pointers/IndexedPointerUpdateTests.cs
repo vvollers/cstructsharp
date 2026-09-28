@@ -4,7 +4,7 @@ using System.Dynamic;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
-/// <summary>Verifies semantic element selection and pointer-level updates across the COR-03 operation matrix.</summary>
+/// <summary>Verifies semantic element selection and pointer-level updates across the read, write and update operations.</summary>
 [TestClass]
 public class IndexedPointerUpdateTests
 {

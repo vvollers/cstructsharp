@@ -2,20 +2,9 @@
   "api/browser/contract.json",
   "api/managed/CStructSharp.public-api.txt",
   "api/managed/manifest.json",
-  "documentation/external-link-allowlist.json",
   "documentation/pages-v1.json",
-  "documentation/validator-fixtures.json",
   "language/manual-fixtures-v1.json",
   "language/portable-v1.json",
   "memory/v1.json",
-  "performance/drift-scenarios.json",
-  "performance/release-gate.json",
-  "performance/web-drift.json",
-  "performance/web-size-budget.json",
-  "quality/compiler-fixtures/baselines/linux-x64-gcc.json",
-  "quality/compiler-fixtures/shapes.json",
-  "quality/coverage-population.json",
-  "quality/feature-operation-matrix.json",
-  "quality/mutation-non-mutable.json",
-  "quality/mutation-equivalents.json"
+  "quality/feature-operation-matrix.json"
 ]

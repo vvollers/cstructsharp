@@ -15,7 +15,7 @@ New contributors should read these pages in order:
    baseline.
 3. [Repository map](repository-map.md) shows which project owns each kind of change.
 4. [Architecture](architecture.md) follows a layout from source text to a read, write, or update operation.
-5. [Contributing workflow](contributing.md) explains the fail-first change loop and review expectations.
+5. [Contributing](https://github.com/vvollers/cstructsharp/blob/main/CONTRIBUTING.md) explains the fail-first change loop, the checks per area and review expectations.
 
 Keep these reference pages nearby:
 
@@ -26,7 +26,6 @@ Keep these reference pages nearby:
 - [Release process](release-process.md) separates candidate validation from publishing.
 - [Documentation deployment](documentation-deployment.md) and
   [documentation maintenance](maintenance.md) cover the site.
-- [Traceability codes](work-items.md) explains the `LANG-nn`/`QA-nn` tags the contracts carry.
 
 Routine development uses `CStructSharp.NonWeb.slnf`. The WebAssembly adapter and browser apps are optional and
 are tested together only during final integration, because rebuilding them for every core or documentation change

@@ -49,19 +49,6 @@ function assertUniqueIds(items, collectionName) {
 }
 
 /**
- * Asserts that work-item ids are unique and in `ABC-01` form.
- * @param {unknown[] | undefined} workItems The ids; blank entries are ignored.
- * @param {string} context Where the ids appear, used in failure messages.
- * @param {boolean} [required] Whether at least one id is required.
- */
-function assertWorkItems(workItems, context, required = false) {
-  const items = strings(workItems).filter((item) => !blank(item));
-  if (required) assertCondition(items.length > 0, `${context} must name at least one work item.`);
-  assertCondition(new Set(items).size === items.length, `${context} contains duplicate work-item ids.`);
-  for (const item of items) assertCondition(/^[A-Z]+-\d{2}$/.test(item), `${context} contains invalid traceability id '${item}'.`);
-}
-
-/**
  * Asserts that a `path#method` evidence reference names an existing repository file that declares that method.
  * @param {string} reference The evidence reference.
  * @param {string} context Where the reference appears, used in failure messages.
@@ -160,14 +147,14 @@ await main(() => {
         evidenceCoverage.get(operationId).push(reference);
       }
     }
-    let requiresWorkItem = false;
+    let requiresLimitation = false;
     for (const [operationName, statusValue] of Object.entries(feature.operations)) {
       const status = String(statusValue);
       assertCondition(allowedStatuses.includes(status), `${context} operation '${operationName}' has unknown status '${status}'.`);
       if (status === "verified" || status === "limited") {
         assertCondition(evidenceCoverage.get(operationName).length > 0, `${context} operation '${operationName}' is ${status} but has no executable evidence.`);
       }
-      if (status === "blocked") requiresWorkItem = true;
+      if (status === "blocked") requiresLimitation = true;
     }
     const generatedStatus = String(feature.generated);
     assertCondition(generatedStatuses.includes(generatedStatus), `${context} has unknown generated status '${generatedStatus}'.`);
@@ -177,10 +164,10 @@ await main(() => {
       assertCondition(!blank(feature.generatedLimitation), `${context} is runtime-only for the generator but has no generatedLimitation.`);
     }
     const limitations = strings(feature.limitations);
-    if (feature.support === "limited" || Object.values(feature.operations).includes("limited")) {
-      assertCondition(limitations.length > 0, `${context} is limited but has no written limitation.`);
+    // A limited or blocked feature explains itself in writing, so a reader can see the state was decided.
+    if (feature.support === "limited" || requiresLimitation || Object.values(feature.operations).includes("limited")) {
+      assertCondition(limitations.length > 0, `${context} is limited or blocked but has no written limitation.`);
     }
-    assertWorkItems(feature.workItems ?? [], context, requiresWorkItem);
   }
 
   const memoryIo = matrix.memoryIoContract;
@@ -215,7 +202,6 @@ await main(() => {
   const memoryEvidence = strings(memoryIo.evidence);
   assertCondition(memoryEvidence.length > 0, "memoryIoContract has no executable evidence.");
   for (const reference of memoryEvidence) assertEvidenceReference(reference, "memoryIoContract");
-  assertWorkItems([memoryIo.workItem], "memoryIoContract", true);
 
   const compiledExecution = matrix.compiledExecutionContract;
   assertCondition(compiledExecution, "compiledExecutionContract is required.");
@@ -227,7 +213,6 @@ await main(() => {
   const compiledEvidence = strings(compiledExecution.evidence);
   assertCondition(compiledEvidence.length > 0, "compiledExecutionContract has no executable evidence.");
   for (const reference of compiledEvidence) assertEvidenceReference(reference, "compiledExecutionContract");
-  assertWorkItems([compiledExecution.workItem], "compiledExecutionContract", true);
 
   const operationContext = matrix.operationContextContract;
   assertCondition(operationContext, "operationContextContract is required.");
@@ -237,7 +222,6 @@ await main(() => {
   const operationContextEvidence = strings(operationContext.evidence);
   assertCondition(operationContextEvidence.length > 0, "operationContextContract has no executable evidence.");
   for (const reference of operationContextEvidence) assertEvidenceReference(reference, "operationContextContract");
-  assertWorkItems([operationContext.workItem], "operationContextContract", true);
 
   const asyncContract = matrix.asyncContract;
   assertCondition(asyncContract, "asyncContract is required.");
@@ -251,7 +235,6 @@ await main(() => {
   const asyncEvidence = strings(asyncContract.evidence);
   assertCondition(asyncEvidence.length > 0, "asyncContract has no executable evidence.");
   for (const reference of asyncEvidence) assertEvidenceReference(reference, "asyncContract");
-  assertWorkItems([asyncContract.workItem], "asyncContract", true);
 
   const allowedRoundTripStatuses = Object.keys(matrix.roundTripStatuses ?? {});
   assertCondition(sortedJoin(allowedRoundTripStatuses) === sortedJoin(["blocked", "conditional", "notApplicable", "verified"]), "The round-trip status vocabulary must be exactly blocked, conditional, notApplicable, and verified.");
@@ -270,7 +253,6 @@ await main(() => {
       const evidence = strings(classification.evidence);
       if (status !== "notApplicable") assertCondition(evidence.length > 0, `${context} is ${status} but has no executable evidence.`);
       for (const reference of evidence) assertEvidenceReference(reference, context);
-      assertWorkItems(classification.workItems ?? [], context, status === "blocked");
     }
   }
 
@@ -278,13 +260,11 @@ await main(() => {
   for (const limit of matrix.knownContractLimits) {
     const context = `Known contract limit '${limit.id}'`;
     assertCondition(!blank(limit.summary), `${context} has no summary.`);
-    assertWorkItems(limit.workItems, context, true);
   }
   assertUniqueIds(matrix.exclusions ?? [], "exclusions");
   for (const exclusion of matrix.exclusions) {
     const context = `Exclusion '${exclusion.id}'`;
     for (const property of ["syntax", "rationale", "diagnosticPolicy"]) assertCondition(!blank(exclusion[property]), `${context} has no ${property}.`);
-    assertWorkItems(exclusion.workItems, context, true);
   }
 
   for (const relativePath of matrix.domainContracts ?? []) {
