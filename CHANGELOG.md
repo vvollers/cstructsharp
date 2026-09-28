@@ -10,35 +10,39 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Breaking changes
 
-- **Breaking (memory API):** memory limits use the core's names and defaults. `MemoryAccessContext` is configured
-  with init properties instead of constructor arguments: `MaxTotalBytes` (64 MiB, was `maxBytes`), `MaxRequests`
-  (100 000), `MaxNestingDepth` (256, was `maxDepth` 128) for nested values and source layers, and the new
-  `MaxPointerDepth` (64) for `.value` steps, as in `ReadOptions`; a non-positive value throws
-  `ArgumentOutOfRangeException`. Schemas and BTF/ISF imports accept definitions nested up to 256 levels, the core's
-  layout nesting limit (was 128). `MemoryTypeKind.Opaque` is renamed `RawBytes`, so "opaque" only describes a
-  pointer without a target type. Migration: `new MemoryAccessContext(maxBytes: n, maxDepth: d, cancellationToken: t)`
-  becomes `new MemoryAccessContext { MaxTotalBytes = n, MaxNestingDepth = d, CancellationToken = t }`, and
-  `MemoryTypeKind.Opaque` becomes `MemoryTypeKind.RawBytes`.
-- **Breaking (memory API):** memory-analysis failures are `CStructException`s, like the rest of the library.
-  `MemoryAccessException` derives from `CStructReadException` (`Code` is `ReadLimitExceeded` for a budget failure,
-  `ReadFailed` otherwise) and uses the inherited `Path`; its `SourceId` and `Address` are null when a failure has
-  no source address (a depth limit, or the output budget of `Serialize`). `MemoryPatchCommitException` derives
-  from `CStructWriteException`. A path that does not resolve throws `CStructPathException` (was `ArgumentException`
-  or `KeyNotFoundException`), a value that cannot be encoded `CStructWriteException`, and an invalid type
-  definition or malformed BTF/ISF metadata `CStructLayoutException`; null or out-of-range arguments keep the .NET
-  argument exceptions. A budget failure while planning an update names the selected region, not the root.
-  Migration: catch `CStructPathException`, `CStructWriteException` or `CStructLayoutException` where you caught
-  `ArgumentException` or `KeyNotFoundException` from `MemorySession`, `MemorySchema`, `BtfMetadata` or
-  `IsfMetadata`, or catch `CStructException` for all of them; read `ex.SourceId` and `ex.Address` as nullable.
-- **Breaking (memory API):** memory reads and writes use the core value types. A union reads as a `UnionValue`
-  (its raw storage and every member's view, charged to the byte budget once for the storage and once per member)
-  instead of a `StructValue`, and an array as a `PrimitiveArray<T>` (numeric or `bool` elements) or a
-  `List<object?>` instead of an `object?[]`. A union is written from a `UnionValue` named like the union's
-  `MemoryTypeDefinition.Name`; `MemoryUnionSelection` and raw `byte[]` union input are removed.
-  `StoredPointer.Bits` is renamed `Address`. Migration: replace `new MemoryUnionSelection(member, value)` with
-  `UnionValue.FromMember(unionName, member, value)`, a raw union `byte[]` with `UnionValue.FromRaw(unionName, bytes)`,
-  `(StructValue)` casts of union reads with `(UnionValue)`, `object?[]` casts of array reads with `IList<object?>`
-  (or `PrimitiveArray<T>` for its typed `Span`), and `pointer.Bits` with `pointer.Address`.
+- **Breaking (memory API):** the memory-analysis API uses the core library's value types, exceptions and limit
+  names, so code moving between `CStruct` and `MemorySession` needs one set of idioms.
+  - A union reads as a `UnionValue` (its raw storage and every member's view; the byte budget is charged once for
+    the storage and once per member) and is written from a `UnionValue` named like the union's
+    `MemoryTypeDefinition.Name`: `FromRaw` or a read value copies exact bytes, `FromMember` encodes one member over
+    zeroes. An array reads as a `PrimitiveArray<T>` (numeric or `bool` elements) or a `List<object?>`.
+  - Failures are `CStructException`s: `MemoryAccessException` derives from `CStructReadException` (`Code` is
+    `ReadLimitExceeded` for a budget failure) and has nullable `SourceId`/`Address` for failures without a source
+    address; `MemoryPatchCommitException` derives from `CStructWriteException`. Unresolvable paths throw
+    `CStructPathException`, values that cannot be encoded `CStructWriteException`, and invalid definitions or
+    malformed BTF/ISF metadata `CStructLayoutException`; null or out-of-range arguments keep the .NET argument
+    exceptions. A budget failure while planning an update names the selected region, not the root.
+  - `MemoryAccessContext` takes init properties named like `ReadOptions`: `MaxTotalBytes` (64 MiB),
+    `MaxRequests` (100 000), `MaxNestingDepth` (256, was 128) and a separate `MaxPointerDepth` (64) for `.value`
+    steps; a non-positive value throws `ArgumentOutOfRangeException`. Definitions may nest 256 levels (was 128).
+  - `MemoryTypeKind.Opaque` is renamed `RawBytes`; "opaque" now only describes a pointer without a target type.
+
+  Migration:
+
+  | Before | After |
+  | --- | --- |
+  | `new MemoryUnionSelection(member, value)` | `UnionValue.FromMember(unionName, member, value)` |
+  | raw `byte[]` written to a union | `UnionValue.FromRaw(unionName, bytes)` |
+  | `(StructValue)session.Read(...)` of a union | `(UnionValue)session.Read(...)` |
+  | `(object?[])session.Read(...)` of an array | `(IList<object?>)`, or `PrimitiveArray<T>` for a typed `Span` |
+  | `pointer.Bits` | `pointer.Address` |
+  | `catch (ArgumentException)` / `catch (KeyNotFoundException)` around paths | `catch (CStructPathException)` |
+  | `catch (ArgumentException)` around values or schemas | `catch (CStructWriteException)` / `catch (CStructLayoutException)` |
+  | `ex.SourceId`, `ex.Address` | nullable `string?`, `ulong?` |
+  | `new MemoryAccessContext(maxBytes: n, maxDepth: d, cancellationToken: t)` | `new MemoryAccessContext { MaxTotalBytes = n, MaxNestingDepth = d, CancellationToken = t }` |
+  | `context.MaxBytes`, `context.MaxDepth` | `context.MaxTotalBytes`, `context.MaxNestingDepth` |
+  | `MemoryTypeKind.Opaque` | `MemoryTypeKind.RawBytes` |
+
 - **Breaking (language):** a layout expression can only use integer fields: integers, characters (their code),
   `bool` (1 or 0), enums (the member's number), pointers (the stored address), and custom-codec values that decode to an
   integer. Naming text, an array, a struct or union, a floating-point, fixed-point or UUID field in an expression is
