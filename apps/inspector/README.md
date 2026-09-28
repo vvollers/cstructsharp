@@ -100,3 +100,7 @@ From the repository root run `npm run build:wasm`. Install dependencies with `np
 root (the npm workspace). Then, in this directory, run `npm run build`, `npm run test:unit`, and `npm run test:e2e`.
 `npm run copy:wasm` copies and validates existing runtime artifacts without rebuilding them.
 `dist/`, `public/wasm/`, and browser reports are ignored output.
+
+`tests/e2e/detected-fixtures.spec.ts` is an optional local audit: with `CSTRUCT_FILE_TYPE_FIXTURES` set to a copy of the
+file-type project's fixture directory, it detects each file and checks that its selected schema compiles. CI skips it,
+because those fixtures are not redistributed with this repository.

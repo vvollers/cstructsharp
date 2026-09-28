@@ -47,6 +47,9 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Added
 
+- Inspector schemas are easier to read: DICOM and GLB conditions name their enum members (`dicom_vr.AE`,
+  `glb_chunk_kind.Json`) instead of magic numbers, one comparison per line, and a detected schema no longer starts
+  with repository policy comments.
 - Explorer lessons show what to know first, an exercise to try, the answer behind a disclosure, and a link to the
   guide for the topic. The lesson explanations describe the starting example and no longer give the answer away.
 - A syntax error's `CStructLayoutException` sets `Line` and `Column`, as a declaration error's does. The message is

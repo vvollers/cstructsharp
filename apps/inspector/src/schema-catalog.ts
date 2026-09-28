@@ -7,7 +7,7 @@ export interface FormatParserOptions {
   addressingMode?: "Absolute" | "Relative";
 }
 
-/** One selectable editor example. Sample examples also carry bytes and a managed test reference. */
+/** One selectable editor example. Sample examples also carry bytes. */
 export interface InspectorExample {
   id: string;
   title: string;
@@ -17,7 +17,6 @@ export interface InspectorExample {
   rootType: string;
   parserOptions: FormatParserOptions;
   documentation: { summary: string };
-  sourceFixture: string;
   coverage: "structure" | "prefix";
   extension?: string;
   schemaOnly?: boolean;
@@ -104,53 +103,71 @@ const tarFields = `
 `;
 
 // DICOM stores its length in two possible widths. Both branches use this same value decoder.
-const dicomValueFields = `if (value_representation == 17729 || value_representation == 21313 || value_representation == 21315 || value_representation == 16708 || value_representation == 21316 || value_representation == 21572 || value_representation == 21321 || value_representation == 20300 || value_representation == 21580 || value_representation == 20048 || value_representation == 18515 || value_representation == 21587 || value_representation == 19796 || value_representation == 17237 || value_representation == 18773 || value_representation == 21077 || value_representation == 21589) {
+const dicomValueFields = `if (
+    value_representation == dicom_vr.AE ||
+    value_representation == dicom_vr.AS ||
+    value_representation == dicom_vr.CS ||
+    value_representation == dicom_vr.DA ||
+    value_representation == dicom_vr.DS ||
+    value_representation == dicom_vr.DT ||
+    value_representation == dicom_vr.IS ||
+    value_representation == dicom_vr.LO ||
+    value_representation == dicom_vr.LT ||
+    value_representation == dicom_vr.PN ||
+    value_representation == dicom_vr.SH ||
+    value_representation == dicom_vr.ST ||
+    value_representation == dicom_vr.TM ||
+    value_representation == dicom_vr.UC ||
+    value_representation == dicom_vr.UI ||
+    value_representation == dicom_vr.UR ||
+    value_representation == dicom_vr.UT
+) {
     char text[value_length];
 } else {
     switch (value_representation) {
-        case 21333: {
+        case dicom_vr.US: {
             if (value_length / 2 * 2 == value_length) {
                 uint16 values_US[value_length / 2];
             } else {
                 uint8 malformed_US[value_length];
             }
-        } case 21331: {
+        } case dicom_vr.SS: {
             if (value_length / 2 * 2 == value_length) {
                 int16 values_SS[value_length / 2];
             } else {
                 uint8 malformed_SS[value_length];
             }
-        } case 19541: {
+        } case dicom_vr.UL: {
             if (value_length / 4 * 4 == value_length) {
                 uint32 values_UL[value_length / 4];
             } else {
                 uint8 malformed_UL[value_length];
             }
-        } case 19539: {
+        } case dicom_vr.SL: {
             if (value_length / 4 * 4 == value_length) {
                 int32 values_SL[value_length / 4];
             } else {
                 uint8 malformed_SL[value_length];
             }
-        } case 19526: {
+        } case dicom_vr.FL: {
             if (value_length / 4 * 4 == value_length) {
                 float32 values_FL[value_length / 4];
             } else {
                 uint8 malformed_FL[value_length];
             }
-        } case 17478: {
+        } case dicom_vr.FD: {
             if (value_length / 8 * 8 == value_length) {
                 float64 values_FD[value_length / 8];
             } else {
                 uint8 malformed_FD[value_length];
             }
-        } case 22101: {
+        } case dicom_vr.UV: {
             if (value_length / 8 * 8 == value_length) {
                 uint64 values_UV[value_length / 8];
             } else {
                 uint8 malformed_UV[value_length];
             }
-        } case 22099: {
+        } case dicom_vr.SV: {
             if (value_length / 8 * 8 == value_length) {
                 int64 values_SV[value_length / 8];
             } else {
@@ -268,7 +285,6 @@ struct root {
           summary:
             "A minimal 54-byte BMP: the 14-byte BITMAPFILEHEADER plus the 40-byte BITMAPINFOHEADER, with no pixel data. Nested composites and an enum for the compression method.",
         },
-        sourceFixture: "WellKnownFormatTests.Bmp_FileAndInfoHeaders_DecodeExpectedFields",
       },
     ],
   },
@@ -322,7 +338,6 @@ struct root {
           summary:
             "The classic 44-byte canonical WAV header: RIFF/WAVE container, a PCM fmt subchunk (44.1kHz stereo 16-bit), and an empty data subchunk. FourCC tags decode as fixed char[4] buffers.",
         },
-        sourceFixture: "WellKnownFormatTests.Wav_RiffFmtAndDataChunks_DecodeExpectedFields",
       },
     ],
   },
@@ -511,8 +526,6 @@ struct zip_directory {
           summary:
             "Reads the first ZIP local file header at byte 0, including its filename and raw extra fields. Files of any supported size are read on demand. This is not an archive extractor: empty archives, self-extracting prefixes, and split archives need a different starting layout. Data-descriptor entries can leave CRC/sizes unset here; ZIP64 sizes live in extra fields. Filename bytes are shown as raw characters, without UTF-8/CP437 decoding.",
         },
-        sourceFixture:
-          "WellKnownFormatTests.Zip_LocalFileHeader_DecodesBitflagsAndRuntimeLengthName",
       },
     ],
   },
@@ -706,7 +719,6 @@ struct root {
           summary:
             "The 8-byte PNG signature plus a 1x1 RGB IHDR chunk. PNG is the one big-endian format in this catalog, modeled with the global littleEndian: false option since every multi-byte field is big-endian.",
         },
-        sourceFixture: "WellKnownFormatTests.Png_SignatureAndIhdrChunk_DecodeBigEndianFields",
       },
     ],
   },
@@ -866,7 +878,6 @@ struct root {
           summary:
             "A JPEG SOI marker plus a standard JFIF APP0 segment (72 DPI, no thumbnail). Scoped to the JFIF header specifically - a full JPEG is a variable chain of marker segments, not representable as one fixed struct. Uses explicit per-field '>' suffixes rather than a global option, since only these fields are big-endian.",
         },
-        sourceFixture: "WellKnownFormatTests.Jpg_SoiAndJfifApp0Segment_DecodeExpectedFields",
       },
     ],
   },
@@ -1016,8 +1027,6 @@ struct pe_header {
           summary:
             "A minimal 90-byte PE image: a real 64-byte DOS header whose e_lfanew is a real CStruct pointer field (absolute addressing) dereferencing to a COFF file header + optional header magic - the flagship pointer-following showcase, using a real well-known offset (0x3C) from a real well-known format.",
         },
-        sourceFixture:
-          "WellKnownFormatTests.Pe_DosHeaderPointerToCoffHeader_DecodesAcrossExeAndDll (EXE)",
       },
       {
         id: "pe-dll",
@@ -1033,8 +1042,6 @@ struct pe_header {
           summary:
             "The same PE definition as the EXE example - a DLL is a PE file with the IMAGE_FILE_DLL characteristic bit (0x2000) set in its COFF header, the only byte that differs from the EXE sample.",
         },
-        sourceFixture:
-          "WellKnownFormatTests.Pe_DosHeaderPointerToCoffHeader_DecodesAcrossExeAndDll (DLL)",
       },
     ],
   },
@@ -1088,7 +1095,6 @@ struct root {
           summary:
             "A 2-entry ICO directory (16x16 and 32x32 images). image_count drives the length of the trailing entries array - a runtime-sized array of a composite (struct) element type, not just a byte array.",
         },
-        sourceFixture: "WellKnownFormatTests.Ico_IconDirectory_DecodesCountDrivenEntryArray",
       },
     ],
   },
@@ -1112,7 +1118,6 @@ struct root {
           summary:
             'A real 512-byte POSIX ustar header for a file named "hello.txt", with a correctly computed checksum. Fixed-width ASCII/octal text fields throughout - a different complexity flavor from the other binary-integer formats.',
         },
-        sourceFixture: "WellKnownFormatTests.Tar_UstarHeader_DecodesFixedWidthTextFields",
       },
     ],
   },
@@ -1625,7 +1630,7 @@ if (version == 2 && total_length >= 20) {
 struct glb_chunk {
     uint32 length;
     glb_chunk_kind type;
-    if (type == 1313821514) {
+    if (type == glb_chunk_kind.Json) {
         utf8 json_data[length];
     } else {
         uint8 binary_data[length];
@@ -2342,7 +2347,39 @@ uint32 reserved[4];`,
     family: "DICOM",
     scope:
       "DICOM file preamble and first explicit-VR metadata tag. Transfer syntax determines the later dataset layout.",
-    fields: `uint8 preamble[128]; char signature[4]; uint16 first_tag_group; uint16 first_tag_element; dicom_vr value_representation; if (!(value_representation == 17729 || value_representation == 21313 || value_representation == 21569 || value_representation == 21315 || value_representation == 16708 || value_representation == 21316 || value_representation == 21572 || value_representation == 19526 || value_representation == 17478 || value_representation == 21321 || value_representation == 20300 || value_representation == 21580 || value_representation == 20048 || value_representation == 18515 || value_representation == 19539 || value_representation == 21331 || value_representation == 21587 || value_representation == 19796 || value_representation == 18773 || value_representation == 19541 || value_representation == 21333)) { struct { uint16 reserved; uint32 value_length; ${dicomValueFields} } long_value; } else { struct { uint16 value_length; ${dicomValueFields} } short_value; }`,
+    fields: `uint8 preamble[128];
+char signature[4];
+uint16 first_tag_group;
+uint16 first_tag_element;
+dicom_vr value_representation;
+// Most value representations store a 2-byte length; the others reserve 2 bytes and store a 4-byte length.
+if (!(
+    value_representation == dicom_vr.AE ||
+    value_representation == dicom_vr.AS ||
+    value_representation == dicom_vr.AT ||
+    value_representation == dicom_vr.CS ||
+    value_representation == dicom_vr.DA ||
+    value_representation == dicom_vr.DS ||
+    value_representation == dicom_vr.DT ||
+    value_representation == dicom_vr.FL ||
+    value_representation == dicom_vr.FD ||
+    value_representation == dicom_vr.IS ||
+    value_representation == dicom_vr.LO ||
+    value_representation == dicom_vr.LT ||
+    value_representation == dicom_vr.PN ||
+    value_representation == dicom_vr.SH ||
+    value_representation == dicom_vr.SL ||
+    value_representation == dicom_vr.SS ||
+    value_representation == dicom_vr.ST ||
+    value_representation == dicom_vr.TM ||
+    value_representation == dicom_vr.UI ||
+    value_representation == dicom_vr.UL ||
+    value_representation == dicom_vr.US
+)) {
+    struct { uint16 reserved; uint32 value_length; ${dicomValueFields} } long_value;
+} else {
+    struct { uint16 value_length; ${dicomValueFields} } short_value;
+}`,
     types: `enum dicom_vr : uint16 {
     AE=17729,
     AS=21313,
@@ -2958,8 +2995,7 @@ export function schemaForFile(extension: string): InspectorExample {
       format.family +
       "\n// " +
       format.scope +
-      "\n// Standalone CStruct. All conditions, lengths and pointer reads execute in the library.\n" +
-      "// No file scans, generated offsets, record discovery or merged parse results.\n" +
+      "\n" +
       (format.types ?? "") +
       "\nstruct " +
       name +
@@ -2984,7 +3020,6 @@ export function schemaForFile(extension: string): InspectorExample {
       pointerSize: format.pointerSize ?? 4,
     },
     documentation: { summary: format.scope },
-    sourceFixture: "",
   };
 }
 
@@ -3001,6 +3036,10 @@ export const schemaCatalog: InspectorExample[] = [...formatsByExtension.keys()]
   )
   .sort((a, b) => a.extension!.localeCompare(b.extension!, undefined, { sensitivity: "base" }));
 
+/**
+ * The schema offered for a file whose type is not recognized: one prefix byte, for the user to extend.
+ * @returns The editable raw schema.
+ */
 export function rawFileSchema(): InspectorExample {
   return {
     id: "detected-unknown",
@@ -3014,6 +3053,5 @@ export function rawFileSchema(): InspectorExample {
     rootType: "root",
     parserOptions: { aligned: false, littleEndian: true, pointerSize: 4 },
     documentation: { summary: "Raw prefix; no file type recognized." },
-    sourceFixture: "",
   };
 }

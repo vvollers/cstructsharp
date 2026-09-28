@@ -73,7 +73,6 @@ describe("sample examples", () => {
       expect(format.definition.trim().length).toBeGreaterThan(0);
       expect(format.rootType.trim().length).toBeGreaterThan(0);
       expect(format.documentation.summary.trim().length).toBeGreaterThan(0);
-      expect(format.sourceFixture.trim().length).toBeGreaterThan(0);
     }
   });
 
