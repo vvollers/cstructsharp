@@ -181,12 +181,14 @@ jobs:
       - name: Verify onboarding against the NuGet artifact
         run: node tools/packaging/test-onboarding-package.mjs --package-directory ./artifacts/package
 
+      - name: Publish the WASM runtime once for both apps
+        run: npm run build:wasm
+
+      # Both apps stage the validated publication in artifacts/wasm and check that their dist embeds it exactly.
       - name: Build WebAssembly explorer
         working-directory: apps/explorer
         run: npm run build
 
-      # Both apps stage the repository-owned validated WASM publication.
-      # The explorer's full build above has already populated artifacts/wasm.
       - name: Build binary inspector
         working-directory: apps/inspector
         run: npm run build

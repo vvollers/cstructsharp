@@ -13,5 +13,6 @@ The three are members of the repository's npm workspace, with the npm package in
 lockfile (`package-lock.json` at the repository root), so both apps use the same versions of Vue, Vite and their tools.
 
 Install everything once with `npm ci` at the repository root. From the root, `npm run lint`, `npm run format:check`
-and `npm run test:unit` check every workspace. Build WASM once using `node tools/packaging/publish-wasm.mjs`, then build
-either app from its directory. See each app README for commands.
+and `npm run test:unit` check every workspace. Publish the WASM runtime once with `npm run build:wasm` at the root,
+then build either app from its directory: `npm run build` stages the publication, builds the app, and checks that
+the build embeds exactly that publication (`shared/scripts`). See each app README for commands.

@@ -1,24 +1,34 @@
+/**
+ * Production build of the calling app (npm run build from an app directory): stages the validated WASM publication,
+ * builds the frontend, and checks that dist/ embeds exactly that publication. The WASM itself is published once by
+ * npm run build:wasm at the repository root, before either app is built.
+ *
+ *   node ../shared/scripts/build-production.mjs
+ */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { validateWasmPublication } from "../../../tools/packaging/wasm-publication.mjs";
 
-const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const webRoot = path.resolve(scriptDirectory, "..");
+const appRoot = process.cwd();
 // The npm CLI that started this script when run through `npm run`, otherwise the `npm` on PATH.
 const npmCli = process.env.npm_execpath;
 
+/**
+ * Runs one of the app's npm scripts and fails the build when it fails.
+ * @param {string} name The script name.
+ * @throws {Error} When the script cannot start or exits with a nonzero code.
+ */
 function runScript(name) {
   const result = npmCli
     ? spawnSync(process.execPath, [npmCli, "run", name], {
-        cwd: webRoot,
+        cwd: appRoot,
         stdio: "inherit",
         shell: false,
       })
     : spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", name], {
-        cwd: webRoot,
+        cwd: appRoot,
         stdio: "inherit",
         shell: process.platform === "win32",
       });
@@ -30,14 +40,12 @@ function runScript(name) {
   }
 }
 
-// Publication and frontend copying are deliberately sequential. This prevents
-// Vite from observing the atomic public/wasm swap halfway through a build.
-runScript("build:wasm");
+// The copy runs before the frontend build so Vite's public/ copy step picks up the complete publication.
 runScript("copy:wasm");
 runScript("build:frontend");
 
-const published = validateWasmPublication(path.join(webRoot, "public", "wasm"));
-const bundled = validateWasmPublication(path.join(webRoot, "dist", "wasm"));
+const published = validateWasmPublication(path.join(appRoot, "public", "wasm"));
+const bundled = validateWasmPublication(path.join(appRoot, "dist", "wasm"));
 assert.deepEqual(
   bundled,
   published,

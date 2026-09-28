@@ -11,19 +11,21 @@ This page is for contributors changing the explorer or its managed bridge. Brows
 ## Build both parts
 
 Install the stable .NET 10 SDK selected by `global.json`, Node.js and npm compatible with
-`apps/explorer/package.json` (the repository scripts under `tools/` run on the same Node). The manifest's `packageManager` field
-records the preferred npm version; the lockfile fixes the dependency graph.
+the root `package.json`, the npm workspace manifest (the repository scripts under `tools/` run on the same Node). Its
+`packageManager` field records the preferred npm version; the root lockfile fixes the dependency graph.
 
 From the repository root:
 
 ```sh
 dotnet workload restore ./src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj
-npm --prefix ./apps/explorer ci
+npm ci
+npm run build:wasm
 npm --prefix ./apps/explorer run build
 ```
 
-The production build publishes the C# bridge into `artifacts/wasm`, stages it into the explorer's `public/wasm`, and builds Vue into
-`apps/explorer/dist`. It verifies the copied runtime publication. The managed solution alone does not build Vue.
+`npm run build:wasm` publishes the C# bridge into `artifacts/wasm`. The explorer's production build stages it into
+`public/wasm`, builds Vue into `apps/explorer/dist`, and verifies that the build embeds exactly that publication; the
+inspector's build does the same. The managed solution alone does not build Vue.
 
 After the first build:
 
@@ -32,7 +34,7 @@ npm --prefix ./apps/explorer run dev
 ```
 
 Open the address printed by Vite. Changes to Vue update during development; changes to C# require
-`npm --prefix ./apps/explorer run build:wasm`. Run the complete production build before browser tests.
+`npm run build:wasm` and `npm --prefix ./apps/explorer run copy:wasm`. Run the complete production build before browser tests.
 
 ## Managed bridge trimming
 

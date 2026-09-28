@@ -17,11 +17,10 @@
     "test:generated-csharp": "node scripts/test-generated-csharp.mjs",
     "test:e2e": "playwright test",
     "dev": "npm run generate:demos && vite",
-    "build": "node scripts/build-production.mjs",
+    "build": "node ../shared/scripts/build-production.mjs",
     "build:frontend": "npm run generate:demos && vue-tsc -b && vite build",
     "preview": "vite preview",
-    "build:wasm": "node ../../tools/packaging/publish-wasm.mjs",
-    "copy:wasm": "node scripts/copy-wasm.mjs",
+    "copy:wasm": "node ../shared/scripts/copy-wasm.mjs",
     "refresh:catalog": "node scripts/refresh-catalog-baseline.mjs"
   },
   "dependencies": {
