@@ -532,14 +532,19 @@ public class MultidimensionalArrayTests
         Assert.AreEqual(0L, source.Position);
     }
 
-    /// <summary>An unrepresentable count fails before traversal instead of wrapping to zero and exposing the wrong trailing byte.</summary>
+    /// <summary>
+    ///     An element count beyond Int32 fails before traversal, naming its exact value, instead of wrapping to zero
+    ///     and exposing the wrong trailing byte.
+    /// </summary>
     [TestMethod]
     public void SelectedTrailingField_RejectsOverflowingPrecedingElementCount()
     {
         var layout = new CStruct("struct child { uint8 count; uint8 data[count]; }; struct root { child values[65536][65536]; uint8 tail; };");
         using var input = new MemoryStream(new byte[] { 55, });
+        var options = new ReadOptions { MaxArrayElements = int.MaxValue, };
 
-        Assert.Throws<OverflowException>(() => layout.ReadValue<byte>(input, "root.tail"));
+        CStructReadLimitException failure = Assert.ThrowsExactly<CStructReadLimitException>(() => layout.ReadValue<byte>(input, "root.tail", options: options));
+        StringAssert.StartsWith(failure.Message, "Array length 4294967296 exceeds MaxArrayElements (2147483647)");
         Assert.AreEqual(0L, input.Position);
     }
 }

@@ -814,12 +814,15 @@ public ref struct ReadCursor
     }
 
     /// <summary>Validates an array length against <c>MaxArrayElements</c> and returns it as an <see cref="int"/>.</summary>
-    /// <param name="count">The element count.</param>
+    /// <param name="count">
+    ///     The element count, in the layout expression domain: a count evaluated from a <c>uint64</c> field keeps its
+    ///     exact value, so the limit failure names it.
+    /// </param>
     /// <param name="member">The array field, for the diagnostics.</param>
     /// <param name="memberType">The field's type spelling, for the diagnostics.</param>
     /// <returns>The validated count.</returns>
-    /// <exception cref="CStructReadLimitException">The length exceeds the limit.</exception>
-    public readonly int RequireArrayLength(long count, string member, string? memberType)
+    /// <exception cref="CStructReadLimitException">The length is negative or exceeds the limit.</exception>
+    public readonly int RequireArrayLength(Int128 count, string member, string? memberType)
     {
         if (count < 0 || count > this.settings.MaxArrayElements)
         {

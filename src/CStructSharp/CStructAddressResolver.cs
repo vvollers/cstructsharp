@@ -630,14 +630,14 @@ public sealed partial class CStruct
             return this.CountDataSizedElements(field, state, fieldStart);
         }
 
-        int count = this.compiledSizeQueries.GetCompiledArrayCount(field, state.Variables, false);
+        Int128 count = this.compiledSizeQueries.GetCompiledArrayCount(field, state.Variables, false);
         if (count > state.MaxArrayElements)
         {
             throw new CStructReadLimitException(
                 ReadFailures.ArrayLengthLimit(count, state.MaxArrayElements));
         }
 
-        return count;
+        return (int)count;
     }
 
     /// <summary>
@@ -654,14 +654,14 @@ public sealed partial class CStruct
             return this.CountDataSizedElements(field, state, fieldStart);
         }
 
-        int count = this.compiledSizeQueries.GetCompiledFieldTotalElementCount(field, state.Variables, false);
+        Int128 count = this.compiledSizeQueries.GetCompiledFieldTotalElementCount(field, state.Variables, false);
         if (count > state.MaxArrayElements)
         {
             throw new CStructReadLimitException(
                 ReadFailures.ArrayLengthLimit(count, state.MaxArrayElements));
         }
 
-        return count;
+        return (int)count;
     }
 
     /// <summary>The element count of a data-sized array at a known start, restoring the stream position afterwards.</summary>

@@ -504,19 +504,20 @@ namespace Demo
             {
                 cursor.Position = deferredPointer0;
                 int count;
+                global::System.Int128 countValue;
                 try
                 {
-                    count = global::CStructSharp.Generated.Expressions.RequireInt32((long)value.Len, "len");
+                    countValue = ((global::System.Int128)value.Len);
                 }
                 catch (global::System.Exception expressionFailure)
                 {
                     throw cursor.FailExpression(expressionFailure, "pointer element count for iv", "iv", "uint8");
                 }
-                if (count < 0)
+                if (countValue < 0)
                 {
                     throw cursor.Fail("Array length cannot be negative: iv", "iv", "uint8");
                 }
-                cursor.RequireArrayLength(count, "iv", "uint8");
+                count = cursor.RequireArrayLength(countValue, "iv", "uint8");
                 value.Iv = FollowPointer_uint8_1_Counted(ref cursor, variables, value.Iv.Address, count, "iv", "uint8");
             }
             cursor.Seek(placement.Finish(1), member, memberType);

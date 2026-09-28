@@ -24,8 +24,8 @@ internal sealed class LayoutVariableResolver
     /// <param name="definitions">The layout's <c>#define</c> and constant definitions; names must be unique.</param>
     /// <param name="evaluator">The evaluator that finds dependencies and reduces expressions.</param>
     /// <param name="exactEnumDefinitions">
-    ///     Definition names that are enum members, which keep their expression rather than an exact 64-bit literal
-    ///     when they overflow the 32-bit domain; <see langword="null"/> for none.
+    ///     Definition names that are enum members, which keep their expression rather than an exact literal when they
+    ///     overflow the 128-bit domain; <see langword="null"/> for none.
     /// </param>
     /// <exception cref="CStructLayoutException">
     ///     The definitions form a dependency cycle or a static expression cannot be resolved.
@@ -165,7 +165,7 @@ internal sealed class LayoutVariableResolver
     }
 
     /// <summary>
-    ///     Evaluates a definition that overflowed the 32-bit domain as an exact integer, so the constant is still
+    ///     Evaluates a definition that overflowed the 128-bit domain as an exact integer, so the constant is still
     ///     published with its value; a definition that fails exactly too (division by zero, ...) keeps its expression.
     /// </summary>
     private Expr ResolveExactOrKeep(Expr expression, IReadOnlyDictionary<string, Expr> expressions)
@@ -173,7 +173,7 @@ internal sealed class LayoutVariableResolver
         try
         {
             BigInteger exact = this.evaluator.EvaluateExact(expression, expressions, 128);
-            return new Literal(exact, exact);
+            return new Literal(exact);
         }
         catch (Exception exception) when (IsExpectedExpressionFailure(exception))
         {
@@ -316,7 +316,7 @@ internal sealed class LayoutVariableResolver
     private LayoutVariables ResolveExpressions(LayoutVariables expressions)
     {
         ExpressionEvaluator.ExpressionEvaluationSession session = this.evaluator.CreateSession(expressions);
-        var resolvedValues = new Dictionary<string, int>(StringComparer.Ordinal);
+        var resolvedValues = new Dictionary<string, Int128>(StringComparer.Ordinal);
         foreach (string name in expressions.Keys.ToArray())
         {
             if (expressions[name] is Literal)
@@ -332,9 +332,9 @@ internal sealed class LayoutVariableResolver
                                               exception is not CStructLayoutException &&
                                               exception is OverflowException or InvalidOperationException)
             {
-                // A definition can be valid only beyond the 32-bit expression domain (`1 << 63`, a 64-bit mask): a
-                // C header is full of them and a layout rarely uses them for a count. The exact value is kept for
-                // enum members and the constants view; an Int32 consumer still fails when it actually selects it.
+                // A definition can be valid only beyond the 128-bit expression domain (`1 << 127`, a 128-bit mask):
+                // the exact value is kept for enum members and the constants view, and an expression that actually
+                // selects it fails with the name and the value.
                 if (!this.exactEnumDefinitions.Contains(name))
                 {
                     expressions[name] = this.ResolveExactOrKeep(expressions[name], expressions);
@@ -349,7 +349,7 @@ internal sealed class LayoutVariableResolver
             }
         }
 
-        foreach (KeyValuePair<string, int> resolved in resolvedValues)
+        foreach (KeyValuePair<string, Int128> resolved in resolvedValues)
         {
             expressions[resolved.Key] = new Literal(resolved.Value);
         }

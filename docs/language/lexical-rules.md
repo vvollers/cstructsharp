@@ -116,8 +116,9 @@ Expressions accept four bases:
 Prefix letters may be upper- or lowercase. Underscores are visual separators and may appear within the digit
 sequence, but the sequence must contain at least one real digit.
 
-Documented C integer suffixes such as `U`, `L`, and `LL` are accepted and discarded. They do not widen the
-expression's checked `Int32` arithmetic or make it unsigned. See the [grammar](grammar.md) for accepted forms.
+Documented C integer suffixes such as `U`, `L`, and `LL` are accepted and discarded. They do not change the value
+or make it unsigned: every literal is its exact value, and expressions use checked signed 128-bit arithmetic. See the
+[grammar](grammar.md) for accepted forms.
 
 Portable integer expressions do not include:
 

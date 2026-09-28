@@ -193,7 +193,7 @@ public class ExpressionTests
         Expr? someVar = LayoutParser.ParseExpression("1 + 1+    a   + 3 + 4");
         var vars = new Dictionary<string, Expr>();
         vars["a"] = new Literal(10);
-        int result = someVar.Evaluate(vars);
+        Int128 result = someVar.Evaluate(vars);
         Assert.AreEqual(19, result);
     }
 }

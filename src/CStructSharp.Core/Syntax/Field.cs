@@ -49,7 +49,9 @@ internal class Field : CStructElement
         this.bitSize = bitSize switch
         {
             NoneExpr => 0,
-            Literal literal => literal.Value,
+
+            // A literal width outside Int32 stays unevaluated, so normalization reports it with the field's name.
+            Literal literal when literal.TryGetInt32(out int width) => width,
             _ => null,
         };
         int derivedPointerDepth = type.PointerDepth + name.PointerDepth;

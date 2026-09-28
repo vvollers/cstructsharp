@@ -419,37 +419,35 @@ namespace CStructSharp.Generated
     }
     public static class Expressions
     {
-        public static int Add(int left, int right) { }
-        public static int And(int left, int right) { }
-        public static int Complement(int value) { }
-        public static int Divide(int left, int right) { }
-        public static int Equal(int left, int right) { }
-        public static int Greater(int left, int right) { }
-        public static int GreaterOrEqual(int left, int right) { }
-        public static int Less(int left, int right) { }
-        public static int LessOrEqual(int left, int right) { }
-        public static int LogicalAnd(int left, int right) { }
-        public static int LogicalNot(int value) { }
-        public static int LogicalOr(int left, int right) { }
-        public static int Modulo(int left, int right) { }
-        public static int Multiply(int left, int right) { }
-        public static int Negate(int value) { }
-        public static int NotAnInteger(string name, string reason) { }
-        public static int NotEqual(int left, int right) { }
-        public static int Or(int left, int right) { }
-        public static int Overflow() { }
-        public static int RequireInt32(long value, string name) { }
-        public static int RequireInt32(ulong value, string name) { }
-        public static int RequireInt32Wide(System.Int128 value, string name) { }
-        public static int RequireInt32Wide(System.UInt128 value, string name) { }
-        public static int ShiftLeft(int value, int count) { }
-        public static int ShiftRight(int value, int count) { }
-        public static int Subtract(int left, int right) { }
+        public static System.Int128 Add(System.Int128 left, System.Int128 right) { }
+        public static System.Int128 And(System.Int128 left, System.Int128 right) { }
+        public static System.Int128 Complement(System.Int128 value) { }
+        public static System.Int128 Divide(System.Int128 left, System.Int128 right) { }
+        public static System.Int128 Equal(System.Int128 left, System.Int128 right) { }
+        public static System.Int128 FromUInt128(System.UInt128 value, string name) { }
+        public static System.Int128 Greater(System.Int128 left, System.Int128 right) { }
+        public static System.Int128 GreaterOrEqual(System.Int128 left, System.Int128 right) { }
+        public static System.Int128 Less(System.Int128 left, System.Int128 right) { }
+        public static System.Int128 LessOrEqual(System.Int128 left, System.Int128 right) { }
+        public static System.Int128 LogicalAnd(System.Int128 left, System.Int128 right) { }
+        public static System.Int128 LogicalNot(System.Int128 value) { }
+        public static System.Int128 LogicalOr(System.Int128 left, System.Int128 right) { }
+        public static System.Int128 Modulo(System.Int128 left, System.Int128 right) { }
+        public static System.Int128 Multiply(System.Int128 left, System.Int128 right) { }
+        public static System.Int128 Negate(System.Int128 value) { }
+        public static System.Int128 NotAnInteger(string name, string reason) { }
+        public static System.Int128 NotEqual(System.Int128 left, System.Int128 right) { }
+        public static System.Int128 Or(System.Int128 left, System.Int128 right) { }
+        public static System.Int128 OutOfRangeConstant(string name, string value) { }
+        public static System.Int128 OutOfRangeLiteral(string value) { }
+        public static System.Int128 ShiftLeft(System.Int128 value, System.Int128 count) { }
+        public static System.Int128 ShiftRight(System.Int128 value, System.Int128 count) { }
+        public static System.Int128 Subtract(System.Int128 left, System.Int128 right) { }
         public static bool TryVariable(System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string name, out int value) { }
-        public static int Undefined(string name) { }
-        public static int Variable(System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string name) { }
-        public static int Variable(System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string name, int value) { }
-        public static int Xor(int left, int right) { }
+        public static System.Int128 Undefined(string name) { }
+        public static System.Int128 Variable(System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string name) { }
+        public static System.Int128 Variable(System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string name, System.Int128 value) { }
+        public static System.Int128 Xor(System.Int128 left, System.Int128 right) { }
     }
     public readonly struct Pointer<T> : System.IEquatable<CStructSharp.Generated.Pointer<T>>
     {
@@ -498,7 +496,7 @@ namespace CStructSharp.Generated
         public CStructSharp.Diagnostics.CStructLayoutException FailLayout(string message, string? member, string? memberType) { }
         public CStructSharp.Diagnostics.CStructReadLimitException FailLimit(string message, string? member, string? memberType) { }
         public System.ReadOnlySpan<byte> Peek(int count, string member, string? memberType) { }
-        public int RequireArrayLength(long count, string member, string? memberType) { }
+        public int RequireArrayLength(System.Int128 count, string member, string? memberType) { }
         public void RequireBoundedTextBytes(long count, string member, string? memberType) { }
         public void Seek(long position, string? member, string? memberType) { }
         public void Skip(int count, string member, string? memberType) { }
@@ -569,7 +567,7 @@ namespace CStructSharp.Generated
         public CStructSharp.Diagnostics.CStructWriteException FailRawStorageLength(string union, int expected, int actual, string? member, string? memberType) { }
         public CStructSharp.Diagnostics.CStructWriteException FailUnknownUnionMember(string union, string? selected, string? member, string? memberType) { }
         public void Pad(int count, string? member, string? memberType) { }
-        public void RequireArrayLength(long count, string member, string? memberType) { }
+        public void RequireArrayLength(System.Int128 count, string member, string? memberType) { }
         public void RequireStringBytes(long count, string member, string? memberType) { }
         public System.Span<byte> Reserve(int count, string? member, string? memberType) { }
         public void Seek(long position, string? member, string? memberType) { }

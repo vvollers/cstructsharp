@@ -76,18 +76,18 @@ public class LayoutVariableCaptureValueTests
         StringAssert.StartsWith(text.CreateFailure("tag").Message, "'tag' is text, but layout expressions can only use integer fields");
     }
 
-    /// <summary>The generated-code helpers fail with the runtime's texts: a 128-bit member outside Int32, and a shared non-integer member.</summary>
+    /// <summary>The generated-code helpers fail with the runtime's texts: a uint128 member outside Int128, and a shared non-integer member.</summary>
     [TestMethod]
     public void GeneratedHelpers_MatchTheRuntimeDiagnostics()
     {
-        Assert.AreEqual(7, CStructSharp.Generated.Expressions.RequireInt32Wide((Int128)7, "n"));
-        Assert.AreEqual(7, CStructSharp.Generated.Expressions.RequireInt32Wide((UInt128)7, "n"));
-        StringAssert.StartsWith(
-            Assert.Throws<InvalidOperationException>(() => CStructSharp.Generated.Expressions.RequireInt32Wide(Int128.MaxValue, "n")).Message,
-            "'n' is 170141183460469231731687303715884105727, which is outside the 32-bit range");
-        StringAssert.StartsWith(
-            Assert.Throws<InvalidOperationException>(() => CStructSharp.Generated.Expressions.RequireInt32Wide(UInt128.MaxValue, "n")).Message,
-            "'n' is 340282366920938463463374607431768211455, which is outside the 32-bit range");
+        Assert.AreEqual((Int128)7, CStructSharp.Generated.Expressions.FromUInt128((UInt128)7, "n"));
+        var variables = new Dictionary<string, Expr>();
+        LayoutVariableCapture.Capture(variables, "n", Field("n"), UInt128.MaxValue);
+        string runtime = ((WideValueVariable)variables["n"]).CreateFailure("n").Message;
+        Assert.AreEqual(
+            runtime,
+            Assert.Throws<InvalidOperationException>(() => CStructSharp.Generated.Expressions.FromUInt128(UInt128.MaxValue, "n")).Message);
+        StringAssert.StartsWith(runtime, "'n' is 340282366920938463463374607431768211455, which is outside the 128-bit range");
         Assert.AreEqual(
             new NotANumberVariable("text").CreateFailure("tag").Message,
             Assert.Throws<InvalidOperationException>(() => CStructSharp.Generated.Expressions.NotAnInteger("tag", "text")).Message);
@@ -98,11 +98,11 @@ public class LayoutVariableCaptureValueTests
     /// <returns>The field.</returns>
     private static CompiledField Field(string name) => Layout.CompiledModel.AllFields().Single(field => field.Name == name);
 
-    /// <summary>Raises an unexpected Int32 conversion failure while rejecting every unrelated conversion.</summary>
+    /// <summary>Raises an unexpected Int64 conversion failure while rejecting every unrelated conversion.</summary>
     private sealed class ThrowsUnexpectedException : IConvertible
     {
         /// <inheritdoc/>
-        public TypeCode GetTypeCode() => throw new NotSupportedException();
+        public TypeCode GetTypeCode() => TypeCode.Object;
 
         /// <inheritdoc/>
         public bool ToBoolean(IFormatProvider? provider) => throw new NotSupportedException();
@@ -126,10 +126,10 @@ public class LayoutVariableCaptureValueTests
         public short ToInt16(IFormatProvider? provider) => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        public int ToInt32(IFormatProvider? provider) => throw new InvalidOperationException("Not an overflow, cast, or format failure.");
+        public int ToInt32(IFormatProvider? provider) => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        public long ToInt64(IFormatProvider? provider) => throw new NotSupportedException();
+        public long ToInt64(IFormatProvider? provider) => throw new InvalidOperationException("Not an overflow, cast, or format failure.");
 
         /// <inheritdoc/>
         public sbyte ToSByte(IFormatProvider? provider) => throw new NotSupportedException();

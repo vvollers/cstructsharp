@@ -415,29 +415,37 @@ internal sealed partial class LayoutEmitter
         }
     }
 
-    /// <summary>Evaluates a group's selector into its arm slot: an <c>if</c> selects arm 1 or 0, a <c>switch</c> maps the value through its case table (default is arm -1).</summary>
+    /// <summary>
+    ///     Evaluates a group's selector into its arm slot: an <c>if</c> selects arm 1 or 0, a <c>switch</c> compares the
+    ///     value with each case label in the 128-bit domain (default is arm -1).
+    /// </summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="group">The conditional group whose selector is evaluated.</param>
+    /// <param name="scope">The expression scope for the selector.</param>
+    /// <param name="slot">The local that receives the selected arm.</param>
     private void EmitSelector(SourceWriter writer, CompiledConditionalGroup group, ReaderScope scope, string slot)
     {
         string code = scope.Expressions.Emit(group.Selector);
-        string selection;
-        if (group.CaseArms is { } cases)
-        {
-            var arms = new System.Text.StringBuilder("(" + code + ") switch { ");
-            foreach (KeyValuePair<int, int> arm in cases.OrderBy(pair => pair.Value))
-            {
-                arms.Append(Int(arm.Key)).Append(" => ").Append(Int(arm.Value)).Append(", ");
-            }
-
-            selection = arms.Append("_ => -1 }").ToString();
-        }
-        else
-        {
-            selection = "(" + code + ") != 0 ? 1 : 0";
-        }
 
         // A selector failure is the composite's, not any field's: the enclosing member is what the runtime notes.
         writer.Open("try");
-        writer.Line(slot + " = " + selection + ";");
+        if (group.CaseArms is { } cases)
+        {
+            // C# has no constant patterns for Int128, so the case table is a chain of comparisons in arm order.
+            var arms = new System.Text.StringBuilder();
+            foreach (KeyValuePair<System.Int128, int> arm in cases.OrderBy(pair => pair.Value))
+            {
+                arms.Append("caseSelector == ").Append(ExpressionEmitter.DomainConstant((System.Numerics.BigInteger)arm.Key)).Append(" ? ").Append(Int(arm.Value)).Append(" : ");
+            }
+
+            writer.Line("global::System.Int128 caseSelector = " + code + ";");
+            writer.Line(slot + " = " + arms.Append("-1").ToString() + ";");
+        }
+        else
+        {
+            writer.Line(slot + " = (" + code + ") != 0 ? 1 : 0;");
+        }
+
         writer.Close();
         writer.Open("catch (global::System.Exception expressionFailure)");
         writer.Line("throw cursor.FailExpression(expressionFailure, \"conditional selector\", member, memberType);");
@@ -651,23 +659,54 @@ internal sealed partial class LayoutEmitter
         writer.Close();
     }
 
-    /// <summary>Evaluates a layout expression into <paramref name="local"/>, wrapping operator failures as the runtime does.</summary>
-    private void EmitExpression(SourceWriter writer, Expr expression, ReaderScope scope, string local, string context, string member, string memberType, string type)
+    /// <summary>
+    ///     Evaluates an element count (an array length or a pointer's <c>@count</c>) into the <c>int</c> local
+    ///     <c>count</c> with the runtime's checks: the expression's own failures, a negative count, and the
+    ///     <c>MaxArrayElements</c> limit. The expression is evaluated in the 128-bit domain, so a count read from a
+    ///     <c>uint64</c> field fails the limit with its exact value instead of wrapping.
+    /// </summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="fieldName">The field, named by the negative-length failure.</param>
+    /// <param name="expression">The count expression.</param>
+    /// <param name="scope">The expression scope.</param>
+    /// <param name="context">What is evaluated, for the expression failure.</param>
+    /// <param name="member">The member-name expression for failures.</param>
+    /// <param name="memberType">The member-type expression for failures.</param>
+    /// <param name="validatedCountIsReturned">
+    ///     Whether the cursor's <c>RequireArrayLength</c> returns the validated count (the read cursor does; the write
+    ///     cursor only checks it).
+    /// </param>
+    private void EmitCount(SourceWriter writer, string fieldName, Expr expression, ReaderScope scope, string context, string member, string memberType, bool validatedCountIsReturned)
     {
         string code = scope.Expressions.Emit(expression);
         if (ExpressionEmitter.IsInt32Literal(expression))
         {
-            // A constant (a fixed count, a folded sizeof) cannot fail.
-            writer.Line(local + " = " + code + ";");
+            // A constant (a fixed count, a folded sizeof) cannot fail, and layout compilation already rejected a
+            // negative one.
+            writer.Line("count = " + code + ";");
+            writer.Line("cursor.RequireArrayLength(count, " + member + ", " + memberType + ");");
             return;
         }
 
+        writer.Line("global::System.Int128 countValue;");
         writer.Open("try");
-        writer.Line(local + " = " + code + ";");
+        writer.Line("countValue = " + code + ";");
         writer.Close();
         writer.Open("catch (global::System.Exception expressionFailure)");
         writer.Line("throw cursor.FailExpression(expressionFailure, " + SourceWriter.Literal(context) + ", " + member + ", " + memberType + ");");
         writer.Close();
+        writer.Open("if (countValue < 0)");
+        writer.Line("throw cursor.Fail(" + SourceWriter.Literal(LayoutFailures.NegativeArrayLength(fieldName)) + ", " + member + ", " + memberType + ");");
+        writer.Close();
+        if (validatedCountIsReturned)
+        {
+            writer.Line("count = cursor.RequireArrayLength(countValue, " + member + ", " + memberType + ");");
+        }
+        else
+        {
+            writer.Line("cursor.RequireArrayLength(countValue, " + member + ", " + memberType + ");");
+            writer.Line("count = (int)countValue;");
+        }
     }
 
     /// <summary>A padding field's value: the same read as a named field's, into a discard.</summary>

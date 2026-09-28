@@ -464,7 +464,7 @@ public sealed partial class CStruct
     private int EvaluatePointerCount(CompiledField field, CStructOperationContext state)
     {
         CompiledArrayShape elements = field.PointerElements!;
-        int count = elements.FixedCount ??
+        Int128 count = elements.FixedCount ??
                     this.layoutExpressionEvaluator.Evaluate(
                         elements.CountExpression!,
                         state.Variables,
@@ -480,7 +480,7 @@ public sealed partial class CStruct
             throw new CStructReadLimitException(ReadFailures.ArrayLengthLimit(count, state.MaxArrayElements));
         }
 
-        return count;
+        return (int)count;
     }
 
     /// <summary>
@@ -968,7 +968,9 @@ public sealed partial class CStruct
             return 1;
         }
 
-        int count;
+        // The count is checked in the expression domain, so a uint64 count beyond Int32 fails the limit check with
+        // its exact value instead of wrapping.
+        Int128 count;
         if (compiledField.Array.Dimensions.Length > 1)
         {
             // Every dimension of a multidimensional array is fixed, so the total leaf count is known without evaluating
@@ -996,7 +998,7 @@ public sealed partial class CStruct
             throw new CStructReadLimitException(ReadFailures.ArrayLengthLimit(count, state.MaxArrayElements));
         }
 
-        return count;
+        return (int)count;
     }
 
     /// <summary>

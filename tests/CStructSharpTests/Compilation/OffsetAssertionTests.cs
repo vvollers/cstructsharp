@@ -237,7 +237,6 @@ public class OffsetAssertionTests
         // Static placement rejects the offset assertion before a binary source is required.
         CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => new CStruct(definition));
 
-        StringAssert.Contains(failure.Message, "Cannot evaluate offset assertion for next:");
-        StringAssert.Contains(failure.Message, "outside the 32-bit range");
+        StringAssert.Contains(failure.Message, "The offset assertion for next is 2147483648, which does not fit in a signed 32-bit integer.");
     }
 }

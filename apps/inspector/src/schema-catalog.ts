@@ -1573,8 +1573,8 @@ if (signature == 0x184d2204) {
     family: "Zstandard",
     scope:
       "Zstandard frame flags, optional window/dictionary ID and content-size variants. The 16-bit size stores actual size minus 256. Skippable payloads are exposed; compressed blocks remain encoded.",
-    fields: `// Conditions use signed 32-bit values, including hexadecimal constants with bit 31 set.
-int32 signature;
+    fields: `// The magic is the unsigned value 0xFD2FB528; a literal is its exact value, so the field is unsigned too.
+uint32 signature;
 if (signature == 0xfd2fb528) {
     zstd_descriptor descriptor;
     if (single_segment == 0) {

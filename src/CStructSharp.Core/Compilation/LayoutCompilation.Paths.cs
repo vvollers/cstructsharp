@@ -1,5 +1,6 @@
 namespace CStructSharp.Compilation;
 
+using System;
 using System.Collections.Generic;
 using CStructSharp;
 using CStructSharp.Addressing;
@@ -60,7 +61,7 @@ internal sealed partial class LayoutCompilation
             CompiledField writableField = compiledField;
             foreach (int suppliedIndex in segment.Indexes)
             {
-                int count = this.compiledSizeQueries.GetCompiledArrayCount(writableField, variables, false);
+                Int128 count = this.compiledSizeQueries.GetCompiledArrayCount(writableField, variables, false);
                 if (suppliedIndex >= count)
                 {
                     throw new CStructPathException(

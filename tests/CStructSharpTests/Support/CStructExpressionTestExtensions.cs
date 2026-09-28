@@ -17,11 +17,11 @@ internal static class CStructExpressionTestExtensions
         return model.Composites.Values.SelectMany(symbol => ((CompiledCompositeType)symbol.Definition!).Fields);
     }
 
-    /// <summary>Evaluates a parsed expression with the default checked Int32 evaluator, as layout operations do.</summary>
+    /// <summary>Evaluates a parsed expression with the default checked signed 128-bit evaluator, as layout operations do.</summary>
     /// <param name="expression">The expression under test.</param>
     /// <param name="variables">The names the expression may read; none when omitted.</param>
     /// <returns>The expression value.</returns>
-    public static int Evaluate(this Expr expression, IReadOnlyDictionary<string, Expr>? variables = null)
+    public static Int128 Evaluate(this Expr expression, IReadOnlyDictionary<string, Expr>? variables = null)
     {
         return ExpressionEvaluator.Default.Evaluate(expression, variables);
     }

@@ -460,18 +460,8 @@ operand:
     }
 
     /// <summary>
-    ///     Preserves the established 32-bit two's-complement projection for non-decimal expressions while retaining
-    ///     the unsigned mathematical spelling for width-aware enum evaluation.
+    ///     A hexadecimal, binary or octal literal is its exact mathematical value, as in C: <c>0xFFFFFFFF</c> is
+    ///     4294967295 and <c>-0x80000000</c> is -2147483648. The bits are not reinterpreted as a signed type.
     /// </summary>
-    private static Literal CreateRadixLiteral(int sign, BigInteger magnitude)
-    {
-        BigInteger exact = sign * magnitude;
-        BigInteger projected = exact;
-        if (magnitude <= uint.MaxValue)
-        {
-            projected = sign * new BigInteger(unchecked((int)(uint)magnitude));
-        }
-
-        return new Literal(exact, projected);
-    }
+    private static Literal CreateRadixLiteral(int sign, BigInteger magnitude) => new(sign * magnitude);
 }

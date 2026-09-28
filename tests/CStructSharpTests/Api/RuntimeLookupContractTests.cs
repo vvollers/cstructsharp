@@ -48,23 +48,26 @@ public class RuntimeLookupContractTests
         Assert.IsNull(table.WriterOf("not_registered"));
     }
 
-    /// <summary>Captured wide integers retain exact identity and reject evaluation instead of wrapping into Int32.</summary>
+    /// <summary>Captured integers beyond the signed 128-bit domain retain exact identity and reject evaluation instead of wrapping.</summary>
     [TestMethod]
-    public void WideVariable_PreservesEqualityAndRejectsInt32Evaluation()
+    public void WideVariable_PreservesEqualityAndRejectsDomainEvaluation()
     {
-        var wide = new WideValueVariable(ulong.MaxValue);
-        var same = new WideValueVariable(ulong.MaxValue);
-        Assert.AreEqual(ulong.MaxValue, wide.WideValue);
+        var wide = new WideValueVariable(UInt128.MaxValue);
+        var same = new WideValueVariable(UInt128.MaxValue);
+        Assert.AreEqual(UInt128.MaxValue, wide.WideValue);
         Assert.IsTrue(wide.Equals(same));
         Assert.AreEqual(wide.GetHashCode(), same.GetHashCode());
-        Assert.IsFalse(wide.Equals(new WideValueVariable(ulong.MaxValue - 1)));
+        Assert.IsFalse(wide.Equals(new WideValueVariable(UInt128.MaxValue - 1)));
         Assert.IsFalse(wide.Equals(new Literal(-1)));
-        StringAssert.Contains(wide.ToString(), "18446744073709551615");
+        StringAssert.Contains(wide.ToString(), "340282366920938463463374607431768211455");
 
         // An expression that selects the variable fails with the exact number in the diagnostic.
         InvalidOperationException evaluated = Assert.ThrowsExactly<InvalidOperationException>(() => new Identifier("w").Evaluate(new Dictionary<string, Expr> { ["w"] = wide, }));
-        StringAssert.Contains(evaluated.Message, "18446744073709551615");
-        StringAssert.Contains(evaluated.Message, "outside the 32-bit range");
+        StringAssert.Contains(evaluated.Message, "340282366920938463463374607431768211455");
+        StringAssert.Contains(evaluated.Message, "outside the 128-bit range");
+
+        // A 64-bit value is an ordinary exact variable.
+        Assert.AreEqual((Int128)ulong.MaxValue, new Identifier("w").Evaluate(new Dictionary<string, Expr> { ["w"] = new Literal(ulong.MaxValue), }));
     }
 
     /// <summary>Reads one byte for delegate-identity checks; this is not a uint16 implementation.</summary>

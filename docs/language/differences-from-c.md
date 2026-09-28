@@ -145,6 +145,23 @@ aligns them to eight, so the rows with such a member do not match there.
 Baselines: Clang 18.1.3 on Linux x64 (x86_64-pc-linux-gnu); GCC 13.3.0 on Linux x64 (x86_64-linux-gnu); GCC 13.3.0 on Linux x86 (i686-linux-gnu); Clang 21.0.0 on macOS arm64 (arm64-apple-darwin25.6.0); Clang 20.1.8 on Windows x64 (x86_64-pc-windows-msvc); MSVC 19.51.36257 on Windows x64 (x64-pc-windows-msvc). The *Portable* column names the `BitfieldPacking` mode(s) in which the library reproduces the compiler of the same ABI family byte for byte; `CompilerDifferentialFixtureTests` verifies every claim against every baseline. The manually started `compiler-fixtures` workflow records the baselines again.
 <!-- compiler-fixture-table:end -->
 
+## Integer arithmetic in expressions
+
+In C, every integer expression has a *type*, and the type decides the arithmetic. A constant's type depends on its
+value and spelling: with a 32-bit `int`, `0xFFFFFFFF` does not fit `int`, so it is an `unsigned int` (ISO C11
+§6.4.4.1). Before an operator runs, the *usual arithmetic conversions* promote small types to `int` and then convert
+both operands to one common type, which may be unsigned (§6.3.1.1, §6.3.1.8). Unsigned arithmetic wraps around, and
+signed overflow is undefined behavior (§6.5). These rules follow the machine word, which is what made early C fast,
+but they can surprise a reader: in C, `-1 < 0xFFFFFFFF` is false, because `-1` is converted to the unsigned value
+4294967295 before the comparison.
+
+CStructSharp expressions have no types. Every expression is evaluated in one signed 128-bit range, which holds every
+value of every field up to 64 bits exactly, and a result outside that range is an error rather than a wraparound
+(see [Expressions use exact 128-bit integers](expressions-defines-and-variables.md#expressions-use-exact-128-bit-integers)).
+So `-1 < 0xFFFFFFFF` is 1 (true), and `0xFFFFFFFFFFFFFFFF + 1` is 18446744073709551616. A header expression that
+relies on unsigned wraparound needs its intended value written out: C's `~0u` is 4294967295 with a 32-bit `unsigned`,
+but `~0` here is -1, so write the mask `0xFFFFFFFF` instead.
+
 ## The limited preprocessor
 
 `#define NAME expression` binds an integer expression. It is not textual macro expansion: a name is never

@@ -273,11 +273,11 @@ public class EnumDomainTests
     ///     A manually built uint64 enum starts above the 32-bit range and must assign the next implicit value exactly.
     /// </summary>
     /// <remarks>
-    ///     Wide literals retain their full value, but requesting their 32-bit view must throw on overflow. Enum
-    ///     arithmetic can be wide without making ordinary layout-length expressions unbounded.
+    ///     Wide literals retain their full value; a 64-bit one is an ordinary expression value, and requesting the
+    ///     expression value of one beyond the signed 128-bit range must throw.
     /// </remarks>
     [TestMethod]
-    public void StandaloneModel_EvaluatesImmediatelyAndKeepsInt32ProjectionChecked()
+    public void StandaloneModel_EvaluatesImmediatelyAndKeepsTheDomainValueChecked()
     {
         var standalone = new CstructEnum(
             new Identifier("state"),
@@ -294,9 +294,10 @@ public class EnumDomainTests
                 new Identifier("invalid"),
                 [new EnumValue(new Identifier("Value"), new Identifier("missing")),]));
 
-        var wideLiteral = new Literal(BigInteger.One << 63);
-        Assert.AreEqual(BigInteger.One << 63, wideLiteral.ExactValue);
-        Assert.Throws<OverflowException>(() => _ = wideLiteral.Value);
+        Assert.AreEqual((Int128)1 << 63, new Literal(BigInteger.One << 63).Value);
+        var wideLiteral = new Literal(BigInteger.One << 127);
+        Assert.AreEqual(BigInteger.One << 127, wideLiteral.ExactValue);
+        Assert.Throws<InvalidOperationException>(() => _ = wideLiteral.Value);
     }
 
     /// <summary>
@@ -509,8 +510,8 @@ public class EnumDomainTests
                 "Layout should reject enum expression: " + layout);
         }
 
-        // A definition beyond the 32-bit domain is a constant with its exact value (headers are full of 64-bit
-        // masks); only a count that selects it is an error.
+        // A 64-bit definition is a constant with its exact value (headers are full of 64-bit masks); only a fixed
+        // count that selects it is an error, because an array length must fit a signed 32-bit integer.
         Assert.Throws<CStructLayoutException>(
             () => new CStruct("#define WIDE 1 << 63\nstruct root { byte values[WIDE]; };"));
         var unused = new CStruct("#define UNUSED 1 << 63\nstruct root { byte value; };");
@@ -826,7 +827,7 @@ public class EnumDomainTests
         Assert.AreEqual(ulong.MaxValue.ToString(CultureInfo.InvariantCulture), ((EnumValueResult)unknown.value).ToString());
     }
 
-    /// <summary>An enum value outside the expression domain fails consistently in whole and selected reads.</summary>
+    /// <summary>An enum count beyond the element limit fails consistently, with its exact value, in whole and selected reads.</summary>
     [TestMethod]
     public void WideEnumCount_PreservesTheWholeReadFailureCause()
     {
@@ -834,11 +835,11 @@ public class EnumDomainTests
         byte[] bytes = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 42,];
 
         // Both operations reject the same decoded count, independently of their outer path context.
-        CStructReadException whole = Assert.Throws<CStructReadException>(() => layout.Parse(bytes.AsSpan(), "root"));
-        CStructReadException selected = Assert.Throws<CStructReadException>(() => layout.ResolveAddress(bytes, "root.tail"));
-        Assert.IsNotNull(whole.InnerException);
-        Assert.IsNotNull(selected.InnerException);
-        Assert.AreEqual(whole.InnerException.Message, selected.InnerException.Message);
+        CStructReadLimitException whole = Assert.ThrowsExactly<CStructReadLimitException>(() => layout.Parse(bytes.AsSpan(), "root"));
+        CStructReadLimitException selected = Assert.ThrowsExactly<CStructReadLimitException>(() => layout.ResolveAddress(bytes, "root.tail"));
+        const string expected = "Array length 18446744073709551615 exceeds MaxArrayElements (";
+        StringAssert.StartsWith(whole.Message, expected);
+        StringAssert.StartsWith(selected.Message, expected);
     }
 
     /// <summary>

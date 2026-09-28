@@ -21,14 +21,17 @@ Examples that produce `CStructLayoutException` with `InvalidLayout` include:
 - recursive by-value storage;
 - invalid enum backing/range;
 - bitfield widths outside their storage;
-- negative or overflowing array counts computed from constants alone; and
+- negative array counts computed from constants alone, or ones that do not fit a signed 32-bit integer; and
 - source, nesting, dependency, or expression work above compilation limits.
 
-A count or selector that fails only because of the *data* is not a layout error. When a decoded `uint32` of
-`4294967295` selects an array count, or `a * b` overflows for the decoded values of `a` and `b`, the operation
-fails with `CStructReadException` (`ReadFailed`) and a message such as
-`Cannot evaluate array length for data: 'n' is 4294967295, which is outside the 32-bit range that layout
-expressions support.` A write that receives such a value fails with `CStructWriteException`.
+A count or selector that fails only because of the *data* is not a layout error. Expressions evaluate in the exact
+signed 128-bit range (see [expressions](expressions-defines-and-variables.md#expressions-use-exact-128-bit-integers)).
+When a decoded `uint32` of `4294967295` is an array count, the count keeps that value and the read fails with
+`CStructReadLimitException` (`ReadLimitExceeded`): `Array length 4294967295 exceeds MaxArrayElements (1000000).`
+When `a * b` leaves the 128-bit range for the decoded values of `a` and `b`, or a decoded `uint128` at or above
+2^127 is selected, the operation fails with `CStructReadException` (`ReadFailed`) and a message such as
+`Cannot evaluate array length for data: 'n' is 170141183460469231731687303715884105728, which is outside the 128-bit
+range that layout expressions support.` A write that receives such a value fails with `CStructWriteException`.
 
 A syntax error's message starts with `Layout definition contains invalid syntax:` and names the line and column of
 the first unexpected character (or the end of the text) together with what the parser expected there. For

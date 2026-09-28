@@ -298,7 +298,7 @@ The table explains each production and links to the page that defines its additi
 | `pointer-count` | `@count(N)`: the number of consecutive elements a pointer's final target holds |
 | `alignment-override` | An explicit per-declarator alignment override, effective only when `aligned: true` |
 | `offset-assertion` | An explicit per-declarator byte-offset assertion, checked when statically computable |
-| `expression` | Complete checked integer expression, optionally a conditional `c ? a : b` |
+| `expression` | Complete checked signed 128-bit integer expression, optionally a conditional `c ? a : b` |
 | `bitwise-or` | Lowest-precedence bitwise OR |
 | `bitwise-xor` | Bitwise XOR, between `&` and `\|` as in C |
 | `qualified-name` | A variable, field, define, `Enum.Member` constant, or a nested field through its struct field (`hdr.n`, `a.b.n`) |
@@ -310,7 +310,7 @@ The table explains each production and links to the page that defines its additi
 | `multiplicative` | Checked multiplication, division, and remainder |
 | `unary` | Negation and bitwise complement |
 | `primary` | Literal, variable/name, or parenthesized expression |
-| `literal` | Optional sign plus one radix-specific integer, plus an optional discarded C-style suffix |
+| `literal` | Optional sign plus one radix-specific integer, plus an optional discarded C-style suffix; its value is exact in every radix (`0xFFFFFFFF` is 4294967295) |
 | `integer-suffix` | Zero or more `u`/`U`/`l`/`L` characters, recognized and discarded with no effect on the value |
 | `sign` | Literal-leading plus/minus |
 | `decimal` | Base-10 digit sequence |

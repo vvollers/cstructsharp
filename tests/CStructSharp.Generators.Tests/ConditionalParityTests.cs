@@ -86,15 +86,42 @@ public class ConditionalParityTests
         Run("define-default", Defines, "07 2a");
         Run("define-overridden", Defines, "07 01 02 03 04", new Dictionary<string, int> { ["MODE"] = 2 });
 
-        // A qualified enum member as a constant; a wide define fails only when selected.
+        // A qualified enum member as a constant; a 64-bit define is an ordinary constant, and one beyond the 128-bit
+        // domain fails only when selected.
         Run("enum-constant", "enum kind : uint8 { A = 1, B = 2 }; struct root { uint8 tag; if (tag == kind.B) { uint8 b; } else { uint8 other; } };", "02 2a");
         Run("enum-constant-else", "enum kind : uint8 { A = 1, B = 2 }; struct root { uint8 tag; if (tag == kind.B) { uint8 b; } else { uint8 other; } };", "01 2a");
-        Run("wide-define", "#define BIG 4294967295\nstruct root { uint8 tag; if (BIG > tag) { uint8 a; } else { uint8 b; } };", "01 2a", expectedError: "CStructReadException");
+        Run("wide-define", "#define BIG 0xFFFFFFFFFFFFFFFF\nstruct root { uint8 tag; if (BIG > tag) { uint8 a; } else { uint8 b; } };", "01 2a");
+        Run("wider-define", "#define BIG 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF\nstruct root { uint8 tag; if (BIG > tag) { uint8 a; } else { uint8 b; } };", "01 2a", expectedError: "CStructReadException");
+        Run("define-beyond-64", "#define HUGE (1 << 100)\nstruct root { uint8 tag; if ((tag << 100) == HUGE) { uint8 a; } else { uint8 b; } };", "01 2a");
+        Run("literal-beyond-64", "struct root { uint8 tag; if ((tag << 100) == 1267650600228229401496703205376) { uint8 a; } else { uint8 b; } };", "01 2a");
+        Run("literal-beyond-128", "struct root { uint8 tag; if (tag && 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF) { uint8 a; } else { uint8 b; } };", "01 2a", expectedError: "CStructReadException");
 
         // An expression failure in a selector names the operation and keeps the enclosing member.
         Run("selector-divide", "struct entry { uint8 d; if (8 / d > 1) { uint8 a; } else { uint8 b; } }; struct root { entry items[1]; };", "00 2a", expectedError: "CStructReadException");
-        Run("selector-overflow", "struct root { uint32 big; if (big + 1 > 0) { uint8 a; } else { uint8 b; } };", "ff ff ff 7f 2a", expectedError: "CStructReadException");
-        Run("selector-wide", "struct root { uint32 big; if (big > 0) { uint8 a; } else { uint8 b; } };", "00 00 00 80 2a", expectedError: "CStructReadException");
+        Run("selector-overflow", "struct root { uint64 big; if (big * big > 0) { uint8 a; } else { uint8 b; } };", "ff ff ff ff ff ff ff ff 2a", expectedError: "CStructReadException");
+        Run("selector-wide", "struct root { uint128 big; if (big > 0) { uint8 a; } else { uint8 b; } };", "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 80 2a", expectedError: "CStructReadException");
+        Run("selector-shift-count", "struct root { uint8 n; if (1 << n) { uint8 a; } else { uint8 b; } };", "80 2a", expectedError: "CStructReadException");
+    }
+
+    /// <summary>
+    ///     Generated readers evaluate selectors in the 128-bit domain as the runtime does: a <c>uint64</c> above 2^63 is
+    ///     nonzero and positive, and a switch matches labels over the whole 64-bit range.
+    /// </summary>
+    [TestMethod]
+    public void WideSelectors_MatchTheRuntime()
+    {
+        const string Node = "struct root { uint64 next; if (next != 0) { uint32 payload; } uint8 tail; };";
+        Run("next-kernel", Node, "00 10 00 00 00 80 ff ff ef be ad de 5a");
+        Run("next-null", Node, "00 00 00 00 00 00 00 00 5a");
+        Run("next-positive", "struct root { uint64 size; if (size > 0) { uint8 a; } else { uint8 b; } };", "ff ff ff ff ff ff ff ff 2a");
+        Run("pointer-nonzero", "struct root { uint8 *p; if (p != 0) { uint8 a; } else { uint8 b; } };", "00 00 00 00 01 00 00 00 2a");
+
+        const string Switch = "struct root { uint64 tag; switch (tag) { case 0xFFFFFFFFFFFFFFFF: { uint8 all; } case 0x8000000000000000: { uint16 top; } case 1: { uint8 one; } default: { uint32 other; } } };";
+        Run("switch-all", Switch, "ff ff ff ff ff ff ff ff 07");
+        Run("switch-top", Switch, "00 00 00 00 00 00 00 80 07 08");
+        Run("switch-one", Switch, "01 00 00 00 00 00 00 00 07");
+        Run("switch-default", Switch, "02 00 00 00 00 00 00 00 07 08 09 0a");
+        Run("switch-enum-wide", "enum big : uint64 { Low = 1, High = 0xFFFFFFFFFFFFFFFE }; struct root { big e; switch (e) { case big.High: { uint8 high; } default: { uint8 other; } } };", "fe ff ff ff ff ff ff ff 07");
     }
 
     /// <summary>The benchmark harness's conditional cases with the harness's fill rule (every byte is the fill value).</summary>

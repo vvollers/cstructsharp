@@ -173,7 +173,7 @@ internal sealed partial class LayoutCompilation
             int? compositeAlignmentOverride = null;
             if (strct.CompositeAlignmentOverrideExpression is not null)
             {
-                int explicitCompositeAlignment = this.layoutExpressionEvaluator.Evaluate(
+                int explicitCompositeAlignment = this.layoutExpressionEvaluator.EvaluateInt32(
                     strct.CompositeAlignmentOverrideExpression,
                     this.staticLayoutVariables,
                     "alignment override for " + strct.Name.Name);
@@ -262,7 +262,7 @@ internal sealed partial class LayoutCompilation
                 int alignment = pointerDepth > 0 ? this.PointerSize : type.Symbol.Alignment;
                 if (field.AlignmentOverrideExpression is not null)
                 {
-                    int explicitAlignment = this.layoutExpressionEvaluator.Evaluate(
+                    int explicitAlignment = this.layoutExpressionEvaluator.EvaluateInt32(
                         field.AlignmentOverrideExpression,
                         this.staticLayoutVariables,
                         "alignment override for " + field.Name.Name);
@@ -334,7 +334,7 @@ internal sealed partial class LayoutCompilation
                 int? assertedOffset = field.OffsetAssertionExpression is null
                                           ? null
                                           : OffsetAssertion.Validate(
-                                              this.layoutExpressionEvaluator.Evaluate(
+                                              this.layoutExpressionEvaluator.EvaluateInt32(
                                                   field.OffsetAssertionExpression,
                                                   this.staticLayoutVariables,
                                                   "offset assertion for " + field.Name.Name),
@@ -564,7 +564,7 @@ internal sealed partial class LayoutCompilation
                     "runtime-sized dimension is supported only in a one-dimensional array: " + field.Name.Name);
             }
 
-            int dimensionCount = this.layoutExpressionEvaluator.Evaluate(
+            int dimensionCount = this.layoutExpressionEvaluator.EvaluateInt32(
                 dimensionExpression,
                 this.staticLayoutVariables,
                 "array length for " + field.Name.Name);
@@ -612,7 +612,7 @@ internal sealed partial class LayoutCompilation
                 ImmutableArray.Create(new CompiledArrayDimension(dimensionExpression, null)));
         }
 
-        int count = this.layoutExpressionEvaluator.Evaluate(
+        int count = this.layoutExpressionEvaluator.EvaluateInt32(
             dimensionExpression,
             this.staticLayoutVariables,
             "array length for " + field.Name.Name);

@@ -1,5 +1,6 @@
 namespace CStructSharp.Diagnostics;
 
+using System;
 using System.Globalization;
 
 /// <summary>
@@ -119,7 +120,7 @@ internal static class ReadFailures
     /// <param name="count">The array length, in elements, that the layout asked for.</param>
     /// <param name="maximum">The configured <c>MaxArrayElements</c> limit, in elements.</param>
     /// <returns>The diagnostic text, containing <see cref="ArrayLengthLimitMarker"/>.</returns>
-    public static string ArrayLengthLimit(long count, int maximum)
+    public static string ArrayLengthLimit(Int128 count, int maximum)
         => "Array length " + count.ToString(CultureInfo.InvariantCulture) + ArrayLengthLimitMarker + maximum.ToString(CultureInfo.InvariantCulture) + ").";
 
     /// <summary>A short read of a whole numeric array (the bulk reader checks the extent before reading).</summary>
@@ -178,7 +179,7 @@ internal static class ReadFailures
     /// <param name="count">The array length, in elements, that the layout asked for.</param>
     /// <param name="maximum">The configured <c>MaxArrayElements</c> limit, in elements.</param>
     /// <returns>The diagnostic text, containing <see cref="ArrayLengthLimitMarker"/>.</returns>
-    public static string ArrayLengthLimit(long count, int maximum)
+    public static string ArrayLengthLimit(Int128 count, int maximum)
         => string.Create(CultureInfo.InvariantCulture, $"Array length {count}{ArrayLengthLimitMarker}{maximum}).");
 
     /// <summary>A short read of a whole numeric array (the bulk reader checks the extent before reading).</summary>

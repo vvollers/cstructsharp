@@ -4,10 +4,10 @@ using CStructSharp.Values;
 
 /// <summary>
 ///     Verifies the CStruct definitions and sample bytes used by the CStructSharpInspector example app's
-///     well-known-format catalog (BMP, WAV, ZIP, PNG, JPG/JFIF, PE/EXE, PE/DLL, TAR, ICO). Each test constructs the
-///     exact same definition text and sample bytes the app's <c>src/schema-catalog.ts</c> catalog carries, so the app's
-///     hand-authored examples have a real correctness signal instead of trusting hand-written bytes/DSL text by
-///     inspection alone.
+///     well-known-format catalog (BMP, WAV, ZIP, PNG, JPG/JFIF, PE/EXE, PE/DLL, TAR, ICO, Zstandard). Each test
+///     constructs the exact same definition text and sample bytes the app's <c>src/schema-catalog.ts</c> catalog
+///     carries, so the app's hand-authored examples have a real correctness signal instead of trusting hand-written
+///     bytes/DSL text by inspection alone.
 /// </summary>
 [TestClass]
 public class WellKnownFormatTests
@@ -431,6 +431,69 @@ public class WellKnownFormatTests
         Assert.AreEqual("00", (string)parsed.version);
         Assert.AreEqual("0" /* typeflag '0' = regular file */, (string)parsed.typeflag);
         Assert.AreEqual("011556\0 ", (string)parsed.chksum);
+    }
+
+    /// <summary>
+    ///     The Zstandard frame magic <c>28 B5 2F FD</c> is the unsigned value 0xFD2FB528. A literal is its exact value,
+    ///     so the catalog's <c>uint32 signature</c> matches <c>0xfd2fb528</c> and the frame descriptor is decoded; a
+    ///     skippable frame's magic selects the other branch.
+    /// </summary>
+    [TestMethod]
+    public void Zstandard_FrameMagic_SelectsTheFrameBranch()
+    {
+        const string definition = """
+                                  struct zstd_descriptor {
+                                      uint8 dictionary_id_size_code:2;
+                                      uint8 content_checksum_present:1;
+                                      uint8 reserved:1;
+                                      uint8 unused:1;
+                                      uint8 single_segment:1;
+                                      uint8 content_size_code:2;
+                                  };
+                                  struct zstd_window {
+                                      uint8 window_mantissa:3;
+                                      uint8 window_exponent:5;
+                                  };
+                                  struct file_zst {
+                                  uint32 signature;
+                                  if (signature == 0xfd2fb528) {
+                                      zstd_descriptor descriptor;
+                                      if (single_segment == 0) {
+                                          zstd_window window;
+                                      }
+                                      switch (dictionary_id_size_code) {
+                                          case 1: { uint8 dictionary_id8; }
+                                          case 2: { uint16 dictionary_id16; }
+                                          case 3: { uint32 dictionary_id32; }
+                                      }
+                                      switch (content_size_code) {
+                                          case 0: {
+                                              if (single_segment) { uint8 content_size8; }
+                                          }
+                                          case 1: { uint16 content_size_minus_256; }
+                                          case 2: { uint32 content_size32; }
+                                          case 3: { uint64 content_size64; }
+                                      }
+                                  } else {
+                                      if (signature >= 0x184d2a50 && signature <= 0x184d2a5f) {
+                                          uint32 skippable_size;
+                                          uint8 skippable_data[skippable_size];
+                                      }
+                                  }
+                                  };
+                                  struct root { file_zst header; };
+                                  """;
+        var layout = new CStruct(definition);
+
+        // Magic, then a descriptor with only single_segment set, so a one-byte content size of 5 follows.
+        StructValue frame = (StructValue)layout.Parse(new byte[] { 0x28, 0xB5, 0x2F, 0xFD, 0x20, 0x05, }, "root")["header"]!;
+        Assert.AreEqual(0xFD2FB528u, frame["signature"]);
+        Assert.AreEqual((byte)5, frame["content_size8"]);
+
+        // A skippable frame (magic 0x184D2A50) with a two-byte payload.
+        StructValue skippable = (StructValue)layout.Parse(new byte[] { 0x50, 0x2A, 0x4D, 0x18, 0x02, 0, 0, 0, 7, 8, }, "root")["header"]!;
+        Assert.AreEqual(2u, skippable["skippable_size"]);
+        Assert.IsFalse(skippable.ContainsKey("descriptor"));
     }
 
     /// <summary>Builds the 512-byte ustar header bytes, computing the real POSIX header checksum.</summary>

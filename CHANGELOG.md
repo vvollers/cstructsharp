@@ -10,6 +10,18 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Breaking changes
 
+- **Breaking (language):** layout expressions use exact 128-bit integers instead of 32-bit ones, so conditions,
+  switches and counts can use any 64-bit field: `struct node { uint64 next; if (next != 0) { uint32 payload; } };`
+  reads a kernel-style address such as `0xffff888000000000` correctly, and `switch (tag)` on a `uint64` accepts
+  `case 0xFFFFFFFFFFFFFFFF:`. Arithmetic stays checked (a result outside the signed 128-bit range fails), shift counts
+  are 0-127, and `/` and `%` truncate toward zero as in C. A count, offset, bit width or `@align` value is checked
+  where it is used, naming the value (an array longer than `MaxArrayElements` is a read-limit failure). A literal is
+  its exact value: `0xFFFFFFFF` is 4294967295, as in C, where it used to be -1. The language contract is
+  `portable-v1.json` revision 4. Generated code uses `Int128` in `CStructSharp.Generated.Expressions`
+  (`RequireInt32`, `RequireInt32Wide` and `Overflow` are removed); regenerate with this version. Caller variables
+  stay `IReadOnlyDictionary<string, int>`. Migration: write `-1` (or the intended positive value) where a hex literal
+  such as `0xFFFFFFFF` was meant as -1, and compare a signed field with a signed literal or declare the field
+  unsigned (the inspector's Zstandard schema now reads its magic as `uint32`).
 - **Breaking (browser bridge):** the interop contract is version 9: every managed export returns the same result
   envelope, and write results hand their bytes over through `TakeOutput` after the envelope. The public JavaScript
   API (`parse`, `parseWithDebug`, `serialize`, `update`, `resolveAddress`, `getVersion`, the large-source API)
@@ -56,7 +68,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   now a layout error when the layout is built. Before, text was read as the name of another variable, an array gave
   its last element, and floats were rounded, and the reader, the path resolver and the writers disagreed on these
   cases. Where a numeric field or a `#define` shares the name, the layout is valid and an expression that meets the
-  non-integer field's value fails with a message naming it. Integers outside the 32-bit range - including pointer
+  non-integer field's value fails with a message naming it.
+  Integers outside the 128-bit expression range - including pointer
   addresses and enum numbers - fail with their exact value in every operation. Migration: read the field as an
   integer type or an enum (for a four-character tag, `enum chunk : uint32 { IHDR = 0x52444849 }` and
   `switch (tag) { case chunk.IHDR: ... }`), or name a numeric field instead.

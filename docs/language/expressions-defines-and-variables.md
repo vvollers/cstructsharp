@@ -122,42 +122,76 @@ layout is then valid, and the value in effect is the last field read under that 
 expression that uses `n` fails with `'n' is text, but layout expressions can only use integer fields ...`; it never
 falls back to an older value. The same holds when a `#define` shares the name with a non-integer field.
 
-## Counts and bit widths use signed 32-bit values
+## Expressions use exact 128-bit integers
 
-Ordinary layout expressions use checked `Int32` arithmetic:
+Every ordinary layout expression is evaluated in one number range: signed 128-bit integers, from -2^127 through
+2^127 - 1. That range is wide enough to hold every value a field up to 64 bits can store, signed or unsigned. An
+expression therefore sees the exact number a field holds. A kernel address such as `0xFFFF800000001000` is a large
+positive number, not a negative one, and a `uint64` size is never mistaken for a small or negative count.
 
-- addition, subtraction, multiplication, negation, and left shift fail on overflow;
-- division truncates toward zero and fails on zero or `int.MinValue / -1`;
-- shift counts must be between 0 and 31 and are not silently masked;
-- right shift is arithmetic;
-- `~`, `&`, and `|` operate on two's-complement bits; and
-- decimal literals must fit signed 32-bit range.
+The arithmetic is *checked*, which means a result outside the range fails instead of wrapping around:
 
-Base-prefixed literals may use any 32-bit bit pattern. `0xFFFFFFFF` therefore represents `-1`; a wider pattern fails.
-A written sign is applied with checked arithmetic, so `-0xFFFFFFFF` is `1`, while `-0x80000000` overflows.
+- addition, subtraction, multiplication, negation, and left shift fail when the result leaves the range;
+- division and `%` truncate toward zero, and fail on a zero divisor or on -2^127 divided by -1;
+- a shift count must be between 0 and 127 and is never silently masked;
+- right shift is arithmetic, so a negative value stays negative;
+- `~`, `&`, `|`, and `^` operate on the two's-complement bits of the 128-bit value; and
+- comparisons and logical operators produce 0 or 1.
 
-Array counts must resolve to a non-negative `Int32`. Bit widths have the additional requirement that they fit the
-chosen storage unit.
+A literal is its exact value, in every base. `0xFFFFFFFF` is 4294967295, as it is in C, and `-0x80000000` is
+-2147483648. A literal outside the range, such as a 32-digit hexadecimal `uint128` mask, is kept exactly (an enum or
+a constant can still use it), but an expression that evaluates it fails:
+`The literal 340282366920938463463374607431768211455 is outside the 128-bit range that layout expressions support.`
 
-A decoded field wider than that domain (`uint32` above `2147483647`, any `uint64` or `int64` beyond the range, a
-128-bit integer) is still read normally. It only fails when an expression selects it, and then the failure names the
-field and its value: `'n' is 4294967295, which is outside the 32-bit range that layout expressions support.`
-The same diagnostic applies when `?:`, `&&`, or `||` selects that field. An unselected operand is not evaluated.
+### Example: follow a pointer only when it is set
 
-For example, consider this little-endian layout:
+A linked list in a memory dump often stores the next node's address as a 64-bit number, with zero meaning "no next
+node". This layout reads a payload only after a nonzero `next`:
 
 ```c
-struct root { uint32 count; uint8 items[1 ? count : 0]; };
+struct node {
+    uint64 next;
+    if (next != 0) {
+        uint32 payload;
+    }
+};
 ```
 
-The bytes `00 00 00 80` place `count` at offset 0 with value `2147483648`. That is a valid `uint32`, but it exceeds
-the signed 32-bit limit for array lengths. Reading fails before `items`, with the field name and value in the
-diagnostic. Using `0 ? count : 0` instead selects zero: the same four bytes produce an empty `items` array.
+With little-endian input `00 10 00 00 00 80 FF FF EF BE AD DE`, `next` sits at offset 0 and holds
+18446603336221200384 (`0xFFFF800000001000`). The condition is true, so `payload` is read at offset 4 + 4 = 8 and
+holds 3735928559 (`0xDEADBEEF`). The node is 12 bytes. With `next` equal to zero (`00 00 00 00 00 00 00 00`), the
+condition is false, `payload` is absent, and the node is 8 bytes. Writing and updating evaluate the same condition
+on the value being written, so both produce these same bytes.
+
+### Each use checks its own range
+
+The expression range is wider than most places a result can go. Each place checks the final value where it uses it,
+and the failure names that value:
+
+| Use | Accepted values | Failure for a larger value |
+| --- | --- | --- |
+| Array length or `@count` read from data | 0 through `MaxArrayElements` | `Array length 2147483648 exceeds MaxArrayElements (1000000).` |
+| Fixed array length, typedef shape, bit width, `@align`, `@N` | a signed 32-bit integer (then each rule's own limits) | `The array length for data is 4294967296, which does not fit in a signed 32-bit integer.` |
+| `if` condition | any value; nonzero is true | none |
+| `switch` selector and `case` labels | any value in the range | none |
+
+For example, in `struct root { uint32 count; uint8 items[count]; };` the bytes `00 00 00 80` give `count` the
+valid `uint32` value 2147483648. The count is exact, so the read fails at `items` with the element limit and that
+number, not with a negative length. A `switch (tag)` on a `uint64` tag can match `case 0xFFFFFFFFFFFFFFFF:`.
+
+### Values outside the range
+
+A `uint128` field at or above 2^127 is still read normally. It only fails when an expression selects it, and then
+the failure names the field and its value:
+`'n' is 170141183460469231731687303715884105728, which is outside the 128-bit range that layout expressions support.`
+The same diagnostic applies when `?:`, `&&`, or `||` selects that field. An unselected operand is not evaluated:
+`0 ? n : 0` is zero whatever `n` holds.
 
 ## Enum expressions use the full backing range
 
-An enum may use signed or unsigned 8-, 16-, 32-, or 64-bit backing storage. Its member expressions therefore use
-exact `BigInteger` arithmetic and are checked against that declared range rather than the ordinary `Int32` range.
+An enum may use signed or unsigned 8-, 16-, 32-, or 64-bit backing storage. Its member expressions use exact
+`BigInteger` arithmetic and are checked against that declared range. Every member value fits the 128-bit expression
+range, so an ordinary expression can use any member, such as `case big.High:` for a `uint64` member above 2^63.
 
 ```c
 enum state : uint8 {
@@ -180,9 +214,9 @@ inputs: `#define MAGIC "CD001"` (text), `#define RAW b"\x00\x01"` (bytes), `#def
 `#define SZ(x) ((x) + 1)` (a function-like macro kept as text, never expanded), and any line whose value is not an
 integer expression at all (kept as text, as dissect keeps it). `CStruct.Constants` publishes every define by name
 as a `LayoutConstant` whose `Kind` says which form it was; an integer define that could be evaluated without caller
-variables is published as `Integer` - with its exact value even beyond the 32-bit expression domain, so a header's
-`(1 << 63)` masks are published - and one that depends on a variable as `Expression`. Using a non-integer constant,
-or a value outside the 32-bit domain, in a count is a layout error; a define that names an unknown identifier and is
+variables is published as `Integer` - with its exact value, even one beyond the 128-bit expression range such as
+`(1 << 127)` - and one that depends on a variable as `Expression`. Using a non-integer constant in a count, or a value
+outside the 128-bit range in any expression, is a layout error; a define that names an unknown identifier and is
 never used is not (a compiler ignores an unused macro too). `#ifdef`/`#ifndef` test whether a name has been defined
 by any form so far, or listed in `CStructCompilationOptions.Defined`.
 

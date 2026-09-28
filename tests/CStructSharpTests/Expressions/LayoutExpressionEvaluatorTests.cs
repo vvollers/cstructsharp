@@ -27,7 +27,7 @@ public class LayoutExpressionEvaluatorTests
     {
         LayoutExpressionEvaluator evaluator = CreateEvaluator();
 
-        int result = evaluator.Evaluate(new Literal(7), new Dictionary<string, Expr>(), "test");
+        Int128 result = evaluator.Evaluate(new Literal(7), new Dictionary<string, Expr>(), "test");
 
         Assert.AreEqual(7, result);
     }
@@ -39,7 +39,7 @@ public class LayoutExpressionEvaluatorTests
         LayoutExpressionEvaluator evaluator = CreateEvaluator();
         var variables = new Dictionary<string, Expr> { ["count"] = new Literal(3), };
 
-        int result = evaluator.Evaluate(new Identifier("count"), variables, "test");
+        Int128 result = evaluator.Evaluate(new Identifier("count"), variables, "test");
 
         Assert.AreEqual(3, result);
     }

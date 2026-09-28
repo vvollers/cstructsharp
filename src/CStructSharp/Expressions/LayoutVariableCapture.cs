@@ -12,8 +12,9 @@ using CStructSharp.Values;
 ///     writer and path resolver:
 ///     <list type="bullet">
 ///         <item>An integer field's value - an integer, a character's code, <c>bool</c> as 1 or 0, an enum's number, a
-///         pointer's stored address - becomes an ordinary literal inside the Int32 expression domain, and outside it a
-///         variable that fails with the exact number when an expression uses it (<see cref="WideValueVariable"/>).</item>
+///         pointer's stored address - becomes an exact literal inside the signed 128-bit expression domain (every
+///         integer up to 64 bits fits), and outside it (an unsigned 128-bit value at or above 2^127) a variable that
+///         fails with the exact number when an expression uses it (<see cref="WideValueVariable"/>).</item>
 ///         <item>A field that is not an integer (text, an array, a struct, a floating-point value, ...) makes the name
 ///         unusable (<see cref="NotANumberVariable"/>): layout construction already rejects a name only such fields
 ///         supply, so this covers a name a numeric field or a definition shares.</item>
@@ -61,41 +62,46 @@ internal static class LayoutVariableCapture
     /// <returns>The expression, or <see langword="null"/>.</returns>
     public static Expr? ToExpression(object? value)
     {
-        value = value switch
+        // A pointer's address and an enum's number are unwrapped without boxing them again.
+        Int128 captured;
+        bool converted = value switch
         {
-            Pointer pointer => pointer.Address,
-            EnumValueResult enumValue => enumValue.Value,
-            bool flag => flag ? 1 : 0,
-            _ => value,
+            Pointer pointer => Converted(pointer.Address, out captured),
+            EnumValueResult enumValue => ExpressionValueCapture.TryFromBigInteger(enumValue.Value, out captured),
+            _ => ExpressionValueCapture.TryConvert(value, out captured),
         };
-
-        // An enum's number is a BigInteger, which the general Int32 conversion does not know.
-        if (value is BigInteger big && big >= int.MinValue && big <= int.MaxValue)
-        {
-            return SmallLiteral((int)big) ?? new Literal((int)big);
-        }
-
-        if (Int32Capture.TryConvert(value, out int captured))
+        if (converted)
         {
             return SmallLiteral(captured) ?? new Literal(captured);
         }
 
-        return value is uint or long or ulong or Int128 or UInt128 or BigInteger
-                   ? new WideValueVariable(value)
+        object? wide = value is EnumValueResult result ? result.Value : value;
+        return wide is UInt128 or BigInteger
+                   ? new WideValueVariable(wide)
                    : null;
+    }
+
+    /// <summary>Stores a value that is already in the domain.</summary>
+    /// <param name="value">The value.</param>
+    /// <param name="result">Receives <paramref name="value"/>.</param>
+    /// <returns>Always <see langword="true"/>.</returns>
+    private static bool Converted(long value, out Int128 result)
+    {
+        result = value;
+        return true;
     }
 
     /// <summary>The shared literal of a value in the cached range (-128 to 1023), or <see langword="null"/> outside it.</summary>
     /// <param name="value">The captured value.</param>
     /// <returns>The literal, created on first use (a benign race may create two equal ones), or <see langword="null"/>.</returns>
-    private static Literal? SmallLiteral(int value)
+    private static Literal? SmallLiteral(Int128 value)
     {
-        int index = value - SmallestCached;
-        if ((uint)index >= (uint)SmallLiterals.Length)
+        if (value < SmallestCached || value >= SmallestCached + SmallLiterals.Length)
         {
             return null;
         }
 
+        int index = (int)value - SmallestCached;
         return SmallLiterals[index] ??= new Literal(value);
     }
 }

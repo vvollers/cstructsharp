@@ -10,8 +10,9 @@ public class SwitchDiagnosticBoundaryTests
     /// <param name="cases">The invalid switch arms.</param>
     /// <param name="reason">The expected explanation of the invalid labels.</param>
     [TestMethod]
-    [DataRow("case (2147483647+1): {}", "Cannot evaluate switch case constant:")]
+    [DataRow("case (170141183460469231731687303715884105727+1): {}", "Cannot evaluate switch case constant: the result is outside the 128-bit range")]
     [DataRow("case 2: {} case (1+1): {}", "Duplicate switch case value: 2")]
+    [DataRow("case 0xFFFFFFFF: {} case (4294967294+1): {}", "Duplicate switch case value: 4294967295")]
     public void InvalidLabels_ReportTheirStaticRestriction(string cases, string reason)
     {
         string definition = "struct root { uint8 tag; switch (tag) { " + cases + " } };";

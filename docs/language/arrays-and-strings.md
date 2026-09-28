@@ -17,7 +17,9 @@ Variable-size elements, such as terminated strings, are measured sequentially in
 
 ## Fixed arrays
 
-`T field[expression];` declares an array whose expression must become a non-negative `Int32`.
+`T field[expression];` declares an array whose expression must become a non-negative count. The expression is
+evaluated with exact 128-bit integers; a fixed count must then fit a signed 32-bit integer, and a count read from the
+data must be at most `MaxArrayElements`.
 
 ```c
 struct root {

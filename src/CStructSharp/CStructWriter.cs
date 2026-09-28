@@ -678,7 +678,8 @@ public sealed partial class CStruct
             return 1;
         }
 
-        int count;
+        // The count is checked in the expression domain, so a count beyond Int32 fails the limit check instead of wrapping.
+        Int128 count;
         if (compiledField.Array.Dimensions.Length > 1)
         {
             // Every dimension of a multidimensional array is fixed, so the total leaf count is known without evaluating
@@ -706,7 +707,7 @@ public sealed partial class CStruct
             throw new CStructWriteLimitException(WriteFailures.ArrayLengthLimit(compiledField.Name));
         }
 
-        return count;
+        return (int)count;
     }
 
     /// <summary>

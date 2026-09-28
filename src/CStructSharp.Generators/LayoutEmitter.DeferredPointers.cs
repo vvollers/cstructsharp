@@ -153,15 +153,7 @@ internal sealed partial class LayoutEmitter
     {
         CompiledArrayShape elements = field.PointerElements!;
         writer.Line("int count;");
-        this.EmitExpression(writer, elements.CountExpression!, scope, "count", "pointer element count for " + field.Name, member, memberType, "int");
-        if (!ExpressionEmitter.IsInt32Literal(elements.CountExpression!))
-        {
-            writer.Open("if (count < 0)");
-            writer.Line("throw cursor.Fail(" + SourceWriter.Literal(LayoutFailures.NegativeArrayLength(field.Name)) + ", " + member + ", " + memberType + ");");
-            writer.Close();
-        }
-
-        writer.Line("cursor.RequireArrayLength(count, " + member + ", " + memberType + ");");
+        this.EmitCount(writer, field.Name, elements.CountExpression!, scope, "pointer element count for " + field.Name, member, memberType, validatedCountIsReturned: true);
     }
 
     /// <summary>One pointer field a struct reader defers, with the locals and expressions its follow uses.</summary>

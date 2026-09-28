@@ -52,7 +52,7 @@ internal sealed class ReaderScope
     /// <param name="access">The C# expression that reads the member's value in the generated code.</param>
     public void Publish(GeneratedMember member, string access)
     {
-        string? expression = AsInt32Operand(member, access);
+        string? expression = AsOperand(member, access);
         if (expression is not null)
         {
             this.visible[member.LayoutName] = expression;
@@ -80,7 +80,7 @@ internal sealed class ReaderScope
         foreach (GeneratedMember inner in nested.Members)
         {
             string innerAccess = access + "." + inner.PropertyName;
-            string? qualified = AsInt32Operand(inner, innerAccess);
+            string? qualified = AsOperand(inner, innerAccess);
             if (qualified is not null)
             {
                 if (guard is not null)
@@ -116,13 +116,16 @@ internal sealed class ReaderScope
     }
 
     /// <summary>
-    ///     The Int32 operand for a member: an integer member widened and range-checked, a pointer's address, a bool as
-    ///     0/1. A member that is not an integer and that an expression names (the name is shared with an integer
-    ///     member) fails when used, as the runtime's capture does; any other member is not an operand.
+    ///     The expression operand for a member, in the 128-bit domain: an integer member widened exactly, a pointer's
+    ///     address, a bool as 0/1. A member that is not an integer and that an expression names (the name is shared
+    ///     with an integer member) fails when used, as the runtime's capture does; any other member is not an operand.
     /// </summary>
-    private static string? AsInt32Operand(GeneratedMember member, string access)
+    /// <param name="member">The generated member.</param>
+    /// <param name="access">The C# expression that reads the member's value.</param>
+    /// <returns>The C# operand, or <see langword="null"/> when the member is not an operand.</returns>
+    private static string? AsOperand(GeneratedMember member, string access)
     {
-        string? operand = Int32Operand(member, access);
+        string? operand = DomainOperand(member, access);
         if (operand is null && member.Field.CapturesLayoutVariable && member.Field.NotANumberReason is { } reason)
         {
             operand = "global::CStructSharp.Generated.Expressions.NotAnInteger(" + SourceWriter.Literal(member.LayoutName) + ", " + SourceWriter.Literal(reason) + ")";
@@ -141,9 +144,18 @@ internal sealed class ReaderScope
     private static string FlagAccess(GeneratedMember member, string access)
         => access.Substring(0, access.Length - member.PropertyName.Length) + member.HasFlagName;
 
-    /// <summary>The Int32 operand of an integer scalar member (an integer, character, bool, enum or pointer), or <see langword="null"/> for any other member.</summary>
-    private static string? Int32Operand(GeneratedMember member, string access)
+    /// <summary>
+    ///     The operand of an integer scalar member (an integer, character, bool, enum or pointer) as an exact
+    ///     <see cref="System.Int128"/>, or <see langword="null"/> for any other member. Every width up to 64 bits (a
+    ///     pointer address included) widens exactly; an unsigned 128-bit member fails at its use when it is above the
+    ///     signed range, as the runtime's capture does.
+    /// </summary>
+    /// <param name="member">The generated member.</param>
+    /// <param name="access">The C# expression that reads the member's value.</param>
+    /// <returns>The C# operand, or <see langword="null"/>.</returns>
+    private static string? DomainOperand(GeneratedMember member, string access)
     {
+        const string Wide = "(global::System.Int128)";
         CompiledField field = member.Field;
         string name = SourceWriter.Literal(member.LayoutName);
         if (field.Array.Kind != CompiledArrayKind.Scalar || field.Composite is not null)
@@ -153,23 +165,24 @@ internal sealed class ReaderScope
 
         if (field.PointerDepth > 0)
         {
-            return "global::CStructSharp.Generated.Expressions.RequireInt32(" + access + ".Address, " + name + ")";
+            return "(" + Wide + access + ".Address)";
         }
 
         if (member.Enum is not null)
         {
-            return "global::CStructSharp.Generated.Expressions.RequireInt32((long)(" + member.Enum.UnderlyingType + ")" + access + ", " + name + ")";
+            // The enum's backing integer, not the C# enum type, widens: a ulong-backed member above 2^63 stays exact.
+            return "(" + Wide + "(" + member.Enum.UnderlyingType + ")" + access + ")";
         }
 
         return field.Codec.Kind switch
         {
             PrimitiveCodecKind.Bool => "(" + access + " ? 1 : 0)",
-            PrimitiveCodecKind.UInt64 or PrimitiveCodecKind.ULeb128_64 or PrimitiveCodecKind.UInt48 => "global::CStructSharp.Generated.Expressions.RequireInt32((ulong)" + access + ", " + name + ")",
-            PrimitiveCodecKind.Int128 => "global::CStructSharp.Generated.Expressions.RequireInt32Wide((global::System.Int128)" + access + ", " + name + ")",
-            PrimitiveCodecKind.UInt128 => "global::CStructSharp.Generated.Expressions.RequireInt32Wide((global::System.UInt128)" + access + ", " + name + ")",
-            PrimitiveCodecKind.UInt8 or PrimitiveCodecKind.Int8 or PrimitiveCodecKind.Char or PrimitiveCodecKind.WChar or PrimitiveCodecKind.Latin1 or PrimitiveCodecKind.Cp437 or PrimitiveCodecKind.Utf8Unit or PrimitiveCodecKind.Utf16LeUnit or PrimitiveCodecKind.Utf16BeUnit
+            PrimitiveCodecKind.UInt64 or PrimitiveCodecKind.ULeb128_64 or PrimitiveCodecKind.UInt48 => "(" + Wide + "(ulong)" + access + ")",
+            PrimitiveCodecKind.UInt128 => "global::CStructSharp.Generated.Expressions.FromUInt128((global::System.UInt128)" + access + ", " + name + ")",
+            PrimitiveCodecKind.Int128
+                or PrimitiveCodecKind.UInt8 or PrimitiveCodecKind.Int8 or PrimitiveCodecKind.Char or PrimitiveCodecKind.WChar or PrimitiveCodecKind.Latin1 or PrimitiveCodecKind.Cp437 or PrimitiveCodecKind.Utf8Unit or PrimitiveCodecKind.Utf16LeUnit or PrimitiveCodecKind.Utf16BeUnit
                 or PrimitiveCodecKind.Int16 or PrimitiveCodecKind.UInt16 or PrimitiveCodecKind.Int24 or PrimitiveCodecKind.UInt24 or PrimitiveCodecKind.Int32 or PrimitiveCodecKind.UInt32 or PrimitiveCodecKind.Int48 or PrimitiveCodecKind.Int64
-                or PrimitiveCodecKind.ULeb128_32 or PrimitiveCodecKind.SLeb128_32 or PrimitiveCodecKind.SLeb128_64 => "global::CStructSharp.Generated.Expressions.RequireInt32((long)" + access + ", " + name + ")",
+                or PrimitiveCodecKind.ULeb128_32 or PrimitiveCodecKind.SLeb128_32 or PrimitiveCodecKind.SLeb128_64 => "(" + Wide + access + ")",
             _ => null,
         };
     }

@@ -3,6 +3,7 @@ namespace CStructSharp.Compilation;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Linq;
 using System.Numerics;
 using CStructSharp;
@@ -138,7 +139,7 @@ internal sealed partial class LayoutCompilation
         return new Typedef(typedef.Name, typedef.Type) { ArrayShape = this.EvaluateTypedefShape(typedef), TypeKeywordHint = typedef.TypeKeywordHint, };
     }
 
-    /// <summary>Validates every alias dimension as a nonnegative Int32 count, including literal and unused aliases.</summary>
+    /// <summary>Validates every alias dimension as a nonnegative count that fits an Int32, including literal and unused aliases.</summary>
     /// <param name="typedef">The alias whose fixed dimensions are evaluated against static layout variables.</param>
     /// <returns>One validated literal count per dimension, in declaration order.</returns>
     /// <exception cref="CStructLayoutException">A dimension is negative, outside Int32, or not a valid static expression.</exception>
@@ -149,16 +150,14 @@ internal sealed partial class LayoutCompilation
         {
             Expr dimension = typedef.ArrayShape[index];
             this.expressionEvaluator.Compile(dimension);
-            int count = this.layoutExpressionEvaluator.Evaluate(
-                dimension,
-                this.staticLayoutVariables,
-                "array length for typedef " + typedef.Name.Name);
+            string context = "array length for typedef " + typedef.Name.Name;
+            Int128 count = this.layoutExpressionEvaluator.Evaluate(dimension, this.staticLayoutVariables, context);
             if (count < 0)
             {
                 throw new CStructLayoutException(LayoutFailures.NegativeArrayLength(typedef.Name.Name));
             }
 
-            dimensions[index] = new Literal(count);
+            dimensions[index] = new Literal(LayoutExpressionEvaluator.RequireInt32(count, context, ExpressionFailureDomain.Layout));
         }
 
         return dimensions;
@@ -251,7 +250,7 @@ internal sealed partial class LayoutCompilation
             codec.Maximum);
     }
 
-    /// <summary>Finds the complete definition closure that an enum may evaluate outside the Int32 domain.</summary>
+    /// <summary>Finds the complete definition closure that an enum may evaluate outside the 128-bit domain.</summary>
     private HashSet<string> FindExactEnumDefinitionDependencies(
         IReadOnlyList<CStructElement> declarations,
         IReadOnlyList<Defines> definitions)
@@ -333,14 +332,15 @@ internal sealed partial class LayoutCompilation
                 copiedConstants = true;
             }
 
-            var values = new HashSet<int>();
+            // Case labels use the whole expression domain, so a label such as 0xFFFFFFFFFFFFFFFF matches a uint64 tag.
+            var values = new HashSet<Int128>();
             foreach (Expr tag in group.CaseLabels)
             {
-                int value = this.layoutExpressionEvaluator.Evaluate(
+                Int128 value = this.layoutExpressionEvaluator.Evaluate(
                     tag, this.staticLayoutVariables, "switch case constant");
                 if (!values.Add(value))
                 {
-                    throw new CStructLayoutException("Duplicate switch case value: " + value);
+                    throw new CStructLayoutException("Duplicate switch case value: " + value.ToString(CultureInfo.InvariantCulture));
                 }
 
                 caseConstants!.Add(tag, new Literal(value));
@@ -370,30 +370,32 @@ internal sealed partial class LayoutCompilation
                 this.RejectNonIntegerConstants(dimension, field.Name.Name);
                 if (this.expressionEvaluator.GetDependencies(dimension).All(this.staticLayoutVariables.ContainsKey))
                 {
-                    int count = this.layoutExpressionEvaluator.Evaluate(
-                        dimension,
-                        this.staticLayoutVariables,
-                        "array length for " + field.Name.Name);
+                    string context = "array length for " + field.Name.Name;
+                    Int128 count = this.layoutExpressionEvaluator.Evaluate(dimension, this.staticLayoutVariables, context);
                     if (count < 0)
                     {
                         throw new CStructLayoutException(LayoutFailures.NegativeArrayLength(field.Name.Name));
                     }
+
+                    _ = LayoutExpressionEvaluator.RequireInt32(count, context, ExpressionFailureDomain.Layout);
                 }
             }
 
             int bitSize = 0;
             if (!ReferenceEquals(field.BitSizeExpression, NoneExpr.Instance))
             {
-                bitSize = this.layoutExpressionEvaluator.Evaluate(
-                    field.BitSizeExpression,
-                    this.staticLayoutVariables,
-                    "bitfield width for " + field.Name.Name);
-                if (bitSize < 0 || (bitSize == 0 && field.Name.Name.Length > 0))
+                string context = "bitfield width for " + field.Name.Name;
+                Int128 width = this.layoutExpressionEvaluator.Evaluate(field.BitSizeExpression, this.staticLayoutVariables, context);
+                if (width < 0)
+                {
+                    throw new CStructLayoutException("Bitfield width cannot be negative: " + field.Name.Name);
+                }
+
+                bitSize = LayoutExpressionEvaluator.RequireInt32(width, context, ExpressionFailureDomain.Layout);
+                if (bitSize == 0 && field.Name.Name.Length > 0)
                 {
                     throw new CStructLayoutException(
-                        bitSize < 0
-                            ? "Bitfield width cannot be negative: " + field.Name.Name
-                            : "Bitfield width must be greater than zero (only an unnamed ': 0' separator may be zero): " + field.Name.Name);
+                        "Bitfield width must be greater than zero (only an unnamed ': 0' separator may be zero): " + field.Name.Name);
                 }
             }
 

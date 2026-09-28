@@ -1,64 +1,96 @@
 namespace CStructSharp.Syntax;
 
-using System.Collections.Generic;
+using System;
+using System.Globalization;
 using System.Numerics;
 
-/// <summary>Represents a number written directly in a layout expression.</summary>
+/// <summary>
+///     Represents a number written directly in a layout expression, or a value (a field's, a constant's) that an
+///     operation stores as one. A literal is its exact mathematical value: <c>0xFFFFFFFF</c> is 4294967295. Values
+///     inside the signed 128-bit expression domain are held as an <see cref="Int128"/> so evaluation reads them
+///     without conversion; a larger value (an unsigned 128-bit enum member, say) keeps its exact value for enum and
+///     constant evaluation and fails when an ordinary expression uses it.
+/// </summary>
 internal class Literal : Expr
 {
-    private readonly BigInteger int32Projection;
+    private static readonly BigInteger DomainMinimum = (BigInteger)Int128.MinValue;
+    private static readonly BigInteger DomainMaximum = (BigInteger)Int128.MaxValue;
 
-    /// <summary>Creates a fixed numeric expression.</summary>
-    /// <param name="value">The number; its exact value and its Int32 value are the same.</param>
-    public Literal(int value)
-        : this(new BigInteger(value))
+    private readonly Int128 value;
+    private readonly BigInteger? outsideDomain;
+
+    /// <summary>Creates a literal inside the expression domain.</summary>
+    /// <param name="value">The value.</param>
+    public Literal(Int128 value)
     {
+        this.value = value;
     }
 
-    /// <summary>Creates an exact integer literal; layout-expression evaluation remains checked to Int32.</summary>
-    /// <param name="value">The exact integer, used unchanged for both exact and Int32 evaluation.</param>
+    /// <summary>Creates a literal from an exact integer of any size.</summary>
+    /// <param name="value">
+    ///     The exact integer; one outside the signed 128-bit range is kept exactly but cannot be used by an ordinary
+    ///     expression.
+    /// </param>
     public Literal(BigInteger value)
-        : this(value, value)
     {
-    }
-
-    /// <summary>Creates a parsed literal with separate exact and traditional Int32 expression interpretations.</summary>
-    /// <param name="exactValue">
-    ///     The mathematical integer the literal spells, used by width-aware enum evaluation.
-    /// </param>
-    /// <param name="int32Projection">
-    ///     The value ordinary Int32 expressions use: for a <c>0x</c>/<c>0b</c>/<c>0o</c> literal up to 32 bits, the
-    ///     two's-complement reinterpretation of its bits (<c>0xFFFFFFFF</c> is -1); otherwise
-    ///     <paramref name="exactValue"/>.
-    /// </param>
-    internal Literal(BigInteger exactValue, BigInteger int32Projection)
-    {
-        this.ExactValue = exactValue;
-        this.int32Projection = int32Projection;
+        if (value >= DomainMinimum && value <= DomainMaximum)
+        {
+            this.value = (Int128)value;
+        }
+        else
+        {
+            this.outsideDomain = value;
+        }
     }
 
     /// <summary>Gets the exact mathematical integer represented by this literal.</summary>
-    public BigInteger ExactValue { get; }
+    public BigInteger ExactValue => this.outsideDomain ?? (BigInteger)this.value;
 
-    /// <summary>Gets the literal as an Int32, throwing <see cref="OverflowException"/> when it lies outside that range.</summary>
-    public int Value => checked((int)this.int32Projection);
+    /// <summary>Gets a value indicating whether the literal lies inside the signed 128-bit expression domain.</summary>
+    public bool IsInDomain => !this.outsideDomain.HasValue;
 
-    /// <summary>Gets the value consumed by ordinary checked Int32 layout expressions.</summary>
-    internal BigInteger Int32Projection => this.int32Projection;
+    /// <summary>Gets the literal's value in the expression domain.</summary>
+    /// <exception cref="InvalidOperationException">The literal lies outside the signed 128-bit range.</exception>
+    public Int128 Value => this.outsideDomain.HasValue ? throw new InvalidOperationException(this.DescribeOutsideDomain()) : this.value;
+
+    /// <summary>The text an expression fails with when it uses a literal outside the domain.</summary>
+    /// <param name="value">The literal's exact value in invariant decimal digits.</param>
+    /// <returns>A message naming the literal's value.</returns>
+    public static string DescribeOutsideDomain(string value)
+        => "The literal " + value + " is outside the 128-bit range that layout expressions support.";
+
+    /// <summary>The text an expression fails with when it uses this literal although it is outside the domain.</summary>
+    /// <returns>A message naming the literal's exact value.</returns>
+    public string DescribeOutsideDomain() => DescribeOutsideDomain(this.ExactValue.ToString(CultureInfo.InvariantCulture));
+
+    /// <summary>Gets the literal as an <see cref="int"/> when it fits one.</summary>
+    /// <param name="result">The value on success; otherwise 0.</param>
+    /// <returns><see langword="true"/> when the literal lies within the signed 32-bit range.</returns>
+    public bool TryGetInt32(out int result)
+    {
+        if (!this.outsideDomain.HasValue && this.value >= int.MinValue && this.value <= int.MaxValue)
+        {
+            result = (int)this.value;
+            return true;
+        }
+
+        result = 0;
+        return false;
+    }
 
     /// <summary>Checks whether another value represents the same layout data.</summary>
     /// <param name="other">The expression to compare with.</param>
     /// <returns><see langword="true"/> when <paramref name="other"/> is a literal with the same exact value.</returns>
     public override bool Equals(Expr? other)
     {
-        return other is Literal literal && this.ExactValue == literal.ExactValue;
+        return other is Literal literal && this.outsideDomain == literal.outsideDomain && this.value == literal.value;
     }
 
     /// <summary>Returns a hash code that matches this value's equality rules.</summary>
     /// <returns>The hash of the exact value.</returns>
     public override int GetHashCode()
     {
-        return this.ExactValue.GetHashCode();
+        return this.outsideDomain?.GetHashCode() ?? this.value.GetHashCode();
     }
 
     /// <summary>Returns a short readable description for debugging and logs.</summary>

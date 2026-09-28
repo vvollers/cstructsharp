@@ -868,19 +868,20 @@ namespace Demo
             {
                 cursor.Seek(placement.AdvanceToField(1), "x", "uint8");
                 int count;
+                global::System.Int128 countValue;
                 try
                 {
-                    count = global::CStructSharp.Generated.Expressions.Modulo(global::CStructSharp.Generated.Expressions.Variable(variables, "kind.B", 5), 4);
+                    countValue = global::CStructSharp.Generated.Expressions.Modulo(global::CStructSharp.Generated.Expressions.Variable(variables, "kind.B", 5), 4);
                 }
                 catch (global::System.Exception expressionFailure)
                 {
                     throw cursor.FailExpression(expressionFailure, "array length for x", "x", "uint8");
                 }
-                if (count < 0)
+                if (countValue < 0)
                 {
                     throw cursor.Fail("Array length cannot be negative: x", "x", "uint8");
                 }
-                cursor.RequireArrayLength(count, "x", "uint8");
+                count = cursor.RequireArrayLength(countValue, "x", "uint8");
                 var elements = new byte[count];
                 if (count > 0)
                 {
@@ -894,19 +895,20 @@ namespace Demo
             {
                 cursor.Seek(placement.AdvanceToField(1), "y", "uint8");
                 int count;
+                global::System.Int128 countValue;
                 try
                 {
-                    count = ((6) != 0 ? (4) : (9));
+                    countValue = ((6) != 0 ? (4) : (9));
                 }
                 catch (global::System.Exception expressionFailure)
                 {
                     throw cursor.FailExpression(expressionFailure, "array length for y", "y", "uint8");
                 }
-                if (count < 0)
+                if (countValue < 0)
                 {
                     throw cursor.Fail("Array length cannot be negative: y", "y", "uint8");
                 }
-                cursor.RequireArrayLength(count, "y", "uint8");
+                count = cursor.RequireArrayLength(countValue, "y", "uint8");
                 var elements = new byte[count];
                 if (count > 0)
                 {
@@ -1183,19 +1185,21 @@ namespace Demo
                     throw cursor.Fail("Null is valid only for a scalar pointer field: x", "x", "uint8");
                 }
                 int count;
+                global::System.Int128 countValue;
                 try
                 {
-                    count = global::CStructSharp.Generated.Expressions.Modulo(global::CStructSharp.Generated.Expressions.Variable(variables, "kind.B", 5), 4);
+                    countValue = global::CStructSharp.Generated.Expressions.Modulo(global::CStructSharp.Generated.Expressions.Variable(variables, "kind.B", 5), 4);
                 }
                 catch (global::System.Exception expressionFailure)
                 {
                     throw cursor.FailExpression(expressionFailure, "array length for x", "x", "uint8");
                 }
-                if (count < 0)
+                if (countValue < 0)
                 {
                     throw cursor.Fail("Array length cannot be negative: x", "x", "uint8");
                 }
-                cursor.RequireArrayLength(count, "x", "uint8");
+                cursor.RequireArrayLength(countValue, "x", "uint8");
+                count = (int)countValue;
                 if (value.X.Length > count)
                 {
                     throw cursor.FailArrayTooMany("x", count, "x", "uint8");
@@ -1219,19 +1223,21 @@ namespace Demo
                     throw cursor.Fail("Null is valid only for a scalar pointer field: y", "y", "uint8");
                 }
                 int count;
+                global::System.Int128 countValue;
                 try
                 {
-                    count = ((6) != 0 ? (4) : (9));
+                    countValue = ((6) != 0 ? (4) : (9));
                 }
                 catch (global::System.Exception expressionFailure)
                 {
                     throw cursor.FailExpression(expressionFailure, "array length for y", "y", "uint8");
                 }
-                if (count < 0)
+                if (countValue < 0)
                 {
                     throw cursor.Fail("Array length cannot be negative: y", "y", "uint8");
                 }
-                cursor.RequireArrayLength(count, "y", "uint8");
+                cursor.RequireArrayLength(countValue, "y", "uint8");
+                count = (int)countValue;
                 if (value.Y.Length > count)
                 {
                     throw cursor.FailArrayTooMany("y", count, "y", "uint8");

@@ -1,13 +1,16 @@
 namespace CStructSharp.Generated;
 
 using System;
-using System.Globalization;
+using System.Collections.Generic;
 using CStructSharp.Expressions;
+using CStructSharp.Syntax;
 
 /// <summary>
-///     The layout expression operators as generated code evaluates them: the signed-Int32 semantics of the runtime's
-///     <c>ExpressionEvaluator</c> (checked <c>+ - *</c> and negation, unmasked shift counts, comparisons and logic
-///     that yield 0 or 1), in one place shared with the runtime.
+///     The layout expression operators as generated code evaluates them: the signed 128-bit semantics of the runtime's
+///     <c>ExpressionEvaluator</c> (checked <c>+ - *</c> and negation, unmasked shift counts from 0 to 127, comparisons
+///     and logic that yield 0 or 1), in one place shared with the runtime. Every integer member up to 64 bits, a
+///     pointer's address, a <c>bool</c> and a character widen into <see cref="Int128"/> exactly; an unsigned 128-bit
+///     member goes through <see cref="FromUInt128"/>.
 /// </summary>
 /// <remarks>
 ///     This is an advanced surface, public so the code the <c>[CStructLayout]</c> generator emits can call it.
@@ -17,190 +20,155 @@ public static class Expressions
     /// <summary>Checked addition.</summary>
     /// <param name="left">The left operand.</param>
     /// <param name="right">The right operand.</param>
-    /// <returns>The operator result.</returns>
-    public static int Add(int left, int right) => ExpressionArithmetic.Add(left, right);
+    /// <returns>The sum.</returns>
+    /// <exception cref="OverflowException">The sum is outside the signed 128-bit range.</exception>
+    public static Int128 Add(Int128 left, Int128 right) => ExpressionArithmetic.Add(left, right);
 
     /// <summary>Checked subtraction.</summary>
     /// <param name="left">The left operand.</param>
     /// <param name="right">The right operand.</param>
-    /// <returns>The operator result.</returns>
-    public static int Subtract(int left, int right) => ExpressionArithmetic.Subtract(left, right);
+    /// <returns>The difference.</returns>
+    /// <exception cref="OverflowException">The difference is outside the signed 128-bit range.</exception>
+    public static Int128 Subtract(Int128 left, Int128 right) => ExpressionArithmetic.Subtract(left, right);
 
     /// <summary>Checked multiplication.</summary>
     /// <param name="left">The left operand.</param>
     /// <param name="right">The right operand.</param>
-    /// <returns>The operator result.</returns>
-    public static int Multiply(int left, int right) => ExpressionArithmetic.Multiply(left, right);
+    /// <returns>The product.</returns>
+    /// <exception cref="OverflowException">The product is outside the signed 128-bit range.</exception>
+    public static Int128 Multiply(Int128 left, Int128 right) => ExpressionArithmetic.Multiply(left, right);
 
-    /// <summary>Integer division; a zero divisor raises <see cref="DivideByZeroException"/>.</summary>
-    /// <param name="left">The left operand.</param>
-    /// <param name="right">The right operand.</param>
-    /// <returns>The operator result.</returns>
-    public static int Divide(int left, int right) => ExpressionArithmetic.Divide(left, right);
+    /// <summary>Integer division, truncating toward zero.</summary>
+    /// <param name="left">The dividend.</param>
+    /// <param name="right">The divisor.</param>
+    /// <returns>The quotient.</returns>
+    /// <exception cref="DivideByZeroException"><paramref name="right"/> is 0.</exception>
+    /// <exception cref="OverflowException">The quotient of <see cref="Int128.MinValue"/> and -1 is outside the range.</exception>
+    public static Int128 Divide(Int128 left, Int128 right) => ExpressionArithmetic.Divide(left, right);
 
-    /// <summary>Integer remainder; a zero divisor raises <see cref="DivideByZeroException"/>.</summary>
-    /// <param name="left">The left operand.</param>
-    /// <param name="right">The right operand.</param>
-    /// <returns>The operator result.</returns>
-    public static int Modulo(int left, int right) => ExpressionArithmetic.Modulo(left, right);
+    /// <summary>Integer remainder, whose sign follows the dividend.</summary>
+    /// <param name="left">The dividend.</param>
+    /// <param name="right">The divisor.</param>
+    /// <returns>The remainder.</returns>
+    /// <exception cref="DivideByZeroException"><paramref name="right"/> is 0.</exception>
+    /// <exception cref="OverflowException"><paramref name="left"/> is <see cref="Int128.MinValue"/> and <paramref name="right"/> is -1.</exception>
+    public static Int128 Modulo(Int128 left, Int128 right) => ExpressionArithmetic.Modulo(left, right);
 
     /// <summary>Checked negation.</summary>
     /// <param name="value">The operand.</param>
-    /// <returns>The operator result.</returns>
-    public static int Negate(int value) => ExpressionArithmetic.Negate(value);
+    /// <returns>The negated value.</returns>
+    /// <exception cref="OverflowException"><paramref name="value"/> is <see cref="Int128.MinValue"/>.</exception>
+    public static Int128 Negate(Int128 value) => ExpressionArithmetic.Negate(value);
 
     /// <summary>Bitwise complement.</summary>
     /// <param name="value">The operand.</param>
-    /// <returns>The operator result.</returns>
-    public static int Complement(int value) => ExpressionArithmetic.Complement(value);
+    /// <returns>The value with every bit inverted.</returns>
+    public static Int128 Complement(Int128 value) => ExpressionArithmetic.Complement(value);
 
     /// <summary>1 when the value is 0; otherwise 0.</summary>
     /// <param name="value">The operand.</param>
-    /// <returns>The operator result.</returns>
-    public static int LogicalNot(int value) => ExpressionArithmetic.LogicalNot(value);
+    /// <returns>The truth value.</returns>
+    public static Int128 LogicalNot(Int128 value) => ExpressionArithmetic.LogicalNot(value);
 
     /// <summary>Bitwise and.</summary>
     /// <param name="left">The left operand.</param>
     /// <param name="right">The right operand.</param>
-    /// <returns>The operator result.</returns>
-    public static int And(int left, int right) => ExpressionArithmetic.And(left, right);
+    /// <returns>The bits set in both operands.</returns>
+    public static Int128 And(Int128 left, Int128 right) => ExpressionArithmetic.And(left, right);
 
     /// <summary>Bitwise or.</summary>
     /// <param name="left">The left operand.</param>
     /// <param name="right">The right operand.</param>
-    /// <returns>The operator result.</returns>
-    public static int Or(int left, int right) => ExpressionArithmetic.Or(left, right);
+    /// <returns>The bits set in either operand.</returns>
+    public static Int128 Or(Int128 left, Int128 right) => ExpressionArithmetic.Or(left, right);
 
     /// <summary>Bitwise exclusive or.</summary>
     /// <param name="left">The left operand.</param>
     /// <param name="right">The right operand.</param>
-    /// <returns>The operator result.</returns>
-    public static int Xor(int left, int right) => ExpressionArithmetic.Xor(left, right);
+    /// <returns>The bits set in exactly one operand.</returns>
+    public static Int128 Xor(Int128 left, Int128 right) => ExpressionArithmetic.Xor(left, right);
 
     /// <summary>1 when both operands are non-zero; otherwise 0.</summary>
     /// <param name="left">The left operand.</param>
     /// <param name="right">The right operand.</param>
-    /// <returns>The operator result.</returns>
-    public static int LogicalAnd(int left, int right) => ExpressionArithmetic.LogicalAnd(left, right);
+    /// <returns>The truth value.</returns>
+    public static Int128 LogicalAnd(Int128 left, Int128 right) => ExpressionArithmetic.LogicalAnd(left, right);
 
     /// <summary>1 when either operand is non-zero; otherwise 0.</summary>
     /// <param name="left">The left operand.</param>
     /// <param name="right">The right operand.</param>
-    /// <returns>The operator result.</returns>
-    public static int LogicalOr(int left, int right) => ExpressionArithmetic.LogicalOr(left, right);
+    /// <returns>The truth value.</returns>
+    public static Int128 LogicalOr(Int128 left, Int128 right) => ExpressionArithmetic.LogicalOr(left, right);
 
     /// <summary>1 when equal; otherwise 0.</summary>
     /// <param name="left">The left operand.</param>
     /// <param name="right">The right operand.</param>
-    /// <returns>The operator result.</returns>
-    public static int Equal(int left, int right) => ExpressionArithmetic.Equal(left, right);
+    /// <returns>The truth value.</returns>
+    public static Int128 Equal(Int128 left, Int128 right) => ExpressionArithmetic.Equal(left, right);
 
     /// <summary>1 when different; otherwise 0.</summary>
     /// <param name="left">The left operand.</param>
     /// <param name="right">The right operand.</param>
-    /// <returns>The operator result.</returns>
-    public static int NotEqual(int left, int right) => ExpressionArithmetic.NotEqual(left, right);
+    /// <returns>The truth value.</returns>
+    public static Int128 NotEqual(Int128 left, Int128 right) => ExpressionArithmetic.NotEqual(left, right);
 
     /// <summary>1 when <paramref name="left"/> is less; otherwise 0.</summary>
     /// <param name="left">The left operand.</param>
     /// <param name="right">The right operand.</param>
-    /// <returns>The operator result.</returns>
-    public static int Less(int left, int right) => ExpressionArithmetic.Less(left, right);
+    /// <returns>The truth value.</returns>
+    public static Int128 Less(Int128 left, Int128 right) => ExpressionArithmetic.Less(left, right);
 
     /// <summary>1 when <paramref name="left"/> is less or equal; otherwise 0.</summary>
     /// <param name="left">The left operand.</param>
     /// <param name="right">The right operand.</param>
-    /// <returns>The operator result.</returns>
-    public static int LessOrEqual(int left, int right) => ExpressionArithmetic.LessOrEqual(left, right);
+    /// <returns>The truth value.</returns>
+    public static Int128 LessOrEqual(Int128 left, Int128 right) => ExpressionArithmetic.LessOrEqual(left, right);
 
     /// <summary>1 when <paramref name="left"/> is greater; otherwise 0.</summary>
     /// <param name="left">The left operand.</param>
     /// <param name="right">The right operand.</param>
-    /// <returns>The operator result.</returns>
-    public static int Greater(int left, int right) => ExpressionArithmetic.Greater(left, right);
+    /// <returns>The truth value.</returns>
+    public static Int128 Greater(Int128 left, Int128 right) => ExpressionArithmetic.Greater(left, right);
 
     /// <summary>1 when <paramref name="left"/> is greater or equal; otherwise 0.</summary>
     /// <param name="left">The left operand.</param>
     /// <param name="right">The right operand.</param>
-    /// <returns>The operator result.</returns>
-    public static int GreaterOrEqual(int left, int right) => ExpressionArithmetic.GreaterOrEqual(left, right);
+    /// <returns>The truth value.</returns>
+    public static Int128 GreaterOrEqual(Int128 left, Int128 right) => ExpressionArithmetic.GreaterOrEqual(left, right);
 
-    /// <summary>Left shift by a bit index (0-31, never masked); the result must stay in the signed 32-bit range.</summary>
-    /// <param name="value">The value to write.</param>
-    /// <param name="count">The number of bytes.</param>
-    /// <returns>The operator result.</returns>
-    public static int ShiftLeft(int value, int count) => ExpressionArithmetic.ShiftLeft(value, count);
+    /// <summary>Left shift by a bit index (0-127, never masked); the result must stay in the signed 128-bit range.</summary>
+    /// <param name="value">The value to shift.</param>
+    /// <param name="count">The number of bit positions.</param>
+    /// <returns>The shifted value.</returns>
+    /// <exception cref="InvalidOperationException"><paramref name="count"/> is outside 0 through 127.</exception>
+    /// <exception cref="OverflowException">The result is outside the signed 128-bit range.</exception>
+    public static Int128 ShiftLeft(Int128 value, Int128 count) => ExpressionArithmetic.ShiftLeft(value, count);
 
-    /// <summary>Arithmetic right shift by a bit index (0-31, never masked).</summary>
-    /// <param name="value">The value to write.</param>
-    /// <param name="count">The number of bytes.</param>
-    /// <returns>The operator result.</returns>
-    public static int ShiftRight(int value, int count) => ExpressionArithmetic.ShiftRight(value, count);
+    /// <summary>Arithmetic right shift by a bit index (0-127, never masked).</summary>
+    /// <param name="value">The value to shift; its sign is copied into the vacated bits.</param>
+    /// <param name="count">The number of bit positions.</param>
+    /// <returns>The shifted value.</returns>
+    /// <exception cref="InvalidOperationException"><paramref name="count"/> is outside 0 through 127.</exception>
+    public static Int128 ShiftRight(Int128 value, Int128 count) => ExpressionArithmetic.ShiftRight(value, count);
 
     /// <summary>
-    ///     The value of a captured member as an expression operand. Layout expressions are 32-bit: a member that holds
-    ///     a wider value (a <c>uint32</c> at or above 2^31, a <c>uint64</c>, ...) is kept exact until an expression
-    ///     selects it, and then fails exactly as the runtime's evaluator does - with an
+    ///     A captured unsigned 128-bit member as an expression operand. Every value up to <see cref="Int128.MaxValue"/>
+    ///     converts exactly; a larger one fails exactly as the runtime's evaluator does - with an
     ///     <see cref="InvalidOperationException"/> that <c>ReadCursor.FailExpression</c> turns into the operation's
     ///     <c>Cannot evaluate {context}: ...</c> failure.
     /// </summary>
     /// <param name="value">The captured member value.</param>
     /// <param name="name">The member name, for the message.</param>
-    /// <returns>The value as an <see cref="int"/>.</returns>
-    /// <exception cref="InvalidOperationException">The value is outside the signed 32-bit range.</exception>
-    public static int RequireInt32(long value, string name)
+    /// <returns>The value in the expression domain.</returns>
+    /// <exception cref="InvalidOperationException">The value is above <see cref="Int128.MaxValue"/>.</exception>
+    public static Int128 FromUInt128(UInt128 value, string name)
     {
-        if (value is < int.MinValue or > int.MaxValue)
+        if (!ExpressionValueCapture.TryFromUInt128(value, out Int128 result))
         {
-            throw OutOfRange(value, name);
+            throw new InvalidOperationException(WideValueVariable.DescribeOutOfRange(name, value));
         }
 
-        return (int)value;
-    }
-
-    /// <summary>The unsigned overload of <see cref="RequireInt32(long, string)"/>.</summary>
-    /// <param name="value">The captured member value.</param>
-    /// <param name="name">The member name, for the message.</param>
-    /// <returns>The value as an <see cref="int"/>.</returns>
-    /// <exception cref="InvalidOperationException">The value is outside the signed 32-bit range.</exception>
-    public static int RequireInt32(ulong value, string name)
-    {
-        if (value > int.MaxValue)
-        {
-            throw OutOfRange(value, name);
-        }
-
-        return (int)value;
-    }
-
-    /// <summary>The 128-bit form of <see cref="RequireInt32(long, string)"/>, named apart so that narrower arguments keep resolving to it.</summary>
-    /// <param name="value">The captured member value.</param>
-    /// <param name="name">The member name, for the message.</param>
-    /// <returns>The value as an <see cref="int"/>.</returns>
-    /// <exception cref="InvalidOperationException">The value is outside the signed 32-bit range.</exception>
-    public static int RequireInt32Wide(Int128 value, string name)
-    {
-        if (value < int.MinValue || value > int.MaxValue)
-        {
-            throw OutOfRange(value, name);
-        }
-
-        return (int)value;
-    }
-
-    /// <summary>The unsigned 128-bit form of <see cref="RequireInt32(long, string)"/>.</summary>
-    /// <param name="value">The captured member value.</param>
-    /// <param name="name">The member name, for the message.</param>
-    /// <returns>The value as an <see cref="int"/>.</returns>
-    /// <exception cref="InvalidOperationException">The value is outside the signed 32-bit range.</exception>
-    public static int RequireInt32Wide(UInt128 value, string name)
-    {
-        if (value > int.MaxValue)
-        {
-            throw OutOfRange(value, name);
-        }
-
-        return (int)value;
+        return result;
     }
 
     /// <summary>
@@ -212,7 +180,7 @@ public static class Expressions
     /// <param name="reason">What the member holds, as the phrase after "is" (for example <c>text</c>).</param>
     /// <returns>Never returns.</returns>
     /// <exception cref="InvalidOperationException">Always.</exception>
-    public static int NotAnInteger(string name, string reason) => throw new InvalidOperationException(NotANumberVariable.Describe(name, reason));
+    public static Int128 NotAnInteger(string name, string reason) => throw new InvalidOperationException(NotANumberVariable.Describe(name, reason));
 
     /// <summary>
     ///     A caller-supplied variable (<c>ReadOptions</c>'s <c>variables</c> argument) as an expression operand,
@@ -220,16 +188,16 @@ public static class Expressions
     /// </summary>
     /// <param name="variables">The caller's variables, or <see langword="null"/>.</param>
     /// <param name="name">The variable name.</param>
-    /// <returns>The value.</returns>
-    /// <exception cref="System.Collections.Generic.KeyNotFoundException">The variable was not supplied.</exception>
-    public static int Variable(System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string name)
+    /// <returns>The value, widened into the expression domain.</returns>
+    /// <exception cref="KeyNotFoundException">The variable was not supplied.</exception>
+    public static Int128 Variable(IReadOnlyDictionary<string, int>? variables, string name)
     {
         if (variables is not null && variables.TryGetValue(name, out int value))
         {
             return value;
         }
 
-        throw new System.Collections.Generic.KeyNotFoundException("Undefined expression identifier: " + name);
+        throw new KeyNotFoundException("Undefined expression identifier: " + name);
     }
 
     /// <summary>
@@ -240,7 +208,7 @@ public static class Expressions
     /// <param name="name">The constant's name.</param>
     /// <param name="value">The layout's value of the constant.</param>
     /// <returns>The caller's value when supplied; otherwise <paramref name="value"/>.</returns>
-    public static int Variable(System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string name, int value)
+    public static Int128 Variable(IReadOnlyDictionary<string, int>? variables, string name, Int128 value)
         => variables is not null && variables.TryGetValue(name, out int supplied) ? supplied : value;
 
     /// <summary>Looks a caller variable up, for a define whose own expression is evaluated only when the caller did not override it.</summary>
@@ -248,7 +216,7 @@ public static class Expressions
     /// <param name="name">The variable name.</param>
     /// <param name="value">The caller's value when supplied.</param>
     /// <returns>Whether the caller supplied the variable.</returns>
-    public static bool TryVariable(System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string name, out int value)
+    public static bool TryVariable(IReadOnlyDictionary<string, int>? variables, string name, out int value)
     {
         if (variables is not null && variables.TryGetValue(name, out value))
         {
@@ -266,18 +234,26 @@ public static class Expressions
     /// </summary>
     /// <param name="name">The member name.</param>
     /// <returns>Never returns.</returns>
-    /// <exception cref="System.Collections.Generic.KeyNotFoundException">Always.</exception>
-    public static int Undefined(string name)
-        => throw new System.Collections.Generic.KeyNotFoundException("Undefined expression identifier: " + name);
+    /// <exception cref="KeyNotFoundException">Always.</exception>
+    public static Int128 Undefined(string name)
+        => throw new KeyNotFoundException("Undefined expression identifier: " + name);
 
     /// <summary>
-    ///     The failure for a layout constant outside the signed 32-bit range (a define such as <c>4294967295</c>):
-    ///     the runtime keeps its exact value and overflows when an expression selects it.
+    ///     The failure for a layout constant outside the signed 128-bit range (an unsigned 128-bit enum member such as
+    ///     <c>0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF</c>): the runtime keeps its exact value and fails, naming it, when an
+    ///     expression selects it.
     /// </summary>
+    /// <param name="name">The constant's name.</param>
+    /// <param name="value">The constant's exact value in invariant decimal digits.</param>
     /// <returns>Never returns.</returns>
-    /// <exception cref="OverflowException">Always.</exception>
-    public static int Overflow() => throw new OverflowException("Arithmetic operation resulted in an overflow.");
+    /// <exception cref="InvalidOperationException">Always.</exception>
+    public static Int128 OutOfRangeConstant(string name, string value)
+        => throw new InvalidOperationException(WideValueVariable.DescribeOutOfRange(name, value));
 
-    private static InvalidOperationException OutOfRange(IFormattable value, string name)
-        => new(WideValueVariable.DescribeOutOfRange(name, value));
+    /// <summary>The failure for a literal outside the signed 128-bit range, raised when an expression evaluates it.</summary>
+    /// <param name="value">The literal's exact value in invariant decimal digits.</param>
+    /// <returns>Never returns.</returns>
+    /// <exception cref="InvalidOperationException">Always.</exception>
+    public static Int128 OutOfRangeLiteral(string value)
+        => throw new InvalidOperationException(Literal.DescribeOutsideDomain(value));
 }

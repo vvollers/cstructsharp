@@ -86,8 +86,8 @@ subtract 65,536 from the unsigned interpretation. Thus little-endian `FE FF` is 
 
 For `n` bits, the unsigned range is 0 through `2^n - 1`, and the two's-complement signed range is
 `-2^(n-1)` through `2^(n-1) - 1`. Storage width and arithmetic width are separate: a 24-bit field takes three
-bytes but is returned in a 32-bit C# integer. Intermediate calculations must still fit the language's rules;
-Portable array-count expressions use checked signed 32-bit arithmetic.
+bytes but is returned in a 32-bit C# integer. Layout expressions, such as array counts, use neither width: they
+calculate with exact, checked signed 128-bit integers, so a `uint64` field is never read as a negative number.
 
 Floating-point storage uses a different representation, with sign, exponent, and fraction information.
 Little-endian bytes `00 00 80 3F` represent **1.0** as `float32`, but **1,065,353,216** as `uint32`.

@@ -505,7 +505,7 @@
   },
   "canonicalReference": {
     "profile": "Portable",
-    "contractRevision": 3,
+    "contractRevision": 4,
     "contract": "contracts/language/portable-v1.json",
     "manualFixtures": "contracts/language/manual-fixtures-v1.json",
     "reference": "docs/language/index.md",

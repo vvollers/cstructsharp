@@ -200,6 +200,27 @@ public class ReaderParityTests
         RunParity("bulk-runtime", "struct root { uint8 n; bool flags[n]; int8 deltas[n]; };", "Root = \"root\", " + LittleOne, "root", [2, 1, 0, 0x80, 0x7F,], new Dictionary<string, int>(), null, null);
     }
 
+    /// <summary>
+    ///     Counts evaluated in the 128-bit domain: exact arithmetic on <c>uint64</c> fields and enums above 2^63, exact
+    ///     hexadecimal literals, the element limit naming a count beyond Int32, and a <c>uint128</c> count beyond the
+    ///     domain, all read (and written back) exactly as the runtime does.
+    /// </summary>
+    [TestMethod]
+    public void WideCounts_MatchTheRuntime()
+    {
+        const string LittleEight = "PointerSize = 8, Aligned = false, LittleEndian = true";
+        const string Root = "Root = \"root\", " + LittleEight;
+        var none = new Dictionary<string, int>();
+        RunParity("count-kernel", "struct root { uint64 next; uint8 data[next - 0xFFFF800000000FFE]; };", Root, "root", [0x00, 0x10, 0, 0, 0, 0x80, 0xFF, 0xFF, 1, 2,], none, null, null);
+        RunParity("count-enum", "enum big : uint64 { X = 0xFFFFFFFFFFFFFFFE }; struct root { big e; uint8 data[e - 0xFFFFFFFFFFFFFFFC]; };", Root, "root", [0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 1, 2,], none, null, null);
+        RunParity("count-pointer", "struct root { uint8 *p; uint8 data[p - 0xFFFFFFFE]; };", Root, "root", [0, 0, 0, 0, 1, 0, 0, 0, 1, 2,], none, new ReadOptions { DereferencePointers = false, }, null);
+        RunParity("count-literal", "struct root { uint8 n; uint8 data[n + 0xFFFFFFFF - 4294967294]; };", Root, "root", [1, 7, 8,], none, null, null);
+        RunParity("count-limit", "struct root { uint64 n; uint8 data[n]; };", Root, "root", [0, 0, 0, 0, 0, 1, 0, 0, 1,], none, null, "CStructReadLimitException");
+        RunParity("count-beyond-domain", "struct root { uint128 n; uint8 data[n]; };", Root, "root", [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x80, 1,], none, null, "CStructReadException");
+        RunParity("count-overflow", "struct root { uint64 a; uint8 data[a * a * a]; };", Root, "root", [0, 0, 0, 0, 0, 0, 0, 0x80, 1,], none, null, "CStructReadException");
+        RunParity("count-at-pointer", "struct root { uint64 n; uint8 *p @count(n - 0xFFFFFFFFFFFFFFFD); };", Root, "root", [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 16, 0, 0, 0, 0, 0, 0, 0, 1, 2,], none, null, null);
+    }
+
     /// <summary>Runs one ad-hoc case through both readers: the value (or the expected failure) and the truncation sweep.</summary>
     /// <param name="id">The case name, used in assertion messages and to name the generated class.</param>
     /// <param name="definition">The layout source compiled by both the generator and the runtime.</param>

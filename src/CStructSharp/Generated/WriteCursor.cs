@@ -566,11 +566,13 @@ public ref struct WriteCursor
     public void ExitComposite() => this.nestingDepth--;
 
     /// <summary>Validates an array's element count against <c>MaxArrayElements</c>.</summary>
-    /// <param name="count">The number of elements the caller supplies.</param>
+    /// <param name="count">
+    ///     The number of elements, supplied by the caller or evaluated from the layout in the expression domain.
+    /// </param>
     /// <param name="member">The array field, named in the message and the diagnostics.</param>
     /// <param name="memberType">The field's type spelling, for the diagnostics.</param>
-    /// <exception cref="CStructWriteLimitException">The count exceeds the limit.</exception>
-    public readonly void RequireArrayLength(long count, string member, string? memberType)
+    /// <exception cref="CStructWriteLimitException">The count is negative or exceeds the limit.</exception>
+    public readonly void RequireArrayLength(Int128 count, string member, string? memberType)
     {
         if (count < 0 || count > this.options.MaxArrayElements)
         {

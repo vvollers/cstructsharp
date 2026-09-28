@@ -171,7 +171,7 @@ public class CompiledSizeQueriesTests
         CompiledField values = queries.GetCompiledComposite(root).FieldsByName["values"];
         var variables = new Dictionary<string, Expr> { ["count"] = new Literal(5), };
 
-        int count = queries.GetCompiledArrayCount(values, variables, true);
+        Int128 count = queries.GetCompiledArrayCount(values, variables, true);
 
         Assert.AreEqual(5, count);
     }

@@ -47,8 +47,12 @@ public class ExpressionArithmeticBoundaryTests
     [TestMethod]
     public void LeftShiftOverflow_ExplainsItsRange()
     {
-        // A positive high bit cannot be represented as a signed Int32 result.
-        OverflowException failure = Assert.Throws<OverflowException>(() => ExpressionArithmetic.ShiftLeft(1, 31));
-        Assert.AreEqual("Expression left shift exceeded the signed 32-bit range.", failure.Message);
+        // A positive high bit cannot be represented as a signed Int128 result; the same bit is fine for -1.
+        OverflowException failure = Assert.Throws<OverflowException>(() => ExpressionArithmetic.ShiftLeft(1, 127));
+        Assert.AreEqual("Expression left shift exceeded the signed 128-bit range.", failure.Message);
+        Assert.AreEqual(Int128.MinValue, ExpressionArithmetic.ShiftLeft(-1, 127));
+        Assert.AreEqual((Int128)1 << 126, ExpressionArithmetic.ShiftLeft(1, 126));
+        Assert.Throws<OverflowException>(() => ExpressionArithmetic.ShiftLeft((Int128)3 << 125, 1), "a bit shifted into the sign flips it");
+        Assert.AreEqual((Int128)1 << 31, ExpressionArithmetic.ShiftLeft(1, 31), "the old 32-bit boundary is an ordinary value");
     }
 }

@@ -42,7 +42,7 @@ internal sealed class ConditionalFieldSelection
             int selected = this.selectedArms[branch.Slot];
             if (selected == int.MinValue)
             {
-                int value = this.evaluator.Evaluate(branch.Group.Selector, variables, "conditional selector", this.domain);
+                Int128 value = this.evaluator.Evaluate(branch.Group.Selector, variables, "conditional selector", this.domain);
                 selected = branch.Group.SelectArm(value);
                 this.selectedArms[branch.Slot] = selected;
             }

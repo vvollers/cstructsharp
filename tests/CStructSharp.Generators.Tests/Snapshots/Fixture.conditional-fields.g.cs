@@ -498,7 +498,7 @@ namespace Demo
             // uint24< number
             try
             {
-                placementArm0 = (global::CStructSharp.Generated.Expressions.Equal(global::CStructSharp.Generated.Expressions.RequireInt32((long)value.Tag, "tag"), 1)) != 0 ? 1 : 0;
+                placementArm0 = (global::CStructSharp.Generated.Expressions.Equal(((global::System.Int128)value.Tag), 1)) != 0 ? 1 : 0;
             }
             catch (global::System.Exception expressionFailure)
             {
@@ -669,7 +669,7 @@ namespace Demo
             // uint24< number
             try
             {
-                placementArm0 = (global::CStructSharp.Generated.Expressions.Equal(global::CStructSharp.Generated.Expressions.RequireInt32((long)value.Tag, "tag"), 1)) != 0 ? 1 : 0;
+                placementArm0 = (global::CStructSharp.Generated.Expressions.Equal(((global::System.Int128)value.Tag), 1)) != 0 ? 1 : 0;
             }
             catch (global::System.Exception expressionFailure)
             {

@@ -23,7 +23,8 @@ public class TypedefArrayBoundaryTests
     /// <param name="count">The count expression, kept non-literal to exercise evaluation.</param>
     /// <param name="reason">The expected alias-specific diagnostic.</param>
     [TestMethod]
-    [DataRow("2147483647+1", "Cannot evaluate array length for typedef values:")]
+    [DataRow("2147483647+1", "The array length for typedef values is 2147483648, which does not fit in a signed 32-bit integer.")]
+    [DataRow("170141183460469231731687303715884105727+1", "Cannot evaluate array length for typedef values: the result is outside the 128-bit range")]
     [DataRow("-1-1", "Array length cannot be negative: values")]
     public void EvaluatedInvalidCount_ReportsTheAlias(string count, string reason)
     {

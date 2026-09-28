@@ -37,15 +37,7 @@ internal sealed partial class LayoutEmitter
 
         case CompiledArrayKind.Fixed:
         case CompiledArrayKind.Runtime:
-            this.EmitExpression(writer, field.Array.CountExpression!, scope, "count", "array length for " + field.Name, member, memberType, "int");
-            if (!ExpressionEmitter.IsInt32Literal(field.Array.CountExpression!))
-            {
-                writer.Open("if (count < 0)");
-                writer.Line("throw cursor.Fail(" + SourceWriter.Literal(LayoutFailures.NegativeArrayLength(field.Name)) + ", " + member + ", " + memberType + ");");
-                writer.Close();
-            }
-
-            writer.Line("cursor.RequireArrayLength(count, " + member + ", " + memberType + ");");
+            this.EmitCount(writer, field.Name, field.Array.CountExpression!, scope, "array length for " + field.Name, member, memberType, validatedCountIsReturned: true);
             break;
         case CompiledArrayKind.ToEnd:
             writer.Line("count = cursor.CountToEnd(" + Int(field.FixedElementSize ?? 0) + ", " + SourceWriter.Literal(field.Name) + ", " + member + ", " + memberType + ");");

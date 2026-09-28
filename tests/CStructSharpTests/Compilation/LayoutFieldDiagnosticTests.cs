@@ -27,7 +27,9 @@ public class LayoutFieldDiagnosticTests
     /// <param name="reason">The field-specific explanation.</param>
     [TestMethod]
     [DataRow("uint8 values[-1-1];", "Array length cannot be negative: values")]
-    [DataRow("uint8 bits : (2147483647+1);", "Cannot evaluate bitfield width for bits:")]
+    [DataRow("uint8 bits : (2147483647+1);", "The bitfield width for bits is 2147483648, which does not fit in a signed 32-bit integer.")]
+    [DataRow("uint8 bits : 4294967296;", "The bitfield width for bits is 4294967296, which does not fit in a signed 32-bit integer.")]
+    [DataRow("uint8 bits : (170141183460469231731687303715884105727+1);", "Cannot evaluate bitfield width for bits: the result is outside the 128-bit range")]
     [DataRow("uint8 bits : -1;", "Bitfield width cannot be negative: bits")]
     [DataRow("uint8 bits : 0;", "Bitfield width must be greater than zero (only an unnamed ': 0' separator may be zero): bits")]
     public void InvalidStaticField_ExplainsItsExactRestriction(string field, string reason)
@@ -52,7 +54,6 @@ public class LayoutFieldDiagnosticTests
         // sizeof is resolved during model compilation, so this checks the final compiled count diagnostic.
         CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => new CStruct(definition));
 
-        StringAssert.Contains(failure.Message, "Cannot evaluate array length for payload:");
-        StringAssert.Contains(failure.Message, "outside the 32-bit range");
+        StringAssert.Contains(failure.Message, "The array length for payload is 2147483648, which does not fit in a signed 32-bit integer.");
     }
 }

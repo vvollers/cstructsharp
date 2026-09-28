@@ -111,7 +111,7 @@ public class DefinitionResolutionBoundaryTests
     [TestMethod]
     public void ExactEnumWithoutDependencies_DoesNotCaptureFields()
     {
-        var expression = new BinaryOp(BinaryOperatorType.Add, new Literal(int.MaxValue), new Literal(1));
+        var expression = new BinaryOp(BinaryOperatorType.Add, new Literal(Int128.MaxValue), new Literal(1));
         var resolver = new LayoutVariableResolver(
             [new Definition(new Identifier("WIDE"), expression),],
             ExpressionEvaluator.Default,
@@ -171,9 +171,9 @@ public class DefinitionResolutionBoundaryTests
     public void SuppliedOverflow_IsNotDeferredAsADefinition()
     {
         var resolver = new LayoutVariableResolver([], ExpressionEvaluator.Default);
-        var expression = new BinaryOp(BinaryOperatorType.Add, new Literal(int.MaxValue), new Literal(1));
+        var expression = new BinaryOp(BinaryOperatorType.Add, new Literal(Int128.MaxValue), new Literal(1));
 
-        // Only declared definitions have the exact-value fallback; caller variables must be valid Int32 values.
+        // Only declared definitions have the exact-value fallback; caller variables must be valid domain values.
         CStructLayoutException failure = Assert.ThrowsExactly<CStructLayoutException>(() => resolver.Create(
             new Dictionary<string, Expr> { ["BAD"] = expression, }));
         StringAssert.StartsWith(failure.Message, "Layout expression could not be resolved: ");
@@ -184,7 +184,7 @@ public class DefinitionResolutionBoundaryTests
     [TestMethod]
     public void UnusedArithmeticFailure_RemainsDeferred()
     {
-        var operand = new Literal(BigInteger.One << 100);
+        var operand = new Literal(BigInteger.One << 200);
         var division = new BinaryOp(BinaryOperatorType.Div, new Literal(1), new Literal(0));
         var expression = new BinaryOp(BinaryOperatorType.Add, operand, division);
         var resolver = new LayoutVariableResolver(
@@ -193,9 +193,9 @@ public class DefinitionResolutionBoundaryTests
         Assert.AreSame(expression, resolver.CreateStatic()["HUGE"]);
         Assert.AreSame(expression, resolver.Create(null)["HUGE"]);
 
-        // Int32 evaluation overflows on the left; exact evaluation reaches division by zero on the right.
-        // The unused macro remains deferred, but a later Int32 consumer must still reject it.
-        Assert.ThrowsExactly<OverflowException>(() => ExpressionEvaluator.Default.Evaluate(resolver.CreateStatic()["HUGE"]));
+        // Domain evaluation rejects the literal beyond 128 bits on the left; exact evaluation reaches division by zero
+        // on the right. The unused macro remains deferred, but a later consumer must still reject it.
+        Assert.ThrowsExactly<InvalidOperationException>(() => ExpressionEvaluator.Default.Evaluate(resolver.CreateStatic()["HUGE"]));
     }
 
     /// <summary>An unused out-of-range shift stays an expression instead of being cast to a numeric constant.</summary>
@@ -214,11 +214,12 @@ public class DefinitionResolutionBoundaryTests
     /// <summary>A wide intermediate shift remains invalid even when later arithmetic would produce a small value.</summary>
     /// <param name="definitions">The direct or transitive definition chain used by the enum member.</param>
     [TestMethod]
-    [DataRow("#define VALUE ((1 << 64) >> 64)\n")]
-    [DataRow("#define BASE ((1 << 64) >> 64)\n#define VALUE BASE\n")]
+    [DataRow("#define VALUE ((1 << 127) >> 127)\n")]
+    [DataRow("#define BASE ((1 << 127) >> 127)\n#define VALUE BASE\n")]
     public void DefinitionShift_UsesTheEnumWidth(string definitions)
     {
-        // The generic constant evaluator permits 128-bit shifts, but a uint64 enum permits counts only through 63.
+        // 1 << 127 overflows the signed 128-bit domain, so the definition keeps its expression for the enum, whose
+        // exact evaluation permits shift counts only below its width: through 63 for a uint64 enum.
         Assert.Throws<CStructLayoutException>(() => new CStruct(definitions + "enum flags : uint64 { Selected = VALUE }; struct root { flags value; };"));
     }
 

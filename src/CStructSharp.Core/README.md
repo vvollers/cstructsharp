@@ -20,7 +20,8 @@ It has to compile on netstandard2.0 without `System.Memory`, so:
 - no `Stream`, no `Span<byte>`/`ReadOnlySpan<char>` reading, no `ArrayPool`/`IBufferWriter`;
 - no reader/writer delegates - the compiled model carries codec ids (`PrimitiveCatalog`), the runtime maps them
   to delegates (`CodecTable`);
-- no reflection, no `Half`/`Int128` arithmetic (those decode at run time);
+- no reflection and no `Half` arithmetic (it decodes at run time); layout expressions use `Int128`, which
+  `Polyfills/Int128.cs` supplies for the generator build (a small `BigInteger`-backed type for compile-time folding);
 - `ImmutableDictionary`/`ImmutableArray` instead of `FrozenDictionary`;
 - language features that need runtime support (`Index`/`Range`, `init`, `required`, `ArgumentNullException.ThrowIfNull`)
   are fine: the generator project polyfills them with PolySharp.

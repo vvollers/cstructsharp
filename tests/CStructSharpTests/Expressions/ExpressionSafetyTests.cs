@@ -20,15 +20,19 @@ public class ExpressionSafetyTests
     [DataRow("0 || count")]
     public void SelectedWideField_PreservesTheRangeDiagnostic(string expression)
     {
-        var layout = new CStruct($"struct root {{ uint32 count; uint8 items[{expression}]; }};", isLittleEndian: true);
-        byte[] validBytes = [1, 0, 0, 0, 42];
+        var layout = new CStruct($"struct root {{ uint128 count; uint8 items[{expression}]; }};", isLittleEndian: true);
+        byte[] validBytes = new byte[17];
+        validBytes[0] = 1;
+        validBytes[16] = 42;
         object valid = layout.Parse(validBytes, "root");
         CollectionAssert.AreEqual(validBytes, layout.Serialize("root", valid));
 
-        // The field decodes correctly as UInt32; selecting it for an array length exceeds the Int32 expression domain.
-        CStructReadException failure = Assert.Throws<CStructReadException>(() => layout.Parse(new byte[] { 0, 0, 0, 0x80, }, "root"));
+        // The field decodes correctly as UInt128; selecting it for an array length exceeds the Int128 expression domain.
+        byte[] wideBytes = new byte[16];
+        wideBytes[15] = 0x80;
+        CStructReadException failure = Assert.Throws<CStructReadException>(() => layout.Parse(wideBytes, "root"));
         Assert.IsInstanceOfType<InvalidOperationException>(failure.InnerException);
-        Assert.AreEqual("'count' is 2147483648, which is outside the 32-bit range that layout expressions support.", failure.InnerException!.Message);
+        Assert.AreEqual("'count' is 170141183460469231731687303715884105728, which is outside the 128-bit range that layout expressions support.", failure.InnerException!.Message);
     }
 
     /// <summary>An unselected wide field remains ordinary data and does not prevent reading or writing the selected shape.</summary>
@@ -41,14 +45,16 @@ public class ExpressionSafetyTests
     [DataRow("1 || count", 1)]
     public void UnselectedWideField_RemainsReadableAndWritable(string expression, int length)
     {
-        var layout = new CStruct($"struct root {{ uint32 count; uint8 items[{expression}]; }};", isLittleEndian: true);
-        byte[] bytes = [0, 0, 0, 0x80, 42];
+        var layout = new CStruct($"struct root {{ uint128 count; uint8 items[{expression}]; }};", isLittleEndian: true);
+        byte[] bytes = new byte[17];
+        bytes[15] = 0x80;
+        bytes[16] = 42;
         using var input = new MemoryStream(bytes);
 
         object value = layout.Parse(input, "root");
 
-        Assert.AreEqual(4L + length, input.Position);
-        CollectionAssert.AreEqual(bytes[..(4 + length)], layout.Serialize("root", value));
+        Assert.AreEqual(16L + length, input.Position);
+        CollectionAssert.AreEqual(bytes[..(16 + length)], layout.Serialize("root", value));
     }
 
     /// <summary>
@@ -397,9 +403,8 @@ public class ExpressionSafetyTests
     ///     Direct expression evaluation must honor precedence, signed shifts, and checked arithmetic.
     /// </summary>
     /// <remarks>
-    ///     Overflow and division by zero must throw instead of wrapping silently. Full-width base-prefixed literals
-    ///     also test the documented two's-complement interpretation, such as 0xFFFFFFFF becoming -1 in the ordinary
-    ///     32-bit expression view.
+    ///     Overflow and division by zero must throw instead of wrapping silently. Base-prefixed literals are their
+    ///     exact value, as in C: 0xFFFFFFFF is 4294967295, not a reinterpreted -1.
     /// </remarks>
     [TestMethod]
     public void StandaloneExpressions_HaveExplicitNumericFailureSemantics()
@@ -410,43 +415,46 @@ public class ExpressionSafetyTests
         Assert.AreEqual(5, LayoutParser.ParseExpression("4 | 1").Evaluate());
         Assert.AreEqual(-1, LayoutParser.ParseExpression("~0").Evaluate());
         Assert.AreEqual(-1, LayoutParser.ParseExpression("-2 >> 1").Evaluate());
-        Assert.AreEqual(int.MinValue, LayoutParser.ParseExpression("-1 << 31").Evaluate());
-        Assert.AreEqual(int.MaxValue, LayoutParser.ParseExpression("2147483647 << 0").Evaluate());
+        Assert.AreEqual(Int128.MinValue, LayoutParser.ParseExpression("-1 << 127").Evaluate());
+        Assert.AreEqual(Int128.MaxValue, LayoutParser.ParseExpression("170141183460469231731687303715884105727 << 0").Evaluate());
+        Assert.AreEqual((Int128)int.MaxValue + 1, LayoutParser.ParseExpression("2147483647 + 1").Evaluate());
+        Assert.AreEqual((Int128)1 << 63, LayoutParser.ParseExpression("1 << 63").Evaluate());
         Assert.AreEqual(0, NoneExpr.Instance.Evaluate());
 
         Assert.Throws<OverflowException>(
-            () => LayoutParser.ParseExpression("2147483647 + 1").Evaluate());
+            () => LayoutParser.ParseExpression("170141183460469231731687303715884105727 + 1").Evaluate());
         Assert.Throws<OverflowException>(
             () => new BinaryOp(
                 BinaryOperatorType.Minus,
-                new Literal(int.MinValue),
+                new Literal(Int128.MinValue),
                 new Literal(1)).Evaluate());
         Assert.Throws<OverflowException>(
-            () => LayoutParser.ParseExpression("2147483647 * 2").Evaluate());
+            () => LayoutParser.ParseExpression("170141183460469231731687303715884105727 * 2").Evaluate());
         Assert.Throws<OverflowException>(
-            () => LayoutParser.ParseExpression("1073741824 << 1").Evaluate());
+            () => LayoutParser.ParseExpression("(1 << 126) << 1").Evaluate());
         Assert.Throws<OverflowException>(
-            () => new UnaryOp(UnaryOperatorType.Neg, new Literal(int.MinValue)).Evaluate());
+            () => new UnaryOp(UnaryOperatorType.Neg, new Literal(Int128.MinValue)).Evaluate());
         Assert.Throws<OverflowException>(
-            () => LayoutParser.ParseExpression("0x80000000 / -1").Evaluate());
+            () => LayoutParser.ParseExpression("(-1 << 127) / -1").Evaluate());
         Assert.Throws<DivideByZeroException>(
             () => LayoutParser.ParseExpression("1 / 0").Evaluate());
         Assert.Throws<InvalidOperationException>(
-            () => LayoutParser.ParseExpression("1 << 32").Evaluate());
+            () => LayoutParser.ParseExpression("1 << 128").Evaluate());
         Assert.Throws<InvalidOperationException>(
             () => new BinaryOp(BinaryOperatorType.ShiftRight, new Literal(1), new Literal(-1)).Evaluate());
 
-        Assert.AreEqual(-1, LayoutParser.ParseLiteral("0xFFFFFFFF", 16).Evaluate());
-        Assert.AreEqual(int.MinValue, LayoutParser.ParseLiteral("0x80000000", 16).Evaluate());
+        Assert.AreEqual((Int128)uint.MaxValue, LayoutParser.ParseLiteral("0xFFFFFFFF", 16).Evaluate());
+        Assert.AreEqual((Int128)2147483648, LayoutParser.ParseLiteral("0x80000000", 16).Evaluate());
         Assert.AreEqual(
-            -1,
+            (Int128)uint.MaxValue,
             LayoutParser.ParseLiteral("0b11111111111111111111111111111111", 2).Evaluate());
-        Assert.AreEqual(-1, LayoutParser.ParseLiteral("0o37777777777", 8).Evaluate());
-        Assert.AreEqual(1, LayoutParser.ParseLiteral("-0xFFFFFFFF", 16).Evaluate());
-        Assert.Throws<OverflowException>(
-            () => LayoutParser.ParseLiteral("-0x80000000", 16).Evaluate());
-        Assert.Throws<OverflowException>(
-            () => LayoutParser.ParseLiteral("0x100000000", 16).Evaluate());
+        Assert.AreEqual((Int128)uint.MaxValue, LayoutParser.ParseLiteral("0o37777777777", 8).Evaluate());
+        Assert.AreEqual(-(Int128)uint.MaxValue, LayoutParser.ParseLiteral("-0xFFFFFFFF", 16).Evaluate());
+        Assert.AreEqual((Int128)int.MinValue, LayoutParser.ParseLiteral("-0x80000000", 16).Evaluate());
+        Assert.AreEqual((Int128)ulong.MaxValue, LayoutParser.ParseLiteral("0xFFFFFFFFFFFFFFFF", 16).Evaluate());
+        Assert.AreEqual(Int128.MinValue, LayoutParser.ParseLiteral("-0x80000000000000000000000000000000", 16).Evaluate());
+        Assert.Throws<InvalidOperationException>(
+            () => LayoutParser.ParseLiteral("0x80000000000000000000000000000000", 16).Evaluate());
 
         // Since LANG-03b, "1u" itself is a valid suffixed literal (equal to 1); combine the suffix with a negative
         // sign instead, which is still rejected for an unrelated, still-current reason (negative array length).

@@ -62,35 +62,51 @@ public class LayoutVariableCaptureRuleTests
             expected);
     }
 
-    /// <summary>A pointer address outside the Int32 range fails with the exact address through every operation.</summary>
+    /// <summary>
+    ///     A pointer address above the Int32 range is an exact operand through every operation: <c>p - 0xFFFFFFFE</c>
+    ///     is 2 only when the address 4294967296 was neither wrapped nor rejected.
+    /// </summary>
     [TestMethod]
-    public void WidePointerAddress_FailsEveryOperationWithItsValue()
+    public void WidePointerAddress_IsExactThroughEveryOperation()
     {
-        var layout = new CStruct("struct root { uint8 *p; uint8 v[p]; };", pointerSize: 8);
-        byte[] bytes = [0, 0, 0, 0, 1, 0, 0, 0, 7,];
+        var layout = new CStruct("struct root { uint8 *p; uint8 v[p - 0xFFFFFFFE]; };", pointerSize: 8);
+        byte[] bytes = [0, 0, 0, 0, 1, 0, 0, 0, 7, 8,];
         var options = new ReadOptions { DereferencePointers = false, };
-        const string expected = "'p' is 4294967296, which is outside the 32-bit range";
 
-        StringAssert.Contains(Assert.Throws<Exception>(() => _ = layout.Parse(bytes, "root", options: options)).Message, expected);
-        StringAssert.Contains(Assert.Throws<Exception>(() => _ = layout.ReadValue(bytes, "root.v", options: options)).Message, expected);
-        StringAssert.Contains(Assert.Throws<Exception>(() => _ = layout.ResolveAddress(bytes, "root.v", options: options)).Message, expected);
-        StringAssert.Contains(Assert.Throws<Exception>(() => layout.Update(bytes, "root.v", new byte[] { 9, })).Message, expected);
-        StringAssert.Contains(Assert.Throws<Exception>(() => _ = layout.Serialize("root", new Dictionary<string, object?> { ["p"] = 4294967296L, ["v"] = new byte[] { 7, }, })).Message, expected);
+        AssertTwoElementArrayEverywhere(layout, bytes, options, new Dictionary<string, object?> { ["p"] = 4294967296L, ["v"] = new byte[] { 7, 8, }, });
     }
 
-    /// <summary>An enum value outside the Int32 range fails with the exact number through every operation.</summary>
+    /// <summary>
+    ///     A uint64 enum value above 2^63 is an exact operand through every operation: <c>e - 0xFFFFFFFFFFFFFFFC</c> is 2
+    ///     only when 18446744073709551614 was neither wrapped to a negative number nor rejected.
+    /// </summary>
     [TestMethod]
-    public void WideEnumValue_FailsEveryOperationWithItsValue()
+    public void WideEnumValue_IsExactThroughEveryOperation()
     {
-        var layout = new CStruct("enum big : uint64 { X = 0x100000000 }; struct root { big e; uint8 v[e]; };");
-        byte[] bytes = [0, 0, 0, 0, 1, 0, 0, 0, 7,];
-        const string expected = "'e' is 4294967296, which is outside the 32-bit range";
+        var layout = new CStruct("enum big : uint64 { X = 0xFFFFFFFFFFFFFFFE }; struct root { big e; uint8 v[e - 0xFFFFFFFFFFFFFFFC]; };");
+        byte[] bytes = [0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 7, 8,];
 
-        StringAssert.Contains(Assert.Throws<Exception>(() => _ = layout.Parse(bytes, "root")).Message, expected);
-        StringAssert.Contains(Assert.Throws<Exception>(() => _ = layout.ReadValue(bytes, "root.v")).Message, expected);
-        StringAssert.Contains(Assert.Throws<Exception>(() => _ = layout.ResolveAddress(bytes, "root.v")).Message, expected);
-        StringAssert.Contains(Assert.Throws<Exception>(() => layout.Update(bytes, "root.v", new byte[] { 9, })).Message, expected);
-        StringAssert.Contains(Assert.Throws<Exception>(() => _ = layout.Serialize("root", new Dictionary<string, object?> { ["e"] = "X", ["v"] = new byte[] { 7, }, })).Message, expected);
+        AssertTwoElementArrayEverywhere(layout, bytes, null, new Dictionary<string, object?> { ["e"] = "X", ["v"] = new byte[] { 7, 8, }, });
+    }
+
+    /// <summary>
+    ///     Checks that every operation sizes <c>root.v</c> as the two bytes after an eight-byte first field: parse,
+    ///     selected read, address resolution, update and serialization.
+    /// </summary>
+    /// <param name="layout">The layout, whose <c>v</c> count evaluates to 2 for <paramref name="bytes"/>.</param>
+    /// <param name="bytes">The encoded record.</param>
+    /// <param name="options">The read options, or <see langword="null"/>.</param>
+    /// <param name="record">The same record as caller values, for serialization.</param>
+    private static void AssertTwoElementArrayEverywhere(CStruct layout, byte[] bytes, ReadOptions? options, Dictionary<string, object?> record)
+    {
+        StructValue value = layout.Parse(bytes, "root", options: options);
+        Assert.HasCount(2, (System.Collections.IList)value["v"]!);
+        Assert.HasCount(2, (System.Collections.IList)layout.ReadValue(bytes, "root.v", options: options)!);
+        Assert.AreEqual(8L, layout.ResolveAddress(bytes, "root.v", options: options));
+        byte[] updated = (byte[])bytes.Clone();
+        layout.Update(updated, "root.v", new byte[] { 9, 9, });
+        CollectionAssert.AreEqual(bytes[..8].Concat(new byte[] { 9, 9, }).ToArray(), updated);
+        CollectionAssert.AreEqual(bytes, layout.Serialize("root", record));
     }
 
     /// <summary>Integer, character, bool, enum and pointer fields all read as numbers, identically when read and when resolved.</summary>

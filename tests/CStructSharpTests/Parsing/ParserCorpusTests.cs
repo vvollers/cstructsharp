@@ -1047,7 +1047,8 @@ public class ParserCorpusTests
                 this.Builder.Append("none");
                 break;
             case Literal literal:
-                this.Builder.Append("lit(").Append(literal.ExactValue).Append('|').Append(literal.Int32Projection).Append(')');
+                // The exact value, then the expression-domain value (or "outside" beyond the signed 128-bit range).
+                this.Builder.Append("lit(").Append(literal.ExactValue).Append('|').Append(literal.IsInDomain ? literal.Value.ToString(CultureInfo.InvariantCulture) : "outside").Append(')');
                 break;
             case Identifier identifier:
                 this.Identifier(identifier);

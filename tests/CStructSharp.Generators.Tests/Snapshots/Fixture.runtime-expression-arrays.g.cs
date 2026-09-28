@@ -480,19 +480,20 @@ namespace Demo
             {
                 cursor.Seek(placement.AdvanceToField(1), "values", "uint8");
                 int count;
+                global::System.Int128 countValue;
                 try
                 {
-                    count = global::CStructSharp.Generated.Expressions.Variable(variables, "N");
+                    countValue = global::CStructSharp.Generated.Expressions.Variable(variables, "N");
                 }
                 catch (global::System.Exception expressionFailure)
                 {
                     throw cursor.FailExpression(expressionFailure, "array length for values", "values", "uint8");
                 }
-                if (count < 0)
+                if (countValue < 0)
                 {
                     throw cursor.Fail("Array length cannot be negative: values", "values", "uint8");
                 }
-                cursor.RequireArrayLength(count, "values", "uint8");
+                count = cursor.RequireArrayLength(countValue, "values", "uint8");
                 var elements = new byte[count];
                 if (count > 0)
                 {
@@ -647,19 +648,21 @@ namespace Demo
                     throw cursor.Fail("Null is valid only for a scalar pointer field: values", "values", "uint8");
                 }
                 int count;
+                global::System.Int128 countValue;
                 try
                 {
-                    count = global::CStructSharp.Generated.Expressions.Variable(variables, "N");
+                    countValue = global::CStructSharp.Generated.Expressions.Variable(variables, "N");
                 }
                 catch (global::System.Exception expressionFailure)
                 {
                     throw cursor.FailExpression(expressionFailure, "array length for values", "values", "uint8");
                 }
-                if (count < 0)
+                if (countValue < 0)
                 {
                     throw cursor.Fail("Array length cannot be negative: values", "values", "uint8");
                 }
-                cursor.RequireArrayLength(count, "values", "uint8");
+                cursor.RequireArrayLength(countValue, "values", "uint8");
+                count = (int)countValue;
                 if (value.Values.Length > count)
                 {
                     throw cursor.FailArrayTooMany("values", count, "values", "uint8");

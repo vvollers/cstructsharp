@@ -132,8 +132,11 @@ internal sealed class CompiledSizeQueries
         bool requireFixedSize)
     {
         int elementSize = this.GetCompiledFieldElementSize(field, variables, requireFixedSize);
-        int count = this.GetCompiledFieldTotalElementCount(field, variables, requireFixedSize);
-        return checked(elementSize * count);
+        Int128 count = this.GetCompiledFieldTotalElementCount(field, variables, requireFixedSize);
+
+        // A storage size is an int; a larger product fails as the checked multiplication always has.
+        Int128 bytes = elementSize * count;
+        return bytes > int.MaxValue ? throw new OverflowException() : (int)bytes;
     }
 
     /// <summary>Calculates one compiled element footprint from its direct pointer, codec, enum, or composite target.</summary>
@@ -180,9 +183,12 @@ internal sealed class CompiledSizeQueries
     ///     True when the size must be fixed by the layout alone, so evaluation failures are layout errors; false
     ///     when it runs inside a read or address operation, so failures are read errors.
     /// </param>
-    /// <returns>The outermost dimension's element count, or 1 for a scalar field.</returns>
+    /// <returns>
+    ///     The outermost dimension's element count, or 1 for a scalar field; non-negative, and exact in the expression
+    ///     domain, so a caller's element limit reports a count read from a <c>uint64</c> field with its real value.
+    /// </returns>
     /// <exception cref="CStructLayoutException">The array is flexible, read to the end, or terminated.</exception>
-    public int GetCompiledArrayCount(
+    public Int128 GetCompiledArrayCount(
         CompiledField field,
         IReadOnlyDictionary<string, Expr> variables,
         bool requireFixedSize)
@@ -219,9 +225,9 @@ internal sealed class CompiledSizeQueries
     ///     True when the size must be fixed by the layout alone, so evaluation failures are layout errors; false
     ///     when it runs inside a read or address operation, so failures are read errors.
     /// </param>
-    /// <returns>The product of every dimension's count in elements, or 1 for a scalar field.</returns>
+    /// <returns>The product of every dimension's count in elements, or 1 for a scalar field; exact in the expression domain.</returns>
     /// <exception cref="CStructLayoutException">The array is flexible, read to the end, or terminated.</exception>
-    public int GetCompiledFieldTotalElementCount(
+    public Int128 GetCompiledFieldTotalElementCount(
         CompiledField field,
         IReadOnlyDictionary<string, Expr> variables,
         bool requireFixedSize)
@@ -237,13 +243,13 @@ internal sealed class CompiledSizeQueries
                 "Flexible array has no fixed storage size: " + field.Name);
         }
 
-        int total = 1;
+        Int128 total = 1;
         foreach (CompiledArrayDimension dimension in field.Array.Dimensions)
         {
             Expr expression = dimension.CountExpression ??
                               throw new InvalidOperationException(
                                   "Compiled array dimension has no count expression: " + field.Name);
-            int count = this.EvaluateDimensionCount(expression, field.Name, variables, requireFixedSize);
+            Int128 count = this.EvaluateDimensionCount(expression, field.Name, variables, requireFixedSize);
             total = checked(total * count);
         }
 
@@ -256,7 +262,7 @@ internal sealed class CompiledSizeQueries
     ///     current/outermost dimension only) and <see cref="GetCompiledFieldTotalElementCount"/> (once per
     ///     dimension, accumulated into a product).
     /// </summary>
-    private int EvaluateDimensionCount(
+    private Int128 EvaluateDimensionCount(
         Expr expression,
         string fieldName,
         IReadOnlyDictionary<string, Expr> variables,
@@ -264,7 +270,7 @@ internal sealed class CompiledSizeQueries
     {
         // A fixed-size query has no data, so any failure is the layout's; a variables-driven query runs inside a
         // read or address operation and its failure belongs to that data.
-        int count;
+        Int128 count;
         try
         {
             count = this.expressionEvaluator.Evaluate(

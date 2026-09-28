@@ -36,7 +36,7 @@ await main(() => {
   const reference = referenceFiles.map((file) => fs.readFileSync(file, "utf8")).join("\n");
 
   assertCondition(contract.schemaVersion === 1, "Unsupported canonical Portable contract schema version.");
-  assertCondition(contract.contractRevision === 3, "Unsupported canonical Portable contract revision.");
+  assertCondition(contract.contractRevision === 4, "Unsupported canonical Portable contract revision.");
   assertCondition(contract.profile === "Portable", "The canonical contract must describe the Portable profile.");
   assertCondition((contract.shippedProfiles ?? []).length === 1 && contract.shippedProfiles[0] === "Portable", "Portable must be the sole shipped profile.");
   const canonical = matrix.canonicalReference;

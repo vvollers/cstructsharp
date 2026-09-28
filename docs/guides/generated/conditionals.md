@@ -33,7 +33,7 @@ int placementArm0 = int.MinValue;
 // uint32 code
 try
 {
-    placementArm0 = (Expressions.Equal(Expressions.RequireInt32((long)value.Kind, "kind"), 1)) != 0 ? 1 : 0;
+    placementArm0 = (Expressions.Equal(((Int128)value.Kind), 1)) != 0 ? 1 : 0;
 }
 catch (Exception expressionFailure)
 {
@@ -45,11 +45,12 @@ if (placementArm0 == 1)
 }
 ```
 
-Every later field of the same group tests the slot; nothing is evaluated twice. A `switch` maps the selector's
-value through its case table (`1 => 0, _ => -1` here, the default arm being `-1`). A group nested inside an arm is
+Every later field of the same group tests the slot; nothing is evaluated twice. A `switch` compares the selector's
+value with each case label in turn (`caseSelector == 1 ? 0 : -1` for a single `case 1`, the default arm being `-1`). A group nested inside an arm is
 evaluated only when that arm is active, so an unknown name inside an inactive arm never fails.
 
-The expression operators are the runtime's: checked 32-bit arithmetic, `&&`/`||` that stop early, and the same
+The expression operators are the runtime's: exact, checked 128-bit arithmetic over members widened to `Int128`,
+`&&`/`||` that stop early, and the same
 failure text - `Cannot evaluate conditional selector: ...` - when a selector divides by zero or uses a member the
 struct has not read yet. Inside a struct with conditional fields, the struct's own member names hide any caller
 variable or outer value of the same name until the member is read, as at runtime.

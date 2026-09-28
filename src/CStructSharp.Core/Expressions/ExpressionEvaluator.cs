@@ -10,7 +10,11 @@ using System.Runtime.CompilerServices;
 using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 
-/// <summary>Compiles immutable expression trees once and executes them with bounded checked signed-Int32 semantics.</summary>
+/// <summary>
+///     Compiles immutable expression trees once and executes them with bounded, checked signed 128-bit semantics
+///     (<see cref="ExpressionArithmetic"/>). Every integer a layout field can hold up to 64 bits, and every 128-bit
+///     value inside that range, is an exact operand; a literal or variable outside it fails when an expression uses it.
+/// </summary>
 [SuppressMessage(
     "StyleCop.CSharp.OrderingRules",
     "SA1201:ElementsMustAppearInTheCorrectOrder",
@@ -43,11 +47,11 @@ internal sealed class ExpressionEvaluator
     /// <summary>Compiles and evaluates one expression against the supplied immutable name view.</summary>
     /// <param name="expression">The expression tree to compile (or fetch from the cache) and run.</param>
     /// <param name="variables">The names identifiers resolve to, or <see langword="null"/> for no names.</param>
-    /// <returns>The signed 32-bit value of the expression.</returns>
-    public int Evaluate(Expr expression, IReadOnlyDictionary<string, Expr>? variables = null)
+    /// <returns>The signed 128-bit value of the expression.</returns>
+    public Int128 Evaluate(Expr expression, IReadOnlyDictionary<string, Expr>? variables = null)
     {
         CompiledExpression program = this.GetProgram(expression);
-        if (this.TryEvaluateSimple(program, variables ?? EmptyVariables, out int result))
+        if (this.TryEvaluateSimple(program, variables ?? EmptyVariables, out Int128 result))
         {
             return result;
         }
@@ -55,10 +59,14 @@ internal sealed class ExpressionEvaluator
         return this.CreateSession(variables).Evaluate(expression);
     }
 
-    /// <summary>Executes a scalar or one operator without session allocation when every dependency is a literal.</summary>
-    private bool TryEvaluateSimple(CompiledExpression program, IReadOnlyDictionary<string, Expr> variables, out int result)
+    /// <summary>
+    ///     Executes a scalar or one operator without session allocation when every dependency is a literal inside the
+    ///     domain. Anything else (a nested operator, a dependency that is itself an expression or out of range) takes
+    ///     the session path, which reports failures with the dependency's name.
+    /// </summary>
+    private bool TryEvaluateSimple(CompiledExpression program, IReadOnlyDictionary<string, Expr> variables, out Int128 result)
     {
-        result = 0;
+        result = Int128.Zero;
         ExpressionInstruction[] code = program.Instructions;
         int operands = code.Length == 3 ? 2 : 1;
         if (code.Length is < 1 or > 3 ||
@@ -69,20 +77,20 @@ internal sealed class ExpressionEvaluator
             return false;
         }
 
-        BigInteger first = default;
-        BigInteger second = default;
+        Int128 first = default;
+        Int128 second = default;
         string? firstDependency = null;
         int extraNodes = 0;
         for (int index = 0; index < operands; index++)
         {
             ExpressionInstruction instruction = code[index];
-            BigInteger value;
+            Int128 value;
             if (instruction.Opcode == ExpressionOpcode.Literal)
             {
                 value = instruction.Value;
             }
             else if (instruction.Opcode == ExpressionOpcode.Identifier &&
-                     variables.TryGetValue(instruction.Name!, out Expr? expression) && expression is Literal literal)
+                     variables.TryGetValue(instruction.Name!, out Expr? expression) && expression is Literal { IsInDomain: true, } literal)
             {
                 if (instruction.Depth + 1 > this.limits.MaximumDepth)
                 {
@@ -95,7 +103,7 @@ internal sealed class ExpressionEvaluator
                 }
 
                 firstDependency = instruction.Name;
-                value = literal.Int32Projection;
+                value = literal.Value;
             }
             else
             {
@@ -117,17 +125,16 @@ internal sealed class ExpressionEvaluator
             throw new CStructLayoutException("Maximum expression evaluation work exceeded.");
         }
 
-        int left = checked((int)first);
         result = code.Length switch
         {
-            1 => left,
+            1 => first,
             2 => code[1].Opcode switch
             {
-                ExpressionOpcode.Negate => ExpressionArithmetic.Negate(left),
-                ExpressionOpcode.Complement => ExpressionArithmetic.Complement(left),
-                _ => ExpressionArithmetic.LogicalNot(left),
+                ExpressionOpcode.Negate => ExpressionArithmetic.Negate(first),
+                ExpressionOpcode.Complement => ExpressionArithmetic.Complement(first),
+                _ => ExpressionArithmetic.LogicalNot(first),
             },
-            _ => ExpressionEvaluationSession.EvaluateBinary(code[2].Opcode, left, checked((int)second)),
+            _ => ExpressionEvaluationSession.EvaluateBinary(code[2].Opcode, first, second),
         };
         return true;
     }
@@ -140,7 +147,7 @@ internal sealed class ExpressionEvaluator
     /// <param name="shiftWidth">
     ///     The exclusive upper bound, in bits, for shift counts (usually the enum's underlying bit width).
     /// </param>
-    /// <returns>The exact integer value, which may lie outside the signed 32-bit range.</returns>
+    /// <returns>The exact integer value, which may lie outside the signed 128-bit range.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="shiftWidth"/> is not positive.</exception>
     public BigInteger EvaluateExact(
         Expr expression,
@@ -246,7 +253,7 @@ internal sealed class ExpressionEvaluator
             {
                 instructions.Add(new ExpressionInstruction(
                     ((BinaryOp)frame.Expression).Type == BinaryOperatorType.LogicalAnd ? ExpressionOpcode.JumpIfFalse : ExpressionOpcode.JumpIfTrue,
-                    BigInteger.Zero,
+                    Int128.Zero,
                     null,
                     frame.Depth,
                     frame.Patch));
@@ -263,14 +270,14 @@ internal sealed class ExpressionEvaluator
             if (frame.BranchStage == 3)
             {
                 // Conditional: the test is on the stack; skip to the else arm when it is zero.
-                instructions.Add(new ExpressionInstruction(ExpressionOpcode.BranchIfFalse, BigInteger.Zero, null, frame.Depth, frame.Patch));
+                instructions.Add(new ExpressionInstruction(ExpressionOpcode.BranchIfFalse, Int128.Zero, null, frame.Depth, frame.Patch));
                 continue;
             }
 
             if (frame.BranchStage == 4)
             {
                 // End of the then arm: jump over the else arm, and the else arm starts here.
-                instructions.Add(new ExpressionInstruction(ExpressionOpcode.Jump, BigInteger.Zero, null, frame.Depth, frame.ElsePatch));
+                instructions.Add(new ExpressionInstruction(ExpressionOpcode.Jump, Int128.Zero, null, frame.Depth, frame.ElsePatch));
                 frame.Patch!.Target = instructions.Count;
                 continue;
             }
@@ -278,7 +285,7 @@ internal sealed class ExpressionEvaluator
             if (frame.BranchStage == 5)
             {
                 // Both arms land here; the join is a no-op at run time and keeps the static stack count honest.
-                instructions.Add(new ExpressionInstruction(ExpressionOpcode.Join, BigInteger.Zero, null, frame.Depth));
+                instructions.Add(new ExpressionInstruction(ExpressionOpcode.Join, Int128.Zero, null, frame.Depth));
                 frame.Patch!.Target = instructions.Count - 1;
                 continue;
             }
@@ -302,19 +309,29 @@ internal sealed class ExpressionEvaluator
 
             switch (frame.Expression)
             {
-            case Literal literal:
+            case Literal { IsInDomain: true, } literal:
                 instructions.Add(
                     new ExpressionInstruction(
                         ExpressionOpcode.Literal,
-                        literal.Int32Projection,
+                        literal.Value,
                         null,
+                        frame.Depth));
+                break;
+            case Literal literal:
+                // A literal beyond the domain compiles, so an enum or a definition may still spell it; the program
+                // fails only when this instruction runs, with the message that names the literal.
+                instructions.Add(
+                    new ExpressionInstruction(
+                        ExpressionOpcode.OutOfDomainLiteral,
+                        Int128.Zero,
+                        literal.DescribeOutsideDomain(),
                         frame.Depth));
                 break;
             case NoneExpr:
                 instructions.Add(
                     new ExpressionInstruction(
                         ExpressionOpcode.Literal,
-                        BigInteger.Zero,
+                        Int128.Zero,
                         null,
                         frame.Depth));
                 break;
@@ -323,7 +340,7 @@ internal sealed class ExpressionEvaluator
                 instructions.Add(
                     new ExpressionInstruction(
                         ExpressionOpcode.Identifier,
-                        BigInteger.Zero,
+                        Int128.Zero,
                         identifier.Name,
                         frame.Depth,
                         Conditional: frame.Conditional));
@@ -397,14 +414,14 @@ internal sealed class ExpressionEvaluator
             BinaryOp binary => throw new InvalidOperationException("Unknown binary operator: " + binary.Type),
             _ => throw new InvalidOperationException("Expression node has no executable operator."),
         };
-        return new ExpressionInstruction(opcode, BigInteger.Zero, null, depth);
+        return new ExpressionInstruction(opcode, Int128.Zero, null, depth);
     }
 
     /// <summary>Executes compiled expressions while sharing a finite work budget across named dependencies.</summary>
     internal sealed class ExpressionEvaluationSession
     {
         private readonly HashSet<string> activeIdentifiers = new(StringComparer.Ordinal);
-        private readonly Dictionary<string, int> identifierValues = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, Int128> identifierValues = new(StringComparer.Ordinal);
         private readonly ExpressionEvaluator evaluator;
         private readonly ExpressionEvaluationLimits limits;
         private readonly Dictionary<string, int> validatedIdentifierDepths = new(StringComparer.Ordinal);
@@ -430,8 +447,8 @@ internal sealed class ExpressionEvaluator
 
         /// <summary>Evaluates one root while retaining the session's dependency values and total work counter.</summary>
         /// <param name="expression">The expression tree to compile (or fetch from the cache) and run.</param>
-        /// <returns>The signed 32-bit value of the expression.</returns>
-        public int Evaluate(Expr expression)
+        /// <returns>The signed 128-bit value of the expression.</returns>
+        public Int128 Evaluate(Expr expression)
         {
             CompiledExpression program = this.evaluator.GetProgram(expression);
             this.ValidateDependencyDepth(program);
@@ -515,20 +532,20 @@ internal sealed class ExpressionEvaluator
         /// <summary>Runs one postfix program and recursively resolves only bounded identifier dependencies.</summary>
         /// <param name="program">The validated instructions for this expression.</param>
         /// <param name="dependencyDepth">The number of enclosing expression levels at this dependency's root.</param>
-        /// <returns>The signed 32-bit result.</returns>
+        /// <returns>The signed 128-bit result.</returns>
         /// <exception cref="CStructLayoutException">The complete dependency depth or session work exceeds its limit.</exception>
         /// <exception cref="KeyNotFoundException">A selected dependency name is not defined.</exception>
         /// <exception cref="InvalidOperationException">A selected value or operation is outside the expression domain.</exception>
-        /// <exception cref="OverflowException">An arithmetic result does not fit the signed 32-bit domain.</exception>
+        /// <exception cref="OverflowException">An arithmetic result does not fit the signed 128-bit domain.</exception>
         /// <exception cref="DivideByZeroException">A selected division or remainder has a zero divisor.</exception>
-        private int EvaluateProgram(CompiledExpression program, int dependencyDepth)
+        private Int128 EvaluateProgram(CompiledExpression program, int dependencyDepth)
         {
             if (dependencyDepth + program.MaximumDepth > this.limits.MaximumDepth)
             {
                 throw new CStructLayoutException("Maximum expression evaluation depth exceeded.");
             }
 
-            int[] values = ArrayPool<int>.Shared.Rent(Math.Max(1, program.MaximumStackSize));
+            Int128[] values = ArrayPool<Int128>.Shared.Rent(Math.Max(1, program.MaximumStackSize));
             int valueCount = 0;
             try
             {
@@ -544,20 +561,22 @@ internal sealed class ExpressionEvaluator
                     switch (instruction.Opcode)
                     {
                     case ExpressionOpcode.Literal:
-                        values[valueCount++] = checked((int)instruction.Value);
+                        values[valueCount++] = instruction.Value;
                         break;
+                    case ExpressionOpcode.OutOfDomainLiteral:
+                        throw new InvalidOperationException(instruction.Name);
                     case ExpressionOpcode.JumpIfFalse:
                     case ExpressionOpcode.JumpIfTrue:
-                        bool truth = values[valueCount - 1] != 0;
+                        bool truth = values[valueCount - 1] != Int128.Zero;
                         if (truth == (instruction.Opcode == ExpressionOpcode.JumpIfTrue))
                         {
-                            values[valueCount - 1] = truth ? 1 : 0;
+                            values[valueCount - 1] = truth ? Int128.One : Int128.Zero;
                             pc = instruction.Patch!.Target - 1;
                         }
 
                         break;
                     case ExpressionOpcode.BranchIfFalse:
-                        if (values[--valueCount] == 0)
+                        if (values[--valueCount] == Int128.Zero)
                         {
                             pc = instruction.Patch!.Target - 1;
                         }
@@ -592,7 +611,7 @@ internal sealed class ExpressionEvaluator
                         values[valueCount - 1] = ExpressionArithmetic.Negate(values[valueCount - 1]);
                         break;
                     default:
-                        int right = values[--valueCount];
+                        Int128 right = values[--valueCount];
                         int leftIndex = valueCount - 1;
                         values[leftIndex] = EvaluateBinary(instruction.Opcode, values[leftIndex], right);
                         break;
@@ -608,14 +627,14 @@ internal sealed class ExpressionEvaluator
             }
             finally
             {
-                ArrayPool<int>.Shared.Return(values);
+                ArrayPool<Int128>.Shared.Return(values);
             }
         }
 
         /// <summary>Evaluates one named expression once and rejects dependency cycles at their first repeated name.</summary>
-        private int EvaluateIdentifier(string name, int dependencyDepth)
+        private Int128 EvaluateIdentifier(string name, int dependencyDepth)
         {
-            if (this.identifierValues.TryGetValue(name, out int known))
+            if (this.identifierValues.TryGetValue(name, out Int128 known))
             {
                 return known;
             }
@@ -630,6 +649,13 @@ internal sealed class ExpressionEvaluator
                 throw unusable.CreateFailure(name);
             }
 
+            if (expression is Literal { IsInDomain: false, } wide)
+            {
+                // A constant beyond the domain (an unsigned 128-bit enum member, a define such as 1 << 127) is
+                // reported under the name the expression used rather than as an anonymous literal.
+                throw new InvalidOperationException(WideValueVariable.DescribeOutOfRange(name, wide.ExactValue));
+            }
+
             if (!this.activeIdentifiers.Add(name))
             {
                 throw new CStructLayoutException("Circular expression dependency detected at: " + name);
@@ -637,7 +663,7 @@ internal sealed class ExpressionEvaluator
 
             try
             {
-                int value = this.EvaluateProgram(this.evaluator.GetProgram(expression), dependencyDepth);
+                Int128 value = this.EvaluateProgram(this.evaluator.GetProgram(expression), dependencyDepth);
                 this.identifierValues.Add(name, value);
                 return value;
             }
@@ -647,17 +673,17 @@ internal sealed class ExpressionEvaluator
             }
         }
 
-        /// <summary>Applies the documented signed-Int32 operator semantics (<see cref="ExpressionArithmetic"/>).</summary>
+        /// <summary>Applies the documented signed 128-bit operator semantics (<see cref="ExpressionArithmetic"/>).</summary>
         /// <param name="opcode">The binary operator to apply; unary, literal, and jump opcodes are rejected.</param>
         /// <param name="left">The left operand.</param>
         /// <param name="right">The right operand (the divisor, or the shift count in bits).</param>
-        /// <returns>The operator's signed 32-bit result; comparisons and logical operators yield 0 or 1.</returns>
+        /// <returns>The operator's signed 128-bit result; comparisons and logical operators yield 0 or 1.</returns>
         /// <exception cref="InvalidOperationException">
-        ///     The opcode is not a binary operator, or a shift count is outside 0-31.
+        ///     The opcode is not a binary operator, or a shift count is outside 0-127.
         /// </exception>
-        /// <exception cref="OverflowException">The result does not fit the signed 32-bit domain.</exception>
+        /// <exception cref="OverflowException">The result does not fit the signed 128-bit domain.</exception>
         /// <exception cref="DivideByZeroException">A division or remainder has a zero divisor.</exception>
-        internal static int EvaluateBinary(ExpressionOpcode opcode, int left, int right)
+        internal static Int128 EvaluateBinary(ExpressionOpcode opcode, Int128 left, Int128 right)
         {
             return opcode switch
             {
@@ -684,7 +710,7 @@ internal sealed class ExpressionEvaluator
         }
     }
 
-    /// <summary>Evaluates exact enum expressions without adding arbitrary-precision cost to normal Int32 expressions.</summary>
+    /// <summary>Evaluates exact enum expressions without adding arbitrary-precision cost to ordinary 128-bit expressions.</summary>
     private sealed class ExactEvaluationContext
     {
         private readonly HashSet<string> activeIdentifiers = new(StringComparer.Ordinal);
@@ -836,6 +862,13 @@ internal sealed class ExpressionEvaluator
     /// <summary>Stores one immutable postfix program and its direct dependencies.</summary>
     private sealed class CompiledExpression
     {
+        /// <summary>
+        ///     Stores a program and measures it once: its deepest syntax level, the largest value stack it needs, and
+        ///     the identifier references the dependency validation walks.
+        /// </summary>
+        /// <param name="instructions">The postfix instructions, in execution order.</param>
+        /// <param name="dependencies">The distinct identifier names the program reads directly.</param>
+        /// <exception cref="InvalidOperationException">The instructions do not form a valid stack program.</exception>
         public CompiledExpression(
             ExpressionInstruction[] instructions,
             string[] dependencies)
@@ -852,6 +885,7 @@ internal sealed class ExpressionEvaluator
                 switch (instruction.Opcode)
                 {
                 case ExpressionOpcode.Literal:
+                case ExpressionOpcode.OutOfDomainLiteral:
                     stackSize++;
                     break;
                 case ExpressionOpcode.Identifier:
@@ -936,7 +970,7 @@ internal sealed class ExpressionEvaluator
     /// <summary>Represents one postfix stack-machine instruction.</summary>
     private readonly record struct ExpressionInstruction(
         ExpressionOpcode Opcode,
-        BigInteger Value,
+        Int128 Value,
         string? Name,
         int Depth,
         BranchPatch? Patch = null,
@@ -987,6 +1021,12 @@ internal sealed class ExpressionEvaluator
         /// <summary>Pushes the instruction's constant value.</summary>
         Literal,
 
+        /// <summary>
+        ///     Stands for a literal outside the signed 128-bit domain: it fails, with the instruction's name text as
+        ///     the message, when it is reached.
+        /// </summary>
+        OutOfDomainLiteral,
+
         /// <summary>Evaluates the named dependency (once per session) and pushes its value.</summary>
         Identifier,
 
@@ -1015,12 +1055,12 @@ internal sealed class ExpressionEvaluator
         Or,
 
         /// <summary>
-        ///     Pops two values and pushes the left shifted left by a bit count from 0 to 31, rejecting overflow.
+        ///     Pops two values and pushes the left shifted left by a bit count from 0 to 127, rejecting overflow.
         /// </summary>
         ShiftLeft,
 
         /// <summary>
-        ///     Pops two values and pushes the left arithmetically shifted right by a bit count from 0 to 31.
+        ///     Pops two values and pushes the left arithmetically shifted right by a bit count from 0 to 127.
         /// </summary>
         ShiftRight,
 

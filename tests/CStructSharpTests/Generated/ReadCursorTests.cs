@@ -209,17 +209,18 @@ public class ReadCursorTests
     [TestMethod]
     public void FailExpression_WrapsOperatorFailuresLikeTheRuntime()
     {
-        // A uint32 count at or above 2^31 is kept exact until the array length selects it.
-        var layout = new CStruct("struct root { uint32 count; uint8 items[count]; };");
-        byte[] bytes = [0, 0, 0, 0x80, 1];
+        // A uint128 count at or above 2^127 is kept exact until the array length selects it.
+        var layout = new CStruct("struct root { uint128 count; uint8 items[count]; };");
+        byte[] bytes = new byte[17];
+        bytes[15] = 0x80;
         CStructReadException runtime = Assert.Throws<CStructReadException>(() => layout.Parse(bytes, "root"));
 
         var cursor = new ReadCursor(bytes, path: "root");
-        uint count = Codec.ReadUInt32(cursor.Take(4, "count", "uint32"), littleEndian: true);
+        UInt128 count = Codec.ReadUInt128(cursor.Take(16, "count", "uint128"), littleEndian: true);
         Exception generated;
         try
         {
-            _ = Expressions.RequireInt32(count, "count");
+            _ = Expressions.FromUInt128(count, "count");
             generated = new InvalidOperationException("not reached");
         }
         catch (Exception exception)
@@ -230,13 +231,13 @@ public class ReadCursorTests
 
         Assert.IsInstanceOfType<CStructReadException>(generated);
         Assert.AreEqual(runtime.Message, generated.Message);
-        Assert.AreEqual("Cannot evaluate array length for items: 'count' is 2147483648, which is outside the 32-bit range that layout expressions support (field 'items' (uint8), in 'root', offset 4).", generated.Message);
+        Assert.AreEqual("Cannot evaluate array length for items: 'count' is 170141183460469231731687303715884105728, which is outside the 128-bit range that layout expressions support (field 'items' (uint8), in 'root', offset 16).", generated.Message);
 
         // A division by zero and an overflow take the same wording as the runtime evaluator's.
         Exception zero = cursor.FailExpression(new DivideByZeroException("Attempted to divide by zero."), "array length for items", "items", "uint8");
         StringAssert.StartsWith(zero.Message, "Cannot evaluate array length for items: Attempted to divide by zero");
         Exception overflow = cursor.FailExpression(new OverflowException(), "array length for items", "items", "uint8");
-        StringAssert.StartsWith(overflow.Message, "Cannot evaluate array length for items: the result is outside the 32-bit range that layout expressions support");
+        StringAssert.StartsWith(overflow.Message, "Cannot evaluate array length for items: the result is outside the 128-bit range that layout expressions support");
 
         // Anything that is not an expression failure passes through unchanged.
         var unrelated = new ArgumentNullException("x");

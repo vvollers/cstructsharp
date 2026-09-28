@@ -899,7 +899,7 @@ const readExplanations: Record<string, string> = {
   "conditional-scope":
     "The first item reads count 1 and payload 42. The second has tag 0, so its local count is unavailable and the next condition fails. Local declarations hide caller variables from entry: even the #define count 99 cannot rescue this expression. Each item starts fresh. Guard count with tag != 0 && count > 0 to avoid evaluating an unavailable value.",
   "conditional-nesting":
-    "Tag 0 skips the entire outer branch, including the inner condition, so tail reads the next byte as 9. No value for missing is needed. Tag 1 reaches the inner condition and produces a missing-variable error. Calculations use checked 32-bit integers; active expressions still enforce overflow, division, depth, and work limits.",
+    "Tag 0 skips the entire outer branch, including the inner condition, so tail reads the next byte as 9. No value for missing is needed. Tag 1 reaches the inner condition and produces a missing-variable error. Calculations use exact, checked 128-bit integers; active expressions still enforce overflow, division, depth, and work limits.",
   "integers-24":
     "Three-byte integers keep a three-byte stride. The unsigned size is 16777215 and the signed delta is -2.",
   "bounded-encodings":
