@@ -38,7 +38,7 @@ public class MemoryBtfBoundaryTests
         CollectionAssert.AreEqual(new byte[] { 0, 0, 0xc0, 0x3f, }, new MemorySession(floating.Schema).Serialize(floating.RootTypeId, 1.5F));
         MetadataImportResult union = metadata.Import(11);
         var unionSession = new MemorySession(union.Schema);
-        CollectionAssert.AreEqual(new byte[] { 255, 0, 0, 0, }, unionSession.Serialize(union.RootTypeId, new MemoryUnionSelection("a", (sbyte)-1)));
+        CollectionAssert.AreEqual(new byte[] { 255, 0, 0, 0, }, unionSession.Serialize(union.RootTypeId, UnionValue.FromMember("U", "a", (sbyte)-1)));
         foreach (uint id in new uint[] { 12, 13, })
         {
             MetadataImportResult enumeration = metadata.Import(id);

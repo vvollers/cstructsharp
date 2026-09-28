@@ -25,7 +25,7 @@ using CStructSharp.Values;
 /// Pointers are the one place where the session must read data to know where to go next. Reading a pointer field
 /// yields a <see cref="StoredPointer"/> and stops. Only the explicit <c>.value</c> path step calls the resolver
 /// supplied at construction, which may apply a relative base, strip a tag, or switch to another address space.
-/// The default resolver treats nonzero bits as an absolute address in the same source. Primitive decoding and
+/// The default resolver treats a nonzero stored value as an absolute address in the same source. Primitive decoding and
 /// encoding always go through the core compiled codecs; composite traversal applies the schema's explicit offsets.
 /// </para>
 /// </remarks>
@@ -77,11 +77,13 @@ public sealed class MemorySession
     }
 
     /// <summary>Resolves a path and decodes the selected value. Pointers stay <see cref="StoredPointer"/> unless the path consumes <c>.value</c>.</summary>
-    /// <remarks>An empty path reads the root. Structs and unions produce <see cref="StructValue"/> dictionaries,
-    /// arrays produce <c>object?[]</c>, scalars use their codec's managed type, and signed bit slices become
-    /// <see cref="long"/>. A selected path decodes only the storage it needs, so an unavailable unrelated member
-    /// does not prevent reading a known field. Reading a whole union returns every member's interpretation of the
-    /// shared bytes; it does not decide which one the application's tag selects.</remarks>
+    /// <remarks>An empty path reads the root. Values have the shapes the core reader returns: a struct is a
+    /// <see cref="StructValue"/>, a union a <see cref="UnionValue"/> with its raw storage and every member's
+    /// interpretation of it, an array of a numeric or <see cref="bool"/> scalar a <see cref="PrimitiveArray{T}"/>
+    /// and any other array a <see cref="List{T}"/> of <see cref="object"/>, a scalar its codec's managed type, and a
+    /// signed bit slice a <see cref="long"/>. A selected path decodes only the storage it needs, so an unavailable
+    /// unrelated member does not prevent reading a known field. Reading a whole union does not decide which member
+    /// the application's tag selects.</remarks>
     /// <param name="region">Finite caller-owned region holding the root record.</param>
     /// <param name="typeId">ID of the root record's type in the schema.</param>
     /// <param name="path">Member/index path from the root; pointer targets need an explicit <c>.value</c> step.</param>
@@ -212,8 +214,9 @@ public sealed class MemorySession
     /// <summary>Creates the bytes of one new record from zero-filled storage. Gaps and unselected union bytes stay zero.</summary>
     /// <remarks>
     /// Struct input is a dictionary of member values, an array is an <see cref="IList"/> of the declared count, a
-    /// pointer is a <see cref="StoredPointer"/> of the declared width, and a union is either its exact raw bytes or
-    /// a <see cref="MemoryUnionSelection"/>. The method creates storage for this one value only; it does not allocate
+    /// pointer is a <see cref="StoredPointer"/> of the declared width, and a union is a <see cref="UnionValue"/>, as
+    /// for the core writer: <see cref="UnionValue.FromRaw"/> for its exact bytes or <see cref="UnionValue.FromMember"/>
+    /// for one member. The method creates storage for this one value only; it does not allocate
     /// pointer targets or choose addresses. Write the result into a source yourself or pass it to
     /// <see cref="MemoryPatch.Create"/>. Unlike <see cref="PlanUpdate"/>, this starts from zeroes, so padding
     /// recorded by the metadata is initialized to zero rather than preserved.
@@ -240,8 +243,8 @@ public sealed class MemorySession
     /// <summary>Stages a replacement of the selected storage, preserving every byte and bit the new value does not cover. Nothing is written.</summary>
     /// <remarks>
     /// The selected bytes are read first and the new value is encoded over a copy of them, so padding and
-    /// neighboring bit slices survive. Replacing a whole union through a <see cref="MemoryUnionSelection"/> is the
-    /// exception: the union is cleared before the chosen member is encoded. The returned patch has already flattened
+    /// neighboring bit slices survive. Replacing a whole union with a <see cref="UnionValue"/> that selects a
+    /// member is the exception: the union is cleared before the chosen member is encoded. The returned patch has already flattened
     /// mapping layers and captured expected bytes, which means planning reads the storage more than once and needs
     /// a budget larger than the replacement length. Call <see cref="MemoryPatch.Commit"/> to perform the writes.
     /// </remarks>
@@ -338,7 +341,7 @@ public sealed class MemorySession
 
     /// <summary>The default resolver: the stored bits are an absolute address in the source the pointer was read from.</summary>
     /// <param name="request">The pointer being followed and where it was found.</param>
-    private static MemoryRegion ResolveAbsolute(PointerRequest request) => new(request.Storage.Source, request.Pointer.Bits, request.TargetSize);
+    private static MemoryRegion ResolveAbsolute(PointerRequest request) => new(request.Storage.Source, request.Pointer.Address, request.TargetSize);
 
     /// <summary>Splits a path into member names and bracketed indexes, rejecting anything malformed.</summary>
     /// <remarks>Tokenizing is independent of types and bytes; <see cref="Resolve"/> later decides whether a token
@@ -534,31 +537,41 @@ public sealed class MemorySession
                 values[i] = this.ReadCore(new MemorySelection(selected.Region.Slice(checked(i * element.Size), element.Size), element, null, null), context, depth + 1);
             }
 
-            return values;
+            return this.ToArrayValue(element, values);
         }
 
         if (type.Kind is MemoryTypeKind.Struct or MemoryTypeKind.Union)
         {
-            var values = new StructValue();
+            var members = new List<KeyValuePair<string, object?>>(type.Fields.Count);
             foreach (MemoryField field in type.Fields)
             {
                 MemoryTypeDefinition member = this.Schema.GetType(field.TypeId);
                 object? value = this.ReadCore(new MemorySelection(selected.Region.Slice(field.Offset, member.Size), member, field, type.Id), context, depth + 1);
-                if (field.Promoted && value is StructValue promoted)
+                if (field.Promoted && value is IReadOnlyDictionary<string, object?> promoted)
                 {
-                    // Promoted members appear directly in the parent dictionary, as they do in C source.
-                    foreach (KeyValuePair<string, object?> pair in promoted)
-                    {
-                        values.Add(pair.Key, pair.Value);
-                    }
+                    // Promoted members appear directly in the parent, as they do in C source.
+                    members.AddRange(promoted);
                 }
                 else
                 {
-                    values.Add(field.Name, value);
+                    members.Add(new KeyValuePair<string, object?>(field.Name, value));
                 }
             }
 
-            return values;
+            if (type.Kind == MemoryTypeKind.Union)
+            {
+                // As the core reader does, a union keeps its complete storage next to the member views, so writing
+                // the value back without selecting a member reproduces the bytes exactly.
+                return UnionValue.FromParsed(type.Name, ReadBytes(selected.Region, context), members);
+            }
+
+            var structValue = new StructValue();
+            foreach (KeyValuePair<string, object?> pair in members)
+            {
+                structValue.Add(pair.Key, pair.Value);
+            }
+
+            return structValue;
         }
 
         if (type.Kind == MemoryTypeKind.Opaque)
@@ -571,13 +584,60 @@ public sealed class MemorySession
         throw new ArgumentException("Cannot read an incomplete type by value.");
     }
 
+    /// <summary>
+    ///     Gives decoded array elements the shape the core reader uses: a <see cref="PrimitiveArray{T}"/> for a plain
+    ///     numeric or <see cref="bool"/> scalar element, and a <see cref="List{T}"/> of <see cref="object"/> otherwise.
+    /// </summary>
+    /// <param name="element">The array's element type.</param>
+    /// <param name="values">The decoded elements, in order.</param>
+    /// <returns>The array value.</returns>
+    private IList<object?> ToArrayValue(MemoryTypeDefinition element, object?[] values)
+    {
+        // An element with its own declaration is an enum or other declared codec, which the core also returns as a
+        // list. For an empty array the element's managed type comes from decoding zero bytes, without a source read.
+        if (element.Kind != MemoryTypeKind.Scalar || element.Declaration is not null)
+        {
+            return new List<object?>(values);
+        }
+
+        object? sample = values.Length > 0 ? values[0] : this.Schema.GetCodec(element).ReadValue(new byte[element.Size], MemorySchema.CodecRoot(element));
+        return sample switch
+        {
+            byte => Typed<byte>(values),
+            sbyte => Typed<sbyte>(values),
+            bool => Typed<bool>(values),
+            short => Typed<short>(values),
+            ushort => Typed<ushort>(values),
+            int => Typed<int>(values),
+            uint => Typed<uint>(values),
+            long => Typed<long>(values),
+            ulong => Typed<ulong>(values),
+            float => Typed<float>(values),
+            double => Typed<double>(values),
+            _ => new List<object?>(values),
+        };
+
+        // Copies boxed elements of one managed type into a typed array value.
+        static PrimitiveArray<T> Typed<T>(object?[] boxed)
+            where T : unmanaged
+        {
+            var typed = new T[boxed.Length];
+            for (int i = 0; i < boxed.Length; i++)
+            {
+                typed[i] = (T)boxed[i]!;
+            }
+
+            return new PrimitiveArray<T>(typed);
+        }
+    }
+
     /// <summary>Encodes a value into a destination span, using core serialization for scalars and explicit offsets for composites.</summary>
     /// <remarks>The destination's initial contents decide what happens to bytes the value does not cover:
     /// <see cref="Serialize"/> passes zeroes, <see cref="PlanUpdate"/> passes a copy of the existing bytes. Struct
-    /// encoding touches only member ranges. A whole-union encoding with a <see cref="MemoryUnionSelection"/>
-    /// deliberately clears the union first so stale bytes of another interpretation cannot masquerade as part of
-    /// the new value. Pointers must arrive as <see cref="StoredPointer"/> of the declared width; their bits are
-    /// written unchanged.</remarks>
+    /// encoding touches only member ranges. A whole-union encoding with a <see cref="UnionValue"/> that selects a
+    /// member deliberately clears the union first so stale bytes of another interpretation cannot masquerade as part of
+    /// the new value. Pointers must arrive as <see cref="StoredPointer"/> of the declared width; their stored
+    /// value is written unchanged.</remarks>
     /// <param name="type">Type being encoded.</param>
     /// <param name="value">Value in the declared shape for that type.</param>
     /// <param name="destination">Span of exactly the type's size to encode into.</param>
@@ -597,7 +657,7 @@ public sealed class MemorySession
                     throw new ArgumentException("Pointer writes require StoredPointer with the declared width.", nameof(value));
                 }
 
-                scalar = pointer.Bits;
+                scalar = pointer.Address;
             }
 
             ArgumentNullException.ThrowIfNull(scalar);
@@ -628,21 +688,29 @@ public sealed class MemorySession
         {
             if (type.Kind == MemoryTypeKind.Union)
             {
-                // Raw bytes reproduce storage exactly; a selection names one interpretation and zeroes the rest.
-                if (value is byte[] raw && raw.Length == type.Size)
+                // As in the core writer: a selected member is encoded over zeroed storage, so stale bytes of another
+                // interpretation cannot masquerade as part of the new value; without a selection the raw storage
+                // is reproduced exactly (a union value that was read writes back unchanged).
+                if (value is not UnionValue union || !string.Equals(union.UnionName, type.Name, StringComparison.Ordinal))
                 {
-                    context.Charge("serialize", 0, raw.Length);
-                    raw.CopyTo(destination);
+                    throw new ArgumentException($"Union '{type.Name}' is written from a UnionValue with that name (UnionValue.FromRaw or UnionValue.FromMember).", nameof(value));
+                }
+
+                if (union.HasSelection)
+                {
+                    destination.Clear();
+                    this.EncodeField(type, this.Schema.GetField(type.Id, union.SelectedMember!), union.SelectedValue, destination, context, depth);
                     return;
                 }
 
-                if (value is not MemoryUnionSelection selection)
+                byte[] raw = union.GetRawStorageArray();
+                if (raw.Length != type.Size)
                 {
-                    throw new ArgumentException("Union writes require raw bytes or MemoryUnionSelection.", nameof(value));
+                    throw new ArgumentException($"Union '{type.Name}' raw storage must be {type.Size} bytes, not {raw.Length}.", nameof(value));
                 }
 
-                destination.Clear();
-                this.EncodeField(type, this.Schema.GetField(type.Id, selection.Member), selection.Value, destination, context, depth);
+                context.Charge("serialize", 0, raw.Length);
+                raw.CopyTo(destination);
                 return;
             }
 

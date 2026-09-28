@@ -85,7 +85,7 @@ public class MemoryOperationMatrixTests
             Assert.AreEqual(12, request.TargetSize);
             Assert.AreEqual("next.value.id", request.Path);
             Assert.IsTrue(request.Depth > 0);
-            return new MemoryRegion(right, request.Pointer.Bits & ~1UL, request.TargetSize);
+            return new MemoryRegion(right, request.Pointer.Address & ~1UL, request.TargetSize);
         });
         var region = new MemoryRegion(left, 0, one.Length);
         Assert.AreEqual(new StoredPointer(0x101), session.Read(region, "Node", "next"));

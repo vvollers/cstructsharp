@@ -9,7 +9,7 @@ namespace CStructSharp.Memory;
 /// cannot see how it obtains bytes. The result describes one read; it is not a snapshot and does not prevent the
 /// source from changing afterwards.
 /// </remarks>
-/// <param name="Value">Decoded value; pointers keep their stored bits as <see cref="StoredPointer"/>.</param>
+/// <param name="Value">Decoded value; pointers keep their stored value as <see cref="StoredPointer"/>.</param>
 /// <param name="Selection">Logical region and metadata of the selected field.</param>
 /// <param name="BackingRegions">Physical ranges in logical order, resolved through every known mapping layer.</param>
 public sealed record MemoryInspection(object? Value, MemorySelection Selection, IReadOnlyList<MemoryRegion> BackingRegions);

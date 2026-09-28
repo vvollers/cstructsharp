@@ -9,10 +9,10 @@
   "operations": ["read", "inspect", "resolve", "serialize", "plan-update", "commit"],
   "matrix": [
     { "kind": "Scalar", "read": true, "inspect": true, "resolve": true, "serialize": true, "plan-update": true, "commit": "requires writable backing" },
-    { "kind": "Pointer", "read": "StoredPointer; no implicit follow", "inspect": true, "resolve": "explicit .value or terminal .address", "serialize": "exact declared width", "plan-update": "stored bits", "commit": "requires writable backing" },
+    { "kind": "Pointer", "read": "StoredPointer; no implicit follow", "inspect": true, "resolve": "explicit .value or terminal .address", "serialize": "exact declared width", "plan-update": "stored Address unchanged", "commit": "requires writable backing" },
     { "kind": "Struct", "read": "StructValue", "inspect": true, "resolve": true, "serialize": "named dictionary, zero gaps", "plan-update": "preserve gaps", "commit": "requires writable backing" },
-    { "kind": "Union", "read": "StructValue with all interpretations", "inspect": true, "resolve": true, "serialize": "raw bytes or explicit MemoryUnionSelection", "plan-update": "selected field preserves unrelated bytes; whole union clears unused storage", "commit": "requires writable backing" },
-    { "kind": "Array", "read": "bounded object array", "inspect": true, "resolve": "fixed indices", "serialize": "exact count IList", "plan-update": "fixed extent", "commit": "requires writable backing" },
+    { "kind": "Union", "read": "UnionValue with raw storage and all interpretations", "inspect": true, "resolve": true, "serialize": "UnionValue named after the union: FromRaw or a read value copies exact bytes, FromMember encodes one member over zeroes", "plan-update": "selected field preserves unrelated bytes; whole union from FromMember clears unused storage", "commit": "requires writable backing" },
+    { "kind": "Array", "read": "PrimitiveArray<T> for numeric or bool scalar elements, otherwise List<object?>", "inspect": true, "resolve": "fixed indices", "serialize": "exact count IList", "plan-update": "fixed extent", "commit": "requires writable backing" },
     { "kind": "Incomplete", "read": false, "inspect": false, "resolve": "storage-free descriptor only", "serialize": false, "plan-update": false, "commit": false },
     { "kind": "Opaque", "read": "raw byte[] of the declared size", "inspect": true, "resolve": "whole value only; no members", "serialize": "exact-size raw byte[]", "plan-update": "raw bytes", "commit": "requires writable backing" }
   ],

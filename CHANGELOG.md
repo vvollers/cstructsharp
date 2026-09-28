@@ -10,6 +10,15 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Breaking changes
 
+- **Breaking (memory API):** memory reads and writes use the core value types. A union reads as a `UnionValue`
+  (its raw storage and every member's view, charged to the byte budget once for the storage and once per member)
+  instead of a `StructValue`, and an array as a `PrimitiveArray<T>` (numeric or `bool` elements) or a
+  `List<object?>` instead of an `object?[]`. A union is written from a `UnionValue` named like the union's
+  `MemoryTypeDefinition.Name`; `MemoryUnionSelection` and raw `byte[]` union input are removed.
+  `StoredPointer.Bits` is renamed `Address`. Migration: replace `new MemoryUnionSelection(member, value)` with
+  `UnionValue.FromMember(unionName, member, value)`, a raw union `byte[]` with `UnionValue.FromRaw(unionName, bytes)`,
+  `(StructValue)` casts of union reads with `(UnionValue)`, `object?[]` casts of array reads with `IList<object?>`
+  (or `PrimitiveArray<T>` for its typed `Span`), and `pointer.Bits` with `pointer.Address`.
 - **Breaking (language):** a layout expression can only use integer fields: integers, characters (their code),
   `bool` (1 or 0), enums (the member's number), pointers (the stored address), and custom-codec values that decode to an
   integer. Naming text, an array, a struct or union, a floating-point, fixed-point or UUID field in an expression is

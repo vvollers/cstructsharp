@@ -45,7 +45,7 @@ MemoryAccessContext      one budget (bytes, requests, depth, cancellation) share
 | Metadata format parsing | `Metadata/BtfMetadata`, `Metadata/IsfMetadata`, `Metadata/MetadataImportResult` |
 | Value selection and pointer interpretation | `MemorySession`, `MemorySelection`, `MemoryInspection`, `StoredPointer`, `PointerRequest` |
 | Repeated graph work | `MemoryWalker`, `MemoryWalkResult`, `MemoryWalkStop` |
-| Write planning and uncertain completion | `MemoryPatch`, `MemoryPatchFragment`, `MemoryPatchCommitException`, `MemoryUnionSelection` |
+| Write planning and uncertain completion | `MemoryPatch`, `MemoryPatchFragment`, `MemoryPatchCommitException` |
 | Shared limits and diagnostics | `MemoryAccessContext`, `MemoryAccessException`, `MemoryFailure` |
 
 ## Invariants to preserve
@@ -56,8 +56,10 @@ MemoryAccessContext      one budget (bytes, requests, depth, cancellation) share
   fixed extent is a reason to reject a projection.
 - **A hole is missing information, not zero.** Sources return the real count, and finite views turn an unexpected
   zero into `MissingBytes`.
-- **Pointer bits are preserved.** Only an explicit `.value` step calls the resolver; serialization writes the bits
-  that were read.
+- **Stored pointer values are preserved.** Only an explicit `.value` step calls the resolver; serialization writes
+  the `StoredPointer.Address` that was read.
+- **Values use the core vocabulary.** Reads return `StructValue`, `UnionValue`, and `PrimitiveArray<T>` or
+  `List<object?>` arrays, as the core reader does; a union is written from a `UnionValue` named after it.
 - **Work budgets cross boundaries.** Adapters and callbacks forward the context they received instead of creating
   a new one.
 - **Generations detect reported changes.** They are a change counter, not a snapshot or a lock; callers arrange

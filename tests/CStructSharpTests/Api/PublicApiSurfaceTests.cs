@@ -69,7 +69,6 @@ public class PublicApiSurfaceTests
         "CStructSharp.Memory.MemorySession",
         "CStructSharp.Memory.MemoryTypeDefinition",
         "CStructSharp.Memory.MemoryTypeKind",
-        "CStructSharp.Memory.MemoryUnionSelection",
         "CStructSharp.Memory.MemoryWalkResult",
         "CStructSharp.Memory.MemoryWalkStop",
         "CStructSharp.Memory.MemoryWalker",

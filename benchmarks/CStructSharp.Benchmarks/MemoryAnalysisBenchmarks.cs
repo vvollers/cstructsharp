@@ -89,7 +89,7 @@ public class MemoryAnalysisBenchmarks
             (node, context) =>
             {
                 StoredPointer next = (StoredPointer)this.listSession.Read(node, "next", context: context)!;
-                return new MemoryRegion(node.Source, next.Bits, 8);
+                return new MemoryRegion(node.Source, next.Address, 8);
             },
             maxNodes: 4096);
     }

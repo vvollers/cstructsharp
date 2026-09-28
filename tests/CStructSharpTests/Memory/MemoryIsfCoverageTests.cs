@@ -57,7 +57,7 @@ public class MemoryIsfCoverageTests
             ["items"] = new uint[] { 7, 9, },
             ["opaque"] = new StoredPointer(ulong.MaxValue),
             ["callable"] = new StoredPointer(0),
-            ["overlay"] = new MemoryUnionSelection("number", 42U),
+            ["overlay"] = UnionValue.FromMember("U", "number", 42U),
             ["choiceAgain"] = 0U,
         });
         CollectionAssert.AreEqual(new byte[] { 0x12, 0x34, 1, 0, 0, 0, 0xc0, 0x3f, }, bytes[..8]);

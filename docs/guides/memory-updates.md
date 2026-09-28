@@ -32,7 +32,7 @@ stages separate lets an editor show the affected backing ranges and let a user c
 | Struct | An `IReadOnlyDictionary<string, object?>` with a value for every member |
 | Array | An `IList` with exactly the declared number of elements |
 | Pointer | A `StoredPointer` with the declared width |
-| Union | An exact-size `byte[]`, or a `MemoryUnionSelection` choosing one member |
+| Union | A `UnionValue` named after the union: `UnionValue.FromMember` for one member, `UnionValue.FromRaw` for exact bytes |
 
 For a new struct, provide every member, including explicit null pointers as `new StoredPointer(0, width)`. The
 serializer creates bytes for one record only. It does not allocate pointer targets or choose their addresses; the
@@ -41,18 +41,25 @@ by the application.
 
 ## Choose a union interpretation
 
-A union overlays members on the same bytes. When you read a union, the result dictionary contains every member's
-interpretation of that storage. Writing all of them back would make the outcome depend on which member happened to
-be encoded last, so the writer refuses to guess. You either name one member or supply the raw bytes.
+A union overlays members on the same bytes. When you read a union, the resulting `UnionValue` contains every
+member's interpretation of that storage and the storage itself. Writing every member back would make the outcome
+depend on which member happened to be encoded last, so the writer never does that. A `UnionValue` says exactly
+what to write: `UnionValue.FromMember(unionName, member, value)` names one member, and
+`UnionValue.FromRaw(unionName, bytes)` supplies the union's exact bytes. A `UnionValue` you read has no chosen
+member, so writing it back copies its raw storage unchanged. The union name must equal the union type's
+`MemoryTypeDefinition.Name`; a value built for a different union is rejected with an `ArgumentException`, and so
+is any other kind of input, such as a plain `byte[]`.
 
 [!code-csharp[Create a union from one member or exact bytes](../examples/memory-analysis/MemoryTutorialExamples.cs#memory-union)]
 
-Choosing `number` writes `78 56 34 12` for `0x12345678U` in little-endian order. A `MemoryUnionSelection` clears
-the union's storage before encoding the chosen member, so bytes outside a smaller member become zero. That also
+Choosing `number` writes `78 56 34 12` for `0x12345678U` in little-endian order. Reading the raw bytes
+`01 02 03 04` back gives `number` = `0x04030201` and a four-element `bytes` view of the same storage. A
+`UnionValue.FromMember` value clears the union's storage before encoding the chosen member, so bytes outside a
+smaller member become zero. That also
 applies when replacing an entire existing union through `PlanUpdate`. When neighboring bytes matter, update a
 specific member path instead, or supply the exact raw bytes you want. For a promoted (anonymous) union inside a
-struct, use its descriptor field name with an explicit selection rather than a dictionary of overlapping promoted
-members.
+struct, use its descriptor field name with a `UnionValue` rather than a dictionary of overlapping promoted
+members; look up the union's name with `session.Schema.GetType(field.TypeId).Name`.
 
 ## Preserve the original with an overlay
 

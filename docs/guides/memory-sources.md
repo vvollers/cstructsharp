@@ -107,12 +107,21 @@ Use an empty path to read the root. The managed result types are:
 | --- | --- |
 | Scalar | The core codec's managed type, for example `uint` for `uint32` |
 | Signed bit slice | `long`, sign-extended from the selected bits |
-| Pointer | `StoredPointer` holding the stored bits and their width |
-| Struct or union | A `StructValue` dictionary keyed by member name |
-| Array | `object?[]` with one element per declared element |
+| Pointer | `StoredPointer` holding the stored value as `Address`, and its width |
+| Struct | A `StructValue` dictionary keyed by member name |
+| Union | A `UnionValue`: the union's raw bytes in `RawStorage`, and each member's view by name |
+| Array of a numeric or `bool` scalar | A `PrimitiveArray<T>`, for example `PrimitiveArray<uint>` for `uint32` elements |
+| Any other array (structs, enums, pointers) | A `List<object?>` with one element per declared element |
 
-Reading a whole union returns every member's interpretation of the same bytes. That is honest but not a claim
-that all interpretations are meaningful; choose a member path when your application knows which one is active.
+These are the same value types the core `CStruct` reader returns. Both array shapes implement
+`IReadOnlyList<object?>`, so code that only indexes or enumerates elements works with either; an array of zero
+elements is still a `PrimitiveArray<T>` of the declared element type.
+
+A union stores all its members in the same bytes. Reading a whole union returns every member's interpretation of
+those bytes, next to the bytes themselves. That is honest but not a claim that all interpretations are
+meaningful; choose a member path when your application knows which one is active. Each view is decoded from the
+source separately, so a whole-union read counts the union's bytes against the byte budget once for the raw
+storage and once more for every member.
 
 A selected read touches only the storage its path needs. If a record's second page is missing, reading a field
 on the first page still succeeds, while reading the whole record fails. The region bounds the root selection only:

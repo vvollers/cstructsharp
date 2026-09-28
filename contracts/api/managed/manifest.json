@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed",
-  "baselineRevision": 54,
+  "baselineRevision": 55,
   "packageVersion": "0.10.0",
   "assembly": "CStructSharp.dll",
-  "exportedTypes": 88,
+  "exportedTypes": 87,
   "generator": {
     "package": "PublicApiGenerator.Tool",
     "version": "11.5.4",
@@ -12,22 +12,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed/CStructSharp.public-api.txt",
-    "lines": 1101,
-    "normalizedSha256": "E4A87DF925BEC1962879DE8A000CD8B0DE395B451E676A67DF0F6E7AFA394CC8"
+    "lines": 1095,
+    "normalizedSha256": "37928478DC0A09F3C9B5EBEC4E35F87EFA41B2D190966B5AF981268B40D4AE9D"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "AFF52AAC55ABA760EC146850640FD6EB023DFB5E2A42FD26CB5FA84B1927845D",
+      "normalizedSha256": "BE57B2C886E05B7425130BC7A6FF6A12A2D0CFD2AA1CB3115D9883F1AF856B52",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "5600870B1E819CB7CF5D94F61E7C55B207675A30BD8532D7E19F045F203F41E3",
+      "normalizedSha256": "622EFDEADAA81B850F3652DACA6B0879372A7CB53DAB77164BC95E70A14775D0",
       "aotCompatible": true
     }
   ],
@@ -352,12 +352,18 @@
     },
     {
       "revision": 54,
-      "kind": "breaking",
       "date": "2026-09-27",
       "packageVersion": "0.10.0",
-      "combinedSha256": "793D7999699C3AEBF0C168F7CC375951A7742EB0AE9AD89066A06F452BDF6289",
-      "rationale": "BTF and ISF imports take one MetadataImportOptions record (PointerSize, BestEffort, MaxTypes); ISF becomes a parsed IsfMetadata document with an Import method, like BtfMetadata.",
-      "releaseImpact": "Pass new MetadataImportOptions { PointerSize = ..., BestEffort = ... } to BtfMetadata.Import; replace IsfMetadata.Import(json, root, ...) with new IsfMetadata(json, isLittleEndian, maxBytes).Import(root, options)."
+      "combinedSha256": "793D7999699C3AEBF0C168F7CC375951A7742EB0AE9AD89066A06F452BDF6289"
+    },
+    {
+      "revision": 55,
+      "kind": "breaking",
+      "date": "2026-09-28",
+      "packageVersion": "0.10.0",
+      "combinedSha256": "83E67C0CC5287B2C5A0A09F7D425B40FFF7975B0F2428A8809C30A47FC04D24C",
+      "rationale": "Memory API uses the core value vocabulary: StoredPointer.Address, UnionValue for unions",
+      "releaseImpact": "Rename StoredPointer.Bits to Address (constructor parameter bits to address); replace MemoryUnionSelection(member, value) with UnionValue.FromMember(unionName, member, value) and raw byte[] union input with UnionValue.FromRaw(unionName, bytes); union reads return UnionValue and array reads return PrimitiveArray<T> or List<object?>"
     }
   ]
 }

@@ -55,7 +55,7 @@ internal static class Program
         MemoryWalkResult tasks = MemoryWalker.SentinelList(new MemoryRegion(kernel, Kernel, 16), (node, budget) =>
         {
             StoredPointer next = (StoredPointer)session.Read(node, imported.RootTypeId, "next", budget)!;
-            return new MemoryRegion(kernel, next.Bits, 16);
+            return new MemoryRegion(kernel, next.Address, 16);
         }, maxNodes: 10, context: context);
         Require(tasks.Stop == MemoryWalkStop.Sentinel && tasks.Nodes.Count == 2, "Sentinel traversal failed.");
         foreach (MemoryRegion node in tasks.Nodes)
@@ -89,7 +89,7 @@ internal static class Program
         MemoryWalkResult unavailable = MemoryWalker.SentinelList(new MemoryRegion(missingPage, Kernel, 16), (node, budget) =>
         {
             StoredPointer next = (StoredPointer)session.Read(node, imported.RootTypeId, "next", budget)!;
-            return new MemoryRegion(missingPage, next.Bits, 16);
+            return new MemoryRegion(missingPage, next.Address, 16);
         }, maxNodes: 10);
         Require(unavailable.Stop == MemoryWalkStop.Unavailable && unavailable.Failure?.Failure == MemoryFailure.Unmapped,
             "Missing memory must retain its structured failure.");

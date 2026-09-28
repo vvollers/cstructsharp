@@ -3,6 +3,7 @@ namespace CStructSharp.Docs.Examples;
 using System.Text;
 using global::CStructSharp.Memory;
 using global::CStructSharp.Memory.Metadata;
+using global::CStructSharp.Values;
 
 /// <summary>Executable memory-guide examples; each assertion checks the result described in the corresponding article.</summary>
 internal static class MemoryTutorialExamples
@@ -200,7 +201,7 @@ internal static class MemoryTutorialExamples
         // An opaque value reads and writes as raw bytes - the size is trustworthy, its layout is not.
         var session = new MemorySession(schema);
         var image = new ByteArrayMemorySource("capture", new byte[] { 42 });
-        var read = (global::CStructSharp.Values.StructValue)session.Read(new MemoryRegion(image, 0, 1), "outer")!;
+        var read = (StructValue)session.Read(new MemoryRegion(image, 0, 1), "outer")!;
         Require(((byte[])read["field"]!)[0] == 42, "Opaque member reads as its raw byte");
         #endregion
     }
@@ -216,7 +217,7 @@ internal static class MemoryTutorialExamples
         // adds the stored bits to the container's address. The stored bits themselves are never changed.
         var session = new MemorySession(schema, request => new MemoryRegion(
             request.Container.Source,
-            checked(request.Container.Address + request.Pointer.Bits),
+            checked(request.Container.Address + request.Pointer.Address),
             request.TargetSize));
         int size = schema.GetType("Node").Size;
 
@@ -236,7 +237,7 @@ internal static class MemoryTutorialExamples
         var root = new MemoryRegion(source, 8, size);
 
         // "next" is the stored bits; "next.value" follows them; "next.value.value" is the target's member.
-        Require(((StoredPointer)session.Read(root, "Node", "next")!).Bits == 16, "Stored displacement");
+        Require(((StoredPointer)session.Read(root, "Node", "next")!).Address == 16, "Stored displacement");
         Require((uint)session.Read(root, "Node", "next.value.value")! == 20, "Resolved target member");
         Require(session.Resolve(root, "Node", "next.value").Region.Address == 24, "Resolved address");
         #endregion
@@ -263,7 +264,7 @@ internal static class MemoryTutorialExamples
         MemoryWalkResult result = MemoryWalker.SentinelList(new MemoryRegion(source, 8, 8), (node, context) =>
         {
             var next = (StoredPointer)session.Read(node, "Link", "next", context)!;
-            return new MemoryRegion(node.Source, next.Bits, 8);
+            return new MemoryRegion(node.Source, next.Address, 8);
         }, maxNodes: 4, context: budget);
         Require(result.Stop == MemoryWalkStop.Sentinel && result.Nodes.Count == 2, "Sentinel completion");
         Require(result.Nodes[0].Address == 16 && result.Nodes[1].Address == 24, "List order");
@@ -315,12 +316,20 @@ internal static class MemoryTutorialExamples
         var session = new MemorySession(PortableMemorySchema.Create(layout, "Value"));
 
         // A union write must name the member being encoded; a dictionary of overlapping members is ambiguous.
-        byte[] bytes = session.Serialize("Value", new MemoryUnionSelection("number", 0x12345678U));
+        // UnionValue.FromMember encodes that one member over zeroed storage.
+        byte[] bytes = session.Serialize("Value", UnionValue.FromMember("Value", "number", 0x12345678U));
         Require(bytes.SequenceEqual(new byte[] { 0x78, 0x56, 0x34, 0x12 }), "Chosen union interpretation");
 
         // Alternatively, supply the union's exact bytes when the interpretation is unknown or irrelevant.
-        byte[] raw = session.Serialize("Value", new byte[] { 1, 2, 3, 4 });
+        byte[] raw = session.Serialize("Value", UnionValue.FromRaw("Value", new byte[] { 1, 2, 3, 4 }));
         Require(raw.SequenceEqual(new byte[] { 1, 2, 3, 4 }), "Exact raw union storage");
+
+        // Reading the union returns its raw storage and every member's view of it; writing that value back
+        // reproduces the bytes exactly, because no member is selected.
+        var read = (UnionValue)session.Read(new MemoryRegion(new ByteArrayMemorySource("image", raw), 0, 4), "Value")!;
+        Require((uint)read["number"]! == 0x04030201U, "Number view of the shared bytes");
+        Require(read["bytes"] is PrimitiveArray<byte> { Count: 4 }, "Byte view of the same storage");
+        Require(session.Serialize("Value", read).SequenceEqual(raw), "A read union writes back unchanged");
         #endregion
     }
 

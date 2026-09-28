@@ -124,7 +124,7 @@ with exercises and answers.
    and backing-file positions; choose a source type; read a value split across two mappings.
 2. [Memory schemas and metadata import](memory-schemas.md): describe padding and signed bit slices by hand, then
    import ISF and BTF metadata instead of writing descriptors yourself.
-3. [Stored pointers and bounded traversal](memory-traversal.md): keep pointer bits separate from their
+3. [Stored pointers and bounded traversal](memory-traversal.md): keep a pointer's stored value separate from its
    interpretation, resolve relative pointers, and walk circular lists and trees with explicit stopping conditions.
 4. [Create records and patch offline memory](memory-updates.md): serialize new records, choose union
    interpretations, preview which file bytes an edit touches, and keep the original image unchanged.

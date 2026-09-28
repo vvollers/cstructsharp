@@ -13,9 +13,9 @@ holds them. Reading the bits tells you none of this; only the format's documenta
 This guide shows how the memory APIs keep the two steps apart, how to supply the interpretation, and how to
 walk linked structures without trusting the image to be well-formed.
 
-## Pointer bits stay bits until you ask
+## A stored pointer stays a number until you ask
 
-`StoredPointer` holds the unsigned `Bits` exactly as they were stored, together with their `Width` in bytes
+`StoredPointer` holds the unsigned `Address` exactly as it was stored, together with its `Width` in bytes
 (1, 2, 4, or 8). Zero is null; this is a deliberate rule of the API, the same rule Portable stream pointers use,
 and it applies even when the address space has readable bytes at address zero. Reading a whole struct returns its
 pointer fields as `StoredPointer` values and
@@ -33,20 +33,20 @@ Given `struct Node { uint32 value; Node *next; };`, a path has one of these mean
 
 The first `value` after `next` is an accessor that means "follow the pointer"; the second is the member name.
 `address` must end a path. Arrays use zero-based indexes such as `nodes[2].next.value.value`. An empty path selects
-the root. Null pointers, opaque targets (`void *`), and incomplete targets cannot be dereferenced; the stored bits
-of such a pointer are still readable and often still useful.
+the root. Null pointers, opaque targets (`void *`), and incomplete targets cannot be dereferenced; the stored value
+of such a pointer is still readable and often still useful.
 
 ## Interpret a relative pointer
 
 When a path uses `.value`, the session hands the pointer to a **resolver**: a function from `PointerRequest` to
-`MemoryRegion`. The default resolver treats nonzero bits as an absolute address in the same source as the pointer
+`MemoryRegion`. The default resolver treats a nonzero stored `Address` as an absolute address in the same source as the pointer
 storage. Supply your own when the format specifies a different rule.
 
 A `PointerRequest` carries everything a resolver might need:
 
 | Member | Meaning |
 | --- | --- |
-| `Pointer` | The stored bits and width |
+| `Pointer` | The `StoredPointer`: its stored `Address` and `Width` |
 | `Storage` | The region holding the pointer bytes; its `Source` is the space the pointer was read from |
 | `Container` | The region of the record that contains the pointer, for relative encodings |
 | `TargetTypeId`, `TargetSize` | What the session expects to find at the target and how many bytes it needs |
@@ -66,7 +66,7 @@ packed layout puts the four-byte value at offset 0 and the eight-byte pointer at
 record; the fixture spaces records sixteen bytes apart, which is the application's placement choice.
 
 A resolver is also the place to switch to another process's source, or to remove a documented tag such as the
-low bit in `Bits & ~1UL` when the format reserves it. Do not clear bits merely because an address looks unusual.
+low bit in `Address & ~1UL` when the format reserves it. Do not clear bits merely because an address looks unusual.
 Validate the format's rules, and keep the original `StoredPointer` when writing the record back.
 
 ## Lists in memory: heads, sentinels, and embedded links
@@ -148,6 +148,6 @@ cancellation; the synchronous walker cannot interrupt a callback that blocks bef
 Answers: **a `StoredPointer`**; reading a struct never follows its pointers. **`RepeatedNode` with two nodes**
 (16 and 24): the third link revisits 16, which was already returned, so the walker reports a corrupt cycle rather
 than looping. **The resolver returns a region whose `Source` is the process source** with `Address` equal to
-`Pointer.Bits`; it leaves the bits themselves unchanged so a later serialization writes the same value.
+`Pointer.Address`; it leaves the stored value unchanged so a later serialization writes the same value.
 
 Continue with [budgets, caching, and source contracts](memory-reliability.md).

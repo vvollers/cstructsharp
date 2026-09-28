@@ -3,6 +3,7 @@ namespace CStructSharp.Tests;
 using System.Buffers.Binary;
 using CStructSharp.Memory;
 using CStructSharp.Memory.Metadata;
+using CStructSharp.Values;
 
 /// <summary>Acceptance boundaries for independent placement, source contracts, and hostile metadata graphs.</summary>
 [TestClass]
@@ -46,7 +47,7 @@ public class MemoryAcceptanceBoundaryTests
             var schema = new MemorySchema([word, array, child, new("r", "r", MemoryTypeKind.Struct, 4, fields),]);
             var session = new MemorySession(schema);
             var region = new MemoryRegion(new ByteArrayMemorySource("image", new byte[] { 1, 0, 2, 0, 3, 0, }), 0, 6);
-            object?[] values = (object?[])session.Read(region, "a")!;
+            var values = (PrimitiveArray<ushort>)session.Read(region, "a")!;
             CollectionAssert.AreEqual(new object?[] { (ushort)1, (ushort)2, (ushort)3, }, values);
             Assert.AreEqual((ushort)3, session.Read(region, "a", "[2]"));
             Assert.Throws<ArgumentOutOfRangeException>(() => session.Read(region, "a", "[3]"));

@@ -71,7 +71,22 @@ public class MemoryAnalysisTests
         Assert.AreEqual(new StoredPointer(Kernel), session.Read(region, "node", "parent"));
         Assert.AreEqual(42U, session.Read(region, "node", "parent.value.pid"));
         Assert.AreEqual(-3L, session.Read(region, "node", "state"));
-        Assert.AreEqual(ulong.MaxValue, ((StoredPointer)session.Read(new MemoryRegion(new ByteArrayMemorySource("max", Enumerable.Repeat((byte)255, 8).ToArray()), 0, 8), "ptr")!).Bits);
+        Assert.AreEqual(ulong.MaxValue, ((StoredPointer)session.Read(new MemoryRegion(new ByteArrayMemorySource("max", Enumerable.Repeat((byte)255, 8).ToArray()), 0, 8), "ptr")!).Address);
+    }
+
+    /// <summary>A stored pointer keeps its uninterpreted value as Address, including tag bits, and checks it against its width.</summary>
+    [TestMethod]
+    public void StoredPointer_KeepsAddressUninterpreted()
+    {
+        var tagged = new StoredPointer(0x1001, 4);
+        Assert.AreEqual(0x1001UL, tagged.Address);
+        Assert.AreEqual(0x1000UL, tagged.Address & ~1UL);
+        Assert.AreEqual(4, tagged.Width);
+        Assert.IsFalse(tagged.IsNull);
+        Assert.IsTrue(new StoredPointer(0).IsNull);
+        Assert.AreEqual(new StoredPointer(0x1001, 4), tagged);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new StoredPointer(0x1_0000_0000, 4));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new StoredPointer(1, 3));
     }
 
     /// <summary>Signed updates preserve neighboring bits and padding, reject overflow, and detect stale plans.</summary>

@@ -834,12 +834,6 @@ namespace CStructSharp.Memory
         Incomplete = 5,
         Opaque = 6,
     }
-    public sealed class MemoryUnionSelection : System.IEquatable<CStructSharp.Memory.MemoryUnionSelection>
-    {
-        public MemoryUnionSelection(string Member, object? Value) { }
-        public string Member { get; init; }
-        public object? Value { get; init; }
-    }
     public sealed class MemoryWalkResult : System.IEquatable<CStructSharp.Memory.MemoryWalkResult>
     {
         public MemoryWalkResult(System.Collections.Generic.IReadOnlyList<CStructSharp.Memory.MemoryRegion> Nodes, CStructSharp.Memory.MemoryWalkStop Stop, CStructSharp.Memory.MemoryAccessException? Failure = null) { }
@@ -886,8 +880,8 @@ namespace CStructSharp.Memory
     }
     public sealed class StoredPointer : System.IEquatable<CStructSharp.Memory.StoredPointer>
     {
-        public StoredPointer(ulong bits, int width = 8) { }
-        public ulong Bits { get; }
+        public StoredPointer(ulong address, int width = 8) { }
+        public ulong Address { get; }
         public bool IsNull { get; }
         public int Width { get; }
     }

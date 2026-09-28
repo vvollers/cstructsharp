@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
 using CStructSharp.Memory;
+using CStructSharp.Values;
 
 /// <summary>Tests the fixed Portable adapter's aliases, anonymous storage, and deliberate runtime-layout boundary.</summary>
 [TestClass]
@@ -14,7 +15,7 @@ public class MemoryPortableProjectionTests
         byte[] bytes = session.Serialize("Root", new Dictionary<string, object?> { ["empty"] = Array.Empty<ushort>(), ["tail"] = (byte)9, });
         CollectionAssert.AreEqual(new byte[] { 9, }, bytes);
         var region = new MemoryRegion(new ByteArrayMemorySource("image", bytes), 0, 1);
-        Assert.AreEqual(0, ((object?[])session.Read(region, "Root", "empty")!).Length);
+        Assert.AreEqual(0, ((PrimitiveArray<ushort>)session.Read(region, "Root", "empty")!).Count);
         Assert.AreEqual((byte)9, session.Read(region, "Root", "tail"));
     }
 
