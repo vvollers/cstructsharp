@@ -61,6 +61,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Fixed
 
+- npm package: `update(definition, source, path, value)` without an options argument no longer throws a
+  `TypeError`; the source collection step now accepts the `null` options the public API passes.
 - The explorer and inspector editors offer and highlight every word the language accepts, from one vocabulary
   built from the language contract: the inspector now knows `int48`, `uint48`, `int128`, `uint128` and `float16`,
   the explorer the C alias spellings (`int`, `uint32_t`, ...), and both `flag`, `sizeof`, `offsetof`, `@count` and
@@ -141,6 +143,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   types come from the npm package declarations, instead of two hand-copied modules.
 - The apps share the layout formatter (the explorer now also puts each enum and flag value on its own line), the
   error recovery hints, the hex helpers, the option defaults and the settings tooltip.
+- The npm package's browser tests live with it (`packages/cstructsharp/tests`): the starter pages, the public type
+  consumer, and the bridge contract, now exercised through the public API instead of a Base64 test shim.
 - API baselines are named by role: `contracts/api/managed` and `contracts/api/browser` (published under
   `/docs/contracts/api/`). The managed manifest keeps the approved hash of every revision and the review text of the
   current one; the release history is this changelog. The `frozen` status, work-item code and stale package version

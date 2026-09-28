@@ -237,7 +237,7 @@ jobs:
         env:
           CSTRUCT_BROWSERS: firefox,webkit
         run: |
-          (cd apps/explorer && npx playwright test --config playwright.starter.config.ts)
+          npx playwright test --config packages/cstructsharp/tests/browser/playwright.config.mjs starter.spec.mjs
           (cd apps/inspector && npx playwright test tests/e2e/inspector.spec.ts)
 
       - name: Prepare README badges

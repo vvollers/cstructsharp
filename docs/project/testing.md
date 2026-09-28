@@ -207,7 +207,8 @@ runtimes, profiling, browser harness, AOT variant) is in `benchmarks/README.md` 
 
 The browser adapter's source can be compared with its recorded wire format without compiling Web/WASM. Run relevant
 frontend and browser checks locally when changing that application. Release automation builds the production
-WASM explorer and runs frontend unit tests, explorer end-to-end tests, and the extracted browser starter checks.
+WASM explorer and runs frontend unit tests, explorer end-to-end tests, and the npm package's browser tests
+(`packages/cstructsharp/tests/browser`: the extracted starter pages and the bridge contract through the public API).
 It also runs the starter and recipe programs against the candidate NuGet package.
 
 The web and release workflows test the installed tarball in Node.js 22.14, 24.0, and 26.5 on Windows,

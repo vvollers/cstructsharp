@@ -1,0 +1,31 @@
+<!doctype html>
+<!--
+  Bridge test page, staged beside the extracted standalone bundle by tools/packaging/test-onboarding-browser.mjs.
+  It loads the public API exactly as a page using the bundle does, and exposes it with two hex helpers for
+  bridge.spec.mjs; body[data-ready] is set once the runtime has loaded.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>CStructSharp bridge test page</title>
+  </head>
+  <body>
+    <script type="module">
+      import * as cstructsharp from "./cstructsharp-wasm.js";
+
+      /** Formats bytes as lowercase hex pairs, so a test can compare them as text. */
+      const hex = (bytes) => Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(" ");
+
+      window.bridge = {
+        api: cstructsharp,
+        hex,
+        /** Reads hex pairs into bytes. */
+        bytes: (text) => Uint8Array.from(text.split(/\s+/).filter(Boolean), (pair) => Number.parseInt(pair, 16)),
+        /** Makes an envelope cloneable out of the page: byte data becomes hex text. */
+        plain: (result) => (result.data instanceof Uint8Array ? { ...result, data: hex(result.data) } : result),
+      };
+      await cstructsharp.getVersion();
+      document.body.dataset.ready = "true";
+    </script>
+  </body>
+</html>

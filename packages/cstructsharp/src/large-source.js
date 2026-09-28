@@ -427,9 +427,10 @@ async function sharedRequest(command, definition, input, options, extra) {
 /**
  * Reads a whole binary source into one Uint8Array for the operations that need every byte in memory (update). A
  * buffer or view is used as is (no copy); anything else is drained through the same chunk reader the staging
- * path uses, bounded by maxSpoolBytes.
+ * path uses, bounded by maxSpoolBytes. The options may be null, as the public update passes them when omitted.
  */
-export async function collectBytes(input, { signal, maxSpoolBytes = defaultSpoolLimit } = {}) {
+export async function collectBytes(input, options) {
+  const { signal, maxSpoolBytes = defaultSpoolLimit } = options ?? {};
   checkAbort(signal);
   if (
     input instanceof ArrayBuffer ||

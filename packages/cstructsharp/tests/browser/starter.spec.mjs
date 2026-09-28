@@ -1,3 +1,8 @@
+/**
+ * The standalone bundle's starter and inspector pages, served from the extracted archive under a nested URL: the
+ * read, write, update and reread sequence, the loading and operation failure messages, and the inspector's patch
+ * and download.
+ */
 import { expect, test } from "@playwright/test";
 
 const starter = "/tools/binary/starter/";
@@ -60,7 +65,7 @@ test("the inspector maps fields, preserves other bytes, and downloads the change
   const download = await downloaded;
   const stream = await download.createReadStream();
   const chunks = [];
-  for await (const chunk of stream!) chunks.push(chunk);
+  for await (const chunk of stream) chunks.push(chunk);
   expect(Buffer.concat(chunks)).toEqual(Buffer.from([0x43, 0x53, 1, 2, 1, 0, 0x10, 2, 0, 0xa5]));
   await page.locator("#file").setInputFiles({
     name: "truncated.bin",

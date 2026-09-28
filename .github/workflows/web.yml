@@ -78,7 +78,7 @@ jobs:
           node tools/quality/changed-documentation.mjs --base "$DIFF_BASE" --language script
 
       - name: Lint tools and the WASM bridge
-        run: node node_modules/eslint/bin/eslint.js --config tools/eslint.config.mjs "tools/**/*.mjs" "packages/cstructsharp/src/**/*.js" --max-warnings 0
+        run: node node_modules/eslint/bin/eslint.js --config tools/eslint.config.mjs "tools/**/*.mjs" "packages/cstructsharp/src/**/*.js" "packages/cstructsharp/tests/**/*.mjs" --max-warnings 0
 
       - name: Apps lint, format, and unit tests (every workspace)
         run: |
@@ -130,7 +130,7 @@ jobs:
         run: |
           npm run build
           npm run test:e2e
-      - name: Standalone WASM onboarding
+      - name: Standalone WASM onboarding and package browser tests (starter pages, bridge contract)
         run: |
           node tools/packaging/create-wasm-package.mjs
           (cd artifacts/wasm-package && zip -qr ../wasm-onboarding.zip .)

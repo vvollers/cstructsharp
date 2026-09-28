@@ -72,6 +72,7 @@ await parse(definition, new Blob([new Uint8Array(8)]), { bitfieldPacking: "Msvc"
 await parse(definition, new DataView(new ArrayBuffer(8)), { signal: AbortSignal.abort() });
 await parseWithDebug(definition, new Response(new Uint8Array(8)), { maxSpoolBytes: 1024 });
 await parse(definition, [new Uint8Array(4), new Uint8Array(4)]);
+/** A one-pass source: an async iterable of byte chunks. */
 async function* chunks() {
   yield new Uint8Array(8);
 }
@@ -86,6 +87,7 @@ if (unionParse.success) {
   void selected;
 }
 
+/** Uses a compiled layout the way a consumer would, so its declared types are checked. */
 async function compiledConsumer() {
   const layout = await compile("struct root { uint8 value; };", {
     littleEndian: true,

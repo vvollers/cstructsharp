@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import { Readable } from "node:stream";
 import test from "node:test";
-import { prepareSource, removeTemporaryEntry } from "./large-source.js";
+import { collectBytes, prepareSource, removeTemporaryEntry } from "./large-source.js";
 
 test("temporary storage cleanup waits for transient browser locks", async () => {
   let attempts = 0;
@@ -95,4 +95,10 @@ test("pre-aborted inputs do not consume an iterator", async () => {
     { name: "AbortError" },
   );
   assert.equal(read, false);
+});
+
+test("collecting bytes accepts null options, as an update without options passes them", async () => {
+  const bytes = new Uint8Array([1, 2, 3]);
+  assert.deepEqual(await collectBytes(bytes, null), bytes);
+  assert.deepEqual(await collectBytes(Readable.from([Buffer.from([4, 5])]), null), new Uint8Array([4, 5]));
 });
