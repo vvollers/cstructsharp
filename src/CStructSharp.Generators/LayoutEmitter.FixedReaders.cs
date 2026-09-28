@@ -12,7 +12,8 @@ using static CStructSharp.Generators.Emit;
 ///     build-time counterpart of the runtime's static read plan. The general reader tries it first through
 ///     <c>ReadCursor.TryTakeFixed</c>, which hands over the struct's bytes only when the member-by-member reader would
 ///     read exactly those bytes without a failure (enough input, within the read budget and the nesting and array
-///     limits, and on the struct's alignment); any other input takes the member-by-member reader and fails as before.
+///     limits, and on the struct's alignment); any other input takes the member-by-member reader, which reports any
+///     failure.
 /// </summary>
 internal sealed partial class LayoutEmitter
 {

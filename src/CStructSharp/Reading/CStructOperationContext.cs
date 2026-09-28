@@ -192,7 +192,7 @@ internal sealed class CStructOperationContext
 
     /// <summary>
     ///     Whether the current bitfield state (offset, unit size) was seeded from a resolved target that the placement
-    ///     cursor already placed; the legacy per-field placement then uses it as is instead of re-deriving a unit.
+    ///     cursor already placed; the per-field placement then uses it as is instead of re-deriving a unit.
     /// </summary>
     public bool BitfieldUnitSeeded { get; set; }
 

@@ -39,8 +39,8 @@ public class ManagedFuzzTests
     /// <remarks>
     ///     Success counts, documented-failure counts, and digests must match the saved expectations for every target.
     ///     Stable results make unexpected behavior changes visible and let the same cases be reproduced across
-    ///     supported .NET targets. The expression target was re-frozen for the dissect-parity operators (<c>%</c>,
-    ///     <c>^</c>, <c>?:</c>): one mutated expression that used to be a syntax error now evaluates. The
+    ///     supported .NET targets. The expression target's recorded outcomes include the <c>%</c>, <c>^</c> and
+    ///     <c>?:</c> operators. The
     ///     generated-differential target (the generated readers and writers against the runtime) has no documented
     ///     failures by construction: every input must produce the same outcome on both paths.
     /// </remarks>

@@ -241,7 +241,7 @@ internal sealed class ParsedJsonWriter
             this.WriteString(character.ToString());
             return;
         default:
-            // Any other value (for example a scalar produced by a typed alias) renders as its invariant text, as before.
+            // Any other value (for example a scalar produced by a typed alias) renders as its invariant text.
             this.WriteString(value is IFormattable formattable ? formattable.ToString(null, CultureInfo.InvariantCulture) : value.ToString() ?? string.Empty);
             return;
         }
@@ -490,7 +490,7 @@ internal sealed class ParsedJsonWriter
         this.length += written;
     }
 
-    /// <summary>Integers beyond JavaScript's exact range are sent as decimal strings, as before.</summary>
+    /// <summary>Writes an integer as a JSON number, or as a decimal string beyond JavaScript's exact range.</summary>
     private void WriteSafeInteger(long value)
     {
         if (value is >= -MaximumSafeInteger and <= MaximumSafeInteger)

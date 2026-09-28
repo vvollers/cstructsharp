@@ -15,7 +15,7 @@ internal static class Int32Capture
 {
     /// <summary>
     ///     Attempts the conversion; <see langword="false"/> means the value cannot become an Int32 layout variable,
-    ///     which the callers treat exactly like the former OverflowException/InvalidCastException/FormatException.
+    ///     which the callers report as an out-of-range or non-integer layout variable.
     /// </summary>
     public static bool TryConvert(object? value, out int result)
     {

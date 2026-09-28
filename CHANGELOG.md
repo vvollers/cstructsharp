@@ -150,6 +150,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   consumer, the bridge contract and the trimmed runtime's write paths, exercised through the public API instead of
   a Base64 test shim. Both apps build the same way (`apps/shared/scripts`): `npm run build` stages the publication from
   `npm run build:wasm` and checks that the build embeds exactly that publication; the inspector did not check it.
+- Source comments, tests and the language pages describe current behavior only; release history stays in this
+  changelog. `differences-from-c.md` states which C forms are accepted and with what meaning.
 - API baselines are named by role: `contracts/api/managed` and `contracts/api/browser` (published under
   `/docs/contracts/api/`). The managed manifest keeps the approved hash of every revision and the review text of the
   current one; the release history is this changelog. The `frozen` status, work-item code and stale package version

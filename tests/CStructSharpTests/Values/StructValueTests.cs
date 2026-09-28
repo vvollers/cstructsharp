@@ -217,10 +217,10 @@ public class StructValueTests
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         GC.KeepAlive(parsed);
 
-        // The ExpandoObject model cost ≈ 770 KB for this input; the slot model measured ≈ 511 KB, and skipping the
-        // layout-variable capture of unreferenced scalars ≈ 425 KB on both TFMs. The remainder is the
-        // per-struct placement cursor and the boxed scalars. The budget leaves room for runtime differences while
-        // rejecting a return to either earlier state.
+        // A parse of this input allocates about 425 KB on both target frameworks: the value slots, the per-struct
+        // placement cursor and the boxed scalars. The budget leaves room for runtime differences while failing if
+        // unreferenced scalars were captured as layout variables again (about 511 KB) or values were stored in a
+        // dictionary per struct (about 770 KB).
         long budget = 480_000;
         Assert.IsTrue(allocated <= budget, $"Parse allocated {allocated} bytes; budget is {budget}.");
     }

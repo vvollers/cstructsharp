@@ -310,7 +310,7 @@ internal sealed class GeneratedModel
     /// <summary>The shape of a pointer field's value, for the pointer readers.</summary>
     public GeneratedMember DescribePointer(CompiledField field) => this.Describe(field, Naming.ToCSharp(field.Name.Length == 0 ? "target" : field.Name, this.keepNames));
 
-    /// <summary>The C# property type per plan §1.4: pointers are <c>Pointer&lt;T&gt;</c>, arrays <c>T[]</c> (jagged for several dimensions), character arrays <c>string</c>, bitfields their declared integer type.</summary>
+    /// <summary>The C# property type of a member: pointers are <c>Pointer&lt;T&gt;</c>, arrays <c>T[]</c> (jagged for several dimensions), character arrays <c>string</c>, bitfields their declared integer type.</summary>
     private string TypeNameOf(CompiledField field, GeneratedComposite? composite, GeneratedEnum? memberEnum)
     {
         string element;

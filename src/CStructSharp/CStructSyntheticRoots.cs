@@ -26,7 +26,7 @@ public sealed partial class CStruct
 
     /// <summary>
     ///     Parses an element name or path, resolving a type-spelling root on the way. Results are cached per layout
-    ///     (bounded like the shared path cache), so a repeated operation pays one lookup, exactly as before.
+    ///     (bounded like the shared path cache), so a repeated operation pays one lookup.
     /// </summary>
     internal IReadOnlyList<PathSegment> ParsePath(string elementNameOrPath)
     {

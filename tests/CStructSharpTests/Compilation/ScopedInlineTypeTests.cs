@@ -247,7 +247,7 @@ public class ScopedInlineTypeTests
     }
 
     /// <summary>
-    ///     A typedef's tag is a global type name (dissect parity, Phase 1), so it collides with a built-in codec,
+    ///     A typedef's tag is a global type name, as in dissect.cstruct, so it collides with a built-in codec,
     ///     another tag, and every other global declaration exactly as a plain struct name does.
     /// </summary>
     [TestMethod]

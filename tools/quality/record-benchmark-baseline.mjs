@@ -6,7 +6,7 @@
 //
 // Usage: node tools/quality/record-benchmark-baseline.mjs --output contracts/performance/drift-scenarios.json
 //        --summary <summary.json> [--summary <more.json>] [--budget-id drift-scenarios] [--job Short]
-//        [--merge --note "E2.6a accepted"]   # replace only the cases present in the summaries, keep the rest
+//        [--merge --note "<why these cases changed>"]   # replace only the cases present in the summaries, keep the rest
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";

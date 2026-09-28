@@ -273,7 +273,7 @@ public class EnumDomainTests
     ///     A manually built uint64 enum starts above the 32-bit range and must assign the next implicit value exactly.
     /// </summary>
     /// <remarks>
-    ///     Wide literals retain their full value, but requesting their legacy 32-bit view must throw on overflow. Enum
+    ///     Wide literals retain their full value, but requesting their 32-bit view must throw on overflow. Enum
     ///     arithmetic can be wide without making ordinary layout-length expressions unbounded.
     /// </remarks>
     [TestMethod]

@@ -881,8 +881,8 @@ public sealed partial class CStruct
         int unitSize,
         CStructOperationContext state)
     {
-        // An unreferenced field still moves the stream exactly as before - reported failure offsets depend on
-        // it - but publishes nothing.
+        // An unreferenced field still moves the stream past its bytes - reported failure offsets depend on it - but
+        // publishes no layout variable.
         bool captures = compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables;
 
         // Arrays and fixed-point values are never read here; like every value that is not an integer, their capture

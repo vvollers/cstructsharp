@@ -69,8 +69,8 @@ internal static partial class PrimitiveCodecs
     /// <summary>Reads characters until a terminator and leaves the stream immediately after that terminator.</summary>
     public static string ReadIntoString(Stream stream, Encoding encoding, char terminator)
     {
-        // Chunked reads, one decode per chunk prefix. The observable contract of the former byte-by-byte
-        // reader is preserved exactly: the stream ends immediately after the terminator, an over-budget read leaves
+        // Chunked reads, one decode per chunk prefix, observably the same as reading one byte at a time: the stream
+        // ends immediately after the terminator, an over-budget read leaves
         // the stream one byte past the limit, a decode failure leaves it at the end of the chunk being decoded, and
         // invalid sequences that straddle chunks still fail because the decoder keeps its state across chunks.
         Decoder decoder = encoding.GetDecoder();

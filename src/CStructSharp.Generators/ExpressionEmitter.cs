@@ -8,7 +8,7 @@ using CStructSharp.Syntax;
 
 /// <summary>
 ///     Turns a compiled layout expression into C# over <c>CStructSharp.Generated.Expressions</c>, so every operator
-///     keeps the runtime's checked signed-Int32 semantics (plan Appendix E). Identifiers resolve through the scope
+///     keeps the runtime's checked signed-Int32 semantics. Identifiers resolve through the scope
 ///     the emitter is given: earlier members of the composite being read, then caller variables, then defines and
 ///     enum members folded at compile time (a caller variable overrides a constant of the same name, as at runtime);
 ///     a member that holds a wide value is guarded with <c>RequireInt32</c> at its use.

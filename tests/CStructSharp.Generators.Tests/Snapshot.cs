@@ -8,7 +8,7 @@ using System.Reflection;
 /// <summary>
 ///     Golden-file comparison for generated code: <c>Snapshots/&lt;name&gt;.g.cs</c> must equal the generated
 ///     text byte for byte after line-ending normalization. <c>UPDATE_SNAPSHOTS=1</c> rewrites the file instead of
-///     failing; a rewrite is a reviewed diff in the commit and a log entry (plan Appendix F).
+///     failing; a rewrite is a reviewed diff in the commit.
 /// </summary>
 internal static class Snapshot
 {

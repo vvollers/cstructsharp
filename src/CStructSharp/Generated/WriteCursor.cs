@@ -495,7 +495,7 @@ public ref struct WriteCursor
     ///     struct is appended at the end of what was written (so its padding is new and written as zeros, never
     ///     preserved existing bytes), it fits the destination and the total byte limit, the nesting and array limits
     ///     hold, and the start meets the struct's alignment. The reserved bytes are cleared, so padding reads as zeros.
-    ///     Otherwise nothing changes and the caller writes member by member, which reports any failure as before.
+    ///     Otherwise nothing changes and the caller writes member by member, which reports any failure.
     /// </summary>
     /// <param name="size">The struct's storage size in bytes, tail padding included.</param>
     /// <param name="alignment">The alignment the start must meet (1 in a packed layout).</param>

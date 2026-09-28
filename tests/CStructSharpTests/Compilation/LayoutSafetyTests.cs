@@ -732,7 +732,7 @@ public class LayoutSafetyTests
         Assert.AreEqual((byte)9, (byte)parsed.value.value);
     }
 
-    /// <summary>Omitting the tag keyword continues to work exactly as before the tag keyword became optional.</summary>
+    /// <summary>A typedef of an existing composite may omit its tag keyword.</summary>
     [TestMethod]
     public void TagKeyword_OmittedEntirely_StillWorksUnchanged()
     {
@@ -760,7 +760,7 @@ public class LayoutSafetyTests
 
     /// <summary>
     ///     The tag-alias-without-braces typedef form (<c>typedef struct tag alias;</c>) names an existing composite
-    ///     (dissect parity, Phase 1); the keyword must still match the declaration's kind.
+    ///     as dissect.cstruct does; the keyword must match the declaration's kind.
     /// </summary>
     [TestMethod]
     public void TagKeyword_TypedefTagAliasWithoutBraces_AliasesTheDeclaration()

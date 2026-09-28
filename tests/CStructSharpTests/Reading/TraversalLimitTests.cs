@@ -523,8 +523,8 @@ public class TraversalLimitTests
 
         using (var stream = new MemoryStream([0xEE, 0x03, 0x11, 0x22, 0x33,]) { Position = 1, })
         {
-            // A tight traversal limit still rejects even though the write-side array limit is generous - proving
-            // MaxArrayElements alone no longer bounds traversal.
+            // A tight traversal limit rejects even though the write-side array limit is generous: MaxArrayElements
+            // does not bound traversal.
             AssertUpdateLimit(
                 stream,
                 () => arrayStruct.Update(

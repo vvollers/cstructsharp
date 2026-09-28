@@ -210,7 +210,7 @@ public class StaticWritePlanTests
         AssertSameOutcome(layout, mixed, null, "mismatched typed arrays");
     }
 
-    /// <summary>Layout variables published by planned fields feed later expressions exactly as before.</summary>
+    /// <summary>Layout variables published by planned fields feed later expressions, as they do in a member-by-member write.</summary>
     [TestMethod]
     public void WritePlan_PublishesCapturedVariables()
     {

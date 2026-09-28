@@ -143,8 +143,7 @@ internal static class RegressionTestSupport
 
     /// <summary>
     ///     Encodes an unsigned fixture value into a freshly allocated array, without invoking the production codec
-    ///     under test - the array-returning shape several test files independently reimplemented before this was
-    ///     added; delegates to <see cref="WriteUnsigned(byte[], int, int, ulong, bool)"/> for the actual encoding
+    ///     under test - the array-returning shape several test files need; delegates to <see cref="WriteUnsigned(byte[], int, int, ulong, bool)"/> for the actual encoding
     ///     and its existing bounds validation.
     /// </summary>
     /// <param name="value">The unsigned value to encode.</param>

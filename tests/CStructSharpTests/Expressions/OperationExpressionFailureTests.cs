@@ -44,7 +44,7 @@ public class OperationExpressionFailureTests
         Assert.IsFalse(exception.Message.Contains("Undefined", StringComparison.Ordinal), exception.Message);
     }
 
-    /// <summary>A uint64 count inside the domain still works as before.</summary>
+    /// <summary>A uint64 count inside the expression domain sizes the array normally.</summary>
     [TestMethod]
     public void UInt64CountInsideDomain_Reads()
     {

@@ -1185,8 +1185,8 @@ public sealed partial class CStruct
     {
         CompiledField compiledField = read.Field;
 
-        // Composite leaves need the containing element's coordinates. Keep primitive-array debug records unchanged:
-        // consumers historically group those under the array field.
+        // Composite leaves need the containing element's coordinates. A primitive array's debug records are grouped
+        // under the array field instead.
         DebugPath? elementDebugStack = read.DebugStack;
         if (state.Debug && read.IsArray && compiledField.TargetComposite is not null)
         {

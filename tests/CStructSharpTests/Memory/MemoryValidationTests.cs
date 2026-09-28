@@ -124,8 +124,8 @@ public class MemoryValidationTests
     /// real kernel marker struct with no members (for example Linux's <c>lock_class_key</c>, used only for
     /// its address, never its contents) and an array of them, such as a lockdep annotation declares. A
     /// zero-size element paired with a mismatched, nonzero array size is still rejected, the same as any
-    /// other size disagreement: this behavior narrows what used to be an outright ban on zero-size
-    /// elements, it does not remove the size-consistency check itself.
+    /// other size disagreement: only a consistent zero-size array is accepted, and the size-consistency
+    /// check itself still applies.
     /// </summary>
     [TestMethod]
     public void Arrays_AllowZeroSizeElementsOnlyWhenTheWholeArrayIsAlsoZeroSized()

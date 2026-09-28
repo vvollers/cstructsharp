@@ -72,13 +72,15 @@ equivalence with every native compiler.
 | `offset-assertion-names-a-field` | `struct root { uint8 n; uint8 value @n; };` | An offset assertion is a constant, like `@align(N)`: it can use numbers and `#define`s, but not fields or a caller's variables | Assert a constant offset, or use a `#define` |
 
 Broader unsupported families include other floating types, textual macro expansion, and named compiler modes. One
-fixture may represent several equivalent spellings. Forms that were rejected in earlier releases and are now
-accepted: `#include` (recorded), `#pragma pack` (a composite alignment clamp), forward declarations (`struct node;`),
-function pointers (an opaque address, like `void *`), `T values[]` on a non-character type (zero-terminated) and
-`T values[EOF]` (read to the end),
-`typedef T name[N];`, `typedef struct tag alias;`, typedef declarator lists (`typedef struct _X {...} X, *PX;`),
-`typedef struct NAME {...};` with no alias, top-level `struct { ... } name;` and `struct X { ... } variable;`, and
-the Windows/kernel/IDA/C99 alias spellings.
+fixture may represent several equivalent spellings.
+
+Some C forms are accepted with a narrower meaning than a compiler gives them: `#include` is recorded, not
+resolved; `#pragma pack` clamps composite alignment; a function pointer is an opaque address, like `void *`; and
+`T values[]` on a non-character type reads up to an all-zero element, while `T values[EOF]` reads to the end of the
+input. These are accepted as in C: forward declarations (`struct node;`), `typedef T name[N];`,
+`typedef struct tag alias;`, typedef declarator lists (`typedef struct _X {...} X, *PX;`), `typedef struct NAME {...};`
+with no alias, top-level `struct { ... } name;` and `struct X { ... } variable;`, and the Windows, kernel, IDA and C99
+alias spellings.
 
 ## No host ABI inference
 

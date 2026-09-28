@@ -36,7 +36,7 @@ internal sealed class CompiledModelQueries
     /// </summary>
     public StructShape GetRootShape(string rootName)
     {
-        // Created on the first parse rather than at compile time so that compiling a layout stays as cheap as before.
+        // Created on the first parse rather than at compile time, so a layout that is never parsed never pays for it.
         ConcurrentDictionary<string, StructShape> shapes = this.rootShapes ??
                                                            Interlocked.CompareExchange(ref this.rootShapes, new ConcurrentDictionary<string, StructShape>(StringComparer.Ordinal), null) ??
                                                            this.rootShapes;

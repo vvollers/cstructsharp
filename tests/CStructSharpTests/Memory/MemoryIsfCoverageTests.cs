@@ -106,7 +106,7 @@ public class MemoryIsfCoverageTests
     }
 
     /// <summary>
-    ///     A pointer chain of user types far longer than the old 128-level recursion limit imports: each type points
+    ///     A pointer chain of several hundred user types imports without deep recursion: each type points
     ///     to the next, and the walk crosses every link.
     /// </summary>
     [TestMethod]

@@ -273,7 +273,7 @@ public class MemoryBtfCoverageTests
     }
 
     /// <summary><see cref="MetadataImportOptions.BestEffort"/> threads through <see cref="BtfMetadata.Import"/> to
-    /// <see cref="MemorySchema"/>: a self-inconsistent inner struct no longer aborts an import that embeds it by
+    /// <see cref="MemorySchema"/>: a self-inconsistent inner struct does not abort an import that embeds it by
     /// value, the placeholder is reported as a diagnostic, and strict import (the default) is unaffected.</summary>
     [TestMethod]
     public void Import_BestEffortToleratesASelfInconsistentByValueMember()

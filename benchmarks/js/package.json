@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Node and Chromium benchmark harness for the CStructSharp WASM bridge (Phase 0 baselines).",
+  "description": "Node and Chromium benchmark harness for the CStructSharp WASM bridge.",
   "engines": {
     "node": ">=22.14.0"
   },
