@@ -8,8 +8,8 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { spawnSync, execFileSync } from "node:child_process";
-import { main, parseArguments, repositoryRoot } from "../lib/tooling.mjs";
+import { spawnSync } from "node:child_process";
+import { main, parseArguments, repositoryRoot, runCommand } from "../lib/tooling.mjs";
 import { listFiles } from "../lib/files.mjs";
 import { PERMANENT_SCOPE_SIZE, aggregateMutationPartitions, mutationFileHash, mutationInvocation, planMutationPartitions, requireCompletedMutants, requireCoreMutationTests } from "../lib/mutation-partitions.mjs";
 
@@ -24,7 +24,7 @@ const output = path.resolve(repositoryRoot, options["output-directory"]);
 
 /** Returns the exact checked-out commit, shared by all jobs in the dispatched workflow. */
 function sourceSha() {
-  return execFileSync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot, encoding: "utf8" }).trim();
+  return runCommand("git", ["rev-parse", "HEAD"]).stdout.trim();
 }
 
 /** Serializes one evidence object with a trailing newline. */
@@ -42,6 +42,7 @@ function createOutput() {
 function runMutation(configuration, patterns = []) {
   const { cwd, args } = mutationInvocation(repositoryRoot, configuration, output, patterns);
   const started = Date.now();
+  // Direct with inherited output: a Stryker run takes a long time, and its progress should stream to the log.
   const result = spawnSync("dotnet", args, { cwd, stdio: "inherit" });
   return { exitCode: result.status, signal: result.signal, error: result.error?.message,
     elapsedSeconds: (Date.now() - started) / 1000, cwd, args };
@@ -141,6 +142,7 @@ await main(() => {
     reportSha256: mutationFileHash(combinedPath), executions,
     strykerElapsedSecondsSum: executions.reduce((sum, execution) => sum + execution.elapsedSeconds, 0) });
   // Keep the canonical full-scope validator as the authority for score and zero-survivor requirements.
+  // Direct with inherited output, so the gate prints its score and any survivors to the log.
   const checked = spawnSync(process.execPath, ["tools/quality/mutation-report.mjs", "--report-path", combinedPath], { cwd: repositoryRoot, stdio: "inherit" });
   assert.equal(checked.status, 0, "The complete permanent mutation gate failed");
   assert.ok(executions.every((execution) => execution.exitCode === 0), "At least one partition runner failed");

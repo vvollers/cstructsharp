@@ -1,9 +1,8 @@
 /** Exports complete recipe programs/pages from executable sources. Usage: node tools/documentation/export-documentation-examples.mjs. */
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { repositoryRoot as root } from "../lib/tooling.mjs";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const examples = path.join(root, "docs/examples");
 const original = fs.readFileSync(path.join(examples, "Program.cs"), "utf8");
 // The runner includes scenarios beyond the exported recipes; its final total must come from its registration list.

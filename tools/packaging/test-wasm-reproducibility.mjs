@@ -9,12 +9,11 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { repositoryRoot } from "../lib/tooling.mjs";
 import { validateWasmPublication } from "./wasm-publication.mjs";
 
-const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const webRoot = path.resolve(scriptDirectory, "../../apps/explorer");
-const publicationDirectory = path.resolve(webRoot, "../../artifacts/wasm");
+const webRoot = path.join(repositoryRoot, "apps/explorer");
+const publicationDirectory = path.join(repositoryRoot, "artifacts/wasm");
 const staleRootFile = path.join(publicationDirectory, "stale-output.dll");
 const staleFrameworkFile = path.join(publicationDirectory, "_framework", "stale-output.map");
 
@@ -23,7 +22,8 @@ try {
   fs.writeFileSync(staleRootFile, "stale");
   fs.writeFileSync(staleFrameworkFile, "stale");
 
-  const result = spawnSync(process.execPath, [path.join(scriptDirectory, "publish-wasm.mjs")], {
+  // A direct spawn with inherited stdio streams the long republish (dotnet publish) output live.
+  const result = spawnSync(process.execPath, [path.join(repositoryRoot, "tools/packaging/publish-wasm.mjs")], {
     cwd: webRoot,
     stdio: "inherit",
     shell: false,

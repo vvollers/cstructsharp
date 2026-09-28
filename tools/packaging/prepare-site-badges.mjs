@@ -7,17 +7,18 @@
  *   node tools/packaging/prepare-site-badges.mjs [<path/to/CStructSharp.<version>.nupkg>]
  */
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { parseArguments, repositoryRoot as root, runCommand } from "../lib/tooling.mjs";
 
-const root = fileURLToPath(new URL("../../", import.meta.url));
+const {
+  _: [packagePath],
+} = parseArguments(process.argv.slice(2), {}, { positionals: true });
 const repository = process.env.GITHUB_REPOSITORY || "vvollers/cstructsharp";
 const output = path.join(root, "artifacts/readme-badges");
 fs.mkdirSync(output, { recursive: true });
 /** Runs the GitHub CLI in the repository root and returns its trimmed output. */
-const gh = (...args) => execFileSync("gh", args, { cwd: root, encoding: "utf8" }).trim();
+const gh = (...args) => runCommand("gh", args).stdout.trim();
 
 // CI remains the producer of quality measurements. Site builds only retrieve data, never execute it.
 const runs = JSON.parse(gh("run", "list", "--repo", repository, "--workflow", "ci.yml",
@@ -42,8 +43,8 @@ try {
 
 // The release's own package is measured before publication; a website-only build uses the last release.
 let size;
-if (process.argv[2]) {
-  size = fs.statSync(path.resolve(root, process.argv[2])).size;
+if (packagePath) {
+  size = fs.statSync(path.resolve(root, packagePath)).size;
 } else {
   const release = JSON.parse(gh("api", `repos/${repository}/releases/latest`));
   const asset = release.assets.find(a => a.name === `CStructSharp.${release.tag_name.slice(1)}.nupkg`);

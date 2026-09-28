@@ -16,6 +16,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { npmArtifacts } from "../packaging/npm-package-utils.mjs";
+import { parseArguments } from "../lib/tooling.mjs";
 
 /**
  * Asserts that package information describes the tarball: package name, stable version, file name, and SHA-512
@@ -99,6 +100,11 @@ if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
+  const options = parseArguments(
+    process.argv.slice(2),
+    { "require-missing": "flag", "require-published": "flag" },
+    { defaults: { "require-missing": false, "require-published": false } },
+  );
   const info = JSON.parse(
     fs.readFileSync(path.join(npmArtifacts, "package-info.json"), "utf8"),
   );
@@ -106,14 +112,14 @@ if (
     info,
     fs.readFileSync(path.join(npmArtifacts, info.filename)),
   );
-  const status = process.argv.includes("--require-published")
+  const status = options["require-published"]
     ? await awaitPublishedStatus(info)
     : await registryStatus(info);
-  if (process.argv.includes("--require-missing") && status !== "missing")
+  if (options["require-missing"] && status !== "missing")
     throw new Error(
       "This version already exists. Use release recovery for the original verified artifact.",
     );
-  if (process.argv.includes("--require-published") && status !== "identical")
+  if (options["require-published"] && status !== "identical")
     throw new Error(
       "npm package is not yet published after waiting for the registry to process it.",
     );

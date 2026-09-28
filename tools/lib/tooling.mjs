@@ -26,14 +26,26 @@ export async function main(run) {
 
 /**
  * Parses `--name value` and `--flag` arguments (case-insensitive names; a single leading dash is also accepted).
- * `spec` maps each name to its kind: "string", "number", "flag", or "list" (repeatable / comma-separated).
+ * `spec` maps each name to its kind: "string", "number", "flag", "list" (repeatable, comma-separated), or
+ * "repeat" (repeatable, each value kept whole, for values that may contain commas).
+ * @param {string[]} argv The arguments after the script name.
+ * @param {Record<string, "string" | "number" | "flag" | "list" | "repeat">} spec The accepted options.
+ * @param {{ defaults?: object, positionals?: boolean }} [options] Default values, and whether bare arguments are
+ *   accepted; when they are, they are returned in order as `_`.
+ * @returns {object} The option values by name, plus `_` with the positional arguments when accepted.
+ * @throws {Error} For an unknown option, a missing value, a non-numeric number, or an unexpected bare argument.
  */
-export function parseArguments(argv, spec, { defaults = {} } = {}) {
+export function parseArguments(argv, spec, { defaults = {}, positionals = false } = {}) {
   const names = new Map(Object.keys(spec).map((name) => [name.toLowerCase(), name]));
   const values = { ...defaults };
+  if (positionals) values._ = [];
   for (let index = 0; index < argv.length; index++) {
     const token = argv[index];
     const match = /^--?([A-Za-z][\w-]*)(?:=(.*))?$/.exec(token);
+    if (!match && positionals) {
+      values._.push(token);
+      continue;
+    }
     if (!match) throw new Error(`Unexpected argument: ${token}`);
     const name = names.get(match[1].toLowerCase());
     if (!name) throw new Error(`Unknown option: --${match[1]}`);
@@ -50,6 +62,8 @@ export function parseArguments(argv, spec, { defaults = {} } = {}) {
       values[name] = number;
     } else if (kind === "list") {
       values[name] = [...(values[name] ?? []), ...raw.split(",").map((item) => item.trim()).filter(Boolean)];
+    } else if (kind === "repeat") {
+      values[name] = [...(values[name] ?? []), raw];
     } else {
       values[name] = raw;
     }

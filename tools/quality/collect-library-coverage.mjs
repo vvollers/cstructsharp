@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import { parseArguments, repositoryRoot } from "../lib/tooling.mjs";
+import { parseArguments, repositoryRoot, runCommand } from "../lib/tooling.mjs";
 import { coverageFileHash, passingTestResults } from "../lib/coverage-population.mjs";
 
 const options = parseArguments(process.argv.slice(2), { "output-directory": "string" }, {
@@ -40,6 +40,7 @@ for (const [name, project] of suites) {
     args.push(`-p:MergeWith=${previous}`);
   }
   console.log(`Collecting ${name} coverage${previous ? `, merging ${previous}` : ""}`);
+  // Direct with inherited output: a coverage run takes minutes, and its test progress should stream to the log.
   execFileSync("dotnet", args, { cwd: repositoryRoot, stdio: "inherit" });
   // Multi-target projects add a framework suffix; discover exactly one report instead of guessing its name.
   // Match only reports written by this suite, never another suite's TRX or a previous collection.
@@ -64,7 +65,7 @@ fs.copyFileSync(path.join(output, evidence[0].tests), path.join(badgeInput, "tes
 fs.writeFileSync(path.join(output, "collection.json"), JSON.stringify({
   schemaVersion: 1,
   coverageSha256: coverageFileHash(previous),
-  sourceSha: execFileSync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot, encoding: "utf8" }).trim(),
+  sourceSha: runCommand("git", ["rev-parse", "HEAD"]).stdout.trim(),
   suites: evidence,
 }, null, 2) + "\n");
 console.log(`Merged library coverage: ${path.join(output, "coverage.cobertura.xml")}`);

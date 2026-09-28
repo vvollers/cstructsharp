@@ -11,29 +11,20 @@
 // `validate` checks provenance and freshness (a record made from an older fixture source is stale) and the shape of
 // every recorded layout. `table` rewrites the generated block of differences-from-c.md from the baselines and the
 // Portable claims in contracts/quality/compiler-fixtures/shapes.json (which the managed tests verify).
-import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { parseArguments, repositoryRoot, runCommand } from "../lib/tooling.mjs";
 
 /** How each ABI family is named in the generated table. */
 const ABI_LABELS = { sysv: "SysV ABI", msvc: "MSVC ABI" };
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const sourcePath = path.join(root, "tools/compiler-fixtures/portable-host-facts.c");
-const shapesPath = path.join(root, "contracts/quality/compiler-fixtures/shapes.json");
-const baselinesDirectory = path.join(root, "contracts/quality/compiler-fixtures/baselines");
-const docPath = path.join(root, "docs/language/differences-from-c.md");
+const sourcePath = path.join(repositoryRoot, "tools/compiler-fixtures/portable-host-facts.c");
+const shapesPath = path.join(repositoryRoot, "contracts/quality/compiler-fixtures/shapes.json");
+const baselinesDirectory = path.join(repositoryRoot, "contracts/quality/compiler-fixtures/baselines");
+const docPath = path.join(repositoryRoot, "docs/language/differences-from-c.md");
 const sourceRelative = "tools/compiler-fixtures/portable-host-facts.c";
 
-const args = process.argv.slice(2);
-const mode = args[0];
-/** Returns the value that follows a command-line option, or a fallback when the option is absent. */
-function option(name, fallback) {
-  const index = args.indexOf(name);
-  return index >= 0 ? args[index + 1] : fallback;
-}
 /** Prints a message to stderr and exits with status 1. */
 function fail(message) {
   console.error(message);
@@ -44,20 +35,27 @@ function sha256(file) {
   return crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex").toUpperCase();
 }
 /**
- * Runs a command synchronously and captures its text output.
+ * Runs a command synchronously and captures its text output, whatever its exit code; callers inspect the status.
  * @returns {import("node:child_process").SpawnSyncReturns<string>} The completed process result.
  * @throws {Error} When the command cannot be started.
  */
-function run(command, commandArgs, options = {}) {
-  const result = spawnSync(command, commandArgs, { encoding: "utf8", ...options });
+function run(command, commandArgs, { cwd } = {}) {
+  const result = runCommand(command, commandArgs, { cwd: cwd ?? process.cwd(), allowFailure: true });
   if (result.error) throw new Error(`${command} could not be started: ${result.error.message}`);
   return result;
 }
 
+let parsed;
+try {
+  parsed = parseArguments(process.argv.slice(2), { compiler: "string", flags: "string", output: "string", check: "flag" }, { positionals: true });
+} catch (error) {
+  fail(error.message);
+}
+const [mode, ...inputs] = parsed._;
+
 if (mode === "record") {
-  const compiler = option("--compiler");
-  const output = option("--output");
-  const extraFlags = (option("--flags", "") || "").split(/\s+/).filter(Boolean);
+  const { compiler, output } = parsed;
+  const extraFlags = (parsed.flags ?? "").split(/\s+/).filter(Boolean);
   if (!compiler || !output) fail("record needs --compiler <gcc|clang|clang-cl|cl> and --output <file>.");
   const record = recordObservation(compiler, extraFlags);
   fs.mkdirSync(path.dirname(output), { recursive: true });
@@ -68,7 +66,6 @@ if (mode === "record") {
 }
 
 if (mode === "validate") {
-  const inputs = args.slice(1);
   const usingDefault = inputs.length === 0;
   const files = collectFiles(usingDefault ? [baselinesDirectory] : inputs);
   if (files.length === 0) fail("No compiler evidence JSON files were found.");
@@ -93,12 +90,12 @@ if (mode === "table") {
   const end = "<!-- compiler-fixture-table:end -->";
   if (!doc.includes(start) || !doc.includes(end)) fail(`${docPath} has no compiler-fixture table markers.`);
   const updated = doc.slice(0, doc.indexOf(start) + start.length) + "\n" + table + "\n" + doc.slice(doc.indexOf(end));
-  if (args.includes("--check")) {
+  if (parsed.check) {
     if (updated !== doc) fail("The compiler comparison table in differences-from-c.md is out of date; run `node tools/quality/compiler-fixture.mjs table`.");
     console.log("The compiler comparison table is up to date.");
   } else {
     fs.writeFileSync(docPath, updated);
-    console.log(`Rendered ${shapes.shapes.length} shapes × ${baselines.length} baseline(s) into ${path.relative(root, docPath)}.`);
+    console.log(`Rendered ${shapes.shapes.length} shapes × ${baselines.length} baseline(s) into ${path.relative(repositoryRoot, docPath)}.`);
   }
   process.exit(0);
 }
@@ -190,7 +187,7 @@ function hostOs() {
 function collectFiles(inputs) {
   const files = [];
   for (const input of inputs) {
-    const resolved = path.resolve(root, input);
+    const resolved = path.resolve(repositoryRoot, input);
     if (!fs.existsSync(resolved)) fail(`Compiler evidence path '${input}' does not exist.`);
     if (fs.statSync(resolved).isDirectory()) {
       for (const name of fs.readdirSync(resolved).sort()) {
@@ -210,7 +207,7 @@ function assertThat(condition, message) {
 
 /** Checks one evidence record's provenance, freshness, and recorded layouts. */
 function validateRecord(file, evidence, sourceHash, shapes, families) {
-  const context = `Compiler evidence '${path.relative(root, file)}'`;
+  const context = `Compiler evidence '${path.relative(repositoryRoot, file)}'`;
   assertThat(evidence.schemaVersion === 2, `${context} has an unsupported schema version (expected 2).`);
   assertThat(evidence.evidenceKind === "compiler-observation", `${context} has an invalid evidence kind.`);
   assertThat(evidence.claim === "observation-only", `${context} must be explicitly observation-only.`);

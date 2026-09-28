@@ -9,17 +9,18 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { loadFixture, manifest, xorshiftBytes } from "../../benchmarks/js/bench/fixtures.mjs";
+import { parseArguments } from "../lib/tooling.mjs";
 
-const args = process.argv.slice(2);
-const consumer = args[0];
+const {
+  _: [consumer],
+  trials,
+  seed,
+} = parseArguments(
+  process.argv.slice(2),
+  { trials: "number", seed: "number" },
+  { defaults: { trials: 1000, seed: 20260918 }, positionals: true },
+);
 assert.ok(consumer, "Pass the consumer directory that has cstructsharp installed.");
-/** Returns the numeric value that follows a command-line option, or a fallback when the option is absent. */
-const option = (name, fallback) => {
-  const index = args.indexOf(name);
-  return index >= 0 ? Number(args[index + 1]) : fallback;
-};
-const trials = option("--trials", 1000);
-const seed = option("--seed", 20260918);
 
 const api = await import(pathToFileURL(path.join(consumer, "node_modules", "cstructsharp", "node.js")).href);
 

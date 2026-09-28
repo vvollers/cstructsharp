@@ -5,11 +5,26 @@
 // Usage: node tools/documentation/sync-primitive-spellings.mjs [--check]
 // With --check the script exits 1 instead of writing when any view is stale.
 import { readFileSync, writeFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
+import { parseArguments, repositoryRoot as root } from "../lib/tooling.mjs";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const check = process.argv.includes("--check");
+const { check } = parseArguments(process.argv.slice(2), { check: "flag" }, { defaults: { check: false } });
+
+/**
+ * Returns the initializer of one dictionary field in PrimitiveSpellings.cs: the text from the field name to the
+ * closing brace of its collection initializer.
+ * @param {string} source The C# source.
+ * @param {string} field The field name, such as `LongFamilyIsUnsigned`.
+ * @returns {string} The initializer text.
+ * @throws {Error} When the field or the end of its initializer is missing, so a renamed field fails loudly instead
+ *   of reading a neighbouring table.
+ */
+function fieldInitializer(source, field) {
+  const start = source.indexOf(`${field} =`);
+  const end = start < 0 ? -1 : source.indexOf("\n    }", start);
+  if (start < 0 || end < 0) throw new Error(`PrimitiveSpellings.cs has no initializer for ${field}`);
+  return source.slice(start, end);
+}
 
 /**
  * Reads the primitive alias tables from PrimitiveSpellings.cs: the fixed aliases, the `long` family that depends on
@@ -27,8 +42,7 @@ function readAliasTable() {
     }
   }
   const longFamily = [];
-  const block = source.slice(source.indexOf("LongFamilyIsUnsigned ="), source.indexOf("}.ToFrozenDictionary"));
-  for (const match of block.matchAll(/\["([^"]+)"\]\s*=\s*(true|false)/g)) {
+  for (const match of fieldInitializer(source, "LongFamilyIsUnsigned").matchAll(/\["([^"]+)"\]\s*=\s*(true|false)/g)) {
     const unsigned = match[2] === "true";
     longFamily.push({
       spelling: match[1],
@@ -37,13 +51,11 @@ function readAliasTable() {
     });
   }
   const pointerSized = [];
-  const pointerBlock = source.slice(source.indexOf("PointerSizedIsUnsigned ="), source.indexOf("}.ToFrozenDictionary", source.indexOf("PointerSizedIsUnsigned =")));
-  for (const match of pointerBlock.matchAll(/\["([^"]+)"\]\s*=\s*(true|false)/g)) {
+  for (const match of fieldInitializer(source, "PointerSizedIsUnsigned").matchAll(/\["([^"]+)"\]\s*=\s*(true|false)/g)) {
     pointerSized.push({ spelling: match[1], canonical: (match[2] === "true" ? "uint" : "int") + "{pointer bits}" });
   }
   const pointerSpellings = [];
-  const pointerSpellingBlock = source.slice(source.indexOf("PointerSpellings ="), source.indexOf("}.ToFrozenDictionary", source.indexOf("PointerSpellings =")));
-  for (const match of pointerSpellingBlock.matchAll(/\["([^"]+)"\]\s*=\s*"([^"]+)"/g)) {
+  for (const match of fieldInitializer(source, "PointerSpellings").matchAll(/\["([^"]+)"\]\s*=\s*"([^"]+)"/g)) {
     pointerSpellings.push({ spelling: match[1], canonical: match[2] + "*" });
   }
   return { aliases, longFamily, pointerSized, pointerSpellings };
@@ -98,14 +110,35 @@ syncJson("contracts/language/portable-v1.json", (contract) => {
   contract.aliasSpellings = [...sortedAliases, ...longFamily, ...pointerSized, ...pointerSpellings];
 });
 
-syncJson("contracts/quality/feature-operation-matrix.json", (matrix) => {
-  // The pre-parity terminated list already names `string`/`cstring`; a spelling is catalogued once.
-  const catalogued = new Set([...matrix.primitiveSpellings.dynamicNumeric, ...matrix.primitiveSpellings.fixed, ...matrix.primitiveSpellings.terminated]);
-  matrix.primitiveSpellings.aliases = [...sortedAliases.map((item) => item.spelling), ...longFamily.map((item) => item.spelling)]
+/**
+ * Replaces one string array inside the matrix's `primitiveSpellings` object, leaving the rest of the hand-formatted
+ * file byte-for-byte unchanged.
+ * @param {string} text The matrix file content.
+ * @param {string} key The array's key, such as `aliases`.
+ * @param {string[]} values The new array items.
+ * @returns {string} The file content with that array replaced.
+ */
+function replaceSpellingArray(text, key, values) {
+  const section = text.indexOf('"primitiveSpellings": {');
+  const start = text.indexOf(`\n    "${key}": [`, section);
+  const end = text.indexOf("\n    ]", start);
+  if (section < 0 || start < 0 || end < 0) throw new Error(`feature-operation-matrix.json has no primitiveSpellings.${key} array`);
+  const items = values.map((value) => `      ${JSON.stringify(value)}`).join(",\n");
+  return `${text.slice(0, start)}\n    "${key}": [\n${items}${text.slice(end)}`;
+}
+
+{
+  const path = join(root, "contracts/quality/feature-operation-matrix.json");
+  const before = readFileSync(path, "utf8");
+  const spellings = JSON.parse(before).primitiveSpellings;
+  // The terminated list already names `string`/`cstring`; a spelling is catalogued once.
+  const catalogued = new Set([...spellings.dynamicNumeric, ...spellings.fixed, ...spellings.terminated]);
+  const aliasNames = [...sortedAliases.map((item) => item.spelling), ...longFamily.map((item) => item.spelling)]
     .filter((spelling) => !catalogued.has(spelling))
     .sort();
-  matrix.primitiveSpellings.pointerSized = [...pointerSized.map((item) => item.spelling), ...pointerSpellings.map((item) => item.spelling)].sort();
-});
+  const pointerNames = [...pointerSized.map((item) => item.spelling), ...pointerSpellings.map((item) => item.spelling)].sort();
+  apply(path, before, replaceSpellingArray(replaceSpellingArray(before, "aliases", aliasNames), "pointerSized", pointerNames));
+}
 
 // Documentation table.
 const docPath = join(root, "docs/language/primitive-types.md");

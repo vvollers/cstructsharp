@@ -7,25 +7,17 @@
 //        node tools/quality/managed-api-baseline.mjs update --kind additive|breaking|correction \
 //             --rationale "<why the surface changed>" --impact "<what consumers do>"
 import crypto from "node:crypto";
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { parseArguments, repositoryRoot, runCommand } from "../lib/tooling.mjs";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const manifestPath = path.join(root, "contracts/api/managed/manifest.json");
-const projectPath = path.join(root, "src/CStructSharp/CStructSharp.csproj");
-const outputRoot = path.join(root, "artifacts/api-compat/managed-current");
+const manifestPath = path.join(repositoryRoot, "contracts/api/managed/manifest.json");
+const projectPath = path.join(repositoryRoot, "src/CStructSharp/CStructSharp.csproj");
+const outputRoot = path.join(repositoryRoot, "artifacts/api-compat/managed-current");
 const frameworks = ["net8.0", "net10.0"];
 
-const args = process.argv.slice(2);
-const mode = args[0] === "update" ? "update" : "compare";
-/** Returns the value after a command-line option, or undefined when it is absent. */
-const option = (name) => {
-  const index = args.indexOf(name);
-  return index >= 0 ? args[index + 1] : undefined;
-};
 
 // The Native AOT claim is per framework (net10.0 only), so its assembly-metadata line is a placeholder that each
 // framework fills with the attribute or with nothing; `aotCompatible` in the manifest says which.
@@ -43,9 +35,17 @@ function fail(message) {
   process.exit(1);
 }
 
+let options;
+try {
+  options = parseArguments(process.argv.slice(2), { kind: "string", rationale: "string", impact: "string" }, { positionals: true });
+} catch (error) {
+  fail(error.message);
+}
+const mode = options._[0] === "update" ? "update" : "compare";
+
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 if (manifest.schemaVersion !== 1 || manifest.baselineId !== "managed") fail("Unexpected managed API baseline manifest.");
-const canonicalPath = path.join(root, manifest.canonical.path);
+const canonicalPath = path.join(repositoryRoot, manifest.canonical.path);
 const canonicalText = normalize(fs.readFileSync(canonicalPath, "utf8"));
 if (mode === "compare") {
   if (hashOf(canonicalText) !== manifest.canonical.normalizedSha256) fail("The canonical managed API baseline does not match its recorded SHA-256.");
@@ -61,7 +61,7 @@ if (mode === "compare") {
 
 /** The pinned generator, restored through the repository tool manifest. */
 function generatorCommand() {
-  const packages = execFileSync("dotnet", ["nuget", "locals", "global-packages", "--list"], { encoding: "utf8" });
+  const packages = runCommand("dotnet", ["nuget", "locals", "global-packages", "--list"]).stdout;
   const directory = packages.match(/^[^:]+:\s*(.+)$/m)?.[1]?.trim();
   const assembly = path.join(directory ?? "", `publicapigenerator.tool/${manifest.generator.version}/tools/net6.0/any/PublicApiGenerator.Tool.dll`);
   if (!fs.existsSync(assembly)) fail("PublicApiGenerator.Tool is not restored. Run 'dotnet tool restore'.");
@@ -75,6 +75,8 @@ const run = path.join(outputRoot, `run-${crypto.randomUUID().replaceAll("-", "")
 const work = fs.mkdtempSync(path.join(os.tmpdir(), "cstructsharp-api-"));
 const generated = path.join(run, "generated");
 fs.mkdirSync(generated, { recursive: true });
+// Direct with inherited output: the generator builds a scratch project for each framework, and its build errors
+// must stay visible in the log, which the failure messages below refer to.
 const generation = spawnSync(
   executable,
   [...prefix, "--target-frameworks", ...frameworks, "--project-path", projectPath, "--assembly", manifest.assembly, "--generator-version", manifest.generator.version, "--working-directory", work, "--output-directory", generated],
@@ -133,9 +135,7 @@ if (mode === "compare") {
 
 // update: derive the canonical text from the net10.0 output, check that the net8.0 output differs only by the
 // framework placeholders, and rewrite the manifest with fresh hashes and a new history entry.
-const kind = option("--kind");
-const rationale = option("--rationale");
-const impact = option("--impact");
+const { kind, rationale, impact } = options;
 if (!["additive", "breaking", "correction"].includes(kind ?? "") || !rationale || !impact) {
   fail("update needs --kind additive|breaking|correction, --rationale, and --impact.");
 }

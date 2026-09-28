@@ -8,9 +8,8 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { repositoryRoot as root } from "../lib/tooling.mjs";
 
-const root = fileURLToPath(new URL("../../", import.meta.url));
 const destination = path.join(root, "artifacts/pages");
 const sections = { docs: "docs/_site", explorer: "apps/explorer/dist", inspector: "apps/inspector/dist" };
 for (const source of Object.values(sections)) {

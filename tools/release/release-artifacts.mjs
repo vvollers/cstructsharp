@@ -7,7 +7,11 @@ import { root, npmArtifacts, run } from "../packaging/npm-package-utils.mjs";
 import { validatePackageInfo } from "./npm-release.mjs";
 import { tagRelease } from "./release-state.mjs";
 import { verifySourceJobs } from "../lib/release-verification.mjs";
+import { parseArguments } from "../lib/tooling.mjs";
 
+const {
+  _: [command],
+} = parseArguments(process.argv.slice(2), {}, { positionals: true });
 const manifestPath = path.join(root, "artifacts", "release-manifest.json");
 const versionFiles = [
   "src/CStructSharp/CStructSharp.csproj",
@@ -34,7 +38,7 @@ function list(directory) {
     .map((item) => path.relative(root, path.join(item.parentPath, item.name)).replaceAll("\\", "/"))
     .sort();
 }
-if (process.argv[2] === "create") {
+if (command === "create") {
   const files = [
     ...list("artifacts/package"),
     ...list("artifacts/pages"),
@@ -53,7 +57,7 @@ if (process.argv[2] === "create") {
     ),
   };
   fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-} else if (process.argv[2] === "verify") {
+} else if (command === "verify") {
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
   assert.equal(manifest.schemaVersion, 1);
   assert.equal(manifest.version, info.version);
@@ -104,7 +108,7 @@ if (process.argv[2] === "create") {
     process.env.GITHUB_OUTPUT,
     `version=${manifest.version}\ntag=v${manifest.version}\nsource_sha=${manifest.sourceSha}\n`,
   );
-} else if (process.argv[2] === "tag") {
+} else if (command === "tag") {
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
   tagRelease(git, manifest, versionFiles);
 } else {

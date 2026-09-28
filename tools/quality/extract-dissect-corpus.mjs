@@ -13,10 +13,19 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { parseArguments } from "../lib/tooling.mjs";
 
-const [ecosystemDirectory, outputPath] = process.argv.slice(2);
+const usage = "Usage: extract-dissect-corpus.mjs <ecosystem-dir> <output.json>";
+let ecosystemDirectory;
+let outputPath;
+try {
+  [ecosystemDirectory, outputPath] = parseArguments(process.argv.slice(2), {}, { positionals: true })._;
+} catch (error) {
+  console.error(`${error.message}\n${usage}`);
+  process.exit(1);
+}
 if (!ecosystemDirectory || !outputPath) {
-  console.error("Usage: extract-dissect-corpus.mjs <ecosystem-dir> <output.json>");
+  console.error(usage);
   process.exit(1);
 }
 const root = path.resolve(ecosystemDirectory);

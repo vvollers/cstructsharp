@@ -8,21 +8,27 @@
 //        [--threshold 0.03] [--strict]
 // Exit code 1 with --strict when any case's median or allocation grew beyond the threshold.
 import fs from "node:fs";
+import { parseArguments } from "../lib/tooling.mjs";
 
-const args = process.argv.slice(2);
-/** Returns the value after a command-line option, or the fallback when it is absent. */
-const option = (name, fallback) => {
-  const index = args.indexOf(name);
-  return index >= 0 ? args[index + 1] : fallback;
-};
-const beforePath = option("--before");
-const afterPath = option("--after");
-if (!beforePath || !afterPath) {
-  console.error("Usage: compare-summaries.mjs --before <summary.json> --after <summary.json> [--threshold 0.03] [--strict]");
+const usage = "Usage: compare-summaries.mjs --before <summary.json> --after <summary.json> [--threshold 0.03] [--strict]";
+let options;
+try {
+  options = parseArguments(
+    process.argv.slice(2),
+    { before: "string", after: "string", threshold: "number", strict: "flag" },
+    { defaults: { threshold: 0.03, strict: false } },
+  );
+} catch (error) {
+  console.error(`${error.message}\n${usage}`);
   process.exit(2);
 }
-const threshold = Number(option("--threshold", "0.03"));
-const strict = args.includes("--strict");
+const beforePath = options.before;
+const afterPath = options.after;
+if (!beforePath || !afterPath) {
+  console.error(usage);
+  process.exit(2);
+}
+const { threshold, strict } = options;
 
 /** Reads a summary and indexes its cases by type, method, parameters, and runtime. */
 function load(file) {

@@ -23,12 +23,11 @@
  * Measuring takes several minutes (--job default, the BenchmarkDotNet default) or about one minute (--job short).
  * Run nothing else on the machine while it measures.
  */
-import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { assertCondition, main, parseArguments, repositoryRoot, runDotnet } from "../lib/tooling.mjs";
+import { assertCondition, main, parseArguments, repositoryRoot, runDotnet, runNpm } from "../lib/tooling.mjs";
 
 const options = parseArguments(
   process.argv.slice(2),
@@ -152,6 +151,24 @@ function rowLabel(row, versions) {
 }
 
 /**
+ * Renders a Markdown table with its columns padded to a common width, the way Prettier formats README.md, so a
+ * rendered block needs no reformatting and the `--check` comparison is exact.
+ * @param {string[]} headers The column headings.
+ * @param {("left" | "right")[]} alignments Each column's alignment.
+ * @param {string[][]} rows The cell text of each row.
+ * @returns {string[]} The table's lines: heading, separator, then one line per row.
+ */
+export function markdownTable(headers, alignments, rows) {
+  const widths = headers.map((header, column) => Math.max(3, header.length, ...rows.map((row) => row[column].length)));
+  /** Pads one cell to its column width on the side its alignment leaves open. */
+  const pad = (text, column) => (alignments[column] === "right" ? text.padStart(widths[column]) : text.padEnd(widths[column]));
+  /** Joins padded cells into one table line. */
+  const line = (cells) => `| ${cells.join(" | ")} |`;
+  const separator = widths.map((width, column) => (alignments[column] === "right" ? `${"-".repeat(width - 1)}:` : "-".repeat(width)));
+  return [line(headers.map(pad)), line(separator), ...rows.map((row) => line(row.map(pad)))];
+}
+
+/**
  * Renders the README block (markers included) from a summary: the environment line, then the "same bytes", "own
  * format" and "data-dependent record" tables, each sorted fastest first. Throws when the summary lacks a case a row
  * needs, so a renamed benchmark cannot leave a silent gap.
@@ -181,47 +198,49 @@ export function renderBlock(summary, versions) {
   const environment = summary.environment;
   const lines = [
     START_MARKER,
+    "",
     `Measured on ${environment.processor}, ${environment.os}, ${environment.runtime}, with BenchmarkDotNet ` +
       `${environment.benchmarkDotNet} (\`${environment.job}\` job) on ${environment.date}. Times are medians for one record; ` +
       "each table lists the fastest deserializer first.",
     "",
     "**Same bytes: the 79-byte C layout**",
     "",
-    "| Approach | Deserialize | Allocated | Serialize | Allocated |",
-    "| --- | ---: | ---: | ---: | ---: |",
-  ];
-  for (const row of sorted(SAME_BYTES_ROWS, "DeserializeBenchmarks", "SerializeBenchmarks")) {
-    const cellsOut = [...cells(row.readType, row.deserialize), ...cells(row.writeType, row.serialize)];
-    lines.push(`| ${rowLabel(row, versions)} | ${cellsOut.join(" | ")} |`);
-  }
-
-  lines.push(
+    ...markdownTable(
+      ["Approach", "Deserialize", "Allocated", "Serialize", "Allocated"],
+      ["left", "right", "right", "right", "right"],
+      sorted(SAME_BYTES_ROWS, "DeserializeBenchmarks", "SerializeBenchmarks").map((row) => [
+        rowLabel(row, versions),
+        ...cells(row.readType, row.deserialize),
+        ...cells(row.writeType, row.serialize),
+      ]),
+    ),
     "",
     "**Same record, each library's own format**",
     "",
-    "| Library | Format | Size | Deserialize | Allocated | Serialize | Allocated |",
-    "| --- | --- | ---: | ---: | ---: | ---: | ---: |",
-  );
-  for (const row of sorted(OWN_FORMAT_ROWS, "DeserializeBenchmarks", "SerializeBenchmarks")) {
-    const size = summary.sizes[row.size];
-    assertCondition(Number.isInteger(size), `The summary has no encoded size for ${row.size}; measure again.`);
-    const cellsOut = [...cells(row.readType, row.deserialize), ...cells(row.writeType, row.serialize)];
-    lines.push(`| ${rowLabel(row, versions)} | ${row.format} | ${size} B | ${cellsOut.join(" | ")} |`);
-  }
-
-  lines.push(
+    ...markdownTable(
+      ["Library", "Format", "Size", "Deserialize", "Allocated", "Serialize", "Allocated"],
+      ["left", "left", "right", "right", "right", "right", "right"],
+      sorted(OWN_FORMAT_ROWS, "DeserializeBenchmarks", "SerializeBenchmarks").map((row) => {
+        const size = summary.sizes[row.size];
+        assertCondition(Number.isInteger(size), `The summary has no encoded size for ${row.size}; measure again.`);
+        return [rowLabel(row, versions), row.format, `${size} B`, ...cells(row.readType, row.deserialize), ...cells(row.writeType, row.serialize)];
+      }),
+    ),
     "",
     "**A record whose shape depends on its data (the `packet` layout above)**",
     "",
-    "| Approach | Deserialize | Allocated | Serialize | Allocated |",
-    "| --- | ---: | ---: | ---: | ---: |",
-  );
-  for (const row of sorted(VARIABLE_ROWS, "VariableBenchmarks", "VariableBenchmarks")) {
-    const cellsOut = [...cells(row.readType, row.deserialize), ...cells(row.writeType, row.serialize)];
-    lines.push(`| ${rowLabel(row, versions)} | ${cellsOut.join(" | ")} |`);
-  }
-
-  lines.push(END_MARKER);
+    ...markdownTable(
+      ["Approach", "Deserialize", "Allocated", "Serialize", "Allocated"],
+      ["left", "right", "right", "right", "right"],
+      sorted(VARIABLE_ROWS, "VariableBenchmarks", "VariableBenchmarks").map((row) => [
+        rowLabel(row, versions),
+        ...cells(row.readType, row.deserialize),
+        ...cells(row.writeType, row.serialize),
+      ]),
+    ),
+    "",
+    END_MARKER,
+  ];
   return lines.join("\n");
 }
 
@@ -307,13 +326,10 @@ async function regenerateKaitai() {
   const outputPath = path.join(projectDirectory, "Kaitai/SensorReading.g.cs");
   const toolDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "cstructsharp-kaitai-"));
   try {
-    // npm is a .cmd script on Windows, which Node only starts through a shell; the one variable part (the
-    // temporary directory) is quoted.
-    const install = spawnSync(
-      `npm install --no-save --no-audit --no-fund --prefix "${toolDirectory}" kaitai-struct-compiler@${KAITAI_COMPILER_VERSION} js-yaml@${JS_YAML_VERSION}`,
-      { encoding: "utf8", shell: true },
-    );
-    assertCondition(install.status === 0, `npm install failed:\n${install.stdout}\n${install.stderr}`);
+    runNpm([
+      "install", "--no-save", "--no-audit", "--no-fund", "--prefix", toolDirectory,
+      `kaitai-struct-compiler@${KAITAI_COMPILER_VERSION}`, `js-yaml@${JS_YAML_VERSION}`,
+    ]);
 
     const modules = path.join(toolDirectory, "node_modules");
     const yaml = (await import(pathToFileURL(path.join(modules, "js-yaml/index.js")).href)).default;
@@ -361,7 +377,7 @@ function selfTest() {
     cases,
   };
   const versions = packageVersions();
-  const block = renderBlock(summary, versions);
+  const block = renderBlock(summary, versions).replace(/ {2,}/g, " ");
   assertCondition(block.startsWith(START_MARKER) && block.endsWith(END_MARKER), "The block must be wrapped in its markers.");
   assertCondition(block.includes("| 12.3 ns | 0 B | 1,235 ns | 96 B |"), "Times and allocations must use the documented formats.");
   assertCondition(block.includes(`| Kaitai Struct ${versions["KaitaiStruct.Runtime.CSharp"]} | 12.3 ns | 0 B | — | — |`), "A missing operation must render as dashes.");
@@ -377,6 +393,11 @@ function selfTest() {
     () => 5,
   );
   assertCondition(tied[0].label === "b", "A missing operation must sort after a measured one when the other column ties.");
+  assertCondition(
+    markdownTable(["A", "Time"], ["left", "right"], [["long label", "1 ns"]]).join("\n") ===
+      "| A          | Time |\n| ---------- | ---: |\n| long label | 1 ns |",
+    "Tables must pad every column to its widest cell, with right-aligned columns padded on the left.",
+  );
   assertCondition(replaceBlock(`a\n${START_MARKER}\nold\n${END_MARKER}\nb`, "new") === "a\nnew\nb", "Only the marked block may change.");
 
   delete summary.cases["DeserializeBenchmarks.Kaitai_Struct"];

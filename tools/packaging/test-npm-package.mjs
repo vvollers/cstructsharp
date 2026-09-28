@@ -7,7 +7,9 @@ import { fileURLToPath } from "node:url";
 import { root, npmArtifacts, npm, run } from "./npm-package-utils.mjs";
 import { validateWasmPublication } from "./wasm-publication.mjs";
 import { validateLandingExample } from "../lib/landing-example.mjs";
+import { parseArguments } from "../lib/tooling.mjs";
 
+const options = parseArguments(process.argv.slice(2), { "node-only": "flag", landing: "string" });
 const info = JSON.parse(fs.readFileSync(path.join(npmArtifacts, "package-info.json"), "utf8"));
 const tarball = path.join(npmArtifacts, info.filename);
 assert.equal(
@@ -30,10 +32,8 @@ npm(
   { cwd: consumer },
 );
 const installed = path.join(consumer, "node_modules", "cstructsharp");
-const landingIndex = process.argv.indexOf("--landing");
-assert.ok(landingIndex < 0 || process.argv[landingIndex + 1], "--landing requires an HTML path");
 await validateLandingExample(
-  landingIndex < 0 ? path.join(root, "docs/landing/index.html") : path.resolve(process.argv[landingIndex + 1]),
+  options.landing === undefined ? path.join(root, "docs/landing/index.html") : path.resolve(options.landing),
   installed,
 );
 const pkg = JSON.parse(fs.readFileSync(path.join(installed, "package.json"), "utf8"));
@@ -132,7 +132,7 @@ assert.throws(
 );
 
 // CI's cross-platform Node matrix needs no browser or frontend dependencies.
-if (!process.argv.includes("--node-only")) {
+if (!options["node-only"]) {
   const tsc = path.join(root, "node_modules", "typescript", "bin", "tsc");
   const ts =
     'import { parseWithDebug, loadCStructSharpWasm, type ParseResult, type ParsedStruct } from "cstructsharp"; import { cstructsharp } from "cstructsharp/vite"; const result: ParseResult = await parseWithDebug("struct x { uint8 a; };", new Uint8Array([1])); if (!result.success) throw Error(result.error.message); console.log(result.root, (result.data as ParsedStruct).a); void cstructsharp; void loadCStructSharpWasm;';

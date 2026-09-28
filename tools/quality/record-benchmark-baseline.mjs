@@ -11,23 +11,32 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
-import { execFileSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { parseArguments, repositoryRoot, runCommand } from "../lib/tooling.mjs";
 
-const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const args = process.argv.slice(2);
-/** Returns the value after every occurrence of a command-line option, in order. */
-const values = (name) => args.flatMap((a, i) => (a === name ? [args[i + 1]] : []));
-/** Returns the first value of a command-line option, or the fallback when it is absent. */
-const option = (name, fallback) => values(name)[0] ?? fallback;
-const summaries = values("--summary");
-const output = option("--output");
-if (!output || summaries.length === 0) {
-  console.error("Usage: record-benchmark-baseline.mjs --output <contract.json> --summary <summary.json> [...]");
+const usage = "Usage: record-benchmark-baseline.mjs --output <contract.json> --summary <summary.json> [...]";
+let options;
+try {
+  // Summary paths are kept whole ("repeat"), since a path may contain a comma.
+  options = parseArguments(
+    process.argv.slice(2),
+    { output: "string", summary: "repeat", "budget-id": "string", job: "string", merge: "flag", note: "string", "allow-new": "flag" },
+    { defaults: { summary: [], "budget-id": "drift-scenarios", job: "Short", merge: false, note: "partial re-baseline", "allow-new": false } },
+  );
+} catch (error) {
+  console.error(`${error.message}\n${usage}`);
   process.exit(2);
 }
-/** Runs a command and returns its trimmed standard output, or null when it fails. */
-const run = (cmd, a) => { try { return execFileSync(cmd, a, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch { return null; } };
+const summaries = options.summary;
+const output = options.output;
+if (!output || summaries.length === 0) {
+  console.error(usage);
+  process.exit(2);
+}
+/** Runs a command from the repository root and returns its trimmed standard output, or null when it fails. */
+const run = (cmd, a) => {
+  const result = runCommand(cmd, a, { allowFailure: true });
+  return result.status === 0 ? result.stdout.trim() : null;
+};
 /** Returns the uppercase hexadecimal SHA-256 hash of a buffer. */
 const sha256 = (buffer) => crypto.createHash("sha256").update(buffer).digest("hex").toUpperCase();
 /** Extracts the runtime (such as `.NET 10.0.0`) from a benchmark case's display information. */
@@ -62,7 +71,7 @@ cases.sort((a, b) => a.type.localeCompare(b.type) || a.method.localeCompare(b.me
 const fixtureManifest = path.join(repositoryRoot, "benchmarks/fixtures/manifest.json");
 const contract = {
   schemaVersion: 1,
-  budgetId: option("--budget-id", "drift-scenarios"),
+  budgetId: options["budget-id"],
   status: "baseline",
   description: "Baseline of the scenario benchmarks (Scenario category) on both packaged target frameworks, measured with the Short job. Consumed by tools/quality/compare-benchmark-baseline.mjs as a soft drift report; the benchmark drift workflow compares the Impact cases it contains.",
   date: new Date().toISOString().slice(0, 10),
@@ -70,7 +79,7 @@ const contract = {
     generator: "BenchmarkDotNet",
     generatorVersion: hostEnvironment?.BenchmarkDotNetVersion ?? "0.15.8",
     category: "Scenario",
-    job: option("--job", "Short"),
+    job: options.job,
     runtimes: [...new Set(cases.map((c) => c.runtime))],
     minimumSamples: Math.min(...cases.map((c) => c.samples)),
     timingMetric: "medianNanoseconds",
@@ -80,14 +89,14 @@ const contract = {
       summaries: sources,
       environment: `${os.type()} ${os.release()}; ${os.cpus()[0]?.model ?? "unknown CPU"} x${os.cpus().length}; ${os.arch()}; ${hostEnvironment?.RuntimeVersion ?? ""}; SDK ${run("dotnet", ["--version"])}`,
       dotnetInfoSha256: sha256(Buffer.from(run("dotnet", ["--info"]) ?? "")),
-      revision: run("git", ["-C", repositoryRoot, "rev-parse", "HEAD"]),
-      worktreeDirty: (run("git", ["-C", repositoryRoot, "status", "--porcelain"]) ?? "").length > 0,
+      revision: run("git", ["rev-parse", "HEAD"]),
+      worktreeDirty: (run("git", ["status", "--porcelain"]) ?? "").length > 0,
       fixtureManifestSha256: fs.existsSync(fixtureManifest) ? sha256(fs.readFileSync(fixtureManifest)) : null,
     },
     cases,
   },
 };
-if (args.includes("--merge") && fs.existsSync(output)) {
+if (options.merge && fs.existsSync(output)) {
   // Partial re-baseline after an accepted experiment: overwrite the re-measured cases, keep every other case and
   // the original evidence, and append a dated note so the contract's history stays readable.
   const existing = JSON.parse(fs.readFileSync(output, "utf8"));
@@ -98,7 +107,7 @@ if (args.includes("--merge") && fs.existsSync(output)) {
   // New cases are appended only for benchmark classes the contract already tracks (or with --allow-new), so a
   // filtered run that also caught rc1-category classes does not widen the contract by accident.
   const trackedTypes = new Set(existing.benchmark.cases.map((c) => c.type));
-  const allowNew = args.includes("--allow-new");
+  const allowNew = options["allow-new"];
   let skipped = 0;
   for (const c of cases) {
     if (existing.benchmark.cases.some((e) => key(e) === key(c))) continue;
@@ -112,7 +121,7 @@ if (args.includes("--merge") && fs.existsSync(output)) {
   existing.benchmark.updates ??= [];
   existing.benchmark.updates.push({
     date: contract.date,
-    note: option("--note", "partial re-baseline"),
+    note: options.note,
     replacedCases: cases.length,
     revision: contract.benchmark.baselineEvidence.revision,
     worktreeDirty: contract.benchmark.baselineEvidence.worktreeDirty,

@@ -10,27 +10,36 @@
 // Usage: node tools/quality/compare-benchmark-baseline.mjs --baseline <contract.json> --summary <summary.json>
 //        [--markdown <out.md>] [--strict] [--matching-only] [--median-ratio 0.10] [--allocation-ratio 0.05]
 import fs from "node:fs";
+import { parseArguments } from "../lib/tooling.mjs";
 
-const args = process.argv.slice(2);
-/** Returns the value that follows a command-line option, or a fallback when the option is absent. */
-const option = (name, fallback) => {
-  const index = args.indexOf(name);
-  return index >= 0 ? args[index + 1] : fallback;
-};
-/** Reports whether a command-line flag is present. */
-const flag = (name) => args.includes(name);
-const baselinePath = option("--baseline");
-const summaryPath = option("--summary");
+const usage = "Usage: compare-benchmark-baseline.mjs --baseline <contract.json> --summary <summary.json> [--markdown out.md] [--strict] [--matching-only]";
+let options;
+try {
+  options = parseArguments(process.argv.slice(2), {
+    baseline: "string",
+    summary: "string",
+    markdown: "string",
+    strict: "flag",
+    "matching-only": "flag",
+    "median-ratio": "number",
+    "allocation-ratio": "number",
+  }, { defaults: { strict: false, "matching-only": false } });
+} catch (error) {
+  console.error(`${error.message}\n${usage}`);
+  process.exit(2);
+}
+const baselinePath = options.baseline;
+const summaryPath = options.summary;
 if (!baselinePath || !summaryPath) {
-  console.error("Usage: compare-benchmark-baseline.mjs --baseline <contract.json> --summary <summary.json> [--markdown out.md] [--strict] [--matching-only]");
+  console.error(usage);
   process.exit(2);
 }
 
 const baseline = JSON.parse(fs.readFileSync(baselinePath, "utf8"));
 const summary = JSON.parse(fs.readFileSync(summaryPath, "utf8"));
 const policy = baseline.benchmark?.softPolicy ?? {};
-const medianRatio = Number(option("--median-ratio", policy.medianGrowthRatio ?? 0.10));
-const allocationRatio = Number(option("--allocation-ratio", policy.allocationGrowthRatio ?? 0.05));
+const medianRatio = options["median-ratio"] ?? Number(policy.medianGrowthRatio ?? 0.10);
+const allocationRatio = options["allocation-ratio"] ?? Number(policy.allocationGrowthRatio ?? 0.05);
 const rsdLimit = Number(baseline.benchmark?.maximumRelativeStandardDeviation ?? 0.35);
 const minimumMedianNs = Number(policy.minimumMedianNanoseconds ?? 200);
 const minimumAllocationBytes = Number(policy.minimumAllocationBytes ?? 256);
@@ -58,7 +67,7 @@ let improvements = 0;
 let unstable = 0;
 let missing = 0;
 let notRun = 0;
-const matchingOnly = flag("--matching-only");
+const matchingOnly = options["matching-only"];
 for (const expected of baseline.benchmark.cases) {
   const k = key(expected);
   const actual = current.get(k);
@@ -106,6 +115,6 @@ for (const row of rows.sort((a, b) => (b.medianDelta ?? 0) - (a.medianDelta ?? 0
 }
 const markdown = lines.join("\n") + "\n";
 process.stdout.write(markdown);
-const markdownPath = option("--markdown");
+const markdownPath = options.markdown;
 if (markdownPath) fs.writeFileSync(markdownPath, markdown);
-if (flag("--strict") && (regressions > 0 || missing > 0)) process.exit(1);
+if (options.strict && (regressions > 0 || missing > 0)) process.exit(1);

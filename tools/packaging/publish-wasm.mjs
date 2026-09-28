@@ -11,15 +11,13 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { repositoryRoot } from "../lib/tooling.mjs";
 import {
   getRequiredFrameworkFiles,
   runtimeConfigName,
   validateWasmPublication,
 } from "./wasm-publication.mjs";
 
-const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const repositoryRoot = path.resolve(scriptDirectory, "../..");
 const projectPath = path.join(repositoryRoot, "src/CStructSharp.Wasm", "CStructSharpWeb.Wasm.csproj");
 // The JavaScript adapter sources are owned by the npm package; the WASM project only builds the managed bridge.
 const adapterSource = path.join(repositoryRoot, "packages/cstructsharp/src");
@@ -86,6 +84,7 @@ function resolveSafeDestination() {
  * @throws {Error} When dotnet cannot start or exits with a failure code.
  */
 function runPublish(temporaryPublishDirectory) {
+  // A direct spawn with inherited stdio streams the long publish output live; runDotnet only prints it at the end.
   const result = spawnSync(
     "dotnet",
     [

@@ -7,10 +7,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
-import { npmCommand } from "../lib/tooling.mjs";
+import { npmCommand, repositoryRoot } from "../lib/tooling.mjs";
 
-export const root = fileURLToPath(new URL("../../", import.meta.url));
+export const root = repositoryRoot;
 export const npmArtifacts = path.join(root, "artifacts", "npm");
 /**
  * Runs a command without a shell and returns its standard output.
@@ -21,6 +20,7 @@ export const npmArtifacts = path.join(root, "artifacts", "npm");
  * @throws {Error} When the command cannot start or exits with a nonzero status; the message includes its output.
  */
 export function run(command, args, options = {}) {
+  // Calls spawnSync directly because the package tests need a timeout, which the shared runCommand does not offer.
   const result = spawnSync(command, args, { encoding: "utf8", timeout: 120000, ...options });
   if (result.error) throw result.error;
   if (result.status !== 0)

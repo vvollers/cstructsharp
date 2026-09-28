@@ -7,11 +7,10 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
+import { repositoryRoot as root } from "../lib/tooling.mjs";
 import { validateWasmPublication } from "./wasm-publication.mjs";
 
-const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(scriptDirectory, "../..");
 const source = path.join(root, "artifacts/wasm");
 const destination = path.join(root, "artifacts/wasm-package");
 const adapterSource = path.join(root, "packages/cstructsharp/src");

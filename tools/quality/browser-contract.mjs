@@ -8,15 +8,14 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { repositoryRoot } from "../lib/tooling.mjs";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 /**
  * Reads a repository file as text.
  * @throws {Error} When the file is missing.
  */
 const read = (relative) => {
-  const file = path.join(root, relative);
+  const file = path.join(repositoryRoot, relative);
   if (!fs.existsSync(file)) throw new Error(`Browser contract input is missing: ${relative}`);
   return fs.readFileSync(file, "utf8");
 };

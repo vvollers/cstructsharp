@@ -4,11 +4,11 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
-import { repositoryRoot } from "../lib/tooling.mjs";
+import { main, parseArguments, repositoryRoot, runCommand } from "../lib/tooling.mjs";
 
-/** Runs a read-only Git query from the repository root and returns its text. */
+/** Runs a read-only Git query from the repository root and returns its text; throws when Git fails. */
 function git(...args) {
-  return execFileSync("git", args, { cwd: repositoryRoot, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
+  return runCommand("git", args).stdout;
 }
 
 /**
@@ -82,11 +82,9 @@ export function inspectScripts(entries) {
 }
 
 /** Inspects changed authored files and fails on missing documentation, parser/build failures or an invalid base. */
-function main() {
-  const args = process.argv.slice(2);
-  const base = args[args.indexOf("--base") + 1];
-  const language = args[args.indexOf("--language") + 1];
-  if (!args.includes("--base") || !args.includes("--language") || !["csharp", "script"].includes(language)) {
+function checkChangedDocumentation() {
+  const { base, language } = parseArguments(process.argv.slice(2), { base: "string", language: "string" });
+  if (!base || !["csharp", "script"].includes(language)) {
     throw new Error("Usage: changed-documentation.mjs --base <git-ref> --language csharp|script");
   }
   git("rev-parse", "--verify", `${base}^{commit}`);
@@ -106,6 +104,7 @@ function main() {
   let issues = [];
   if (language === "script") issues = inspectScripts(entries);
   else if (entries.length) {
+    // Direct: the checker reads the changed entries from standard input, which runCommand does not pass.
     const output = execFileSync("dotnet", ["run", "--file", "tools/quality/CSharpComments.cs"], {
       cwd: repositoryRoot, input: JSON.stringify({ entries }), encoding: "utf8", maxBuffer: 32 * 1024 * 1024,
     });
@@ -117,4 +116,4 @@ function main() {
   console.log(`Changed-declaration documentation passed (${entries.length} ${language} files).`);
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main(checkChangedDocumentation);

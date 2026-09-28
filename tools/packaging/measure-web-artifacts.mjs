@@ -7,11 +7,11 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
+import { parseArguments, repositoryRoot as root } from "../lib/tooling.mjs";
 import { validateWasmPublication } from "./wasm-publication.mjs";
 
-const root = fileURLToPath(new URL("../../", import.meta.url));
+const { check } = parseArguments(process.argv.slice(2), { check: "flag" }, { defaults: { check: false } });
 const policy = JSON.parse(fs.readFileSync(path.join(root, "contracts/performance/web-size-budget.json"), "utf8"));
 /**
  * Measures the files below a directory: file count, total bytes, and total gzip (level 9) bytes.
@@ -41,4 +41,4 @@ fs.writeFileSync(path.join(root, "artifacts/performance/web.json"), `${JSON.stri
 console.log(JSON.stringify(report, null, 2));
 // The frontend budgets are a manual check (--check). Publication size and browser startup are enforced by their
 // automated gates.
-if (process.argv.includes("--check") && exceeded.length) throw new Error(exceeded.join("\n"));
+if (check && exceeded.length) throw new Error(exceeded.join("\n"));

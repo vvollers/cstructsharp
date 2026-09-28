@@ -190,6 +190,13 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 - The test project no longer depends on Pidgin: `ParserCorpusTests` replaces the differential test against the frozen
   reference grammar. The corpus and its mutations must parse or fail with a syntax diagnostic, and the token-convention
   spellings keep their recorded syntax trees (`ParserTokenConventions.json`).
+- Tools: every script under `tools/` finds the repository through `tools/lib/tooling.mjs`, parses its options with
+  `parseArguments` and starts short child processes with `runCommand`. An unknown or misspelled option is now an
+  error instead of being ignored, and a non-numeric number option fails instead of becoming `NaN`. CI runs every
+  `tools/**/*.test.mjs` test with one `node --test`.
+- `sync-primitive-spellings.mjs --check` reads the alias tables again (it had misread the pointer-sized spellings as
+  `long` family members) and keeps the feature matrix's formatting; `comparison-benchmarks.mjs` renders the README
+  tables in their formatted, column-aligned form so `--check` passes. CI runs both checks.
 
 ## 0.10.0 — 2026-09-26
 

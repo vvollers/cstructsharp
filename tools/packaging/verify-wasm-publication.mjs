@@ -4,14 +4,15 @@
  *   node tools/packaging/verify-wasm-publication.mjs [<publication-directory>]    (npm run verify:wasm)
  */
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { parseArguments, repositoryRoot } from "../lib/tooling.mjs";
 import { validateWasmPublication } from "./wasm-publication.mjs";
 
-const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const webRoot = path.resolve(scriptDirectory, "../../apps/explorer");
-const publicationDirectory = process.argv[2]
-  ? path.resolve(process.argv[2])
-  : path.resolve(webRoot, "../../artifacts/wasm");
+const {
+  _: [publicationArgument],
+} = parseArguments(process.argv.slice(2), {}, { positionals: true });
+const publicationDirectory = publicationArgument
+  ? path.resolve(publicationArgument)
+  : path.join(repositoryRoot, "artifacts/wasm");
 
 const manifest = validateWasmPublication(publicationDirectory);
 console.log(

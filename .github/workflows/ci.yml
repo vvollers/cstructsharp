@@ -146,7 +146,10 @@ jobs:
 
       - name: Verify quality contracts
         run: |
-          node --test tools/quality/*.test.mjs
+          node --test "tools/**/*.test.mjs"
+          node tools/documentation/sync-primitive-spellings.mjs --check
+          node tools/quality/comparison-benchmarks.mjs --self-test
+          node tools/quality/comparison-benchmarks.mjs --check
           node tools/quality/browser-contract.mjs
           node tools/quality/fuzz-corpus.mjs
           node tools/quality/compiler-fixture.mjs validate

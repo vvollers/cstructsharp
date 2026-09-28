@@ -5,16 +5,21 @@
 // Usage: node tools/quality/convert-benchmark-baseline.mjs <report-full.json | directory> <output.json>
 import fs from "node:fs";
 import path from "node:path";
-import { execFileSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { parseArguments, runCommand } from "../lib/tooling.mjs";
 
-const [inputPath, outputPath] = process.argv.slice(2);
-if (!inputPath || !outputPath) {
-  console.error("Usage: convert-benchmark-baseline.mjs <report-full.json | directory> <output.json>");
+const usage = "Usage: convert-benchmark-baseline.mjs <report-full.json | directory> <output.json>";
+let inputPath;
+let outputPath;
+try {
+  [inputPath, outputPath] = parseArguments(process.argv.slice(2), {}, { positionals: true })._;
+} catch (error) {
+  console.error(`${error.message}\n${usage}`);
   process.exit(2);
 }
-
-const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+if (!inputPath || !outputPath) {
+  console.error(usage);
+  process.exit(2);
+}
 
 /**
  * The reports to convert: a file as-is, or every "*report-full.json" in a directory (one per benchmark class when
@@ -48,11 +53,8 @@ function round3(value) {
 
 /** Runs git in the repository root and returns its output, or an empty string when git fails. */
 function git(args) {
-  try {
-    return execFileSync("git", ["-C", repositoryRoot, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
-  } catch {
-    return "";
-  }
+  const result = runCommand("git", args, { allowFailure: true });
+  return result.status === 0 ? result.stdout : "";
 }
 
 /**

@@ -7,14 +7,12 @@
 //
 // Usage: node tools/quality/generate-parity-layouts.mjs          # rewrite both files
 //        node tools/quality/generate-parity-layouts.mjs --check  # fail when the committed files are stale
-import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { parseArguments, repositoryRoot, runCommand } from "../lib/tooling.mjs";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const projectDirectory = path.join(root, "tests/CStructSharp.Generated.Parity");
-const check = process.argv.includes("--check");
+const projectDirectory = path.join(repositoryRoot, "tests/CStructSharp.Generated.Parity");
+const { check } = parseArguments(process.argv.slice(2), { check: "flag" }, { defaults: { check: false } });
 
 const layouts = [];
 const skipped = [];
@@ -41,8 +39,8 @@ function add(source, id, definition, options) {
 }
 
 // benchmarks/fixtures/cases
-for (const file of fs.readdirSync(path.join(root, "benchmarks/fixtures/cases")).filter((name) => name.endsWith(".json")).sort()) {
-  const fixture = JSON.parse(fs.readFileSync(path.join(root, "benchmarks/fixtures/cases", file), "utf8"));
+for (const file of fs.readdirSync(path.join(repositoryRoot, "benchmarks/fixtures/cases")).filter((name) => name.endsWith(".json")).sort()) {
+  const fixture = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "benchmarks/fixtures/cases", file), "utf8"));
   if (fixture.root.includes("[")) {
     skipped.push({ source: "Benchmarks", id: fixture.id, reason: "the root is a type spelling, not a declaration (CSG004)" });
     continue;
@@ -57,7 +55,7 @@ for (const file of fs.readdirSync(path.join(root, "benchmarks/fixtures/cases")).
 }
 
 // contracts/language/manual-fixtures-v1.json
-const manual = JSON.parse(fs.readFileSync(path.join(root, "contracts/language/manual-fixtures-v1.json"), "utf8"));
+const manual = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "contracts/language/manual-fixtures-v1.json"), "utf8"));
 for (const pair of manual.featurePairs) {
   const valid = pair.valid;
   const compilation = valid.compilation ?? {};
@@ -75,7 +73,7 @@ for (const pair of manual.featurePairs) {
 }
 
 // contracts/quality/compiler-fixtures/shapes.json: the portable layout, one class per (shape, packing) that applies
-const shapes = JSON.parse(fs.readFileSync(path.join(root, "contracts/quality/compiler-fixtures/shapes.json"), "utf8"));
+const shapes = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "contracts/quality/compiler-fixtures/shapes.json"), "utf8"));
 for (const shape of shapes.shapes) {
   for (const packing of ["sysv", "msvc"]) {
     if (!shape.portable[packing]) continue;
@@ -91,7 +89,7 @@ for (const shape of shapes.shapes) {
 }
 
 // benchmarks/fixtures/conditional-cases.json
-const conditional = JSON.parse(fs.readFileSync(path.join(root, "benchmarks/fixtures/conditional-cases.json"), "utf8"));
+const conditional = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "benchmarks/fixtures/conditional-cases.json"), "utf8"));
 for (const item of conditional) {
   add("Conditional", item.name, item.definition, { root: "root", pointerSize: 4, aligned: false, littleEndian: true, size: item.size, fill: item.fill });
 }
@@ -100,8 +98,8 @@ for (const item of conditional) {
 // constant of the same file (a regular or raw literal); other forms are listed as skipped. The recipes are exported
 // (git-ignored) files, so they are regenerated first: a fresh checkout has only the recipe index, and the layouts
 // would silently be missing.
-execFileSync(process.execPath, [path.join(root, "tools/documentation/export-documentation-examples.mjs")], { stdio: "ignore" });
-const recipeDirectory = path.join(root, "docs/examples/recipes");
+runCommand(process.execPath, [path.join(repositoryRoot, "tools/documentation/export-documentation-examples.mjs")]);
+const recipeDirectory = path.join(repositoryRoot, "docs/examples/recipes");
 for (const file of fs.readdirSync(recipeDirectory).filter((name) => name.endsWith(".cs")).sort()) {
   const text = fs.readFileSync(path.join(recipeDirectory, file), "utf8");
   const id = path.basename(file, ".cs");
@@ -209,5 +207,5 @@ if (check) {
   fs.mkdirSync(projectDirectory, { recursive: true });
   fs.writeFileSync(sourcePath, generated);
   fs.writeFileSync(indexPath, index);
-  console.log(`Wrote ${layouts.length} parity layouts (${skipped.length} skipped) to ${path.relative(root, sourcePath)} and layouts.json.`);
+  console.log(`Wrote ${layouts.length} parity layouts (${skipped.length} skipped) to ${path.relative(repositoryRoot, sourcePath)} and layouts.json.`);
 }

@@ -7,11 +7,12 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { spawnSync } from "node:child_process";
+import { parseArguments, repositoryRoot, runCommand } from "../lib/tooling.mjs";
 
-const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const bundle = path.resolve(process.argv[2] ?? path.join(repositoryRoot, "artifacts/wasm-package"));
+const {
+  _: [bundleArgument],
+} = parseArguments(process.argv.slice(2), {}, { positionals: true });
+const bundle = path.resolve(bundleArgument ?? path.join(repositoryRoot, "artifacts/wasm-package"));
 const work = fs.mkdtempSync(path.join(os.tmpdir(), "cstructsharp-types-"));
 try {
   // Use only files from the packaged distribution, never the repository's sources.
@@ -36,11 +37,14 @@ try {
       files: ["consumer.ts"],
     }),
   );
-  const result = spawnSync(
+  const result = runCommand(
     process.execPath,
     [path.join(repositoryRoot, "node_modules/typescript/bin/tsc"), "-p", work],
-    { stdio: "inherit" },
+    { allowFailure: true },
   );
+  // The compiler's diagnostics explain a failure, so they are shown before the verdict.
+  process.stdout.write(result.stdout ?? "");
+  process.stderr.write(result.stderr ?? "");
   if (result.status !== 0) throw new Error("Packaged TypeScript consumer failed.");
   console.log("PASS strict TypeScript consumer against packaged public API");
 } finally {
