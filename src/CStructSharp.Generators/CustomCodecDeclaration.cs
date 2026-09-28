@@ -11,6 +11,16 @@ using CStructSharp.Codecs;
 /// </summary>
 internal static class CustomCodecDeclaration
 {
+    /// <summary>
+    ///     Splits one codec declaration at its colons into a name, an optional fixed size in bytes (<c>*</c> or an
+    ///     omitted size means variable), and an alignment in bytes that defaults to 1.
+    /// </summary>
+    /// <param name="declaration">One entry of the attribute's <c>Codecs</c> list.</param>
+    /// <param name="descriptor">The parsed name, size and alignment; <see langword="default"/> on failure.</param>
+    /// <returns>
+    ///     <see langword="false"/> when the entry has an empty name, more than three parts, or a size or alignment
+    ///     that is not an unsigned decimal integer.
+    /// </returns>
     public static bool TryParse(string declaration, out CustomCodecDescriptor descriptor)
     {
         descriptor = default;
@@ -42,6 +52,8 @@ internal static class CustomCodecDeclaration
     }
 
     /// <summary>The declaration text for a descriptor, as the generated validation quotes it.</summary>
+    /// <param name="descriptor">The parsed codec facts to format.</param>
+    /// <returns>The canonical <c>name:size:alignment</c> text, with <c>*</c> for a variable size.</returns>
     public static string Describe(CustomCodecDescriptor descriptor)
         => descriptor.Name + ":" + (descriptor.FixedSize is { } size ? size.ToString(CultureInfo.InvariantCulture) : "*") + ":" + descriptor.Alignment.ToString(CultureInfo.InvariantCulture);
 }

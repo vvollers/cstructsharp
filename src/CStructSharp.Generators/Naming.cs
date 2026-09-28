@@ -11,6 +11,12 @@ using Microsoft.CodeAnalysis.CSharp;
 internal static class Naming
 {
     /// <summary>The C# identifier for a layout identifier.</summary>
+    /// <param name="identifier">The identifier as the layout spells it.</param>
+    /// <param name="keepNames">Whether to keep the spelling instead of converting it to PascalCase.</param>
+    /// <returns>
+    ///     A valid C# identifier: <c>_</c> for an empty result, prefixed with <c>_</c> when it starts with a digit, and
+    ///     escaped with <c>@</c> when it is a keyword.
+    /// </returns>
     public static string ToCSharp(string identifier, bool keepNames)
     {
         string name = keepNames ? identifier : ToPascalCase(identifier);
@@ -31,6 +37,8 @@ internal static class Naming
     }
 
     /// <summary>PascalCase: <c>chunk_type</c> → <c>ChunkType</c>, <c>PNG_SIG</c> → <c>PngSig</c>, <c>iPhone</c> → <c>IPhone</c>, <c>_reserved</c> → <c>Reserved</c>.</summary>
+    /// <param name="identifier">The identifier as the layout spells it.</param>
+    /// <returns>The converted name, which may be empty or start with a digit.</returns>
     public static string ToPascalCase(string identifier)
     {
         var builder = new StringBuilder(identifier.Length);

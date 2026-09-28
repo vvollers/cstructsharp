@@ -15,23 +15,43 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IRea
 {
     private readonly T[]? items;
 
+    /// <summary>Wraps <paramref name="items"/> without copying; the caller must not mutate it afterwards.</summary>
+    /// <param name="items">The elements, or <see langword="null"/> for an empty array.</param>
     public EquatableArray(T[]? items)
     {
         this.items = items;
     }
 
+    /// <summary>Gets the empty array, which equals any other empty or default instance.</summary>
     public static EquatableArray<T> Empty => default;
 
+    /// <summary>Gets the number of elements; 0 for a default instance.</summary>
     public int Count => this.items?.Length ?? 0;
 
+    /// <summary>Gets the element at a zero-based position.</summary>
+    /// <param name="index">The zero-based element position.</param>
+    /// <exception cref="IndexOutOfRangeException">The position is outside the array.</exception>
     public T this[int index] => (this.items ?? throw new IndexOutOfRangeException())[index];
 
+    /// <summary>Compares two arrays element by element.</summary>
+    /// <param name="left">The first array.</param>
+    /// <param name="right">The second array.</param>
+    /// <returns><see langword="true"/> when both hold equal elements in the same order.</returns>
     public static bool operator ==(EquatableArray<T> left, EquatableArray<T> right) => left.Equals(right);
 
+    /// <summary>Compares two arrays element by element.</summary>
+    /// <param name="left">The first array.</param>
+    /// <param name="right">The second array.</param>
+    /// <returns><see langword="true"/> when the lengths or any pair of elements differ.</returns>
     public static bool operator !=(EquatableArray<T> left, EquatableArray<T> right) => !left.Equals(right);
 
+    /// <summary>Copies the elements into an immutable array.</summary>
+    /// <returns>A new immutable array; empty for a default instance.</returns>
     public ImmutableArray<T> ToImmutableArray() => this.items is null ? ImmutableArray<T>.Empty : ImmutableArray.Create(this.items);
 
+    /// <summary>Compares element by element; a default instance equals an empty one.</summary>
+    /// <param name="other">The array to compare with.</param>
+    /// <returns><see langword="true"/> when both hold equal elements in the same order.</returns>
     public bool Equals(EquatableArray<T> other)
     {
         T[]? left = this.items;
@@ -57,8 +77,11 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IRea
         return true;
     }
 
+    /// <inheritdoc/>
     public override bool Equals(object? obj) => obj is EquatableArray<T> other && this.Equals(other);
 
+    /// <summary>Combines the element hash codes in order, consistent with element-wise equality.</summary>
+    /// <returns>0 for a default instance; otherwise a hash of every element.</returns>
     public override int GetHashCode()
     {
         if (this.items is null)
@@ -75,7 +98,9 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IRea
         return hash;
     }
 
+    /// <inheritdoc/>
     public IEnumerator<T> GetEnumerator() => ((IEnumerable<T>)(this.items ?? Array.Empty<T>())).GetEnumerator();
 
+    /// <inheritdoc/>
     IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 }

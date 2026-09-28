@@ -24,6 +24,11 @@ internal sealed partial class LayoutEmitter
     private GeneratedModel model = null!;
     private bool hasErrors;
 
+    /// <summary>Prepares one attributed class; call <see cref="Validate"/> before <c>Emit</c>.</summary>
+    /// <param name="request">The attributed class's configuration and source locations.</param>
+    /// <param name="compilation">The compiled layout the generated members describe.</param>
+    /// <param name="definition">The layout text, embedded in the generated class.</param>
+    /// <param name="rootName">The declaration the plain Parse and Serialize methods read and write.</param>
     public LayoutEmitter(LayoutRequest request, LayoutCompilation compilation, string definition, string rootName)
     {
         this.request = request;
@@ -32,6 +37,7 @@ internal sealed partial class LayoutEmitter
         this.rootName = rootName;
     }
 
+    /// <summary>Gets a value indicating whether validation reported an error; no source is then emitted.</summary>
     public bool HasErrors => this.hasErrors;
 
     /// <summary>The defines the compilation folded to values.</summary>
@@ -66,6 +72,7 @@ internal sealed partial class LayoutEmitter
     private static string GeneratorVersion => typeof(LayoutEmitter).Assembly.GetName().Version?.ToString() ?? "0.0.0.0";
 
     /// <summary>Builds the type model, which assigns every generated name, and reports CSG003 for collisions.</summary>
+    /// <returns>The diagnostics found, empty when the class can be generated.</returns>
     public IReadOnlyList<Diagnostic> Validate()
     {
         var taken = new Dictionary<string, string>(System.StringComparer.Ordinal)
@@ -93,6 +100,7 @@ internal sealed partial class LayoutEmitter
     }
 
     /// <summary>The complete generated file.</summary>
+    /// <returns>The C# source of the partial class, ready for <c>AddSource</c>.</returns>
     public string Emit()
     {
         var writer = new SourceWriter();

@@ -39,12 +39,17 @@ internal sealed class ReaderScope
         this.Expressions = new ExpressionEmitter(emitter.StaticVariables, emitter.Definitions, this.Resolve);
     }
 
+    /// <summary>Gets the emitter that translates this composite's layout expressions against this scope.</summary>
     public ExpressionEmitter Expressions { get; }
 
     /// <summary>The generated member for a compiled field of this composite (or of a promoted composite spliced into it).</summary>
+    /// <param name="field">The compiled field, matched by reference.</param>
+    /// <returns>The member, or null when the field belongs to no member of this composite.</returns>
     public GeneratedMember? Member(CompiledField field) => this.members.TryGetValue(field, out GeneratedMember? member) ? member : null;
 
     /// <summary>Makes a member's value visible to later expressions as the runtime's variable capture does.</summary>
+    /// <param name="member">The member just read or written.</param>
+    /// <param name="access">The C# expression that reads the member's value in the generated code.</param>
     public void Publish(GeneratedMember member, string access)
     {
         string? expression = AsInt32Operand(member, access);

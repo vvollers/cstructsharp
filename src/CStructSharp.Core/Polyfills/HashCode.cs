@@ -12,7 +12,10 @@ internal struct HashCode
     private uint value;
     private int count;
 
-    /// <summary>Combines the hash codes of up to eight values.</summary>
+    /// <summary>Combines the hash codes of up to six values.</summary>
+    /// <typeparam name="T1">The type of the first value.</typeparam>
+    /// <param name="value1">The first value to hash; <see langword="null"/> contributes 0.</param>
+    /// <returns>The mixed hash code of all values, in argument order.</returns>
     public static int Combine<T1>(T1 value1)
     {
         var hash = default(HashCode);
@@ -76,18 +79,24 @@ internal struct HashCode
     }
 
     /// <summary>Adds one value's hash code.</summary>
+    /// <typeparam name="T">The type of the value.</typeparam>
+    /// <param name="value">The value to hash; <see langword="null"/> contributes 0.</param>
     public void Add<T>(T value)
     {
         this.Add(value is null ? 0 : value.GetHashCode());
     }
 
     /// <summary>Adds one value's hash code computed by <paramref name="comparer"/>.</summary>
+    /// <typeparam name="T">The type of the value.</typeparam>
+    /// <param name="value">The value to hash; <see langword="null"/> contributes 0.</param>
+    /// <param name="comparer">The hashing comparer, or <see langword="null"/> for the value's own hash code.</param>
     public void Add<T>(T value, Collections.Generic.IEqualityComparer<T>? comparer)
     {
         this.Add(value is null ? 0 : comparer is null ? value.GetHashCode() : comparer.GetHashCode(value));
     }
 
     /// <summary>The combined hash code.</summary>
+    /// <returns>The avalanche-mixed hash of every value added so far and their count.</returns>
     public readonly int ToHashCode()
     {
         uint mixed = this.value ^ (uint)this.count;

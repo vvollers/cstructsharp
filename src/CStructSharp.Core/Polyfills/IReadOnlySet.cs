@@ -9,6 +9,8 @@ namespace System.Collections.Generic;
 public interface IReadOnlySet<T> : IReadOnlyCollection<T>
 {
     /// <summary>Whether the set contains <paramref name="item"/>.</summary>
+    /// <param name="item">The element to look up.</param>
+    /// <returns><see langword="true"/> when the element is a member of the set.</returns>
     bool Contains(T item);
 }
 
@@ -19,6 +21,7 @@ internal sealed class ReadOnlySetAdapter<T> : IReadOnlySet<T>
     private readonly HashSet<T> items;
 
     /// <summary>Wraps <paramref name="items"/> without copying.</summary>
+    /// <param name="items">The set to expose; later changes to it are visible through the adapter.</param>
     public ReadOnlySetAdapter(HashSet<T> items)
     {
         this.items = items;

@@ -31,13 +31,24 @@ internal sealed class GeneratedModel
         this.views = views;
     }
 
+    /// <summary>Gets the C# enums, one per layout enum, in declaration order.</summary>
     public List<GeneratedEnum> Enums { get; } = new();
 
+    /// <summary>
+    ///     Gets the C# classes: declared composites in declaration order, followed by the inline composites their
+    ///     members introduce.
+    /// </summary>
     public List<GeneratedComposite> Composites { get; } = new();
 
+    /// <summary>Gets one CSG003 message per generated name that clashes with another; empty when none do.</summary>
     public IReadOnlyList<string> Collisions => this.collisions;
 
     /// <summary>Builds the model; <paramref name="takenNames"/> holds the names the class frame already uses (updated with every type name); <paramref name="views"/> reserves the view members.</summary>
+    /// <param name="compilation">The compiled layout whose declarations become C# types.</param>
+    /// <param name="keepNames">Whether layout identifiers keep their spelling instead of becoming PascalCase.</param>
+    /// <param name="takenNames">Maps each claimed C# name to a description of its owner; mutated by the build.</param>
+    /// <param name="views">Whether the generated class includes the view types, whose names are then claimed.</param>
+    /// <returns>The model with every type and member named; <see cref="Collisions"/> lists the clashes.</returns>
     public static GeneratedModel Build(LayoutCompilation compilation, bool keepNames, Dictionary<string, string> takenNames, bool views)
     {
         var model = new GeneratedModel(keepNames, views, takenNames);
@@ -100,11 +111,19 @@ internal sealed class GeneratedModel
         return model;
     }
 
+    /// <summary>The generated class of a compiled struct or union.</summary>
+    /// <param name="composite">The compiled composite, matched by reference.</param>
+    /// <returns>The class, or null when the composite has none (for example, a tag aliased by a typedef).</returns>
     public GeneratedComposite? Find(CompiledCompositeType composite) => this.compositesByType.TryGetValue(composite, out GeneratedComposite? generated) ? generated : null;
 
+    /// <summary>The generated C# enum of a compiled layout enum.</summary>
+    /// <param name="compiledEnum">The compiled enum, matched by reference.</param>
+    /// <returns>The C# enum, or null when the layout enum has none.</returns>
     public GeneratedEnum? Find(CompiledEnumType compiledEnum) => this.enumsByType.TryGetValue(compiledEnum, out GeneratedEnum? generated) ? generated : null;
 
     /// <summary>The C# storage type of an enum's backing integer.</summary>
+    /// <param name="integer">The enum's integer codec, which fixes the bit width and signedness.</param>
+    /// <returns>The C# keyword of the matching integer type, from <c>sbyte</c> to <c>ulong</c>.</returns>
     public static string EnumUnderlyingType(EnumIntegerCodec integer)
     {
         return (integer.BitWidth, integer.IsSigned) switch
@@ -121,6 +140,8 @@ internal sealed class GeneratedModel
     }
 
     /// <summary>The C# type a primitive codec decodes to.</summary>
+    /// <param name="kind">The primitive codec kind.</param>
+    /// <returns>A C# keyword or a <c>global::</c>-qualified type name.</returns>
     public static string PrimitiveTypeName(PrimitiveCodecKind kind)
     {
         return kind switch
@@ -299,6 +320,10 @@ internal sealed class GeneratedModel
     }
 
     /// <summary>The C# shape of a field (its class, enum, and property type); the composites it refers to must already exist.</summary>
+    /// <param name="field">The compiled field to describe.</param>
+    /// <param name="propertyName">The C# property name already chosen for the field.</param>
+    /// <param name="conditional">Whether the field is read only when its conditional arm is active.</param>
+    /// <returns>The member with its class, enum and C# property type resolved.</returns>
     public GeneratedMember Describe(CompiledField field, string propertyName, bool conditional = false)
     {
         CompiledCompositeType? target = field.TargetComposite;
@@ -308,6 +333,8 @@ internal sealed class GeneratedModel
     }
 
     /// <summary>The shape of a pointer field's value, for the pointer readers.</summary>
+    /// <param name="field">The pointer field; an unnamed one is described under the name <c>target</c>.</param>
+    /// <returns>The member whose type is the field's <c>Pointer&lt;T&gt;</c> type.</returns>
     public GeneratedMember DescribePointer(CompiledField field) => this.Describe(field, Naming.ToCSharp(field.Name.Length == 0 ? "target" : field.Name, this.keepNames));
 
     /// <summary>The C# property type of a member: pointers are <c>Pointer&lt;T&gt;</c>, arrays <c>T[]</c> (jagged for several dimensions), character arrays <c>string</c>, bitfields their declared integer type.</summary>
@@ -417,6 +444,11 @@ internal sealed record GeneratedEnumMember(string Name, string LayoutName, Syste
 /// <summary>A struct or union and its C# class.</summary>
 internal sealed class GeneratedComposite
 {
+    /// <summary>Records the class chosen for one compiled struct or union; members are added afterwards.</summary>
+    /// <param name="name">The C# class name.</param>
+    /// <param name="layoutName">The declaration's name in the layout.</param>
+    /// <param name="composite">The compiled struct or union.</param>
+    /// <param name="isDeclared">Whether it is a top-level declaration rather than an inline type.</param>
     public GeneratedComposite(string name, string layoutName, CompiledCompositeType composite, bool isDeclared)
     {
         this.Name = name;
@@ -425,23 +457,29 @@ internal sealed class GeneratedComposite
         this.IsDeclared = isDeclared;
     }
 
+    /// <summary>Gets the C# class name.</summary>
     public string Name { get; }
 
+    /// <summary>Gets the declaration's name in the layout, as diagnostics and runtime paths spell it.</summary>
     public string LayoutName { get; }
 
+    /// <summary>Gets the compiled struct or union with its field offsets and sizes.</summary>
     public CompiledCompositeType Composite { get; }
 
     /// <summary>Whether the composite is a top-level declaration (a root candidate) rather than an inline type.</summary>
     public bool IsDeclared { get; }
 
+    /// <summary>Gets a value indicating whether the composite is a union, whose members share offset 0.</summary>
     public bool IsUnion => this.Composite.IsUnion;
 
+    /// <summary>Gets the properties a reader fills, in layout order, with promoted anonymous members inlined.</summary>
     public List<GeneratedMember> Members { get; } = new();
 }
 
 /// <summary>One property of a generated class and the compiled field it holds.</summary>
 internal sealed record GeneratedMember(CompiledField Field, string PropertyName, GeneratedComposite? Composite, GeneratedEnum? Enum, string TypeName, bool IsConditional)
 {
+    /// <summary>Gets the member's name in the layout.</summary>
     public string LayoutName => this.Field.Name;
 
     /// <summary>The presence flag of a conditional member: <c>HasValue</c> for <c>value</c>.</summary>

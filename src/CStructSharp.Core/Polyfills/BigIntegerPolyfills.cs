@@ -9,6 +9,8 @@ internal static class BigIntegerPolyfills
     ///     the runtime's instance method returns for such values; the Core sources only ask for flag members, which
     ///     are never negative.
     /// </summary>
+    /// <param name="value">The value whose magnitude is measured.</param>
+    /// <returns>The bit count of the magnitude, stripped of leading zero bits.</returns>
     public static long GetBitLength(this BigInteger value)
     {
         BigInteger magnitude = BigInteger.Abs(value);

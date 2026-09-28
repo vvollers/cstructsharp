@@ -7,6 +7,7 @@ internal static class GeneratorDiagnostics
 {
     private const string Category = "CStructSharp";
 
+    /// <summary>CSG001 (error): the layout fails to parse or compile; the message is the runtime diagnostic.</summary>
     public static readonly DiagnosticDescriptor LayoutInvalid = new(
         "CSG001",
         "Layout does not compile",
@@ -16,6 +17,7 @@ internal static class GeneratorDiagnostics
         isEnabledByDefault: true,
         description: "The layout text given to [CStructLayout] fails to parse or compile; the message is the runtime's own diagnostic.");
 
+    /// <summary>CSG002 (error): the attribute's <c>File</c> matches none of the project's AdditionalFiles.</summary>
     public static readonly DiagnosticDescriptor FileNotFound = new(
         "CSG002",
         "Layout file not found",
@@ -24,6 +26,7 @@ internal static class GeneratorDiagnostics
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    /// <summary>CSG003 (error): two generated C# names clash, or a name clashes with its containing type.</summary>
     public static readonly DiagnosticDescriptor NameCollision = new(
         "CSG003",
         "Generated name collision",
@@ -33,6 +36,7 @@ internal static class GeneratorDiagnostics
         isEnabledByDefault: true,
         description: "Two layout identifiers become the same C# name after PascalCase conversion, or a name clashes with its containing type; use [CStructLayout(KeepNames = true)] or rename the identifier in the layout.");
 
+    /// <summary>CSG004 (warning): the attribute's <c>Root</c> names no declaration; the default root is used.</summary>
     public static readonly DiagnosticDescriptor UnknownRoot = new(
         "CSG004",
         "Unknown root declaration",
@@ -41,6 +45,7 @@ internal static class GeneratorDiagnostics
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
+    /// <summary>CSG005 (error): the attributed class or one of its containing types is not partial.</summary>
     public static readonly DiagnosticDescriptor NotPartial = new(
         "CSG005",
         "Attributed class must be partial",
@@ -49,6 +54,7 @@ internal static class GeneratorDiagnostics
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    /// <summary>CSG006 (error): a <c>Codecs</c> entry is malformed or repeats a built-in type.</summary>
     public static readonly DiagnosticDescriptor CodecDeclarationInvalid = new(
         "CSG006",
         "Custom codec declaration is invalid",
@@ -58,6 +64,7 @@ internal static class GeneratorDiagnostics
         isEnabledByDefault: true,
         description: "An entry of [CStructLayout(Codecs = ...)] must be \"name\", \"name:size\", \"name:size:alignment\", or \"name:*:alignment\" with an identifier name, a non-negative size, and a power-of-two alignment, and must not repeat a built-in type.");
 
+    /// <summary>CSG100 (error): a mapped type is not partial or lacks a parameterless constructor.</summary>
     public static readonly DiagnosticDescriptor MappedNotPartial = new(
         "CSG100",
         "Mapped type must be partial with a parameterless constructor",
@@ -66,6 +73,7 @@ internal static class GeneratorDiagnostics
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    /// <summary>CSG101 (error): a mapped member's class is not [CStructMapped] or ICStructMapped&lt;T&gt;.</summary>
     public static readonly DiagnosticDescriptor MappedMemberType = new(
         "CSG101",
         "Mapped member type is not mapped",
@@ -74,6 +82,7 @@ internal static class GeneratorDiagnostics
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    /// <summary>CSG102 (warning): a mapped member matches no member of its layout.</summary>
     public static readonly DiagnosticDescriptor MappedMemberMissing = new(
         "CSG102",
         "Mapped member has no layout counterpart",
@@ -82,6 +91,7 @@ internal static class GeneratorDiagnostics
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
+    /// <summary>CSG200 (warning): a constant path names a declaration or member the visible layout lacks.</summary>
     public static readonly DiagnosticDescriptor PathUnresolved = new(
         "CSG200",
         "Path does not resolve against the layout",
@@ -91,6 +101,7 @@ internal static class GeneratorDiagnostics
         isEnabledByDefault: true,
         description: "The receiver's layout is visible (new CStruct(\"...\"), CStruct.GetOrCompile(\"...\"), or a [CStructLayout] class's Layout) and the constant path names a declaration or member it does not have; the runtime would throw CStructPathException.");
 
+    /// <summary>CSG201 (info): Parse selects a root that is a union or a scalar rather than a struct.</summary>
     public static readonly DiagnosticDescriptor ParseNotStruct = new(
         "CSG201",
         "Parse selects a root that is not a struct",
@@ -99,6 +110,7 @@ internal static class GeneratorDiagnostics
         DiagnosticSeverity.Info,
         isEnabledByDefault: true);
 
+    /// <summary>CSG300 (warning): <c>dynamic</c> binds a parsed value in a project published trimmed or AOT.</summary>
     public static readonly DiagnosticDescriptor DynamicUnderAot = new(
         "CSG300",
         "dynamic over a parsed value in a trimmed or AOT-published project",
@@ -107,6 +119,7 @@ internal static class GeneratorDiagnostics
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
+    /// <summary>CSG010 (error): the consuming project compiles with a C# version older than 12.</summary>
     public static readonly DiagnosticDescriptor LanguageVersion = new(
         "CSG010",
         "C# 12 or later is required",

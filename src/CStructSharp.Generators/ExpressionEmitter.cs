@@ -20,6 +20,13 @@ internal sealed class ExpressionEmitter
     private readonly Func<string, string?> resolveMember;
     private int overrideCount;
 
+    /// <summary>Creates an emitter over one layout's constants and one reader's visible members.</summary>
+    /// <param name="staticValues">The defines and enum members the layout compilation folded, by name.</param>
+    /// <param name="definitions">The layout's <c>#define</c> declarations, for defines that use other names.</param>
+    /// <param name="resolveMember">
+    ///     Maps a name to the C# Int32 expression of a member already read, or returns null when no member is visible
+    ///     under that name.
+    /// </param>
     public ExpressionEmitter(IReadOnlyDictionary<string, Expr> staticValues, IReadOnlyDictionary<string, Defines> definitions, Func<string, string?> resolveMember)
     {
         this.staticValues = staticValues;
@@ -28,9 +35,18 @@ internal sealed class ExpressionEmitter
     }
 
     /// <summary>Whether the expression is a plain literal in the Int32 range, whose evaluation cannot fail.</summary>
+    /// <param name="expression">The compiled layout expression to inspect.</param>
+    /// <returns><see langword="true"/> only for a <see cref="Literal"/> whose exact value fits an Int32.</returns>
     public static bool IsInt32Literal(Expr expression)
         => expression is Literal { ExactValue: var value } && value >= int.MinValue && value <= int.MaxValue;
 
+    /// <summary>Emits a C# <c>int</c> expression that evaluates <paramref name="expression"/> at run time.</summary>
+    /// <param name="expression">The compiled layout expression to translate.</param>
+    /// <returns>
+    ///     C# source that reads the caller's <c>variables</c> dictionary where needed and throws as the runtime
+    ///     evaluator does on overflow or division by zero.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">The expression contains an unsupported node kind.</exception>
     public string Emit(Expr expression)
     {
         const string E = "global::CStructSharp.Generated.Expressions.";

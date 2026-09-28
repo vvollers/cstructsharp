@@ -75,6 +75,9 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
     }
 
     /// <summary>The layout request of a [CStructLayout] class, for the mapped-class generator's layout resolution.</summary>
+    /// <param name="context">The compiler's matched attribute, declaration and semantic symbol.</param>
+    /// <param name="cancellation">Cancels syntax retrieval when the compiler abandons this generation pass.</param>
+    /// <returns>The immutable request snapshot, or null when the target is not a class declaration.</returns>
     internal static LayoutRequest? CreateRequestForMapping(GeneratorAttributeSyntaxContext context, CancellationToken cancellation) => CreateRequest(context, cancellation);
 
     /// <summary>Snapshots one attributed class's configuration and source locations for incremental generation.</summary>
