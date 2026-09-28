@@ -128,15 +128,16 @@ public sealed partial class CStruct
 
                 try
                 {
-                    this.HandleCStructElement(
-                        field.Declaration,
-                        destination,
-                        state,
-                        debugStack,
-                        -1,
-                        field.Declaration is Struct,
-                        field,
-                        cursor);
+                    // A plain field goes straight to the field reader, the step HandleCStructElement would dispatch to;
+                    // this loop runs once per member of every struct read.
+                    if (field.Declaration is Struct)
+                    {
+                        this.HandleCStructElement(field.Declaration, destination, state, debugStack, -1, true, field, cursor);
+                    }
+                    else
+                    {
+                        this.ReadField(field, destination, state, debugStack, -1, cursor, false);
+                    }
                 }
                 catch (CStructException exception) when (exception.NoteMember(field.Name, field.DisplayTypeSpelling))
                 {
@@ -405,14 +406,15 @@ public sealed partial class CStruct
                 RestoreVariables(state.Variables, unionInputVariables);
                 try
                 {
-                    this.HandleCStructElement(
-                        field.Declaration,
-                        decodedMembers,
-                        state,
-                        debugStack,
-                        unionPosition,
-                        field.Declaration is Struct,
-                        field);
+                    // As in the struct loop, a plain member goes straight to the field reader.
+                    if (field.Declaration is Struct)
+                    {
+                        this.HandleCStructElement(field.Declaration, decodedMembers, state, debugStack, unionPosition, true, field);
+                    }
+                    else
+                    {
+                        this.ReadField(field, decodedMembers, state, debugStack, unionPosition, null, false);
+                    }
                 }
                 catch (CStructException exception) when (exception.NoteMember(field.Name, field.DisplayTypeSpelling))
                 {

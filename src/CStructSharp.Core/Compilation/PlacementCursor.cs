@@ -66,13 +66,20 @@ internal struct PlacementCursor
     /// <returns>The field's start, or <see langword="null"/> when the position is unknown.</returns>
     public long? AdvanceToField(int alignment)
     {
+        // The two position fields are used directly: the runtime reader and writer place every field through here, and
+        // a long? round trip per call is measurable there.
         this.bitfields.Close();
-        if (this.Current is long position && this.aligned)
+        if (!this.known)
         {
-            this.Current = LayoutMath.AlignUp(position, alignment);
+            return null;
         }
 
-        return this.Current;
+        if (this.aligned)
+        {
+            this.position = LayoutMath.AlignUp(this.position, alignment);
+        }
+
+        return this.position;
     }
 
     /// <summary>Places a bitfield in the open run, or opens a new storage unit when the packing rule requires one.</summary>
@@ -85,13 +92,13 @@ internal struct PlacementCursor
     /// <returns>The unit's start and size and the field's bit offset, or <see langword="null"/> when the position is unknown.</returns>
     public (long UnitStart, int UnitSize, int BitOffset)? AdvanceToBitfield(int declaredSize, int alignment, int width, int runBits, bool littleEndian, string member)
     {
-        if (this.Current is not long position)
+        if (!this.known)
         {
             return null;
         }
 
-        (long unitStart, int unitSize, int bitOffset) = this.bitfields.Place(position, declaredSize, alignment, width, runBits, littleEndian, member);
-        this.Current = this.bitfields.RunEnd;
+        (long unitStart, int unitSize, int bitOffset) = this.bitfields.Place(this.position, declaredSize, alignment, width, runBits, littleEndian, member);
+        this.position = this.bitfields.RunEnd;
         return (unitStart, unitSize, bitOffset);
     }
 
@@ -102,13 +109,14 @@ internal struct PlacementCursor
     /// <returns>The position after the separator, or <see langword="null"/> when unknown.</returns>
     public long? AdvanceToSeparator(int declaredSize, int alignment, int runBits)
     {
-        if (this.Current is long position)
+        if (!this.known)
         {
-            this.bitfields.PlaceSeparator(position, declaredSize, alignment, runBits);
-            this.Current = this.bitfields.RunEnd;
+            return null;
         }
 
-        return this.Current;
+        this.bitfields.PlaceSeparator(this.position, declaredSize, alignment, runBits);
+        this.position = this.bitfields.RunEnd;
+        return this.position;
     }
 
     /// <summary>Records where an ordinary field ended, so the next field is placed after it.</summary>
@@ -118,9 +126,17 @@ internal struct PlacementCursor
         this.Current = fieldEnd;
     }
 
+    /// <summary>Records where an ordinary field of known size ended, so the next field is placed after it.</summary>
+    /// <param name="fieldEnd">The position after the field.</param>
+    public void CompleteField(long fieldEnd)
+    {
+        this.known = true;
+        this.position = fieldEnd;
+    }
+
     /// <summary>The composite's end: its current extent, padded to its alignment when the layout is aligned.</summary>
     /// <param name="compositeAlignment">The composite's alignment.</param>
     /// <returns>The position after the composite, or <see langword="null"/> when unknown.</returns>
     public readonly long? Finish(int compositeAlignment)
-        => this.Current is long position && this.aligned ? LayoutMath.AlignUp(position, compositeAlignment) : this.Current;
+        => !this.known ? null : this.aligned ? LayoutMath.AlignUp(this.position, compositeAlignment) : this.position;
 }

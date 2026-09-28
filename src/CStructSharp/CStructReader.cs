@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using CStructSharp.Addressing;
 using CStructSharp.Codecs;
@@ -894,7 +895,9 @@ public sealed partial class CStruct
         Func<Stream, object>? fieldReader = compiledField.Array.Kind == CompiledArrayKind.Flexible
                                                 ? this.codecs.TerminatedReaderOf(compiledField)
                                                 : this.codecs.ReaderOf(compiledField);
-        int count = this.DeclaredElementCount(compiledField, state);
+
+        // A scalar, the most common field, skips the call.
+        int count = compiledField.Array.Kind == CompiledArrayKind.Scalar ? 1 : this.DeclaredElementCount(compiledField, state);
 
         if (state.Debug)
         {
@@ -1011,6 +1014,7 @@ public sealed partial class CStruct
     /// <param name="unionPosition">The union's start, or -1.</param>
     /// <param name="cursor">The containing struct's cursor, or <see langword="null"/>.</param>
     /// <returns>Whether the field is standalone.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool PlaceField(CompiledField compiledField, CStructOperationContext state, long unionPosition, CompositeFieldPlacementCursor? cursor)
     {
         if (unionPosition != -1)
@@ -1183,26 +1187,17 @@ public sealed partial class CStruct
     /// <param name="index">The element's flat row-major index.</param>
     /// <param name="count">The field's element count.</param>
     /// <exception cref="InvalidOperationException">The field's type has no reader.</exception>
+    /// <remarks>Inlined into the element loop: it only dispatches, and it runs once for every field and element read.</remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ReadFieldElement(in FieldRead read, CStructOperationContext state, int index, int count)
     {
         CompiledField compiledField = read.Field;
 
         // Composite leaves need the containing element's coordinates. A primitive array's debug records are grouped
         // under the array field instead.
-        DebugPath? elementDebugStack = read.DebugStack;
-        if (state.Debug && read.IsArray && compiledField.TargetComposite is not null)
-        {
-            string indices = string.Empty;
-            int remainingIndex = index;
-            for (int dimension = compiledField.Array.Dimensions.Length - 1; dimension >= 0; dimension--)
-            {
-                int size = compiledField.Array.Dimensions[dimension].FixedCount ?? count;
-                indices = "[" + (remainingIndex % size) + "]" + indices;
-                remainingIndex /= size;
-            }
-
-            elementDebugStack = new DebugPath(read.DebugStack!.Parent, compiledField.Name + indices);
-        }
+        DebugPath? elementDebugStack = state.Debug && read.IsArray && compiledField.TargetComposite is not null
+                                           ? ElementDebugPath(in read, index, count)
+                                           : read.DebugStack;
 
         // An enum-typed bitfield takes the primitive bit-slicing path and is wrapped afterwards.
         if (compiledField.PointerDepth == 0 && compiledField.Enum is { } enm && compiledField.BitSize == 0)
@@ -1221,6 +1216,26 @@ public sealed partial class CStruct
         {
             this.ReadScalarElement(in read, state, elementDebugStack);
         }
+    }
+
+    /// <summary>The debug path of one element of a composite array: the field name with the element's coordinates.</summary>
+    /// <param name="read">The array field; its debug path is the field's own.</param>
+    /// <param name="index">The element's flat row-major index.</param>
+    /// <param name="count">The field's element count, the size of a dimension without a fixed count.</param>
+    /// <returns>The element's path, beside the field's under the same parent (<c>items[2][1]</c>).</returns>
+    private static DebugPath ElementDebugPath(in FieldRead read, int index, int count)
+    {
+        CompiledField compiledField = read.Field;
+        string indices = string.Empty;
+        int remainingIndex = index;
+        for (int dimension = compiledField.Array.Dimensions.Length - 1; dimension >= 0; dimension--)
+        {
+            int size = compiledField.Array.Dimensions[dimension].FixedCount ?? count;
+            indices = "[" + (remainingIndex % size) + "]" + indices;
+            remainingIndex /= size;
+        }
+
+        return new DebugPath(read.DebugStack!.Parent, compiledField.Name + indices);
     }
 
     /// <summary>Reads one enum value through its storage type and captures its number for later expressions.</summary>

@@ -174,6 +174,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Performance
 
+- Runtime reads place each field with less work: the placement cursor keeps its position without nullable round
+  trips, and ordinary struct and union members are read through one inlined call. A layout of 1 000 bitfield records
+  reads about 9% faster, and pointer-heavy and union-heavy layouts 6-10% faster.
 - A read reuses its pointer bookkeeping (the cycle-detection set and the deferred-pointer list) from a per-thread
   cache instead of allocating it, so a read that follows pointers allocates less than before.
 - An update allocates less: whether its root reaches an `if`/`switch` member is computed once per layout instead
