@@ -19,7 +19,7 @@ IMemorySource            "which bytes are at this address?"
    |  CachedMemorySource remembers exact ranges until the backing generation changes
    |  OverlayMemorySource keeps changed bytes apart from an unchanged backing snapshot
    |  ByteArrayMemorySource / StreamMemorySource   leaf sources that own or borrow the actual bytes
-MemoryAccessContext      one budget (bytes, requests, depth, cancellation) shared by every layer in one operation
+MemoryAccessContext      one budget (bytes, requests, nesting, pointer steps, cancellation) shared by every layer
 ```
 
 ## Follow one read
@@ -61,7 +61,12 @@ MemoryAccessContext      one budget (bytes, requests, depth, cancellation) share
 - **Values use the core vocabulary.** Reads return `StructValue`, `UnionValue`, and `PrimitiveArray<T>` or
   `List<object?>` arrays, as the core reader does; a union is written from a `UnionValue` named after it.
 - **Work budgets cross boundaries.** Adapters and callbacks forward the context they received instead of creating
-  a new one.
+  a new one. Composite values and stacked source layers count against `MaxNestingDepth`; `.value` steps count
+  against `MaxPointerDepth`. Definition graphs are bounded separately by `MemorySchema.MaxDefinitionNestingDepth`,
+  the core's default layout nesting limit.
+- **"Opaque" means an opaque pointer.** A `Pointer` with a null `ElementTypeId` (like C's `void *`) keeps its
+  address but cannot be followed. A type whose size is known but whose members are unusable is `RawBytes`, read
+  and written as a `byte[]`.
 - **Generations detect reported changes.** They are a change counter, not a snapshot or a lock; callers arrange
   consistency when a source cannot report changes.
 - **Failures use the core exception hierarchy.** Unreadable memory is a `MemoryAccessException`, a

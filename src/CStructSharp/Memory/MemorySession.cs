@@ -132,7 +132,9 @@ public sealed class MemorySession
     /// must end the path, so an update through it can never encode a resolved target by mistake.
     /// </para>
     /// <para>
-    /// Every step consumes depth from the shared context, which bounds pathological paths and pointer chains.
+    /// Member and index steps count against the context's <see cref="MemoryAccessContext.MaxNestingDepth"/>, which
+    /// restarts at each pointer target; every <c>.value</c> step counts against
+    /// <see cref="MemoryAccessContext.MaxPointerDepth"/>. Together they bound pathological paths and pointer chains.
     /// </para>
     /// </remarks>
     /// <param name="region">Finite caller-owned region holding the root record.</param>
@@ -151,10 +153,16 @@ public sealed class MemorySession
             ArgumentNullException.ThrowIfNull(region);
             ArgumentNullException.ThrowIfNull(path);
             context ??= new MemoryAccessContext();
-            context.CheckDepth(0);
+            context.CheckNestingDepth(0);
             var selected = new MemorySelection(region.Slice(0, this.Schema.GetType(typeId).Size), this.Schema.GetType(typeId), null, null);
             MemoryRegion container = region;
+
+            // depth counts every path step and is reported to the resolver; nesting counts the value levels
+            // entered since the last pointer target, and pointerSteps counts followed pointers. Nesting restarts
+            // at each target because a pointer target is a new root value, not a member of the value that held it.
             int depth = 0;
+            int nesting = 0;
+            int pointerSteps = 0;
             bool addressSelected = false;
             foreach (string segment in Tokenize(path))
             {
@@ -163,7 +171,8 @@ public sealed class MemorySession
                     throw new CStructPathException("The address accessor must terminate a path.");
                 }
 
-                context.CheckDepth(++depth);
+                depth++;
+                context.CheckNestingDepth(++nesting);
                 MemoryTypeDefinition type = selected.Type;
                 if (type.Kind == MemoryTypeKind.Pointer)
                 {
@@ -180,7 +189,8 @@ public sealed class MemorySession
                     }
 
                     // Following a pointer is the one path step that reads data: the target address is in the bytes.
-                    StoredPointer pointer = (StoredPointer)this.ReadCore(selected, context, depth)!;
+                    context.CheckPointerDepth(++pointerSteps);
+                    StoredPointer pointer = (StoredPointer)this.ReadCore(selected, context, nesting)!;
                     if (pointer.IsNull)
                     {
                         throw new MemoryAccessException(MemoryFailure.InvalidValue, selected.Region.Source.Id, selected.Region.Address, type.Size, "Cannot follow a null pointer.");
@@ -197,6 +207,7 @@ public sealed class MemorySession
                     MemoryRegion resolved = this.resolver(new PointerRequest(pointer, selected.Region, selected.Container ?? container, target.Id, target.Size, path, depth));
                     selected = new MemorySelection(resolved.Slice(0, target.Size), target, null, null);
                     container = selected.Region;
+                    nesting = 0;
                 }
                 else if (segment.StartsWith('[') && type.Kind == MemoryTypeKind.Array)
                 {
@@ -214,7 +225,7 @@ public sealed class MemorySession
                 else if (type.Kind is MemoryTypeKind.Struct or MemoryTypeKind.Union)
                 {
                     container = selected.Region;
-                    selected = this.FindMember(selected, segment, context, depth);
+                    selected = this.FindMember(selected, segment, context, nesting);
                 }
                 else
                 {
@@ -254,9 +265,9 @@ public sealed class MemorySession
         try
         {
             context ??= new MemoryAccessContext();
-            context.CheckDepth(0);
+            context.CheckNestingDepth(0);
             MemoryTypeDefinition type = this.Schema.GetType(typeId);
-            if (type.Size > context.MaxBytes)
+            if (type.Size > context.MaxTotalBytes)
             {
                 // New output is not read from any source, so the failure has no source coordinates.
                 throw new MemoryAccessException(MemoryFailure.BudgetExceeded, null, null, type.Size, "Output exceeds the byte budget.");
@@ -298,7 +309,7 @@ public sealed class MemorySession
         {
             context ??= new MemoryAccessContext();
             MemorySelection selected = this.Resolve(region, typeId, path, context);
-            if (selected.Type.Size > context.MaxBytes)
+            if (selected.Type.Size > context.MaxTotalBytes)
             {
                 throw new MemoryAccessException(MemoryFailure.BudgetExceeded, selected.Region.Source.Id, selected.Region.Address, selected.Type.Size, "Patch exceeds the byte budget.");
             }
@@ -342,7 +353,7 @@ public sealed class MemorySession
             throw new ArgumentOutOfRangeException(nameof(region), "Region is too large for a materialized value.");
         }
 
-        if (region.Length > context.MaxBytes)
+        if (region.Length > context.MaxTotalBytes)
         {
             throw new MemoryAccessException(MemoryFailure.BudgetExceeded, region.Source.Id, region.Address, (int)region.Length, "Region exceeds the byte budget.");
         }
@@ -502,7 +513,7 @@ public sealed class MemorySession
     /// <param name="parent">Selection of the containing struct or union.</param>
     /// <param name="name">Member name to find.</param>
     /// <param name="context">Shared context, used for depth checks while descending into promoted members.</param>
-    /// <param name="depth">Current path depth.</param>
+    /// <param name="depth">Current nesting depth within the current pointer target, checked against <see cref="MemoryAccessContext.MaxNestingDepth"/>.</param>
     /// <returns>The selection of the member.</returns>
     /// <exception cref="CStructPathException">No member has that name, or two promoted members do.</exception>
     private MemorySelection FindMember(MemorySelection parent, string name, MemoryAccessContext context, int depth)
@@ -512,12 +523,12 @@ public sealed class MemorySession
     /// <param name="parent">Selection of the struct or union being searched.</param>
     /// <param name="name">Member name to find.</param>
     /// <param name="context">Shared context for depth checks.</param>
-    /// <param name="depth">Current path depth.</param>
+    /// <param name="depth">Current nesting depth within the current pointer target, checked against <see cref="MemoryAccessContext.MaxNestingDepth"/>.</param>
     /// <returns>The selection of the member, or null when neither the composite nor its promoted members declare it.</returns>
     /// <exception cref="CStructPathException">Two promoted members have that name.</exception>
     private MemorySelection? TryFindMember(MemorySelection parent, string name, MemoryAccessContext context, int depth)
     {
-        context.CheckDepth(depth);
+        context.CheckNestingDepth(depth);
         MemorySelection? found = null;
         foreach (MemoryField field in parent.Type.Fields)
         {
@@ -557,10 +568,10 @@ public sealed class MemorySession
     /// Each composite level charges one zero-byte request, so a huge array cannot be decoded for free.</remarks>
     /// <param name="selected">Region, type, and optional field to decode.</param>
     /// <param name="context">Shared budget charged by every source read and composite level.</param>
-    /// <param name="depth">Current nesting depth for the depth limit.</param>
+    /// <param name="depth">Current nesting depth, checked against <see cref="MemoryAccessContext.MaxNestingDepth"/>.</param>
     private object? ReadCore(MemorySelection selected, MemoryAccessContext context, int depth)
     {
-        context.CheckDepth(depth);
+        context.CheckNestingDepth(depth);
         context.Charge(selected.Region.Source.Id, selected.Region.Address, 0);
         MemoryTypeDefinition type = selected.Type;
         if (type.Kind is MemoryTypeKind.Scalar or MemoryTypeKind.Pointer)
@@ -637,7 +648,7 @@ public sealed class MemorySession
             return structValue;
         }
 
-        if (type.Kind == MemoryTypeKind.Opaque)
+        if (type.Kind == MemoryTypeKind.RawBytes)
         {
             // No field layout survived validation for this type, so its bytes are handed back verbatim rather
             // than decoded; the caller still gets exactly the declared size, just not decomposed into members.
@@ -705,12 +716,12 @@ public sealed class MemorySession
     /// <param name="value">Value in the declared shape for that type.</param>
     /// <param name="destination">Span of exactly the type's size to encode into.</param>
     /// <param name="context">Shared budget charged for staged bytes and each composite level.</param>
-    /// <param name="depth">Current nesting depth for the depth limit.</param>
+    /// <param name="depth">Current nesting depth, checked against <see cref="MemoryAccessContext.MaxNestingDepth"/>.</param>
     /// <exception cref="CStructWriteException">The value does not have the declared shape, or a scalar codec rejects it.</exception>
     /// <exception cref="CStructPathException">The type is incomplete and has no storage to write.</exception>
     private void Encode(MemoryTypeDefinition type, object? value, Span<byte> destination, MemoryAccessContext context, int depth)
     {
-        context.CheckDepth(depth);
+        context.CheckNestingDepth(depth);
         context.Charge(null, null, 0);
         if (type.Kind is MemoryTypeKind.Scalar or MemoryTypeKind.Pointer)
         {
@@ -800,13 +811,13 @@ public sealed class MemorySession
                 this.EncodeField(type, field, memberValue, destination, context, depth);
             }
         }
-        else if (type.Kind == MemoryTypeKind.Opaque)
+        else if (type.Kind == MemoryTypeKind.RawBytes)
         {
-            // The mirror of the opaque read path: no field layout survived validation, so the caller must supply
+            // The mirror of the raw-bytes read path: no field layout survived validation, so the caller must supply
             // exactly the declared number of raw bytes rather than a decomposed member value.
             if (value is not byte[] raw || raw.Length != type.Size)
             {
-                throw new CStructWriteException(string.Create(CultureInfo.InvariantCulture, $"Opaque type '{type.Id}' is written from exactly {type.Size} raw bytes."));
+                throw new CStructWriteException(string.Create(CultureInfo.InvariantCulture, $"Raw-bytes type '{type.Id}' is written from exactly {type.Size} raw bytes."));
             }
 
             context.Charge(null, null, raw.Length);
@@ -827,7 +838,7 @@ public sealed class MemorySession
     /// <param name="value">Value for that member.</param>
     /// <param name="destination">Span of the whole containing record.</param>
     /// <param name="context">Shared budget charged for staged bytes.</param>
-    /// <param name="depth">Current nesting depth for the depth limit.</param>
+    /// <param name="depth">Current nesting depth, checked against <see cref="MemoryAccessContext.MaxNestingDepth"/>.</param>
     /// <exception cref="CStructWriteException">The value does not fit the member.</exception>
     private void EncodeField(MemoryTypeDefinition parent, MemoryField field, object? value, Span<byte> destination, MemoryAccessContext context, int depth)
     {

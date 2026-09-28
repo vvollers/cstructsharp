@@ -8,7 +8,7 @@ namespace CStructSharp.Memory.Metadata;
 /// supported but address-only situations, such as a pointer to a function or forward declaration, which do not
 /// prevent importing the graph. An unsupported or inconsistent reachable value layout fails the import rather than
 /// producing a guessed schema, unless <see cref="MetadataImportOptions.BestEffort"/> is set: then the type becomes a
-/// same-sized opaque placeholder and <see cref="Diagnostics"/> names it.
+/// same-sized <see cref="MemoryTypeKind.RawBytes"/> placeholder and <see cref="Diagnostics"/> names it.
 /// </remarks>
 /// <param name="Schema">Compiled schema of the reachable types with explicit placement.</param>
 /// <param name="RootTypeId">ID of the requested root type within <paramref name="Schema"/>.</param>

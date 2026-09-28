@@ -118,11 +118,11 @@ public class MemoryOperationMatrixTests
         Assert.Throws<CStructWriteException>(() => session.Serialize("p", new StoredPointer(0, 4)));
         Assert.Throws<CStructPathException>(() => session.Serialize("x", 0));
         Assert.Throws<CStructPathException>(() => session.Read(region, "x"));
-        Assert.Throws<MemoryAccessException>(() => session.Serialize("a", new byte[] { 1, 2, }, new MemoryAccessContext(maxBytes: 1)));
-        Assert.Throws<MemoryAccessException>(() => session.Read(region, "a", context: new MemoryAccessContext(maxRequests: 2)));
+        Assert.Throws<MemoryAccessException>(() => session.Serialize("a", new byte[] { 1, 2, }, new MemoryAccessContext { MaxTotalBytes = 1, }));
+        Assert.Throws<MemoryAccessException>(() => session.Read(region, "a", context: new MemoryAccessContext { MaxRequests = 2, }));
         Assert.Throws<CStructPathException>(() => session.Resolve(region, "a", "[2]"));
         Assert.Throws<CStructPathException>(() => session.Resolve(region, "p", "value"));
-        Assert.Throws<MemoryAccessException>(() => session.PlanUpdate(region, "p", string.Empty, new StoredPointer(0), new MemoryAccessContext(maxBytes: 1)));
+        Assert.Throws<MemoryAccessException>(() => session.PlanUpdate(region, "p", string.Empty, new StoredPointer(0), new MemoryAccessContext { MaxTotalBytes = 1, }));
         Assert.Throws<ArgumentException>(() => MemoryPatch.Create(region, new byte[7]));
         Assert.Throws<ArgumentException>(() => MemoryPatch.Create(region, new byte[8], expected: new byte[7]));
         MemoryAccessException mismatch = Assert.Throws<MemoryAccessException>(() => MemoryPatch.Create(region, new byte[8], expected: Enumerable.Repeat((byte)1, 8).ToArray()));

@@ -23,7 +23,7 @@ public sealed record MetadataImportOptions
 
     /// <summary>
     ///     Gets whether a type whose recorded placement does not hold up (a member that does not fit its container, an
-    ///     inconsistent bitfield) is demoted to a same-sized <see cref="MemoryTypeKind.Opaque"/> placeholder and noted in
+    ///     inconsistent bitfield) is demoted to a same-sized <see cref="MemoryTypeKind.RawBytes"/> placeholder and noted in
     ///     the result's diagnostics instead of failing the whole import. A torn or partial forensic capture is the case
     ///     it exists for; complete metadata rarely needs it.
     /// </summary>

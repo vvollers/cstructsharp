@@ -700,12 +700,13 @@ namespace CStructSharp.Memory
     }
     public sealed class MemoryAccessContext
     {
-        public MemoryAccessContext(long maxBytes = 67108864, int maxRequests = 100000, int maxDepth = 128, System.Threading.CancellationToken cancellationToken = default) { }
+        public MemoryAccessContext() { }
         public long BytesRequested { get; }
-        public System.Threading.CancellationToken CancellationToken { get; }
-        public long MaxBytes { get; }
-        public int MaxDepth { get; }
-        public int MaxRequests { get; }
+        public System.Threading.CancellationToken CancellationToken { get; init; }
+        public int MaxNestingDepth { get; init; }
+        public int MaxPointerDepth { get; init; }
+        public int MaxRequests { get; init; }
+        public long MaxTotalBytes { get; init; }
         public int Requests { get; }
         public void Charge(string? sourceId, ulong? address, int bytes) { }
     }
@@ -831,7 +832,7 @@ namespace CStructSharp.Memory
         Union = 3,
         Array = 4,
         Incomplete = 5,
-        Opaque = 6,
+        RawBytes = 6,
     }
     public sealed class MemoryWalkResult : System.IEquatable<CStructSharp.Memory.MemoryWalkResult>
     {

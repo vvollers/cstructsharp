@@ -151,7 +151,7 @@ public class MemoryIsfCoverageTests
         Assert.AreEqual(MemoryTypeKind.Struct, metadata.Import("plain").Schema.GetType("isf:user:plain").Kind);
         Assert.Throws<CStructLayoutException>(() => metadata.Import("outer"));
         MetadataImportResult tolerant = metadata.Import("outer", new MetadataImportOptions { BestEffort = true, });
-        Assert.AreEqual(MemoryTypeKind.Opaque, tolerant.Schema.GetType("isf:user:inner").Kind);
+        Assert.AreEqual(MemoryTypeKind.RawBytes, tolerant.Schema.GetType("isf:user:inner").Kind);
         StringAssert.Contains(string.Join('\n', tolerant.Diagnostics), "isf:user:inner");
     }
 }

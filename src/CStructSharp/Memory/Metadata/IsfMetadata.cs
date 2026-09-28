@@ -36,7 +36,7 @@ public sealed class IsfMetadata
     /// <summary>Parses a UTF-8 ISF 6.2.0 document.</summary>
     /// <param name="json">The UTF-8 document.</param>
     /// <param name="isLittleEndian">Byte order of the imported schemas; base types with an explicit order override it.</param>
-    /// <param name="maxBytes">Maximum accepted document length in bytes. JSON nesting is limited to 128 levels.</param>
+    /// <param name="maxBytes">Maximum accepted document length in bytes. JSON nesting is limited to 256 levels, the default layout nesting limit.</param>
     /// <param name="cancellationToken">Checked before parsing.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxBytes"/> is not positive.</exception>
     /// <exception cref="CStructLayoutException">The document exceeds its budget, is not valid JSON, or is not ISF 6.2.0.</exception>
@@ -52,7 +52,7 @@ public sealed class IsfMetadata
         cancellationToken.ThrowIfCancellationRequested();
         try
         {
-            using JsonDocument document = JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = 128, });
+            using JsonDocument document = JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = MemorySchema.MaxDefinitionNestingDepth, });
 
             // A cloned element owns its data, so the document can be released now.
             this.root = document.RootElement.Clone();

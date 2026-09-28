@@ -49,7 +49,7 @@ internal static class Program
         WriteTask(session, imported.RootTypeId, kernel, Kernel + 128, 99, Kernel);
 
         // Step 4: one context bounds the whole walk and the selected reads that follow it.
-        var context = new MemoryAccessContext(maxBytes: 4096, maxRequests: 200);
+        var context = new MemoryAccessContext { MaxTotalBytes = 4096, MaxRequests = 200, };
 
         // A sentinel is a list head whose address marks completion, not an ordinary task.
         MemoryWalkResult tasks = MemoryWalker.SentinelList(new MemoryRegion(kernel, Kernel, 16), (node, budget) =>

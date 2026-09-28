@@ -297,7 +297,7 @@ public class MemoryBtfCoverageTests
         Assert.Throws<CStructLayoutException>(() => metadata.Import(outerId));
 
         MetadataImportResult result = metadata.Import(outerId, new MetadataImportOptions { BestEffort = true, });
-        Assert.AreEqual(MemoryTypeKind.Opaque, result.Schema.GetType("btf:2").Kind);
+        Assert.AreEqual(MemoryTypeKind.RawBytes, result.Schema.GetType("btf:2").Kind);
         StringAssert.Contains(string.Join('\n', result.Diagnostics), "btf:2");
     }
 

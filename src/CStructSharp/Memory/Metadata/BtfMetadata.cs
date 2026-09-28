@@ -37,6 +37,19 @@ using CStructSharp.Diagnostics;
 /// </remarks>
 public sealed class BtfMetadata
 {
+    /// <summary>
+    ///     The most modifier records (typedef, const, volatile, restrict, tags) followed while resolving one type.
+    ///     This is a cycle guard rather than a nesting limit: a modifier cycle never reaches a storage record, and real
+    ///     chains are a handful of records long, so the value only needs to be far above any genuine chain.
+    /// </summary>
+    private const int MaxModifierChainLength = 128;
+
+    /// <summary>
+    ///     The most split tables that may be stacked on a base table. Real split BTF has one level (a module on
+    ///     <c>vmlinux</c>); the bound protects the call stack of string lookups that recurse through the bases.
+    /// </summary>
+    private const int MaxSplitChainLength = 128;
+
     /// <summary>Decodes names; a string that is not valid UTF-8 fails rather than being replaced.</summary>
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
 
@@ -84,7 +97,7 @@ public sealed class BtfMetadata
 
         this.baseMetadata = baseMetadata;
         this.splitDepth = baseMetadata is null ? 0 : baseMetadata.splitDepth + 1;
-        if (this.splitDepth > 128)
+        if (this.splitDepth > MaxSplitChainLength)
         {
             throw new CStructLayoutException("Split BTF exceeds the base-chain depth limit.");
         }
@@ -356,11 +369,11 @@ public sealed class BtfMetadata
     /// kinds the record's size word holds the referenced type ID.</remarks>
     /// <param name="id">Type ID to resolve; zero is <c>void</c>.</param>
     /// <returns>The first non-modifier record reached.</returns>
-    /// <exception cref="CStructLayoutException">The chain names a missing type, or reaches no storage record within 128 records (as a modifier cycle does not).</exception>
+    /// <exception cref="CStructLayoutException">The chain names a missing type, or reaches no storage record within <see cref="MaxModifierChainLength"/> records (as a modifier cycle does not).</exception>
     internal BtfType Resolve(uint id)
     {
         // A cycle never reaches a storage record, so it runs into the hop limit; no visited set is needed.
-        for (int hops = 0; hops < 128; hops++)
+        for (int hops = 0; hops < MaxModifierChainLength; hops++)
         {
             if (id == 0)
             {
@@ -386,12 +399,12 @@ public sealed class BtfMetadata
     /// <summary>Computes a type's byte size from the metadata: pointers use the target width, arrays multiply, and incomplete kinds are zero.</summary>
     /// <param name="id">Type ID whose size is wanted.</param>
     /// <param name="pointerSize">Target pointer width in bytes.</param>
-    /// <param name="depth">Nesting depth for arrays of arrays, bounded to protect the call stack.</param>
+    /// <param name="depth">Nesting depth for arrays of arrays, bounded by <see cref="MemorySchema.MaxDefinitionNestingDepth"/> to protect the call stack.</param>
     /// <returns>The size in bytes.</returns>
     /// <exception cref="CStructLayoutException">The type is not a value type, its reference chain is invalid, or its size is out of range.</exception>
     internal int Size(uint id, int pointerSize, int depth = 0)
     {
-        if (depth > 128)
+        if (depth > MemorySchema.MaxDefinitionNestingDepth)
         {
             throw new CStructLayoutException("BTF size graph exceeds its nesting limit.");
         }

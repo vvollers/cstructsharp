@@ -54,7 +54,7 @@ public class MemoryAcceptanceBoundaryTests
             Assert.Throws<CStructPathException>(() => session.Read(region, "a", "[3]"));
             StringAssert.Contains(Assert.Throws<CStructPathException>(() => session.Read(region, "r", "x")).Message, "Ambiguous");
             StringAssert.Contains(Assert.Throws<CStructPathException>(() => session.Read(region, "r", "absent")).Message, "absent");
-            Assert.Throws<MemoryAccessException>(() => session.Read(region, "r", context: new MemoryAccessContext(maxDepth: 1)));
+            Assert.Throws<MemoryAccessException>(() => session.Read(region, "r", context: new MemoryAccessContext { MaxNestingDepth = 1, }));
         }
     }
 
@@ -167,9 +167,9 @@ public class MemoryAcceptanceBoundaryTests
         Assert.Throws<CStructLayoutException>(() => new MemorySchema([new("i", "i", MemoryTypeKind.Incomplete, 0), new("r", "r", MemoryTypeKind.Struct, 0, [new("x", "i", 0),]),]));
         Assert.Throws<CStructLayoutException>(() => new MemorySchema([word, new("r", "r", MemoryTypeKind.Struct, 0, [new("x", "w", 0),]),]));
         var definitions = new List<MemoryTypeDefinition>();
-        for (int index = 0; index < 130; index++)
+        for (int index = 0; index < 258; index++)
         {
-            definitions.Add(new("a" + index, "a" + index, MemoryTypeKind.Array, 1, elementTypeId: index == 129 ? "w" : "a" + (index + 1), count: 1));
+            definitions.Add(new("a" + index, "a" + index, MemoryTypeKind.Array, 1, elementTypeId: index == 257 ? "w" : "a" + (index + 1), count: 1));
         }
 
         definitions.Add(word);
@@ -179,7 +179,7 @@ public class MemoryAcceptanceBoundaryTests
         Assert.Throws<OperationCanceledException>(() => new MemorySchema([word,], cancellationToken: cancellation.Token));
         var session = new MemorySession(new MemorySchema([word,]));
         var region = new MemoryRegion(new ByteArrayMemorySource("image", new byte[1]), 0, 1);
-        var cancelled = new MemoryAccessContext(cancellationToken: cancellation.Token);
+        var cancelled = new MemoryAccessContext { CancellationToken = cancellation.Token, };
         Assert.Throws<OperationCanceledException>(() => session.Resolve(region, "w", context: cancelled));
         Assert.Throws<OperationCanceledException>(() => session.Serialize("w", (byte)1, cancelled));
         Assert.Throws<CStructLayoutException>(() => new MemorySchema([new("s", "s", MemoryTypeKind.Scalar, 1, scalarType: " "),]));

@@ -33,8 +33,11 @@ Given `struct Node { uint32 value; Node *next; };`, a path has one of these mean
 
 The first `value` after `next` is an accessor that means "follow the pointer"; the second is the member name.
 `address` must end a path. Arrays use zero-based indexes such as `nodes[2].next.value.value`. An empty path selects
-the root. Null pointers, opaque targets (`void *`), and incomplete targets cannot be dereferenced; the stored value
-of such a pointer is still readable and often still useful.
+the root. Null pointers, opaque pointers, and pointers to incomplete targets cannot be dereferenced. An *opaque
+pointer* is a pointer with no target type (its `ElementTypeId` is null), like C's `void *`: it records an address
+but not what lives there. The stored value of such a pointer is still readable and often still useful.
+A path may follow at most `MaxPointerDepth` pointers (64 by default, set on the `MemoryAccessContext`); a path
+with more `.value` steps, such as a generated `next.value.next.value...`, fails with `BudgetExceeded`.
 
 ## Interpret a relative pointer
 

@@ -10,6 +10,15 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Breaking changes
 
+- **Breaking (memory API):** memory limits use the core's names and defaults. `MemoryAccessContext` is configured
+  with init properties instead of constructor arguments: `MaxTotalBytes` (64 MiB, was `maxBytes`), `MaxRequests`
+  (100 000), `MaxNestingDepth` (256, was `maxDepth` 128) for nested values and source layers, and the new
+  `MaxPointerDepth` (64) for `.value` steps, as in `ReadOptions`; a non-positive value throws
+  `ArgumentOutOfRangeException`. Schemas and BTF/ISF imports accept definitions nested up to 256 levels, the core's
+  layout nesting limit (was 128). `MemoryTypeKind.Opaque` is renamed `RawBytes`, so "opaque" only describes a
+  pointer without a target type. Migration: `new MemoryAccessContext(maxBytes: n, maxDepth: d, cancellationToken: t)`
+  becomes `new MemoryAccessContext { MaxTotalBytes = n, MaxNestingDepth = d, CancellationToken = t }`, and
+  `MemoryTypeKind.Opaque` becomes `MemoryTypeKind.RawBytes`.
 - **Breaking (memory API):** memory-analysis failures are `CStructException`s, like the rest of the library.
   `MemoryAccessException` derives from `CStructReadException` (`Code` is `ReadLimitExceeded` for a budget failure,
   `ReadFailed` otherwise) and uses the inherited `Path`; its `SourceId` and `Address` are null when a failure has

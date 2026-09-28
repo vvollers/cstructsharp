@@ -39,7 +39,7 @@ public class MemoryAdapterTests
         source.Write(0, new byte[] { 9, }, new MemoryAccessContext());
         cached.Read(0, bytes, context);
         Assert.AreEqual(9, bytes[0]);
-        Assert.Throws<OperationCanceledException>(() => cached.Read(0, bytes, new MemoryAccessContext(cancellationToken: new CancellationToken(true))));
+        Assert.Throws<OperationCanceledException>(() => cached.Read(0, bytes, new MemoryAccessContext { CancellationToken = new CancellationToken(true), }));
     }
 
     /// <summary>All supported pointer widths round-trip their maximum bits in both byte orders.</summary>

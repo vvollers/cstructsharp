@@ -63,7 +63,7 @@ public class MemoryFailureTests
         Assert.Throws<ArgumentOutOfRangeException>(() => stream.Seek(9, SeekOrigin.Begin));
 
         // Cancellation propagates through the shared callback budget.
-        Assert.Throws<OperationCanceledException>(() => MemoryWalker.Tree(region, (_, _) => [], context: new MemoryAccessContext(cancellationToken: new CancellationToken(true))));
+        Assert.Throws<OperationCanceledException>(() => MemoryWalker.Tree(region, (_, _) => [], context: new MemoryAccessContext { CancellationToken = new CancellationToken(true), }));
     }
 
     /// <summary>
@@ -89,7 +89,7 @@ public class MemoryFailureTests
         Assert.AreSame(region, missing.LogicalRegion);
         StringAssert.StartsWith(missing.Message, "image:0x2 (2 bytes): ");
 
-        MemoryAccessException budget = Assert.Throws<MemoryAccessException>(() => session.Read(region, "u", context: new MemoryAccessContext(maxBytes: 1)));
+        MemoryAccessException budget = Assert.Throws<MemoryAccessException>(() => session.Read(region, "u", context: new MemoryAccessContext { MaxTotalBytes = 1, }));
         Assert.AreEqual(MemoryFailure.BudgetExceeded, budget.Failure);
         Assert.AreEqual(CStructErrorCode.ReadLimitExceeded, budget.Code);
         Assert.AreEqual("image", budget.SourceId);
@@ -106,14 +106,14 @@ public class MemoryFailureTests
         var session = new MemorySession(new MemorySchema([scalar, inner, outer,]));
         var region = new MemoryRegion(new ByteArrayMemorySource("image", new byte[4]), 0, 4);
 
-        MemoryAccessException depth = Assert.Throws<MemoryAccessException>(() => session.Read(region, "outer", context: new MemoryAccessContext(maxDepth: 1)));
+        MemoryAccessException depth = Assert.Throws<MemoryAccessException>(() => session.Read(region, "outer", context: new MemoryAccessContext { MaxNestingDepth = 1, }));
         Assert.AreEqual(MemoryFailure.BudgetExceeded, depth.Failure);
         Assert.AreEqual(CStructErrorCode.ReadLimitExceeded, depth.Code);
         Assert.IsNull(depth.SourceId);
         Assert.IsNull(depth.Address);
         Assert.AreEqual("outer", depth.Path);
 
-        MemoryAccessException output = Assert.Throws<MemoryAccessException>(() => session.Serialize("u", 1U, new MemoryAccessContext(maxBytes: 2)));
+        MemoryAccessException output = Assert.Throws<MemoryAccessException>(() => session.Serialize("u", 1U, new MemoryAccessContext { MaxTotalBytes = 2, }));
         Assert.AreEqual(MemoryFailure.BudgetExceeded, output.Failure);
         Assert.IsNull(output.SourceId);
         Assert.IsNull(output.Address);
@@ -131,7 +131,7 @@ public class MemoryFailureTests
         var session = new MemorySession(new MemorySchema([scalar, record,]));
         var region = new MemoryRegion(new ByteArrayMemorySource("image", new byte[8]), 0, 8);
 
-        MemoryAccessException failure = Assert.Throws<MemoryAccessException>(() => session.PlanUpdate(region, "r", "b", 1U, new MemoryAccessContext(maxBytes: 2)));
+        MemoryAccessException failure = Assert.Throws<MemoryAccessException>(() => session.PlanUpdate(region, "r", "b", 1U, new MemoryAccessContext { MaxTotalBytes = 2, }));
         Assert.AreEqual(MemoryFailure.BudgetExceeded, failure.Failure);
         Assert.AreEqual("image", failure.SourceId);
         Assert.AreEqual(4UL, failure.Address);

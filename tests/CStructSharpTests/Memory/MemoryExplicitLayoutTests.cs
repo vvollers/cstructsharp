@@ -91,8 +91,8 @@ public class MemoryExplicitLayoutTests
         var region = new MemoryRegion(new ByteArrayMemorySource("image", new byte[] { 0x34, 0x12, }), 0, 2);
 
         // Two raw bytes, one byte for "small", and two bytes for "large".
-        Assert.IsInstanceOfType<UnionValue>(session.Read(region, "u", context: new MemoryAccessContext(maxBytes: 5)));
-        Assert.Throws<MemoryAccessException>(() => session.Read(region, "u", context: new MemoryAccessContext(maxBytes: 4)));
+        Assert.IsInstanceOfType<UnionValue>(session.Read(region, "u", context: new MemoryAccessContext { MaxTotalBytes = 5, }));
+        Assert.Throws<MemoryAccessException>(() => session.Read(region, "u", context: new MemoryAccessContext { MaxTotalBytes = 4, }));
     }
 
     /// <summary>Selecting a member encodes it over zeroed storage, both when creating and when replacing a union.</summary>

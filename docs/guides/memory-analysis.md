@@ -53,8 +53,9 @@ about the others, which is what lets the same schema serve a file, a mapped proc
                         the bytes themselves, in their own coordinate system
 ```
 
-A `MemoryAccessContext` travels alongside every call in that stack. It counts requested bytes and requests, checks
-a cancellation token, and stops an operation that would otherwise run forever on corrupt input.
+A `MemoryAccessContext` travels alongside every call in that stack. It counts requested bytes and requests, limits
+how deeply values nest and how many pointers one path follows, checks a cancellation token, and stops an operation
+that would otherwise run forever on corrupt input.
 
 | Term | Meaning in this series |
 | --- | --- |
@@ -87,7 +88,7 @@ var mapped = new MappedMemorySource("kernel", new[] {
     new MemoryMapping(address + 2, new MemoryRegion(image, 4, 2)),
 });
 var region = new MemoryRegion(mapped, address, 4);
-var budget = new MemoryAccessContext(maxBytes: 1024, maxRequests: 100);
+var budget = new MemoryAccessContext { MaxTotalBytes = 1024, MaxRequests = 100 };
 MemoryInspection result = session.Inspect(region, "Record", "value", budget);
 // result.Value is 0x12345678U. result.BackingRegions lists image offsets 0 and 4, two bytes each.
 ```

@@ -95,7 +95,7 @@ public static class PortableMemorySchema
 
         /// <summary>Refreshes one alias after refreshing whatever it points to, so chains of typedefs resolve in the right order.</summary>
         /// <param name="id">Typedef ID to refresh.</param>
-        /// <param name="depth">Chain depth, bounded to reject cyclic alias graphs.</param>
+        /// <param name="depth">Chain depth, bounded by <see cref="MemorySchema.MaxDefinitionNestingDepth"/> to reject cyclic alias graphs.</param>
         private void CompleteAlias(string id, int depth)
         {
             if (!this.aliases.TryGetValue(id, out string? targetId))
@@ -103,7 +103,7 @@ public static class PortableMemorySchema
                 return;
             }
 
-            if (depth > 128)
+            if (depth > MemorySchema.MaxDefinitionNestingDepth)
             {
                 throw new CStructLayoutException("Alias graph exceeds its depth limit.");
             }
@@ -120,7 +120,7 @@ public static class PortableMemorySchema
         /// compiled so the core reports the codec's size instead of the adapter guessing a host width.</remarks>
         /// <param name="id">Type name in the layout, which becomes the descriptor ID.</param>
         /// <param name="knownSize">Size already reported by introspection, or null to probe.</param>
-        /// <param name="depth">Import depth, bounded to protect the call stack.</param>
+        /// <param name="depth">Import depth, bounded by <see cref="MemorySchema.MaxDefinitionNestingDepth"/> to protect the call stack.</param>
         internal void Add(string id, int? knownSize, int depth)
         {
             if (this.Types.ContainsKey(id))
@@ -128,7 +128,7 @@ public static class PortableMemorySchema
                 return;
             }
 
-            if (depth > 128)
+            if (depth > MemorySchema.MaxDefinitionNestingDepth)
             {
                 throw new CStructLayoutException("Portable metadata exceeds the depth limit.");
             }

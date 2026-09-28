@@ -135,8 +135,8 @@ public class MemoryAnalysisTests
         var region = new MemoryRegion(source, 0, 24);
         Assert.Throws<ArgumentOutOfRangeException>(() => new MemoryRegion(source, ulong.MaxValue, 2));
         Assert.Throws<ArgumentException>(() => new MappedMemorySource("bad", [new(1, region), new(3, region),]));
-        Assert.Throws<MemoryAccessException>(() => session.Read(region, "node", "pid", new MemoryAccessContext(maxBytes: 3)));
-        Assert.Throws<OperationCanceledException>(() => session.Read(region, "node", "pid", new MemoryAccessContext(cancellationToken: new CancellationToken(true))));
+        Assert.Throws<MemoryAccessException>(() => session.Read(region, "node", "pid", new MemoryAccessContext { MaxTotalBytes = 3, }));
+        Assert.Throws<OperationCanceledException>(() => session.Read(region, "node", "pid", new MemoryAccessContext { CancellationToken = new CancellationToken(true), }));
         Assert.Throws<CStructLayoutException>(() => new MemorySchema([new("bad", "bad", MemoryTypeKind.Struct, 1, fields: [new("self", "bad", 0),]),]));
     }
 

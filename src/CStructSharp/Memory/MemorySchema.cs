@@ -26,6 +26,14 @@ using CStructSharp.Diagnostics;
 /// </remarks>
 public sealed class MemorySchema
 {
+    /// <summary>
+    ///     The greatest nesting depth accepted in a type-definition graph: by-value members and array elements, typedef
+    ///     chains, and imported metadata documents. It equals the core's default
+    ///     <see cref="CStructCompilationOptions.MaxLayoutNestingDepth"/> (256), so a memory schema accepts the same
+    ///     nesting as a compiled layout. The bound exists to protect the call stack of the recursive checks.
+    /// </summary>
+    internal const int MaxDefinitionNestingDepth = 256;
+
     private readonly Dictionary<string, CStruct> scalarLayouts = new(StringComparer.Ordinal);
     private readonly Dictionary<(string Type, string Field), CStruct> bitLayouts = new();
     private readonly Dictionary<string, string> compiledNames = new(StringComparer.Ordinal);
@@ -38,7 +46,7 @@ public sealed class MemorySchema
     /// <param name="maxFields">Maximum total number of fields across all definitions.</param>
     /// <param name="pointerSize">Target pointer width in bytes; it describes the analyzed image, not the analyzing process.</param>
     /// <param name="cancellationToken">Checked between definitions during validation and compilation.</param>
-    /// <param name="bestEffort">When true, a definition that fails its own validation is demoted to a same-sized <see cref="MemoryTypeKind.Opaque"/> placeholder and noted in <see cref="Diagnostics"/>, instead of the whole schema failing; when false (the default), any validation failure throws.</param>
+    /// <param name="bestEffort">When true, a definition that fails its own validation is demoted to a same-sized <see cref="MemoryTypeKind.RawBytes"/> placeholder and noted in <see cref="Diagnostics"/>, instead of the whole schema failing; when false (the default), any validation failure throws.</param>
     /// <exception cref="ArgumentNullException"><paramref name="types"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxTypes"/> or <paramref name="maxFields"/> is not positive, or <paramref name="pointerSize"/> is not 1, 2, 4, or 8.</exception>
     /// <exception cref="CStructLayoutException">
@@ -82,7 +90,7 @@ public sealed class MemorySchema
         this.Types = new ReadOnlyDictionary<string, MemoryTypeDefinition>(definitions);
 
         // Pass 2: validate each definition on its own and compile its scalar and bit-slice codecs. In best-effort
-        // mode, a definition that fails is demoted in place to a same-sized Opaque placeholder rather than
+        // mode, a definition that fails is demoted in place to a same-sized RawBytes placeholder rather than
         // aborting the whole schema: real-world metadata, especially a torn or partial forensic capture, can be
         // locally corrupt while the rest of the graph remains perfectly readable. The placeholder keeps the
         // original size, which is all most references check; the one exception is a bitfield, whose storage must
@@ -115,7 +123,7 @@ public sealed class MemorySchema
 
                 foreach (MemoryField field in type.Fields)
                 {
-                    if (field.BitWidth is not null && definitions.TryGetValue(field.TypeId, out MemoryTypeDefinition? storage) && storage.Kind == MemoryTypeKind.Opaque)
+                    if (field.BitWidth is not null && definitions.TryGetValue(field.TypeId, out MemoryTypeDefinition? storage) && storage.Kind == MemoryTypeKind.RawBytes)
                     {
                         Demote(definitions, type, DemotedStorageMessage(storage.Id), diagnostics);
                         changed = true;
@@ -128,7 +136,7 @@ public sealed class MemorySchema
         // A demoted definition may have registered bit-slice codecs before it failed; they no longer describe it.
         foreach ((string Type, string Field) key in new List<(string Type, string Field)>(this.bitLayouts.Keys))
         {
-            if (definitions[key.Type].Kind == MemoryTypeKind.Opaque)
+            if (definitions[key.Type].Kind == MemoryTypeKind.RawBytes)
             {
                 this.bitLayouts.Remove(key);
             }
@@ -162,7 +170,7 @@ public sealed class MemorySchema
     /// <summary>Gets the generated Portable storage views. Their names are placement labels; semantic names live in <see cref="Types"/>.</summary>
     internal CStruct CompiledLayout { get; }
 
-    /// <summary>Gets one note per definition that best-effort validation demoted to <see cref="MemoryTypeKind.Opaque"/>, in ordinal order; empty unless the schema was constructed with <c>bestEffort: true</c>.</summary>
+    /// <summary>Gets one note per definition that best-effort validation demoted to <see cref="MemoryTypeKind.RawBytes"/>, in ordinal order; empty unless the schema was constructed with <c>bestEffort: true</c>.</summary>
     public IReadOnlyList<string> Diagnostics { get; }
 
     /// <summary>Gets the core compilation options shared by every codec the schema compiles.</summary>
@@ -229,15 +237,15 @@ public sealed class MemorySchema
     /// <summary>The demotion reason for a struct or union whose bitfield storage type <paramref name="storageId"/> was demoted.</summary>
     private static string DemotedStorageMessage(string storageId) => $"its bitfield storage type '{storageId}' was demoted.";
 
-    /// <summary>Replaces a definition with a same-sized <see cref="MemoryTypeKind.Opaque"/> placeholder and records why.</summary>
+    /// <summary>Replaces a definition with a same-sized <see cref="MemoryTypeKind.RawBytes"/> placeholder and records why.</summary>
     /// <param name="definitions">The schema's definitions, updated in place.</param>
     /// <param name="type">The definition to demote.</param>
     /// <param name="reason">Why it was demoted.</param>
     /// <param name="diagnostics">The notes that become <see cref="Diagnostics"/>.</param>
     private static void Demote(Dictionary<string, MemoryTypeDefinition> definitions, MemoryTypeDefinition type, string reason, List<string> diagnostics)
     {
-        definitions[type.Id] = new MemoryTypeDefinition(type.Id, type.Name, MemoryTypeKind.Opaque, type.Size, provenance: type.Provenance);
-        diagnostics.Add($"{type.Id}: demoted to a {type.Size}-byte opaque placeholder - {reason}");
+        definitions[type.Id] = new MemoryTypeDefinition(type.Id, type.Name, MemoryTypeKind.RawBytes, type.Size, provenance: type.Provenance);
+        diagnostics.Add($"{type.Id}: demoted to a {type.Size}-byte raw-bytes placeholder - {reason}");
     }
 
     /// <summary>Looks up a type that a definition refers to; a reference to an ID the schema lacks is a definition error.</summary>
@@ -325,9 +333,9 @@ public sealed class MemorySchema
         {
             throw new CStructLayoutException($"Incomplete type '{type.Id}' has no storage.");
         }
-        else if (type.Kind == MemoryTypeKind.Opaque && type.Fields.Count != 0)
+        else if (type.Kind == MemoryTypeKind.RawBytes && type.Fields.Count != 0)
         {
-            throw new CStructLayoutException($"Opaque type '{type.Id}' has no members.");
+            throw new CStructLayoutException($"Raw-bytes type '{type.Id}' has no members.");
         }
 
         var names = new HashSet<string>(StringComparer.Ordinal);
@@ -349,7 +357,7 @@ public sealed class MemorySchema
             long length = (long)member.Size * 8;
             if (field.BitWidth is int width)
             {
-                if (member.Kind == MemoryTypeKind.Opaque)
+                if (member.Kind == MemoryTypeKind.RawBytes)
                 {
                     throw new CStructLayoutException(DemotedStorageMessage(member.Id));
                 }
@@ -393,7 +401,7 @@ public sealed class MemorySchema
                 intervals.Add((start, checked(start + length)));
             }
 
-            if (field.Promoted && member.Kind is not (MemoryTypeKind.Struct or MemoryTypeKind.Union or MemoryTypeKind.Opaque))
+            if (field.Promoted && member.Kind is not (MemoryTypeKind.Struct or MemoryTypeKind.Union or MemoryTypeKind.RawBytes))
             {
                 throw new CStructLayoutException($"Only composite members can be promoted: '{type.Id}.{field.Name}'.");
             }
@@ -426,7 +434,7 @@ public sealed class MemorySchema
     /// <param name="visiting">Types on the current recursion path.</param>
     /// <param name="visited">Types already proven free of by-value cycles.</param>
     /// <param name="depth">Current recursion depth, bounded to protect the call stack.</param>
-    /// <exception cref="CStructLayoutException">A type contains itself by value, or the by-value graph is deeper than 128 levels.</exception>
+    /// <exception cref="CStructLayoutException">A type contains itself by value, or the by-value graph is deeper than <see cref="MaxDefinitionNestingDepth"/> levels.</exception>
     private void CheckRecursion(MemoryTypeDefinition type, HashSet<string> visiting, HashSet<string> visited, int depth)
     {
         if (visited.Contains(type.Id))
@@ -434,7 +442,7 @@ public sealed class MemorySchema
             return;
         }
 
-        if (depth > 128 || !visiting.Add(type.Id))
+        if (depth > MaxDefinitionNestingDepth || !visiting.Add(type.Id))
         {
             throw new CStructLayoutException($"By-value recursion or excessive metadata depth at '{type.Id}'.");
         }

@@ -153,10 +153,10 @@ public sealed class MemoryPatch
     /// <param name="region">Region to resolve.</param>
     /// <param name="output">Receives the terminal fragments in order.</param>
     /// <param name="context">Shared budget charged for each mapping lookup and depth level.</param>
-    /// <param name="depth">Current layer depth, bounded by the context.</param>
+    /// <param name="depth">Current layer depth, checked against <see cref="MemoryAccessContext.MaxNestingDepth"/>.</param>
     internal static void Flatten(MemoryRegion region, List<MemoryRegion> output, MemoryAccessContext context, int depth)
     {
-        context.CheckDepth(depth);
+        context.CheckNestingDepth(depth);
         if (region.Length > int.MaxValue)
         {
             throw new ArgumentOutOfRangeException(nameof(region));

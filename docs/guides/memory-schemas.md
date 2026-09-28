@@ -56,11 +56,17 @@ A schema is a graph of `MemoryTypeDefinition` nodes connected by IDs. Each defin
 | Kind | Meaning | Extra information carried |
 | --- | --- | --- |
 | `Scalar` | An integer, float, boolean, or enum decoded by a core codec | `ScalarType` names the codec, for example `"uint32"` |
-| `Pointer` | An unsigned stored address | `Size` is the pointer width; `ElementTypeId` names the target, or null for opaque |
+| `Pointer` | An unsigned stored address | `Size` is the pointer width; `ElementTypeId` names the target, or is null for an opaque pointer |
 | `Struct` | Members at explicit offsets that must not overlap | `Fields` |
 | `Union` | Members at explicit offsets that deliberately overlap | `Fields` |
 | `Array` | A fixed number of equally sized elements | `ElementTypeId` and `Count`; `Size` is the total byte length |
 | `Incomplete` | A type with identity but no readable representation, such as a forward declaration | Nothing; size is zero |
+| `RawBytes` | A type whose size is known but whose members are not usable; read and written as a `byte[]` | `Size` only; no fields |
+
+An *opaque pointer* is a `Pointer` whose `ElementTypeId` is null. Like C's `void *`, it stores an address but says
+nothing about what lives there, so a session reads the address but cannot follow it. A `RawBytes` type is a
+different thing: it is a value stored in place whose size is trustworthy but whose members are not. Best-effort
+validation, described below, creates `RawBytes` placeholders.
 
 Every definition has an `Id` and a `Name`, and they serve different purposes. `Id` is the reference key used by
 fields and by session calls. `Name` is a display string. Native metadata often contains several distinct types with
@@ -77,7 +83,8 @@ The `MemorySchema` constructor validates the whole graph before it returns:
 - every member must fit inside its container, and an array's size must equal element size times count;
 - struct members must not overlap (two bit slices may share one storage unit as long as their bits are disjoint);
 - a type may not contain itself by value, directly or through other types, because that would need infinite
-  storage. A pointer back to the same type is fine: the pointer has a finite size.
+  storage. A pointer back to the same type is fine: the pointer has a finite size;
+- types nested by value may be at most 256 levels deep, the core's default layout nesting limit.
 
 An array's element may have size zero only when that makes the whole array zero bytes wide - count times zero can
 only ever equal a declared array size of zero. This is a real case, not just an allowed edge: native metadata
@@ -135,7 +142,7 @@ Use `using CStructSharp.Memory.Metadata;` and `using System.Text;` for the impor
 Take `RootTypeId` from the result rather than guessing the importer's ID spelling. Review `Diagnostics` alongside
 `Schema.Types` when deciding which imported types can be read by value; a successful import can retain address-only
 types as pointer targets without making those targets readable, and a best-effort import lists the types it replaced
-with opaque placeholders.
+with raw-bytes placeholders.
 
 `new IsfMetadata(json)` parses the document once; `Import(rootName, options)` then compiles one root and
 everything it references, so several roots can share one parsed document. ISF import requires format `6.2.0`. It
@@ -149,11 +156,13 @@ Both importers take the same `MetadataImportOptions`:
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `PointerSize` | 8 | The analyzed image's pointer width in bytes. Set 4 for a 32-bit capture, even on a 64-bit host. |
-| `BestEffort` | false | Demote a type that fails validation to an opaque placeholder instead of failing (see below). |
+| `BestEffort` | false | Demote a type that fails validation to a `RawBytes` placeholder instead of failing (see below). |
 | `MaxTypes` | 100,000 | The most type descriptors one import may create, bitfield storage and generated types included. |
 
-An import walks the type graph with an explicit work list rather than recursion, so a long chain of pointers or
-nested members does not run into a depth limit.
+An import walks the type graph with an explicit work list rather than recursion, so a long chain of pointers does
+not run into a depth limit. Types nested by value (a struct inside an array inside a struct, and so on) may be 256
+levels deep, the same default limit that applies to a compiled layout; a deeper graph fails with
+`CStructLayoutException`. ISF documents are likewise limited to 256 levels of JSON nesting.
 
 ## Import BTF and split tables
 
@@ -226,7 +235,7 @@ everything.
 
 Passing `bestEffort: true` to `MemorySchema`'s constructor, or `BestEffort = true` in the `MetadataImportOptions`
 of a BTF or ISF import, changes this: a type that
-fails validation is demoted in place to a same-sized `MemoryTypeKind.Opaque` placeholder instead, and the
+fails validation is demoted in place to a same-sized `MemoryTypeKind.RawBytes` placeholder instead, and the
 substitution is recorded as a diagnostic rather than thrown. A placeholder keeps the type's real, checked size, so
 every other definition that embeds it - by pointer or directly by value - still places its own members correctly;
 only that one type's own contents become unreadable, as raw bytes rather than a decoded value. This is squarely
@@ -234,7 +243,7 @@ aimed at forensic memory captures, which are often torn or partial - one subsyst
 corrupt while the rest of a large graph remains perfectly readable - rather than at a healthy, complete kernel,
 which should not need it.
 
-[!code-csharp[Best-effort import demotes a broken member to opaque](../examples/memory-analysis/MemoryTutorialExamples.cs#memory-best-effort)]
+[!code-csharp[Best-effort import demotes a broken member to raw bytes](../examples/memory-analysis/MemoryTutorialExamples.cs#memory-best-effort)]
 
 ## Semantic metadata versus compiled storage views
 

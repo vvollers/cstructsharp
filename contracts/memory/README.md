@@ -10,6 +10,12 @@ targets explicitly with `.value`. Reads return the core value types: `StructValu
 storage (`UnionValue.FromRaw`, or a value that was read) or one selected member (`UnionValue.FromMember`); a
 dictionary of overlapping members is not an unambiguous creation value.
 
+The `defaults` are the `MemoryAccessContext` limits (`maxTotalBytes`, `maxRequests`, `maxNestingDepth`,
+`maxPointerDepth`; nesting and pointer depth match the core `ReadOptions`) and the cache, overlay, and importer
+budgets. Definition graphs may nest 256 levels, the core's default layout nesting limit. A `RawBytes` type has a
+known size but no usable members and is read and written as a raw `byte[]`; an opaque pointer is a `Pointer`
+with no target type (like C's `void *`) and cannot be followed.
+
 Failures follow `failureRules`: memory analysis uses the core `CStructException` hierarchy, so a memory access
 failure is a `CStructReadException`, and paths, values, and definitions fail with `CStructPathException`,
 `CStructWriteException`, and `CStructLayoutException`.

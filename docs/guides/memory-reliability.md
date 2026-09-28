@@ -13,13 +13,23 @@ contract you must honor when you write a source of your own.
 
 ## Budget an operation, not each individual read
 
-A `MemoryAccessContext` is a small mutable object with three positive limits and a cancellation token:
+A `MemoryAccessContext` is a small object that counts work against four limits and carries a cancellation token.
+Set the limits you want to change in an object initializer, such as
+`new MemoryAccessContext { MaxTotalBytes = 4096, MaxRequests = 200 }`; the others keep their defaults. Every limit
+must be positive, so setting zero or a negative number throws `ArgumentOutOfRangeException` immediately.
 
-| Limit | Default | What it bounds |
+| Property | Default | What it bounds |
 | --- | --- | --- |
-| `maxBytes` | 64 MiB | Bytes requested from leaf sources plus bytes staged for output |
-| `maxRequests` | 100,000 | Every unit of work: leaf reads, mapping lookups, path steps, traversal steps |
-| `maxDepth` | 128 | Nesting of composites, pointer path steps, and stacked source layers |
+| `MaxTotalBytes` | 64 MiB | Bytes requested from leaf sources plus bytes staged for output |
+| `MaxRequests` | 100,000 | Every unit of work: leaf reads, mapping lookups, path steps, traversal steps |
+| `MaxNestingDepth` | 256 | Nesting of composite values (a struct inside a struct inside an array...) and stacked source layers |
+| `MaxPointerDepth` | 64 | Pointer `.value` steps followed by one path, such as `next.value.next.value` |
+| `CancellationToken` | none | Checked before each charged request |
+
+The nesting and pointer defaults are the same as the core parser's `ReadOptions.MaxNestingDepth` and
+`ReadOptions.MaxPointerDepth`. Nesting counts value levels inside one pointer target and starts again at each
+target, so a long pointer chain is limited by `MaxPointerDepth`, not by `MaxNestingDepth`. A budget exceeded for
+any of the four limits fails with `MemoryFailure.BudgetExceeded`.
 
 The important idea is *one context per logical operation*. If a list walk reads twenty links through three mapping
 layers, all of that work should count against one budget. Pass the same instance through callbacks and adapters;
@@ -31,7 +41,7 @@ twice charges it twice. A mapping lookup or traversal step charges one request w
 the bytes it requested. Serialization and patch staging also charge work. A cache hit avoids the backing-byte charge
 but still costs a request, because cheap operations in an unbounded loop are still an unbounded loop.
 
-This is why `maxBytes: 4` is not enough to plan and commit a four-byte patch: planning reads the expected bytes,
+This is why `MaxTotalBytes = 4` is not enough to plan and commit a four-byte patch: planning reads the expected bytes,
 commit validates them again, and the write itself is charged. Choose limits from the size of the task, then treat
 `BudgetExceeded` as "the operation was incomplete", never as "the result was empty".
 

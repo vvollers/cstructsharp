@@ -147,7 +147,7 @@ public class MemorySourceContractTests
         Assert.AreEqual(0, missingList.Nodes.Count);
         Assert.AreSame(failure, missingList.Failure);
         Assert.Throws<ArgumentOutOfRangeException>(() => MemoryWalker.Tree(root, (_, _) => [], maxNodes: 0));
-        Assert.Throws<MemoryAccessException>(() => MemoryWalker.Tree(root, (_, _) => [root, root, root,], context: new MemoryAccessContext(maxRequests: 2)));
+        Assert.Throws<MemoryAccessException>(() => MemoryWalker.Tree(root, (_, _) => [root, root, root,], context: new MemoryAccessContext { MaxRequests = 2, }));
     }
 
     /// <summary>Configurable positional source for short reads and generation races; owns four deterministic bytes.</summary>

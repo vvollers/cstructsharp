@@ -160,7 +160,7 @@ internal static class MemoryTutorialExamples
         #endregion
     }
 
-    /// <summary>Demotes a self-inconsistent by-value member to an opaque placeholder instead of failing the whole schema.</summary>
+    /// <summary>Demotes a self-inconsistent by-value member to a raw-bytes placeholder instead of failing the whole schema.</summary>
     private static void BestEffortImport()
     {
         #region memory-best-effort
@@ -194,16 +194,16 @@ internal static class MemoryTutorialExamples
 
         Require(strictFailed, "Strict import fails outright");
 
-        // With bestEffort, "inner" is demoted to a same-sized opaque placeholder instead, so "outer" still imports.
+        // With bestEffort, "inner" is demoted to a same-sized raw-bytes placeholder instead, so "outer" still imports.
         var schema = new MemorySchema(types, bestEffort: true);
-        Require(schema.GetType("inner").Kind == MemoryTypeKind.Opaque, "The broken member becomes opaque");
+        Require(schema.GetType("inner").Kind == MemoryTypeKind.RawBytes, "The broken member becomes raw bytes");
         Require(schema.Diagnostics.Count == 1, "The demotion is reported as a diagnostic");
 
-        // An opaque value reads and writes as raw bytes - the size is trustworthy, its layout is not.
+        // A raw-bytes value reads and writes as a byte[] - the size is trustworthy, its layout is not.
         var session = new MemorySession(schema);
         var image = new ByteArrayMemorySource("capture", new byte[] { 42 });
         var read = (StructValue)session.Read(new MemoryRegion(image, 0, 1), "outer")!;
-        Require(((byte[])read["field"]!)[0] == 42, "Opaque member reads as its raw byte");
+        Require(((byte[])read["field"]!)[0] == 42, "Raw-bytes member reads as its raw byte");
         #endregion
     }
 
@@ -258,7 +258,7 @@ internal static class MemoryTutorialExamples
             source.Write(address, bytes, new MemoryAccessContext());
         }
 
-        var budget = new MemoryAccessContext(maxBytes: 256, maxRequests: 100);
+        var budget = new MemoryAccessContext { MaxTotalBytes = 256, MaxRequests = 100, };
 
         // The callback reads one link and returns the next node's region. It must pass the walk's context
         // to the session so every link read spends the same budget; a fresh context would bypass the limit.
@@ -344,8 +344,8 @@ internal static class MemoryTutorialExamples
         var region = new MemoryRegion(cache, 0, 4);
 
         // Two separate contexts make the cost of each read visible: the first misses, the second hits.
-        var cold = new MemoryAccessContext(maxBytes: 16, maxRequests: 20);
-        var warm = new MemoryAccessContext(maxBytes: 16, maxRequests: 20);
+        var cold = new MemoryAccessContext { MaxTotalBytes = 16, MaxRequests = 20, };
+        var warm = new MemoryAccessContext { MaxTotalBytes = 16, MaxRequests = 20, };
         Require((uint)session.Read(region, "Record", "value", cold)! == 42, "Cold result");
         Require((uint)session.Read(region, "Record", "value", warm)! == 42, "Warm result");
         Require(cold.BytesRequested == 4 && warm.BytesRequested == 0, "Backing bytes avoided on hit");
@@ -375,7 +375,7 @@ internal static class MemoryTutorialExamples
         cancellation.Cancel();
         try
         {
-            session.Read(region, "Record", "value", new MemoryAccessContext(cancellationToken: cancellation.Token));
+            session.Read(region, "Record", "value", new MemoryAccessContext { CancellationToken = cancellation.Token, });
             throw new InvalidOperationException("Expected cancellation.");
         }
         catch (OperationCanceledException)

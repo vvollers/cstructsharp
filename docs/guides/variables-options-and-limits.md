@@ -78,6 +78,10 @@ Default limits are intentionally finite:
 - read pointer depth: 64; and
 - read or write nesting depth: 256.
 
+The memory-analysis API budgets its operations with `MemoryAccessContext` instead of these option records. It uses
+the same defaults for total bytes (64 MiB), pointer depth (64), and nesting depth (256); see
+[memory budgets](memory-reliability.md#budget-an-operation-not-each-individual-read).
+
 `MaxTotalBytesRead` counts every byte read from the stream, including rereads. It is not a limit on the input's
 file size. Debug parsing spends the same budget as a plain parse: a packed header with a `uint16` and a `uint32`
 needs a budget of 6 either way, because debug records carry byte ranges rather than copies. Layouts with unions,

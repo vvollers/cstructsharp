@@ -12,10 +12,10 @@ public class MemoryValidationTests
     [TestMethod]
     public void Budgets_UseInclusiveLimitsAndStructuredErrors()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new MemoryAccessContext(maxBytes: 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new MemoryAccessContext(maxRequests: 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new MemoryAccessContext(maxDepth: 0));
-        var context = new MemoryAccessContext(maxBytes: 5, maxRequests: 2, maxDepth: 1);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new MemoryAccessContext { MaxTotalBytes = 0, });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new MemoryAccessContext { MaxRequests = 0, });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new MemoryAccessContext { MaxNestingDepth = 0, });
+        var context = new MemoryAccessContext { MaxTotalBytes = 5, MaxRequests = 2, MaxNestingDepth = 1, };
         Assert.Throws<ArgumentOutOfRangeException>(() => context.Charge("s", 1, -1));
         context.Charge("s", 9, 2);
         context.Charge("s", 9, 3);
@@ -27,7 +27,7 @@ public class MemoryValidationTests
         Assert.AreEqual(9UL, failure.Address);
         Assert.AreEqual(0, failure.Length);
         StringAssert.Contains(failure.Message, "budget");
-        var byteLimit = new MemoryAccessContext(maxBytes: 3);
+        var byteLimit = new MemoryAccessContext { MaxTotalBytes = 3, };
         byteLimit.Charge("s", 0, 2);
         Assert.Throws<MemoryAccessException>(() => byteLimit.Charge("s", 0, 2));
     }
@@ -39,7 +39,7 @@ public class MemoryValidationTests
         var source = new ByteArrayMemorySource("image", new byte[] { 7, });
         var one = new MappedMemorySource("one", [new(1, new MemoryRegion(source, 0, 1)),]);
         var two = new MappedMemorySource("two", [new(2, new MemoryRegion(one, 1, 1)),]);
-        var context = new MemoryAccessContext(maxDepth: 1);
+        var context = new MemoryAccessContext { MaxNestingDepth = 1, };
         byte[] buffer = new byte[1];
         MemoryAccessException failure = Assert.Throws<MemoryAccessException>(() => two.Read(2, buffer, context));
         Assert.AreEqual(MemoryFailure.BudgetExceeded, failure.Failure);
@@ -92,7 +92,7 @@ public class MemoryValidationTests
             new("bad", "bad", MemoryTypeKind.Array, 2, elementTypeId: "u", count: 3),
             new("bad", "bad", MemoryTypeKind.Incomplete, 1),
             new("bad", "bad", MemoryTypeKind.Incomplete, 0, [new("x", "u", 0),]),
-            new("bad", "bad", MemoryTypeKind.Opaque, 4, [new("x", "u", 0),]),
+            new("bad", "bad", MemoryTypeKind.RawBytes, 4, [new("x", "u", 0),]),
             new("bad", "bad", MemoryTypeKind.Struct, 1, [new("x", "u", 1),]),
             new("bad", "bad", MemoryTypeKind.Struct, 1, [new("x", "u", 2),]),
             new("bad", "bad", MemoryTypeKind.Struct, 1, [new(string.Empty, "u", 0),]),
@@ -142,14 +142,14 @@ public class MemoryValidationTests
 
     /// <summary>
     /// Best-effort validation demotes a self-inconsistent by-value member to a same-sized
-    /// <see cref="MemoryTypeKind.Opaque"/> placeholder, noted in <see cref="MemorySchema.Diagnostics"/>, instead
+    /// <see cref="MemoryTypeKind.RawBytes"/> placeholder, noted in <see cref="MemorySchema.Diagnostics"/>, instead
     /// of failing the whole schema - "outer" is perfectly consistent on its own terms, it just happens to embed
     /// "inner", whose one member is placed past inner's own declared extent. Strict validation (the default)
     /// still rejects the identical metadata outright, and a session reads, inspects, plans and writes the placeholder as raw bytes
     /// rather than a decoded member.
     /// </summary>
     [TestMethod]
-    public void BestEffort_DemotesASelfInconsistentByValueMemberToOpaque()
+    public void BestEffort_DemotesASelfInconsistentByValueMemberToRawBytes()
     {
         var scalar = new MemoryTypeDefinition("u", "byte", MemoryTypeKind.Scalar, 1, scalarType: "uint8");
         var inner = new MemoryTypeDefinition("inner", "inner", MemoryTypeKind.Struct, 1, [new("x", "u", 4),]);
@@ -158,7 +158,7 @@ public class MemoryValidationTests
         Assert.Throws<CStructLayoutException>(() => new MemorySchema([scalar, inner, outer,]));
 
         var schema = new MemorySchema([scalar, inner, outer,], bestEffort: true);
-        Assert.AreEqual(MemoryTypeKind.Opaque, schema.GetType("inner").Kind);
+        Assert.AreEqual(MemoryTypeKind.RawBytes, schema.GetType("inner").Kind);
         Assert.AreEqual(1, schema.GetType("inner").Size);
         Assert.AreEqual(0, schema.GetType("inner").Fields.Count);
         Assert.AreEqual(1, schema.Diagnostics.Count);
@@ -189,8 +189,8 @@ public class MemoryValidationTests
         foreach (MemoryTypeDefinition[] order in new[] { new[] { scalar, holder, }, new[] { holder, scalar, }, })
         {
             var schema = new MemorySchema(order, bestEffort: true);
-            Assert.AreEqual(MemoryTypeKind.Opaque, schema.GetType("bad").Kind);
-            Assert.AreEqual(MemoryTypeKind.Opaque, schema.GetType("holder").Kind);
+            Assert.AreEqual(MemoryTypeKind.RawBytes, schema.GetType("bad").Kind);
+            Assert.AreEqual(MemoryTypeKind.RawBytes, schema.GetType("holder").Kind);
             Assert.HasCount(2, schema.Diagnostics);
             StringAssert.Contains(schema.Diagnostics[1], "its bitfield storage type 'bad' was demoted");
         }
@@ -244,5 +244,136 @@ public class MemoryValidationTests
         Assert.Throws<ObjectDisposedException>(() => view.Position = 0);
         Assert.IsTrue(file.CanRead);
         Assert.Throws<MemoryAccessException>(() => source.Read(ulong.MaxValue, bytes, new MemoryAccessContext()));
+    }
+
+    /// <summary>
+    ///     A default budget allows 64 MiB, 100 000 requests, nesting depth 256, and pointer depth 64; the nesting and
+    ///     pointer defaults match the core <see cref="ReadOptions"/>.
+    /// </summary>
+    [TestMethod]
+    public void Context_DefaultsMatchTheCoreReadLimits()
+    {
+        var context = new MemoryAccessContext();
+        Assert.AreEqual(64L * 1024 * 1024, context.MaxTotalBytes);
+        Assert.AreEqual(100_000, context.MaxRequests);
+        Assert.AreEqual(256, context.MaxNestingDepth);
+        Assert.AreEqual(64, context.MaxPointerDepth);
+        Assert.AreEqual(new ReadOptions().MaxNestingDepth, context.MaxNestingDepth);
+        Assert.AreEqual(new ReadOptions().MaxPointerDepth, context.MaxPointerDepth);
+        Assert.IsFalse(context.CancellationToken.CanBeCanceled);
+    }
+
+    /// <summary>Every limit's init accessor rejects zero and negative values before any work is done.</summary>
+    /// <param name="value">The non-positive value assigned to each limit.</param>
+    [TestMethod]
+    [DataRow(0)]
+    [DataRow(-1)]
+    public void Context_RejectsNonPositiveLimitsFromItsInitializers(int value)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new MemoryAccessContext { MaxTotalBytes = value, });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new MemoryAccessContext { MaxRequests = value, });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new MemoryAccessContext { MaxNestingDepth = value, });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new MemoryAccessContext { MaxPointerDepth = value, });
+    }
+
+    /// <summary>
+    ///     Reading ten structs nested by value reaches nesting depth 10 at the innermost scalar: a limit of 10 reads the
+    ///     value and a limit of 9 fails with <see cref="MemoryFailure.BudgetExceeded"/>.
+    /// </summary>
+    [TestMethod]
+    public void Nesting_BeyondMaxNestingDepthIsBudgetExceeded()
+    {
+        const int levels = 10;
+        var session = new MemorySession(new MemorySchema(NestedByValue(levels)));
+        var region = new MemoryRegion(new ByteArrayMemorySource("image", new byte[] { 5, }), 0, 1);
+
+        Assert.IsInstanceOfType<StructValue>(session.Read(region, "s0", context: new MemoryAccessContext { MaxNestingDepth = levels, }));
+        MemoryAccessException failure = Assert.Throws<MemoryAccessException>(() => session.Read(region, "s0", context: new MemoryAccessContext { MaxNestingDepth = levels - 1, }));
+        Assert.AreEqual(MemoryFailure.BudgetExceeded, failure.Failure);
+        StringAssert.Contains(failure.Message, "nesting");
+    }
+
+    /// <summary>
+    ///     A node whose <c>next</c> pointer points back to itself lets one path follow any number of pointers. A path of
+    ///     200 <c>.value</c> steps (400 path segments, more than the nesting limit) passes with a pointer limit of 200,
+    ///     because nesting restarts at each target, and fails with 199 or the default 64.
+    /// </summary>
+    [TestMethod]
+    public void PointerSteps_BeyondMaxPointerDepthAreBudgetExceeded()
+    {
+        const int steps = 200;
+        MemoryTypeDefinition[] types =
+        [
+            new("n", "node", MemoryTypeKind.Struct, 8, [new("next", "p", 0),]),
+            new("p", "node *", MemoryTypeKind.Pointer, 8, elementTypeId: "n"),
+        ];
+        var session = new MemorySession(new MemorySchema(types));
+
+        // The node lives at address 8 and stores the little-endian pointer 8, so every .value step lands on itself.
+        byte[] image = new byte[16];
+        image[8] = 8;
+        var region = new MemoryRegion(new ByteArrayMemorySource("image", image), 8, 8);
+        string path = string.Join('.', Enumerable.Repeat("next.value", steps));
+
+        Assert.AreEqual(8UL, session.Resolve(region, "n", path, new MemoryAccessContext { MaxPointerDepth = steps, }).Region.Address);
+        foreach (MemoryAccessContext context in new[] { new MemoryAccessContext { MaxPointerDepth = steps - 1, }, new MemoryAccessContext(), })
+        {
+            MemoryAccessException failure = Assert.Throws<MemoryAccessException>(() => session.Resolve(region, "n", path, context));
+            Assert.AreEqual(MemoryFailure.BudgetExceeded, failure.Failure);
+            StringAssert.Contains(failure.Message, "pointer");
+        }
+    }
+
+    /// <summary>
+    ///     A definition graph may nest types by value as deeply as a compiled layout (256 levels): 200 levels are
+    ///     accepted and 300 are rejected with <see cref="CStructLayoutException"/>.
+    /// </summary>
+    [TestMethod]
+    public void DefinitionGraphs_AcceptTheCoreLayoutNestingDepth()
+    {
+        MemorySchema accepted = new(NestedByValue(200));
+        Assert.AreEqual(MemoryTypeKind.Struct, accepted.GetType("s0").Kind);
+        StringAssert.Contains(Assert.Throws<CStructLayoutException>(() => new MemorySchema(NestedByValue(300))).Message, "depth");
+    }
+
+    /// <summary>
+    ///     A <see cref="MemoryTypeKind.RawBytes"/> definition (numeric value 6) reads as a <c>byte[]</c> of its size and
+    ///     is written from exactly that many bytes; any other length or shape is a <see cref="CStructWriteException"/>.
+    /// </summary>
+    [TestMethod]
+    public void RawBytes_ReadsAndWritesItsBytesVerbatim()
+    {
+        Assert.AreEqual(6, (int)MemoryTypeKind.RawBytes);
+        MemoryTypeDefinition[] types =
+        [
+            new("blob", "blob", MemoryTypeKind.RawBytes, 3),
+            new("u", "u", MemoryTypeKind.Scalar, 1, scalarType: "uint8"),
+            new("r", "r", MemoryTypeKind.Struct, 4, [new("tag", "u", 0), new("blob", "blob", 1),]),
+        ];
+        var session = new MemorySession(new MemorySchema(types));
+        var source = new ByteArrayMemorySource("image", new byte[] { 1, 0xAA, 0xBB, 0xCC, });
+        var region = new MemoryRegion(source, 0, 4);
+
+        CollectionAssert.AreEqual(new byte[] { 0xAA, 0xBB, 0xCC, }, (byte[])session.Read(region, "r", "blob")!);
+        CollectionAssert.AreEqual(new byte[] { 1, 2, 3, }, session.Serialize("blob", new byte[] { 1, 2, 3, }));
+        session.PlanUpdate(region, "r", "blob", new byte[] { 4, 5, 6, }).Commit();
+        CollectionAssert.AreEqual(new byte[] { 1, 4, 5, 6, }, source.ToArray());
+        Assert.Throws<CStructWriteException>(() => session.Serialize("blob", new byte[] { 1, 2, }));
+        Assert.Throws<CStructWriteException>(() => session.Serialize("blob", 7));
+    }
+
+    /// <summary>Builds a chain of structs nested by value: <c>s0</c> contains <c>s1</c>, and so on, and the last contains a <c>uint8</c>.</summary>
+    /// <param name="levels">Number of struct levels in the chain.</param>
+    /// <returns>The definitions of the chain and its scalar.</returns>
+    private static List<MemoryTypeDefinition> NestedByValue(int levels)
+    {
+        var types = new List<MemoryTypeDefinition> { new("u", "u", MemoryTypeKind.Scalar, 1, scalarType: "uint8"), };
+        for (int i = 0; i < levels; i++)
+        {
+            string member = i == levels - 1 ? "u" : $"s{i + 1}";
+            types.Add(new($"s{i}", $"s{i}", MemoryTypeKind.Struct, 1, [new("m", member, 0),]));
+        }
+
+        return types;
     }
 }
