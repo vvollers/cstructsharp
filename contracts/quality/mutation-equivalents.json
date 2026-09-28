@@ -88,7 +88,7 @@
   },
   {
    "pattern": "Codecs/PrimitiveCodecs.cs",
-   "sourceSha256": "36706cbb8965d517c761b76025482250e3cc9a21b6ff769eb7ae491094d22e01",
+   "sourceSha256": "00571b40acaf6a47652be777845eeaf9d661024b4b166539f9ccf5067307bdd1",
    "mutants": [
     { "mutatorName": "Remove checked expression", "replacement": "(long)valueBytes + terminatorBytes",
      "location": {"start":{"line":170,"column":37},"end":{"line":170,"column":80}},
@@ -439,7 +439,7 @@
   },
   {
    "pattern": "CStructAddressResolver.cs",
-   "sourceSha256": "587ef502095645829594f610b4247ae277174f9546087ef6e127d2d45877edfe",
+   "sourceSha256": "9d4cd24f9ec36677a43f8fdcf7d9d14a6642f391d4099d0455c837985d5b9cac",
    "mutants": [
     { "mutatorName": "Logical mutation", "replacement": "compiledField.HasQualifiedPrefix || compiledField.Array.Kind == CompiledArrayKind.Scalar",
      "location": {"start":{"line":710,"column":17},"end":{"line":710,"column":105}},
@@ -904,7 +904,7 @@
   },
   {
    "pattern": "Generated/WriteCursor.cs",
-   "sourceSha256": "9f0f3920e0b04dfa57ad2ac8524a09845683420cf7f19e2235ffa6d040d8a2db",
+   "sourceSha256": "6e9d4ff200a51334f67aa43a1507b84f42a0cc7c1640915d2ef057ffb446828d",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":195,"column":13},"end":{"line":195,"column":20}},
@@ -1009,7 +1009,7 @@
   },
   {
    "pattern": "CStructReader.cs",
-   "sourceSha256": "cdbb2e01aacae8ac558fc4ab60a8e09acc8d67b5561583494c1deeb39a4cba00",
+   "sourceSha256": "06d1fb8f162cfe0695e389c91330b0e0c41413ce8a94ecd1d2ee1c2be5e37a41",
    "mutants": [
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?new DebugPath(debugStack, unionName) :debugStack)",
      "location": {"start":{"line":132,"column":46},"end":{"line":132,"column":109}},
