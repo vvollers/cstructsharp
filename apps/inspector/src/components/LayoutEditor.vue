@@ -45,6 +45,7 @@ onMounted(async () => {
     stickyScroll: { enabled: false },
   });
 
+  /** Fits the editor height to its content, between 130 and 440 pixels. */
   const resize = () => {
     height.value = Math.min(440, Math.max(130, instance!.getContentHeight()));
   };

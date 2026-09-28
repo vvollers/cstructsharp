@@ -15,6 +15,12 @@ import { openZip } from "../lib/zip.mjs";
 const options = parseArguments(process.argv.slice(2), { "archive-path": "string" });
 assertCondition(options["archive-path"], "Option --archive-path is required.");
 
+/**
+ * Extracts a ZIP archive into a directory.
+ * @param {string} archivePath The archive.
+ * @param {string} destination The directory to write into.
+ * @throws {Error} When an entry's path escapes the destination.
+ */
 function extractZip(archivePath, destination) {
   const archive = openZip(archivePath);
   for (const entry of archive.entries) {

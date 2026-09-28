@@ -79,6 +79,10 @@ function ignoredDocumentationDependencies() {
   return violations;
 }
 
+/**
+ * Finds relative links in the repository's Markdown files whose targets do not exist.
+ * @returns {string[]} One `file -> target` entry per broken link.
+ */
 function brokenRepositoryMarkdownLinks() {
   const broken = [];
   for (const relative of repositoryFiles(repositoryRoot).filter((file) => path.extname(file) === ".md")) {
@@ -240,6 +244,7 @@ await main(() => {
     const relative = `contracts/${toPosix(path.relative(contractDirectory, source))}`;
     const published = path.join(siteDirectory, relative);
     assertCondition(isFile(published), `Published documentation contract is missing: ${relative}`);
+    /** Returns the hexadecimal SHA-256 hash of a file's contents. */
     const hash = (file) => crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
     assertCondition(hash(source) === hash(published), `Published documentation contract differs from its source: ${relative}`);
   }

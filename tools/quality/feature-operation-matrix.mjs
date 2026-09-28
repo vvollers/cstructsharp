@@ -18,13 +18,18 @@ const options = parseArguments(process.argv.slice(2), { "matrix-path": "string",
     "manual-fixture-path": path.join(repositoryRoot, "contracts/language/manual-fixtures-v1.json"),
   },
 });
+/** Returns whether a path exists and is a regular file. */
 const isFile = (file) => fs.existsSync(file) && fs.statSync(file).isFile();
+/** Returns whether a value is missing or only whitespace. */
 const blank = (value) => value === undefined || value === null || String(value).trim() === "";
+/** Joins items as sorted strings, for order-insensitive set comparison. */
 const sortedJoin = (items) => [...items].map(String).sort().join(",");
+/** Converts an optional list to an array of strings. */
 const strings = (items) => (items ?? []).map(String);
 /** Returns the member names of the managed MemoryTypeKind enum, which the memory contract matrix must list exactly once each. */
 const memoryTypeKinds = () =>
   [...fs.readFileSync(path.join(repositoryRoot, "src/CStructSharp/Memory/MemoryTypeKind.cs"), "utf8").matchAll(/^\s{4}([A-Z][A-Za-z]*),?\s*$/gm)].map((match) => match[1]);
+/** Escapes regular expression metacharacters so the text matches literally. */
 const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** Returns whether a test class file of this name exists in any feature folder of the runtime test project. */
@@ -32,12 +37,23 @@ const testClassExists = (name) =>
   fs.readdirSync(path.join(repositoryRoot, "tests/CStructSharpTests"), { recursive: true })
     .some((file) => path.basename(String(file)) === `${name}.cs` && !/^(?:bin|obj)[\\/]/.test(String(file)));
 
+/**
+ * Asserts that a collection's ids are unique and lowercase kebab-case.
+ * @param {object[]} items The collection entries.
+ * @param {string} collectionName The collection, used in failure messages.
+ */
 function assertUniqueIds(items, collectionName) {
   const ids = items.map((item) => String(item.id));
   assertCondition(new Set(ids).size === ids.length, `${collectionName} contains duplicate ids.`);
   for (const id of ids) assertCondition(/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id), `${collectionName} id '${id}' must be lowercase kebab-case.`);
 }
 
+/**
+ * Asserts that work-item ids are unique and in `ABC-01` form.
+ * @param {unknown[] | undefined} workItems The ids; blank entries are ignored.
+ * @param {string} context Where the ids appear, used in failure messages.
+ * @param {boolean} [required] Whether at least one id is required.
+ */
 function assertWorkItems(workItems, context, required = false) {
   const items = strings(workItems).filter((item) => !blank(item));
   if (required) assertCondition(items.length > 0, `${context} must name at least one work item.`);
@@ -45,6 +61,11 @@ function assertWorkItems(workItems, context, required = false) {
   for (const item of items) assertCondition(/^[A-Z]+-\d{2}$/.test(item), `${context} contains invalid traceability id '${item}'.`);
 }
 
+/**
+ * Asserts that a `path#method` evidence reference names an existing repository file that declares that method.
+ * @param {string} reference The evidence reference.
+ * @param {string} context Where the reference appears, used in failure messages.
+ */
 function assertEvidenceReference(reference, context) {
   const separator = reference.indexOf("#");
   const parts = separator < 0 ? [reference] : [reference.slice(0, separator), reference.slice(separator + 1)];

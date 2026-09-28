@@ -159,6 +159,9 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   `CStructSharp`, its shared Core sources, the source generator, the WASM bridge, and the test, benchmark, example
   and tool projects is documented, and a missing comment is a build error (`Directory.Build.props` generates XML
   documentation for every project). C# local functions, which cannot take XML documentation, take a plain comment.
+- JavaScript and TypeScript are held to the same rule: `eslint-plugin-jsdoc` requires a doc comment on every function,
+  method and class in the apps, the npm package sources and the repository tools, and every tool file states its
+  purpose and usage in a header.
 - API baselines are named by role: `contracts/api/managed` and `contracts/api/browser` (published under
   `/docs/contracts/api/`). The managed manifest keeps the approved hash of every revision and the review text of the
   current one; the release history is this changelog. The `frozen` status, work-item code and stale package version

@@ -1,3 +1,9 @@
+/**
+ * Tests `validateWasmPublication` on synthetic publications: the manifest of a valid publication, rejection of stale,
+ * non-deployable and missing files, and the raw size budget.
+ *
+ *   node --test tools/packaging/wasm-publication.test.mjs
+ */
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -5,6 +11,10 @@ import path from "node:path";
 import test from "node:test";
 import { runtimeConfigName, validateWasmPublication } from "./wasm-publication.mjs";
 
+/**
+ * Creates a minimal valid WASM publication in a temporary directory; the caller removes it.
+ * @returns {string} The publication directory.
+ */
 function createFixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cstructsharp-wasm-manifest-"));
   const framework = path.join(root, "_framework");

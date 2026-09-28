@@ -14,8 +14,14 @@ import { documentationRoot, documentationSourceFiles, relativeLinkTargets, resol
 
 const options = parseArguments(process.argv.slice(2), { "self-test": "flag" }, { defaults: { "self-test": false } });
 const fixturePath = path.join(repositoryRoot, "contracts/documentation/validator-fixtures.json");
+/** Converts values to lowercase strings for case-insensitive comparison. */
 const lower = (items) => items.map((item) => String(item).toLowerCase());
 
+/**
+ * Checks one page for front matter with a title and description, exactly one H1, and no placeholder text.
+ * @param {string} text Markdown source of the page.
+ * @returns {string[]} Rule codes the page violates.
+ */
 export function pageRuleCodes(text) {
   const codes = [];
   const frontMatter = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(text);
@@ -28,6 +34,11 @@ export function pageRuleCodes(text) {
   return codes;
 }
 
+/**
+ * Checks a page collection for duplicate titles and URLs, ignoring case.
+ * @param {{title: string, url: string}[]} pages Page records.
+ * @returns {string[]} One code per duplicate found.
+ */
 export function collectionRuleCodes(pages) {
   const codes = [];
   const titles = new Set();
@@ -43,11 +54,23 @@ export function collectionRuleCodes(pages) {
   return codes;
 }
 
+/**
+ * Checks that every link target exists.
+ * @param {string[]} targets Link targets found on a page.
+ * @param {string[]} existing Targets that resolve to a file.
+ * @returns {string[]} `broken-link` when any target is missing, otherwise empty.
+ */
 export function linkRuleCodes(targets, existing) {
   const existingSet = new Set(lower(existing));
   return targets.some((target) => !existingSet.has(String(target).toLowerCase())) ? ["broken-link"] : [];
 }
 
+/**
+ * Checks that every TOC entry exists and is listed only once.
+ * @param {string[]} targets TOC hrefs.
+ * @param {string[]} existing Hrefs that resolve to a file.
+ * @returns {string[]} One code per missing or duplicate entry.
+ */
 export function tocRuleCodes(targets, existing) {
   const codes = [];
   const existingSet = new Set(lower(existing));
@@ -61,12 +84,24 @@ export function tocRuleCodes(targets, existing) {
   return codes;
 }
 
+/**
+ * Checks that every page is reachable from a TOC or link, unless it is exempt.
+ * @param {string[]} pages Page paths.
+ * @param {string[]} reachable Paths reached through TOCs and links.
+ * @param {string[]} exempt Paths that need no incoming link.
+ * @returns {string[]} `orphan` when any page is unreachable, otherwise empty.
+ */
 export function reachabilityRuleCodes(pages, reachable, exempt) {
   const reachableSet = new Set(lower(reachable));
   const exemptSet = new Set(lower(exempt));
   return pages.some((page) => !reachableSet.has(String(page).toLowerCase()) && !exemptSet.has(String(page).toLowerCase())) ? ["orphan"] : [];
 }
 
+/**
+ * Checks that the search index covers both conceptual pages and API pages.
+ * @param {string[]} entries Search index keys (site-relative paths).
+ * @returns {string[]} A code for each missing area.
+ */
 export function searchRuleCodes(entries) {
   const codes = [];
   if (!entries.some((entry) => /^(?:project|guides|language|examples)\//.test(entry))) codes.push("search-conceptual");
@@ -74,8 +109,19 @@ export function searchRuleCodes(entries) {
   return codes;
 }
 
+/**
+ * Reports an ignored documentation source as a rule violation.
+ * @param {boolean} ignored Whether git ignores the source file.
+ * @returns {string[]} `ignored-source` when ignored, otherwise empty.
+ */
 export const trackingRuleCodes = (ignored) => (ignored ? ["ignored-source"] : []);
 
+/**
+ * Runs the rule named by a fail-first fixture's `kind` on its data.
+ * @param {object} fixture Fixture case from validator-fixtures.json.
+ * @returns {string[]} Rule codes the fixture triggers.
+ * @throws {Error} When the fixture kind is unknown.
+ */
 function caseRuleCodes(fixture) {
   switch (fixture.kind) {
     case "page": return pageRuleCodes(String(fixture.text));

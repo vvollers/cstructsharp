@@ -16,11 +16,17 @@ import { isFile, repositoryFiles } from "../lib/files.mjs";
 
 const snapshotRoot = path.join(fs.realpathSync(os.tmpdir()), `CStructSharp-documentation-snapshot-${crypto.randomUUID().replaceAll("-", "")}`);
 
+/** Asserts that a path lies inside the snapshot directory before the tool writes or deletes it. */
 function assertSnapshotPath(candidate) {
   const relative = path.relative(snapshotRoot, path.resolve(candidate));
   assertCondition(!path.isAbsolute(relative) && !relative.startsWith(".."), `Snapshot path escapes its root: ${path.resolve(candidate)}`);
 }
 
+/**
+ * Runs a Node script in the snapshot checkout, forwarding its output.
+ * @param {string[]} args The Node arguments, starting with the script path.
+ * @param {string} failure The error message when the script exits with a nonzero status.
+ */
 function runInSnapshot(args, failure) {
   const result = runCommand(process.execPath, args, { cwd: snapshotRoot, allowFailure: true });
   process.stdout.write(result.stdout ?? "");

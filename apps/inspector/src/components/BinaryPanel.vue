@@ -34,6 +34,13 @@ const { windowBytes, windowOffset, windowError, loadWindow, handleEdit, searchSo
 
 // The hex editor only draws a portion of the file. Scrolling far away can change that portion
 // and its scroll height. Wait for Vue to update the page, then apply the position again.
+/**
+ * Scrolls the hex view to a byte offset, then repeats the scroll after Vue updates the visible
+ * window.
+ * @param offset Byte offset from the start of the file.
+ * @param isCurrent Returns false when a newer request has replaced this one, which stops the
+ *   scroll.
+ */
 async function scrollToByte(offset: number, isCurrent = () => true): Promise<void> {
   if (!isCurrent()) return;
 
@@ -43,6 +50,10 @@ async function scrollToByte(offset: number, isCurrent = () => true): Promise<voi
   if (isCurrent()) hexEditor.value?.scrollToByte?.(offset);
 }
 
+/**
+ * Scrolls to the offset typed in the jump box, or shows an error when it is not a decimal or 0x
+ * offset inside the file.
+ */
 async function jumpToByte(): Promise<void> {
   const text = jumpOffset.value.trim();
   const offset = Number(text);
@@ -96,6 +107,11 @@ const { isOverDropZone } = useDropZone(dropZone, {
   },
 });
 
+/**
+ * Forwards hex-editor edits of in-memory sample bytes; loaded files are edited through the Blob
+ * source.
+ * @param next Edited bytes.
+ */
 function handleModelUpdate(next: Uint8Array): void {
   // Sample data is edited as a whole array. Loaded files use the separate Blob edit/history path.
   if (!props.source) emit("update:bytes", next);
@@ -110,6 +126,10 @@ const cellClassResolvers = computed(() => {
   const selected = props.selectedIndices;
   const groups = fieldGroups.value;
 
+  /**
+   * Returns the CSS classes for one byte: its field's color group, dimmed or highlighted by the
+   * selection.
+   */
   const fieldClassForByte = ({ index }: { index: number }): string[] => {
     const entry = findDebugEntryIndexByOffset(entries, index);
     if (entry === -1) return selected.size ? ["field-dim"] : [];
@@ -123,6 +143,10 @@ const cellClassResolvers = computed(() => {
   return [DEFAULT_ASCII_CATEGORY_CELL_CLASS_RESOLVER, fieldClassForByte];
 });
 
+/**
+ * Reports a clicked byte's offset to the parent so it can select the matching field.
+ * @param event VueHex click event with the byte offset in `index`.
+ */
 function handleByteClick(event: { index: number }): void {
   emit("byte-click", event.index);
 }

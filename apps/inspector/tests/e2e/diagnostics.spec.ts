@@ -49,6 +49,7 @@ test("manual loading preserves the local ZIP example and returns the library rea
 test("the real bridge preserves actionable input and read diagnostics", async ({ page }) => {
   const results = await page.evaluate(() => {
     const wasm = (window as unknown as { CStructSharpWasm: RawWasmAdapter }).CStructSharpWasm;
+    /** Parses bytes through the raw bridge and returns the decoded JSON result. */
     const parse = (definition: string, bytes: Uint8Array, options = {}) =>
       JSON.parse(wasm.parseWithDebug(definition, bytes, options));
     return {

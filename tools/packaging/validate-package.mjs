@@ -30,6 +30,10 @@ await main(() => {
   const metadata = packageElement ? childrenNamed(packageElement, "metadata")[0] : null;
   if (!metadata) throw new Error("The package manifest has no metadata element.");
 
+  /**
+   * Returns a required metadata element.
+   * @throws {Error} When the element is missing or empty.
+   */
   const requireText = (name, description) => {
     const node = childrenNamed(metadata, name)[0];
     if (!node || node.text.trim() === "") throw new Error(`Package metadata is missing ${description}.`);

@@ -3,10 +3,14 @@ import type { InteropResult } from "@cstructsharp/app-shared/wasm/contract";
 import { hexToBytes } from "@cstructsharp/app-shared/hex";
 import { OPTION_DEFAULTS } from "@cstructsharp/app-shared/options";
 
+/** Formats text as a C# regular string literal (JSON escaping is valid C# here). */
 const csString = (value: string) => JSON.stringify(value);
+/** Formats text as a C# verbatim string literal, doubling embedded quotes. */
 const csText = (value: string) => '@"' + value.replace(/"/g, '""') + '"';
+/** Formats text as a JavaScript template literal, escaping backslashes, backticks, and `${`. */
 const jsText = (value: string) =>
   "`" + value.replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(/\$\{/g, "\\${") + "`";
+/** Prefixes every line of the text with `// ` so it becomes a line comment block. */
 const comment = (value: string) =>
   value
     .split(/\r?\n/)
@@ -27,6 +31,12 @@ const updateOnlyOptions = new Set([
 ]);
 const layoutOptions = new Set(["root", "pointerSize", "aligned", "littleEndian"]);
 
+/**
+ * Selects the options that the generated code must pass: those that apply to the request's
+ * operation and differ from the defaults.
+ * @param request Operation, layout, and options from the operation panel.
+ * @returns Options keyed by name.
+ */
 function nonDefaultOptions(request: OperationRequest): Record<string, unknown> {
   return Object.fromEntries(
     Object.entries(request.options).filter(([key, value]) => {
@@ -50,6 +60,13 @@ function nonDefaultOptions(request: OperationRequest): Record<string, unknown> {
   );
 }
 
+/**
+ * Formats an option value as a C# expression (enum member, parsed `long`, bool, or numeric
+ * literal).
+ * @param key Option name.
+ * @param value Option value.
+ * @returns C# source text.
+ */
 function csOption(key: string, value: unknown): string {
   if (key === "addressingMode") return `PointerAddressingMode.${value}`;
   if (key === "origin")
@@ -58,6 +75,14 @@ function csOption(key: string, value: unknown): string {
   return `${value}${/Bytes/.test(key) ? "L" : ""}`;
 }
 
+/**
+ * Formats a JSON-like application value as a C# expression: integers as `long` or `ulong` literals,
+ * objects as dictionaries, arrays as `object?[]`, and unions as `UnionValue` factory calls.
+ * @param value Value to format.
+ * @param indent Indentation in spaces for nested dictionary lines.
+ * @returns C# source text.
+ * @throws When a union has neither raw storage nor a selected member.
+ */
 function csValue(value: unknown, indent = 4): string {
   const space = " ".repeat(indent);
   if (value === null) return "null";
@@ -99,6 +124,12 @@ function csValue(value: unknown, indent = 4): string {
     .join("\n")}\n${space}}`;
 }
 
+/**
+ * Builds runnable C# and JavaScript programs that repeat the operation panel's request.
+ * @param request Operation, layout, bytes, value, and options to reproduce.
+ * @param observed Result of running the request in the browser, shown as the expected output.
+ * @returns Source text for both languages.
+ */
 export function generateExample(
   request: OperationRequest,
   observed?: InteropResult,

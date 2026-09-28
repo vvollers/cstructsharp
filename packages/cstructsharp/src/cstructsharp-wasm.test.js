@@ -84,6 +84,7 @@ test("public wrapper returns byte arrays for writes, preserves errors and parse 
 test("parse takes the synchronous path for small byte inputs and the worker path otherwise", async () => {
   const previous = globalThis.CStructSharpWasm;
   const calls = [];
+  /** Builds a successful parse envelope's JSON around the given data. */
   const envelope = (data) =>
     JSON.stringify({ contractVersion: 8, operation: "parse", success: true, root: "root", data, debug: [], error: null });
   globalThis.CStructSharpWasm = {

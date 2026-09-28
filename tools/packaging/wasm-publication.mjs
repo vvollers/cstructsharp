@@ -1,3 +1,10 @@
+/**
+ * Validates a WASM publication directory (the `main.js` entry point, its bootstrap, the source adapter and worker, the
+ * runtime configuration, and a flat `_framework` holding exactly the resources `dotnet.boot.js` lists) and describes it
+ * as a manifest of file sizes and SHA-256 hashes. It reads the directory and writes nothing.
+ * publish-wasm.mjs uses it to stage and check the publication; the other packaging tools and the apps' shared build
+ * scripts use `validateWasmPublication` to check it before use. It has no command line of its own.
+ */
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -20,13 +27,21 @@ const rejectedProductionExtensions = new Set([
   ".xml",
 ]);
 
+/** Converts a platform path to forward slashes. */
 function toPosix(value) {
   return value.replaceAll(path.sep, "/");
 }
 
+/**
+ * Lists every file below a directory as sorted root-relative POSIX paths.
+ * @param {string} root The directory to list.
+ * @returns {string[]} The relative file paths.
+ * @throws {Error} When the tree contains a symbolic link or an entry that is neither a file nor a directory.
+ */
 function listFiles(root) {
   const files = [];
 
+  /** Adds the files of one directory to `files`, recursing into subdirectories in name order. */
   function visit(directory) {
     for (const entry of fs
       .readdirSync(directory, { withFileTypes: true })
@@ -52,6 +67,12 @@ function listFiles(root) {
   return files;
 }
 
+/**
+ * Reads the resource JSON embedded between the markers of `_framework/dotnet.boot.js`.
+ * @param {string} frameworkDirectory The publication's `_framework` directory.
+ * @returns {object} The parsed boot configuration.
+ * @throws {Error} When the file, its markers or valid JSON between them is missing.
+ */
 function readBootConfig(frameworkDirectory) {
   const bootPath = path.join(frameworkDirectory, "dotnet.boot.js");
   if (!fs.existsSync(bootPath)) {
@@ -74,6 +95,12 @@ function readBootConfig(frameworkDirectory) {
   }
 }
 
+/**
+ * Adds every `name` found anywhere in a boot resource tree to a set.
+ * @param {unknown} value A boot configuration value.
+ * @param {Set<string>} names Receives the resource file names.
+ * @throws {Error} When a name is empty, absolute, contains a path separator, or is `.` or `..`.
+ */
 function collectResourceNames(value, names) {
   if (Array.isArray(value)) {
     for (const item of value) {
@@ -106,6 +133,12 @@ function collectResourceNames(value, names) {
   }
 }
 
+/**
+ * Lists the files `_framework` must contain: the runtime entry points and every resource the boot configuration names.
+ * @param {string} frameworkDirectory The publication's `_framework` directory.
+ * @returns {string[]} The sorted file names.
+ * @throws {Error} When the boot configuration is missing, malformed or has no resources object.
+ */
 export function getRequiredFrameworkFiles(frameworkDirectory) {
   const bootConfig = readBootConfig(frameworkDirectory);
   if (!bootConfig.resources || typeof bootConfig.resources !== "object") {
@@ -117,6 +150,13 @@ export function getRequiredFrameworkFiles(frameworkDirectory) {
   return [...required].sort();
 }
 
+/**
+ * Appends a message for every expected item that is missing and every actual item that is not expected.
+ * @param {Set<string>} actual The items found.
+ * @param {Set<string>} expected The items required.
+ * @param {string} description What an item is, used in the messages.
+ * @param {string[]} errors Receives the messages.
+ */
 function compareSets(actual, expected, description, errors) {
   for (const item of [...expected].sort()) {
     if (!actual.has(item)) {
@@ -130,10 +170,19 @@ function compareSets(actual, expected, description, errors) {
   }
 }
 
+/** Returns the lowercase hexadecimal SHA-256 hash of a file's contents. */
 function sha256(filePath) {
   return crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
 }
 
+/**
+ * Validates a WASM publication directory and returns its manifest.
+ * @param {string} publicationDirectory The publication root.
+ * @param {{maxRawBytes?: number}} [options] `maxRawBytes` bounds the total uncompressed size (default 6 MiB).
+ * @returns {object} The manifest: entry point, runtime configuration, each file's path, size in bytes and SHA-256,
+ *   totals and limits.
+ * @throws {Error} Listing every structural problem, or when the total size exceeds the limit.
+ */
 export function validateWasmPublication(
   publicationDirectory,
   { maxRawBytes = defaultRawByteLimit } = {},

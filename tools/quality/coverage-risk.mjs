@@ -108,6 +108,7 @@ await main(() => {
   });
   fileReports.sort((a, b) => b.riskScore - a.riskScore || (a.file < b.file ? -1 : a.file > b.file ? 1 : 0));
 
+  /** Sums a numeric field over all file reports. */
   const sum = (key) => fileReports.reduce((total, report) => total + report[key], 0);
   const totalLinesValid = sum("linesValid");
   const totalLinesCovered = sum("linesCovered");

@@ -131,6 +131,12 @@ test("conditional lesson exercises produce the documented changes", async ({ pag
   await page.goto("/#lesson=conditional-decisions");
   await expect(page.locator(".status-badge")).toContainText("Ready", { timeout: 60_000 });
   const results = await page.evaluate((catalog) => {
+    /**
+     * Parses a lesson's layout and bytes after applying one edit to the input bytes or layout.
+     * @param id Lesson identifier.
+     * @param edit Change to apply before parsing.
+     * @returns The parsed bridge result.
+     */
     function run(id: string, edit: "tag" | "parameter" | "guard" | "nested") {
       const lesson = catalog.find((entry) => entry.id === id)!;
       const bytes = Uint8Array.from(lesson.binaryHex!.split(" ").map((b) => parseInt(b, 16)));

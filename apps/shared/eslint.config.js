@@ -1,5 +1,6 @@
 import js from "@eslint/js";
 import globals from "globals";
+import jsdoc from "eslint-plugin-jsdoc";
 import pluginVue from "eslint-plugin-vue";
 import tseslint from "typescript-eslint";
 
@@ -17,6 +18,29 @@ export default [
         parser: tseslint.parser,
         extraFileExtensions: [".vue"],
       },
+    },
+  },
+  {
+    // Every function, method and class is documented (AGENTS.md), including nested named functions.
+    plugins: { jsdoc },
+    rules: {
+      "jsdoc/require-jsdoc": [
+        "error",
+        {
+          publicOnly: false,
+          require: {
+            FunctionDeclaration: true,
+            MethodDefinition: true,
+            ClassDeclaration: true,
+            ArrowFunctionExpression: false,
+            FunctionExpression: false,
+          },
+          contexts: [
+            "VariableDeclarator > ArrowFunctionExpression",
+            "VariableDeclarator > FunctionExpression",
+          ],
+        },
+      ],
     },
   },
 ];

@@ -42,6 +42,7 @@ export function useInspector() {
       `${selectedExample.value?.schemaOnly ? "Load a file" : "Sample data"} · ${selectedExample.value?.title ?? "New schema"}`,
   );
 
+  /** Aborts any file read or detection in progress and clears its loading indicators. */
   function cancelFileLoad(): void {
     fileController?.abort();
     fileController = null;
@@ -51,12 +52,17 @@ export function useInspector() {
     detectionMessage.value = "";
   }
 
+  /** Discards the current parse result and cancels file and parse work that uses the old input. */
   function invalidateDocument(): void {
     // Results belong to the old schema and bytes. Clear them and stop any work using that input.
     cancelFileLoad();
     parse.invalidate();
   }
 
+  /**
+   * Shows a schema in the editor and asks the schema panel to restore its parser settings.
+   * @param example Schema to show, or null for a blank starter layout.
+   */
   function applySchema(example: InspectorExample | null): void {
     selectedExample.value = example;
     definition.value = example?.definition ?? "struct root {\n    uint8 value;\n};";
@@ -66,6 +72,11 @@ export function useInspector() {
     schemaRevision.value++;
   }
 
+  /**
+   * Selects a catalog entry. A teaching example replaces the bytes with its sample; a schema-only
+   * entry keeps the loaded file.
+   * @param example Catalog entry to select.
+   */
   function selectExample(example: InspectorExample): void {
     invalidateDocument();
 
@@ -82,6 +93,7 @@ export function useInspector() {
     }
   }
 
+  /** Clears the loaded file and schema so the user can write a new layout from scratch. */
   function startNew(): void {
     invalidateDocument();
 
@@ -91,6 +103,10 @@ export function useInspector() {
     applySchema(null);
   }
 
+  /**
+   * Replaces the layout text after an edit and invalidates the result; unchanged text is ignored.
+   * @param value New layout text from the editor.
+   */
   function setDefinition(value: string): void {
     // Monaco can report text that we just supplied to it. Ignore that notification if nothing changed.
     if (value === definition.value) return;
@@ -99,16 +115,32 @@ export function useInspector() {
     definition.value = value;
   }
 
+  /**
+   * Replaces the in-memory bytes after a hex edit and invalidates the result.
+   * @param value Edited bytes.
+   */
   function editBytes(value: Uint8Array): void {
     invalidateDocument();
     bytes.value = value;
   }
 
+  /**
+   * Replaces the file that parsing reads after an edit and invalidates the result.
+   * @param value Edited file contents.
+   */
   function editSource(value: Blob): void {
     invalidateDocument();
     fileSource.value = value;
   }
 
+  /**
+   * Loads a file: reads its first 64 KiB for the preview and, when requested, detects its type and
+   * selects a matching schema. A later edit or load cancels this one; read failures are reported
+   * through the parse session.
+   * @param file File chosen by the user.
+   * @param autoDetect Whether to detect the file type and choose a schema.
+   * @returns A promise that settles when the load finishes or is cancelled.
+   */
   async function loadFile(file: File, autoDetect = false): Promise<void> {
     invalidateDocument();
 
@@ -174,6 +206,12 @@ export function useInspector() {
     }
   }
 
+  /**
+   * Parses the loaded file (or the sample bytes) with the current layout.
+   * @param options Parser and debug settings from the schema panel.
+   * @returns The parse promise, or undefined when parsing is unavailable (runtime not ready, busy,
+   *   or loading).
+   */
   function runParse(options: ParseWithDebugOptions): Promise<void> | undefined {
     // Loaded files use the full Blob. Built-in samples use their small in-memory byte array.
     if (!schemaDisabled.value)

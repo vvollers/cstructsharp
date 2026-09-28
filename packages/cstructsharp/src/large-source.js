@@ -4,14 +4,23 @@ const defaultSpoolLimit = 1024 * 1024 * 1024;
 /** Browser byte inputs up to this size are snapshotted and transferred to the worker rather than staged as a Blob. */
 const transferableByteLimit = 64 * 1024 * 1024;
 
+/** Creates the AbortError DOMException that every cancelled source operation rejects with. */
 function abortError() {
   return new DOMException("Binary parsing was cancelled.", "AbortError");
 }
 
+/** Throws an AbortError when the optional signal has already been aborted. */
 function checkAbort(signal) {
   if (signal?.aborted) throw abortError();
 }
 
+/**
+ * Awaits a promise but rejects as soon as the signal aborts; the abort listener is removed afterwards.
+ * @param {Promise<T>} promise The operation to await; it keeps running if the signal aborts first.
+ * @param {AbortSignal | undefined} signal Optional cancellation signal.
+ * @returns {Promise<T>} The promise's result.
+ * @template T
+ */
 async function abortable(promise, signal) {
   checkAbort(signal);
   if (!signal) return promise;
@@ -29,6 +38,10 @@ async function abortable(promise, signal) {
   }
 }
 
+/**
+ * Views a buffer, typed array or DataView as a Uint8Array over the same bytes, without copying.
+ * @throws {TypeError} When the value is not binary data (for example a string or number chunk).
+ */
 function byteView(value) {
   if (
     value instanceof ArrayBuffer ||
@@ -45,6 +58,13 @@ function byteView(value) {
   );
 }
 
+/**
+ * Yields the chunks of a Blob, readable stream or (async) iterable as Uint8Array views.
+ * An unfinished read cancels the stream or returns the iterator, so an aborted or failed read releases its producer.
+ * @param {unknown} input The binary source.
+ * @param {AbortSignal | undefined} signal Aborts the wait for the next chunk.
+ * @throws {TypeError} When the input is not a supported source or yields a non-binary chunk.
+ */
 async function* chunks(input, signal) {
   if (input instanceof Blob) input = input.stream();
   const reader =
@@ -243,16 +263,35 @@ export async function prepareSource(
 
 // One in-flight request per runtime. Abort terminates only that runtime; the next
 // queued request starts a replacement and reinstalls its immutable layout.
+/**
+ * Serializes requests to one source worker and owns that worker's lifetime.
+ * A session with a layout keeps its worker (and the compiled layout inside it) until disposal; the shared session
+ * without a layout stops its worker after 30 seconds of idleness.
+ */
 class WorkerSession {
   worker = null;
   tail = Promise.resolve();
   lifetime = new AbortController();
   idleTimer = null;
 
+  /**
+   * Creates a session without starting its worker.
+   * @param {{definition: string, options: object} | null} layout The layout a dedicated session compiles into each
+   *   worker it starts, or null for the shared session.
+   */
   constructor(layout = null) {
     this.layout = layout;
   }
 
+  /**
+   * Runs an operation after every earlier request of this session has settled.
+   * @param {(signal: AbortSignal) => Promise<T>} operation Receives a signal combining the caller's signal with the
+   *   session lifetime.
+   * @param {AbortSignal | undefined} signal Cancels this request; a queued request rejects at once, a running one
+   *   through the operation.
+   * @returns {Promise<T>} The operation's result.
+   * @template T
+   */
   enqueue(operation, signal) {
     const combined = signal
       ? AbortSignal.any([signal, this.lifetime.signal])
@@ -275,6 +314,7 @@ class WorkerSession {
     this.tail = result.catch(() => {});
     // Queued cancellation settles promptly without disturbing the active request.
     return new Promise((resolve, reject) => {
+      /** Rejects a request that is still queued; a started request settles through its operation. */
       const onAbort = () => { if (!started) reject(abortError()); };
       combined.addEventListener("abort", onAbort, { once: true });
       result.then(resolve, reject).finally(() => combined.removeEventListener("abort", onAbort));
@@ -282,12 +322,14 @@ class WorkerSession {
     });
   }
 
+  /** Terminates the current worker, if any; the next request starts a replacement. */
   async stop() {
     const worker = this.worker;
     this.worker = null;
     if (worker) await worker.terminate();
   }
 
+  /** Cancels queued and running requests, waits for them to settle and terminates the worker. */
   async dispose() {
     this.lifetime.abort();
     clearTimeout(this.idleTimer);
@@ -295,6 +337,12 @@ class WorkerSession {
     await this.stop();
   }
 
+  /**
+   * Starts a worker when none is running and, for a dedicated session, compiles the session layout in it.
+   * A failed or cancelled start terminates the new worker, so no half-initialized worker is reused.
+   * @param {AbortSignal} signal Cancels the start.
+   * @throws {Error} When the layout does not compile; `details` carries the structured error.
+   */
   async ensureWorker(signal) {
     checkAbort(signal);
     if (this.worker) return;
@@ -305,6 +353,7 @@ class WorkerSession {
     this.worker = worker;
     // Keep an error listener during idle periods too (Node otherwise throws).
     if (isNode) {
+      /** Drops the reference to a worker that failed or exited, so the next request starts a new one. */
       const forget = () => { if (this.worker === worker) this.worker = null; };
       worker.on("error", forget);
       worker.on("exit", forget);
@@ -328,17 +377,29 @@ class WorkerSession {
     }
   }
 
+  /**
+   * Posts one message to the running worker and waits for its reply.
+   * An abort, worker error or early exit terminates the worker (before any staged file is deleted) and rejects.
+   * @param {object} message The worker request; a `bytes` descriptor's buffer is transferred, not copied.
+   * @param {AbortSignal} signal Cancels the request.
+   * @returns {Promise<unknown>} The `result` field of the worker's reply.
+   */
   async send(message, signal) {
     const worker = this.worker;
     worker.ref?.();
+    /** Removes the listeners of the pending request; replaced once they are registered. */
     let cleanup = () => {};
     try {
       checkAbort(signal);
       return await new Promise((resolve, reject) => {
+        /** Rejects the pending request when the signal aborts. */
         const onAbort = () => reject(abortError());
+        /** Settles the pending request from a worker reply: `error` rejects, `result` resolves. */
         const receive = (data) => data.error
           ? reject(new Error(data.error)) : resolve(data.result);
+        /** Rejects the pending request when the worker reports an error. */
         const onError = (error) => reject(new Error(error.message || "Binary worker failed."));
+        /** Rejects the pending request when the worker thread exits before replying. */
         const onExit = (code) => reject(new Error(`Binary worker exited before returning a result (${code}).`));
         signal.addEventListener("abort", onAbort, { once: true });
         if (isNode) {
@@ -376,14 +437,39 @@ class WorkerSession {
     }
   }
 
+  /**
+   * Parses a source through this session's worker, using the compiled layout when the session has one.
+   * @param {string} definition Portable layout source.
+   * @param {unknown} input Binary source; it is staged for the worker and removed afterwards.
+   * @param {object | null} options Parse options, including `signal` and `maxSpoolBytes`.
+   * @param {boolean} debug Whether the result records every value's byte range.
+   * @returns {Promise<object>} The parse envelope.
+   */
   parse(definition, input, options, debug) {
     return this.request(this.layout ? "parseCompiled" : "parse", definition, input, options, { debug });
   }
 
+  /**
+   * Resolves a path's absolute byte position through this session's worker.
+   * @param {string} definition Portable layout source.
+   * @param {unknown} input Binary source; it is staged for the worker and removed afterwards.
+   * @param {string} path Case-sensitive field path.
+   * @param {object | null} options Read options, including `signal` and `maxSpoolBytes`.
+   * @returns {Promise<object>} The resolveAddress envelope.
+   */
   resolveAddress(definition, input, path, options) {
     return this.request(this.layout ? "resolveAddressCompiled" : "resolveAddress", definition, input, options, { path });
   }
 
+  /**
+   * Queues one worker command: stages the source, ensures a worker, sends the request and disposes the staged source.
+   * @param {string} command The worker command name.
+   * @param {string} definition Portable layout source.
+   * @param {unknown} input Binary source.
+   * @param {object | null} options Operation options; `signal` and `maxSpoolBytes` stay on this side.
+   * @param {object} extra Additional message fields, such as `debug` or `path`.
+   * @returns {Promise<object>} The worker's result envelope.
+   */
   request(command, definition, input, options, extra) {
     const { signal, maxSpoolBytes, ...operationOptions } = options ?? {};
     return this.enqueue(async (combined) => {
@@ -400,6 +486,14 @@ class WorkerSession {
 
 const sharedSession = new WorkerSession();
 
+/**
+ * Parses any supported binary source through the shared worker; the source is staged and removed afterwards.
+ * @param {string} definition Portable layout source.
+ * @param {unknown} input Binary source.
+ * @param {object} [options] Parse options, including `signal` and `maxSpoolBytes`.
+ * @param {boolean} [debug] Whether the result records every value's byte range.
+ * @returns {Promise<object>} The parse envelope.
+ */
 export async function parseLargeSource(definition, input, options = {}, debug = true) {
   return sharedRequest("parse", definition, input, options, { debug });
 }
@@ -409,6 +503,15 @@ export async function resolveAddressLargeSource(definition, input, path, options
   return sharedRequest("resolveAddress", definition, input, options, { path });
 }
 
+/**
+ * Stages a source outside the shared queue, then sends one command to the shared worker and removes the staged source.
+ * @param {string} command The worker command name.
+ * @param {string} definition Portable layout source.
+ * @param {unknown} input Binary source.
+ * @param {object | null} options Operation options; `signal` and `maxSpoolBytes` stay on this side.
+ * @param {object} extra Additional message fields, such as `debug` or `path`.
+ * @returns {Promise<object>} The worker's result envelope.
+ */
 async function sharedRequest(command, definition, input, options, extra) {
   const { signal, maxSpoolBytes, ...operationOptions } = options ?? {};
   // Independent ordinary API calls may stage concurrently. A stalled producer
@@ -473,6 +576,12 @@ const layoutKeys = COMPILE_OPTION_KEYS;
 /** Byte inputs up to this size, without a cancellation signal, are parsed on the calling thread. */
 export const SYNCHRONOUS_PARSE_LIMIT = 64 * 1024;
 
+/**
+ * Whether a source is a byte buffer or view of at most SYNCHRONOUS_PARSE_LIMIT bytes, with no cancellation signal.
+ * @param {unknown} source Binary source.
+ * @param {object | null | undefined} options Operation options; a `signal` excludes the synchronous path.
+ * @returns {boolean} True when the source may be parsed on the calling thread.
+ */
 export function isSmallByteInput(source, options) {
   if (options?.signal) return false;
   if (
@@ -506,6 +615,13 @@ export async function compileLargeSource(definition, options = {}, { parseBytes,
     throw error;
   }
   let disposed = false;
+  /**
+   * Combines the fixed compile options with one operation's options.
+   * @param {object | null | undefined} operationOptions Per-call options; `root` overrides the compiled root.
+   * @returns {object} The merged options.
+   * @throws {Error} When the layout has been disposed.
+   * @throws {TypeError} When the call sets an option fixed at compilation.
+   */
   function merge(operationOptions) {
     if (disposed) throw new Error("Compiled layout has been disposed.");
     for (const key of Object.keys(operationOptions ?? {})) {
@@ -518,6 +634,14 @@ export async function compileLargeSource(definition, options = {}, { parseBytes,
       root: operationOptions?.root === undefined ? frozenOptions.root : operationOptions.root,
     };
   }
+  /**
+   * Parses with the compiled layout: small byte inputs on the calling thread when `parseBytes` is available, the rest
+   * in the retained worker. Errors reject the returned promise.
+   * @param {unknown} input Binary source.
+   * @param {object | null} readOptions Per-call options.
+   * @param {boolean} debug Whether the result records every value's byte range.
+   * @returns {Promise<object>} The parse envelope.
+   */
   function parse(input, readOptions, debug) {
     let merged;
     try {

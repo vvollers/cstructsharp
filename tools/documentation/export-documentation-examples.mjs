@@ -17,6 +17,10 @@ const parity = fs.readFileSync(path.join(examples, "DissectParityExamples.cs"), 
 const generated = fs.readFileSync(path.join(examples, "GeneratedExamples.cs"), "utf8");
 const asyncExamples = fs.readFileSync(path.join(examples, "AsyncExamples.cs"), "utf8");
 const sequenceExamples = fs.readFileSync(path.join(examples, "SequenceExamples.cs"), "utf8");
+/**
+ * Returns the text of Program.cs from the first occurrence of `start` up to the next `end`, without trailing
+ * whitespace.
+ */
 function between(start, end) {
   const first = original.indexOf(start);
   return original.slice(first, original.indexOf(end, first)).trimEnd();

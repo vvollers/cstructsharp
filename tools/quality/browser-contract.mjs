@@ -11,6 +11,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+/**
+ * Reads a repository file as text.
+ * @throws {Error} When the file is missing.
+ */
 const read = (relative) => {
   const file = path.join(root, relative);
   if (!fs.existsSync(file)) throw new Error(`Browser contract input is missing: ${relative}`);
@@ -34,6 +38,7 @@ const dtoSource = [
   .join("\n");
 const managedSources = exports + boundary + dtoSource;
 
+/** Stops the check with an error message. */
 const fail = (message) => {
   throw new Error(message);
 };

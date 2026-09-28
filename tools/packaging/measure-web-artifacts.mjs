@@ -1,3 +1,10 @@
+/**
+ * Measures the WASM publication (artifacts/wasm) and the explorer build (apps/explorer/dist): raw and gzip sizes and
+ * the main JavaScript bundle, compared with contracts/performance/web-size-budget.json. It writes the report to
+ * artifacts/performance/web.json and prints it; `--check` fails when a budget is exceeded.
+ *
+ *   node tools/packaging/measure-web-artifacts.mjs [--check]
+ */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -6,6 +13,11 @@ import { validateWasmPublication } from "./wasm-publication.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const policy = JSON.parse(fs.readFileSync(path.join(root, "contracts/performance/web-size-budget.json"), "utf8"));
+/**
+ * Measures the files below a directory: file count, total bytes, and total gzip (level 9) bytes.
+ * @param {string} relative Repository-relative directory.
+ * @returns {object} Totals and the per-file sizes.
+ */
 function measure(relative) {
   const directory = path.join(root, relative);
   const entries = fs.readdirSync(directory, { recursive: true, withFileTypes: true })

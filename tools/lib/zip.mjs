@@ -36,6 +36,10 @@ export function openZip(file) {
     entries.push({ name, method, compressedSize, size, localOffset });
     offset += 46 + nameLength + extraLength + commentLength;
   }
+  /**
+   * Returns an entry's uncompressed contents; stored and deflated entries are supported.
+   * @throws {Error} When the entry is missing, its local header is corrupt, or it uses another compression method.
+   */
   const read = (name) => {
     const entry = entries.find((candidate) => candidate.name === name);
     if (!entry) throw new Error(`${file} has no entry '${name}'.`);

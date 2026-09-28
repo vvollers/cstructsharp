@@ -16,7 +16,9 @@ import { fileURLToPath } from "node:url";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const args = process.argv.slice(2);
+/** Returns the value after every occurrence of a command-line option, in order. */
 const values = (name) => args.flatMap((a, i) => (a === name ? [args[i + 1]] : []));
+/** Returns the first value of a command-line option, or the fallback when it is absent. */
 const option = (name, fallback) => values(name)[0] ?? fallback;
 const summaries = values("--summary");
 const output = option("--output");
@@ -24,8 +26,11 @@ if (!output || summaries.length === 0) {
   console.error("Usage: record-benchmark-baseline.mjs --output <contract.json> --summary <summary.json> [...]");
   process.exit(2);
 }
+/** Runs a command and returns its trimmed standard output, or null when it fails. */
 const run = (cmd, a) => { try { return execFileSync(cmd, a, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch { return null; } };
+/** Returns the uppercase hexadecimal SHA-256 hash of a buffer. */
 const sha256 = (buffer) => crypto.createHash("sha256").update(buffer).digest("hex").toUpperCase();
+/** Extracts the runtime (such as `.NET 10.0.0`) from a benchmark case's display information. */
 const runtimeOf = (c) => (c.displayInfo?.match(/Runtime=([^,)]+)/)?.[1] ?? "").trim();
 
 const cases = [];
@@ -86,6 +91,7 @@ if (args.includes("--merge") && fs.existsSync(output)) {
   // Partial re-baseline after an accepted experiment: overwrite the re-measured cases, keep every other case and
   // the original evidence, and append a dated note so the contract's history stays readable.
   const existing = JSON.parse(fs.readFileSync(output, "utf8"));
+  /** Identifies a case by type, method, parameters and runtime. */
   const key = (c) => `${c.type}|${c.method}|${c.parameters}|${c.runtime}`;
   const replaced = new Map(cases.map((c) => [key(c), c]));
   const merged = existing.benchmark.cases.map((c) => replaced.get(key(c)) ?? c);

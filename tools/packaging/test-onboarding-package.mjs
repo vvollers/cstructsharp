@@ -15,6 +15,14 @@ import { readManifest, singlePackage } from "../lib/nuget.mjs";
 const options = parseArguments(process.argv.slice(2), { "package-directory": "string" });
 assertCondition(options["package-directory"], "Option --package-directory is required.");
 
+/**
+ * Runs a dotnet command and returns its combined output.
+ * @param {string[]} args The dotnet arguments.
+ * @param {string} cwd The working directory.
+ * @param {object} [env] Optional environment for the command.
+ * @returns {string} Standard output followed by standard error.
+ * @throws {Error} With that output when the command exits with a nonzero status.
+ */
 function checkedDotnet(args, cwd, env) {
   const result = runCommand("dotnet", args, { cwd, env, allowFailure: true });
   const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
@@ -22,6 +30,7 @@ function checkedDotnet(args, cwd, env) {
   return output;
 }
 
+/** Escapes the five XML special characters for use in an attribute value. */
 const escapeXml = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 
 await main(() => {
@@ -52,7 +61,9 @@ await main(() => {
     `<configuration><packageSources><clear/><add key="candidate" value="${source}"/><add key="nuget" value="https://api.nuget.org/v3/index.json"/></packageSources><packageSourceMapping><packageSource key="candidate"><package pattern="CStructSharp"/></packageSource><packageSource key="nuget"><package pattern="*"/></packageSource></packageSourceMapping></configuration>\n`,
   );
   const program = path.join(work, "Program.cs");
+  /** Copies a C# source file over the console project's Program.cs. */
   const setProgram = (file) => fs.writeFileSync(program, fs.readFileSync(file, "utf8"));
+  /** Converts line endings to LF and trims surrounding whitespace, for output comparison. */
   const normalize = (text) => text.replaceAll("\r\n", "\n").trim();
   try {
     for (const framework of ["net8.0", "net10.0"]) {

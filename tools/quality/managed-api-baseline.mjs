@@ -21,20 +21,23 @@ const frameworks = ["net8.0", "net10.0"];
 
 const args = process.argv.slice(2);
 const mode = args[0] === "update" ? "update" : "compare";
+/** Returns the value after a command-line option, or undefined when it is absent. */
 const option = (name) => {
   const index = args.indexOf(name);
   return index >= 0 ? args[index + 1] : undefined;
 };
 
-/** Normalizes line endings so hashes and diffs ignore platform conventions. */
 // The Native AOT claim is per framework (net10.0 only), so its assembly-metadata line is a placeholder that each
 // framework fills with the attribute or with nothing; `aotCompatible` in the manifest says which.
 const aotMetadataLine = '[assembly: System.Reflection.AssemblyMetadata("IsAotCompatible", "True")]\n';
 const aotPlaceholder = "<AOT_METADATA>\n";
 
+/** Converts line endings to LF and ends the text with exactly one newline. */
 const normalize = (text) => text.replaceAll("\r\n", "\n").replace(/\n+$/, "") + "\n";
+/** Returns the uppercase hexadecimal SHA-256 hash of the normalized text. */
 const hashOf = (text) => crypto.createHash("sha256").update(normalize(text), "utf8").digest("hex").toUpperCase();
 
+/** Prints the message and exits with status 1. */
 function fail(message) {
   console.error(message);
   process.exit(1);
@@ -93,6 +96,14 @@ function expectedFor(entry, text = canonicalText) {
     .replaceAll(aotPlaceholder, entry.aotCompatible ? aotMetadataLine : "");
 }
 
+/**
+ * Writes a line-by-line diff of an expected and a received API surface to a file.
+ * Each differing line is written as its line number, the expected line (`-`) and the received line (`+`), up to 300
+ * differences.
+ * @param {string} expected The baseline text.
+ * @param {string} received The generated text.
+ * @param {string} file The diff file to write.
+ */
 function writeDiff(expected, received, file) {
   const a = expected.replace(/\n$/, "").split("\n");
   const b = received.replace(/\n$/, "").split("\n");

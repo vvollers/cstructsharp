@@ -1,9 +1,19 @@
+/**
+ * Provides `tagRelease`, which commits the verified version files, pushes the release commit and its tag, and resumes a
+ * partial release only when it matches the release manifest. release-artifacts.mjs (`tag`) uses it; it has no command
+ * line of its own.
+ */
 import assert from "node:assert/strict";
 
 /** Commit/tag exactly the verified snapshot; resume only matching partial releases. */
 export function tagRelease(git, manifest, versionFiles) {
   const tag = `v${manifest.version}`;
   git("fetch", "origin", "main", "--tags");
+  /**
+   * Asserts that a commit is the release commit: its parent is the verified source and it changes exactly the version
+   * files, to their manifest contents.
+   * @param {string} ref Commit reference to check.
+   */
   function verifyCommit(ref) {
     assert.equal(
       git("rev-parse", `${ref}^`),

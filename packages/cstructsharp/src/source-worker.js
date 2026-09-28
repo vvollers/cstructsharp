@@ -6,6 +6,7 @@ if (!isNode) globalThis.dotnetSidecar = true;
 const port = isNode ? (await import("node:worker_threads")).parentPort : null;
 
 let managedPromise;
+/** Starts the .NET runtime once and returns the managed CStructExports; later calls share the same promise. */
 function loadManaged() {
   return managedPromise ??= (async () => {
     const { dotnet } = await import("./_framework/dotnet.js");
@@ -18,7 +19,14 @@ function loadManaged() {
   })();
 }
 
+/**
+ * Handles one request from the session client: compiles a layout or reads a source descriptor with the managed exports.
+ * A file descriptor is opened for the request and closed before returning; failures are reported, not thrown.
+ * @param {object} request The command, the source descriptor, the definition, options, `debug` and `path`.
+ * @returns {Promise<{result: unknown} | {error: string}>} The reply posted back to the client.
+ */
 async function run({ command, descriptor, definition, options, debug, path }) {
+  /** Releases the request's file handle; replaced when a file is opened. */
   let close = () => {};
   try {
     const managed = await loadManaged();

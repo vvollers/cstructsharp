@@ -93,6 +93,14 @@ export function createPublicApi(loadCStructSharpWasm) {
     return api.getVersion();
   }
 
+  /**
+   * Compiles a layout once into a dedicated worker; the returned handle parses, resolves, serializes and updates with
+   * it.
+   * @param {string} definition Portable layout source.
+   * @param {import("./cstructsharp-wasm.js").CompileOptions | null} [options] Options fixed at compilation, plus an
+   *   optional `root`.
+   * @returns {Promise<object>} The compiled layout handle; call its `dispose` to stop the worker.
+   */
   async function compile(definition, options = null) {
     const api = await loadCStructSharpWasm();
     return api.compile(definition, options, { serialize, update });
@@ -110,6 +118,12 @@ export function createPublicApi(loadCStructSharpWasm) {
   };
 }
 
+/**
+ * Whether a source is a byte buffer or view of at most SYNCHRONOUS_PARSE_LIMIT bytes, with no cancellation signal.
+ * @param {unknown} source Binary source.
+ * @param {object | null} options Parse options; a `signal` excludes the synchronous path.
+ * @returns {boolean} True when the source may be parsed on the calling thread.
+ */
 function isSmallByteInput(source, options) {
   if (options?.signal) return false;
   if (
@@ -122,6 +136,7 @@ function isSmallByteInput(source, options) {
   return false;
 }
 
+/** Views a byte buffer, typed array or DataView as a Uint8Array over the same bytes, without copying. */
 function toUint8Array(source) {
   if (source instanceof Uint8Array) return source;
   if (source instanceof ArrayBuffer || (typeof SharedArrayBuffer !== "undefined" && source instanceof SharedArrayBuffer)) {
@@ -130,6 +145,13 @@ function toUint8Array(source) {
   return new Uint8Array(source.buffer, source.byteOffset, source.byteLength);
 }
 
+/**
+ * Parses the JSON envelope a managed export returned.
+ * @param {string} value The envelope JSON.
+ * @param {string} operation The operation name, used in the error message.
+ * @returns {object} The envelope.
+ * @throws {TypeError} When the text is not valid JSON.
+ */
 function parseEnvelope(value, operation) {
   try {
     return JSON.parse(value);
@@ -181,6 +203,7 @@ export function parseBridgeError(cause, operation) {
   return parsed;
 }
 
+/** Serializes a value to JSON for the managed bridge, writing BigInt values as decimal strings. */
 function stringifyInteropValue(value) {
   return JSON.stringify(value, (_key, current) =>
     typeof current === "bigint" ? current.toString(10) : current,
@@ -234,6 +257,7 @@ function tryParseNative(api, definition, bytes, options) {
   return envelope("parse", plan.root, executeNativePlan(view, 0, plan.plan));
 }
 
+/** Whether every set option is one the JavaScript static plan supports; any other option sends the parse to WASM. */
 function nativePlanOptionsEligible(options) {
   if (options === null || options === undefined) return true;
   if (typeof options !== "object") return false;
@@ -243,6 +267,14 @@ function nativePlanOptionsEligible(options) {
   return true;
 }
 
+/**
+ * Returns the prepared static plan for a definition and options, fetching it from the adapter on a cache miss.
+ * The cache is least-recently-used, bounded by NATIVE_PLAN_CACHE_LIMIT, and also remembers layouts without a plan.
+ * @param {object} api The adapter.
+ * @param {string} definition Portable layout source.
+ * @param {object | null} options Parse options.
+ * @returns {object | null} `{ root, plan }`, or null when the layout has no static plan.
+ */
 function getNativePlan(api, definition, options) {
   const key = definition + "\u0000" + JSON.stringify(options ?? {}, Array.from(NATIVE_PLAN_OPTION_KEYS).sort());
   if (nativePlanCache.has(key)) {
@@ -267,6 +299,7 @@ function getNativePlan(api, definition, options) {
 
 const NATIVE_ELEMENT_SIZE = { u8: 1, i8: 1, bool: 1, i16: 2, u16: 2, i24: 3, u24: 3, i32: 4, u32: 4, i64: 8, u64: 8, f32: 4, f64: 8 };
 
+/** Adds lookup data to a static plan in place: enum name maps, array element sizes, and the same for nested plans. */
 function prepareNativePlan(plan) {
   for (const op of plan.ops) {
     if (op.k === "e") {
@@ -279,6 +312,13 @@ function prepareNativePlan(plan) {
   }
 }
 
+/**
+ * Reads one structure with a prepared static plan.
+ * @param {DataView} view The input bytes.
+ * @param {number} base Byte offset of the structure within the view.
+ * @param {object} plan The prepared plan.
+ * @returns {object} The structure's fields, shaped like the JSON projection.
+ */
 function executeNativePlan(view, base, plan) {
   const result = {};
   const ops = plan.ops;
@@ -326,6 +366,14 @@ function executeNativePlan(view, base, plan) {
 
 const SAFE_INTEGER_BIG = 9007199254740991n;
 
+/**
+ * Reads one scalar with the operation's codec (`t`) and byte order (`le`), projected like the JSON projection.
+ * @param {DataView} view The input bytes.
+ * @param {number} at Byte offset of the value within the view.
+ * @param {object} op The plan operation.
+ * @returns {number | boolean | string} The value; 64-bit integers beyond the safe range and non-finite floats are
+ *   strings.
+ */
 function readNativeNumber(view, at, op) {
   switch (op.t) {
     case "u8":
@@ -367,6 +415,7 @@ function readNativeNumber(view, at, op) {
   }
 }
 
+/** Returns a BigInt as a Number when it is a safe integer and as decimal text otherwise. */
 function safeInteger(value) {
   return value >= -SAFE_INTEGER_BIG && value <= SAFE_INTEGER_BIG ? Number(value) : value.toString(10);
 }
@@ -456,7 +505,9 @@ function compareDecimalDistances(value, upperDigits, lowerDigits, scale) {
   const twoShift = exponent < 0 ? -exponent : 0;
   const tenShift = scale < 0 ? -scale : 0;
   const exact = mantissa * 2n ** BigInt(exponent + twoShift) * 10n ** BigInt(tenShift);
+  /** Scales a decimal's digits to the common integer scale of the comparison. */
   const toInteger = (digits) => digits * 10n ** BigInt(scale + tenShift) * 2n ** BigInt(twoShift);
+  /** Absolute value of a BigInt. */
   const abs = (n) => (n < 0n ? -n : n);
   const upperDistance = abs(exact - toInteger(upperDigits));
   const lowerDistance = abs(exact - toInteger(lowerDigits));

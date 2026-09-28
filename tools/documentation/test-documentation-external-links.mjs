@@ -17,10 +17,21 @@ assertCondition(options["timeout-seconds"] >= 5 && options["timeout-seconds"] <=
 const documentationRoot = path.join(repositoryRoot, "docs");
 const allowlistPath = path.join(repositoryRoot, "contracts/documentation/external-link-allowlist.json");
 
+/**
+ * Collects the distinct external URLs of the Markdown links in a page, without trailing periods.
+ * @param {string} text Markdown source.
+ * @returns {string[]} Sorted URLs.
+ */
 export function externalUrls(text) {
   return [...new Set([...text.matchAll(/\[[^\]]+\]\((https?:\/\/[^\s)>]+)/g)].map((match) => match[1].replace(/\.+$/, "")))].sort();
 }
 
+/**
+ * Checks the allowlist of external-link exceptions: exact, unique https URLs, each with an owner, a reason, and a
+ * review date that is valid and not in the past.
+ * @param {object[]} exceptions Allowlist entries.
+ * @returns {string[]} One `code:url` error per problem found.
+ */
 export function allowlistErrors(exceptions) {
   const errors = [];
   const urls = new Set();
@@ -45,6 +56,14 @@ export function allowlistErrors(exceptions) {
   return errors;
 }
 
+/**
+ * Requests a URL with a timeout, following redirects, and discards the response body.
+ * @param {string} url URL to check.
+ * @param {string} method HTTP method, such as HEAD or GET.
+ * @param {number} timeoutMs Time limit in milliseconds.
+ * @returns {Promise<{ok: boolean, result: string}>} Whether the response succeeded, with the HTTP status or the error
+ *   message.
+ */
 async function probe(url, method, timeoutMs) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);

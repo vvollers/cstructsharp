@@ -23,6 +23,17 @@ export interface Lesson extends TestEntry {
   options?: ParseWithDebugOptions;
 }
 
+/**
+ * Builds a lesson entry with the fields the demo runner expects, deriving its source link, parser
+ * settings, and documentation from the lesson details.
+ * @param id Lesson identifier used in the URL.
+ * @param title Title shown in the lesson list.
+ * @param definition Starting layout text.
+ * @param binaryHex Starting input bytes as space-separated hex pairs.
+ * @param rootType Root the lesson reads.
+ * @param extra Teaching text, operations, options, and the recipe the lesson is based on.
+ * @returns The complete lesson.
+ */
 function lesson(
   id: string,
   title: string,
@@ -1027,6 +1038,14 @@ export const lessons: (Lesson & { operation: LessonOperationKind; explanation: s
     }),
   );
 
+/**
+ * Checks an operation result against a lesson's expected outcome: an error code, output bytes, or
+ * parsed data.
+ * @param expected Expected error, hex bytes, or data.
+ * @param result Operation result.
+ * @param bytes Output bytes of a serialize or update operation.
+ * @returns True when the result matches.
+ */
 export function compareLessonResult(
   expected: LessonOperation["expected"],
   result: InteropResult,

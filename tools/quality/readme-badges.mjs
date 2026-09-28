@@ -16,6 +16,7 @@ for (const name of ["results-directory", "output-directory", "run-url"]) {
   assertCondition(options[name], `Option --${name} is required.`);
 }
 
+/** Recursively lists the files under a directory whose name matches a predicate. */
 function findFiles(directory, predicate) {
   const found = [];
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -41,6 +42,13 @@ await main(() => {
   assertCondition(counters, "TRX test counters are missing.");
 
   fs.mkdirSync(options["output-directory"], { recursive: true });
+  /**
+   * Writes a shields.io endpoint badge JSON file to the output directory.
+   * @param {string} name File name without extension.
+   * @param {string} label Badge label.
+   * @param {string} message Badge value.
+   * @param {string} color Badge color name.
+   */
   const writeBadge = (name, label, message, color) =>
     fs.writeFileSync(path.join(options["output-directory"], `${name}.json`), `${JSON.stringify({ schemaVersion: 1, label, message, color }, null, 2)}\n`);
 
@@ -58,6 +66,7 @@ await main(() => {
   const results = findAll(tests, "UnitTestResult");
   const outcomes = new Map();
   for (const result of results) outcomes.set(result.attributes.outcome, (outcomes.get(result.attributes.outcome) ?? 0) + 1);
+  /** Sums the number of test results with any of the given outcomes. */
   const count = (names) => names.reduce((sum, name) => sum + (outcomes.get(name) ?? 0), 0);
   const passed = count(["Passed"]);
   const failed = count(["Failed", "Error", "Timeout", "Aborted", "PassedButRunAborted", "Disconnected"]);

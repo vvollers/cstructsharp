@@ -16,6 +16,10 @@ const siteDirectory = path.join(repositoryRoot, "docs/_site");
 const artifactDirectory = path.join(repositoryRoot, "artifacts/documentation");
 const validator = path.join(repositoryRoot, "tools/documentation/validate-pages-artifact.mjs");
 
+/**
+ * Runs the Pages artifact validator with the given arguments and prints its output.
+ * @throws {Error} When validation fails.
+ */
 function validate(args) {
   const result = runCommand(process.execPath, [validator, ...args], { allowFailure: true });
   process.stdout.write(result.stdout ?? "");

@@ -1,7 +1,13 @@
 /// <reference types="node" />
 import { Buffer } from "node:buffer";
 
+/**
+ * Builds small synthetic files for the inspector tests: PNG, JPEG, ZIP, PE, ELF and PDF.
+ * Each file is larger than 64 KiB.
+ * @returns The files by format name.
+ */
 export function inspectionFiles(): Record<string, Buffer> {
+  /** Builds a PNG chunk: big-endian length, tag, data and a zero CRC. */
   const chunk = (tag: string, data: Buffer) => {
     const b = Buffer.alloc(data.length + 12);
     b.writeUInt32BE(data.length);
@@ -25,6 +31,7 @@ export function inspectionFiles(): Record<string, Buffer> {
     chunk("iTXt", Buffer.from("Title\0\0\0en\0Title\0Hello PNG", "utf8")),
     chunk("IEND", Buffer.alloc(0)),
   ]);
+  /** Builds a JPEG segment: marker and big-endian length, followed by the data. */
   const segment = (marker: number, data: Buffer) => {
     const b = Buffer.alloc(4 + data.length);
     b[0] = 255;
@@ -165,6 +172,11 @@ export function inspectionFiles(): Record<string, Buffer> {
   return { png, jpg, zip, exe, elf, pdf: Buffer.from(pdfText) };
 }
 
+/**
+ * Builds format variants of the inspection files: ZIP64, PE32+, a big-endian ELF with extended
+ * section counts, and an incrementally updated PDF.
+ * @returns Each variant's name, file extension, bytes and a text its inspection must show.
+ */
 export function inspectionVariants(): {
   name: string;
   ext: string;

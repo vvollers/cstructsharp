@@ -29,17 +29,25 @@ const sourceRelative = "tools/compiler-fixtures/portable-host-facts.c";
 
 const args = process.argv.slice(2);
 const mode = args[0];
+/** Returns the value that follows a command-line option, or a fallback when the option is absent. */
 function option(name, fallback) {
   const index = args.indexOf(name);
   return index >= 0 ? args[index + 1] : fallback;
 }
+/** Prints a message to stderr and exits with status 1. */
 function fail(message) {
   console.error(message);
   process.exit(1);
 }
+/** Returns the uppercase hexadecimal SHA-256 hash of a file's contents. */
 function sha256(file) {
   return crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex").toUpperCase();
 }
+/**
+ * Runs a command synchronously and captures its text output.
+ * @returns {import("node:child_process").SpawnSyncReturns<string>} The completed process result.
+ * @throws {Error} When the command cannot be started.
+ */
 function run(command, commandArgs, options = {}) {
   const result = spawnSync(command, commandArgs, { encoding: "utf8", ...options });
   if (result.error) throw new Error(`${command} could not be started: ${result.error.message}`);
@@ -169,10 +177,16 @@ function identifyCompiler(compiler) {
   throw new Error(`Only gcc, clang, clang-cl, and cl are supported by this fixture runner.\n${versionOutput}`);
 }
 
+/** Returns the host operating system label used in evidence records (Windows, macOS, or Linux). */
 function hostOs() {
   return process.platform === "win32" ? "Windows" : process.platform === "darwin" ? "macOS" : "Linux";
 }
 
+/**
+ * Expands files and directories into a sorted list of evidence JSON files; exits when a path is missing.
+ * @param {string[]} inputs Paths relative to the repository root.
+ * @returns {string[]} Absolute file paths.
+ */
 function collectFiles(inputs) {
   const files = [];
   for (const input of inputs) {
@@ -189,6 +203,7 @@ function collectFiles(inputs) {
   return files;
 }
 
+/** Exits with a failure message when a validation condition does not hold. */
 function assertThat(condition, message) {
   if (!condition) fail(message);
 }
@@ -233,6 +248,13 @@ function validateRecord(file, evidence, sourceHash, shapes, families) {
   }
 }
 
+/**
+ * Checks one recorded layout: positive size and alignment, size a multiple of alignment, offsets inside the object, and
+ * (when required) a byte image of exactly `size` uppercase hexadecimal octets.
+ * @param {object} layout Recorded layout.
+ * @param {string} context Description used in failure messages.
+ * @param {boolean} requireBytes Whether the layout must carry a byte image.
+ */
 function validateLayout(layout, context, requireBytes) {
   assertThat(layout && layout.size >= 1 && layout.alignment >= 1, `${context} has an invalid size or alignment.`);
   assertThat(layout.size % layout.alignment === 0, `${context} size is not a multiple of its alignment.`);
@@ -255,6 +277,7 @@ function renderTable(shapes, baselines) {
   lines.push("| Shape | C declaration | Portable | " + columns.map((column) => column.label).join(" | ") + " |");
   lines.push("| --- | --- | --- | " + columns.map(() => "---").join(" | ") + " |");
   const recordedAbis = new Set(baselines.map((baseline) => baseline.compiler.abi));
+  /** Names a placement mode, noting when no recorded compiler baseline backs its ABI. */
   const describeClaim = (mode, abi) => (recordedAbis.has(abi) ? `\`${mode}\`` : `\`${mode}\` (modelled, no ${abi} baseline yet)`);
   for (const shape of shapes.shapes) {
     const claim = [shape.portable.sysv ? describeClaim("SysV", "sysv") : null, shape.portable.msvc ? describeClaim("Msvc", "msvc") : null].filter(Boolean).join(", ") || "neither";

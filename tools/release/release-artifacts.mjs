@@ -17,12 +17,16 @@ const versionFiles = [
   "apps/shared/package.json",
   "packages/cstructsharp/package.json",
 ];
+/** Returns the lowercase hexadecimal SHA-256 hash of the bytes. */
 const hash = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
+/** Runs git in the repository root and returns its trimmed output. */
 const git = (...args) => run("git", args, { cwd: root }).trim();
+/** Reads a repository-relative file as bytes. */
 const read = (file) => fs.readFileSync(path.join(root, file));
 const info = JSON.parse(fs.readFileSync(path.join(npmArtifacts, "package-info.json"), "utf8"));
 validatePackageInfo(info, fs.readFileSync(path.join(npmArtifacts, info.filename)));
 
+/** Lists the files below a repository-relative directory as sorted repository-relative POSIX paths. */
 function list(directory) {
   return fs
     .readdirSync(path.join(root, directory), { recursive: true, withFileTypes: true })

@@ -18,8 +18,11 @@ const options = parseArguments(process.argv.slice(2), { "contract-path": "string
     "matrix-path": path.join(repositoryRoot, "contracts/quality/feature-operation-matrix.json"),
   },
 });
+/** Returns whether a value is missing or only whitespace. */
 const blank = (value) => value === undefined || value === null || String(value).trim() === "";
+/** Joins items as sorted strings, for order-insensitive set comparison. */
 const sortedJoin = (items) => [...items].map(String).sort().join(",");
+/** Returns whether a list contains no duplicates. */
 const unique = (items) => new Set(items).size === items.length;
 
 await main(() => {

@@ -30,6 +30,10 @@ export interface TestManifest {
   tests: TestEntry[];
 }
 
+/**
+ * Whether a test entry can run in the explorer: marked runnable, with a definition and input hex.
+ * @param test The entry to check, if any.
+ */
 export function isRunnable(test: TestEntry | null | undefined): test is TestEntry & {
   definition: string;
   binaryHex: string;

@@ -18,6 +18,12 @@ const emit = defineEmits<{
   detect: [];
 }>();
 
+/**
+ * Describes an example's file type for its list entry: presentation, uppercase extension and
+ * description.
+ * @param example The example to describe.
+ * @returns The file presentation with `label` and `kind` added.
+ */
 function fileType(example: InspectorExample) {
   const extension = example.extension ?? "";
   return {
@@ -39,6 +45,10 @@ const filteredExamples = computed(() => {
   });
 });
 
+/**
+ * Whether an example is the selected one, by id or by the extension of the loaded file.
+ * @param example The example to test.
+ */
 function isSelected(example: InspectorExample): boolean {
   return (
     example.id === props.selectedId ||

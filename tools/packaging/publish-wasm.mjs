@@ -1,3 +1,11 @@
+/**
+ * Publishes the WASM bridge to artifacts/wasm. It runs `dotnet publish` for src/CStructSharp.Wasm in Release, stages
+ * the boot-referenced framework files, the JavaScript adapter modules from packages/cstructsharp/src and the runtime
+ * configuration, validates the result, and replaces artifacts/wasm so that a failure restores the previous publication.
+ * The publication manifest is written to artifacts/baseline/wasm-publication.json.
+ *
+ *   node tools/packaging/publish-wasm.mjs    (npm run build:wasm)
+ */
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -28,6 +36,10 @@ const sourceFramework = path.join(appBundle, "_framework");
 const publicRoot = path.join(repositoryRoot, "artifacts");
 const manifestPath = path.join(repositoryRoot, "artifacts", "baseline", "wasm-publication.json");
 
+/**
+ * Compares two paths after resolving them, ignoring case on Windows.
+ * @returns {boolean} True when both name the same location.
+ */
 function pathsEqual(first, second) {
   const normalizedFirst = path.resolve(first);
   const normalizedSecond = path.resolve(second);
@@ -36,6 +48,12 @@ function pathsEqual(first, second) {
     : normalizedFirst === normalizedSecond;
 }
 
+/**
+ * Creates `artifacts/` and returns its `wasm` subdirectory as the publication destination, refusing a destination that
+ * is a symbolic link, not a directory, or resolves outside `artifacts/`.
+ * @returns {{destination: string, resolvedPublicRoot: string}} The destination and the real path of `artifacts/`.
+ * @throws {Error} When the destination is unsafe to replace.
+ */
 function resolveSafeDestination() {
   fs.mkdirSync(publicRoot, { recursive: true });
   const resolvedPublicRoot = fs.realpathSync.native(publicRoot);
@@ -62,6 +80,11 @@ function resolveSafeDestination() {
   return { destination, resolvedPublicRoot };
 }
 
+/**
+ * Runs `dotnet publish` for the WASM project in Release without debug symbols or source maps.
+ * @param {string} temporaryPublishDirectory Output directory for the publish.
+ * @throws {Error} When dotnet cannot start or exits with a failure code.
+ */
 function runPublish(temporaryPublishDirectory) {
   const result = spawnSync(
     "dotnet",
@@ -90,6 +113,10 @@ function runPublish(temporaryPublishDirectory) {
   }
 }
 
+/**
+ * Copies one regular file, creating the destination directory.
+ * @throws {Error} When the source is a symbolic link or not a regular file.
+ */
 function copyFile(source, destination) {
   const stat = fs.lstatSync(source);
   if (stat.isSymbolicLink() || !stat.isFile()) {
@@ -99,6 +126,13 @@ function copyFile(source, destination) {
   fs.copyFileSync(source, destination);
 }
 
+/**
+ * Copies the required framework files, the JavaScript adapter modules, and the runtime configuration into a staging
+ * directory and validates the result.
+ * @param {string} stagingDirectory Empty directory to fill.
+ * @returns {object} The publication manifest from `validateWasmPublication`.
+ * @throws {Error} When the AppBundle is missing or the staged publication is invalid.
+ */
 function stagePublication(stagingDirectory) {
   if (!fs.existsSync(sourceFramework) || !fs.statSync(sourceFramework).isDirectory()) {
     throw new Error(`dotnet publish did not produce its AppBundle framework: ${sourceFramework}`);
@@ -117,6 +151,10 @@ function stagePublication(stagingDirectory) {
   return validateWasmPublication(stagingDirectory);
 }
 
+/**
+ * Copies a directory tree of regular files.
+ * @throws {Error} When the tree contains an entry that is neither a directory nor a regular file.
+ */
 function copyDirectory(source, destination) {
   fs.mkdirSync(destination, { recursive: true });
   for (const entry of fs.readdirSync(source, { withFileTypes: true })) {
@@ -132,6 +170,13 @@ function copyDirectory(source, destination) {
   }
 }
 
+/**
+ * Replaces the destination with the staged publication. The new copy is validated beside the destination, swapped in by
+ * rename, and validated again; on failure the previous publication is restored.
+ * @param {string} stagedPublication Validated staging directory.
+ * @param {string} destination Publication directory to replace.
+ * @param {string} resolvedPublicRoot Real path of the directory that holds the destination.
+ */
 function replaceDestination(stagedPublication, destination, resolvedPublicRoot) {
   const identifier = crypto.randomUUID();
   const deploymentStage = path.join(resolvedPublicRoot, `wasm-stage-${identifier}`);

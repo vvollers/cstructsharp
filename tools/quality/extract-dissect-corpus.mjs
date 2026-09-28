@@ -22,6 +22,10 @@ if (!ecosystemDirectory || !outputPath) {
 const root = path.resolve(ecosystemDirectory);
 const skip = ["dissect.cstruct/", "dissect.cstruct_legacy", "dissect_legacy", "/tests/", "/build/", "dissect-docs", "-templates", "splunk"];
 
+/**
+ * Reports whether a string looks like a dissect.cstruct definition: balanced braces and a first code line that starts
+ * with typedef, struct, union, enum, flag, or a preprocessor directive.
+ */
 function isDefinition(text) {
   if ((text.match(/\{/g) ?? []).length !== (text.match(/\}/g) ?? []).length) return false;
   const body = text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
@@ -53,6 +57,7 @@ function pythonStringLiterals(source) {
   let index = 0;
   let line = 1;
   let pending = null; // an implicit-concatenation group: { line, value }
+  /** Moves the pending implicit-concatenation group, if any, to the literal list. */
   const flush = () => {
     if (pending) literals.push(pending);
     pending = null;
@@ -109,6 +114,7 @@ function pythonStringLiterals(source) {
   return literals;
 }
 
+/** Recursively lists the Python files under a directory. */
 function listPythonFiles(directory) {
   const files = [];
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {

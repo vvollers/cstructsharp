@@ -1,3 +1,10 @@
+/**
+ * Assembles the complete website in artifacts/pages: the landing page (docs/landing/index.html), the documentation
+ * (docs/_site), the explorer and inspector builds (apps/explorer/dist, apps/inspector/dist) and the README badges
+ * (artifacts/readme-badges). Every input must already be built; the destination is replaced.
+ *
+ *   node tools/packaging/assemble-site.mjs
+ */
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";

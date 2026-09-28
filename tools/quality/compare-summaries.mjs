@@ -10,6 +10,7 @@
 import fs from "node:fs";
 
 const args = process.argv.slice(2);
+/** Returns the value after a command-line option, or the fallback when it is absent. */
 const option = (name, fallback) => {
   const index = args.indexOf(name);
   return index >= 0 ? args[index + 1] : fallback;
@@ -34,7 +35,9 @@ function load(file) {
   return map;
 }
 
+/** Formats a duration in nanoseconds as ns, µs or ms. */
 const fmtNs = (v) => (v >= 1e6 ? `${(v / 1e6).toFixed(2)} ms` : v >= 1e3 ? `${(v / 1e3).toFixed(1)} µs` : `${Math.round(v)} ns`);
+/** Formats a ratio as a signed percentage with one decimal, or `n/a` when it is not finite. */
 const pct = (v) => (Number.isFinite(v) ? `${v >= 0 ? "+" : ""}${(v * 100).toFixed(1)}%` : "n/a");
 
 const before = load(beforePath);

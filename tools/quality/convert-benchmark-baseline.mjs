@@ -46,6 +46,7 @@ function round3(value) {
   return Math.round(Number(value) * 1000) / 1000;
 }
 
+/** Runs git in the repository root and returns its output, or an empty string when git fails. */
 function git(args) {
   try {
     return execFileSync("git", ["-C", repositoryRoot, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
@@ -69,6 +70,7 @@ function normalizeReport(source, sourceName) {
       `Benchmark report contains cases without statistics: ${failed.map((b) => b.FullName).join(", ")}`,
     );
   }
+  /** Compares two strings by code unit order, independent of locale. */
   const compare = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
   const sorted = [...benchmarks].sort(
     (a, b) =>

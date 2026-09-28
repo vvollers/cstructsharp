@@ -6,6 +6,7 @@ import { runCommand } from "./tooling.mjs";
 /** Every file below a directory (absolute paths, sorted), optionally filtered by a predicate on the absolute path. */
 export function listFiles(directory, predicate = () => true) {
   const files = [];
+  /** Adds the files of a directory, and recursively of its subdirectories, to `files` in name order. */
   const visit = (current) => {
     for (const entry of fs.readdirSync(current, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))) {
       const full = path.join(current, entry.name);
@@ -17,8 +18,11 @@ export function listFiles(directory, predicate = () => true) {
   return files;
 }
 
+/** Whether a path exists and is a regular file. */
 export const isFile = (file) => fs.existsSync(file) && fs.statSync(file).isFile();
+/** Whether a path exists and is a directory. */
 export const isDirectory = (file) => fs.existsSync(file) && fs.statSync(file).isDirectory();
+/** A path with backslashes replaced by forward slashes. */
 export const toPosix = (file) => file.replaceAll("\\", "/");
 
 /** Tracked plus untracked-but-not-ignored files of a repository, as repository-relative POSIX paths. */

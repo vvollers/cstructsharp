@@ -58,6 +58,9 @@ watch(
   },
 );
 
+/**
+ * Emits `run` with a copy of the settings, unless the panel is disabled or the settings are open.
+ */
 function submit(): void {
   if (props.disabled || settingsOpen.value) return;
 

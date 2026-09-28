@@ -15,6 +15,7 @@ import { assertCondition, main, parseArguments, repositoryRoot, runCommand, runN
 const options = parseArguments(process.argv.slice(2), { "wasm-directory": "string", "frontend-directory": "string", "package-directory": "string", "output-path": "string" });
 assertCondition(options["output-path"], "Option --output-path is required.");
 
+/** Lists every file below a directory as sorted absolute paths. */
 function listFiles(directory) {
   const files = [];
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -25,6 +26,11 @@ function listFiles(directory) {
   return files.sort();
 }
 
+/**
+ * Measures a directory: file count, raw bytes and gzip (level 9) bytes, per-extension totals and the 25 largest files.
+ * @param {string} directory The directory to measure.
+ * @returns {object} The measurement, with the directory path relative to the repository.
+ */
 function measureDirectory(directory) {
   const root = path.resolve(directory);
   const entries = listFiles(root).map((file) => {

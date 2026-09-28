@@ -17,19 +17,37 @@ const options = parseArguments(
   { "policy-path": "string", "benchmark-summary-path": "string", "package-artifact-path": "string", "self-test": "flag" },
   { defaults: { "policy-path": path.join(repositoryRoot, "contracts/performance/release-gate.json"), "self-test": false } },
 );
+/** Returns whether a path exists and is a regular file. */
 const isFile = (file) => fs.existsSync(file) && fs.statSync(file).isFile();
+/** Identifies a benchmark case by its type, method and parameters. */
 const caseKey = (benchmark) => `${benchmark.type ?? ""}|${benchmark.method ?? ""}|${benchmark.parameters ?? ""}`;
+/** Deep-copies a JSON value. */
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
+/**
+ * Returns a case's median time budget in nanoseconds: the baseline median times the policy multiplier, with the policy
+ * minimum as a floor.
+ */
 function timingBudget(expected, policy) {
   return Math.max(Number(expected.baselineMedianNanoseconds) * Number(policy.maximumMedianMultiplier), Number(policy.minimumMedianBudgetNanoseconds));
 }
 
+/**
+ * Returns a case's allocation budget in bytes: the larger of the baseline grown by the policy ratio and the baseline
+ * plus the policy headroom.
+ */
 function allocationBudget(expected, policy) {
   const baseline = Number(expected.baselineAllocatedBytes);
   return Math.max(baseline * (1 + Number(policy.maximumAllocationGrowthRatio)), baseline + Number(policy.minimumAllocationHeadroomBytes));
 }
 
+/**
+ * Compares a benchmark summary with the release-gate policy.
+ * @param {object} summary The BenchmarkDotNet summary (schema version 1).
+ * @param {object} policy The benchmark section of the release-gate policy.
+ * @returns {string[]} One message per runtime mismatch, missing, duplicate or unreviewed case, or exceeded budget;
+ *   empty when the summary passes.
+ */
 function benchmarkFailures(summary, policy) {
   const failures = [];
   if (summary.schemaVersion !== 1) {
@@ -76,6 +94,12 @@ function benchmarkFailures(summary, policy) {
   return failures;
 }
 
+/**
+ * Compares a package artifact report with the package size budgets.
+ * @param {object} artifact The artifact report (schema version 1).
+ * @param {object} policy The package section of the release-gate policy.
+ * @returns {string[]} One message per exceeded or malformed measurement; empty when the package pair passes.
+ */
 function packageFailures(artifact, policy) {
   const failures = [];
   if (artifact.schemaVersion !== 1) {
@@ -106,10 +130,12 @@ function packageFailures(artifact, policy) {
   return failures;
 }
 
+/** Throws one error listing every failure message, prefixed with the context, when there are any. */
 function assertNoFailures(failures, context) {
   if (failures.length > 0) throw new Error(`${context} failed.\n${failures.join("\n")}`);
 }
 
+/** Formats a ratio as a percentage with two decimals. */
 const percent = (value) => `${(value * 100).toFixed(2)} %`;
 
 await main(() => {

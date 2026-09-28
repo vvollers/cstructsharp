@@ -11,6 +11,12 @@ import { dirname, join } from "node:path";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const check = process.argv.includes("--check");
 
+/**
+ * Reads the primitive alias tables from PrimitiveSpellings.cs: the fixed aliases, the `long` family that depends on
+ * `CLongWidth`, the pointer-sized integers, and the pointer spellings.
+ * @returns {{aliases: object[], longFamily: object[], pointerSized: object[], pointerSpellings: object[]}}
+ *   Spelling-to-canonical records for each table.
+ */
 function readAliasTable() {
   const source = readFileSync(join(root, "src/CStructSharp.Core/Codecs/PrimitiveSpellings.cs"), "utf8");
   const aliases = [];
@@ -43,10 +49,17 @@ function readAliasTable() {
   return { aliases, longFamily, pointerSized, pointerSpellings };
 }
 
+/** Serializes a value as two-space-indented JSON with a trailing newline. */
 function stableJson(value) {
   return JSON.stringify(value, null, 2) + "\n";
 }
 
+/**
+ * Applies a change to a JSON file and writes it back (or reports it as stale with `--check`).
+ * @param {string} relativePath Repository-relative path of the JSON file.
+ * @param {(document: object) => void} mutate Updates the parsed document in place.
+ * @returns {boolean} True when the file differs from the synchronized content.
+ */
 function syncJson(relativePath, mutate) {
   const path = join(root, relativePath);
   const before = readFileSync(path, "utf8");
@@ -56,6 +69,14 @@ function syncJson(relativePath, mutate) {
   return apply(path, before, after);
 }
 
+/**
+ * Writes the synchronized content when it differs; with `--check` it reports the file as stale and sets exit code 1
+ * instead.
+ * @param {string} path File to update.
+ * @param {string} before Current content.
+ * @param {string} after Synchronized content.
+ * @returns {boolean} True when the content differs.
+ */
 function apply(path, before, after) {
   if (before === after) {
     return false;

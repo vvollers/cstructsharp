@@ -15,7 +15,9 @@ const options = parseArguments(process.argv.slice(2), { "corpus-path": "string",
     "matrix-path": path.join(repositoryRoot, "contracts/quality/feature-operation-matrix.json"),
   },
 });
+/** Whether a path exists and is a regular file. */
 const isFile = (file) => fs.existsSync(file) && fs.statSync(file).isFile();
+/** Reports whether two lists contain the same items, ignoring order. */
 const sameSet = (expected, actual) => expected.length === actual.length && [...expected].sort().every((item, index) => item === [...actual].sort()[index]);
 
 await main(() => {

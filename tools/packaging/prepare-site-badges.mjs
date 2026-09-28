@@ -1,3 +1,11 @@
+/**
+ * Prepares the README badge data for the website in artifacts/readme-badges. With the GitHub CLI (`gh`), it downloads
+ * the `readme-badges` artifact of the latest successful push CI run on main (coverage and test counts), validates each
+ * badge, measures the NuGet package (the given file, or the latest GitHub Release asset), and writes the badge JSON
+ * files and an explanatory index.html. GITHUB_REPOSITORY selects the repository (default vvollers/cstructsharp).
+ *
+ *   node tools/packaging/prepare-site-badges.mjs [<path/to/CStructSharp.<version>.nupkg>]
+ */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -8,6 +16,7 @@ const root = fileURLToPath(new URL("../../", import.meta.url));
 const repository = process.env.GITHUB_REPOSITORY || "vvollers/cstructsharp";
 const output = path.join(root, "artifacts/readme-badges");
 fs.mkdirSync(output, { recursive: true });
+/** Runs the GitHub CLI in the repository root and returns its trimmed output. */
 const gh = (...args) => execFileSync("gh", args, { cwd: root, encoding: "utf8" }).trim();
 
 // CI remains the producer of quality measurements. Site builds only retrieve data, never execute it.

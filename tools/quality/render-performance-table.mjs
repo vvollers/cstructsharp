@@ -104,6 +104,7 @@ export const JS_ROWS = [
   { name: "public.update.scalar.28B", operation: "`update` of one scalar in the 28-byte record (WebAssembly)" },
 ];
 
+/** Builds the key (type, method, parameters) that matches a table row to its BenchmarkDotNet summary case. */
 const caseKey = (benchmark) => `${benchmark.type ?? ""}|${benchmark.method ?? ""}|${benchmark.parameters ?? ""}`;
 
 /** Formats nanoseconds with three significant digits in the unit that keeps the number readable. */
@@ -131,6 +132,10 @@ export function formatBytes(bytes) {
   return `${value.toLocaleString("en-US")} B`;
 }
 
+/**
+ * Returns the `YYYY-MM-DD` UTC date of a timestamp.
+ * @throws {Error} When the timestamp cannot be parsed.
+ */
 function isoDate(value) {
   const date = new Date(value);
   assertCondition(!Number.isNaN(date.getTime()), `Invalid timestamp ${value}.`);
@@ -254,10 +259,15 @@ export function replaceBlock(page, block) {
   return `${page.slice(0, start + START_MARKER.length)}\n${block}${page.slice(end)}`;
 }
 
+/** Reads and parses a JSON file. */
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"));
 }
 
+/**
+ * Checks the renderer against synthetic inputs: number formatting, captions, optional sections, rejection of partial
+ * benchmark sets, and marker replacement. Throws on the first failed check.
+ */
 function selfTest() {
   const summary = {
     schemaVersion: 1,

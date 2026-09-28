@@ -39,6 +39,10 @@ interface FilePresentation {
 // Curated by format identity rather than schema/container title. Sources and family
 // substitutions are documented in FILE-ICONS.md. All icon data is bundled offline.
 export const fileTypeIcons: Record<string, FilePresentation> = {};
+/**
+ * Registers an icon and family label for each space-separated extension.
+ * @throws When an extension already has an icon.
+ */
 function assign(extensions: string, icon: typeof fileIcon, family: string): void {
   for (const extension of extensions.split(" ")) {
     if (fileTypeIcons[extension]) throw new Error(`Duplicate file icon: ${extension}`);
@@ -101,6 +105,11 @@ assign("ics vcf", outlook, "Calendar / contacts");
 assign("pgp", encryption, "Encrypted / signed data");
 assign("pcap", network, "Network packet capture");
 
+/**
+ * Returns the icon and family label for a file extension, or a generic file icon for unknown
+ * extensions.
+ * @param extension Extension without the dot; an exact-case match is tried first.
+ */
 export function filePresentation(extension: string): FilePresentation {
   // Preserve the case-sensitive Unix-compress extension Z.
   return (

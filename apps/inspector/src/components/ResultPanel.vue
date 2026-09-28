@@ -47,6 +47,11 @@ const selectionTypes: readonly string[] = Object.values(SelectionType);
 
 // This handler can receive either a JSON-tree selection or a normal browser `select` event.
 // Only JSON selections have one of these recognized types, so check before reading their path.
+/**
+ * Reports the JSON path of a tree selection to the parent, or null for a text selection or an empty
+ * path.
+ * @param selection Selection event from the JSON editor or the browser.
+ */
 function handleSelect(selection: unknown): void {
   if (
     !selection ||

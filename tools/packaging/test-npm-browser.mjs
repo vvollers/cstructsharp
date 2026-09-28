@@ -1,3 +1,8 @@
+/**
+ * Browser consumer checks for the packed npm package: `testBrowserConsumer` runs one exercise of the public API in
+ * Chromium through Vite dev and preview servers, Vite SSR, and a static server with a strict Content Security Policy.
+ * test-npm-package.mjs imports it after installing the tarball; it has no command line of its own.
+ */
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -32,9 +37,22 @@ catch(error) { if(!error.message.includes("different runtimeUrl")) throw error; 
 window.result = {version:await api.getVersion(), kind:read.data.kind};
 `;
 
+/**
+ * Runs the package's browser exercise in Chromium through Vite dev and preview servers (root and nested base paths),
+ * Vite SSR, and a static server with a strict Content Security Policy.
+ * @param {string} consumer Consumer project directory where pages and builds are written.
+ * @param {string} installed Installed package directory.
+ * @param {{version: string}} info Package information; the runtime must report this version.
+ * @returns {Promise<void>} Resolves when every consumer passes; rejects on the first failure.
+ */
 export async function testBrowserConsumer(consumer, installed, info) {
   const { cstructsharp } = await import(pathToFileURL(path.join(installed, "vite.js")).href);
   const browser = await chromium.launch({ headless: true });
+  /**
+   * Opens a page, waits for the exercise to finish, and asserts that it succeeded without page errors or failed
+   * requests. Requests to hosts other than 127.0.0.1 are blocked.
+   * @param {string} url Page to open.
+   */
   async function visit(url) {
     const page = await browser.newPage();
     const errors = [];

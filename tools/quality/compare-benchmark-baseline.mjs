@@ -12,10 +12,12 @@
 import fs from "node:fs";
 
 const args = process.argv.slice(2);
+/** Returns the value that follows a command-line option, or a fallback when the option is absent. */
 const option = (name, fallback) => {
   const index = args.indexOf(name);
   return index >= 0 ? args[index + 1] : fallback;
 };
+/** Reports whether a command-line flag is present. */
 const flag = (name) => args.includes(name);
 const baselinePath = option("--baseline");
 const summaryPath = option("--summary");
@@ -35,7 +37,12 @@ const minimumAllocationBytes = Number(policy.minimumAllocationBytes ?? 256);
 
 // Baselines recorded per runtime (drift-scenarios) key on the runtime as well; the single-runtime gate does not.
 const useRuntime = baseline.benchmark.cases.some((c) => c.runtime);
+/** Returns a benchmark case's runtime: its own `runtime` field or the one named in its BenchmarkDotNet display info. */
 const runtimeOf = (c) => c.runtime ?? (c.displayInfo?.match(/Runtime=([^,)]+)/)?.[1] ?? "").trim();
+/**
+ * Builds the key that matches a summary case to its baseline case (type, method, parameters, and, for per-runtime
+ * baselines, runtime).
+ */
 const key = (c) => `${c.type}|${c.method}|${c.parameters ?? ""}${useRuntime ? `|${c.runtime ?? ""}` : ""}`;
 const current = new Map();
 for (const c of summary.benchmarks) {
@@ -77,7 +84,9 @@ for (const expected of baseline.benchmark.cases) {
   rows.push({ key: k, status, baselineMedian: expected.baselineMedianNanoseconds, median: actual.medianNanoseconds, medianDelta, baselineAlloc: expected.baselineAllocatedBytes, alloc: actual.allocatedBytes, allocDelta, rsd });
 }
 
+/** Formats a duration in nanoseconds as ns, µs, or ms. */
 const fmtNs = (v) => (v >= 1e6 ? `${(v / 1e6).toFixed(2)} ms` : v >= 1e3 ? `${(v / 1e3).toFixed(1)} µs` : `${Math.round(v)} ns`);
+/** Formats a ratio change as a signed percentage, or `n/a` when it is not finite. */
 const pct = (v) => (Number.isFinite(v) ? `${v >= 0 ? "+" : ""}${(v * 100).toFixed(1)}%` : "n/a");
 const lines = [];
 lines.push(`### Benchmark drift vs ${baseline.budgetId ?? baseline.name ?? baselinePath}`);

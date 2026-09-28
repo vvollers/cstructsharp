@@ -86,6 +86,7 @@ test("one-pass inputs reject text chunks and enforce staging limits", async () =
 
 test("pre-aborted inputs do not consume an iterator", async () => {
   let read = false;
+  /** Yields one byte and records that iteration started. */
   async function* input() {
     read = true;
     yield new Uint8Array(1);

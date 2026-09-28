@@ -43,6 +43,7 @@ function recordSynthesizedUids(block, namespace, positionalRecords, apiDirectory
       .map((declaration) => declaration.name),
   );
   const uids = new Set();
+  /** Returns the member block of a public type declared in the namespace block, or an empty string. */
   const typeBody = (name) => new RegExp(`^    public [^\\r\\n]*\\b${escapeRegex(name)}\\b[^\\r\\n]*\\r?\\n    \\{([\\s\\S]*?)^    \\}`, "m").exec(block)?.[1] ?? "";
   for (const declaration of declarations) {
     const { name, arity } = declaration;
@@ -195,6 +196,7 @@ await main(() => {
   let returnDescriptionCount = 0;
   let exceptionCount = 0;
   const primaryItems = new Map();
+  /** Returns the trimmed `description` text of a parameter or return entry in DocFX metadata. */
   const descriptionOf = (entry) => /^ {6}description:\s*(.*?)\r?$/m.exec(entry)?.[1]?.trim() ?? "";
   for (const file of listFiles(apiDirectory, (candidate) => candidate.endsWith(".yml") && path.basename(candidate) !== "toc.yml" && path.dirname(candidate) === path.resolve(apiDirectory))) {
     let contents = normalizeNewlines(fs.readFileSync(file, "utf8"));

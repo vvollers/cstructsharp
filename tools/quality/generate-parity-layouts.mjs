@@ -19,10 +19,19 @@ const check = process.argv.includes("--check");
 const layouts = [];
 const skipped = [];
 
+/** Converts an identifier such as `my-case_1` to PascalCase (`MyCase1`) for a C# class name. */
 function pascal(id) {
   return id.split(/[^A-Za-z0-9]+/).filter(Boolean).map((part) => part[0].toUpperCase() + part.slice(1)).join("");
 }
 
+/**
+ * Records one layout for generation under a PascalCase class name, or records why it is skipped (a class name that
+ * would start with a digit, a root that is a type spelling, or a duplicate name in its source group).
+ * @param {string} source Source group, which becomes the C# namespace suffix.
+ * @param {string} id Fixture identifier.
+ * @param {string} definition Layout text.
+ * @param {object} options Root, parser settings, and any compilation options or test data.
+ */
 function add(source, id, definition, options) {
   const className = pascal(id);
   if (/^[0-9]/.test(className)) return skipped.push({ source, id, reason: "class name would start with a digit" });
@@ -114,6 +123,7 @@ for (const file of fs.readdirSync(recipeDirectory).filter((name) => name.endsWit
       continue;
     }
     const named = construction[2];
+    /** Returns the value of a named argument (`name: value`) in the constructor call, or a fallback. */
     const option = (name, fallback) => {
       const match = new RegExp(`${name}:\\s*([A-Za-z0-9]+)`).exec(named);
       return match ? match[1] : fallback;
@@ -132,6 +142,11 @@ for (const file of fs.readdirSync(recipeDirectory).filter((name) => name.endsWit
   }
 }
 
+/**
+ * Decodes a C# raw (`"""..."""`) or regular string literal into its text.
+ * @param {string} literal Literal source, including its quotes.
+ * @returns {string | null} The text, or null when the literal cannot be decoded.
+ */
 function decodeLiteral(literal) {
   if (literal.startsWith('"""')) {
     const body = literal.slice(3, -3);
@@ -148,6 +163,7 @@ function decodeLiteral(literal) {
   }
 }
 
+/** Formats text as a C# regular string literal, escaping backslashes, quotes, and control characters. */
 function csharpLiteral(text) {
   return '"' + text.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\r/g, "\\r").replace(/\n/g, "\\n").replace(/\t/g, "\\t") + '"';
 }

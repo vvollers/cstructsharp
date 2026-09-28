@@ -8,6 +8,10 @@ import {
 } from "./debug-path";
 import type { DebugItem } from "@cstructsharp/app-shared/wasm/contract";
 
+/**
+ * Creates a one-byte `uint8` debug item at offset 0 with the given fields replaced.
+ * @param overrides The fields to set.
+ */
 function debugItem(overrides: Partial<DebugItem>): DebugItem {
   return {
     start: 0,
@@ -43,6 +47,7 @@ describe("tokenizePath", () => {
 
 describe("findDebugEntryIndicesByPath", () => {
   it("maps pointer target fields separately from address storage, preserving real value fields", () => {
+    /** Builds a dereferenced pointer value at address 32 that holds the given target value. */
     const pointer = (value: unknown) => ({
       kind: "pointer",
       address: 32,

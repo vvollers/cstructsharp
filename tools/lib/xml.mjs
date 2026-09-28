@@ -6,10 +6,19 @@
 
 /** @typedef {{ name: string, attributes: Record<string, string>, children: XmlElement[], text: string }} XmlElement */
 
+/**
+ * Parses an XML document into a tree of elements.
+ * Text is decoded and appended to its enclosing element; comments, processing instructions and declarations are
+ * skipped.
+ * @param {string} text The document.
+ * @returns {XmlElement} A `#document` element whose children are the top-level elements.
+ * @throws {Error} When a start tag is not terminated.
+ */
 export function parseXml(text) {
   let index = 0;
   const root = { name: "#document", attributes: {}, children: [], text: "" };
   const stack = [root];
+  /** Replaces the predefined entities and numeric character references in text or an attribute value. */
   const decode = (value) =>
     value.replace(/&(lt|gt|amp|quot|apos|#x[0-9A-Fa-f]+|#\d+);/g, (entity, code) => {
       switch (code) {
@@ -59,6 +68,10 @@ export function parseXml(text) {
   return root;
 }
 
+/**
+ * Returns the index of the `>` that ends the tag starting at `open`, skipping quoted attribute values.
+ * @throws {Error} When the tag is not terminated.
+ */
 function findTagEnd(text, open) {
   let quote = null;
   for (let index = open + 1; index < text.length; index++) {
@@ -77,6 +90,7 @@ function findTagEnd(text, open) {
 /** Every descendant element (depth-first) whose local name matches, ignoring a namespace prefix. */
 export function findAll(element, localName) {
   const found = [];
+  /** Collects matching descendants of one node, depth-first. */
   const visit = (node) => {
     for (const child of node.children) {
       if (localNameOf(child.name) === localName) found.push(child);
@@ -97,6 +111,7 @@ export function childrenNamed(element, localName) {
   return element.children.filter((child) => localNameOf(child.name) === localName);
 }
 
+/** Returns an element name without its namespace prefix. */
 export function localNameOf(name) {
   const colon = name.indexOf(":");
   return colon < 0 ? name : name.slice(colon + 1);

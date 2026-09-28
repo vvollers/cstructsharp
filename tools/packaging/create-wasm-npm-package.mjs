@@ -1,3 +1,12 @@
+/**
+ * Packs the `cstructsharp` npm package. It validates the WASM publication in artifacts/wasm, stages the authored
+ * package files from packages/cstructsharp with the runtime, declarations, license, the .NET runtime pack notices and
+ * the runtime manifest, checks that the staged package reports the managed release version, and runs `npm pack`. The
+ * tarball and its metadata (package-info.json) are written to artifacts/npm; the staging directory is kept only when a
+ * step fails.
+ *
+ *   node tools/packaging/create-wasm-npm-package.mjs    (npm run pack:npm)
+ */
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import fs from "node:fs";

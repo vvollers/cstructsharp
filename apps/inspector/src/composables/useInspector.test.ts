@@ -16,6 +16,10 @@ vi.mock("@cstructsharp/app-shared/wasm/adapter", async (importOriginal) => ({
   parseSourceWithDebug: vi.fn(),
 }));
 
+/**
+ * Creates a promise together with the function that resolves it, so a test controls when it
+ * settles.
+ */
 function deferred<T>() {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((done) => {
@@ -25,6 +29,10 @@ function deferred<T>() {
 }
 
 const cleanups: (() => void)[] = [];
+/**
+ * Mounts a component that uses `useInspector` and registers its unmount for cleanup.
+ * @returns The inspector state and the mounted wrapper.
+ */
 async function session() {
   let inspector!: Inspector;
   const wrapper = mount(

@@ -7,6 +7,12 @@ const testsRoot = path.resolve(repoRoot, "tests/CStructSharpTests");
 const outPath = path.resolve(webRoot, "src/generated/test-demos.json");
 const githubSourceRoot = "https://github.com/vvollers/cstructsharp/blob/main/";
 
+/**
+ * Recursively lists the C# source files under a directory, skipping hidden and build-output
+ * folders.
+ * @param {string} dir Directory to search.
+ * @returns {string[]} Absolute paths of the `.cs` files found.
+ */
 function walkCsFiles(dir) {
   const results = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -23,6 +29,11 @@ function walkCsFiles(dir) {
   return results;
 }
 
+/**
+ * Decodes the escape sequences of a regular C# string literal body (`\n`, `\u0041`, `\x41`, ...).
+ * @param {string} content Literal text between the quotes, with escapes still encoded.
+ * @returns {string} The decoded string value.
+ */
 function decodeEscapedString(content) {
   let out = "";
   for (let i = 0; i < content.length; i++) {
@@ -98,6 +109,12 @@ function decodeEscapedString(content) {
   return out;
 }
 
+/**
+ * Trims the blank first and last lines of a C# raw string literal and removes their common
+ * indentation.
+ * @param {string} value Text between the raw literal's quote delimiters.
+ * @returns {string} The literal's value as C# would produce it.
+ */
 function normalizeRawString(value) {
   const lines = value.split(/\r?\n/);
   while (lines.length > 0 && lines[0].trim() === "") lines.shift();
@@ -117,6 +134,14 @@ function normalizeRawString(value) {
   return lines.join("\n");
 }
 
+/**
+ * Parses a C# string literal (regular, verbatim `@"..."`, or raw `"""..."""`) that starts at an
+ * index.
+ * @param {string} text Source text.
+ * @param {number} start Index of the literal's first character.
+ * @returns {{value: string, end: number} | null} The decoded value and the index just past the
+ *   literal, or null when no complete literal starts there.
+ */
 function parseStringLiteralFromIndex(text, start) {
   if (start >= text.length) return null;
 
@@ -174,6 +199,13 @@ function parseStringLiteralFromIndex(text, start) {
   return null;
 }
 
+/**
+ * Parses one or more string literals joined with `+` into a single value.
+ * @param {string} text Source text.
+ * @param {number} start Index of the first literal.
+ * @returns {{value: string, end: number} | null} The concatenated value and the index after the
+ *   last literal, or null when any part is not a string literal.
+ */
 function parseConcatenatedStringLiterals(text, start) {
   let literal = parseStringLiteralFromIndex(text, start);
   if (!literal) return null;
@@ -195,6 +227,13 @@ function parseConcatenatedStringLiterals(text, start) {
   return { value, end };
 }
 
+/**
+ * Finds the `}` that closes the brace at `openIndex`, ignoring braces inside comments, strings, and
+ * chars.
+ * @param {string} text C# source text.
+ * @param {number} openIndex Index of the opening `{`.
+ * @returns {number} Index of the matching closing brace, or -1 when it is missing.
+ */
 function findMatchingBrace(text, openIndex) {
   let i = openIndex;
   let depth = 0;
@@ -315,6 +354,12 @@ function findMatchingBrace(text, openIndex) {
   return -1;
 }
 
+/**
+ * Returns the 1-based line number of a character index.
+ * @param {string} text Source text.
+ * @param {number} upToIndex Character index to locate.
+ * @returns {number} Line number containing that index.
+ */
 function countLines(text, upToIndex) {
   let lines = 1;
   for (let i = 0; i < upToIndex; i++) {
@@ -323,6 +368,12 @@ function countLines(text, upToIndex) {
   return lines;
 }
 
+/**
+ * Splits a C# argument list at top-level commas, keeping nested brackets, strings, and chars
+ * intact.
+ * @param {string} argText Text between the call's parentheses.
+ * @returns {string[]} Trimmed argument texts in order.
+ */
 function splitArgs(argText) {
   const args = [];
   let current = "";
@@ -406,6 +457,12 @@ function splitArgs(argText) {
   return args;
 }
 
+/**
+ * Parses a C# integer literal (decimal, hex, binary, octal, or a `(byte)'c'` cast), ignoring digit
+ * separators.
+ * @param {string} text Literal text.
+ * @returns {number | null} The value, or null when the text is not a supported integer literal.
+ */
 function parseNumericLiteral(text) {
   const token = text.trim().replace(/_/g, "");
   if (!token) return null;
@@ -434,6 +491,12 @@ function parseNumericLiteral(text) {
   return negative ? -value : value;
 }
 
+/**
+ * Parses a comma-separated list of byte literals.
+ * @param {string} text List text from an array or collection expression.
+ * @returns {Uint8Array | null} The bytes, or null when the list is empty or any value is outside
+ *   0-255.
+ */
 function parseByteList(text) {
   const values = text
     .split(",")
@@ -449,17 +512,33 @@ function parseByteList(text) {
   return Uint8Array.from(values);
 }
 
+/**
+ * Reads the bytes of a `byte[] name = [ ... ];` collection expression in a test body.
+ * @param {string} body Test method body.
+ * @returns {Uint8Array | null} The bytes, or null when no such array is found.
+ */
 function parseIntArrayLiteral(body) {
   const m = body.match(/byte\[\]\s+\w+\s*=\s*\[(?<vals>[\s\S]*?)\];/m);
   if (!m?.groups?.vals) return null;
   return parseByteList(m.groups.vals);
 }
 
+/**
+ * Reads the bytes of a `new MemoryStream([ ... ])` expression in a test body.
+ * @param {string} body Test method body.
+ * @returns {Uint8Array | null} The bytes, or null when no such stream is found.
+ */
 function parseInlineMemoryStream(body) {
   const m = body.match(/new\s+MemoryStream\s*\(\s*\[(?<vals>[\s\S]*?)\]\s*\)/m);
   return m?.groups?.vals ? parseByteList(m.groups.vals) : null;
 }
 
+/**
+ * Reads a `long[]` literal that the test copies to bytes with `Buffer.BlockCopy`, as little-endian
+ * int64 values.
+ * @param {string} body Test method body.
+ * @returns {Uint8Array | null} Eight bytes per value, or null when the pattern is absent.
+ */
 function parseLongArrayBlockCopy(body) {
   const m = body.match(/long\[\]\s+\w+\s*=\s*\[(?<vals>[\s\S]*?)\];/m);
   if (!m?.groups?.vals) return null;
@@ -482,6 +561,13 @@ function parseLongArrayBlockCopy(body) {
   return Uint8Array.from(bytes);
 }
 
+/**
+ * Reads bytes from a `name.ParseHexDataContent()` call whose string variable holds hexadecimal
+ * pairs.
+ * @param {string} body Test method body.
+ * @param {Record<string, string>} stringMap String variables declared in the body.
+ * @returns {Uint8Array | null} The decoded bytes, or null when the pattern or its string is absent.
+ */
 function parseHexBuf(body, stringMap) {
   const m = body.match(/byte\[\]\?\s+\w+\s*=\s*(?<name>\w+)\.ParseHexDataContent\(\);/);
   if (!m?.groups?.name) return null;
@@ -493,6 +579,13 @@ function parseHexBuf(body, stringMap) {
   return bytes;
 }
 
+/**
+ * Reads bytes produced by `Encoding.Unicode.GetBytes(...)` from a string variable or literal
+ * (UTF-16LE).
+ * @param {string} body Test method body.
+ * @param {Record<string, string>} stringMap String variables declared in the body.
+ * @returns {Uint8Array | null} The encoded bytes, or null when the pattern is absent.
+ */
 function parseUnicodeBytes(body, stringMap) {
   const m = body.match(/byte\[\]\s+\w+\s*=\s*Encoding\.Unicode\.GetBytes\((?<expr>[^)]+)\);/);
   if (!m?.groups?.expr) return null;
@@ -510,6 +603,12 @@ function parseUnicodeBytes(body, stringMap) {
   return Uint8Array.from(Buffer.from(value, "utf16le"));
 }
 
+/**
+ * Reads bytes produced by casting each character of a string variable to `byte`.
+ * @param {string} body Test method body.
+ * @param {Record<string, string>} stringMap String variables declared in the body.
+ * @returns {Uint8Array | null} The low byte of each character, or null when the pattern is absent.
+ */
 function parseCharCastBytes(body, stringMap) {
   const m = body.match(
     /byte\[\]\s+\w+\s*=\s*(?<src>\w+)\.Select\(o\s*=>\s*\(byte\)o\)\.ToArray\(\);/,
@@ -521,12 +620,22 @@ function parseCharCastBytes(body, stringMap) {
   return bytes;
 }
 
+/**
+ * Formats bytes as space-separated two-digit lowercase hexadecimal pairs.
+ * @param {Uint8Array} bytes Bytes to format.
+ * @returns {string} Hexadecimal text such as `01 ff`.
+ */
 function toHex(bytes) {
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, "0"))
     .join(" ");
 }
 
+/**
+ * Collects the `string name = <literal>;` declarations of a test body.
+ * @param {string} body Test method body.
+ * @returns {Record<string, string>} Decoded values keyed by variable name.
+ */
 function extractStringVariables(body) {
   const vars = {};
   const regex = /(?:const\s+)?string\s+(?<name>\w+)\s*=/g;
@@ -623,6 +732,12 @@ const bclParsers = String.raw`(?<!\b(?:long|ulong|int|uint|short|ushort|byte|sby
 const parseCallPattern = String.raw`${bclParsers}\.Parse(?:WithDebug)?\s*\(`;
 const rootReadCallPattern = String.raw`\.ReadValue(?:WithDebug)?\s*\([^)]*,\s*"(?<name>[A-Za-z_]\w*)"`;
 
+/**
+ * Finds the root type a test reads: the root-name argument of a Parse call or of a root ReadValue
+ * call.
+ * @param {string} body Test method body.
+ * @returns {string | null} The root name, or null when the test uses the layout's default root.
+ */
 function extractParseRootType(body) {
   const withRoot = body.match(new RegExp(`${parseCallPattern}[^)]*,\\s*"(?<name>[^"]+)"`, "m"));
   if (withRoot?.groups?.name) return withRoot.groups.name;
@@ -631,6 +746,13 @@ function extractParseRootType(body) {
   return null;
 }
 
+/**
+ * Finds the layout text of a test: a well-known string variable, any string that declares a type,
+ * or the first argument of `new CStruct(...)`.
+ * @param {string} body Test method body.
+ * @param {Record<string, string>} stringMap String variables declared in the body.
+ * @returns {string | null} The trimmed layout text, or null when none is found.
+ */
 function extractDefinition(body, stringMap) {
   const preferredNames = ["structDef", "d", "cdef", "definition", "def"];
   for (const name of preferredNames) {
@@ -659,6 +781,12 @@ function extractDefinition(body, stringMap) {
   return null;
 }
 
+/**
+ * Extracts the input bytes of a test by trying each supported byte-construction pattern in turn.
+ * @param {string} body Test method body.
+ * @param {Record<string, string>} stringMap String variables declared in the body.
+ * @returns {Uint8Array | null} The first bytes found, or null when no pattern matches.
+ */
 function extractDemoData(body, stringMap) {
   const hexBytes = parseHexBuf(body, stringMap);
   if (hexBytes) return hexBytes;
@@ -681,16 +809,33 @@ function extractDemoData(body, stringMap) {
   return null;
 }
 
+/**
+ * Reports whether a test body reads a layout through Parse/ParseWithDebug or a root ReadValue call.
+ * @param {string} body Test method body.
+ * @returns {boolean} True when a layout read is present.
+ */
 function hasParseCall(body) {
   return new RegExp(parseCallPattern).test(body) || new RegExp(rootReadCallPattern).test(body);
 }
 
+/**
+ * Reports whether a test expects a layout read to throw (`Assert.Throws` around a read call).
+ * @param {string} body Test method body.
+ * @returns {boolean} True when the test verifies a read failure.
+ */
 function hasExpectedParseFailure(body) {
   return new RegExp(
     String.raw`Assert\.(?:Throws|ThrowsExactly)[\s\S]*?(?:${parseCallPattern}|${rootReadCallPattern})`,
   ).test(body);
 }
 
+/**
+ * Builds a demo entry for every `[TestMethod]` in a C# test file. Entries the browser can replay
+ * carry the layout, input bytes, root, and parser options; the others carry the reason they cannot
+ * run.
+ * @param {string} filePath Absolute path of the test file.
+ * @returns {object[]} One entry per test method, with its documentation and source location.
+ */
 function extractMethods(filePath) {
   const text = fs.readFileSync(filePath, "utf8");
   const relativePath = path.relative(repoRoot, filePath).replaceAll("\\", "/");
@@ -831,6 +976,11 @@ function extractMethods(filePath) {
   return tests;
 }
 
+/**
+ * Decodes the five predefined XML entities.
+ * @param {string} text XML text.
+ * @returns {string} Text with `&lt;`, `&gt;`, `&amp;`, `&quot;`, and `&apos;` replaced.
+ */
 function decodeXmlEntities(text) {
   return text
     .replaceAll("&lt;", "<")
@@ -840,16 +990,34 @@ function decodeXmlEntities(text) {
     .replaceAll("&apos;", "'");
 }
 
+/**
+ * Collapses whitespace in an XML documentation value and decodes its entities.
+ * @param {string} value Raw element content.
+ * @returns {string} Single-line plain text.
+ */
 function normalizeXmlDocValue(value) {
   return decodeXmlEntities(value.replace(/\s+/g, " ").trim());
 }
 
+/**
+ * Returns the normalized content of the first `<tag>` element in XML documentation text.
+ * @param {string} xml XML documentation text.
+ * @param {string} tag Element name, such as `summary`.
+ * @returns {string} The element's text, or an empty string when it is absent.
+ */
 function extractTag(xml, tag) {
   const m = xml.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "i"));
   if (!m?.[1]) return "";
   return normalizeXmlDocValue(m[1]);
 }
 
+/**
+ * Reads the `///` XML documentation comment directly above a test's attribute.
+ * @param {string} sourceText Whole C# file text.
+ * @param {number} beforeIndex Index of the `[TestMethod]` attribute.
+ * @returns {{summary: string, usage: string}} The summary, and the remarks (or summary) as usage
+ *   text; empty strings when the test has no documentation comment.
+ */
 function extractDocumentationFromXmlDoc(sourceText, beforeIndex) {
   const upToAttr = sourceText.slice(0, beforeIndex);
   const lines = upToAttr.split(/\r?\n/);

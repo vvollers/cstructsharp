@@ -39,6 +39,7 @@ onMounted(async () => {
     ariaLabel: props.label ?? "Binary layout (C-like definition)",
     stickyScroll: { enabled: false },
   });
+  /** Resizes the editor to its content height, between 130 and 440 pixels. */
   const resize = () => {
     height.value = Math.min(440, Math.max(130, instance!.getContentHeight()));
   };

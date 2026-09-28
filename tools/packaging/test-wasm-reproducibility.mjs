@@ -1,3 +1,10 @@
+/**
+ * Checks that republishing over a dirty destination reproduces the WASM publication. It records the manifest of
+ * artifacts/wasm, adds stale files to it, runs publish-wasm.mjs again, and asserts that the manifest (paths, sizes and
+ * SHA-256 hashes) is unchanged and the stale files are gone. Requires an existing publication and the .NET SDK.
+ *
+ *   node tools/packaging/test-wasm-reproducibility.mjs    (npm run test:wasm-reproducibility)
+ */
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";

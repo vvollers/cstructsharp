@@ -35,11 +35,17 @@ function open(request: OperationRequest, tab: Language) {
   opened.value = true;
   dialog.value?.showModal();
 }
+/** Closes the dialog and returns focus to the element that opened it. */
 function close() {
   dialog.value?.close();
   opened.value = false;
   opener?.focus();
 }
+/**
+ * Shows the code for a language and clears the copy status.
+ * @param tab Language to show.
+ * @param focus Whether to move keyboard focus to the tab button after the update.
+ */
 async function selectTab(tab: Language, focus = false) {
   language.value = tab;
   copyStatus.value = "";
@@ -48,6 +54,7 @@ async function selectTab(tab: Language, focus = false) {
     dialog.value?.querySelector<HTMLButtonElement>(`#generated-tab-${tab}`)?.focus();
   }
 }
+/** Copies the shown code to the clipboard and reports success or a manual-copy hint. */
 async function copy() {
   try {
     await navigator.clipboard.writeText(sources.value[language.value]);
@@ -56,6 +63,7 @@ async function copy() {
     copyStatus.value = "Select the code in the editor and copy it manually.";
   }
 }
+/** Downloads the shown code as `Program.cs` or `example.mjs`. */
 function download() {
   const blob = new Blob([sources.value[language.value]], { type: "text/plain;charset=utf-8" });
   const url = URL.createObjectURL(blob);

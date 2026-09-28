@@ -22,6 +22,7 @@ export function readManifest(packagePath) {
   if (!nuspecName) throw new Error(`Package '${packagePath}' has no .nuspec manifest.`);
   const manifest = parseXml(archive.read(nuspecName).toString("utf8"));
   const metadata = childrenNamed(findFirst(manifest, "package") ?? { children: [] }, "metadata")[0];
+  /** Returns the trimmed text of a metadata element, or an empty string when it is absent. */
   const text = (name) => childrenNamed(metadata ?? { children: [] }, name)[0]?.text?.trim() ?? "";
   return { id: text("id"), version: text("version"), archive, manifest, nuspecName };
 }

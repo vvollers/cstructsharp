@@ -20,7 +20,9 @@ const options = parseArguments(process.argv.slice(2), { "config-path": "string",
 });
 assertCondition(options["report-path"], "Option --report-path is required.");
 const EXPORT_LIST_TEST = "CStructSharp.Tests.PublicApiSurfaceTests.ExportedTypesAndSignatures_AreDeliberateAndImplementationAgnostic";
+/** Counts the mutants with the given Stryker status. */
 const countStatus = (mutants, status) => mutants.filter((mutant) => String(mutant.status) === status).length;
+/** Counts the mutants that were tested: killed, timed out, survived, uncovered or failed at runtime. */
 const validCountOf = (mutants) => ["Killed", "Timeout", "Survived", "NoCoverage", "RuntimeError"].reduce((sum, status) => sum + countStatus(mutants, status), 0);
 
 // Validate the full configured population before calculating scores; non-applicability is never a detected mutant.
@@ -67,6 +69,7 @@ await main(() => {
   requireCoreMutationTests(report);
 
   // A runtime entry is relative to src/CStructSharp; a shared compile-time source is named by its folder (`**/CStructSharp.Core/...`).
+  /** Returns the lowercase path suffix a report file name must end with to match a configured file. */
   const suffixOf = (file) => (file.startsWith("**/") ? `/${file.slice(3)}` : `/cstructsharp/${file}`).toLowerCase();
   const allMutants = [];
   const reportFiles = Object.entries(report.files ?? {}).map(([name, value]) => [name.replaceAll("\\", "/"), value]);

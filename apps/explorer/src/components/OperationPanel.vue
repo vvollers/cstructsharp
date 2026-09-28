@@ -90,6 +90,7 @@ const settingsSummary = computed(() => [
   { label: "Text", value: formatBytes(maxStringBytes.value), color: "#5eead4" },
   { label: "Depth", value: maxNestingDepth.value.toLocaleString(), color: "#d8b4fe" },
 ]);
+/** Closes the settings dialog and returns focus to the button that opened it. */
 function closeSettings(): void {
   settingsDialog.value?.close();
   settingsButton.value?.focus();
@@ -158,6 +159,11 @@ watch(
   },
 );
 
+/**
+ * Converts hex text to bytes for the input hex view; invalid text yields no bytes.
+ * @param value The hex text.
+ * @returns The bytes, or an empty array when the text is not valid hex.
+ */
 function parseBinaryHex(value: string): Uint8Array {
   try {
     return hexToBytes(value);
@@ -175,10 +181,15 @@ function handleBinaryEdited(bytes: Uint8Array): void {
   binaryHex.value = bytesToHex(bytes);
 }
 
+/** Emits `run` with the current request, unless the settings dialog is open. */
 function submit(): void {
   if (settingsDialog.value?.open) return;
   emit("run", currentRequest());
 }
+/**
+ * Collects the selected operation, inputs and settings into a request.
+ * @returns The request; one byte budget applies to both reading and writing.
+ */
 function currentRequest(): OperationRequest {
   return {
     operation: operation.value,

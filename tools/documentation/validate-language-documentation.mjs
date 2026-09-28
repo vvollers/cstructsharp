@@ -26,9 +26,16 @@ const options = parseArguments(
     },
   },
 );
+/** Returns whether a value is missing or only whitespace. */
 const blank = (value) => value === undefined || value === null || String(value).trim() === "";
+/** Joins items as sorted strings, for order-insensitive set comparison. */
 const sortedJoin = (items) => [...items].map(String).sort().join(",");
 
+/**
+ * Derives the anchor a Markdown heading receives: lowercase, without HTML tags or punctuation, with spaces as hyphens.
+ * @param {string} heading The heading text without its `#` markers.
+ * @returns {string} The anchor without the leading `#`.
+ */
 export function markdownAnchor(heading) {
   let anchor = heading.trim().toLowerCase();
   anchor = anchor.replace(/<[^>]+>/g, "");
@@ -37,6 +44,12 @@ export function markdownAnchor(heading) {
   return anchor.replace(/^-+|-+$/g, "");
 }
 
+/**
+ * Asserts that a `docs/language/<page>.md#anchor` reference names an existing manual page containing a heading with
+ * that anchor.
+ * @param {string} reference The manual reference.
+ * @param {string} context Where the reference appears, used in failure messages.
+ */
 function assertManualReference(reference, context) {
   const separator = reference.indexOf("#");
   assertCondition(separator >= 0, `${context} manual reference '${reference}' must use repository-path#anchor format.`);

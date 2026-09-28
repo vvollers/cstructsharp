@@ -1,3 +1,10 @@
+/**
+ * Builds the standalone WASM bundle directory artifacts/wasm-package from the publication in artifacts/wasm and the
+ * standalone sources in packages/cstructsharp (library entry, API module, declarations, README, starter pages and
+ * static server); the release workflow zips that directory. It also exports `createWasmPackage` for other destinations.
+ *
+ *   node tools/packaging/create-wasm-package.mjs    (npm run pack:zip)
+ */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -12,6 +19,10 @@ const standaloneSource = path.join(root, "packages/cstructsharp/standalone");
 const libraryEntry = path.join(adapterSource, "cstructsharp-wasm.js");
 const readme = path.join(standaloneSource, "README.md");
 
+/**
+ * Copies a directory tree of regular files.
+ * @throws {Error} When the tree contains an entry that is neither a directory nor a regular file.
+ */
 function copyDirectory(sourceDirectory, destinationDirectory) {
   fs.mkdirSync(destinationDirectory, { recursive: true });
   for (const entry of fs.readdirSync(sourceDirectory, { withFileTypes: true })) {
@@ -27,6 +38,15 @@ function copyDirectory(sourceDirectory, destinationDirectory) {
   }
 }
 
+/**
+ * Builds the standalone WASM package: the validated publication plus the library entry, API module, declarations,
+ * README, starter files, and static server. The destination directory is replaced.
+ * @param {string} sourceDirectory Built WASM publication.
+ * @param {string} destinationDirectory Package directory to create.
+ * @returns {{directory: string, manifest: object, files: string[]}} The package directory, the publication manifest,
+ *   and the package-relative paths of its files.
+ * @throws {Error} When the publication, library entry, or README is missing.
+ */
 export function createWasmPackage(sourceDirectory = source, destinationDirectory = destination) {
   if (!fs.existsSync(sourceDirectory)) {
     throw new Error(`The built WASM publication does not exist: ${sourceDirectory}`);

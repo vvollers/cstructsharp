@@ -11,6 +11,10 @@ const webRoot = path.resolve(scriptDirectory, "..");
 const generator = path.join(scriptDirectory, "generate-test-demos.mjs");
 const outputPath = path.join(webRoot, "src", "generated", "test-demos.json");
 
+/**
+ * Runs the demo generator and returns the JSON file it wrote.
+ * @returns {string} The contents of src/generated/test-demos.json.
+ */
 function generate() {
   const result = spawnSync(process.execPath, [generator], {
     cwd: webRoot,

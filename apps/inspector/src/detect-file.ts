@@ -1,5 +1,12 @@
 import type { FileTypeResult } from "file-type";
 
+/**
+ * Detects a file's type from its content in a worker, so a long scan does not block the page.
+ * @param file The file to examine.
+ * @param signal Cancels detection; the promise then rejects with the signal's reason.
+ * @returns The detected type, or null when the content matches no known type. Rejects on a worker
+ *   failure or after 15 seconds.
+ */
 export function detectFile(file: Blob, signal: AbortSignal): Promise<FileTypeResult | null> {
   return new Promise((resolve, reject) => {
     signal.throwIfAborted();
@@ -10,12 +17,14 @@ export function detectFile(file: Blob, signal: AbortSignal): Promise<FileTypeRes
     });
 
     // Success, failure, timeout and cancellation all need to stop the worker and its timer.
+    /** Clears the timer, removes the abort listener and terminates the worker. */
     const cleanup = () => {
       clearTimeout(timer);
       signal.removeEventListener("abort", abort);
       worker.terminate();
     };
 
+    /** Stops detection and rejects with the signal's reason. */
     const abort = () => {
       cleanup();
       reject(signal.reason);

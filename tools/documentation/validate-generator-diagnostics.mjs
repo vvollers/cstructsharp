@@ -88,6 +88,11 @@ export function currentRules(directory) {
 /** The anchor DocFX (markdig) gives a heading: lowercase, punctuation dropped, whitespace runs joined by '-'. */
 const anchorOf = (heading) => heading.trim().toLowerCase().replace(/[^a-z0-9 _-]/g, "").replace(/\s+/g, "-").replace(/^-+|-+$/g, "");
 
+/**
+ * Renders the generator diagnostics summary table, linking each rule id to its section heading.
+ * @param {{id: string, severity: string, title: string}[]} rules Diagnostic rules.
+ * @returns {string} Markdown table.
+ */
 export function renderTable(rules) {
   const lines = ["| Id | Severity | Title |", "| --- | --- | --- |"];
   for (const rule of rules) lines.push(`| [${rule.id}](#${anchorOf(`${rule.id} - ${rule.title}`)}) | ${rule.severity} | ${rule.title} |`);

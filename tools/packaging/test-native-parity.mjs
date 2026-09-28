@@ -13,6 +13,7 @@ import { loadFixture, manifest, xorshiftBytes } from "../../benchmarks/js/bench/
 const args = process.argv.slice(2);
 const consumer = args[0];
 assert.ok(consumer, "Pass the consumer directory that has cstructsharp installed.");
+/** Returns the numeric value that follows a command-line option, or a fallback when the option is absent. */
 const option = (name, fallback) => {
   const index = args.indexOf(name);
   return index >= 0 ? Number(args[index + 1]) : fallback;

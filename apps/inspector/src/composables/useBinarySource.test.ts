@@ -4,6 +4,12 @@ import { editBlob, searchBlob, useBinarySource } from "./useBinarySource";
 
 const cleanups: (() => void)[] = [];
 afterEach(() => cleanups.splice(0).forEach((dispose) => dispose()));
+/**
+ * Creates a binary source editor over a replaceable Blob in its own effect scope, stopped after the
+ * test.
+ * @param initial The first source, or null for none.
+ * @returns The source reference, the editor and its scope.
+ */
 function sourceSession(initial: Blob | null) {
   const source = shallowRef(initial);
   const scope = effectScope();

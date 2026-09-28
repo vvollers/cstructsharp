@@ -38,6 +38,10 @@ export function debugEntryJsonPath(item: DebugItem, result?: unknown): string[] 
   return path;
 }
 
+/**
+ * Reports whether a parsed value is a pointer object (`kind: "pointer"` with its address,
+ * dereference flag, and target value).
+ */
 function isPointer(value: unknown): value is {
   kind: "pointer";
   address: number | string;
@@ -84,6 +88,12 @@ export function findDebugEntryIndicesByPath(
   return indices;
 }
 
+/**
+ * Reports whether one path is a prefix of the other, so a selected struct also selects its members.
+ * @param a Path segments.
+ * @param b Path segments.
+ * @returns True when the shorter path matches the start of the longer one.
+ */
 function isPathRelated(a: string[], b: string[]): boolean {
   // Compare only the shared part: ["root", "header"] also includes ["root", "header", "size"].
   const length = Math.min(a.length, b.length);
@@ -122,6 +132,10 @@ export function computeFieldGroups(debugData: DebugItem[]): number[] {
   });
 }
 
+/**
+ * Returns the color-group key of a path: the path up to its first array index, as JSON text.
+ * @param path Path segments.
+ */
 function arrayGroupKey(path: string[]): string {
   // The first all-digit step is an array index. For example, both entries[0].width and
   // entries[1].height reduce to the same key, "entries", by stopping before that index.

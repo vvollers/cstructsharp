@@ -96,6 +96,7 @@ const settingsSummary = computed(() => [
 // The Close button, Escape key and backdrop click all change the same `open` value.
 // Once Vue has updated the component, open/close the browser's dialog and return keyboard focus
 // to the settings button. This keeps keyboard navigation predictable.
+/** Closes the settings dialog. */
 function closeSettings(): void {
   open.value = false;
 }

@@ -5,6 +5,10 @@ import type { RawWasmAdapter } from "@cstructsharp/app-shared/wasm/contract";
 test("PE and GLB schemas select alternatives from the loaded bytes", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator(".status-badge")).toContainText("Ready");
+  /**
+   * Builds a minimal PE file whose optional header magic selects PE32 or PE32+ (64-bit).
+   * @param wide Whether to build the PE32+ variant.
+   */
   const pe = (wide: boolean) => {
     const size = wide ? 112 : 96;
     const bytes = Buffer.alloc(88 + size);
@@ -15,6 +19,10 @@ test("PE and GLB schemas select alternatives from the loaded bytes", async ({ pa
     bytes.writeUInt16LE(wide ? 0x20b : 0x10b, 88);
     return bytes;
   };
+  /**
+   * Builds a minimal GLB file whose first chunk is a JSON or a binary chunk.
+   * @param json Whether the first chunk type is JSON.
+   */
   const glb = (json: boolean) => {
     const bytes = Buffer.alloc(24);
     bytes.write("glTF");
@@ -91,6 +99,10 @@ test("one CRX schema selects versioned headers from runtime bytes", async ({ pag
 test("ZIP selects each entry's own text encoding with native conditions", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator(".status-badge")).toContainText("Ready");
+  /**
+   * Builds a ZIP local file header whose name is UTF-8 (flag bit 11 set) or code page 437.
+   * @param utf8 Whether the entry name uses UTF-8.
+   */
   const entry = (utf8: boolean) => {
     const name = utf8 ? Buffer.from("é.txt") : Buffer.from([0x82, 46, 116, 120, 116]);
     const bytes = Buffer.alloc(30 + name.length);

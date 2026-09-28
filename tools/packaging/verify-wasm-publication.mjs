@@ -1,3 +1,8 @@
+/**
+ * Validates a WASM publication directory (default artifacts/wasm) and prints its file count and size.
+ *
+ *   node tools/packaging/verify-wasm-publication.mjs [<publication-directory>]    (npm run verify:wasm)
+ */
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateWasmPublication } from "./wasm-publication.mjs";

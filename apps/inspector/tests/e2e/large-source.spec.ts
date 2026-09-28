@@ -60,6 +60,7 @@ test("browser sources preserve view boundaries and stage one-pass data", async (
     const wasm = (window as unknown as { CStructSharpWasm: RawWasmAdapter }).CStructSharpWasm;
     const bytes = new Uint8Array([99, 42, 0, 0, 0, 99]);
     const body = new Uint8Array([42, 0, 0, 0]);
+    /** Yields the test body as two chunks, so the source must be staged. */
     async function* chunks() {
       yield body.subarray(0, 1);
       yield body.subarray(1);
@@ -124,6 +125,7 @@ test("staging failures and cancellation remove temporary files", async ({ page }
   const results = await page.evaluate(async () => {
     const wasm = (window as unknown as { CStructSharpWasm: RawWasmAdapter }).CStructSharpWasm;
     const root = await navigator.storage.getDirectory();
+    /** Lists the staged source files in the origin-private file system, sorted by name. */
     async function names() {
       const result: string[] = [];
       for await (const name of (root as unknown as { keys(): AsyncIterable<string> }).keys()) {
@@ -244,6 +246,10 @@ test("multiple linked targets beyond 4 GiB preserve addresses and the parent cur
     h.setBigUint64(0, BigInt(far), true);
     h.setBigUint64(8, BigInt(near), true);
     h.setUint32(16, 99, true);
+    /**
+     * Builds a 12-byte little-endian list node: a 32-bit value and a 64-bit pointer to the next
+     * node.
+     */
     const node = (value: number, next: number) => {
       const b = new Uint8Array(12),
         v = new DataView(b.buffer);

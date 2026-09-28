@@ -31,16 +31,28 @@ const SITE_BUDGET_BYTES = 50 * 1024 * 1024;
 process.env.DOTNET_CLI_TELEMETRY_OPTOUT = "1";
 process.env.DOTNET_NOLOGO = "1";
 
+/**
+ * Rejects a dotnet command line that targets the Web or WASM projects, which the documentation build never needs.
+ * @param {string[]} args The dotnet arguments.
+ * @throws {Error} When an argument names CStructSharpWeb or CStructSharpWeb.Wasm.
+ */
 export function assertNoWebCommand(args) {
   const commandText = args.join(" ");
   if (/(^|[\\/])CStructSharpWeb(?:[\\/.]|$)/i.test(commandText)) throw new Error(`Documentation commands must not target CStructSharpWeb or CStructSharpWeb.Wasm: dotnet ${commandText}`);
 }
 
+/** Runs a dotnet command after the Web/WASM guard, logging it under a label. */
 function dotnet(args, label) {
   assertNoWebCommand(args);
   return runDotnet(args, { label });
 }
 
+/**
+ * Asserts that a path lies inside `docs/` and has the expected final segment, before anything under it is deleted.
+ * @param {string} candidate The generated directory.
+ * @param {string} expectedLeaf Its required directory name, such as `_site`.
+ * @throws {Error} When the path escapes `docs/` or has another name.
+ */
 export function assertSafeGeneratedDirectory(candidate, expectedLeaf) {
   const fullPath = path.resolve(candidate);
   const relative = path.relative(path.resolve(documentationRoot), fullPath);
@@ -49,6 +61,7 @@ export function assertSafeGeneratedDirectory(candidate, expectedLeaf) {
   assertCondition(path.basename(fullPath) === expectedLeaf, `Generated path has unexpected leaf '${path.basename(fullPath)}': ${fullPath}`);
 }
 
+/** Deletes the generated `docs/_site` directory when it exists. */
 function removeGeneratedSite() {
   assertSafeGeneratedDirectory(siteDirectory, "_site");
   if (fs.existsSync(siteDirectory)) {
@@ -57,6 +70,7 @@ function removeGeneratedSite() {
   }
 }
 
+/** Deletes the generated `*.yml` API metadata files directly inside `docs/api`. */
 function removeGeneratedApiMetadata() {
   assertSafeGeneratedDirectory(apiDirectory, "api");
   if (!fs.existsSync(apiDirectory)) return;
@@ -69,6 +83,10 @@ function removeGeneratedApiMetadata() {
   }
 }
 
+/**
+ * Asserts, for `--no-build`, that the Release core assembly, XML documentation and PDB exist and are newer than every
+ * core source file.
+ */
 function assertCurrentCoreOutput() {
   for (const required of [coreAssembly, path.join(coreOutput, "CStructSharp.xml"), path.join(coreOutput, "CStructSharp.pdb")]) {
     assertCondition(isFile(required), `Fast documentation build requires '${required}'. Run without --no-build first.`);

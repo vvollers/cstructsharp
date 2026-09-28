@@ -48,10 +48,20 @@ const parsedData = computed(() => {
   }
   return props.result.data;
 });
+/**
+ * Finds the debug range that contains a byte.
+ * @param index Byte offset in the input.
+ * @returns The range, or undefined when no field covers the byte.
+ */
 function rangeFor(index: number): DebugRange | undefined {
   return ranges.value.find((range) => index >= range.start && index < range.end);
 }
 
+/**
+ * Returns the CSS classes for one byte: its range's color, dimmed or highlighted by the selected
+ * range.
+ * @param index Byte offset in the input.
+ */
 function byteClass(index: number): string[] {
   const range = rangeFor(index);
   if (!range) {
@@ -64,6 +74,11 @@ function byteClass(index: number): string[] {
   return classes;
 }
 
+/**
+ * Describes a debug entry for its tooltip: path, type, value (integers also in hexadecimal),
+ * offset, width, and byte range.
+ * @param item Debug entry from the parse result.
+ */
 function formatDebug(item: DebugItem): string {
   let value = item.value ?? "null";
   const isText =
@@ -88,6 +103,10 @@ const recovery = computed(() =>
   }),
 );
 
+/**
+ * Keeps the edited bytes in the hex view and reports them to the parent.
+ * @param bytes Edited bytes.
+ */
 function handleBytesEdited(bytes: Uint8Array): void {
   editorBytes.value = bytes;
   emit("bytes-edited", bytes);

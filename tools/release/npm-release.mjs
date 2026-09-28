@@ -1,3 +1,15 @@
+/**
+ * Checks the npm package against the registry before and after publication. It validates
+ * artifacts/npm/package-info.json against the packed tarball, then asks registry.npmjs.org whether that version is
+ * missing or already published with the same integrity; it prints the status and, when GITHUB_OUTPUT is set, appends
+ * `status` and `filename` to it.
+ *
+ *   node tools/release/npm-release.mjs [--require-missing | --require-published]
+ *
+ * `--require-missing` fails when the version exists; `--require-published` waits up to five minutes for the version to
+ * appear and fails when it does not. release-artifacts.mjs and the release tests import `validatePackageInfo`,
+ * `registryStatus` and `awaitPublishedStatus`.
+ */
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -5,6 +17,13 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { npmArtifacts } from "../packaging/npm-package-utils.mjs";
 
+/**
+ * Asserts that package information describes the tarball: package name, stable version, file name, and SHA-512
+ * integrity and SHA-256 hash of the bytes.
+ * @param {object} info The parsed package-info.json.
+ * @param {Buffer} bytes The tarball.
+ * @throws {assert.AssertionError} When any field does not match.
+ */
 export function validatePackageInfo(info, bytes) {
   assert.equal(info.name, "cstructsharp");
   assert.match(info.version, /^\d+\.\d+\.\d+$/);
@@ -19,6 +38,14 @@ export function validatePackageInfo(info, bytes) {
   );
 }
 
+/**
+ * Looks up the package version on the npm registry (30-second timeout).
+ * @param {object} info The package information.
+ * @param {typeof fetch} [fetchImpl] The fetch function; tests supply a fake.
+ * @returns {Promise<"missing" | "identical">} `missing` for HTTP 404, `identical` when the registered version has the
+ *   same integrity.
+ * @throws {Error} When the lookup fails or the registered version differs; neither case counts as missing.
+ */
 export async function registryStatus(info, fetchImpl = fetch) {
   const response = await fetchImpl(
     `https://registry.npmjs.org/cstructsharp/${info.version}`,

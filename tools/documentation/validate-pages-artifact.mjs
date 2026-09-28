@@ -19,6 +19,11 @@ const options = parseArguments(process.argv.slice(2), { "site-directory": "strin
 const documentationRoot = path.join(repositoryRoot, "docs");
 const contractPath = path.join(repositoryRoot, "contracts/documentation/pages-v1.json");
 
+/**
+ * Checks that archive entry names are relative, non-empty, and contain no `..` step.
+ * @param {string[]} entries Entry names from the archive listing.
+ * @throws {Error} When an entry is empty, rooted, or leaves the archive root.
+ */
 export function assertSafeArchiveEntries(entries) {
   for (const entry of entries) {
     let normalized = entry.replaceAll("\\", "/");
@@ -30,8 +35,15 @@ export function assertSafeArchiveEntries(entries) {
   }
 }
 
+/**
+ * Lists every entry below a directory, recording which entries are symbolic links or directories. Symbolic links to
+ * directories are listed but not followed.
+ * @param {string} directory Directory to list.
+ * @returns {{path: string, symlink: boolean, directory: boolean}[]} Entries with absolute paths.
+ */
 function listAllEntries(directory) {
   const entries = [];
+  /** Adds the entries of one directory and recurses into its real subdirectories. */
   const visit = (current) => {
     for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
       const full = path.join(current, entry.name);

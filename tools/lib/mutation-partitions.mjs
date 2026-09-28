@@ -9,13 +9,19 @@ export function mutationFileHash(filename) {
   return crypto.createHash("sha256").update(fs.readFileSync(filename)).digest("hex");
 }
 
-/** Resolves an existing exact permanent-scope pattern to its repository source path; broad globs are forbidden. */
 /**
  * The number of files in the permanent mutation scope. The tools and their tests check the configured allowlist against
  * it, so a file cannot leave the scope silently; a file split into partial files adds its parts here.
  */
 export const PERMANENT_SCOPE_SIZE = 80;
 
+/**
+ * Maps an exact permanent-scope pattern to its repository source path.
+ * @param {string} pattern A file below src/CStructSharp, or a CStructSharp.Core path with a leading `**` for a
+ *   shared source.
+ * @returns {string} The repository-relative `.cs` path.
+ * @throws {assert.AssertionError} When the pattern is a glob, climbs with `..`, or does not name a `.cs` file.
+ */
 export function mutationSource(pattern) {
   const source = pattern.startsWith("**/CStructSharp.Core/") ? `src/${pattern.slice(3)}` : `src/CStructSharp/${pattern}`;
   assert.ok(!/[*!?{}]/.test(source) && !source.includes("..") && source.endsWith(".cs"), `Not an exact semantic file: ${pattern}`);

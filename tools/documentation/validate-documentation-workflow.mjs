@@ -16,6 +16,13 @@ const workflowPath = path.join(repositoryRoot, ".github/workflows/docs.yml");
 const contractPath = path.join(repositoryRoot, "contracts/documentation/pages-v1.json");
 const VALIDATOR = "node tools/documentation/validate-documentation.mjs";
 
+/**
+ * Checks a documentation workflow's text against the Pages contract.
+ * @param {string} text The workflow YAML.
+ * @param {object} contract The parsed contracts/documentation/pages-v1.json.
+ * @returns {string[]} One code per broken rule, such as `web-target` or `missing-action:<name>`; empty when the
+ *   workflow complies.
+ */
 export function workflowRuleCodes(text, contract) {
   const codes = [];
   if (/(?:CStructSharpWeb|apps\/explorer|src\/CStructSharp\.Wasm)/i.test(text)) codes.push("web-target");

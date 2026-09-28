@@ -1,3 +1,9 @@
+/**
+ * Tests npm-release.mjs with fake registry responses: which responses count as a missing or identical version, package
+ * information validation, and the wait for a publication to become visible.
+ *
+ *   node --test tools/release/npm-release.test.mjs    (npm run test:npm-release runs it with release-state.test.mjs)
+ */
 import test from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
