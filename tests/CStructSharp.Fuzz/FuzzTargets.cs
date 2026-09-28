@@ -24,6 +24,11 @@ internal sealed class FuzzTargets
     private readonly ReadOptions readOptions;
     private readonly WriteOptions writeOptions;
 
+    /// <summary>
+    ///     Compiles the fixed binary, path and pointer-union layouts once and builds read and write options from the
+    ///     harness resource budgets.
+    /// </summary>
+    /// <param name="limits">The resource budgets that every target applies.</param>
     public FuzzTargets(FuzzLimits limits)
     {
         this.limits = limits;
@@ -58,6 +63,7 @@ internal sealed class FuzzTargets
         };
     }
 
+    /// <summary>Gets the names of every target, sorted ordinally, as accepted by <see cref="Resolve"/>.</summary>
     public static string[] Names =>
     [
         "binary-roundtrip",
@@ -68,6 +74,10 @@ internal sealed class FuzzTargets
         "pointer-union",
     ];
 
+    /// <summary>Creates the named target with its entry point and its documented-failure classifier.</summary>
+    /// <param name="name">One of <see cref="Names"/>.</param>
+    /// <returns>The target to execute; <c>generated-differential</c> documents no failures.</returns>
+    /// <exception cref="ArgumentException"><paramref name="name"/> is not a known target.</exception>
     public FuzzTarget Resolve(string name)
     {
         return name switch

@@ -10,6 +10,7 @@ using CStructSharp;
 /// <summary>The benchmark harness's fixture cases (<c>benchmarks/fixtures/cases/*.json</c>): definitions with bytes (inline hex, a data file, or a seeded xorshift stream), options, and an expected error.</summary>
 internal static class BenchmarkFixtures
 {
+    /// <summary>Gets the repository root directory, which holds <c>benchmarks/fixtures</c>.</summary>
     public static string Root { get; } = FindRepositoryRoot();
 
     /// <summary>

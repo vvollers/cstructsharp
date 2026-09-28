@@ -313,6 +313,8 @@ public class MemoryIoTests
         public MemoryStatus State { get; set; }
 
         /// <summary>The mapper chooses the collection type; the library hands it arrays.</summary>
+        /// <param name="source">The parsed <c>root</c> record.</param>
+        /// <returns>The mapped root with its items copied into a list.</returns>
         public static MemoryRoot ReadFrom(StructValue source)
         {
             return new MemoryRoot

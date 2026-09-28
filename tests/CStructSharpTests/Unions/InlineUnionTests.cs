@@ -252,17 +252,24 @@ public class InlineUnionTests
     /// <summary>A mapped class for the NTFS <c>file_name</c> shape, whose properties bind to promoted union and struct members.</summary>
     internal sealed class FileName : ICStructMapped<FileName>
     {
+        /// <summary>Gets or sets the <c>uint32 Attributes</c> field at byte offset 0.</summary>
         public uint Attributes { get; set; }
 
+        /// <summary>Gets or sets <c>EaSize</c>: the low 16 bits of the union at byte offset 4.</summary>
         public ushort EaSize { get; set; }
 
+        /// <summary>Gets or sets <c>Reserved</c>: the high 16 bits of the union at byte offset 4.</summary>
         public ushort Reserved { get; set; }
 
+        /// <summary>Gets or sets <c>ReparseTag</c>: all four union bytes at byte offset 4, over both halves.</summary>
         public uint ReparseTag { get; set; }
 
+        /// <summary>Gets or sets the <c>uint8 NameLength</c> field at byte offset 8.</summary>
         public byte NameLength { get; set; }
 
         /// <summary>Anonymous union and struct members are promoted, so every leaf is addressable by its own name.</summary>
+        /// <param name="source">The parsed <c>file_name</c> record.</param>
+        /// <returns>The mapped class with every promoted leaf copied.</returns>
         public static FileName ReadFrom(StructValue source)
         {
             return new FileName

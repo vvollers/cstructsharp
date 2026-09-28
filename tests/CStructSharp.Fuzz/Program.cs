@@ -3,6 +3,10 @@ namespace CStructSharp.Fuzzing;
 using System.Globalization;
 using System.Text.Json;
 
+/// <summary>
+///     Command-line entry point of the bounded managed fuzz harness: runs corpus seeds and deterministic mutations
+///     against the selected targets and prints a JSON <see cref="FuzzReport"/>.
+/// </summary>
 internal static class Program
 {
     private static int Main(string[] args)
@@ -18,6 +22,15 @@ internal static class Program
         }
     }
 
+    /// <summary>
+    ///     Parses the options, runs the corpus seeds and mutations (or one <c>--input</c> file) against the selected
+    ///     target, and writes the JSON report to standard output and, with <c>--report</c>, to a file.
+    /// </summary>
+    /// <param name="args">The command-line arguments; <c>--help</c> and <c>--list-targets</c> print and exit.</param>
+    /// <returns>0 when the run completes.</returns>
+    /// <exception cref="ArgumentException">
+    ///     An option is unknown, lacks a value or is malformed, or <c>--input</c> is used without one explicit target.
+    /// </exception>
     internal static int Run(string[] args)
     {
         Dictionary<string, string?> options = ParseOptions(args);

@@ -190,6 +190,9 @@ public class ViewTests
     }
 
     /// <summary>A sequence whose segments split <paramref name="bytes"/> at the given lengths (the rest is a final segment).</summary>
+    /// <param name="bytes">The bytes the segments wrap without copying.</param>
+    /// <param name="lengths">The byte length of each leading segment; the first length must be present.</param>
+    /// <returns>A sequence over all of <paramref name="bytes"/>, split into linked segments.</returns>
     internal static System.Buffers.ReadOnlySequence<byte> Segmented(byte[] bytes, params int[] lengths)
     {
         var first = new Segment(bytes.AsMemory(0, lengths[0]), 0);

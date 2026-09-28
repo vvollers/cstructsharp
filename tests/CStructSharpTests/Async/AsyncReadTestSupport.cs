@@ -8,6 +8,7 @@ internal static class AsyncReadTestSupport
     {
         private int posts;
 
+        /// <summary>Gets the number of continuations posted to this context; zero means nothing captured it.</summary>
         public int Posts => Volatile.Read(ref this.posts);
 
         /// <summary>Records the dispatch and delegates execution to the thread pool.</summary>

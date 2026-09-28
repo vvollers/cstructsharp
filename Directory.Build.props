@@ -10,6 +10,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Compiler and analyzer warnings fail the build in every project; CI cannot pass a new warning silently. -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- Every declaration is documented (AGENTS.md). Generating the XML file turns on the compiler's and StyleCop's
+         documentation rules; only SA1623 and SA1642, which prescribe summary wording rather than presence, are off. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);SA1623;SA1642</NoWarn>
   </PropertyGroup>
 
   <!-- Every project is held to the same analyzer gate by default. -->

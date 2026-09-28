@@ -20,6 +20,9 @@ public class SequenceInputTests
     private static readonly byte[] Bytes = [2, 0x34, 0x12, 1, 0x78, 0x56, 2, (byte)'o', (byte)'k', 0, 12, 0, 0, 0, 0, 0, 0, 0, 0xEE, 0xFF,];
 
     /// <summary>Builds a sequence whose segments split <paramref name="bytes"/> at the given lengths.</summary>
+    /// <param name="bytes">The bytes to wrap without copying; any remainder forms the last segment.</param>
+    /// <param name="lengths">The byte length of each leading segment; the first length must be present.</param>
+    /// <returns>A sequence over all of <paramref name="bytes"/>, split into linked segments.</returns>
     internal static ReadOnlySequence<byte> Segmented(byte[] bytes, params int[] lengths)
     {
         var first = new Segment(bytes.AsMemory(0, lengths[0]), 0);

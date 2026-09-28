@@ -85,7 +85,7 @@ public class WriteValueMaterializationTests
     [TestMethod]
     public void ConvertToObjectList_Enumerable_MaterializesWithinBound()
     {
-        /// <summary>Yields two values once.</summary>
+        // Yields two values once.
         IEnumerable<object> Source()
         {
             yield return 1;
@@ -101,7 +101,7 @@ public class WriteValueMaterializationTests
     [TestMethod]
     public void ConvertToObjectList_UnboundedEnumerableExceedsBound_Throws()
     {
-        /// <summary>Yields increasing values without end.</summary>
+        // Yields increasing values without end.
         static IEnumerable<object> Infinite()
         {
             int value = 0;

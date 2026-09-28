@@ -9,8 +9,10 @@ using CStructSharp.Values;
 [TestClass]
 public class ReadValueTests
 {
+    /// <summary>The CLR projection of the layout's <c>mode</c> enum, used as a typed read target.</summary>
     internal enum Mode : ushort
     {
+        /// <summary>Matches the layout's <c>Ready = 2</c>.</summary>
         Ready = 2,
     }
 
@@ -433,6 +435,7 @@ public class ReadValueTests
     /// <summary>A mapped class for the tests' <c>ChildModel</c> record, read and written through the runtime.</summary>
     internal sealed class ChildModel : ICStructMapped<ChildModel>
     {
+        /// <summary>Gets or sets the child's 16-bit <c>value</c>.</summary>
         public int Value { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -462,12 +465,16 @@ public class ReadValueTests
     /// <summary>A mapped class for the tests' <c>RootModel</c> record, read and written through the runtime.</summary>
     internal sealed class RootModel : ICStructMapped<RootModel>
     {
+        /// <summary>Gets or sets the <c>count</c> byte that sizes the child array.</summary>
         public int Count { get; set; }
 
+        /// <summary>Gets or sets the count-controlled <c>children</c> array.</summary>
         public ChildModel[] Children { get; set; } = [];
 
+        /// <summary>Gets or sets the <c>state</c> enum projected to <see cref="Mode"/>.</summary>
         public Mode State { get; set; }
 
+        /// <summary>Gets or sets the <c>optional</c> pointer, which is null in the test input.</summary>
         public Pointer Optional { get; set; } = null!;
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -506,6 +513,9 @@ public class ReadValueTests
     /// <summary>A mapped class for the tests' <c>ItemFields</c> record, read and written through the runtime.</summary>
     internal sealed class ItemFields : ICStructMapped<ItemFields>
     {
+        /// <summary>
+        ///     The <c>value</c> member, filled as a public field; it starts at -1 so a missed assignment is visible.
+        /// </summary>
 #pragma warning disable SA1401 // This fixture intentionally verifies that a mapper may fill a public field.
         public int Value = -1;
 #pragma warning restore SA1401
@@ -537,6 +547,9 @@ public class ReadValueTests
     /// <summary>A mapped class for the tests' <c>ByteValue</c> record, read and written through the runtime.</summary>
     internal sealed class ByteValue : ICStructMapped<ByteValue>
     {
+        /// <summary>
+        ///     Gets or sets a byte target for the 16-bit <c>value</c>, which overflows for values above 255.
+        /// </summary>
         public byte Value { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -566,6 +579,7 @@ public class ReadValueTests
     /// <summary>A mapped class for the tests' <c>MissingMember</c> record, read and written through the runtime.</summary>
     internal sealed class MissingMember : ICStructMapped<MissingMember>
     {
+        /// <summary>Gets or sets a value read from <c>other</c>, a field the layout lacks.</summary>
         public int Other { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -595,6 +609,9 @@ public class ReadValueTests
     /// <summary>A mapped class for the tests' <c>UpperValue</c> record, read and written through the runtime.</summary>
     internal sealed class UpperValue : ICStructMapped<UpperValue>
     {
+        /// <summary>
+        ///     Gets or sets the value of the exact-case <c>Value</c> field rather than the lowercase <c>value</c>.
+        /// </summary>
         public byte VALUE { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>

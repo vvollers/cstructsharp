@@ -27,8 +27,19 @@ public partial class CStructExports
     /// <summary>
     ///     Returns the static read plan of the selected root as JSON, or an empty string when the root is not a fully
     ///     fixed struct, its plan exceeds the default read limits, or the definition does not compile (compilation
-    ///     failures are left to the parse itself so the error envelope is unchanged).
+    ///     failures are left to the parse itself, which reports them in its error envelope).
     /// </summary>
+    /// <param name="definition">The CStruct layout definition text.</param>
+    /// <param name="optionsJson">
+    ///     The JSON options object (<see cref="InteropOptionsDto"/>); its <c>root</c> selects the struct to describe
+    ///     and its read limits decide whether the plan is covered.
+    /// </param>
+    /// <returns>
+    ///     The JSON text <c>{"root": ..., "plan": ...}</c>, or an empty string when no static plan applies or the
+    ///     layout or root fails with a library, argument, or invalid-operation error. Malformed options JSON and
+    ///     rejected browser input (an empty or oversized definition, an out-of-range option) propagate as thrown
+    ///     exceptions, with no envelope.
+    /// </returns>
     [JSExport]
     public static string GetStaticPlan(string definition, string optionsJson)
     {

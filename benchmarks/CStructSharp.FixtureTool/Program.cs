@@ -15,6 +15,15 @@ internal static class Program
 {
     private const int InlineExpectedLimit = 64 * 1024;
 
+    /// <summary>
+    ///     Fills or verifies every fixture under <c>cases/</c> in the fixture directory, printing one line per fixture
+    ///     and a final count. In <c>fill</c> mode each fixture's JSON file is rewritten with its computed expectations.
+    /// </summary>
+    /// <param name="args">
+    ///     The mode (<c>fill</c> or <c>verify</c>), then optionally the fixture directory; without it, the directory is
+    ///     searched for from the current directory.
+    /// </param>
+    /// <returns>0 when every fixture succeeds, 1 when any fails or mismatches, and 2 for invalid usage.</returns>
     public static int Main(string[] args)
     {
         if (args.Length == 0 || args[0] is not ("fill" or "verify"))

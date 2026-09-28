@@ -91,18 +91,25 @@ public class PathAndTypedBenchmarks
     /// <summary>The mapped class of the <c>prim-le-record</c> fixture's seven scalars.</summary>
     public sealed class PrimRecord : ICStructMapped<PrimRecord>
     {
+        /// <summary>Gets or sets the <c>uint8 a</c> field at byte offset 0.</summary>
         public byte A { get; set; }
 
+        /// <summary>Gets or sets the <c>int16 b</c> field at byte offset 1.</summary>
         public short B { get; set; }
 
+        /// <summary>Gets or sets the <c>uint32 c</c> field at byte offset 3.</summary>
         public uint C { get; set; }
 
+        /// <summary>Gets or sets the <c>int64 d</c> field at byte offset 7.</summary>
         public long D { get; set; }
 
+        /// <summary>Gets or sets the <c>float32 e</c> field at byte offset 15.</summary>
         public float E { get; set; }
 
+        /// <summary>Gets or sets the <c>float64 f</c> field at byte offset 19.</summary>
         public double F { get; set; }
 
+        /// <summary>Gets or sets the <c>bool g</c> field at byte offset 27.</summary>
         public bool G { get; set; }
 
         /// <summary>Creates the class from its parsed value.</summary>
@@ -147,8 +154,10 @@ public class PathAndTypedBenchmarks
     /// <summary>The mapped class of <c>struct leaf</c>: a kind byte and a value.</summary>
     public sealed class NestedLeaf : ICStructMapped<NestedLeaf>
     {
+        /// <summary>Gets or sets the <c>uint8 kind</c> field.</summary>
         public byte Kind { get; set; }
 
+        /// <summary>Gets or sets the <c>uint32 value</c> field.</summary>
         public uint Value { get; set; }
 
         /// <summary>Creates the class from its parsed value.</summary>
@@ -179,10 +188,13 @@ public class PathAndTypedBenchmarks
     /// <summary>The mapped class of <c>struct mid</c>: two leaves and a tail.</summary>
     public sealed class NestedMid : ICStructMapped<NestedMid>
     {
+        /// <summary>Gets or sets the <c>leaf first</c> member.</summary>
         public NestedLeaf First { get; set; } = new();
 
+        /// <summary>Gets or sets the <c>leaf second</c> member.</summary>
         public NestedLeaf Second { get; set; } = new();
 
+        /// <summary>Gets or sets the <c>uint16 tail</c> field that follows the two leaves.</summary>
         public ushort Tail { get; set; }
 
         /// <summary>Creates the class from its parsed value.</summary>
@@ -219,10 +231,13 @@ public class PathAndTypedBenchmarks
     /// <summary>The mapped class of <c>struct top</c>: two mids and a mark.</summary>
     public sealed class NestedTop : ICStructMapped<NestedTop>
     {
+        /// <summary>Gets or sets the <c>mid left</c> member.</summary>
         public NestedMid Left { get; set; } = new();
 
+        /// <summary>Gets or sets the <c>mid right</c> member.</summary>
         public NestedMid Right { get; set; } = new();
 
+        /// <summary>Gets or sets the <c>uint8 mark</c> field that follows the two mids.</summary>
         public byte Mark { get; set; }
 
         /// <summary>Creates the class from its parsed value.</summary>
@@ -259,6 +274,7 @@ public class PathAndTypedBenchmarks
     /// <summary>The mapped class of the <c>nested-x256</c> root: 256 tops.</summary>
     public sealed class NestedRoot : ICStructMapped<NestedRoot>
     {
+        /// <summary>Gets or sets the <c>top items[256]</c> array, one element per record.</summary>
         public NestedTop[] Items { get; set; } = [];
 
         /// <summary>Creates the class from its parsed value.</summary>

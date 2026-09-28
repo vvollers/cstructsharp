@@ -17,6 +17,7 @@ public class AsyncWriteTests
     private static readonly byte[] Bytes = [2, 0x34, 0x12, 1, 0x78, 0x56, 2, (byte)'o', (byte)'k', 0, 18, 0, 0, 0, 0, 0, 0, 0, 0xEE, 0xFF,];
 
     /// <summary><c>WriteAsync</c> writes the bytes of <c>Write(Stream)</c> at the current position, and nothing when the value is invalid.</summary>
+    /// <returns>A task that completes after the written bytes are compared.</returns>
     [TestMethod]
     public async Task WriteAsync_WritesTheSyncBytes_AndNothingOnFailure()
     {
@@ -48,6 +49,7 @@ public class AsyncWriteTests
     }
 
     /// <summary><c>UpdateAsync</c> changes exactly the bytes <c>Update(Stream)</c> changes, written back as the runs that differ, with the origin restored.</summary>
+    /// <returns>A task that completes after the written runs are compared.</returns>
     [TestMethod]
     public async Task UpdateAsync_WritesBackOnlyTheChangedRuns()
     {
@@ -97,6 +99,7 @@ public class AsyncWriteTests
     }
 
     /// <summary>A late failure, cancellation, or a stream that cannot seek leaves the destination unchanged.</summary>
+    /// <returns>A task that completes after each failing update is checked.</returns>
     [TestMethod]
     public async Task UpdateAsync_LeavesTheStreamUnchangedOnFailure()
     {

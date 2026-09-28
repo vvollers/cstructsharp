@@ -69,6 +69,8 @@ public class ConditionalGroupBoundaryTests
     ///     condition, a group decided once stays one group, and empty switch arms still take their values away from
     ///     default.
     /// </summary>
+    /// <param name="definition">The original definition, whose <c>root</c> is read before and after rendering.</param>
+    /// <param name="inputs">Hex-encoded inputs chosen so that each conditional branch is taken at least once.</param>
     [TestMethod]
     [DataRow("struct root { uint8 a; if (a) { struct { uint8 x; } inner; } uint8 z; };", "000506", "010506")]
     [DataRow("#define flag 1\nstruct root { if (flag) { struct { uint8 flag; } child; uint8 chosen; } uint8 tail; };", "002a63", "012a63")]

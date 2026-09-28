@@ -11,6 +11,7 @@ public class AsyncBufferBoundaryTests
 {
     /// <summary>A buffered public read releases its exact input array after decoding succeeds or fails.</summary>
     /// <param name="truncated">Whether the selected value needs more bytes than the source supplies.</param>
+    /// <returns>A task that completes after the test's assertions have run.</returns>
     [TestMethod]
     [DoNotParallelize]
     [DataRow(false)]
@@ -38,6 +39,7 @@ public class AsyncBufferBoundaryTests
 
     /// <summary>Async reads use the selected array slice and remaining length, not bytes outside that slice.</summary>
     /// <param name="visible">Whether reading borrows the underlying array or acquires a separate buffer.</param>
+    /// <returns>A task that completes after the test's assertions have run.</returns>
     [TestMethod]
     [DataRow(true)]
     [DataRow(false)]
@@ -59,6 +61,7 @@ public class AsyncBufferBoundaryTests
     }
 
     /// <summary>A pre-cancelled read allocates no buffer; a missing stream is still reported as an invalid argument first.</summary>
+    /// <returns>A task that completes after the test's assertions have run.</returns>
     [TestMethod]
     public async Task CancellationAndNullInput_FailBeforeRenting()
     {
@@ -97,6 +100,7 @@ public class AsyncBufferBoundaryTests
     }
 
     /// <summary>A pending source read resumes library buffering without dispatching through the caller's context.</summary>
+    /// <returns>A task that completes after the test's assertions have run.</returns>
     [TestMethod]
     public async Task Buffering_DoesNotCaptureTheCallersContext()
     {

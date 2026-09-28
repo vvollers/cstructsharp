@@ -11,6 +11,16 @@ using CStructSharp.Diagnostics;
 /// </summary>
 internal static class GeneratedDifferential
 {
+    /// <summary>
+    ///     Reads and rewrites one input through the runtime and generated binary, path and pointer-union layouts and
+    ///     compares the outcomes per layout.
+    /// </summary>
+    /// <param name="input">The fuzz input parsed from offset 0 by every layout.</param>
+    /// <param name="readOptions">The read limits shared by both paths.</param>
+    /// <param name="writeOptions">The write limits shared by both paths.</param>
+    /// <exception cref="InvalidOperationException">
+    ///     The paths fail differently, only one fails, or their written bytes differ.
+    /// </exception>
     public static void Run(byte[] input, ReadOptions readOptions, WriteOptions writeOptions)
     {
         Compare(

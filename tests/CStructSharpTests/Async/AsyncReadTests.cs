@@ -23,6 +23,7 @@ public class AsyncReadTests
     private static readonly byte[] Bytes = [0xAA, 0xBB, 2, 0x34, 0x12, 1, 0x78, 0x56, 2, (byte)'o', (byte)'k', 0, 18, 0, 0, 0, 0, 0, 0, 0, 0xEE, 0xFF, 0xCC,];
 
     /// <summary>Every awaitable read agrees with its synchronous stream form on every stream kind, and leaves a seekable stream just after the value (or at the origin for address and length queries).</summary>
+    /// <returns>A task that completes after every asynchronous read is compared.</returns>
     [TestMethod]
     public async Task AsyncReads_AgreeWithTheStreamForms()
     {
@@ -101,6 +102,7 @@ public class AsyncReadTests
     }
 
     /// <summary>A failure carries the stream form's text and leaves a seekable stream at its origin; the non-throwing form reports the same failure without throwing; cancellation throws and restores the origin.</summary>
+    /// <returns>A task that completes after every failure is compared.</returns>
     [TestMethod]
     public async Task AsyncFailures_MatchTheStreamFormsAndRestoreTheOrigin()
     {

@@ -35,6 +35,7 @@ public class CompileBenchmarks
     }
 
     /// <summary>Compiles 100 distinct schemas once each; reported time is for the whole round (÷100 per schema).</summary>
+    /// <returns>The last layout compiled in the round.</returns>
     [Benchmark]
     public CStruct CompileK100RoundRobin()
     {
@@ -48,6 +49,7 @@ public class CompileBenchmarks
     }
 
     /// <summary>A repeat request through the shared cache: the cost of a hit.</summary>
+    /// <returns>The cached layout for the fixture's definition and options.</returns>
     [Benchmark]
     public CStruct GetOrCompile_Hit()
     {
@@ -58,6 +60,7 @@ public class CompileBenchmarks
     ///     100 distinct schemas through a 64-entry cache: every request misses (the working set exceeds capacity),
     ///     so this bounds the overhead of a thrashing cache relative to <see cref="CompileK100RoundRobin"/>.
     /// </summary>
+    /// <returns>The last layout returned by the cache in the round.</returns>
     [Benchmark]
     public CStruct GetOrCompileK100RoundRobin_Thrash()
     {

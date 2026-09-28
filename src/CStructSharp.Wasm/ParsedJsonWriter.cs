@@ -15,10 +15,10 @@ using CStructSharp.Values;
 ///     Writes parsed values as UTF-8 JSON straight into a byte buffer. The value set is closed - the
 ///     core parser produces only <see cref="StructValue"/>, <see cref="PrimitiveArray{T}"/>, lists, boxed
 ///     numbers, strings, enums, unions and pointers - so this writer needs no state machine, no name validation
-///     and no per-write escaping decisions, which is what made <see cref="System.Text.Json.Utf8JsonWriter"/> cost
-///     ≈ 50 ns per output byte under the WebAssembly interpreter. Output is byte-compatible with the previous
-///     <c>Utf8JsonWriter</c> projection (same number formatting, same JavaScript-safe integer rule, same
-///     <c>JavaScriptEncoder.Default</c> escaping).
+///     and no per-write escaping decisions, the work that makes <see cref="System.Text.Json.Utf8JsonWriter"/> cost
+///     ≈ 50 ns per output byte under the WebAssembly interpreter. Output is byte-identical to a
+///     <c>Utf8JsonWriter</c> projection of the same values (same number formatting, same JavaScript-safe integer
+///     rule, same <c>JavaScriptEncoder.Default</c> escaping).
 /// </summary>
 internal sealed class ParsedJsonWriter
 {
@@ -46,6 +46,8 @@ internal sealed class ParsedJsonWriter
     private byte[] buffer;
     private int length;
 
+    /// <summary>Creates an empty writer whose buffer starts at the given size and doubles as output grows.</summary>
+    /// <param name="capacity">The initial buffer size in bytes.</param>
     public ParsedJsonWriter(int capacity)
     {
         this.buffer = new byte[capacity];
@@ -54,14 +56,17 @@ internal sealed class ParsedJsonWriter
     /// <summary>The bytes written so far.</summary>
     public ReadOnlySpan<byte> WrittenSpan => this.buffer.AsSpan(0, this.length);
 
+    /// <summary>Gets the current buffer size in bytes, which callers use to drop an unusually large writer.</summary>
     public int Capacity => this.buffer.Length;
 
+    /// <summary>Discards the written bytes so the writer can be reused; the buffer and its capacity are kept.</summary>
     public void Reset()
     {
         this.length = 0;
     }
 
     /// <summary>Appends bytes that are already valid JSON (envelope framing, source-generated fragments).</summary>
+    /// <param name="bytes">The UTF-8 JSON bytes, copied without validation or escaping.</param>
     public void WriteRawBytes(ReadOnlySpan<byte> bytes)
     {
         this.Ensure(bytes.Length);
@@ -70,6 +75,9 @@ internal sealed class ParsedJsonWriter
     }
 
     /// <summary>Writes one parsed value (the top-level or any nested one).</summary>
+    /// <param name="value">
+    ///     A value the core parser produces, or <see langword="null"/>, which is written as JSON <c>null</c>.
+    /// </param>
     public void WriteValue(object? value)
     {
         switch (value)

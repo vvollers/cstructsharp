@@ -29,6 +29,7 @@ public class AsyncWriteCancellationTests
 
     /// <summary>A direct operation token reaches the synchronous staging writer before a second record is encoded.</summary>
     /// <param name="update">Whether to replace existing bytes rather than write a newly serialized value.</param>
+    /// <returns>A task that completes after the cancelled operation and the destination are checked.</returns>
     [TestMethod]
     [DataRow(false)]
     [DataRow(true)]
@@ -61,6 +62,7 @@ public class AsyncWriteCancellationTests
     }
 
     /// <summary>A pre-cancelled write rejects the operation before inspecting a deliberately invalid value path.</summary>
+    /// <returns>A task that completes after the cancelled write and the empty destination have been checked.</returns>
     [TestMethod]
     public async Task PreCancelledWrite_PrecedesPathValidation()
     {
@@ -75,6 +77,7 @@ public class AsyncWriteCancellationTests
     }
 
     /// <summary>A pre-cancelled update does not probe the caller's stream position before failing.</summary>
+    /// <returns>A task that completes after the cancelled update and the position counter are checked.</returns>
     [TestMethod]
     public async Task PreCancelledUpdate_DoesNotReadTheOrigin()
     {

@@ -270,6 +270,8 @@ public class WellKnownFormatTests
     ///     CStruct pointer field (absolute addressing) dereferencing to a COFF file header + optional header magic.
     ///     Shared by both the "EXE" and "DLL" catalog entries; only the COFF characteristics flag differs.
     /// </summary>
+    /// <param name="isDll">Whether the image sets the DLL flag (<c>0x2000</c>) in its COFF characteristics.</param>
+    /// <param name="characteristics">The COFF characteristics the image carries and the parse returns.</param>
     [TestMethod]
     [DataRow(false, (ushort)0x0022, DisplayName = "EXE")]
     [DataRow(true, (ushort)0x2022, DisplayName = "DLL")]
@@ -434,7 +436,7 @@ public class WellKnownFormatTests
     /// <summary>Builds the 512-byte ustar header bytes, computing the real POSIX header checksum.</summary>
     private static byte[] BuildUstarHeader()
     {
-        /// <summary>Encodes ASCII text into a zero-filled field of <c>length</c> bytes; the text must fit.</summary>
+        // Encodes ASCII text into a zero-filled field of length bytes; the text must fit.
         static byte[] Field(string text, int length)
         {
             byte[] field = new byte[length];

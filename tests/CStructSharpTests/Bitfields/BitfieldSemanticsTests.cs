@@ -399,7 +399,7 @@ public class BitfieldSemanticsTests
         byte[] data = new byte[2];
 
         // Warm up, then average over many updates so one-time costs do not count.
-        /// <summary>The average bytes one update of <paramref name="path"/> allocates.</summary>
+        // The average bytes one update of path allocates.
         long PerUpdate(string path)
         {
             for (int index = 0; index < 50; index++)

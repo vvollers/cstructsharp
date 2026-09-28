@@ -22,6 +22,7 @@ public class RecordSequenceTests
     private static readonly byte[] Sized = [1, 7, 6, 0, 0, 0, 0xAA, 0xBB, 2, 7, 8, 7, 0, 0, 0, 0xCC, 0xDD,];
 
     /// <summary>Three fixed-size records and two runtime-sized ones read the same from memory, a segmented sequence, a stream, and the awaitable form.</summary>
+    /// <returns>A task that completes after the records of every input form have been compared.</returns>
     [TestMethod]
     public async Task Records_ReadTheSameFromEveryInput()
     {
@@ -97,6 +98,7 @@ public class RecordSequenceTests
     }
 
     /// <summary>Trailing bytes shorter than one record fail on the step that meets them: a fixed root with the partial-element text, a runtime-sized root with its short read.</summary>
+    /// <returns>A task that completes after every input form has met the trailing bytes.</returns>
     [TestMethod]
     public async Task TrailingBytes_FailOnTheStepThatMeetsThem()
     {
@@ -149,6 +151,7 @@ public class RecordSequenceTests
     }
 
     /// <summary>The synchronous stream form leaves the stream after each record, or where a failed read stopped; the awaitable form leaves a seekable stream at the record's end.</summary>
+    /// <returns>A task that completes after the positions of both stream forms have been compared.</returns>
     [TestMethod]
     public async Task StreamForms_LeaveThePositionAtTheRecordsEnd()
     {
@@ -182,6 +185,7 @@ public class RecordSequenceTests
     }
 
     /// <summary>The awaitable form: a fixed root byte-exact from any stream (a file, a forward-only source), a runtime-sized root through a window that refills; cancellation between records.</summary>
+    /// <returns>A task that completes after the file, forward-only, windowed and cancelled reads are checked.</returns>
     [TestMethod]
     public async Task ParseManyAsync_ReadsFilesForwardOnlyStreamsAndWindows()
     {

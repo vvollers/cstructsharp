@@ -60,6 +60,7 @@ public class BitfieldStorageCapabilityTests
     ///     A typedef or enum whose resolved storage is integral is valid bitfield storage (dissect parity, D1.7): the
     ///     bits are allocated from the resolved integer and, for an enum, read back as enum values.
     /// </summary>
+    /// <param name="layout">A definition whose 4-bit <c>root.flags</c> has a type resolving to <c>uint8</c>.</param>
     [TestMethod]
     [DataRow("enum bits : uint8 { none = 0, one = 1 }; struct root { bits flags:4; };")]
     [DataRow("typedef uint8 bits; struct root { bits flags:4; };")]

@@ -70,7 +70,7 @@ public class CancellationTests
         byte[] bytes = Bytes();
 
         // Each attempt gets its own token source: the codec cancels it on its first call.
-        /// <summary>A layout whose tag codec cancels the read options' token when it runs.</summary>
+        // A layout whose tag codec cancels the read options' token when it runs.
         (CStruct Layout, CancellingTag Codec, ReadOptions Options) Arrange()
         {
             var source = new CancellationTokenSource();

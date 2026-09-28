@@ -45,6 +45,7 @@ public class IndexedArrayAccessBenchmarks
     ///     walk over every preceding element, so this benchmark's reported time should stay flat across
     ///     <see cref="FixedSizeStructArrayIndex"/> instead of growing with the selected index.
     /// </summary>
+    /// <returns>The absolute stream position of the selected field.</returns>
     [Benchmark]
     public long ResolveIndexedFixedSizeStructArrayElement()
     {

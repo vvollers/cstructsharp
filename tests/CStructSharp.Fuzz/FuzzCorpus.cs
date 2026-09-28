@@ -25,6 +25,8 @@ public sealed class FuzzCorpus
     public FuzzTargetCorpus[] Targets { get; init; } = [];
 
     /// <summary>Loads and minimally validates a corpus document.</summary>
+    /// <param name="path">The path of the corpus JSON file.</param>
+    /// <returns>The loaded corpus with its required metadata and every seed checked.</returns>
     public static FuzzCorpus Load(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -63,6 +65,7 @@ public sealed class FuzzCorpus
     }
 
     /// <summary>Parses the stable hexadecimal seed.</summary>
+    /// <returns>The seed as an unsigned 64-bit value.</returns>
     public ulong GetSeed()
     {
         if (!this.Seed.StartsWith("0x", StringComparison.Ordinal) ||

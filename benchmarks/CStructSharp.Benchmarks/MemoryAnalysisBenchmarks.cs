@@ -49,6 +49,7 @@ public class MemoryAnalysisBenchmarks
     }
 
     /// <summary>Reads a scalar whose bytes span two mappings and returns source accounting.</summary>
+    /// <returns>The access context that recorded the source reads.</returns>
     [Benchmark]
     public MemoryAccessContext CrossPageRead()
     {
@@ -58,6 +59,7 @@ public class MemoryAnalysisBenchmarks
     }
 
     /// <summary>Reads the same scalar from a warmed exact-range cache.</summary>
+    /// <returns>The access context that recorded the cached read.</returns>
     [Benchmark]
     public MemoryAccessContext CachedRead()
     {
@@ -67,6 +69,7 @@ public class MemoryAnalysisBenchmarks
     }
 
     /// <summary>Reads four mapped bytes from a one-million-byte sparse record without materializing its gaps.</summary>
+    /// <returns>The access context that recorded the sparse read.</returns>
     [Benchmark]
     public MemoryAccessContext SparseSelectedRead()
     {
@@ -76,6 +79,7 @@ public class MemoryAnalysisBenchmarks
     }
 
     /// <summary>Walks 4,096 actual stored pointers through a high-address source using shared decoding and work budgets.</summary>
+    /// <returns>The walk result for the 4,096-node list.</returns>
     [Benchmark]
     public MemoryWalkResult StoredPointerTraversal4096()
     {
@@ -91,10 +95,12 @@ public class MemoryAnalysisBenchmarks
     }
 
     /// <summary>Parses a bounded profile, imports one record and compiles its scalar and placement views.</summary>
+    /// <returns>The imported <c>record</c> type.</returns>
     [Benchmark]
     public MetadataImportResult ImportIsf() => new IsfMetadata(this.metadata).Import("record");
 
     /// <summary>Plans and commits a scalar patch spanning two physical fragments.</summary>
+    /// <returns>The committed patch.</returns>
     [Benchmark]
     public MemoryPatch MappedUpdate()
     {
@@ -104,6 +110,7 @@ public class MemoryAnalysisBenchmarks
     }
 
     /// <summary>Traverses 32 synthetic nodes with source-scoped identity and a hard work limit.</summary>
+    /// <returns>The walk result for the 32-node traversal.</returns>
     [Benchmark]
     public MemoryWalkResult BoundedTraversal()
     {

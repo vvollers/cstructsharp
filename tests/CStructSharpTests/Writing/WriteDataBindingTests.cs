@@ -138,8 +138,10 @@ public class WriteDataBindingTests
     /// <summary>A hand-written mapped class, registered when first used.</summary>
     internal sealed class Point : ICStructMapped<Point>
     {
+        /// <summary>Gets or sets the <c>x</c> member, a signed 16-bit value.</summary>
         public short X { get; set; }
 
+        /// <summary>Gets or sets the <c>y</c> member, a signed 16-bit value.</summary>
         public short Y { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>

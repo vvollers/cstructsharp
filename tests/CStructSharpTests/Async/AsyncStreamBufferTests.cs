@@ -15,6 +15,7 @@ using CStructSharp.Streams;
 public class AsyncStreamBufferTests
 {
     /// <summary>A seekable stream is buffered from its position up to its remaining length plus one; the synchronous and asynchronous forms read the same bytes and leave the same position.</summary>
+    /// <returns>A task that completes after the memory stream and the temporary file are checked.</returns>
     [TestMethod]
     public async Task SeekableStream_BuffersTheRemainderPlusOne()
     {
@@ -61,6 +62,7 @@ public class AsyncStreamBufferTests
     }
 
     /// <summary>A non-seekable stream is read up to the budget plus one byte, whatever the value needs, and those bytes are consumed.</summary>
+    /// <returns>A task that completes after both non-seekable streams have been buffered and checked.</returns>
     [TestMethod]
     public async Task NonSeekableStream_IsConsumedUpToTheBudgetPlusOne()
     {
@@ -91,6 +93,7 @@ public class AsyncStreamBufferTests
     }
 
     /// <summary>A value-sized budget still reads ahead; the fixed-record iterator instead preserves the next complete record.</summary>
+    /// <returns>A task that completes after the single-value read and the record iteration are checked.</returns>
     [TestMethod]
     public async Task SingleValueReadAhead_DiffersFromFixedRecordIteration()
     {
@@ -115,6 +118,7 @@ public class AsyncStreamBufferTests
     }
 
     /// <summary>A token cancelled before the first read throws before any byte is read; a failing read returns the pooled array.</summary>
+    /// <returns>A task that completes after the cancelled and failing reads have been checked.</returns>
     [TestMethod]
     public async Task Cancellation_AndFailures_LeaveNothingBehind()
     {
@@ -159,18 +163,27 @@ public class AsyncStreamBufferTests
     {
         private int position;
 
+        /// <summary>Gets the number of bytes the stream has given up so far.</summary>
         public int BytesRead => this.position;
 
+        /// <summary>Gets the number of bytes after which every read throws an <see cref="IOException"/>.</summary>
         public int FailAfter { get; init; } = int.MaxValue;
 
+        /// <summary>Gets a value indicating whether the stream can be read; always true.</summary>
         public override bool CanRead => true;
 
+        /// <summary>Gets a value indicating whether the stream can seek; always false.</summary>
         public override bool CanSeek => false;
 
+        /// <summary>Gets a value indicating whether the stream can be written; always false.</summary>
         public override bool CanWrite => false;
 
+        /// <summary>Gets nothing: a forward-only stream has no known length, so this throws.</summary>
+        /// <exception cref="NotSupportedException">Always.</exception>
         public override long Length => throw new NotSupportedException();
 
+        /// <summary>Gets or sets nothing: a forward-only stream has no position, so both accessors throw.</summary>
+        /// <exception cref="NotSupportedException">Always.</exception>
         public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
 
         /// <summary>Does nothing: the stream is read-only.</summary>

@@ -351,8 +351,10 @@ public class StaticWritePlanTests
     /// <summary>A mapped class for the tests' <c>LeafPoco</c> record, read and written through the runtime.</summary>
     public sealed class LeafPoco : ICStructMapped<LeafPoco>
     {
+        /// <summary>Gets or sets the <c>uint8 k</c> field.</summary>
         public byte k { get; set; }
 
+        /// <summary>Gets or sets the <c>uint32 v</c> field.</summary>
         public uint v { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -383,10 +385,13 @@ public class StaticWritePlanTests
     /// <summary>A mapped class for the tests' <c>InnerPoco</c> record, read and written through the runtime.</summary>
     public sealed class InnerPoco : ICStructMapped<InnerPoco>
     {
+        /// <summary>Gets or sets the <c>leaf first</c> field.</summary>
         public LeafPoco first { get; set; } = null!;
 
+        /// <summary>Gets or sets the <c>leaf second</c> field.</summary>
         public LeafPoco second { get; set; } = null!;
 
+        /// <summary>Gets or sets the <c>uint16 pad</c> field.</summary>
         public ushort pad { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -418,24 +423,34 @@ public class StaticWritePlanTests
     /// <summary>A mapped class for the tests' <c>RootPoco</c> record, read and written through the runtime.</summary>
     public sealed class RootPoco : ICStructMapped<RootPoco>
     {
+        /// <summary>Gets or sets the <c>uint16 magic</c> field.</summary>
         public ushort magic { get; set; }
 
+        /// <summary>Gets or sets the <c>kind which</c> enum field by member name, such as <c>b</c>.</summary>
         public string which { get; set; } = string.Empty;
 
+        /// <summary>Gets or sets the <c>inner nested</c> field.</summary>
         public InnerPoco nested { get; set; } = null!;
 
+        /// <summary>Gets or sets the three-element <c>uint32 samples</c> array.</summary>
         public uint[] samples { get; set; } = [];
 
+        /// <summary>Gets or sets the two-element <c>int16 deltas</c> array.</summary>
         public short[] deltas { get; set; } = [];
 
+        /// <summary>Gets or sets the zero-length <c>uint8 none</c> array.</summary>
         public byte[] none { get; set; } = [];
 
+        /// <summary>Gets or sets the <c>p</c> field promoted from the anonymous struct.</summary>
         public byte p { get; set; }
 
+        /// <summary>Gets or sets the <c>q</c> field promoted from the anonymous struct.</summary>
         public byte q { get; set; }
 
+        /// <summary>Gets or sets the two-element <c>leaf leaves</c> array.</summary>
         public LeafPoco[] leaves { get; set; } = [];
 
+        /// <summary>Gets or sets the trailing <c>uint8 tail</c> field.</summary>
         public byte tail { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>

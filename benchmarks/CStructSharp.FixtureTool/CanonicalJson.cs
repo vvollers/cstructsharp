@@ -18,6 +18,9 @@ public static class CanonicalJson
 {
     private const long MaximumSafeInteger = 9_007_199_254_740_991;
 
+    /// <summary>Serializes a parsed value to compact JSON in the WASM bridge's value shapes.</summary>
+    /// <param name="value">The parsed value to serialize, or <see langword="null"/>.</param>
+    /// <returns>The JSON text.</returns>
     public static string Serialize(object? value)
     {
         using var stream = new MemoryStream();

@@ -85,6 +85,7 @@ public class RecordSequenceBoundaryTests
     }
 
     /// <summary>Async fixed records preserve a nonzero origin and propagate the linked token without dropping other options.</summary>
+    /// <returns>A task that completes after the test's assertions have run.</returns>
     [TestMethod]
     public async Task AsyncFixedStream_PreservesCoordinatesAndEffectiveOptions()
     {
@@ -104,6 +105,7 @@ public class RecordSequenceBoundaryTests
     }
 
     /// <summary>Records larger than the smallest pool bucket still receive enough storage on synchronous and async streams.</summary>
+    /// <returns>A task that completes after the test's assertions have run.</returns>
     [TestMethod]
     public async Task FixedStreams_ReadRecordsLargerThanTheMinimumPoolBucket()
     {

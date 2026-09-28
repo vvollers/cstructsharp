@@ -12,10 +12,13 @@ internal sealed class PoolReturnListener : EventListener
     private int lastRental;
     private int lastRentalLength;
 
+    /// <summary>Gets a value indicating whether the <see cref="Watch"/>ed array was returned to the pool.</summary>
     public bool Returned => Volatile.Read(ref this.returned) == 1;
 
+    /// <summary>Gets the runtime identity of the latest array rented on the thread that created the listener.</summary>
     public int LastRental => this.lastRental;
 
+    /// <summary>Gets the length in elements of the array identified by <see cref="LastRental"/>.</summary>
     public int LastRentalLength => this.lastRentalLength;
 
     /// <summary>Starts observing one currently rented array, clearing the previous observation.</summary>

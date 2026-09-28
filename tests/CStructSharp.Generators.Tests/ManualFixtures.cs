@@ -36,6 +36,11 @@ internal static class ManualFixtures
     }
 
     /// <summary>The <c>[CStructLayout]</c> attribute arguments that reproduce the fixture's options.</summary>
+    /// <param name="fixture">The fixture whose root, pointer size, alignment, byte order and options to use.</param>
+    /// <returns>
+    ///     C# named arguments such as <c>Root = "root", PointerSize = 8, Aligned = false, LittleEndian = true</c>,
+    ///     followed by the optional bitfield, <c>long</c> width and enum storage settings the fixture sets.
+    /// </returns>
     public static string AttributeArguments(ManualFixture fixture)
     {
         string arguments = "Root = \"" + fixture.Root + "\", PointerSize = " + fixture.PointerSize + ", Aligned = " + (fixture.Aligned ? "true" : "false") + ", LittleEndian = " + (fixture.LittleEndian ? "true" : "false");

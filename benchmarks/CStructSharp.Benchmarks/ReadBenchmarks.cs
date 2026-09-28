@@ -210,6 +210,7 @@ public class ReadBenchmarks
     /// <summary>The mapped class of <c>struct child</c>.</summary>
     public sealed class TypedChild : ICStructMapped<TypedChild>
     {
+        /// <summary>Gets or sets the child's 16-bit <c>value</c>.</summary>
         public ushort Value { get; set; }
 
         /// <summary>Creates a child from its parsed value.</summary>
@@ -239,8 +240,10 @@ public class ReadBenchmarks
     /// <summary>The mapped class of <c>struct root</c>: a count and that many children.</summary>
     public sealed class TypedRoot : ICStructMapped<TypedRoot>
     {
+        /// <summary>Gets or sets the <c>count</c> byte that sizes the child array.</summary>
         public byte Count { get; set; }
 
+        /// <summary>Gets or sets the count-controlled <c>children</c> array.</summary>
         public TypedChild[] Children { get; set; } = [];
 
         /// <summary>Creates a root from its parsed value.</summary>

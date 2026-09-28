@@ -167,8 +167,10 @@ public class TypedReadPlanTests
     /// <summary>A mapped class for the tests' <c>Leaf</c> record, read and written through the runtime.</summary>
     public sealed class Leaf : ICStructMapped<Leaf>
     {
+        /// <summary>Gets or sets the <c>k</c> byte of a <c>leaf</c>.</summary>
         public byte K { get; set; }
 
+        /// <summary>Gets or sets the 32-bit <c>v</c> value of a <c>leaf</c>.</summary>
         public uint V { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -199,10 +201,13 @@ public class TypedReadPlanTests
     /// <summary>A mapped class for the tests' <c>Inner</c> record, read and written through the runtime.</summary>
     public sealed class Inner : ICStructMapped<Inner>
     {
+        /// <summary>Gets or sets the first <c>leaf</c> of an <c>inner</c> record.</summary>
         public Leaf First { get; set; } = null!;
 
+        /// <summary>Gets or sets the second <c>leaf</c> of an <c>inner</c> record.</summary>
         public Leaf Second { get; set; } = null!;
 
+        /// <summary>Gets or sets the trailing 16-bit <c>pad</c> field of an <c>inner</c> record.</summary>
         public ushort Pad { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -234,26 +239,37 @@ public class TypedReadPlanTests
     /// <summary>A mapped class for the tests' <c>RootExact</c> record, read and written through the runtime.</summary>
     public sealed class RootExact : ICStructMapped<RootExact>
     {
+        /// <summary>Gets or sets the 16-bit <c>magic</c> field, read into its exact type.</summary>
         public ushort Magic { get; set; }
 
+        /// <summary>Gets or sets the four-character <c>tag</c> array, decoded as a string.</summary>
         public string Tag { get; set; } = string.Empty;
 
+        /// <summary>Gets or sets the <c>kind</c> enum member <c>which</c> as its numeric value.</summary>
         public int Which { get; set; }
 
+        /// <summary>Gets or sets the nested <c>inner</c> record as a mapped class.</summary>
         public Inner Nested { get; set; } = null!;
 
+        /// <summary>Gets or sets the three <c>uint32</c> <c>samples</c> as a typed array.</summary>
         public uint[] Samples { get; set; } = [];
 
+        /// <summary>Gets or sets the two signed <c>deltas</c> as a typed array.</summary>
         public short[] Deltas { get; set; } = [];
 
+        /// <summary>Gets or sets the zero-length <c>none</c> array, which maps to an empty array.</summary>
         public byte[] None { get; set; } = [];
 
+        /// <summary>Gets or sets <c>p</c>, the first member promoted from the anonymous struct.</summary>
         public byte P { get; set; }
 
+        /// <summary>Gets or sets <c>q</c>, the second member promoted from the anonymous struct.</summary>
         public byte Q { get; set; }
 
+        /// <summary>Gets or sets the two <c>leaf</c> elements as an array of mapped classes.</summary>
         public Leaf[] Leaves { get; set; } = [];
 
+        /// <summary>Gets or sets the final <c>tail</c> byte.</summary>
         public byte Tail { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -306,31 +322,48 @@ public class TypedReadPlanTests
     /// <summary>A mapper is free to widen, project to a CLR enum, take nullable or floating targets, and fill fields.</summary>
     public sealed class RootConverted : ICStructMapped<RootConverted>
     {
+        /// <summary>The 16-bit <c>magic</c> field, widened to a <see cref="long"/>.</summary>
         public long magic;
 
+        /// <summary>The four-character <c>tag</c> array as a nullable string.</summary>
         public string? tag;
 
+        /// <summary>The <c>which</c> member projected to the CLR enum <see cref="KindEnum"/>.</summary>
         public KindEnum which;
 
+        /// <summary>The nested <c>inner</c> record, mapped to a class that keeps some members untyped.</summary>
         public InnerFields nested = null!;
 
+        /// <summary>The <c>samples</c> array with each element widened to a <see cref="long"/>.</summary>
         public long[] samples = [];
 
+        /// <summary>The signed <c>deltas</c> array with each element widened to an <see cref="int"/>.</summary>
         public int[] deltas = [];
 
+        /// <summary>The zero-length <c>none</c> array.</summary>
         public byte[] none = [];
 
+        /// <summary>The promoted <c>p</c> byte as a nullable integer.</summary>
         public int? p;
 
+        /// <summary>The promoted <c>q</c> byte converted to a <see cref="decimal"/>.</summary>
         public decimal q;
 
+        /// <summary>The two <c>leaf</c> elements as mapped classes.</summary>
         public Leaf[] leaves = [];
 
+        /// <summary>The final <c>tail</c> byte converted to a <see cref="double"/>.</summary>
         public double tail;
 
+        /// <summary>
+        ///     A CLR enum that mirrors the layout's <c>kind</c> enum with the same one-byte underlying type.
+        /// </summary>
         public enum KindEnum : byte
         {
+            /// <summary>Matches the layout's <c>a = 1</c>.</summary>
             A = 1,
+
+            /// <summary>Matches the layout's <c>b = 2</c>.</summary>
             B = 2,
         }
 
@@ -384,13 +417,22 @@ public class TypedReadPlanTests
     /// <summary>A mapped class for the tests' <c>InnerFields</c> record, read and written through the runtime.</summary>
     public sealed class InnerFields : ICStructMapped<InnerFields>
     {
+        /// <summary>The first <c>leaf</c> as a mapped class.</summary>
         public Leaf first = null!;
 
+        /// <summary>
+        ///     The second <c>leaf</c> kept as an untyped object, which holds the parsed <see cref="StructValue"/>.
+        /// </summary>
         public object second = null!;
 
+        /// <summary>
+        ///     The whole parsed <c>inner</c> record viewed as a dictionary; the writer reads <c>pad</c> from it.
+        /// </summary>
         public IReadOnlyDictionary<string, object?>? pad;
 
         /// <summary>The whole struct is a dictionary too, so a mapper may keep the parsed value itself.</summary>
+        /// <param name="source">The parsed <c>inner</c> record.</param>
+        /// <returns>The mapped value, whose <c>pad</c> member is <paramref name="source"/> itself.</returns>
         public static InnerFields ReadFrom(StructValue source)
         {
             return new InnerFields { first = source.Get<Leaf>("first"), second = source.Get<object>("second"), pad = source, };
@@ -417,14 +459,21 @@ public class TypedReadPlanTests
     /// <summary>A mapped class for the tests' <c>RootUntyped</c> record, read and written through the runtime.</summary>
     public sealed class RootUntyped : ICStructMapped<RootUntyped>
     {
+        /// <summary>Gets or sets the <c>magic</c> field as an untyped object.</summary>
         public object? Magic { get; set; }
 
+        /// <summary>Gets or sets the nested <c>inner</c> record as an untyped object.</summary>
         public object? Nested { get; set; }
 
+        /// <summary>Gets or sets the <c>samples</c> array as a list of untyped elements.</summary>
         public IList<object?>? Samples { get; set; }
 
+        /// <summary>Gets or sets the <c>leaves</c> array as an untyped object.</summary>
         public object? Leaves { get; set; }
 
+        /// <summary>
+        ///     Gets or sets the nested <c>inner</c> record as a <see cref="StructValue"/>, which the writer sends back.
+        /// </summary>
         public StructValue? nested { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -464,8 +513,13 @@ public class TypedReadPlanTests
     /// <summary>A mapped class for the tests' <c>RootMissingMember</c> record, read and written through the runtime.</summary>
     public sealed class RootMissingMember : ICStructMapped<RootMissingMember>
     {
+        /// <summary>Gets or sets the <c>magic</c> field, which the layout has.</summary>
         public ushort Magic { get; set; }
 
+        /// <summary>
+        ///     Gets or sets a value read from <c>missing</c>, a field the layout lacks, so the read fails with a path
+        ///     error.
+        /// </summary>
         public int Missing { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -495,6 +549,7 @@ public class TypedReadPlanTests
     /// <summary>A mapped class for the tests' <c>RootOverflow</c> record, read and written through the runtime.</summary>
     public sealed class RootOverflow : ICStructMapped<RootOverflow>
     {
+        /// <summary>Gets or sets a byte target for the 16-bit <c>magic</c> value 0x1234, which overflows it.</summary>
         public byte Magic { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -524,6 +579,9 @@ public class TypedReadPlanTests
     /// <summary>A mapped class for the tests' <c>RootNotNumeric</c> record, read and written through the runtime.</summary>
     public sealed class RootNotNumeric : ICStructMapped<RootNotNumeric>
     {
+        /// <summary>
+        ///     Gets or sets a <see cref="bool"/> target for the numeric <c>magic</c> field, which cannot convert to it.
+        /// </summary>
         public bool Magic { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -553,6 +611,7 @@ public class TypedReadPlanTests
     /// <summary>A mapped class for the tests' <c>RootNestedFailure</c> record, read and written through the runtime.</summary>
     public sealed class RootNestedFailure : ICStructMapped<RootNestedFailure>
     {
+        /// <summary>Gets or sets the <c>leaves</c> array, whose first element fails to map.</summary>
         public LeafOverflow[] Leaves { get; set; } = [];
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -581,8 +640,12 @@ public class TypedReadPlanTests
         /// <summary>A mapped class for the tests' <c>LeafOverflow</c> record, read and written through the runtime.</summary>
         public sealed class LeafOverflow : ICStructMapped<LeafOverflow>
         {
+            /// <summary>Gets or sets the <c>k</c> byte, which maps without failing.</summary>
             public byte K { get; set; }
 
+            /// <summary>
+            ///     Gets or sets a <see cref="bool"/> target for the 32-bit <c>v</c> field, which cannot convert to it.
+            /// </summary>
             public bool V { get; set; }
 
             /// <summary>Builds the class from a parsed record.</summary>
@@ -614,6 +677,7 @@ public class TypedReadPlanTests
     /// <summary>A mapper that throws an ordinary exception; the read reports it as a conversion failure at the mapped path.</summary>
     public sealed class RootThrowingMapper : ICStructMapped<RootThrowingMapper>
     {
+        /// <summary>Gets or sets the <c>magic</c> field; <c>ReadFrom</c> throws before any instance is built.</summary>
         public ushort Magic { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -643,16 +707,20 @@ public class TypedReadPlanTests
     /// <summary>Implements nothing; a typed read into it is a plain conversion failure that names the type.</summary>
     public sealed class RootNotMapped
     {
+        /// <summary>Gets or sets a <c>magic</c> value that no read fills, because the class has no mapping.</summary>
         public ushort Magic { get; set; }
     }
 
     /// <summary>A mapped class for the tests' <c>Small</c> record, read and written through the runtime.</summary>
     public sealed class Small : ICStructMapped<Small>
     {
+        /// <summary>Gets or sets the leading <c>a</c> byte.</summary>
         public byte A { get; set; }
 
+        /// <summary>Gets or sets the 32-bit <c>b</c> value, which the aligned layout places at offset 4.</summary>
         public uint B { get; set; }
 
+        /// <summary>Gets or sets the trailing <c>c</c> byte.</summary>
         public byte C { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>

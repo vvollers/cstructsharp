@@ -105,7 +105,7 @@ public class ReaderParityTests
 
         Assert.AreEqual(12, compared);
 
-        /// <summary>Returns the generated <c>source</c> without its <c>Definition</c> constant line.</summary>
+        // Returns the generated source without its Definition constant line.
         static string Strip(string source) => string.Join("\n", source.Split('\n').Where(line => !line.Contains("public const string Definition = ", StringComparison.Ordinal)));
     }
 
@@ -201,6 +201,16 @@ public class ReaderParityTests
     }
 
     /// <summary>Runs one ad-hoc case through both readers: the value (or the expected failure) and the truncation sweep.</summary>
+    /// <param name="id">The case name, used in assertion messages and to name the generated class.</param>
+    /// <param name="definition">The layout source compiled by both the generator and the runtime.</param>
+    /// <param name="arguments">The other <c>[CStructLayout]</c> arguments: the root and compile settings.</param>
+    /// <param name="root">The root declaration to parse.</param>
+    /// <param name="bytes">The input bytes.</param>
+    /// <param name="fixtureVariables">The external variables for the read; an empty dictionary passes none.</param>
+    /// <param name="options">The read limits, or <see langword="null"/> for the defaults.</param>
+    /// <param name="expectedError">
+    ///     The exception type name the runtime must raise, or <see langword="null"/> when the read succeeds.
+    /// </param>
     internal static void RunParity(string id, string definition, string arguments, string root, byte[] bytes, IReadOnlyDictionary<string, int> fixtureVariables, ReadOptions? options, string? expectedError)
     {
         string className = "Fixture" + string.Concat(id.Split('-').Select(part => char.ToUpperInvariant(part[0]) + part.Substring(1)));

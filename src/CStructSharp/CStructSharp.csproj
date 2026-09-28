@@ -19,9 +19,6 @@
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    <!-- Every element, parameter, type parameter and return value is documented (CS1591, SA1600-SA1618 are errors).
-         SA1623 and SA1642 only prescribe summary wording ("Gets or sets", "Initializes a new instance") and stay off. -->
-    <NoWarn>$(NoWarn);SA1623;SA1642</NoWarn>
     <VersionPrefix>0.10.0</VersionPrefix>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <Deterministic>true</Deterministic>

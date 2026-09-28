@@ -9,9 +9,17 @@ using System.Text.Json.Serialization;
 /// </summary>
 public sealed class ErrorDetailsDto
 {
+    /// <summary>
+    ///     The stable failure category, such as <c>invalid-layout</c>, <c>read-budget</c>, or <c>invalid-json</c>;
+    ///     <c>operation-failed</c> for an unexpected failure.
+    /// </summary>
     [JsonPropertyName("code")]
     public string Code { get; set; } = string.Empty;
 
+    /// <summary>
+    ///     The library's own diagnostic, or the curated category text when diagnostics are redacted or the failure
+    ///     is not a library or input error.
+    /// </summary>
     [JsonPropertyName("message")]
     public string Message { get; set; } = string.Empty;
 
@@ -27,6 +35,7 @@ public sealed class ErrorDetailsDto
     [JsonPropertyName("member")]
     public string? Member { get; set; }
 
+    /// <summary>The layout type of the innermost field, when known; null when redacted.</summary>
     [JsonPropertyName("memberType")]
     public string? MemberType { get; set; }
 
@@ -34,6 +43,7 @@ public sealed class ErrorDetailsDto
     [JsonPropertyName("line")]
     public int? Line { get; set; }
 
+    /// <summary>The one-based source column of a layout error, when known.</summary>
     [JsonPropertyName("column")]
     public int? Column { get; set; }
 }

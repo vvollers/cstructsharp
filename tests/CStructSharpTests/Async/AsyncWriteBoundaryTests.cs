@@ -15,6 +15,7 @@ public class AsyncWriteBoundaryTests
 {
     /// <summary>Linking either cancellation source must retain the caller's zero-byte output budget.</summary>
     /// <param name="argumentToken">Whether the cancellable token comes from the method argument rather than options.</param>
+    /// <returns>A task that completes after the budget rejection is checked.</returns>
     [TestMethod]
     [DataRow(false)]
     [DataRow(true)]
@@ -32,6 +33,7 @@ public class AsyncWriteBoundaryTests
     }
 
     /// <summary>Async acquisition respects the traversal window before trying to update a field beyond that window.</summary>
+    /// <returns>A task that completes after the rejected update is checked.</returns>
     [TestMethod]
     public async Task UpdateAsync_RetainsTheTraversalWindow()
     {
@@ -46,6 +48,7 @@ public class AsyncWriteBoundaryTests
     }
 
     /// <summary>A changed run ending at the exact buffer length is written once, flushed and followed by rental return.</summary>
+    /// <returns>A task that completes after the write, flush and rental return are checked.</returns>
     [TestMethod]
     public async Task UpdateAsync_ExactEndFlushesAndReturnsTheInputRental()
     {
@@ -64,6 +67,7 @@ public class AsyncWriteBoundaryTests
     }
 
     /// <summary>Read-only destinations are rejected with the write operation's capability explanation.</summary>
+    /// <returns>A task that completes after the read-only rejection is checked.</returns>
     [TestMethod]
     public async Task WriteAsync_ReadOnlyDestinationExplainsItsRequirement()
     {

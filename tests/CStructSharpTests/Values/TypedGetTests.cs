@@ -5,7 +5,7 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
 /// <summary>
-///     <see cref="StructValue.Get{T}"/> / <see cref="StructValue.TryGet{T}"/> (and the union equivalents) read a
+///     <see cref="StructValue.Get{T}"/> / <c>StructValue.TryGet&lt;T&gt;</c> (and the union equivalents) read a
 ///     member or a path below it with the same checked conversion as <c>ReadValue&lt;T&gt;</c>, so application code
 ///     can stay typed without a second read of the input.
 /// </summary>
@@ -145,8 +145,10 @@ public class TypedGetTests
     /// <summary>A mapped class for the tests' <c>Inner</c> record, read and written through the runtime.</summary>
     internal sealed class Inner : ICStructMapped<Inner>
     {
+        /// <summary>Gets or sets the <c>uint8 a</c> field.</summary>
         public byte A { get; set; }
 
+        /// <summary>Gets or sets the <c>uint16 b</c> field.</summary>
         public ushort B { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>

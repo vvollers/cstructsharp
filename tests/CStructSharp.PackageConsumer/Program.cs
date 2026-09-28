@@ -261,7 +261,7 @@ using (var stream = new MemoryStream(input))
 
 Console.WriteLine($"CStructSharp package consumer smoke passed on {AppContext.TargetFrameworkName}.");
 
-/// <summary>A generated ParseAsync, the runtime's ParseAsync, two records through Records and ParseManyAsync, and TryParse.</summary>
+// A generated ParseAsync, the runtime's ParseAsync, two records through Records and ParseManyAsync, and TryParse.
 static async Task ConvenienceForms(CStruct cstruct, byte[] input)
 {
     WireLayout.Wire awaitedWire = await WireLayout.ParseAsync(new MemoryStream(input, 0, input.Length, writable: false, publiclyVisible: false));

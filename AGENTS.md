@@ -21,7 +21,8 @@ and update the current contracts, tests, and documentation without retaining unu
 
 - Every authored class and function/method needs a documentation comment, including constructors, private helpers,
   test methods, and Vue composables. Add or repair documentation when adding or editing the declaration.
-  For anonymous callbacks, put their purpose immediately above the callback or its registration.
+  For anonymous callbacks and C# local functions (which cannot take XML documentation), put their purpose in a
+  plain comment immediately above the callback, its registration, or the local function.
 - C#: use `/// <summary>` on types and methods. Document parameters, return values, type parameters, and expected
   exceptions with the appropriate XML tags when applicable. Use `<remarks>` for important constraints and examples,
   and `<inheritdoc/>` only when the inherited documentation accurately describes the implementation.

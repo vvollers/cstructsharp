@@ -30,6 +30,7 @@ public class AnalyzerTests
         """;
 
     /// <summary>CSG200 for paths a visible layout cannot resolve (a local, a field, an inline construction, a generated class), and silence when the layout or the path is not constant.</summary>
+    /// <returns>A task that completes after the CSG200 diagnostics are checked.</returns>
     [TestMethod]
     public async Task Csg200_ReportsUnresolvablePaths_AndStaysSilentWithoutAVisibleLayout()
     {
@@ -82,6 +83,7 @@ public class AnalyzerTests
     ///     Every <c>CStruct</c> method with a <c>path</c> parameter is checked - including <c>TryReadValue</c>,
     ///     <c>GetAccessor</c> and <c>CreateView</c> - and so is the declaration name of the size and alignment queries.
     /// </summary>
+    /// <returns>A task that completes after every path parameter is checked.</returns>
     [TestMethod]
     public async Task Csg200_ChecksEveryPathParameter()
     {
@@ -115,6 +117,7 @@ public class AnalyzerTests
     ///     with the defaults would not compile and its paths would go unchecked. Compilation options the analyzer cannot
     ///     see leave the layout unknown, so it stays silent.
     /// </summary>
+    /// <returns>A task that completes after the layout settings are checked.</returns>
     [TestMethod]
     public async Task Csg200_CompilesTheLayoutWithItsOwnSettings()
     {
@@ -157,6 +160,7 @@ public class AnalyzerTests
     }
 
     /// <summary>CSG201, as info, for the struct-returning parses of a union or scalar root; other operations on those roots stay silent.</summary>
+    /// <returns>A task that completes after the CSG201 diagnostics are checked.</returns>
     [TestMethod]
     public async Task Csg201_ReportsParseOnUnionsAndScalars()
     {
@@ -189,6 +193,7 @@ public class AnalyzerTests
     }
 
     /// <summary>CSG300 for <c>dynamic</c> over a parsed value only when the project publishes trimmed or AOT.</summary>
+    /// <returns>A task that completes after the CSG300 diagnostics are checked.</returns>
     [TestMethod]
     public async Task Csg300_ReportsDynamicOnlyWhenPublishingTrimmedOrAot()
     {

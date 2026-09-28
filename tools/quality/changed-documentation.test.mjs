@@ -11,11 +11,13 @@ test("changed ranges retain deletion boundaries and exact added spans", () => {
   assert.deepEqual(changedRanges("@@ -1 +0,0 @@"), [{ start: 1, end: 1 }]);
 });
 
-// Run the real Roslyn checker, including a constructor, local function and undocumented untouched method.
+// Run the real Roslyn checker, including a constructor, local functions and an undocumented untouched method. A local
+// function takes a plain comment, because C# does not accept XML documentation there.
 test("C# checker detects missing XML comments only in changed declaration spans", () => {
-  const source = "/// <summary>A sample.</summary>\nclass Sample {\nvoid Legacy() {}\n/// <summary>Constructs.</summary>\npublic Sample() {}\nvoid Missing() { void Local() {} }\n}";
+  const source = "/// <summary>A sample.</summary>\nclass Sample {\nvoid Legacy() {}\n/// <summary>Constructs.</summary>\npublic Sample() {}\nvoid Missing() { void Local() {} }\n/// <summary>Has a documented helper.</summary>\nvoid Outer() {\n// Adds one.\nint Next(int x) => x + 1;\n}\n}";
   const entries = [
     { file: "passing.cs", source, ranges: [{ start: 5, end: 5 }] },
+    { file: "local.cs", source, ranges: [{ start: 8, end: 11 }] },
     { file: "failing.cs", source, ranges: [{ start: 6, end: 6 }] },
     { file: "empty.cs", source: "/// <summary>\n/// </summary>\nclass Empty {}", ranges: [{ start: 1, end: 3 }] },
   ];

@@ -211,6 +211,7 @@ public class TypedValueConversionTests
     /// <summary>A mapped class for the tests' <c>ExactModel</c> record, read and written through the runtime.</summary>
     internal sealed class ExactModel : ICStructMapped<ExactModel>
     {
+        /// <summary>Gets or sets the byte member <c>Value</c>, copied without conversion.</summary>
         public byte Value { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -246,6 +247,7 @@ public class TypedValueConversionTests
     /// <summary>A mapped class for the tests' <c>ThrowingMapper</c> record, read and written through the runtime.</summary>
     internal sealed class ThrowingMapper : ICStructMapped<ThrowingMapper>
     {
+        /// <summary>Gets or sets the byte member <c>Value</c>; only writing uses it, since reading throws.</summary>
         public byte Value { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -275,6 +277,7 @@ public class TypedValueConversionTests
     /// <summary>Asks for a conversion the member cannot make; the failure names the member's full path.</summary>
     internal sealed class WrongMemberMapper : ICStructMapped<WrongMemberMapper>
     {
+        /// <summary>Gets or sets the value read from the byte member <c>Value</c>, which the read rejects.</summary>
         public DateTime Value { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>

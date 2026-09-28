@@ -121,14 +121,14 @@ public class StructValueTests
         dynamic b = second.Parse([0xFF, 0x05, 0x00], "root");
         dynamic c = second.Parse([0xFF, 0x06, 0x00], "root");
 
-        /// <summary>Reads <c>kind</c> through one shared dynamic call site.</summary>
+        // Reads kind through one shared dynamic call site.
         static ushort ReadKind(dynamic value) => (ushort)value.kind;
         Assert.AreEqual((ushort)3, ReadKind(a));
         Assert.AreEqual((ushort)5, ReadKind(b));
         Assert.AreEqual((ushort)6, ReadKind(c));
         Assert.AreEqual((ushort)3, ReadKind(a));
 
-        /// <summary>Writes <c>kind</c> through one shared dynamic call site.</summary>
+        // Writes kind through one shared dynamic call site.
         static void WriteKind(dynamic value, ushort kind) => value.kind = kind;
         WriteKind(a, 30);
         WriteKind(b, 50);

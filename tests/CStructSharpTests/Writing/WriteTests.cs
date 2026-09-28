@@ -188,8 +188,10 @@ public class WriteTests
     /// <summary>Groups tests for poco test so changes to this behavior are caught.</summary>
     internal sealed class PocoTest : ICStructMapped<PocoTest>
     {
+        /// <summary>Gets or sets the 16-bit <c>a</c> field.</summary>
         public ushort A { get; set; }
 
+        /// <summary>Gets or sets the 16-bit <c>b</c> field.</summary>
         public ushort B { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>

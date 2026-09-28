@@ -16,33 +16,52 @@ internal sealed class RecordingStream : Stream
         this.inner.Position = 0;
     }
 
+    /// <summary>
+    ///     Gets the exception thrown by the write call chosen by <see cref="FailWriteCall"/>; when null, that call
+    ///     throws an <see cref="IOException"/>.
+    /// </summary>
     public Exception? Failure { get; init; }
 
+    /// <summary>Gets the 1-based number of the write call that fails, or -1 so that no write fails.</summary>
     public int FailWriteCall { get; init; } = -1;
 
+    /// <summary>Gets the exception thrown when <see cref="Position"/> is set, or null to let it be set.</summary>
     public Exception? PositionFailure { get; init; }
 
+    /// <summary>Gets the exception thrown when <see cref="Position"/> is read, or null to let it be read.</summary>
     public Exception? PositionReadFailure { get; init; }
 
+    /// <summary>Gets the number of <see cref="Flush"/> calls.</summary>
     public int FlushCalls { get; private set; }
 
+    /// <summary>Gets the byte count of each write call, in call order, including a call that failed.</summary>
     public List<int> WriteLengths { get; } = [];
 
+    /// <summary>Gets the stream position at which each write call started, in call order.</summary>
     public List<long> WriteStarts { get; } = [];
 
+    /// <summary>Gets the stream position at which each read call started, in call order.</summary>
     public List<long> ReadStarts { get; } = [];
 
+    /// <summary>Gets the number of write calls, including a call that failed.</summary>
     public int WriteCalls { get; private set; }
 
+    /// <summary>Gets a value indicating whether the stream can be read; always true.</summary>
     public override bool CanRead => true;
 
+    /// <summary>Gets a value indicating whether the stream can seek; always true.</summary>
     public override bool CanSeek => true;
 
+    /// <summary>Gets a value indicating whether the stream can be written; always true.</summary>
     public override bool CanWrite => true;
 
     /// <inheritdoc/>
     public override long Length => this.inner.Length;
 
+    /// <summary>
+    ///     Gets or sets the byte offset from the stream start; throws <see cref="PositionReadFailure"/> or
+    ///     <see cref="PositionFailure"/> when those are set.
+    /// </summary>
     public override long Position
     {
         get => this.PositionReadFailure is null ? this.inner.Position : throw this.PositionReadFailure;

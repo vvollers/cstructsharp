@@ -104,10 +104,10 @@ public static class Verification
 
         // Each case writes, then its output is compared with the reference bytes and decoded by its own library.
         // Span writers leave their output at the start of Destination; appending writers in BufferWriter.
-        /// <summary>Copies the first <paramref name="length" /> bytes a span writer left in the destination.</summary>
+        // Copies the first length bytes a span writer left in the destination.
         byte[] SpanOutput(int length) => benchmarks.Destination[..length];
 
-        /// <summary>Copies what an appending writer added; the reported <paramref name="length" /> is implied by the writer.</summary>
+        // Copies what an appending writer added; the reported length is implied by the writer.
         byte[] AppendedOutput(int length) => benchmarks.BufferWriter.WrittenSpan.ToArray();
 
         var cases = new Dictionary<string, (Func<int> Run, Func<int, byte[]> Output, byte[] Reference, Func<byte[], ulong> Decode)>(StringComparer.Ordinal)

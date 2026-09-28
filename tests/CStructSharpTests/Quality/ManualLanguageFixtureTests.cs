@@ -73,6 +73,7 @@ public class ManualLanguageFixtureTests
     }
 
     /// <summary>Every valid feature example reads the same bytes through <c>ReadValueAsync</c> as through <c>ReadValue(Stream)</c>, and both leave the stream after the value.</summary>
+    /// <returns>A task that completes after the test's assertions have run.</returns>
     [TestMethod]
     public async Task ValidFixtures_ReadTheSameAsynchronously()
     {
@@ -92,6 +93,7 @@ public class ManualLanguageFixtureTests
     }
 
     /// <summary>Every valid feature example serializes to the same bytes through <c>WriteAsync</c> as through <c>Write(Stream)</c>.</summary>
+    /// <returns>A task that completes after the test's assertions have run.</returns>
     [TestMethod]
     public async Task ValidFixtures_WriteTheSameAsynchronously()
     {

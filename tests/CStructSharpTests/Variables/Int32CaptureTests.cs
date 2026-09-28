@@ -165,10 +165,13 @@ public class Int32CaptureTests
     /// <summary>A mapped class whose count property sizes its samples array.</summary>
     public sealed class SamplePoco : ICStructMapped<SamplePoco>
     {
+        /// <summary>Gets or sets the <c>uint32 id</c> field, which may exceed <see cref="int.MaxValue"/>.</summary>
         public uint Id { get; set; }
 
+        /// <summary>Gets or sets the <c>uint16 count</c> field.</summary>
         public ushort Count { get; set; }
 
+        /// <summary>Gets or sets the <c>uint8 samples[16]</c> array, which no Int32 conversion accepts.</summary>
         public byte[] Samples { get; set; } = [];
 
         /// <summary>Builds the class from a parsed record.</summary>

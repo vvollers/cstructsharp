@@ -28,12 +28,16 @@ internal sealed class GeneratorResult
         this.RunResult = runResult;
     }
 
+    /// <summary>Gets the hint name and text of every generated source, in generator output order.</summary>
     public IReadOnlyList<(string HintName, string Source)> GeneratedSources { get; }
 
+    /// <summary>Gets the diagnostics the generators reported, excluding compiler diagnostics of the output.</summary>
     public ImmutableArray<Diagnostic> GeneratorDiagnostics { get; }
 
+    /// <summary>Gets the consumer compilation with the generated sources added.</summary>
     public Compilation Output { get; }
 
+    /// <summary>Gets the driver's run result, which exposes the incremental step outputs.</summary>
     public GeneratorDriverRunResult RunResult { get; }
 
     /// <summary>The single generated source, when exactly one class was attributed.</summary>
@@ -42,9 +46,12 @@ internal sealed class GeneratorResult
                                 : throw new InvalidOperationException($"Expected one generated source, found {this.GeneratedSources.Count}: {string.Join(", ", this.GeneratedSources.Select(source => source.HintName))}.");
 
     /// <summary>The generator diagnostics of one id.</summary>
+    /// <param name="id">The diagnostic id to match exactly, such as <c>CSS001</c>.</param>
+    /// <returns>The matching diagnostics in reporting order; empty when none match.</returns>
     public IReadOnlyList<Diagnostic> DiagnosticsWithId(string id) => [.. this.GeneratorDiagnostics.Where(diagnostic => diagnostic.Id == id)];
 
     /// <summary>Fails the test when the generator reported anything or the consumer compilation (with the generated code) has errors.</summary>
+    /// <returns>This result, so a test can chain further checks.</returns>
     public GeneratorResult AssertClean()
     {
         Assert.IsEmpty(this.GeneratorDiagnostics, "Generator diagnostics: " + string.Join("\n", this.GeneratorDiagnostics.Select(diagnostic => diagnostic.ToString())));
@@ -74,6 +81,7 @@ internal sealed class GeneratorResult
     }
 
     /// <summary>Compiles the consumer plus the generated code to an in-memory assembly and loads it, so tests can run the generated members.</summary>
+    /// <returns>The loaded assembly; the test fails when the emit reports errors.</returns>
     public Assembly Load()
     {
         using var stream = new MemoryStream();

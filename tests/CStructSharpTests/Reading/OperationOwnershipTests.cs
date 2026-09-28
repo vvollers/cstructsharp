@@ -261,6 +261,8 @@ public class OperationOwnershipTests
         }
 
         /// <summary>The mapper runs caller code while the write is in flight; the options must already be captured.</summary>
+        /// <param name="value">The payload whose callback runs during the write.</param>
+        /// <param name="target">The record to fill with the payload values.</param>
         public static void WriteTo(MutatingPayload value, StructValue target)
         {
             value.callback();

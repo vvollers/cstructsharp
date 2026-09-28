@@ -568,7 +568,7 @@ public class ParserCorpusTests
         var corpus = new List<(string Id, string Source)>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
-        /// <summary>Adds a source once, under the identifier of its first occurrence.</summary>
+        // Adds a source once, under the identifier of its first occurrence.
         void Add(string id, string? source)
         {
             if (source is not null && seen.Add(source))

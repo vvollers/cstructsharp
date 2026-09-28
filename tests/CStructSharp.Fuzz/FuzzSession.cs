@@ -11,6 +11,9 @@ public sealed class FuzzSession
     private readonly FuzzCorpus corpus;
     private readonly FuzzTargets targets;
 
+    /// <summary>Creates a session over a reviewed corpus, with targets bounded by the corpus limits.</summary>
+    /// <param name="corpus">The corpus that supplies seeds, limits and retained inputs.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="corpus"/> is null.</exception>
     public FuzzSession(FuzzCorpus corpus)
     {
         this.corpus = corpus ?? throw new ArgumentNullException(nameof(corpus));
@@ -68,6 +71,14 @@ public sealed class FuzzSession
     }
 
     /// <summary>Runs one or every target and returns a deterministic outcome report.</summary>
+    /// <param name="targetName">The target to run, or <c>all</c> to run every target in ordinal name order.</param>
+    /// <param name="iterations">The mutations per target, or null for the corpus's iteration count.</param>
+    /// <param name="seed">The run seed, or null for the corpus's seed.</param>
+    /// <param name="maxInputBytes">The longest input, at most the corpus limit, or null for that limit.</param>
+    /// <returns>A report with the seed, the limits used and one outcome summary per target.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     The iteration count is negative, or the input limit is not positive or exceeds the corpus limit.
+    /// </exception>
     public FuzzReport Run(
         string targetName = "all",
         int? iterations = null,
@@ -114,6 +125,11 @@ public sealed class FuzzSession
     }
 
     /// <summary>Executes one exact input for replay or an external byte-oriented fuzz engine.</summary>
+    /// <param name="targetName">The name of the target that receives the input.</param>
+    /// <param name="input">The input bytes, at most the corpus input limit.</param>
+    /// <returns>A report with the single target's outcome for this input.</returns>
+    /// <exception cref="ArgumentException"><paramref name="targetName"/> is empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The input exceeds the corpus input limit.</exception>
     public FuzzReport RunSingle(string targetName, byte[] input)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(targetName);

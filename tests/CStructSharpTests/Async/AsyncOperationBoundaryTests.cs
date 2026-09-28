@@ -10,6 +10,7 @@ using CStructSharp.Values;
 public class AsyncOperationBoundaryTests
 {
     /// <summary>A pre-cancelled operation stops before probing the caller's current input position.</summary>
+    /// <returns>A task that completes after the test's assertions have run.</returns>
     [TestMethod]
     public async Task PreCancelledRead_DoesNotInspectStreamPosition()
     {
@@ -26,6 +27,7 @@ public class AsyncOperationBoundaryTests
     /// <summary>A separately supplied token reaches the decoder, and cancellation is never turned into a failed Try result.</summary>
     /// <param name="visible">Whether input is borrowed directly or acquired in a separate buffer.</param>
     /// <param name="tryForm">Whether to use the non-throwing value-read wrapper.</param>
+    /// <returns>A task that completes after the test's assertions have run.</returns>
     [TestMethod]
     [DataRow(true, false)]
     [DataRow(false, false)]
@@ -58,6 +60,7 @@ public class AsyncOperationBoundaryTests
 
     /// <summary>Library continuations do not dispatch back through the caller's synchronization context.</summary>
     /// <param name="tryForm">Whether to include the extra await inside the non-throwing wrapper.</param>
+    /// <returns>A task that completes after the test's assertions have run.</returns>
     [TestMethod]
     [DataRow(false)]
     [DataRow(true)]
@@ -86,6 +89,7 @@ public class AsyncOperationBoundaryTests
 
     /// <summary>Query wrappers reject missing paths before input capability checks and name their public path parameter.</summary>
     /// <param name="lengthQuery">Whether to query array length instead of field address.</param>
+    /// <returns>A task that completes after the test's assertions have run.</returns>
     [TestMethod]
     [DataRow(false)]
     [DataRow(true)]
@@ -111,6 +115,7 @@ public class AsyncOperationBoundaryTests
     }
 
     /// <summary>Adding an operation token preserves the caller's independent element-count limit.</summary>
+    /// <returns>A task that completes after the test's assertions have run.</returns>
     [TestMethod]
     public async Task OperationToken_PreservesOtherReadOptions()
     {
@@ -125,6 +130,7 @@ public class AsyncOperationBoundaryTests
     }
 
     /// <summary>Unreadable input identifies the invalid stream and explains the required capability.</summary>
+    /// <returns>A task that completes after the test's assertions have run.</returns>
     [TestMethod]
     public async Task UnreadableInput_ExplainsRequiredCapability()
     {

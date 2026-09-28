@@ -23,6 +23,7 @@ public class RecordSequenceOwnershipTests
 
     /// <summary>Disposing each pooled input form returns the exact array used by its record reader.</summary>
     /// <remarks>Pool diagnostics are process-wide, so this test must not overlap allocation-measurement tests.</remarks>
+    /// <returns>A task that completes after all three iterators have been disposed and their returns checked.</returns>
     [TestMethod]
     [DoNotParallelize]
     public async Task EarlyDisposal_ReturnsEachBorrowedPoolBuffer()
@@ -77,6 +78,7 @@ public class RecordSequenceOwnershipTests
     }
 
     /// <summary>Waiting for stream bytes does not dispatch library continuations through the caller's UI context.</summary>
+    /// <returns>A task that completes after the gated read has finished and the context has been checked.</returns>
     [TestMethod]
     public async Task AsyncRecordRead_DoesNotCaptureTheCallersContext()
     {

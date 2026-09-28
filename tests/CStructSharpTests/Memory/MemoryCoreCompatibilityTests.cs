@@ -176,18 +176,25 @@ public class MemoryCoreCompatibilityTests
     /// <summary>Typed consumer shape exercises exact array conversions through a mapped class.</summary>
     public sealed class ArrayRecord : ICStructMapped<ArrayRecord>
     {
+        /// <summary>Gets or sets the <c>int8 Signed[2]</c> array.</summary>
         public sbyte[] Signed { get; set; } = [];
 
+        /// <summary>Gets or sets the <c>bool Flags[2]</c> array.</summary>
         public bool[] Flags { get; set; } = [];
 
+        /// <summary>Gets or sets the <c>uint16 Words[2]</c> array.</summary>
         public ushort[] Words { get; set; } = [];
 
+        /// <summary>Gets or sets the <c>int64 Wide[2]</c> array.</summary>
         public long[] Wide { get; set; } = [];
 
+        /// <summary>Gets or sets the <c>float32 Single[2]</c> array.</summary>
         public float[] Single { get; set; } = [];
 
+        /// <summary>Gets or sets the <c>float64 Double[2]</c> array.</summary>
         public double[] Double { get; set; } = [];
 
+        /// <summary>Gets or sets the <c>uint24 Packed[2]</c> array, widened to 32-bit elements.</summary>
         public uint[] Packed { get; set; } = [];
 
         /// <summary>Builds the class from a parsed record.</summary>

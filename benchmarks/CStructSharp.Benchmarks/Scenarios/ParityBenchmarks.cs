@@ -44,6 +44,7 @@ public class ParityBenchmarks
     }
 
     /// <summary>1024 varint-led elements through a caller-registered codec (never plan-eligible).</summary>
+    /// <returns>The parsed root value, returned so the work is not eliminated.</returns>
     [Benchmark]
     public object ParseCustomCodecVarint1024()
     {
@@ -51,6 +52,7 @@ public class ParityBenchmarks
     }
 
     /// <summary>The body compiled with the shared prelude: the prelude is parsed with the body, not cached separately.</summary>
+    /// <returns>The layout compiled from the body and the prelude option.</returns>
     [Benchmark]
     public CStruct CompileWithPrelude()
     {
@@ -58,6 +60,7 @@ public class ParityBenchmarks
     }
 
     /// <summary>The same text compiled inline, for the prelude's overhead (must be within noise of each other).</summary>
+    /// <returns>The layout compiled from the prelude and body as one source text.</returns>
     [Benchmark(Baseline = true)]
     public CStruct CompileInline()
     {
@@ -65,6 +68,7 @@ public class ParityBenchmarks
     }
 
     /// <summary>A byte-order sibling through the shared cache: after the first call this is a cache hit.</summary>
+    /// <returns>The big-endian sibling of the source layout.</returns>
     [Benchmark]
     public CStruct CompileSibling()
     {

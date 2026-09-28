@@ -145,6 +145,11 @@ public class ConditionalExecutionOptimizationTests
     }
 
     /// <summary>Both a wide conditional arm and a mostly-unconditional record need bounded compiler allocation.</summary>
+    /// <param name="count">The number of <c>uint32</c> fields in the generated record.</param>
+    /// <param name="grouped">
+    ///     Whether all fields sit inside one conditional arm; otherwise they are unconditional and a single optional
+    ///     field follows them.
+    /// </param>
     [TestMethod]
     [DataRow(128, true)]
     [DataRow(1024, false)]

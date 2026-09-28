@@ -99,7 +99,7 @@ public class DissectAlignmentTests
     /// <remarks>
     ///     Under MSVC packing - the rule dissect.cstruct implements - changing to uint64 starts another group at
     ///     offset 8 with the same values. Ordinary fields and later groups must resume at their own aligned offsets;
-    ///     a four-bit field still uses its base type's storage unit. <see cref="TestAlignBitField_SysV"/> shows the
+    ///     a four-bit field still uses its base type's storage unit. <see cref="Bitfields_PackIntoOneCellUnderSysV"/> shows the
     ///     GCC/Clang placement of the same declaration.
     /// </remarks>
     [TestMethod]

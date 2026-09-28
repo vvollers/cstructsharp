@@ -14,12 +14,24 @@ public class FlagDeclarationTests
 {
     private const string Layout = "flag access : uint16 { READ, WRITE, EXEC, RW = 3, HIDDEN = 0x100 }; struct root { access mode; access modes[2]; };";
 
+    /// <summary>
+    ///     The .NET mirror of the <c>access</c> flag declaration: the target type when flag fields convert to a
+    ///     <see cref="FlagsAttribute"/> enum. <c>RW</c> has no member of its own; it equals
+    ///     <see cref="Access.Read"/> | <see cref="Access.Write"/>.
+    /// </summary>
     [Flags]
     internal enum Access : ushort
     {
+        /// <summary>The <c>READ</c> bit, value 1.</summary>
         Read = 1,
+
+        /// <summary>The <c>WRITE</c> bit, value 2.</summary>
         Write = 2,
+
+        /// <summary>The <c>EXEC</c> bit, value 4.</summary>
         Exec = 4,
+
+        /// <summary>The <c>HIDDEN</c> bit, value 0x100.</summary>
         Hidden = 0x100,
     }
 
@@ -63,7 +75,7 @@ public class FlagDeclarationTests
         dynamic parsed = layout.Parse(new byte[] { 0x05, 0x01, 0x03, 0x00, 0x00, 0x00, }.AsSpan(), "root");
         CollectionAssert.AreEqual(new byte[] { 0x05, 0x01, 0x03, 0x00, 0x00, 0x00, }, layout.Serialize("root", parsed));
 
-        /// <summary>Serializes the record with the given <c>mode</c> input and zero <c>modes</c>.</summary>
+        // Serializes the record with the given mode input and zero modes.
         byte[] Write(object mode)
         {
             return layout.Serialize("root", new Dictionary<string, object?> { ["mode"] = mode, ["modes"] = new object[] { 0, 0, }, });
@@ -196,8 +208,10 @@ public class FlagDeclarationTests
     /// <summary>A mapped class for the tests' <c>Root</c> record, read and written through the runtime.</summary>
     internal sealed class Root : ICStructMapped<Root>
     {
+        /// <summary>Gets or sets the single <c>access mode</c> field.</summary>
         public Access Mode { get; set; }
 
+        /// <summary>Gets or sets the two-element <c>access modes</c> array.</summary>
         public Access[] Modes { get; set; } = [];
 
         /// <summary>Builds the class from a parsed record.</summary>

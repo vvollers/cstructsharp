@@ -152,8 +152,10 @@ public class DataSizedArrayTests
     /// <summary>A mapped class for the tests' <c>Root</c> record, read and written through the runtime.</summary>
     internal sealed class Root : ICStructMapped<Root>
     {
+        /// <summary>Gets or sets the <c>uint16 header</c> field.</summary>
         public ushort Header { get; set; }
 
+        /// <summary>Gets or sets the <c>entries[EOF]</c> array, sized by the bytes left in the input.</summary>
         public Entry[] Entries { get; set; } = [];
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -184,8 +186,10 @@ public class DataSizedArrayTests
     /// <summary>A mapped class for the tests' <c>Entry</c> record, read and written through the runtime.</summary>
     internal sealed class Entry : ICStructMapped<Entry>
     {
+        /// <summary>Gets or sets the <c>uint8 kind</c> field.</summary>
         public byte Kind { get; set; }
 
+        /// <summary>Gets or sets the <c>uint8 size</c> field.</summary>
         public byte Size { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>

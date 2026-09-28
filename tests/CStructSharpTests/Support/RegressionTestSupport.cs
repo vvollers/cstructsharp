@@ -149,6 +149,7 @@ internal static class RegressionTestSupport
     /// <param name="value">The unsigned value to encode.</param>
     /// <param name="width">The encoded width in bytes.</param>
     /// <param name="isLittleEndian">Whether the least-significant byte is stored first.</param>
+    /// <returns>A new array of <paramref name="width"/> bytes holding the encoded value.</returns>
     public static byte[] EncodeUnsigned(ulong value, int width, bool isLittleEndian)
     {
         var result = new byte[width];

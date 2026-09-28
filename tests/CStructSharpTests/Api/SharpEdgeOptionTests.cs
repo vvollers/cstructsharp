@@ -121,8 +121,10 @@ public class SharpEdgeOptionTests
     /// <summary>A mapped class for the tests' <c>Root</c> record, read and written through the runtime.</summary>
     internal sealed class Root : ICStructMapped<Root>
     {
+        /// <summary>Gets or sets the <c>name</c> string field.</summary>
         public string Name { get; set; } = string.Empty;
 
+        /// <summary>Gets or sets the <c>tail</c> byte field.</summary>
         public byte Tail { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -153,6 +155,7 @@ public class SharpEdgeOptionTests
     /// <summary>A mapped class for the tests' <c>InnerPoco</c> record, read and written through the runtime.</summary>
     internal sealed class InnerPoco : ICStructMapped<InnerPoco>
     {
+        /// <summary>Gets or sets the <c>uint8 a</c> field.</summary>
         public byte A { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -182,8 +185,10 @@ public class SharpEdgeOptionTests
     /// <summary>A mapped class for the tests' <c>RootPoco</c> record, read and written through the runtime.</summary>
     internal sealed class RootPoco : ICStructMapped<RootPoco>
     {
+        /// <summary>Gets or sets the <c>uint16 kind</c> field.</summary>
         public ushort Kind { get; set; }
 
+        /// <summary>Gets or sets the <c>inner nested</c> field.</summary>
         public InnerPoco Nested { get; set; } = new();
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -214,10 +219,13 @@ public class SharpEdgeOptionTests
     /// <summary>A mapper that writes a name the layout does not declare; Reject must notice the extra slot.</summary>
     internal sealed class RootPocoWithExtra : ICStructMapped<RootPocoWithExtra>
     {
+        /// <summary>Gets or sets the <c>uint16 kind</c> field.</summary>
         public ushort Kind { get; set; }
 
+        /// <summary>Gets or sets the <c>inner nested</c> field.</summary>
         public InnerPoco Nested { get; set; } = new();
 
+        /// <summary>Gets or sets a value written under <c>Extra</c>, a name <c>root</c> does not declare.</summary>
         public int Extra { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>

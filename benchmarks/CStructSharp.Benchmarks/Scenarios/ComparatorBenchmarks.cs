@@ -230,35 +230,61 @@ public class ComparatorBenchmarks
     /// <summary>Typed comparator result; its CLR memory layout is not the packed wire layout.</summary>
     public struct PrimRecordStruct
     {
+        /// <summary>The decoded <c>uint8 a</c> field.</summary>
         public byte A;
+
+        /// <summary>The decoded <c>int16 b</c> field.</summary>
         public short B;
+
+        /// <summary>The decoded <c>uint32 c</c> field.</summary>
         public uint C;
+
+        /// <summary>The decoded <c>int64 d</c> field.</summary>
         public long D;
+
+        /// <summary>The decoded <c>float32 e</c> field.</summary>
         public float E;
+
+        /// <summary>The decoded <c>float64 f</c> field.</summary>
         public double F;
+
+        /// <summary>The decoded <c>bool g</c> field.</summary>
         public bool G;
     }
 
     /// <summary>Typed leaf result, containing a decoded kind and value rather than borrowed wire bytes.</summary>
     public struct NestedLeafStruct
     {
+        /// <summary>The decoded <c>uint8 kind</c> field.</summary>
         public byte Kind;
+
+        /// <summary>The decoded <c>uint32 value</c> field.</summary>
         public uint Value;
     }
 
     /// <summary>Typed intermediate result with two leaves and a decoded tail.</summary>
     public struct NestedMidStruct
     {
+        /// <summary>The decoded <c>leaf first</c> member.</summary>
         public NestedLeafStruct First;
+
+        /// <summary>The decoded <c>leaf second</c> member.</summary>
         public NestedLeafStruct Second;
+
+        /// <summary>The decoded <c>uint16 tail</c> field.</summary>
         public ushort Tail;
     }
 
     /// <summary>Typed top-level result with two intermediate records and a marker.</summary>
     public struct NestedTopStruct
     {
+        /// <summary>The decoded <c>mid left</c> member.</summary>
         public NestedMidStruct Left;
+
+        /// <summary>The decoded <c>mid right</c> member.</summary>
         public NestedMidStruct Right;
+
+        /// <summary>The decoded <c>uint8 mark</c> field.</summary>
         public byte Mark;
     }
 }

@@ -11,6 +11,11 @@ using CStructSharp.Memory.Metadata;
 public class MemoryBtfCoverageTests
 {
     /// <summary>Builds metadata words independently of any CStructSharp serializer.</summary>
+    /// <param name="types">The type section as little-endian 32-bit words, in order.</param>
+    /// <param name="strings">The string section: NUL-separated names, encoded as UTF-8.</param>
+    /// <returns>
+    ///     A BTF blob: the 24-byte version 1 header (magic <c>0xEB9F</c>), then the type words, then the string bytes.
+    /// </returns>
     internal static byte[] Blob(uint[] types, string strings)
     {
         byte[] names = Encoding.UTF8.GetBytes(strings);

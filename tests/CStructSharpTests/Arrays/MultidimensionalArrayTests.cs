@@ -16,9 +16,8 @@ public class MultidimensionalArrayTests
 {
     /// <summary>
     ///     Supplying more indices in one path segment than a field actually has dimensions (<c>root.values[0][1]</c>
-    ///     against a 1-D <c>uint8 values[4]</c> field) is rejected with a distinct, clear message - real
-    ///     per-dimension address resolution (seam 7) now resolves every legal index count, so over-indexing is the
-    ///     only remaining rejection, not a placeholder for "not yet available."
+    ///     against a 1-D <c>uint8 values[4]</c> field) is rejected with a distinct, clear message. Address
+    ///     resolution handles every legal index count, so over-indexing is the only rejection.
     /// </summary>
     [TestMethod]
     public void TooManyIndicesInOneSegment_IsRejected()
@@ -45,7 +44,7 @@ public class MultidimensionalArrayTests
 
     /// <summary>
     ///     A two-dimensional fixed array declares and compiles correctly - the outermost dimension's own count
-    ///     (via <see cref="CompiledField.Array.FixedCount"/>) and the total element count both report correctly,
+    ///     (via <c>CompiledArrayShape.FixedCount</c>) and the total element count both report correctly,
     ///     and a sibling field placed after the array lands at exactly <c>rows * columns</c> bytes, proving the
     ///     total-size math (seam 2) is wired end to end through real declaration/compilation, not just reachable
     ///     via a hand-built shape.

@@ -47,6 +47,10 @@ public class BitfieldPackingTests
     ];
 
     /// <summary>SysV placement matches GCC byte for byte, and the other operations agree with the bytes.</summary>
+    /// <param name="layout">The definition of <c>struct s</c> under test.</param>
+    /// <param name="values">Comma-separated <c>name=value</c> pairs for the fields of <c>s</c>.</param>
+    /// <param name="alignedHex">The bytes, as hex, that GCC produces with natural placement.</param>
+    /// <param name="packedHex">The bytes, as hex, that GCC produces under <c>#pragma pack(1)</c>.</param>
     [TestMethod]
     [DynamicData(nameof(GccShapes))]
     public void SysV_MatchesGcc(string layout, string values, string alignedHex, string packedHex)
@@ -56,6 +60,10 @@ public class BitfieldPackingTests
     }
 
     /// <summary>MSVC placement: one unit per declared size, a new unit on every size change, whole units retained.</summary>
+    /// <param name="layout">The definition of <c>struct s</c> under test.</param>
+    /// <param name="values">Comma-separated <c>name=value</c> pairs for the fields of <c>s</c>.</param>
+    /// <param name="alignedHex">The expected bytes, as hex, of the MSVC layout with alignment on.</param>
+    /// <param name="packedHex">The expected bytes, as hex, of the MSVC layout with alignment off.</param>
     [TestMethod]
     [DataRow("struct s { uint8 a:4; uint16 b:4; };", "a=15,b=10", "0F000A00", "0F0A00")]
     [DataRow("struct s { uint16 a:4; int16 b:4; uint8 tail; };", "a=10,b=11,tail=165", "BA00A500", "BA00A5")]

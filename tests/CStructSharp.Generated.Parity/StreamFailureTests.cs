@@ -13,6 +13,7 @@ public class StreamFailureTests
     /// <summary>Every buffered operation restores its seekable origin and preserves the original I/O or cancellation failure.</summary>
     /// <param name="cancel">Whether acquisition fails with cancellation instead of an I/O error.</param>
     /// <param name="failRestore">Whether restoring the origin also fails; the original failure must still escape.</param>
+    /// <returns>A task that completes after every runtime and generated operation has been checked.</returns>
     [TestMethod]
     [DataRow(false, false)]
     [DataRow(true, false)]

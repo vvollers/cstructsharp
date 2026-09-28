@@ -181,8 +181,10 @@ public class NullPointerBindingTests
     /// <summary>A hand-written mapped class (what the generator emits for a <c>[CStructMapped]</c> class).</summary>
     internal sealed class NullablePointerProperty : ICStructMapped<NullablePointerProperty>
     {
+        /// <summary>Gets or sets the <c>ptr</c> address, or <see langword="null"/> for a null pointer.</summary>
         public long? Ptr { get; set; }
 
+        /// <summary>Gets or sets the <c>tail</c> byte that follows the pointer.</summary>
         public byte Tail { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>
@@ -213,6 +215,7 @@ public class NullPointerBindingTests
     /// <summary>A mapped class whose one member is a nullable primitive.</summary>
     internal sealed class NullablePrimitiveProperty : ICStructMapped<NullablePrimitiveProperty>
     {
+        /// <summary>Gets or sets the nullable <c>value</c> byte.</summary>
         public byte? Value { get; set; }
 
         /// <summary>Builds the class from a parsed record.</summary>

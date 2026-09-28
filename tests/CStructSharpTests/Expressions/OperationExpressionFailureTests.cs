@@ -14,6 +14,8 @@ public class OperationExpressionFailureTests
     private const string CountedLayout = "struct p { uint32 n; uint8 data[n]; };";
 
     /// <summary>A uint32 count from 2^31 upward names the field and its value and fails as a read.</summary>
+    /// <param name="bytes">The input, whose first four bytes are the little-endian count <c>n</c>.</param>
+    /// <param name="value">The count as the decimal text the message must contain.</param>
     [TestMethod]
     [DataRow(new byte[] { 0x00, 0x00, 0x00, 0x80, 1, 2, }, "2147483648")]
     [DataRow(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 1, 2, }, "4294967295")]

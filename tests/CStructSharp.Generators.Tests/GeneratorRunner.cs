@@ -90,6 +90,9 @@ internal static class GeneratorRunner
     }
 
     /// <summary>The build's options as an analyzer sees them, for running the analyzer over a compilation.</summary>
+    /// <param name="globalOptions">The build properties, or <see langword="null"/> for none.</param>
+    /// <param name="fileOptions">Each additional file's metadata keyed by its path, or <see langword="null"/>.</param>
+    /// <returns>An options provider backed by the given dictionaries.</returns>
     public static AnalyzerConfigOptionsProvider OptionsProvider(IReadOnlyDictionary<string, string>? globalOptions, IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>? fileOptions)
         => new InMemoryOptionsProvider(globalOptions, fileOptions);
 
