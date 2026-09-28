@@ -25,7 +25,7 @@ internal sealed partial class JavaScriptSourceStream : Stream
     public JavaScriptSourceStream(JSObject source)
     {
         double size = source.GetPropertyAsDouble("size");
-        if (!double.IsFinite(size) || size < 0 || size > 9007199254740991d || Math.Truncate(size) != size)
+        if (!double.IsFinite(size) || size < 0 || size > InteropLimits.MaximumSafeInteger || Math.Truncate(size) != size)
         {
             throw new ArgumentException("Source size must be a non-negative safe integer.", nameof(source));
         }

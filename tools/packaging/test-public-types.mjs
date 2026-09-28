@@ -16,7 +16,7 @@ const bundle = path.resolve(bundleArgument ?? path.join(repositoryRoot, "artifac
 const work = fs.mkdtempSync(path.join(os.tmpdir(), "cstructsharp-types-"));
 try {
   // Use only files from the packaged distribution, never the repository's sources.
-  for (const name of ["cstructsharp-wasm.js", "cstructsharp-api.js", "cstructsharp-wasm.d.ts"])
+  for (const name of ["cstructsharp-wasm.js", "cstructsharp-api.js", "cstructsharp-shared.js", "cstructsharp-wasm.d.ts"])
     fs.copyFileSync(path.join(bundle, name), path.join(work, name));
   fs.writeFileSync(path.join(work, "package.json"), '{"type":"module"}');
   fs.copyFileSync(

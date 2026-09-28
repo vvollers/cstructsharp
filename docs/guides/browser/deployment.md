@@ -42,7 +42,7 @@ relative URL. A Vue, React, or other framework is not required. Building the bri
 Use HTTP(S). Opening `index.html` with `file://` prevents normal module and runtime loading. Serve `.js` as JavaScript
 and `.wasm` as `application/wasm`. The included `serve.mjs` provides those types for local development.
 
-Keep `cstructsharp-api.js`, `main.js`, `bootstrap.js`, the runtime configuration, and `_framework` beside the public entry point. Publish
+Keep `cstructsharp-api.js`, `cstructsharp-shared.js`, `main.js`, `bootstrap.js`, the runtime configuration, and `_framework` beside the public entry point. Publish
 one complete release together; mixing cached files from different releases can prevent startup. When deploying
 under a path such as `/tools/binary/`, keep relative imports inside that path instead of using domain-root URLs.
 

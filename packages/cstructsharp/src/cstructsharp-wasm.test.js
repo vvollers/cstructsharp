@@ -1,12 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { serialize, update, parseWithDebug } from "./cstructsharp-wasm.js";
+import { createCStructSharpWasm } from "./bootstrap.js";
+import { serialize, update, parseWithDebug, getVersion } from "./cstructsharp-wasm.js";
+
+/** The member order of every envelope, as the managed writer produces it. */
+const ENVELOPE_KEYS = ["contractVersion", "operation", "success", "root", "data", "debug", "error"];
 
 test("public wrapper returns byte arrays for writes, preserves errors and parse JSON", async () => {
   const previous = globalThis.CStructSharpWasm;
   const written = new Uint8Array([0, 255, 128]);
   let updateInput;
   let shouldFail = false;
+  /** The bytes the last successful write left for TakeOutput, as in managed memory. */
+  let pending = null;
   const failure = {
     code: "write-failed",
     message: "Invalid value",
@@ -17,36 +23,60 @@ test("public wrapper returns byte arrays for writes, preserves errors and parse 
     line: null,
     column: null,
   };
-  globalThis.CStructSharpWasm = {
-    ready: true,
-    serialize: () => {
-      if (shouldFail) {
-        throw new Error(JSON.stringify(failure));
-      }
-      return written;
-    },
-    collectBytes: async (source) => source,
-    updateStream: (_definition, bytes) => {
+  /** The managed envelope JSON of a write: the byte length on success, the error on failure. */
+  const writeEnvelope = (operation, optionsJson) => {
+    const root = JSON.parse(optionsJson).root ?? null;
+    if (shouldFail) {
+      pending = null;
+      return JSON.stringify({ contractVersion: 9, operation, success: false, root, data: null, debug: [], error: failure });
+    }
+    pending = written;
+    return JSON.stringify({ contractVersion: 9, operation, success: true, root, data: { byteLength: written.byteLength }, debug: [], error: null });
+  };
+  // Fake managed exports that follow the envelope-plus-TakeOutput transport.
+  const managed = {
+    /** Returns a successful parse envelope for any input. */
+    ParseBytes: () =>
+      JSON.stringify({ contractVersion: 9, operation: "parse", success: true, root: "root", data: { value: 2 }, debug: [], error: null }),
+    /** Returns the serialize envelope and leaves the bytes pending. */
+    Serialize: (_definition, _json, optionsJson) => writeEnvelope("serialize", optionsJson),
+    /** Records the input bytes, returns the update envelope and leaves the bytes pending. */
+    UpdateStream: (_definition, bytes, _path, _json, optionsJson) => {
       updateInput = bytes;
-      if (shouldFail) {
-        throw new Error(JSON.stringify(failure));
-      }
-      return written;
+      return writeEnvelope("update", optionsJson);
     },
-    parseWithDebug: () =>
+    /** Hands over the pending bytes once. */
+    TakeOutput: () => {
+      const output = pending;
+      pending = null;
+      return output;
+    },
+    /** Unused by this test. */
+    ResolveAddress: () => "",
+    /** Returns the version envelope. */
+    GetVersion: () =>
       JSON.stringify({
-        contractVersion: 8,
-        operation: "parse",
+        contractVersion: 9,
+        operation: "version",
         success: true,
-        root: "root",
-        data: { value: 2 },
+        root: null,
+        data: { version: "CStructSharp WASM 9.9.9" },
         debug: [],
         error: null,
       }),
+    /** Unused: the adapter is only asked for plans by parse, which this test does not call. */
+    GetStaticPlan: () => "",
+  };
+  // The real adapter over those exports, so the public functions run the whole JavaScript side of the transport.
+  globalThis.CStructSharpWasm = {
+    ...createCStructSharpWasm({ CStructExports: managed }),
+    /** Uses a byte input as is, as the real adapter does. */
+    collectBytes: async (source) => source,
   };
   try {
     const serialized = await serialize("layout", {}, { root: "root" });
-    assert.equal(serialized.contractVersion, 8);
+    assert.deepEqual(Object.keys(serialized), ENVELOPE_KEYS);
+    assert.equal(serialized.contractVersion, 9);
     assert.equal(serialized.operation, "serialize");
     assert.equal(serialized.success, true);
     assert.equal(serialized.root, "root");
@@ -65,11 +95,15 @@ test("public wrapper returns byte arrays for writes, preserves errors and parse 
     const parsed = await parseWithDebug("layout", updated.data);
     assert.equal(parsed.root, "root");
     assert.deepEqual(parsed.data, { value: 2 });
+    assert.equal(await getVersion(), "CStructSharp WASM 9.9.9");
 
     shouldFail = true;
     const failedSerialize = await serialize("layout", {});
+    assert.deepEqual(Object.keys(failedSerialize), ENVELOPE_KEYS);
     assert.equal(failedSerialize.success, false);
+    assert.equal(failedSerialize.root, null);
     assert.equal(failedSerialize.data, null);
+    assert.deepEqual(failedSerialize.debug, []);
     assert.deepEqual(failedSerialize.error, failure);
 
     const failedUpdate = await update("layout", written, "root.value", 999);
@@ -86,11 +120,11 @@ test("parse takes the synchronous path for small byte inputs and the worker path
   const calls = [];
   /** Builds a successful parse envelope's JSON around the given data. */
   const envelope = (data) =>
-    JSON.stringify({ contractVersion: 8, operation: "parse", success: true, root: "root", data, debug: [], error: null });
+    JSON.stringify({ contractVersion: 9, operation: "parse", success: true, root: "root", data, debug: [], error: null });
   globalThis.CStructSharpWasm = {
     ready: true,
     /** A layout that is not fully fixed has no static plan, so small inputs cross into WASM. */
-    getStaticPlan: () => "",
+    getStaticPlan: () => ({ contractVersion: 9, operation: "staticPlan", success: true, root: "root", data: null, debug: [], error: null }),
     parseBytes: (definition, bytes, options, debug) => {
       calls.push(["parseBytes", bytes.byteLength, options, debug]);
       return envelope({ value: 1 });

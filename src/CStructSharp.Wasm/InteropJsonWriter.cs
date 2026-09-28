@@ -12,7 +12,8 @@ using CStructSharp.Syntax;
 using CStructSharp.Values;
 
 /// <summary>
-///     Writes parsed values as UTF-8 JSON straight into a byte buffer. The value set is closed - the
+///     The browser bridge's one JSON writer: every envelope, parsed value, error, debug range, and static read plan
+///     the exports return is written by it as UTF-8 straight into a byte buffer. The value set is closed - the
 ///     core parser produces only <see cref="StructValue"/>, <see cref="PrimitiveArray{T}"/>, lists, boxed
 ///     numbers, strings, enums, unions and pointers - so this writer needs no state machine, no name validation
 ///     and no per-write escaping decisions, the work that makes <see cref="System.Text.Json.Utf8JsonWriter"/> cost
@@ -20,10 +21,13 @@ using CStructSharp.Values;
 ///     <c>Utf8JsonWriter</c> projection of the same values (same number formatting, same JavaScript-safe integer
 ///     rule, same <c>JavaScriptEncoder.Default</c> escaping).
 /// </summary>
-internal sealed class ParsedJsonWriter
+/// <remarks>
+///     Callers compose objects from <see cref="WriteRawBytes"/> for fixed punctuation and property names (which
+///     must already be valid JSON) and the typed methods for values; strings are always escaped by
+///     <see cref="WriteString"/>, the bridge's only escaping implementation.
+/// </remarks>
+internal sealed class InteropJsonWriter
 {
-    private const long MaximumSafeInteger = 9_007_199_254_740_991;
-
     private static readonly byte[] NullBytes = "null"u8.ToArray();
     private static readonly byte[] TrueBytes = "true"u8.ToArray();
     private static readonly byte[] FalseBytes = "false"u8.ToArray();
@@ -48,7 +52,7 @@ internal sealed class ParsedJsonWriter
 
     /// <summary>Creates an empty writer whose buffer starts at the given size and doubles as output grows.</summary>
     /// <param name="capacity">The initial buffer size in bytes.</param>
-    public ParsedJsonWriter(int capacity)
+    public InteropJsonWriter(int capacity)
     {
         this.buffer = new byte[capacity];
     }
@@ -72,6 +76,50 @@ internal sealed class ParsedJsonWriter
         this.Ensure(bytes.Length);
         bytes.CopyTo(this.buffer.AsSpan(this.length));
         this.length += bytes.Length;
+    }
+
+    /// <summary>Writes JSON <c>null</c>.</summary>
+    public void WriteNull()
+    {
+        this.WriteRaw(NullBytes);
+    }
+
+    /// <summary>Writes JSON <c>true</c> or <c>false</c>.</summary>
+    /// <param name="value">The value to write.</param>
+    public void WriteBoolean(bool value)
+    {
+        this.WriteRaw(value ? TrueBytes : FalseBytes);
+    }
+
+    /// <summary>Writes a string as an escaped JSON string, or JSON <c>null</c> when it is <see langword="null"/>.</summary>
+    /// <param name="value">The text to write.</param>
+    public void WriteStringOrNull(string? value)
+    {
+        if (value is null)
+        {
+            this.WriteRaw(NullBytes);
+        }
+        else
+        {
+            this.WriteString(value);
+        }
+    }
+
+    /// <summary>
+    ///     Writes an integer as a JSON number, or JSON <c>null</c> when it is <see langword="null"/>. The caller
+    ///     guarantees the value lies within JavaScript's exact integer range (offsets, lengths, line numbers).
+    /// </summary>
+    /// <param name="value">The integer to write.</param>
+    public void WriteIntegerOrNull(long? value)
+    {
+        if (value is null)
+        {
+            this.WriteRaw(NullBytes);
+        }
+        else
+        {
+            this.WriteNumber(value.Value);
+        }
     }
 
     /// <summary>Writes one parsed value (the top-level or any nested one).</summary>
@@ -255,6 +303,9 @@ internal sealed class ParsedJsonWriter
         }
     }
 
+    /// <summary>Whether an ASCII character passes through <c>JavaScriptEncoder.Default</c> unescaped.</summary>
+    /// <param name="character">A character below U+007F.</param>
+    /// <returns>True for letters, digits, space, and the encoder's allowed punctuation.</returns>
     private static bool IsUnescapedAscii(char character)
     {
         // JavaScriptEncoder.Default's allowed set: letters, digits, and  !#$%()*,-./:;=?@[]^_`{|}~ and space.
@@ -266,6 +317,8 @@ internal sealed class ParsedJsonWriter
         return character is ' ' or '!' or '#' or '$' or '%' or '(' or ')' or '*' or ',' or '-' or '.' or '/' or ':' or ';' or '=' or '?' or '@' or '[' or ']' or '^' or '_' or '`' or '{' or '|' or '}' or '~';
     }
 
+    /// <summary>Writes a parsed struct as a JSON object of its members, in declaration order.</summary>
+    /// <param name="value">The struct.</param>
     private void WriteStruct(StructValue value)
     {
         this.WriteByte((byte)'{');
@@ -280,6 +333,11 @@ internal sealed class ParsedJsonWriter
         this.WriteByte((byte)'}');
     }
 
+    /// <summary>
+    ///     Writes a parsed union as its tagged shape: <c>kind</c>, <c>union</c>, <c>rawStorage</c> (Base64 or null),
+    ///     every decoded member view, and <c>selectedMember</c>.
+    /// </summary>
+    /// <param name="value">The union.</param>
     private void WriteUnion(UnionValue value)
     {
         this.WriteRaw(UnionHead);
@@ -335,6 +393,8 @@ internal sealed class ParsedJsonWriter
         this.length = position;
     }
 
+    /// <summary>Writes the comma before every member or item except the first.</summary>
+    /// <param name="first">True before the first member; cleared by the call.</param>
     private void WriteMemberSeparator(ref bool first)
     {
         if (first)
@@ -347,6 +407,9 @@ internal sealed class ParsedJsonWriter
         }
     }
 
+    /// <summary>Writes a primitive array of 8- to 32-bit integers or floats as a JSON array of numbers.</summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="values">The elements.</param>
     private void WriteNumbers<T>(ReadOnlySpan<T> values)
         where T : struct
     {
@@ -364,6 +427,9 @@ internal sealed class ParsedJsonWriter
         this.WriteByte((byte)']');
     }
 
+    /// <summary>Writes a 64-bit integer array, each element under the JavaScript-safe integer rule.</summary>
+    /// <typeparam name="T"><see cref="long"/> or <see cref="ulong"/>.</typeparam>
+    /// <param name="values">The elements.</param>
     private void WriteSafeIntegers<T>(ReadOnlySpan<T> values)
         where T : struct
     {
@@ -388,6 +454,8 @@ internal sealed class ParsedJsonWriter
         this.WriteByte((byte)']');
     }
 
+    /// <summary>Writes a boolean array as a JSON array of <c>true</c> and <c>false</c>.</summary>
+    /// <param name="values">The elements.</param>
     private void WriteBooleans(ReadOnlySpan<bool> values)
     {
         this.WriteByte((byte)'[');
@@ -404,6 +472,9 @@ internal sealed class ParsedJsonWriter
         this.WriteByte((byte)']');
     }
 
+    /// <summary>Writes one element of <see cref="WriteNumbers{T}"/> with the formatter of its exact type.</summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="value">The element.</param>
     private void WriteFormatted<T>(T value)
         where T : struct
     {
@@ -441,6 +512,8 @@ internal sealed class ParsedJsonWriter
         }
     }
 
+    /// <summary>Writes a signed integer as a JSON number; the caller has applied any safe-integer rule.</summary>
+    /// <param name="value">The integer.</param>
     private void WriteNumber(long value)
     {
         this.Ensure(20);
@@ -448,6 +521,8 @@ internal sealed class ParsedJsonWriter
         this.length += written;
     }
 
+    /// <summary>Writes an unsigned integer as a JSON number; the caller has applied any safe-integer rule.</summary>
+    /// <param name="value">The integer.</param>
     private void WriteNumber(ulong value)
     {
         this.Ensure(20);
@@ -473,6 +548,8 @@ internal sealed class ParsedJsonWriter
         this.length += written;
     }
 
+    /// <summary>Writes a double as its shortest round-trip JSON number, or a non-finite value as its string name.</summary>
+    /// <param name="value">The number.</param>
     private void WriteNumber(double value)
     {
         if (!double.IsFinite(value))
@@ -486,11 +563,16 @@ internal sealed class ParsedJsonWriter
         this.length += written;
     }
 
+    /// <summary>Writes the string name of a non-finite float: <c>"NaN"</c>, <c>"Infinity"</c>, or <c>"-Infinity"</c>.</summary>
+    /// <param name="isNaN">Whether the value is NaN.</param>
+    /// <param name="isPositive">Whether an infinite value is positive.</param>
     private void WriteNonFinite(bool isNaN, bool isPositive)
     {
         this.WriteString(isNaN ? "NaN" : isPositive ? "Infinity" : "-Infinity");
     }
 
+    /// <summary>Writes a decimal as a JSON number with its exact digits.</summary>
+    /// <param name="value">The number.</param>
     private void WriteNumber(decimal value)
     {
         this.Ensure(40);
@@ -498,10 +580,14 @@ internal sealed class ParsedJsonWriter
         this.length += written;
     }
 
-    /// <summary>Writes an integer as a JSON number, or as a decimal string beyond JavaScript's exact range.</summary>
-    private void WriteSafeInteger(long value)
+    /// <summary>
+    ///     Writes an integer as a JSON number when it lies within ±<see cref="InteropLimits.MaximumSafeInteger"/>, and
+    ///     as a decimal string beyond JavaScript's exact range.
+    /// </summary>
+    /// <param name="value">The integer to write.</param>
+    public void WriteSafeInteger(long value)
     {
-        if (value is >= -MaximumSafeInteger and <= MaximumSafeInteger)
+        if (value is >= -InteropLimits.MaximumSafeInteger and <= InteropLimits.MaximumSafeInteger)
         {
             this.WriteNumber(value);
         }
@@ -511,9 +597,11 @@ internal sealed class ParsedJsonWriter
         }
     }
 
+    /// <summary>Writes an unsigned integer as a JSON number up to 2^53 - 1 and as a decimal string beyond.</summary>
+    /// <param name="value">The integer.</param>
     private void WriteSafeInteger(ulong value)
     {
-        if (value <= MaximumSafeInteger)
+        if (value <= InteropLimits.MaximumSafeInteger)
         {
             this.WriteNumber(value);
         }
@@ -523,9 +611,11 @@ internal sealed class ParsedJsonWriter
         }
     }
 
-    private void WriteSafeInteger(BigInteger value)
+    /// <summary>Writes an integer of any width with the same JavaScript-safe rule as <see cref="WriteSafeInteger(long)"/>.</summary>
+    /// <param name="value">The integer to write.</param>
+    public void WriteSafeInteger(BigInteger value)
     {
-        if (value >= -MaximumSafeInteger && value <= MaximumSafeInteger)
+        if (value >= -InteropLimits.MaximumSafeInteger && value <= InteropLimits.MaximumSafeInteger)
         {
             this.WriteNumber((long)value);
         }
@@ -535,6 +625,8 @@ internal sealed class ParsedJsonWriter
         }
     }
 
+    /// <summary>Writes bytes as a JSON string of standard Base64 text.</summary>
+    /// <param name="bytes">The bytes.</param>
     private void WriteBase64(ReadOnlySpan<byte> bytes)
     {
         int encodedLength = Base64.GetMaxEncodedToUtf8Length(bytes.Length);
@@ -546,11 +638,12 @@ internal sealed class ParsedJsonWriter
     }
 
     /// <summary>
-    ///     Escapes like <c>JavaScriptEncoder.Default</c>: ASCII letters, digits and a small punctuation set pass
-    ///     through; quotes, backslashes, control characters, HTML-sensitive characters and everything non-ASCII
-    ///     are written as escapes.
+    ///     Writes text as a JSON string, escaping like <c>JavaScriptEncoder.Default</c>: ASCII letters, digits and a
+    ///     small punctuation set pass through; quotes, backslashes, control characters, HTML-sensitive characters and
+    ///     everything non-ASCII are written as escapes. This is the bridge's only string-escaping implementation.
     /// </summary>
-    private void WriteString(string text)
+    /// <param name="text">The text to write.</param>
+    public void WriteString(string text)
     {
         // Transcode once (the runtime's vectorized UTF-8 encoder), then only the bytes that need escaping are
         // rewritten: a byte-level IndexOfAnyExcept over the safe set finds them, and text without any (the common
@@ -629,6 +722,8 @@ internal sealed class ParsedJsonWriter
         this.length = position;
     }
 
+    /// <summary>Appends one of the writer's fixed JSON fragments.</summary>
+    /// <param name="bytes">The UTF-8 JSON bytes.</param>
     private void WriteRaw(byte[] bytes)
     {
         this.Ensure(bytes.Length);
@@ -636,6 +731,8 @@ internal sealed class ParsedJsonWriter
         this.length += bytes.Length;
     }
 
+    /// <summary>Appends one byte of JSON punctuation.</summary>
+    /// <param name="value">The byte.</param>
     private void WriteByte(byte value)
     {
         if (this.length == this.buffer.Length)
@@ -646,6 +743,8 @@ internal sealed class ParsedJsonWriter
         this.buffer[this.length++] = value;
     }
 
+    /// <summary>Makes room for at least the given number of further bytes.</summary>
+    /// <param name="additional">The bytes about to be written.</param>
     private void Ensure(int additional)
     {
         if (this.buffer.Length - this.length < additional)
@@ -654,6 +753,9 @@ internal sealed class ParsedJsonWriter
         }
     }
 
+    /// <summary>Enlarges the buffer to hold the written bytes plus <paramref name="additional"/>, at least doubling it.</summary>
+    /// <param name="additional">The bytes about to be written.</param>
+    /// <exception cref="OverflowException">The output would exceed the largest array size.</exception>
     private void Grow(int additional)
     {
         int required = checked(this.length + additional);

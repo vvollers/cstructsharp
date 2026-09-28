@@ -26,6 +26,7 @@ function createFixture() {
   fs.writeFileSync(path.join(root, "bootstrap.js"), "export const ready = true;\n");
   fs.writeFileSync(path.join(root, "large-source.js"), "export const source = true;\n");
   fs.writeFileSync(path.join(root, "source-worker.js"), "export const worker = true;\n");
+  fs.writeFileSync(path.join(root, "cstructsharp-shared.js"), "export const shared = true;\n");
   fs.writeFileSync(path.join(root, runtimeConfigName), '{"runtimeOptions":{}}\n');
   fs.writeFileSync(
     path.join(framework, "dotnet.boot.js"),
@@ -51,6 +52,7 @@ test("manifest accepts only root entrypoints and boot-referenced framework asset
       "_framework/dotnet.js",
       "_framework/dotnet.runtime.js",
       "bootstrap.js",
+      "cstructsharp-shared.js",
       "CStructSharpWeb.Wasm.runtimeconfig.json",
       "large-source.js",
       "main.js",

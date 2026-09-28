@@ -1,4 +1,6 @@
 // Public asynchronous source adapter. Source bytes never become one managed byte[].
+import { COMPILE_OPTION_KEYS, isSmallByteInput } from "./cstructsharp-shared.js";
+
 const isNode = typeof process !== "undefined" && !!process.versions?.node;
 const defaultSpoolLimit = 1024 * 1024 * 1024;
 /** Browser byte inputs up to this size are snapshotted and transferred to the worker rather than staged as a Blob. */
@@ -566,34 +568,6 @@ export async function collectBytes(input, options) {
   return result;
 }
 
-/** Options fixed when a layout is compiled (contract v8 CompileOptions). */
-export const COMPILE_OPTION_KEYS = new Set([
-  "aligned", "pointerSize", "littleEndian", "bitfieldPacking", "bitfieldAllocation", "cLongWidth",
-  "maxDefinitionLength", "maxLayoutNestingDepth", "maxExpressionNestingDepth", "maxExpressionTokens",
-]);
-const layoutKeys = COMPILE_OPTION_KEYS;
-
-/** Byte inputs up to this size, without a cancellation signal, are parsed on the calling thread. */
-export const SYNCHRONOUS_PARSE_LIMIT = 64 * 1024;
-
-/**
- * Whether a source is a byte buffer or view of at most SYNCHRONOUS_PARSE_LIMIT bytes, with no cancellation signal.
- * @param {unknown} source Binary source.
- * @param {object | null | undefined} options Operation options; a `signal` excludes the synchronous path.
- * @returns {boolean} True when the source may be parsed on the calling thread.
- */
-export function isSmallByteInput(source, options) {
-  if (options?.signal) return false;
-  if (
-    source instanceof ArrayBuffer ||
-    ArrayBuffer.isView(source) ||
-    (typeof SharedArrayBuffer !== "undefined" && source instanceof SharedArrayBuffer)
-  ) {
-    return source.byteLength <= SYNCHRONOUS_PARSE_LIMIT;
-  }
-  return false;
-}
-
 /**
  * A dedicated runtime retains one immutable layout until explicit disposal. When the host adapter supplies
  * `parseBytes`, small byte inputs are parsed on the calling thread through the shared compiled-layout cache
@@ -603,7 +577,7 @@ export async function compileLargeSource(definition, options = {}, { parseBytes,
   if (typeof definition !== "string") throw new TypeError("Layout definition must be a string.");
   const frozenOptions = Object.freeze({ ...options });
   for (const key of Object.keys(frozenOptions)) {
-    if (!layoutKeys.has(key) && key !== "root") {
+    if (!COMPILE_OPTION_KEYS.has(key) && key !== "root") {
       throw new TypeError(`Unsupported compile option: ${key}`);
     }
   }
@@ -625,7 +599,7 @@ export async function compileLargeSource(definition, options = {}, { parseBytes,
   function merge(operationOptions) {
     if (disposed) throw new Error("Compiled layout has been disposed.");
     for (const key of Object.keys(operationOptions ?? {})) {
-      if (layoutKeys.has(key)) {
+      if (COMPILE_OPTION_KEYS.has(key)) {
         throw new TypeError(`Compile option ${key} is fixed at compilation.`);
       }
     }

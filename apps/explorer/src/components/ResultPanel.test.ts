@@ -35,7 +35,7 @@ describe("ResultPanel", () => {
       props: {
         bytes: new Uint8Array(),
         result: {
-          contractVersion: 8,
+          contractVersion: 9,
           operation: "parse",
           success: true,
           root: "root",
@@ -67,7 +67,7 @@ describe("ResultPanel", () => {
       props: {
         bytes,
         result: {
-          contractVersion: 8,
+          contractVersion: 9,
           operation: "parse",
           success: true,
           root: "root",

@@ -1,13 +1,11 @@
 namespace CStructSharpWeb.Wasm;
 
-using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-/// <summary>Describes the JSON types used by the browser bridge without runtime reflection.</summary>
-[JsonSerializable(typeof(InteropResultDto))]
-[JsonSerializable(typeof(List<DebugDataDto>))]
-[JsonSerializable(typeof(DebugDataDto))]
-[JsonSerializable(typeof(ErrorDetailsDto))]
+/// <summary>
+///     Describes the browser options object to System.Text.Json without runtime reflection. The bridge uses it only to
+///     read input; every result is written by <see cref="InteropJsonWriter"/>.
+/// </summary>
 [JsonSerializable(typeof(InteropOptionsDto))]
 [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true, WriteIndented = false)]
 public partial class CStructJsonContext : JsonSerializerContext

@@ -1,13 +1,18 @@
 {
   "schemaVersion": 1,
   "name": "browser",
-  "contractVersion": 8,
+  "contractVersion": 9,
   "managedExports": [
     "GetVersion",
     "ParseBytes",
+    "ParseSource",
+    "InitializeCompiledLayout",
+    "ParseCompiledSource",
+    "ResolveAddress",
+    "ResolveAddressCompiled",
     "Serialize",
     "UpdateStream",
-    "ResolveAddress",
+    "TakeOutput",
     "GetStaticPlan"
   ],
   "operations": [
@@ -16,6 +21,10 @@
     "update",
     "resolveAddress",
     "compile"
+  ],
+  "bridgeOperations": [
+    "version",
+    "staticPlan"
   ],
   "envelopeFields": [
     "contractVersion",
@@ -127,6 +136,11 @@
       "contractVersion": 8,
       "date": "2026-09-27",
       "change": "Managed export ParseWithDebug removed: the adapter parses with debug ranges through ParseBytes(definition, bytes, options, true), which returns the identical envelope. The unused SerializeCompiled and UpdateCompiled worker exports are removed. The JavaScript API, envelope, options and error codes are unchanged."
+    },
+    {
+      "contractVersion": 9,
+      "date": "2026-09-28",
+      "change": "Every managed export except TakeOutput returns the same JSON envelope. GetVersion reports operation \"version\" with data {version}; GetStaticPlan reports operation \"staticPlan\" with data {root, plan}, or null when the layout has no static plan, and reports invalid options or input as a failure envelope instead of throwing. Serialize and UpdateStream return an envelope whose data is {byteLength}; the new TakeOutput export hands over the produced bytes and throws when none are pending, and failures use the error envelope instead of a thrown exception carrying error JSON. An invalid addressingMode or origin (including one outside the signed 64-bit range) is invalid-input with a specific message. The JavaScript package takes contractVersion from the managed envelopes. The public JavaScript functions, their envelopes, options and error codes are unchanged apart from the version; the raw adapter's serialize and updateStream now return the envelope instead of throwing."
     }
   ]
 }

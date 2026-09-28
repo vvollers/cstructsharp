@@ -44,6 +44,9 @@ fs.writeFileSync(path.join(stage, "package.json"), `${JSON.stringify(pkg, null, 
 const apiSource = fs.readFileSync(path.join(adapterSource, "cstructsharp-api.js"), "utf8");
 assert.ok(apiSource.includes("./cstructsharp-wasm.js"), "cstructsharp-api.js no longer references its declaration module; update the packaging rewrite.");
 fs.writeFileSync(path.join(stage, "cstructsharp-api.js"), apiSource.replaceAll("./cstructsharp-wasm.js", "./index.d.ts"));
+// The API module imports its shared constants and helpers from a sibling module; the runtime modules under runtime/
+// import their own copy of the same file from the publication.
+fs.copyFileSync(path.join(runtime, "cstructsharp-shared.js"), path.join(stage, "cstructsharp-shared.js"));
 fs.copyFileSync(path.join(root, "packages/cstructsharp/index.d.ts"), path.join(stage, "index.d.ts"));
 fs.copyFileSync(path.join(root, "LICENSE.txt"), path.join(stage, "LICENSE.txt"));
 fs.writeFileSync(

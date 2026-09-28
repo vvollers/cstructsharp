@@ -1,7 +1,8 @@
 /**
  * The browser contract of the npm package, exercised through its public API (`parse`, `parseWithDebug`,
  * `serialize`, `update`) on the real WebAssembly runtime: value shapes, byte results, exact 64-bit values, option
- * handling, and one release-safe error shape per failure category. Byte results are compared as hex text because a
+ * handling, and one release-safe error shape per failure category; and the managed exports' own transport (one
+ * envelope per export, write output handed over by TakeOutput). Byte results are compared as hex text because a
  * Uint8Array cannot leave the page unchanged.
  */
 import { expect, test } from "@playwright/test";
@@ -70,9 +71,9 @@ test("parse, serialize and update return the contract's envelopes and value shap
   });
 
   /** The envelope of a successful operation with the given data. */
-  const success = (operation, data) => ({ contractVersion: 8, operation, success: true, data, error: null });
+  const success = (operation, data) => ({ contractVersion: 9, operation, success: true, data, error: null });
   /** The envelope of an operation that failed to write. */
-  const writeFailure = (operation) => ({ contractVersion: 8, operation, success: false, data: null, error: { code: "write-failed" } });
+  const writeFailure = (operation) => ({ contractVersion: 9, operation, success: false, data: null, error: { code: "write-failed" } });
 
   expect(results.parse).toMatchObject(success("parse", { value: 42 }));
   expect(results.scopedInlineParse).toMatchObject(success("parse", { value: { small: 42 } }));
@@ -116,7 +117,7 @@ test("64-bit values stay exact and an invalid option is a stable error", async (
   expect(results.parse.data).toEqual({ value: "18446744073709551615" });
   expect(results.serialize).toMatchObject({ success: true, data: "ff ff ff ff ff ff ff ff" });
   expect(results.invalidMode).toMatchObject({
-    contractVersion: 8,
+    contractVersion: 9,
     operation: "update",
     success: false,
     data: null,
@@ -136,7 +137,7 @@ test("options select byte order and enforce the caller's limits", async ({ page 
     };
   });
 
-  expect(results.bigEndian).toMatchObject({ contractVersion: 8, operation: "parse", success: true, data: { value: 0x1234 } });
+  expect(results.bigEndian).toMatchObject({ contractVersion: 9, operation: "parse", success: true, data: { value: 0x1234 } });
   expect(results.readBudget).toMatchObject({ success: false, error: { code: "read-budget" } });
   expect(results.optionCap).toMatchObject({ success: false, error: { code: "invalid-input" } });
   expect(results.definitionBudget).toMatchObject({ success: false, error: { code: "invalid-layout" } });
@@ -179,8 +180,8 @@ test("every signed and unsigned JavaScript precision boundary round-trips exactl
 
   for (const result of results) {
     expect(String(result.parsed.data.value)).toBe(result.expected);
-    expect(result.parsed).toMatchObject({ contractVersion: 8, operation: "parse", success: true, error: null });
-    expect(result.serialized).toMatchObject({ contractVersion: 8, operation: "serialize", success: true, data: result.bytes });
+    expect(result.parsed).toMatchObject({ contractVersion: 9, operation: "parse", success: true, error: null });
+    expect(result.serialized).toMatchObject({ contractVersion: 9, operation: "serialize", success: true, data: result.bytes });
   }
 });
 
@@ -224,13 +225,8 @@ test("each failure category uses the same release-safe error shape", async ({ pa
     const run = async (promise) => plain(await promise);
     const pointer = "struct root { uint8 *ptr; };";
 
-    // The public API always sends valid JSON, so malformed JSON can only reach the managed export directly.
-    let invalidJson;
-    try {
-      window.CStructSharpWasm.serialize("struct root { byte value; };", "{", { root: "root" });
-    } catch (cause) {
-      invalidJson = { contractVersion: 8, success: false, data: null, error: JSON.parse(cause.message) };
-    }
+    // The public API always sends valid JSON, so malformed JSON can only reach the raw adapter directly.
+    const invalidJson = plain(window.CStructSharpWasm.serialize("struct root { byte value; };", "{", { root: "root" }));
 
     return {
       invalidLayout: await run(api.parseWithDebug("struct root {", bytes("00"))),
@@ -279,7 +275,7 @@ test("each failure category uses the same release-safe error shape", async ({ pa
   };
 
   for (const [name, failure] of Object.entries(failures)) {
-    expect(failure, name).toMatchObject({ contractVersion: 8, success: false, data: null, error: { code: expectedCodes[name] } });
+    expect(failure, name).toMatchObject({ contractVersion: 9, success: false, data: null, error: { code: expectedCodes[name] } });
     expect(Object.keys(failure.error).sort(), name).toEqual([
       "code",
       "column",
@@ -304,4 +300,114 @@ test("each failure category uses the same release-safe error shape", async ({ pa
 
   expect(failures.invalidPath.error).toMatchObject({ offset: 1, path: "root.missing" });
   expect(failures.readFailed.error).toMatchObject({ offset: 1, path: "root" });
+});
+
+test("invalid addressing modes and origins are invalid-input with the accepted values", async ({ page }) => {
+  const results = await page.evaluate(async () => {
+    const { api, bytes, plain } = window.bridge;
+    const definition = "struct root { uint8 value; };";
+    const input = bytes("00");
+    return {
+      parseMode: await api.parseWithDebug(definition, input, { addressingMode: "not-a-mode" }),
+      updateMode: plain(await api.update(definition, input, "root.value", 1, { addressingMode: "not-a-mode" })),
+      parseOverflow: await api.parseWithDebug(definition, input, { origin: "99999999999999999999" }),
+      serializeOverflow: plain(await api.serialize(definition, { value: 1 }, { root: "root", origin: "99999999999999999999" })),
+      updateOverflow: plain(await api.update(definition, input, "root.value", 1, { origin: "-99999999999999999999" })),
+      notDecimal: await api.parseWithDebug(definition, input, { origin: "0x10" }),
+      largestOrigin: await api.parseWithDebug(definition, input, { origin: "9223372036854775807" }),
+    };
+  });
+
+  const modeMessage = "Option addressingMode must be one of Absolute, Relative; received 'not-a-mode'.";
+  const originMessage = "Option origin must be a decimal integer from -9223372036854775808 through 9223372036854775807.";
+  for (const [name, message] of [
+    ["parseMode", modeMessage],
+    ["updateMode", modeMessage],
+    ["parseOverflow", originMessage],
+    ["serializeOverflow", originMessage],
+    ["updateOverflow", originMessage],
+    ["notDecimal", originMessage],
+  ]) {
+    expect(results[name], name).toMatchObject({ contractVersion: 9, success: false, data: null, error: { code: "invalid-input", message } });
+  }
+  expect(results.largestOrigin).toMatchObject({ success: true, data: { value: 0 } });
+});
+
+test("every managed export returns the envelope, and TakeOutput hands over write output once", async ({ page }) => {
+  const results = await page.evaluate(async () => {
+    const { api } = window.bridge;
+    const managed = window.CStructSharpWasm.exports.CStructSharpWeb.Wasm.CStructExports;
+    const definition = "struct root { uint8 value; };";
+    /** Calls TakeOutput and reports either the bytes or the thrown message. */
+    const take = () => {
+      try {
+        return { bytes: Array.from(managed.TakeOutput()) };
+      } catch (cause) {
+        return { thrown: cause.message };
+      }
+    };
+
+    const initialTake = take();
+    const serialized = JSON.parse(managed.Serialize(definition, '{"value":42}', '{"root":"root"}'));
+    const firstTake = take();
+    const secondTake = take();
+    const failed = JSON.parse(managed.Serialize(definition, '{"value":256}', '{"root":"root"}'));
+    const takeAfterFailure = take();
+    managed.UpdateStream(definition, new Uint8Array([0]), "root.value", "7", "{}");
+    // Any later envelope supersedes the write, so its unclaimed output is dropped.
+    const version = JSON.parse(managed.GetVersion());
+    const takeAfterOtherExport = take();
+    return {
+      initialTake,
+      serialized,
+      firstTake,
+      secondTake,
+      failed,
+      takeAfterFailure,
+      takeAfterOtherExport,
+      version,
+      publicVersion: await api.getVersion(),
+      plan: JSON.parse(managed.GetStaticPlan(definition, "{}")),
+      noPlan: JSON.parse(managed.GetStaticPlan("union root { uint8 small; uint16 large; };", "{}")),
+      badPlanOptions: JSON.parse(managed.GetStaticPlan(definition, '{"maxDefinitionLength":0}')),
+      malformedPlanOptions: JSON.parse(managed.GetStaticPlan(definition, "{")),
+      emptyPlanDefinition: JSON.parse(managed.GetStaticPlan("", "{}")),
+    };
+  });
+
+  const envelopeKeys = ["contractVersion", "operation", "success", "root", "data", "debug", "error"];
+  const pending = /^No operation output is pending/;
+  expect(results.initialTake.thrown).toMatch(pending);
+  expect(Object.keys(results.serialized)).toEqual(envelopeKeys);
+  expect(results.serialized).toEqual({
+    contractVersion: 9,
+    operation: "serialize",
+    success: true,
+    root: "root",
+    data: { byteLength: 1 },
+    debug: [],
+    error: null,
+  });
+  expect(results.firstTake).toEqual({ bytes: [42] });
+  expect(results.secondTake.thrown).toMatch(pending);
+  expect(Object.keys(results.failed)).toEqual(envelopeKeys);
+  expect(results.failed).toMatchObject({ operation: "serialize", success: false, root: "root", data: null, debug: [], error: { code: "write-failed" } });
+  expect(results.takeAfterFailure.thrown).toMatch(pending);
+  expect(results.takeAfterOtherExport.thrown).toMatch(pending);
+
+  expect(results.version).toMatchObject({ contractVersion: 9, operation: "version", success: true, root: null, debug: [], error: null });
+  expect(results.version.data.version).toMatch(/^CStructSharp WASM \d/);
+  expect(results.publicVersion).toBe(results.version.data.version);
+
+  expect(results.plan).toMatchObject({
+    contractVersion: 9,
+    operation: "staticPlan",
+    success: true,
+    root: "root",
+    data: { root: "root", plan: { size: 1, ops: [{ name: "value", o: 0, k: "n", t: "u8", le: true }] } },
+  });
+  expect(results.noPlan).toMatchObject({ operation: "staticPlan", success: true, data: null, error: null });
+  expect(results.badPlanOptions).toMatchObject({ operation: "staticPlan", success: false, data: null, error: { code: "invalid-input" } });
+  expect(results.malformedPlanOptions).toMatchObject({ operation: "staticPlan", success: false, error: { code: "invalid-json" } });
+  expect(results.emptyPlanDefinition).toMatchObject({ operation: "staticPlan", success: false, error: { code: "invalid-input" } });
 });

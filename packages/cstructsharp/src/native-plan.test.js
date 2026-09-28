@@ -1,6 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+/**
+ * The staticPlan envelope the adapter returns for a plan, as the managed export writes it.
+ * @param {object | null} plan The `{ root, plan }` data, or null when the layout has no static plan.
+ * @param {number} [contractVersion] The contract version the managed export states.
+ * @returns {object} The envelope.
+ */
+function planEnvelope(plan, contractVersion = 9) {
+  return { contractVersion, operation: "staticPlan", success: true, root: plan?.root ?? "root", data: plan, debug: [], error: null };
+}
+
 test("parse executes a fully fixed layout's static plan in JavaScript and falls back to WASM otherwise", async () => {
   const previous = globalThis.CStructSharpWasm;
   const calls = [];
@@ -26,14 +36,16 @@ test("parse executes a fully fixed layout's static plan in JavaScript and falls 
   };
   globalThis.CStructSharpWasm = {
     ready: true,
+    /** Records the request; only the "static" definition has a plan. */
     getStaticPlan: (definition, options) => {
       calls.push(["getStaticPlan", definition, options]);
-      return definition === "static" ? JSON.stringify(plan) : "";
+      return planEnvelope(definition === "static" ? structuredClone(plan) : null);
     },
+    /** Records the WASM parse and returns a marker envelope. */
     parseBytes: (definition, bytes, options, debug) => {
       calls.push(["parseBytes", definition, bytes.byteLength, options, debug]);
       return JSON.stringify({
-        contractVersion: 8,
+        contractVersion: 9,
         operation: "parse",
         success: true,
         root: "root",
@@ -51,7 +63,7 @@ test("parse executes a fully fixed layout's static plan in JavaScript and falls 
     ]);
     const native = await parse("static", bytes, { root: "root" });
     assert.deepEqual(native, {
-      contractVersion: 8,
+      contractVersion: 9,
       operation: "parse",
       success: true,
       root: "root",
@@ -90,7 +102,7 @@ test("parse executes a fully fixed layout's static plan in JavaScript and falls 
     // A non-finite float is the same string the managed projection writes, so the native path keeps the parse.
     plan.plan.ops = [{ name: "x", o: 0, k: "n", t: "f32", le: true }];
     plan.plan.size = 4;
-    globalThis.CStructSharpWasm.getStaticPlan = () => JSON.stringify(plan);
+    globalThis.CStructSharpWasm.getStaticPlan = () => planEnvelope(structuredClone(plan));
     assert.equal((await parse("float-inf", new Uint8Array([0, 0, 0x80, 0x7f]))).data.x, "Infinity");
     assert.equal((await parse("float-neg-inf", new Uint8Array([0, 0, 0x80, 0xff]))).data.x, "-Infinity");
     assert.equal((await parse("float-nan", new Uint8Array([0, 0, 0xc0, 0x7f]))).data.x, "NaN");
@@ -102,6 +114,56 @@ test("parse executes a fully fixed layout's static plan in JavaScript and falls 
     plan.plan.ops = [{ name: "x", o: 0, k: "n", t: "f64", le: true }];
     plan.plan.size = 8;
     assert.equal((await parse("double-nan", new Uint8Array([0, 0, 0, 0, 0, 0, 0xf8, 0x7f]))).data.x, "NaN");
+  } finally {
+    globalThis.CStructSharpWasm = previous;
+  }
+});
+
+test("the native parse states the managed contract version and leaves failed plan requests to WASM", async () => {
+  const previous = globalThis.CStructSharpWasm;
+  const calls = [];
+  const plan = { root: "root", plan: { size: 1, ops: [{ name: "kind", o: 0, k: "n", t: "u8", le: true }] } };
+  globalThis.CStructSharpWasm = {
+    ready: true,
+    /** Records the request; "invalid" fails, any other definition has a plan with an unknown version. */
+    getStaticPlan: (definition) => {
+      calls.push(["getStaticPlan", definition]);
+      if (definition === "invalid") {
+        return {
+          contractVersion: 9,
+          operation: "staticPlan",
+          success: false,
+          root: null,
+          data: null,
+          debug: [],
+          error: { code: "invalid-input", message: "The layout definition is empty.", path: null, offset: null, member: null, memberType: null, line: null, column: null },
+        };
+      }
+      // A version the package does not know: the native envelope must repeat it rather than state its own.
+      return planEnvelope(structuredClone(plan), 42);
+    },
+    /** Records the WASM parse and reports the invalid input. */
+    parseBytes: (definition) => {
+      calls.push(["parseBytes", definition]);
+      return JSON.stringify({ contractVersion: 9, operation: "parse", success: false, root: null, data: null, debug: [], error: { code: "invalid-input" } });
+    },
+  };
+  try {
+    const { parse } = await import("./cstructsharp-wasm.js");
+    const native = await parse("versioned", new Uint8Array([7]));
+    assert.equal(native.contractVersion, 42);
+    assert.deepEqual(native.data, { kind: 7 });
+
+    // A failure envelope is not cached: each parse asks again and the WASM parse reports the error.
+    assert.equal((await parse("invalid", new Uint8Array([7]))).error.code, "invalid-input");
+    assert.equal((await parse("invalid", new Uint8Array([7]))).error.code, "invalid-input");
+    assert.deepEqual(calls, [
+      ["getStaticPlan", "versioned"],
+      ["getStaticPlan", "invalid"],
+      ["parseBytes", "invalid"],
+      ["getStaticPlan", "invalid"],
+      ["parseBytes", "invalid"],
+    ]);
   } finally {
     globalThis.CStructSharpWasm = previous;
   }

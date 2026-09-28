@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { InteropResult, RawWasmAdapter } from "./contract";
 
 const validParseResult: InteropResult = {
-  contractVersion: 8,
+  contractVersion: 9,
   operation: "parse",
   success: true,
   root: "root",
@@ -21,6 +21,29 @@ const validParseResult: InteropResult = {
 };
 
 /**
+ * Builds the envelope the package adapter returns for a write.
+ * @param operation The write operation.
+ * @param data The bytes on success; null on failure.
+ * @param error The structured error of a failure.
+ * @returns The envelope.
+ */
+function writeResult(
+  operation: "serialize" | "update",
+  data: Uint8Array | null,
+  error: InteropResult["error"] = null,
+): InteropResult {
+  return {
+    contractVersion: 9,
+    operation,
+    success: error === null,
+    root: null,
+    data,
+    debug: [],
+    error,
+  } as InteropResult;
+}
+
+/**
  * Publishes a fake ready adapter on window whose calls return the valid envelope unless overridden.
  * @param overrides Adapter members to replace.
  * @returns The installed adapter.
@@ -34,8 +57,12 @@ function installAdapter(overrides: Partial<RawWasmAdapter> = {}): RawWasmAdapter
     parseWithDebug: vi.fn(() => JSON.stringify(validParseResult)),
     parseBytes: vi.fn(() => JSON.stringify(validParseResult)),
     parseSource: vi.fn(async () => validParseResult) as unknown as RawWasmAdapter["parseSource"],
-    serialize: vi.fn(() => new Uint8Array([0x2a])),
-    updateStream: vi.fn(() => new Uint8Array([0x2a])),
+    serialize: vi.fn(() =>
+      writeResult("serialize", new Uint8Array([0x2a])),
+    ) as unknown as RawWasmAdapter["serialize"],
+    updateStream: vi.fn(() =>
+      writeResult("update", new Uint8Array([0x2a])),
+    ) as unknown as RawWasmAdapter["updateStream"],
     getVersion: vi.fn(() => "test"),
     ...overrides,
   };
@@ -139,14 +166,16 @@ describe("CStructSharp WASM browser boundary", () => {
     );
   });
 
-  it("returns the encoded bytes directly on a successful serialize/update, with no envelope decoding", async () => {
+  it("returns the package's write envelopes with the encoded bytes as data", async () => {
     const adapter = installAdapter();
     const { serialize, updateStream } = await import("./adapter");
 
-    const serialized = serialize("struct root { byte value; };", { value: 42 });
+    const serialized = serialize("struct root { byte value; };", { value: 42n });
     expect(serialized.success).toBe(true);
     expect(serialized.data).toEqual(new Uint8Array([0x2a]));
     expect(adapter.serialize).toHaveBeenCalledOnce();
+    // The package helper encodes the value: a bigint travels as exact decimal text.
+    expect(vi.mocked(adapter.serialize).mock.calls[0][1]).toBe('{"value":"42"}');
 
     const updated = updateStream(
       "struct root { byte value; };",
@@ -159,8 +188,8 @@ describe("CStructSharp WASM browser boundary", () => {
     expect(adapter.updateStream).toHaveBeenCalledOnce();
   });
 
-  it("reconstructs the structured error from a thrown serialize/update failure", async () => {
-    const errorJson = JSON.stringify({
+  it("returns the structured error of a failed serialize/update envelope", async () => {
+    const error = {
       code: "write-budget",
       message:
         "Write operation exceeded the configured total write-byte limit (field 'value' (byte), in 'root', offset 12).",
@@ -170,40 +199,35 @@ describe("CStructSharp WASM browser boundary", () => {
       memberType: "byte",
       line: null,
       column: null,
-    });
+    };
     installAdapter({
-      serialize: vi.fn(() => {
-        throw new Error(errorJson);
-      }),
+      serialize: vi.fn(() =>
+        writeResult("serialize", null, error),
+      ) as unknown as RawWasmAdapter["serialize"],
     });
     const { serialize } = await import("./adapter");
 
     const result = serialize("struct root { byte value; };", { value: 42 });
     expect(result.success).toBe(false);
     expect(result.data).toBeNull();
-    expect(result.error).toEqual({
-      code: "write-budget",
-      message:
-        "Write operation exceeded the configured total write-byte limit (field 'value' (byte), in 'root', offset 12).",
-      offset: 12,
-      path: "root.value",
-      member: "value",
-      memberType: "byte",
-      line: null,
-      column: null,
-    });
+    expect(result.error).toEqual(error);
   });
 
-  it("throws a TypeError when a serialize/update failure's message is not a valid ErrorDetails payload", async () => {
+  it.each([
+    [
+      "stale contract version",
+      { ...writeResult("serialize", new Uint8Array([1])), contractVersion: 8 },
+    ],
+    ["wrong operation", writeResult("update", new Uint8Array([1]))],
+    ["failure without an error", { ...writeResult("serialize", null), success: false }],
+  ])("rejects a structurally invalid write envelope: %s", async (_name, response) => {
     installAdapter({
-      serialize: vi.fn(() => {
-        throw new Error("not json");
-      }),
+      serialize: vi.fn(() => response) as unknown as RawWasmAdapter["serialize"],
     });
     const { serialize } = await import("./adapter");
 
     expect(() => serialize("struct root { byte value; };", { value: 42 })).toThrow(
-      /invalid serialize error/i,
+      /invalid serialize response envelope/i,
     );
   });
 

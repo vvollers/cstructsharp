@@ -33,7 +33,7 @@ failure has an `error` with a category `code`, the library's `message`, and, whe
 `member`, and `memberType` of the value that failed, plus `line` and `column` for a layout error. Loading problems
 and invalid JavaScript arguments can instead throw; keep a `try`/`catch` around calls. Each `debug` item names a
 field `path`, its `type`, its `value` as text, and the byte range `start`–`end` (end exclusive) in the input you
-supplied; slice your own bytes to inspect them. The current `contractVersion` is 8.
+supplied; slice your own bytes to inspect them. The current `contractVersion` is 9.
 
 Diagnostics are complete by default: the message is the same text the C# exception carries, including layout
 text, values, and paths. Pass `redactDiagnostics: true` when a page must not echo those; the error then keeps only

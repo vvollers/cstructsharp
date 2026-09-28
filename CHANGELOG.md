@@ -10,6 +10,13 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Breaking changes
 
+- **Breaking (browser bridge):** the interop contract is version 9: every managed export returns the same result
+  envelope, and write results hand their bytes over through `TakeOutput` after the envelope. The public JavaScript
+  API (`parse`, `parseWithDebug`, `serialize`, `update`, `resolveAddress`, `getVersion`, the large-source API)
+  returns what it returned before. Only the raw adapter from `loadCStructSharpWasm()` changes: its `serialize` and
+  `updateStream` return an envelope (`data` is the `Uint8Array`, `error` the failure) instead of returning bytes
+  or throwing an error whose message is JSON. Migration: for the raw adapter, read `result.data` when
+  `result.success` is true and `result.error` otherwise, instead of catching.
 - **Breaking (memory API):** the memory-analysis API uses the core library's value types, exceptions and limit
   names, so code moving between `CStruct` and `MemorySession` needs one set of idioms.
   - A union reads as a `UnionValue` (its raw storage and every member's view; the byte budget is charged once for
@@ -102,6 +109,11 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Fixed
 
+- Browser bridge: an unknown `addressingMode` or an `origin` that is not a decimal integer in the signed 64-bit
+  range is reported as `invalid-input` with a message naming the accepted values; an overflowing origin was
+  `operation-failed`. `parse()` of a small input with an empty definition or invalid options resolves with the
+  same failure envelope `parseWithDebug` returns, instead of rejecting with a raw managed error. Serializing an
+  `undefined` value is `write-failed`, not `operation-failed`.
 - npm package: `update(definition, source, path, value)` without an options argument no longer throws a
   `TypeError`; the source collection step now accepts the `null` options the public API passes.
 - The explorer and inspector editors offer and highlight every word the language accepts, from one vocabulary
@@ -157,6 +169,10 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Documentation and tooling
 
+- Browser bridge internals: one JSON writer (`InteropJsonWriter`) produces every result, with one escaping rule and
+  one safe-integer limit; the JavaScript limits and helpers shared by the package's modules live in
+  `cstructsharp-shared.js`, staged next to each consumer; the JavaScript package takes the contract version from the
+  managed results. `contract.json` lists all eleven exports. The WASM publication is about 46 KB smaller.
 - `CStructSharp.NonWeb.sln` is replaced by the solution filter `CStructSharp.NonWeb.slnf` over `CStructSharp.sln`.
   Use it exactly as before (`dotnet build CStructSharp.NonWeb.slnf -c Release`); a new project is added only to
   `CStructSharp.sln` and listed in the filter. Mutation testing no longer passes a solution to Stryker.

@@ -1,5 +1,5 @@
 /**
- * CStructSharp for JavaScript (contract v8). Every operation loads the WebAssembly runtime on first use and
+ * CStructSharp for JavaScript (contract v9). Every operation loads the WebAssembly runtime on first use and
  * returns a `Result` envelope; loading and argument failures reject the returned promise instead.
  */
 
@@ -168,7 +168,7 @@ export type ParsedValue =
 export type ParsedStruct = { [name: string]: ParsedValue };
 
 export type Result<T, O extends Operation = Operation> = {
-  contractVersion: 8;
+  contractVersion: 9;
   operation: O;
   /**
    * The root or path the operation selected. A parse, resolveAddress, or compile reports the resolved name even
@@ -205,8 +205,8 @@ export type BinarySource =
 
 /**
  * Advanced raw transport API. Binary data crosses the boundary as a native Uint8Array, never Base64 text.
- * serialize/updateStream report failure by throwing (the JS Error's message is the JSON-serialized ErrorDetails)
- * rather than through an envelope, since a native byte-array success payload has no envelope to carry an error.
+ * The byte parses return the envelope's JSON text; serialize/updateStream return the envelope itself, with the
+ * produced bytes as `data` on success and the structured error on failure, exactly like the public operations.
  */
 export interface RawWasmAdapter {
   compile(definition: string, options?: (CompileOptions & OperationOptions) | null): Promise<CompiledLayout>;
@@ -228,14 +228,18 @@ export interface RawWasmAdapter {
     options?: (CompileOptions & ParseOptions) | null,
     debug?: boolean,
   ): string;
-  serialize(definition: string, json: string, options?: (CompileOptions & SerializeOptions) | null): Uint8Array;
+  serialize(
+    definition: string,
+    json: string,
+    options?: (CompileOptions & SerializeOptions) | null,
+  ): Result<Uint8Array, "serialize">;
   updateStream(
     definition: string,
     bytes: Uint8Array,
     path: string,
     json: string,
     options?: (CompileOptions & UpdateOptions) | null,
-  ): Uint8Array;
+  ): Result<Uint8Array, "update">;
   getVersion(): string;
 }
 /** Load the runtime, or reject if it cannot load. Prefer the public operations below. */

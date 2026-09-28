@@ -13,32 +13,47 @@ serialization, or update without exposing every .NET type to JavaScript. It is v
 API because JSON passed between browser code and WebAssembly has different compatibility concerns from a C# method
 call.
 
-The reviewed browser description uses browser interface version 8. It records six managed entry points:
+The reviewed browser description uses browser interface version 9. It records eleven managed entry points, which
+fall into three groups:
 
-- `GetVersion`
-- `ParseBytes` (parses byte inputs on the calling thread, with debug ranges when its `debug` argument is true)
-- `Serialize`
-- `UpdateStream`
-- `ResolveAddress`
-- `GetStaticPlan` (describes a fully fixed root's member offsets and codecs as JSON so the adapters can read such
-  layouts in JavaScript; an empty string means the root is not fully fixed)
+- On the calling thread: `ParseBytes` (parses byte inputs, with debug ranges when its `debug` argument is true),
+  `Serialize`, `UpdateStream`, `TakeOutput`, `GetVersion`, and `GetStaticPlan` (describes a fully fixed root's
+  member offsets and codecs so the adapters can read such layouts in JavaScript).
+- In the source worker: `ParseSource` and `ResolveAddress` read a large source page by page, and the retained-layout
+  exports `InitializeCompiledLayout`, `ParseCompiledSource`, and `ResolveAddressCompiled` back the `compile`
+  operation. A compiled layout's `serialize` and `update` run on the calling thread through `Serialize` and
+  `UpdateStream`.
 
-The retained-layout exports (`InitializeCompiledLayout`, `ParseCompiledSource`, `ResolveAddressCompiled`) and
-`ParseSource` back the worker-side `compile` operation and large sources; they exchange the same envelope. A
-compiled layout's `serialize` and `update` run on the calling thread through `Serialize` and `UpdateStream`.
-
-Binary data crosses the boundary as a native `byte[]`/`Uint8Array`, never Base64 text. Every JSON-returning export
-returns the same outer object, called an *envelope*: `contractVersion` (8), `operation` (`parse`, `serialize`,
-`update`, `resolveAddress`, or `compile`), `success`, `root` (the root or path the operation selected), `data`,
-`debug`, and `error`. On success `data` is the selected value itself - the root struct's members by name, or the
-union, array, or scalar a path selects - with no wrapper object; `debug` lists `{ start, end, path, type, value }`
-byte ranges after a parse with debug ranges and is empty otherwise. `Serialize`/`UpdateStream` return the encoded bytes
-directly on success; there is no envelope object left to carry an error alongside a native byte-array payload, so
-they report failure by throwing instead. The thrown JS `Error`'s message is the same JSON-serialized error shape
-the envelope's `error` field uses - `{ code, message, path, offset, member, memberType, line, column }` - so the
-JavaScript adapters rebuild an identical envelope either way. The `message` is the library's own diagnostic
+Every entry point except `TakeOutput` returns the same outer object as JSON text, called an *envelope*, and reports
+failures inside it rather than by throwing. The envelope has seven members, always in this order:
+`contractVersion` (9), `operation`, `success`, `root` (the root or path the operation selected, or the `root`
+option a write echoes), `data`, `debug`, and `error`. `debug` lists `{ start, end, path, type, value }` byte ranges
+after a parse with debug ranges and is empty otherwise. On failure `data` is null and `error` is
+`{ code, message, path, offset, member, memberType, line, column }`. The `message` is the library's own diagnostic
 verbatim; the `redactDiagnostics` option keeps only the category `code` and its curated text and clears `path`,
 `member`, and `memberType`, for pages that must not echo layout text, values, or paths.
+
+What `data` holds on success depends on the operation:
+
+| Operation | Export | `data` on success |
+| --- | --- | --- |
+| `parse` | `ParseBytes`, `ParseSource`, `ParseCompiledSource` | The selected value itself: the root struct's members by name, or the union, array, or scalar a path selects |
+| `resolveAddress` | `ResolveAddress`, `ResolveAddressCompiled` | The byte position, a number or a decimal string beyond 2^53 - 1 |
+| `compile` | `InitializeCompiledLayout` | An empty object; `root` names the layout's default root |
+| `serialize`, `update` | `Serialize`, `UpdateStream` | `{ byteLength }`: the bytes wait for `TakeOutput` |
+| `version` | `GetVersion` | `{ version }`, the managed library version text |
+| `staticPlan` | `GetStaticPlan` | `{ root, plan }`, or null when the root has no static plan |
+
+The `version` and `staticPlan` envelopes are read by the JavaScript adapter itself and never reach callers of the
+public API; `getVersion()` returns the version text.
+
+Binary data crosses the boundary as a native `byte[]`/`Uint8Array`, never Base64 text. A write's bytes cannot sit
+inside the JSON envelope, so they wait in managed memory: directly after a successful `Serialize` or `UpdateStream`
+envelope, the adapter calls `TakeOutput`, which returns those bytes once and clears them. Starting any other envelope
+also clears them, and `TakeOutput` throws when nothing is pending. This hand-over is safe because the .NET WebAssembly
+runtime runs managed code on one thread per runtime instance, and the adapter calls the two exports back to back. The
+public `serialize` and `update` results therefore carry the bytes as `data`, in the same envelope shape as every
+other operation.
 
 Values inside `data` keep their tagged shapes across versions: an enum is `{ kind: "enum", enum, name, value }`, and
 a value read from a `flag` declaration adds `names` (the set members) and `remainder` (bits no member covers); a
@@ -64,7 +79,9 @@ Managed and browser compatibility are reviewed independently. Changing a managed
 approve a change to the browser JSON. A browser-facing change must increase the interface version and update the
 saved browser description as part of the same reviewed change; `node tools/quality/browser-contract.mjs`
 checks the description against the canonical declarations (`packages/cstructsharp/index.d.ts`), the apps' shared
-contract module, the managed bridge, and the bootstrap.
+contract module, the managed bridge (its complete export list, envelope writer, options, and error codes), and the
+JavaScript modules that bind the exports. The JavaScript package states no contract version of its own: every
+envelope it returns carries the version the managed bridge wrote.
 
 Routine documentation validation checks this page against tracked sources and saved data. It deliberately does not
 restore, build, or test `apps/explorer` or `CStructSharpWeb.Wasm`, because those projects are expensive and

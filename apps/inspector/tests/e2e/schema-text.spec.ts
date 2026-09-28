@@ -176,7 +176,10 @@ test("FBX node identifiers preserve raw code units across both header widths", a
         return {
           parsed,
           encoded: parsed.success
-            ? [...wasm.serialize(schema.definition, JSON.stringify(parsed.data), options)]
+            ? [
+                ...(wasm.serialize(schema.definition, JSON.stringify(parsed.data), options).data ??
+                  []),
+              ]
             : [],
         };
       },

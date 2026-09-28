@@ -1,4 +1,6 @@
 // A session owns its runtime; requests are serialized by the client. Termination cancels CPU-bound parsing.
+import { stringifyInteropJson } from "./cstructsharp-shared.js";
+
 const isNode = typeof process !== "undefined" && !!process.versions?.node;
 // .NET detects an independent worker when onmessage is unset at import time. Our request handler
 // already exists, so identify this as a sidecar rather than an Emscripten pthread worker explicitly.
@@ -30,8 +32,7 @@ async function run({ command, descriptor, definition, options, debug, path }) {
   let close = () => {};
   try {
     const managed = await loadManaged();
-    const optionsJson = JSON.stringify(options, (_key, value) =>
-      typeof value === "bigint" ? value.toString() : value);
+    const optionsJson = stringifyInteropJson(options);
     if (command === "compile") {
       return { result: JSON.parse(managed.InitializeCompiledLayout(definition, optionsJson)) };
     }

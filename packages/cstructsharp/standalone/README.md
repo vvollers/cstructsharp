@@ -69,7 +69,7 @@ Also exported: `serialize(definition, value, options)`, `update(definition, sour
 promises. Serialize and update return a `Uint8Array` in `data`; resolveAddress returns the byte position. Pass the
 selected struct's fields when serializing; a parse result's `data` works as is.
 
-Keep `cstructsharp-wasm.js`, `cstructsharp-api.js`, `main.js`, `bootstrap.js`, the runtime configuration, and `_framework/` together.
+Keep `cstructsharp-wasm.js`, `cstructsharp-api.js`, `cstructsharp-shared.js`, `main.js`, `bootstrap.js`, the runtime configuration, and `_framework/` together.
 Serve over HTTP(S), not `file://`, with `.wasm` served as `application/wasm`. Relative imports work under a deployment
 subdirectory when the complete bundle is kept together. The included server is for local development.
 

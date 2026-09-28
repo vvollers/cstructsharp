@@ -58,8 +58,15 @@ test("generated JavaScript runs every lesson through the public WASM wrapper", a
     "../../packages/cstructsharp/src/cstructsharp-api.js",
     "utf8",
   );
+  const sharedHelpers = await readFile(
+    "../../packages/cstructsharp/src/cstructsharp-shared.js",
+    "utf8",
+  );
   await page.route("**/cstructsharp-api.js", (route) =>
     route.fulfill({ contentType: "text/javascript", body: publicOperations }),
+  );
+  await page.route("**/cstructsharp-shared.js", (route) =>
+    route.fulfill({ contentType: "text/javascript", body: sharedHelpers }),
   );
   await page.route("**/generated-public-api.js", (route) =>
     route.fulfill({ contentType: "text/javascript", body: publicWrapper }),

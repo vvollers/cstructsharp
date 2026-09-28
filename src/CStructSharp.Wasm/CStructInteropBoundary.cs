@@ -10,10 +10,10 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 using Enum = System.Enum;
 
-/// <summary>Validates untrusted browser inputs and creates the stable transport envelope.</summary>
+/// <summary>Validates untrusted browser inputs and categorizes failures for the result envelope.</summary>
 public partial class CStructExports
 {
-    private const int InteropContractVersion = 8;
+    private const int InteropContractVersion = 9;
     private const int MaximumBinaryInputLength = 4 * 1024 * 1024;
     private const int MaximumDefinitionLength = 128 * 1024;
     private const int MaximumExpressionNestingDepth = 256;
@@ -28,11 +28,20 @@ public partial class CStructExports
     private const long DefaultStringBytes = 16 * 1024 * 1024;
     private const long MaximumStringBytes = int.MaxValue;
     private const long DefaultTotalBytes = 64 * 1024 * 1024;
-    private const long MaximumTotalBytes = 9_007_199_254_740_991;
+    private const long MaximumTotalBytes = InteropLimits.MaximumSafeInteger;
 
     /// <summary>Deserializes the one browser options object accepted by every operation.</summary>
-    private static InteropOptionsDto ParseOptions(string optionsJson)
+    /// <param name="optionsJson">The options as JSON text; null or JSON <c>null</c> means no options.</param>
+    /// <returns>The options; every member is null when the caller did not set it.</returns>
+    /// <exception cref="JsonException">The text is not a valid options object.</exception>
+    /// <exception cref="BrowserInputException">The text exceeds the JSON input limit.</exception>
+    private static InteropOptionsDto ParseOptions(string? optionsJson)
     {
+        if (optionsJson is null)
+        {
+            return new InteropOptionsDto();
+        }
+
         ValidateJson(optionsJson);
         return JsonSerializer.Deserialize(optionsJson, CStructJsonContext.Default.InteropOptionsDto) ??
                new InteropOptionsDto();
@@ -91,7 +100,7 @@ public partial class CStructExports
     {
         return new ReadOptions
         {
-            AddressingMode = ParseAddressingMode(options.AddressingMode),
+            AddressingMode = ParseEnumOption<PointerAddressingMode>(options.AddressingMode, "addressingMode"),
             DereferencePointers = options.DereferencePointers ?? true,
             MaxPointerDepth = Bounded(
                 options.MaxPointerDepth,
@@ -136,7 +145,7 @@ public partial class CStructExports
     {
         return new TOptions
         {
-            AddressingMode = ParseAddressingMode(options.AddressingMode),
+            AddressingMode = ParseEnumOption<PointerAddressingMode>(options.AddressingMode, "addressingMode"),
             UnknownMembers = ParseEnumOption<UnknownMemberPolicy>(options.UnknownMembers, "unknownMembers"),
             MaxArrayElements = Bounded(
                 options.MaxArrayElements,
@@ -220,19 +229,15 @@ public partial class CStructExports
         return value is null ? null : Bounded(value, maximum, maximum, name);
     }
 
-    /// <summary>Reads an addressing-mode name and rejects unknown enum values.</summary>
-    private static PointerAddressingMode ParseAddressingMode(string? mode)
-    {
-        mode ??= nameof(PointerAddressingMode.Absolute);
-        if (Enum.TryParse(mode, true, out PointerAddressingMode parsed) && Enum.IsDefined(parsed))
-        {
-            return parsed;
-        }
-
-        throw new ArgumentException("Unknown pointer addressing mode: " + mode, nameof(mode));
-    }
-
-    /// <summary>Reads an option spelled as an enum member name (case-insensitive); an omitted option is the default.</summary>
+    /// <summary>
+    ///     Reads an option spelled as an enum member name (case-insensitive); an omitted option is the enum's default
+    ///     (its first member, such as <see cref="PointerAddressingMode.Absolute"/>).
+    /// </summary>
+    /// <typeparam name="TEnum">The option's enum type.</typeparam>
+    /// <param name="value">The option text, or null when omitted.</param>
+    /// <param name="name">The option's wire name, used in the error message.</param>
+    /// <returns>The selected member.</returns>
+    /// <exception cref="BrowserInputException">The text names no member; the message lists the accepted names.</exception>
     private static TEnum ParseEnumOption<TEnum>(string? value, string name)
         where TEnum : struct, Enum
     {
@@ -249,12 +254,23 @@ public partial class CStructExports
         throw new BrowserInputException($"Option {name} must be one of {string.Join(", ", Enum.GetNames<TEnum>())}; received '{value}'.");
     }
 
+    /// <summary>Reads the relative-pointer origin, which travels as decimal text so large values stay exact.</summary>
+    /// <param name="origin">The decimal text, optionally signed, or null when omitted (origin 0).</param>
+    /// <returns>The origin.</returns>
+    /// <exception cref="BrowserInputException">
+    ///     The text is not a decimal integer or lies outside the signed 64-bit range. The message states the accepted
+    ///     range and does not echo the text.
+    /// </exception>
     private static long ParseOrigin(string? origin)
     {
-        return long.Parse(
-            origin ?? "0",
-            NumberStyles.AllowLeadingSign,
-            CultureInfo.InvariantCulture);
+        if (origin is null)
+        {
+            return 0;
+        }
+
+        return long.TryParse(origin, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long parsed)
+                   ? parsed
+                   : throw new BrowserInputException($"Option origin must be a decimal integer from {long.MinValue} through {long.MaxValue}.");
     }
 
     /// <summary>
@@ -284,27 +300,19 @@ public partial class CStructExports
     }
 
     /// <summary>Checks the browser input limit on the caller-supplied binary data.</summary>
-    private static byte[] ValidateBinaryData(byte[] binaryData)
+    /// <param name="binaryData">The bytes JavaScript passed; null when it passed none.</param>
+    /// <returns>The same array, for 1 byte through 4 MiB.</returns>
+    /// <exception cref="BrowserInputException">The data is missing, empty, or larger than 4 MiB.</exception>
+    private static byte[] ValidateBinaryData(byte[]? binaryData)
     {
-        if (binaryData.Length == 0 || binaryData.Length > MaximumBinaryInputLength)
+        if (binaryData is null || binaryData.Length == 0 || binaryData.Length > MaximumBinaryInputLength)
         {
-            throw new BrowserInputException(binaryData.Length == 0
+            throw new BrowserInputException(binaryData is null || binaryData.Length == 0
                 ? "No binary data was supplied. Load a file or enter bytes before parsing."
                 : $"Binary input contains {binaryData.Length} bytes; the browser limit is {MaximumBinaryInputLength} bytes (4 MiB). Load a header slice or use the C# stream API for the full file. Read safety settings do not raise this input limit.");
         }
 
         return binaryData;
-    }
-
-    /// <summary>
-    ///     Wraps a caught exception as a release-safe categorized error - the same shape <see cref="CreateFailure"/>
-    ///     builds for the JSON-envelope operations - for exports that report failure by throwing instead, so JS
-    ///     can catch it, JSON.parse the message, and reconstruct the exact same structured error.
-    /// </summary>
-    private static Exception CreateBridgeException(Exception exception, InteropOptionsDto? options)
-    {
-        return new InvalidOperationException(
-            JsonSerializer.Serialize(DescribeError(exception, options), CStructJsonContext.Default.ErrorDetailsDto));
     }
 
     /// <summary>
@@ -343,9 +351,11 @@ public partial class CStructExports
     }
 
     /// <summary>Rejects JSON text that exceeds the browser bridge's allocation limit.</summary>
-    private static void ValidateJson(string json)
+    /// <param name="json">The JSON text; null passes, and the caller decides what a missing value means.</param>
+    /// <exception cref="BrowserInputException">The text is longer than 1 Mi characters.</exception>
+    private static void ValidateJson(string? json)
     {
-        if (json.Length > MaximumJsonInputLength)
+        if (json?.Length > MaximumJsonInputLength)
         {
             throw new BrowserInputException($"JSON input contains {json.Length} characters; the browser limit is {MaximumJsonInputLength} characters.");
         }
@@ -362,46 +372,16 @@ public partial class CStructExports
         }
     }
 
-    /// <summary>Creates a successful result whose Data is an already-parsed JSON value (the compiled-layout handshake).</summary>
-    private static InteropResultDto CreateSuccess(string operation, JsonElement data, string? root)
-    {
-        return new InteropResultDto
-        {
-            ContractVersion = InteropContractVersion,
-            Operation = operation,
-            Success = true,
-            Root = root,
-            Data = data,
-            Debug = [],
-            Error = null,
-        };
-    }
-
-    /// <summary>An empty JSON object value for envelopes that carry no data.</summary>
-    private static JsonElement EmptyObject()
-    {
-        using JsonDocument document = JsonDocument.Parse("{}");
-        return document.RootElement.Clone();
-    }
-
-    /// <summary>Creates a release-safe categorized error without echoing raw caller input.</summary>
-    private static InteropResultDto CreateFailure(string operation, Exception exception, InteropOptionsDto? options)
-    {
-        return new InteropResultDto
-        {
-            ContractVersion = InteropContractVersion,
-            Operation = operation,
-            Success = false,
-
-            // The root the caller asked for; the default root is unknown until the layout compiles.
-            Root = options?.Root,
-            Data = null,
-            Debug = [],
-            Error = DescribeError(exception, options),
-        };
-    }
-
     /// <summary>Maps failures to stable categories, exposing only controlled diagnostics, never raw exception text.</summary>
+    /// <param name="exception">The failure.</param>
+    /// <returns>The category code and its message.</returns>
+    /// <remarks>
+    ///     Every check of caller input throws <see cref="BrowserInputException"/> (options, sizes, paths),
+    ///     <see cref="JsonException"/> (malformed JSON), or a <see cref="CStructException"/> (the library's own layout,
+    ///     path, read, and write checks), so bad input always maps to a specific category. Anything else - a failure
+    ///     of the bridge itself - takes the <c>operation-failed</c> fallback, whose fixed text reveals nothing about
+    ///     the exception.
+    /// </remarks>
     private static (string Code, string Message) GetBrowserError(Exception exception)
     {
         return exception switch
@@ -409,8 +389,6 @@ public partial class CStructExports
             BrowserInputException inputException => ("invalid-input", inputException.Message),
             CStructException cstructException => GetDomainBrowserError(cstructException),
             JsonException => ("invalid-json", "The JSON input is invalid."),
-            FormatException => ("invalid-input", "An input value has an invalid format."),
-            ArgumentException => ("invalid-input", "An input argument or option is invalid."),
             _ => ("operation-failed", "The operation failed unexpectedly."),
         };
     }
@@ -446,12 +424,6 @@ public partial class CStructExports
             _ => ("operation-failed", "The operation failed unexpectedly."),
         };
         return (category.Code, detail ?? category.Message);
-    }
-
-    /// <summary>Serializes the shared envelope through source-generated JSON metadata.</summary>
-    private static string SerializeInteropResult(InteropResultDto result)
-    {
-        return JsonSerializer.Serialize(result, CStructJsonContext.Default.InteropResultDto);
     }
 
     /// <summary>A controlled bridge diagnostic containing only fixed text and numeric limits.</summary>

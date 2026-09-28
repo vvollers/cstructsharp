@@ -61,6 +61,7 @@ older bundles may contain only the library. Keep the complete extracted archive 
 cstructsharp-wasm/
   cstructsharp-wasm.js
   cstructsharp-api.js
+  cstructsharp-shared.js
   main.js
   bootstrap.js
   CStructSharpWeb.Wasm.runtimeconfig.json

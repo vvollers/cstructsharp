@@ -4,23 +4,13 @@ using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.IO;
-using System.Text;
 using System.Text.Json;
 using CStructSharp;
 using CStructSharp.Values;
 
-/// <summary>Contains the explicit JSON conversion rules used at the browser boundary.</summary>
+/// <summary>Contains the explicit rules that convert browser JSON input into the values the core writer accepts.</summary>
 public partial class CStructExports
 {
-    private static readonly byte[] ParseEnvelopeHead = Encoding.UTF8.GetBytes("{\"contractVersion\":" + InteropContractVersion + ",\"operation\":\"parse\",\"success\":true,\"root\":");
-    private static readonly byte[] ParseEnvelopeData = ",\"data\":"u8.ToArray();
-    private static readonly byte[] ParseEnvelopeDebugData = ",\"debug\":"u8.ToArray();
-    private static readonly byte[] ParseEnvelopeTail = ",\"error\":null}"u8.ToArray();
-    private static readonly byte[] EmptyArray = "[]"u8.ToArray();
-
-    [ThreadStatic]
-    private static ParsedJsonWriter? projectionWriter;
-
     /// <summary>Converts browser JSON into the primitive, expando, and list values accepted by the core writer.</summary>
     private static object? ConvertJsonElement(JsonElement element)
     {
@@ -177,45 +167,5 @@ public partial class CStructExports
 
         using JsonDocument document = JsonDocument.Parse(json);
         return ConvertJsonElement(document.RootElement);
-    }
-
-    /// <summary>
-    ///     Writes the whole successful parse envelope in one pass: the parsed value is
-    ///     projected straight into the envelope as a JSON value - no intermediate Data string, no escaping pass, one
-    ///     JSON.parse on the JavaScript side.
-    /// </summary>
-    private static string SerializeParseEnvelope(string root, object? result, List<DebugDataDto> debugData)
-    {
-        ParsedJsonWriter writer = projectionWriter ??= new ParsedJsonWriter(16 * 1024);
-        writer.Reset();
-        writer.WriteRawBytes(ParseEnvelopeHead);
-        writer.WriteValue(root);
-        writer.WriteRawBytes(ParseEnvelopeData);
-        writer.WriteValue(result);
-        writer.WriteRawBytes(ParseEnvelopeDebugData);
-        if (debugData.Count == 0)
-        {
-            writer.WriteRawBytes(EmptyArray);
-        }
-        else
-        {
-            writer.WriteRawBytes(JsonSerializer.SerializeToUtf8Bytes(debugData, CStructJsonContext.Default.ListDebugDataDto));
-        }
-
-        writer.WriteRawBytes(ParseEnvelopeTail);
-        return FinishProjection(writer);
-    }
-
-    /// <summary>Returns the projected JSON text and releases an unusually large per-thread buffer.</summary>
-    private static string FinishProjection(ParsedJsonWriter writer)
-    {
-        string json = Encoding.UTF8.GetString(writer.WrittenSpan);
-        if (writer.Capacity > 4 * 1024 * 1024)
-        {
-            // Do not pin a multi-megabyte buffer to the thread after one unusually large result.
-            projectionWriter = null;
-        }
-
-        return json;
     }
 }

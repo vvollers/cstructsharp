@@ -65,8 +65,10 @@ await parseWithDebug(definition, [1, 2]);
 created.data.subarray(0);
 const version: string = await getVersion();
 const raw = await loadCStructSharpWasm();
-const rawBytes: Uint8Array = raw.serialize(definition, '{"value":"42"}');
-console.log(version, rawBytes);
+const rawResult = raw.serialize(definition, '{"value":"42"}');
+const rawBytes: Uint8Array | null = rawResult.success ? rawResult.data : null;
+const rawVersion: 9 = rawResult.contractVersion;
+console.log(version, rawBytes, rawVersion);
 
 await parse(definition, new Blob([new Uint8Array(8)]), { bitfieldPacking: "Msvc", cLongWidth: 32 });
 await parse(definition, new DataView(new ArrayBuffer(8)), { signal: AbortSignal.abort() });

@@ -1,6 +1,6 @@
 /**
  * Validates a WASM publication directory (the `main.js` entry point, its bootstrap, the source adapter and worker, the
- * runtime configuration, and a flat `_framework` holding exactly the resources `dotnet.boot.js` lists) and describes it
+ * module of constants and helpers they share, the runtime configuration, and a flat `_framework` holding exactly the resources `dotnet.boot.js` lists) and describes it
  * as a manifest of file sizes and SHA-256 hashes. It reads the directory and writes nothing.
  * publish-wasm.mjs uses it to stage and check the publication; the other packaging tools and the apps' shared build
  * scripts use `validateWasmPublication` to check it before use. It has no command line of its own.
@@ -12,7 +12,14 @@ import path from "node:path";
 export const runtimeConfigName = "CStructSharpWeb.Wasm.runtimeconfig.json";
 export const defaultRawByteLimit = 6 * 1024 * 1024;
 
-const requiredRootFiles = new Set(["bootstrap.js", "main.js", "large-source.js", "source-worker.js", runtimeConfigName]);
+const requiredRootFiles = new Set([
+  "bootstrap.js",
+  "main.js",
+  "large-source.js",
+  "source-worker.js",
+  "cstructsharp-shared.js",
+  runtimeConfigName,
+]);
 const requiredFrameworkEntrypoints = new Set(["dotnet.boot.js", "dotnet.js"]);
 const rejectedProductionExtensions = new Set([
   ".a",

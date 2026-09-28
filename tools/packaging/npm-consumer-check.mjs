@@ -13,7 +13,7 @@ const definition = "struct header { uint16 kind; uint32 length; };";
 const options = { root: "header" };
 const input = Buffer.from([2, 0, 6, 0, 0, 0]);
 const read = await parseWithDebug(definition, input, options);
-assert.equal(read.contractVersion, 8);
+assert.equal(read.contractVersion, 9);
 assert.equal(read.operation, "parse");
 assert.equal(read.success, true);
 assert.equal(read.root, "header");

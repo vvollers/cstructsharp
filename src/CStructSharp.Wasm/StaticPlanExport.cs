@@ -1,11 +1,9 @@
 namespace CStructSharpWeb.Wasm;
 
 using System;
-using System.Globalization;
-using System.Numerics;
+using System.Collections.Generic;
 using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
-using System.Text;
 using CStructSharp;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
@@ -22,12 +20,12 @@ using CStructSharp.Syntax;
 [SupportedOSPlatform("browser")]
 public partial class CStructExports
 {
-    private const long MaximumSafeInteger = 9_007_199_254_740_991;
-
     /// <summary>
-    ///     Returns the static read plan of the selected root as JSON, or an empty string when the root is not a fully
-    ///     fixed struct, its plan exceeds the default read limits, or the definition does not compile (compilation
-    ///     failures are left to the parse itself, which reports them in its error envelope).
+    ///     Returns the static read plan of the selected root in a <c>staticPlan</c> envelope. The envelope's
+    ///     <c>data</c> is <c>{"root": ..., "plan": ...}</c> when the root has a plan, and null when the root is not a
+    ///     fully fixed struct, its plan exceeds the read limits, or the layout or root fails with a library, argument,
+    ///     or invalid-operation error (compilation failures are left to the parse itself, which reports them in its
+    ///     own error envelope).
     /// </summary>
     /// <param name="definition">The CStruct layout definition text.</param>
     /// <param name="optionsJson">
@@ -35,36 +33,64 @@ public partial class CStructExports
     ///     and its read limits decide whether the plan is covered.
     /// </param>
     /// <returns>
-    ///     The JSON text <c>{"root": ..., "plan": ...}</c>, or an empty string when no static plan applies or the
-    ///     layout or root fails with a library, argument, or invalid-operation error. Malformed options JSON and
-    ///     rejected browser input (an empty or oversized definition, an out-of-range option) propagate as thrown
-    ///     exceptions, with no envelope.
+    ///     The JSON text of the <c>staticPlan</c> envelope. Malformed options JSON and rejected browser input (an empty
+    ///     or oversized definition, an out-of-range option) produce a failure envelope with the usual error codes.
     /// </returns>
     [JSExport]
     public static string GetStaticPlan(string definition, string optionsJson)
     {
+        InteropOptionsDto? options = null;
+        CStruct cstruct;
+        string root;
+        StaticReadPlan? plan;
         try
         {
-            InteropOptionsDto options = ParseOptions(optionsJson);
-            CStruct cstruct = CreateCStruct(definition, options);
-            string root = ResolveRoot(cstruct, options);
-            return DescribeStaticPlan(cstruct, root, CreateReadOptions(options)) ?? string.Empty;
+            options = ParseOptions(optionsJson);
+            cstruct = CreateCStruct(definition, options);
+            root = ResolveRoot(cstruct, options);
+            plan = FindStaticPlan(cstruct, root, CreateReadOptions(options));
         }
         catch (Exception exception) when (exception is CStructException or ArgumentException or InvalidOperationException)
         {
-            return string.Empty;
+            // The layout has no describable plan; the parse itself takes the general reader and reports any error.
+            return SerializeNoStaticPlan(options);
+        }
+        catch (Exception exception)
+        {
+            return SerializeFailure("staticPlan", exception, options);
+        }
+
+        if (plan is null)
+        {
+            return SerializeNoStaticPlan(options, root);
+        }
+
+        try
+        {
+            InteropJsonWriter writer = StartEnvelope("staticPlan", success: true, root);
+            writer.WriteRawBytes("{\"root\":"u8);
+            writer.WriteString(root);
+            writer.WriteRawBytes(",\"plan\":"u8);
+            WritePlan(writer, plan, cstruct);
+            writer.WriteRawBytes("}"u8);
+            return FinishEnvelope(writer);
+        }
+        catch (InvalidOperationException)
+        {
+            // A plan operation or codec this bridge cannot describe; the next envelope resets the partial output.
+            return SerializeNoStaticPlan(options, root);
         }
     }
 
     /// <summary>
-    ///     The static read plan of <paramref name="root"/> as JSON, or <see langword="null"/> when the root is not a fully
+    ///     The static read plan of <paramref name="root"/>, or <see langword="null"/> when the root is not a fully
     ///     fixed struct or the read's own limits do not cover the plan (the parse then takes the general reader).
     /// </summary>
     /// <param name="cstruct">The compiled layout.</param>
     /// <param name="root">The root declaration.</param>
     /// <param name="options">The read's options, as the parse will use them.</param>
-    /// <returns>The plan's JSON, or <see langword="null"/>.</returns>
-    internal static string? DescribeStaticPlan(CStruct cstruct, string root, ReadOptions options)
+    /// <returns>The plan, or <see langword="null"/>.</returns>
+    private static StaticReadPlan? FindStaticPlan(CStruct cstruct, string root, ReadOptions options)
     {
         if (!cstruct.CompiledModel.Symbols.TryGetValue(root, out CompiledTypeReference entry) ||
             entry.Symbol.Definition is not CompiledCompositeType composite ||
@@ -74,72 +100,88 @@ public partial class CStructExports
             return null;
         }
 
-        if (!ReadOperationSettings.SnapshotReadOptions(options).CoversPlan(plan))
-        {
-            return null;
-        }
-
-        var builder = new StringBuilder();
-        builder.Append("{\"root\":");
-        AppendString(builder, root);
-        builder.Append(",\"plan\":");
-        AppendPlan(builder, plan, cstruct);
-        builder.Append('}');
-        return builder.ToString();
+        return ReadOperationSettings.SnapshotReadOptions(options).CoversPlan(plan) ? plan : null;
     }
 
-    private static void AppendPlan(StringBuilder builder, StaticReadPlan plan, CStruct cstruct)
+    /// <summary>Writes the successful <c>staticPlan</c> envelope of a layout without a describable plan.</summary>
+    /// <param name="options">The parsed options, or null when they could not be read.</param>
+    /// <param name="root">The resolved root, or null to echo the <c>root</c> option.</param>
+    /// <returns>The envelope, whose <c>data</c> is null.</returns>
+    private static string SerializeNoStaticPlan(InteropOptionsDto? options, string? root = null)
     {
-        builder.Append("{\"size\":").Append(plan.Size.ToString(CultureInfo.InvariantCulture)).Append(",\"ops\":[");
+        InteropJsonWriter writer = StartEnvelope("staticPlan", success: true, root ?? options?.Root);
+        writer.WriteNull();
+        return FinishEnvelope(writer);
+    }
+
+    /// <summary>
+    ///     Writes one plan as <c>{"size": bytes, "ops": [...]}</c>. Each operation has its field <c>name</c>, byte
+    ///     offset <c>o</c> within the struct, and kind <c>k</c>: <c>n</c> numeric, <c>e</c> enum, <c>c</c> character
+    ///     array, <c>a</c> numeric array, <c>s</c> nested struct, <c>sa</c> nested struct array; counts are <c>n</c>
+    ///     elements, nested plans <c>p</c>.
+    /// </summary>
+    /// <param name="writer">The writer.</param>
+    /// <param name="plan">The plan.</param>
+    /// <param name="cstruct">The compiled layout, which resolves enum member tables.</param>
+    /// <exception cref="InvalidOperationException">The plan contains an operation kind or codec the bridge cannot describe.</exception>
+    private static void WritePlan(InteropJsonWriter writer, StaticReadPlan plan, CStruct cstruct)
+    {
+        writer.WriteRawBytes("{\"size\":"u8);
+        writer.WriteSafeInteger(plan.Size);
+        writer.WriteRawBytes(",\"ops\":["u8);
         bool first = true;
         foreach (StaticReadOperation operation in plan.Operations)
         {
-            if (!first)
-            {
-                builder.Append(',');
-            }
-
+            writer.WriteRawBytes(first ? "{\"name\":"u8 : ",{\"name\":"u8);
             first = false;
-            builder.Append("{\"name\":");
-            AppendString(builder, operation.Field.Declaration.Name.Name);
-            builder.Append(",\"o\":").Append(operation.Offset.ToString(CultureInfo.InvariantCulture));
+            writer.WriteString(operation.Field.Declaration.Name.Name);
+            writer.WriteRawBytes(",\"o\":"u8);
+            writer.WriteSafeInteger(operation.Offset);
             switch (operation.Kind)
             {
             case StaticReadKind.Numeric:
-                builder.Append(",\"k\":\"n\"");
-                AppendCodec(builder, operation.Field.Codec);
+                writer.WriteRawBytes(",\"k\":\"n\""u8);
+                WriteCodec(writer, operation.Field.Codec);
                 break;
             case StaticReadKind.Enum:
-                builder.Append(",\"k\":\"e\"");
-                AppendCodec(builder, operation.Field.Codec);
-                AppendEnum(builder, operation.Field, cstruct);
+                writer.WriteRawBytes(",\"k\":\"e\""u8);
+                WriteCodec(writer, operation.Field.Codec);
+                WriteEnum(writer, operation.Field, cstruct);
                 break;
             case StaticReadKind.CharArray:
-                builder.Append(",\"k\":\"c\",\"n\":").Append(operation.Count.ToString(CultureInfo.InvariantCulture));
+                writer.WriteRawBytes(",\"k\":\"c\",\"n\":"u8);
+                writer.WriteSafeInteger(operation.Count);
                 break;
             case StaticReadKind.NumericArray:
-                builder.Append(",\"k\":\"a\",\"n\":").Append(operation.Count.ToString(CultureInfo.InvariantCulture));
-                AppendCodec(builder, operation.Field.Codec);
+                writer.WriteRawBytes(",\"k\":\"a\",\"n\":"u8);
+                writer.WriteSafeInteger(operation.Count);
+                WriteCodec(writer, operation.Field.Codec);
                 break;
             case StaticReadKind.Nested:
-                builder.Append(",\"k\":\"s\",\"p\":");
-                AppendPlan(builder, operation.NestedPlan!, cstruct);
+                writer.WriteRawBytes(",\"k\":\"s\",\"p\":"u8);
+                WritePlan(writer, operation.NestedPlan!, cstruct);
                 break;
             case StaticReadKind.NestedArray:
-                builder.Append(",\"k\":\"sa\",\"n\":").Append(operation.Count.ToString(CultureInfo.InvariantCulture)).Append(",\"p\":");
-                AppendPlan(builder, operation.NestedPlan!, cstruct);
+                writer.WriteRawBytes(",\"k\":\"sa\",\"n\":"u8);
+                writer.WriteSafeInteger(operation.Count);
+                writer.WriteRawBytes(",\"p\":"u8);
+                WritePlan(writer, operation.NestedPlan!, cstruct);
                 break;
             default:
                 throw new InvalidOperationException("Unknown static read operation kind: " + operation.Kind);
             }
 
-            builder.Append('}');
+            writer.WriteRawBytes("}"u8);
         }
 
-        builder.Append("]}");
+        writer.WriteRawBytes("]}"u8);
     }
 
-    private static void AppendCodec(StringBuilder builder, PrimitiveCodec codec)
+    /// <summary>Writes a fixed-width numeric codec as its type code <c>t</c> and byte order <c>le</c>.</summary>
+    /// <param name="writer">The writer.</param>
+    /// <param name="codec">The field's codec.</param>
+    /// <exception cref="InvalidOperationException">The codec is not a fixed-width numeric.</exception>
+    private static void WriteCodec(InteropJsonWriter writer, PrimitiveCodec codec)
     {
         string kind = codec.Kind switch
         {
@@ -158,18 +200,27 @@ public partial class CStructExports
             PrimitiveCodecKind.Float64 => "f64",
             _ => throw new InvalidOperationException("Codec is not a fixed-width numeric: " + codec.Kind),
         };
-        builder.Append(",\"t\":\"").Append(kind).Append("\",\"le\":").Append(codec.LittleEndian ? "true" : "false");
+        writer.WriteRawBytes(",\"t\":"u8);
+        writer.WriteString(kind);
+        writer.WriteRawBytes(",\"le\":"u8);
+        writer.WriteBoolean(codec.LittleEndian);
     }
 
-    /// <summary>The enum's name and its members as the values the projection writes (safe integers as numbers, larger ones as decimal strings), first member per raw bits.</summary>
-    private static void AppendEnum(StringBuilder builder, CompiledField field, CStruct cstruct)
+    /// <summary>
+    ///     Writes the enum's name and its members as the values the projection writes (safe integers as numbers, larger
+    ///     ones as decimal strings), keeping the first member per raw bit pattern.
+    /// </summary>
+    /// <param name="writer">The writer.</param>
+    /// <param name="field">The enum field.</param>
+    /// <param name="cstruct">The compiled layout that owns the enum.</param>
+    private static void WriteEnum(InteropJsonWriter writer, CompiledField field, CStruct cstruct)
     {
         var declaration = (CStructSharp.Syntax.Enum)field.Type.Symbol.Declaration!;
         CompiledEnumType compiled = cstruct.GetCompiledEnumForInterop(declaration);
-        builder.Append(",\"enum\":");
-        AppendString(builder, declaration.Name.Name);
-        builder.Append(",\"members\":[");
-        var seen = new System.Collections.Generic.HashSet<ulong>();
+        writer.WriteRawBytes(",\"enum\":"u8);
+        writer.WriteString(declaration.Name.Name);
+        writer.WriteRawBytes(",\"members\":["u8);
+        var seen = new HashSet<ulong>();
         bool first = true;
         foreach (CompiledEnumMember member in compiled.Members)
         {
@@ -178,56 +229,14 @@ public partial class CStructExports
                 continue;
             }
 
-            if (!first)
-            {
-                builder.Append(',');
-            }
-
+            writer.WriteRawBytes(first ? "{\"v\":"u8 : ",{\"v\":"u8);
             first = false;
-            builder.Append("{\"v\":");
-            AppendSafeInteger(builder, compiled.Integer.FromRawBits(member.RawBits));
-            builder.Append(",\"n\":");
-            AppendString(builder, member.Name);
-            builder.Append('}');
+            writer.WriteSafeInteger(compiled.Integer.FromRawBits(member.RawBits));
+            writer.WriteRawBytes(",\"n\":"u8);
+            writer.WriteString(member.Name);
+            writer.WriteRawBytes("}"u8);
         }
 
-        builder.Append(']');
-    }
-
-    private static void AppendSafeInteger(StringBuilder builder, BigInteger value)
-    {
-        if (value >= -MaximumSafeInteger && value <= MaximumSafeInteger)
-        {
-            builder.Append(value.ToString(CultureInfo.InvariantCulture));
-        }
-        else
-        {
-            AppendString(builder, value.ToString(CultureInfo.InvariantCulture));
-        }
-    }
-
-    private static void AppendString(StringBuilder builder, string value)
-    {
-        builder.Append('"');
-        foreach (char character in value)
-        {
-            switch (character)
-            {
-            case '"':
-                builder.Append("\\\"");
-                break;
-            case '\\':
-                builder.Append("\\\\");
-                break;
-            case < ' ':
-                builder.Append("\\u").Append(((int)character).ToString("X4", CultureInfo.InvariantCulture));
-                break;
-            default:
-                builder.Append(character);
-                break;
-            }
-        }
-
-        builder.Append('"');
+        writer.WriteRawBytes("]"u8);
     }
 }

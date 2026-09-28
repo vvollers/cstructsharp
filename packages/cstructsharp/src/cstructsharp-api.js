@@ -1,13 +1,15 @@
-/** Shared operation conversions for the ZIP, Node, and browser adapters (contract v8). */
-const INTEROP_CONTRACT_VERSION = 8;
 /**
- * Byte inputs up to this size, without a cancellation signal, are parsed on the calling thread. Kept in
- * step with SYNCHRONOUS_PARSE_LIMIT in large-source.js; this module is staged at the npm package root while the
- * source adapter lives beside the runtime, so it cannot import it.
+ * Shared operation conversions for the ZIP, Node, and browser adapters. Every envelope, including its
+ * contractVersion, comes from the managed exports; this module never states the contract version itself.
  */
-const SYNCHRONOUS_PARSE_LIMIT = 64 * 1024;
-/** Byte inputs beyond this size are staged and read by the worker rather than copied into WASM memory. */
-const MANAGED_COPY_LIMIT = 4 * 1024 * 1024;
+import {
+  COMPILE_OPTION_KEYS,
+  MANAGED_COPY_LIMIT,
+  MAX_SAFE_INTEGER_BIG,
+  isSmallByteInput,
+  parseEnvelope,
+  stringifyInteropJson,
+} from "./cstructsharp-shared.js";
 
 /**
  * Builds the public promise-based API over a loader of the synchronous adapter.
@@ -54,9 +56,7 @@ export function createPublicApi(loadCStructSharpWasm) {
    */
   async function serialize(definition, value, options = null) {
     const api = await loadCStructSharpWasm();
-    return runBinaryOperation("serialize", options, () =>
-      api.serialize(definition, stringifyInteropValue(value), options),
-    );
+    return api.serialize(definition, stringifyInteropJson(value), options);
   }
 
   /** Replace the value at one path and return the complete updated bytes; the input is never mutated.
@@ -70,9 +70,7 @@ export function createPublicApi(loadCStructSharpWasm) {
   async function update(definition, source, path, value, options = null) {
     const api = await loadCStructSharpWasm();
     const bytes = await api.collectBytes(source, options);
-    return runBinaryOperation("update", options, () =>
-      api.updateStream(definition, bytes, path, stringifyInteropValue(value), options),
-    );
+    return api.updateStream(definition, bytes, path, stringifyInteropJson(value), options);
   }
 
   /** Resolve the absolute byte position of a path in a source; `data` is the position (a decimal string beyond 2^53).
@@ -118,24 +116,6 @@ export function createPublicApi(loadCStructSharpWasm) {
   };
 }
 
-/**
- * Whether a source is a byte buffer or view of at most SYNCHRONOUS_PARSE_LIMIT bytes, with no cancellation signal.
- * @param {unknown} source Binary source.
- * @param {object | null} options Parse options; a `signal` excludes the synchronous path.
- * @returns {boolean} True when the source may be parsed on the calling thread.
- */
-function isSmallByteInput(source, options) {
-  if (options?.signal) return false;
-  if (
-    source instanceof ArrayBuffer ||
-    ArrayBuffer.isView(source) ||
-    (typeof SharedArrayBuffer !== "undefined" && source instanceof SharedArrayBuffer)
-  ) {
-    return source.byteLength <= SYNCHRONOUS_PARSE_LIMIT;
-  }
-  return false;
-}
-
 /** Views a byte buffer, typed array or DataView as a Uint8Array over the same bytes, without copying. */
 function toUint8Array(source) {
   if (source instanceof Uint8Array) return source;
@@ -143,71 +123,6 @@ function toUint8Array(source) {
     return new Uint8Array(source);
   }
   return new Uint8Array(source.buffer, source.byteOffset, source.byteLength);
-}
-
-/**
- * Parses the JSON envelope a managed export returned.
- * @param {string} value The envelope JSON.
- * @param {string} operation The operation name, used in the error message.
- * @returns {object} The envelope.
- * @throws {TypeError} When the text is not valid JSON.
- */
-function parseEnvelope(value, operation) {
-  try {
-    return JSON.parse(value);
-  } catch (cause) {
-    throw new TypeError(`CStructSharp returned an invalid ${operation} response envelope.`, { cause });
-  }
-}
-
-/** The v8 envelope every operation returns. */
-export function envelope(operation, root, data, error = null, debug = []) {
-  return {
-    contractVersion: INTEROP_CONTRACT_VERSION,
-    operation,
-    success: error === null,
-    root,
-    data: error === null ? data : null,
-    debug,
-    error,
-  };
-}
-
-/**
- * Runs a byte-returning managed export: success returns the bytes directly; failure is reported by the managed
- * export throwing (its message is the same JSON-serialized error-details shape the "parse" envelope's error field
- * uses), since there is no envelope object to carry an error field alongside a native byte-array success payload.
- * Reconstructs the same envelope shape parseEnvelope produces either way.
- */
-function runBinaryOperation(operation, options, invoke) {
-  const root = typeof options?.root === "string" ? options.root : null;
-  try {
-    return envelope(operation, root, invoke());
-  } catch (cause) {
-    return envelope(operation, root, null, parseBridgeError(cause, operation));
-  }
-}
-
-/** Reconstructs the structured error a byte-returning export threw. */
-export function parseBridgeError(cause, operation) {
-  const message = cause instanceof Error ? cause.message : String(cause);
-  let parsed;
-  try {
-    parsed = JSON.parse(message);
-  } catch (parseCause) {
-    throw new TypeError(`CStructSharp returned an invalid ${operation} error.`, { cause: parseCause });
-  }
-  if (typeof parsed !== "object" || parsed === null || typeof parsed.code !== "string" || typeof parsed.message !== "string") {
-    throw new TypeError(`CStructSharp returned an invalid ${operation} error.`);
-  }
-  return parsed;
-}
-
-/** Serializes a value to JSON for the managed bridge, writing BigInt values as decimal strings. */
-function stringifyInteropValue(value) {
-  return JSON.stringify(value, (_key, current) =>
-    typeof current === "bigint" ? current.toString(10) : current,
-  );
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -221,19 +136,8 @@ function stringifyInteropValue(value) {
 // a plan the bundle cannot describe sends the parse to WASM, which is the reference implementation.
 // ---------------------------------------------------------------------------------------------------------------
 
-const NATIVE_PLAN_OPTION_KEYS = new Set([
-  "aligned",
-  "littleEndian",
-  "pointerSize",
-  "root",
-  "bitfieldPacking",
-  "bitfieldAllocation",
-  "cLongWidth",
-  "maxDefinitionLength",
-  "maxLayoutNestingDepth",
-  "maxExpressionNestingDepth",
-  "maxExpressionTokens",
-]);
+/** The options the static plan supports: the compile-time choices and the root. */
+const NATIVE_PLAN_OPTION_KEYS = new Set([...COMPILE_OPTION_KEYS, "root"]);
 const NATIVE_PLAN_CACHE_LIMIT = 64;
 const nativePlanCache = new Map();
 
@@ -254,7 +158,16 @@ function tryParseNative(api, definition, bytes, options) {
     return null;
   }
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  return envelope("parse", plan.root, executeNativePlan(view, 0, plan.plan));
+  // The same parse envelope the managed export writes, versioned by the staticPlan envelope that carried the plan.
+  return {
+    contractVersion: plan.contractVersion,
+    operation: "parse",
+    success: true,
+    root: plan.root,
+    data: executeNativePlan(view, 0, plan.plan),
+    debug: [],
+    error: null,
+  };
 }
 
 /** Whether every set option is one the JavaScript static plan supports; any other option sends the parse to WASM. */
@@ -270,10 +183,12 @@ function nativePlanOptionsEligible(options) {
 /**
  * Returns the prepared static plan for a definition and options, fetching it from the adapter on a cache miss.
  * The cache is least-recently-used, bounded by NATIVE_PLAN_CACHE_LIMIT, and also remembers layouts without a plan.
+ * A failure envelope (invalid options or definition) is not cached: the parse then crosses into WASM, which reports
+ * the same failure in its own envelope.
  * @param {object} api The adapter.
  * @param {string} definition Portable layout source.
  * @param {object | null} options Parse options.
- * @returns {object | null} `{ root, plan }`, or null when the layout has no static plan.
+ * @returns {object | null} `{ contractVersion, root, plan }`, or null when the layout has no static plan.
  */
 function getNativePlan(api, definition, options) {
   const key = definition + "\u0000" + JSON.stringify(options ?? {}, Array.from(NATIVE_PLAN_OPTION_KEYS).sort());
@@ -284,10 +199,13 @@ function getNativePlan(api, definition, options) {
     nativePlanCache.set(key, cached);
     return cached;
   }
+  const result = api.getStaticPlan(definition, options);
+  if (!result.success) {
+    return null;
+  }
   let plan = null;
-  const text = api.getStaticPlan(definition, options);
-  if (typeof text === "string" && text.length > 0) {
-    plan = JSON.parse(text);
+  if (result.data !== null) {
+    plan = { contractVersion: result.contractVersion, root: result.data.root, plan: result.data.plan };
     prepareNativePlan(plan.plan);
   }
   if (nativePlanCache.size >= NATIVE_PLAN_CACHE_LIMIT) {
@@ -364,8 +282,6 @@ function executeNativePlan(view, base, plan) {
   return result;
 }
 
-const SAFE_INTEGER_BIG = 9007199254740991n;
-
 /**
  * Reads one scalar with the operation's codec (`t`) and byte order (`le`), projected like the JSON projection.
  * @param {DataView} view The input bytes.
@@ -417,7 +333,7 @@ function readNativeNumber(view, at, op) {
 
 /** Returns a BigInt as a Number when it is a safe integer and as decimal text otherwise. */
 function safeInteger(value) {
-  return value >= -SAFE_INTEGER_BIG && value <= SAFE_INTEGER_BIG ? Number(value) : value.toString(10);
+  return value >= -MAX_SAFE_INTEGER_BIG && value <= MAX_SAFE_INTEGER_BIG ? Number(value) : value.toString(10);
 }
 
 /** JSON has no NaN or infinities; the projection and the write path use these strings for them. */

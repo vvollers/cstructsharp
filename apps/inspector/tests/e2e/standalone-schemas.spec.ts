@@ -168,7 +168,10 @@ test("BMP calibration uses fixed-point values only for calibrated RGB", async ({
           return {
             parsed,
             encoded: parsed.success
-              ? [...wasm.serialize(schema.definition, JSON.stringify(parsed.data), options)]
+              ? [
+                  ...(wasm.serialize(schema.definition, JSON.stringify(parsed.data), options)
+                    .data ?? []),
+                ]
               : [],
           };
         },
@@ -219,7 +222,10 @@ test("Palm record IDs use three-byte big-endian integers with exact array stride
       return {
         parsed,
         encoded: parsed.success
-          ? [...wasm.serialize(schema.definition, JSON.stringify(parsed.data), options)]
+          ? [
+              ...(wasm.serialize(schema.definition, JSON.stringify(parsed.data), options).data ??
+                []),
+            ]
           : [],
       };
     },

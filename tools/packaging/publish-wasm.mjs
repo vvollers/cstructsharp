@@ -143,7 +143,7 @@ function stagePublication(stagingDirectory) {
     copyFile(path.join(sourceFramework, fileName), path.join(stagedFramework, fileName));
   }
 
-  for (const name of ["main.js", "bootstrap.js", "large-source.js", "source-worker.js"]) {
+  for (const name of ["main.js", "bootstrap.js", "large-source.js", "source-worker.js", "cstructsharp-shared.js"]) {
     copyFile(path.join(adapterSource, name), path.join(stagingDirectory, name));
   }
   copyFile(path.join(appBundle, runtimeConfigName), path.join(stagingDirectory, runtimeConfigName));

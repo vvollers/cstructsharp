@@ -61,6 +61,7 @@ const allowed = new Set([
   "node.js",
   "browser.js",
   "cstructsharp-api.js",
+  "cstructsharp-shared.js",
   "runtime-loader.js",
   "assets.js",
   "copy-assets.js",

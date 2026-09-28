@@ -3,34 +3,69 @@ namespace CStructSharpWeb.Wasm;
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
-using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
-using System.Text.Json;
 using CStructSharp;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
 /// <summary>
 ///     Exposes CStructSharp read, write, and debug operations to the browser.
-///     Each export accepts browser-friendly strings and returns the shared versioned JSON envelope.
+///     Each export accepts browser-friendly strings and returns the shared versioned JSON envelope (see
+///     <see cref="StartEnvelope"/>); failures are reported in the envelope, never thrown. The one exception is
+///     <see cref="TakeOutput"/>, which hands over the bytes a successful write produced.
 /// </summary>
+/// <remarks>
+///     The .NET WebAssembly runtime runs managed code on one thread per runtime instance (the page's runtime, and one
+///     per source worker), and JavaScript calls the exports synchronously. The static state below - the worker's
+///     retained layout and the pending write output - therefore belongs to exactly one caller at a time.
+/// </remarks>
 [SupportedOSPlatform("browser")]
 public partial class CStructExports
 {
     private static CStruct? workerLayout;
 
+    // The bytes of the last successful Serialize or UpdateStream, until TakeOutput hands them over. Starting any
+    // envelope clears it, so the output always belongs to the operation whose envelope was returned last.
+    private static byte[]? pendingOutput;
+
     /// <summary>Returns the managed library version used by the loaded browser bundle.</summary>
-    /// <returns>The text <c>CStructSharp WASM </c> followed by the informational assembly version.</returns>
+    /// <returns>
+    ///     The JSON text of a <c>version</c> envelope whose <c>data</c> is <c>{"version": ...}</c>: the text
+    ///     <c>CStructSharp WASM </c> followed by the informational assembly version.
+    /// </returns>
     [JSExport]
     public static string GetVersion()
     {
         string version = typeof(CStruct).Assembly
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
             .InformationalVersion ?? typeof(CStruct).Assembly.GetName().Version?.ToString() ?? "unknown";
-        return "CStructSharp WASM " + version;
+        InteropJsonWriter writer = StartEnvelope("version", success: true, root: null);
+        writer.WriteRawBytes("{\"version\":"u8);
+        writer.WriteString("CStructSharp WASM " + version);
+        writer.WriteRawBytes("}"u8);
+        return FinishEnvelope(writer);
+    }
+
+    /// <summary>
+    ///     Hands over the bytes of the last successful <see cref="Serialize"/> or <see cref="UpdateStream"/> and
+    ///     clears them - a native Uint8Array on the JavaScript side, not Base64 text. The adapter calls it directly
+    ///     after a success envelope, whose <c>data.byteLength</c> gives the expected length.
+    /// </summary>
+    /// <returns>The pending output; the caller owns the array.</returns>
+    /// <exception cref="InvalidOperationException">
+    ///     No output is pending: the last envelope was a failure, came from another export, or its output was already
+    ///     taken.
+    /// </exception>
+    [JSExport]
+    public static byte[] TakeOutput()
+    {
+        byte[] output = pendingOutput ??
+                        throw new InvalidOperationException("No operation output is pending. Call TakeOutput once, directly after a successful Serialize or UpdateStream envelope.");
+        pendingOutput = null;
+        return output;
     }
 
     /// <summary>
@@ -58,7 +93,7 @@ public partial class CStructExports
         }
         catch (Exception exception)
         {
-            return SerializeInteropResult(CreateFailure("parse", exception, options));
+            return SerializeFailure("parse", exception, options);
         }
     }
 
@@ -84,7 +119,7 @@ public partial class CStructExports
         }
         catch (Exception exception)
         {
-            return SerializeInteropResult(CreateFailure("parse", exception, options));
+            return SerializeFailure("parse", exception, options);
         }
     }
 
@@ -105,12 +140,18 @@ public partial class CStructExports
         try
         {
             options = ParseOptions(optionsJson);
-            workerLayout = CreateCStruct(definition, options);
-            return SerializeInteropResult(CreateSuccess("compile", EmptyObject(), ResolveRoot(workerLayout, options)));
+            CStruct layout = CreateCStruct(definition, options);
+            string root = ResolveRoot(layout, options);
+
+            // Replace the retained layout only once the new one is complete, so a failure leaves the old one.
+            workerLayout = layout;
+            InteropJsonWriter writer = StartEnvelope("compile", success: true, root);
+            writer.WriteRawBytes("{}"u8);
+            return FinishEnvelope(writer);
         }
         catch (Exception exception)
         {
-            return SerializeInteropResult(CreateFailure("compile", exception, options));
+            return SerializeFailure("compile", exception, options);
         }
     }
 
@@ -136,7 +177,7 @@ public partial class CStructExports
         }
         catch (Exception exception)
         {
-            return SerializeInteropResult(CreateFailure("parse", exception, options));
+            return SerializeFailure("parse", exception, options);
         }
     }
 
@@ -162,28 +203,27 @@ public partial class CStructExports
         }
         catch (Exception exception)
         {
-            return SerializeInteropResult(CreateFailure("resolveAddress", exception, options));
+            return SerializeFailure("resolveAddress", exception, options);
         }
     }
 
     /// <summary>
-    ///     Serializes browser JSON with a CStruct definition and returns the encoded bytes directly - a native
-    ///     Uint8Array on the JS side, not Base64 text. Failure is reported by throwing rather than through the
-    ///     JSON envelope other exports use, since there is no envelope object to carry an error field alongside a
-    ///     native byte-array success payload; the thrown exception's message is the same JSON-serialized
-    ///     <see cref="ErrorDetailsDto"/> shape, ready for the JS wrapper to reconstruct the familiar error object.
+    ///     Serializes browser JSON with a CStruct definition. The envelope reports the outcome; on success the encoded
+    ///     bytes wait for <see cref="TakeOutput"/>, so they cross to JavaScript as a native Uint8Array rather than
+    ///     inside the JSON text.
     /// </summary>
     /// <param name="cstructDefinition">The CStruct layout definition text.</param>
     /// <param name="dataJson">The value to encode as JSON text, at most 1 MiB, bigints as decimal text.</param>
     /// <param name="optionsJson">
     ///     The JSON options object (<see cref="InteropOptionsDto"/>); its <c>root</c> selects the encoded type.
     /// </param>
-    /// <returns>The encoded bytes of the selected root.</returns>
-    /// <exception cref="InvalidOperationException">
-    ///     Any failure; the message is the JSON-serialized <see cref="ErrorDetailsDto"/>.
-    /// </exception>
+    /// <returns>
+    ///     The JSON text of a <c>serialize</c> envelope that echoes the <c>root</c> option: <c>data</c> is
+    ///     <c>{"byteLength": n}</c> for the <c>n</c> encoded bytes <see cref="TakeOutput"/> returns, or <c>error</c>
+    ///     on failure.
+    /// </returns>
     [JSExport]
-    public static byte[] Serialize(
+    public static string Serialize(
         string cstructDefinition,
         string dataJson,
         string optionsJson)
@@ -192,17 +232,17 @@ public partial class CStructExports
         try
         {
             options = ParseOptions(optionsJson);
-            return SerializeCore(CreateCStruct(cstructDefinition, options), dataJson, options);
+            return SerializeOutputResult("serialize", SerializeCore(CreateCStruct(cstructDefinition, options), dataJson, options), options);
         }
         catch (Exception exception)
         {
-            throw CreateBridgeException(exception, options);
+            return SerializeFailure("serialize", exception, options);
         }
     }
 
     /// <summary>
-    ///     Updates one public path in existing bytes and returns the complete updated payload directly - a native
-    ///     Uint8Array on the JS side, not Base64 text. Failure is reported by throwing; see <see cref="Serialize"/>.
+    ///     Updates one public path in a copy of existing bytes. The envelope reports the outcome; on success the
+    ///     complete updated payload waits for <see cref="TakeOutput"/>, as for <see cref="Serialize"/>.
     /// </summary>
     /// <param name="cstructDefinition">The CStruct layout definition text.</param>
     /// <param name="binaryData">The existing payload, 1 byte through 4 MiB, updated in a managed copy.</param>
@@ -211,12 +251,13 @@ public partial class CStructExports
     /// <param name="optionsJson">
     ///     The JSON options object (<see cref="InteropOptionsDto"/>), including the update traversal limits.
     /// </param>
-    /// <returns>The complete payload after the update, the same length as <paramref name="binaryData"/>.</returns>
-    /// <exception cref="InvalidOperationException">
-    ///     Any failure; the message is the JSON-serialized <see cref="ErrorDetailsDto"/>.
-    /// </exception>
+    /// <returns>
+    ///     The JSON text of an <c>update</c> envelope that echoes the <c>root</c> option: <c>data</c> is
+    ///     <c>{"byteLength": n}</c> for the complete updated payload <see cref="TakeOutput"/> returns (the same length
+    ///     as <paramref name="binaryData"/>), or <c>error</c> on failure.
+    /// </returns>
     [JSExport]
-    public static byte[] UpdateStream(
+    public static string UpdateStream(
         string cstructDefinition,
         byte[] binaryData,
         string elementNameOrPath,
@@ -227,11 +268,11 @@ public partial class CStructExports
         try
         {
             options = ParseOptions(optionsJson);
-            return UpdateCore(CreateCStruct(cstructDefinition, options), binaryData, elementNameOrPath, valueJson, options);
+            return SerializeOutputResult("update", UpdateCore(CreateCStruct(cstructDefinition, options), binaryData, elementNameOrPath, valueJson, options), options);
         }
         catch (Exception exception)
         {
-            throw CreateBridgeException(exception, options);
+            return SerializeFailure("update", exception, options);
         }
     }
 
@@ -258,10 +299,13 @@ public partial class CStructExports
         }
         catch (Exception exception)
         {
-            return SerializeInteropResult(CreateFailure("resolveAddress", exception, options));
+            return SerializeFailure("resolveAddress", exception, options);
         }
     }
 
+    /// <summary>Returns the layout <see cref="InitializeCompiledLayout"/> retained in this worker runtime.</summary>
+    /// <returns>The retained layout.</returns>
+    /// <exception cref="InvalidOperationException">No layout was initialized.</exception>
     private static CStruct RequireWorkerLayout()
     {
         return workerLayout ?? throw new InvalidOperationException("No compiled layout.");
@@ -288,6 +332,13 @@ public partial class CStructExports
         return cstruct.Serialize(root, data!, options: CreateWriteOptions<WriteOptions>(options));
     }
 
+    /// <summary>Applies one path update to a managed copy of the caller's bytes.</summary>
+    /// <param name="cstruct">The compiled layout.</param>
+    /// <param name="binaryData">The existing payload; it is not modified.</param>
+    /// <param name="elementNameOrPath">The path of the value to replace.</param>
+    /// <param name="valueJson">The replacement value as JSON.</param>
+    /// <param name="options">The browser's options.</param>
+    /// <returns>The complete updated payload.</returns>
     private static byte[] UpdateCore(CStruct cstruct, byte[] binaryData, string elementNameOrPath, string valueJson, InteropOptionsDto options)
     {
         ValidatePath(elementNameOrPath);
@@ -299,22 +350,61 @@ public partial class CStructExports
         return stream.ToArray();
     }
 
+    /// <summary>
+    ///     Writes the success envelope of a byte-producing write and stores its bytes for <see cref="TakeOutput"/>.
+    /// </summary>
+    /// <param name="operation">The operation name: <c>serialize</c> or <c>update</c>.</param>
+    /// <param name="output">The produced bytes.</param>
+    /// <param name="options">The browser's options; their <c>root</c> is echoed.</param>
+    /// <returns>The envelope, whose <c>data</c> is <c>{"byteLength": n}</c>.</returns>
+    private static string SerializeOutputResult(string operation, byte[] output, InteropOptionsDto options)
+    {
+        InteropJsonWriter writer = StartEnvelope(operation, success: true, options.Root);
+        writer.WriteRawBytes("{\"byteLength\":"u8);
+        writer.WriteSafeInteger(output.Length);
+        writer.WriteRawBytes("}"u8);
+        string envelope = FinishEnvelope(writer);
+
+        // Set after the envelope is complete: starting an envelope clears the pending output.
+        pendingOutput = output;
+        return envelope;
+    }
+
+    /// <summary>
+    ///     Resolves a path's absolute position and writes it as the <c>resolveAddress</c> envelope's <c>data</c>: a
+    ///     number, or a decimal string beyond JavaScript's exact integer range.
+    /// </summary>
+    /// <param name="cstruct">The compiled layout.</param>
+    /// <param name="stream">The seekable source.</param>
+    /// <param name="path">The path to locate; echoed as the envelope's <c>root</c>.</param>
+    /// <param name="options">The browser's options.</param>
+    /// <returns>The envelope.</returns>
     private static string ResolveAddressResult(CStruct cstruct, Stream stream, string path, InteropOptionsDto options)
     {
         ValidatePath(path);
         long address = cstruct.ResolveAddress(stream, path, options: CreateReadOptions(options));
-        using JsonDocument document = JsonDocument.Parse(address is >= -9_007_199_254_740_991 and <= 9_007_199_254_740_991
-                                                              ? address.ToString(CultureInfo.InvariantCulture)
-                                                              : "\"" + address.ToString(CultureInfo.InvariantCulture) + "\"");
-        return SerializeInteropResult(CreateSuccess("resolveAddress", document.RootElement.Clone(), path));
+        InteropJsonWriter writer = StartEnvelope("resolveAddress", success: true, path);
+        writer.WriteSafeInteger(address);
+        return FinishEnvelope(writer);
     }
 
-    /// <summary>Projects either a values-only or debug stream read into the common result envelope.</summary>
+    /// <summary>Compiles (or reuses) a layout, then projects a values-only or debug stream read into the parse envelope.</summary>
+    /// <param name="definition">The layout definition text.</param>
+    /// <param name="stream">The seekable source.</param>
+    /// <param name="options">The browser's options.</param>
+    /// <param name="debug">Whether to record each value's byte range.</param>
+    /// <returns>The parse envelope.</returns>
     private static string ParseStreamResult(string definition, Stream stream, InteropOptionsDto options, bool debug)
     {
         return ParseStreamResult(CreateCStruct(definition, options), stream, options, debug);
     }
 
+    /// <summary>Projects a values-only or debug stream read with a compiled layout into the parse envelope.</summary>
+    /// <param name="cstruct">The compiled layout.</param>
+    /// <param name="stream">The seekable source.</param>
+    /// <param name="options">The browser's options.</param>
+    /// <param name="debug">Whether to record each value's byte range.</param>
+    /// <returns>The parse envelope.</returns>
     private static string ParseStreamResult(CStruct cstruct, Stream stream, InteropOptionsDto options, bool debug)
     {
         string root = ResolveRoot(cstruct, options);
@@ -330,22 +420,6 @@ public partial class CStructExports
             selected = cstruct.ReadValue(stream, root, options: readOptions);
         }
 
-        var debugDataDtos = new List<DebugDataDto>(debugData.Count);
-        foreach (DebugData item in debugData)
-        {
-            debugDataDtos.Add(
-                new DebugDataDto
-                {
-                    Start = item.Start,
-                    End = item.End,
-                    Path = item.Path,
-                    Type = item.TypeName ?? "unknown",
-                    Value = item.Value is IFormattable formattable
-                                ? formattable.ToString(null, CultureInfo.InvariantCulture)
-                                : item.Value?.ToString(),
-                });
-        }
-
-        return SerializeParseEnvelope(root, selected, debugDataDtos);
+        return SerializeParseEnvelope(root, selected, debugData);
     }
 }

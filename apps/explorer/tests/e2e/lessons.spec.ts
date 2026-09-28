@@ -207,34 +207,22 @@ test("all curated operation presets match real managed results", async ({ page }
           const bytes = Uint8Array.from(
             (lesson.binaryHex!.match(/[a-f\d]{2}/gi) ?? []).map((byte) => parseInt(byte, 16)),
           );
-          // parse still returns a JSON envelope; serialize/update return bytes directly on success and throw
-          // (their message is the same JSON-serialized ErrorDetails shape) on failure - reconstruct one shape.
-          let result:
+          // parse returns the envelope's JSON text; serialize/update return the envelope with the bytes as data.
+          const result:
             | { success: true; root: string | null; data: unknown }
-            | { success: false; error: { code: string } };
-          try {
-            result =
-              operation === "parse"
-                ? JSON.parse(api.parseWithDebug(lesson.definition!, bytes, options))
-                : {
-                    success: true,
-                    root: null,
-                    data:
-                      operation === "serialize"
-                        ? api.serialize(lesson.definition!, preset!.json!, options)
-                        : api.updateStream(
-                            lesson.definition!,
-                            bytes,
-                            preset!.path!,
-                            preset!.json!,
-                            options,
-                          ),
-                  };
-          } catch (cause) {
-            const message = cause instanceof Error ? cause.message : String(cause);
-            result = { success: false, error: JSON.parse(message) };
-          }
-          // Lessons describe the selected value exactly as the v8 envelope's `data` carries it.
+            | { success: false; error: { code: string } } =
+            operation === "parse"
+              ? JSON.parse(api.parseWithDebug(lesson.definition!, bytes, options))
+              : operation === "serialize"
+                ? api.serialize(lesson.definition!, preset!.json!, options)
+                : api.updateStream(
+                    lesson.definition!,
+                    bytes,
+                    preset!.path!,
+                    preset!.json!,
+                    options,
+                  );
+          // Lessons describe the selected value exactly as the envelope's `data` carries it.
           const actual = !result.success
             ? { error: result.error.code }
             : operation === "parse"

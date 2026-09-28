@@ -43,7 +43,7 @@ for (const file of fs.readdirSync(appBundle)) {
   if (fs.statSync(source).isFile()) fs.copyFileSync(source, path.join(bundle, file));
 }
 
-for (const file of ["bootstrap.js", "large-source.js", "source-worker.js", "cstructsharp-api.js", "main.js"]) {
+for (const file of ["bootstrap.js", "large-source.js", "source-worker.js", "cstructsharp-shared.js", "cstructsharp-api.js", "main.js"]) {
   fs.copyFileSync(path.join(repositoryRoot, "packages/cstructsharp/src", file), path.join(bundle, file));
 }
 

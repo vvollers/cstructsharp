@@ -1,7 +1,8 @@
 /**
- * Locate and validate the managed exports, then expose the stable browser-facing adapter (contract v8).
+ * Locate and validate the managed exports, then expose the stable browser-facing adapter.
  * This module has no dependency on the .NET runtime and is therefore directly unit-testable.
  */
+import { parseEnvelope, stringifyInteropJson } from "./cstructsharp-shared.js";
 import { collectBytes, compileLargeSource, parseLargeSource, resolveAddressLargeSource } from "./large-source.js";
 
 /**
@@ -21,6 +22,7 @@ export function createCStructSharpWasm(assemblyExports) {
     "ParseBytes",
     "Serialize",
     "UpdateStream",
+    "TakeOutput",
     "ResolveAddress",
     "GetVersion",
     "GetStaticPlan",
@@ -32,6 +34,28 @@ export function createCStructSharpWasm(assemblyExports) {
     throw new Error(
       `Managed CStruct exports are missing: ${missing.join(", ")}`,
     );
+  }
+
+  /**
+   * Runs a byte-producing managed write. The export returns the usual envelope; on success its `data` is
+   * `{ byteLength }` and the bytes themselves wait in managed memory until TakeOutput hands them over as a native
+   * Uint8Array, which replaces `data` in the returned envelope.
+   * @param {"serialize" | "update"} operation The operation the envelope reports.
+   * @param {() => string} invoke Calls the managed export.
+   * @returns {object} The envelope: `data` is the bytes on success and null on failure.
+   * @throws {TypeError} When the envelope is not JSON or the handed-over bytes do not match its byte length.
+   */
+  function runOutputOperation(operation, invoke) {
+    const result = parseEnvelope(invoke(), operation);
+    if (!result.success) {
+      return result;
+    }
+    // TakeOutput must follow the envelope directly: the next managed call discards the pending bytes.
+    const bytes = managed.TakeOutput();
+    if (!(bytes instanceof Uint8Array) || bytes.byteLength !== result.data?.byteLength) {
+      throw new TypeError(`CStructSharp returned an invalid ${operation} output.`);
+    }
+    return { ...result, data: bytes };
   }
 
   return {
@@ -53,6 +77,7 @@ export function createCStructSharpWasm(assemblyExports) {
     parseWithDebug(definition, bytes, options = null) {
       return managed.ParseBytes(definition, bytes, stringifyOptions(options), true);
     },
+    /** Parses a byte array on the calling thread; the JSON envelope text. */
     parseBytes(definition, bytes, options = null, debug = false) {
       return managed.ParseBytes(
         definition,
@@ -61,25 +86,34 @@ export function createCStructSharpWasm(assemblyExports) {
         debug,
       );
     },
+    /** Encodes a value given as JSON text; the serialize envelope, whose `data` is the bytes on success. */
     serialize(definition, dataJson, options = null) {
-      return managed.Serialize(definition, dataJson, stringifyOptions(options));
-    },
-    updateStream(definition, bytes, path, valueJson, options = null) {
-      return managed.UpdateStream(
-        definition,
-        bytes,
-        path,
-        valueJson,
-        stringifyOptions(options),
+      return runOutputOperation("serialize", () =>
+        managed.Serialize(definition, dataJson, stringifyOptions(options)),
       );
     },
-    /** The managed library version of the loaded bundle. */
-    getVersion() {
-      return managed.GetVersion();
+    /** Replaces one path's value in a copy of the bytes; the update envelope, whose `data` is the complete bytes. */
+    updateStream(definition, bytes, path, valueJson, options = null) {
+      return runOutputOperation("update", () =>
+        managed.UpdateStream(
+          definition,
+          bytes,
+          path,
+          valueJson,
+          stringifyOptions(options),
+        ),
+      );
     },
-    /** The static read plan of a root as JSON text, or "" when the layout is not fully fixed. */
+    /** The managed library version of the loaded bundle, from the version envelope. */
+    getVersion() {
+      return parseEnvelope(managed.GetVersion(), "version").data.version;
+    },
+    /**
+     * The staticPlan envelope of a root: `data` is `{ root, plan }` when the layout is fully fixed and null when it
+     * has no static plan; a failure envelope reports invalid options or input.
+     */
     getStaticPlan(definition, options = null) {
-      return managed.GetStaticPlan(definition, stringifyOptions(options));
+      return parseEnvelope(managed.GetStaticPlan(definition, stringifyOptions(options)), "staticPlan");
     },
     ready: true,
     error: null,
@@ -92,7 +126,5 @@ export function createCStructSharpWasm(assemblyExports) {
  * @returns {string} The JSON text, `{}` when there are none.
  */
 function stringifyOptions(options) {
-  return JSON.stringify(options ?? {}, (_key, value) =>
-    typeof value === "bigint" ? value.toString(10) : value,
-  );
+  return stringifyInteropJson(options ?? {});
 }

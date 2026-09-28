@@ -35,6 +35,7 @@
     "browser.js",
     "runtime-loader.js",
     "cstructsharp-api.js",
+    "cstructsharp-shared.js",
     "assets.js",
     "copy-assets.js",
     "vite.js",
