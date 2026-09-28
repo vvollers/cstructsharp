@@ -26,6 +26,16 @@ public readonly ref struct StructView
     private readonly bool direct;
 
     /// <summary>Creates a view; see <see cref="CStruct.CreateView(ReadOnlySpan{byte}, string?, ReadOptions?)"/>.</summary>
+    /// <param name="layout">The compiled layout that reads members the view cannot decode directly.</param>
+    /// <param name="root">The struct declaration the view reads.</param>
+    /// <param name="composite">The compiled root struct, which accessors must match.</param>
+    /// <param name="bytes">The struct's bytes: exactly its static size, or the whole source.</param>
+    /// <param name="source">The caller's whole input, which the general read path receives.</param>
+    /// <param name="options">The read options for every member read, or <see langword="null"/> for defaults.</param>
+    /// <param name="direct">
+    ///     Whether members may be decoded straight from <paramref name="bytes"/>: the struct has build-time offsets and
+    ///     the options cover its whole size.
+    /// </param>
     internal StructView(CStruct layout, string root, CompiledCompositeType composite, ReadOnlySpan<byte> bytes, ReadOnlySpan<byte> source, ReadOptions? options, bool direct)
     {
         this.layout = layout;

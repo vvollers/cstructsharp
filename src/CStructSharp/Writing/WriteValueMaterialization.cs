@@ -10,6 +10,11 @@ using CStructSharp.Diagnostics;
 internal static class WriteValueMaterialization
 {
     /// <summary>Consumes at most one item beyond a fixed character buffer so arbitrary sequences cannot materialize unboundedly.</summary>
+    /// <param name="value">A character array or sequence, or a byte sequence (each byte one character).</param>
+    /// <param name="maximumCount">The buffer's capacity, in characters.</param>
+    /// <param name="fieldName">The field being written, named in the error message.</param>
+    /// <returns>The characters as a string of at most <paramref name="maximumCount"/> characters.</returns>
+    /// <exception cref="CStructWriteException">The source type is unsupported or holds too many characters.</exception>
     public static string ConvertToBoundedCharString(object value, int maximumCount, string fieldName)
     {
         IEnumerable<char> characters = value switch
@@ -36,6 +41,11 @@ internal static class WriteValueMaterialization
     }
 
     /// <summary>Normalizes an array value while consuming at most one item beyond its permitted count.</summary>
+    /// <param name="value">A list, an array, or any other sequence of element values.</param>
+    /// <param name="maximumCount">The largest number of elements the array accepts.</param>
+    /// <param name="fieldName">The array field being written, named in the error message.</param>
+    /// <returns>The caller's own list when the value is one; otherwise a new list of the elements.</returns>
+    /// <exception cref="CStructWriteException">The value is not a sequence or holds too many elements.</exception>
     public static IList<object> ConvertToObjectList(object value, int maximumCount, string fieldName)
     {
         if (value is IList<object> list)

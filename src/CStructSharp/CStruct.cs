@@ -235,6 +235,16 @@ public sealed partial class CStruct
     ///     Reads the requested array/string count with variables from a read-only caller view. The variables are
     ///     snapshotted before traversal and are never modified.
     /// </summary>
+    /// <param name="stream">
+    ///     The readable, seekable stream whose current position is the operation origin; it is restored.
+    /// </param>
+    /// <param name="elementNameOrPath">The case-sensitive path of an array or string field.</param>
+    /// <param name="variables">The caller's layout variables, snapshotted before traversal.</param>
+    /// <param name="options">
+    ///     Optional read limits and pointer settings; <see langword="null"/> uses the defaults.
+    /// </param>
+    /// <returns>The array's element count, or the string's length in characters.</returns>
+    /// <exception cref="CStructPathException">The path does not resolve to an array or string field.</exception>
     internal int GetDynamicArrayLengthCore(
         Stream stream,
         string elementNameOrPath,
@@ -304,6 +314,13 @@ public sealed partial class CStruct
     ///     Reads a selected object using a read-only variable view. The operation snapshots the supplied entries before
     ///     resolving layout definitions or reading the stream.
     /// </summary>
+    /// <param name="stream">The readable, seekable stream whose current position is the operation origin.</param>
+    /// <param name="elementNameOrPath">The case-sensitive root name or nested path of a composite to read.</param>
+    /// <param name="variables">The caller's layout variables, snapshotted before traversal.</param>
+    /// <param name="options">
+    ///     Optional read limits and pointer settings; <see langword="null"/> uses the defaults.
+    /// </param>
+    /// <returns>The selected struct or union's decoded value.</returns>
     internal object ParseStreamCore(
         Stream stream,
         string elementNameOrPath,
@@ -316,6 +333,13 @@ public sealed partial class CStruct
     /// <summary>
     ///     Reads a selected object with debug ranges while snapshotting a read-only variable view before traversal.
     /// </summary>
+    /// <param name="stream">The readable, seekable stream whose current position is the operation origin.</param>
+    /// <param name="elementNameOrPath">The case-sensitive root name or nested path of a composite to read.</param>
+    /// <param name="variables">The caller's layout variables, snapshotted before traversal.</param>
+    /// <param name="options">
+    ///     Optional read limits and pointer settings; <see langword="null"/> uses the defaults.
+    /// </param>
+    /// <returns>The byte-range records collected while reading, and the selected composite's value.</returns>
     internal (List<DebugData> DebugData, object Result) ParseStreamWithDebugCore(
         Stream stream,
         string elementNameOrPath,
@@ -400,6 +424,15 @@ public sealed partial class CStruct
     ///     Resolves a path with variables supplied through a read-only view. The caller's entries are snapshotted and
     ///     never mutated.
     /// </summary>
+    /// <param name="stream">
+    ///     The readable, seekable stream whose current position is the operation origin; it is restored.
+    /// </param>
+    /// <param name="elementNameOrPath">The case-sensitive root name or nested path to locate.</param>
+    /// <param name="variables">The caller's layout variables, snapshotted before traversal.</param>
+    /// <param name="options">
+    ///     Optional traversal limits and pointer settings; <see langword="null"/> uses the defaults.
+    /// </param>
+    /// <returns>The absolute stream position of the selected field or pointer target.</returns>
     internal long ResolveAddressCore(
         Stream stream,
         string elementNameOrPath,

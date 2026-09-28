@@ -12,16 +12,20 @@ using CStructSharp.Syntax;
 /// </summary>
 internal sealed class LayoutVariables : Dictionary<string, Expr>
 {
+    /// <summary>Creates an empty dictionary with ordinal (case-sensitive) name comparison.</summary>
     public LayoutVariables()
         : base(StringComparer.Ordinal)
     {
     }
 
+    /// <summary>Creates an ordinal-keyed copy of <paramref name="source"/>, keeping its capture-all flag.</summary>
+    /// <param name="source">The variables to copy; the copy does not share storage with it.</param>
     public LayoutVariables(IDictionary<string, Expr> source)
         : base(source, StringComparer.Ordinal)
     {
         this.CaptureAll = source is LayoutVariables { CaptureAll: true };
     }
 
+    /// <summary>Gets or sets whether the reader must publish every field, not only referenced ones.</summary>
     public bool CaptureAll { get; set; }
 }

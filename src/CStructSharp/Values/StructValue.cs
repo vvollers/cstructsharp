@@ -31,6 +31,10 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
     private List<string>? insertionOrder;
     private int count;
 
+    /// <summary>
+    ///     Creates an empty value whose slots follow <paramref name="shape"/>; every member starts absent.
+    /// </summary>
+    /// <param name="shape">The member table shared by every value of the same composite.</param>
     internal StructValue(StructShape shape)
     {
         this.shape = shape;
@@ -50,6 +54,7 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
     /// <summary>The member table this value was created for (the static read plan requires the composite's own).</summary>
     internal StructShape Shape => this.shape;
 
+    /// <summary>Gets <see langword="false"/>: members can be added, replaced, and removed.</summary>
     bool ICollection<KeyValuePair<string, object?>>.IsReadOnly => false;
 
     /// <summary>Gets the member names in insertion order.</summary>
@@ -58,8 +63,10 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
     /// <summary>Gets the member values in insertion order.</summary>
     public ICollection<object?> Values => this.EnumeratePairs().Select(pair => pair.Value).ToList();
 
+    /// <summary>Gets the member names in insertion order, evaluated lazily over the current members.</summary>
     IEnumerable<string> IReadOnlyDictionary<string, object?>.Keys => this.EnumerateKeys();
 
+    /// <summary>Gets the member values in insertion order, evaluated lazily over the current members.</summary>
     IEnumerable<object?> IReadOnlyDictionary<string, object?>.Values => this.EnumeratePairs().Select(pair => pair.Value);
 
     /// <summary>Gets or sets a member by name; reading an absent member throws <see cref="KeyNotFoundException"/>.</summary>
@@ -258,26 +265,44 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
         return new Enumerator(this);
     }
 
+    /// <summary>Enumerates the present members in insertion order through the boxed interface.</summary>
+    /// <returns>A boxed <see cref="Enumerator"/>.</returns>
     IEnumerator<KeyValuePair<string, object?>> IEnumerable<KeyValuePair<string, object?>>.GetEnumerator()
     {
         return this.GetEnumerator();
     }
 
+    /// <summary>Enumerates the present members in insertion order for non-generic callers.</summary>
+    /// <returns>A boxed <see cref="Enumerator"/> yielding <see cref="KeyValuePair{TKey, TValue}"/> items.</returns>
     IEnumerator IEnumerable.GetEnumerator()
     {
         return this.GetEnumerator();
     }
 
+    /// <summary>Adds a member from a key/value pair, as <see cref="Add(string, object?)"/> does.</summary>
+    /// <param name="item">The member name and value.</param>
+    /// <exception cref="ArgumentException">A member with the same name is already present.</exception>
     void ICollection<KeyValuePair<string, object?>>.Add(KeyValuePair<string, object?> item)
     {
         this.Add(item.Key, item.Value);
     }
 
+    /// <summary>
+    ///     Returns whether a member with the pair's name is present and its value equals the pair's value.
+    /// </summary>
+    /// <param name="item">The member name and value to look for.</param>
+    /// <returns><see langword="true"/> when both the name and the value match.</returns>
     bool ICollection<KeyValuePair<string, object?>>.Contains(KeyValuePair<string, object?> item)
     {
         return this.TryGetValue(item.Key, out object? value) && Equals(value, item.Value);
     }
 
+    /// <summary>Copies the present members, in insertion order, into <paramref name="array"/>.</summary>
+    /// <param name="array">
+    ///     The destination; it must have room for <see cref="Count"/> pairs after <paramref name="arrayIndex"/>.
+    /// </param>
+    /// <param name="arrayIndex">The destination start index.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="array"/> is <see langword="null"/>.</exception>
     void ICollection<KeyValuePair<string, object?>>.CopyTo(KeyValuePair<string, object?>[] array, int arrayIndex)
     {
         ArgumentNullException.ThrowIfNull(array);
@@ -287,6 +312,9 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
         }
     }
 
+    /// <summary>Removes a member only when its value equals the pair's value.</summary>
+    /// <param name="item">The member name and the value it must hold.</param>
+    /// <returns><see langword="true"/> when the member matched and has been removed.</returns>
     bool ICollection<KeyValuePair<string, object?>>.Remove(KeyValuePair<string, object?> item)
     {
         return this.TryGetValue(item.Key, out object? value) && Equals(value, item.Value) && this.Remove(item.Key);
@@ -312,6 +340,9 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
     }
 
     /// <summary>Slot read for bound call sites; false when the member is absent so the binder's fallback throws.</summary>
+    /// <param name="index">The member's slot index in this value's shape.</param>
+    /// <param name="value">The member value when present; otherwise <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> when the slot holds a member.</returns>
     internal bool TryGetSlot(int index, out object? value)
     {
         object? slot = this.slots[index];
@@ -326,6 +357,8 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
     }
 
     /// <summary>Direct slot write for the static read plan: the shape guarantees the index and that the slot was unset.</summary>
+    /// <param name="index">The member's slot index in this value's shape.</param>
+    /// <param name="value">The member value to store; the member count grows by one.</param>
     internal void SetFreshSlot(int index, object? value)
     {
         this.slots[index] = value;
@@ -463,6 +496,10 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
         private readonly List<string>? order;
         private int index;
 
+        /// <summary>Starts before the first member of <paramref name="owner"/>.</summary>
+        /// <param name="owner">
+        ///     The value whose members are enumerated; it should not be changed while the enumeration runs.
+        /// </param>
         internal Enumerator(StructValue owner)
         {
             this.owner = owner;
@@ -474,6 +511,9 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
         /// <summary>Gets the member at the current position.</summary>
         public KeyValuePair<string, object?> Current { get; private set; }
 
+        /// <summary>
+        ///     Gets the member at the current position as a boxed <see cref="KeyValuePair{TKey, TValue}"/>.
+        /// </summary>
         readonly object IEnumerator.Current => this.Current;
 
         /// <summary>Advances to the next present member.</summary>

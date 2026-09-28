@@ -7,6 +7,9 @@ using System.Collections.Generic;
 internal class ConditionalExpr : Expr
 {
     /// <summary>Creates a conditional expression from its three operands.</summary>
+    /// <param name="condition">The operand whose non-zero value selects <paramref name="whenTrue"/>.</param>
+    /// <param name="whenTrue">The arm evaluated when the condition is non-zero.</param>
+    /// <param name="whenFalse">The arm evaluated when the condition is zero.</param>
     public ConditionalExpr(Expr condition, Expr whenTrue, Expr whenFalse)
     {
         this.Condition = condition;
@@ -24,18 +27,24 @@ internal class ConditionalExpr : Expr
     public Expr WhenFalse { get; }
 
     /// <summary>Checks whether another value represents the same layout data.</summary>
+    /// <param name="other">The expression to compare with, or <see langword="null"/>.</param>
+    /// <returns>
+    ///     <see langword="true"/> when <paramref name="other"/> is a conditional with equal condition and arms.
+    /// </returns>
     public override bool Equals(Expr? other)
     {
         return other is ConditionalExpr c && this.Condition.Equals(c.Condition) && this.WhenTrue.Equals(c.WhenTrue) && this.WhenFalse.Equals(c.WhenFalse);
     }
 
     /// <summary>Returns a hash code that matches this value's equality rules.</summary>
+    /// <returns>A hash code combining the condition and both arms.</returns>
     public override int GetHashCode()
     {
         return HashCode.Combine(this.Condition, this.WhenTrue, this.WhenFalse);
     }
 
     /// <summary>Returns a short readable description of the expression tree, without evaluating it.</summary>
+    /// <returns>Text of the form <c>Conditional: (condition ? whenTrue : whenFalse)</c>.</returns>
     public override string ToString()
     {
         return $"Conditional: ({this.Condition} ? {this.WhenTrue} : {this.WhenFalse})";

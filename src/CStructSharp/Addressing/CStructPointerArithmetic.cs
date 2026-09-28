@@ -9,6 +9,9 @@ using CStructSharp.Values;
 internal static class CStructPointerArithmetic
 {
     /// <summary>Converts one decoded unsigned pointer payload into the signed address domain used by streams.</summary>
+    /// <param name="storedAddress">The pointer value as read from the data, zero-extended to 64 bits.</param>
+    /// <returns>The same value as a signed stream address; stored zero stays zero (null).</returns>
+    /// <exception cref="OverflowException">The value exceeds <see cref="long.MaxValue"/>.</exception>
     public static long DecodeStoredAddress(ulong storedAddress)
     {
         if (storedAddress > long.MaxValue)
@@ -20,6 +23,15 @@ internal static class CStructPointerArithmetic
     }
 
     /// <summary>Applies a relative origin to one non-null stored address with checked signed arithmetic.</summary>
+    /// <param name="storedAddress">The non-null decoded pointer value.</param>
+    /// <param name="addressingMode">
+    ///     Whether the value is an absolute stream position or an offset from the origin.
+    /// </param>
+    /// <param name="origin">The base position added to relative offsets; ignored for absolute addressing.</param>
+    /// <returns>The absolute stream position the pointer targets.</returns>
+    /// <exception cref="OverflowException">
+    ///     A relative offset plus the origin leaves the signed 64-bit range.
+    /// </exception>
     public static long ResolveTargetAddress(
         long storedAddress,
         PointerAddressingMode addressingMode,
@@ -31,6 +43,12 @@ internal static class CStructPointerArithmetic
     }
 
     /// <summary>Converts a caller pointer value into a signed target address and normalizes data failures.</summary>
+    /// <param name="value">
+    ///     The caller's value: <see langword="null"/> (null pointer), a <see cref="Pointer"/>, or any integer
+    ///     convertible to <see cref="long"/>.
+    /// </param>
+    /// <returns>The absolute target address, or 0 for a null pointer.</returns>
+    /// <exception cref="CStructWriteException">The value is not an integer in the signed 64-bit range.</exception>
     public static long ConvertTargetAddress(object? value)
     {
         if (value is null)
@@ -59,6 +77,18 @@ internal static class CStructPointerArithmetic
     ///     Converts a non-negative target address into its unsigned stored representation, preserving encoded zero for
     ///     null and enforcing the configured pointer width before any output occurs.
     /// </summary>
+    /// <param name="targetAddress">The absolute stream position to point at, or 0 for a null pointer.</param>
+    /// <param name="addressingMode">Whether to store the absolute position or its offset from the origin.</param>
+    /// <param name="origin">
+    ///     The base position subtracted for relative addressing; ignored for absolute addressing.
+    /// </param>
+    /// <param name="pointerSize">The pointer's width in bytes: 1, 2, 4, or 8.</param>
+    /// <returns>The unsigned value to store in the pointer field.</returns>
+    /// <exception cref="CStructWriteException">
+    ///     The target is negative, the relative offset is negative, zero, or overflows, or the value does not fit the
+    ///     pointer width.
+    /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="pointerSize"/> is not 1, 2, 4, or 8.</exception>
     public static ulong EncodeTargetAddress(
         long targetAddress,
         PointerAddressingMode addressingMode,

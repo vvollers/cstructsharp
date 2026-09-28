@@ -142,6 +142,9 @@ internal sealed class PrimitiveCatalog
     public int CodecCount => CanonicalNames.Length + this.CustomCodecs.Length;
 
     /// <summary>The shared catalog for one byte order and <c>long</c> width; built once per process.</summary>
+    /// <param name="littleEndian">Whether multi-byte primitives are stored least significant byte first.</param>
+    /// <param name="cLongWidth">The width of C <c>long</c> in bits; 32 selects 32-bit, any other value 64-bit.</param>
+    /// <returns>The cached catalog, shared by every caller that asks for the same byte order and width.</returns>
     public static PrimitiveCatalog For(bool littleEndian, int cLongWidth)
     {
         (bool, int) key = (littleEndian, cLongWidth == 32 ? 32 : 64);
@@ -158,12 +161,16 @@ internal sealed class PrimitiveCatalog
     }
 
     /// <summary>Whether <paramref name="name"/> is a primitive type this catalog can read (built-in or custom).</summary>
+    /// <param name="name">The type name as written in a layout.</param>
+    /// <returns>True when <paramref name="name"/> has a codec id in this catalog.</returns>
     public bool IsKnownName(string name)
     {
         return this.CodecIds.ContainsKey(name);
     }
 
     /// <summary>The codec id of a readable name, or <see cref="NoCodec"/>.</summary>
+    /// <param name="name">The type name as written in a layout.</param>
+    /// <returns>The codec id, or <see cref="NoCodec"/> when the name is not readable here.</returns>
     public int CodecIdOf(string name)
     {
         return this.CodecIds.TryGetValue(name, out int id) ? id : NoCodec;
@@ -174,6 +181,12 @@ internal sealed class PrimitiveCatalog
     ///     id, a symbol, and an alignment entry. Names are validated the way the runtime validates
     ///     <c>ICustomCodec</c> registrations, so the generator reports the same errors.
     /// </summary>
+    /// <param name="codecs">The custom codec descriptors, in registration order.</param>
+    /// <returns>This catalog when there are no codecs; otherwise a new catalog with the codecs added.</returns>
+    /// <exception cref="ArgumentException">
+    ///     A name is not an identifier or is already a type, or a codec's alignment is not a power of two or
+    ///     its size is negative.
+    /// </exception>
     public PrimitiveCatalog WithCustomCodecs(IReadOnlyList<CustomCodecDescriptor> codecs)
     {
         if (codecs.Count == 0)
@@ -217,6 +230,8 @@ internal sealed class PrimitiveCatalog
     }
 
     /// <summary>The alignment rule for one canonical descriptor: 1 for variable-length codecs and for the 3-, 6-, and 16-byte identifiers, otherwise the size.</summary>
+    /// <param name="codec">The canonical primitive codec.</param>
+    /// <returns>The alignment, in bytes.</returns>
     internal static byte AlignmentOf(PrimitiveCodec codec)
     {
         if (codec.Size == 0 || codec.Size is 3 or 6 || codec.IsIdentifier)

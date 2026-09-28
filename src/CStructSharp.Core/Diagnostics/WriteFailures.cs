@@ -10,40 +10,66 @@ using CStructSharp.Codecs;
 /// </summary>
 internal static class WriteFailures
 {
+    /// <summary>A write that would emit more bytes in total than the configured total byte limit allows.</summary>
     public const string TotalBytesLimit = "Write operation exceeded the configured total byte limit.";
 
+    /// <summary>One string field whose encoded bytes exceed the configured per-string byte limit.</summary>
     public const string StringBytesLimit = "String field exceeded the configured encoded-byte write limit.";
 
+    /// <summary>A value whose nested structs go deeper than the configured write nesting limit.</summary>
     public const string NestingLimit = "Maximum nested struct write depth exceeded.";
 
+    /// <summary>A serialized value that does not fit the caller's destination buffer.</summary>
     public const string DestinationCapacity = "The serialized value exceeds the supplied destination capacity.";
 
+    /// <summary>A terminated string value that contains its own terminator once encoded.</summary>
     public const string TerminatorInValue = "String value contains its encoded terminator.";
 
+    /// <summary>A string value with characters, such as lone surrogates, that its encoding rejects.</summary>
     public const string InvalidForEncoding = "String value contains characters that are invalid for its encoding.";
 
+    /// <summary>A wide-character buffer whose UTF-16 code units do not form a valid sequence.</summary>
     public const string InvalidWideText = "Wide-character buffer contains an invalid UTF-16 code-unit sequence.";
 
+    /// <summary>A UTF-16 text buffer whose capacity in bytes is odd, so it cannot hold whole code units.</summary>
     public const string Utf16CapacityOdd = "UTF-16 byte capacity must be even.";
 
+    /// <summary>A string value with characters the selected encoding has no byte sequence for.</summary>
     public const string EncodingUnrepresentable = "String cannot be represented in the selected encoding.";
 
     /// <summary>An array with more elements than <c>MaxArrayElements</c> allows for a write.</summary>
+    /// <param name="fieldName">The array field.</param>
+    /// <returns>The message.</returns>
     public static string ArrayLengthLimit(string fieldName) => "Array length exceeds the configured write limit: " + fieldName;
 
     /// <summary>A fixed character array given more characters than it holds.</summary>
+    /// <param name="fieldName">The character array field.</param>
+    /// <param name="length">The supplied text's length in characters.</param>
+    /// <param name="capacity">The array's capacity in characters.</param>
+    /// <returns>The message.</returns>
     public static string FixedTextTooLong(string fieldName, int length, int capacity)
         => "String is too long for " + fieldName + ": " + length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " > " + capacity.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".";
 
     /// <summary>An encoded text buffer given more encoded bytes than it holds.</summary>
+    /// <param name="fieldName">The text field.</param>
+    /// <param name="encodedLength">The supplied text's encoded length in bytes.</param>
+    /// <param name="capacity">The buffer's capacity in bytes.</param>
+    /// <returns>The message.</returns>
     public static string BoundedTextTooLong(string fieldName, int encodedLength, int capacity)
         => "Encoded string is too long for " + fieldName + ": " + encodedLength.ToString(System.Globalization.CultureInfo.InvariantCulture) + " encoded bytes > " + capacity.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".";
 
     /// <summary>An array value with more elements than the field permits (its declared count, or the array element limit).</summary>
+    /// <param name="fieldName">The array field.</param>
+    /// <param name="maximum">The permitted element count.</param>
+    /// <returns>The message.</returns>
     public static string ArrayTooMany(string fieldName, int maximum)
         => "Array value for " + fieldName + " exceeds its permitted element count of " + maximum.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".";
 
     /// <summary>A fixed array given a different number of elements than it declares.</summary>
+    /// <param name="fieldName">The array field.</param>
+    /// <param name="expected">The declared element count.</param>
+    /// <param name="actual">The supplied element count.</param>
+    /// <returns>The message.</returns>
     public static string ArrayLengthMismatch(string fieldName, int expected, int actual)
         => "Array length mismatch for " + fieldName + ": expected " + expected.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", got " + actual.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".";
 
@@ -88,22 +114,38 @@ internal static class WriteFailures
     public static string UnknownUnionMember(string unionName, string? member) => "Union '" + unionName + "' has no member named '" + member + "'.";
 
     /// <summary>A one-byte character outside the byte range.</summary>
+    /// <param name="character">The character above U+00FF.</param>
+    /// <returns>The message.</returns>
     public static string NarrowCharacter(char character)
         => "Character value U+" + ((int)character).ToString("X4", System.Globalization.CultureInfo.InvariantCulture) + " does not fit the one-byte char type.";
 
     /// <summary>A custom codec that reported more bytes written than its window holds.</summary>
+    /// <param name="codecName">The custom codec's name.</param>
+    /// <param name="written">The byte count the codec reported.</param>
+    /// <param name="window">The window size in bytes the codec was given.</param>
+    /// <returns>The message.</returns>
     public static string CustomCodecWritten(string codecName, int written, int window)
         => "Custom codec '" + codecName + "' reported " + written.ToString(System.Globalization.CultureInfo.InvariantCulture) + " bytes written into a " + window.ToString(System.Globalization.CultureInfo.InvariantCulture) + "-byte window.";
 
     /// <summary>A custom codec that needs a window past the string byte limit.</summary>
+    /// <param name="codecName">The custom codec's name.</param>
+    /// <param name="limit">The configured <c>MaxStringBytes</c> limit in bytes.</param>
+    /// <returns>The message.</returns>
     public static string CustomCodecLimit(string codecName, long limit)
         => "Custom codec '" + codecName + "' needs more than MaxStringBytes (" + limit.ToString(System.Globalization.CultureInfo.InvariantCulture) + ") for one value.";
 
     /// <summary>A custom codec that cannot encode a value.</summary>
+    /// <param name="codecName">The custom codec's name.</param>
+    /// <param name="value">The value the codec rejected.</param>
+    /// <returns>The message.</returns>
     public static string CustomCodecCannotEncode(string codecName, object? value)
         => "Custom codec '" + codecName + "' cannot encode the value " + (value ?? "null") + ".";
 
     /// <summary>A custom codec that threw while encoding.</summary>
+    /// <param name="codecName">The custom codec's name.</param>
+    /// <param name="value">The value being encoded.</param>
+    /// <param name="reason">The thrown exception's message.</param>
+    /// <returns>The message.</returns>
     public static string CustomCodecFailed(string codecName, object? value, string reason)
         => "Custom codec '" + codecName + "' failed to encode " + (value ?? "null") + ": " + reason;
 
@@ -114,6 +156,7 @@ internal static class WriteFailures
     /// <param name="value">The value the caller supplied.</param>
     /// <param name="typeSpelling">The field's type spelling.</param>
     /// <param name="acceptedRange">The integer range a fixed-width codec accepts (<see cref="AcceptedRange"/>), or <see langword="null"/>.</param>
+    /// <returns>The message.</returns>
     public static string UnwritableValue(object? value, string typeSpelling, string? acceptedRange)
     {
         string shown = value switch
@@ -131,6 +174,7 @@ internal static class WriteFailures
 
     /// <summary>The integer range a fixed-width integer codec accepts, or <see langword="null"/> for other kinds.</summary>
     /// <param name="kind">The codec kind.</param>
+    /// <returns>The range as text, such as <c>0 to 255</c>, or <see langword="null"/>.</returns>
     public static string? AcceptedRange(PrimitiveCodecKind kind)
     {
         return kind switch

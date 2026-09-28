@@ -48,6 +48,8 @@ public abstract class CStructException : Exception
     public override string Message => this.Compose(base.Message);
 
     /// <summary>Adds operation context without replacing more precise context already supplied by a lower layer.</summary>
+    /// <param name="path">The normalized path of the operation, kept only when no path is recorded yet.</param>
+    /// <param name="offset">Where the operation stopped, kept only when no offset is recorded yet.</param>
     internal void AttachContext(string? path = null, long? offset = null)
     {
         this.Path ??= path;
@@ -69,6 +71,7 @@ public abstract class CStructException : Exception
     ///     raises through <c>StructValue.Get&lt;T&gt;("v")</c> while mapping <c>root.leaves[0]</c> reads
     ///     <c>root.leaves[0].v</c>. A missing path becomes <paramref name="prefix"/> itself.
     /// </summary>
+    /// <param name="prefix">The path of the nested value the recorded path is relative to.</param>
     internal void PrefixPath(string prefix)
     {
         if (this.Path is null)
@@ -82,6 +85,8 @@ public abstract class CStructException : Exception
     }
 
     /// <summary>Records the innermost field the failure belongs to; outer levels do not replace it.</summary>
+    /// <param name="name">The field name; an empty name is not recorded.</param>
+    /// <param name="type">The field's layout type spelling, or <see langword="null"/> when unknown.</param>
     internal void AttachMember(string name, string? type)
     {
         if (this.Member is null && name.Length > 0)
@@ -96,6 +101,9 @@ public abstract class CStructException : Exception
     ///     <see langword="false"/>, so the exception keeps propagating without a catch-and-rethrow at every
     ///     composite level (a filter runs before the stack unwinds and costs no rethrow).
     /// </summary>
+    /// <param name="name">The field name; an empty name is not recorded.</param>
+    /// <param name="type">The field's layout type spelling, or <see langword="null"/> when unknown.</param>
+    /// <returns>Always <see langword="false"/>, so the filter never catches the exception.</returns>
     internal bool NoteMember(string name, string? type)
     {
         this.AttachMember(name, type);
@@ -103,6 +111,11 @@ public abstract class CStructException : Exception
     }
 
     /// <summary>Appends the known context to <paramref name="core"/> as one parenthesized clause.</summary>
+    /// <param name="core">The diagnostic without context.</param>
+    /// <returns>
+    ///     <paramref name="core"/> unchanged when no context is known; otherwise the diagnostic followed by the
+    ///     field, path, and offset clause.
+    /// </returns>
     private protected string Compose(string core)
     {
         if (this.Member is null && this.Path is null && this.Offset is null)

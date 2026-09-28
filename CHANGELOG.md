@@ -155,6 +155,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 - Stale documentation facts are corrected: `MetadataImportResult.Diagnostics` also lists best-effort placeholders,
   the memory example no longer states a snippet count, the README's version pin example is current, and the
   maintenance pages describe releases without a release-candidate stage.
+- The library build enforces its documentation: every element, parameter, type parameter and return value of
+  `CStructSharp` and its shared Core sources is documented, and a missing comment is a build error.
 - API baselines are named by role: `contracts/api/managed` and `contracts/api/browser` (published under
   `/docs/contracts/api/`). The managed manifest keeps the approved hash of every revision and the review text of the
   current one; the release history is this changelog. The `frozen` status, work-item code and stale package version

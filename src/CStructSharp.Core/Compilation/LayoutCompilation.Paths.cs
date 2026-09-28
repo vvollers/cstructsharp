@@ -21,6 +21,14 @@ internal sealed partial class LayoutCompilation
     ///     dimension" mechanism the runtime's address resolver uses; fewer indices than dimensions selects the
     ///     corresponding lower-dimensional sub-array.
     /// </summary>
+    /// <param name="root">The declaration the path starts at, such as a struct or a typedef of one.</param>
+    /// <param name="segments">The parsed path segments after the root; at least one is required.</param>
+    /// <param name="variables">The operation's layout variables, for runtime array counts in index checks.</param>
+    /// <returns>The selected field, narrowed to the element or sub-array the supplied indexes pick.</returns>
+    /// <exception cref="CStructPathException">
+    ///     A segment names no field, indexes a non-array or out of range, traverses a scalar, an unindexed array, or a
+    ///     pointer, or the path selects nothing.
+    /// </exception>
     internal CompiledField ResolveElementPath(
         CStructElement root,
         IReadOnlyList<PathSegment> segments,

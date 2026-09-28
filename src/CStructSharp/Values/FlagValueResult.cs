@@ -16,6 +16,18 @@ public sealed class FlagValueResult : EnumValueResult
     private ulong remainder;
     private bool decomposed;
 
+    /// <summary>Creates one flag value whose member-name decomposition runs on first use.</summary>
+    /// <param name="enumName">The flag declaration name; must not be empty or white space.</param>
+    /// <param name="name">The member whose value equals the whole stored value, or null when none does.</param>
+    /// <param name="value">The exact numeric payload in the flag's declared domain.</param>
+    /// <param name="rawBits">The payload's unsigned storage bits, masked to <paramref name="bitWidth"/>.</param>
+    /// <param name="storageType">The canonical backing codec name, such as <c>uint32</c>.</param>
+    /// <param name="bitWidth">The backing width in bits: 8, 16, 32, or 64.</param>
+    /// <param name="isSigned">Whether the backing type treats its high bit as a sign bit.</param>
+    /// <param name="decompose">
+    ///     Splits raw bits into the set member names, in declaration order, and the bits no member covers.
+    /// </param>
+    /// <exception cref="ArgumentException"><paramref name="enumName"/> is null, empty, or white space.</exception>
     internal FlagValueResult(
         string enumName,
         string? name,

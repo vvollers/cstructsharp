@@ -35,6 +35,25 @@ public sealed class FieldAccessor<T>
     private readonly int nestingDepth;
 
     /// <summary>Stores a resolution made by <see cref="CStruct.GetAccessor{T}(string)"/>.</summary>
+    /// <param name="layout">The layout the path was resolved against; reads without a shortcut use it.</param>
+    /// <param name="path">The full path, starting at the root declaration.</param>
+    /// <param name="root">The name of the root struct declaration.</param>
+    /// <param name="rootComposite">The compiled root struct.</param>
+    /// <param name="relativePath">The part of the path below the root, empty for the root itself.</param>
+    /// <param name="steps">
+    ///     The prepared slot lookups through parsed struct values, or null when the path names a member the layout
+    ///     does not declare and every read must use <paramref name="relativePath"/>.
+    /// </param>
+    /// <param name="offset">
+    ///     The member's constant byte offset from the root's first byte, or -1 when it cannot be decoded directly.
+    /// </param>
+    /// <param name="codec">The member's codec, used for direct decoding at <paramref name="offset"/>.</param>
+    /// <param name="maximumArrayCount">
+    ///     The largest array element count in the root; the read limits must allow it for a direct decode.
+    /// </param>
+    /// <param name="nestingDepth">
+    ///     The struct nesting depth of the root and path; the read limits must allow it for a direct decode.
+    /// </param>
     internal FieldAccessor(CStruct layout, string path, string root, CompiledCompositeType rootComposite, string relativePath, Step[]? steps, int offset, PrimitiveCodec codec, int maximumArrayCount, int nestingDepth)
     {
         this.layout = layout;

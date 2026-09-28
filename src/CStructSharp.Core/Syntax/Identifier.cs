@@ -14,6 +14,7 @@ internal class Identifier : Expr
     public static readonly Identifier UINT32 = new("uint32");
 
     /// <summary>Creates an identifier, removing pointer stars from its name while remembering their count.</summary>
+    /// <param name="name">The spelling as written, which may include <c>*</c> characters.</param>
     public Identifier(string name)
     {
         // Most names carry no stars; skip the scan-and-copy for them (the parser constructs one per word).
@@ -36,11 +37,18 @@ internal class Identifier : Expr
     /// </summary>
     public int SourceOffset { get; init; } = -1;
 
+    /// <summary>Gets the name without any <c>*</c> characters.</summary>
     public string Name { get; }
 
+    /// <summary>Gets the number of <c>*</c> characters the spelling carried; 0 for a non-pointer name.</summary>
     public int PointerDepth { get; }
 
     /// <summary>Checks whether another value represents the same layout data.</summary>
+    /// <param name="other">The expression to compare with.</param>
+    /// <returns>
+    ///     <see langword="true"/> when <paramref name="other"/> is an identifier with the same name and pointer
+    ///     depth; the source offset is ignored.
+    /// </returns>
     public override bool Equals(Expr? other)
     {
         return other is Identifier i &&
@@ -49,12 +57,14 @@ internal class Identifier : Expr
     }
 
     /// <summary>Returns a hash code that matches this value's equality rules.</summary>
+    /// <returns>An ordinal hash of the name combined with the pointer depth.</returns>
     public override int GetHashCode()
     {
         return HashCode.Combine(StringComparer.Ordinal.GetHashCode(this.Name), this.PointerDepth);
     }
 
     /// <summary>Returns a short readable description for debugging and logs.</summary>
+    /// <returns>The name in square brackets.</returns>
     public override string ToString()
     {
         return $"[{this.Name}]";

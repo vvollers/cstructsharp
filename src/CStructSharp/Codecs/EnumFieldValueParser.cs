@@ -11,6 +11,16 @@ using CStructSharp.Values;
 internal static class EnumFieldValueParser
 {
     /// <summary>Accepts one exact enum input shape and validates all supplied metadata against the compiled declaration.</summary>
+    /// <param name="compiled">The enum the field is declared with.</param>
+    /// <param name="value">
+    ///     The caller's value: a CLR enum, an <see cref="EnumValueResult"/>, a member name or decimal string, an
+    ///     integer, flag member names (<c>A|C</c> or a sequence) for a flag, or an object with <c>Name</c> and/or
+    ///     <c>Value</c>.
+    /// </param>
+    /// <returns>The enum's integer value, checked against the enum's storage range.</returns>
+    /// <exception cref="CStructWriteException">
+    ///     The value names no member, has contradictory metadata, belongs to another enum, or is out of range.
+    /// </exception>
     public static BigInteger GetEnumValue(
         CompiledEnumType compiled,
         object value)

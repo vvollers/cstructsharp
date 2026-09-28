@@ -77,6 +77,12 @@ public static partial class MappedTypes
     public static T ConvertValue<T>(object? value, string member) => (T)TypedValueConverter.Convert(value, typeof(T), member)!;
 
     /// <summary>Reads an instance of <paramref name="type"/> from <paramref name="source"/>, when the type is registered.</summary>
+    /// <param name="type">The mapped class to build.</param>
+    /// <param name="source">The parsed struct whose members fill the instance.</param>
+    /// <param name="result">
+    ///     Receives the new instance, or <see langword="null"/> when the type is not registered.
+    /// </param>
+    /// <returns><see langword="true"/> when <paramref name="type"/> is registered and an instance was read.</returns>
     internal static bool TryRead(Type type, StructValue source, out object? result)
     {
         if (Entries.TryGetValue(type, out Entry? entry))
@@ -90,6 +96,11 @@ public static partial class MappedTypes
     }
 
     /// <summary>Fills <paramref name="target"/> from <paramref name="instance"/>, when its type is registered.</summary>
+    /// <param name="instance">The mapped object whose members are stored.</param>
+    /// <param name="target">
+    ///     The struct value that receives the members; it is mutated only when the type is registered.
+    /// </param>
+    /// <returns><see langword="true"/> when the instance's exact runtime type is registered and was written.</returns>
     internal static bool TryWrite(object instance, StructValue target)
     {
         if (Entries.TryGetValue(instance.GetType(), out Entry? entry))

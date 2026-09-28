@@ -34,6 +34,13 @@ public sealed partial class CStruct
     }
 
     /// <summary>Reads one selected value through the compiled reader and maps it to <typeparamref name="T"/>.</summary>
+    /// <typeparam name="T">The CLR type the value is converted to.</typeparam>
+    /// <param name="stream">The source, positioned at the operation origin.</param>
+    /// <param name="elementNameOrPath">The declaration name or member path, such as <c>header.size</c>.</param>
+    /// <param name="variables">The caller's integer layout variables, or <see langword="null"/> for none.</param>
+    /// <param name="options">The read options, or <see langword="null"/> for the defaults.</param>
+    /// <returns>The selected value converted to <typeparamref name="T"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="stream"/> is <see langword="null"/>.</exception>
     internal T ReadTypedValueCore<T>(
         Stream stream,
         string elementNameOrPath,

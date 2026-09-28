@@ -24,6 +24,32 @@ internal sealed class CompiledField
     ///     <paramref name="effectiveField"/> is the declaration with its type resolved (a typedef's terminal type, its array
     ///     shape and pointer depth merged in); its name, type spelling, width and pointer depth are read, not kept.
     /// </remarks>
+    /// <param name="declaration">The field declaration as written in the layout.</param>
+    /// <param name="effectiveField">The declaration with its type resolved through typedefs.</param>
+    /// <param name="type">The resolved type the field's values have.</param>
+    /// <param name="codecId">
+    ///     The codec id of the delegate pair for one element, or <see cref="PrimitiveCatalog.NoCodec"/>.
+    /// </param>
+    /// <param name="terminatedCodecId">
+    ///     The codec id of the terminated-string handler behind a <c>char *</c>-style pointer, or
+    ///     <see cref="PrimitiveCatalog.NoCodec"/>.
+    /// </param>
+    /// <param name="alignment">The alignment in bytes.</param>
+    /// <param name="fixedElementSize">
+    ///     One element's size in bytes, or <see langword="null"/> when data decides it.
+    /// </param>
+    /// <param name="array">The declared array shape, or <see cref="CompiledArrayShape.Scalar"/>.</param>
+    /// <param name="fixedStorageSize">
+    ///     The whole storage size in bytes, or <see langword="null"/> when data decides it.
+    /// </param>
+    /// <param name="isUnsizedCharacterArray">Whether the field is a character array declared without a length.</param>
+    /// <param name="bitStorageSize">The bitfield's declared storage size in bytes, or <see langword="null"/>.</param>
+    /// <param name="bitStorageIsLittleEndian">The bitfield storage byte order, or <see langword="null"/>.</param>
+    /// <param name="fixedOffset">The byte offset from the composite's start, when known at compile time.</param>
+    /// <param name="bitOffset">The bit offset within the storage unit.</param>
+    /// <param name="layoutLittleEndian">
+    ///     The layout's neutral byte order, used for codec spellings without a suffix.
+    /// </param>
     public CompiledField(
         Field declaration,
         Field effectiveField,
@@ -211,20 +237,42 @@ internal sealed class CompiledField
     public bool FollowsAfterStruct => this.PointerDepth > 0 && !this.IsUnnamed && this.Array.Kind != CompiledArrayKind.Flexible &&
                                       !(this.PointerDepth == 1 && this.Type.TerminalName == "void");
 
+    /// <summary>The field's alignment in bytes, applied when its offset is placed inside the composite.</summary>
     public int Alignment { get; }
 
+    /// <summary>
+    ///     The array dimensions this view still has; <see cref="CompiledArrayShape.Scalar"/> for a single value.
+    /// </summary>
     public CompiledArrayShape Array { get; }
 
+    /// <summary>
+    ///     The offset in bits of a bitfield inside its storage unit; 0 for a field that is not a bitfield.
+    /// </summary>
     public int BitOffset { get; }
 
+    /// <summary>
+    ///     The byte order of the bitfield's storage unit, or <see langword="null"/> for a field that is not a bitfield.
+    /// </summary>
     public bool? BitStorageIsLittleEndian { get; }
 
+    /// <summary>
+    ///     The size in bytes of the bitfield's declared storage type, or <see langword="null"/> for a field that is not
+    ///     a bitfield.
+    /// </summary>
     public int? BitStorageSize { get; }
 
+    /// <summary>The field declaration as written in the layout, before its type was resolved.</summary>
     public Field Declaration { get; }
 
+    /// <summary>
+    ///     The size in bytes of one element (or of the scalar value), or <see langword="null"/> when data decides it.
+    /// </summary>
     public int? FixedElementSize { get; }
 
+    /// <summary>
+    ///     The field's offset in bytes from the start of its struct or union, or <see langword="null"/> when an earlier
+    ///     variable-size member means only an operation knows it.
+    /// </summary>
     public int? FixedOffset { get; }
 
     /// <summary>
@@ -233,13 +281,25 @@ internal sealed class CompiledField
     /// </summary>
     public int? AssertedOffset { get; init; }
 
+    /// <summary>
+    ///     The size in bytes of the field's whole storage (all array elements), or <see langword="null"/> when it
+    ///     depends on data such as a runtime count or a terminator.
+    /// </summary>
     public int? FixedStorageSize { get; }
 
+    /// <summary>
+    ///     Whether the field is a character array declared without a length (<c>char name[]</c>), which reads as a
+    ///     terminated string.
+    /// </summary>
     public bool IsUnsizedCharacterArray { get; }
 
     /// <summary>Whether numeric storage represents a fixed-point value rather than an integer layout variable.</summary>
     public bool IsFixedPoint { get; }
 
+    /// <summary>
+    ///     The declaration of the struct, union, or enum the field's resolved type refers to, or
+    ///     <see langword="null"/> for a built-in primitive.
+    /// </summary>
     public CStructElement? NamedElement => this.Type.Symbol.Declaration;
 
     /// <summary>The field's name; empty for unnamed padding (an anonymous bitfield or a <c>_</c> field).</summary>
@@ -383,6 +443,9 @@ internal sealed class CompiledField
     /// <summary>Whether this field is a pointer to a terminated string (<c>char *</c> shorthand) whose target reads through a terminated handler.</summary>
     public bool HasTerminatedCodec => this.TerminatedCodecId != PrimitiveCatalog.NoCodec;
 
+    /// <summary>
+    ///     The resolved type the field's values have, after typedefs; pointer and array levels are separate.
+    /// </summary>
     public CompiledTypeReference Type { get; }
 
     /// <summary>The primitive codec vocabulary name (for example <c>uint32&lt;</c>), <c>pointer</c>, or a composite's own name.</summary>
@@ -413,10 +476,13 @@ internal sealed class CompiledField
 
     /// <summary>
     ///     Creates an immutable view for one selected array element, peeling exactly one dimension: a
-    ///     scalar view if this was the last remaining dimension (matching this method's original one-shot
-    ///     behavior exactly for every 1-D array), or a still-array view of the remaining inner dimensions
+    ///     scalar view if this was the last remaining dimension (always the case for a one-dimensional array), or a
+    ///     still-array view of the remaining inner dimensions
     ///     otherwise. A caller addressing an N-dimensional array calls this once per supplied index.
     /// </summary>
+    /// <returns>
+    ///     The element view, whose storage size is one element (scalar result) or the remaining dimensions' bytes.
+    /// </returns>
     public CompiledField SelectArrayElement()
     {
         CompiledArrayShape nextShape = this.Array.PeelOuterDimension();
@@ -466,6 +532,17 @@ internal sealed class CompiledField
     }
 
     /// <summary>Creates an immutable target view after explicit pointer accessors consume part of the shape.</summary>
+    /// <param name="remainingPointerDepth">
+    ///     The pointer levels the target view still has to follow; 0 selects the pointed-to value itself.
+    /// </param>
+    /// <param name="terminatedCodecName">
+    ///     The terminated-string codec (<c>cstring</c>, ...) the final target reads through, or <see langword="null"/>
+    ///     to read it as the declared type.
+    /// </param>
+    /// <param name="pointerSize">
+    ///     The layout's pointer width in bytes, the element size of a view that is still a pointer.
+    /// </param>
+    /// <returns>A scalar view of the target; it has no fixed offset or bitfield storage of its own.</returns>
     public CompiledField SelectPointerTarget(
         int remainingPointerDepth,
         string? terminatedCodecName,

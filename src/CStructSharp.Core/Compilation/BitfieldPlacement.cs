@@ -23,6 +23,10 @@ internal struct BitfieldPlacement
     private int unitSize;
     private long cellEnd;
 
+    /// <summary>Creates a placement tracker with no active run.</summary>
+    /// <param name="packing">The placement rule: MSVC storage units or packed System V bits.</param>
+    /// <param name="aligned">Whether a new MSVC storage unit starts at its type's alignment.</param>
+    /// <param name="highBitFirst">Whether bits are allocated from a unit's most significant bit down.</param>
     public BitfieldPlacement(BitfieldPacking packing, bool aligned, bool highBitFirst)
     {
         this.packing = packing;
@@ -68,6 +72,15 @@ internal struct BitfieldPlacement
     ///     <paramref name="runBits"/> is the compiled bit length of the run the field belongs to (packed SysV
     ///     placement clamps units to it).
     /// </summary>
+    /// <param name="current">The composite's byte position, used when the field starts a new run.</param>
+    /// <param name="declaredSize">The size in bytes of the bitfield's declared storage type.</param>
+    /// <param name="alignment">The declared type's alignment in bytes, used by aligned MSVC placement.</param>
+    /// <param name="width">The bitfield width in bits.</param>
+    /// <param name="runBits">The compiled bit length of the run the field belongs to.</param>
+    /// <param name="littleEndian">
+    ///     The storage byte order; with the bit order it decides whether SysV bits fill a unit from its first byte.
+    /// </param>
+    /// <param name="name">The field name, used in error messages.</param>
     /// <returns>The unit's start, its size in bytes, and the field's bit offset inside it.</returns>
     public (long UnitStart, int UnitSize, int BitOffset) Place(long current, int declaredSize, int alignment, int width, int runBits, bool littleEndian, string name)
     {

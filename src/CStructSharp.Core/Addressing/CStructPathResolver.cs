@@ -16,6 +16,13 @@ internal static class CStructPathResolver
     private const int CacheCapacity = 256;
     private static readonly ConcurrentDictionary<string, PathSegment[]> Cache = new(StringComparer.Ordinal);
 
+    /// <summary>
+    ///     Splits a path such as <c>root.items[2].name</c> into its segments, reusing the cached segments of a path
+    ///     parsed earlier in the process.
+    /// </summary>
+    /// <param name="path">The case-sensitive path; surrounding white space is ignored.</param>
+    /// <returns>The segments in order; the shared list must not be modified.</returns>
+    /// <exception cref="CStructPathException">The path is empty or malformed.</exception>
     public static IReadOnlyList<PathSegment> Parse(string path)
     {
         if (path is not null && Cache.TryGetValue(path, out PathSegment[]? cached))

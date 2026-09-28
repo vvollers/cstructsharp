@@ -234,44 +234,64 @@ internal sealed partial class LayoutCompilation
     /// <summary>The compiled definitions (structs, unions, enums, typedefs, defines) by declared name.</summary>
     public IReadOnlyDictionary<string, CStructElement> CStructElements => this.cStructElements;
 
+    /// <summary>Gets a value indicating whether members are placed at their natural alignment.</summary>
     public bool Aligned { get; }
 
+    /// <summary>Gets the <c>#include</c> paths in source order; they are recorded, never resolved or read.</summary>
     public IReadOnlyList<string> Includes { get; }
 
+    /// <summary>Gets the layout's <c>#define</c> constants by name, built on first access.</summary>
     public IReadOnlyDictionary<string, LayoutConstant> Constants => this.constants.Value;
 
+    /// <summary>Gets the read-only description of the layout's declarations, built on first access.</summary>
     public LayoutInfo Layout => this.layoutInfo.Value;
 
+    /// <summary>Gets the effective compilation options the layout was compiled with.</summary>
     public CStructCompilationOptions CompilationOptions { get; }
 
+    /// <summary>Gets the name of the first struct or union in source order, used when a caller names no root.</summary>
     public string DefaultRoot => this.compiledModelQueries.GetFirstCompiledStructName();
 
+    /// <summary>Gets how adjacent bit-fields share storage units.</summary>
     public BitfieldPacking BitfieldPacking { get; }
 
+    /// <summary>Gets a value indicating whether bit-fields fill their unit from the most significant bit.</summary>
     public bool HighBitFirst => this.highBitFirst;
 
+    /// <summary>Gets the primitive vocabulary (sizes, alignments, custom codecs) the layout resolves against.</summary>
     public PrimitiveCatalog Catalog => this.catalog;
 
+    /// <summary>Gets the catalog's table of primitive codecs that are valid bit-field storage.</summary>
     public BitfieldCodecTable BitfieldCodecs => this.bitfieldCodecs;
 
+    /// <summary>Gets the lookups over the finished compiled model (roots, enums, declarations).</summary>
     public CompiledModelQueries ModelQueries => this.compiledModelQueries;
 
+    /// <summary>Gets the size calculations over the compiled composites.</summary>
     public CompiledSizeQueries SizeQueries => this.compiledSizeQueries;
 
+    /// <summary>Gets the exact signed or unsigned integer domain declared for each enum.</summary>
     public EnumIntegerCodecTable EnumIntegerCodecs => this.enumIntegerCodecs;
 
+    /// <summary>Gets the expression evaluator bound to this layout's evaluation limits.</summary>
     public ExpressionEvaluator ExpressionEvaluator => this.expressionEvaluator;
 
+    /// <summary>Gets the evaluator that reports expression failures as layout or read errors.</summary>
     public LayoutExpressionEvaluator LayoutExpressionEvaluator => this.layoutExpressionEvaluator;
 
+    /// <summary>Gets the resolver that combines layout definitions with caller-supplied variable overrides.</summary>
     public LayoutVariableResolver LayoutVariableResolver => this.layoutVariableResolver;
 
+    /// <summary>Gets the layout's definitions resolved without caller overrides, by name.</summary>
     public IReadOnlyDictionary<string, Expr> StaticLayoutVariables => this.staticLayoutVariables;
 
+    /// <summary>Gets a value indicating whether neutral primitive spellings resolve to little-endian.</summary>
     public bool IsLittleEndian { get; }
 
+    /// <summary>Gets the stored pointer width in bytes: 1, 2, 4, or 8.</summary>
     public byte PointerSize { get; }
 
+    /// <summary>Gets the complete compiled layout text, including any prelude from the options.</summary>
     public string Source { get; }
 
     /// <summary>

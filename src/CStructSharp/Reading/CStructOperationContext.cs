@@ -24,6 +24,14 @@ internal sealed class CStructOperationContext
     private PointerTraversal? pointers;
 
     /// <summary>Creates the read state from a stream, compiled lookup tables, and optional read settings.</summary>
+    /// <param name="stream">The readable, seekable input, wrapped in a <see cref="ReadBudgetStream"/>.</param>
+    /// <param name="variables">The operation's layout variables; reading a field adds or replaces its entry.</param>
+    /// <param name="aligned">Whether fields are placed at their natural alignment, with padding between them.</param>
+    /// <param name="options">The pointer, safety-limit, text, and cancellation settings for this operation.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="stream"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="stream"/> cannot read or cannot seek.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A limit in <paramref name="options"/> is negative, or the
+    ///     nesting depth is not positive.</exception>
     public CStructOperationContext(
         Stream stream,
         Dictionary<string, Expr> variables,
@@ -86,10 +94,13 @@ internal sealed class CStructOperationContext
         }
     }
 
+    /// <summary>Gets whether pointer values are stream positions or offsets from <see cref="PointerOrigin"/>.</summary>
     public PointerAddressingMode AddressingMode { get; }
 
+    /// <summary>Gets whether fields are placed at their natural alignment, with padding between them.</summary>
     public bool Aligned { get; }
 
+    /// <summary>Gets whether pointer targets are read, rather than only the pointer values.</summary>
     public bool DereferencePointers { get; }
 
     /// <summary>The token the operation observes at composite, pointer, block, element, and chunk boundaries (kept on the budget stream so the per-operation objects carry it once).</summary>
@@ -122,12 +133,16 @@ internal sealed class CStructOperationContext
     /// </summary>
     public List<PendingPointer> PendingPointers => (this.pointers ??= PointerTraversal.Rent()).Pending;
 
+    /// <summary>Gets the signed base position, in bytes, added to relative pointer offsets.</summary>
     public long PointerOrigin { get; }
 
+    /// <summary>Gets the largest number of pointers the read may follow in one chain.</summary>
     public int MaxPointerDepth { get; }
 
+    /// <summary>Gets the largest size, in bytes, of one pointer target, or null for no limit.</summary>
     public long? MaxPointerTargetBytes { get; }
 
+    /// <summary>Gets the largest element count one array may declare.</summary>
     public int MaxArrayElements { get; }
 
     /// <summary>Whether fixed-capacity text drops its trailing NUL padding (<see cref="ReadOptions.TrimFixedText"/>).</summary>
@@ -136,15 +151,22 @@ internal sealed class CStructOperationContext
     /// <summary>Gets whether the read must avoid static plans and block reads (<see cref="ExecutionPath.GeneralOnly"/>).</summary>
     public bool GeneralPathOnly { get; }
 
+    /// <summary>Gets the largest number of nested struct levels the read may enter.</summary>
     public int MaxNestingDepth { get; }
 
+    /// <summary>Gets or sets the number of pointers followed on the active path to the value being read.</summary>
     public int PointerDereferenceDepth { get; set; }
 
+    /// <summary>Gets or sets the number of nested struct levels entered on the active path.</summary>
     public int StructureDepth { get; set; }
 
     /// <summary>The operation's read cursor: budget accounting plus, for memory sources, position and span reads.</summary>
     public ReadBudgetStream Stream { get; }
 
+    /// <summary>
+    ///     Gets the layout variables that array lengths and conditions evaluate against; reading a field adds or
+    ///     replaces its entry.
+    /// </summary>
     public Dictionary<string, Expr> Variables { get; }
 
     /// <summary>
@@ -196,8 +218,13 @@ internal sealed class CStructOperationContext
     /// </summary>
     public bool BitfieldUnitSeeded { get; set; }
 
+    /// <summary>Gets or sets whether each read value records its byte range in <see cref="DebugMapping"/>.</summary>
     public bool Debug { get; set; }
 
+    /// <summary>
+    ///     Gets or sets the stream position, in bytes, just past the last value or bitfield storage unit read; the
+    ///     reader moves there when it leaves an unfinished bitfield unit.
+    /// </summary>
     public long NextPosition { get; set; }
 
     /// <summary>Returns whether the nesting and array limits admit running <paramref name="plan"/> at the current structure depth.</summary>
@@ -259,6 +286,8 @@ internal sealed class CStructOperationContext
     }
 
     /// <summary>Rejects a logical structure depth before traversal or a selected reader commits to it.</summary>
+    /// <param name="requiredDepth">The structure depth the caller is about to use.</param>
+    /// <exception cref="CStructReadLimitException">The depth exceeds <see cref="MaxNestingDepth"/>.</exception>
     public void EnsureStructureDepth(int requiredDepth)
     {
         if (requiredDepth > this.MaxNestingDepth)
@@ -274,6 +303,11 @@ internal sealed class CStructOperationContext
     }
 
     /// <summary>Copies the bytes and layout stack for one read value into the debug result.</summary>
+    /// <param name="curPos">The stream position, in bytes, where the value starts.</param>
+    /// <param name="endPos">The stream position, in bytes, just past the value.</param>
+    /// <param name="debugStack">The path of layout members leading to the value, or null at the root.</param>
+    /// <param name="value">The decoded value.</param>
+    /// <param name="fieldTypeName">The name of the value's declared type.</param>
     public void RegisterDebugData(
         long curPos,
         long endPos,
@@ -295,6 +329,7 @@ internal sealed class CStructOperationContext
     }
 
     /// <summary>Republishes a just-captured variable under its qualified name when a dotted reference needs it.</summary>
+    /// <param name="name">The unqualified field name whose variable entry is copied or removed.</param>
     public void PublishQualified(string name)
     {
         if (this.hasQualifiedPrefix)
@@ -312,6 +347,8 @@ internal sealed class CStructOperationContext
     }
 
     /// <summary>Applies <see cref="TrimFixedText"/> to one decoded fixed-capacity string.</summary>
+    /// <param name="text">The decoded fixed-capacity text, including any NUL padding.</param>
+    /// <returns>The text without trailing NUL characters when trimming is on; otherwise the unchanged text.</returns>
     public string FixedText(string text)
     {
         return this.TrimFixedText ? text.TrimEnd('\0') : text;

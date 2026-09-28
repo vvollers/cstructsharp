@@ -21,6 +21,15 @@ internal sealed class LayoutVariableResolver
     private readonly Dictionary<string, Expr> staticValues;
 
     /// <summary>Compiles definition dependencies and resolves the immutable no-override baseline once.</summary>
+    /// <param name="definitions">The layout's <c>#define</c> and constant definitions; names must be unique.</param>
+    /// <param name="evaluator">The evaluator that finds dependencies and reduces expressions.</param>
+    /// <param name="exactEnumDefinitions">
+    ///     Definition names that are enum members, which keep their expression rather than an exact 64-bit literal
+    ///     when they overflow the 32-bit domain; <see langword="null"/> for none.
+    /// </param>
+    /// <exception cref="CStructLayoutException">
+    ///     The definitions form a dependency cycle or a static expression cannot be resolved.
+    /// </exception>
     public LayoutVariableResolver(
         IEnumerable<Defines> definitions,
         ExpressionEvaluator evaluator,
@@ -59,12 +68,22 @@ internal sealed class LayoutVariableResolver
     }
 
     /// <summary>Returns an isolated operation dictionary, reusing every unaffected static literal.</summary>
+    /// <param name="suppliedVariables">
+    ///     The caller's expressions, which replace definitions of the same name, or <see langword="null"/> for none.
+    /// </param>
+    /// <returns>A new dictionary for one operation, re-resolving each definition an override affects.</returns>
+    /// <exception cref="CStructLayoutException">An affected expression cannot be resolved.</exception>
     public Dictionary<string, Expr> Create(IReadOnlyDictionary<string, Expr>? suppliedVariables)
     {
         return this.CreateCore(suppliedVariables, static expression => expression);
     }
 
     /// <summary>Snapshots public integer overrides directly into the operation dictionary.</summary>
+    /// <param name="suppliedVariables">
+    ///     The caller's integer values, which replace definitions of the same name, or <see langword="null"/> for none.
+    /// </param>
+    /// <returns>A new dictionary for one operation, re-resolving each definition an override affects.</returns>
+    /// <exception cref="CStructLayoutException">An affected expression cannot be resolved.</exception>
     public Dictionary<string, Expr> CreateIntegers(IReadOnlyDictionary<string, int>? suppliedVariables)
     {
         return this.CreateCore(suppliedVariables, static value => new Literal(value));
@@ -163,6 +182,7 @@ internal sealed class LayoutVariableResolver
     }
 
     /// <summary>Returns only definitions whose complete dependency closure is known at layout-compilation time.</summary>
+    /// <returns>The shared static values, keyed by definition name; callers must not mutate them.</returns>
     public IReadOnlyDictionary<string, Expr> CreateStatic()
     {
         return this.staticValues;

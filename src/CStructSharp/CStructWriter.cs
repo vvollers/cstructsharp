@@ -1252,6 +1252,11 @@ public sealed partial class CStruct
     /// <summary>
     ///     Creates a new byte array while snapshotting expression variables from a read-only caller view.
     /// </summary>
+    /// <param name="elementNameOrPath">The case-sensitive root name or nested field path to encode.</param>
+    /// <param name="data">The value to encode.</param>
+    /// <param name="variables">The caller's layout variables; they are copied and never mutated.</param>
+    /// <param name="options">Write limits and pointer settings; <see langword="null"/> uses the defaults.</param>
+    /// <returns>A new caller-owned array holding exactly the encoded bytes.</returns>
     internal byte[] SerializeCore(
         string elementNameOrPath,
         object data,
@@ -1269,6 +1274,17 @@ public sealed partial class CStruct
     ///     library-detectable failures occur against bounded sparse staging before destination commit, and the
     ///     replacement cannot extend the existing stream.
     /// </summary>
+    /// <param name="stream">
+    ///     The caller-owned readable, writable, seekable stream whose current position is the operation origin.
+    /// </param>
+    /// <param name="elementNameOrPath">The case-sensitive path of the existing value to replace.</param>
+    /// <param name="value">The replacement value.</param>
+    /// <param name="variables">The caller's layout variables; they are copied and never mutated.</param>
+    /// <param name="options">
+    ///     Traversal limits, pointer rules, and union handling; <see langword="null"/> uses the documented defaults.
+    /// </param>
+    /// <exception cref="ArgumentException">The stream is not readable, writable, and seekable.</exception>
+    /// <exception cref="CStructPathException">The path is empty or cannot be resolved.</exception>
     internal void UpdateStreamCore(
         Stream stream,
         string elementNameOrPath,
@@ -1446,6 +1462,16 @@ public sealed partial class CStruct
     /// <summary>
     ///     Writes a complete or selected value while snapshotting expression variables from a read-only caller view.
     /// </summary>
+    /// <param name="stream">
+    ///     The caller-owned writable, seekable destination; writing starts at its current position, and fields written
+    ///     before a later failure remain in it.
+    /// </param>
+    /// <param name="elementNameOrPath">The case-sensitive root name or nested field path to write.</param>
+    /// <param name="data">The value to encode.</param>
+    /// <param name="variables">The caller's layout variables; they are copied and never mutated.</param>
+    /// <param name="options">Write limits and pointer settings; <see langword="null"/> uses the defaults.</param>
+    /// <exception cref="ArgumentException">The stream is not writable and seekable.</exception>
+    /// <exception cref="CStructPathException">The path is empty or cannot be resolved.</exception>
     internal void WriteStreamCore(
         Stream stream,
         string elementNameOrPath,

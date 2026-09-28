@@ -282,6 +282,10 @@ public sealed class UnionValue : IDynamicMetaObjectProvider, IReadOnlyDictionary
     }
 
     /// <summary>Creates the lossless result returned by the compiled union reader.</summary>
+    /// <param name="unionName">The declared union name.</param>
+    /// <param name="rawStorage">The union's complete storage bytes; the value keeps its own copy.</param>
+    /// <param name="members">Each member's decoded view of the storage, by member name.</param>
+    /// <returns>A union value with the raw storage and every decoded member view, and no selected member.</returns>
     internal static UnionValue FromParsed(
         string unionName,
         byte[] rawStorage,
@@ -294,6 +298,8 @@ public sealed class UnionValue : IDynamicMetaObjectProvider, IReadOnlyDictionary
     ///     Gets the raw storage array for validated writer use without exposing the private snapshot publicly. The
     ///     internal writer only reads from the returned array; it never mutates it.
     /// </summary>
+    /// <returns>The value's own raw storage array, not a copy.</returns>
+    /// <exception cref="InvalidOperationException">The value has no raw storage.</exception>
     internal byte[] GetRawStorageArray()
     {
         return this.rawStorage ?? throw new InvalidOperationException("This union value has no raw storage.");

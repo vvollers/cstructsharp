@@ -25,6 +25,8 @@ internal sealed class CompiledModelQueries
     private ConcurrentDictionary<string, (CStructElement Declaration, CompiledField Field)>? syntheticRoots;
     private ConcurrentDictionary<CStructElement, CompiledField>? syntheticRootFields;
 
+    /// <summary>Creates lookups over a fully bound compiled model.</summary>
+    /// <param name="compiledLayout">The immutable compiled model; it is referenced, not copied.</param>
     public CompiledModelQueries(CompiledLayoutModel compiledLayout)
     {
         this.compiledLayout = compiledLayout;
@@ -34,6 +36,8 @@ internal sealed class CompiledModelQueries
     ///     The single-member shape of the root wrapper object (<c>{ rootName: value }</c>) that every parse of one root
     ///     builds; cached so the wrapper costs one small slot array rather than a dictionary per parse.
     /// </summary>
+    /// <param name="rootName">The root declaration name that becomes the wrapper's only member.</param>
+    /// <returns>The shared, thread-safe cached shape for <paramref name="rootName"/>.</returns>
     public StructShape GetRootShape(string rootName)
     {
         // Created on the first parse rather than at compile time, so a layout that is never parsed never pays for it.
@@ -46,6 +50,9 @@ internal sealed class CompiledModelQueries
     }
 
     /// <summary>Returns the immutable synthetic field used to execute one exported typedef root.</summary>
+    /// <param name="declaration">A root declaration from the compiled model or one registered on demand.</param>
+    /// <returns>The compiled field that reads or writes the declaration as a root value.</returns>
+    /// <exception cref="InvalidOperationException">The declaration has no compiled root field.</exception>
     public CompiledField GetCompiledRootField(CStructElement declaration)
     {
         if (this.compiledLayout.RootFields.TryGetValue(declaration, out CompiledField? compiled))
@@ -63,6 +70,12 @@ internal sealed class CompiledModelQueries
     }
 
     /// <summary>Publishes one on-demand root so it resolves like a typedef declaration named by its spelling.</summary>
+    /// <param name="spelling">The type spelling used as the root name, such as <c>uint32[4]</c>.</param>
+    /// <param name="declaration">The synthetic declaration compiled for the spelling.</param>
+    /// <param name="field">The compiled root field that executes the declaration.</param>
+    /// <returns>
+    ///     The registered declaration; when another thread registered the same spelling first, its declaration wins.
+    /// </returns>
     public CStructElement RegisterSyntheticRoot(string spelling, CStructElement declaration, CompiledField field)
     {
         ConcurrentDictionary<string, (CStructElement Declaration, CompiledField Field)> roots =
@@ -75,6 +88,9 @@ internal sealed class CompiledModelQueries
     }
 
     /// <summary>Whether a root spelling has already been compiled on demand.</summary>
+    /// <param name="spelling">The type spelling used as the root name.</param>
+    /// <param name="declaration">The registered synthetic declaration, or null when none exists.</param>
+    /// <returns>True when the spelling has a registered synthetic root.</returns>
     public bool TryGetSyntheticRoot(string spelling, out CStructElement? declaration)
     {
         if (this.syntheticRoots is not null && this.syntheticRoots.TryGetValue(spelling, out (CStructElement Declaration, CompiledField Field) root))
@@ -88,6 +104,9 @@ internal sealed class CompiledModelQueries
     }
 
     /// <summary>Returns the exact compiled integer model owned by one enum declaration.</summary>
+    /// <param name="enm">The parsed enum declaration, looked up by name.</param>
+    /// <returns>The compiled enum model with its underlying integer type and members.</returns>
+    /// <exception cref="InvalidOperationException">The enum is not bound in the compiled model.</exception>
     public CompiledEnumType GetCompiledEnum(CstructEnum enm)
     {
         if (this.compiledLayout.Symbols.TryGetValue(enm.Name.Name, out CompiledTypeReference type) &&
@@ -100,6 +119,9 @@ internal sealed class CompiledModelQueries
     }
 
     /// <summary>Returns one exported declaration from the immutable compiled symbol snapshot.</summary>
+    /// <param name="name">The declared or on-demand root name; matching is case-sensitive.</param>
+    /// <param name="declaration">The found declaration, or null when the name is unknown.</param>
+    /// <returns>True when the name is a compiled declaration or a registered synthetic root.</returns>
     public bool TryGetCompiledDeclaration(
         string name,
         [NotNullWhen(true)] out CStructElement? declaration)
@@ -111,6 +133,8 @@ internal sealed class CompiledModelQueries
     ///     Builds the diagnostic for a root name the layout does not declare. It lists the declared roots, and
     ///     points out a name that differs only in case, because a capitalized spelling is the usual mistake.
     /// </summary>
+    /// <param name="requested">The root name the caller asked for.</param>
+    /// <returns>The exception to throw; this method does not throw it.</returns>
     public CStructPathException UnknownRoot(string requested)
     {
         var names = new List<string>();
@@ -136,6 +160,8 @@ internal sealed class CompiledModelQueries
     }
 
     /// <summary>Returns the first exported struct or union name in source order for convenience overloads.</summary>
+    /// <returns>The name of the first declared struct or union.</returns>
+    /// <exception cref="CStructLayoutException">The layout declares no struct or union.</exception>
     public string GetFirstCompiledStructName()
     {
         foreach (KeyValuePair<string, CStructElement> declaration in this.compiledLayout.OrderedDeclarations)
@@ -150,6 +176,10 @@ internal sealed class CompiledModelQueries
     }
 
     /// <summary>Projects one exported parsed declaration to its already resolved named type, if it has one.</summary>
+    /// <param name="declaration">An exported struct, union, enum, or typedef declaration.</param>
+    /// <returns>
+    ///     The declaration itself for a struct, union, or enum; a typedef's resolved named type; otherwise null.
+    /// </returns>
     public CStructElement? ResolveCompiledNamedElement(CStructElement declaration)
     {
         return declaration switch

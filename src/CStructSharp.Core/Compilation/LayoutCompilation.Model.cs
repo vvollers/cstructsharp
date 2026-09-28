@@ -21,6 +21,8 @@ internal sealed partial class LayoutCompilation
     internal CompiledLayoutModel CompiledModel => this.compiledLayout;
 
     /// <summary>The codec id a synthetic root of <paramref name="symbol"/> reads with (a primitive's own, an enum's underlying, else none).</summary>
+    /// <param name="symbol">The compiled type the synthetic root declares.</param>
+    /// <returns>The codec id, or <see cref="PrimitiveCatalog.NoCodec"/> for a struct, union, or other type.</returns>
     internal static int CodecIdOf(CompiledTypeSymbol symbol)
     {
         return GetCompiledCodecId(symbol);
@@ -404,6 +406,9 @@ internal sealed partial class LayoutCompilation
     }
 
     /// <summary>The compiled enum of a declaration, for the browser bridge's static plan description.</summary>
+    /// <param name="declaration">The parsed enum declaration of this layout.</param>
+    /// <returns>The compiled enum bound to the declaration's name.</returns>
+    /// <exception cref="InvalidOperationException">The declaration's name is not bound to a compiled enum.</exception>
     internal CompiledEnumType GetCompiledEnumForInterop(Syntax.Enum declaration)
     {
         return this.compiledModelQueries.GetCompiledEnum(declaration);

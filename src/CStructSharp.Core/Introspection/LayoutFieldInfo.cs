@@ -5,6 +5,19 @@ using System.Collections.Generic;
 /// <summary>One field of a struct or union.</summary>
 public sealed class LayoutFieldInfo
 {
+    /// <summary>Creates the description of one field; each argument sets the property of the same name.</summary>
+    /// <param name="name">The field name, or empty for an anonymous member.</param>
+    /// <param name="typeName">The resolved type name.</param>
+    /// <param name="pointerDepth">The pointer depth, 0 for a value field.</param>
+    /// <param name="arrayKind">How the field's elements are counted.</param>
+    /// <param name="dimensions">Each dimension's count, outermost first; <see langword="null"/> if runtime.</param>
+    /// <param name="offset">The static byte offset from the containing composite's start.</param>
+    /// <param name="size">The static total storage size in bytes, or <see langword="null"/>.</param>
+    /// <param name="bitWidth">The bitfield width in bits, or <see langword="null"/> for a non-bitfield.</param>
+    /// <param name="bitOffset">The bit offset inside the bitfield's storage unit, or <see langword="null"/>.</param>
+    /// <param name="isAnonymous">Whether the field is an anonymous promoted member.</param>
+    /// <param name="isConditional">Whether the field exists only when a conditional selects it.</param>
+    /// <param name="promotedFields">The fields of an anonymous promoted member; empty otherwise.</param>
     internal LayoutFieldInfo(
         string name,
         string typeName,

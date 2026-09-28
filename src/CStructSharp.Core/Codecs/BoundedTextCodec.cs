@@ -13,12 +13,20 @@ internal static class BoundedTextCodec
     public static readonly Encoding Latin1 = Encoding.GetEncoding(28591, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
 
     /// <summary>Identifies byte-counted text primitive spellings.</summary>
+    /// <param name="type">The primitive type spelling to test, such as <c>utf8</c>.</param>
+    /// <returns><see langword="true"/> when the spelling names a byte-counted text type.</returns>
     public static bool IsType(string type) => type is "utf8" or "latin1" or "cp437" or "utf16le" or "utf16be";
 
     /// <summary>Identifies encodings that require an even byte capacity.</summary>
+    /// <param name="type">The text type spelling to test.</param>
+    /// <returns><see langword="true"/> for <c>utf16le</c> and <c>utf16be</c>, whose units are two bytes.</returns>
     public static bool IsUtf16(string type) => type is "utf16le" or "utf16be";
 
     /// <summary>Decodes a complete field without consuming neighbouring bytes or stripping a BOM.</summary>
+    /// <param name="type">The text type spelling that selects the encoding.</param>
+    /// <param name="bytes">The field's complete bytes, including any padding or terminator bytes.</param>
+    /// <returns>The decoded text; any BOM and embedded NUL characters are kept.</returns>
+    /// <exception cref="DecoderFallbackException">The bytes are not valid in the strict encoding.</exception>
     public static string Decode(string type, byte[] bytes)
     {
         if (type != "cp437")
@@ -36,6 +44,10 @@ internal static class BoundedTextCodec
     }
 
     /// <summary>Validates the writer domain and calculates capacity before allocation.</summary>
+    /// <param name="type">The text type spelling that selects the encoding.</param>
+    /// <param name="value">The text to measure.</param>
+    /// <returns>The number of bytes <see cref="Encode"/> produces for the text.</returns>
+    /// <exception cref="EncoderFallbackException">A character cannot be represented in the encoding.</exception>
     public static int GetByteCount(string type, string value)
     {
         if (type != "cp437")
@@ -52,6 +64,10 @@ internal static class BoundedTextCodec
     }
 
     /// <summary>Encodes strict text without inserting a BOM or terminator.</summary>
+    /// <param name="type">The text type spelling that selects the encoding.</param>
+    /// <param name="value">The text to encode.</param>
+    /// <returns>A new array holding exactly the encoded bytes.</returns>
+    /// <exception cref="EncoderFallbackException">A character cannot be represented in the encoding.</exception>
     public static byte[] Encode(string type, string value)
     {
         if (type != "cp437")

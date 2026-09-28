@@ -34,12 +34,16 @@ internal sealed class ExpressionEvaluator
         new(new ExpressionEvaluationLimits(DefaultMaximumDepth, DefaultMaximumNodes));
 
     /// <summary>Creates an evaluator whose limits are an immutable snapshot of the compilation settings.</summary>
+    /// <param name="limits">The maximum tree depth and node work every compilation and evaluation may use.</param>
     public ExpressionEvaluator(ExpressionEvaluationLimits limits)
     {
         this.limits = limits;
     }
 
     /// <summary>Compiles and evaluates one expression against the supplied immutable name view.</summary>
+    /// <param name="expression">The expression tree to compile (or fetch from the cache) and run.</param>
+    /// <param name="variables">The names identifiers resolve to, or <see langword="null"/> for no names.</param>
+    /// <returns>The signed 32-bit value of the expression.</returns>
     public int Evaluate(Expr expression, IReadOnlyDictionary<string, Expr>? variables = null)
     {
         CompiledExpression program = this.GetProgram(expression);
@@ -131,6 +135,13 @@ internal sealed class ExpressionEvaluator
     /// <summary>
     ///     Evaluates one enum expression as an exact mathematical integer while retaining the configured depth/work limits.
     /// </summary>
+    /// <param name="expression">The enum value expression to evaluate.</param>
+    /// <param name="variables">The names identifiers resolve to, or <see langword="null"/> for no names.</param>
+    /// <param name="shiftWidth">
+    ///     The exclusive upper bound, in bits, for shift counts (usually the enum's underlying bit width).
+    /// </param>
+    /// <returns>The exact integer value, which may lie outside the signed 32-bit range.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="shiftWidth"/> is not positive.</exception>
     public BigInteger EvaluateExact(
         Expr expression,
         IReadOnlyDictionary<string, Expr>? variables,
@@ -150,6 +161,8 @@ internal sealed class ExpressionEvaluator
     }
 
     /// <summary>Creates a session that shares one work counter, identifier cache, and cycle detector.</summary>
+    /// <param name="variables">The names identifiers resolve to, or <see langword="null"/> for no names.</param>
+    /// <returns>A new session bound to this evaluator's limits.</returns>
     public ExpressionEvaluationSession CreateSession(IReadOnlyDictionary<string, Expr>? variables = null)
     {
         return new ExpressionEvaluationSession(
@@ -159,6 +172,10 @@ internal sealed class ExpressionEvaluator
     }
 
     /// <summary>Whether the tree contains a call node (<c>sizeof(T)</c>, <c>offsetof(T, f)</c>), which the compiler folds before compilation.</summary>
+    /// <param name="expression">The root of the tree to search.</param>
+    /// <returns>
+    ///     <see langword="true"/> when any node in the tree is a call; otherwise <see langword="false"/>.
+    /// </returns>
     public static bool ContainsCall(Expr expression)
     {
         var pending = new Stack<Expr>();
@@ -188,12 +205,15 @@ internal sealed class ExpressionEvaluator
     }
 
     /// <summary>Compiles one expression now so unsupported or over-budget trees fail during layout construction.</summary>
+    /// <param name="expression">The expression tree to compile and cache.</param>
     public void Compile(Expr expression)
     {
         _ = this.GetProgram(expression);
     }
 
     /// <summary>Returns the direct identifier dependencies recorded in the compiled immutable program.</summary>
+    /// <param name="expression">The expression whose identifiers are listed; it is compiled if not cached.</param>
+    /// <returns>The distinct identifier names the expression references directly, without transitive ones.</returns>
     public IReadOnlyCollection<string> GetDependencies(Expr expression)
     {
         return this.GetProgram(expression).Dependencies;
@@ -393,6 +413,11 @@ internal sealed class ExpressionEvaluator
         private int validatedNodes;
 
         /// <summary>Creates one bounded evaluation session.</summary>
+        /// <param name="evaluator">The evaluator whose compiled-program cache the session uses.</param>
+        /// <param name="variables">
+        ///     The names identifiers resolve to; each is evaluated at most once per session.
+        /// </param>
+        /// <param name="limits">The depth and total work limits shared by every evaluation in the session.</param>
         public ExpressionEvaluationSession(
             ExpressionEvaluator evaluator,
             IReadOnlyDictionary<string, Expr> variables,
@@ -404,6 +429,8 @@ internal sealed class ExpressionEvaluator
         }
 
         /// <summary>Evaluates one root while retaining the session's dependency values and total work counter.</summary>
+        /// <param name="expression">The expression tree to compile (or fetch from the cache) and run.</param>
+        /// <returns>The signed 32-bit value of the expression.</returns>
         public int Evaluate(Expr expression)
         {
             CompiledExpression program = this.evaluator.GetProgram(expression);
@@ -621,6 +648,15 @@ internal sealed class ExpressionEvaluator
         }
 
         /// <summary>Applies the documented signed-Int32 operator semantics (<see cref="ExpressionArithmetic"/>).</summary>
+        /// <param name="opcode">The binary operator to apply; unary, literal, and jump opcodes are rejected.</param>
+        /// <param name="left">The left operand.</param>
+        /// <param name="right">The right operand (the divisor, or the shift count in bits).</param>
+        /// <returns>The operator's signed 32-bit result; comparisons and logical operators yield 0 or 1.</returns>
+        /// <exception cref="InvalidOperationException">
+        ///     The opcode is not a binary operator, or a shift count is outside 0-31.
+        /// </exception>
+        /// <exception cref="OverflowException">The result does not fit the signed 32-bit domain.</exception>
+        /// <exception cref="DivideByZeroException">A division or remainder has a zero divisor.</exception>
         internal static int EvaluateBinary(ExpressionOpcode opcode, int left, int right)
         {
             return opcode switch
@@ -909,33 +945,100 @@ internal sealed class ExpressionEvaluator
     /// <summary>Lists the executable operations supported by the CStructSharp expression subset.</summary>
     internal enum ExpressionOpcode
     {
+        /// <summary>
+        ///     Short-circuits <c>&amp;&amp;</c>: when the top value is zero, replaces it with 0 and jumps past the
+        ///     right operand; otherwise leaves the stack unchanged and continues.
+        /// </summary>
         JumpIfFalse,
+
+        /// <summary>
+        ///     Short-circuits <c>||</c>: when the top value is non-zero, replaces it with 1 and jumps past the right
+        ///     operand; otherwise leaves the stack unchanged and continues.
+        /// </summary>
         JumpIfTrue,
+
+        /// <summary>Pops two values and pushes 1 when both are non-zero, otherwise 0.</summary>
         LogicalAnd,
+
+        /// <summary>Pops two values and pushes 1 when either is non-zero, otherwise 0.</summary>
         LogicalOr,
+
+        /// <summary>Replaces the top value with 1 when it is zero, otherwise 0.</summary>
         LogicalNot,
+
+        /// <summary>Pops two values and pushes 1 when they are equal, otherwise 0.</summary>
         Equal,
+
+        /// <summary>Pops two values and pushes 1 when they differ, otherwise 0.</summary>
         NotEqual,
+
+        /// <summary>Pops two values and pushes 1 when the left is less than the right, otherwise 0.</summary>
         Less,
+
+        /// <summary>Pops two values and pushes 1 when the left is at most the right, otherwise 0.</summary>
         LessOrEqual,
+
+        /// <summary>Pops two values and pushes 1 when the left is greater than the right, otherwise 0.</summary>
         Greater,
+
+        /// <summary>Pops two values and pushes 1 when the left is at least the right, otherwise 0.</summary>
         GreaterOrEqual,
+
+        /// <summary>Pushes the instruction's constant value.</summary>
         Literal,
+
+        /// <summary>Evaluates the named dependency (once per session) and pushes its value.</summary>
         Identifier,
+
+        /// <summary>Replaces the top value with its bitwise complement (<c>~</c>).</summary>
         Complement,
+
+        /// <summary>Replaces the top value with its checked arithmetic negation (unary <c>-</c>).</summary>
         Negate,
+
+        /// <summary>Pops two values and pushes their checked sum.</summary>
         Add,
+
+        /// <summary>Pops two values and pushes the checked difference of left minus right.</summary>
         Subtract,
+
+        /// <summary>Pops two values and pushes their bitwise AND (<c>&amp;</c>).</summary>
         And,
+
+        /// <summary>Pops two values and pushes the truncating quotient; a zero divisor fails.</summary>
         Divide,
+
+        /// <summary>Pops two values and pushes their checked product.</summary>
         Multiply,
+
+        /// <summary>Pops two values and pushes their bitwise OR (<c>|</c>).</summary>
         Or,
+
+        /// <summary>
+        ///     Pops two values and pushes the left shifted left by a bit count from 0 to 31, rejecting overflow.
+        /// </summary>
         ShiftLeft,
+
+        /// <summary>
+        ///     Pops two values and pushes the left arithmetically shifted right by a bit count from 0 to 31.
+        /// </summary>
         ShiftRight,
+
+        /// <summary>
+        ///     Pops two values and pushes the C# remainder of left divided by right; a zero divisor fails.
+        /// </summary>
         Modulo,
+
+        /// <summary>Pops two values and pushes their bitwise exclusive OR (<c>^</c>).</summary>
         Xor,
+
+        /// <summary>Pops the condition of <c>?:</c> and jumps to the else arm when it is zero.</summary>
         BranchIfFalse,
+
+        /// <summary>Jumps unconditionally, used to skip the else arm after the then arm of <c>?:</c>.</summary>
         Jump,
+
+        /// <summary>Marks the point where both arms of <c>?:</c> meet; it does nothing at run time.</summary>
         Join,
     }
 }

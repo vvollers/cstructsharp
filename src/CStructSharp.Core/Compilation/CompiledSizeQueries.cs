@@ -21,6 +21,15 @@ internal sealed class CompiledSizeQueries
     private readonly IReadOnlyDictionary<Struct, CompiledTypeSymbol> compositeSymbols;
     private readonly LayoutExpressionEvaluator expressionEvaluator;
 
+    /// <summary>Creates size queries over a composite-symbol table and the layout's placement settings.</summary>
+    /// <param name="compositeSymbols">
+    ///     The live map from parsed struct/union declarations to their compiled symbols; read on each query, not
+    ///     copied.
+    /// </param>
+    /// <param name="aligned">Whether fields are placed at their natural alignment (C-style padding).</param>
+    /// <param name="bitfieldPacking">How adjacent bit-fields share storage units.</param>
+    /// <param name="highBitFirst">Whether bit-fields are allocated from the most significant bit of their unit.</param>
+    /// <param name="expressionEvaluator">The evaluator for array count and conditional-field expressions.</param>
     public CompiledSizeQueries(
         IReadOnlyDictionary<Struct, CompiledTypeSymbol> compositeSymbols,
         bool aligned,
@@ -36,6 +45,9 @@ internal sealed class CompiledSizeQueries
     }
 
     /// <summary>Returns the immutable composite descriptor for an exact parsed struct declaration.</summary>
+    /// <param name="strct">The parsed struct or union declaration, matched by reference.</param>
+    /// <returns>The compiled composite bound to <paramref name="strct"/>.</returns>
+    /// <exception cref="InvalidOperationException">The composite definition is not yet bound.</exception>
     public CompiledCompositeType GetCompiledComposite(Struct strct)
     {
         CompiledTypeSymbol symbol = this.compositeSymbols[strct];
@@ -44,6 +56,19 @@ internal sealed class CompiledSizeQueries
     }
 
     /// <summary>Calculates one composite extent from compiled field/type facts and runtime count expressions only.</summary>
+    /// <param name="composite">The compiled struct or union to measure.</param>
+    /// <param name="variables">
+    ///     Values for identifiers in count expressions, such as already-read sibling fields; empty for fixed-size
+    ///     queries.
+    /// </param>
+    /// <param name="requireFixedSize">
+    ///     True when the size must be fixed by the layout alone, so evaluation failures are layout errors; false
+    ///     when it runs inside a read or address operation, so failures are read errors.
+    /// </param>
+    /// <returns>
+    ///     The composite's size in bytes including trailing padding; for a union, its largest member rounded to its
+    ///     alignment; 0 when it has no fields.
+    /// </returns>
     public int GetCompiledStructSizeInBytes(
         CompiledCompositeType composite,
         IReadOnlyDictionary<string, Expr> variables,
@@ -91,6 +116,16 @@ internal sealed class CompiledSizeQueries
     }
 
     /// <summary>Calculates one compiled field's complete storage without resolving its parsed type name.</summary>
+    /// <param name="field">The compiled field to measure.</param>
+    /// <param name="variables">
+    ///     Values for identifiers in count expressions, such as already-read sibling fields; empty for fixed-size
+    ///     queries.
+    /// </param>
+    /// <param name="requireFixedSize">
+    ///     True when the size must be fixed by the layout alone, so evaluation failures are layout errors; false
+    ///     when it runs inside a read or address operation, so failures are read errors.
+    /// </param>
+    /// <returns>The field's storage in bytes: its element size times its total element count.</returns>
     public int GetCompiledFieldStorageSize(
         CompiledField field,
         IReadOnlyDictionary<string, Expr> variables,
@@ -102,6 +137,17 @@ internal sealed class CompiledSizeQueries
     }
 
     /// <summary>Calculates one compiled element footprint from its direct pointer, codec, enum, or composite target.</summary>
+    /// <param name="field">The compiled field whose single element is measured.</param>
+    /// <param name="variables">
+    ///     Values for identifiers in count expressions, such as already-read sibling fields; empty for fixed-size
+    ///     queries.
+    /// </param>
+    /// <param name="requireFixedSize">
+    ///     True when the size must be fixed by the layout alone, so evaluation failures are layout errors; false
+    ///     when it runs inside a read or address operation, so failures are read errors.
+    /// </param>
+    /// <returns>The size in bytes of one element of the field (not the whole array).</returns>
+    /// <exception cref="CStructLayoutException">The element type has no fixed storage size.</exception>
     public int GetCompiledFieldElementSize(
         CompiledField field,
         IReadOnlyDictionary<string, Expr> variables,
@@ -125,6 +171,17 @@ internal sealed class CompiledSizeQueries
     }
 
     /// <summary>Evaluates one compiled array strategy while preserving fixed/flexible error semantics.</summary>
+    /// <param name="field">The compiled field whose outermost array count is evaluated.</param>
+    /// <param name="variables">
+    ///     Values for identifiers in count expressions, such as already-read sibling fields; empty for fixed-size
+    ///     queries.
+    /// </param>
+    /// <param name="requireFixedSize">
+    ///     True when the size must be fixed by the layout alone, so evaluation failures are layout errors; false
+    ///     when it runs inside a read or address operation, so failures are read errors.
+    /// </param>
+    /// <returns>The outermost dimension's element count, or 1 for a scalar field.</returns>
+    /// <exception cref="CStructLayoutException">The array is flexible, read to the end, or terminated.</exception>
     public int GetCompiledArrayCount(
         CompiledField field,
         IReadOnlyDictionary<string, Expr> variables,
@@ -149,11 +206,21 @@ internal sealed class CompiledSizeQueries
 
     /// <summary>
     ///     Evaluates the total element count across every dimension of a (possibly multidimensional)
-    ///     array strategy - the product of each dimension's own independently re-evaluated count, mirroring
-    ///     <see cref="GetCompiledArrayCount"/>'s existing single-dimension evaluation exactly for every field this
-    ///     Codebase supported before multidimensional arrays, since a 1-D field's <see cref="CompiledArrayShape.Dimensions"/> has
-    ///     exactly the one entry <see cref="GetCompiledArrayCount"/> already evaluates.
+    ///     array strategy - the product of each dimension's own independently re-evaluated count. For a
+    ///     one-dimensional field, whose <see cref="CompiledArrayShape.Dimensions"/> has one entry, this equals
+    ///     <see cref="GetCompiledArrayCount"/>.
     /// </summary>
+    /// <param name="field">The compiled field whose dimensions are multiplied.</param>
+    /// <param name="variables">
+    ///     Values for identifiers in count expressions, such as already-read sibling fields; empty for fixed-size
+    ///     queries.
+    /// </param>
+    /// <param name="requireFixedSize">
+    ///     True when the size must be fixed by the layout alone, so evaluation failures are layout errors; false
+    ///     when it runs inside a read or address operation, so failures are read errors.
+    /// </param>
+    /// <returns>The product of every dimension's count in elements, or 1 for a scalar field.</returns>
+    /// <exception cref="CStructLayoutException">The array is flexible, read to the end, or terminated.</exception>
     public int GetCompiledFieldTotalElementCount(
         CompiledField field,
         IReadOnlyDictionary<string, Expr> variables,

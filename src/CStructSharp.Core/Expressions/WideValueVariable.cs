@@ -23,6 +23,9 @@ internal sealed class WideValueVariable : UnusableVariable
     public object WideValue { get; }
 
     /// <summary>The text for a member whose value an expression selected but which is outside the 32-bit range.</summary>
+    /// <param name="name">The variable or member name the expression referenced.</param>
+    /// <param name="value">The out-of-range integer, formatted with the invariant culture.</param>
+    /// <returns>A message naming the member and its actual value.</returns>
     public static string DescribeOutOfRange(string name, object value)
     {
         string text = value is IFormattable formattable

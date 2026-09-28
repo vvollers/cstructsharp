@@ -8,8 +8,8 @@ using System.Globalization;
 ///     raising exceptions for the ordinary out-of-range case. Semantics match <see cref="Convert.ToInt32(object)"/>
 ///     exactly for every primitive the codecs produce (including half-to-even rounding of floating-point values
 ///     and the NaN/infinity rejection); types outside that set fall back to <see cref="Convert.ToInt32(object)"/>
-///     under the same exception filter the capture sites always used, so custom <see cref="IConvertible"/>
-///     implementations and <see cref="Enum"/> members keep their previous behavior.
+///     with its overflow, cast and format failures reported as a value that cannot be captured, so custom
+///     <see cref="IConvertible"/> implementations and <see cref="Enum"/> members convert as they define.
 /// </summary>
 internal static class Int32Capture
 {
@@ -17,6 +17,9 @@ internal static class Int32Capture
     ///     Attempts the conversion; <see langword="false"/> means the value cannot become an Int32 layout variable,
     ///     which the callers report as an out-of-range or non-integer layout variable.
     /// </summary>
+    /// <param name="value">The captured or caller-supplied scalar; <see langword="null"/> converts to 0.</param>
+    /// <param name="result">The converted value on success; otherwise 0.</param>
+    /// <returns><see langword="true"/> when the value converts to an Int32 without overflow.</returns>
     public static bool TryConvert(object? value, out int result)
     {
         switch (value)
@@ -70,6 +73,10 @@ internal static class Int32Capture
         }
     }
 
+    /// <summary>Narrows a 64-bit integer to Int32, returning false instead of throwing when it does not fit.</summary>
+    /// <param name="value">The value to narrow.</param>
+    /// <param name="result">The same value as an Int32 on success; otherwise 0.</param>
+    /// <returns><see langword="true"/> when <paramref name="value"/> lies within the Int32 range.</returns>
     public static bool TryFromInt64(long value, out int result)
     {
         if (value is < int.MinValue or > int.MaxValue)

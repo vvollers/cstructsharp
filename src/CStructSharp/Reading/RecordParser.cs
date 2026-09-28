@@ -22,12 +22,27 @@ using CStructSharp.Values;
 internal static class RecordParser
 {
     /// <summary>The reader that parses one record of <paramref name="root"/> from a slice of the input.</summary>
+    /// <param name="layout">The compiled layout that declares the record struct.</param>
+    /// <param name="root">The record struct's name and, when known, its fixed size in bytes.</param>
+    /// <param name="variables">The caller's layout variables, applied to every record.</param>
+    /// <returns>
+    ///     A reader that decodes one record at a given byte offset in its source and reports the bytes consumed.
+    /// </returns>
     public static RecordReader<StructValue> Reader(CStruct layout, RecordRoot root, LayoutVariableInput variables)
     {
         return (ReadOnlyMemory<byte> source, int offset, int index, long shift, ReadOptions? options, out int consumed) => ParseAt(layout, source, offset, index, shift, root, variables, options, out consumed);
     }
 
     /// <summary>The records of a seekable stream, read with the stream reader from the current position to the end; the stream is left after the last record read, or where a failed read stopped.</summary>
+    /// <param name="layout">The compiled layout that declares the record struct.</param>
+    /// <param name="stream">The readable, seekable stream; reading starts at its current position.</param>
+    /// <param name="root">The record struct's name and, when known, its fixed size in bytes.</param>
+    /// <param name="variables">The caller's layout variables, applied to every record.</param>
+    /// <param name="options">Optional read limits and pointer settings, applied to each record separately.</param>
+    /// <returns>A lazy sequence yielding one decoded record per step until the stream's end.</returns>
+    /// <exception cref="CStructException">
+    ///     A record is truncated, consumes no bytes, or fails to read; the failure names the record's index.
+    /// </exception>
     public static IEnumerable<StructValue> FromStream(CStruct layout, Stream stream, RecordRoot root, LayoutVariableInput variables, ReadOptions? options)
     {
         for (int index = 0; stream.Position < stream.Length; index++)

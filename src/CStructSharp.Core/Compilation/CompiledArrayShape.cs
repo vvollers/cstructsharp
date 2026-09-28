@@ -82,6 +82,7 @@ internal sealed class CompiledArrayShape
     ///     an N-dimensional shape by calling this once per dimension, exactly the same way a 1-D array's single
     ///     dimension has always been consumed in one call.
     /// </summary>
+    /// <returns>A fixed shape of the remaining dimensions, or <see cref="Scalar"/> for at most one.</returns>
     public CompiledArrayShape PeelOuterDimension()
     {
         if (this.Dimensions.Length <= 1)

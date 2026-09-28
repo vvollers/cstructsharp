@@ -19,6 +19,10 @@ internal readonly partial record struct PrimitiveCodec
     ///     conversion (and the same range failures) as the stream write handler for the same primitive name, so a
     ///     static write plan produces the bytes and the errors the general writer produces.
     /// </summary>
+    /// <param name="bytes">The destination, at least this codec's size; the value fills its first bytes.</param>
+    /// <param name="value">The number to encode, converted to the codec's type with the invariant culture.</param>
+    /// <exception cref="OverflowException">The value is outside the codec type's range.</exception>
+    /// <exception cref="InvalidOperationException">This codec is not a fixed-width numeric codec.</exception>
     public void WriteNumeric(Span<byte> bytes, object value)
     {
         bool le = this.LittleEndian;
@@ -69,6 +73,9 @@ internal readonly partial record struct PrimitiveCodec
     }
 
     /// <summary>Decodes one fixed-width numeric element from exactly its bytes into the same boxed CLR type the stream codec produces.</summary>
+    /// <param name="bytes">The encoded element, starting at its first byte.</param>
+    /// <returns>The boxed value, such as a <c>short</c> for <c>int16</c>; one-byte values share cached boxes.</returns>
+    /// <exception cref="InvalidOperationException">This codec is not a fixed-width numeric codec.</exception>
     public object ReadNumeric(ReadOnlySpan<byte> bytes)
     {
         bool le = this.LittleEndian;

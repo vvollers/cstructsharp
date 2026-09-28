@@ -11,6 +11,7 @@ using System.Threading;
 /// </summary>
 internal sealed class StructShape
 {
+    /// <summary>The shape of a composite without members, shared by every such composite.</summary>
     public static readonly StructShape Empty = new(Array.Empty<string>());
 
     private const int ReferenceScanLimit = 16;
@@ -68,8 +69,10 @@ internal sealed class StructShape
         }
     }
 
+    /// <summary>Gets the member names in slot order; callers must not modify the array.</summary>
     public string[] Names { get; }
 
+    /// <summary>Gets the number of members, which is also the slot count of each struct value.</summary>
     public int Count => this.Names.Length;
 
     /// <summary>

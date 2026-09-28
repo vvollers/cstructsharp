@@ -76,6 +76,10 @@ internal static class PrimitiveSpellings
     ///     Returns the canonical registry key for an alias, the <c>long</c> family member for the requested width, the
     ///     pointer-sized family member for the requested pointer width, or the spelling itself.
     /// </summary>
+    /// <param name="spelling">The type spelling, such as <c>unsigned long</c> or <c>DWORD</c>.</param>
+    /// <param name="cLongWidth">The width of C <c>long</c> in bits (32 or 64).</param>
+    /// <param name="pointerSize">The layout's pointer size in bytes.</param>
+    /// <returns>The canonical registry key, or <paramref name="spelling"/> unchanged when it is not an alias.</returns>
     public static string Canonicalize(string spelling, int cLongWidth, int pointerSize = 8)
     {
         if (Aliases.TryGetValue(spelling, out string? canonical))
@@ -97,6 +101,10 @@ internal static class PrimitiveSpellings
     }
 
     /// <summary>Whether a spelling is an alias (and may therefore be shadowed by a user declaration of the same name).</summary>
+    /// <param name="spelling">The type spelling to test.</param>
+    /// <returns>
+    ///     <see langword="true"/> for a fixed alias, a <c>long</c> or pointer-sized family member, or a pointer alias.
+    /// </returns>
     public static bool IsAlias(string spelling)
     {
         return Aliases.ContainsKey(spelling) || LongFamilyIsUnsigned.ContainsKey(spelling) || PointerSizedIsUnsigned.ContainsKey(spelling) ||
@@ -104,12 +112,18 @@ internal static class PrimitiveSpellings
     }
 
     /// <summary>The canonical codec for one pointer-sized family member at the layout's pointer width.</summary>
+    /// <param name="isUnsigned">Whether the family member is unsigned, as <c>size_t</c> is.</param>
+    /// <param name="pointerSize">The layout's pointer size in bytes.</param>
+    /// <returns>The canonical codec name, such as <c>uint64</c> for an unsigned member with 8-byte pointers.</returns>
     public static string PointerSizedCanonical(bool isUnsigned, int pointerSize)
     {
         return (isUnsigned ? "uint" : "int") + (pointerSize * 8).ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
     /// <summary>The canonical codec for one <c>long</c> family member at the configured width.</summary>
+    /// <param name="isUnsigned">Whether the family member is unsigned, as <c>unsigned long</c> is.</param>
+    /// <param name="cLongWidth">The width of C <c>long</c> in bits: 32, or anything else for 64.</param>
+    /// <returns>The canonical codec name, such as <c>uint32</c> or <c>int64</c>.</returns>
     public static string LongCanonical(bool isUnsigned, int cLongWidth)
     {
         return cLongWidth == 32

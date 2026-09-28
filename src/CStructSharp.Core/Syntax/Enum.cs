@@ -12,12 +12,21 @@ internal class Enum : CStructElement
     private readonly ImmutableArray<EnumValue> evaluatedValues;
 
     /// <summary>Creates a <c>uint32</c>-backed enum (the compiler default for non-negative members) and fills in values omitted from the declaration.</summary>
+    /// <param name="name">The enum's declared name.</param>
+    /// <param name="values">
+    ///     The members in declaration order; a member without an expression gets the next value.
+    /// </param>
     public Enum(Identifier name, ImmutableArray<EnumValue> values)
         : this(name, values, Identifier.UINT32)
     {
     }
 
     /// <summary>Creates an enum with an explicit storage type and fills in values omitted from the declaration.</summary>
+    /// <param name="name">The enum's declared name.</param>
+    /// <param name="values">
+    ///     The members in declaration order; a member without an expression gets the next value.
+    /// </param>
+    /// <param name="type">The primitive type that stores the enum's numeric value.</param>
     public Enum(Identifier name, ImmutableArray<EnumValue> values, Identifier type)
         : this(
             name,
@@ -48,8 +57,10 @@ internal class Enum : CStructElement
         this.IsFlag = isFlag;
     }
 
+    /// <summary>Gets the enum's declared name.</summary>
     public override Identifier Name { get; }
 
+    /// <summary>Gets the primitive type that stores the enum's numeric value.</summary>
     public Identifier Type { get; }
 
     /// <summary>
@@ -58,6 +69,10 @@ internal class Enum : CStructElement
     /// </summary>
     public bool IsFlag { get; }
 
+    /// <summary>
+    ///     Gets the members in declaration order with every value evaluated to a literal, including omitted values.
+    ///     A parser-form enum is evaluated with the default evaluator (shift counts below 64, no range check) on each access.
+    /// </summary>
     public ImmutableArray<EnumValue> Values
     {
         get => this.evaluatedValues.IsDefault
@@ -72,9 +87,18 @@ internal class Enum : CStructElement
                    : this.evaluatedValues;
     }
 
+    /// <summary>Gets the members in declaration order with their value expressions as written.</summary>
     internal ImmutableArray<EnumValue> DeclaredValues { get; }
 
     /// <summary>Creates the parser form without evaluating expressions before compilation options are available.</summary>
+    /// <param name="name">The enum's declared name.</param>
+    /// <param name="values">The members in declaration order, with their expressions as written.</param>
+    /// <param name="type">The primitive type that stores the enum's numeric value.</param>
+    /// <param name="isFlag">Whether the declaration is a <c>flag</c> (bitmask) enum.</param>
+    /// <returns>
+    ///     An enum whose member values are evaluated later, by <see cref="Evaluate"/> or on access to
+    ///     <see cref="Values"/>.
+    /// </returns>
     internal static Enum CreateUnevaluated(
         Identifier name,
         ImmutableArray<EnumValue> values,
@@ -85,6 +109,16 @@ internal class Enum : CStructElement
     }
 
     /// <summary>Returns an enum whose values were checked with the owning compiled layout's evaluator.</summary>
+    /// <param name="evaluator">The compiled layout's evaluator, which applies its depth and work limits.</param>
+    /// <param name="staticVariables">The layout's constant names (such as defines) member expressions may use.</param>
+    /// <param name="bitWidth">The storage type's size in bits, which bounds shift counts in member expressions.</param>
+    /// <param name="minimum">The smallest value the storage type can hold.</param>
+    /// <param name="maximum">The largest value the storage type can hold.</param>
+    /// <returns>A new enum with the same declaration and every member value evaluated exactly.</returns>
+    /// <exception cref="global::CStructSharp.Diagnostics.CStructLayoutException">
+    ///     A member value lies outside <paramref name="minimum"/> to <paramref name="maximum"/>, or an expression
+    ///     exceeds the evaluator's limits.
+    /// </exception>
     internal Enum Evaluate(
         global::CStructSharp.Expressions.ExpressionEvaluator evaluator,
         IReadOnlyDictionary<string, Expr> staticVariables,
@@ -108,6 +142,11 @@ internal class Enum : CStructElement
     }
 
     /// <summary>Checks whether another value represents the same layout data.</summary>
+    /// <param name="other">The item to compare with, or <see langword="null"/>.</param>
+    /// <returns>
+    ///     <see langword="true"/> when <paramref name="other"/> is an enum with the same name, flag kind, storage type,
+    ///     and evaluated member values in the same order.
+    /// </returns>
     public override bool Equals(CStructElement? other)
     {
         return other is Enum e &&
@@ -118,6 +157,7 @@ internal class Enum : CStructElement
     }
 
     /// <summary>Returns a hash code that matches this value's equality rules.</summary>
+    /// <returns>A hash code combining the name, storage type, and evaluated member values.</returns>
     public override int GetHashCode()
     {
         HashCode hash = default;
@@ -132,6 +172,7 @@ internal class Enum : CStructElement
     }
 
     /// <summary>Returns a short readable description for debugging and logs.</summary>
+    /// <returns>Text naming the kind (Enum or Flag), the name, the storage type, and the evaluated members.</returns>
     public override string ToString()
     {
         return $"{(this.IsFlag ? "Flag" : "Enum")} {this.Name} [{this.Type}] ({string.Join(", ", this.Values)})";

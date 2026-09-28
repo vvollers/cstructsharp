@@ -14,6 +14,14 @@ using System.Numerics;
 public class EnumValueResult
 {
     /// <summary>Creates one self-describing value from its validated compiled enum descriptor.</summary>
+    /// <param name="enumName">The enum declaration name; must not be empty or white space.</param>
+    /// <param name="name">The first declared member whose value matches, or null for an unknown payload.</param>
+    /// <param name="value">The exact numeric payload in the enum's declared domain.</param>
+    /// <param name="rawBits">The payload's unsigned storage bits, masked to <paramref name="bitWidth"/>.</param>
+    /// <param name="storageType">The canonical backing codec name, such as <c>int16</c>.</param>
+    /// <param name="bitWidth">The backing width in bits: 8, 16, 32, or 64.</param>
+    /// <param name="isSigned">Whether the backing type treats its high bit as a sign bit.</param>
+    /// <exception cref="ArgumentException"><paramref name="enumName"/> is null, empty, or white space.</exception>
     internal EnumValueResult(
         string enumName,
         string? name,

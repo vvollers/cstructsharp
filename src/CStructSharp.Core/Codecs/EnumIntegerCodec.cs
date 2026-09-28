@@ -18,19 +18,28 @@ internal sealed class EnumIntegerCodec
                            : (BigInteger.One << bitWidth) - BigInteger.One;
     }
 
+    /// <summary>Gets the storage width in bits: 8, 16, 32, or 64.</summary>
     public int BitWidth { get; }
 
+    /// <summary>Gets a value indicating whether the storage is two's-complement signed.</summary>
     public bool IsSigned { get; }
 
+    /// <summary>Gets the largest value the storage can hold.</summary>
     public BigInteger Maximum { get; }
 
+    /// <summary>Gets the smallest value the storage can hold; zero for unsigned storage.</summary>
     public BigInteger Minimum { get; }
 
+    /// <summary>Gets the storage size in bytes.</summary>
     public int SizeInBytes => this.BitWidth / 8;
 
+    /// <summary>Gets the canonical storage spelling, such as <c>uint8</c> for <c>byte</c>.</summary>
     public string StorageType { get; }
 
     /// <summary>Creates a canonical descriptor for an accepted direct spelling.</summary>
+    /// <param name="spelling">The storage type spelling, such as <c>uint16</c> or <c>byte</c>.</param>
+    /// <param name="codec">Receives the descriptor, or <see langword="null"/> for an unknown spelling.</param>
+    /// <returns><see langword="true"/> when <paramref name="spelling"/> names a supported storage type.</returns>
     public static bool TryCreate(string spelling, out EnumIntegerCodec? codec)
     {
         codec = spelling switch
@@ -49,6 +58,9 @@ internal sealed class EnumIntegerCodec
     }
 
     /// <summary>Accepts only mathematical integral CLR inputs; floating/fractional conversion is never implicit.</summary>
+    /// <param name="value">The value to convert; any CLR integer type or <see cref="BigInteger"/> is accepted.</param>
+    /// <param name="result">Receives the exact value, or zero when the conversion fails.</param>
+    /// <returns><see langword="true"/> when <paramref name="value"/> is an integral CLR value.</returns>
     public static bool TryConvertIntegral(object? value, out BigInteger result)
     {
         switch (value)
@@ -87,6 +99,11 @@ internal sealed class EnumIntegerCodec
     }
 
     /// <summary>Converts a primitive reader result into its exact mathematical value.</summary>
+    /// <param name="value">The boxed integer the primitive reader produced.</param>
+    /// <returns>The value as a <see cref="BigInteger"/>.</returns>
+    /// <exception cref="InvalidOperationException">
+    ///     <paramref name="value"/> is not an integer or lies outside this domain.
+    /// </exception>
     public BigInteger FromStorageValue(object value)
     {
         if (!TryConvertIntegral(value, out BigInteger result) || !this.Contains(result))
@@ -99,6 +116,9 @@ internal sealed class EnumIntegerCodec
     }
 
     /// <summary>Converts an in-domain mathematical value to its declared-width storage bits.</summary>
+    /// <param name="value">The mathematical value to encode.</param>
+    /// <returns>The two's-complement bits in the low <see cref="BitWidth"/> bits; the higher bits are zero.</returns>
+    /// <exception cref="OverflowException"><paramref name="value"/> is outside the domain.</exception>
     public ulong ToRawBits(BigInteger value)
     {
         this.EnsureInRange(value);
@@ -109,6 +129,8 @@ internal sealed class EnumIntegerCodec
     }
 
     /// <summary>Interprets declared-width storage bits through this descriptor's signedness.</summary>
+    /// <param name="rawBits">The storage bits in the low <see cref="BitWidth"/> bits.</param>
+    /// <returns>The mathematical value, sign-extended when the domain is signed.</returns>
     public BigInteger FromRawBits(ulong rawBits)
     {
         BigInteger raw = rawBits;
@@ -124,6 +146,9 @@ internal sealed class EnumIntegerCodec
     }
 
     /// <summary>Converts an exact validated value to the primitive writer's natural CLR type.</summary>
+    /// <param name="value">The mathematical value to convert.</param>
+    /// <returns>The value boxed as the CLR integer type that matches <see cref="StorageType"/>.</returns>
+    /// <exception cref="OverflowException"><paramref name="value"/> is outside the domain.</exception>
     public object ToStorageValue(BigInteger value)
     {
         this.EnsureInRange(value);
@@ -142,11 +167,20 @@ internal sealed class EnumIntegerCodec
         };
     }
 
+    /// <summary>Tests whether a mathematical value lies within this storage domain.</summary>
+    /// <param name="value">The value to test.</param>
+    /// <returns>
+    ///     <see langword="true"/> when <paramref name="value"/> is between <see cref="Minimum"/> and
+    ///     <see cref="Maximum"/> inclusive.
+    /// </returns>
     public bool Contains(BigInteger value)
     {
         return value >= this.Minimum && value <= this.Maximum;
     }
 
+    /// <summary>Rejects a mathematical value that lies outside this storage domain.</summary>
+    /// <param name="value">The value to check.</param>
+    /// <exception cref="OverflowException"><paramref name="value"/> is outside the domain.</exception>
     public void EnsureInRange(BigInteger value)
     {
         if (!this.Contains(value))

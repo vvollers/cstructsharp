@@ -11,12 +11,15 @@ internal sealed class DebugPath(DebugPath? parent, string name)
     private readonly int length = checked((parent is null ? 0 : parent.length + 1) + name.Length);
     private string? formatted;
 
+    /// <summary>The path this segment extends, or <see langword="null"/> for a first segment.</summary>
     public DebugPath? Parent { get; } = parent;
 
     /// <summary>The last segment of the path, such as <c>iv</c> in <c>rec.iv</c>.</summary>
     public string Name => this.name;
 
     /// <summary>Adapts selected-path metadata only when a caller requested debug output.</summary>
+    /// <param name="names">The path segments, outermost first.</param>
+    /// <returns>The path ending in the last segment, or <see langword="null"/> when there are no segments.</returns>
     public static DebugPath? FromNames(IEnumerable<string> names)
     {
         DebugPath? result = null;
@@ -29,6 +32,9 @@ internal sealed class DebugPath(DebugPath? parent, string name)
     }
 
     /// <summary>Formats the path once with one string allocation and no recursive traversal.</summary>
+    /// <returns>
+    ///     The segments joined with <c>.</c>, such as <c>rec.iv</c>; later calls return the cached string.
+    /// </returns>
     public override string ToString()
     {
         if (this.formatted is not null)

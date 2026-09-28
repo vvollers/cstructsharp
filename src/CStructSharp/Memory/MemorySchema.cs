@@ -182,12 +182,15 @@ public sealed class MemorySchema
     }
 
     /// <summary>Returns the core spelling used to decode a scalar or pointer; a pointer is an unsigned integer of its width.</summary>
+    /// <param name="type">A scalar or pointer definition.</param>
+    /// <returns>The scalar's own type name, or <c>uintN</c> with N the pointer's size in bits.</returns>
     internal static string CodecRoot(MemoryTypeDefinition type) => type.Kind == MemoryTypeKind.Pointer ? $"uint{type.Size * 8}" : type.ScalarType!;
 
     /// <summary>Returns the codec compiled for a whole scalar, or for one field's bit slice when the field has a width.</summary>
     /// <param name="type">Scalar or pointer definition being decoded.</param>
     /// <param name="field">The selecting field, whose bit slice chooses a slice codec; null for a whole value.</param>
     /// <param name="parentId">ID of the containing type, which keys the slice codec together with the field name.</param>
+    /// <returns>The compiled one-value layout this schema prepared for the scalar or the bit slice.</returns>
     internal CStruct GetCodec(MemoryTypeDefinition type, MemoryField? field = null, string? parentId = null)
     {
         return field?.BitWidth is not null ? this.bitLayouts[(parentId!, field.Name)] : this.scalarLayouts[type.Id];

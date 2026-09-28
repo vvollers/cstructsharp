@@ -19,9 +19,9 @@
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    <!-- StyleCop's exhaustive XML-tag rules are intentionally excluded; compiler cref validation and all
-         nullability, correctness, and formatting diagnostics remain active. -->
-    <NoWarn>$(NoWarn);CS1591;SA1600;SA1602;SA1611;SA1615;SA1618;SA1623;SA1642</NoWarn>
+    <!-- Every element, parameter, type parameter and return value is documented (CS1591, SA1600-SA1618 are errors).
+         SA1623 and SA1642 only prescribe summary wording ("Gets or sets", "Initializes a new instance") and stay off. -->
+    <NoWarn>$(NoWarn);SA1623;SA1642</NoWarn>
     <VersionPrefix>0.10.0</VersionPrefix>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <Deterministic>true</Deterministic>

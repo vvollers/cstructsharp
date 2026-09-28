@@ -25,17 +25,35 @@ internal sealed unsafe class ReadBudgetStream : Stream
     private long position;
 
     /// <summary>Wraps a readable stream without taking ownership of it.</summary>
+    /// <param name="inner">The caller-owned source stream; it is never disposed by this wrapper.</param>
+    /// <param name="options">The read options supplying the per-string and total byte budgets.</param>
+    /// <exception cref="ArgumentNullException">
+    ///     <paramref name="inner"/> or <paramref name="options"/> is null.
+    /// </exception>
     public ReadBudgetStream(Stream inner, ReadOptions options)
         : this(inner, (options ?? throw new ArgumentNullException(nameof(options))).MaxStringBytes, options.MaxTotalBytesRead)
     {
     }
 
     /// <summary>Wraps a readable stream using operation-owned limit values.</summary>
+    /// <param name="inner">The caller-owned source stream; it is never disposed by this wrapper.</param>
+    /// <param name="maxStringBytes">The largest number of encoded bytes one string may consume.</param>
+    /// <param name="maxTotalBytesRead">The largest number of bytes the whole operation may read.</param>
     public ReadBudgetStream(Stream inner, long maxStringBytes, long maxTotalBytesRead)
         : this(inner, maxStringBytes, maxTotalBytesRead, default)
     {
     }
 
+    /// <summary>
+    ///     Wraps a readable stream using operation-owned limit values and a cancellation token. A pinned
+    ///     <see cref="FixedBufferStream"/> region or an exposable <see cref="MemoryStream"/> buffer is read directly
+    ///     from memory, starting at the inner stream's current position; any other stream is read through delegation.
+    /// </summary>
+    /// <param name="inner">The caller-owned source stream; it is never disposed by this wrapper.</param>
+    /// <param name="maxStringBytes">The largest number of encoded bytes one string may consume.</param>
+    /// <param name="maxTotalBytesRead">The largest number of bytes the whole operation may read.</param>
+    /// <param name="cancellationToken">The operation's token, exposed through <see cref="CancellationToken"/>.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="inner"/> is null.</exception>
     public ReadBudgetStream(Stream inner, long maxStringBytes, long maxTotalBytesRead, System.Threading.CancellationToken cancellationToken)
     {
         this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
@@ -68,12 +86,20 @@ internal sealed unsafe class ReadBudgetStream : Stream
     /// <summary>The operation's token, checked per chunk of a terminated string and per block of a primitive array.</summary>
     public System.Threading.CancellationToken CancellationToken { get; }
 
+    /// <summary>Gets a value indicating whether the inner stream can be read.</summary>
     public override bool CanRead => this.inner.CanRead;
 
+    /// <summary>Gets a value indicating whether the inner stream supports seeking.</summary>
     public override bool CanSeek => this.inner.CanSeek;
 
+    /// <summary>Gets a value indicating whether writing is supported; always false for this wrapper.</summary>
     public override bool CanWrite => false;
 
+    /// <summary>
+    ///     Gets the source length in bytes: the memory region or buffer length when memory-backed, otherwise the inner
+    ///     stream's length.
+    /// </summary>
+    /// <exception cref="CStructReadException">The inner stream failed to report its length.</exception>
     public override long Length
     {
         get
@@ -94,6 +120,13 @@ internal sealed unsafe class ReadBudgetStream : Stream
         }
     }
 
+    /// <summary>
+    ///     Gets or sets the read position in bytes from the start of the source. Memory-backed sources keep the
+    ///     position here until <see cref="FlushPosition"/>; stream sources use the inner stream's position directly.
+    /// </summary>
+    /// <exception cref="CStructReadException">
+    ///     The position is negative, lies past a pinned region, or the inner stream failed.
+    /// </exception>
     public override long Position
     {
         get
@@ -193,6 +226,8 @@ internal sealed unsafe class ReadBudgetStream : Stream
     ///     The bytes from the current position to the end of a memory-backed source, without consuming or charging
     ///     them; false for a stream source. Pair with <see cref="Advance"/> once the consumer knows how many it used.
     /// </summary>
+    /// <param name="bytes">The borrowed remaining bytes (at most <see cref="int.MaxValue"/>), or an empty span.</param>
+    /// <returns>Whether the source is memory-backed and the remaining bytes were exposed.</returns>
     public bool TryPeekRemaining(out ReadOnlySpan<byte> bytes)
     {
         if (this.memoryBacked && this.position <= this.memoryLength)
@@ -209,6 +244,8 @@ internal sealed unsafe class ReadBudgetStream : Stream
     }
 
     /// <summary>Consumes <paramref name="count"/> bytes that <see cref="TryPeekRemaining"/> exposed, charging them like a read.</summary>
+    /// <param name="count">The number of bytes consumed from the peeked span.</param>
+    /// <exception cref="CStructReadLimitException">The advance exceeds the operation's total read budget.</exception>
     public void Advance(int count)
     {
         this.position += count;
@@ -275,6 +312,8 @@ internal sealed unsafe class ReadBudgetStream : Stream
         }
     }
 
+    /// <summary>Flushes the inner stream; the budget and the memory-mode position are unaffected.</summary>
+    /// <exception cref="CStructReadException">The inner stream failed to flush.</exception>
     public override void Flush()
     {
         try
@@ -288,6 +327,11 @@ internal sealed unsafe class ReadBudgetStream : Stream
     }
 
     /// <summary>Reads bytes while charging the operation-wide budget only for bytes actually returned.</summary>
+    /// <param name="buffer">The array that receives the bytes.</param>
+    /// <param name="offset">The zero-based index in <paramref name="buffer"/> at which to start storing bytes.</param>
+    /// <param name="count">The maximum number of bytes to read.</param>
+    /// <returns>The number of bytes read, which is 0 at the end of the source.</returns>
+    /// <exception cref="CStructReadLimitException">The read exceeds the operation's total read budget.</exception>
     public override int Read(byte[] buffer, int offset, int count)
     {
         if (this.memoryBacked)
@@ -311,6 +355,9 @@ internal sealed unsafe class ReadBudgetStream : Stream
     }
 
     /// <summary>Reads span data while charging the operation-wide budget only for bytes actually returned.</summary>
+    /// <param name="buffer">The span that receives up to its length in bytes.</param>
+    /// <returns>The number of bytes copied into the span, which is 0 at the end of the source.</returns>
+    /// <exception cref="CStructReadLimitException">The read exceeds the operation's total read budget.</exception>
     public override int Read(Span<byte> buffer)
     {
         if (this.memoryBacked)
@@ -344,6 +391,7 @@ internal sealed unsafe class ReadBudgetStream : Stream
     }
 
     /// <summary>Reads one byte while applying the same budget as bulk reads.</summary>
+    /// <returns>The byte value from 0 to 255, or -1 at the end of the source.</returns>
     public override int ReadByte()
     {
         if (this.memoryBacked)
@@ -380,6 +428,10 @@ internal sealed unsafe class ReadBudgetStream : Stream
     }
 
     /// <summary>Seeks in the wrapped stream without resetting the total physical-read budget.</summary>
+    /// <param name="offset">The byte offset relative to <paramref name="origin"/>.</param>
+    /// <param name="origin">The reference point: the source start, the current position, or the source end.</param>
+    /// <returns>The new position in bytes from the start of the source.</returns>
+    /// <exception cref="CStructReadException">The target position is invalid or the inner stream failed.</exception>
     public override long Seek(long offset, SeekOrigin origin)
     {
         if (this.memoryBacked)
@@ -406,18 +458,25 @@ internal sealed unsafe class ReadBudgetStream : Stream
     }
 
     /// <summary>Rejects length changes because this wrapper advertises a read-only stream contract.</summary>
+    /// <param name="value">The requested length, which is ignored.</param>
+    /// <exception cref="NotSupportedException">Always thrown.</exception>
     public override void SetLength(long value)
     {
         throw new NotSupportedException("The parse budget stream is read-only.");
     }
 
     /// <summary>Rejects writes because this wrapper is only used by parse operations.</summary>
+    /// <param name="buffer">The source array, which is ignored.</param>
+    /// <param name="offset">The start index in the source array, which is ignored.</param>
+    /// <param name="count">The number of bytes to write, which is ignored.</param>
+    /// <exception cref="NotSupportedException">Always thrown.</exception>
     public override void Write(byte[] buffer, int offset, int count)
     {
         throw new NotSupportedException("The parse budget stream is read-only.");
     }
 
     /// <summary>Leaves the caller-owned stream open when parser state is released.</summary>
+    /// <param name="disposing">Whether the call comes from <see cref="Stream.Dispose()"/>; nothing is released.</param>
     protected override void Dispose(bool disposing)
     {
         // Intentionally do not dispose this.inner; public CStruct methods do not take stream ownership.

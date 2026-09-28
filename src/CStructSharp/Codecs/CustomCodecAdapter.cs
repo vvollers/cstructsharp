@@ -49,6 +49,16 @@ internal static class CustomCodecAdapter
     }
 
     /// <summary>Reads one value at the stream position and leaves the stream after it.</summary>
+    /// <param name="codec">The custom codec that decodes the value.</param>
+    /// <param name="stream">
+    ///     The source, at the value's first byte; a memory-backed <see cref="ReadBudgetStream"/> is decoded in place,
+    ///     and any other stream is read through a window of at most the operation's <c>MaxStringBytes</c>.
+    /// </param>
+    /// <returns>The decoded value.</returns>
+    /// <exception cref="CStructReadException">
+    ///     The input ends before the value, the codec rejects the bytes or throws, or it reports an impossible length.
+    /// </exception>
+    /// <exception cref="CStructReadLimitException">The codec needs a window larger than the byte limit.</exception>
     public static object Read(ICustomCodec codec, Stream stream)
     {
         var budget = stream as ReadBudgetStream;
@@ -108,6 +118,13 @@ internal static class CustomCodecAdapter
     }
 
     /// <summary>Writes one value at the stream position and leaves the stream after it.</summary>
+    /// <param name="codec">The custom codec that encodes the value.</param>
+    /// <param name="stream">
+    ///     The destination, at the value's first byte; a <see cref="WriteBudgetStream"/> supplies the byte limit.
+    /// </param>
+    /// <param name="value">The caller value to encode.</param>
+    /// <exception cref="CStructWriteException">The codec rejects the value or reports an impossible length.</exception>
+    /// <exception cref="CStructWriteLimitException">The encoding needs more bytes than the limit allows.</exception>
     public static void Write(ICustomCodec codec, Stream stream, object value)
     {
         long limit = (stream as WriteBudgetStream)?.MaxStringBytes ?? int.MaxValue;

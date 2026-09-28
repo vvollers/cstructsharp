@@ -49,6 +49,9 @@ internal sealed class EnumIntegerCodecTable
     }
 
     /// <summary>Returns the validated exact integer descriptor owned by one enum declaration.</summary>
+    /// <param name="enumName">The enum declaration's name.</param>
+    /// <returns>The integer codec for the enum's resolved storage type.</returns>
+    /// <exception cref="CStructLayoutException">The layout declares no enum with that name.</exception>
     public EnumIntegerCodec Get(string enumName)
     {
         return this.codecs.TryGetValue(enumName, out EnumIntegerCodec? codec)

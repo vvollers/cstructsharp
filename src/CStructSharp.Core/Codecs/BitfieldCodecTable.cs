@@ -57,11 +57,21 @@ internal sealed class BitfieldCodecTable
     ///     The shift of a slice inside its unit: the declaration-order offset itself for low-bit-first allocation, or
     ///     counted down from the unit's top bit for high-bit-first allocation.
     /// </summary>
+    /// <param name="bitOffset">The field's offset in bits in declaration order from the start of its unit.</param>
+    /// <param name="bitSize">The field width in bits.</param>
+    /// <param name="unitBits">The storage unit's width in bits.</param>
+    /// <param name="highBitFirst">Whether bitfields are allocated from the unit's most significant bit down.</param>
+    /// <returns>The number of bits to shift the field's value left by inside the unit.</returns>
     public static int EffectiveShift(int bitOffset, int bitSize, int unitBits, bool highBitFirst)
     {
         return highBitFirst ? unitBits - bitOffset - bitSize : bitOffset;
     }
 
+    /// <summary>Reads one bitfield's unsigned value out of its decoded storage unit.</summary>
+    /// <param name="storageValue">The decoded storage value: a boxed integer or <see cref="char"/>.</param>
+    /// <param name="bitOffset">The shift in bits of the field's lowest bit inside the unit.</param>
+    /// <param name="bitSize">The field width in bits.</param>
+    /// <returns>The field's bits, shifted down and zero-extended.</returns>
     public static ulong ExtractBitfieldValue(object storageValue, int bitOffset, int bitSize)
     {
         ulong rawValue = ConvertBitfieldStorageToUnsigned(storageValue);
@@ -72,6 +82,11 @@ internal sealed class BitfieldCodecTable
     }
 
     /// <summary>Combines one validated bitfield value with the neighboring bits in its storage unit.</summary>
+    /// <param name="storageValue">The storage unit's current bits.</param>
+    /// <param name="fieldValue">The validated field value, already within <paramref name="bitSize"/> bits.</param>
+    /// <param name="bitOffset">The shift in bits of the field's lowest bit inside the unit.</param>
+    /// <param name="bitSize">The field width in bits.</param>
+    /// <returns>The storage unit with the field's bits replaced and every other bit unchanged.</returns>
     public static ulong MergeBitfieldValue(ulong storageValue, ulong fieldValue, int bitOffset, int bitSize)
     {
         ulong mask = GetBitfieldMask(bitSize);
@@ -80,6 +95,14 @@ internal sealed class BitfieldCodecTable
     }
 
     /// <summary>Converts and validates a caller value against one bitfield's unsigned numeric domain.</summary>
+    /// <param name="name">The field name, used in error messages.</param>
+    /// <param name="bitSize">The field width in bits.</param>
+    /// <param name="value">The caller's value: any integral number, or a whole-valued floating-point number.</param>
+    /// <returns>The value as an unsigned integer no larger than the field's bit mask.</returns>
+    /// <exception cref="CStructWriteException">
+    ///     The value is null, a <see cref="bool"/>, not a whole number, negative, or wider than
+    ///     <paramref name="bitSize"/> bits.
+    /// </exception>
     public static ulong ValidateBitfieldWriteValue(string name, int bitSize, object? value)
     {
         if (value is null)
@@ -123,12 +146,16 @@ internal sealed class BitfieldCodecTable
     }
 
     /// <summary>Builds a low-bit mask without overflowing the full 64-bit case.</summary>
+    /// <param name="bitSize">The field width in bits, 1 through 64.</param>
+    /// <returns>A mask with the lowest <paramref name="bitSize"/> bits set.</returns>
     public static ulong GetBitfieldMask(int bitSize)
     {
         return bitSize == 64 ? ulong.MaxValue : (1UL << bitSize) - 1UL;
     }
 
     /// <summary>Reinterprets signed primitive values as raw same-width storage bits.</summary>
+    /// <param name="value">The decoded storage value: a boxed integer or <see cref="char"/>.</param>
+    /// <returns>The storage bits zero-extended to 64 bits, so a negative value does not fill the high bits.</returns>
     public static ulong ConvertBitfieldStorageToUnsigned(object value)
     {
         return value switch
@@ -149,6 +176,12 @@ internal sealed class BitfieldCodecTable
     /// <summary>
     ///     Returns the explicitly capable integral storage codec after validating scalar shape and bit width.
     /// </summary>
+    /// <param name="field">The bitfield declaration whose storage type and width are checked.</param>
+    /// <returns>The storage facts of the field's declared type.</returns>
+    /// <exception cref="InvalidOperationException">
+    ///     The field is an array or pointer, its type is not integral bitfield storage, or its width is not between 1
+    ///     and the storage's bit capacity.
+    /// </exception>
     public Entry ValidateBitField(Field field)
     {
         if (!ReferenceEquals(field.ArrayCount, Field.NoArray))
@@ -198,6 +231,7 @@ internal sealed class BitfieldCodecTable
     /// <summary>Describes the fixed-width integer storage facts needed by every bitfield executor.</summary>
     public readonly record struct Entry(int ByteSize, bool IsLittleEndian)
     {
+        /// <summary>The storage unit's width in bits, the widest bitfield it can hold.</summary>
         public int BitCapacity => checked(this.ByteSize * 8);
     }
 }

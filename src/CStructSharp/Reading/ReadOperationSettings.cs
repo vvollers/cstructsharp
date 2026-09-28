@@ -42,6 +42,8 @@ internal readonly record struct ReadOperationSettings(
     public bool CoversPlan(StaticReadPlan plan) => this.Covers(plan.Size, 0, plan.NestingDepth, plan.MaximumArrayCount);
 
     /// <summary>Copies every read choice before variable enumeration, stream access, or another caller callback.</summary>
+    /// <param name="options">The caller's read options, or null for <see cref="ReadOptions.Default"/>.</param>
+    /// <returns>The settings captured from the options at this moment.</returns>
     public static ReadOperationSettings SnapshotReadOptions(ReadOptions? options)
     {
         options ??= ReadOptions.Default;
@@ -61,6 +63,8 @@ internal readonly record struct ReadOperationSettings(
     }
 
     /// <summary>Maps already-snapshotted update traversal choices into the same read operation settings.</summary>
+    /// <param name="options">The update options whose traversal limits bound the reads an update performs.</param>
+    /// <returns>Read settings built from the traversal limits; fixed text is never trimmed.</returns>
     public static ReadOperationSettings SnapshotTraversalOptions(UpdateOptions options)
     {
         return new ReadOperationSettings(

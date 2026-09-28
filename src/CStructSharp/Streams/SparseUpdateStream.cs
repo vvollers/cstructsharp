@@ -45,14 +45,20 @@ internal sealed class SparseUpdateStream : Stream
         this.Position = initialPosition;
     }
 
+    /// <summary>Gets true: the view reads baseline bytes with staged writes overlaid.</summary>
     public override bool CanRead => true;
 
+    /// <summary>Gets true: seeking moves only the virtual cursor.</summary>
     public override bool CanSeek => true;
 
+    /// <summary>Gets true: writes are staged in memory, within the baseline's existing length.</summary>
     public override bool CanWrite => true;
 
+    /// <summary>Gets the baseline's length in bytes, captured at construction; the view never changes it.</summary>
     public override long Length => this.baselineLength;
 
+    /// <summary>Gets or sets the virtual cursor, an absolute byte position; the baseline's own is untouched.</summary>
+    /// <exception cref="CStructWriteException">The value set is negative.</exception>
     public override long Position
     {
         get => this.position;
@@ -68,6 +74,11 @@ internal sealed class SparseUpdateStream : Stream
     }
 
     /// <summary>Commits the final non-overlapping write set in ascending address order without flushing the destination.</summary>
+    /// <param name="destination">The writable, seekable stream that receives the staged bytes.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="destination"/> is null.</exception>
+    /// <exception cref="CStructWriteException">
+    ///     Seeking or writing the destination fails; ranges committed before the failure stay written.
+    /// </exception>
     public void CommitTo(Stream destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
@@ -123,6 +134,10 @@ internal sealed class SparseUpdateStream : Stream
     }
 
     /// <summary>Reads existing bytes with staged writes overlaid using last-write-wins behavior.</summary>
+    /// <param name="buffer">The array that receives the bytes.</param>
+    /// <param name="offset">The index in <paramref name="buffer"/> where the first byte is stored.</param>
+    /// <param name="count">The largest number of bytes to read.</param>
+    /// <returns>The number of bytes read; 0 at or past the end of the baseline.</returns>
     public override int Read(byte[] buffer, int offset, int count)
     {
         StreamArgumentValidation.ValidateRange(buffer, offset, count, nameof(buffer));
@@ -130,6 +145,8 @@ internal sealed class SparseUpdateStream : Stream
     }
 
     /// <summary>Reads existing bytes with staged writes overlaid using last-write-wins behavior.</summary>
+    /// <param name="buffer">The span that receives the bytes; its length is the largest number to read.</param>
+    /// <returns>The number of bytes copied; 0 at or past the end of the baseline.</returns>
     public override int Read(Span<byte> buffer)
     {
         if (buffer.IsEmpty || this.position >= this.baselineLength)
@@ -170,6 +187,7 @@ internal sealed class SparseUpdateStream : Stream
     }
 
     /// <summary>Reads one staged or baseline byte without exposing writes to the caller stream.</summary>
+    /// <returns>The byte at the cursor, or -1 at or past the end of the baseline.</returns>
     public override int ReadByte()
     {
         if (this.position >= this.baselineLength)
@@ -198,6 +216,10 @@ internal sealed class SparseUpdateStream : Stream
     }
 
     /// <summary>Moves only the virtual cursor and preserves absolute coordinates used by the compiled writer.</summary>
+    /// <param name="offset">The byte offset relative to <paramref name="origin"/>.</param>
+    /// <param name="origin">Where the offset is measured from; the end is the baseline's length.</param>
+    /// <returns>The new absolute cursor position.</returns>
+    /// <exception cref="CStructWriteException">The new position is negative or overflows.</exception>
     public override long Seek(long offset, SeekOrigin origin)
     {
         try
@@ -219,6 +241,8 @@ internal sealed class SparseUpdateStream : Stream
     }
 
     /// <summary>Rejects structural resizing; update may replace only bytes already present in the destination.</summary>
+    /// <param name="value">The requested length; only the baseline's current length is accepted.</param>
+    /// <exception cref="CStructWriteException"><paramref name="value"/> differs from the baseline's length.</exception>
     public override void SetLength(long value)
     {
         if (value != this.baselineLength)
@@ -228,6 +252,9 @@ internal sealed class SparseUpdateStream : Stream
     }
 
     /// <summary>Retains one byte range in sparse chunks after proving it cannot extend the caller stream.</summary>
+    /// <param name="buffer">The array that holds the bytes to stage.</param>
+    /// <param name="offset">The index in <paramref name="buffer"/> of the first byte to stage.</param>
+    /// <param name="count">The number of bytes to stage.</param>
     public override void Write(byte[] buffer, int offset, int count)
     {
         StreamArgumentValidation.ValidateRange(buffer, offset, count, nameof(buffer));
@@ -235,6 +262,8 @@ internal sealed class SparseUpdateStream : Stream
     }
 
     /// <summary>Retains one byte range in sparse chunks after proving it cannot extend the caller stream.</summary>
+    /// <param name="buffer">The bytes to stage at the cursor; they are copied, not retained.</param>
+    /// <exception cref="CStructWriteException">The write would extend past the baseline's length.</exception>
     public override void Write(ReadOnlySpan<byte> buffer)
     {
         if (buffer.IsEmpty)
@@ -271,6 +300,7 @@ internal sealed class SparseUpdateStream : Stream
     }
 
     /// <summary>Retains one byte without forwarding it to the caller stream.</summary>
+    /// <param name="value">The byte to stage at the cursor.</param>
     public override void WriteByte(byte value)
     {
         Span<byte> buffer = stackalloc byte[1];

@@ -29,6 +29,13 @@ public sealed class LayoutConstant
 {
     private readonly object? value;
 
+    /// <summary>Creates the published view of one <c>#define</c>.</summary>
+    /// <param name="name">The defined name.</param>
+    /// <param name="kind">What kind of value the definition carries.</param>
+    /// <param name="value">
+    ///     The value, matching <paramref name="kind"/>; a <c>byte[]</c> is kept as given and copied on each read of
+    ///     <see cref="Value"/>.
+    /// </param>
     internal LayoutConstant(string name, LayoutConstantKind kind, object? value)
     {
         this.Name = name;

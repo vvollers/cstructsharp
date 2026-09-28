@@ -28,6 +28,13 @@ public sealed partial class CStruct
     ///     Parses an element name or path, resolving a type-spelling root on the way. Results are cached per layout
     ///     (bounded like the shared path cache), so a repeated operation pays one lookup.
     /// </summary>
+    /// <param name="elementNameOrPath">
+    ///     A declaration name, a dotted path with literal indexes, or a type spelling such as <c>uint16[N]</c>.
+    /// </param>
+    /// <returns>The path's segments, from the root to the selected member.</returns>
+    /// <exception cref="CStructPathException">
+    ///     The text is neither a valid path nor a supported type spelling.
+    /// </exception>
     internal IReadOnlyList<PathSegment> ParsePath(string elementNameOrPath)
     {
         if (elementNameOrPath is not null && this.pathCache.TryGetValue(elementNameOrPath, out IReadOnlyList<PathSegment>? cached))

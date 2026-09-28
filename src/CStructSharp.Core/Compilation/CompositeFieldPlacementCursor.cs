@@ -35,6 +35,7 @@ internal sealed class CompositeFieldPlacementCursor
     ///     An ordinary field with an <c>@N</c> offset assertion that compilation could not check (its offset depends on
     ///     the data) is checked here, so every operation that places the field checks it.
     /// </remarks>
+    /// <param name="compiledField">The next field in declaration order.</param>
     /// <returns>The field's start (a bitfield's unit start), the bit offset inside the unit, and the unit size in bytes (0 for an ordinary field).</returns>
     /// <exception cref="CStructLayoutException">The field does not sit at its asserted offset.</exception>
     public (long FieldStart, int BitOffset, int UnitSize) AdvanceToField(CompiledField compiledField)
@@ -64,12 +65,15 @@ internal sealed class CompositeFieldPlacementCursor
     }
 
     /// <summary>Records where a just-placed non-bitfield field actually ends, so the next field starts after it.</summary>
+    /// <param name="fieldEnd">The position one byte past the field's last byte, in the start's coordinates.</param>
     public void CompleteField(long fieldEnd)
     {
         this.cursor.CompleteField(fieldEnd);
     }
 
     /// <summary>Rounds the composite's own tail up to its own alignment, reproducing C-compiler trailing padding.</summary>
+    /// <param name="structAlignment">The composite's own alignment in bytes.</param>
+    /// <returns>The position one byte past the composite's trailing padding.</returns>
     public long FinishComposite(int structAlignment)
     {
         return this.cursor.Finish(structAlignment)!.Value;

@@ -5,6 +5,18 @@ using System.Collections.Generic;
 /// <summary>One exported declaration of a compiled layout.</summary>
 public sealed class LayoutDeclarationInfo
 {
+    /// <summary>Creates the description of one declaration from its compiled form.</summary>
+    /// <param name="name">The declared name.</param>
+    /// <param name="kind">What the declaration is.</param>
+    /// <param name="size">
+    ///     The encoded size in bytes when fixed; <see langword="null"/> for a runtime-sized composite.
+    /// </param>
+    /// <param name="alignment">The alignment in bytes that aligned placement uses for the type.</param>
+    /// <param name="fields">The fields of a struct or union in declaration order; empty for other kinds.</param>
+    /// <param name="members">The members of an enum or flag in declaration order; empty for other kinds.</param>
+    /// <param name="underlyingType">The backing type of an enum or flag, or the aliased type of a typedef.</param>
+    /// <param name="pointerDepth">The pointer depth a typedef adds to its aliased type.</param>
+    /// <param name="arrayShape">The fixed dimensions of an array typedef, outermost first; empty otherwise.</param>
     internal LayoutDeclarationInfo(
         string name,
         LayoutDeclarationKind kind,

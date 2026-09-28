@@ -17,6 +17,8 @@ internal static class StreamFailureClassification
     ///     <see cref="ObjectDisposedException" /> for a stream disposed out from under an in-progress operation.
     ///     Anything else propagates unclassified, since it is more likely a bug than an expected physical failure.
     /// </summary>
+    /// <param name="exception">The exception thrown by the caller's stream.</param>
+    /// <returns><see langword="true"/> when the caller should wrap it as a physical failure.</returns>
     public static bool IsPhysicalStreamFailure(Exception exception)
     {
         return exception is IOException or NotSupportedException or ObjectDisposedException;

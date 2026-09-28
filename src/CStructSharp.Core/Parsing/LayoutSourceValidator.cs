@@ -6,6 +6,15 @@ using CStructSharp.Diagnostics;
 /// <summary>Rejects an empty, oversized, or pathologically nested layout text before the parser allocates a syntax tree.</summary>
 internal static class LayoutSourceValidator
 {
+    /// <summary>
+    ///     Checks the compilation limits and the layout text's length and brace/parenthesis nesting, skipping
+    ///     comments, in one linear scan.
+    /// </summary>
+    /// <param name="layout">The layout source text.</param>
+    /// <param name="options">The compilation limits and settings to check and apply.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="layout"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A limit or setting in the options is invalid.</exception>
+    /// <exception cref="CStructLayoutException">The text is blank, too long, or nested too deeply.</exception>
     public static void ValidateLayoutSource(string layout, CStructCompilationOptions options)
     {
         if (layout is null)

@@ -24,9 +24,25 @@ internal sealed class CStructElementWriterState
     /// </summary>
     private readonly WriteBudgetStream budgetStream;
 
+    /// <summary>Whether <see cref="QualifiedPrefixKey"/> currently holds an active prefix in the variables.</summary>
     private bool hasQualifiedPrefix;
 
     /// <summary>Creates the write state from a stream, compiled lookup tables, and write settings.</summary>
+    /// <param name="stream">
+    ///     The caller's destination, wrapped in a <see cref="WriteBudgetStream"/>; it stays open and caller-owned.
+    /// </param>
+    /// <param name="variables">
+    ///     The operation's variable dictionary; the write adds captured field values and the qualified prefix to it.
+    /// </param>
+    /// <param name="aligned">Whether composite fields use their portable alignment boundaries.</param>
+    /// <param name="options">The already validated and snapshotted write options.</param>
+    /// <param name="initialStructureDepth">
+    ///     The composite depth already active when this write starts, for a write nested in another operation.
+    /// </param>
+    /// <exception cref="OperationCanceledException">The options' cancellation token is already cancelled.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     <paramref name="initialStructureDepth"/> is negative or above <see cref="WriteOptions.MaxNestingDepth"/>.
+    /// </exception>
     public CStructElementWriterState(
         Stream stream,
         Dictionary<string, Expr> variables,
@@ -61,32 +77,49 @@ internal sealed class CStructElementWriterState
     /// <summary>Gets the options a write without caller options uses; shared because <see cref="WriteOptions"/> is immutable.</summary>
     public static WriteOptions DefaultWriteOptions { get; } = new();
 
+    /// <summary>
+    ///     Gets whether written pointer values are absolute stream positions or offsets from
+    ///     <see cref="PointerOrigin"/>.
+    /// </summary>
     public PointerAddressingMode AddressingMode { get; }
 
+    /// <summary>Gets whether composite fields use their portable alignment boundaries.</summary>
     public bool Aligned { get; }
 
     /// <summary>Whether a member the composite does not declare fails the write (<see cref="WriteOptions.UnknownMembers"/>).</summary>
     public bool RejectUnknownMembers { get; }
 
+    /// <summary>Gets the snapshotted options for budgets, pointers, and cancellation.</summary>
     public WriteOptions Options { get; }
 
     /// <summary>Gets whether the write must avoid static plans and block writes (<see cref="ExecutionPath.GeneralOnly"/>).</summary>
     public bool GeneralPathOnly { get; }
 
+    /// <summary>
+    ///     Gets the stream position subtracted from relative pointer values before they are written
+    ///     (<see cref="WriteOptions.Origin"/>).
+    /// </summary>
     public long PointerOrigin { get; }
 
+    /// <summary>Gets the greatest active struct or union depth this write may enter.</summary>
     public int MaxNestingDepth { get; }
 
+    /// <summary>Gets the number of composite levels currently entered through <see cref="EnterStructure"/>.</summary>
     public int StructureDepth { get; private set; }
 
     /// <summary>Gets or sets whether the next field starts at an already resolved exact byte address.</summary>
     public bool PositionIsResolvedTarget { get; set; }
 
+    /// <summary>Gets the budget-checked destination every field write goes through.</summary>
     public Stream Stream { get; }
 
     /// <summary>The same stream as <see cref="Stream"/>, typed for the static write plan's block write.</summary>
     public WriteBudgetStream BudgetStream => this.budgetStream;
 
+    /// <summary>
+    ///     Gets the operation's variables: caller-supplied values plus field values captured during the write, which
+    ///     later size and count expressions evaluate against.
+    /// </summary>
     public Dictionary<string, Expr> Variables { get; }
 
     /// <summary>
@@ -139,6 +172,8 @@ internal sealed class CStructElementWriterState
     public bool BitfieldUnitSeeded { get; set; }
 
     /// <summary>Copies every update choice before variable enumeration, payload access, or stream traversal.</summary>
+    /// <param name="options">The caller's options, or <see langword="null"/> for the defaults.</param>
+    /// <returns>A private copy the caller cannot change during the operation.</returns>
     public static UpdateOptions SnapshotUpdateOptions(UpdateOptions? options)
     {
         // The record's own `with` expression clones every current and future property in one step, instead of a
@@ -148,6 +183,10 @@ internal sealed class CStructElementWriterState
     }
 
     /// <summary>Copies normal write choices while retaining update semantics when that derived value was supplied.</summary>
+    /// <param name="options">The caller's write or update options, or <see langword="null"/>.</param>
+    /// <returns>
+    ///     <see cref="DefaultWriteOptions"/> for <see langword="null"/>; otherwise a copy of the same record type.
+    /// </returns>
     public static WriteOptions SnapshotWriteOptions(WriteOptions? options)
     {
         if (options is UpdateOptions updateOptions)
@@ -161,6 +200,10 @@ internal sealed class CStructElementWriterState
     }
 
     /// <summary>Validates finite write budgets once at the public operation boundary.</summary>
+    /// <param name="options">The options to check.</param>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     A byte or element limit is negative, or the maximum nesting depth is not positive.
+    /// </exception>
     public static void ValidateWriteOptions(WriteOptions options)
     {
         if (options.MaxArrayElements < 0)
@@ -197,18 +240,27 @@ internal sealed class CStructElementWriterState
     }
 
     /// <summary>Checks one fixed or terminated string's complete encoded storage before allocation or output.</summary>
+    /// <param name="encodedByteCount">The string's complete encoded size in bytes, including any terminator.</param>
+    /// <exception cref="CStructWriteLimitException">
+    ///     The size is negative or exceeds the string byte limit in <see cref="Options"/>.
+    /// </exception>
     public void EnsureStringBytes(long encodedByteCount)
     {
         this.budgetStream.EnsureStringBytes(encodedByteCount);
     }
 
     /// <summary>Preflights and writes structural zero-fill without allocating the complete region.</summary>
+    /// <param name="count">The number of zero bytes to write at the current position.</param>
     public void WriteZeroes(int count)
     {
         this.budgetStream.WriteZeroes(count);
     }
 
     /// <summary>Republishes a just-captured variable under its qualified name when a dotted reference needs it.</summary>
+    /// <param name="name">
+    ///     The field's unqualified variable name; its <see cref="QualifiedPrefix"/> copy is set, or removed when
+    ///     the unqualified variable is absent.
+    /// </param>
     public void PublishQualified(string name)
     {
         if (this.hasQualifiedPrefix)

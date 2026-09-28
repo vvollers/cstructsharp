@@ -26,6 +26,12 @@ internal static class PrimitiveArrayReader
     private delegate void BlockDecoder<T>(ReadOnlySpan<byte> source, Span<T> destination, bool littleEndian);
 
     /// <summary>Reads <paramref name="count"/> elements into a typed array and returns it as the array value.</summary>
+    /// <param name="stream">The budgeted source, positioned at the first element; it advances past the array.</param>
+    /// <param name="codec">The fixed-width numeric codec of one element, including its byte order.</param>
+    /// <param name="count">The number of elements to read.</param>
+    /// <returns>A <see cref="PrimitiveArray{T}"/> of the codec's element type holding the decoded values.</returns>
+    /// <exception cref="CStructReadException">The source holds fewer bytes than the elements need.</exception>
+    /// <exception cref="InvalidOperationException">The codec is not a fixed-width numeric codec.</exception>
     public static IList<object?> Read(ReadBudgetStream stream, PrimitiveCodec codec, int count)
     {
         // A count the data provably cannot back (a hostile or corrupt length prefix) fails here, before the element
@@ -58,6 +64,9 @@ internal static class PrimitiveArrayReader
     }
 
     /// <summary>The CLR element type the decoders produce for a fixed-width numeric codec.</summary>
+    /// <param name="codec">A fixed-width numeric codec.</param>
+    /// <returns>The element type, such as <see cref="int"/> for both 24-bit and 32-bit signed integers.</returns>
+    /// <exception cref="InvalidOperationException">The codec is not a fixed-width numeric codec.</exception>
     public static Type GetElementType(PrimitiveCodec codec)
     {
         return codec.Kind switch
@@ -80,6 +89,11 @@ internal static class PrimitiveArrayReader
     }
 
     /// <summary>Decodes <paramref name="count"/> elements that are already in memory (static read plan).</summary>
+    /// <param name="bytes">Exactly <paramref name="count"/> elements' worth of encoded bytes.</param>
+    /// <param name="codec">The fixed-width numeric codec of one element, including its byte order.</param>
+    /// <param name="count">The number of elements to decode.</param>
+    /// <returns>A new <see cref="PrimitiveArray{T}"/> that owns a copy of the decoded values.</returns>
+    /// <exception cref="InvalidOperationException">The codec is not a fixed-width numeric codec.</exception>
     public static IList<object?> Decode(ReadOnlySpan<byte> bytes, PrimitiveCodec codec, int count)
     {
         bool le = codec.LittleEndian;
@@ -150,6 +164,11 @@ internal static class PrimitiveArrayReader
     ///     Boxed variant for multidimensional arrays, which are reshaped into nested lists after the read: appends
     ///     <paramref name="count"/> elements to <paramref name="target"/> and returns the last value.
     /// </summary>
+    /// <param name="stream">The source, positioned at the first element; it advances past the array.</param>
+    /// <param name="codec">The fixed-width numeric codec of one element, including its byte order.</param>
+    /// <param name="count">The number of elements to read.</param>
+    /// <param name="target">The list that receives the boxed values, appended in element order.</param>
+    /// <returns>The last value read, or null when <paramref name="count"/> is 0.</returns>
     public static object? ReadInto(Stream stream, PrimitiveCodec codec, int count, List<object?> target)
     {
         int elementSize = codec.Size;

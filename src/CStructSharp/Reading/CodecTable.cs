@@ -17,6 +17,10 @@ internal sealed class CodecTable
     private readonly Action<Stream, object>?[] writers;
 
     /// <summary>Creates a table whose arrays are indexed by codec id; both must have the catalog's <see cref="PrimitiveCatalog.CodecCount"/> entries.</summary>
+    /// <param name="catalog">The catalog whose codec ids index both arrays.</param>
+    /// <param name="readers">The read delegate per codec id, or null where none exists; kept, not copied.</param>
+    /// <param name="writers">The write delegate per codec id, or null where none exists; kept, not copied.</param>
+    /// <exception cref="InvalidOperationException">An array length differs from the catalog's codec count.</exception>
     public CodecTable(PrimitiveCatalog catalog, Func<Stream, object>?[] readers, Action<Stream, object>?[] writers)
     {
         if (readers.Length != catalog.CodecCount || writers.Length != catalog.CodecCount)
@@ -33,24 +37,32 @@ internal sealed class CodecTable
     public PrimitiveCatalog Catalog { get; }
 
     /// <summary>The reader of <paramref name="field"/>'s element codec, or <see langword="null"/> when no primitive delegate reads it.</summary>
+    /// <param name="field">The compiled field whose codec id selects the reader.</param>
+    /// <returns>A delegate that reads one element from a stream and returns it boxed, or null.</returns>
     public Func<Stream, object>? ReaderOf(CompiledField field)
     {
         return field.CodecId < 0 ? null : this.readers[field.CodecId];
     }
 
     /// <summary>The writer of <paramref name="field"/>'s element codec, or <see langword="null"/>.</summary>
+    /// <param name="field">The compiled field whose codec id selects the writer.</param>
+    /// <returns>A delegate that writes one boxed element to a stream, or null without a primitive codec.</returns>
     public Action<Stream, object>? WriterOf(CompiledField field)
     {
         return field.CodecId < 0 ? null : this.writers[field.CodecId];
     }
 
     /// <summary>The terminated-string reader behind a <c>char *</c>-style pointer field, or <see langword="null"/>.</summary>
+    /// <param name="field">The compiled pointer field whose terminated codec id selects the reader.</param>
+    /// <returns>A delegate that reads the pointed-to terminated string, or null when the field has none.</returns>
     public Func<Stream, object>? TerminatedReaderOf(CompiledField field)
     {
         return field.TerminatedCodecId < 0 ? null : this.readers[field.TerminatedCodecId];
     }
 
     /// <summary>The reader registered for a readable name (canonical, neutral, alias, or custom), or <see langword="null"/>.</summary>
+    /// <param name="name">The type spelling to look up in the catalog.</param>
+    /// <returns>A delegate that reads one value of that type, or null when the name is unknown.</returns>
     public Func<Stream, object>? ReaderOf(string name)
     {
         int id = this.Catalog.CodecIdOf(name);
@@ -58,6 +70,8 @@ internal sealed class CodecTable
     }
 
     /// <summary>The writer registered for a readable name, or <see langword="null"/>.</summary>
+    /// <param name="name">The type spelling to look up in the catalog.</param>
+    /// <returns>A delegate that writes one value of that type, or null when the name is unknown.</returns>
     public Action<Stream, object>? WriterOf(string name)
     {
         int id = this.Catalog.CodecIdOf(name);

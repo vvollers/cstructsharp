@@ -10,9 +10,18 @@ public static partial class MappedTypes
     private static readonly ConcurrentDictionary<Type, FixedWriterEntry> FixedWriters = new();
 
     /// <summary>Reads one instance directly from a fixed struct's bytes; see <see cref="ICStructFixedMapped{TSelf}.TryReadFixed"/>.</summary>
+    /// <typeparam name="T">The mapped type read.</typeparam>
+    /// <param name="source">The struct's bytes, at least the struct's size.</param>
+    /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+    /// <param name="value">The instance when the delegate returns <see langword="true"/>.</param>
+    /// <returns><see langword="false"/> when the bytes cannot be read directly.</returns>
     internal delegate bool FixedReader<T>(ReadOnlySpan<byte> source, bool trimFixedText, [MaybeNullWhen(false)] out T value);
 
     /// <summary>Writes one instance directly into a fixed struct's bytes; see <see cref="ICStructFixedMapped{TSelf}.TryWriteFixed"/>.</summary>
+    /// <typeparam name="T">The mapped type written.</typeparam>
+    /// <param name="value">The instance to write.</param>
+    /// <param name="target">The struct's bytes, already zero, at least the struct's size.</param>
+    /// <returns><see langword="false"/> when the instance cannot be written directly.</returns>
     internal delegate bool FixedWriter<T>(T value, Span<byte> target);
 
     /// <summary>
@@ -61,12 +70,23 @@ public static partial class MappedTypes
     }
 
     /// <summary>The direct reader of <typeparamref name="T"/> for a struct with <paramref name="fingerprint"/>, or <see langword="null"/>.</summary>
+    /// <typeparam name="T">The mapped class to read.</typeparam>
+    /// <param name="fingerprint">The fingerprint of the struct the caller reads.</param>
+    /// <returns>
+    ///     The reader, or <see langword="null"/> when <typeparamref name="T"/> has no direct members for that struct.
+    /// </returns>
     internal static FixedReader<T>? FindFixedReader<T>(ulong fingerprint)
     {
         return Fixed<T>.Entry is { } entry && entry.Fingerprint == fingerprint ? entry.Read : null;
     }
 
     /// <summary>The direct writer of an instance's type for a struct with <paramref name="fingerprint"/>, or <see langword="null"/>.</summary>
+    /// <param name="type">The instance's runtime type, as registered by <see cref="RegisterFixed{T}"/>.</param>
+    /// <param name="fingerprint">The fingerprint of the struct the caller writes.</param>
+    /// <returns>
+    ///     The untyped writer, or <see langword="null"/> when the type is unregistered or was generated for
+    ///     another struct.
+    /// </returns>
     internal static FixedWriter<object>? FindFixedWriter(Type type, ulong fingerprint)
     {
         return FixedWriters.TryGetValue(type, out FixedWriterEntry? entry) && entry.Fingerprint == fingerprint ? entry.Write : null;

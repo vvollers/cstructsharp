@@ -50,6 +50,7 @@ internal sealed partial class CompiledCompositeType : CompiledType
             ToImmutableHashSet<CompiledField>(ReferenceEqualityComparer.Instance);
     }
 
+    /// <summary>Gets the placed members in declaration order, including anonymous and conditional members.</summary>
     public ImmutableArray<CompiledField> Fields { get; }
 
     /// <summary>The declared name; empty for an anonymous inline composite.</summary>
@@ -58,6 +59,7 @@ internal sealed partial class CompiledCompositeType : CompiledType
     /// <summary>Whether every member starts at the composite's own address.</summary>
     public bool IsUnion => this.Symbol.Kind == CompiledTypeKind.Union;
 
+    /// <summary>Gets a value indicating whether a member at this level is an <c>if</c>/<c>switch</c> arm.</summary>
     public bool HasDirectConditionalFields { get; }
 
     /// <summary>The number of <c>if</c>/<c>switch</c> decisions among the members: the length of an operation's selected-arm array.</summary>
@@ -90,8 +92,16 @@ internal sealed partial class CompiledCompositeType : CompiledType
     public CompiledConditionalScope? ConditionalScope
         => this.HasDirectConditionalFields ? this.conditionalScope ??= new CompiledConditionalScope(this) : null;
 
+    /// <summary>
+    ///     Gets this level's named members by exact (case-sensitive) name; anonymous bit-fields and promoted members'
+    ///     own fields are not included.
+    /// </summary>
     public ImmutableDictionary<string, CompiledField> FieldsByName { get; }
 
+    /// <summary>
+    ///     Gets the anonymous struct or union members whose own fields are addressed as if declared here, compared by
+    ///     reference; one level only.
+    /// </summary>
     public ImmutableHashSet<CompiledField> PromotedFields { get; }
 
     /// <summary>
@@ -178,6 +188,10 @@ internal sealed partial class CompiledCompositeType : CompiledType
         return new StructShape(names.ToArray());
     }
 
+    /// <summary>Appends this composite's member names to a shape, splicing in promoted members' names.</summary>
+    /// <param name="names">The shape's names in order; appended to.</param>
+    /// <param name="seen">The names already added, so a repeated name keeps its first slot.</param>
+    /// <param name="visiting">The composites on the current splice path, which stops a cycle.</param>
     private void CollectShapeNames(List<string> names, HashSet<string> seen, HashSet<CompiledCompositeType> visiting)
     {
         if (!visiting.Add(this))
@@ -208,6 +222,9 @@ internal sealed partial class CompiledCompositeType : CompiledType
     }
 
     /// <summary>Finds one exact compiled field name in this composite, or throws a <see cref="CStructPathException"/> naming both.</summary>
+    /// <param name="name">The case-sensitive field name, searched here and in promoted anonymous members.</param>
+    /// <returns>The compiled field with that name.</returns>
+    /// <exception cref="CStructPathException">No field with that name exists.</exception>
     public CompiledField FindField(string name)
     {
         return this.TryFindField(name, out CompiledField? field)
@@ -220,6 +237,9 @@ internal sealed partial class CompiledCompositeType : CompiledType
     ///     name isn't one of this level's own - never throws. Purely an in-memory, side-effect-free tree walk, so it
     ///     is safe to call speculatively before attempting a real, I/O-touching resolution.
     /// </summary>
+    /// <param name="name">The case-sensitive field name.</param>
+    /// <param name="field">The found field, or null when the name is unknown.</param>
+    /// <returns>True when the field exists at this level or inside a promoted member.</returns>
     public bool TryFindField(string name, out CompiledField? field)
     {
         if (this.FieldsByName.TryGetValue(name, out field))

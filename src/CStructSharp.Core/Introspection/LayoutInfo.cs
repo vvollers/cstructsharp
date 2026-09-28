@@ -8,6 +8,12 @@ using System.Collections.Generic;
 /// </summary>
 public sealed class LayoutInfo
 {
+    /// <summary>
+    ///     Creates the description from views built out of the compiled model; the collections are kept, not copied.
+    /// </summary>
+    /// <param name="declarations">The exported declarations in source order.</param>
+    /// <param name="constants">The layout's <c>#define</c> constants by name.</param>
+    /// <param name="includes">The recorded <c>#include</c> paths.</param>
     internal LayoutInfo(IReadOnlyList<LayoutDeclarationInfo> declarations, IReadOnlyDictionary<string, LayoutConstant> constants, IReadOnlyList<string> includes)
     {
         this.Declarations = declarations;

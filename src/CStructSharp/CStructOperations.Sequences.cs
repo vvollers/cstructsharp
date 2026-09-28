@@ -317,6 +317,14 @@ public sealed partial class CStruct
     }
 
     /// <summary>One record of a sequence: the root parse of the stream form, returning the struct it selects.</summary>
+    /// <param name="stream">The stream positioned at the record's first byte; it is left after the record.</param>
+    /// <param name="root">The record struct's declaration name.</param>
+    /// <param name="variables">The caller's layout variables, snapshotted for this record.</param>
+    /// <param name="options">
+    ///     Optional read limits and pointer settings; <see langword="null"/> uses the defaults.
+    /// </param>
+    /// <returns>The decoded record.</returns>
+    /// <exception cref="CStructPathException">The name selects a union or scalar rather than a struct.</exception>
     internal StructValue ParseRecordCore(Stream stream, string root, LayoutVariableInput variables, ReadOptions? options)
     {
         return RequireStruct(this.ParseStreamCore(stream, root, variables, options), root);

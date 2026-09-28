@@ -43,6 +43,14 @@ internal static partial class PrimitiveCodecs
     }
 
     /// <summary>Reads exactly the declared encoded byte extent, including embedded NULs, without reading ahead.</summary>
+    /// <param name="stream">The source stream, positioned at the first text byte.</param>
+    /// <param name="byteCount">The fixed extent in bytes (not characters) to read and decode.</param>
+    /// <param name="type">The bounded-text codec name that selects the decoding, such as <c>utf8</c>.</param>
+    /// <returns>The decoded text, including any embedded NUL characters.</returns>
+    /// <exception cref="CStructReadLimitException">
+    ///     <paramref name="byteCount"/> exceeds the per-string byte budget of a <see cref="ReadBudgetStream"/>.
+    /// </exception>
+    /// <exception cref="CStructReadException">The stream ends early or the bytes are invalid text.</exception>
     public static string ReadBoundedText(Stream stream, int byteCount, string type)
     {
         if (stream is ReadBudgetStream budget && byteCount > budget.MaxStringBytes)
@@ -67,6 +75,12 @@ internal static partial class PrimitiveCodecs
     }
 
     /// <summary>Reads characters until a terminator and leaves the stream immediately after that terminator.</summary>
+    /// <param name="stream">The source stream; a budget stream adds its string limit and cancellation.</param>
+    /// <param name="encoding">The strict encoding that decodes the text and encodes the terminator.</param>
+    /// <param name="terminator">The character that ends the string, typically NUL or newline.</param>
+    /// <returns>The decoded text without the terminator.</returns>
+    /// <exception cref="CStructReadException">The stream ends before the terminator or holds invalid text.</exception>
+    /// <exception cref="CStructReadLimitException">The encoded string exceeds the per-string byte budget.</exception>
     public static string ReadIntoString(Stream stream, Encoding encoding, char terminator)
     {
         // Chunked reads, one decode per chunk prefix, observably the same as reading one byte at a time: the stream
@@ -153,7 +167,12 @@ internal static partial class PrimitiveCodecs
         }
     }
 
-    /// <summary>Finds the encoded terminator on an encoding-unit boundary, or -1.</summary>
+    /// <summary>Writes the encoded text followed by its encoded terminator.</summary>
+    /// <param name="stream">The destination stream; a budget stream enforces its per-string byte limit.</param>
+    /// <param name="encoding">The strict encoding for both the text and the terminator.</param>
+    /// <param name="value">The text to write; it must not contain <paramref name="terminator"/>.</param>
+    /// <param name="terminator">The character appended after the text, typically NUL or newline.</param>
+    /// <exception cref="CStructWriteException">The value contains the terminator or cannot be encoded.</exception>
     public static void WriteTerminatedString(Stream stream, Encoding encoding, string value, char terminator)
     {
         if (value.Contains(terminator, StringComparison.Ordinal))
@@ -192,6 +211,9 @@ internal static partial class PrimitiveCodecs
     }
 
     /// <summary>Converts one CLR character to the raw one-byte domain used by the layout's <c>char</c> type.</summary>
+    /// <param name="value">A value convertible to <see cref="char"/>, such as a char or a one-character string.</param>
+    /// <returns>The character's code as one byte (0 to 255).</returns>
+    /// <exception cref="CStructWriteException">The character's code is above 255.</exception>
     public static byte ConvertToNarrowCharacter(object value)
     {
         char character = Convert.ToChar(value, CultureInfo.InvariantCulture);

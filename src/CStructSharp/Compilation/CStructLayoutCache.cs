@@ -31,8 +31,12 @@ internal sealed class CStructLayoutCache
         this.maximumSourceChars = maximumSourceChars;
     }
 
+    /// <summary>
+    ///     Gets the process-wide cache behind <see cref="CStruct.GetOrCompile"/>, with the default bounds.
+    /// </summary>
     public static CStructLayoutCache Shared { get; } = new();
 
+    /// <summary>Gets the number of compiled layouts currently retained.</summary>
     public int Count
     {
         get
@@ -44,6 +48,22 @@ internal sealed class CStructLayoutCache
         }
     }
 
+    /// <summary>
+    ///     Returns the cached layout for these exact inputs, or compiles one and retains it, evicting the least
+    ///     recently used entries until both bounds hold again. A failed compilation is not cached.
+    /// </summary>
+    /// <param name="layout">The layout source text; every character is part of the cache key.</param>
+    /// <param name="pointerSize">The binary format's pointer width in bytes.</param>
+    /// <param name="aligned">Whether the portable composite-alignment rules apply.</param>
+    /// <param name="isLittleEndian">Whether neutral values are little-endian.</param>
+    /// <param name="compilationOptions">
+    ///     Optional compilation limits and settings, or <see langword="null"/> for the defaults; each setting is part
+    ///     of the cache key, and custom codecs match by list reference.
+    /// </param>
+    /// <returns>
+    ///     The shared compiled layout, identical to one the constructor would build from the same inputs.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="layout"/> is <see langword="null"/>.</exception>
     public CStruct GetOrCompile(
         string layout,
         byte pointerSize,
@@ -115,6 +135,7 @@ internal sealed class CStructLayoutCache
         }
     }
 
+    /// <summary>Removes every retained layout; instances already returned stay valid.</summary>
     public void Clear()
     {
         lock (this.gate)

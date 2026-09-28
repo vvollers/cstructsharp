@@ -29,6 +29,7 @@ using CStructSharpEnum = CStructSharp.Syntax.Enum;
 [SuppressMessage("StyleCop.CSharp.OrderingRules", "SA1204:StaticElementsMustAppearBeforeInstanceElements", Justification = "grouped by grammar section for clarity")]
 internal sealed partial class LayoutParser
 {
+    /// <summary>The text every syntax error message starts with, so callers can recognize parser failures.</summary>
     internal const string SyntaxErrorPrefix = "Layout definition contains invalid syntax: ";
 
     private static readonly string[] TypeQualifiers = ["const", "volatile", "restrict",];
@@ -76,6 +77,15 @@ internal sealed partial class LayoutParser
     ///     Parses a complete layout: zero or more top-level declarations followed by the end of the text.
     ///     <paramref name="definedNames"/> seeds the names <c>#ifdef</c> tests, in addition to the layout's own defines.
     /// </summary>
+    /// <param name="source">The layout text.</param>
+    /// <param name="definedNames">
+    ///     Names <c>#ifdef</c> treats as defined, or <see langword="null"/> for none; the set is copied, not mutated.
+    /// </param>
+    /// <returns>The top-level declarations in source order, including tags hoisted out of bodies.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="CStructLayoutException">
+    ///     The text contains invalid syntax or an unterminated <c>#if</c>.
+    /// </exception>
     public static IReadOnlyList<CStructElement> ParseLayout(string source, IReadOnlySet<string>? definedNames = null)
     {
         return ParseLayout(source, definedNames, null, out _);
@@ -85,6 +95,22 @@ internal sealed partial class LayoutParser
     ///     Parses a complete layout with the storage that an enum declared without a backing type gets, and reports
     ///     whether any expression named a qualified <c>Enum.Member</c>.
     /// </summary>
+    /// <param name="source">The layout text.</param>
+    /// <param name="definedNames">
+    ///     Names <c>#ifdef</c> treats as defined in addition to the layout's own defines, or <see langword="null"/>
+    ///     for none; the set is copied, not mutated.
+    /// </param>
+    /// <param name="defaultEnumStorage">
+    ///     The type name an enum without a backing type is stored as, or <see langword="null"/> for the compiler rule.
+    /// </param>
+    /// <param name="usesQualifiedIdentifiers">
+    ///     Receives <see langword="true"/> when any expression named a qualified <c>Enum.Member</c>.
+    /// </param>
+    /// <returns>The top-level declarations in source order, including tags hoisted out of bodies.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="CStructLayoutException">
+    ///     The text contains invalid syntax or an unterminated <c>#if</c>.
+    /// </exception>
     public static IReadOnlyList<CStructElement> ParseLayout(string source, IReadOnlySet<string>? definedNames, string? defaultEnumStorage, out bool usesQualifiedIdentifiers)
     {
         if (source is null)
@@ -110,6 +136,10 @@ internal sealed partial class LayoutParser
     }
 
     /// <summary>Parses exactly one top-level declaration (struct, union, typedef, enum, or define).</summary>
+    /// <param name="source">The declaration text; nothing but trailing whitespace and comments may follow it.</param>
+    /// <returns>The single declared element.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="CStructLayoutException">The text is not exactly one top-level declaration.</exception>
     public static CStructElement ParseElement(string source)
     {
         if (source is null)
@@ -130,6 +160,10 @@ internal sealed partial class LayoutParser
     }
 
     /// <summary>Parses one complete expression; leading and trailing whitespace and comments are permitted.</summary>
+    /// <param name="source">The expression text.</param>
+    /// <returns>The expression tree.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="CStructLayoutException">The text is not exactly one valid expression.</exception>
     public static Expr ParseExpression(string source)
     {
         if (source is null)
@@ -149,6 +183,17 @@ internal sealed partial class LayoutParser
     ///     0 accepts every spelling (like an expression term does); 2, 8, and 16 require the matching <c>0b</c>,
     ///     <c>0o</c>, or <c>0x</c> prefix; 10 accepts a plain decimal literal only.
     /// </summary>
+    /// <param name="source">
+    ///     The text starting with the literal and an optional sign; leading whitespace and comments are skipped only
+    ///     when <paramref name="radix"/> is 0.
+    /// </param>
+    /// <param name="radix">The accepted spelling: 0 for any, or 2, 8, 10, or 16.</param>
+    /// <returns>The literal expression, with the sign applied.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="radix"/> is not 0, 2, 8, 10, or 16.</exception>
+    /// <exception cref="CStructLayoutException">
+    ///     The text does not start with a literal of the requested spelling.
+    /// </exception>
     public static Expr ParseLiteral(string source, int radix = 0)
     {
         if (source is null)
@@ -181,6 +226,13 @@ internal sealed partial class LayoutParser
     ///     Reads the digit run at the start of the text in the requested radix, dropping <c>_</c> separators, and
     ///     ignores whatever follows it. The run must contain at least one real digit.
     /// </summary>
+    /// <param name="source">The text whose leading digit run is read; no whitespace is skipped before it.</param>
+    /// <param name="radix">The digit base: 2, 8, 10, or 16.</param>
+    /// <returns>The digits of the run with the <c>_</c> separators removed.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="CStructLayoutException">
+    ///     The text does not start with a digit of <paramref name="radix"/>.
+    /// </exception>
     public static string ParseDigits(string source, int radix)
     {
         if (source is null)
@@ -199,12 +251,21 @@ internal sealed partial class LayoutParser
     }
 
     /// <summary>Returns whether a character is a digit of the requested radix or the <c>_</c> separator.</summary>
+    /// <param name="character">The character to test.</param>
+    /// <param name="radix">The digit base: 2, 8, 10, or 16.</param>
+    /// <returns>
+    ///     <see langword="true"/> when the character is <c>_</c> or a valid digit in <paramref name="radix"/>.
+    /// </returns>
     public static bool IsDigitOrSeparator(char character, int radix)
     {
         return character == '_' || DigitValue(character, radix) >= 0;
     }
 
     /// <summary>Parses one enum member (<c>Name</c> or <c>Name = expression</c>) with optional surrounding whitespace.</summary>
+    /// <param name="source">The text of one enum member.</param>
+    /// <returns>The parsed member with its optional value expression.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="CStructLayoutException">The text does not start with a valid enum member.</exception>
     public static EnumValue ParseEnumValue(string source)
     {
         if (source is null)
@@ -216,6 +277,10 @@ internal sealed partial class LayoutParser
     }
 
     /// <summary>Parses a comma-separated enum member list without the surrounding braces.</summary>
+    /// <param name="source">The member list text; nothing but trailing whitespace and comments may follow it.</param>
+    /// <returns>The members in declaration order.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="CStructLayoutException">The text is not a valid enum member list.</exception>
     public static IReadOnlyList<EnumValue> ParseEnumValues(string source)
     {
         if (source is null)
@@ -230,6 +295,10 @@ internal sealed partial class LayoutParser
     }
 
     /// <summary>Parses a braced enum member list, e.g. <c>{ Red = 1, Green }</c>.</summary>
+    /// <param name="source">The braced member list; nothing but trailing whitespace and comments may follow it.</param>
+    /// <returns>The members in declaration order.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="CStructLayoutException">The text is not one braced enum member list.</exception>
     public static IReadOnlyList<EnumValue> ParseEnumValuesInBrackets(string source)
     {
         if (source is null)
@@ -246,6 +315,10 @@ internal sealed partial class LayoutParser
     }
 
     /// <summary>Parses one field declaration with one or more declarators, e.g. <c>uint8 *a, b[4];</c>.</summary>
+    /// <param name="source">The declaration text; nothing but trailing whitespace and comments may follow it.</param>
+    /// <returns>One field per declarator, in declaration order.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="CStructLayoutException">The text is not exactly one field declaration.</exception>
     public static IReadOnlyList<Field> ParseFieldGroup(string source)
     {
         if (source is null)
@@ -555,6 +628,12 @@ internal sealed partial class LayoutParser
     }
 
     /// <summary>Converts a zero-based offset into the one-based line and column the diagnostics report.</summary>
+    /// <param name="source">The layout text the offset points into.</param>
+    /// <param name="offset">
+    ///     The zero-based character offset from the start of <paramref name="source"/>; offsets past the end are
+    ///     clamped to the end of the text.
+    /// </param>
+    /// <returns>The one-based line and column; lines are separated by <c>\n</c>.</returns>
     internal static (int Line, int Column) LocatePosition(string source, int offset)
     {
         int line = 1;

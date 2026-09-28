@@ -14,6 +14,9 @@ internal sealed class WriteBudgetStream : Stream
     private long bytesWritten;
 
     /// <summary>Wraps one write operation and snapshots the pre-operation extent used to charge newly created gaps.</summary>
+    /// <param name="inner">The caller-owned seekable destination; it stays open when this wrapper is disposed.</param>
+    /// <param name="options">The write options that supply the total and per-string byte limits.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="inner"/> is <see langword="null"/>.</exception>
     public WriteBudgetStream(Stream inner, WriteOptions options)
     {
         this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
@@ -28,16 +31,25 @@ internal sealed class WriteBudgetStream : Stream
     /// <summary>Identifies an atomic in-place update underneath the output budget wrapper.</summary>
     internal bool IsSparseUpdate => this.inner is SparseUpdateStream;
 
+    /// <summary>Gets the caller-owned stream this wrapper forwards to.</summary>
     internal Stream Inner => this.inner;
 
+    /// <summary>Gets a value indicating whether the wrapped stream can read existing bytes.</summary>
     public override bool CanRead => this.inner.CanRead;
 
+    /// <summary>Gets a value indicating whether the wrapped stream can seek.</summary>
     public override bool CanSeek => this.inner.CanSeek;
 
+    /// <summary>Gets a value indicating whether the wrapped stream can write.</summary>
     public override bool CanWrite => this.inner.CanWrite;
 
+    /// <summary>Gets the wrapped stream's length in bytes; a stream failure becomes a write failure.</summary>
     public override long Length => this.GetLengthOrThrow();
 
+    /// <summary>
+    ///     Gets or sets the wrapped stream's position in bytes; moving it charges nothing, and a stream failure
+    ///     becomes a write failure.
+    /// </summary>
     public override long Position
     {
         get
@@ -79,6 +91,10 @@ internal sealed class WriteBudgetStream : Stream
     }
 
     /// <summary>Forwards reads needed when an update merges existing bitfield storage.</summary>
+    /// <param name="buffer">The array that receives the bytes read.</param>
+    /// <param name="offset">The index in <paramref name="buffer"/> where the first byte read is stored.</param>
+    /// <param name="count">The maximum number of bytes to read.</param>
+    /// <returns>The number of bytes read, which is zero at the end of the stream.</returns>
     public override int Read(byte[] buffer, int offset, int count)
     {
         try
@@ -92,6 +108,8 @@ internal sealed class WriteBudgetStream : Stream
     }
 
     /// <summary>Forwards span reads needed by ordinary stream helpers.</summary>
+    /// <param name="buffer">The destination for the bytes read.</param>
+    /// <returns>The number of bytes read, which is zero at the end of the stream.</returns>
     public override int Read(Span<byte> buffer)
     {
         try
@@ -105,6 +123,7 @@ internal sealed class WriteBudgetStream : Stream
     }
 
     /// <summary>Forwards single-byte reads without charging the write budget.</summary>
+    /// <returns>The byte read as a value from 0 to 255, or -1 at the end of the stream.</returns>
     public override int ReadByte()
     {
         try
@@ -118,6 +137,9 @@ internal sealed class WriteBudgetStream : Stream
     }
 
     /// <summary>Seeks without resetting the cumulative physical-write or new-output-extent counters.</summary>
+    /// <param name="offset">The byte offset relative to <paramref name="origin"/>.</param>
+    /// <param name="origin">The reference point for <paramref name="offset"/>.</param>
+    /// <returns>The new position in bytes from the start of the stream.</returns>
     public override long Seek(long offset, SeekOrigin origin)
     {
         try
@@ -131,6 +153,7 @@ internal sealed class WriteBudgetStream : Stream
     }
 
     /// <summary>Forwards a length change after ensuring it cannot create output beyond the operation budget.</summary>
+    /// <param name="value">The new stream length in bytes; growth past the initial length counts as new output.</param>
     public override void SetLength(long value)
     {
         long newExtent = Math.Max(0, checked(value - this.initialLength));
@@ -146,6 +169,9 @@ internal sealed class WriteBudgetStream : Stream
     }
 
     /// <summary>Writes a byte range only after the complete range and any newly created gap fit the budget.</summary>
+    /// <param name="buffer">The array holding the bytes to write.</param>
+    /// <param name="offset">The index in <paramref name="buffer"/> of the first byte to write.</param>
+    /// <param name="count">The number of bytes to write.</param>
     public override void Write(byte[] buffer, int offset, int count)
     {
         (long nextBytesWritten, _) = this.GetProjectedUsage(count);
@@ -162,6 +188,7 @@ internal sealed class WriteBudgetStream : Stream
     }
 
     /// <summary>Applies the same budget to span-based output used by modern stream overloads.</summary>
+    /// <param name="buffer">The bytes to write at the current position.</param>
     public override void Write(ReadOnlySpan<byte> buffer)
     {
         (long nextBytesWritten, _) = this.GetProjectedUsage(buffer.Length);
@@ -182,6 +209,9 @@ internal sealed class WriteBudgetStream : Stream
     ///     <paramref name="chargedBytes"/> of physical traffic, fits the budget; a false answer sends the caller to
     ///     the general writer so the limit failure is raised at the field it was always raised at.
     /// </summary>
+    /// <param name="length">The block's length in bytes, which determines how far it extends the output.</param>
+    /// <param name="chargedBytes">The physical traffic in bytes the block would add to the budget.</param>
+    /// <returns><see langword="true"/> when the block fits; <see langword="false"/> otherwise.</returns>
     public bool CanAffordBlock(int length, int chargedBytes)
     {
         try
@@ -197,6 +227,9 @@ internal sealed class WriteBudgetStream : Stream
     }
 
     /// <summary>Writes a block prepared by a static write plan, charging the bytes the general writer would have charged.</summary>
+    /// <param name="block">The prepared bytes, written at the current position.</param>
+    /// <param name="chargedBytes">The physical traffic in bytes to charge against the budget for this block.</param>
+    /// <exception cref="CStructWriteLimitException">The block would exceed the total output budget.</exception>
     public void WriteBlock(ReadOnlySpan<byte> block, int chargedBytes)
     {
         long nextBytesWritten;
@@ -224,6 +257,7 @@ internal sealed class WriteBudgetStream : Stream
     }
 
     /// <summary>Applies the same budget to primitive one-byte codecs.</summary>
+    /// <param name="value">The byte to write at the current position.</param>
     public override void WriteByte(byte value)
     {
         (long nextBytesWritten, _) = this.GetProjectedUsage(1);
@@ -240,6 +274,9 @@ internal sealed class WriteBudgetStream : Stream
     }
 
     /// <summary>Preflights a zero-filled region, then emits it in bounded reusable chunks.</summary>
+    /// <param name="count">The number of zero bytes to write at the current position; zero writes nothing.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
+    /// <exception cref="CStructWriteLimitException">The region would exceed the total output budget.</exception>
     public void WriteZeroes(int count)
     {
         if (count < 0)
@@ -263,6 +300,10 @@ internal sealed class WriteBudgetStream : Stream
     }
 
     /// <summary>Rejects a string before its encoded payload is allocated or submitted to the stream.</summary>
+    /// <param name="encodedByteCount">The string's encoded length in bytes.</param>
+    /// <exception cref="CStructWriteLimitException">
+    ///     <paramref name="encodedByteCount"/> is negative or exceeds <see cref="MaxStringBytes"/>.
+    /// </exception>
     public void EnsureStringBytes(long encodedByteCount)
     {
         if (encodedByteCount < 0 || encodedByteCount > this.MaxStringBytes)
@@ -272,6 +313,7 @@ internal sealed class WriteBudgetStream : Stream
     }
 
     /// <summary>Leaves the caller-owned stream open when writer state is released.</summary>
+    /// <param name="disposing">Whether the call comes from <see cref="Stream.Dispose()"/>; ignored.</param>
     protected override void Dispose(bool disposing)
     {
         // Intentionally do not dispose this.inner; public CStruct methods do not take stream ownership.

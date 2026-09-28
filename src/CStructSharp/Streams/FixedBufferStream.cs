@@ -17,6 +17,11 @@ internal sealed unsafe class FixedBufferStream : Stream
     private long position;
 
     /// <summary>Creates a read-only initialized region or an empty writable region over fixed caller storage.</summary>
+    /// <param name="buffer">The region's first byte; the caller keeps it pinned for the stream's lifetime.</param>
+    /// <param name="capacity">The region's size in bytes.</param>
+    /// <param name="writable">
+    ///     Whether the stream may write; a writable region starts empty and a read-only one starts fully initialized.
+    /// </param>
     public FixedBufferStream(byte* buffer, int capacity, bool writable)
         : this(buffer, capacity, writable, initialized: !writable)
     {
@@ -43,16 +48,23 @@ internal sealed unsafe class FixedBufferStream : Stream
         this.length = initialized ? capacity : 0;
     }
 
+    /// <summary>Gets the region's size in bytes, the most the stream can hold.</summary>
     internal int Capacity => this.capacity;
 
+    /// <summary>Gets a value indicating whether the stream can read; always <see langword="true"/>.</summary>
     public override bool CanRead => true;
 
+    /// <summary>Gets a value indicating whether the stream can seek; always <see langword="true"/>.</summary>
     public override bool CanSeek => true;
 
+    /// <summary>Gets a value indicating whether the stream was created writable.</summary>
     public override bool CanWrite => this.writable;
 
+    /// <summary>Gets the initialized length in bytes, which never exceeds <see cref="Capacity"/>.</summary>
     public override long Length => this.length;
 
+    /// <summary>Gets or sets the position in bytes from the region start.</summary>
+    /// <exception cref="CStructException">The value is negative or past the capacity.</exception>
     public override long Position
     {
         get => this.position;
@@ -73,6 +85,14 @@ internal sealed unsafe class FixedBufferStream : Stream
     }
 
     /// <summary>Exposes the pinned region so a read-budget cursor can serve reads without virtual calls.</summary>
+    /// <param name="region">
+    ///     Receives the region's first byte; the caller must not use it after the region is unpinned.
+    /// </param>
+    /// <param name="length">Receives the initialized length in bytes.</param>
+    /// <returns>
+    ///     <see langword="true"/> for a read-only region, whose bytes cannot change; <see langword="false"/> for a
+    ///     writable one.
+    /// </returns>
     internal bool TryGetReadOnlyRegion(out byte* region, out long length)
     {
         region = this.buffer;
@@ -81,6 +101,10 @@ internal sealed unsafe class FixedBufferStream : Stream
     }
 
     /// <summary>Reads initialized bytes from the current region position.</summary>
+    /// <param name="destination">The array that receives the bytes.</param>
+    /// <param name="offset">The index in <paramref name="destination"/> where the first byte is stored.</param>
+    /// <param name="count">The maximum number of bytes to read.</param>
+    /// <returns>The number of bytes copied, or 0 at or past the initialized length.</returns>
     public override int Read(byte[] destination, int offset, int count)
     {
         StreamArgumentValidation.ValidateRange(destination, offset, count, nameof(destination));
@@ -88,6 +112,8 @@ internal sealed unsafe class FixedBufferStream : Stream
     }
 
     /// <summary>Reads initialized bytes from the current region position.</summary>
+    /// <param name="destination">The span to fill; at most its length in bytes is copied.</param>
+    /// <returns>The number of bytes copied, or 0 at or past the initialized length.</returns>
     public override int Read(Span<byte> destination)
     {
         int count = (int)Math.Min(destination.Length, Math.Max(0, this.length - this.position));
@@ -102,6 +128,12 @@ internal sealed unsafe class FixedBufferStream : Stream
     }
 
     /// <summary>Moves within the fixed region without changing its logical length.</summary>
+    /// <param name="offset">The signed byte distance from <paramref name="origin"/>.</param>
+    /// <param name="origin">
+    ///     The reference point: the region start, the current position, or the end of the initialized length.
+    /// </param>
+    /// <returns>The new position in bytes from the region start.</returns>
+    /// <exception cref="CStructException">The target lies before the start or past the capacity.</exception>
     public override long Seek(long offset, SeekOrigin origin)
     {
         long basis = origin switch
@@ -129,6 +161,12 @@ internal sealed unsafe class FixedBufferStream : Stream
     }
 
     /// <summary>Changes the initialized extent of a writable region without exceeding its capacity.</summary>
+    /// <param name="value">
+    ///     The new length in bytes, from 0 to the capacity; growth zero-fills the new bytes and shrinking clamps the
+    ///     position.
+    /// </param>
+    /// <exception cref="NotSupportedException">The region is read-only.</exception>
+    /// <exception cref="CStructWriteException">The length is negative or exceeds the capacity.</exception>
     public override void SetLength(long value)
     {
         this.EnsureWritable();
@@ -150,6 +188,9 @@ internal sealed unsafe class FixedBufferStream : Stream
     }
 
     /// <summary>Writes into caller storage and extends the initialized prefix.</summary>
+    /// <param name="source">The array holding the bytes to write.</param>
+    /// <param name="offset">The index in <paramref name="source"/> of the first byte to write.</param>
+    /// <param name="count">The number of bytes to write.</param>
     public override void Write(byte[] source, int offset, int count)
     {
         StreamArgumentValidation.ValidateRange(source, offset, count, nameof(source));
@@ -157,6 +198,11 @@ internal sealed unsafe class FixedBufferStream : Stream
     }
 
     /// <summary>Writes into caller storage and extends the initialized prefix.</summary>
+    /// <param name="source">
+    ///     The bytes to copy at the current position; a gap left by seeking past the length is zero-filled first.
+    /// </param>
+    /// <exception cref="NotSupportedException">The region is read-only.</exception>
+    /// <exception cref="CStructWriteException">The bytes would run past the region's capacity.</exception>
     public override void Write(ReadOnlySpan<byte> source)
     {
         this.EnsureWritable();
@@ -176,6 +222,7 @@ internal sealed unsafe class FixedBufferStream : Stream
     }
 
     /// <summary>Does not own or unpin the caller's memory.</summary>
+    /// <param name="disposing">Whether the call comes from <see cref="Stream.Dispose()"/>; ignored.</param>
     protected override void Dispose(bool disposing)
     {
     }

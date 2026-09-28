@@ -105,6 +105,10 @@ internal sealed class StaticReadPlan
     /// <summary>The composite's fixed storage size, including trailing padding.</summary>
     public int Size { get; }
 
+    /// <summary>
+    ///     Gets the named field reads, at byte offsets relative to the composite start; callers must not modify
+    ///     the array.
+    /// </summary>
     public StaticReadOperation[] Operations { get; }
 
     /// <summary>

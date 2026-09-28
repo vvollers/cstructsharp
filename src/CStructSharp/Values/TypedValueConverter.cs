@@ -70,6 +70,11 @@ internal static class TypedValueConverter
     }
 
     /// <summary>Converts one natural value or reports a stable read-domain failure.</summary>
+    /// <param name="value">The natural value produced by the reader, or <see langword="null"/>.</param>
+    /// <param name="targetType">The CLR type the caller asked for.</param>
+    /// <param name="path">The element path named in failures, or <see langword="null"/> for the root.</param>
+    /// <returns>The converted value, or <see langword="null"/> for a null value and a nullable target.</returns>
+    /// <exception cref="CStructReadException">The conversion is unsupported or lossy.</exception>
     public static object? Convert(
         object? value,
         Type targetType,
@@ -352,6 +357,10 @@ internal static class TypedValueConverter
     ///     Creates the array a member declares. The declared array type is part of the compiled program, so on
     ///     .NET 9+ it is created from that type without dynamic code; .NET 8 has only the element-type overload.
     /// </summary>
+    /// <param name="arrayType">The declared single-dimensional array type, such as <c>int[]</c>.</param>
+    /// <param name="elementType">The element type of <paramref name="arrayType"/>, used on .NET 8.</param>
+    /// <param name="length">The number of elements.</param>
+    /// <returns>A new zero-filled array of <paramref name="arrayType"/>.</returns>
     internal static Array CreateArray(Type arrayType, Type elementType, int length)
     {
 #if NET9_0_OR_GREATER

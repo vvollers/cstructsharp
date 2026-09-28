@@ -11,6 +11,11 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 internal static class SymbolValidation
 {
     /// <summary>Returns the user-facing declaration kind used in focused duplicate-name errors.</summary>
+    /// <param name="declaration">The declaration to describe.</param>
+    /// <returns>
+    ///     <c>struct</c>, <c>union</c>, <c>enum</c>, <c>typedef</c>, <c>#define</c>, <c>#include</c>, or the CLR type
+    ///     name of any other declaration.
+    /// </returns>
     public static string GetDeclarationKind(CStructElement declaration)
     {
         return declaration switch
@@ -27,6 +32,9 @@ internal static class SymbolValidation
     }
 
     /// <summary>Validates every lexical member scope represented by the parsed top-level declarations.</summary>
+    /// <param name="declarations">
+    ///     The parsed top-level declarations; structs, unions, enums, and typedef bodies are checked.
+    /// </param>
     public static void ValidateScopedMemberNames(IEnumerable<CStructElement> declarations)
     {
         foreach (CStructElement declaration in declarations)
@@ -47,6 +55,11 @@ internal static class SymbolValidation
     }
 
     /// <summary>Rejects a declaration name that would shadow a built-in primitive, character, or string codec.</summary>
+    /// <param name="declaration">The top-level declaration whose name is checked.</param>
+    /// <param name="catalog">The built-in codec names; alias spellings in it may be redeclared.</param>
+    /// <exception cref="CStructLayoutException">
+    ///     The name is a canonical built-in codec name or <c>void</c>; the exception carries the name's source offset.
+    /// </exception>
     public static void ValidateBuiltInNameCollision(
         CStructElement declaration,
         PrimitiveCatalog catalog)

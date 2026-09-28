@@ -38,6 +38,9 @@ internal sealed class TargetResolutionContext
     ///     Returns a context with one declared field and every index supplied for it (zero or more, one
     ///     per dimension actually indexed) appended.
     /// </summary>
+    /// <param name="fieldName">The declared field name the path enters.</param>
+    /// <param name="selectedIndexes">The indexes the path supplied for this field, in dimension order.</param>
+    /// <returns>A new context; this context is not changed.</returns>
     public TargetResolutionContext EnterField(string fieldName, IReadOnlyList<int> selectedIndexes)
     {
         string[] debugPrefix = Append(this.DebugPrefix, fieldName);
@@ -52,6 +55,9 @@ internal sealed class TargetResolutionContext
     }
 
     /// <summary>Returns a context after following one explicit pointer <c>.value</c> accessor to <paramref name="targetAddress"/>.</summary>
+    /// <param name="targetAddress">The stream address, in bytes, that the followed pointer resolved to.</param>
+    /// <returns>A new context with the address recorded and one more accessor counted.</returns>
+    /// <exception cref="System.OverflowException">The accessor count exceeds <see cref="int.MaxValue"/>.</exception>
     public TargetResolutionContext FollowPointer(long targetAddress)
     {
         return new TargetResolutionContext(

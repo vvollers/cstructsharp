@@ -29,6 +29,7 @@ public sealed class PrimitiveArray<T> : IList<object?>, IReadOnlyList<object?>, 
     /// <summary>Gets the number of elements.</summary>
     public int Count => this.values.Length;
 
+    /// <summary>Gets <typeparamref name="T"/>, the type of every stored element.</summary>
     Type IPrimitiveArray.ElementType => typeof(T);
 
     /// <summary>Gets the elements as a typed read-only span (no boxing).</summary>
@@ -37,16 +38,35 @@ public sealed class PrimitiveArray<T> : IList<object?>, IReadOnlyList<object?>, 
     /// <summary>Gets the elements as typed read-only memory (no boxing).</summary>
     public ReadOnlyMemory<T> Memory => this.values;
 
+    /// <summary>
+    ///     Gets <see langword="true"/> because elements can never be added or removed; replacing an element through the
+    ///     indexer is still allowed.
+    /// </summary>
     bool ICollection<object?>.IsReadOnly => true;
 
+    /// <summary>
+    ///     Gets <see langword="true"/> because the list cannot grow or shrink, although elements can be replaced.
+    /// </summary>
     bool IList.IsReadOnly => true;
 
+    /// <summary>Gets <see langword="true"/>: the element count is fixed by the parsed data.</summary>
     bool IList.IsFixedSize => true;
 
+    /// <summary>
+    ///     Gets <see langword="false"/>: access is not synchronized; callers that share the array must lock.
+    /// </summary>
     bool ICollection.IsSynchronized => false;
 
+    /// <summary>Gets the shared element storage, which callers can lock to synchronize access.</summary>
     object ICollection.SyncRoot => this.values;
 
+    /// <summary>
+    ///     Gets or replaces one element; the boxed element is a <typeparamref name="T"/>, and a replacement is
+    ///     converted to <typeparamref name="T"/> (a <see langword="null"/> replacement throws
+    ///     <see cref="ArgumentNullException"/>).
+    /// </summary>
+    /// <param name="index">The zero-based element index.</param>
+    /// <returns>The boxed element at <paramref name="index"/>.</returns>
     object? IList.this[int index]
     {
         get => this.values[index];
@@ -61,6 +81,8 @@ public sealed class PrimitiveArray<T> : IList<object?>, IReadOnlyList<object?>, 
         set => this.values[index] = ConvertElement(value);
     }
 
+    /// <summary>Copies the elements into a new <typeparamref name="T"/>[] typed as <see cref="Array"/>.</summary>
+    /// <returns>A fresh array with the same values; the stored elements are not shared.</returns>
     Array IPrimitiveArray.ToArray()
     {
         return this.ToArray();
@@ -96,6 +118,8 @@ public sealed class PrimitiveArray<T> : IList<object?>, IReadOnlyList<object?>, 
         }
     }
 
+    /// <summary>Enumerates the elements as boxed values for non-generic callers.</summary>
+    /// <returns>An enumerator over the boxed elements, in index order.</returns>
     IEnumerator IEnumerable.GetEnumerator()
     {
         return this.GetEnumerator();
@@ -134,30 +158,80 @@ public sealed class PrimitiveArray<T> : IList<object?>, IReadOnlyList<object?>, 
         }
     }
 
+    /// <summary>Always throws, because the array has a fixed size.</summary>
+    /// <param name="index">The ignored insertion index.</param>
+    /// <param name="item">The ignored element.</param>
+    /// <exception cref="NotSupportedException">Always.</exception>
     void IList<object?>.Insert(int index, object? item) => throw FixedSize();
 
+    /// <summary>Always throws, because the array has a fixed size.</summary>
+    /// <param name="index">The ignored element index.</param>
+    /// <exception cref="NotSupportedException">Always.</exception>
     void IList<object?>.RemoveAt(int index) => throw FixedSize();
 
+    /// <summary>Always throws, because the array has a fixed size.</summary>
+    /// <param name="item">The ignored element.</param>
+    /// <exception cref="NotSupportedException">Always.</exception>
     void ICollection<object?>.Add(object? item) => throw FixedSize();
 
+    /// <summary>Always throws, because the array has a fixed size.</summary>
+    /// <exception cref="NotSupportedException">Always.</exception>
     void ICollection<object?>.Clear() => throw FixedSize();
 
+    /// <summary>Always throws, because the array has a fixed size.</summary>
+    /// <param name="item">The ignored element.</param>
+    /// <returns>Never returns.</returns>
+    /// <exception cref="NotSupportedException">Always.</exception>
     bool ICollection<object?>.Remove(object? item) => throw FixedSize();
 
+    /// <summary>Always throws, because the array has a fixed size.</summary>
+    /// <param name="value">The ignored element.</param>
+    /// <returns>Never returns.</returns>
+    /// <exception cref="NotSupportedException">Always.</exception>
     int IList.Add(object? value) => throw FixedSize();
 
+    /// <summary>Always throws, because the array has a fixed size.</summary>
+    /// <exception cref="NotSupportedException">Always.</exception>
     void IList.Clear() => throw FixedSize();
 
+    /// <summary>
+    ///     Returns whether any element equals <paramref name="value"/>, as <see cref="Contains(object)"/> does.
+    /// </summary>
+    /// <param name="value">
+    ///     The value to find; compared after conversion to <typeparamref name="T"/> when possible.
+    /// </param>
+    /// <returns><see langword="true"/> when found.</returns>
     bool IList.Contains(object? value) => this.Contains(value);
 
+    /// <summary>
+    ///     Finds the first element equal to <paramref name="value"/>, as <see cref="IndexOf(object)"/> does.
+    /// </summary>
+    /// <param name="value">
+    ///     The value to find; compared after conversion to <typeparamref name="T"/> when possible.
+    /// </param>
+    /// <returns>The index, or -1.</returns>
     int IList.IndexOf(object? value) => this.IndexOf(value);
 
+    /// <summary>Always throws, because the array has a fixed size.</summary>
+    /// <param name="index">The ignored insertion index.</param>
+    /// <param name="value">The ignored element.</param>
+    /// <exception cref="NotSupportedException">Always.</exception>
     void IList.Insert(int index, object? value) => throw FixedSize();
 
+    /// <summary>Always throws, because the array has a fixed size.</summary>
+    /// <param name="value">The ignored element.</param>
+    /// <exception cref="NotSupportedException">Always.</exception>
     void IList.Remove(object? value) => throw FixedSize();
 
+    /// <summary>Always throws, because the array has a fixed size.</summary>
+    /// <param name="index">The ignored element index.</param>
+    /// <exception cref="NotSupportedException">Always.</exception>
     void IList.RemoveAt(int index) => throw FixedSize();
 
+    /// <summary>Copies the boxed elements into <paramref name="array"/>.</summary>
+    /// <param name="array">The destination; its element type must accept <typeparamref name="T"/> values.</param>
+    /// <param name="index">The destination start index.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="array"/> is <see langword="null"/>.</exception>
     void ICollection.CopyTo(Array array, int index)
     {
         ArgumentNullException.ThrowIfNull(array);
