@@ -132,7 +132,7 @@ function recordObservation(compiler, extraFlags) {
         executable: path.basename(identity.executable),
         version: identity.version,
         versionOutput: identity.versionOutput,
-        target: identity.target,
+        target: flags.includes("-m32") ? identity.target.replace(/^x86_64/, "i686") : identity.target,
         abi: identity.abi,
         language: "C11",
         flags,
@@ -172,6 +172,20 @@ function identifyCompiler(compiler) {
   if (clang) return { executable: compiler, family: "Clang", version: clang[1], versionOutput, target, abi, flags: ["-std=c11", "-Wall", "-Wextra", "-Werror", "-pedantic"] };
   if (gcc) return { executable: compiler, family: "GCC", version: gcc[1], versionOutput, target, abi, flags: ["-std=c11", "-Wall", "-Wextra", "-Werror", "-pedantic"] };
   throw new Error(`Only gcc, clang, clang-cl, and cl are supported by this fixture runner.\n${versionOutput}`);
+}
+
+/**
+ * Names the architecture a target triple compiles for (x64, x86, arm64, or the triple's first part), which differs
+ * from the host's when a flag such as `-m32` selects another target.
+ * @param {string} target A target triple such as `i686-linux-gnu`.
+ * @returns {string} The architecture label.
+ */
+function targetArchitecture(target) {
+  const machine = target.split("-")[0].toLowerCase();
+  if (machine === "x86_64" || machine === "amd64" || machine === "x64") return "x64";
+  if (/^i[3-6]86$/.test(machine) || machine === "x86") return "x86";
+  if (machine === "aarch64" || machine === "arm64") return "arm64";
+  return machine;
 }
 
 /** Returns the host operating system label used in evidence records (Windows, macOS, or Linux). */
@@ -264,20 +278,36 @@ function validateLayout(layout, context, requireBytes) {
   }
 }
 
+/**
+ * Names the claim of a shape that a baseline verifies: its ABI family, except that a SysV compiler with four-byte
+ * pointers is `sysvX86`, since the i386 ABI aligns eight-byte scalars to four bytes. Mirrors
+ * CompilerDifferentialFixtureTests.ClaimKey.
+ * @param {object} baseline A compiler observation record.
+ * @returns {"sysv" | "sysvX86" | "msvc"} The claim key.
+ */
+function claimKey(baseline) {
+  return baseline.compiler.abi === "sysv" && baseline.facts.pointer.size === 4 ? "sysvX86" : baseline.compiler.abi;
+}
+
 /** The Markdown comparison table: one row per shape, one column per baseline, plus the verified Portable claim. */
 function renderTable(shapes, baselines) {
   const columns = baselines.map((baseline) => ({
-    label: `${baseline.compiler.family} ${baseline.compiler.version} (${baseline.host.os} ${baseline.host.architecture}, ${ABI_LABELS[baseline.compiler.abi]})`,
+    label: `${baseline.compiler.family} ${baseline.compiler.version} (${baseline.host.os} ${targetArchitecture(baseline.compiler.target)}, ${ABI_LABELS[baseline.compiler.abi]})`,
     facts: baseline.facts.shapes ?? {},
   }));
   const lines = [];
   lines.push("| Shape | C declaration | Portable | " + columns.map((column) => column.label).join(" | ") + " |");
   lines.push("| --- | --- | --- | " + columns.map(() => "---").join(" | ") + " |");
-  const recordedAbis = new Set(baselines.map((baseline) => baseline.compiler.abi));
-  /** Names a placement mode, noting when no recorded compiler baseline backs its ABI. */
-  const describeClaim = (mode, abi) => (recordedAbis.has(abi) ? `\`${mode}\`` : `\`${mode}\` (modelled, no ${abi} baseline yet)`);
+  const recordedClaims = new Set(baselines.map(claimKey));
+  /** Names a placement mode, noting when no recorded compiler baseline backs its claim. */
+  const describeClaim = (mode, key) => (recordedClaims.has(key) ? mode : `${mode} (modelled, no ${key} baseline yet)`);
+  const modes = [
+    ["sysv", "`SysV`"],
+    ["sysvX86", "`SysV` on x86"],
+    ["msvc", "`Msvc`"],
+  ];
   for (const shape of shapes.shapes) {
-    const claim = [shape.portable.sysv ? describeClaim("SysV", "sysv") : null, shape.portable.msvc ? describeClaim("Msvc", "msvc") : null].filter(Boolean).join(", ") || "neither";
+    const claim = modes.filter(([key]) => shape.portable[key]).map(([key, mode]) => describeClaim(mode, key)).join(", ") || "neither";
     const cells = columns.map((column) => {
       const layout = column.facts[shape.id];
       return layout ? `size ${layout.size}, align ${layout.alignment}: \`${layout.bytes}\`` : "not recorded";
@@ -285,6 +315,6 @@ function renderTable(shapes, baselines) {
     lines.push(`| \`${shape.id}\` | \`${shape.c}\` | ${claim} | ${cells.join(" | ")} |`);
   }
   lines.push("");
-  lines.push(`Baselines: ${baselines.length === 0 ? "none recorded yet" : baselines.map((baseline) => `${baseline.compiler.family} ${baseline.compiler.version} on ${baseline.host.os} ${baseline.host.architecture} (${baseline.compiler.target})`).join("; ")}. The *Portable* column names the \`BitfieldPacking\` mode(s) in which the library reproduces the compiler of the same ABI family byte for byte; \`CompilerDifferentialFixtureTests\` verifies every claim against every baseline. Compilers not recorded here (MSVC, clang-cl, macOS clang, 32-bit targets) are recorded by the \`compiler-fixtures\` workflow when it runs.`);
+  lines.push(`Baselines: ${baselines.length === 0 ? "none recorded yet" : baselines.map((baseline) => `${baseline.compiler.family} ${baseline.compiler.version} on ${baseline.host.os} ${targetArchitecture(baseline.compiler.target)} (${baseline.compiler.target})`).join("; ")}. The *Portable* column names the \`BitfieldPacking\` mode(s) in which the library reproduces the compiler of the same ABI family byte for byte; \`CompilerDifferentialFixtureTests\` verifies every claim against every baseline. The manually started \`compiler-fixtures\` workflow records the baselines again.`);
   return lines.join("\n");
 }

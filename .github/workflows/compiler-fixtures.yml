@@ -1,13 +1,12 @@
 name: Compiler fixtures
 
 # Records what real C compilers do with the shapes in tools/compiler-fixtures/portable-host-facts.c on every
-# platform GitHub hosts, and uploads the observation records. A maintainer reviews the artifacts and commits the
-# ones that should become baselines under contracts/quality/compiler-fixtures/baselines; the managed tests then
-# verify the library's placement claims against them.
+# platform GitHub hosts, and uploads the observation records. The committed baselines under
+# contracts/quality/compiler-fixtures/baselines come from one run; the managed tests verify the library's placement
+# claims against them. Start it by hand after changing the fixture or the shapes, review the artifacts, and commit
+# them as the new baselines. Compiler ABIs do not drift from week to week, so it has no schedule.
 
 on:
-  schedule:
-    - cron: "23 5 * * 1"
   workflow_dispatch:
 
 permissions:

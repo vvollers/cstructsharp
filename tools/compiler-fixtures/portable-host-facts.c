@@ -84,9 +84,14 @@ struct shape_packed_bits_u16_15_u8_2 { uint16_t a : 15; uint8_t b : 2; };
 struct shape_packed_bits_after_byte { uint8_t x; uint32_t a : 4; uint8_t b : 4; };
 #pragma pack(pop)
 
-#define PRINT_SHAPE(id, T, value, last) \
+/*
+ * The object has static storage so that its padding bytes are zero (C11 6.7.9p10); an automatic object's padding is
+ * indeterminate and would print whatever the stack held. The initializer is the variadic tail because its braces
+ * contain commas.
+ */
+#define PRINT_SHAPE(id, T, last, ...) \
     do { \
-        T shape = value; \
+        static const T shape = __VA_ARGS__; \
         (void)printf("\"" id "\":{\"size\":%zu,\"alignment\":%zu,\"bytes\":\"", sizeof(T), _Alignof(T)); \
         print_bytes(&shape, sizeof shape); \
         (void)printf(last ? "\"}" : "\"},"); \
@@ -107,10 +112,11 @@ int main(void)
     const uint16_t endian_probe = UINT16_C(0x0102);
     const char *endian =
         (*(const unsigned char *)&endian_probe == UINT8_C(0x02)) ? "little" : "big";
-    struct qa03_mixed mixed = { 0 };
-    struct qa03_nested nested = { 0 };
-    union qa03_choice choice = { 0 };
-    struct qa03_bits bits = { 0 };
+    /* Static storage starts every byte, padding included, at zero; the members are then stored one by one. */
+    static struct qa03_mixed mixed;
+    static struct qa03_nested nested;
+    static union qa03_choice choice;
+    static struct qa03_bits bits;
 
     mixed.tag = UINT8_C(0x11);
     mixed.count = UINT32_C(0x22334455);
@@ -218,28 +224,28 @@ int main(void)
         offsetof(struct qa03_pointer, marker),
         offsetof(struct qa03_pointer, target));
     (void)printf(",\"shapes\":{");
-    PRINT_SHAPE("bits-u8-u16", struct shape_bits_u8_u16, ((struct shape_bits_u8_u16){ .a = 0xF, .b = 0xA }), 0);
-    PRINT_SHAPE("bits-u8-u8-u16", struct shape_bits_u8_u8_u16, ((struct shape_bits_u8_u8_u16){ .a = 7, .b = 0x1F, .c = 0xABCD }), 0);
-    PRINT_SHAPE("bits-u32-3-29-1", struct shape_bits_u32_3_29_1, ((struct shape_bits_u32_3_29_1){ .a = 7, .b = 0x1FFFFFFF, .c = 1 }), 0);
-    PRINT_SHAPE("bits-u16-15-u8-2", struct shape_bits_u16_15_u8_2, ((struct shape_bits_u16_15_u8_2){ .a = 0x7FFF, .b = 3 }), 0);
-    PRINT_SHAPE("bits-zero-width", struct shape_bits_zero_width, ((struct shape_bits_zero_width){ .a = 7, .b = 7 }), 0);
-    PRINT_SHAPE("bits-zero-width-u32", struct shape_bits_zero_width_u32, ((struct shape_bits_zero_width_u32){ .a = 7, .b = 7 }), 0);
-    PRINT_SHAPE("bits-signed", struct shape_bits_signed, ((struct shape_bits_signed){ .a = -1, .b = 0x1F }), 0);
-    PRINT_SHAPE("bits-u8-6-6", struct shape_bits_u8_6_6, ((struct shape_bits_u8_6_6){ .a = 0x3F, .b = 0x3F }), 0);
-    PRINT_SHAPE("bits-u64-u8", struct shape_bits_u64_u8, ((struct shape_bits_u64_u8){ .a = 0xF, .b = 0xF }), 0);
-    PRINT_SHAPE("bits-after-byte", struct shape_bits_after_byte, ((struct shape_bits_after_byte){ .x = 0xAA, .a = 0xF, .b = 0xF }), 0);
-    PRINT_SHAPE("u64-after-u8", struct shape_u64_after_u8, ((struct shape_u64_after_u8){ .a = 0x11, .b = UINT64_C(0x8877665544332211) }), 0);
-    PRINT_SHAPE("double-after-u8", struct shape_double_after_u8, ((struct shape_double_after_u8){ .a = 0x11, .b = 1.5 }), 0);
-    PRINT_SHAPE("long", struct shape_long, ((struct shape_long){ .a = 0x11, .b = 0x12345678L }), 0);
-    PRINT_SHAPE("enum-large", struct shape_enum_large, ((struct shape_enum_large){ .a = 0x11, .b = SHAPE_BIG_ENUM_BIG }), 0);
-    PRINT_SHAPE("bool", struct shape_bool, ((struct shape_bool){ .a = 0x11, .b = 1, .c = 0x2233 }), 0);
-    PRINT_SHAPE("pack2-array", struct shape_pack2_array, ((struct shape_pack2_array){ .a = 0x11, .b = { 0x22334455, 0x66778899 }, .c = 0xAA }), 0);
-    PRINT_SHAPE("nested-align", struct shape_nested_align, ((struct shape_nested_align){ .x = 0x11, .in = { .a = 0x22, .b = 0x33445566 }, .y = 0x77 }), 0);
-    PRINT_SHAPE("union-size", union shape_union_size, ((union shape_union_size){ .c = { 0x1122, 0x3344, 0x5566 } }), 0);
-    PRINT_SHAPE("packed-bits-u8-u16", struct shape_packed_bits_u8_u16, ((struct shape_packed_bits_u8_u16){ .a = 0xF, .b = 0xA }), 0);
-    PRINT_SHAPE("packed-bits-u8-6-6", struct shape_packed_bits_u8_6_6, ((struct shape_packed_bits_u8_6_6){ .a = 0x3F, .b = 0x3F }), 0);
-    PRINT_SHAPE("packed-bits-u16-15-u8-2", struct shape_packed_bits_u16_15_u8_2, ((struct shape_packed_bits_u16_15_u8_2){ .a = 0x7FFF, .b = 3 }), 0);
-    PRINT_SHAPE("packed-bits-after-byte", struct shape_packed_bits_after_byte, ((struct shape_packed_bits_after_byte){ .x = 0xAA, .a = 0xF, .b = 0xF }), 1);
+    PRINT_SHAPE("bits-u8-u16", struct shape_bits_u8_u16, 0, { .a = 0xF, .b = 0xA });
+    PRINT_SHAPE("bits-u8-u8-u16", struct shape_bits_u8_u8_u16, 0, { .a = 7, .b = 0x1F, .c = 0xABCD });
+    PRINT_SHAPE("bits-u32-3-29-1", struct shape_bits_u32_3_29_1, 0, { .a = 7, .b = 0x1FFFFFFF, .c = 1 });
+    PRINT_SHAPE("bits-u16-15-u8-2", struct shape_bits_u16_15_u8_2, 0, { .a = 0x7FFF, .b = 3 });
+    PRINT_SHAPE("bits-zero-width", struct shape_bits_zero_width, 0, { .a = 7, .b = 7 });
+    PRINT_SHAPE("bits-zero-width-u32", struct shape_bits_zero_width_u32, 0, { .a = 7, .b = 7 });
+    PRINT_SHAPE("bits-signed", struct shape_bits_signed, 0, { .a = -1, .b = 0x1F });
+    PRINT_SHAPE("bits-u8-6-6", struct shape_bits_u8_6_6, 0, { .a = 0x3F, .b = 0x3F });
+    PRINT_SHAPE("bits-u64-u8", struct shape_bits_u64_u8, 0, { .a = 0xF, .b = 0xF });
+    PRINT_SHAPE("bits-after-byte", struct shape_bits_after_byte, 0, { .x = 0xAA, .a = 0xF, .b = 0xF });
+    PRINT_SHAPE("u64-after-u8", struct shape_u64_after_u8, 0, { .a = 0x11, .b = UINT64_C(0x8877665544332211) });
+    PRINT_SHAPE("double-after-u8", struct shape_double_after_u8, 0, { .a = 0x11, .b = 1.5 });
+    PRINT_SHAPE("long", struct shape_long, 0, { .a = 0x11, .b = 0x12345678L });
+    PRINT_SHAPE("enum-large", struct shape_enum_large, 0, { .a = 0x11, .b = SHAPE_BIG_ENUM_BIG });
+    PRINT_SHAPE("bool", struct shape_bool, 0, { .a = 0x11, .b = 1, .c = 0x2233 });
+    PRINT_SHAPE("pack2-array", struct shape_pack2_array, 0, { .a = 0x11, .b = { 0x22334455, 0x66778899 }, .c = 0xAA });
+    PRINT_SHAPE("nested-align", struct shape_nested_align, 0, { .x = 0x11, .in = { .a = 0x22, .b = 0x33445566 }, .y = 0x77 });
+    PRINT_SHAPE("union-size", union shape_union_size, 0, { .c = { 0x1122, 0x3344, 0x5566 } });
+    PRINT_SHAPE("packed-bits-u8-u16", struct shape_packed_bits_u8_u16, 0, { .a = 0xF, .b = 0xA });
+    PRINT_SHAPE("packed-bits-u8-6-6", struct shape_packed_bits_u8_6_6, 0, { .a = 0x3F, .b = 0x3F });
+    PRINT_SHAPE("packed-bits-u16-15-u8-2", struct shape_packed_bits_u16_15_u8_2, 0, { .a = 0x7FFF, .b = 3 });
+    PRINT_SHAPE("packed-bits-after-byte", struct shape_packed_bits_after_byte, 1, { .x = 0xAA, .a = 0xF, .b = 0xF });
     (void)printf("}");
     (void)printf("}\n");
 

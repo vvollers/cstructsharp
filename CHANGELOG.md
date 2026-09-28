@@ -197,6 +197,12 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 - `sync-primitive-spellings.mjs --check` reads the alias tables again (it had misread the pointer-sized spellings as
   `long` family members) and keeps the feature matrix's formatting; `comparison-benchmarks.mjs` renders the README
   tables in their formatted, column-aligned form so `--check` passes. CI runs both checks.
+- Compiler comparison: the baselines now cover six compilers (Linux x64 GCC and Clang, Linux x86 GCC, macOS arm64
+  Clang, Windows x64 MSVC and clang-cl), and the table in *Differences from C* shows them all. Each shape gains a
+  `sysvX86` claim: on 32-bit x86 the library matches every shape except the three with an eight-byte scalar, which
+  the i386 ABI aligns to four bytes. The fixture gives its objects static storage, so padding bytes are zero instead
+  of stack contents, and a `-m32` recording names its i686 target. The `compiler-fixtures` workflow runs only when
+  started by hand.
 
 ## 0.10.0 — 2026-09-26
 

@@ -12,7 +12,7 @@
     "executable": "gcc",
     "version": "13.3.0",
     "versionOutput": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
-    "target": "x86_64-linux-gnu",
+    "target": "i686-linux-gnu",
     "abi": "sysv",
     "language": "C11",
     "flags": [
@@ -20,7 +20,8 @@
       "-Wall",
       "-Wextra",
       "-Werror",
-      "-pedantic"
+      "-pedantic",
+      "-m32"
     ]
   },
   "host": {
@@ -43,20 +44,20 @@
       "alignment": 4
     },
     "long": {
-      "size": 8,
-      "alignment": 8
+      "size": 4,
+      "alignment": 4
     },
     "longLong": {
       "size": 8,
-      "alignment": 8
+      "alignment": 4
     },
     "wchar": {
       "size": 4,
       "alignment": 4
     },
     "pointer": {
-      "size": 8,
-      "alignment": 8
+      "size": 4,
+      "alignment": 4
     },
     "enum": {
       "size": 4,
@@ -103,11 +104,11 @@
       "bytes": "8D003412"
     },
     "pointerAggregate": {
-      "size": 16,
-      "alignment": 8,
+      "size": 8,
+      "alignment": 4,
       "offsets": {
         "marker": 0,
-        "target": 8
+        "target": 4
       }
     },
     "shapes": {
@@ -152,9 +153,9 @@
         "bytes": "3F3F"
       },
       "bits-u64-u8": {
-        "size": 8,
-        "alignment": 8,
-        "bytes": "FF00000000000000"
+        "size": 4,
+        "alignment": 4,
+        "bytes": "FF000000"
       },
       "bits-after-byte": {
         "size": 4,
@@ -162,19 +163,19 @@
         "bytes": "AAFF0000"
       },
       "u64-after-u8": {
-        "size": 16,
-        "alignment": 8,
-        "bytes": "11000000000000001122334455667788"
+        "size": 12,
+        "alignment": 4,
+        "bytes": "110000001122334455667788"
       },
       "double-after-u8": {
-        "size": 16,
-        "alignment": 8,
-        "bytes": "1100000000000000000000000000F83F"
+        "size": 12,
+        "alignment": 4,
+        "bytes": "11000000000000000000F83F"
       },
       "long": {
-        "size": 16,
-        "alignment": 8,
-        "bytes": "11000000000000007856341200000000"
+        "size": 8,
+        "alignment": 4,
+        "bytes": "1100000078563412"
       },
       "enum-large": {
         "size": 8,

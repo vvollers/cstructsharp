@@ -148,17 +148,19 @@ are explained in [MUTATION_TESTING.md](MUTATION_TESTING.md).
 ### Compiler comparison fixture
 
 `tools/compiler-fixtures/portable-host-facts.c` records what real C compilers do with a set of layout shapes
-(`contracts/quality/compiler-fixtures/shapes.json` describes each shape and the `BitfieldPacking` mode in which the
-library reproduces it). The observations are evidence, not a promise that CStructSharp follows a host compiler's
-ABI; `CompilerDifferentialFixtureTests` verifies every claim against every checked-in baseline.
+(`contracts/quality/compiler-fixtures/shapes.json` describes each shape and whether the library reproduces it with
+SysV placement, SysV placement and four-byte pointers (`sysvX86`, compared with 32-bit x86), and MSVC placement). The
+observations are evidence, not a promise that CStructSharp follows a host compiler's ABI;
+`CompilerDifferentialFixtureTests` verifies every claim against every checked-in baseline. The committed baselines
+cover Linux x64 (GCC and Clang), Linux x86 (GCC `-m32`), macOS arm64 (Clang), and Windows x64 (MSVC and clang-cl).
 
 The two-byte packing shape intentionally triggers MSVC's member-alignment warning C4121. The fixture suppresses
 only that warning around that shape; all other diagnostics remain errors. Review fresh observations before adopting
 a baseline, including when a source-only change requires a new fixture hash.
 
-If you change the C file or the shapes, re-record the baselines you can (`node tools/quality/compiler-fixture.mjs
-record --compiler gcc --output contracts/quality/compiler-fixtures/baselines/<platform>-<compiler>.json`), let the
-`compiler-fixtures` workflow record the other platforms, run the managed tests on both .NET versions, and then run:
+The fixture's objects have static storage, so their padding bytes are zero and each byte image is deterministic.
+If you change the C file or the shapes, start the `compiler-fixtures` workflow by hand (it has no schedule), replace
+the six baselines with its artifacts, run the managed tests on both .NET versions, and then run:
 
 ```sh
 node tools/quality/compiler-fixture.mjs validate

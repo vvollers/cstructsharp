@@ -8,11 +8,11 @@
     "sha256": "CA81A7AF8C5B0B87A3629280674122E6F159E7AE59954210E98D1BDD33CE9824"
   },
   "compiler": {
-    "family": "GCC",
-    "executable": "gcc",
-    "version": "13.3.0",
-    "versionOutput": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
-    "target": "x86_64-linux-gnu",
+    "family": "Clang",
+    "executable": "clang",
+    "version": "21.0.0",
+    "versionOutput": "Apple clang version 21.0.0 (clang-2100.1.1.101)\nTarget: arm64-apple-darwin25.6.0\nThread model: posix\nInstalledDir: /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin",
+    "target": "arm64-apple-darwin25.6.0",
     "abi": "sysv",
     "language": "C11",
     "flags": [
@@ -24,8 +24,8 @@
     ]
   },
   "host": {
-    "os": "Linux",
-    "architecture": "x64"
+    "os": "macOS",
+    "architecture": "arm64"
   },
   "facts": {
     "endian": "little",

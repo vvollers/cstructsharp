@@ -115,7 +115,8 @@ public class CompilerDifferentialFixtureTests
 
     /// <summary>
     ///     Every shape's claim holds: in the mode named for the baseline's ABI family, the library's size, alignment,
-    ///     and bytes equal the compiler's, and the compiler's bytes parse back to the shape's values.
+    ///     and bytes equal the compiler's, and the compiler's bytes parse back to the shape's values. Every mismatch
+    ///     between claim and observation is reported, not only the first.
     /// </summary>
     [TestMethod]
     public void Shapes_MatchEveryBaselineOfTheClaimedAbiFamily()
@@ -123,14 +124,14 @@ public class CompilerDifferentialFixtureTests
         using JsonDocument shapes = LoadJson(Path.Combine("compiler-fixtures", "shapes.json"));
         (string File, JsonElement Root)[] baselines = LoadBaselines();
         int verified = 0;
+        var failures = new List<string>();
         foreach (JsonElement shape in shapes.RootElement.GetProperty("shapes").EnumerateArray())
         {
             string id = shape.GetProperty("id").GetString()!;
             JsonElement portable = shape.GetProperty("portable");
             foreach ((string file, JsonElement baseline) in baselines)
             {
-                string abi = baseline.GetProperty("compiler").GetProperty("abi").GetString()!;
-                bool claimed = portable.GetProperty(abi).GetBoolean();
+                bool claimed = portable.GetProperty(ClaimKey(baseline)).GetBoolean();
                 JsonElement recorded = baseline.GetProperty("facts").GetProperty("shapes").GetProperty(id);
                 string context = $"{id} against {file}";
 
@@ -152,7 +153,12 @@ public class CompilerDifferentialFixtureTests
                 bool matches = layout.GetStructSizeInBytes(root) == recorded.GetProperty("size").GetInt32() &&
                                (!portable.GetProperty("aligned").GetBoolean() || layout.GetStructAlignmentInBytes(root) == recorded.GetProperty("alignment").GetInt32()) &&
                                portableBytes.AsSpan().SequenceEqual(nativeBytes);
-                Assert.AreEqual(claimed, matches, $"{context}: claim {claimed}, library {Convert.ToHexString(portableBytes)} size {layout.GetStructSizeInBytes(root)} align {layout.GetStructAlignmentInBytes(root)}; compiler {recorded.GetProperty("bytes").GetString()} size {recorded.GetProperty("size").GetInt32()} align {recorded.GetProperty("alignment").GetInt32()}");
+                if (claimed != matches)
+                {
+                    failures.Add($"{context} ({ClaimKey(baseline)}): claim {claimed}, library {Convert.ToHexString(portableBytes)} size {layout.GetStructSizeInBytes(root)} align {layout.GetStructAlignmentInBytes(root)}; compiler {recorded.GetProperty("bytes").GetString()} size {recorded.GetProperty("size").GetInt32()} align {recorded.GetProperty("alignment").GetInt32()}");
+                    continue;
+                }
+
                 if (matches)
                 {
                     object? parsed = layout.ReadValue(nativeBytes, root);
@@ -162,7 +168,22 @@ public class CompilerDifferentialFixtureTests
             }
         }
 
+        Assert.AreEqual(0, failures.Count, string.Join(Environment.NewLine, failures));
         Assert.IsTrue(verified > 0, "No shape was verified against any baseline.");
+    }
+
+    /// <summary>
+    ///     Names the claim a baseline is checked against: its ABI family (<c>sysv</c> or <c>msvc</c>), except that a
+    ///     SysV compiler with four-byte pointers is <c>sysvX86</c>, because the i386 psABI aligns eight-byte scalars
+    ///     to four bytes where the x86-64 and arm64 ABIs, and Portable placement, align them to eight.
+    /// </summary>
+    /// <param name="baseline">The compiler baseline.</param>
+    /// <returns>The property of a shape's <c>portable</c> object that holds the claim.</returns>
+    private static string ClaimKey(JsonElement baseline)
+    {
+        string abi = baseline.GetProperty("compiler").GetProperty("abi").GetString()!;
+        int pointerSize = baseline.GetProperty("facts").GetProperty("pointer").GetProperty("size").GetInt32();
+        return abi == "sysv" && pointerSize == 4 ? "sysvX86" : abi;
     }
 
     /// <summary>
