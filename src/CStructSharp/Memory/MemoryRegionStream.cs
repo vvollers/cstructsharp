@@ -70,6 +70,7 @@ internal sealed class MemoryRegionStream : Stream
     /// <summary>Reads from the current position, clipping to the region and translating the position to a source address.</summary>
     /// <param name="buffer">Destination; at most the remaining region length is filled.</param>
     /// <returns>The bytes copied, or zero at the region's end.</returns>
+    /// <exception cref="MemoryAccessException">The source returned an invalid count, or no bytes before the region's end.</exception>
     public override int Read(Span<byte> buffer)
     {
         ObjectDisposedException.ThrowIf(this.disposed, this);
@@ -82,19 +83,8 @@ internal sealed class MemoryRegionStream : Stream
             return 0;
         }
 
-        ulong address = checked(this.region.Address + (ulong)this.position);
-        int read = this.region.Source.Read(address, buffer[..count], this.context);
-        if (read < 0 || read > count)
-        {
-            throw new MemoryAccessException(MemoryFailure.SourceFailure, this.region.Source.Id, address, count, "Backing source returned an invalid read count.");
-        }
-
-        // Inside the region a zero from the source is not EOF; it means the bytes were never captured.
-        if (read == 0)
-        {
-            throw new MemoryAccessException(MemoryFailure.MissingBytes, this.region.Source.Id, address, count, "Backing bytes are unavailable.");
-        }
-
+        // Inside the region a zero from the source is not EOF; the shared read step reports it as missing bytes.
+        int read = this.region.ReadAt(this.position, buffer[..count], this.context);
         this.position += read;
         return read;
     }

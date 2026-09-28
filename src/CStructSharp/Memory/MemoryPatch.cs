@@ -68,8 +68,7 @@ public sealed class MemoryPatch
         }
 
         context ??= new MemoryAccessContext();
-        var regions = new List<MemoryRegion>();
-        Flatten(region, regions, context, 0);
+        List<MemoryRegion> regions = region.FlattenMappings(context);
         ValidateDistinctRanges(regions);
         var fragments = new List<MemoryPatchFragment>();
         int offset = 0;
@@ -77,7 +76,7 @@ public sealed class MemoryPatch
         {
             // Sample the generation before reading and compare after, so bytes read across a change are rejected.
             long generation = fragment.Source.Generation;
-            byte[] original = MemorySession.ReadBytes(fragment, context);
+            byte[] original = fragment.ReadAll(context);
             if (generation != fragment.Source.Generation || (expected is not null && !original.AsSpan().SequenceEqual(expected.AsSpan(offset, original.Length))))
             {
                 throw new MemoryAccessException(MemoryFailure.StaleSource, fragment.Source.Id, fragment.Address, original.Length, "Source changed while planning the patch.");
@@ -121,7 +120,7 @@ public sealed class MemoryPatch
                 throw new NotSupportedException($"Source '{fragment.Region.Source.Id}' is read-only.");
             }
 
-            if (fragment.Generation != fragment.Region.Source.Generation || !MemorySession.ReadBytes(fragment.Region, context).AsSpan().SequenceEqual(fragment.ExpectedBytes) || fragment.Generation != fragment.Region.Source.Generation)
+            if (fragment.Generation != fragment.Region.Source.Generation || !fragment.Region.ReadAll(context).AsSpan().SequenceEqual(fragment.ExpectedBytes) || fragment.Generation != fragment.Region.Source.Generation)
             {
                 throw new MemoryAccessException(MemoryFailure.StaleSource, fragment.Region.Source.Id, fragment.Region.Address, fragment.ExpectedBytes.Length, "Patch expectation no longer matches the source.");
             }
@@ -145,41 +144,11 @@ public sealed class MemoryPatch
         }
     }
 
-    /// <summary>Resolves a region through every <see cref="MappedMemorySource"/> layer into final-source fragments, in logical order.</summary>
-    /// <remarks>Only <see cref="MappedMemorySource"/> exposes a translation table, so only it is descended into;
-    /// every other source, including caches, overlays, and custom adapters, is a terminal coordinate even if it
-    /// delegates internally. This is why an overlay placed beneath the mappings yields image offsets in a patch,
-    /// while one placed above them yields the overlay's logical coordinates.</remarks>
-    /// <param name="region">Region to resolve.</param>
-    /// <param name="output">Receives the terminal fragments in order.</param>
-    /// <param name="context">Shared budget charged for each mapping lookup and depth level.</param>
-    /// <param name="depth">Current layer depth, checked against <see cref="MemoryAccessContext.MaxNestingDepth"/>.</param>
-    internal static void Flatten(MemoryRegion region, List<MemoryRegion> output, MemoryAccessContext context, int depth)
-    {
-        context.CheckNestingDepth(depth);
-        if (region.Length > int.MaxValue)
-        {
-            throw new ArgumentOutOfRangeException(nameof(region));
-        }
-
-        if (region.Source is MappedMemorySource mapped)
-        {
-            foreach (MemoryRegion fragment in mapped.Describe(region.Address, (int)region.Length, context))
-            {
-                Flatten(fragment, output, context, depth + 1);
-            }
-        }
-        else
-        {
-            output.Add(region);
-        }
-    }
-
     /// <summary>Rejects fragments that overlap within one source, so a patch cannot write the same physical bytes twice.</summary>
     /// <remarks>Aliased mappings can legitimately expose the same backing bytes at two logical addresses. A logical
     /// edit spanning both would produce two fragments over the same bytes with possibly different replacements;
     /// the outcome would depend on write order, so such a patch is refused while planning.</remarks>
-    /// <param name="regions">Terminal fragments produced by <see cref="Flatten"/>.</param>
+    /// <param name="regions">Terminal fragments produced by <see cref="MemoryRegion.FlattenMappings(MemoryAccessContext)"/>.</param>
     /// <exception cref="CStructWriteException">Two fragments overlap within one source.</exception>
     private static void ValidateDistinctRanges(List<MemoryRegion> regions)
     {

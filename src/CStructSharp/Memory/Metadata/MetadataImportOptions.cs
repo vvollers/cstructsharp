@@ -32,11 +32,15 @@ public sealed record MetadataImportOptions
     /// <summary>Gets the maximum number of type descriptors one import may create, bitfield storage and generated types included.</summary>
     public int MaxTypes { get; init; } = 100_000;
 
-    /// <summary>Checks the options before an import starts.</summary>
+    /// <summary>Resolves the options an import was given and checks them before the import starts.</summary>
+    /// <param name="options">The caller's options, or null for <see cref="Default"/>.</param>
+    /// <returns>The validated options to import with.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The pointer width is not a supported width, or the descriptor budget is not positive.</exception>
-    internal void Validate()
+    internal static MetadataImportOptions ValidateOrDefault(MetadataImportOptions? options)
     {
-        _ = new StoredPointer(0, this.PointerSize);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(this.MaxTypes, nameof(this.MaxTypes));
+        options ??= Default;
+        StoredPointer.ValidateWidth(options.PointerSize);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTypes, nameof(MaxTypes));
+        return options;
     }
 }

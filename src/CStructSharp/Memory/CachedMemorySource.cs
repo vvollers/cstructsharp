@@ -85,10 +85,7 @@ public sealed class CachedMemorySource : IMemorySource
             }
 
             int read = this.source.Read(address, destination, context);
-            if (read < 0 || read > destination.Length)
-            {
-                throw new MemoryAccessException(MemoryFailure.SourceFailure, this.Id, address, destination.Length, "Backing source returned an invalid read count.");
-            }
+            MemorySourceChecks.ThrowIfInvalidReadCount(read, destination.Length, this.Id, address);
 
             // The generation was sampled before the read; if it moved during the read, the bytes may mix two states
             // and must not be cached or returned as consistent.

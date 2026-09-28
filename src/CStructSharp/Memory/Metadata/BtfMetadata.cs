@@ -242,13 +242,10 @@ public sealed class BtfMetadata
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public MetadataImportResult Import(uint rootTypeId, MetadataImportOptions? options = null, CancellationToken cancellationToken = default)
     {
-        options ??= MetadataImportOptions.Default;
-        options.Validate();
+        options = MetadataImportOptions.ValidateOrDefault(options);
         var importer = new BtfImporter(this, options);
         importer.Import(rootTypeId, cancellationToken);
-        var schema = new MemorySchema(importer.Definitions.Values, this.IsLittleEndian, maxTypes: options.MaxTypes, pointerSize: options.PointerSize, cancellationToken: cancellationToken, bestEffort: options.BestEffort);
-        importer.Diagnostics.AddRange(schema.Diagnostics);
-        return new MetadataImportResult(schema, Id(rootTypeId), importer.Diagnostics.AsReadOnly());
+        return MetadataImportResult.Compile(importer.Definitions.Values, Id(rootTypeId), importer.Diagnostics, this.IsLittleEndian, options, cancellationToken);
     }
 
     /// <summary>Describes one type record's own shape - kind, size, and (for a struct or union) direct members - without importing or validating any type it refers to.</summary>

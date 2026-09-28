@@ -7,7 +7,7 @@ using CStructSharp.Values;
 
 /// <summary>Defines the zero-copy synchronous memory-input and caller-owned output contract.</summary>
 [TestClass]
-public class MemoryIoTests
+public class SpanIoTests
 {
     /// <summary>Matches the exact test-layout enum payload.</summary>
     public enum MemoryStatus : ushort

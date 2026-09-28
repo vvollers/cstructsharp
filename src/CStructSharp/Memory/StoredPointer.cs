@@ -18,15 +18,19 @@ namespace CStructSharp.Memory;
 /// </remarks>
 public sealed record StoredPointer
 {
+    /// <summary>The failure message shared by the width check and the value-fits-width check.</summary>
+    private const string WidthMessage = "A pointer's stored value must fit a width of 1, 2, 4, or 8 bytes.";
+
     /// <summary>Creates a pointer value, checking that the stored value fits the declared width.</summary>
     /// <param name="address">The stored unsigned value, exactly as read.</param>
     /// <param name="width">Storage width in bytes: 1, 2, 4, or 8.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="width"/> is not 1, 2, 4, or 8, or <paramref name="address"/> does not fit it.</exception>
     public StoredPointer(ulong address, int width = 8)
     {
-        if (width is not (1 or 2 or 4 or 8) || (width < 8 && address >= (1UL << (width * 8))))
+        ValidateWidth(width);
+        if (width < 8 && address >= (1UL << (width * 8)))
         {
-            throw new ArgumentOutOfRangeException(nameof(width), "A pointer's stored value must fit a width of 1, 2, 4, or 8 bytes.");
+            throw new ArgumentOutOfRangeException(nameof(width), WidthMessage);
         }
 
         this.Address = address;
@@ -41,4 +45,16 @@ public sealed record StoredPointer
 
     /// <summary>Gets whether the stored value is zero, which the API treats as null.</summary>
     public bool IsNull => this.Address == 0;
+
+    /// <summary>Checks that a pointer width is one of the supported storage widths, with the constructor's exception.</summary>
+    /// <remarks>Schemas and import options call this to validate a declared pointer width without a pointer value.</remarks>
+    /// <param name="width">Storage width in bytes.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="width"/> is not 1, 2, 4, or 8.</exception>
+    internal static void ValidateWidth(int width)
+    {
+        if (width is not (1 or 2 or 4 or 8))
+        {
+            throw new ArgumentOutOfRangeException(nameof(width), WidthMessage);
+        }
+    }
 }

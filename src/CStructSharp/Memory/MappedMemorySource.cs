@@ -101,8 +101,7 @@ public sealed class MappedMemorySource : IMemorySource
     /// <returns>Backing fragments covering the range, in logical order.</returns>
     public IReadOnlyList<MemoryRegion> Describe(ulong address, int length, MemoryAccessContext? context = null)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(length);
-        _ = new MemoryRegion(this, address, length);
+        MemoryRegion.ValidateRange(address, length);
         context ??= new MemoryAccessContext();
         var regions = new List<MemoryRegion>();
         int done = 0;
@@ -122,7 +121,7 @@ public sealed class MappedMemorySource : IMemorySource
     /// <inheritdoc/>
     public int Read(ulong address, Span<byte> destination, MemoryAccessContext context)
     {
-        _ = new MemoryRegion(this, address, destination.Length);
+        MemoryRegion.ValidateRange(address, destination.Length);
         context.EnterSource();
         try
         {
@@ -152,15 +151,8 @@ public sealed class MappedMemorySource : IMemorySource
             // Ask for no more than this mapping can supply; the next iteration handles the remainder.
             int count = (int)Math.Min(destination.Length - done, mapping.Backing.Length - offset);
             int read = mapping.Backing.Source.Read(checked(mapping.Backing.Address + (ulong)offset), destination.Slice(done, count), context);
-            if (read < 0 || read > count)
-            {
-                throw new MemoryAccessException(MemoryFailure.SourceFailure, this.Id, current, count, "Backing source returned an invalid read count.");
-            }
-
-            if (read == 0)
-            {
-                throw new MemoryAccessException(MemoryFailure.MissingBytes, this.Id, current, count, "Mapped backing bytes are unavailable.");
-            }
+            MemorySourceChecks.ThrowIfInvalidReadCount(read, count, this.Id, current);
+            MemorySourceChecks.ThrowIfUnavailable(read, count, this.Id, current, "Mapped backing bytes are unavailable.");
 
             done += read;
         }

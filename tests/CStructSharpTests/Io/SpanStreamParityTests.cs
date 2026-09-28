@@ -12,7 +12,7 @@ using CStructSharp.Values;
 ///     over the whole benchmark fixture corpus.
 /// </summary>
 [TestClass]
-public class MemoryCursorParityTests
+public class SpanStreamParityTests
 {
     /// <summary>Every fixture parses identically through the span, MemoryStream, chunked-stream and plan-free paths, ending at the same position.</summary>
     [TestMethod]

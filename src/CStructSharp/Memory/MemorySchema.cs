@@ -63,7 +63,7 @@ public sealed class MemorySchema
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxTypes);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxFields);
         this.IsLittleEndian = isLittleEndian;
-        _ = new StoredPointer(0, pointerSize);
+        StoredPointer.ValidateWidth(pointerSize);
         this.PointerSize = pointerSize;
         this.Options = options ?? new CStructCompilationOptions();
 
@@ -248,6 +248,15 @@ public sealed class MemorySchema
         diagnostics.Add($"{type.Id}: demoted to a {type.Size}-byte raw-bytes placeholder - {reason}");
     }
 
+    /// <summary>Creates the definition error for a reference to an ID the schema lacks.</summary>
+    /// <param name="owner">The definition holding the reference.</param>
+    /// <param name="id">The referenced ID, or null when none was named.</param>
+    /// <returns>The exception to throw.</returns>
+    private static CStructLayoutException UnknownReference(MemoryTypeDefinition owner, string? id)
+    {
+        return new CStructLayoutException($"'{owner.Id}' references unknown memory type '{id}'.");
+    }
+
     /// <summary>Looks up a type that a definition refers to; a reference to an ID the schema lacks is a definition error.</summary>
     /// <param name="owner">The definition holding the reference, named in the diagnostic.</param>
     /// <param name="id">The referenced ID; null when an array names no element type.</param>
@@ -257,7 +266,19 @@ public sealed class MemorySchema
     {
         return id is not null && this.Types.TryGetValue(id, out MemoryTypeDefinition? type)
             ? type
-            : throw new CStructLayoutException($"'{owner.Id}' references unknown memory type '{id}'.");
+            : throw UnknownReference(owner, id);
+    }
+
+    /// <summary>Checks that a definition's reference names a type in the schema, without needing the referenced definition.</summary>
+    /// <param name="owner">The definition holding the reference, named in the diagnostic.</param>
+    /// <param name="id">The referenced ID.</param>
+    /// <exception cref="CStructLayoutException">The ID names no definition in the schema.</exception>
+    private void ValidateReference(MemoryTypeDefinition owner, string id)
+    {
+        if (!this.Types.ContainsKey(id))
+        {
+            throw UnknownReference(owner, id);
+        }
     }
 
     /// <summary>
@@ -297,7 +318,7 @@ public sealed class MemorySchema
 
                 if (type.ElementTypeId is not null)
                 {
-                    _ = this.Reference(type, type.ElementTypeId);
+                    this.ValidateReference(type, type.ElementTypeId);
                 }
             }
 

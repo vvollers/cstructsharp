@@ -9,9 +9,9 @@ using CStructSharp.Introspection;
 using CStructSharp.Syntax;
 using CStructSharp.Values;
 
-/// <summary>Compatibility assertions for core value contracts reused when projecting and editing memory layouts.</summary>
+/// <summary>Pins core value contracts: layout constants, header and expression identities, primitive arrays, wide scalar conversions, and typed array codecs.</summary>
 [TestClass]
-public class MemoryCoreCompatibilityTests
+public class CoreValueContractTests
 {
     /// <summary>Published constants keep their kind and escaped value when rendered into another layout.</summary>
     [TestMethod]

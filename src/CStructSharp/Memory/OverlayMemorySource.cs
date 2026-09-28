@@ -55,17 +55,14 @@ public sealed class OverlayMemorySource : IWritableMemorySource
     /// <inheritdoc/>
     public int Read(ulong address, Span<byte> destination, MemoryAccessContext context)
     {
-        _ = new MemoryRegion(this, address, destination.Length);
+        MemoryRegion.ValidateRange(address, destination.Length);
         context.Charge(this.Id, address, 0);
         lock (this.gate)
         {
             // Check before and after the backing read: a change during the read would mix two snapshots.
             this.CheckSnapshot(address, destination.Length);
             int read = this.backing.Read(address, destination, context);
-            if (read < 0 || read > destination.Length)
-            {
-                throw new MemoryAccessException(MemoryFailure.SourceFailure, this.Id, address, destination.Length, "Backing source returned an invalid read count.");
-            }
+            MemorySourceChecks.ThrowIfInvalidReadCount(read, destination.Length, this.Id, address);
 
             this.CheckSnapshot(address, destination.Length);
 
@@ -85,7 +82,7 @@ public sealed class OverlayMemorySource : IWritableMemorySource
     /// <inheritdoc/>
     public void Write(ulong address, ReadOnlySpan<byte> bytes, MemoryAccessContext context)
     {
-        _ = new MemoryRegion(this, address, bytes.Length);
+        MemoryRegion.ValidateRange(address, bytes.Length);
         context.Charge(this.Id, address, bytes.Length);
         lock (this.gate)
         {
@@ -107,7 +104,7 @@ public sealed class OverlayMemorySource : IWritableMemorySource
             }
 
             // Validate all backing bytes before mutating the overlay; holes cannot be synthesized by writes.
-            _ = MemorySession.ReadBytes(new MemoryRegion(this.backing, address, bytes.Length), context);
+            new MemoryRegion(this.backing, address, bytes.Length).EnsureReadable(context);
             this.CheckSnapshot(address, bytes.Length);
             for (int i = 0; i < bytes.Length; i++)
             {

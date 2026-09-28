@@ -95,13 +95,10 @@ public sealed class IsfMetadata
     public MetadataImportResult Import(string rootName, MetadataImportOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rootName);
-        options ??= MetadataImportOptions.Default;
-        options.Validate();
+        options = MetadataImportOptions.ValidateOrDefault(options);
         var importer = new Importer(this.root, options);
         string id = importer.Import(rootName, cancellationToken);
-        var schema = new MemorySchema(importer.Types.Values, this.IsLittleEndian, maxTypes: options.MaxTypes, pointerSize: options.PointerSize, cancellationToken: cancellationToken, bestEffort: options.BestEffort);
-        importer.Diagnostics.AddRange(schema.Diagnostics);
-        return new MetadataImportResult(schema, id, importer.Diagnostics.AsReadOnly());
+        return MetadataImportResult.Compile(importer.Types.Values, id, importer.Diagnostics, this.IsLittleEndian, options, cancellationToken);
     }
 
     /// <summary>The state of one import: the descriptors built so far, the generated-ID counter, and diagnostics.</summary>

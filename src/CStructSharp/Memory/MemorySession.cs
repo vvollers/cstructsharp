@@ -78,8 +78,7 @@ public sealed class MemorySession
         {
             context ??= new MemoryAccessContext();
             MemorySelection selection = this.Resolve(region, typeId, path, context);
-            var backing = new List<MemoryRegion>();
-            MemoryPatch.Flatten(selection.Region, backing, context, 0);
+            List<MemoryRegion> backing = selection.Region.FlattenMappings(context);
             return new MemoryInspection(this.ReadCore(selection, context, 0), selection, backing.AsReadOnly());
         }
         catch (CStructException exception)
@@ -315,7 +314,7 @@ public sealed class MemorySession
             }
 
             // Start from the current bytes so everything outside the new value is preserved.
-            byte[] expected = ReadBytes(selected.Region, context);
+            byte[] expected = selected.Region.ReadAll(context);
             byte[] bytes = (byte[])expected.Clone();
             if (selected.Field?.BitWidth is not null)
             {
@@ -334,63 +333,6 @@ public sealed class MemorySession
         {
             AttachContext(exception, typeId, path, region);
             throw;
-        }
-    }
-
-    /// <summary>Copies a whole finite region into a new array, failing rather than padding if the source ends early.</summary>
-    /// <remarks>The region must fit an <see cref="int"/>-sized allocation and the byte budget. The stream view
-    /// tolerates positive short reads but turns a premature zero into <see cref="MemoryFailure.MissingBytes"/>, so
-    /// absent bytes can never become default zeroes in the returned array.</remarks>
-    /// <param name="region">Finite range to copy.</param>
-    /// <param name="context">Shared budget charged by every underlying source read.</param>
-    /// <returns>An owned array containing exactly the region's bytes.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">The region is longer than an array can hold.</exception>
-    /// <exception cref="MemoryAccessException">The region exceeds the byte budget, or its bytes are unavailable.</exception>
-    internal static byte[] ReadBytes(MemoryRegion region, MemoryAccessContext context)
-    {
-        if (region.Length > int.MaxValue)
-        {
-            throw new ArgumentOutOfRangeException(nameof(region), "Region is too large for a materialized value.");
-        }
-
-        if (region.Length > context.MaxTotalBytes)
-        {
-            throw new MemoryAccessException(MemoryFailure.BudgetExceeded, region.Source.Id, region.Address, (int)region.Length, "Region exceeds the byte budget.");
-        }
-
-        var bytes = new byte[(int)region.Length];
-        ReadExactly(region, bytes, context);
-        return bytes;
-    }
-
-    /// <summary>
-    ///     Fills <paramref name="destination"/> from the start of <paramref name="region"/>, with the rules of the
-    ///     region's stream view: a short read continues, and a read of zero bytes inside the region is
-    ///     <see cref="MemoryFailure.MissingBytes"/>, never padding.
-    /// </summary>
-    /// <param name="region">The region; <paramref name="destination"/> must not be longer.</param>
-    /// <param name="destination">The bytes to fill.</param>
-    /// <param name="context">Shared budget charged by every underlying source read, and the cancellation token.</param>
-    /// <exception cref="MemoryAccessException">The source returned an invalid count or no bytes.</exception>
-    private static void ReadExactly(MemoryRegion region, Span<byte> destination, MemoryAccessContext context)
-    {
-        for (int offset = 0; offset < destination.Length;)
-        {
-            context.CancellationToken.ThrowIfCancellationRequested();
-            ulong address = checked(region.Address + (ulong)offset);
-            int count = destination.Length - offset;
-            int read = region.Source.Read(address, destination[offset..], context);
-            if (read < 0 || read > count)
-            {
-                throw new MemoryAccessException(MemoryFailure.SourceFailure, region.Source.Id, address, count, "Backing source returned an invalid read count.");
-            }
-
-            if (read == 0)
-            {
-                throw new MemoryAccessException(MemoryFailure.MissingBytes, region.Source.Id, address, count, "Backing bytes are unavailable.");
-            }
-
-            offset += read;
         }
     }
 
@@ -578,7 +520,7 @@ public sealed class MemorySession
         {
             // The scalar's bytes go to the core codec as a span; a bit slice uses its own slice codec.
             Span<byte> bytes = type.Size <= 64 ? stackalloc byte[type.Size] : new byte[type.Size];
-            ReadExactly(selected.Region, bytes, context);
+            selected.Region.ReadExactly(bytes, context);
             CStruct codec = this.Schema.GetCodec(type, selected.Field, selected.ParentTypeId);
             object value = codec.ReadValue(bytes, selected.Field?.BitWidth is null ? MemorySchema.CodecRoot(type) : "__bits.value")!;
             if (type.Kind == MemoryTypeKind.Pointer)
@@ -636,7 +578,7 @@ public sealed class MemorySession
             {
                 // As the core reader does, a union keeps its complete storage next to the member views, so writing
                 // the value back without selecting a member reproduces the bytes exactly.
-                return UnionValue.FromParsed(type.Name, ReadBytes(selected.Region, context), members);
+                return UnionValue.FromParsed(type.Name, selected.Region.ReadAll(context), members);
             }
 
             var structValue = new StructValue();
@@ -652,7 +594,7 @@ public sealed class MemorySession
         {
             // No field layout survived validation for this type, so its bytes are handed back verbatim rather
             // than decoded; the caller still gets exactly the declared size, just not decomposed into members.
-            return ReadBytes(selected.Region, context);
+            return selected.Region.ReadAll(context);
         }
 
         throw new CStructPathException($"Cannot read incomplete type '{type.Id}' by value.");
