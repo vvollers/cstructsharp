@@ -136,6 +136,18 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
     /// <inheritdoc/>
     public void Advance(int count) => this.core.Advance(count);
 
+    /// <inheritdoc cref="IReadCursor.Read"/>
+    public int Read(byte[] buffer, int offset, int count) => this.core.Read(buffer.AsSpan(offset, count));
+
+    /// <inheritdoc/>
+    public object? ReadCustom(ICustomCodec codec)
+    {
+        // A memory input always exposes its remaining bytes (the position never passes the end), which is the branch
+        // CustomCodecAdapter.Read takes for a memory-backed ReadBudgetStream.
+        _ = this.core.TryPeekRemaining(out ReadOnlySpan<byte> remaining);
+        return CustomCodecAdapter.ReadInMemory(codec, ref this, remaining);
+    }
+
     /// <inheritdoc/>
     public byte ReadByteExactly()
     {
@@ -211,9 +223,6 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
             this.owner.Position = this.core.Position;
         }
     }
-
-    /// <inheritdoc/>
-    int ITextReadSource.Read(byte[] buffer, int offset, int count) => this.core.Read(buffer.AsSpan(offset, count));
 
     /// <inheritdoc/>
     void ITextReadSource.ReadExactly(Span<byte> buffer) => this.ReadAvailableExactly(buffer);

@@ -4,6 +4,7 @@ using System;
 using System.Buffers;
 using System.IO;
 using CStructSharp.Diagnostics;
+using CStructSharp.Engine;
 using CStructSharp.Streams;
 
 /// <summary>
@@ -64,14 +65,8 @@ internal static class CustomCodecAdapter
         var budget = stream as ReadBudgetStream;
         if (budget is not null && budget.TryPeekRemaining(out ReadOnlySpan<byte> remaining))
         {
-            CStructReadException? failure = DecodeFromMemory(codec, remaining, out object? value, out int consumed);
-            budget.Advance(consumed);
-            if (failure is not null)
-            {
-                throw failure;
-            }
-
-            return value!;
+            var cursor = new StreamReadCursor(budget);
+            return ReadInMemory(codec, ref cursor, remaining);
         }
 
         // A stream source: read a window at the value's position, widen it while the codec needs more, then leave
@@ -115,6 +110,32 @@ internal static class CustomCodecAdapter
         {
             ArrayPool<byte>.Shared.Return(rented);
         }
+    }
+
+    /// <summary>
+    ///     Decodes one value from memory input whose remaining bytes a cursor exposed (<see cref="IReadCursor.TryPeekRemaining"/>):
+    ///     the codec sees every remaining byte, and the cursor advances past - and is charged for - the bytes it took,
+    ///     the whole window when it needs more data, before any failure is raised. The memory branch of
+    ///     <see cref="Read"/> and the engine's memory cursor both run this.
+    /// </summary>
+    /// <typeparam name="TCursor">The cursor type.</typeparam>
+    /// <param name="codec">The codec.</param>
+    /// <param name="cursor">The cursor at the value's first byte.</param>
+    /// <param name="remaining">The bytes from the value's start to the end of the input, as the cursor exposed them.</param>
+    /// <returns>The decoded value.</returns>
+    /// <exception cref="CStructReadException">The input ends before the value, the codec rejects the bytes or throws, or it reports an impossible length.</exception>
+    /// <exception cref="CStructReadLimitException">The advance exceeds the total read budget.</exception>
+    public static object ReadInMemory<TCursor>(ICustomCodec codec, ref TCursor cursor, ReadOnlySpan<byte> remaining)
+        where TCursor : struct, IReadCursor
+    {
+        CStructReadException? failure = DecodeFromMemory(codec, remaining, out object? value, out int consumed);
+        cursor.Advance(consumed);
+        if (failure is not null)
+        {
+            throw failure;
+        }
+
+        return value!;
     }
 
     /// <summary>Writes one value at the stream position and leaves the stream after it.</summary>

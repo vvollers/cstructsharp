@@ -17,7 +17,8 @@ namespace CStructSharp.Compilation.Programs;
 ///     <para>
 ///         <b>Count register.</b> <see cref="CheckFixedCount"/> and <see cref="EvaluateCount"/> set the element count
 ///         the next array step reads; the count is evaluated and checked before the field is placed, as the interpreter
-///         orders it.
+///         orders it. A data-sized array's count (<see cref="CountToEnd"/>, <see cref="CountTerminated"/>) is taken from the
+///         input after placement, at the array's start.
 ///     </para>
 ///     <para>
 ///         <b>Codec operand.</b> Scalar and array reads name an entry of <see cref="ReadProgram.Codecs"/>: the element's
@@ -39,7 +40,10 @@ internal enum ReadOpCode : byte
     /// <summary>Checks the member's <c>@N</c> offset assertion: the position must be <c>A</c> bytes past the composite's first byte.</summary>
     CheckOffset,
 
-    /// <summary>Sets the count register to the fixed element count <c>A</c> and checks it against the array element limit.</summary>
+    /// <summary>
+    ///     Sets the count register to the fixed element count <c>A</c> - every element of every dimension of a
+    ///     multidimensional array - and checks it against the array element limit.
+    /// </summary>
     CheckFixedCount,
 
     /// <summary>
@@ -47,6 +51,21 @@ internal enum ReadOpCode : byte
     ///     negative count, checks the array element limit, and sets the count register.
     /// </summary>
     EvaluateCount,
+
+    /// <summary>
+    ///     Sets the count register to the number of whole elements of <c>A</c> bytes between the position (the member's
+    ///     placed start) and the end of the input, and checks it against the array element limit; nothing is read. An
+    ///     <c>[EOF]</c> array: a start past the end or a trailing partial element fails.
+    /// </summary>
+    CountToEnd,
+
+    /// <summary>
+    ///     Sets the count register to the number of elements of <c>A</c> bytes before the first all-zero element, scanning
+    ///     from the member's placed start and returning there; the limit is checked per element. Every byte the scan reads
+    ///     is charged, and the elements and their terminator are charged again when the array step reads them. A
+    ///     terminated array (<c>T items[]</c>): input that ends before an all-zero element fails at the array's start.
+    /// </summary>
+    CountTerminated,
 
     /// <summary>Reads a <c>uint8</c> scalar (codec <c>A</c>).</summary>
     ReadUInt8,
@@ -189,6 +208,55 @@ internal enum ReadOpCode : byte
     ///     nothing, as the interpreter reads a field without a name.
     /// </summary>
     SkipElements,
+
+    /// <summary>
+    ///     Moves past a terminated array's all-zero terminator element of <c>A</c> bytes, which belongs to the member but
+    ///     not to its value; the count step already found it, so the move cannot fail.
+    /// </summary>
+    SkipTerminator,
+
+    /// <summary>
+    ///     Reads one value of a caller-supplied codec (codec <c>A</c>, <c>ICustomCodec</c>) through the custom-codec
+    ///     adapter the interpreter's codec delegate runs: in place from memory (the position advances, and is charged, before
+    ///     a failure), through a growing window from a stream.
+    /// </summary>
+    ReadCustom,
+
+    /// <summary>Reads count-register values of a caller-supplied codec <c>A</c>, each as <see cref="ReadCustom"/> reads one, into a list.</summary>
+    ReadCustomArray,
+
+    /// <summary>
+    ///     Reads count-register fixed-width numbers (codec <c>A</c>) of a multidimensional member its composite placed into
+    ///     a flat list, in blocks of at most 64 KiB (the interpreter's boxed bulk path); <see cref="ReshapeTable"/> nests it.
+    /// </summary>
+    ReadNumericList,
+
+    /// <summary>
+    ///     Reads count-register fixed-width numbers (codec <c>A</c>) of a multidimensional standalone field (a root) one at a
+    ///     time into a flat list; <see cref="ReshapeTable"/> nests it.
+    /// </summary>
+    ReadNumericElementList,
+
+    /// <summary>
+    ///     Reads count-register structs, each with program <c>A</c> and a fresh conditional selection, into a flat list,
+    ///     never taking the element struct's block path over the whole array: the elements of a multidimensional array,
+    ///     which <see cref="ReshapeTable"/> nests.
+    /// </summary>
+    ReadStructElements,
+
+    /// <summary>
+    ///     Reads the count-register characters (codec <c>A</c>) of a multidimensional <c>char</c> or <c>wchar</c> array one
+    ///     at a time, makes each innermost row a string (trimmed as the options say; a <c>wchar</c> row must be valid
+    ///     UTF-16), and nests the rows by the outer dimensions.
+    /// </summary>
+    ReadCharTable,
+
+    /// <summary>
+    ///     Nests the member's flat element list by its dimensions, outermost first, with a <c>List&lt;object?&gt;</c> at
+    ///     every level (rows are never typed arrays), as the interpreter shapes a multidimensional array after reading its
+    ///     elements; a member without a value slot is left alone.
+    /// </summary>
+    ReshapeTable,
 
     /// <summary>
     ///     Reads a nested struct with program <c>A</c> (<see cref="ReadProgram.Nested"/>) into a new value; <c>B</c> is the

@@ -179,6 +179,118 @@ public class ReadProgramDumpTests
         AssertDump(expected, new CStruct(definition), "root");
     }
 
+    /// <summary>
+    ///     Data-sized arrays, aligned: a terminated array of structs counted by a scan after its placement and its
+    ///     terminator skipped after the elements, then an <c>[EOF]</c> array counted to the end; the element sizes carry the
+    ///     alignment past both, so every padding is a known seek and nothing is aligned at run time.
+    /// </summary>
+    [TestMethod]
+    public void DataSizedArrays_Aligned()
+    {
+        const string definition = "struct e { uint8 a; uint16 b; }; struct root { uint8 tag; e items[]; uint8 n; uint16 values[EOF]; };";
+        const string expected = """
+                                root root
+                                    0  ReadRootStruct               -            root
+
+                                struct root
+                                    0  ReadUInt8                    tag          UInt8
+                                    1  Seek                         items        +1
+                                    2  CountTerminated              items        element size 4
+                                    3  ReadStructArray              items        e
+                                    4  SkipTerminator               items        +4
+                                    5  ReadUInt8                    n            UInt8
+                                    6  Seek                         values       +1
+                                    7  CountToEnd                   values       element size 2
+                                    8  ReadNumericArray             values       UInt16 le
+                                    9  FinishComposite              -            tail +0
+
+                                struct e
+                                    0  ReadUInt8                    a            UInt8
+                                    1  Seek                         b            +1
+                                    2  ReadUInt16Le                 b            UInt16 le
+                                    3  FinishComposite              -            tail +0
+
+                                """;
+        AssertDump(expected, new CStruct(definition, aligned: true), "root");
+    }
+
+    /// <summary>
+    ///     Multidimensional arrays: numbers read as one flat list and nested, character rows, a struct table read element
+    ///     by element, an enum table, and a table root of a typedef read element by element.
+    /// </summary>
+    [TestMethod]
+    public void MultidimensionalArrays()
+    {
+        const string definition = """
+                                  enum kind : uint8 { A = 1 };
+                                  struct p { uint8 x; uint8 y; };
+                                  struct root { uint16 grid[2][3]; char names[2][4]; p pts[2][2]; kind kinds[3][1]; };
+                                  typedef uint8 table[2][2];
+                                  """;
+        const string expected = """
+                                root root
+                                    0  ReadRootStruct               -            root
+
+                                struct root
+                                    0  CheckFixedCount              grid         count 6
+                                    1  ReadNumericList              grid         UInt16 le
+                                    2  ReshapeTable                 grid         dimensions 2x3
+                                    3  CheckFixedCount              names        count 8
+                                    4  ReadCharTable                names        Char
+                                    5  CheckFixedCount              pts          count 4
+                                    6  ReadStructElements           pts          p
+                                    7  ReshapeTable                 pts          dimensions 2x2
+                                    8  CheckFixedCount              kinds        count 3
+                                    9  ReadEnumArray                kinds        UInt8 as kind
+                                   10  ReshapeTable                 kinds        dimensions 3x1
+                                   11  FinishComposite              -            tail +0
+
+                                struct p
+                                    0  ReadUInt8                    x            UInt8
+                                    1  ReadUInt8                    y            UInt8
+                                    2  FinishComposite              -            tail +0
+
+                                """;
+        var layout = new CStruct(definition);
+        AssertDump(expected, layout, "root");
+        const string table = """
+                                root table
+                                    0  CheckFixedCount              table        count 4
+                                    1  ReadNumericElementList       table        UInt8
+                                    2  ReshapeTable                 table        dimensions 2x2
+
+                                """;
+        AssertDump(table, layout, "table");
+    }
+
+    /// <summary>
+    ///     Caller-supplied codecs: a variable-length value that counts a later array of them, and a fixed-size one in an
+    ///     aligned layout, after which members are placed at run time because the codec may take fewer bytes than it declares.
+    /// </summary>
+    [TestMethod]
+    public void CustomCodecs()
+    {
+        const string definition = "struct root { vlq count; vlq values[count]; word4 w; uint32 after; };";
+        const string expected = """
+                                root root
+                                    0  ReadRootStruct               -            root
+
+                                struct root
+                                    0  ReadCustom                   count        Custom
+                                    1  CaptureInteger               count        -> count
+                                    2  EvaluateCount                values       count = count
+                                    3  ReadCustomArray              values       Custom
+                                    4  Align                        w            to 4
+                                    5  ReadCustom                   w            Custom
+                                    6  Align                        after        to 4
+                                    7  ReadUInt32Le                 after        UInt32 le
+                                    8  FinishComposite              -            tail +0
+
+                                """;
+        var options = new CStructCompilationOptions { Codecs = [VlqCodec.Instance, FixedWordCodec.Instance,], };
+        AssertDump(expected, new CStruct(definition, aligned: true, compilationOptions: options), "root");
+    }
+
     /// <summary>Asserts a root's dump, showing the actual dump on failure so an intended change can be pasted in.</summary>
     /// <param name="expected">The expected dump.</param>
     /// <param name="layout">The layout.</param>

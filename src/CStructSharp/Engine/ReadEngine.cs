@@ -331,6 +331,19 @@ internal static partial class ReadEngine
                         state.MaxArrayElements);
                     break;
 
+                // Data-sized counts run the interpreter's own counting code over this cursor, from the placed start.
+                case ReadOpCode.CountToEnd:
+                    count = DynamicArrayExtent.CountToEnd(ref cursor, cursor.Position, step.A, state.MaxArrayElements, program.Fields[field].Name);
+                    break;
+
+                case ReadOpCode.CountTerminated:
+                    count = DynamicArrayExtent.CountTerminated(ref cursor, cursor.Position, step.A, state.MaxArrayElements, program.Fields[field].Name);
+                    break;
+
+                case ReadOpCode.SkipTerminator:
+                    cursor.Skip(step.A);
+                    break;
+
                 // Each multi-byte scalar decodes for its width and byte order directly (a value in memory is read in
                 // place, otherwise through the codec's exact read); one-byte values keep the codec's shared boxes.
                 case ReadOpCode.ReadInt16Le:
@@ -465,6 +478,35 @@ internal static partial class ReadEngine
 
                 case ReadOpCode.ReadWideCharArray:
                     Store(destination, program, field, ReadWideCharArray(ref cursor, ref state, program.Fields[field], program.Codecs[step.A].Primitive, count, scratch));
+                    break;
+
+                case ReadOpCode.ReadCustom:
+                    last = ReadCustomValue(ref cursor, ref state, program, field, step.A);
+                    Store(destination, program, field, last);
+                    break;
+
+                case ReadOpCode.ReadCustomArray:
+                    Store(destination, program, field, ReadCustomArray(ref cursor, ref state, program, field, step.A, count));
+                    break;
+
+                case ReadOpCode.ReadNumericList:
+                    Store(destination, program, field, ReadNumericList(ref cursor, program.Codecs[step.A].Primitive, count));
+                    break;
+
+                case ReadOpCode.ReadNumericElementList:
+                    Store(destination, program, field, ReadNumericElementList(ref cursor, program.Codecs[step.A].Primitive, count, scratch));
+                    break;
+
+                case ReadOpCode.ReadStructElements:
+                    Store(destination, program, field, ReadStructElements(ref cursor, ref state, program.Nested[step.A], count));
+                    break;
+
+                case ReadOpCode.ReadCharTable:
+                    Store(destination, program, field, ReadCharTable(ref cursor, ref state, program.Fields[field], program.Codecs[step.A].Primitive, count, scratch));
+                    break;
+
+                case ReadOpCode.ReshapeTable:
+                    ReshapeTable(destination, program, field);
                     break;
 
                 case ReadOpCode.ReadBoundedText:
@@ -802,10 +844,14 @@ internal static partial class ReadEngine
     /// <returns>The slot value.</returns>
     private static SlotValue CaptureValue(object? value)
     {
+        // A pointer's stored address can only arrive here as a caller codec's value; the shared rule unwraps it too.
         Int128 captured;
-        bool converted = value is EnumValueResult enumValue
-                             ? ExpressionValueCapture.TryFromBigInteger(enumValue.Value, out captured)
-                             : ExpressionValueCapture.TryConvert(value, out captured);
+        bool converted = value switch
+        {
+            EnumValueResult enumValue => ExpressionValueCapture.TryFromBigInteger(enumValue.Value, out captured),
+            Pointer pointer => FromAddress(pointer.Address, out captured),
+            _ => ExpressionValueCapture.TryConvert(value, out captured),
+        };
         if (converted)
         {
             return SlotValue.FromLiteral(captured);
@@ -813,6 +859,16 @@ internal static partial class ReadEngine
 
         object? wide = value is EnumValueResult result ? result.Value : value;
         return wide is UInt128 or System.Numerics.BigInteger ? SlotValue.FromUnusable(new WideValueVariable(wide)) : SlotValue.Undefined;
+    }
+
+    /// <summary>Widens a stored address into the expression domain, which holds every <see cref="long"/>.</summary>
+    /// <param name="address">The address.</param>
+    /// <param name="captured">Receives <paramref name="address"/>.</param>
+    /// <returns>Always <see langword="true"/>.</returns>
+    private static bool FromAddress(long address, out Int128 captured)
+    {
+        captured = address;
+        return true;
     }
 
     /// <summary>

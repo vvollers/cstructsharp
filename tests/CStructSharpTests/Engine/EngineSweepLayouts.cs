@@ -9,8 +9,10 @@ using CStructSharp.Values;
 ///     structs, an inline named struct that a qualified reference (<c>hdr.n</c>) names, anonymous promoted members
 ///     (which add no nesting level), a union, numeric arrays in a union and an empty one, bitfields, an enum bitfield
 ///     that sizes a later array, pointers (followed after the struct, one with an <c>@count</c> target), terminated
-///     strings and arrays, a to-end array, a custom codec, LEB128, fixed text, and caller variables in 128-bit
-///     expressions. Each is compiled packed and aligned (<see cref="Variant"/>).
+///     strings and arrays of structs and of scalars, to-end arrays of scalars and of structs, two- and three-dimensional
+///     arrays of numbers, character rows, structs, enums and other codecs, a variable-length custom codec and a fixed-size
+///     one inside nested structs, LEB128, fixed text, and caller variables in 128-bit expressions. Each is compiled packed
+///     and aligned (<see cref="Variant"/>).
 /// </summary>
 internal static class EngineSweepLayouts
 {
@@ -115,12 +117,46 @@ internal static class EngineSweepLayouts
             "rec.entries",
             [("rec.name", "ho"), ("rec.entries[0].a", (byte)6)]),
         new(
+            "terminated-scalars",
+            "struct rec { uint8 tag; uint16 values[]; uint8 tail; };",
+            [0x07, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x09],
+            ["rec.values[1]", "rec.values", "rec.tail"],
+            "rec.values",
+            [("rec.values[1]", (ushort)7), ("rec.tail", (byte)3)]),
+        new(
             "to-end",
             "struct rec { uint16 magic; uint16 values[EOF]; };",
             [0x34, 0x12, 0x01, 0x00, 0x02, 0x00, 0x03, 0x00],
             ["rec.values[2]", "rec.values"],
             "rec.values",
             [("rec.values[1]", (ushort)9)]),
+        new(
+            "to-end-structs",
+            "struct e { uint8 a; uint16 b; }; struct rec { uint8 tag; e items[EOF]; };",
+            [0x07, 0x01, 0x02, 0x00, 0x03, 0x04, 0x00],
+            ["rec.items[1].b", "rec.items", "rec.tag"],
+            "rec.items",
+            [("rec.items[1].b", (ushort)9), ("rec.tag", (byte)3)]),
+        new(
+            "multidim",
+            "struct rec { uint8 tag; uint16 grid[2][3]; char names[2][4]; wchar< labels[2][2]; uint8 cube[2][2][2]; uint8 tail; };",
+            [
+                0x07, 0x01, 0x00, 0x02, 0x00, 0x03, 0x00, 0x04, 0x00, 0x05, 0x00, 0x06, 0x00, (byte)'a', (byte)'b', 0x00, 0x00, (byte)'c', (byte)'d',
+                (byte)'e', 0x00, (byte)'x', 0x00, 0x00, 0x00, (byte)'y', 0x00, (byte)'z', 0x00, 1, 2, 3, 4, 5, 6, 7, 8, 0x09,
+            ],
+            ["rec.grid[1]", "rec.names", "rec.cube", "rec.labels[1]", "rec.tail"],
+            "rec.grid",
+            [("rec.tail", (byte)2), ("rec.tag", (byte)5)]),
+        new(
+            "multidim-structs",
+            "enum kind : uint8 { A = 1, B = 2 }; struct p { uint8 x; int16 y; }; struct rec { uint8 tag; p pts[2][2]; kind kinds[2][2]; int48 wide[2][1]; uint8 tail; };",
+            [
+                0x07, 0x01, 0x02, 0x00, 0x03, 0x04, 0x00, 0x05, 0x06, 0x00, 0x07, 0x08, 0x00, 0x01, 0x02, 0x02, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x09,
+            ],
+            ["rec.pts[1]", "rec.kinds", "rec.wide", "rec.tail"],
+            "rec.pts",
+            [("rec.tail", (byte)2), ("rec.tag", (byte)5)]),
         new(
             "custom-codec",
             "struct rec { vlq count; vlq values[count]; uint8 tail; };",
@@ -129,6 +165,14 @@ internal static class EngineSweepLayouts
             "rec.values",
             [("rec.values[1]", 6u), ("rec.values[0]", 5u)],
             Names: ["count"],
+            Codec: true),
+        new(
+            "custom-fixed",
+            "struct inner { word4 w; uint8 b; }; struct rec { uint8 tag; word4 a; uint16 x; inner items[2]; uint8 tail; };",
+            [0x07, 0x01, 0x00, 0x00, 0x00, 0x34, 0x12, 0x02, 0x00, 0x00, 0x00, 0x05, 0x03, 0x00, 0x00, 0x00, 0x06, 0x09],
+            ["rec.x", "rec.items[1].b", "rec.tail"],
+            "rec.items",
+            [("rec.x", (ushort)9), ("rec.tail", (byte)1)],
             Codec: true),
         new(
             "leb128",
@@ -186,7 +230,7 @@ internal static class EngineSweepLayouts
     /// <param name="Updates">The paths and replacement values the update sweeps apply.</param>
     /// <param name="PointerSize">The pointer width in bytes.</param>
     /// <param name="Names">The identifiers the layout's expressions use, which the caller-variable sweep overrides.</param>
-    /// <param name="Codec">Whether the layout registers <see cref="VlqCodec"/>.</param>
+    /// <param name="Codec">Whether the layout registers <see cref="VlqCodec"/> and <see cref="FixedWordCodec"/>.</param>
     /// <param name="Variables">The caller variables the layout needs, or <see langword="null"/> for none.</param>
     internal sealed record SweepLayout(
         string Name,
@@ -283,6 +327,6 @@ internal static class EngineSweepLayouts
                 layout.Definition,
                 layout.PointerSize,
                 aligned,
-                compilationOptions: layout.Codec ? new CStructCompilationOptions { Codecs = [VlqCodec.Instance,], } : null);
+                compilationOptions: layout.Codec ? new CStructCompilationOptions { Codecs = [VlqCodec.Instance, FixedWordCodec.Instance,], } : null);
     }
 }

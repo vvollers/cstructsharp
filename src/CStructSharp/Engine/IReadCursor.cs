@@ -111,6 +111,29 @@ internal interface IReadCursor
     /// <exception cref="CStructReadLimitException">The bytes exceed the total read budget.</exception>
     void Advance(int count);
 
+    /// <summary>
+    ///     Reads up to <paramref name="count"/> bytes as <see cref="System.IO.Stream.Read(byte[], int, int)"/> does over the
+    ///     operation's budget stream: advancing past and charging only the bytes returned, which a stream source may make
+    ///     fewer than asked for; 0 at the end of the input.
+    /// </summary>
+    /// <param name="buffer">The array that receives the bytes.</param>
+    /// <param name="offset">The index in <paramref name="buffer"/> of the first byte stored.</param>
+    /// <param name="count">The largest number of bytes to read.</param>
+    /// <returns>The number of bytes read.</returns>
+    /// <exception cref="CStructReadLimitException">The bytes exceed the total read budget (they are consumed).</exception>
+    int Read(byte[] buffer, int offset, int count);
+
+    /// <summary>
+    ///     Reads one value of a caller's codec through <see cref="CustomCodecAdapter"/>, the adapter the interpreter's codec
+    ///     delegate runs: a memory input is decoded in place (the cursor advances past the bytes the codec took, or the whole
+    ///     remainder when it needs more data, before a failure), a stream through its growing window.
+    /// </summary>
+    /// <param name="codec">The codec.</param>
+    /// <returns>The decoded value; <see langword="null"/> when the codec reported success without one.</returns>
+    /// <exception cref="CStructReadException">The input ends before the value, or the codec rejects it.</exception>
+    /// <exception cref="CStructReadLimitException">The value exceeds a budget.</exception>
+    object? ReadCustom(ICustomCodec codec);
+
     /// <summary>Reads one required byte, the way every one-byte primitive codec reads.</summary>
     /// <returns>The byte.</returns>
     /// <exception cref="CStructReadException">The input is at its end (the short-read text, no inner exception).</exception>

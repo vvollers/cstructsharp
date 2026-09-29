@@ -1,6 +1,7 @@
 namespace CStructSharp.Reading;
 
 using System;
+using System.Collections.Immutable;
 using System.IO;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
@@ -36,6 +37,12 @@ internal sealed class CodecTable
     /// <summary>The catalog whose ids index this table.</summary>
     public PrimitiveCatalog Catalog { get; }
 
+    /// <summary>
+    ///     Gets the caller's codec instances, in the catalog's custom-codec order (the ids after the canonical names); empty
+    ///     for a table without custom codecs.
+    /// </summary>
+    public ImmutableArray<ICustomCodec> CustomCodecs { get; init; } = ImmutableArray<ICustomCodec>.Empty;
+
     /// <summary>The reader of <paramref name="field"/>'s element codec, or <see langword="null"/> when no primitive delegate reads it.</summary>
     /// <param name="field">The compiled field whose codec id selects the reader.</param>
     /// <returns>A delegate that reads one element from a stream and returns it boxed, or null.</returns>
@@ -51,6 +58,14 @@ internal sealed class CodecTable
     {
         return field.CodecId < 0 ? null : this.writers[field.CodecId];
     }
+
+    /// <summary>
+    ///     The caller's codec a custom codec id names, which the compiled engine runs through
+    ///     <see cref="CustomCodecAdapter"/> exactly as this table's adapter delegate does.
+    /// </summary>
+    /// <param name="codecId">A custom codec's id (at or after the canonical names).</param>
+    /// <returns>The codec instance.</returns>
+    public ICustomCodec CustomCodecOf(int codecId) => this.CustomCodecs[codecId - PrimitiveCatalog.CanonicalNames.Length];
 
     /// <summary>The terminated-string reader behind a <c>char *</c>-style pointer field, or <see langword="null"/>.</summary>
     /// <param name="field">The compiled pointer field whose terminated codec id selects the reader.</param>

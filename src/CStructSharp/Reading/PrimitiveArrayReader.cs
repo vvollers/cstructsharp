@@ -240,12 +240,33 @@ internal static class PrimitiveArrayReader
     ///     Boxed variant for multidimensional arrays, which are reshaped into nested lists after the read: appends
     ///     <paramref name="count"/> elements to <paramref name="target"/> and returns the last value.
     /// </summary>
-    /// <param name="stream">The source, positioned at the first element; it advances past the array.</param>
+    /// <param name="stream">The operation's source, positioned at the first element; it advances past the array.</param>
     /// <param name="codec">The fixed-width numeric codec of one element, including its byte order.</param>
     /// <param name="count">The number of elements to read.</param>
     /// <param name="target">The list that receives the boxed values, appended in element order.</param>
     /// <returns>The last value read, or null when <paramref name="count"/> is 0.</returns>
-    public static object? ReadInto(Stream stream, PrimitiveCodec codec, int count, List<object?> target)
+    public static object? ReadInto(ReadBudgetStream stream, PrimitiveCodec codec, int count, List<object?> target)
+    {
+        var cursor = new StreamReadCursor(stream);
+        return ReadInto(ref cursor, codec, count, target);
+    }
+
+    /// <summary>
+    ///     Reads <paramref name="count"/> elements through a read cursor into <paramref name="target"/>, one exact read per
+    ///     block of at most 64 KiB (cancellation observed before each block): the one implementation behind the stream
+    ///     overload and the engine's multidimensional arrays, so both fail and charge at the same blocks.
+    /// </summary>
+    /// <typeparam name="TCursor">The cursor type.</typeparam>
+    /// <param name="cursor">The cursor, positioned at the first element; it advances past the array.</param>
+    /// <param name="codec">The fixed-width numeric codec of one element, including its byte order.</param>
+    /// <param name="count">The number of elements to read.</param>
+    /// <param name="target">The list that receives the boxed values, appended in element order.</param>
+    /// <returns>The last value read, or null when <paramref name="count"/> is 0.</returns>
+    /// <exception cref="CStructReadException">The source ends inside a block; the elements of earlier blocks were appended.</exception>
+    /// <exception cref="CStructReadLimitException">A block exceeds the total read budget.</exception>
+    /// <exception cref="OperationCanceledException">The operation's token is cancelled before a block.</exception>
+    public static object? ReadInto<TCursor>(ref TCursor cursor, PrimitiveCodec codec, int count, List<object?> target)
+        where TCursor : struct, IReadCursor
     {
         int elementSize = codec.Size;
         object? last = null;
@@ -256,9 +277,9 @@ internal static class PrimitiveArrayReader
         {
             while (remaining > 0)
             {
-                (stream as ReadBudgetStream)?.CancellationToken.ThrowIfCancellationRequested();
+                cursor.ThrowIfCancellationRequested();
                 int blockLength = (int)Math.Min(remaining, blockCapacity);
-                BinaryPrimitiveIO.ReadExactlyOrThrow(stream, block.AsSpan(0, blockLength));
+                cursor.ReadExactly(block.AsSpan(0, blockLength));
                 for (int offset = 0; offset < blockLength; offset += elementSize)
                 {
                     last = codec.ReadNumeric(block.AsSpan(offset, elementSize));

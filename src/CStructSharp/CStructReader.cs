@@ -31,9 +31,12 @@ public sealed partial class CStruct
     ///     outermost one, which the caller's own loop already accounted for by producing this flat list in the
     ///     first place. Each pass groups the previous level by one dimension's size, from the innermost dimension
     ///     outward - the same grouping a single-dimension array already performs once, repeated once per
-    ///     additional dimension.
+    ///     additional dimension. The compiled engine nests its multidimensional arrays through this same method.
     /// </summary>
-    private static List<object?> ReshapeFlatArrayValues(List<object?> flatValues, IReadOnlyList<int> dimensionSizes)
+    /// <param name="flatValues">The leaf values (or character rows) in row-major order.</param>
+    /// <param name="dimensionSizes">The sizes of the dimensions the values span, outermost first.</param>
+    /// <returns>The outermost level's list; every level is a <see cref="List{T}"/>.</returns>
+    internal static List<object?> ReshapeFlatArrayValues(List<object?> flatValues, IReadOnlyList<int> dimensionSizes)
     {
         List<object?> currentLevel = flatValues;
         for (int dimensionIndex = dimensionSizes.Count - 1; dimensionIndex >= 1; dimensionIndex--)
@@ -308,10 +311,11 @@ public sealed partial class CStruct
     /// <summary>
     ///     The fixed size of every dimension of a multidimensional array. A separate method because a lambda over the
     ///     field inside <see cref="HandleCStructElement"/> made the compiler allocate its closure for every field read.
+    ///     Shared with the compiled engine, which shapes multidimensional arrays the same way.
     /// </summary>
     /// <param name="field">A multidimensional array field.</param>
     /// <returns>The dimension sizes, outermost first.</returns>
-    private static int[] FixedDimensionSizes(CompiledField field)
+    internal static int[] FixedDimensionSizes(CompiledField field)
     {
         var sizes = new int[field.Array.Dimensions.Length];
         for (int dimension = 0; dimension < sizes.Length; dimension++)

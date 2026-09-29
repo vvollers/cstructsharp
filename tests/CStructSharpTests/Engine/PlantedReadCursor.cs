@@ -65,6 +65,12 @@ internal struct PlantedReadCursor : IReadCursor
     public void Advance(int count) => this.inner.Advance(count);
 
     /// <inheritdoc/>
+    public int Read(byte[] buffer, int offset, int count) => this.inner.Read(buffer, offset, count);
+
+    /// <inheritdoc/>
+    public object? ReadCustom(ICustomCodec codec) => this.inner.ReadCustom(codec);
+
+    /// <inheritdoc/>
     public byte ReadByteExactly() => this.inner.ReadByteExactly();
 
     /// <summary>Reads exactly the span, but after a short read rewinds to the start: the planted defect.</summary>

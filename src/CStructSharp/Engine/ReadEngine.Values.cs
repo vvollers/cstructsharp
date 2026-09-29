@@ -12,7 +12,7 @@ using CStructSharp.Generated;
 using CStructSharp.Reading;
 using CStructSharp.Values;
 
-/// <summary>The value reads of the compiled engine: scalars through their codecs, and every array shape stage 2 reads.</summary>
+/// <summary>The value reads of the compiled engine: scalars through their codecs, caller codecs through their adapter, and every array shape.</summary>
 internal static partial class ReadEngine
 {
     /// <summary>
@@ -261,6 +261,174 @@ internal static partial class ReadEngine
         return text;
     }
 
+    /// <summary>
+    ///     Reads the characters of a multidimensional <c>char</c> or <c>wchar</c> array one at a time, then makes each
+    ///     innermost row a string - trimmed as the options say, and valid UTF-16 for <c>wchar</c>, checked row by row - and
+    ///     nests the rows by the outer dimensions, all as the interpreter shapes the array after reading it.
+    /// </summary>
+    /// <typeparam name="TCursor">The cursor type.</typeparam>
+    /// <param name="cursor">The operation's cursor.</param>
+    /// <param name="state">The operation's state.</param>
+    /// <param name="member">The array member.</param>
+    /// <param name="codec">The character codec.</param>
+    /// <param name="count">The number of characters in every row together.</param>
+    /// <param name="scratch">A scratch buffer.</param>
+    /// <returns>The rows, nested in lists by the outer dimensions.</returns>
+    /// <exception cref="CStructReadException">The input ends early, or a <c>wchar</c> row is not valid UTF-16.</exception>
+    private static List<object?> ReadCharTable<TCursor>(ref TCursor cursor, ref ReadEngineState state, CompiledField member, PrimitiveCodec codec, int count, Span<byte> scratch)
+        where TCursor : struct, IReadCursor
+    {
+        char[] characters = new char[count];
+        for (int index = 0; index < count; index++)
+        {
+            characters[index] = (char)ReadCodecValue(ref cursor, codec, scratch);
+        }
+
+        // The interpreter's row loop: its capacity divides by the row size, as a zero-length row fails there too.
+        int[] sizes = CStruct.FixedDimensionSizes(member);
+        int rowSize = sizes[^1];
+        var rows = new List<object?>(count / rowSize);
+        for (int start = 0; start < count; start += rowSize)
+        {
+            string text = state.FixedText(new string(characters, start, rowSize));
+            if (member.IsWideCharElement)
+            {
+                PrimitiveCodecs.ValidateWideText(text, state.Layout.GetWideCharacterEncoding(member));
+            }
+
+            rows.Add(text);
+        }
+
+        return CStruct.ReshapeFlatArrayValues(rows, sizes[..^1]);
+    }
+
+    /// <summary>
+    ///     Nests a multidimensional member's flat element list, already stored in the destination, by the member's
+    ///     dimensions, replacing it in place; a member without a slot (unnamed padding) is left alone.
+    /// </summary>
+    /// <param name="destination">The value holding the member.</param>
+    /// <param name="program">The program the member belongs to.</param>
+    /// <param name="field">The member's index.</param>
+    private static void ReshapeTable(StructValue destination, ReadProgram program, int field)
+    {
+        int slot = program.GetShapeSlot(field);
+        if (slot >= 0 && destination.TryGetSlot(slot, out object? flat))
+        {
+            destination.StoreSlot(slot, CStruct.ReshapeFlatArrayValues((List<object?>)flat!, CStruct.FixedDimensionSizes(program.Fields[field])));
+        }
+    }
+
+    /// <summary>
+    ///     Reads one value of the member's caller-supplied codec through the cursor's custom-codec adapter. A codec that
+    ///     reports success without a value fails as the interpreter's element read does when its reader returns nothing.
+    /// </summary>
+    /// <typeparam name="TCursor">The cursor type.</typeparam>
+    /// <param name="cursor">The operation's cursor.</param>
+    /// <param name="state">The operation's state, whose layout holds the codec instances.</param>
+    /// <param name="program">The program the member belongs to.</param>
+    /// <param name="field">The member's index.</param>
+    /// <param name="codec">The codec's index in the program.</param>
+    /// <returns>The decoded value.</returns>
+    /// <exception cref="CStructReadException">The input ends before the value, or the codec rejects it.</exception>
+    /// <exception cref="CStructReadLimitException">The value exceeds a budget.</exception>
+    /// <exception cref="InvalidOperationException">The codec decoded no value.</exception>
+    private static object ReadCustomValue<TCursor>(ref TCursor cursor, ref ReadEngineState state, ReadProgram program, int field, int codec)
+        where TCursor : struct, IReadCursor
+    {
+        ICustomCodec custom = state.Layout.Codecs.CustomCodecOf(program.Codecs[codec].CodecId);
+        return cursor.ReadCustom(custom) ??
+               throw new InvalidOperationException("Compiled field has no reader: " + program.Fields[field].DisplayTypeSpelling);
+    }
+
+    /// <summary>Reads count-register values of the member's caller-supplied codec into a list, one after another.</summary>
+    /// <typeparam name="TCursor">The cursor type.</typeparam>
+    /// <param name="cursor">The operation's cursor.</param>
+    /// <param name="state">The operation's state.</param>
+    /// <param name="program">The program the member belongs to.</param>
+    /// <param name="field">The member's index.</param>
+    /// <param name="codec">The codec's index in the program.</param>
+    /// <param name="count">The element count.</param>
+    /// <returns>The elements.</returns>
+    private static List<object?> ReadCustomArray<TCursor>(ref TCursor cursor, ref ReadEngineState state, ReadProgram program, int field, int codec, int count)
+        where TCursor : struct, IReadCursor
+    {
+        var elements = new List<object?>(count);
+        for (int index = 0; index < count; index++)
+        {
+            elements.Add(ReadCustomValue(ref cursor, ref state, program, field, codec));
+        }
+
+        return elements;
+    }
+
+    /// <summary>
+    ///     Reads the flat elements of a multidimensional numeric array its composite placed into a list, through the
+    ///     interpreter's boxed block reader (64 KiB blocks, each one exact read); no elements read nothing.
+    /// </summary>
+    /// <typeparam name="TCursor">The cursor type.</typeparam>
+    /// <param name="cursor">The operation's cursor.</param>
+    /// <param name="codec">The element codec.</param>
+    /// <param name="count">The number of elements in every dimension together.</param>
+    /// <returns>The flat elements.</returns>
+    private static List<object?> ReadNumericList<TCursor>(ref TCursor cursor, PrimitiveCodec codec, int count)
+        where TCursor : struct, IReadCursor
+    {
+        var elements = new List<object?>(count);
+        if (count > 0)
+        {
+            _ = PrimitiveArrayReader.ReadInto(ref cursor, codec, count, elements);
+        }
+
+        return elements;
+    }
+
+    /// <summary>
+    ///     Reads the flat elements of a multidimensional numeric root one at a time, as the interpreter reads a field no
+    ///     composite placed, into a list.
+    /// </summary>
+    /// <typeparam name="TCursor">The cursor type.</typeparam>
+    /// <param name="cursor">The operation's cursor.</param>
+    /// <param name="codec">The element codec.</param>
+    /// <param name="count">The number of elements in every dimension together.</param>
+    /// <param name="scratch">A buffer of at least one element.</param>
+    /// <returns>The flat elements.</returns>
+    private static List<object?> ReadNumericElementList<TCursor>(ref TCursor cursor, PrimitiveCodec codec, int count, Span<byte> scratch)
+        where TCursor : struct, IReadCursor
+    {
+        var elements = new List<object?>(count);
+        Span<byte> element = scratch[..codec.Size];
+        for (int index = 0; index < count; index++)
+        {
+            elements.Add(codec.ReadNumeric(cursor.ReadFixed(element)));
+        }
+
+        return elements;
+    }
+
+    /// <summary>
+    ///     Reads the flat elements of a multidimensional struct array, each as a struct of its own with a fresh conditional
+    ///     selection (and its own static plan when it has one), into a list.
+    /// </summary>
+    /// <typeparam name="TCursor">The cursor type.</typeparam>
+    /// <param name="cursor">The operation's cursor.</param>
+    /// <param name="state">The operation's state.</param>
+    /// <param name="element">The element struct's program.</param>
+    /// <param name="count">The number of elements in every dimension together.</param>
+    /// <returns>The flat elements.</returns>
+    private static List<object?> ReadStructElements<TCursor>(ref TCursor cursor, ref ReadEngineState state, ReadProgram element, int count)
+        where TCursor : struct, IReadCursor
+    {
+        var elements = new List<object?>(count);
+        for (int index = 0; index < count; index++)
+        {
+            var value = new StructValue(element.Shape);
+            ReadComposite(ref cursor, ref state, element, value);
+            elements.Add(value);
+        }
+
+        return elements;
+    }
+
     /// <summary>Reads <paramref name="count"/> characters one at a time through their codec reader into a string.</summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -341,12 +509,12 @@ internal static partial class ReadEngine
     private static List<object?> ReadStructArray<TCursor>(ref TCursor cursor, ref ReadEngineState state, ReadProgram program, int field, ReadProgram element, int count)
         where TCursor : struct, IReadCursor
     {
-        var elements = new List<object?>(count);
         CompiledCompositeType composite = element.Composite!;
         if (program.Kind != ReadProgramKind.Root && count > 0 && !state.GeneralPathOnly && composite.StaticPlan is { Size: > 0, } plan &&
             program.Fields[field].FixedElementSize == plan.Size && state.CoversPlan(plan) && (long)count * plan.Size <= int.MaxValue &&
             cursor.TryReadSpanWithinBudget(count * plan.Size, out ReadOnlySpan<byte> bytes))
         {
+            var elements = new List<object?>(count);
             for (int index = 0; index < count; index++)
             {
                 cursor.ThrowIfCancellationRequested();
@@ -358,14 +526,7 @@ internal static partial class ReadEngine
             return elements;
         }
 
-        for (int index = 0; index < count; index++)
-        {
-            var value = new StructValue(element.Shape);
-            ReadComposite(ref cursor, ref state, element, value);
-            elements.Add(value);
-        }
-
-        return elements;
+        return ReadStructElements(ref cursor, ref state, element, count);
     }
 
     /// <summary>

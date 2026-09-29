@@ -72,6 +72,12 @@ internal readonly struct StreamReadCursor : IReadCursor
     public void Advance(int count) => this.stream.Advance(count);
 
     /// <inheritdoc/>
+    public int Read(byte[] buffer, int offset, int count) => this.stream.Read(buffer, offset, count);
+
+    /// <inheritdoc/>
+    public object? ReadCustom(ICustomCodec codec) => CustomCodecAdapter.Read(codec, this.stream);
+
+    /// <inheritdoc/>
     public byte ReadByteExactly() => BinaryPrimitiveIO.ReadByteExactly(this.stream);
 
     /// <inheritdoc/>

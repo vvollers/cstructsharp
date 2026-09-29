@@ -80,7 +80,7 @@ public sealed partial class CStruct
             writers[id] = (stream, value) => CustomCodecAdapter.Write(captured, stream, value);
         }
 
-        return new CodecTable(catalog, readers, writers);
+        return new CodecTable(catalog, readers, writers) { CustomCodecs = customCodecs, };
     }
 
     /// <summary>Builds the process-wide, direction-suffixed primitive reader table (see <see cref="BaseFieldHandlers" />).</summary>

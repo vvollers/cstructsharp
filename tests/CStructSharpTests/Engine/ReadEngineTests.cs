@@ -399,6 +399,355 @@ public class ReadEngineTests
     }
 
     /// <summary>
+    ///     A terminated array is scanned for its all-zero element from its start, then read: the scan's bytes are charged
+    ///     and the elements again when they are read (engine plan section 4.3), so the whole read of three elements costs
+    ///     tag 1 + scan 8 + re-read 6 + tail 1 = 16 bytes of budget. Input that ends before the terminator, and more
+    ///     elements than the limit allows, fail at the array's start. Arrays of scalars and of structs (through the element
+    ///     struct's block path) agree at every budget, truncation and source.
+    /// </summary>
+    [TestMethod]
+    public void TerminatedArrays_ChargeTheScanAndTheReread()
+    {
+        var layout = new CStruct("struct rec { uint8 tag; uint16 values[]; uint8 tail; };");
+        var structs = new CStruct("struct e { uint8 a; uint8 b; }; struct rec { e items[]; uint8 tail; };");
+        byte[] data = [7, 1, 0, 2, 0, 3, 0, 0, 0, 9];
+        byte[] entries = [1, 2, 3, 4, 0, 0, 9];
+        foreach (ExecutionPath path in Paths)
+        {
+            for (long budget = 1; budget <= 17; budget++)
+            {
+                var read = new ReadOptions { MaxTotalBytesRead = budget, };
+                foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1, EngineInput.ChunkedStream3])
+                {
+                    EngineComparison comparison = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, input, "rec", options: read), expectEngine: true, path: path);
+                    string expected = budget < 16 ? "failure = failure CStructSharp.Diagnostics.CStructReadLimitException\n" : "result.tail = Byte 9\n";
+                    StringAssert.Contains(comparison.Rendering, expected, "budget " + budget + " from " + input);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(structs, entries, input, "rec", options: read), expectEngine: true, path: path);
+                }
+            }
+
+            for (int length = 0; length <= data.Length; length++)
+            {
+                foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.ChunkedStream1])
+                {
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(structs, entries[..Math.Min(length, entries.Length)], input, "rec"), expectEngine: true, path: path);
+                }
+            }
+
+            EngineComparison unterminated = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..5], EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            StringAssert.Contains(unterminated.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
+            StringAssert.Contains(unterminated.Rendering, "position = 1\n");
+            EngineComparison limited = EngineDifferential.AssertSame(
+                EngineOperations.Parse(layout, data, EngineInput.Stream, "rec", options: new ReadOptions { MaxArrayElements = 2, }),
+                expectEngine: true,
+                path: path);
+            StringAssert.Contains(limited.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadLimitException\n");
+            StringAssert.Contains(limited.Rendering, "position = 1\n");
+        }
+    }
+
+    /// <summary>
+    ///     An <c>[EOF]</c> array is counted from its placed start to the end of the input without reading: a trailing
+    ///     partial element and a start that alignment moves past the end fail there, no remaining bytes is an empty typed
+    ///     array, the element limit applies, and a <c>char[EOF]</c> is trimmed text - identically from every source.
+    /// </summary>
+    [TestMethod]
+    public void ToEndArrays_CountWholeElementsFromTheirStart()
+    {
+        var layout = new CStruct("struct rec { uint8 tag; uint16 values[EOF]; };");
+        var aligned = new CStruct("struct rec { uint8 tag; uint32 values[EOF]; };", aligned: true);
+        var text = new CStruct("struct rec { uint8 tag; char text[EOF]; };");
+        byte[] data = [7, 1, 0, 2, 0, 3, 0];
+        byte[] words = [7, 0, 0, 0, 1, 0, 0, 0];
+        byte[] letters = [7, (byte)'h', (byte)'i', 0, 0];
+        foreach (ExecutionPath path in Paths)
+        {
+            foreach ((CStruct subject, byte[] bytes) in ((CStruct, byte[])[])[(layout, data), (aligned, words), (text, letters)])
+            {
+                for (int length = 0; length <= bytes.Length; length++)
+                {
+                    foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1])
+                    {
+                        foreach (bool trim in (bool[])[true, false])
+                        {
+                            EngineDifferential.AssertSame(EngineOperations.Parse(subject, bytes[..length], input, "rec", options: new ReadOptions { TrimFixedText = trim, }), expectEngine: true, path: path);
+                        }
+                    }
+                }
+            }
+
+            EngineComparison remainder = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..6], EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            StringAssert.Contains(remainder.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
+            StringAssert.Contains(remainder.Rendering, "position = 1\n");
+            EngineComparison past = EngineDifferential.AssertSame(EngineOperations.Parse(aligned, words[..1], EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            StringAssert.Contains(past.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
+            EngineComparison empty = EngineDifferential.AssertSame(EngineOperations.Parse(aligned, words[..4], EngineInput.Span, "rec"), expectEngine: true, path: path);
+            StringAssert.Contains(empty.Rendering, "result.values = PrimitiveArray<UInt32> [0]\n");
+            EngineComparison limited = EngineDifferential.AssertSame(
+                EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: new ReadOptions { MaxArrayElements = 2, }),
+                expectEngine: true,
+                path: path);
+            StringAssert.Contains(limited.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadLimitException\n");
+            EngineComparison trimmed = EngineDifferential.AssertSame(
+                EngineOperations.Parse(text, letters, EngineInput.Stream, "rec", options: new ReadOptions { TrimFixedText = true, }),
+                expectEngine: true,
+                path: path);
+            StringAssert.Contains(trimmed.Rendering, "result.text = String \"hi\"\n");
+        }
+    }
+
+    /// <summary>
+    ///     Caller-supplied codecs run through the same adapter as the interpreter's (engine plan Appendix A): from memory the
+    ///     codec sees the whole remainder and the position advances, and is charged, before a failure - by the whole
+    ///     remainder when the codec needs more data; from a stream through a window that doubles from 256 bytes up to
+    ///     <see cref="ReadOptions.MaxStringBytes"/>. Every truncation, byte budget and string limit, and a codec that decodes
+    ///     no value, throws, or claims more bytes than it was given, reads identically from memory and from streams.
+    /// </summary>
+    [TestMethod]
+    public void CustomCodecs_ReadThroughTheAdapterFromEverySource()
+    {
+        var options = new CStructCompilationOptions { Codecs = [VlqCodec.Instance, LengthPrefixedCodec.Instance, QuirkyCodec.Instance,], };
+        var layout = new CStruct("struct rec { uint8 tag; vlq v; blob b; odd o[2]; uint8 tail; };", compilationOptions: options);
+        byte[] data = [7, 0x80, 0x01, .. Blob(600), 5, 6, 9];
+        foreach (ExecutionPath path in Paths)
+        {
+            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), expectEngine: true, path: path);
+            StringAssert.Contains(complete.Rendering, "result.v = UInt32 128\n");
+            StringAssert.Contains(complete.Rendering, "result.b = Int32 600\n");
+            StringAssert.Contains(complete.Rendering, "result.tail = Byte 9\n");
+            foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream7])
+            {
+                for (int length = 0; length <= data.Length; length++)
+                {
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), expectEngine: true, path: path);
+                }
+
+                foreach (int limit in (int[])[255, 256, 257, 300, 512, 513, 601, 602, 603, 1024])
+                {
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, input, "rec", options: new ReadOptions { MaxStringBytes = limit, }), expectEngine: true, path: path);
+                }
+            }
+
+            for (long budget = 1; budget <= data.Length + 1; budget++)
+            {
+                var read = new ReadOptions { MaxTotalBytesRead = budget, };
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: read), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Stream, "rec", options: read), expectEngine: true, path: path);
+            }
+
+            // A value that continues past the input: memory charges the whole remainder, so a small budget fails first.
+            EngineComparison needsMore = EngineDifferential.AssertSame(EngineOperations.Parse(layout, [7, 0x80, 0x80, 0x80], EngineInput.Span, "rec"), expectEngine: true, path: path);
+            StringAssert.Contains(needsMore.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
+            EngineComparison charged = EngineDifferential.AssertSame(
+                EngineOperations.Parse(layout, [7, 0x80, 0x80, 0x80], EngineInput.Span, "rec", options: new ReadOptions { MaxTotalBytesRead = 3, }),
+                expectEngine: true,
+                path: path);
+            StringAssert.Contains(charged.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadLimitException\n");
+
+            // odd: 0 decodes to no value, 1 throws inside the codec, 2 claims more bytes than it was given.
+            foreach (byte quirk in (byte[])[0, 1, 2])
+            {
+                foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1])
+                {
+                    EngineComparison comparison = EngineDifferential.AssertSame(
+                        EngineOperations.Parse(layout, [7, 0x05, 0x00, 0x00, quirk, 6, 9], input, "rec"),
+                        expectEngine: true,
+                        path: path);
+                    StringAssert.Contains(comparison.Rendering, quirk == 0 ? "failure = failure System.InvalidOperationException\n" : "failure = failure CStructSharp.Diagnostics.CStructReadException\n", "quirk " + quirk);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    ///     A caller's codec that declares four bytes may take one: every later member, nested struct and tail is placed
+    ///     from where its bytes actually end, as the interpreter's placement cursor does, not from the offsets the layout
+    ///     compiled - packed and aligned, in the short and the full form, at every truncation and byte budget.
+    /// </summary>
+    [TestMethod]
+    public void FixedSizeCustomCodec_PlacesLaterMembersWhereItsBytesEnd()
+    {
+        var options = new CStructCompilationOptions { Codecs = [FixedWordCodec.Instance,], };
+        const string definition = "struct inner { word4 w; uint8 b; }; struct rec { word4 a; uint16 x; inner i; uint16 y; };";
+        var packed = new CStruct(definition, compilationOptions: options);
+        var aligned = new CStruct(definition, aligned: true, compilationOptions: options);
+        (CStruct Layout, byte[] Data)[] cases =
+        [
+            (packed, [0xEE, 0x34, 0x12, 0xEE, 0x05, 0x78, 0x56]),
+            (packed, [1, 0, 0, 0, 0x34, 0x12, 2, 0, 0, 0, 0x05, 0x78, 0x56]),
+            (aligned, [0xEE, 0, 0x34, 0x12, 0xEE, 0x05, 0, 0, 0x78, 0x56, 0, 0]),
+            (aligned, [1, 0, 0, 0, 0x34, 0x12, 0, 0, 2, 0, 0, 0, 0x05, 0, 0, 0, 0x78, 0x56, 0, 0]),
+        ];
+        foreach (ExecutionPath path in Paths)
+        {
+            foreach ((CStruct layout, byte[] data) in cases)
+            {
+                EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), expectEngine: true, path: path);
+                StringAssert.Contains(complete.Rendering, "result.x = UInt16 4660\n");
+                StringAssert.Contains(complete.Rendering, "result.y = UInt16 22136\n");
+                for (int length = 0; length <= data.Length; length++)
+                {
+                    foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1])
+                    {
+                        EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), expectEngine: true, path: path);
+                    }
+                }
+
+                for (long budget = 1; budget <= data.Length + 1; budget++)
+                {
+                    var read = new ReadOptions { MaxTotalBytesRead = budget, };
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: read), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Stream, "rec", options: read), expectEngine: true, path: path);
+                }
+
+                byte[] rejected = (byte[])data.Clone();
+                rejected[0] = FixedWordCodec.Invalid;
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, rejected, EngineInput.Span, "rec"), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, rejected, EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     A multidimensional array reads all its elements in row-major order under one element limit and is then nested:
+    ///     lists at every level (never typed arrays), <c>wchar</c> rows as strings validated row by row after every
+    ///     character was read, and three dimensions. Typedef roots read standalone; their selected reads, whose outermost
+    ///     count the interpreter's path resolver checks first, are left to the interpreter.
+    /// </summary>
+    [TestMethod]
+    public void MultidimensionalArrays_ReadFlatThenNest()
+    {
+        var layout = new CStruct("struct rec { uint8 tag; uint16 grid[2][3]; wchar< names[2][2]; uint8 cube[2][1][2]; uint8 tail; };");
+        byte[] data = [7, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, (byte)'a', 0, 0, 0, (byte)'b', 0, (byte)'c', 0, 1, 2, 3, 4, 9];
+        var roots = new CStruct("typedef uint8 table[2][3]; typedef char rows[2][3];");
+        foreach (ExecutionPath path in Paths)
+        {
+            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), expectEngine: true, path: path);
+            StringAssert.Contains(complete.Rendering, "result.grid = List<Object> [2]\n");
+            StringAssert.Contains(complete.Rendering, "result.grid[1] = List<Object> [3]\n");
+            StringAssert.Contains(complete.Rendering, "result.names[1] = String \"bc\"\n");
+            StringAssert.Contains(complete.Rendering, "result.cube[1][0] = List<Object> [2]\n");
+            for (int length = 0; length <= data.Length; length++)
+            {
+                foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1])
+                {
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), expectEngine: true, path: path);
+                }
+            }
+
+            for (long budget = 1; budget <= data.Length + 1; budget++)
+            {
+                var read = new ReadOptions { MaxTotalBytesRead = budget, };
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: read), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.ChunkedStream3, "rec", options: read), expectEngine: true, path: path);
+            }
+
+            // The limit applies to all 6 + 4 + 4 elements of a table, not its outermost count.
+            foreach (int limit in (int[])[1, 2, 3, 4, 5, 6])
+            {
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: new ReadOptions { MaxArrayElements = limit, }), expectEngine: true, path: path);
+            }
+
+            // A lone surrogate in the second row fails once every character was read, after the names.
+            byte[] invalid = (byte[])data.Clone();
+            invalid[17] = 0x00;
+            invalid[18] = 0xD8;
+            EngineComparison surrogate = EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            StringAssert.Contains(surrogate.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
+            StringAssert.Contains(surrogate.Rendering, "position = 21\n");
+
+            foreach (string root in (string[])["table", "rows"])
+            {
+                for (int length = 0; length <= 6; length++)
+                {
+                    EngineDifferential.AssertSame(EngineOperations.Parse(roots, data[1..(1 + length)], EngineInput.Span, root), expectEngine: true, path: path);
+                }
+
+                EngineComparison selected = EngineDifferential.AssertSame(EngineOperations.ReadValue(roots, data[1..7], EngineInput.Span, root), expectEngine: false, path: path);
+                Assert.AreEqual(new EngineDecline(EngineOperation.RootRead, EngineSelector.ResolvedRootArray), selected.Automatic.LastDecline);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Large data-sized and multidimensional arrays read in blocks of 64 KiB (engine plan Appendix A): a byte budget or
+    ///     an input that ends inside the first or the second block fails at that block, cancellation is observed only
+    ///     before a block, and a terminated array charges its whole scan before its blocks.
+    /// </summary>
+    [TestMethod]
+    public void LargeArrays_FailAtTheSame64KiBBlocks()
+    {
+        var table = new CStruct("struct rec { uint8 tag; uint8 big[300][300]; uint8 tail; };");
+        var terminated = new CStruct("struct rec { uint8 tag; uint8 values[]; uint8 tail; };");
+        byte[] big = [7, .. Enumerable.Range(0, 90000).Select(index => (byte)((index % 251) + 1)), 9];
+        byte[] list = [7, .. Enumerable.Range(0, 70000).Select(index => (byte)((index % 251) + 1)), 0, 9];
+        const long Scanned = 1 + 70001;
+        foreach (ExecutionPath path in Paths)
+        {
+            foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream])
+            {
+                foreach (long budget in (long[])[65536, 65537, 65538, 90000, 90001, 90002])
+                {
+                    EngineDifferential.AssertSame(EngineOperations.Parse(table, big, input, "rec", options: new ReadOptions { MaxTotalBytesRead = budget, }), expectEngine: true, path: path);
+                }
+
+                foreach (int length in (int[])[65536, 65537, 65538, 90000, 90001])
+                {
+                    EngineDifferential.AssertSame(EngineOperations.Parse(table, big[..length], input, "rec"), expectEngine: true, path: path);
+                }
+
+                foreach (long budget in (long[])[Scanned, Scanned + 1, Scanned + 65536, Scanned + 65537, Scanned + 70000, Scanned + 70001, Scanned + 70002])
+                {
+                    EngineComparison comparison = EngineDifferential.AssertSame(
+                        EngineOperations.Parse(terminated, list, input, "rec", options: new ReadOptions { MaxTotalBytesRead = budget, }),
+                        expectEngine: true,
+                        path: path);
+                    StringAssert.Contains(comparison.Rendering, budget < Scanned + 70001 ? "CStructReadLimitException" : "result.tail = Byte 9\n", "budget " + budget);
+                }
+            }
+
+            // Cancelled inside the first block, the check before the second block ends the read; inside the second, the
+            // read completes, because no block, struct entry or string chunk follows.
+            EngineComparison first = EngineDifferential.AssertSame(CancelledParse(table, big, 10), expectEngine: true, path: path);
+            StringAssert.Contains(first.Rendering, "failure = failure System.OperationCanceledException\n");
+            EngineComparison second = EngineDifferential.AssertSame(CancelledParse(table, big, 70000), expectEngine: true, path: path);
+            StringAssert.Contains(second.Rendering, "result.tail = Byte 9\n");
+        }
+    }
+
+    /// <summary>
+    ///     An unsized array of a <c>wchar</c> typedef is terminated text, not a terminated array (so no terminated array has
+    ///     character elements): it reads up to its terminator as a string, and invalid text fails once the chunk holding
+    ///     the terminator was read, from every source and at every truncation.
+    /// </summary>
+    [TestMethod]
+    public void UnsizedTypedefCharacters_ReadAsTerminatedText()
+    {
+        var layout = new CStruct("typedef wchar w16; struct rec { w16 text[]; uint8 tail; };");
+        byte[] data = [(byte)'h', 0, (byte)'i', 0, 0, 0, 9];
+        byte[] invalid = [0x00, 0xD8, (byte)'i', 0, 0, 0, 9];
+        foreach (ExecutionPath path in Paths)
+        {
+            foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1])
+            {
+                EngineComparison valid = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, input, "rec"), expectEngine: true, path: path);
+                StringAssert.Contains(valid.Rendering, "result.tail = Byte 9\n");
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, input, "rec"), expectEngine: true, path: path);
+                for (int length = 0; length <= data.Length; length++)
+                {
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), expectEngine: true, path: path);
+                }
+            }
+
+            EngineComparison failed = EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            StringAssert.Contains(failed.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
+            StringAssert.Contains(failed.Rendering, "failure.member = \"text\"\n");
+            StringAssert.Contains(failed.Rendering, "position = 7\n");
+        }
+    }
+
+    /// <summary>
     ///     A parse whose variables are internal expressions is left to the interpreter (run-time CaptureAll and names
     ///     without slots move to the engine in stage 10), and so is a root the compiler cannot read yet.
     /// </summary>
@@ -418,6 +767,11 @@ public class ReadEngineTests
         EngineComparison comparison = EngineDifferential.AssertSame(EngineOperations.Parse(bitfields, [0x21], EngineInput.Stream, "rec"), expectEngine: false);
         Assert.AreEqual("rec.lo: bitfields are not supported yet (stage 4)", comparison.Automatic.LastDecline!.Value.Reason);
     }
+
+    /// <summary>Encodes a <c>blob</c> (<see cref="LengthPrefixedCodec"/>) of <paramref name="length"/> zero bytes.</summary>
+    /// <param name="length">The announced length.</param>
+    /// <returns>The two-byte little-endian prefix followed by the bytes.</returns>
+    private static byte[] Blob(int length) => [(byte)length, (byte)(length >> 8), .. new byte[length]];
 
     /// <summary>
     ///     A parse over a hidden-buffer stream whose operation token is cancelled when a read first reaches byte

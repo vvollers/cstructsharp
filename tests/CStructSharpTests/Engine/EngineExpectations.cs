@@ -14,8 +14,8 @@ internal static class EngineExpectations
 {
     /// <summary>
     ///     Whether the engine must read the root <paramref name="path"/> names: the path is one segment, the root's program
-    ///     is eligible, and - for <c>ReadValue</c> - the root is not a runtime-sized array, whose count the interpreter's
-    ///     path resolver evaluates first.
+    ///     is eligible, and - for <c>ReadValue</c> - the root is not an array whose count the interpreter's path resolver
+    ///     takes first by its own rules: a runtime-sized, data-sized (<c>[EOF]</c>, terminated) or multidimensional one.
     /// </summary>
     /// <param name="layout">The compiled layout.</param>
     /// <param name="path">The operation's root name or path, or <see langword="null"/> for the first struct or union.</param>
@@ -39,6 +39,7 @@ internal static class EngineExpectations
         }
 
         return layout.Compilation.GetRootReadProgram(segments[0].Name).Program is { } program &&
-               !(selectsValue && program.Fields is [{ Array.Kind: CompiledArrayKind.Runtime, },]);
+               !(selectsValue && program.Fields is [{ } root,] &&
+                 (root.Array.Kind is CompiledArrayKind.Runtime or CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated || root.Array.Dimensions.Length > 1));
     }
 }

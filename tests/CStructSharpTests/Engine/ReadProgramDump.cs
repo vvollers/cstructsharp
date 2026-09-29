@@ -118,6 +118,13 @@ internal static class ReadProgramDump
             return "count " + step.A;
         case ReadOpCode.EvaluateCount:
             return "count = " + Expression(program.Expressions[step.A].Source);
+        case ReadOpCode.CountToEnd:
+        case ReadOpCode.CountTerminated:
+            return "element size " + step.A;
+        case ReadOpCode.SkipTerminator:
+            return "+" + step.A;
+        case ReadOpCode.ReshapeTable:
+            return "dimensions " + string.Join("x", program.Fields[step.Field].Array.Dimensions.Select(dimension => dimension.FixedCount));
         case ReadOpCode.ReadEnum:
         case ReadOpCode.ReadEnumArray:
             return Codec(program.Codecs[step.A]) + " as " + program.Enums[step.B].Name;
@@ -125,6 +132,7 @@ internal static class ReadProgramDump
             return program.Nested[step.A].Name + (step.B >= 0 ? ", prefix " + program.Prefixes[step.B] : string.Empty);
         case ReadOpCode.ReadPromotedStruct:
         case ReadOpCode.ReadStructArray:
+        case ReadOpCode.ReadStructElements:
         case ReadOpCode.ReadRootStruct:
             return program.Nested[step.A].Name is { Length: > 0 } nested ? nested : "(anonymous)";
         case ReadOpCode.CaptureInteger:
@@ -201,12 +209,12 @@ internal static class ReadProgramDump
         _ => "^",
     };
 
-    /// <summary>Describes a codec by kind and, for multi-byte kinds, byte order.</summary>
+    /// <summary>Describes a codec by kind and, for multi-byte built-in kinds, byte order (a caller's codec decides its own).</summary>
     /// <param name="codec">The codec.</param>
     /// <returns>The description, such as <c>UInt32 le</c>.</returns>
     private static string Codec(ReadProgram.Codec codec)
     {
         PrimitiveCodec primitive = codec.Primitive;
-        return primitive.Size > 1 ? primitive.Kind + (primitive.LittleEndian ? " le" : " be") : primitive.Kind.ToString();
+        return primitive.Size > 1 && !primitive.IsCustom ? primitive.Kind + (primitive.LittleEndian ? " le" : " be") : primitive.Kind.ToString();
     }
 }

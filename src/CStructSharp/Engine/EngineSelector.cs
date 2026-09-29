@@ -32,10 +32,22 @@ internal static class EngineSelector
     public const string ExpressionInputs = "caller variables given as expressions are not supported yet (stage 10)";
 
     /// <summary>
-    ///     The reason the engine declines <c>ReadValue</c> of a root that is a runtime-sized array (a type-spelling root
-    ///     such as <c>uint8[N]</c>), whose count the interpreter's path resolver evaluates before the read.
+    ///     The reason the engine declines <c>ReadValue</c> of a root array whose count the interpreter's path resolver takes
+    ///     by its own rules before the read: a runtime-sized one (a type-spelling root such as <c>uint8[N]</c>), a data-sized
+    ///     one (<c>uint16[EOF]</c>, whose terminated form the resolver scans, and charges, once more) and a multidimensional
+    ///     one (whose outermost count the resolver checks against the element limit, where the read checks the total).
     /// </summary>
-    public const string ResolvedRootArray = "a selected read of a runtime-sized root array resolves its count first (stage 8)";
+    public const string ResolvedRootArray = "a selected read of a root array whose count the path resolver takes first is not supported yet (stage 8)";
+
+    /// <summary>
+    ///     Whether <c>ReadValue</c> of a root field would have the interpreter's path resolver take the root array's count
+    ///     first, by rules of its own: a runtime-sized, data-sized or multidimensional array. A fixed one-dimensional count is
+    ///     checked exactly as the read checks it, so that read is the engine's.
+    /// </summary>
+    /// <param name="root">The root program's only field.</param>
+    /// <returns>Whether the selected read is declined.</returns>
+    public static bool ResolvesCountFirst(CompiledField root)
+        => root.Array.Kind is CompiledArrayKind.Runtime or CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated || root.Array.Dimensions.Length > 1;
 
     /// <summary>
     ///     Decides which implementation runs an operation the engine does not support and records the decision in the
@@ -60,13 +72,15 @@ internal static class EngineSelector
     /// <summary>
     ///     Decides whether the engine reads a whole root and records the decision: the engine runs when the selection
     ///     allows it, the variables are integers, the root's program is eligible, and - for <c>ReadValue</c> - the root is
-    ///     not a runtime-sized array. Anything else is declined before a byte is read.
+    ///     not an array whose count the path resolver takes first (<see cref="ResolvesCountFirst"/>). Anything else is
+    ///     declined before a byte is read.
     /// </summary>
     /// <remarks>
     ///     <c>ReadValue</c> of a root first resolves the root as a path in the interpreter; for a root that is an array
-    ///     that resolution checks the count against <c>MaxArrayElements</c> before the read does. For a fixed count the
-    ///     check is the read's own, with the same failure at the same position; a runtime count is evaluated by the
-    ///     resolver's own rules, so that read is declined until stage 8 moves path resolution to the engine.
+    ///     that resolution checks the count against <c>MaxArrayElements</c> before the read does. For a fixed
+    ///     one-dimensional count the check is the read's own, with the same failure at the same position; a runtime,
+    ///     data-sized or multidimensional count is taken by the resolver's own rules, so that read is declined until stage 8
+    ///     moves path resolution to the engine.
     /// </remarks>
     /// <param name="selection">The operation's snapshotted engine selection.</param>
     /// <param name="compilation">The layout.</param>
@@ -118,7 +132,7 @@ internal static class EngineSelector
             return outcome.Reason;
         }
 
-        if (selectsValue && root.Fields is [{ Array.Kind: CompiledArrayKind.Runtime, },])
+        if (selectsValue && root.Fields is [{ } only,] && ResolvesCountFirst(only))
         {
             return ResolvedRootArray;
         }

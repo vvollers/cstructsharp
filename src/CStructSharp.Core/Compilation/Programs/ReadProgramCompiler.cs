@@ -26,9 +26,14 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 ///         its values go into that struct's value.
 ///     </para>
 ///     <para>
+///         A data-sized array is counted from the input after it is placed (<see cref="ReadOpCode.CountToEnd"/>,
+///         <see cref="ReadOpCode.CountTerminated"/>); a multidimensional one is read as its flat elements and then nested. A
+///         caller's codec (and any struct holding one) ends where the codec says, whatever size it declares, so the position
+///         after it is a new anchor.
+///     </para>
+///     <para>
 ///         Anything outside the engine's current feature set gives a reason instead of a program: bitfields and unions
-///         (stage 4), pointers (stage 5), custom codecs, multidimensional, to-end and terminated arrays (stage 3). A
-///         compiler is used for one request on one thread.
+///         (stage 4) and pointers (stage 5). A compiler is used for one request on one thread.
 ///     </para>
 /// </remarks>
 internal sealed class ReadProgramCompiler
@@ -41,18 +46,6 @@ internal sealed class ReadProgramCompiler
 
     /// <summary>The reason for a pointer field.</summary>
     public const string Pointers = "pointers are not supported yet (stage 5)";
-
-    /// <summary>The reason for a field read by a caller-supplied codec.</summary>
-    public const string CustomCodecs = "custom codecs are not supported yet (stage 3)";
-
-    /// <summary>The reason for an array of more than one dimension.</summary>
-    public const string MultidimensionalArrays = "multidimensional arrays are not supported yet (stage 3)";
-
-    /// <summary>The reason for an <c>[EOF]</c> array.</summary>
-    public const string ToEndArrays = "to-end arrays ([EOF]) are not supported yet (stage 3)";
-
-    /// <summary>The reason for an array ended by an all-zero element.</summary>
-    public const string TerminatedArrays = "terminated arrays are not supported yet (stage 3)";
 
     /// <summary>The reason for a field the catalog has no reader for; the interpreter fails such a read.</summary>
     public const string NoReader = "the field has no codec reader";
@@ -75,6 +68,10 @@ internal sealed class ReadProgramCompiler
 
     private readonly LayoutCompilation compilation;
     private readonly ReadProgramCache cache;
+
+    // Whether each composite examined so far holds a caller's codec anywhere inside it (see ContainsCustomCodec); created
+    // only for a layout that registers custom codecs.
+    private Dictionary<CompiledCompositeType, bool>? customComposites;
 
     /// <summary>Creates a compiler for one request.</summary>
     /// <param name="compilation">The layout.</param>
@@ -192,37 +189,103 @@ internal sealed class ReadProgramCompiler
     ///     A size a dynamic member's extent is always a multiple of, which carries alignment knowledge past it (see
     ///     <see cref="ReadPlacement.Restart"/>): the element size of an array whose count the data decides, or the
     ///     alignment of a struct in an aligned layout (its tail padding makes its size a multiple of it); otherwise 1.
+    ///     Elements that hold a caller's codec have no size to rely on, only a struct's alignment.
     /// </summary>
     /// <param name="field">The member.</param>
     /// <param name="aligned">Whether the layout is aligned.</param>
+    /// <param name="custom">Whether the member holds a caller's codec.</param>
     /// <returns>The unit in bytes.</returns>
-    private static long ExtentUnit(CompiledField field, bool aligned)
+    private static long ExtentUnit(CompiledField field, bool aligned, bool custom)
     {
-        if (field.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime && field.FixedElementSize is int size && size > 0)
+        bool array = field.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime or CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated;
+        if (array && !custom && field.FixedElementSize is int size && size > 0)
         {
             return size;
         }
 
-        return field.Array.Kind is CompiledArrayKind.Scalar or CompiledArrayKind.Fixed or CompiledArrayKind.Runtime &&
-               aligned && field.Composite is { } composite
+        return (array || field.Array.Kind == CompiledArrayKind.Scalar) && aligned && field.Composite is { } composite
                    ? composite.Symbol.Alignment
                    : 1;
     }
 
-    /// <summary>Records where the position is after a member: a known size advances, a size the data decides restarts from a new anchor.</summary>
+    /// <summary>Emits the step that nests a multidimensional array's flat elements by its dimensions.</summary>
+    /// <param name="builder">The program under construction.</param>
+    /// <param name="index">The member's index.</param>
+    /// <param name="table">Whether the array has more than one dimension; otherwise nothing is emitted.</param>
+    private static void EmitReshape(ReadProgramBuilder builder, int index, bool table)
+    {
+        if (table)
+        {
+            builder.Emit(ReadOpCode.ReshapeTable, index, 0, 0);
+        }
+    }
+
+    /// <summary>
+    ///     Records where the position is after a member: a known size advances, a size the data decides restarts from a
+    ///     new anchor. A member holding a caller's codec restarts even when it declares a fixed size, because the
+    ///     interpreter continues from where the codec's bytes actually end.
+    /// </summary>
     /// <param name="placement">The placement state after the member was placed; the position's guarantee there is the member's start guarantee.</param>
     /// <param name="field">The member.</param>
-    /// <param name="aligned">Whether the layout is aligned.</param>
-    private static void AdvancePast(ref ReadPlacement placement, CompiledField field, bool aligned)
+    private void AdvancePast(ref ReadPlacement placement, CompiledField field)
     {
-        if (field.FixedStorageSize is int size)
+        bool custom = this.ContainsCustomCodec(field);
+        if (field.FixedStorageSize is int size && !custom)
         {
             placement.Advance(size);
         }
         else
         {
-            placement.Restart(ExtentUnit(field, aligned));
+            placement.Restart(ExtentUnit(field, this.compilation.Aligned, custom));
         }
+    }
+
+    /// <summary>
+    ///     Whether a member is read, anywhere inside it, by a caller's codec: the member's own codec, or a member of the
+    ///     struct it holds (nested structs, arrays of them and promoted members included; a pointer's own storage has a
+    ///     fixed size). Such a codec reports how many bytes a value took, which can differ from the size it declares.
+    /// </summary>
+    /// <param name="field">The member.</param>
+    /// <returns>Whether the member's extent depends on a caller's codec.</returns>
+    private bool ContainsCustomCodec(CompiledField field)
+    {
+        if (field.PointerDepth > 0 || this.compilation.Catalog.CustomCodecs.IsEmpty)
+        {
+            return false;
+        }
+
+        if (field.Codec.IsCustom)
+        {
+            return true;
+        }
+
+        CompiledCompositeType? composite = field.Composite ??
+                                           (field.Declaration is Struct inline ? this.compilation.SizeQueries.GetCompiledComposite(inline) : null);
+        if (composite is null)
+        {
+            return false;
+        }
+
+        this.customComposites ??= new Dictionary<CompiledCompositeType, bool>(ReferenceEqualityComparer.Instance);
+        if (this.customComposites.TryGetValue(composite, out bool known))
+        {
+            return known;
+        }
+
+        // Marked first, so a composite reached again while its own members are examined answers without recursing.
+        this.customComposites[composite] = false;
+        bool custom = false;
+        foreach (CompiledField member in composite.Fields)
+        {
+            if (this.ContainsCustomCodec(member))
+            {
+                custom = true;
+                break;
+            }
+        }
+
+        this.customComposites[composite] = custom;
+        return custom;
     }
 
     /// <summary>Compiles a root that reads one struct into a new value under <paramref name="key"/>.</summary>
@@ -350,11 +413,6 @@ internal sealed class ReadProgramCompiler
             return Refuse(location, field, Unions);
         }
 
-        if (field.Codec.IsCustom)
-        {
-            return Refuse(location, field, CustomCodecs);
-        }
-
         bool promoted = field.IsPromotedComposite;
         if (field.Name.Length > 0 && !promoted && !builder.SetShapeSlot(index))
         {
@@ -368,14 +426,9 @@ internal sealed class ReadProgramCompiler
 
         switch (field.Array.Kind)
         {
-        case CompiledArrayKind.Fixed or CompiledArrayKind.Runtime when field.Array.Dimensions.Length > 1:
-            return Refuse(location, field, MultidimensionalArrays);
-        case CompiledArrayKind.ToEnd:
-            return Refuse(location, field, ToEndArrays);
-        case CompiledArrayKind.Terminated:
-            return Refuse(location, field, TerminatedArrays);
         case CompiledArrayKind.Fixed:
-            builder.Emit(ReadOpCode.CheckFixedCount, index, field.Array.FixedCount!.Value, 0);
+            // A multidimensional array is read as all its elements, so the limit applies to their total.
+            builder.Emit(ReadOpCode.CheckFixedCount, index, field.Array.TotalFixedElementCount!.Value, 0);
             break;
         case CompiledArrayKind.Runtime:
             if (this.FirstUnslottedName(field.Array.CountExpression!) is { } unslotted)
@@ -392,15 +445,34 @@ internal sealed class ReadProgramCompiler
             return Refuse(location, field, misplaced);
         }
 
+        // A data-sized array is counted from its placed start; the layout requires its elements to have a fixed size.
+        switch (field.Array.Kind)
+        {
+        case CompiledArrayKind.ToEnd:
+            builder.Emit(ReadOpCode.CountToEnd, index, field.FixedElementSize!.Value, 0);
+            break;
+        case CompiledArrayKind.Terminated:
+            builder.Emit(ReadOpCode.CountTerminated, index, field.FixedElementSize!.Value, 0);
+            break;
+        }
+
         if (this.EmitRead(builder, index, location, standalone) is { } refusal)
         {
             return refusal;
         }
 
+        // The terminator follows the elements. Its skip comes after the array's read step, which also gives the array its
+        // final shape, because no terminated array has character elements whose text is validated there: an unsized
+        // character array is terminated text (CompiledArrayKind.Flexible).
+        if (field.Array.Kind == CompiledArrayKind.Terminated)
+        {
+            builder.Emit(ReadOpCode.SkipTerminator, index, field.FixedElementSize!.Value, 0);
+        }
+
         this.EmitCapture(builder, index);
         if (!standalone)
         {
-            AdvancePast(ref placement, field, this.compilation.Aligned);
+            this.AdvancePast(ref placement, field);
         }
 
         return null;
@@ -458,7 +530,7 @@ internal sealed class ReadProgramCompiler
             builder.Emit(ReadOpCode.ReadStruct, index, builder.AddNested(program), field.HasQualifiedPrefix ? builder.AddPrefix(field.QualifiedPrefix!) : -1);
         }
 
-        AdvancePast(ref placement, field, this.compilation.Aligned);
+        this.AdvancePast(ref placement, field);
         return null;
     }
 
@@ -469,7 +541,11 @@ internal sealed class ReadProgramCompiler
     /// <param name="builder">The program under construction.</param>
     /// <param name="index">The member's index.</param>
     /// <param name="placement">The placement state.</param>
-    /// <returns>A reason when the static placement contradicts the compiled offset; otherwise <see langword="null"/>.</returns>
+    /// <returns>
+    ///     A reason when a statically known placement contradicts the compiled offset; otherwise <see langword="null"/>. A
+    ///     placement the data decides (after a caller's codec, whose bytes may end before its declared size) is aligned at
+    ///     run time from the struct's start, as the interpreter places it, whatever offset the layout compiled.
+    /// </returns>
     private string? EmitPlacement(ReadProgramBuilder builder, int index, ref ReadPlacement placement)
     {
         CompiledField field = builder.Fields[index];
@@ -479,7 +555,7 @@ internal sealed class ReadProgramCompiler
         }
 
         long? known = placement.KnownOffset;
-        if (field.FixedOffset is int compiled && known != compiled)
+        if (field.FixedOffset is int compiled && known is long offset && offset != compiled)
         {
             return PlacementMismatch;
         }
@@ -541,6 +617,12 @@ internal sealed class ReadProgramCompiler
                 return null;
             }
 
+            if (field.Codec.IsCustom)
+            {
+                builder.Emit(ReadOpCode.ReadCustom, index, codec, 0);
+                return null;
+            }
+
             if (ScalarOp(field.Codec) is not { } scalar)
             {
                 return Refuse(location, field, NoReader);
@@ -554,7 +636,12 @@ internal sealed class ReadProgramCompiler
         }
     }
 
-    /// <summary>Emits a one-dimensional array's read step, chosen by its element kind in the interpreter's order.</summary>
+    /// <summary>
+    ///     Emits an array's read step, chosen by its element kind in the interpreter's order. A multidimensional array
+    ///     reads its elements in flat row-major order and is then nested (<see cref="ReadOpCode.ReshapeTable"/>), except
+    ///     characters, whose innermost rows become strings in <see cref="ReadOpCode.ReadCharTable"/>, and byte-counted text,
+    ///     which is one string of all its bytes.
+    /// </summary>
     /// <param name="builder">The program under construction.</param>
     /// <param name="index">The member's index.</param>
     /// <param name="location">The struct's name, for reasons.</param>
@@ -564,6 +651,7 @@ internal sealed class ReadProgramCompiler
     private string? EmitArrayRead(ReadProgramBuilder builder, int index, string location, int codec, bool standalone)
     {
         CompiledField field = builder.Fields[index];
+        bool table = field.Array.Dimensions.Length > 1;
         if (field.Composite is { } nested)
         {
             ReadProgramOutcome outcome = this.cache.GetComposite(this.compilation, nested);
@@ -572,7 +660,9 @@ internal sealed class ReadProgramCompiler
                 return outcome.Reason;
             }
 
-            builder.Emit(ReadOpCode.ReadStructArray, index, builder.AddNested(program), 0);
+            // The interpreter takes an element struct's block path over the whole array only for one dimension.
+            builder.Emit(table ? ReadOpCode.ReadStructElements : ReadOpCode.ReadStructArray, index, builder.AddNested(program), 0);
+            EmitReshape(builder, index, table);
             return null;
         }
 
@@ -584,18 +674,43 @@ internal sealed class ReadProgramCompiler
         if (field.Enum is { } enm)
         {
             builder.Emit(ReadOpCode.ReadEnumArray, index, codec, builder.AddEnum(enm));
+            EmitReshape(builder, index, table);
             return null;
         }
 
-        // Byte-counted text is decided on the spelling before any other array shape, as the interpreter does.
-        ReadOpCode op = BoundedTextCodec.IsType(field.TypeSpelling) ? ReadOpCode.ReadBoundedText
-                        : field.Name.Length == 0 ? ReadOpCode.SkipElements
-                        : field.IsCharElement ? ReadOpCode.ReadCharArray
-                        : field.IsWideCharElement ? ReadOpCode.ReadWideCharArray
-                        : !field.Codec.IsFixedWidthNumeric ? ReadOpCode.ReadCodecArray
+        // Byte-counted text is decided on the spelling before any other array shape, as the interpreter does. A caller's
+        // codec keeps its own step even for an unnamed member, which reads each value and keeps none.
+        if (BoundedTextCodec.IsType(field.TypeSpelling))
+        {
+            builder.Emit(ReadOpCode.ReadBoundedText, index, codec, 0);
+            return null;
+        }
+
+        if (field.Codec.IsCustom)
+        {
+            builder.Emit(ReadOpCode.ReadCustomArray, index, codec, 0);
+            EmitReshape(builder, index, table);
+            return null;
+        }
+
+        if (field.Name.Length == 0)
+        {
+            builder.Emit(ReadOpCode.SkipElements, index, codec, 0);
+            return null;
+        }
+
+        if (field.IsCharElement || field.IsWideCharElement)
+        {
+            builder.Emit(table ? ReadOpCode.ReadCharTable : field.IsCharElement ? ReadOpCode.ReadCharArray : ReadOpCode.ReadWideCharArray, index, codec, 0);
+            return null;
+        }
+
+        ReadOpCode op = !field.Codec.IsFixedWidthNumeric ? ReadOpCode.ReadCodecArray
+                        : table ? standalone ? ReadOpCode.ReadNumericElementList : ReadOpCode.ReadNumericList
                         : standalone ? ReadOpCode.ReadNumericElements
                         : ReadOpCode.ReadNumericArray;
         builder.Emit(op, index, codec, 0);
+        EmitReshape(builder, index, table);
         return null;
     }
 
@@ -619,12 +734,12 @@ internal sealed class ReadProgramCompiler
         {
         case CompiledArrayKind.Fixed or CompiledArrayKind.Runtime when BoundedTextCodec.IsType(field.TypeSpelling):
             return;
-        case CompiledArrayKind.Fixed when field.Array.FixedCount == 0:
+        case CompiledArrayKind.Fixed when field.Array.TotalFixedElementCount == 0:
             return;
         case CompiledArrayKind.Fixed:
             builder.Emit(ReadOpCode.CaptureNotANumber, index, slot, builder.AddUnusable(field.NotANumberReason!));
             break;
-        case CompiledArrayKind.Runtime:
+        case CompiledArrayKind.Runtime or CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated:
             builder.Emit(ReadOpCode.CaptureNotANumberIfElements, index, slot, builder.AddUnusable(field.NotANumberReason!));
             break;
         default:

@@ -479,18 +479,57 @@ public class ReadProgramCompilerTests
         AssertReason("struct root { union { uint8 a; uint16 b; }; };", "root", "root.(anonymous): " + ReadProgramCompiler.Unions);
         AssertReason("union u { uint8 a; uint16 b; };", "u", "u: " + ReadProgramCompiler.Unions);
         AssertReason("struct root { uint8 *p; };", "root", "root.p: " + ReadProgramCompiler.Pointers);
-        AssertReason("struct root { uint8 grid[2][2]; };", "root", "root.grid: " + ReadProgramCompiler.MultidimensionalArrays);
-        AssertReason("struct root { uint8 rest[EOF]; };", "root", "root.rest: " + ReadProgramCompiler.ToEndArrays);
-        AssertReason("struct root { uint16 items[]; };", "root", "root.items: " + ReadProgramCompiler.TerminatedArrays);
         AssertReason("struct leaf { uint8 *p; }; struct mid { leaf l; }; struct root { uint8 a; mid m[2]; };", "root", "leaf.p: " + ReadProgramCompiler.Pointers);
         AssertReason("struct root { uint8 a; struct { uint8 *p; }; };", "root", "(anonymous struct).p: " + ReadProgramCompiler.Pointers);
+        AssertReason("struct root { uint8 grid[2][2]; uint8 *p; };", "root", "root.p: " + ReadProgramCompiler.Pointers);
         AssertReason("struct root { uint8 a; };", "missing", "missing: the layout declares no such root");
         AssertReason("#define MAGIC \"PNG\"\nstruct root { uint8 a; };", "MAGIC", "MAGIC: " + ReadProgramCompiler.UnreadableRoot);
+    }
 
-        var custom = new CStruct("struct root { vlq value; };", compilationOptions: new CStructCompilationOptions { Codecs = [VlqCodec.Instance], });
-        ReadProgramOutcome outcome = custom.Compilation.GetRootReadProgram("root");
-        Assert.AreEqual("root.value: " + ReadProgramCompiler.CustomCodecs, outcome.Reason);
-        Assert.IsNull(outcome.Program);
+    /// <summary>
+    ///     The data-sized shapes compile: an <c>[EOF]</c> array is counted to the end after it is placed, a terminated array
+    ///     is scanned there and its terminator skipped after the elements (a <c>wchar</c> array skips it inside its read,
+    ///     before validating its text), a multidimensional array is limited by its total element count and nested after its
+    ///     flat read (character rows inside their own step), and a caller's codec reads through its own steps.
+    /// </summary>
+    [TestMethod]
+    public void DataSizedShapes_CompileToCountAndShapeSteps()
+    {
+        AssertLines(
+            ["CountToEnd rest element size 1", "ReadNumericArray rest UInt8", "FinishComposite - tail +0"],
+            Lines("struct root { uint8 rest[EOF]; };", "root"));
+        AssertLines(
+            ["CountTerminated items element size 2", "ReadNumericArray items UInt16 le", "SkipTerminator items +2", "FinishComposite - tail +0"],
+            Lines("struct root { uint16 items[]; };", "root"));
+        AssertLines(
+            ["CheckFixedCount grid count 12", "ReadNumericList grid UInt16 le", "ReshapeTable grid dimensions 3x4", "CheckFixedCount names count 10", "ReadCharTable names Char", "FinishComposite - tail +0"],
+            Lines("struct root { uint16 grid[3][4]; char names[2][5]; };", "root"));
+
+        var custom = new CStruct("struct root { vlq value; vlq values[value]; };", compilationOptions: new CStructCompilationOptions { Codecs = [VlqCodec.Instance], });
+        AssertLines(
+            ["ReadCustom value Custom", "CaptureInteger value -> value", "EvaluateCount values count = value", "ReadCustomArray values Custom", "FinishComposite - tail +0"],
+            ReadProgramDump.Lines(RootProgram(custom, "root").Nested[0], custom.Compilation.SlotTable));
+    }
+
+    /// <summary>
+    ///     A caller's codec may take fewer bytes than the size it declares, so the position after it (or after a struct
+    ///     holding it) is not known when the program is built: a later member is aligned at run time even though the layout
+    ///     compiled its offset, and the struct's tail is aligned at run time too.
+    /// </summary>
+    [TestMethod]
+    public void FixedSizeCustomCodec_PlacesLaterMembersAtRunTime()
+    {
+        var options = new CStructCompilationOptions { Codecs = [FixedWordCodec.Instance], };
+        var layout = new CStruct("struct inner { word4 w; uint8 b; }; struct root { word4 a; uint32 x; inner i; uint16 y; };", aligned: true, compilationOptions: options);
+        ReadProgram root = RootProgram(layout, "root").Nested[0];
+
+        // i ends a multiple of its alignment (4) after its start, so y needs no run-time step; i itself ends aligned at run time.
+        AssertLines(
+            ["ReadCustom a Custom", "Align x to 4", "ReadUInt32Le x UInt32 le", "ReadStruct i inner", "ReadUInt16Le y UInt16 le", "FinishComposite - tail +2"],
+            ReadProgramDump.Lines(root, layout.Compilation.SlotTable));
+        AssertLines(
+            ["ReadCustom w Custom", "ReadUInt8 b UInt8", "FinishComposite - tail to 4"],
+            ReadProgramDump.Lines(root.Nested.Single(), layout.Compilation.SlotTable));
     }
 
     /// <summary>Applies one placement step to a simulated position.</summary>
