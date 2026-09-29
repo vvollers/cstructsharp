@@ -18,10 +18,12 @@ internal sealed unsafe class ReadBudgetStream : Stream
     private readonly byte* memoryPointer;
     private readonly byte[]? memoryArray;
     private readonly int memoryArrayOffset;
-    private readonly long memoryLength;
     private readonly bool memoryBacked;
-    private readonly bool memoryIsBoundedRegion;
     private long bytesRead;
+
+    // A memory-backed source's length; for a stream source, the largest stream length observed so far (-1 until the
+    // first position that needs it), so a position up to it needs no length query.
+    private long knownLength = -1;
     private long position;
 
     /// <summary>Wraps a readable stream without taking ownership of it.</summary>
@@ -65,16 +67,15 @@ internal sealed unsafe class ReadBudgetStream : Stream
         if (inner is FixedBufferStream fixedBuffer && fixedBuffer.TryGetReadOnlyRegion(out byte* region, out long regionLength))
         {
             this.memoryPointer = region;
-            this.memoryLength = regionLength;
+            this.knownLength = regionLength;
             this.memoryBacked = true;
-            this.memoryIsBoundedRegion = true;
             this.position = fixedBuffer.Position;
         }
         else if (inner is MemoryStream memoryStream && memoryStream.CanSeek && memoryStream.TryGetBuffer(out ArraySegment<byte> segment))
         {
             this.memoryArray = segment.Array;
             this.memoryArrayOffset = segment.Offset;
-            this.memoryLength = memoryStream.Length;
+            this.knownLength = memoryStream.Length;
             this.memoryBacked = true;
             this.position = memoryStream.Position;
         }
@@ -106,7 +107,7 @@ internal sealed unsafe class ReadBudgetStream : Stream
         {
             if (this.memoryBacked)
             {
-                return this.memoryLength;
+                return this.knownLength;
             }
 
             try
@@ -124,8 +125,14 @@ internal sealed unsafe class ReadBudgetStream : Stream
     ///     Gets or sets the read position in bytes from the start of the source. Memory-backed sources keep the
     ///     position here until <see cref="FlushPosition"/>; stream sources use the inner stream's position directly.
     /// </summary>
+    /// <remarks>
+    ///     Every source has one rule: the position may reach the end of the input but not pass it, because the input
+    ///     then provably lacks bytes a layout places there - aligned padding between fields or after the last one is
+    ///     part of a struct's storage. A pinned region, a memory stream and a seekable stream all report
+    ///     <see cref="ReadFailures.OutsideRegion"/> for it, so a read fails identically whatever the source.
+    /// </remarks>
     /// <exception cref="CStructReadException">
-    ///     The position is negative, lies past a pinned region, or the inner stream failed.
+    ///     The position is negative, lies past the end of the input, or the inner stream failed.
     /// </exception>
     public override long Position
     {
@@ -150,9 +157,7 @@ internal sealed unsafe class ReadBudgetStream : Stream
         {
             if (this.memoryBacked)
             {
-                // Mirror the backing stream's own rules: a pinned region rejects positions outside it (as
-                // FixedBufferStream does); a MemoryStream accepts any non-negative position.
-                if (value < 0 || (this.memoryIsBoundedRegion && value > this.memoryLength))
+                if (value < 0 || value > this.knownLength)
                 {
                     throw new CStructReadException(ReadFailures.OutsideRegion);
                 }
@@ -161,6 +166,7 @@ internal sealed unsafe class ReadBudgetStream : Stream
                 return;
             }
 
+            this.RejectPastStreamEnd(value);
             try
             {
                 this.inner.Position = value;
@@ -185,7 +191,7 @@ internal sealed unsafe class ReadBudgetStream : Stream
         if (this.memoryBacked)
         {
             // Subtraction cannot overflow for nonnegative lengths and positions; adding the requested count can.
-            return count > this.memoryLength - this.position;
+            return count > this.knownLength - this.position;
         }
 
         try
@@ -208,7 +214,7 @@ internal sealed unsafe class ReadBudgetStream : Stream
     /// <returns>Whether the bytes were available in memory; false leaves the position and budget unchanged.</returns>
     public bool TryReadSpan(int count, out ReadOnlySpan<byte> bytes)
     {
-        if (this.memoryBacked && count <= this.memoryLength - this.position)
+        if (this.memoryBacked && count <= this.knownLength - this.position)
         {
             bytes = this.memoryArray is null
                         ? new ReadOnlySpan<byte>(this.memoryPointer + this.position, count)
@@ -230,9 +236,9 @@ internal sealed unsafe class ReadBudgetStream : Stream
     /// <returns>Whether the source is memory-backed and the remaining bytes were exposed.</returns>
     public bool TryPeekRemaining(out ReadOnlySpan<byte> bytes)
     {
-        if (this.memoryBacked && this.position <= this.memoryLength)
+        if (this.memoryBacked && this.position <= this.knownLength)
         {
-            int count = (int)Math.Min(this.memoryLength - this.position, int.MaxValue);
+            int count = (int)Math.Min(this.knownLength - this.position, int.MaxValue);
             bytes = this.memoryArray is null
                         ? new ReadOnlySpan<byte>(this.memoryPointer + this.position, count)
                         : new ReadOnlySpan<byte>(this.memoryArray, this.memoryArrayOffset + (int)this.position, count);
@@ -261,7 +267,7 @@ internal sealed unsafe class ReadBudgetStream : Stream
     /// <returns>Whether the bytes were available within the budget; false consumes neither bytes nor budget.</returns>
     public bool TryReadSpanWithinBudget(int count, out ReadOnlySpan<byte> bytes)
     {
-        if (this.memoryBacked && count <= this.memoryLength - this.position && count <= this.maxTotalBytesRead - this.bytesRead)
+        if (this.memoryBacked && count <= this.knownLength - this.position && count <= this.maxTotalBytesRead - this.bytesRead)
         {
             return this.TryReadSpan(count, out bytes);
         }
@@ -362,7 +368,7 @@ internal sealed unsafe class ReadBudgetStream : Stream
     {
         if (this.memoryBacked)
         {
-            int available = (int)Math.Min(buffer.Length, Math.Max(0, this.memoryLength - this.position));
+            int available = (int)Math.Min(buffer.Length, Math.Max(0, this.knownLength - this.position));
             if (available > 0)
             {
                 ReadOnlySpan<byte> source = this.memoryArray is null
@@ -396,7 +402,7 @@ internal sealed unsafe class ReadBudgetStream : Stream
     {
         if (this.memoryBacked)
         {
-            if (this.position >= this.memoryLength)
+            if (this.position >= this.knownLength)
             {
                 return -1;
             }
@@ -440,11 +446,23 @@ internal sealed unsafe class ReadBudgetStream : Stream
             {
                 SeekOrigin.Begin => 0,
                 SeekOrigin.Current => this.position,
-                SeekOrigin.End => this.memoryLength,
+                SeekOrigin.End => this.knownLength,
                 _ => throw new ArgumentOutOfRangeException(nameof(origin)),
             };
             this.Position = checked(basis + offset);
             return this.position;
+        }
+
+        if (this.inner.CanSeek)
+        {
+            // A seek obeys the position setter's end-of-input rule.
+            this.RejectPastStreamEnd(origin switch
+            {
+                SeekOrigin.Begin => offset,
+                SeekOrigin.Current => checked(this.Position + offset),
+                SeekOrigin.End => checked(this.Length + offset),
+                _ => throw new ArgumentOutOfRangeException(nameof(origin)),
+            });
         }
 
         try
@@ -454,6 +472,27 @@ internal sealed unsafe class ReadBudgetStream : Stream
         catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
         {
             throw this.CreateReadFailure("Cannot seek in the source stream.", exception);
+        }
+    }
+
+    /// <summary>
+    ///     Rejects a stream position past the end of a seekable stream's input with <see cref="ReadFailures.OutsideRegion"/>,
+    ///     as a memory source rejects it. The length is queried only for a position beyond every length seen so far, so
+    ///     a stream that has grown since is measured again before the position is rejected.
+    /// </summary>
+    /// <param name="value">The requested position.</param>
+    /// <exception cref="CStructReadException">The position lies past the end, or the length cannot be read.</exception>
+    private void RejectPastStreamEnd(long value)
+    {
+        if (value <= this.knownLength || !this.inner.CanSeek)
+        {
+            return;
+        }
+
+        this.knownLength = this.Length;
+        if (value > this.knownLength)
+        {
+            throw new CStructReadException(ReadFailures.OutsideRegion);
         }
     }
 

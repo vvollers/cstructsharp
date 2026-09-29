@@ -40,7 +40,7 @@ public class ExceptionTranslatingStreamTests
         [
             (FaultPoint.Length, stream => _ = stream.Length),
             (FaultPoint.PositionGet, stream => _ = stream.Position),
-            (FaultPoint.PositionSet, stream => stream.Position = 1),
+            (FaultPoint.PositionSet, stream => stream.Position = 0),
             (FaultPoint.Flush, stream => stream.Flush()),
             (FaultPoint.ReadArray, stream => _ = stream.Read(new byte[1], 0, 1)),
             (FaultPoint.ReadSpan, stream => _ = stream.Read(new byte[1].AsSpan())),

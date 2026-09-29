@@ -116,7 +116,7 @@ public class LayoutSafetyTests
         [
             1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0,
             3, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0,
-            0xA5,
+            0xA5, 0, 0, 0, 0, 0, 0, 0,
         ];
         using var stream = new MemoryStream(bytes);
         var cstruct = new CStruct(layout, aligned: true);

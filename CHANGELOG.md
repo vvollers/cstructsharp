@@ -10,6 +10,12 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Breaking changes
 
+- **Breaking (reading):** an aligned struct whose input ends inside its padding - between fields or after the last
+  field - fails with `ReadFailed` ("The requested position is outside the supplied memory region") from every source,
+  as a span already did. A stream missing only the tail padding succeeded and left its position past its length, and a
+  stream missing padding between fields failed with a different message. Migration: supply the padding bytes (a
+  struct's size includes its tail padding, see `GetStructSizeInBytes`), or use a packed layout (`aligned: false`)
+  when the format stores no padding.
 - **Breaking (language):** layout expressions use exact 128-bit integers instead of 32-bit ones, so conditions,
   switches and counts can use any 64-bit field: `struct node { uint64 next; if (next != 0) { uint32 payload; } };`
   reads a kernel-style address such as `0xffff888000000000` correctly, and `switch (tag)` on a `uint64` accepts

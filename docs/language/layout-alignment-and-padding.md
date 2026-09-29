@@ -86,6 +86,14 @@ size divisible by the struct alignment of 4.
   <text x="6" y="112" fill="currentColor" opacity="0.7" font-size="11">aligned mode moves b to offset 4 and pads the size to a multiple of the struct alignment (4)</text>
 </svg>
 
+Padding is part of the struct's storage, so reading needs its bytes too. Input that ends inside padding is
+truncated. For the aligned `sample`, the 11 bytes `11 00 00 00 55 44 33 22 77 66 00` lack the last tail-padding
+byte, and the read fails with `ReadFailed` and `The requested position is outside the supplied memory region`.
+The first byte alone (`11`) fails the same way: the padding before `b` runs past the end. Input that ends right
+after padding, such as `11 00 00 00`, fails at the next field with `Not enough bytes`. Every source reports the same
+failure, message, and offset: a span, an array, a sequence, and every kind of stream. Supply the padding bytes, or
+use a packed layout when the format has no padding.
+
 Neutral multi-byte fields follow `isLittleEndian`. `<` forces little-endian for one supported primitive and `>`
 forces big-endian:
 

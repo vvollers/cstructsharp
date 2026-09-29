@@ -218,7 +218,7 @@ public class LayoutApiTests
         string rendered = original.ToDefinition();
         var roundTrip = new CStruct(rendered, pointerSize: 4, aligned: true);
 
-        byte[] bytes = [1, 0, 2, 0, 0x05, 0, 2, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0x10, 0x11, (byte)'n', 0, 2, 0x20, 0x21, 0x22, 1, 2, 3, 4, 8, 0, 0, 0, 0, 0, 0, 0, 0x30, 0x31,];
+        byte[] bytes = [1, 0, 2, 0, 0x05, 0, 2, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0x10, 0x11, (byte)'n', 0, 2, 0x20, 0x21, 0x22, 1, 2, 3, 4, 8, 0, 0, 0, 0, 0, 0, 0, 0x30, 0x31, 0, 0,];
         (dynamic _, IReadOnlyList<DebugData> before) = original.ParseWithDebug(new MemoryStream(bytes), "root");
         (dynamic _, IReadOnlyList<DebugData> after) = roundTrip.ParseWithDebug(new MemoryStream(bytes), "root");
         CollectionAssert.AreEqual(

@@ -25,8 +25,11 @@ public class ReadBudgetStreamBoundaryTests
         Assert.AreEqual(1L, failure.Offset);
     }
 
-    /// <summary>A position beyond the memory window cannot wrap into a successful preflight or an invalid array slice.</summary>
-    /// <param name="operation">The availability check to exercise with a large position or requested count.</param>
+    /// <summary>
+    ///     No position or requested count wraps into a successful preflight or an invalid array slice: a position beyond
+    ///     the memory window is rejected before it is set, and a huge count at the end of the window reports a shortfall.
+    /// </summary>
+    /// <param name="operation">The availability check to exercise at the end of the window or with a large count.</param>
     [TestMethod]
     [DataRow("shortfall")]
     [DataRow("span")]
@@ -36,7 +39,9 @@ public class ReadBudgetStreamBoundaryTests
     {
         using var source = new MemoryStream([11, 12, 13,], 0, 3, writable: false, publiclyVisible: true);
         using var reader = new ReadBudgetStream(source, 100, 1);
-        long position = operation == "large-count" ? 1 : long.MaxValue;
+        Assert.ThrowsExactly<CStructReadException>(() => reader.Position = long.MaxValue);
+        Assert.AreEqual(0L, reader.Position);
+        long position = operation == "large-count" ? 1 : 3;
         reader.Position = position;
         if (operation == "shortfall")
         {
@@ -123,7 +128,7 @@ public class ReadBudgetStreamBoundaryTests
         Assert.AreEqual(2L, reader.Position);
     }
 
-    /// <summary>MemoryStream positions may pass the end but cannot be negative, and relative seek arithmetic cannot overflow.</summary>
+    /// <summary>A MemoryStream position may reach the end but neither pass it nor be negative, and relative seek arithmetic cannot overflow.</summary>
     [TestMethod]
     public void MemoryPosition_EnforcesItsBackingContract()
     {
@@ -136,9 +141,12 @@ public class ReadBudgetStreamBoundaryTests
         Assert.Throws<OverflowException>(() => reader.Seek(long.MaxValue, SeekOrigin.Current));
         Assert.Throws<CStructReadException>(() => reader.Position = -1);
         Assert.AreEqual(1L, reader.Position);
-        reader.Position = 4;
+        Assert.Throws<CStructReadException>(() => reader.Position = 4);
+        Assert.AreEqual(1L, reader.Position);
+        reader.Position = 3;
         Assert.AreEqual(-1, reader.ReadByte());
-        Assert.IsFalse(reader.TryPeekRemaining(out _));
+        Assert.IsTrue(reader.TryPeekRemaining(out ReadOnlySpan<byte> remaining));
+        Assert.AreEqual(0, remaining.Length);
     }
 
     /// <summary>A fixed region rejects positions beyond its end, even though an ordinary MemoryStream permits them.</summary>

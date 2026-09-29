@@ -43,12 +43,8 @@ internal static class EngineAgreement
     ///         an inner decoder message's index) are not compared, only everything else about the failure.
     ///     </para>
     ///     <para>
-    ///         Three disagreements of the interpreter are known and skipped here, left for the consistency fixes; each
-    ///         form is still compared with its own kind and, by the harness, with the engine. (1) Aligned padding that
-    ///         runs past the end of the input fails in memory with <see cref="ReadFailures.OutsideRegion"/>, while a
-    ///         stream fails the next field with <c>Not enough bytes</c> and an inner <see cref="EndOfStreamException"/>;
-    ///         (2) when only tail padding is missing, memory fails and a stream succeeds - so memory and streams are not
-    ///         compared when the memory form failed that way. (3) A terminated UTF-16 string
+    ///         One disagreement of the interpreter is known and skipped here, left for the consistency fixes; each
+    ///         form is still compared with its own kind and, by the harness, with the engine. A terminated UTF-16 string
     ///         (<c>unicode_string_*</c>) read from a stream whose reads split a two-byte code unit misses its terminator
     ///         and fails with <c>no terminator</c>, so such a chunked failure is not compared.
     ///     </para>
@@ -101,7 +97,7 @@ internal static class EngineAgreement
             }
         }
 
-        if (memoryMatchesStreams && memoryReference is { } memory && streamReference is { } stream && !memory.Rendering.Contains(ReadFailures.OutsideRegion[..^1], StringComparison.Ordinal))
+        if (memoryMatchesStreams && memoryReference is { } memory && streamReference is { } stream)
         {
             string streamOutcome = WithoutPositions(stream.Rendering);
             if (!string.Equals(memory.Rendering, streamOutcome, StringComparison.Ordinal))

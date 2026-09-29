@@ -215,7 +215,8 @@ public class ParsingTests
                                  };
                                  """;
 
-        byte[] testData = [10, 0, 0b00000_1_0_1, 0xF, 0b11_10_00_01, 0b00_00_01_10, 0xA,];
+        // The final byte is the tail padding that rounds the struct up to its two-byte alignment.
+        byte[] testData = [10, 0, 0b00000_1_0_1, 0xF, 0b11_10_00_01, 0b00_00_01_10, 0xA, 0,];
         var mem = new MemoryStream(testData);
 
         var strct = new CStruct(structDef, aligned: true);
