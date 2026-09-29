@@ -106,6 +106,28 @@ internal struct ReadPlacement
         return true;
     }
 
+    /// <summary>
+    ///     Places a member of a struct by its declaration - its own alignment and <c>@N</c> assertion, whatever view its
+    ///     value is read or written through - the one rule the reader, the writer and the address resolver share: the step
+    ///     that moves the position there (<see cref="Place"/>), whether a statically known start contradicts the offset the
+    ///     layout compiled, and the assertion the executor still has to check at run time.
+    /// </summary>
+    /// <param name="field">The member's index, the steps' <see cref="ReadStep.Field"/>.</param>
+    /// <param name="member">The member.</param>
+    /// <param name="step">The placement step, when one is needed.</param>
+    /// <param name="checkedOffset">The asserted offset to check at run time, or <see langword="null"/> when the build checked it or the known start satisfies it.</param>
+    /// <returns>
+    ///     Whether the statically known start contradicts the compiled offset (the program cannot be built); a start the data
+    ///     decides never does.
+    /// </returns>
+    public bool PlaceMember(int field, CompiledField member, out ReadStep? step, out int? checkedOffset)
+    {
+        step = this.Place(field, member.Alignment, out ReadStep placed) ? placed : null;
+        long? known = this.KnownOffset;
+        checkedOffset = member.AssertedOffset is int asserted && member.FixedOffset is null && known != asserted ? asserted : null;
+        return member.FixedOffset is int compiled && known is long offset && offset != compiled;
+    }
+
     /// <summary>Records a member of known size, read from the placed position.</summary>
     /// <param name="size">The member's storage size in bytes.</param>
     public void Advance(long size)

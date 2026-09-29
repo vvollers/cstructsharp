@@ -73,15 +73,18 @@ public class WriteProgramCompilerTests
         Assert.AreEqual("LoadMember b|WriteNumeric b|LoadMember c|WriteNumeric c|FinishComposite -", Render(nested));
     }
 
-    /// <summary>An unsized character array is one terminated string, encoded (and placed) as its terminated view.</summary>
+    /// <summary>
+    ///     An unsized character array is one terminated string, encoded through its terminated view but placed by its
+    ///     declaration, as the reader places it: a <c>wchar name[]</c> after one byte is preceded by one byte of padding.
+    /// </summary>
     [TestMethod]
-    public void UnsizedText_IsWrittenAsItsTerminatedView()
+    public void UnsizedText_IsWrittenAsItsTerminatedView_AndPlacedAsDeclared()
     {
         WriteProgram program = Program("struct root { uint8 a; wchar< name[]; uint8 t; };", "root", aligned: true);
         int name = Array.FindIndex(program.Fields, field => field.Name == "name");
         Assert.AreNotSame(program.Fields[name], program.ValueFields[name]);
-        Assert.AreEqual(1, program.ValueFields[name].Alignment, "the view is placed unaligned, as the interpreter's writer places it");
-        StringAssert.Contains(Render(program), "WriteCodecValue name");
+        StringAssert.Contains(Render(program), "LoadMember name|Seek name|WriteCodecValue name");
+        Assert.AreEqual(1, program.Steps.Single(step => step.Op == WriteOpCode.Seek).A);
     }
 
     /// <summary>The shapes a later sub-stage adds are refused with a reason naming the struct and member.</summary>

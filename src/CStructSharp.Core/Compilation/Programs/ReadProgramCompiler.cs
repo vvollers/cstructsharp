@@ -652,21 +652,20 @@ internal sealed class ReadProgramCompiler
     /// </returns>
     private string? EmitPlacement(ReadProgramBuilder builder, int index, ref ReadPlacement placement)
     {
-        CompiledField field = builder.Fields[index];
-        if (placement.Place(index, field.Alignment, out ReadStep step))
+        bool contradicts = placement.PlaceMember(index, builder.Fields[index], out ReadStep? step, out int? asserted);
+        if (step is { } move)
         {
-            builder.Emit(step);
+            builder.Emit(move);
         }
 
-        long? known = placement.KnownOffset;
-        if (field.FixedOffset is int compiled && known is long offset && offset != compiled)
+        if (contradicts)
         {
             return PlacementMismatch;
         }
 
-        if (field.AssertedOffset is int asserted && field.FixedOffset is null && known != asserted)
+        if (asserted is int offset)
         {
-            builder.Emit(ReadOpCode.CheckOffset, index, asserted, 0);
+            builder.Emit(ReadOpCode.CheckOffset, index, offset, 0);
         }
 
         return null;

@@ -61,6 +61,32 @@ public class WriterParityTests
     }
 
     /// <summary>
+    ///     In an aligned layout, unsized wide text after an odd-length string is written at its element's alignment by the
+    ///     generated and the runtime writer alike, where both readers read it, and an <c>@N</c> the layout accepts holds.
+    /// </summary>
+    [TestMethod]
+    public void AlignedUnsizedWideText_IsPlacedAsBothReadersReadIt()
+    {
+        (string Id, string Definition, byte[] Bytes)[] cases =
+        [
+            ("wide-after-odd", "struct root { uint8 tag; char name[]; wchar< wide[]; uint16 after; };", [1, (byte)'a', 0, 0, (byte)'x', 0, (byte)'y', 0, 0, 0, 7, 0]),
+            ("wide-asserted", "struct root { uint8 tag; wchar< wide[] @2; };", [1, 0, (byte)'x', 0, 0, 0]),
+        ];
+        foreach ((string id, string definition, byte[] bytes) in cases)
+        {
+            string className = "Writer" + string.Concat(id.Split('-').Select(part => char.ToUpperInvariant(part[0]) + part.Substring(1)));
+            string source = "using CStructSharp;\n\nnamespace Parity;\n\n[CStructLayout(" + ReaderParityTests.Literal(definition) + ", Root = \"root\", PointerSize = 2, Aligned = true, LittleEndian = true)]\npublic static partial class " + className + " { }\n";
+            Type generated = GeneratorRunner.Run(source).AssertClean().Load().GetType("Parity." + className)!;
+            var runtime = (CStruct)generated.GetProperty("Layout")!.GetValue(null)!;
+            StructValue runtimeValue = runtime.Parse(bytes, "root");
+            object generatedValue = generated.GetMethods().Single(method => method.Name == "ParseRoot" && method.GetParameters()[0].ParameterType == typeof(byte[])).Invoke(null, [bytes, null, null])!;
+            ParityComparer.AssertSame(runtimeValue, generatedValue, "root", strict: true);
+            AssertSameOutcome(id, runtime, generated, runtimeValue, generatedValue, null);
+            CollectionAssert.AreEqual(bytes, runtime.Serialize("root", runtimeValue), id + ": the runtime writes what it read");
+        }
+    }
+
+    /// <summary>
     ///     After the same change, the generated writer handles union selections, pointer addresses, conditional arms,
     ///     and write limits exactly as the runtime writer does.
     /// </summary>

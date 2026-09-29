@@ -641,7 +641,7 @@ public sealed partial class CStruct
 
         bool positionIsResolvedTarget = state.PositionIsResolvedTarget;
         state.PositionIsResolvedTarget = false;
-        bool standalone = PlaceWrittenField(compiledField, valueField, state, unionPosition, cursor, positionIsResolvedTarget);
+        bool standalone = PlaceWrittenField(compiledField, state, unionPosition, cursor, positionIsResolvedTarget);
 
         BigInteger? writtenEnumValue = null;
         if (isArray)
@@ -740,16 +740,17 @@ public sealed partial class CStruct
     ///     Places a field for a write: a union member at the union's start, a struct member where the composite cursor
     ///     puts it (with its bitfield unit, once for every array element). A standalone field - a root declaration, a
     ///     union member, or a resolved path target - has no cursor, starts with no open bitfield unit, and starts exactly
-    ///     at the stream position, as in the reader: alignment is measured from the value's own first byte.
+    ///     at the stream position, as in the reader: alignment is measured from the value's own first byte. A member is
+    ///     placed by its declaration, as the reader and the address resolver place it, even when its value is written
+    ///     through another view (an unsized <c>wchar name[]</c> keeps its element's alignment, not its one-byte text view's).
     /// </summary>
-    /// <param name="compiledField">The field.</param>
-    /// <param name="valueField">The field the value is written as, whose alignment the composite cursor applies.</param>
+    /// <param name="compiledField">The field, whose alignment and offset assertion the composite cursor applies.</param>
     /// <param name="state">The write state, whose stream and bitfield unit are set.</param>
     /// <param name="unionPosition">The union's start, or -1.</param>
     /// <param name="cursor">The containing struct's cursor, or <see langword="null"/>.</param>
     /// <param name="positionIsResolvedTarget">Whether the stream is at the field's resolved address.</param>
     /// <returns>Whether the field is standalone.</returns>
-    private static bool PlaceWrittenField(CompiledField compiledField, CompiledField valueField, CStructElementWriterState state, long unionPosition, CompositeFieldPlacementCursor? cursor, bool positionIsResolvedTarget)
+    private static bool PlaceWrittenField(CompiledField compiledField, CStructElementWriterState state, long unionPosition, CompositeFieldPlacementCursor? cursor, bool positionIsResolvedTarget)
     {
         bool standalone = cursor is null || unionPosition != -1 || positionIsResolvedTarget;
         if (unionPosition != -1)
@@ -777,7 +778,7 @@ public sealed partial class CStruct
             return true;
         }
 
-        (long fieldStart, int bitOffset, int unitSize) = cursor!.AdvanceToField(valueField);
+        (long fieldStart, int bitOffset, int unitSize) = cursor!.AdvanceToField(compiledField);
         state.Stream.Position = fieldStart;
         if (compiledField.BitSize > 0)
         {

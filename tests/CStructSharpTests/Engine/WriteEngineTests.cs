@@ -218,22 +218,21 @@ public class WriteEngineTests
     }
 
     /// <summary>
-    ///     An unsized wide-character array is written through its terminated view, which is aligned to one byte, so in an
-    ///     aligned layout it lands where the interpreter's writer puts it - unaligned after an odd-length member - whether
-    ///     its offset is known when the program is built or depends on the data.
+    ///     An unsized wide-character array is written through its terminated view but placed by its declaration, so in an
+    ///     aligned layout it lands where the reader reads it - at its element's alignment, even after an odd-length member -
+    ///     whether its offset is known when the program is built or depends on the data, and an <c>@N</c> the layout
+    ///     accepts holds for the write.
     /// </summary>
     [TestMethod]
-    public void UnsizedWideText_IsPlacedAsTheInterpretersWriterPlacesIt()
+    public void UnsizedWideText_IsPlacedAsTheReaderPlacesIt()
     {
         var known = new CStruct("struct rec { uint8 tag; wchar< wide[]; uint16 after; };", aligned: true);
         var knownValue = new Dictionary<string, object?> { ["tag"] = (byte)1, ["wide"] = "xy", ["after"] = (ushort)7, };
-        CollectionAssert.AreEqual(new byte[] { 1, 0x78, 0, 0x79, 0, 0, 0, 0, 7, 0, }, known.Serialize("rec", knownValue, options: EngineSelections.EngineRequired(new WriteOptions())));
+        CollectionAssert.AreEqual(new byte[] { 1, 0, 0x78, 0, 0x79, 0, 0, 0, 7, 0, }, known.Serialize("rec", knownValue, options: EngineSelections.EngineRequired(new WriteOptions())));
         var dynamic = new CStruct("struct rec { uint8 tag; char name[]; wchar< wide[]; uint16 after; };", aligned: true);
         var dynamicValue = new Dictionary<string, object?> { ["tag"] = (byte)1, ["name"] = "a", ["wide"] = "xy", ["after"] = (ushort)7, };
-
-        // The layout checks an offset assertion at the member's aligned offset; the writer checks it where the view lands.
         var asserted = new CStruct("struct rec { uint8 tag; wchar< wide[] @2; };", aligned: true);
-        Assert.Throws<CStructLayoutException>(() => asserted.Serialize("rec", new Dictionary<string, object?> { ["tag"] = (byte)1, ["wide"] = "x", }, options: EngineSelections.EngineRequired(new WriteOptions())));
+        CollectionAssert.AreEqual(new byte[] { 1, 0, 0x78, 0, 0, 0, }, asserted.Serialize("rec", new Dictionary<string, object?> { ["tag"] = (byte)1, ["wide"] = "x", }, options: EngineSelections.EngineRequired(new WriteOptions())));
         foreach (ExecutionPath path in Paths)
         {
             EngineDifferential.AssertSame(EngineOperations.Serialize(asserted, "rec", new Dictionary<string, object?> { ["tag"] = (byte)1, ["wide"] = "x", }), true, path);

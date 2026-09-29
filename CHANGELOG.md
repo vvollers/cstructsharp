@@ -144,6 +144,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Fixed
 
+- In aligned layouts, `Serialize`, `Write` and `WriteAsync` place an unsized wide-character array (`wchar name[]`) at its
+  element's alignment, where `Parse` reads it. The writer placed it unaligned after an odd-length member, so the
+  written bytes did not read back, and an `@N` assertion the layout accepted failed when writing.
 - A qualified reference such as `hdr.n` inside a struct that is itself a member an outer expression names (`struct mid {
   h hdr; uint8 v[hdr.n]; }; struct rec { mid m; uint8 w[m.hdr.k]; };`) resolves on every path - parse, debug parse,
   selected reads, address and length queries, write and update. A qualified name starts at the struct the expression is

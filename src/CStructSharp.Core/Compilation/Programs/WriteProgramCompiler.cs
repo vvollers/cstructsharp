@@ -352,9 +352,9 @@ internal sealed class WriteProgramCompiler
     /// <summary>
     ///     Emits where a member a struct places starts - nothing, a relative <see cref="WriteOpCode.Seek"/> over known
     ///     padding, or an <see cref="WriteOpCode.Align"/> - and, when the layout's build could not check it, its <c>@N</c>
-    ///     assertion. The interpreter places the member's value field: the member itself, or for an unsized character
-    ///     array its terminated view, which is aligned to one byte (a <c>wchar name[]</c> is placed unaligned, unlike its
-    ///     read). A static placement that contradicts the layout's compiled offset is refused, except where the view places it.
+    ///     assertion, by the rule the reader shares (<see cref="ReadPlacement.PlaceMember"/>): a member is placed by its
+    ///     declaration, so an unsized <c>wchar name[]</c> keeps its element's alignment although its value is written
+    ///     through a terminated view. A static placement that contradicts the layout's compiled offset is refused.
     /// </summary>
     /// <param name="builder">The program under construction.</param>
     /// <param name="index">The member's index.</param>
@@ -364,23 +364,20 @@ internal sealed class WriteProgramCompiler
     private string? EmitPlacement(WriteProgramBuilder builder, int index, string location, ref ReadPlacement placement)
     {
         CompiledField field = builder.Fields[index];
-        CompiledField placed = builder.ValueFields[index];
-        if (placement.Place(index, placed.Alignment, out ReadStep step))
+        bool contradicts = placement.PlaceMember(index, field, out ReadStep? step, out int? asserted);
+        if (step is { } move)
         {
-            builder.EmitPlacement(step);
+            builder.EmitPlacement(move);
         }
 
-        // A member placed by its view is exactly where the interpreter's writer puts it, even where that differs from the
-        // offset the layout compiled for the member; any other contradiction means the static placement is wrong.
-        long? known = placement.KnownOffset;
-        if (ReferenceEquals(placed, field) && field.FixedOffset is int compiled && known is long offset && offset != compiled)
+        if (contradicts)
         {
             return ReadProgramCompiler.Refuse(location, field, ReadProgramCompiler.PlacementMismatch);
         }
 
-        if (placed.AssertedOffset is int asserted && placed.FixedOffset is null && known != asserted)
+        if (asserted is int offset)
         {
-            builder.Emit(WriteOpCode.CheckOffset, index, asserted, 0);
+            builder.Emit(WriteOpCode.CheckOffset, index, offset, 0);
         }
 
         return null;
