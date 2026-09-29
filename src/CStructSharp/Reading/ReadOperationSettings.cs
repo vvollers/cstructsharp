@@ -13,7 +13,8 @@ internal readonly record struct ReadOperationSettings(
     long Origin,
     bool TrimFixedText = false,
     System.Threading.CancellationToken CancellationToken = default,
-    ExecutionPath ExecutionPath = ExecutionPath.Fastest)
+    ExecutionPath ExecutionPath = ExecutionPath.Fastest,
+    EngineSelection EngineSelection = EngineSelection.Automatic)
 {
     /// <summary>
     ///     Gets whether every limit is usable and the operation is not already cancelled. When this is false the general
@@ -59,7 +60,8 @@ internal readonly record struct ReadOperationSettings(
             options.Origin,
             options.TrimFixedText,
             options.CancellationToken,
-            options.ExecutionPath);
+            options.ExecutionPath,
+            options.EngineSelection);
     }
 
     /// <summary>Maps already-snapshotted update traversal choices into the same read operation settings.</summary>
@@ -78,6 +80,7 @@ internal readonly record struct ReadOperationSettings(
             options.MaxTraversalNestingDepth,
             options.Origin,
             CancellationToken: options.CancellationToken,
-            ExecutionPath: options.ExecutionPath);
+            ExecutionPath: options.ExecutionPath,
+            EngineSelection: options.EngineSelection);
     }
 }

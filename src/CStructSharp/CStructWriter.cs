@@ -13,6 +13,7 @@ using CStructSharp.Addressing;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
+using CStructSharp.Engine;
 using CStructSharp.Expressions;
 using CStructSharp.Reading;
 using CStructSharp.Streams;
@@ -1325,6 +1326,7 @@ public sealed partial class CStruct
             throw exception;
         }
 
+        EngineSelector.Decide(effectiveOptions.EngineSelection, EngineOperation.Update);
         ReadOperationSettings readOptions = ReadOperationSettings.SnapshotTraversalOptions(effectiveOptions);
         var readState = new CStructOperationContext(
             stream,
@@ -1511,6 +1513,8 @@ public sealed partial class CStruct
             ExceptionContext.Attach(exception, segments, stream);
             throw exception;
         }
+
+        EngineSelector.Decide(effectiveOptions.EngineSelection, EngineOperation.Write);
 
         // Callers may pass either { root: ... } or the root object itself; accept both forms at the public boundary.
         object rootData = WriteDataBinding.NormalizeRootData(data, rootName);

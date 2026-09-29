@@ -31,6 +31,9 @@ public record WriteOptions
     /// <summary>Gets which implementation paths the write may take; tests restrict it to compare paths.</summary>
     internal ExecutionPath ExecutionPath { get; init; }
 
+    /// <summary>Gets which implementation runs the write's general path, the interpreter or the compiled engine; tests set it to compare them.</summary>
+    internal EngineSelection EngineSelection { get; init; }
+
     /// <summary>Gets whether written pointer values are absolute stream positions or offsets from <see cref="Origin"/>.</summary>
     public PointerAddressingMode AddressingMode { get; init; } = PointerAddressingMode.Absolute;
 

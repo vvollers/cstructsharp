@@ -185,6 +185,10 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Documentation and tooling
 
+- Tests: an engine differential harness (`tests/CStructSharpTests/Engine/`) runs every read, write and update form
+  twice - with the general interpreter forced and with automatic engine selection - and compares values with their CLR
+  types, failures with every diagnostic field, final positions, written bytes and debug records. An internal
+  engine-selection option and test-scoped recordings prepare the compiled general engine; behaviour is unchanged.
 - `quick-perf-check.mjs --job Quick` compares the whole `Impact` category before and after a change, on both sides and
   twice, in about a minute and a half: the `Quick` benchmark job runs in-process with 25 ms iterations and tiered
   compilation off. `benchmarks/README.md` explains when its numbers are comparable.

@@ -8,6 +8,7 @@ using System.Linq;
 using CStructSharp.Addressing;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
+using CStructSharp.Engine;
 using CStructSharp.Expressions;
 using CStructSharp.Reading;
 using CStructSharp.Syntax;
@@ -96,6 +97,9 @@ public sealed partial class CStruct
         ReadOptions? options)
     {
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
+        EngineSelector.Decide(
+            effectiveOptions.EngineSelection,
+            segments.Count == 1 ? EngineOperation.RootRead : EngineOperation.PathRead);
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
         var state = new CStructOperationContext(
             stream,

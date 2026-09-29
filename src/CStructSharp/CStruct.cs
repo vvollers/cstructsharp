@@ -11,6 +11,7 @@ using CStructSharp.Addressing;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
+using CStructSharp.Engine;
 using CStructSharp.Expressions;
 using CStructSharp.Introspection;
 using CStructSharp.Parsing;
@@ -254,6 +255,7 @@ public sealed partial class CStruct
         ArgumentNullException.ThrowIfNull(stream);
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
         IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
+        EngineSelector.Decide(effectiveOptions.EngineSelection, EngineOperation.LengthQuery);
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
         var state = new CStructOperationContext(
             stream,
@@ -362,6 +364,9 @@ public sealed partial class CStruct
     {
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
         IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
+        EngineSelector.Decide(
+            effectiveOptions.EngineSelection,
+            debug ? EngineOperation.DebugRead : segments.Count == 1 ? EngineOperation.RootRead : EngineOperation.PathRead);
         if (segments.Count == 1)
         {
             StructValue root = this.ParseStreamInternal(
@@ -442,6 +447,7 @@ public sealed partial class CStruct
         ArgumentNullException.ThrowIfNull(stream);
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
         IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
+        EngineSelector.Decide(effectiveOptions.EngineSelection, EngineOperation.AddressResolution);
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
         var state = new CStructOperationContext(
             stream,
