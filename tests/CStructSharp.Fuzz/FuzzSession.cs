@@ -175,6 +175,44 @@ public sealed class FuzzSession
         };
     }
 
+    /// <summary>
+    ///     The inputs one target runs, in replay order: every retained seed as decoded, then
+    ///     <paramref name="iterations"/> mutations of seeds chosen by a generator derived from <paramref name="seed"/>
+    ///     and the target name. Other harnesses (the managed engine differential) replay the same inputs through this.
+    /// </summary>
+    /// <param name="targetCorpus">The target's retained seeds.</param>
+    /// <param name="targetName">The target's name, which derives its generator.</param>
+    /// <param name="iterations">The number of mutations.</param>
+    /// <param name="seed">The run seed.</param>
+    /// <param name="maxInputBytes">The longest mutated input.</param>
+    /// <returns>Each input with its replay name (the seed's id, or <c>mutation</c>) and index within its kind.</returns>
+    internal static IEnumerable<(string Name, int Index, byte[] Input)> Inputs(
+        FuzzTargetCorpus targetCorpus,
+        string targetName,
+        int iterations,
+        ulong seed,
+        int maxInputBytes)
+    {
+        for (int index = 0; index < targetCorpus.Seeds.Length; index++)
+        {
+            yield return (targetCorpus.Seeds[index].Id, index, targetCorpus.Seeds[index].Decode());
+        }
+
+        var random = new StableFuzzRandom(DeriveTargetSeed(seed, targetName));
+        for (int iteration = 0; iteration < iterations; iteration++)
+        {
+            FuzzSeed basis = targetCorpus.Seeds[random.NextInt(targetCorpus.Seeds.Length)];
+            yield return ("mutation", iteration, Mutate(basis.Decode(), random, maxInputBytes));
+        }
+    }
+
+    /// <summary>Runs one target over its seeds and mutations and summarizes the outcomes in a report with a replay digest.</summary>
+    /// <param name="target">The target.</param>
+    /// <param name="targetCorpus">The target's retained seeds.</param>
+    /// <param name="iterations">The number of mutations.</param>
+    /// <param name="seed">The run seed.</param>
+    /// <param name="maxInputBytes">The longest mutated input.</param>
+    /// <returns>The target's report.</returns>
     private FuzzTargetReport RunTarget(
         FuzzTarget target,
         FuzzTargetCorpus targetCorpus,
@@ -182,36 +220,17 @@ public sealed class FuzzSession
         ulong seed,
         int maxInputBytes)
     {
-        ulong targetSeed = DeriveTargetSeed(seed, target.Name);
-        var random = new StableFuzzRandom(targetSeed);
         using IncrementalHash digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         int successes = 0;
         int documentedFailures = 0;
-
-        for (int index = 0; index < targetCorpus.Seeds.Length; index++)
+        foreach ((string name, int index, byte[] input) in Inputs(targetCorpus, target.Name, iterations, seed, maxInputBytes))
         {
-            byte[] input = targetCorpus.Seeds[index].Decode();
             this.ExecuteCase(
                 target,
                 input,
-                targetCorpus.Seeds[index].Id,
+                name,
                 seed,
                 index,
-                digest,
-                ref successes,
-                ref documentedFailures);
-        }
-
-        for (int iteration = 0; iteration < iterations; iteration++)
-        {
-            FuzzSeed basis = targetCorpus.Seeds[random.NextInt(targetCorpus.Seeds.Length)];
-            byte[] input = Mutate(basis.Decode(), random, maxInputBytes);
-            this.ExecuteCase(
-                target,
-                input,
-                "mutation",
-                seed,
-                iteration,
                 digest,
                 ref successes,
                 ref documentedFailures);

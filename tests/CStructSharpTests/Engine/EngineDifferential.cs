@@ -26,7 +26,8 @@ internal static class EngineDifferential
     /// <param name="operation">The operation.</param>
     /// <param name="expectEngine">
     ///     Whether automatic selection must run the engine for every decision; when <see langword="false"/> it must run
-    ///     the engine for none.
+    ///     the engine for none; when <see langword="null"/> either is accepted, which sweeps and corpora use so they
+    ///     compare whatever the selector chooses as the engine gains features.
     /// </param>
     /// <param name="path">The execution path both sides use.</param>
     /// <param name="alterAutomatic">
@@ -34,10 +35,10 @@ internal static class EngineDifferential
     ///     harness detects a planted difference; <see langword="null"/> in real cases.
     /// </param>
     /// <returns>The comparison: the shared rendering and both sides' recorders.</returns>
-    /// <exception cref="AssertFailedException">The renderings differ, or the engine ran contrary to <paramref name="expectEngine"/>.</exception>
+    /// <exception cref="AssertFailedException">The renderings differ, or the engine ran contrary to a non-null <paramref name="expectEngine"/>.</exception>
     public static EngineComparison AssertSame(
         DifferentialOperation operation,
-        bool expectEngine = false,
+        bool? expectEngine = false,
         ExecutionPath path = ExecutionPath.Fastest,
         Func<string, string>? alterAutomatic = null)
     {
@@ -62,12 +63,12 @@ internal static class EngineDifferential
         EngineDiagnostics selected = automatic.Diagnostics;
         Assert.AreEqual(0, forced.EngineRuns + forced.Declines, operation.Name + ": the interpreter side asked the engine");
         Assert.AreEqual(forced.InterpreterSelections, selected.Decisions, operation.Name + ": the sides made different numbers of decisions");
-        if (expectEngine)
+        if (expectEngine == true)
         {
             Assert.IsTrue(selected.EngineRuns > 0, operation.Name + ": the engine did not run");
             Assert.AreEqual(0, selected.Declines, operation.Name + ": the engine declined: " + string.Join("; ", selected.RecentDeclines));
         }
-        else
+        else if (expectEngine == false)
         {
             Assert.AreEqual(0, selected.EngineRuns, operation.Name + ": the engine ran although the case expects the interpreter");
         }

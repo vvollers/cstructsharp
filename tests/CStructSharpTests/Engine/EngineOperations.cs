@@ -50,12 +50,23 @@ internal static class EngineOperations
     /// <param name="options">The case's read options, which each side adjusts.</param>
     /// <returns>The operation.</returns>
     public static DifferentialOperation ParseAsync(CStruct layout, byte[] data, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
-        => StreamRead("ParseAsync " + path, data, options, (source, read) => layout.ParseAsync(source, path, variables, read).AsTask().GetAwaiter().GetResult(), RenderValue);
+        => ParseAsync(layout, data, EngineInput.Stream, path, variables, options);
+
+    /// <summary><c>ParseAsync</c> over one of the stream forms.</summary>
+    /// <param name="layout">The compiled layout.</param>
+    /// <param name="data">The input bytes.</param>
+    /// <param name="input">The stream form (<see cref="EngineStreams.IsStream"/>).</param>
+    /// <param name="path">The root name or path, or <see langword="null"/> for the first struct.</param>
+    /// <param name="variables">The caller's layout variables.</param>
+    /// <param name="options">The case's read options, which each side adjusts.</param>
+    /// <returns>The operation.</returns>
+    public static DifferentialOperation ParseAsync(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
+        => StreamRead("ParseAsync " + path, data, input, options, (source, read) => layout.ParseAsync(source, path, variables, read).AsTask().GetAwaiter().GetResult(), RenderValue);
 
     /// <summary><c>ParseMany</c>: every record until the input ends, then the record count.</summary>
     /// <param name="layout">The compiled layout.</param>
     /// <param name="data">The records' bytes.</param>
-    /// <param name="input">The input form: <see cref="EngineInput.Memory"/>, <see cref="EngineInput.Sequence"/>, or <see cref="EngineInput.Stream"/>.</param>
+    /// <param name="input">The input form: <see cref="EngineInput.Memory"/>, <see cref="EngineInput.Sequence"/>, or a stream form.</param>
     /// <param name="path">The record struct's name, or <see langword="null"/> for the first struct.</param>
     /// <param name="variables">The caller's layout variables.</param>
     /// <param name="options">The case's read options, which each side adjusts.</param>
@@ -68,7 +79,7 @@ internal static class EngineOperations
             {
                 ReadOptions read = side.Read(options);
                 byte[] copy = (byte[])data.Clone();
-                using MemoryStream? stream = input == EngineInput.Stream ? new MemoryStream(copy, writable: false) : null;
+                using Stream? stream = EngineStreams.IsStream(input) ? EngineStreams.Open(input, copy) : null;
                 int count = 0;
                 output.Capture(
                     "failure",
@@ -78,7 +89,7 @@ internal static class EngineOperations
                         {
                             EngineInput.Memory => layout.ParseMany(copy.AsMemory(), path, variables, read),
                             EngineInput.Sequence => layout.ParseMany(ChunkedSequence.Of(copy), path, variables, read),
-                            EngineInput.Stream => layout.ParseMany(stream!, path, variables, read),
+                            _ when stream is not null => layout.ParseMany(stream, path, variables, read),
                             _ => throw new ArgumentOutOfRangeException(nameof(input), input, "ParseMany reads memory, a sequence, or a stream."),
                         };
                         foreach (StructValue record in records)
@@ -88,7 +99,7 @@ internal static class EngineOperations
                         }
                     });
                 output.Line("count", count.ToString(CultureInfo.InvariantCulture));
-                RenderPosition(output, stream);
+                RenderPosition(output, stream, EngineStreams.IsStream(input) ? EngineStreams.StartOf(input) : 0);
             });
     }
 
@@ -274,6 +285,29 @@ internal static class EngineOperations
             });
     }
 
+    /// <summary>
+    ///     <c>Serialize</c> to a <see cref="WindowedBufferWriter"/> that hands out windows of <paramref name="window"/>
+    ///     bytes: the returned count, then everything advanced.
+    /// </summary>
+    /// <param name="layout">The compiled layout.</param>
+    /// <param name="window">The window size in bytes for requests that hint a smaller size.</param>
+    /// <param name="path">The root name or path to write.</param>
+    /// <param name="value">The value to encode.</param>
+    /// <param name="variables">The caller's layout variables.</param>
+    /// <param name="options">The case's write options, which each side adjusts.</param>
+    /// <returns>The operation.</returns>
+    public static DifferentialOperation SerializeToWindows(CStruct layout, int window, string path, object value, IReadOnlyDictionary<string, int>? variables = null, WriteOptions? options = null)
+    {
+        return new DifferentialOperation(
+            "Serialize(IBufferWriter windows of " + window + ") " + path,
+            (side, output) =>
+            {
+                var destination = new WindowedBufferWriter(window);
+                output.Capture("failure", () => output.Value("result", layout.Serialize(destination, path, value, variables, side.Write(options))));
+                output.Bytes("destination", destination.Written);
+            });
+    }
+
     /// <summary><c>Write</c> into a stream that already holds <paramref name="prefill"/>, starting at <paramref name="start"/>: the final position, then the stream's contents.</summary>
     /// <param name="layout">The compiled layout.</param>
     /// <param name="prefill">The stream's bytes before the write.</param>
@@ -360,14 +394,18 @@ internal static class EngineOperations
         output.Debug("debug", debug);
     }
 
-    /// <summary>Renders a stream's final position under <c>position</c>, when there is a stream.</summary>
+    /// <summary>
+    ///     Renders a stream's final position under <c>position</c>, when there is a stream, relative to the position its
+    ///     data starts at, so every stream form renders the same number for the same outcome.
+    /// </summary>
     /// <param name="output">The rendering.</param>
     /// <param name="stream">The stream, or <see langword="null"/>.</param>
-    private static void RenderPosition(CanonicalText output, Stream? stream)
+    /// <param name="start">The stream position of the data's first byte.</param>
+    private static void RenderPosition(CanonicalText output, Stream? stream, long start = 0)
     {
         if (stream is not null)
         {
-            output.Line("position", stream.Position.ToString(CultureInfo.InvariantCulture));
+            output.Line("position", (stream.Position - start).ToString(CultureInfo.InvariantCulture));
         }
     }
 
@@ -395,9 +433,9 @@ internal static class EngineOperations
         Func<ReadOnlySequence<byte>, ReadOptions, object?> sequence,
         Action<CanonicalText, object?> render)
     {
-        if (input == EngineInput.Stream)
+        if (EngineStreams.IsStream(input))
         {
-            return StreamRead(name, data, options, stream, render);
+            return StreamRead(name, data, input, options, stream, render);
         }
 
         return new DifferentialOperation(
@@ -425,23 +463,24 @@ internal static class EngineOperations
             });
     }
 
-    /// <summary>A read over a stream that hides its buffer, rendering the result and then the stream's final position.</summary>
+    /// <summary>A read over one of the stream forms, rendering the result and then the stream's final position relative to the data's start.</summary>
     /// <param name="name">The operation's name.</param>
     /// <param name="data">The input bytes; each run reads its own copy.</param>
+    /// <param name="input">The stream form.</param>
     /// <param name="options">The case's read options, which each side adjusts.</param>
     /// <param name="call">The call over the stream.</param>
     /// <param name="render">Renders the call's result.</param>
     /// <returns>The operation.</returns>
-    private static DifferentialOperation StreamRead(string name, byte[] data, ReadOptions? options, Func<Stream, ReadOptions, object?> call, Action<CanonicalText, object?> render)
+    private static DifferentialOperation StreamRead(string name, byte[] data, EngineInput input, ReadOptions? options, Func<Stream, ReadOptions, object?> call, Action<CanonicalText, object?> render)
     {
         return new DifferentialOperation(
-            name + " (Stream)",
+            name + " (" + input + ")",
             (side, output) =>
             {
-                using var source = new MemoryStream((byte[])data.Clone(), writable: false);
+                using Stream source = EngineStreams.Open(input, data);
                 ReadOptions read = side.Read(options);
                 output.Capture("failure", () => render(output, call(source, read)));
-                RenderPosition(output, source);
+                RenderPosition(output, source, EngineStreams.StartOf(input));
             });
     }
 

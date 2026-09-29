@@ -48,6 +48,9 @@
     <None Include="..\CStructSharp.Fuzz\corpus\fuzz-corpus.json"
           Link="fuzz-corpus.json"
           CopyToOutputDirectory="PreserveNewest"/>
+    <None Include="..\CStructSharp.Generated.Parity\layouts.json"
+          Link="layouts.json"
+          CopyToOutputDirectory="PreserveNewest"/>
   </ItemGroup>
 
 </Project>
