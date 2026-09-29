@@ -128,6 +128,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Fixed
 
+- A UTF-16 terminated string (`unicode_string_*`, `string`) reads correctly from a stream that returns fewer bytes per
+  read than asked: a code unit or terminator split across two reads is assembled, where such streams failed with "no
+  terminator before the end of the input"; parsing, address and length queries and updates agree with a span.
 - `UnknownMemberPolicy.Reject` accepts the members of an anonymous promoted struct supplied on the parent value, as a
   parse returns them, on every write path; runtime-sized layouts, structs promoted through a union and mapped classes
   with promoted members were rejected with "'…' is not a member of ''". Genuinely unknown keys are still rejected, with

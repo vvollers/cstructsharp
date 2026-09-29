@@ -88,10 +88,10 @@
   },
   {
    "pattern": "Codecs/PrimitiveCodecs.cs",
-   "sourceSha256": "b55f5e432ba66b012c037a7ecb6f262b97b52d24d5f8d1398c1f200839779117",
+   "sourceSha256": "d5a59c36a9e19c6da5c1369eeac6ab496f8497be932bc407849eb694756626b0",
    "mutants": [
     { "mutatorName": "Remove checked expression", "replacement": "(long)valueBytes + terminatorBytes",
-     "location": {"start":{"line":189,"column":37},"end":{"line":189,"column":80}},
+     "location": {"start":{"line":204,"column":37},"end":{"line":204,"column":80}},
      "reason": "Both Encoding.GetByteCount results are nonnegative Int32 values. The left operand is widened to Int64 before addition, so their sum is at most 2 * Int32.MaxValue, far below Int64.MaxValue. Removing checked from this sum cannot change overflow behavior, budget validation or the later allocation." }
    ]
   },

@@ -111,6 +111,21 @@ internal static partial class PrimitiveCodecs
                     throw new CStructReadException(ReadFailures.TerminatedStringUnterminated);
                 }
 
+                // A stream may return fewer bytes than asked, splitting a UTF-16 code unit - and so a terminator -
+                // between two reads. Complete the unit, so every chunk holds whole units from the string's start and
+                // the terminator search sees it as a span's single read does; only the end of the input leaves a
+                // partial unit, which then fails as unterminated there too. The chunk size is a whole number of units.
+                while ((encodedByteCount + bytesRead) % unitSize != 0)
+                {
+                    int completion = stream.Read(chunk, bytesRead, TerminatedStringReadChunkSize - bytesRead);
+                    if (completion == 0)
+                    {
+                        break;
+                    }
+
+                    bytesRead += completion;
+                }
+
                 // Search from the first position that starts an encoding unit relative to the string's own start.
                 int alignmentOffset = (int)((unitSize - (encodedByteCount % unitSize)) % unitSize);
                 int terminatorIndex = Codec.FindTerminator(chunk.AsSpan(0, bytesRead), terminatorBytes, unitSize, alignmentOffset);
