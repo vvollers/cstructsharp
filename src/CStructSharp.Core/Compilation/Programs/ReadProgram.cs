@@ -52,6 +52,7 @@ internal sealed class ReadProgram
         this.Groups = parts.Groups;
         this.Branches = parts.Branches;
         this.Scope = parts.Scope;
+        (this.ScalarRunLengths, this.ScalarRunBytes) = FindScalarRuns(parts.Steps, parts.Codecs);
     }
 
     /// <summary>Gets what the program reads.</summary>
@@ -120,10 +121,50 @@ internal sealed class ReadProgram
     /// <summary>Gets the member slots, parallel to <see cref="Fields"/>.</summary>
     internal int[] ShapeSlots { get; }
 
+    /// <summary>
+    ///     Gets, per step, the number of consecutive fixed-width scalar reads (<see cref="ReadOpCode.ReadUInt8"/> to
+    ///     <see cref="ReadOpCode.ReadFloat64Be"/>) that start at it: 0 for any other step. Nothing else runs between the
+    ///     reads of a run, so an executor may take the run's bytes as one block when all of them are present within the
+    ///     read budget, with the outcome of reading them one by one; a jump into a run starts the shorter run there.
+    /// </summary>
+    internal int[] ScalarRunLengths { get; }
+
+    /// <summary>Gets, per step, the total size in bytes of the scalar run that starts at it (<see cref="ScalarRunLengths"/>).</summary>
+    internal int[] ScalarRunBytes { get; }
+
+    /// <summary>Whether a step reads one fixed-width number: every such op code lies in one contiguous range.</summary>
+    /// <param name="op">The op code.</param>
+    /// <returns>Whether the op code is a fixed-width scalar read.</returns>
+    internal static bool IsFixedScalar(ReadOpCode op) => op is >= ReadOpCode.ReadUInt8 and <= ReadOpCode.ReadFloat64Be;
+
     /// <summary>Returns the slot of a member's value in <see cref="Shape"/>.</summary>
     /// <param name="field">The member's index.</param>
     /// <returns>The slot, or -1 when the member's value is dropped (unnamed padding, a promoted member, a <c>#define</c>).</returns>
     public int GetShapeSlot(int field) => this.ShapeSlots[field];
+
+    /// <summary>Measures the scalar runs of a step array, from the last step backwards so each run extends the next one.</summary>
+    /// <param name="steps">The steps.</param>
+    /// <param name="codecs">The codec table the steps' codec operands index.</param>
+    /// <returns>Each step's run length and run size in bytes.</returns>
+    private static (int[] Lengths, int[] Bytes) FindScalarRuns(ReadStep[] steps, Codec[] codecs)
+    {
+        int[] lengths = new int[steps.Length];
+        int[] bytes = new int[steps.Length];
+        for (int index = steps.Length - 1; index >= 0; index--)
+        {
+            if (!IsFixedScalar(steps[index].Op))
+            {
+                continue;
+            }
+
+            int size = codecs[steps[index].A].Primitive.Size;
+            bool extends = index + 1 < steps.Length && lengths[index + 1] > 0;
+            lengths[index] = extends ? lengths[index + 1] + 1 : 1;
+            bytes[index] = extends ? bytes[index + 1] + size : size;
+        }
+
+        return (lengths, bytes);
+    }
 
     /// <summary>One element codec of a read step.</summary>
     /// <param name="CodecId">The catalog codec id whose stream reader the step uses, or -1 when the step decodes from memory only.</param>

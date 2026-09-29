@@ -213,6 +213,19 @@ internal sealed class CStructOperationContext
             throw new ArgumentException("Parsing requires a readable, seekable stream.", nameof(stream));
         }
 
+        ValidateSettings(options);
+    }
+
+    /// <summary>
+    ///     The settings half of <see cref="Validate"/>, for a source that is always readable and seekable (a pinned
+    ///     memory region): the token first, then every limit, in the order <see cref="Validate"/> checks them.
+    /// </summary>
+    /// <param name="options">The operation's snapshotted settings.</param>
+    /// <exception cref="OperationCanceledException">The operation's token is already cancelled.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A limit in <paramref name="options"/> is negative, or the
+    ///     nesting depth is not positive.</exception>
+    public static void ValidateSettings(in ReadOperationSettings options)
+    {
         // A token cancelled before the call ends the operation before any byte is read.
         options.CancellationToken.ThrowIfCancellationRequested();
         if (options.MaxPointerDepth < 0)

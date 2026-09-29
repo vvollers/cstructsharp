@@ -31,6 +31,11 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
     private List<string>? insertionOrder;
     private int count;
 
+    // An upper bound on the index of every present shape slot (-1 when none was ever set). A slot inserted above it
+    // extends shape order without the scan TrackInsertion otherwise needs, so filling a value in shape order is O(1)
+    // per member; a removal leaves the bound where it was, which only sends a later insertion to the exact scan.
+    private int highestSlot = -1;
+
     /// <summary>
     ///     Creates an empty value whose slots follow <paramref name="shape"/>; every member starts absent.
     /// </summary>
@@ -256,6 +261,7 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
         this.extra = null;
         this.insertionOrder = null;
         this.count = 0;
+        this.highestSlot = -1;
     }
 
     /// <summary>Enumerates members in insertion order without allocating.</summary>
@@ -363,6 +369,7 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
     {
         this.slots[index] = value;
         this.count++;
+        this.highestSlot = Math.Max(this.highestSlot, index);
     }
 
     /// <summary>
@@ -379,7 +386,15 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
         if (ReferenceEquals(this.slots[index], Unset))
         {
             this.count++;
-            this.TrackInsertion(this.shape.Names[index], index);
+            if (this.insertionOrder is null && index > this.highestSlot)
+            {
+                // Above every present slot: shape order is still insertion order (TrackInsertion's first case, inlined).
+                this.highestSlot = index;
+            }
+            else
+            {
+                this.TrackInsertion(this.shape.Names[index], index);
+            }
         }
 
         this.slots[index] = value;
@@ -422,6 +437,13 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
     {
         if (this.insertionOrder is null)
         {
+            if (index > this.highestSlot)
+            {
+                // Above every present slot: shape order is still insertion order.
+                this.highestSlot = index;
+                return;
+            }
+
             if (index >= 0 && this.IsShapeOrderUpTo(index))
             {
                 return;

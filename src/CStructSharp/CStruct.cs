@@ -365,35 +365,61 @@ public sealed partial class CStruct
     {
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
         IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
-        ReadProgram? engineRoot = null;
-        if (!debug && segments.Count == 1)
+        if (this.SelectParse(effectiveOptions, segments, variables, debug) is { } engineRoot)
         {
-            engineRoot = EngineSelector.SelectRootRead(effectiveOptions.EngineSelection, this.compilation, segments[0].Name, variables, selectsValue: false);
-        }
-        else
-        {
-            EngineSelector.Decide(effectiveOptions.EngineSelection, debug ? EngineOperation.DebugRead : EngineOperation.PathRead);
+            StructValue value = this.ReadRootWithEngine(stream, segments, engineRoot, variables, effectiveOptions, out bool selected);
+            return (NoDebugData, selected ? value : this.SelectParsedRoot(value, segments));
         }
 
+        return this.ParseWithInterpreter(stream, segments, variables, effectiveOptions, debug);
+    }
+
+    /// <summary>
+    ///     Returns the composite a whole-root parse selects from its root value: the value under the root's name, or - for
+    ///     <c>typedef struct _X { ... } X;</c> parsed as <c>X</c> - under its tag.
+    /// </summary>
+    /// <param name="root">The root value a whole-root read produced.</param>
+    /// <param name="segments">The one-segment path that names the root.</param>
+    /// <returns>The selected value.</returns>
+    /// <exception cref="CStructPathException">The root holds no value under either name.</exception>
+    private object SelectParsedRoot(StructValue root, IReadOnlyList<PathSegment> segments)
+    {
+        var rootValues = (IDictionary<string, object?>)root;
+        if (!rootValues.TryGetValue(segments[0].Name, out object? selected) || selected is null)
+        {
+            // `typedef struct _X { ... } X;` parsed as `X` is stored under its tag, `_X`.
+            if (!this.compiledModelQueries.TryGetCompiledDeclaration(segments[0].Name, out CStructElement? rootDeclaration) ||
+                rootDeclaration is not Typedef { Struct: { } tagged, } ||
+                !rootValues.TryGetValue(tagged.Name.Name, out selected) || selected is null)
+            {
+                throw new CStructPathException("The selected path does not resolve to a composite object.");
+            }
+        }
+
+        return selected;
+    }
+
+    /// <summary>
+    ///     Reads the composite a path selects with the interpreter, after the engine declined the operation: a whole root
+    ///     through the root reader, a nested composite at its resolved address.
+    /// </summary>
+    /// <param name="stream">The source, at the operation origin.</param>
+    /// <param name="segments">The parsed path.</param>
+    /// <param name="variables">The caller's layout variables.</param>
+    /// <param name="effectiveOptions">The operation's snapshotted settings.</param>
+    /// <param name="debug">Whether to record debug byte ranges.</param>
+    /// <returns>The debug records (a shared empty list outside debug mode) and the selected composite.</returns>
+    private (List<DebugData> DebugData, object Result) ParseWithInterpreter(
+        Stream stream,
+        IReadOnlyList<PathSegment> segments,
+        LayoutVariableInput variables,
+        ReadOperationSettings effectiveOptions,
+        bool debug)
+    {
         if (segments.Count == 1)
         {
-            List<DebugData> rootDebugData = NoDebugData;
-            StructValue root = engineRoot is not null
-                                   ? this.ReadRootWithEngine(stream, segments, engineRoot, variables, effectiveOptions)
-                                   : this.ParseStreamInternal(stream, segments, variables, effectiveOptions, debug, out rootDebugData);
-            var rootValues = (IDictionary<string, object?>)root;
-            if (!rootValues.TryGetValue(segments[0].Name, out object? selected) || selected is null)
-            {
-                // `typedef struct _X { ... } X;` parsed as `X` is stored under its tag, `_X`.
-                if (!this.compiledModelQueries.TryGetCompiledDeclaration(segments[0].Name, out CStructElement? rootDeclaration) ||
-                    rootDeclaration is not Typedef { Struct: { } tagged, } ||
-                    !rootValues.TryGetValue(tagged.Name.Name, out selected) || selected is null)
-                {
-                    throw new CStructPathException("The selected path does not resolve to a composite object.");
-                }
-            }
-
-            return (rootDebugData, selected);
+            StructValue root = this.ParseStreamInternal(stream, segments, variables, effectiveOptions, debug, out List<DebugData> rootDebugData);
+            return (rootDebugData, this.SelectParsedRoot(root, segments));
         }
 
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);

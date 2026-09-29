@@ -19,6 +19,11 @@ using CStructSharp.Syntax;
 /// </remarks>
 internal struct VariableSlots : IDisposable
 {
+    // One slot array per thread, taken for the length of an operation and put back cleared: an operation on this
+    // thread that starts while another holds it (a nested read from a callback) rents from the shared pool instead.
+    [ThreadStatic]
+    private static SlotValue[]? spare;
+
     private readonly SlotTable table;
     private readonly Dictionary<string, Expr>? unslotted;
     private SlotValue[] values;
@@ -59,7 +64,7 @@ internal struct VariableSlots : IDisposable
         }
         catch
         {
-            Return(values);
+            Return(values, table.Count);
             throw;
         }
 
@@ -86,7 +91,7 @@ internal struct VariableSlots : IDisposable
         }
         catch
         {
-            Return(values);
+            Return(values, table.Count);
             throw;
         }
     }
@@ -126,21 +131,52 @@ internal struct VariableSlots : IDisposable
     {
         SlotValue[] released = this.values;
         this.values = [];
-        Return(released);
+        Return(released, this.table.Count);
     }
 
-    /// <summary>Rents a slot array of at least <paramref name="count"/> entries.</summary>
+    /// <summary>Rents a slot array of at least <paramref name="count"/> entries: the thread's spare when it is free and large enough.</summary>
     /// <param name="count">The number of slots.</param>
     /// <returns>The array; its contents are overwritten by initialization.</returns>
-    private static SlotValue[] Rent(int count) => count == 0 ? [] : ArrayPool<SlotValue>.Shared.Rent(count);
-
-    /// <summary>Returns a rented array, cleared so the pool does not keep payloads alive.</summary>
-    /// <param name="values">The array; an empty one is not pooled.</param>
-    private static void Return(SlotValue[] values)
+    private static SlotValue[] Rent(int count)
     {
+        if (count == 0)
+        {
+            return [];
+        }
+
+        SlotValue[]? values = spare;
+        if (values is not null && values.Length >= count)
+        {
+            spare = null;
+            return values;
+        }
+
+        return ArrayPool<SlotValue>.Shared.Rent(count);
+    }
+
+    /// <summary>Returns a rented array, cleared so no payload stays alive: kept as the thread's spare when it is larger than the current one, else to the pool.</summary>
+    /// <param name="values">The array; an empty one is not kept.</param>
+    /// <param name="used">The number of leading entries the operation used; the rest are already clear.</param>
+    private static void Return(SlotValue[] values, int used)
+    {
+        if (values.Length == 0)
+        {
+            return;
+        }
+
+        // The thread keeps the larger of its spare and this array, so after the largest table it reads with, every
+        // operation on the thread takes the spare and the shared pool is not touched.
+        Array.Clear(values, 0, used);
+        SlotValue[]? kept = spare;
+        if (kept is null || kept.Length < values.Length)
+        {
+            spare = values;
+            values = kept ?? [];
+        }
+
         if (values.Length > 0)
         {
-            ArrayPool<SlotValue>.Shared.Return(values, clearArray: true);
+            ArrayPool<SlotValue>.Shared.Return(values);
         }
     }
 }

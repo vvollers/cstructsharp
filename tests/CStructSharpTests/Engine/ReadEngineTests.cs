@@ -114,6 +114,49 @@ public class ReadEngineTests
     }
 
     /// <summary>
+    ///     Terminated strings read from memory in place charge the chunks the chunked reader takes and end just after
+    ///     the terminator: a string past one 256-byte chunk, UTF-16 text, every byte budget, string limits around the
+    ///     text's length, every truncation, and invalid text all read identically from memory and from streams.
+    /// </summary>
+    [TestMethod]
+    public void TerminatedStrings_ReadInPlaceLikeTheChunkedReader()
+    {
+        var layout = new CStruct("struct rec { uint8 a; cstring s; string w; uint8 tail; };", isLittleEndian: true);
+        byte[] data = [7, .. Enumerable.Repeat((byte)'x', 300), 0, (byte)'h', 0, (byte)'i', 0, 0, 0, 9];
+        foreach (ExecutionPath path in Paths)
+        {
+            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), expectEngine: true, path: path);
+            StringAssert.Contains(complete.Rendering, "result.w = String \"hi\"\n");
+            StringAssert.Contains(complete.Rendering, "result.tail = Byte 9\n");
+            for (long budget = 1; budget <= data.Length + 260; budget++)
+            {
+                var read = new ReadOptions { MaxTotalBytesRead = budget, };
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: read), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Stream, "rec", options: read), expectEngine: true, path: path);
+            }
+
+            foreach (int limit in (int[])[0, 4, 5, 6, 255, 256, 257, 300, 301, 302])
+            {
+                var read = new ReadOptions { MaxStringBytes = limit, };
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: read), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.ChunkedStream7, "rec", options: read), expectEngine: true, path: path);
+            }
+
+            for (int length = 0; length <= data.Length; length++)
+            {
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], EngineInput.Span, "rec"), expectEngine: true, path: path);
+            }
+
+            byte[] invalid = (byte[])data.Clone();
+            invalid[270] = 0xC3;
+            EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, EngineInput.Span, "rec"), expectEngine: true, path: path);
+            invalid = (byte[])data.Clone();
+            invalid[304] = 0xD8;
+            EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, EngineInput.Span, "rec"), expectEngine: true, path: path);
+        }
+    }
+
+    /// <summary>
     ///     A runtime-checked <c>@N</c> assertion is checked before its member is placed, as the interpreter's placement
     ///     cursor does: a failing assertion leaves the position before the padding and names the member, and it wins over
     ///     a start that lies past the input.

@@ -197,7 +197,8 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
     public IList<object?> ReadPrimitiveArray(PrimitiveCodec codec, int count) => PrimitiveArrayReader.Read(ref this, codec, count);
 
     /// <inheritdoc/>
-    public string ReadTerminatedString(Encoding encoding, char terminator) => PrimitiveCodecs.ReadIntoString(ref this, encoding, terminator);
+    public string ReadTerminatedString(Encoding encoding, char terminator)
+        => this.TryReadTerminatedInPlace(encoding, terminator, out string? text) ? text : PrimitiveCodecs.ReadIntoString(ref this, encoding, terminator);
 
     /// <inheritdoc/>
     public string ReadBoundedText(int byteCount, string type) => PrimitiveCodecs.ReadBoundedText(ref this, byteCount, type);
@@ -230,6 +231,61 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
     {
         Stream.Null.ReadExactly(stackalloc byte[1]);
         throw new UnreachableException("Stream.Null supplied a byte.");
+    }
+
+    /// <summary>
+    ///     Reads a terminated string straight from memory when its outcome is known to be a success: the terminator is in
+    ///     the input, the text up to it is within <c>MaxStringBytes</c> and valid, the token is not cancelled, and the
+    ///     bytes the chunked reader would take are within the read budget. The result, the charge (every 256-byte chunk up
+    ///     to the one holding the terminator, as <see cref="PrimitiveCodecs.ReadIntoString{TSource}"/> reads them) and the
+    ///     final position (just after the terminator) are then that reader's. Otherwise nothing is consumed or charged, and
+    ///     the caller runs the chunked reader, which reports the failure where it always has.
+    /// </summary>
+    /// <param name="encoding">The strict encoding.</param>
+    /// <param name="terminator">The terminating character.</param>
+    /// <param name="text">The text without its terminator, when the method returns <see langword="true"/>.</param>
+    /// <returns>Whether the string was read.</returns>
+    private bool TryReadTerminatedInPlace(Encoding encoding, char terminator, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string? text)
+    {
+        text = null;
+        if (this.cancellationToken.IsCancellationRequested || !this.core.TryPeekRemaining(out ReadOnlySpan<byte> remaining))
+        {
+            return false;
+        }
+
+        // The chunked reader searches unit-aligned from the string's start; its chunks are whole units, so a
+        // terminator never straddles two of them and one search over the remaining bytes finds the same one.
+        int unitSize = encoding is UnicodeEncoding ? 2 : 1;
+        Span<byte> terminatorBytes = stackalloc byte[4];
+        int terminatorLength = encoding.GetBytes(new ReadOnlySpan<char>(in terminator), terminatorBytes);
+        int index = Generated.Codec.FindTerminator(remaining, terminatorBytes[..terminatorLength], unitSize, 0);
+        if (index < 0 || (long)index + terminatorLength > this.maxStringBytes)
+        {
+            return false;
+        }
+
+        try
+        {
+            text = encoding.GetString(remaining[..index]);
+        }
+        catch (DecoderFallbackException)
+        {
+            text = null;
+            return false;
+        }
+
+        // Every chunk up to the one holding the terminator's first byte is read, and charged, in full.
+        const int Chunk = PrimitiveCodecs.TerminatedStringReadChunkSize;
+        int charged = (int)Math.Min(((long)(index / Chunk) + 1) * Chunk, remaining.Length);
+        long start = this.core.Position;
+        if (!this.core.TryReadSpanWithinBudget(charged, out _))
+        {
+            text = null;
+            return false;
+        }
+
+        this.core.SetPosition(start + index + terminatorLength);
+        return true;
     }
 
     /// <summary>Reads exactly <c>buffer.Length</c> bytes as <see cref="Stream.ReadExactly(Span{byte})"/> does over the memory-mode read.</summary>

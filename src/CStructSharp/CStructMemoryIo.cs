@@ -4,8 +4,11 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using CStructSharp.Addressing;
+using CStructSharp.Compilation.Programs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
+using CStructSharp.Reading;
 using CStructSharp.Streams;
 using CStructSharp.Values;
 
@@ -29,16 +32,22 @@ public sealed partial class CStruct
             return (direct, NoDebugData);
         }
 
+        var input = LayoutVariableInput.FromIntegers(variables);
+        ReadOperationSettings settings = ReadOperationSettings.SnapshotReadOptions(options);
+        IReadOnlyList<PathSegment> segments = this.ParsePath(path);
+        ReadProgram? engineRoot = this.SelectParse(settings, segments, input, debug);
         fixed (byte* buffer = source)
         {
+            // The engine reads the pinned region directly; the interpreter reads it through a read-only region stream.
+            if (engineRoot is not null)
+            {
+                StructValue value = this.ReadRootWithEngine(buffer, source.Length, segments, engineRoot, input, settings, out bool selected, out _);
+                return (selected ? value : this.SelectParsedRoot(value, segments), NoDebugData);
+            }
+
             using var stream = new FixedBufferStream(buffer, source.Length, writable: false);
-            (List<DebugData> records, object value) = this.ParseStreamCoreImpl(
-                stream,
-                path,
-                LayoutVariableInput.FromIntegers(variables),
-                options,
-                debug);
-            return (value, records);
+            (List<DebugData> records, object result) = this.ParseWithInterpreter(stream, segments, input, settings, debug);
+            return (result, records);
         }
     }
 
@@ -55,14 +64,19 @@ public sealed partial class CStruct
             return direct;
         }
 
+        var input = LayoutVariableInput.FromIntegers(variables);
+        ReadOperationSettings settings = ReadOperationSettings.SnapshotReadOptions(options);
+        IReadOnlyList<PathSegment> segments = this.ParsePath(path);
+        ReadProgram? engineRoot = this.SelectValueRead(settings, segments, input);
         fixed (byte* buffer = source)
         {
+            if (engineRoot is not null)
+            {
+                return this.ReadRootValueWithEngine(buffer, source.Length, segments, engineRoot, input, settings, out _);
+            }
+
             using var stream = new FixedBufferStream(buffer, source.Length, writable: false);
-            return this.ReadValueCore(
-                stream,
-                path,
-                LayoutVariableInput.FromIntegers(variables),
-                options);
+            return this.ReadValueWithInterpreter(stream, segments, input, settings);
         }
     }
 
@@ -79,14 +93,41 @@ public sealed partial class CStruct
             return direct;
         }
 
+        var input = LayoutVariableInput.FromIntegers(variables);
+        IReadOnlyList<PathSegment> segments = this.ParsePath(path);
+        long position = 0;
         fixed (byte* buffer = source)
         {
-            using var stream = new FixedBufferStream(buffer, source.Length, writable: false);
-            return this.ReadTypedValueCore<T>(
-                stream,
-                path,
-                variables,
-                options);
+            try
+            {
+                // The natural value is converted to T exactly as ReadTypedValueCore converts it; a failure of the read
+                // or the conversion carries the path and the position the read reached.
+                ReadOperationSettings settings = ReadOperationSettings.SnapshotReadOptions(options);
+                object? naturalValue;
+                if (this.SelectValueRead(settings, segments, input) is { } engineRoot)
+                {
+                    naturalValue = this.ReadRootValueWithEngine(buffer, source.Length, segments, engineRoot, input, settings, out position);
+                }
+                else
+                {
+                    using var stream = new FixedBufferStream(buffer, source.Length, writable: false);
+                    try
+                    {
+                        naturalValue = this.ReadValueWithInterpreter(stream, segments, input, settings);
+                    }
+                    finally
+                    {
+                        position = stream.Position;
+                    }
+                }
+
+                return (T)TypedValueConverter.Convert(naturalValue, typeof(T), ExceptionContext.FormatPath(segments))!;
+            }
+            catch (CStructException exception)
+            {
+                ExceptionContext.Attach(exception, segments, position);
+                throw;
+            }
         }
     }
 

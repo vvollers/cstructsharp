@@ -24,6 +24,15 @@ internal static class ExceptionContext
         exception.AttachContext(FormatPath(segments), TryGetDiagnosticPosition(stream));
     }
 
+    /// <summary>Attaches the path and a known position to a failure, for an operation over memory that has no stream.</summary>
+    /// <param name="exception">The failure; context already attached is kept.</param>
+    /// <param name="segments">The operation's parsed path.</param>
+    /// <param name="position">The position the operation reached, in bytes from the input's start.</param>
+    public static void Attach(CStructException exception, IReadOnlyList<PathSegment> segments, long position)
+    {
+        exception.AttachContext(FormatPath(segments), position);
+    }
+
     /// <summary>Formats only parser-validated identifiers and indexes, never arbitrary caller input.</summary>
     /// <param name="segments">The parsed path segments, each a name with optional element indexes.</param>
     /// <returns>The path as text, such as <c>header.entries[2].name</c>; an empty path gives an empty string.</returns>

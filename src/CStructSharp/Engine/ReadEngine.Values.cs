@@ -149,7 +149,8 @@ internal static partial class ReadEngine
 
     /// <summary>
     ///     Reads a numeric array of a member its composite placed: a non-empty one as one typed block (the interpreter's
-    ///     bulk path, failing at its block granularity), an empty one as the empty typed array its element loop leaves.
+    ///     bulk path, failing at its block granularity), an empty one as the empty typed array of the same element type
+    ///     its element loop leaves.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -158,7 +159,7 @@ internal static partial class ReadEngine
     /// <returns>The typed array.</returns>
     private static IList<object?> ReadNumericArray<TCursor>(ref TCursor cursor, PrimitiveCodec codec, int count)
         where TCursor : struct, IReadCursor
-        => count > 0 ? cursor.ReadPrimitiveArray(codec, count) : PrimitiveArrayReader.FromBoxed(PrimitiveArrayReader.GetElementType(codec), Array.Empty<object?>())!;
+        => count > 0 ? cursor.ReadPrimitiveArray(codec, count) : PrimitiveArrayReader.Empty(codec);
 
     /// <summary>
     ///     Reads a numeric array no composite placed (a root) one element at a time, as the interpreter's element loop

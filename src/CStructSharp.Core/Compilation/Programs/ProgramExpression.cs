@@ -55,6 +55,10 @@ internal sealed class ProgramExpression
     private readonly int[] preludeSlots;
     private readonly SlotTable table;
 
+    // The program's shape when it is one operand, or two operands and an operator that cannot fail (a comparison or a
+    // bitwise and, or, xor): such a program evaluates in a few instructions when its slots hold literals.
+    private readonly FastForm fastForm;
+
     /// <summary>Translates the evaluator's program for <paramref name="source"/>, or records why it cannot.</summary>
     /// <param name="table">The table the identifiers are resolved against.</param>
     /// <param name="source">The expression.</param>
@@ -128,6 +132,20 @@ internal sealed class ProgramExpression
         ExpressionEvaluationLimits limits = table.Evaluator.Limits;
         this.IsLeafSafe = (long)instructions.Length + identifiers <= limits.MaximumNodes &&
                           deepestIdentifier + 1 <= limits.MaximumDepth;
+        this.fastForm = this.IsLeafSafe ? Classify(code) : FastForm.None;
+    }
+
+    /// <summary>The shapes a program can take that evaluate without the leaf path's loop and value stack.</summary>
+    private enum FastForm : byte
+    {
+        /// <summary>Any other program.</summary>
+        None,
+
+        /// <summary>One literal or identifier.</summary>
+        Operand,
+
+        /// <summary>Two literals or identifiers and an operator that cannot fail.</summary>
+        Binary,
     }
 
     /// <summary>Gets the expression the program was compiled from.</summary>
@@ -183,6 +201,11 @@ internal sealed class ProgramExpression
     /// <exception cref="CStructException">The expression cannot be evaluated.</exception>
     public Int128 Evaluate(SlotValue[] values, IReadOnlyDictionary<string, Expr>? unslotted, string context, ExpressionFailureDomain domain)
     {
+        if (this.fastForm != FastForm.None && this.TryEvaluateFast(values, out Int128 fast))
+        {
+            return fast;
+        }
+
         try
         {
             return this.EvaluateUnmapped(values, unslotted);
@@ -240,6 +263,44 @@ internal sealed class ProgramExpression
         }
 
         return this.table.EvaluateWithDictionary(this.Source, values, unslotted);
+    }
+
+    /// <summary>Classifies a program's shape for <see cref="TryEvaluateFast"/>.</summary>
+    /// <param name="code">The program's instructions.</param>
+    /// <returns>The shape.</returns>
+    private static FastForm Classify(SlotInstruction[] code)
+    {
+        // An operand pushes one value: a literal, or an identifier whose slot is read.
+        static bool IsOperand(in SlotInstruction instruction) => instruction.Opcode is ExpressionOpcode.Literal or ExpressionOpcode.Identifier;
+
+        if (code.Length == 1 && IsOperand(code[0]))
+        {
+            return FastForm.Operand;
+        }
+
+        return code.Length == 3 && IsOperand(code[0]) && IsOperand(code[1]) &&
+               code[2].Opcode is ExpressionOpcode.Equal or ExpressionOpcode.NotEqual or ExpressionOpcode.Less or ExpressionOpcode.LessOrEqual or
+                   ExpressionOpcode.Greater or ExpressionOpcode.GreaterOrEqual or ExpressionOpcode.And or ExpressionOpcode.Or or ExpressionOpcode.Xor
+                   ? FastForm.Binary
+                   : FastForm.None;
+    }
+
+    /// <summary>Reads a literal operand, or an identifier whose slot holds a literal.</summary>
+    /// <param name="instruction">A literal or identifier instruction.</param>
+    /// <param name="values">The slot array.</param>
+    /// <param name="value">The operand.</param>
+    /// <returns><see langword="false"/> when the identifier's slot holds anything but a literal.</returns>
+    private static bool TryReadLiteral(in SlotInstruction instruction, SlotValue[] values, out Int128 value)
+    {
+        if (instruction.Opcode == ExpressionOpcode.Literal)
+        {
+            value = instruction.Value;
+            return true;
+        }
+
+        ref readonly SlotValue slot = ref values[instruction.Slot];
+        value = slot.Value;
+        return slot.State == SlotState.Literal;
     }
 
     /// <summary>
@@ -344,6 +405,36 @@ internal sealed class ProgramExpression
         {
             scratch = stack;
         }
+    }
+
+    /// <summary>
+    ///     Evaluates a program of one operand, or two and an operator that cannot fail, when every slot it reads holds a
+    ///     literal: then the validation prelude cannot fail and no limit can be reached (the program is leaf-safe), so the
+    ///     result is the leaf path's. Any other slot state returns <see langword="false"/> and the full paths run.
+    /// </summary>
+    /// <param name="values">The slot array.</param>
+    /// <param name="result">The value when the method returns <see langword="true"/>.</param>
+    /// <returns>Whether the program was evaluated.</returns>
+    private bool TryEvaluateFast(SlotValue[] values, out Int128 result)
+    {
+        SlotInstruction[] code = this.code;
+        if (!TryReadLiteral(code[0], values, out result))
+        {
+            return false;
+        }
+
+        if (this.fastForm == FastForm.Operand)
+        {
+            return true;
+        }
+
+        if (!TryReadLiteral(code[1], values, out Int128 right))
+        {
+            return false;
+        }
+
+        result = ExpressionEvaluator.ExpressionEvaluationSession.EvaluateBinary(code[2].Opcode, result, right);
+        return true;
     }
 
     /// <summary>

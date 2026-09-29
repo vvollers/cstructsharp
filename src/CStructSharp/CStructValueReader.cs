@@ -98,28 +98,93 @@ public sealed partial class CStruct
         ReadOptions? options)
     {
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
-        if (segments.Count == 1)
+        if (this.SelectValueRead(effectiveOptions, segments, variables) is { } program)
         {
-            if (EngineSelector.SelectRootRead(effectiveOptions.EngineSelection, this.compilation, segments[0].Name, variables, selectsValue: true) is { } program)
+            StructValue value = this.ReadRootWithEngine(stream, segments, program, variables, effectiveOptions, out bool selected);
+            if (selected)
             {
-                StructValue root = this.ReadRootWithEngine(stream, segments, program, variables, effectiveOptions);
-                try
-                {
-                    return ExtractOnlyValue(root, segments[0].Name);
-                }
-                catch (CStructException exception)
-                {
-                    // The interpreter extracts inside its operation's context, so the failure carries the path and offset.
-                    ExceptionContext.Attach(exception, segments, stream);
-                    throw;
-                }
+                return value;
+            }
+
+            try
+            {
+                return ExtractOnlyValue(value, segments[0].Name);
+            }
+            catch (CStructException exception)
+            {
+                // The interpreter extracts inside its operation's context, so the failure carries the path and offset.
+                ExceptionContext.Attach(exception, segments, stream);
+                throw;
             }
         }
-        else
+
+        return this.ReadValueWithInterpreter(stream, segments, variables, effectiveOptions);
+    }
+
+    /// <summary>
+    ///     Makes the one engine decision of a selected read: a bare root asks for the root's program; a nested path is
+    ///     declined (and recorded) for the interpreter.
+    /// </summary>
+    /// <param name="options">The operation's snapshotted settings.</param>
+    /// <param name="segments">The parsed path.</param>
+    /// <param name="variables">The caller's layout variables.</param>
+    /// <returns>The root's program when the engine runs the read; otherwise <see langword="null"/>.</returns>
+    /// <exception cref="InvalidOperationException">The engine is required and declined the read.</exception>
+    private ReadProgram? SelectValueRead(in ReadOperationSettings options, IReadOnlyList<PathSegment> segments, in LayoutVariableInput variables)
+    {
+        if (segments.Count == 1)
         {
-            EngineSelector.Decide(effectiveOptions.EngineSelection, EngineOperation.PathRead);
+            return EngineSelector.SelectRootRead(options.EngineSelection, this.compilation, segments[0].Name, variables, selectsValue: true);
         }
 
+        EngineSelector.Decide(options.EngineSelection, EngineOperation.PathRead);
+        return null;
+    }
+
+    /// <summary>
+    ///     Reads the natural value of a bare root from a pinned memory region with the compiled engine: the root's value
+    ///     under its name, or the only value the root holds, as the interpreter extracts it.
+    /// </summary>
+    /// <param name="region">The input's byte 0; the caller keeps it pinned until the method returns.</param>
+    /// <param name="length">The input length in bytes.</param>
+    /// <param name="segments">The one-segment path that names the root.</param>
+    /// <param name="program">The root's eligible program.</param>
+    /// <param name="variables">The caller's layout variables.</param>
+    /// <param name="options">The operation's snapshotted settings.</param>
+    /// <param name="position">The position the read ended at, in bytes from the region's start.</param>
+    /// <returns>The value.</returns>
+    /// <exception cref="CStructException">The input cannot be read or the root produces no single value; the path and offset are attached.</exception>
+    private unsafe object? ReadRootValueWithEngine(byte* region, int length, IReadOnlyList<PathSegment> segments, ReadProgram program, in LayoutVariableInput variables, in ReadOperationSettings options, out long position)
+    {
+        StructValue value = this.ReadRootWithEngine(region, length, segments, program, variables, options, out bool selected, out position);
+        if (selected)
+        {
+            return value;
+        }
+
+        try
+        {
+            return ExtractOnlyValue(value, segments[0].Name);
+        }
+        catch (CStructException exception)
+        {
+            ExceptionContext.Attach(exception, segments, position);
+            throw;
+        }
+    }
+
+    /// <summary>Reads the value a parsed path selects with the interpreter, after the engine declined the operation.</summary>
+    /// <param name="stream">The source, at the operation origin.</param>
+    /// <param name="segments">The parsed path.</param>
+    /// <param name="variables">The caller's layout variables.</param>
+    /// <param name="effectiveOptions">The operation's snapshotted settings.</param>
+    /// <returns>The value.</returns>
+    private object? ReadValueWithInterpreter(
+        Stream stream,
+        IReadOnlyList<PathSegment> segments,
+        LayoutVariableInput variables,
+        ReadOperationSettings effectiveOptions)
+    {
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
         var state = new CStructOperationContext(
             stream,

@@ -24,7 +24,8 @@ internal static partial class PrimitiveCodecs
     ///     budget is exceeded, are seeked back before returning or throwing so the caller-visible stream position
     ///     exactly matches reading one byte at a time.
     /// </summary>
-    private const int TerminatedStringReadChunkSize = 256;
+    /// <summary>The bytes one read of a terminated string takes (and charges) while it searches for the terminator.</summary>
+    internal const int TerminatedStringReadChunkSize = 256;
 
     /// <summary>Checks that decoded wide characters form valid UTF-16 (no unpaired surrogate), as every read requires.</summary>
     /// <param name="text">The decoded text.</param>

@@ -2,6 +2,7 @@ namespace CStructSharp.Engine;
 
 using System;
 using System.Buffers;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using CStructSharp.Addressing;
@@ -44,14 +45,12 @@ internal static partial class ReadEngine
     /// <summary>The widest single value a scalar step reads (an <c>int128</c> or a UUID), the size of each frame's scratch buffer.</summary>
     private const int ScratchSize = 16;
 
-    /// <summary>The selected-arm value of a conditional group whose selector this frame has not evaluated yet.</summary>
-    private const int Undecided = int.MinValue;
-
     /// <summary>
-    ///     Reads one whole root: validates the source and settings as the interpreter's operation state does, reads through
-    ///     a memory cursor when the interpreter would read the source from memory (a pinned region or an exposed
-    ///     <see cref="MemoryStream"/> buffer) and through the operation's <see cref="ReadBudgetStream"/> otherwise, writes
-    ///     the final position back to <paramref name="stream"/>, and attaches the path and offset to a failure.
+    ///     Reads one whole root from a caller's stream: validates the source and settings as the interpreter's operation
+    ///     state does, reads through a memory cursor when the interpreter would read the source from memory (a pinned
+    ///     region or an exposed <see cref="MemoryStream"/> buffer) and through the operation's
+    ///     <see cref="ReadBudgetStream"/> otherwise, writes the final position back to <paramref name="stream"/>, and
+    ///     attaches the path and offset to a failure.
     /// </summary>
     /// <param name="layout">The layout the program belongs to.</param>
     /// <param name="stream">The caller's source, positioned at the root's first byte.</param>
@@ -59,27 +58,69 @@ internal static partial class ReadEngine
     /// <param name="program">The root's program (<see cref="ReadProgramKind.Root"/>).</param>
     /// <param name="slots">The operation's initialized variable slots; the caller disposes them.</param>
     /// <param name="options">The operation's snapshotted settings.</param>
-    /// <returns>The root value, holding the root's value under its name (empty for a <c>#define</c> root).</returns>
+    /// <param name="selected">
+    ///     Whether the result is the value the root's name selects (a struct root read straight into its own value);
+    ///     otherwise it is the root value that holds the root's value under its name, as the interpreter builds it.
+    /// </param>
+    /// <returns>The selected value, or the root value (empty for a <c>#define</c> root).</returns>
     /// <exception cref="ArgumentException"><paramref name="stream"/> cannot read or seek.</exception>
     /// <exception cref="ArgumentOutOfRangeException">A limit is invalid.</exception>
     /// <exception cref="OperationCanceledException">The token is cancelled before or during the read.</exception>
     /// <exception cref="CStructException">The input cannot be read; the path and offset are attached.</exception>
-    public static StructValue ReadRoot(CStruct layout, Stream stream, IReadOnlyList<PathSegment> segments, ReadProgram program, VariableSlots slots, in ReadOperationSettings options)
+    public static StructValue ReadRoot(CStruct layout, Stream stream, IReadOnlyList<PathSegment> segments, ReadProgram program, VariableSlots slots, in ReadOperationSettings options, out bool selected)
     {
         CStructOperationContext.Validate(stream, options);
         var state = new ReadEngineState(layout, slots, options);
-        var root = new StructValue(program.Shape);
-        if (MemoryReadCursor.TryCreate(stream, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken, out MemoryReadCursor memory))
+        try
         {
-            Run(ref memory, ref state, program, root, segments, stream);
-        }
-        else
-        {
-            var cursor = new StreamReadCursor(new ReadBudgetStream(stream, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken));
-            Run(ref cursor, ref state, program, root, segments, stream);
-        }
+            if (MemoryReadCursor.TryCreate(stream, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken, out MemoryReadCursor memory))
+            {
+                return Run(ref memory, ref state, program, segments, stream, out selected);
+            }
 
-        return root;
+            var cursor = new StreamReadCursor(new ReadBudgetStream(stream, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken));
+            return Run(ref cursor, ref state, program, segments, stream, out selected);
+        }
+        finally
+        {
+            state.Release();
+        }
+    }
+
+    /// <summary>
+    ///     Reads one whole root from a pinned memory region, the input's byte 0 at <paramref name="region"/>: what
+    ///     <see cref="ReadRoot(CStruct, Stream, IReadOnlyList{PathSegment}, ReadProgram, VariableSlots, in ReadOperationSettings, out bool)"/>
+    ///     does over the read-only region stream the interpreter wraps memory in, without the stream: the settings are
+    ///     validated (a region is always readable and seekable), and a failure reports the position the read reached.
+    /// </summary>
+    /// <param name="layout">The layout the program belongs to.</param>
+    /// <param name="region">The input's byte 0; the caller keeps it pinned until the method returns.</param>
+    /// <param name="length">The input length in bytes.</param>
+    /// <param name="segments">The one-segment path that names the root, for failure context.</param>
+    /// <param name="program">The root's program.</param>
+    /// <param name="slots">The operation's initialized variable slots; the caller disposes them.</param>
+    /// <param name="options">The operation's snapshotted settings.</param>
+    /// <param name="selected">Whether the result is the value the root's name selects rather than the root value.</param>
+    /// <param name="position">The position the read ended at, in bytes from the region's start.</param>
+    /// <returns>The selected value, or the root value.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">A limit is invalid.</exception>
+    /// <exception cref="OperationCanceledException">The token is cancelled before or during the read.</exception>
+    /// <exception cref="CStructException">The input cannot be read; the path and offset are attached.</exception>
+    public static unsafe StructValue ReadRoot(CStruct layout, byte* region, int length, IReadOnlyList<PathSegment> segments, ReadProgram program, VariableSlots slots, in ReadOperationSettings options, out bool selected, out long position)
+    {
+        CStructOperationContext.ValidateSettings(options);
+        var state = new ReadEngineState(layout, slots, options);
+        try
+        {
+            var cursor = new MemoryReadCursor(region, length, 0, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken);
+            StructValue value = Run(ref cursor, ref state, program, segments, null, out selected);
+            position = cursor.Position;
+            return value;
+        }
+        finally
+        {
+            state.Release();
+        }
     }
 
     /// <summary>
@@ -91,17 +132,18 @@ internal static partial class ReadEngine
     /// <param name="cursor">The operation's cursor.</param>
     /// <param name="state">The operation's state.</param>
     /// <param name="program">The root's program.</param>
-    /// <param name="root">The root value.</param>
     /// <param name="segments">The root's path, for failure context.</param>
-    /// <param name="stream">The caller's stream, whose position a failure reports.</param>
-    private static void Run<TCursor>(ref TCursor cursor, ref ReadEngineState state, ReadProgram program, StructValue root, IReadOnlyList<PathSegment> segments, Stream stream)
+    /// <param name="stream">The caller's stream, whose position a failure reports; <see langword="null"/> for a memory region, whose cursor position is reported.</param>
+    /// <param name="selected">Whether the result is the value the root's name selects rather than the root value.</param>
+    /// <returns>The selected value, or the root value.</returns>
+    private static StructValue Run<TCursor>(ref TCursor cursor, ref ReadEngineState state, ReadProgram program, IReadOnlyList<PathSegment> segments, Stream? stream, out bool selected)
         where TCursor : struct, IReadCursor
     {
         try
         {
             try
             {
-                RunFrame(ref cursor, ref state, program, root);
+                return ReadRootValue(ref cursor, ref state, program, segments[0].Name, out selected);
             }
             finally
             {
@@ -110,9 +152,48 @@ internal static partial class ReadEngine
         }
         catch (CStructException exception)
         {
-            ExceptionContext.Attach(exception, segments, stream);
+            if (stream is null)
+            {
+                ExceptionContext.Attach(exception, segments, cursor.Position);
+            }
+            else
+            {
+                ExceptionContext.Attach(exception, segments, stream);
+            }
+
             throw;
         }
+    }
+
+    /// <summary>
+    ///     Executes a root program. A struct root requested by its own name is read straight into its value, which is
+    ///     then the selected value; the one-member root value the interpreter wraps it in would only be looked up by that
+    ///     name again. Every other root (a field, a <c>#define</c>, a struct stored under another name) runs the root
+    ///     program into the root value.
+    /// </summary>
+    /// <typeparam name="TCursor">The cursor type.</typeparam>
+    /// <param name="cursor">The operation's cursor.</param>
+    /// <param name="state">The operation's state.</param>
+    /// <param name="program">The root's program.</param>
+    /// <param name="rootName">The name the root was requested by.</param>
+    /// <param name="selected">Whether the result is the value the root's name selects rather than the root value.</param>
+    /// <returns>The selected value, or the root value.</returns>
+    private static StructValue ReadRootValue<TCursor>(ref TCursor cursor, ref ReadEngineState state, ReadProgram program, string rootName, out bool selected)
+        where TCursor : struct, IReadCursor
+    {
+        if (program.Steps is [{ Op: ReadOpCode.ReadRootStruct, } step,] && string.Equals(program.Name, rootName, StringComparison.Ordinal))
+        {
+            ReadProgram composite = program.Nested[step.A];
+            var value = new StructValue(composite.Shape);
+            ReadComposite(ref cursor, ref state, composite, value);
+            selected = true;
+            return value;
+        }
+
+        var root = new StructValue(program.Shape);
+        RunFrame(ref cursor, ref state, program, root);
+        selected = false;
+        return root;
     }
 
     /// <summary>
@@ -175,12 +256,15 @@ internal static partial class ReadEngine
         where TCursor : struct, IReadCursor
     {
         ReadStep[] steps = program.Steps;
+        int[] runs = program.ScalarRunLengths;
 
         // Alignment, offset assertions and the tail are measured from the struct's own first byte (D-18); a root program
         // places nothing.
         long start = program.Kind == ReadProgramKind.Root ? 0 : cursor.Position;
-        int[]? selected = program.GroupCount == 0 ? null : NewSelection(program.GroupCount);
-        SlotValue[]? locals = program.Scope is { LocalCount: > 0, } scope ? new SlotValue[scope.LocalCount] : null;
+
+        // The frame's selected arms and scope locals are ranges of the operation's arena, given back on completion.
+        int arms = program.GroupCount == 0 ? -1 : state.TakeArms(program.GroupCount);
+        int locals = program.Scope is { LocalCount: > 0, } scope ? state.TakeLocals(scope.LocalCount) : -1;
         Span<byte> scratch = stackalloc byte[ScratchSize];
 
         // The count register, the value the last read step produced (for its capture), whether the last array capture
@@ -195,6 +279,15 @@ internal static partial class ReadEngine
         {
             for (int index = 0; index < steps.Length; index++)
             {
+                // Consecutive fixed-width scalars whose bytes are all in memory within the budget are taken as one block;
+                // otherwise (a stream, a short input, a tight budget) each is read below, failing where it always has.
+                if (runs[index] > 1 && cursor.TryReadSpanWithinBudget(program.ScalarRunBytes[index], out ReadOnlySpan<byte> run))
+                {
+                    last = StoreScalarRun(program, index, runs[index], run, destination);
+                    index += runs[index] - 1;
+                    continue;
+                }
+
                 ReadStep step = steps[index];
                 field = step.Field;
                 switch (step.Op)
@@ -238,29 +331,95 @@ internal static partial class ReadEngine
                         state.MaxArrayElements);
                     break;
 
+                // Each multi-byte scalar decodes for its width and byte order directly (a value in memory is read in
+                // place, otherwise through the codec's exact read); one-byte values keep the codec's shared boxes.
+                case ReadOpCode.ReadInt16Le:
+                    last = BinaryPrimitives.ReadInt16LittleEndian(cursor.ReadFixed(scratch[..2]));
+                    Store(destination, program, field, last);
+                    break;
+
+                case ReadOpCode.ReadInt16Be:
+                    last = BinaryPrimitives.ReadInt16BigEndian(cursor.ReadFixed(scratch[..2]));
+                    Store(destination, program, field, last);
+                    break;
+
+                case ReadOpCode.ReadUInt16Le:
+                    last = BinaryPrimitives.ReadUInt16LittleEndian(cursor.ReadFixed(scratch[..2]));
+                    Store(destination, program, field, last);
+                    break;
+
+                case ReadOpCode.ReadUInt16Be:
+                    last = BinaryPrimitives.ReadUInt16BigEndian(cursor.ReadFixed(scratch[..2]));
+                    Store(destination, program, field, last);
+                    break;
+
+                case ReadOpCode.ReadInt32Le:
+                    last = BinaryPrimitives.ReadInt32LittleEndian(cursor.ReadFixed(scratch[..4]));
+                    Store(destination, program, field, last);
+                    break;
+
+                case ReadOpCode.ReadInt32Be:
+                    last = BinaryPrimitives.ReadInt32BigEndian(cursor.ReadFixed(scratch[..4]));
+                    Store(destination, program, field, last);
+                    break;
+
+                case ReadOpCode.ReadUInt32Le:
+                    last = BinaryPrimitives.ReadUInt32LittleEndian(cursor.ReadFixed(scratch[..4]));
+                    Store(destination, program, field, last);
+                    break;
+
+                case ReadOpCode.ReadUInt32Be:
+                    last = BinaryPrimitives.ReadUInt32BigEndian(cursor.ReadFixed(scratch[..4]));
+                    Store(destination, program, field, last);
+                    break;
+
+                case ReadOpCode.ReadInt64Le:
+                    last = BinaryPrimitives.ReadInt64LittleEndian(cursor.ReadFixed(scratch[..8]));
+                    Store(destination, program, field, last);
+                    break;
+
+                case ReadOpCode.ReadInt64Be:
+                    last = BinaryPrimitives.ReadInt64BigEndian(cursor.ReadFixed(scratch[..8]));
+                    Store(destination, program, field, last);
+                    break;
+
+                case ReadOpCode.ReadUInt64Le:
+                    last = BinaryPrimitives.ReadUInt64LittleEndian(cursor.ReadFixed(scratch[..8]));
+                    Store(destination, program, field, last);
+                    break;
+
+                case ReadOpCode.ReadUInt64Be:
+                    last = BinaryPrimitives.ReadUInt64BigEndian(cursor.ReadFixed(scratch[..8]));
+                    Store(destination, program, field, last);
+                    break;
+
+                case ReadOpCode.ReadFloat32Le:
+                    last = BinaryPrimitives.ReadSingleLittleEndian(cursor.ReadFixed(scratch[..4]));
+                    Store(destination, program, field, last);
+                    break;
+
+                case ReadOpCode.ReadFloat32Be:
+                    last = BinaryPrimitives.ReadSingleBigEndian(cursor.ReadFixed(scratch[..4]));
+                    Store(destination, program, field, last);
+                    break;
+
+                case ReadOpCode.ReadFloat64Le:
+                    last = BinaryPrimitives.ReadDoubleLittleEndian(cursor.ReadFixed(scratch[..8]));
+                    Store(destination, program, field, last);
+                    break;
+
+                case ReadOpCode.ReadFloat64Be:
+                    last = BinaryPrimitives.ReadDoubleBigEndian(cursor.ReadFixed(scratch[..8]));
+                    Store(destination, program, field, last);
+                    break;
+
                 case ReadOpCode.ReadUInt8:
                 case ReadOpCode.ReadInt8:
                 case ReadOpCode.ReadBool:
-                case ReadOpCode.ReadInt16Le:
-                case ReadOpCode.ReadInt16Be:
-                case ReadOpCode.ReadUInt16Le:
-                case ReadOpCode.ReadUInt16Be:
                 case ReadOpCode.ReadInt24Le:
                 case ReadOpCode.ReadInt24Be:
                 case ReadOpCode.ReadUInt24Le:
                 case ReadOpCode.ReadUInt24Be:
-                case ReadOpCode.ReadInt32Le:
-                case ReadOpCode.ReadInt32Be:
-                case ReadOpCode.ReadUInt32Le:
-                case ReadOpCode.ReadUInt32Be:
-                case ReadOpCode.ReadInt64Le:
-                case ReadOpCode.ReadInt64Be:
-                case ReadOpCode.ReadUInt64Le:
-                case ReadOpCode.ReadUInt64Be:
-                case ReadOpCode.ReadFloat32Le:
-                case ReadOpCode.ReadFloat32Be:
-                case ReadOpCode.ReadFloat64Le:
-                case ReadOpCode.ReadFloat64Be:
                     {
                         PrimitiveCodec codec = program.Codecs[step.A].Primitive;
                         last = codec.ReadNumeric(cursor.ReadFixed(scratch[..codec.Size]));
@@ -386,7 +545,7 @@ internal static partial class ReadEngine
                     break;
 
                 case ReadOpCode.SelectArm:
-                    if (SelectedArm(ref state, program, program.Branches[step.A], selected!) != program.Branches[step.A].Arm)
+                    if (SelectedArm(ref state, program, program.Branches[step.A], arms) != program.Branches[step.A].Arm)
                     {
                         // The loop's increment lands on the first step after the member.
                         index = step.B - 1;
@@ -395,7 +554,7 @@ internal static partial class ReadEngine
                     break;
 
                 case ReadOpCode.CompleteMember:
-                    CompleteMember(ref state, program.Scope!, field, locals!);
+                    CompleteMember(ref state, program.Scope!, field, locals);
                     break;
 
                 case ReadOpCode.FinishComposite:
@@ -437,6 +596,16 @@ internal static partial class ReadEngine
                     throw new InvalidOperationException("The compiled engine has no executor for read step " + step.Op + ".");
                 }
             }
+
+            if (locals >= 0)
+            {
+                state.ReleaseLocals(locals);
+            }
+
+            if (arms >= 0)
+            {
+                state.ReleaseArms(arms);
+            }
         }
         catch (CStructException exception) when (field >= 0 && program.NotesMembers && NoteMember(exception, program.Fields[field]))
         {
@@ -445,21 +614,59 @@ internal static partial class ReadEngine
         }
     }
 
+    /// <summary>
+    ///     Decodes and stores a run of fixed-width scalars from their bytes, taken as one block, exactly as reading them
+    ///     one by one would store them.
+    /// </summary>
+    /// <param name="program">The program.</param>
+    /// <param name="first">The index of the run's first step.</param>
+    /// <param name="length">The number of steps in the run.</param>
+    /// <param name="bytes">The run's bytes, consumed and charged.</param>
+    /// <param name="destination">The value the members are stored into.</param>
+    /// <returns>The last value read, for a capture that follows the run.</returns>
+    private static object StoreScalarRun(ReadProgram program, int first, int length, ReadOnlySpan<byte> bytes, StructValue destination)
+    {
+        object value = null!;
+        int offset = 0;
+        for (int index = first; index < first + length; index++)
+        {
+            ReadStep step = program.Steps[index];
+            PrimitiveCodec codec = program.Codecs[step.A].Primitive;
+            ReadOnlySpan<byte> element = bytes.Slice(offset, codec.Size);
+            value = step.Op switch
+            {
+                ReadOpCode.ReadInt16Le => BinaryPrimitives.ReadInt16LittleEndian(element),
+                ReadOpCode.ReadInt16Be => BinaryPrimitives.ReadInt16BigEndian(element),
+                ReadOpCode.ReadUInt16Le => BinaryPrimitives.ReadUInt16LittleEndian(element),
+                ReadOpCode.ReadUInt16Be => BinaryPrimitives.ReadUInt16BigEndian(element),
+                ReadOpCode.ReadInt32Le => BinaryPrimitives.ReadInt32LittleEndian(element),
+                ReadOpCode.ReadInt32Be => BinaryPrimitives.ReadInt32BigEndian(element),
+                ReadOpCode.ReadUInt32Le => BinaryPrimitives.ReadUInt32LittleEndian(element),
+                ReadOpCode.ReadUInt32Be => BinaryPrimitives.ReadUInt32BigEndian(element),
+                ReadOpCode.ReadInt64Le => BinaryPrimitives.ReadInt64LittleEndian(element),
+                ReadOpCode.ReadInt64Be => BinaryPrimitives.ReadInt64BigEndian(element),
+                ReadOpCode.ReadUInt64Le => BinaryPrimitives.ReadUInt64LittleEndian(element),
+                ReadOpCode.ReadUInt64Be => BinaryPrimitives.ReadUInt64BigEndian(element),
+                ReadOpCode.ReadFloat32Le => BinaryPrimitives.ReadSingleLittleEndian(element),
+                ReadOpCode.ReadFloat32Be => BinaryPrimitives.ReadSingleBigEndian(element),
+                ReadOpCode.ReadFloat64Le => BinaryPrimitives.ReadDoubleLittleEndian(element),
+                ReadOpCode.ReadFloat64Be => BinaryPrimitives.ReadDoubleBigEndian(element),
+
+                // One-byte values (shared boxes) and 24-bit integers decode through the codec.
+                _ => codec.ReadNumeric(element),
+            };
+            Store(destination, program, step.Field, value);
+            offset += codec.Size;
+        }
+
+        return value;
+    }
+
     /// <summary>Records the member a failure happened in, as the interpreter's field-loop filter does; never catches.</summary>
     /// <param name="exception">The failure.</param>
     /// <param name="member">The member being read.</param>
     /// <returns><see langword="false"/>, so the exception propagates.</returns>
     private static bool NoteMember(CStructException exception, CompiledField member) => exception.NoteMember(member.Name, member.DisplayTypeSpelling);
-
-    /// <summary>Creates a frame's selected-arm array with every conditional group undecided.</summary>
-    /// <param name="groups">The number of conditional groups.</param>
-    /// <returns>The array.</returns>
-    private static int[] NewSelection(int groups)
-    {
-        int[] selected = new int[groups];
-        Array.Fill(selected, Undecided);
-        return selected;
-    }
 
     /// <summary>Whether the step after <paramref name="index"/> checks the same member's offset assertion, which must see the placed start before the position moves.</summary>
     /// <param name="steps">The program's steps.</param>
@@ -542,18 +749,18 @@ internal static partial class ReadEngine
     /// <param name="state">The operation's state.</param>
     /// <param name="program">The program.</param>
     /// <param name="branch">The branch being tested.</param>
-    /// <param name="selected">The frame's selected arms.</param>
+    /// <param name="arms">The base of the frame's selected arms in the state's arena.</param>
     /// <returns>The selected arm of the branch's group.</returns>
     /// <exception cref="CStructException">The selector cannot be evaluated.</exception>
-    private static int SelectedArm(ref ReadEngineState state, ReadProgram program, ReadProgram.ConditionalBranch branch, int[] selected)
+    private static int SelectedArm(ref ReadEngineState state, ReadProgram program, ReadProgram.ConditionalBranch branch, int arms)
     {
-        int arm = selected[branch.Group];
-        if (arm == Undecided)
+        int arm = state.Arms[arms + branch.Group];
+        if (arm == ReadEngineState.Undecided)
         {
             ReadProgram.ConditionalGroup group = program.Groups[branch.Group];
             Int128 value = state.Slots.Evaluate(program.Expressions[group.Selector], program.ExpressionContexts[group.Selector], ExpressionFailureDomain.Read);
             arm = group.Decision.SelectArm(value);
-            selected[branch.Group] = arm;
+            state.Arms[arms + branch.Group] = arm;
         }
 
         return arm;
@@ -567,21 +774,22 @@ internal static partial class ReadEngine
     /// <param name="state">The operation's state.</param>
     /// <param name="scope">The composite's scope in slot terms.</param>
     /// <param name="member">The member's index.</param>
-    /// <param name="locals">The frame's saved values.</param>
-    private static void CompleteMember(ref ReadEngineState state, ReadConditionalScope scope, int member, SlotValue[] locals)
+    /// <param name="locals">The base of the frame's saved values in the state's arena.</param>
+    private static void CompleteMember(ref ReadEngineState state, ReadConditionalScope scope, int member, int locals)
     {
+        SlotValue[] saved = state.Locals;
         IReadOnlyList<int> captured = scope.GetCaptured(member);
         for (int index = 0; index < captured.Count; index++)
         {
             int local = captured[index];
-            locals[local] = state.Slots.Get(scope.LocalSlots[local]);
+            saved[locals + local] = state.Slots.Get(scope.LocalSlots[local]);
         }
 
         IReadOnlyList<int> restored = scope.GetRestored(member);
         for (int index = 0; index < restored.Count; index++)
         {
             int local = restored[index];
-            state.Slots.Set(scope.LocalSlots[local], locals[local]);
+            state.Slots.Set(scope.LocalSlots[local], saved[locals + local]);
         }
     }
 
