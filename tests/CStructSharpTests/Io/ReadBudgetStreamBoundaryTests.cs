@@ -77,7 +77,7 @@ public class ReadBudgetStreamBoundaryTests
         using var reader = new ReadBudgetStream(source, 100, long.MaxValue);
 
         // Seed a valid cumulative count; physically reading this many bytes is not practical in a regression test.
-        typeof(ReadBudgetStream).GetField("bytesRead", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.SetValue(reader, long.MaxValue);
+        SeedBytesRead(reader, long.MaxValue);
         byte[] destination = [99];
         bool available = memoryBacked
                              ? reader.TryReadSpanWithinBudget(1, out _)
@@ -231,7 +231,7 @@ public class ReadBudgetStreamBoundaryTests
         using var reader = new ReadBudgetStream(source, 100, long.MaxValue);
 
         // Seed a valid prior cumulative count; replaying that many reads would not be a practical regression test.
-        typeof(ReadBudgetStream).GetField("bytesRead", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.SetValue(reader, long.MaxValue - 1);
+        SeedBytesRead(reader, long.MaxValue - 1);
         Assert.AreEqual(11, reader.ReadByte());
 
         // The underlying read occurs first; only its subsequent accounting exceeds the representable total.
@@ -285,6 +285,21 @@ public class ReadBudgetStreamBoundaryTests
         Assert.IsTrue(inner.CanRead);
         Assert.AreEqual(0x22, inner.ReadByte());
         inner.Dispose();
+    }
+
+    /// <summary>
+    ///     Sets the operation's cumulative read count, which the stream keeps in its <see cref="MemoryReadCore"/> (shared
+    ///     with the engine's memory cursor); the core is a struct, so the updated copy is stored back.
+    /// </summary>
+    /// <param name="reader">The budget stream.</param>
+    /// <param name="bytesRead">The count to seed.</param>
+    private static void SeedBytesRead(ReadBudgetStream reader, long bytesRead)
+    {
+        const System.Reflection.BindingFlags Private = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        System.Reflection.FieldInfo coreField = typeof(ReadBudgetStream).GetField("core", Private)!;
+        object core = coreField.GetValue(reader)!;
+        typeof(MemoryReadCore).GetField("bytesRead", Private)!.SetValue(core, bytesRead);
+        coreField.SetValue(reader, core);
     }
 
     /// <summary>Exposes its array for borrowed reads but fails the independent flush operation.</summary>

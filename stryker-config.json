@@ -46,6 +46,7 @@
       "**/CStructSharp.Core/Expressions/LayoutVariableResolver.cs",
       "Values/Pointer.cs",
       "Streams/ReadBudgetStream.cs",
+      "Streams/MemoryReadCore.cs",
       "Streams/SparseUpdateStream.cs",
       "Values/TypedValueConverter.cs",
       "**/CStructSharp.Core/Syntax/Enum.cs",

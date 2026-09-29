@@ -53,7 +53,25 @@ internal static partial class PrimitiveCodecs
     /// <exception cref="CStructReadException">The stream ends early or the bytes are invalid text.</exception>
     public static string ReadBoundedText(Stream stream, int byteCount, string type)
     {
-        if (stream is ReadBudgetStream budget && byteCount > budget.MaxStringBytes)
+        var source = new StreamTextSource(stream);
+        return ReadBoundedText(ref source, byteCount, type);
+    }
+
+    /// <summary>
+    ///     Reads exactly the declared encoded byte extent from any text source, including embedded NULs, without reading
+    ///     ahead: the one implementation behind the stream overload and the engine's memory cursor.
+    /// </summary>
+    /// <typeparam name="TSource">The source type, a struct so the reader is compiled per source.</typeparam>
+    /// <param name="source">The source, positioned at the first text byte; it advances past the bytes read.</param>
+    /// <param name="byteCount">The fixed extent in bytes (not characters) to read and decode.</param>
+    /// <param name="type">The bounded-text codec name that selects the decoding, such as <c>utf8</c>.</param>
+    /// <returns>The decoded text, including any embedded NUL characters.</returns>
+    /// <exception cref="CStructReadLimitException"><paramref name="byteCount"/> exceeds the source's string limit.</exception>
+    /// <exception cref="CStructReadException">The source ends early or the bytes are invalid text.</exception>
+    public static string ReadBoundedText<TSource>(ref TSource source, int byteCount, string type)
+        where TSource : struct, ITextReadSource
+    {
+        if (source.StringByteLimit is long limit && byteCount > limit)
         {
             throw new CStructReadLimitException(ReadFailures.BoundedTextLimit);
         }
@@ -61,7 +79,7 @@ internal static partial class PrimitiveCodecs
         byte[] bytes = new byte[byteCount];
         try
         {
-            stream.ReadExactly(bytes);
+            source.ReadExactly(bytes);
             return BoundedTextCodec.Decode(type, bytes);
         }
         catch (EndOfStreamException exception)
@@ -83,9 +101,28 @@ internal static partial class PrimitiveCodecs
     /// <exception cref="CStructReadLimitException">The encoded string exceeds the per-string byte budget.</exception>
     public static string ReadIntoString(Stream stream, Encoding encoding, char terminator)
     {
-        // Chunked reads, one decode per chunk prefix, observably the same as reading one byte at a time: the stream
+        var source = new StreamTextSource(stream);
+        return ReadIntoString(ref source, encoding, terminator);
+    }
+
+    /// <summary>
+    ///     Reads characters from any text source until a terminator and leaves the source immediately after it: the one
+    ///     implementation behind the stream overload and the engine's memory cursor.
+    /// </summary>
+    /// <typeparam name="TSource">The source type, a struct so the reader is compiled per source.</typeparam>
+    /// <param name="source">The source; its string limit and token apply.</param>
+    /// <param name="encoding">The strict encoding that decodes the text and encodes the terminator.</param>
+    /// <param name="terminator">The character that ends the string, typically NUL or newline.</param>
+    /// <returns>The decoded text without the terminator.</returns>
+    /// <exception cref="CStructReadException">The source ends before the terminator or holds invalid text.</exception>
+    /// <exception cref="CStructReadLimitException">The encoded string exceeds the per-string byte budget.</exception>
+    /// <exception cref="OperationCanceledException">The source's token is cancelled before a chunk is read.</exception>
+    public static string ReadIntoString<TSource>(ref TSource source, Encoding encoding, char terminator)
+        where TSource : struct, ITextReadSource
+    {
+        // Chunked reads, one decode per chunk prefix, observably the same as reading one byte at a time: the source
         // ends immediately after the terminator, an over-budget read leaves
-        // the stream one byte past the limit, a decode failure leaves it at the end of the chunk being decoded, and
+        // the source one byte past the limit, a decode failure leaves it at the end of the chunk being decoded, and
         // invalid sequences that straddle chunks still fail because the decoder keeps its state across chunks.
         Decoder decoder = encoding.GetDecoder();
         int unitSize = encoding is UnicodeEncoding ? 2 : 1;
@@ -99,25 +136,25 @@ internal static partial class PrimitiveCodecs
         {
             StringBuilder? builder = null;
             long encodedByteCount = 0;
-            long? maxStringBytes = stream is ReadBudgetStream budget ? budget.MaxStringBytes : null;
-            System.Threading.CancellationToken cancellation = stream is ReadBudgetStream budgeted ? budgeted.CancellationToken : default;
+            long? maxStringBytes = source.StringByteLimit;
+            System.Threading.CancellationToken cancellation = source.CancellationToken;
 
             while (true)
             {
                 cancellation.ThrowIfCancellationRequested();
-                int bytesRead = stream.Read(chunk, 0, TerminatedStringReadChunkSize);
+                int bytesRead = source.Read(chunk, 0, TerminatedStringReadChunkSize);
                 if (bytesRead == 0)
                 {
                     throw new CStructReadException(ReadFailures.TerminatedStringUnterminated);
                 }
 
-                // A stream may return fewer bytes than asked, splitting a UTF-16 code unit - and so a terminator -
+                // A source may return fewer bytes than asked, splitting a UTF-16 code unit - and so a terminator -
                 // between two reads. Complete the unit, so every chunk holds whole units from the string's start and
                 // the terminator search sees it as a span's single read does; only the end of the input leaves a
                 // partial unit, which then fails as unterminated there too. The chunk size is a whole number of units.
                 while ((encodedByteCount + bytesRead) % unitSize != 0)
                 {
-                    int completion = stream.Read(chunk, bytesRead, TerminatedStringReadChunkSize - bytesRead);
+                    int completion = source.Read(chunk, bytesRead, TerminatedStringReadChunkSize - bytesRead);
                     if (completion == 0)
                     {
                         break;
@@ -137,9 +174,9 @@ internal static partial class PrimitiveCodecs
                     long consumedIfFound = terminatorIndex < 0 ? bytesRead : terminatorIndex + terminatorLength;
                     if (consumedIfFound > allowed)
                     {
-                        // The byte-by-byte reader consumed the over-budget byte before checking, so the stream is left
+                        // The byte-by-byte reader consumed the over-budget byte before checking, so the source is left
                         // exactly one byte past the limit; only the never-inspected remainder is seeked back.
-                        SeekBackUnconsumedChunkBytes(stream, bytesRead, (int)Math.Min(bytesRead, allowed + 1));
+                        SeekBackUnconsumedChunkBytes(ref source, bytesRead, (int)Math.Min(bytesRead, allowed + 1));
                         throw new CStructReadLimitException(ReadFailures.TerminatedStringLimit);
                     }
                 }
@@ -164,8 +201,8 @@ internal static partial class PrimitiveCodecs
                     continue;
                 }
 
-                // Do not include the terminator in the public string value, and leave the stream immediately after it.
-                SeekBackUnconsumedChunkBytes(stream, bytesRead, terminatorIndex + terminatorLength);
+                // Do not include the terminator in the public string value, and leave the source immediately after it.
+                SeekBackUnconsumedChunkBytes(ref source, bytesRead, terminatorIndex + terminatorLength);
                 if (builder is null)
                 {
                     return new string(decoded, 0, charsUsed);
@@ -241,18 +278,20 @@ internal static partial class PrimitiveCodecs
     }
 
     /// <summary>
-    ///     Seeks a stream back by the tail of the most recent chunk read that was not actually consumed, so a
-    ///     chunked read leaves the stream at the same position a byte-by-byte reader would have stopped at.
+    ///     Moves a source back by the tail of the most recent chunk read that was not actually consumed, so a
+    ///     chunked read leaves the source at the same position a byte-by-byte reader would have stopped at.
     /// </summary>
-    /// <param name="stream">The stream positioned immediately after the chunk read supplying <paramref name="bytesRead"/>.</param>
+    /// <typeparam name="TSource">The source type.</typeparam>
+    /// <param name="source">The source positioned immediately after the chunk read supplying <paramref name="bytesRead"/>.</param>
     /// <param name="bytesRead">The number of bytes the most recent chunk read actually returned.</param>
     /// <param name="consumedCount">The number of leading bytes of that chunk that were actually decoded or counted.</param>
-    private static void SeekBackUnconsumedChunkBytes(Stream stream, int bytesRead, int consumedCount)
+    private static void SeekBackUnconsumedChunkBytes<TSource>(ref TSource source, int bytesRead, int consumedCount)
+        where TSource : struct, ITextReadSource
     {
         int unconsumed = bytesRead - consumedCount;
         if (unconsumed > 0)
         {
-            stream.Position -= unconsumed;
+            source.Rewind(unconsumed);
         }
     }
 }

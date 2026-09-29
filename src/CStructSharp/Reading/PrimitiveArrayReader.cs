@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
+using CStructSharp.Engine;
 using CStructSharp.Generated;
 using CStructSharp.Streams;
 using CStructSharp.Values;
@@ -35,31 +36,51 @@ internal static class PrimitiveArrayReader
     /// <exception cref="InvalidOperationException">The codec is not a fixed-width numeric codec.</exception>
     public static IList<object?> Read(ReadBudgetStream stream, PrimitiveCodec codec, int count)
     {
+        var cursor = new StreamReadCursor(stream);
+        return Read(ref cursor, codec, count);
+    }
+
+    /// <summary>
+    ///     Reads <paramref name="count"/> elements through a read cursor into a typed array: the one implementation
+    ///     behind the stream overload and the engine's memory cursor, so both fail and charge at the same blocks.
+    /// </summary>
+    /// <typeparam name="TCursor">The cursor type, a struct so the reader is compiled per cursor.</typeparam>
+    /// <param name="cursor">The cursor, positioned at the first element; it advances past the array.</param>
+    /// <param name="codec">The fixed-width numeric codec of one element, including its byte order.</param>
+    /// <param name="count">The number of elements to read.</param>
+    /// <returns>A <see cref="PrimitiveArray{T}"/> of the codec's element type holding the decoded values.</returns>
+    /// <exception cref="CStructReadException">The source holds fewer bytes than the elements need.</exception>
+    /// <exception cref="CStructReadLimitException">A block exceeds the total read budget.</exception>
+    /// <exception cref="OperationCanceledException">The operation's token is cancelled before a block.</exception>
+    /// <exception cref="InvalidOperationException">The codec is not a fixed-width numeric codec.</exception>
+    public static IList<object?> Read<TCursor>(ref TCursor cursor, PrimitiveCodec codec, int count)
+        where TCursor : struct, IReadCursor
+    {
         // A count the data provably cannot back (a hostile or corrupt length prefix) fails here, before the element
         // array is allocated, with the same failure and final position a full short read would produce.
-        if (stream.IsShortBy((long)count * codec.Size))
+        if (cursor.IsShortBy((long)count * codec.Size))
         {
-            string message = ReadFailures.ArrayShortRead(count, codec.Size, Math.Max(0, stream.Length - stream.Position));
-            stream.Position = stream.Length;
+            string message = ReadFailures.ArrayShortRead(count, codec.Size, Math.Max(0, cursor.Length - cursor.Position));
+            cursor.Position = cursor.Length;
             throw new CStructReadException(message);
         }
 
         bool le = codec.LittleEndian;
         return codec.Kind switch
         {
-            PrimitiveCodecKind.UInt8 => new PrimitiveArray<byte>(ReadBlocks<byte>(stream, codec.Size, count, static (src, dst, _) => src.CopyTo(MemoryMarshal.AsBytes(dst)), le)),
-            PrimitiveCodecKind.Int8 => new PrimitiveArray<sbyte>(ReadBlocks<sbyte>(stream, codec.Size, count, static (src, dst, _) => src.CopyTo(MemoryMarshal.AsBytes(dst)), le)),
-            PrimitiveCodecKind.Bool => new PrimitiveArray<bool>(ReadBlocks<bool>(stream, codec.Size, count, static (src, dst, _) => Codec.DecodeBooleans(src, dst), le)),
-            PrimitiveCodecKind.Int16 => new PrimitiveArray<short>(ReadBlocks<short>(stream, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
-            PrimitiveCodecKind.UInt16 => new PrimitiveArray<ushort>(ReadBlocks<ushort>(stream, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
-            PrimitiveCodecKind.Int32 => new PrimitiveArray<int>(ReadBlocks<int>(stream, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
-            PrimitiveCodecKind.UInt32 => new PrimitiveArray<uint>(ReadBlocks<uint>(stream, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
-            PrimitiveCodecKind.Int64 => new PrimitiveArray<long>(ReadBlocks<long>(stream, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
-            PrimitiveCodecKind.UInt64 => new PrimitiveArray<ulong>(ReadBlocks<ulong>(stream, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
-            PrimitiveCodecKind.Float32 => new PrimitiveArray<float>(ReadBlocks<float>(stream, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
-            PrimitiveCodecKind.Float64 => new PrimitiveArray<double>(ReadBlocks<double>(stream, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
-            PrimitiveCodecKind.Int24 => new PrimitiveArray<int>(ReadBlocks<int>(stream, codec.Size, count, static (src, dst, le) => Codec.DecodeInt24(src, dst, le), le)),
-            PrimitiveCodecKind.UInt24 => new PrimitiveArray<uint>(ReadBlocks<uint>(stream, codec.Size, count, static (src, dst, le) => Codec.DecodeUInt24(src, dst, le), le)),
+            PrimitiveCodecKind.UInt8 => new PrimitiveArray<byte>(ReadBlocks<TCursor, byte>(ref cursor, codec.Size, count, static (src, dst, _) => src.CopyTo(MemoryMarshal.AsBytes(dst)), le)),
+            PrimitiveCodecKind.Int8 => new PrimitiveArray<sbyte>(ReadBlocks<TCursor, sbyte>(ref cursor, codec.Size, count, static (src, dst, _) => src.CopyTo(MemoryMarshal.AsBytes(dst)), le)),
+            PrimitiveCodecKind.Bool => new PrimitiveArray<bool>(ReadBlocks<TCursor, bool>(ref cursor, codec.Size, count, static (src, dst, _) => Codec.DecodeBooleans(src, dst), le)),
+            PrimitiveCodecKind.Int16 => new PrimitiveArray<short>(ReadBlocks<TCursor, short>(ref cursor, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
+            PrimitiveCodecKind.UInt16 => new PrimitiveArray<ushort>(ReadBlocks<TCursor, ushort>(ref cursor, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
+            PrimitiveCodecKind.Int32 => new PrimitiveArray<int>(ReadBlocks<TCursor, int>(ref cursor, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
+            PrimitiveCodecKind.UInt32 => new PrimitiveArray<uint>(ReadBlocks<TCursor, uint>(ref cursor, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
+            PrimitiveCodecKind.Int64 => new PrimitiveArray<long>(ReadBlocks<TCursor, long>(ref cursor, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
+            PrimitiveCodecKind.UInt64 => new PrimitiveArray<ulong>(ReadBlocks<TCursor, ulong>(ref cursor, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
+            PrimitiveCodecKind.Float32 => new PrimitiveArray<float>(ReadBlocks<TCursor, float>(ref cursor, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
+            PrimitiveCodecKind.Float64 => new PrimitiveArray<double>(ReadBlocks<TCursor, double>(ref cursor, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
+            PrimitiveCodecKind.Int24 => new PrimitiveArray<int>(ReadBlocks<TCursor, int>(ref cursor, codec.Size, count, static (src, dst, le) => Codec.DecodeInt24(src, dst, le), le)),
+            PrimitiveCodecKind.UInt24 => new PrimitiveArray<uint>(ReadBlocks<TCursor, uint>(ref cursor, codec.Size, count, static (src, dst, le) => Codec.DecodeUInt24(src, dst, le), le)),
             _ => throw new InvalidOperationException("Codec is not a fixed-width numeric primitive: " + codec.Kind),
         };
     }
@@ -256,11 +277,20 @@ internal static class PrimitiveArrayReader
     }
 
     /// <summary>
-    ///     Reads the extent in ≤ 64 KiB blocks - from the source span when the stream is memory-backed, through a
+    ///     Reads the extent in ≤ 64 KiB blocks - from the source span when the input is in memory, through a
     ///     pooled buffer otherwise - and decodes each block into its slice of the result. The block granularity is
-    ///     what makes a read-budget failure surface at the same position as the stage 1 reader.
+    ///     what makes a read-budget failure surface at the same position as the element-by-element reader.
     /// </summary>
-    private static T[] ReadBlocks<T>(ReadBudgetStream stream, int elementSize, int count, BlockDecoder<T> decode, bool littleEndian)
+    /// <typeparam name="TCursor">The cursor type.</typeparam>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="cursor">The cursor at the first element.</param>
+    /// <param name="elementSize">The width of one element in bytes.</param>
+    /// <param name="count">The number of elements.</param>
+    /// <param name="decode">Decodes one block of bytes into its elements.</param>
+    /// <param name="littleEndian">Whether the elements are stored least significant byte first.</param>
+    /// <returns>The decoded elements.</returns>
+    private static T[] ReadBlocks<TCursor, T>(ref TCursor cursor, int elementSize, int count, BlockDecoder<T> decode, bool littleEndian)
+        where TCursor : struct, IReadCursor
         where T : unmanaged
     {
         var result = new T[count];
@@ -272,18 +302,18 @@ internal static class PrimitiveArrayReader
         {
             while (remaining > 0)
             {
-                stream.CancellationToken.ThrowIfCancellationRequested();
+                cursor.ThrowIfCancellationRequested();
                 int blockLength = (int)Math.Min(remaining, blockCapacity);
                 int elements = blockLength / elementSize;
                 Span<T> destination = result.AsSpan(decoded, elements);
-                if (stream.TryReadSpan(blockLength, out ReadOnlySpan<byte> source))
+                if (cursor.TryReadSpan(blockLength, out ReadOnlySpan<byte> source))
                 {
                     decode(source, destination, littleEndian);
                 }
                 else
                 {
                     block ??= ArrayPool<byte>.Shared.Rent(blockCapacity);
-                    BinaryPrimitiveIO.ReadExactlyOrThrow(stream, block.AsSpan(0, blockLength));
+                    cursor.ReadExactly(block.AsSpan(0, blockLength));
                     decode(block.AsSpan(0, blockLength), destination, littleEndian);
                 }
 

@@ -73,25 +73,19 @@
   },
   {
    "pattern": "Streams/ReadBudgetStream.cs",
-   "sourceSha256": "46665642b7c79bbe3ff286240f836f0e0f1e463bec7347b8bc08acbdf91b4235",
+   "sourceSha256": "6628c1c5ba94333babb1bd3c3f780932a820ee9da1e9ea9fbdc6df16c733fe61",
    "mutants": [
-    { "mutatorName": "Logical mutation", "replacement": "this.memoryBacked || count <= this.knownLength - this.position",
-     "location": {"start":{"line":270,"column":13},"end":{"line":270,"column":75}},
-     "reason": "This changes only the availability subexpression of the outer preflight; its byte-budget condition remains required. A newly admitted case still calls TryReadSpan, which repeats the original memoryBacked and remaining-length checks before touching bytes or accounting. It returns false with a default span on every unavailable/non-memory case. Cases admitted by the original outer check remain admitted, with identical reads and budget charges." },
-    { "mutatorName": "Arithmetic mutation", "replacement": "this.knownLength + this.position",
-     "location": {"start":{"line":270,"column":43},"end":{"line":270,"column":75}},
-     "reason": "TryReadSpan repeats the original subtraction-based availability check. If a nonnegative requested count is available, position is within the Int32-sized MemoryStream array or FixedBufferStream capacity, so length + position cannot overflow Int64 and is at least length - position. Thus every originally successful preflight still reaches the same read. Extra candidates are rejected by the unchanged inner check without consuming or charging bytes." },
     { "mutatorName": "Block removal mutation", "replacement": "{}",
-     "location": {"start":{"line":570,"column":9},"end":{"line":573,"column":10}},
+     "location": {"start":{"line":451,"column":9},"end":{"line":454,"column":10}},
      "reason": "TryGetPosition returns nullable Int64. If querying the source position throws, the original catch returns null. Stryker 5.0.0 makes this block-removal mutant compilable with its default-return fallback; default(long?) is also null. Both paths preserve the original physical-stream exception with no available offset and perform the same single failed position query. Tool implementation: EndingReturnEngine.InjectReturn, https://github.com/stryker-mutator/stryker-net/blob/6e77a3451bac4793e9c839c3ff4055c1b30ca3af/src/Stryker.Core/Stryker.Core/Instrumentation/EndingReturnEngine.cs." }
    ]
   },
   {
    "pattern": "Codecs/PrimitiveCodecs.cs",
-   "sourceSha256": "d5a59c36a9e19c6da5c1369eeac6ab496f8497be932bc407849eb694756626b0",
+   "sourceSha256": "3f9cafff771725362ffb509e9faa73d3d73977c858243fa618be7cd05321360f",
    "mutants": [
     { "mutatorName": "Remove checked expression", "replacement": "(long)valueBytes + terminatorBytes",
-     "location": {"start":{"line":204,"column":37},"end":{"line":204,"column":80}},
+     "location": {"start":{"line":241,"column":37},"end":{"line":241,"column":80}},
      "reason": "Both Encoding.GetByteCount results are nonnegative Int32 values. The left operand is widened to Int64 before addition, so their sum is at most 2 * Int32.MaxValue, far below Int64.MaxValue. Removing checked from this sum cannot change overflow behavior, budget validation or the later allocation." }
    ]
   },
@@ -1182,6 +1176,18 @@
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?Array.Empty<ConditionalBranch>() :field.BranchConditions.Select(item =>\n                        new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray())",
      "location": {"start":{"line":430,"column":40},"end":{"line":431,"column":145}},
      "reason": "Only the empty branch list changes arms. Selecting and materializing an empty list produces another empty branch array without invoking the projection, so NormalizeConditionalGroup is not called and a null normalizedGroups value is never accessed. All consumers inspect branch contents/counts, not array reference identity. Nonempty lists execute the identical projection in both versions. No condition, selector, arm or field visibility changes." }
+   ]
+  },
+  {
+   "pattern": "Streams/MemoryReadCore.cs",
+   "sourceSha256": "ca9288bd2ce3dee486cddcd9621fe49f99d10919539a5d4e215597a76ff6ebd6",
+   "mutants": [
+    { "mutatorName": "Logical mutation", "replacement": "this.memoryBacked || count <= this.knownLength - this.position",
+     "location": {"start":{"line":226,"column":13},"end":{"line":226,"column":75}},
+     "reason": "This changes only the availability subexpression of the outer preflight; its byte-budget condition remains required. A newly admitted case still calls TryReadSpan, which repeats the original memoryBacked and remaining-length checks before touching bytes or accounting. It returns false with a default span on every unavailable/non-memory case. Cases admitted by the original outer check remain admitted, with identical reads and budget charges." },
+    { "mutatorName": "Arithmetic mutation", "replacement": "this.knownLength + this.position",
+     "location": {"start":{"line":226,"column":43},"end":{"line":226,"column":75}},
+     "reason": "TryReadSpan repeats the original subtraction-based availability check. If a nonnegative requested count is available, the memoryBacked conjunct has already excluded a stream-mode core, and every memory core reads an Int32-sized input (a FixedBufferStream region, an exposed MemoryStream array, or the span, array or memory the engine pins), so length + position cannot overflow Int64 and is at least length - position. Thus every originally successful preflight still reaches the same read. Extra candidates are rejected by the unchanged inner check without consuming or charging bytes." }
    ]
   }
  ]
