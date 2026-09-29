@@ -456,6 +456,15 @@ internal sealed partial class LayoutCompilation
     public ReadProgramOutcome GetRootReadProgram(string rootName) => this.SlotTable.ReadPrograms.GetRoot(this, rootName);
 
     /// <summary>
+    ///     Returns the compiled engine's debug read program of a root - the program a debug parse runs, which records every
+    ///     value's byte range and path (<see cref="ReadProgramCache.Debug"/>) - compiling it on first request. It is
+    ///     eligible exactly when <see cref="GetRootReadProgram"/> is: the debug program reads the same members.
+    /// </summary>
+    /// <param name="rootName">A declared root name, or a type spelling already registered as a root.</param>
+    /// <returns>The program, or the reason the engine cannot read the root yet.</returns>
+    public ReadProgramOutcome GetRootDebugReadProgram(string rootName) => this.SlotTable.DebugReadPrograms.GetRoot(this, rootName);
+
+    /// <summary>
     ///     Returns the compiled engine's write program of a composite of this layout, compiling it on first request; see
     ///     <see cref="WriteProgramCompiler"/>.
     /// </summary>

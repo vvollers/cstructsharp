@@ -10,7 +10,7 @@ using CStructSharp.Reading;
 ///     The state one compiled-engine read operation carries through its frames, beside the cursor: the layout-variable
 ///     slots, the limits the executor checks itself, the nesting depth and the active qualified prefix. It holds what
 ///     the interpreter's <see cref="CStructOperationContext"/> holds for the same read, minus the stream, which is the
-///     cursor, and the features later stages add (bitfield units, pointers, debug records).
+///     cursor. A debug parse adds its recorder (<see cref="Debug"/>).
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -36,14 +36,18 @@ internal struct ReadEngineState
     /// <param name="layout">The layout being read, which owns the codecs and text encodings the steps use.</param>
     /// <param name="slots">The operation's initialized variable slots; borrowed, not disposed here.</param>
     /// <param name="options">The operation's snapshotted settings.</param>
-    public ReadEngineState(CStruct layout, VariableSlots slots, in ReadOperationSettings options)
+    /// <param name="debug">The recorder of a debug parse, which runs the layout's debug programs; <see langword="null"/> for an ordinary read.</param>
+    public ReadEngineState(CStruct layout, VariableSlots slots, in ReadOperationSettings options, DebugRecorder? debug)
     {
         this.Layout = layout;
         this.Slots = slots;
+        this.Debug = debug;
         this.MaxArrayElements = options.MaxArrayElements;
         this.MaxNestingDepth = options.MaxNestingDepth;
         this.TrimFixedText = options.TrimFixedText;
-        this.GeneralPathOnly = options.ExecutionPath == ExecutionPath.GeneralOnly;
+
+        // A debug parse takes no static read plan, as the interpreter's does not: every value is read, and recorded, alone.
+        this.GeneralPathOnly = options.ExecutionPath == ExecutionPath.GeneralOnly || debug is not null;
         this.DereferencePointers = options.DereferencePointers;
         this.AddressingMode = options.AddressingMode;
         this.PointerOrigin = options.Origin;
@@ -64,6 +68,9 @@ internal struct ReadEngineState
     /// <summary>Gets the operation's layout variables as slots.</summary>
     public VariableSlots Slots { get; }
 
+    /// <summary>Gets the recorder of a debug parse, or <see langword="null"/> for an ordinary read, which never consults it.</summary>
+    public DebugRecorder? Debug { get; }
+
     /// <summary>Gets the largest element count one array may declare.</summary>
     public int MaxArrayElements { get; }
 
@@ -74,8 +81,8 @@ internal struct ReadEngineState
     public bool TrimFixedText { get; }
 
     /// <summary>
-    ///     Gets whether the read must avoid the static read plans and block reads (<see cref="ExecutionPath.GeneralOnly"/>),
-    ///     as the interpreter does under the same option.
+    ///     Gets whether the read must avoid the static read plans and block reads (<see cref="ExecutionPath.GeneralOnly"/>,
+    ///     and every debug parse), as the interpreter does under the same conditions.
     /// </summary>
     public bool GeneralPathOnly { get; }
 

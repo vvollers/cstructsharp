@@ -35,7 +35,8 @@ internal sealed record EngineCorpusCase(
     /// <summary>
     ///     Runs the case through the harness under <see cref="ExecutionPath.Fastest"/> and
     ///     <see cref="ExecutionPath.GeneralOnly"/>: the root is read from memory, a multi-segment sequence, and streams
-    ///     (the sources must agree with each other), read as a value, debug-parsed, and a few of its paths resolved;
+    ///     (the sources must agree with each other), read as a value, debug-parsed, its update layout captured, and a few of
+    ///     its paths resolved;
     ///     when the interpreter reads a value, that value is written back to a new array, a span of the input's
     ///     length, and a stream.
     /// </summary>
@@ -70,6 +71,12 @@ internal sealed record EngineCorpusCase(
         EngineInput[] sources = detailed
                                     ? [EngineInput.Span, EngineInput.Sequence, EngineInput.Stream, EngineInput.ChunkedStream1, EngineInput.ChunkedStream7]
                                     : [EngineInput.Span, EngineInput.Sequence, EngineInput.Stream, EngineInput.ChunkedStream7];
+        if (detailed)
+        {
+            // The layout an update compares reads with every fast path off, so one capture covers both execution paths.
+            EngineLayoutCapture.AssertSame(this.Id, layout, this.Data, EngineInput.ChunkedStream3, root, this.Variables, read);
+        }
+
         foreach (ExecutionPath path in CorpusPaths)
         {
             var renderings = new List<(EngineInput Input, string Rendering)>();

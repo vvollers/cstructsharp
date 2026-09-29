@@ -4,7 +4,7 @@
  "files": [
   {
    "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.cs",
-   "sourceSha256": "31078dbfbfe7f64982767f80fe99f0360d06e5bcde11dbc10ecc959fc138cd42",
+   "sourceSha256": "ede687b14f29aa9efca1468d2fb11598ec4b901d6233507efdc98ad352a95199",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": "remainingDeclarations-- >= 0",
      "location": {"start":{"line":392,"column":42},"end":{"line":392,"column":69}},
@@ -37,7 +37,7 @@
   },
   {
    "pattern": "CStructValueReader.cs",
-   "sourceSha256": "ce5aa733ecaefbeb21416e15ac83b7dd794170adb22f5fc62bbba7a642936694",
+   "sourceSha256": "4e2bee26356d3c27c37bef7bea681a4f3dc56618bab487d2e222c8021b677652",
    "mutants": [
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?target.WritableCompiledField\n:target.EffectiveCompiledField)",
      "location": {"start":{"line":275,"column":14},"end":{"line":277,"column":49}},
@@ -312,15 +312,6 @@
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?(options ?? new UpdateOptions()) with { CancellationToken = token, } :options)",
      "location": {"start":{"line":95,"column":40},"end":{"line":95,"column":140}},
      "reason": "When the linked token can be cancelled, the original already selects this clone. Otherwise AsyncStreamBuffer.Link implies both input tokens are non-cancellable. UpdateOptions is sealed and contains only ordinary immutable properties; cloning it while assigning the same non-cancellable token preserves every option. A null input produces the same documented defaults used by the original region setup and Update snapshot. Update snapshots its options before use in both versions, so the extra clone changes allocation only, not values, cancellation, aliasing or failures. This proof does not cover the analogous unsealed WriteOptions branch, whose caller-defined derived copy constructor could be observable." }
-   ]
-  },
-  {
-   "pattern": "CStructConditionalFields.cs",
-   "sourceSha256": "1bec346511d22fd94f7901d6fe9ccdb6e820a9b4f63f44af3cb4497f851d4f30",
-   "mutants": [
-    { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":47,"column":13},"end":{"line":47,"column":30}},
-     "reason": "CaptureUpdateLayout is private and its three call sites pass either readState.Stream (a ReadBudgetStream) or stagingStream (a SparseUpdateStream). Its new operation context wraps that object in another ReadBudgetStream. Memory backing is selected only for a FixedBufferStream or an exposed MemoryStream; neither permitted input is one. Complete therefore calls FlushPosition on a non-memory-backed wrapper, which is a no-op. Stream-mode reads already delegate their position changes, and the update owner restores its original position separately." }
    ]
   },
   {
@@ -949,19 +940,19 @@
   },
   {
    "pattern": "CStruct.cs",
-   "sourceSha256": "303a0c106c4e2191793dd6a5d1dea042da90518236af8b7b13cd04130903e81a",
+   "sourceSha256": "a35f63b3b0a022c225f21feed329c3f5bc399b906ce11e12adf22c502e566b8a",
    "mutants": [
     { "mutatorName": "Logical mutation", "replacement": "!rootValues.TryGetValue(segments[0].Name, out object? selected) && selected is null",
-     "location": {"start":{"line":388,"column":13},"end":{"line":388,"column":96}},
+     "location": {"start":{"line":393,"column":13},"end":{"line":393,"column":96}},
      "reason": "The root container is created and populated by this parse, not supplied by a caller. Successful root assignments are non-null StructValue, UnionValue, EnumValueResult, Pointer, list, string or scalar objects. Even a null pointer target has a non-null Pointer wrapper; a custom codec returning null is rejected by the reader's null-coalescing missing-reader check before assignment. Definitions produce no assigned root entry. Thus TryGetValue either returns false with null, or true with a non-null result. OR and AND have the same truth value for both reachable cases; the differing found-null case cannot occur." },
     { "mutatorName": "Logical mutation", "replacement": "!this.compiledModelQueries.TryGetCompiledDeclaration(segments[0].Name, out CStructElement? rootDeclaration) ||\n                    rootDeclaration is not Typedef { Struct: { } tagged, } ||\n                    !rootValues.TryGetValue(tagged.Name.Name, out selected) && selected is null",
-     "location": {"start":{"line":391,"column":17},"end":{"line":393,"column":92}},
+     "location": {"start":{"line":396,"column":17},"end":{"line":398,"column":92}},
      "reason": "This compatibility fallback runs only when the requested root entry is absent or null. An inline Struct typedef cannot reach it: HandleCStructElement keeps the requested aliasName and ReadCompositeMember always stores its non-null composite under that alias. The immutable declaration lookup succeeds after ParseStreamInternal's validation, and every remaining fallback case fails the preceding not-inline-Struct-typedef test. The final tagged-name lookup and its null condition therefore never execute, so changing only their OR to AND has no effect on success, failure text or decoding." },
     { "mutatorName": "LogicalNotExpression to un-LogicalNotExpression mutation", "replacement": "this.compiledModelQueries.TryGetCompiledDeclaration(segments[0].Name, out CStructElement? rootDeclaration)",
-     "location": {"start":{"line":391,"column":17},"end":{"line":391,"column":124}},
+     "location": {"start":{"line":396,"column":17},"end":{"line":396,"column":124}},
      "reason": "ParseStreamInternal has already resolved this root against immutable declarations or the non-removing synthetic-root cache, so the lookup succeeds. This outer fallback can execute only for a declaration that is not an inline Struct typedef: inline typedefs store a non-null result under the requested alias and never enter it. Originally the successful lookup makes the first condition false and the next declaration-kind condition true; the mutation makes the first condition true. Both execute the same path-error throw, without reaching the tagged-name lookup or changing its message." },
     { "mutatorName": "Equality mutation", "replacement": "selected is not null",
-     "location": {"start":{"line":393,"column":76},"end":{"line":393,"column":92}},
+     "location": {"start":{"line":398,"column":76},"end":{"line":398,"column":92}},
      "reason": "The tagged-name fallback cannot reach this final operand. A successfully parsed inline Struct typedef is stored under its requested alias by ReadCompositeMember and skips the outer fallback entirely. Other declarations entering the fallback fail its earlier not-inline-Struct-typedef condition. The changed null test is therefore short-circuited for every supported root; existing root validation, returned values and the reachable path-error diagnostic are unchanged." },
     { "mutatorName": "String mutation", "replacement": "\"\"",
      "location": {"start":{"line":281,"column":55},"end":{"line":281,"column":102}},

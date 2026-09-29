@@ -170,7 +170,44 @@ internal static class EngineOperations
             (source, read) => layout.ParseWithDebug(source, path, variables, read),
             (source, read) => layout.ParseWithDebug(source, path, variables, read),
             (source, read) => layout.ParseWithDebug(source, path, variables, read),
-            RenderDebugResult);
+            RenderDebugResult,
+            EngineExpectations.DebugRead(layout, path));
+
+    /// <summary><c>ParseWithDebugAsync</c> over one of the stream forms: the struct, then every debug record in stream coordinates.</summary>
+    /// <param name="layout">The compiled layout.</param>
+    /// <param name="data">The input bytes.</param>
+    /// <param name="input">The stream form (<see cref="EngineStreams.IsStream"/>).</param>
+    /// <param name="path">The root name or path, or <see langword="null"/> for the first struct.</param>
+    /// <param name="variables">The caller's layout variables.</param>
+    /// <param name="options">The case's read options, which each side adjusts.</param>
+    /// <returns>The operation.</returns>
+    public static DifferentialOperation ParseWithDebugAsync(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
+        => StreamRead(
+            "ParseWithDebugAsync " + path,
+            data,
+            input,
+            options,
+            (source, read) => layout.ParseWithDebugAsync(source, path, variables, read).AsTask().GetAwaiter().GetResult(),
+            RenderDebugResult,
+            EngineExpectations.DebugRead(layout, path));
+
+    /// <summary><c>ReadValueWithDebugAsync</c> over one of the stream forms: the value, then every debug record in stream coordinates.</summary>
+    /// <param name="layout">The compiled layout.</param>
+    /// <param name="data">The input bytes.</param>
+    /// <param name="input">The stream form (<see cref="EngineStreams.IsStream"/>).</param>
+    /// <param name="path">The root name or path, or <see langword="null"/> for the first struct or union.</param>
+    /// <param name="variables">The caller's layout variables.</param>
+    /// <param name="options">The case's read options, which each side adjusts.</param>
+    /// <returns>The operation.</returns>
+    public static DifferentialOperation ReadValueWithDebugAsync(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
+        => StreamRead(
+            "ReadValueWithDebugAsync " + path,
+            data,
+            input,
+            options,
+            (source, read) => layout.ReadValueWithDebugAsync(source, path, variables, read).AsTask().GetAwaiter().GetResult(),
+            RenderDebugResult,
+            EngineExpectations.DebugRead(layout, path));
 
     /// <summary><c>ReadValueWithDebug</c>: the value, then every debug record.</summary>
     /// <param name="layout">The compiled layout.</param>
@@ -191,7 +228,8 @@ internal static class EngineOperations
             (source, read) => layout.ReadValueWithDebug(source, path, variables, read),
             (source, read) => layout.ReadValueWithDebug(source, path, variables, read),
             (source, read) => layout.ReadValueWithDebug(source, path, variables, read),
-            RenderDebugResult);
+            RenderDebugResult,
+            EngineExpectations.DebugRead(layout, path));
 
     /// <summary><c>ResolveAddress</c>: the position of a path.</summary>
     /// <param name="layout">The compiled layout.</param>

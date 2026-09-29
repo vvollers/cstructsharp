@@ -34,7 +34,8 @@ public class EngineSweepTests
     /// <summary>
     ///     Every prefix of the input, from empty to complete, reads identically through every source: span, array,
     ///     memory, multi-segment sequence, hidden and exposed memory streams, 1-, 3- and 7-byte chunked streams, a file,
-    ///     and asynchronously; the debug parse, a selected value, an address, and an array length agree too.
+    ///     and asynchronously; the debug parse and debug value read (from memory, streams and asynchronously), a selected
+    ///     value, an address, and an array length agree too.
     /// </summary>
     /// <param name="name">The sweep layout.</param>
     [TestMethod]
@@ -61,6 +62,10 @@ public class EngineSweepTests
                     Same(EngineOperations.ParseAsync(variant.Layout, prefix, EngineInput.ChunkedStream3, "rec", source.Variables, variant.BaseRead()), path);
                     Same(EngineOperations.ParseWithDebug(variant.Layout, prefix, EngineInput.Span, "rec", source.Variables, variant.BaseRead()), path);
                     Same(EngineOperations.ParseWithDebug(variant.Layout, prefix, EngineInput.ChunkedStream1, "rec", source.Variables, variant.BaseRead()), path);
+                    Same(EngineOperations.ParseWithDebug(variant.Layout, prefix, EngineInput.Sequence, "rec", source.Variables, variant.BaseRead()), path);
+                    Same(EngineOperations.ParseWithDebugAsync(variant.Layout, prefix, EngineInput.ExposedStream, "rec", source.Variables, variant.BaseRead(EngineInput.ExposedStream)), path);
+                    Same(EngineOperations.ReadValueWithDebug(variant.Layout, prefix, EngineInput.FileStream, "rec", source.Variables, variant.BaseRead()), path);
+                    Same(EngineOperations.ReadValueWithDebugAsync(variant.Layout, prefix, EngineInput.ChunkedStream7, "rec", source.Variables, variant.BaseRead()), path);
                     Same(EngineOperations.ReadValue(variant.Layout, prefix, EngineInput.Span, source.Paths[0], source.Variables, variant.BaseRead()), path);
                     Same(EngineOperations.ReadValue(variant.Layout, prefix, EngineInput.Stream, source.Paths[0], source.Variables, variant.BaseRead()), path);
                     Same(EngineOperations.ResolveAddress(variant.Layout, prefix, EngineInput.Span, source.Paths[^1], source.Variables, variant.BaseRead()), path);

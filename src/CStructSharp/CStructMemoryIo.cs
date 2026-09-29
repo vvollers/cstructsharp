@@ -42,8 +42,9 @@ public sealed partial class CStruct
             // The engine reads the pinned region directly; the interpreter reads it through a read-only region stream.
             if (engineRoot is not null)
             {
-                StructValue value = this.ReadRootWithEngine(buffer, source.Length, segments, engineRoot, input, settings, out bool selected, out _);
-                return (selected ? value : this.SelectParsedRoot(value, segments), NoDebugData);
+                DebugRecorder? recorder = debug ? new DebugRecorder(trace: false) : null;
+                StructValue value = this.ReadRootWithEngine(buffer, source.Length, segments, engineRoot, input, settings, recorder, out bool selected, out _);
+                return (selected ? value : this.SelectParsedRoot(value, segments), recorder?.Records ?? NoDebugData);
             }
 
             using var stream = new FixedBufferStream(buffer, source.Length, writable: false);

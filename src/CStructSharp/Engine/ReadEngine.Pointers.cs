@@ -201,7 +201,8 @@ internal static partial class ReadEngine
         case ReadPointerTargetKind.Enum:
             return CStruct.CreateEnumValue(target.Enum!, ReadCodecValue(ref cursor, target.Codec.Primitive, scratch));
         case ReadPointerTargetKind.Composite:
-            return ReadPointerComposite(ref cursor, ref state, target);
+            // A debug parse records the target's members under the pointer's path.
+            return state.Debug is { } debug ? ReadRecordedPointerComposite(ref cursor, ref state, target, debug.Target) : ReadPointerComposite(ref cursor, ref state, target);
         case ReadPointerTargetKind.Terminated:
             return ReadCodecValue(ref cursor, target.Codec.Primitive, scratch);
         case ReadPointerTargetKind.Value:
@@ -299,6 +300,8 @@ internal static partial class ReadEngine
             return count == 0 ? PrimitiveArrayReader.Empty(codec) : cursor.ReadPrimitiveArray(codec, count);
         default:
             {
+                // A debug parse records each composite element under the pointer's path with the element's index.
+                DebugPath? path = state.Debug?.Target;
                 var values = new List<object?>(count);
                 for (int index = 0; index < count; index++)
                 {
@@ -306,7 +309,9 @@ internal static partial class ReadEngine
                     values.Add(
                         target.Kind switch
                         {
-                            ReadPointerTargetKind.CountedComposites => ReadPointerComposite(ref cursor, ref state, target),
+                            ReadPointerTargetKind.CountedComposites => state.Debug is null
+                                                                           ? ReadPointerComposite(ref cursor, ref state, target)
+                                                                           : ReadRecordedPointerComposite(ref cursor, ref state, target, DebugRecorder.CountedElementPath(path, index)),
                             ReadPointerTargetKind.CountedEnums => CStruct.CreateEnumValue(target.Enum!, ReadCodecValue(ref cursor, codec, scratch)),
                             _ => ReadTargetCodecValue(ref cursor, ref state, target, "Counted target has no reader: ", scratch),
                         });
@@ -348,6 +353,12 @@ internal static partial class ReadEngine
             try
             {
                 cursor.Position = entry.AddressEnd;
+                if (state.Debug is { } debug)
+                {
+                    // The target is recorded under the path the pointer was read with.
+                    debug.Target = entry.DebugStack;
+                }
+
                 int count = target.IsCounted ? EvaluatePointerCount(ref state, target) : 1;
                 object? value = FollowPointerTarget(ref cursor, ref state, target, entry.Placeholder.Address, target.Field.PointerDepth, count, scratch);
                 if (value is not null)

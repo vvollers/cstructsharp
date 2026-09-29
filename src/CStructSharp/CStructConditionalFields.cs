@@ -50,4 +50,27 @@ public sealed partial class CStruct
         return state.DebugMapping.Select(item => (item.Path, item.Start, item.End))
             .Concat(state.ConditionalLayoutTrace).ToArray();
     }
+
+    /// <summary>
+    ///     Captures a root's layout as an update does, from the caller's variables: they are resolved with the layout's
+    ///     definitions into a fresh dictionary, as the update resolves them, and the root is read by the interpreter.
+    /// </summary>
+    /// <param name="stream">The data.</param>
+    /// <param name="origin">The root's position.</param>
+    /// <param name="rootName">The root's name.</param>
+    /// <param name="variables">The caller's layout variables.</param>
+    /// <param name="options">The read settings.</param>
+    /// <returns>Each value's path and byte range, then each conditional member's name, position and selection (1 or 0).</returns>
+    /// <exception cref="Diagnostics.CStructException">The root is unknown, a definition cannot be resolved, or the data cannot be read.</exception>
+    internal (string Path, long Start, long End)[] CaptureUpdateLayout(
+        Stream stream, long origin, string rootName, in LayoutVariableInput variables, in ReadOperationSettings options)
+    {
+        Dictionary<string, Expr> resolved = variables.Resolve(this.layoutVariableResolver);
+        if (!this.compiledModelQueries.TryGetCompiledDeclaration(rootName, out CStructElement? root))
+        {
+            throw this.compiledModelQueries.UnknownRoot(rootName);
+        }
+
+        return this.CaptureUpdateLayout(stream, origin, root, resolved, options);
+    }
 }

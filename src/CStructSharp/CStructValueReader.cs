@@ -100,7 +100,7 @@ public sealed partial class CStruct
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
         if (this.SelectValueRead(effectiveOptions, segments, variables) is { } program)
         {
-            StructValue value = this.ReadRootWithEngine(stream, segments, program, variables, effectiveOptions, out bool selected);
+            StructValue value = this.ReadRootWithEngine(stream, segments, program, variables, effectiveOptions, null, out bool selected);
             if (selected)
             {
                 return value;
@@ -156,7 +156,7 @@ public sealed partial class CStruct
     /// <exception cref="CStructException">The input cannot be read or the root produces no single value; the path and offset are attached.</exception>
     private unsafe object? ReadRootValueWithEngine(byte* region, int length, IReadOnlyList<PathSegment> segments, ReadProgram program, in LayoutVariableInput variables, in ReadOperationSettings options, out long position)
     {
-        StructValue value = this.ReadRootWithEngine(region, length, segments, program, variables, options, out bool selected, out position);
+        StructValue value = this.ReadRootWithEngine(region, length, segments, program, variables, options, null, out bool selected, out position);
         if (selected)
         {
             return value;

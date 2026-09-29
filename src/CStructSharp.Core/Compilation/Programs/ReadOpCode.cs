@@ -15,6 +15,11 @@ namespace CStructSharp.Compilation.Programs;
 ///         program notes no member (<see cref="ReadProgram.NotesMembers"/>).
 ///     </para>
 ///     <para>
+///         <b>Debug programs.</b> The codes from <see cref="DebugMember"/> on appear only in the programs a debug parse runs
+///         (<see cref="ReadProgramCache.Debug"/>): they record each value's byte range and path and replace the block reads,
+///         which a debug parse never takes. An ordinary program never contains one, so an ordinary read pays nothing for them.
+///     </para>
+///     <para>
 ///         <b>Count register.</b> <see cref="CheckFixedCount"/> and <see cref="EvaluateCount"/> set the element count
 ///         the next array step reads; the count is evaluated and checked before the field is placed, as the interpreter
 ///         orders it. A data-sized array's count (<see cref="CountToEnd"/>, <see cref="CountTerminated"/>) is taken from the
@@ -427,4 +432,103 @@ internal enum ReadOpCode : byte
     ///     -1). Nothing is read and the root value stays empty. <c>Field</c> is -1.
     /// </summary>
     EvaluateDefinition,
+
+    // The codes below appear only in debug programs (ReadProgramCache.Debug), which a debug parse runs with a recorder.
+    // They follow every other code so an executor can hand the whole range to its debug handler.
+
+    /// <summary>
+    ///     Debug programs: names the member about to be read in the debug records. Its path is the composite's path
+    ///     extended by the member's segment: its name, <c>_</c> for unnamed padding, and an empty segment for an anonymous
+    ///     bitfield.
+    /// </summary>
+    DebugMember,
+
+    /// <summary>Debug programs: remembers the position as the start of the record the next read step produces.</summary>
+    DebugMark,
+
+    /// <summary>
+    ///     Debug programs: records the value the previous read step produced under the member's path and display type,
+    ///     from the marked start to the position. <c>A</c> is 0 for the value itself, 1 for an enum result's number (its
+    ///     <see cref="System.Numerics.BigInteger"/> value), and 2 for a bitfield, whose record covers its whole storage
+    ///     unit however far the position moved back.
+    /// </summary>
+    DebugRecord,
+
+    /// <summary>
+    ///     Debug programs: before a conditional member's selection, adds an inactive entry (its declaration name and the
+    ///     position) to the conditional-layout trace, when the recorder keeps one.
+    /// </summary>
+    DebugCondition,
+
+    /// <summary>Debug programs: after a conditional member's selection chose its arm, marks the member's trace entry active.</summary>
+    DebugConditionActive,
+
+    /// <summary>Debug programs: <see cref="ReadBoundedText"/> with one record for the whole text.</summary>
+    DebugBoundedText,
+
+    /// <summary>
+    ///     Debug programs: reads count-register fixed-width numbers (codec <c>A</c>) one at a time with a record each, as
+    ///     the interpreter reads every array in a debug parse, and gives them the typed array shape.
+    /// </summary>
+    DebugNumericElements,
+
+    /// <summary>Debug programs: reads the flat fixed-width numbers (codec <c>A</c>) of a multidimensional array one at a time with a record each.</summary>
+    DebugNumericElementList,
+
+    /// <summary>Debug programs: <see cref="ReadCodecArray"/> with a record per element.</summary>
+    DebugCodecArray,
+
+    /// <summary>Debug programs: reads a <c>char[N]</c> (codec <c>A</c>) character by character with a record per character, then makes it one string.</summary>
+    DebugCharArray,
+
+    /// <summary>Debug programs: <see cref="ReadWideCharArray"/> with a record per character.</summary>
+    DebugWideCharArray,
+
+    /// <summary>Debug programs: <see cref="ReadCharTable"/> with a record per character.</summary>
+    DebugCharTable,
+
+    /// <summary>Debug programs: <see cref="ReadEnumArray"/> (storage codec <c>A</c>, enum <c>B</c>) with a record of each element's number.</summary>
+    DebugEnumArray,
+
+    /// <summary>Debug programs: <see cref="ReadCustomArray"/> with a record per element.</summary>
+    DebugCustomArray,
+
+    /// <summary>Debug programs: <see cref="SkipElements"/> with a record per element under the padding's path.</summary>
+    DebugSkipElements,
+
+    /// <summary>Debug programs: <see cref="ReadStruct"/> whose members are recorded under the member's path.</summary>
+    DebugStruct,
+
+    /// <summary>
+    ///     Debug programs: reads count-register structs (program <c>A</c>) one at a time, each recorded under its element
+    ///     path (<c>items[2]</c>, <c>grid[1][0]</c>), into a flat list; a multidimensional array is nested after it.
+    /// </summary>
+    DebugStructArray,
+
+    /// <summary>Debug programs: <see cref="ReadUnion"/> whose views are recorded under the member's path, followed by the union's own record.</summary>
+    DebugUnion,
+
+    /// <summary>Debug programs: <see cref="ReadPromotedUnion"/> whose views and union record take the enclosing composite's path.</summary>
+    DebugPromotedUnion,
+
+    /// <summary>Debug programs: <see cref="ReadUnionArray"/> with each union recorded under its element path.</summary>
+    DebugUnionArray,
+
+    /// <summary>
+    ///     Debug programs: <see cref="ReadPointer"/> whose record follows the records of a target it follows in place, and
+    ///     whose struct target is recorded under the pointer's path.
+    /// </summary>
+    DebugPointer,
+
+    /// <summary>
+    ///     Debug programs: <see cref="ReadPointerArray"/> with a record per pointer; a pointer to a struct or union is
+    ///     recorded under its element path.
+    /// </summary>
+    DebugPointerArray,
+
+    /// <summary>Debug programs: <see cref="ReadRootStruct"/> whose members are recorded under the root's name.</summary>
+    DebugRootStruct,
+
+    /// <summary>Debug programs: <see cref="ReadRootUnion"/> whose views and union record are recorded under the root's name.</summary>
+    DebugRootUnion,
 }

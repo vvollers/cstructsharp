@@ -31,9 +31,11 @@ internal sealed class ReadProgramCache
 
     /// <summary>Creates the cache of one slot table and indexes its qualified names.</summary>
     /// <param name="table">The layout's slot table.</param>
-    public ReadProgramCache(SlotTable table)
+    /// <param name="debug">Whether the cache holds the debug programs a debug parse runs (<see cref="Debug"/>).</param>
+    public ReadProgramCache(SlotTable table, bool debug)
     {
         this.Table = table;
+        this.Debug = debug;
 
         // Every slot spelled `prefix.name` is a place a capture of `name` is published to while `prefix.` is active
         // (field names contain no dots, so the bare name is the last segment). A name with no such slot is published
@@ -66,6 +68,14 @@ internal sealed class ReadProgramCache
 
     /// <summary>Gets the slot table the programs index.</summary>
     public SlotTable Table { get; }
+
+    /// <summary>
+    ///     Gets a value indicating whether the cache holds debug programs: the programs a debug parse runs, which read
+    ///     exactly what the ordinary programs read but record every value's byte range and path, and read every array one
+    ///     element at a time, as the interpreter does in a debug parse. Their nested and pointer-target programs are debug
+    ///     programs of the same cache.
+    /// </summary>
+    public bool Debug { get; }
 
     /// <summary>Returns the program of a composite, compiling it on first request.</summary>
     /// <param name="compilation">The layout the composite belongs to (the compilation that owns this cache).</param>

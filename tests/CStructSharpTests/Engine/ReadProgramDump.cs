@@ -58,6 +58,17 @@ internal static class ReadProgramDump
         return Render(outcome.Program, layout.Compilation.SlotTable);
     }
 
+    /// <summary>Renders the debug program of a root of a layout, the program a debug parse runs.</summary>
+    /// <param name="layout">The layout.</param>
+    /// <param name="root">The root name.</param>
+    /// <returns>The text; fails the test when the root has no debug program.</returns>
+    public static string RenderDebugRoot(CStruct layout, string root)
+    {
+        ReadProgramOutcome outcome = layout.Compilation.GetRootDebugReadProgram(root);
+        Assert.IsNotNull(outcome.Program, outcome.Reason);
+        return Render(outcome.Program, layout.Compilation.SlotTable);
+    }
+
     /// <summary>
     ///     Renders one program's steps compactly, without its header or nested programs: <c>Op member operands</c> per
     ///     step, for assertions about a few steps.
@@ -128,9 +139,19 @@ internal static class ReadProgramDump
             return "dimensions " + string.Join("x", program.Fields[step.Field].Array.Dimensions.Select(dimension => dimension.FixedCount));
         case ReadOpCode.ReadEnum:
         case ReadOpCode.ReadEnumArray:
+        case ReadOpCode.DebugEnumArray:
             return Codec(program.Codecs[step.A]) + " as " + program.Enums[step.B].Name;
+        case ReadOpCode.DebugMember:
+        case ReadOpCode.DebugMark:
+        case ReadOpCode.DebugCondition:
+        case ReadOpCode.DebugConditionActive:
+            return string.Empty;
+        case ReadOpCode.DebugRecord:
+            return ((DebugRecordKind)step.A).ToString();
         case ReadOpCode.ReadStruct:
         case ReadOpCode.ReadUnion:
+        case ReadOpCode.DebugStruct:
+        case ReadOpCode.DebugUnion:
             return (program.Nested[step.A].Name is { Length: > 0 } named ? named : "(anonymous)") + (step.B >= 0 ? ", prefix " + program.Prefixes[step.B] : string.Empty);
         case ReadOpCode.PlaceMember:
         case ReadOpCode.PlaceBitfield:
@@ -142,6 +163,8 @@ internal static class ReadProgramDump
             return string.Empty;
         case ReadOpCode.ReadPointer:
         case ReadOpCode.ReadPointerArray:
+        case ReadOpCode.DebugPointer:
+        case ReadOpCode.DebugPointerArray:
             return (step.B == 1 ? "deferred " : "in place ") + program.PointerTargets[step.A].Kind;
         case ReadOpCode.FollowPendingPointers:
             return string.Empty;
@@ -154,6 +177,11 @@ internal static class ReadProgramDump
         case ReadOpCode.ReadUnionArray:
         case ReadOpCode.ReadRootUnion:
         case ReadOpCode.ReadRootStruct:
+        case ReadOpCode.DebugStructArray:
+        case ReadOpCode.DebugPromotedUnion:
+        case ReadOpCode.DebugUnionArray:
+        case ReadOpCode.DebugRootStruct:
+        case ReadOpCode.DebugRootUnion:
             return program.Nested[step.A].Name is { Length: > 0 } nested ? nested : "(anonymous)";
         case ReadOpCode.CaptureInteger:
         case ReadOpCode.CaptureUInt128:

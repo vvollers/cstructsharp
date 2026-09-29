@@ -47,6 +47,73 @@ public class ReadProgramDumpTests
         AssertDump(expected, new CStruct(Packet), "packet");
     }
 
+    /// <summary>
+    ///     The packet's debug program: the ordinary steps, each value read between a mark and a record, the arrays read
+    ///     element by element with a record each, every member named first, and each conditional member traced around
+    ///     its selection.
+    /// </summary>
+    [TestMethod]
+    public void Packet_Debug()
+    {
+        const string expected = """
+                                root packet
+                                    0  DebugRootStruct              -            packet
+
+                                struct packet
+                                    0  EnterConditionalScope        -            clear count, name_length, kind
+                                    1  DebugMember                  id
+                                    2  DebugMark                    id
+                                    3  ReadUInt32Le                 id           UInt32 le
+                                    4  DebugRecord                  id           Value
+                                    5  DebugMember                  count
+                                    6  DebugMark                    count
+                                    7  ReadUInt16Le                 count        UInt16 le
+                                    8  DebugRecord                  count        Value
+                                    9  CaptureInteger               count        -> count
+                                   10  CompleteMember               count        save [count] restore []
+                                   11  DebugMember                  samples
+                                   12  EvaluateCount                samples      count = count
+                                   13  DebugNumericElements         samples      Int32 le
+                                   14  DebugMember                  name_length
+                                   15  DebugMark                    name_length
+                                   16  ReadUInt8                    name_length  UInt8
+                                   17  DebugRecord                  name_length  Value
+                                   18  CaptureInteger               name_length  -> name_length
+                                   19  CompleteMember               name_length  save [name_length] restore []
+                                   20  DebugMember                  name
+                                   21  EvaluateCount                name         count = name_length
+                                   22  DebugCharArray               name         Char
+                                   23  DebugMember                  kind
+                                   24  DebugMark                    kind
+                                   25  ReadUInt8                    kind         UInt8
+                                   26  DebugRecord                  kind         Value
+                                   27  CaptureInteger               kind         -> kind
+                                   28  CompleteMember               kind         save [kind] restore []
+                                   29  DebugCondition               value
+                                   30  SelectArm                    -            group 0 ((kind == 1)) arm 1, else -> 36
+                                   31  DebugConditionActive         value
+                                   32  DebugMember                  value
+                                   33  DebugMark                    value
+                                   34  ReadFloat64Le                value        Float64 le
+                                   35  DebugRecord                  value        Value
+                                   36  DebugCondition               code
+                                   37  SelectArm                    -            group 0 ((kind == 1)) arm 0, else -> 43
+                                   38  DebugConditionActive         code
+                                   39  DebugMember                  code
+                                   40  DebugMark                    code
+                                   41  ReadUInt32Le                 code         UInt32 le
+                                   42  DebugRecord                  code         Value
+                                   43  DebugMember                  note
+                                   44  DebugMark                    note
+                                   45  ReadTerminatedText           note         TerminatedAscii
+                                   46  DebugRecord                  note         Value
+                                   47  FinishComposite              -            tail +0
+
+                                """;
+        string actual = ReadProgramDump.RenderDebugRoot(new CStruct(Packet), "packet");
+        Assert.AreEqual(expected.ReplaceLineEndings("\n"), actual, "actual dump:\n" + actual);
+    }
+
     /// <summary>The same layout aligned: known padding is a seek, padding after data-sized members an align, and so is the tail.</summary>
     [TestMethod]
     public void Packet_Aligned()

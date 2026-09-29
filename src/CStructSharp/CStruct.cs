@@ -367,7 +367,12 @@ public sealed partial class CStruct
         IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
         if (this.SelectParse(effectiveOptions, segments, variables, debug) is { } engineRoot)
         {
-            StructValue value = this.ReadRootWithEngine(stream, segments, engineRoot, variables, effectiveOptions, out bool selected);
+            if (debug)
+            {
+                return this.ParseWithEngineDebug(stream, segments, engineRoot, variables, effectiveOptions);
+            }
+
+            StructValue value = this.ReadRootWithEngine(stream, segments, engineRoot, variables, effectiveOptions, null, out bool selected);
             return (NoDebugData, selected ? value : this.SelectParsedRoot(value, segments));
         }
 

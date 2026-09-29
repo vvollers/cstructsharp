@@ -18,7 +18,9 @@ using CStructSharp.Expressions;
 ///         The engine runs whole-root reads (<see cref="SelectRootRead"/>: <c>Parse</c>, <c>ParseAsync</c>, each record of
 ///         <c>ParseMany</c>, and <c>ReadValue</c> of a bare root, over every source) whose root program is eligible
 ///         (<see cref="LayoutCompilation.GetRootReadProgram"/>). Every other operation, and a root read it cannot
-///         reproduce, is declined before anything is read, and the interpreter runs it (<see cref="Decide"/>). It also
+///         reproduce, is declined before anything is read, and the interpreter runs it (<see cref="Decide"/>). It runs the
+///         debug parse of a whole root (<see cref="SelectDebugRead"/>: <c>ParseWithDebug</c> and <c>ReadValueWithDebug</c> of
+///         a bare root, synchronous and asynchronous) through the root's debug program under the same conditions. It also
 ///         runs whole-root writes to memory (<see cref="SelectRootWrite"/>: <c>Serialize</c> to a new array or a span, and
 ///         <c>WriteAsync</c>, which serializes first) whose root write program is eligible.
 ///     </para>
@@ -118,6 +120,43 @@ internal static class EngineSelector
         }
 
         DecideAndRecord(selection, EngineOperation.RootRead, reason);
+        return null;
+    }
+
+    /// <summary>
+    ///     Decides whether the engine runs the debug parse of a whole root (<c>ParseWithDebug</c>, <c>ReadValueWithDebug</c>
+    ///     and their asynchronous forms, which the interpreter all runs as a root parse) and records the decision: the engine
+    ///     runs when the selection allows it, the variables are integers and the root's debug program is eligible.
+    /// </summary>
+    /// <param name="selection">The operation's snapshotted engine selection.</param>
+    /// <param name="compilation">The layout.</param>
+    /// <param name="rootName">The root's name, the path's only segment.</param>
+    /// <param name="variables">The operation's variable input.</param>
+    /// <returns>The root's debug program when the engine runs the parse; <see langword="null"/> when the interpreter does.</returns>
+    /// <exception cref="InvalidOperationException">The engine is required and declined the operation.</exception>
+    public static ReadProgram? SelectDebugRead(EngineSelection selection, LayoutCompilation compilation, string rootName, in LayoutVariableInput variables)
+    {
+        if (selection == EngineSelection.InterpreterOnly)
+        {
+            EngineDiagnostics.Current?.RecordInterpreterSelection(EngineOperation.DebugRead);
+            return null;
+        }
+
+        // Expression inputs can make the operation capture every field (run-time CaptureAll); stage 10 moves them to slots.
+        string reason = ExpressionInputs;
+        if (variables.UsesIntegers)
+        {
+            ReadProgramOutcome outcome = compilation.GetRootDebugReadProgram(rootName);
+            if (outcome.Program is { } program)
+            {
+                EngineDiagnostics.Current?.RecordRun(EngineOperation.DebugRead);
+                return program;
+            }
+
+            reason = outcome.Reason!;
+        }
+
+        DecideAndRecord(selection, EngineOperation.DebugRead, reason);
         return null;
     }
 

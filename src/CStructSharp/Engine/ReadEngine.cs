@@ -58,6 +58,7 @@ internal static partial class ReadEngine
     /// <param name="program">The root's program (<see cref="ReadProgramKind.Root"/>).</param>
     /// <param name="slots">The operation's initialized variable slots; the caller disposes them.</param>
     /// <param name="options">The operation's snapshotted settings.</param>
+    /// <param name="debug">The recorder of a debug parse, whose program is <paramref name="program"/>; <see langword="null"/> for an ordinary read.</param>
     /// <param name="selected">
     ///     Whether the result is the value the root's name selects (a struct root read straight into its own value);
     ///     otherwise it is the root value that holds the root's value under its name, as the interpreter builds it.
@@ -67,10 +68,10 @@ internal static partial class ReadEngine
     /// <exception cref="ArgumentOutOfRangeException">A limit is invalid.</exception>
     /// <exception cref="OperationCanceledException">The token is cancelled before or during the read.</exception>
     /// <exception cref="CStructException">The input cannot be read; the path and offset are attached.</exception>
-    public static StructValue ReadRoot(CStruct layout, Stream stream, IReadOnlyList<PathSegment> segments, ReadProgram program, VariableSlots slots, in ReadOperationSettings options, out bool selected)
+    public static StructValue ReadRoot(CStruct layout, Stream stream, IReadOnlyList<PathSegment> segments, ReadProgram program, VariableSlots slots, in ReadOperationSettings options, DebugRecorder? debug, out bool selected)
     {
         CStructOperationContext.Validate(stream, options);
-        var state = new ReadEngineState(layout, slots, options);
+        var state = new ReadEngineState(layout, slots, options, debug);
         try
         {
             if (MemoryReadCursor.TryCreate(stream, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken, out MemoryReadCursor memory))
@@ -89,7 +90,7 @@ internal static partial class ReadEngine
 
     /// <summary>
     ///     Reads one whole root from a pinned memory region, the input's byte 0 at <paramref name="region"/>: what
-    ///     <see cref="ReadRoot(CStruct, Stream, IReadOnlyList{PathSegment}, ReadProgram, VariableSlots, in ReadOperationSettings, out bool)"/>
+    ///     <see cref="ReadRoot(CStruct, Stream, IReadOnlyList{PathSegment}, ReadProgram, VariableSlots, in ReadOperationSettings, DebugRecorder, out bool)"/>
     ///     does over the read-only region stream the interpreter wraps memory in, without the stream: the settings are
     ///     validated (a region is always readable and seekable), and a failure reports the position the read reached.
     /// </summary>
@@ -100,16 +101,17 @@ internal static partial class ReadEngine
     /// <param name="program">The root's program.</param>
     /// <param name="slots">The operation's initialized variable slots; the caller disposes them.</param>
     /// <param name="options">The operation's snapshotted settings.</param>
+    /// <param name="debug">The recorder of a debug parse, whose program is <paramref name="program"/>; <see langword="null"/> for an ordinary read.</param>
     /// <param name="selected">Whether the result is the value the root's name selects rather than the root value.</param>
     /// <param name="position">The position the read ended at, in bytes from the region's start.</param>
     /// <returns>The selected value, or the root value.</returns>
     /// <exception cref="ArgumentOutOfRangeException">A limit is invalid.</exception>
     /// <exception cref="OperationCanceledException">The token is cancelled before or during the read.</exception>
     /// <exception cref="CStructException">The input cannot be read; the path and offset are attached.</exception>
-    public static unsafe StructValue ReadRoot(CStruct layout, byte* region, int length, IReadOnlyList<PathSegment> segments, ReadProgram program, VariableSlots slots, in ReadOperationSettings options, out bool selected, out long position)
+    public static unsafe StructValue ReadRoot(CStruct layout, byte* region, int length, IReadOnlyList<PathSegment> segments, ReadProgram program, VariableSlots slots, in ReadOperationSettings options, DebugRecorder? debug, out bool selected, out long position)
     {
         CStructOperationContext.ValidateSettings(options);
-        var state = new ReadEngineState(layout, slots, options);
+        var state = new ReadEngineState(layout, slots, options, debug);
         try
         {
             var cursor = new MemoryReadCursor(region, length, 0, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken);
@@ -755,7 +757,9 @@ internal static partial class ReadEngine
                     }
 
                 default:
-                    throw new InvalidOperationException("The compiled engine has no executor for read step " + step.Op + ".");
+                    // Only a debug program holds another code; its handler rejects anything else.
+                    last = RunDebugStep(ref cursor, ref state, program, step, destination, last, count, unitSize, scratch);
+                    break;
                 }
             }
 

@@ -39,6 +39,20 @@ public class ReadProgramEligibilityTests
             (layout, root) => layout.Compilation.GetRootReadProgram(root) is { IsEligible: false, } outcome ? outcome.Reason : null);
     }
 
+    /// <summary>
+    ///     The debug programs a debug parse runs are eligible for exactly the roots the read programs are, with the same
+    ///     reasons, so the one checked-in list pins both.
+    /// </summary>
+    [TestMethod]
+    public void DebugEligibility_MatchesTheCheckedInList()
+    {
+        EligibilityReport.AssertMatchesCheckedInList(
+            ExpectedPath,
+            "read-program",
+            nameof(ReadProgramEligibilityTests),
+            (layout, root) => layout.Compilation.GetRootDebugReadProgram(root) is { IsEligible: false, } outcome ? outcome.Reason : null);
+    }
+
     /// <summary>The list parses what it renders, so an update round-trips.</summary>
     [TestMethod]
     public void EligibilityList_RoundTrips()

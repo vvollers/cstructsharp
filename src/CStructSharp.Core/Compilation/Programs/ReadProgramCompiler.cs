@@ -43,6 +43,12 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 ///         root is eligible only when every composite its pointers can reach compiled.
 ///     </para>
 ///     <para>
+///         A debug program (<see cref="ReadProgramCache.Debug"/>) reads the same members with the same checks and adds what
+///         the interpreter records in a debug parse: each member's path, a record around every value read, the union's own
+///         record after its views, and the conditional-layout trace. It reads every array one element at a time with a
+///         record each, because the interpreter's debug parse takes none of its block paths.
+///     </para>
+///     <para>
 ///         A member the engine cannot read gives a reason instead of a program. A compiler is used for one request on one
 ///         thread.
 ///     </para>
@@ -75,6 +81,9 @@ internal sealed class ReadProgramCompiler
     private readonly ReadProgramCache cache;
     private readonly MemberExtents extents;
 
+    // Whether the programs are the debug programs of a debug parse; set by the cache the compiler serves.
+    private readonly bool debug;
+
     /// <summary>Creates a compiler for one request.</summary>
     /// <param name="compilation">The layout.</param>
     /// <param name="cache">The layout's program cache, which supplies nested structs' programs and qualified targets.</param>
@@ -83,6 +92,7 @@ internal sealed class ReadProgramCompiler
         this.compilation = compilation;
         this.cache = cache;
         this.extents = new MemberExtents(compilation);
+        this.debug = cache.Debug;
     }
 
     /// <summary>Compiles a struct read into a value of its own.</summary>
@@ -221,7 +231,14 @@ internal sealed class ReadProgramCompiler
         }
 
         var builder = new ReadProgramBuilder(this.cache.Table, [], rootShape, 0);
-        builder.Emit(composite.IsUnion ? ReadOpCode.ReadRootUnion : ReadOpCode.ReadRootStruct, -1, builder.AddNested(program), -1);
+        ReadOpCode read = (composite.IsUnion, this.debug) switch
+        {
+            (true, true) => ReadOpCode.DebugRootUnion,
+            (true, false) => ReadOpCode.ReadRootUnion,
+            (false, true) => ReadOpCode.DebugRootStruct,
+            _ => ReadOpCode.ReadRootStruct,
+        };
+        builder.Emit(read, -1, builder.AddNested(program), -1);
         return this.CheckPointerTargets(builder.Build(ReadProgramKind.Root, key, null));
     }
 
@@ -330,9 +347,23 @@ internal sealed class ReadProgramCompiler
             // An unselected member is skipped whole: no placement, no read, no scope step, as the interpreter's loop
             // continues before any of them.
             selections.Clear();
+
+            // A debug program traces every conditional member where the interpreter decides it: inactive until its
+            // selection passes, at the position before the member is placed.
+            bool traced = this.debug && field.IsConditional;
+            if (traced)
+            {
+                builder.Emit(ReadOpCode.DebugCondition, index, 0, 0);
+            }
+
             foreach (CompiledConditionalBranch branch in field.ConditionalBranches)
             {
                 selections.Add(builder.Emit(ReadOpCode.SelectArm, -1, builder.AddBranch(branch), -1));
+            }
+
+            if (traced)
+            {
+                builder.Emit(ReadOpCode.DebugConditionActive, index, 0, 0);
             }
 
             ReadPlacement before = placement;
@@ -417,6 +448,7 @@ internal sealed class ReadProgramCompiler
             return this.EmitInlineComposite(builder, index, location, promoted, ref placement);
         }
 
+        this.EmitDebugMember(builder, index);
         switch (field.Array.Kind)
         {
         case CompiledArrayKind.Fixed:
@@ -495,6 +527,7 @@ internal sealed class ReadProgramCompiler
             return Refuse(location, field, NoReader);
         }
 
+        this.EmitDebugMember(builder, index);
         if (standalone)
         {
             if (builder.UnionMembers)
@@ -509,7 +542,7 @@ internal sealed class ReadProgramCompiler
             builder.Emit(ReadOpCode.PlaceBitfield, index, 0, 0);
         }
 
-        builder.Emit(ReadOpCode.ReadBitfield, index, builder.AddCodec(field.CodecId, field.Codec), 0);
+        this.EmitRecorded(builder, ReadOpCode.ReadBitfield, index, builder.AddCodec(field.CodecId, field.Codec), 0, DebugRecordKind.Bitfield);
         this.EmitCapture(builder, index);
         return null;
     }
@@ -601,6 +634,13 @@ internal sealed class ReadProgramCompiler
     {
         CompiledField field = builder.Fields[index];
         CompiledCompositeType composite = field.Composite ?? this.compilation.SizeQueries.GetCompiledComposite((Struct)field.Declaration);
+
+        // An anonymous member adds no segment to the debug path: its members are recorded under the enclosing composite's.
+        if (!promoted)
+        {
+            this.EmitDebugMember(builder, index);
+        }
+
         if (this.EmitMemberPlacement(builder, index, standalone: false, ref placement) is { } misplaced)
         {
             return Refuse(location, field, misplaced);
@@ -622,10 +662,10 @@ internal sealed class ReadProgramCompiler
         builder.Emit(
             (promoted, composite.IsUnion) switch
             {
-                (true, true) => ReadOpCode.ReadPromotedUnion,
+                (true, true) => this.debug ? ReadOpCode.DebugPromotedUnion : ReadOpCode.ReadPromotedUnion,
                 (true, false) => ReadOpCode.ReadPromotedStruct,
-                (false, true) => ReadOpCode.ReadUnion,
-                _ => ReadOpCode.ReadStruct,
+                (false, true) => this.debug ? ReadOpCode.DebugUnion : ReadOpCode.ReadUnion,
+                _ => this.debug ? ReadOpCode.DebugStruct : ReadOpCode.ReadStruct,
             },
             index,
             builder.AddNested(program),
@@ -697,7 +737,7 @@ internal sealed class ReadProgramCompiler
                 }
 
                 PrimitiveCodec terminated = PrimitiveCodec.Resolve(field.DisplayTypeSpelling, field.LayoutLittleEndian);
-                builder.Emit(ReadOpCode.ReadTerminatedText, index, builder.AddCodec(field.TerminatedCodecId, terminated), 0);
+                this.EmitRecorded(builder, ReadOpCode.ReadTerminatedText, index, builder.AddCodec(field.TerminatedCodecId, terminated), 0, DebugRecordKind.Value);
                 return null;
             }
 
@@ -710,7 +750,14 @@ internal sealed class ReadProgramCompiler
                     return outcome.Reason;
                 }
 
-                builder.Emit(nested.IsUnion ? ReadOpCode.ReadUnion : ReadOpCode.ReadStruct, index, builder.AddNested(program), field.HasQualifiedPrefix ? builder.AddPrefix(field.QualifiedPrefix!) : -1);
+                ReadOpCode read = (nested.IsUnion, this.debug) switch
+                {
+                    (true, true) => ReadOpCode.DebugUnion,
+                    (true, false) => ReadOpCode.ReadUnion,
+                    (false, true) => ReadOpCode.DebugStruct,
+                    _ => ReadOpCode.ReadStruct,
+                };
+                builder.Emit(read, index, builder.AddNested(program), field.HasQualifiedPrefix ? builder.AddPrefix(field.QualifiedPrefix!) : -1);
                 return null;
             }
 
@@ -721,13 +768,13 @@ internal sealed class ReadProgramCompiler
 
             if (field.Enum is { } enm)
             {
-                builder.Emit(ReadOpCode.ReadEnum, index, codec, builder.AddEnum(enm));
+                this.EmitRecorded(builder, ReadOpCode.ReadEnum, index, codec, builder.AddEnum(enm), DebugRecordKind.EnumNumber);
                 return null;
             }
 
             if (field.Codec.IsCustom)
             {
-                builder.Emit(ReadOpCode.ReadCustom, index, codec, 0);
+                this.EmitRecorded(builder, ReadOpCode.ReadCustom, index, codec, 0, DebugRecordKind.Value);
                 return null;
             }
 
@@ -736,7 +783,7 @@ internal sealed class ReadProgramCompiler
                 return Refuse(location, field, NoReader);
             }
 
-            builder.Emit(scalar, index, codec, 0);
+            this.EmitRecorded(builder, scalar, index, codec, 0, DebugRecordKind.Value);
             return null;
 
         default:
@@ -770,11 +817,11 @@ internal sealed class ReadProgramCompiler
 
             // The interpreter takes an element struct's block path over the whole array only for one dimension, and never
             // for union elements.
-            builder.Emit(
-                nested.IsUnion ? ReadOpCode.ReadUnionArray : table ? ReadOpCode.ReadStructElements : ReadOpCode.ReadStructArray,
-                index,
-                builder.AddNested(program),
-                0);
+            ReadOpCode read = nested.IsUnion ? this.debug ? ReadOpCode.DebugUnionArray : ReadOpCode.ReadUnionArray
+                              : this.debug ? ReadOpCode.DebugStructArray
+                              : table ? ReadOpCode.ReadStructElements
+                              : ReadOpCode.ReadStructArray;
+            builder.Emit(read, index, builder.AddNested(program), 0);
             EmitReshape(builder, index, table);
             return null;
         }
@@ -786,7 +833,7 @@ internal sealed class ReadProgramCompiler
 
         if (field.Enum is { } enm)
         {
-            builder.Emit(ReadOpCode.ReadEnumArray, index, codec, builder.AddEnum(enm));
+            builder.Emit(this.debug ? ReadOpCode.DebugEnumArray : ReadOpCode.ReadEnumArray, index, codec, builder.AddEnum(enm));
             EmitReshape(builder, index, table);
             return null;
         }
@@ -795,30 +842,38 @@ internal sealed class ReadProgramCompiler
         // codec keeps its own step even for an unnamed member, which reads each value and keeps none.
         if (BoundedTextCodec.IsType(field.TypeSpelling))
         {
-            builder.Emit(ReadOpCode.ReadBoundedText, index, codec, 0);
+            builder.Emit(this.debug ? ReadOpCode.DebugBoundedText : ReadOpCode.ReadBoundedText, index, codec, 0);
             return null;
         }
 
         if (field.Codec.IsCustom)
         {
-            builder.Emit(ReadOpCode.ReadCustomArray, index, codec, 0);
+            builder.Emit(this.debug ? ReadOpCode.DebugCustomArray : ReadOpCode.ReadCustomArray, index, codec, 0);
             EmitReshape(builder, index, table);
             return null;
         }
 
         if (field.Name.Length == 0)
         {
-            builder.Emit(ReadOpCode.SkipElements, index, codec, 0);
+            builder.Emit(this.debug ? ReadOpCode.DebugSkipElements : ReadOpCode.SkipElements, index, codec, 0);
             return null;
         }
 
         if (field.IsCharElement || field.IsWideCharElement)
         {
-            builder.Emit(table ? ReadOpCode.ReadCharTable : field.IsCharElement ? ReadOpCode.ReadCharArray : ReadOpCode.ReadWideCharArray, index, codec, 0);
+            ReadOpCode characters = (table, field.IsCharElement) switch
+            {
+                (true, _) => this.debug ? ReadOpCode.DebugCharTable : ReadOpCode.ReadCharTable,
+                (false, true) => this.debug ? ReadOpCode.DebugCharArray : ReadOpCode.ReadCharArray,
+                _ => this.debug ? ReadOpCode.DebugWideCharArray : ReadOpCode.ReadWideCharArray,
+            };
+            builder.Emit(characters, index, codec, 0);
             return null;
         }
 
-        ReadOpCode op = !field.Codec.IsFixedWidthNumeric ? ReadOpCode.ReadCodecArray
+        // A debug parse reads every numeric element on its own, with a record, whoever places the array.
+        ReadOpCode op = !field.Codec.IsFixedWidthNumeric ? this.debug ? ReadOpCode.DebugCodecArray : ReadOpCode.ReadCodecArray
+                        : this.debug ? table ? ReadOpCode.DebugNumericElementList : ReadOpCode.DebugNumericElements
                         : table ? standalone ? ReadOpCode.ReadNumericElementList : ReadOpCode.ReadNumericList
                         : standalone ? ReadOpCode.ReadNumericElements
                         : ReadOpCode.ReadNumericArray;
@@ -848,7 +903,14 @@ internal sealed class ReadProgramCompiler
         bool deferred = !standalone && field.FollowsAfterStruct;
         builder.DefersPointers |= deferred;
         bool array = field.Array.Kind != CompiledArrayKind.Scalar;
-        builder.Emit(array ? ReadOpCode.ReadPointerArray : ReadOpCode.ReadPointer, index, builder.AddPointerTarget(target), deferred ? 1 : 0);
+        ReadOpCode read = (array, this.debug) switch
+        {
+            (true, true) => ReadOpCode.DebugPointerArray,
+            (true, false) => ReadOpCode.ReadPointerArray,
+            (false, true) => ReadOpCode.DebugPointer,
+            _ => ReadOpCode.ReadPointer,
+        };
+        builder.Emit(read, index, builder.AddPointerTarget(target), deferred ? 1 : 0);
         EmitReshape(builder, index, field.Array.Dimensions.Length > 1);
         return null;
     }
@@ -915,6 +977,40 @@ internal sealed class ReadProgramCompiler
             _ when field.CodecId >= 0 => new ReadPointerTarget(field, ReadPointerTargetKind.Value, codec, null, null, null, null),
             _ => new ReadPointerTarget(field, ReadPointerTargetKind.NoReader, codec, null, null, null, null),
         };
+    }
+
+    /// <summary>In a debug program, emits the step that names the member in the debug records; nothing otherwise.</summary>
+    /// <param name="builder">The program under construction.</param>
+    /// <param name="index">The member's index.</param>
+    private void EmitDebugMember(ReadProgramBuilder builder, int index)
+    {
+        if (this.debug)
+        {
+            builder.Emit(ReadOpCode.DebugMember, index, 0, 0);
+        }
+    }
+
+    /// <summary>
+    ///     Emits a read step that produces one value; a debug program surrounds it with the steps that record the value's
+    ///     byte range, as the interpreter records every scalar it reads in a debug parse.
+    /// </summary>
+    /// <param name="builder">The program under construction.</param>
+    /// <param name="op">The read step's operation.</param>
+    /// <param name="index">The member's index.</param>
+    /// <param name="a">The read step's first operand.</param>
+    /// <param name="b">The read step's second operand.</param>
+    /// <param name="kind">What the record holds (the <see cref="ReadOpCode.DebugRecord"/> step's <c>A</c>).</param>
+    private void EmitRecorded(ReadProgramBuilder builder, ReadOpCode op, int index, int a, int b, DebugRecordKind kind)
+    {
+        if (!this.debug)
+        {
+            builder.Emit(op, index, a, b);
+            return;
+        }
+
+        builder.Emit(ReadOpCode.DebugMark, index, 0, 0);
+        builder.Emit(op, index, a, b);
+        builder.Emit(ReadOpCode.DebugRecord, index, (int)kind, 0);
     }
 
     /// <summary>

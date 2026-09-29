@@ -6,8 +6,8 @@ using CStructSharp.Values;
 
 /// <summary>
 ///     Pins the engine selection option and its diagnostics: the selector decides once per operation that reaches the
-///     general path, counts the decision in the recording open on the calling flow, runs the engine for whole-root reads
-///     and serializations of eligible roots and declines every other operation, and fails an operation that requires the
+///     general path, counts the decision in the recording open on the calling flow, runs the engine for whole-root reads,
+///     debug parses and serializations of eligible roots and declines every other operation, and fails an operation that requires the
 ///     engine with the decline reason before reading or writing anything.
 /// </summary>
 [TestClass]
@@ -49,7 +49,8 @@ public class EngineSelectionTests
 
     /// <summary>
     ///     Each public operation that reaches the general path records exactly one decision of its own kind: a run for a
-    ///     whole-root read of an eligible root over every source, and for a whole-root <c>Serialize</c> to an array or a span
+    ///     whole-root read of an eligible root over every source, for a whole-root debug parse (<c>ParseWithDebug</c>,
+    ///     <c>ReadValueWithDebug</c>, and asynchronously), and for a whole-root <c>Serialize</c> to an array or a span
     ///     (and <c>WriteAsync</c>, which serializes first); a decline with its reason for everything else.
     /// </summary>
     [TestMethod]
@@ -72,7 +73,12 @@ public class EngineSelectionTests
             ("ReadValue<T>(root)", EngineOperation.RootRead, null, (read, _, _) => layout.ReadValue<StructValue>(SizedData, "rec", options: read)),
             ("ReadValue(path)", EngineOperation.PathRead, NotSupported, (read, _, _) => layout.ReadValue(SizedData, "rec.items[1]", options: read)),
             ("ReadValue<T>(path)", EngineOperation.PathRead, NotSupported, (read, _, _) => layout.ReadValue<int>(SizedData, "rec.tail", options: read)),
-            ("ParseWithDebug", EngineOperation.DebugRead, NotSupported, (read, _, _) => layout.ParseWithDebug(SizedData, "rec", options: read)),
+            ("ParseWithDebug", EngineOperation.DebugRead, null, (read, _, _) => layout.ParseWithDebug(SizedData, "rec", options: read)),
+            ("ParseWithDebug(Stream)", EngineOperation.DebugRead, null, (read, _, _) => layout.ParseWithDebug(new MemoryStream(SizedData), "rec", options: read)),
+            ("ParseWithDebugAsync", EngineOperation.DebugRead, null, (read, _, _) => layout.ParseWithDebugAsync(new MemoryStream(SizedData), "rec", options: read).AsTask().GetAwaiter().GetResult()),
+            ("ReadValueWithDebug(root)", EngineOperation.DebugRead, null, (read, _, _) => layout.ReadValueWithDebug(SizedData, "rec", options: read)),
+            ("ReadValueWithDebugAsync(root)", EngineOperation.DebugRead, null, (read, _, _) => layout.ReadValueWithDebugAsync(new MemoryStream(SizedData), "rec", options: read).AsTask().GetAwaiter().GetResult()),
+            ("ParseWithDebug(path)", EngineOperation.DebugRead, NotSupported, (read, _, _) => layout.ParseWithDebug(SizedData, "rec.last", options: read)),
             ("ReadValueWithDebug(path)", EngineOperation.DebugRead, NotSupported, (read, _, _) => layout.ReadValueWithDebug(SizedData, "rec.last", options: read)),
             ("ResolveAddress", EngineOperation.AddressResolution, NotSupported, (read, _, _) => layout.ResolveAddress(SizedData, "rec.tail", options: read)),
             ("ResolveAddressAsync", EngineOperation.AddressResolution, NotSupported, (read, _, _) => layout.ResolveAddressAsync(new MemoryStream(SizedData), "rec.tail", options: read).AsTask().GetAwaiter().GetResult()),
@@ -202,7 +208,7 @@ public class EngineSelectionTests
     /// <summary>
     ///     Requiring the engine fails every operation the engine declines with <see cref="InvalidOperationException"/>
     ///     naming the operation and the decline reason, before any byte is read or written or a stream moves; a whole-root
-    ///     read of an eligible root runs.
+    ///     read and a whole-root debug parse of an eligible root run.
     /// </summary>
     [TestMethod]
     public void EngineRequired_ThrowsWithTheDeclineReason_BeforeTouchingData()
@@ -220,7 +226,8 @@ public class EngineSelectionTests
         AssertRequired(EngineOperation.RootRead, () => layout.Parse(unslottedSource, UnslottedRoot, UnslottedVariables, read), UnslottedReason);
         Assert.AreEqual(0, unslottedSource.Position, "the stream does not move");
         AssertRequired(EngineOperation.PathRead, () => layout.ReadValue(SizedData, "rec.items[0]", options: read));
-        AssertRequired(EngineOperation.DebugRead, () => layout.ParseWithDebug(SizedData, "rec", options: read));
+        Assert.AreEqual((byte)9, layout.ParseWithDebug(SizedData, "rec", options: read).Value["tail"]);
+        AssertRequired(EngineOperation.DebugRead, () => layout.ParseWithDebug(SizedData, "rec.last", options: read));
         AssertRequired(EngineOperation.AddressResolution, () => layout.ResolveAddress(SizedData, "rec.tail", options: read));
         AssertRequired(EngineOperation.LengthQuery, () => layout.GetArrayLength(SizedData, "rec.items", options: read));
         CollectionAssert.AreEqual(new byte[] { 1, 4, 0, 5, 9, }, layout.Serialize("rec", value, options: write));

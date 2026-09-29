@@ -284,22 +284,7 @@ internal static partial class ReadEngine
             characters[index] = (char)ReadCodecValue(ref cursor, codec, scratch);
         }
 
-        // The interpreter's row loop: its capacity divides by the row size, as a zero-length row fails there too.
-        int[] sizes = CStruct.FixedDimensionSizes(member);
-        int rowSize = sizes[^1];
-        var rows = new List<object?>(count / rowSize);
-        for (int start = 0; start < count; start += rowSize)
-        {
-            string text = state.FixedText(new string(characters, start, rowSize));
-            if (member.IsWideCharElement)
-            {
-                PrimitiveCodecs.ValidateWideText(text, state.Layout.GetWideCharacterEncoding(member));
-            }
-
-            rows.Add(text);
-        }
-
-        return CStruct.ReshapeFlatArrayValues(rows, sizes[..^1]);
+        return CharacterRows(ref state, member, characters);
     }
 
     /// <summary>

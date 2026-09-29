@@ -42,6 +42,7 @@ internal sealed class SlotTable
     private readonly Dictionary<string, int> slots;
     private readonly SlotValue[]? staticState;
     private ReadProgramCache? readPrograms;
+    private ReadProgramCache? debugReadPrograms;
     private WriteProgramCache? writePrograms;
 
     /// <summary>Assigns the slots, then records dependents and the static state, which compile against them.</summary>
@@ -90,7 +91,14 @@ internal sealed class SlotTable
     ///     on first access: a program's slots are this table's, so its cache lives with the table.
     /// </summary>
     public ReadProgramCache ReadPrograms
-        => Volatile.Read(ref this.readPrograms) ?? Interlocked.CompareExchange(ref this.readPrograms, new ReadProgramCache(this), null) ?? this.readPrograms!;
+        => Volatile.Read(ref this.readPrograms) ?? Interlocked.CompareExchange(ref this.readPrograms, new ReadProgramCache(this, debug: false), null) ?? this.readPrograms!;
+
+    /// <summary>
+    ///     Gets the debug read programs compiled against this table (<see cref="LayoutCompilation.GetRootDebugReadProgram"/>),
+    ///     created on first access like <see cref="ReadPrograms"/>, so a layout that is never debug-parsed compiles none.
+    /// </summary>
+    public ReadProgramCache DebugReadPrograms
+        => Volatile.Read(ref this.debugReadPrograms) ?? Interlocked.CompareExchange(ref this.debugReadPrograms, new ReadProgramCache(this, debug: true), null) ?? this.debugReadPrograms!;
 
     /// <summary>
     ///     Gets the write programs compiled against this table (<see cref="LayoutCompilation.GetRootWriteProgram"/>), created
