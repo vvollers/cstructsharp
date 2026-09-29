@@ -76,13 +76,6 @@ internal sealed class ReadProgramCompiler
     /// <summary>The reason for a declaration kind that is not a readable root.</summary>
     public const string UnreadableRoot = "the declaration is not a readable root";
 
-    /// <summary>
-    ///     The start of the reason for an expression that names an identifier the layout's slot table does not hold. Only a
-    ///     type-spelling root (<c>uint8[N]</c>), registered after the table was built, can: a caller's value of that name
-    ///     would have no slot to live in.
-    /// </summary>
-    public const string UnslottedName = "the expression names an identifier without a slot: ";
-
     private readonly LayoutCompilation compilation;
     private readonly ReadProgramCache cache;
     private readonly MemberExtents extents;
@@ -181,8 +174,8 @@ internal sealed class ReadProgramCompiler
     ///     interpreter's order of checks, for a path that follows the pointer and then reads what it reaches.
     /// </summary>
     /// <param name="field">The pointer field or view.</param>
-    /// <returns>The target, or <see langword="null"/> when a data-dependent count names an identifier without a slot.</returns>
-    public ReadPointerTarget? DescribeSelectedPointer(CompiledField field) => this.DescribePointerTarget(field);
+    /// <returns>The target.</returns>
+    public ReadPointerTarget DescribeSelectedPointer(CompiledField field) => this.DescribePointerTarget(field);
 
     /// <summary>Formats a reason with the struct and member it concerns.</summary>
     /// <param name="location">The struct (or root) name.</param>
@@ -515,11 +508,8 @@ internal sealed class ReadProgramCompiler
             builder.Emit(ReadOpCode.CheckFixedCount, index, total, 0);
             break;
         case CompiledArrayKind.Runtime:
-            if (this.FirstUnslottedName(field.Array.CountExpression!) is { } unslotted)
-            {
-                return Refuse(location, field, UnslottedName + unslotted);
-            }
-
+            // A count may name a caller variable no expression of the layout reads (a root spelled at run time, uint8[M]):
+            // its program then evaluates over the dictionary the slots stand for, which holds the caller's value.
             builder.Emit(ReadOpCode.EvaluateCount, index, builder.AddExpression(field.Array.CountExpression!, "array length for " + field.Name), 0);
             break;
         }
@@ -663,22 +653,6 @@ internal sealed class ReadProgramCompiler
         {
             this.extents.AdvancePast(ref placement, builder.Fields[index]);
         }
-    }
-
-    /// <summary>Returns the first identifier an expression names that has no slot in the layout's table, if any.</summary>
-    /// <param name="expression">The expression.</param>
-    /// <returns>The name, or <see langword="null"/> when every name has a slot.</returns>
-    private string? FirstUnslottedName(Expr expression)
-    {
-        foreach (string name in this.cache.Table.Evaluator.GetDependencies(expression))
-        {
-            if (!this.cache.Table.TryGetSlot(name, out _))
-            {
-                return name;
-            }
-        }
-
-        return null;
     }
 
     /// <summary>
@@ -958,11 +932,7 @@ internal sealed class ReadProgramCompiler
     private string? EmitPointerRead(ReadProgramBuilder builder, int index, string location, bool standalone)
     {
         CompiledField field = builder.Fields[index];
-        if (this.DescribePointerTarget(field) is not { } target)
-        {
-            return Refuse(location, field, UnslottedName + this.FirstUnslottedName(field.PointerElements!.CountExpression!));
-        }
-
+        ReadPointerTarget target = this.DescribePointerTarget(field);
         bool deferred = !standalone && field.FollowsAfterStruct;
         builder.DefersPointers |= deferred;
         bool array = field.Array.Kind != CompiledArrayKind.Scalar;
@@ -983,8 +953,8 @@ internal sealed class ReadProgramCompiler
     ///     kind), an enum, a struct or union, terminated text, then any other value through its codec.
     /// </summary>
     /// <param name="field">The pointer field.</param>
-    /// <returns>The target, or <see langword="null"/> when a data-dependent count names an identifier without a slot.</returns>
-    private ReadPointerTarget? DescribePointerTarget(CompiledField field)
+    /// <returns>The target.</returns>
+    private ReadPointerTarget DescribePointerTarget(CompiledField field)
     {
         int pointerSize = this.compilation.PointerSize;
         if (field.HasCountedTarget)
@@ -993,11 +963,6 @@ internal sealed class ReadProgramCompiler
             ProgramExpression? count = null;
             if (elements.FixedCount is null)
             {
-                if (this.FirstUnslottedName(elements.CountExpression!) is not null)
-                {
-                    return null;
-                }
-
                 count = this.cache.Table.Compile(elements.CountExpression!);
             }
 

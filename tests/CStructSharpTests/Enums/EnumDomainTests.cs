@@ -647,7 +647,7 @@ public class EnumDomainTests
                               """;
         var cstruct = new CStruct(layout);
         byte[] bytes = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xA5,];
-        var variables = new Dictionary<string, Expr> { ["count"] = new Literal(1), };
+        var variables = new Dictionary<string, int> { ["count"] = 1, };
 
         Assert.Throws<CStructReadException>(
             () => cstruct.Parse(new MemoryStream(bytes), "root", variables));

@@ -1151,7 +1151,7 @@ public sealed partial class CStruct
         bool bulkCharacters = !state.Debug && !read.Standalone && count > 0 &&
                               compiledField.IsCharElement && !compiledField.IsWideCharElement && !compiledField.IsPointer &&
                               compiledField.BitSize == 0 && compiledField.Array.Dimensions.Length == 1 && compiledField.Name.Length > 0 &&
-                              !compiledField.CapturesLayoutVariable && !state.CaptureAllLayoutVariables && !state.GeneralPathOnly;
+                              !compiledField.CapturesLayoutVariable && !state.GeneralPathOnly;
         if (!typedArray && !bulkCharacters)
         {
             containerDict[compiledField.Name] = new List<object?>(count);
@@ -1175,7 +1175,7 @@ public sealed partial class CStruct
             state.NextPosition = state.Stream.Position;
 
             // An array is not an integer; the capture makes a shared name unusable, as every path does.
-            if (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
+            if (compiledField.CapturesLayoutVariable)
             {
                 LayoutVariableCapture.Capture(state.Variables, compiledField.Name, compiledField, lastElement);
                 state.PublishQualified(compiledField.Name);
@@ -1302,7 +1302,7 @@ public sealed partial class CStruct
         }
 
         read.Store(value);
-        if (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
+        if (compiledField.CapturesLayoutVariable)
         {
             LayoutVariableCapture.Capture(state.Variables, compiledField.Name, compiledField, value);
             state.PublishQualified(compiledField.Name);
@@ -1435,7 +1435,7 @@ public sealed partial class CStruct
         }
 
         read.Store(content);
-        if (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
+        if (compiledField.CapturesLayoutVariable)
         {
             // Later counts and expressions read the value through the field's name; see LayoutVariableCapture for the
             // rule every path shares.

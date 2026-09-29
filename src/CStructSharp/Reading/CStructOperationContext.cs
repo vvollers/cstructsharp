@@ -45,7 +45,6 @@ internal sealed class CStructOperationContext
             options.MaxTotalBytesRead,
             options.CancellationToken);
         this.Variables = variables;
-        this.CaptureAllLayoutVariables = variables is not LayoutVariables { CaptureAll: false };
         this.Aligned = aligned;
 
         // Copy nullable options into concrete defaults once so the hot parsing path never has to repeat this logic.
@@ -134,13 +133,6 @@ internal sealed class CStructOperationContext
     ///     replaces its entry.
     /// </summary>
     public Dictionary<string, Expr> Variables { get; }
-
-    /// <summary>
-    ///     True when every field must publish its layout variable, because the supplied variables contain an
-    ///     unevaluated expression that may name any field; otherwise only fields the compiled layout's own
-    ///     expressions reference (<see cref="CompiledField.CapturesLayoutVariable"/>) are captured.
-    /// </summary>
-    public bool CaptureAllLayoutVariables { get; }
 
     /// <summary>
     ///     The dotted prefix (<c>hdr.</c>, <c>a.b.</c>) of the nested struct fields being read, when an expression

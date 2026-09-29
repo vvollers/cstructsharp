@@ -663,7 +663,7 @@ public sealed partial class CStruct
 
         // Later fields may use this field in an expression, so keep the writer's variable map in step with the bytes;
         // see LayoutVariableCapture for the rule every path shares.
-        if (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
+        if (compiledField.CapturesLayoutVariable)
         {
             LayoutVariableCapture.Capture(state.Variables, compiledField.Name, compiledField, writtenEnumValue is BigInteger exact ? exact : value);
             state.PublishQualified(compiledField.Name);
@@ -1381,7 +1381,7 @@ public sealed partial class CStruct
                 throw exception;
             }
 
-            if (EngineSelector.SelectUpdate(effectiveOptions.EngineSelection, this.compilation, segments, rootElement, variables))
+            if (EngineSelector.SelectUpdate(effectiveOptions.EngineSelection, this.compilation, segments, rootElement))
             {
                 this.UpdateWithEngine(stream, segments, value, slots, effectiveOptions);
                 return;
@@ -1641,7 +1641,7 @@ public sealed partial class CStruct
             }
 
             PathSegment[]? childSegments = segments.Count > 1 ? segments.Skip(1).ToArray() : null;
-            WriteProgram? program = EngineSelector.SelectWrite(effectiveOptions.EngineSelection, this.compilation, segments, childSegments, rootElement, variables);
+            WriteProgram? program = EngineSelector.SelectWrite(effectiveOptions.EngineSelection, this.compilation, segments, childSegments, rootElement);
             if (program is null && slotted)
             {
                 // The engine declined: the interpreter resolves its dictionary, which succeeds as the slots did.

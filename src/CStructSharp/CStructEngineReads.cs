@@ -34,11 +34,11 @@ public sealed partial class CStruct
         if (segments.Count == 1)
         {
             return debug
-                       ? EngineSelector.SelectDebugRead(options.EngineSelection, this.compilation, segments[0].Name, variables)
-                       : EngineSelector.SelectRootRead(options.EngineSelection, this.compilation, segments[0].Name, variables);
+                       ? EngineSelector.SelectDebugRead(options.EngineSelection, this.compilation, segments[0].Name)
+                       : EngineSelector.SelectRootRead(options.EngineSelection, this.compilation, segments[0].Name);
         }
 
-        return EngineSelector.SelectPathRead(options.EngineSelection, this.compilation, segments[0].Name, variables, debug ? EngineOperation.DebugRead : EngineOperation.PathRead, debug);
+        return EngineSelector.SelectPathRead(options.EngineSelection, this.compilation, segments[0].Name, debug ? EngineOperation.DebugRead : EngineOperation.PathRead, debug);
     }
 
     /// <summary>
@@ -157,8 +157,7 @@ public sealed partial class CStruct
     ///     The compiled engine's counterpart of
     ///     <see cref="CaptureUpdateLayout(Stream, long, CStructElement, Dictionary{string, Expr}, ReadOperationSettings)"/>:
     ///     the same reading of the root with its debug program, giving the same records and conditional-layout trace entry
-    ///     for entry, or <see langword="null"/> when the engine cannot read the root (an ineligible root, or expression
-    ///     variables that make every field captured).
+    ///     for entry, or <see langword="null"/> when the engine cannot read the root.
     /// </summary>
     /// <remarks>
     ///     An update runs on one implementation from start to end: the engine's update captures its layouts with the engine
@@ -175,7 +174,7 @@ public sealed partial class CStruct
     internal (string Path, long Start, long End)[]? CaptureUpdateLayoutWithEngine(
         Stream stream, long origin, string rootName, in LayoutVariableInput variables, in ReadOperationSettings options)
     {
-        if (EngineSelector.CapturesEveryField(this.compilation, variables) || this.compilation.GetRootDebugReadProgram(rootName).Program is not { } program)
+        if (this.compilation.GetRootDebugReadProgram(rootName).Program is not { } program)
         {
             return null;
         }

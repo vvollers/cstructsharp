@@ -176,8 +176,7 @@ internal static class ExpressionDifferential
                 return actualCreation;
             }
 
-            AssertSameState(label, table, dictionary, slots, input.UsesIntegers);
-            Assert.AreEqual(dictionary is LayoutVariables { CaptureAll: true, }, slots.CaptureAll, label + ": capture-all");
+            AssertSameState(label, table, dictionary, slots);
             foreach ((string name, Expr? value) in captures ?? [])
             {
                 Assert.IsTrue(table.TryGetSlot(name, out int slot), label + ": " + name + " has no slot");
@@ -335,25 +334,19 @@ internal static class ExpressionDifferential
     }
 
     /// <summary>
-    ///     Asserts that the slots stand for the dictionary: every name with a slot has the same entry (or none), and
-    ///     for an expression input every entry without a slot is kept.
+    ///     Asserts that the slots stand for the dictionary: every name with a slot has the same entry (or none), and every
+    ///     caller variable without a slot is kept beside the slots with its value.
     /// </summary>
     /// <param name="label">The scenario's name in failure messages.</param>
-    /// <param name="table">The layout's table.</param>
+    /// <param name="table">The layout's table, which the slots belong to.</param>
     /// <param name="dictionary">The dictionary model's state.</param>
     /// <param name="slots">The slot model's state.</param>
-    /// <param name="integers">Whether the input held integers, whose names without a slot are dropped.</param>
-    public static void AssertSameState(string label, SlotTable table, Dictionary<string, Expr> dictionary, VariableSlots slots, bool integers)
+    public static void AssertSameState(string label, SlotTable table, Dictionary<string, Expr> dictionary, VariableSlots slots)
     {
+        Assert.AreSame(table, slots.Table, label + ": the slots belong to another table");
         Dictionary<string, Expr> view = slots.ToDictionary();
         foreach ((string name, Expr expected) in dictionary)
         {
-            if (integers && !table.TryGetSlot(name, out _))
-            {
-                Assert.IsFalse(view.ContainsKey(name), label + ": " + name + " has no slot but is in the view");
-                continue;
-            }
-
             Assert.IsTrue(view.TryGetValue(name, out Expr? actual), label + ": " + name + " is missing from the slots");
             Assert.AreEqual(expected, actual, label + ": state of " + name);
         }

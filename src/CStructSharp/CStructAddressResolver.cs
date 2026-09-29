@@ -926,7 +926,7 @@ public sealed partial class CStruct
     {
         // An unreferenced field still moves the stream past its bytes - reported failure offsets depend on it - but
         // publishes no layout variable.
-        bool captures = compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables;
+        bool captures = compiledField.CapturesLayoutVariable;
 
         // Arrays and fixed-point values are never read here; like every value that is not an integer, their capture
         // only makes a shared name unusable, exactly as the reader's does.

@@ -370,13 +370,13 @@ public class UnionValueTests
             () => cstruct.Parse(
                 new MemoryStream(new byte[] { 1, 2, }),
                 "root",
-                new Dictionary<string, CStructSharp.Syntax.Expr>(),
+                new Dictionary<string, int>(),
                 new ReadOptions { MaxNestingDepth = 1, }));
 
         dynamic parsed = cstruct.Parse(
             new MemoryStream(new byte[] { 1, 2, }),
             "root",
-            new Dictionary<string, CStructSharp.Syntax.Expr>(),
+            new Dictionary<string, int>(),
             new ReadOptions { MaxNestingDepth = 2, });
         Assert.AreEqual(2, ((IList<object?>)parsed.values).Count);
     }

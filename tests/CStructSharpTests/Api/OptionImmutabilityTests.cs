@@ -73,7 +73,7 @@ public class OptionImmutabilityTests
             dynamic parsed = cstruct.Parse(
                 readStream,
                 "root",
-                new Dictionary<string, Expr>(),
+                new Dictionary<string, int>(),
                 readOptions);
             Assert.AreEqual((byte)(index + 1), (byte)parsed.value);
 

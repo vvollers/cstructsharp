@@ -149,9 +149,9 @@ internal sealed record EngineCorpusCase(
     ///     Runs every public read, write and update of the case with the engine required and returns how many ran: a whole
     ///     root read, debug parse and record sequence from memory and a stream, a selected read, address and length of each
     ///     path, the root written to every destination, and each path written and updated with the value it holds. Nothing
-    ///     may be declined for the operation's kind, source, destination or options - only because the root or member cannot
-    ///     be compiled (the eligibility reports) or because the path selects nothing it can write or names no root, which the
-    ///     interpreter then rejects as well.
+    ///     may be declined for the operation's kind, source, destination, options or variables - a root spelled at run time
+    ///     whose count names a caller-only variable included - and every root reads and writes on the engine; only a path
+    ///     that selects nothing it can write or names no root is declined, which the interpreter then rejects as well.
     /// </summary>
     /// <returns>The number of operations run, 0 when the layout does not compile or has nothing to read.</returns>
     /// <exception cref="AssertFailedException">The engine declined an operation it must run.</exception>
@@ -171,11 +171,21 @@ internal sealed record EngineCorpusCase(
                                                  ? layout.Layout.Declarations.FirstOrDefault(item => item.Kind is LayoutDeclarationKind.Struct or LayoutDeclarationKind.Union)
                                                  : layout.Layout.Declarations.FirstOrDefault(item => item.Name == this.Root);
         string? root = this.Root ?? declaration?.Name;
-        if (root is null || !layout.Compilation.GetRootReadProgram(root).IsEligible)
+        if (root is null)
         {
             return 0;
         }
 
+        // A root spelled at run time is registered when its path is first parsed; a root the layout cannot declare has
+        // nothing to run.
+        _ = Attempt(() => layout.ParsePath(root));
+        if (!layout.Compilation.ModelQueries.TryGetCompiledDeclaration(root, out _))
+        {
+            return 0;
+        }
+
+        // Every root the corpora declare compiles into the engine's programs; nothing is left to the interpreter.
+        Assert.IsNull(layout.Compilation.GetRootReadProgram(root).Reason, this.Id + ": the engine cannot read " + root);
         ReadOptions read = this.Read ?? new ReadOptions();
         byte[] data = this.Data;
         IReadOnlyDictionary<string, int>? variables = this.Variables;
@@ -228,11 +238,25 @@ internal sealed record EngineCorpusCase(
             Required("GetArrayLength " + address, selection => layout.GetArrayLength(data, address, variables, EngineSelections.With(selection, read)));
         }
 
+        // A root spelled at run time whose count names a caller variable no expression of the layout reads.
+        var callerOnly = new Dictionary<string, int> { ["ZZ_CALLER_COUNT"] = 2, };
+        foreach ((string spelled, object elements) in (ValueTuple<string, object>[])[("uint8[ZZ_CALLER_COUNT]", new byte[] { 1, 2, }), ("uint16[ZZ_CALLER_COUNT]", new ushort[] { 3, 4, })])
+        {
+            Required("ReadValue " + spelled, selection => layout.ReadValue(data, spelled, callerOnly, EngineSelections.With(selection, read)));
+            Required("ReadValueWithDebug " + spelled, selection => layout.ReadValueWithDebug(data, spelled, callerOnly, EngineSelections.With(selection, read)));
+            Required("GetArrayLength " + spelled, selection => layout.GetArrayLength(data, spelled, callerOnly, EngineSelections.With(selection, read)));
+            Required("Serialize " + spelled, selection => layout.Serialize(spelled, elements, callerOnly, EngineSelections.With(selection, this.Write)));
+            Required("Write " + spelled, selection => layout.Write(new MemoryStream(), spelled, elements, callerOnly, EngineSelections.With(selection, this.Write)));
+            Required("Update " + spelled, selection => layout.Update((byte[])data.Clone(), spelled, elements, callerOnly, EngineSelections.With(selection, new UpdateOptions())));
+        }
+
         object? value = Attempt(() => layout.ReadValue(data, root, variables, EngineSelections.InterpreterOnly(read)));
-        if (value is null || !layout.Compilation.GetRootWriteProgram(root).IsEligible)
+        if (value is null)
         {
             return ran;
         }
+
+        Assert.IsNull(layout.Compilation.GetRootWriteProgram(root).Reason, this.Id + ": the engine cannot write " + root);
 
         Required("Serialize", selection => layout.Serialize(root, value, variables, EngineSelections.With(selection, this.Write)));
         Required("Serialize(Span)", selection => layout.Serialize(new byte[data.Length + 8].AsSpan(), root, value, variables, EngineSelections.With(selection, this.Write)));

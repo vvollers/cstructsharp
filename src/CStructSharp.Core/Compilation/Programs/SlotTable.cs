@@ -198,17 +198,16 @@ internal sealed class SlotTable
     }
 
     /// <summary>Converts a dictionary entry into the slot value that evaluates the same way.</summary>
-    /// <param name="expression">The entry: a literal, an unusable variable, an identifier, or an expression.</param>
+    /// <param name="expression">The entry: a literal, an unusable variable, or an expression.</param>
     /// <returns>
-    ///     A literal or out-of-domain value, an unusable value, an identifier value for a name without a slot, or a live
-    ///     expression (an identifier with a slot is a one-instruction live expression, as the dictionary evaluator treats it).
+    ///     A literal or out-of-domain value, an unusable value, or a live expression (an identifier is a one-instruction live
+    ///     expression, as the dictionary evaluator treats it).
     /// </returns>
     public SlotValue ToSlotValue(Expr expression) => expression switch
     {
         Literal { IsInDomain: true, } literal => SlotValue.FromLiteral(literal.Value),
         Literal literal => SlotValue.FromOutOfDomain(literal.ExactValue),
         UnusableVariable unusable => SlotValue.FromUnusable(unusable),
-        Identifier identifier when !this.slots.ContainsKey(identifier.Name) => SlotValue.FromIdentifier(identifier.Name),
         _ => SlotValue.FromLiveExpression(this.Compile(expression)),
     };
 
@@ -220,23 +219,30 @@ internal sealed class SlotTable
     ///     the resolver and its result loaded, so the state is the resolver's by construction.
     /// </summary>
     /// <param name="destination">The slot array, at least <see cref="Count"/> long; slots beyond it are not written.</param>
-    /// <param name="variables">The caller's variables, or <see langword="null"/>; names without a slot are ignored.</param>
+    /// <param name="variables">The caller's variables, or <see langword="null"/>.</param>
+    /// <returns>
+    ///     The caller's variables whose names have no slot, as literals, or <see langword="null"/> when there are none: no
+    ///     expression of the layout reads them, but the count of a root spelled at run time (<c>uint8[M]</c>) may, and its
+    ///     program reads them through the dictionary the slots stand for (<see cref="CreateDictionary"/>).
+    /// </returns>
     /// <exception cref="CStructLayoutException">A definition cannot be resolved (the resolver's failure).</exception>
-    public void Initialize(SlotValue[] destination, IReadOnlyDictionary<string, int>? variables)
+    public Dictionary<string, Expr>? Initialize(SlotValue[] destination, IReadOnlyDictionary<string, int>? variables)
     {
         if (this.staticState is { } state)
         {
             Array.Copy(state, destination, state.Length);
             if (variables is null || variables.Count == 0)
             {
-                return;
+                return null;
             }
 
             bool delegated = false;
+            Dictionary<string, Expr>? unslotted = null;
             foreach (KeyValuePair<string, int> variable in variables)
             {
                 if (!this.slots.TryGetValue(variable.Key, out int slot))
                 {
+                    (unslotted ??= new Dictionary<string, Expr>(StringComparer.Ordinal))[variable.Key] = new Literal(variable.Value);
                     continue;
                 }
 
@@ -251,48 +257,11 @@ internal sealed class SlotTable
 
             if (!delegated)
             {
-                return;
+                return unslotted;
             }
         }
 
-        _ = this.Load(destination, this.resolver.CreateIntegers(variables), false);
-    }
-
-    /// <summary>
-    ///     Writes an operation's initial state for internal expression variables (<see cref="LayoutVariableInput.FromExpressions"/>)
-    ///     from the resolver's dictionary. Entries without a slot are returned, because a supplied expression that
-    ///     stays unevaluated can name them.
-    /// </summary>
-    /// <param name="destination">The slot array, at least <see cref="Count"/> long.</param>
-    /// <param name="variables">The supplied expressions, or <see langword="null"/>.</param>
-    /// <param name="captureAll">Receives whether the operation must capture every field (<see cref="LayoutVariables.CaptureAll"/>).</param>
-    /// <returns>The entries whose names have no slot, or <see langword="null"/> when there are none.</returns>
-    /// <exception cref="CStructLayoutException">A definition or supplied expression cannot be resolved.</exception>
-    public Dictionary<string, Expr>? Initialize(SlotValue[] destination, IReadOnlyDictionary<string, Expr>? variables, out bool captureAll)
-    {
-        Dictionary<string, Expr> resolved = this.resolver.Create(variables);
-        captureAll = resolved is LayoutVariables { CaptureAll: true, };
-        return this.Load(destination, resolved, true);
-    }
-
-    /// <summary>
-    ///     Whether an operation with these internal expression variables must capture every field (a supplied expression
-    ///     stays unevaluated and may name any field, <see cref="LayoutVariables.CaptureAll"/>), which the compiled programs,
-    ///     capturing only the fields the layout's own expressions name, do not do. Resolving has no side effects; variables
-    ///     that cannot be resolved give <see langword="false"/>, because an operation fails on them identically either way.
-    /// </summary>
-    /// <param name="variables">The supplied expressions, or <see langword="null"/>.</param>
-    /// <returns>Whether the operation must capture every field.</returns>
-    public bool RequiresCaptureAll(IReadOnlyDictionary<string, Expr>? variables)
-    {
-        try
-        {
-            return this.resolver.Create(variables) is LayoutVariables { CaptureAll: true, };
-        }
-        catch (CStructLayoutException)
-        {
-            return false;
-        }
+        return this.Load(destination, this.resolver.CreateIntegers(variables));
     }
 
     /// <summary>
@@ -351,16 +320,15 @@ internal sealed class SlotTable
         }
 
         var state = new SlotValue[this.names.Length];
-        _ = this.Load(state, resolved, false);
+        _ = this.Load(state, resolved);
         return state;
     }
 
     /// <summary>Converts a resolver dictionary into slot values.</summary>
     /// <param name="destination">The slot array.</param>
     /// <param name="resolved">The resolver's dictionary.</param>
-    /// <param name="keepUnslotted">Whether entries without a slot are returned (expression inputs) or dropped (integers).</param>
-    /// <returns>The entries without a slot, or <see langword="null"/>.</returns>
-    private Dictionary<string, Expr>? Load(SlotValue[] destination, Dictionary<string, Expr> resolved, bool keepUnslotted)
+    /// <returns>The entries without a slot - the caller's variables no layout expression reads - or <see langword="null"/>.</returns>
+    private Dictionary<string, Expr>? Load(SlotValue[] destination, Dictionary<string, Expr> resolved)
     {
         for (int slot = 0; slot < this.names.Length; slot++)
         {
@@ -370,7 +338,7 @@ internal sealed class SlotTable
         }
 
         Dictionary<string, Expr>? unslotted = null;
-        if (keepUnslotted && resolved.Count > 0)
+        if (resolved.Count > 0)
         {
             foreach (KeyValuePair<string, Expr> entry in resolved)
             {

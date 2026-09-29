@@ -41,7 +41,7 @@ public class ArrayLimitTests
             () => cstruct.Parse(
                 readStream,
                 "root",
-                new Dictionary<string, Expr>(),
+                new Dictionary<string, int>(),
                 new ReadOptions { MaxArrayElements = 1, }));
     }
 

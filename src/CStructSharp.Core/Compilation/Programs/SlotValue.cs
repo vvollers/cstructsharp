@@ -58,11 +58,6 @@ internal readonly struct SlotValue
     /// <returns>The slot value.</returns>
     public static SlotValue FromLiveExpression(ProgramExpression program) => new(SlotState.LiveExpression, Int128.Zero, program);
 
-    /// <summary>Creates a reference to a name that has no slot.</summary>
-    /// <param name="name">The name.</param>
-    /// <returns>The slot value.</returns>
-    public static SlotValue FromIdentifier(string name) => new(SlotState.Identifier, Int128.Zero, name);
-
     /// <summary>
     ///     Returns the dictionary entry this value stands for, for the dictionary evaluator and for comparisons: a new
     ///     literal, the unusable variable, the live expression's source tree, or an identifier node.
@@ -74,7 +69,6 @@ internal readonly struct SlotValue
         SlotState.OutOfDomain => new Literal((BigInteger)this.Payload!),
         SlotState.Unusable => (UnusableVariable)this.Payload!,
         SlotState.LiveExpression => ((ProgramExpression)this.Payload!).Source,
-        SlotState.Identifier => new Identifier((string)this.Payload!),
         _ => null,
     };
 }

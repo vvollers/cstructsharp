@@ -29,8 +29,8 @@ using CStructSharp.Syntax;
 ///         whose selected member's program is, under plain or update options, and updates (<see cref="SelectUpdate"/>:
 ///         <c>Update</c> of a stream or a span, <c>UpdateAsync</c>, and the Memory API's patches) whose root is readable and
 ///         whose selected storage is writable. It declines, before anything is read or written, only what it cannot
-///         reproduce - a root or member the programs cannot compile, a path whose shape selects no writable storage, and
-///         internal expression variables that make every field captured - and the interpreter runs those.
+///         reproduce - a root or member the programs cannot compile, and a path whose shape selects no writable storage or
+///         names no root, which the interpreter reports - and the interpreter runs those.
 ///     </para>
 ///     <para>
 ///         Outside a test recording (<see cref="EngineDiagnostics.Record"/>) a decision records nothing: a root read costs
@@ -39,13 +39,6 @@ using CStructSharp.Syntax;
 /// </remarks>
 internal static class EngineSelector
 {
-    /// <summary>
-    ///     The reason the engine declines an operation whose internal expression variables leave an expression unevaluated,
-    ///     so every field must be captured (run-time CaptureAll); the compiled programs capture only the fields the layout's
-    ///     own expressions name.
-    /// </summary>
-    public const string ExpressionInputs = "a caller variable given as an unevaluated expression makes the operation capture every field, which the compiled programs do not";
-
     /// <summary>
     ///     Whether <c>ReadValue</c> of a root field has the path resolver take the root array's count first, by rules of its
     ///     own, before the root is read: a runtime-sized array, a data-sized one (<c>uint16[EOF]</c>; a terminated one is
@@ -59,16 +52,14 @@ internal static class EngineSelector
 
     /// <summary>
     ///     Decides whether the engine reads a whole root and records the decision: the engine runs when the selection
-    ///     allows it, the variables are integers and the root's program is eligible. Anything else is declined before a
-    ///     byte is read.
+    ///     allows it and the root's program is eligible. Anything else is declined before a byte is read.
     /// </summary>
     /// <param name="selection">The operation's snapshotted engine selection.</param>
     /// <param name="compilation">The layout.</param>
     /// <param name="rootName">The root's name, the path's only segment.</param>
-    /// <param name="variables">The operation's variable input.</param>
     /// <returns>The root's program when the engine runs the operation; <see langword="null"/> when the interpreter does.</returns>
     /// <exception cref="InvalidOperationException">The engine is required and declined the operation.</exception>
-    public static ReadProgram? SelectRootRead(EngineSelection selection, LayoutCompilation compilation, string rootName, in LayoutVariableInput variables)
+    public static ReadProgram? SelectRootRead(EngineSelection selection, LayoutCompilation compilation, string rootName)
     {
         if (selection == EngineSelection.InterpreterOnly)
         {
@@ -76,7 +67,9 @@ internal static class EngineSelector
             return null;
         }
 
-        string? reason = DeclineRootRead(compilation, rootName, variables, out ReadProgram? program);
+        ReadProgramOutcome outcome = compilation.GetRootReadProgram(rootName);
+        string? reason = outcome.Reason;
+        ReadProgram? program = outcome.Program;
         if (reason is null)
         {
             EngineDiagnostics.Current?.RecordRun(EngineOperation.RootRead);
@@ -90,19 +83,17 @@ internal static class EngineSelector
     /// <summary>
     ///     Decides whether the engine runs an operation on a path - <c>ReadValue</c> or <c>Parse</c> of a nested path (a
     ///     debug parse through the debug programs), <c>ResolveAddress</c> or <c>GetArrayLength</c> of any path - and records
-    ///     the decision: the engine runs when the selection allows it, the variables are integers and the program of the
-    ///     path's root is eligible, which makes every struct, union and pointer target the path can reach readable. Anything
+    ///     the decision: the engine runs when the selection allows it and the program of the path's root is eligible, which makes every struct, union and pointer target the path can reach readable. Anything
     ///     else is declined before a byte is read.
     /// </summary>
     /// <param name="selection">The operation's snapshotted engine selection.</param>
     /// <param name="compilation">The layout.</param>
     /// <param name="rootName">The name of the path's root, its first segment.</param>
-    /// <param name="variables">The operation's variable input.</param>
     /// <param name="operation">The kind of operation, which the decision is recorded under.</param>
     /// <param name="debug">Whether the operation is a debug parse, which runs the root's debug program.</param>
     /// <returns>The root's program (its debug program for a debug parse) when the engine runs the operation; <see langword="null"/> when the interpreter does.</returns>
     /// <exception cref="InvalidOperationException">The engine is required and declined the operation.</exception>
-    public static ReadProgram? SelectPathRead(EngineSelection selection, LayoutCompilation compilation, string rootName, in LayoutVariableInput variables, EngineOperation operation, bool debug = false)
+    public static ReadProgram? SelectPathRead(EngineSelection selection, LayoutCompilation compilation, string rootName, EngineOperation operation, bool debug = false)
     {
         if (selection == EngineSelection.InterpreterOnly)
         {
@@ -110,35 +101,28 @@ internal static class EngineSelector
             return null;
         }
 
-        string reason = ExpressionInputs;
-        if (!CapturesEveryField(compilation, variables))
+        ReadProgramOutcome outcome = debug ? compilation.GetRootDebugReadProgram(rootName) : compilation.GetRootReadProgram(rootName);
+        if (outcome.Program is { } program)
         {
-            ReadProgramOutcome outcome = debug ? compilation.GetRootDebugReadProgram(rootName) : compilation.GetRootReadProgram(rootName);
-            if (outcome.Program is { } program)
-            {
-                EngineDiagnostics.Current?.RecordRun(operation);
-                return program;
-            }
-
-            reason = outcome.Reason!;
+            EngineDiagnostics.Current?.RecordRun(operation);
+            return program;
         }
 
-        DecideAndRecord(selection, operation, reason);
+        DecideAndRecord(selection, operation, outcome.Reason!);
         return null;
     }
 
     /// <summary>
     ///     Decides whether the engine runs the debug parse of a whole root (<c>ParseWithDebug</c>, <c>ReadValueWithDebug</c>
     ///     and their asynchronous forms, which the interpreter all runs as a root parse) and records the decision: the engine
-    ///     runs when the selection allows it, the variables are integers and the root's debug program is eligible.
+    ///     runs when the selection allows it and the root's debug program is eligible.
     /// </summary>
     /// <param name="selection">The operation's snapshotted engine selection.</param>
     /// <param name="compilation">The layout.</param>
     /// <param name="rootName">The root's name, the path's only segment.</param>
-    /// <param name="variables">The operation's variable input.</param>
     /// <returns>The root's debug program when the engine runs the parse; <see langword="null"/> when the interpreter does.</returns>
     /// <exception cref="InvalidOperationException">The engine is required and declined the operation.</exception>
-    public static ReadProgram? SelectDebugRead(EngineSelection selection, LayoutCompilation compilation, string rootName, in LayoutVariableInput variables)
+    public static ReadProgram? SelectDebugRead(EngineSelection selection, LayoutCompilation compilation, string rootName)
     {
         if (selection == EngineSelection.InterpreterOnly)
         {
@@ -146,27 +130,21 @@ internal static class EngineSelector
             return null;
         }
 
-        string reason = ExpressionInputs;
-        if (!CapturesEveryField(compilation, variables))
+        ReadProgramOutcome outcome = compilation.GetRootDebugReadProgram(rootName);
+        if (outcome.Program is { } program)
         {
-            ReadProgramOutcome outcome = compilation.GetRootDebugReadProgram(rootName);
-            if (outcome.Program is { } program)
-            {
-                EngineDiagnostics.Current?.RecordRun(EngineOperation.DebugRead);
-                return program;
-            }
-
-            reason = outcome.Reason!;
+            EngineDiagnostics.Current?.RecordRun(EngineOperation.DebugRead);
+            return program;
         }
 
-        DecideAndRecord(selection, EngineOperation.DebugRead, reason);
+        DecideAndRecord(selection, EngineOperation.DebugRead, outcome.Reason!);
         return null;
     }
 
     /// <summary>
     ///     Decides whether the engine runs a write and records the decision, for every destination (a new array, a span, a
     ///     stream, a buffer writer) and every write option (update options switch on the same update semantics in both
-    ///     implementations): the engine runs when the variables are integers and the program is eligible - the root's for a
+    ///     implementations): the engine runs when the program is eligible - the root's for a
     ///     whole root (any indexes on its one segment are ignored, as the interpreter ignores them), or the program of the
     ///     member a nested path selects, written on its own. A nested path that selects no writable member is declined, so
     ///     the interpreter reports it. Anything declined is declined before a byte is written.
@@ -176,10 +154,9 @@ internal static class EngineSelector
     /// <param name="segments">The parsed path.</param>
     /// <param name="childSegments">The segments after the root for a nested path, or <see langword="null"/>.</param>
     /// <param name="rootElement">The root's declaration.</param>
-    /// <param name="variables">The operation's variable input.</param>
     /// <returns>The program the engine runs; <see langword="null"/> when the interpreter writes.</returns>
     /// <exception cref="InvalidOperationException">The engine is required and declined the operation.</exception>
-    public static WriteProgram? SelectWrite(EngineSelection selection, LayoutCompilation compilation, IReadOnlyList<PathSegment> segments, IReadOnlyList<PathSegment>? childSegments, CStructElement rootElement, in LayoutVariableInput variables)
+    public static WriteProgram? SelectWrite(EngineSelection selection, LayoutCompilation compilation, IReadOnlyList<PathSegment> segments, IReadOnlyList<PathSegment>? childSegments, CStructElement rootElement)
     {
         if (selection == EngineSelection.InterpreterOnly)
         {
@@ -187,7 +164,11 @@ internal static class EngineSelector
             return null;
         }
 
-        string? reason = DeclineWrite(compilation, segments, childSegments, rootElement, variables, out WriteProgram? program);
+        WriteProgramOutcome outcome = childSegments is null
+                                          ? compilation.GetRootWriteProgram(segments[0].Name)
+                                          : compilation.GetPathWriteProgram(rootElement, childSegments);
+        string? reason = outcome.Reason;
+        WriteProgram? program = outcome.Program;
         if (reason is null)
         {
             EngineDiagnostics.Current?.RecordRun(EngineOperation.Write);
@@ -198,65 +179,19 @@ internal static class EngineSelector
         return null;
     }
 
-    /// <summary>Returns why the engine cannot run a write, or <see langword="null"/> with the program it runs when it can.</summary>
-    /// <param name="compilation">The layout.</param>
-    /// <param name="segments">The parsed path.</param>
-    /// <param name="childSegments">The segments after the root for a nested path, or <see langword="null"/>.</param>
-    /// <param name="rootElement">The root's declaration.</param>
-    /// <param name="variables">The operation's variable input.</param>
-    /// <param name="program">The program when the engine can run the write.</param>
-    /// <returns>The decline reason, or <see langword="null"/>.</returns>
-    private static string? DeclineWrite(LayoutCompilation compilation, IReadOnlyList<PathSegment> segments, IReadOnlyList<PathSegment>? childSegments, CStructElement rootElement, in LayoutVariableInput variables, out WriteProgram? program)
-    {
-        program = null;
-        if (CapturesEveryField(compilation, variables))
-        {
-            return ExpressionInputs;
-        }
-
-        WriteProgramOutcome outcome = childSegments is null
-                                          ? compilation.GetRootWriteProgram(segments[0].Name)
-                                          : compilation.GetPathWriteProgram(rootElement, childSegments);
-        program = outcome.Program;
-        return outcome.Reason;
-    }
-
-    /// <summary>Returns why the engine cannot read a whole root, or <see langword="null"/> with the root's program when it can.</summary>
-    /// <param name="compilation">The layout.</param>
-    /// <param name="rootName">The root's name.</param>
-    /// <param name="variables">The operation's variable input.</param>
-    /// <param name="program">The root's program when the engine can read it.</param>
-    /// <returns>The decline reason, or <see langword="null"/>.</returns>
-    private static string? DeclineRootRead(LayoutCompilation compilation, string rootName, in LayoutVariableInput variables, out ReadProgram? program)
-    {
-        program = null;
-
-        // Expression inputs can leave a supplied expression unevaluated, which makes the operation capture every field
-        // (run-time CaptureAll), which the programs do not; expressions that are all evaluated work as integers do.
-        if (CapturesEveryField(compilation, variables))
-        {
-            return ExpressionInputs;
-        }
-
-        ReadProgramOutcome outcome = compilation.GetRootReadProgram(rootName);
-        program = outcome.Program;
-        return outcome.Reason;
-    }
-
     /// <summary>
     ///     Decides whether the engine runs an <c>Update</c> (of a stream, a span, and <c>UpdateAsync</c> and the Memory API's
-    ///     patches through it) and records the decision: the engine runs when the variables need no capture of every field
-    ///     and <see cref="LayoutCompilation.DeclineUpdate"/> finds the root readable and what the path selects writable.
+    ///     patches through it) and records the decision: the engine runs when <see cref="LayoutCompilation.DeclineUpdate"/>
+    ///     finds the root readable and what the path selects writable.
     ///     Anything else is declined before anything is read or written.
     /// </summary>
     /// <param name="selection">The operation's snapshotted engine selection.</param>
     /// <param name="compilation">The layout.</param>
     /// <param name="segments">The parsed path.</param>
     /// <param name="rootElement">The root's declaration.</param>
-    /// <param name="variables">The operation's variable input.</param>
     /// <returns>Whether the engine runs the update.</returns>
     /// <exception cref="InvalidOperationException">The engine is required and declined the operation.</exception>
-    public static bool SelectUpdate(EngineSelection selection, LayoutCompilation compilation, IReadOnlyList<PathSegment> segments, CStructElement rootElement, in LayoutVariableInput variables)
+    public static bool SelectUpdate(EngineSelection selection, LayoutCompilation compilation, IReadOnlyList<PathSegment> segments, CStructElement rootElement)
     {
         if (selection == EngineSelection.InterpreterOnly)
         {
@@ -264,7 +199,7 @@ internal static class EngineSelector
             return false;
         }
 
-        string? reason = CapturesEveryField(compilation, variables) ? ExpressionInputs : compilation.DeclineUpdate(rootElement, segments);
+        string? reason = compilation.DeclineUpdate(rootElement, segments);
         if (reason is null)
         {
             EngineDiagnostics.Current?.RecordRun(EngineOperation.Update);
@@ -274,16 +209,6 @@ internal static class EngineSelector
         DecideAndRecord(selection, EngineOperation.Update, reason);
         return false;
     }
-
-    /// <summary>
-    ///     Whether an operation's variables make it capture every field: internal expression variables that leave an
-    ///     expression unevaluated. Integer variables, and expressions that all evaluate, never do.
-    /// </summary>
-    /// <param name="compilation">The layout.</param>
-    /// <param name="variables">The operation's variable input.</param>
-    /// <returns>Whether every field must be captured.</returns>
-    public static bool CapturesEveryField(LayoutCompilation compilation, in LayoutVariableInput variables)
-        => !variables.UsesIntegers && compilation.SlotTable.RequiresCaptureAll(variables.Expressions);
 
     /// <summary>Records a decision the engine cannot take: an interpreter selection, or a decline that fails a required engine.</summary>
     /// <param name="selection">The operation's snapshotted engine selection.</param>

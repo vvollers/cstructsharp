@@ -242,7 +242,8 @@ public class SlotTableTests
 
     /// <summary>
     ///     Caller variables that no definition depends on overwrite their slots directly; one a definition depends on
-    ///     makes the state the resolver's, with the dependent folded when the operation starts.
+    ///     makes the state the resolver's, with the dependent folded when the operation starts; one without a slot is kept
+    ///     beside the slots, for the count of a root spelled at run time.
     /// </summary>
     [TestMethod]
     public void CallerVariables_OverwriteOrUnfoldDependents()
@@ -256,7 +257,7 @@ public class SlotTableTests
         {
             Assert.AreEqual(SlotValue.FromLiteral(5).Value, slots.Get(m).Value);
             Assert.AreEqual(SlotState.LiveExpression, slots.Get(d).State);
-            Assert.IsFalse(slots.ToDictionary().ContainsKey("unrelated"));
+            Assert.AreEqual<Syntax.Expr>(new Syntax.Literal(1), slots.ToDictionary()["unrelated"], "a caller variable without a slot is kept beside the slots, as the interpreter keeps it");
         }
 
         using (VariableSlots slots = VariableSlots.Create(table, new Dictionary<string, int> { ["n"] = 21, }))

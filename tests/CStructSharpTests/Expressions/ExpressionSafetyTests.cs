@@ -184,93 +184,34 @@ public class ExpressionSafetyTests
     }
 
     /// <summary>
-    ///     COUNT is supplied as an expression graph after CStruct construction.
+    ///     COUNT is reached through a chain of 101 definitions, overridden by a caller variable, or left undefined.
     /// </summary>
     /// <remarks>
-    ///     A valid chain resolves to a one-element array, while missing names, cycles, and excessive work or depth must
-    ///     fail. Evaluating these inputs must not rewrite the caller's original expression objects.
+    ///     A long acyclic chain of definitions resolves to a one-element array; a caller variable replaces a definition's
+    ///     value; and a count that names nothing fails the read instead of guessing a length. The caller's dictionary is
+    ///     never changed.
     /// </remarks>
     [TestMethod]
-    public void RuntimeVariables_UseConfiguredDepthAndWorkLimits()
+    public void RuntimeVariables_ResolveDefinitionChainsAndOverrides()
     {
         const string layout = "struct root { byte values[COUNT]; };";
-        var defaultLimits = new CStruct(layout);
-        var acyclic = new Dictionary<string, Expr> { ["NODE0"] = new Literal(1), };
+        var chain = new System.Text.StringBuilder("#define NODE0 1\n");
         for (int index = 1; index <= 100; index++)
         {
-            acyclic["NODE" + index] = new Identifier("NODE" + (index - 1));
+            chain.Append("#define NODE").Append(index).Append(" NODE").Append(index - 1).Append('\n');
         }
 
-        acyclic["COUNT"] = new Identifier("NODE100");
-        dynamic valid = defaultLimits.Parse(new MemoryStream([0x2A,]), "root", acyclic);
+        chain.Append("#define COUNT NODE100\n");
+        dynamic valid = new CStruct(chain + layout).Parse(new MemoryStream([0x2A,]), "root");
         Assert.AreEqual(1, valid.values.Count);
 
         var withDefault = new CStruct("#define COUNT 2\n" + layout);
-        dynamic overridden = withDefault.Parse(
-            new MemoryStream([0x2A,]),
-            "root",
-            new Dictionary<string, Expr> { ["COUNT"] = new Literal(1), });
+        var overrides = new Dictionary<string, int> { ["COUNT"] = 1, };
+        dynamic overridden = withDefault.Parse(new MemoryStream([0x2A,]), "root", overrides);
         Assert.AreEqual(1, overridden.values.Count);
+        Assert.AreEqual(1, overrides["COUNT"]);
 
-        var undefined = new Dictionary<string, Expr> { ["COUNT"] = new Identifier("MISSING"), };
-        Assert.Throws<CStructLayoutException>(
-            () => defaultLimits.Parse(new MemoryStream([0x2A,]), "root", undefined));
-        Assert.IsInstanceOfType<Identifier>(undefined["COUNT"]);
-
-        var depthOptions = new CStructCompilationOptions
-        {
-            MaxExpressionNestingDepth = 3,
-            MaxExpressionTokens = 100,
-        };
-        var depthLimited = new CStruct(
-            layout,
-            compilationOptions: depthOptions);
-        Expr deep = new Literal(1);
-        for (int i = 0; i < 4; i++)
-        {
-            deep = new UnaryOp(UnaryOperatorType.Complement, deep);
-        }
-
-        Assert.Throws<CStructLayoutException>(
-            () => depthLimited.Parse(
-                new MemoryStream([1,]),
-                "root",
-                new Dictionary<string, Expr> { ["COUNT"] = deep, }));
-
-        var workLimited = new CStruct(
-            layout,
-            compilationOptions: new CStructCompilationOptions
-            {
-                MaxExpressionNestingDepth = 10,
-                MaxExpressionTokens = 4,
-            });
-        Expr tooMuchWork = new BinaryOp(
-            BinaryOperatorType.Or,
-            new BinaryOp(BinaryOperatorType.Or, new Literal(1), new Literal(1)),
-            new Literal(1));
-        Assert.Throws<CStructLayoutException>(
-            () => workLimited.Parse(
-                new MemoryStream([1,]),
-                "root",
-                new Dictionary<string, Expr> { ["COUNT"] = tooMuchWork, }));
-
-        var selfReferential = new Dictionary<string, Expr>
-        {
-            ["COUNT"] = new Identifier("COUNT"),
-        };
-        Assert.Throws<CStructLayoutException>(
-            () => depthLimited.Parse(new MemoryStream([1,]), "root", selfReferential));
-        Assert.IsInstanceOfType<Identifier>(selfReferential["COUNT"]);
-
-        var cyclic = new Dictionary<string, Expr>
-        {
-            ["COUNT"] = new Identifier("OTHER"),
-            ["OTHER"] = new Identifier("COUNT"),
-        };
-        Assert.Throws<CStructLayoutException>(
-            () => depthLimited.Parse(new MemoryStream([1,]), "root", cyclic));
-        Assert.IsInstanceOfType<Identifier>(cyclic["COUNT"]);
-        Assert.IsInstanceOfType<Identifier>(cyclic["OTHER"]);
+        Assert.Throws<CStructReadException>(() => new CStruct(layout).Parse(new MemoryStream([0x2A,]), "root"));
     }
 
     /// <summary>
@@ -288,13 +229,13 @@ public class ExpressionSafetyTests
                               struct root { byte values[COUNT]; };
                               """;
         var cstruct = new CStruct(layout);
-        var variables = new Dictionary<string, Expr> { ["BASE"] = new Literal(1), };
+        var variables = new Dictionary<string, int> { ["BASE"] = 1, };
 
         dynamic parsed = cstruct.Parse(new MemoryStream([0x2A, 0xA5,]), "root", variables);
 
         Assert.AreEqual(2, parsed.values.Count);
         Assert.AreEqual(1, variables.Count);
-        Assert.AreEqual(1, variables["BASE"].Evaluate());
+        Assert.AreEqual(1, variables["BASE"]);
         Assert.Throws<CStructReadException>(
             () => cstruct.Parse(new MemoryStream([0x2A, 0xA5,]), "root"));
     }
@@ -337,7 +278,7 @@ public class ExpressionSafetyTests
     {
         const string layout = "struct root { byte values[COUNT + 1]; byte tail; };";
         var cstruct = new CStruct(layout, pointerSize: 1);
-        var variables = new Dictionary<string, Expr> { ["COUNT"] = new Literal(int.MaxValue), };
+        var variables = new Dictionary<string, int> { ["COUNT"] = int.MaxValue, };
         var data = new Dictionary<string, object>
         {
             ["values"] = Array.Empty<byte>(),
@@ -546,20 +487,16 @@ public class ExpressionSafetyTests
             ],
             evaluator);
 
-        Dictionary<string, Expr> firstBaseline = resolver.Create(null);
-        Dictionary<string, Expr> secondBaseline = resolver.Create(null);
+        Dictionary<string, Expr> firstBaseline = resolver.CreateIntegers(null);
+        Dictionary<string, Expr> secondBaseline = resolver.CreateIntegers(null);
         foreach (string name in firstBaseline.Keys)
         {
             Assert.AreSame(firstBaseline[name], secondBaseline[name], name);
         }
 
-        Expr suppliedBase = new BinaryOp(
-            BinaryOperatorType.Add,
-            new Literal(2),
-            new Literal(3));
-        var supplied = new Dictionary<string, Expr> { ["BASE"] = suppliedBase, };
+        var supplied = new Dictionary<string, int> { ["BASE"] = 5, };
 
-        Dictionary<string, Expr> overridden = resolver.Create(supplied);
+        Dictionary<string, Expr> overridden = resolver.CreateIntegers(supplied);
 
         Assert.AreEqual(5, overridden["BASE"].Evaluate());
         Assert.AreEqual(10, overridden["DOUBLE"].Evaluate());
@@ -568,7 +505,7 @@ public class ExpressionSafetyTests
         Assert.AreNotSame(firstBaseline["BASE"], overridden["BASE"]);
         Assert.AreNotSame(firstBaseline["DOUBLE"], overridden["DOUBLE"]);
         Assert.AreNotSame(firstBaseline["SIZE"], overridden["SIZE"]);
-        Assert.AreSame(suppliedBase, supplied["BASE"]);
+        Assert.AreEqual(5, supplied["BASE"]);
     }
 
     /// <summary>
@@ -681,7 +618,7 @@ public class ExpressionSafetyTests
                               struct root { target *ptr; };
                               """;
         var cstruct = new CStruct(layout, pointerSize: 1, isLittleEndian: isLittleEndian);
-        var variables = new Dictionary<string, Expr> { ["COUNT"] = new Literal(1), };
+        var variables = new Dictionary<string, int> { ["COUNT"] = 1, };
         byte first = isLittleEndian ? (byte)0x34 : (byte)0x12;
         byte second = isLittleEndian ? (byte)0x12 : (byte)0x34;
         byte[] bytes = [0x01, first, second, 0x7E,];

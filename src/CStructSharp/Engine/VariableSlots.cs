@@ -31,31 +31,26 @@ internal struct VariableSlots : IDisposable
     /// <summary>Wraps an initialized slot array.</summary>
     /// <param name="table">The layout's table.</param>
     /// <param name="values">The slot array, owned from now on.</param>
-    /// <param name="unslotted">The internal expression inputs' entries without a slot, or <see langword="null"/>.</param>
-    /// <param name="captureAll">Whether every field must be captured.</param>
-    private VariableSlots(SlotTable table, SlotValue[] values, Dictionary<string, Expr>? unslotted, bool captureAll)
+    /// <param name="unslotted">The caller's variables without a slot, as literals, or <see langword="null"/>.</param>
+    private VariableSlots(SlotTable table, SlotValue[] values, Dictionary<string, Expr>? unslotted)
     {
         this.table = table;
         this.values = values;
         this.unslotted = unslotted;
-        this.CaptureAll = captureAll;
     }
 
     /// <summary>Gets the table the slots belong to.</summary>
     public readonly SlotTable Table => this.table;
-
-    /// <summary>
-    ///     Gets a value indicating whether the operation must capture every field, because a supplied internal expression
-    ///     stayed unevaluated and may name any field (<see cref="LayoutVariables.CaptureAll"/>).
-    /// </summary>
-    public bool CaptureAll { get; }
 
     /// <summary>Gets the number of slots, the layout table's.</summary>
     public readonly int Count => this.table.Count;
 
     /// <summary>Creates the slots of an operation with public integer variables.</summary>
     /// <param name="table">The layout's table.</param>
-    /// <param name="variables">The caller's variables, or <see langword="null"/>; a name without a slot is ignored.</param>
+    /// <param name="variables">
+    ///     The caller's variables, or <see langword="null"/>; a name without a slot is kept beside the slots, for the count
+    ///     of a root spelled at run time (<c>uint8[M]</c>) that no layout expression names.
+    /// </param>
     /// <returns>The initialized slots.</returns>
     /// <exception cref="Diagnostics.CStructLayoutException">A definition cannot be resolved.</exception>
     public static VariableSlots Create(SlotTable table, IReadOnlyDictionary<string, int>? variables)
@@ -63,41 +58,21 @@ internal struct VariableSlots : IDisposable
         SlotValue[] values = Rent(table.Count);
         try
         {
-            table.Initialize(values, variables);
+            return new VariableSlots(table, values, table.Initialize(values, variables));
         }
         catch
         {
             Return(values, table.Count);
             throw;
         }
-
-        return new VariableSlots(table, values, null, false);
     }
 
-    /// <summary>Creates the slots of an operation from its variable input, integers or internal expressions.</summary>
+    /// <summary>Creates the slots of an operation from its variable input.</summary>
     /// <param name="table">The layout's table.</param>
     /// <param name="input">The operation's variable input.</param>
     /// <returns>The initialized slots.</returns>
-    /// <exception cref="Diagnostics.CStructLayoutException">A definition or supplied expression cannot be resolved.</exception>
-    public static VariableSlots Create(SlotTable table, LayoutVariableInput input)
-    {
-        if (input.UsesIntegers)
-        {
-            return Create(table, input.Integers);
-        }
-
-        SlotValue[] values = Rent(table.Count);
-        try
-        {
-            Dictionary<string, Expr>? unslotted = table.Initialize(values, input.Expressions, out bool captureAll);
-            return new VariableSlots(table, values, unslotted, captureAll);
-        }
-        catch
-        {
-            Return(values, table.Count);
-            throw;
-        }
-    }
+    /// <exception cref="Diagnostics.CStructLayoutException">A definition cannot be resolved.</exception>
+    public static VariableSlots Create(SlotTable table, LayoutVariableInput input) => Create(table, input.Integers);
 
     /// <summary>
     ///     Creates independent slots holding the same values, as the interpreter copies its variable dictionary (an update's
@@ -109,7 +84,7 @@ internal struct VariableSlots : IDisposable
         SlotValue[] copy = Rent(this.table.Count);
         Array.Copy(this.values, copy, this.table.Count);
         Dictionary<string, Expr>? unslotted = this.unslotted is null ? null : new Dictionary<string, Expr>(this.unslotted, StringComparer.Ordinal);
-        return new VariableSlots(this.table, copy, unslotted, this.CaptureAll);
+        return new VariableSlots(this.table, copy, unslotted);
     }
 
     /// <summary>Copies every slot into <paramref name="destination"/> from <paramref name="offset"/> on (a union's entry values).</summary>

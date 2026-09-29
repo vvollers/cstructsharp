@@ -194,7 +194,7 @@ public class PublicExceptionBoundaryTests
             () => cstruct.Parse(
                 new MemoryStream(new byte[8]),
                 "root",
-                new Dictionary<string, Expr>(),
+                new Dictionary<string, int>(),
                 new ReadOptions { MaxArrayElements = -1, }));
         Assert.Throws<ArgumentOutOfRangeException>(
             () => cstruct.ReadValue(
@@ -303,7 +303,7 @@ public class PublicExceptionBoundaryTests
                 () => cstruct.Parse(
                     new MemoryStream(new byte[8]),
                     "root",
-                    new Dictionary<string, Expr>(),
+                    new Dictionary<string, int>(),
                     new ReadOptions { MaxTotalBytesRead = 0, })),
             CStructErrorCode.ReadLimitExceeded);
         CStructWriteException write = Assert.Throws<CStructWriteException>(() => cstruct.Serialize("root", null!));

@@ -209,9 +209,7 @@ internal sealed class CompiledField
 
     /// <summary>
     ///     Whether reading or writing this field must publish its value as a layout variable. False when no
-    ///     expression in the layout can name it, so the capture allocation and dictionary write are skipped;
-    ///     an operation whose supplied variables can still name it (<see cref="LayoutVariables.CaptureAll"/>)
-    ///     overrides this.
+    ///     expression in the layout can name it, so the capture allocation and dictionary write are skipped.
     /// </summary>
     public bool CapturesLayoutVariable { get; init; }
 

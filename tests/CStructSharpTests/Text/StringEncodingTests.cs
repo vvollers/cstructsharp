@@ -220,7 +220,7 @@ public class StringEncodingTests
             () => limited.Parse(
                 limitedStream,
                 "root",
-                new Dictionary<string, Expr>(),
+                new Dictionary<string, int>(),
                 new ReadOptions { MaxPointerTargetBytes = 4, }));
     }
 
@@ -434,7 +434,7 @@ public class StringEncodingTests
         dynamic parsed = cstruct.Parse(
             accepted,
             "root",
-            new Dictionary<string, Expr>(),
+            new Dictionary<string, int>(),
             new ReadOptions { MaxStringBytes = 4, });
         Assert.AreEqual("A", (string)parsed.value);
         Assert.AreEqual(4, accepted.Position);
@@ -444,7 +444,7 @@ public class StringEncodingTests
             () => cstruct.Parse(
                 rejected,
                 "root",
-                new Dictionary<string, Expr>(),
+                new Dictionary<string, int>(),
                 new ReadOptions { MaxStringBytes = 3, }));
     }
 
@@ -521,7 +521,7 @@ public class StringEncodingTests
             () => cstruct.Parse(
                 stream,
                 "root",
-                new Dictionary<string, Expr>(),
+                new Dictionary<string, int>(),
                 new ReadOptions { MaxStringBytes = 5, }));
         Assert.AreEqual(6, stream.Position);
     }

@@ -22,10 +22,10 @@ internal readonly struct WriterStateCaptures : IStaticWriteCaptures
         set => this.state.QualifiedPrefix = value;
     }
 
-    /// <summary>Whether an expression names the field, or the operation captures every field.</summary>
+    /// <summary>Whether an expression of the layout names the field, so the write publishes it.</summary>
     /// <param name="field">The field.</param>
     /// <returns>Whether the field is captured.</returns>
-    public bool Captures(CompiledField field) => field.CapturesLayoutVariable || this.state.CaptureAllLayoutVariables;
+    public bool Captures(CompiledField field) => field.CapturesLayoutVariable;
 
     /// <summary>Captures the value into the dictionary (<see cref="LayoutVariableCapture"/>) and republishes it under the active prefix.</summary>
     /// <param name="name">The field's name.</param>

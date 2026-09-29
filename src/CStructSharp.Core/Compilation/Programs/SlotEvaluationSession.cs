@@ -19,8 +19,8 @@ using ExpressionOpcode = CStructSharp.Expressions.ExpressionEvaluator.Expression
 ///     walked again), then the program runs, charging one work unit per executed instruction, validating a selected
 ///     conditional name before reading it, evaluating each name once per session and reporting a name that is being
 ///     evaluated as a cycle. A literal slot is a one-instruction program, as the dictionary evaluator compiles a literal.
-///     A reached slot that is an <see cref="SlotState.Identifier"/>, or a live expression whose program is not native,
-///     ends the session: the caller then runs the dictionary evaluator from the start.
+///     A reached live expression whose program is not native ends the session: the caller then runs the dictionary
+///     evaluator from the start.
 /// </remarks>
 internal sealed class SlotEvaluationSession
 {

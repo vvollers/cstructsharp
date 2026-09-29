@@ -75,17 +75,6 @@ internal sealed class LayoutVariableResolver
     /// <returns>The direct dependencies.</returns>
     public ImmutableArray<string> GetDefinitionDependencies(string name) => this.definitionDependencies[name];
 
-    /// <summary>Returns an isolated operation dictionary, reusing every unaffected static literal.</summary>
-    /// <param name="suppliedVariables">
-    ///     The caller's expressions, which replace definitions of the same name, or <see langword="null"/> for none.
-    /// </param>
-    /// <returns>A new dictionary for one operation, re-resolving each definition an override affects.</returns>
-    /// <exception cref="CStructLayoutException">An affected expression cannot be resolved.</exception>
-    public Dictionary<string, Expr> Create(IReadOnlyDictionary<string, Expr>? suppliedVariables)
-    {
-        return this.CreateCore(suppliedVariables, static expression => expression);
-    }
-
     /// <summary>Snapshots public integer overrides directly into the operation dictionary.</summary>
     /// <param name="suppliedVariables">
     ///     The caller's integer values, which replace definitions of the same name, or <see langword="null"/> for none.
@@ -93,14 +82,6 @@ internal sealed class LayoutVariableResolver
     /// <returns>A new dictionary for one operation, re-resolving each definition an override affects.</returns>
     /// <exception cref="CStructLayoutException">An affected expression cannot be resolved.</exception>
     public Dictionary<string, Expr> CreateIntegers(IReadOnlyDictionary<string, int>? suppliedVariables)
-    {
-        return this.CreateCore(suppliedVariables, static value => new Literal(value));
-    }
-
-    /// <summary>Resolves one caller-owned variable shape without creating an intermediate adapter dictionary.</summary>
-    private Dictionary<string, Expr> CreateCore<T>(
-        IReadOnlyDictionary<string, T>? suppliedVariables,
-        Func<T, Expr> convert)
     {
         bool hasSuppliedVariables = suppliedVariables is { Count: > 0, };
         if (!hasSuppliedVariables && this.staticValues.Count == this.definitions.Count)
@@ -134,31 +115,13 @@ internal sealed class LayoutVariableResolver
 
             if (hasSuppliedVariables)
             {
-                foreach (KeyValuePair<string, T> supplied in suppliedVariables!)
+                foreach (KeyValuePair<string, int> supplied in suppliedVariables!)
                 {
-                    variables[supplied.Key] = convert(supplied.Value);
+                    variables[supplied.Key] = new Literal(supplied.Value);
                 }
             }
 
-            LayoutVariables resolved = this.ResolveExpressions(variables);
-            if (hasSuppliedVariables)
-            {
-                // A supplied expression that survived resolution unevaluated can name a field at evaluation time,
-                // so that operation must capture every field, not only the ones the layout's own expressions
-                // reference. Public integer inputs are literals and never take this path.
-                foreach (string name in suppliedVariables!.Keys)
-                {
-                    if (resolved.TryGetValue(name, out Expr? expression) &&
-                        expression is not Literal &&
-                        this.evaluator.GetDependencies(expression).Count > 0)
-                    {
-                        resolved.CaptureAll = true;
-                        break;
-                    }
-                }
-            }
-
-            return resolved;
+            return this.ResolveExpressions(variables);
         }
         catch (CStructLayoutException)
         {

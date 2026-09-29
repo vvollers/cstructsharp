@@ -19,7 +19,7 @@
   },
   {
    "pattern": "CStructReader.Composites.cs",
-   "sourceSha256": "319dc69ccb323da1552184decb703882fac4ca803a0f41074f5c75032edca66c",
+   "sourceSha256": "3e2df46d33ec9663fe85fd3740cbf62d91e6bfed63446473fb144e7b49abcc89",
    "mutants": [
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount) :null)",
      "location": {"start":{"line":111,"column":25},"end":{"line":111,"column":165}},
@@ -37,7 +37,7 @@
   },
   {
    "pattern": "CStructValueReader.cs",
-   "sourceSha256": "2064a4c4e26ae40e30fa307e03de06034282e1e2d91d394f5a6ff6da50031380",
+   "sourceSha256": "81d8e1e7be874ea6e5ae3cf727a802a322e757aa650fb2175cc30bcca122fecd",
    "mutants": [
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?target.WritableCompiledField\n:target.EffectiveCompiledField)",
      "location": {"start":{"line":268,"column":14},"end":{"line":270,"column":49}},
@@ -91,13 +91,13 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Expressions/LayoutVariableResolver.cs",
-   "sourceSha256": "0cbaf7958b1a8dc5fdb65736103e2b5a63d4f61dff947c984bfa373209342540",
+   "sourceSha256": "04278dce21930ff9ff1c805c78205ad21c09051b0b44b2557c30a56582132aed",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":292,"column":21},"end":{"line":292,"column":30}},
+     "location": {"start":{"line":255,"column":21},"end":{"line":255,"column":30}},
      "reason": "BuildReverseDependents inserts dependent names only from definitionDependencies.Keys, which are exactly definitions.Keys. GetTopologicallySortedDefinitions initializes dependencyCounts with all of those same keys and changes only values, never removes keys. Every dependent reached in this loop is therefore present; the missing-key continue is unreachable." },
     { "mutatorName": "Linq method mutation (First() to FirstOrDefault())", "replacement": "dependencyCounts.FirstOrDefault",
-     "location": {"start":{"line":306,"column":32},"end":{"line":306,"column":54}},
+     "location": {"start":{"line":269,"column":32},"end":{"line":269,"column":54}},
      "reason": "The graph has one entry per definition and unique dependency edges. A node is queued initially at zero or exactly when its remaining count becomes zero; each node is processed once and counts never become negative. If fewer nodes were ordered than definitions, at least one unresolved cycle node has a positive count. The positive-count predicate therefore always matches here, so First and FirstOrDefault return the same first pair." }
    ]
   },
@@ -358,10 +358,10 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/CompiledField.cs",
-   "sourceSha256": "0609769e6add07dfcb62e44fce6d6c7f633a4daf8019f254f4cb3553df2e41ac",
+   "sourceSha256": "f2d1b5906e5b700f27bdee212357893e85fa3b3928edb43d890b6092144442e4",
    "mutants": [
     { "mutatorName": "Remove checked expression", "replacement": "elementSize * remainingCount",
-     "location": {"start":{"line":501,"column":43},"end":{"line":501,"column":80}},
+     "location": {"start":{"line":499,"column":43},"end":{"line":499,"column":80}},
      "reason": "This multiplication is reached only when peeling a multidimensional field with a known nonnegative element size. Multidimensional dimensions have dependency-free fixed counts; LayoutCompilation.Model and CompileSyntheticRootField already checked the complete count and element-size product when constructing such a field. All production SelectArrayElement callers are the read/address and write path resolvers, which first reject indices outside the current dimension. A reachable peeled dimension therefore has a positive outer count, so its remaining byte extent cannot exceed its already validated parent's extent. A zero outer count cannot be indexed; variable-sized elements skip this multiplication entirely. Repeated peeling preserves the bound, and pointer-target views are scalar. Removing only this checked wrapper cannot change a supported result; the separate checked total-count calculations remain required, including for arrays of variable-sized records." }
    ]
   },
@@ -406,7 +406,7 @@
   },
   {
    "pattern": "CStructAddressResolver.cs",
-   "sourceSha256": "3f4a3bc3bfbfad31dae5e09de68b4b88f4234f39d3057087d4a100b7fca366c0",
+   "sourceSha256": "48cd62a2435396cef86fa4102e78f1a7aa74b53fd6b6e6b06ad9ed644fd46770",
    "mutants": [
     { "mutatorName": "Logical mutation", "replacement": "compiledField.HasQualifiedPrefix || compiledField.Array.Kind == CompiledArrayKind.Scalar",
      "location": {"start":{"line":737,"column":17},"end":{"line":737,"column":105}},
@@ -511,7 +511,7 @@
   },
   {
    "pattern": "CStructWriter.cs",
-   "sourceSha256": "67ee22b77ec16aac907404bf0bd92094271a0b3796ca697c5caf4f98d6b337b8",
+   "sourceSha256": "30e5eaa827ee966472b2845520e10d83db6b58a3e4d36b55d2d1076b13621ea6",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":258,"column":25},"end":{"line":258,"column":78}},
@@ -664,10 +664,10 @@
   },
   {
    "pattern": "Writing/CStructElementWriterState.cs",
-   "sourceSha256": "d1a3a6819aa4828df671da48666e711989335a0eeacc45cccf9a25990aeaa30f",
+   "sourceSha256": "5e8219951620d28cfad944662eab40cb6cac1337a41784218bbe956c96913b4c",
    "mutants": [
     { "mutatorName": "Block removal mutation", "replacement": "{}",
-     "location": {"start":{"line":193,"column":9},"end":{"line":195,"column":10}},
+     "location": {"start":{"line":185,"column":9},"end":{"line":187,"column":10}},
      "reason": "For non-null UpdateOptions the specialized branch and the fallback both evaluate a record with-expression with no member changes on the same input. Record cloning uses the runtime type, so the fallback still returns a fresh UpdateOptions preserving its derived settings as well as every base setting. Null and ordinary WriteOptions do not take the removed branch. Snapshot identity and values are unchanged." }
    ]
   },
@@ -940,7 +940,7 @@
   },
   {
    "pattern": "CStruct.cs",
-   "sourceSha256": "ad901988d0fad64246952b5a97708ef88aa53208ec272306ddba04ce6533fbd8",
+   "sourceSha256": "10b59ee91f5e4ae1405c7368f1c85439861c7576881ef984dd08c79f7f7c68d0",
    "mutants": [
     { "mutatorName": "Logical mutation", "replacement": "!rootValues.TryGetValue(segments[0].Name, out object? selected) && selected is null",
      "location": {"start":{"line":410,"column":13},"end":{"line":410,"column":96}},
@@ -967,7 +967,7 @@
   },
   {
    "pattern": "CStructReader.cs",
-   "sourceSha256": "a629ce5a30c8c8bd0a306fc1160f8ebeda50d8adaf161d25085786c9ac0a131d",
+   "sourceSha256": "77fa9c0f83b9a387659aef96d0af7f4da97d8c3ea8771ad328946fd6bfa541a1",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":121,"column":17},"end":{"line":121,"column":49}},

@@ -104,8 +104,7 @@ internal sealed class TargetProgramCache
             return target;
         }
 
-        ReadPointerTarget described = new ReadProgramCompiler(compilation, this.Table.ReadPrograms).DescribeSelectedPointer(view) ??
-                                      throw new InvalidOperationException("The compiled engine cannot describe the target of " + view.Name + ".");
+        ReadPointerTarget described = new ReadProgramCompiler(compilation, this.Table.ReadPrograms).DescribeSelectedPointer(view);
         return this.pointers.GetOrAdd(key, described);
     }
 

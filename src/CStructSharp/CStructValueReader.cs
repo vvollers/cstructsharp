@@ -133,10 +133,10 @@ public sealed partial class CStruct
     {
         if (segments.Count == 1)
         {
-            return EngineSelector.SelectRootRead(options.EngineSelection, this.compilation, segments[0].Name, variables);
+            return EngineSelector.SelectRootRead(options.EngineSelection, this.compilation, segments[0].Name);
         }
 
-        return EngineSelector.SelectPathRead(options.EngineSelection, this.compilation, segments[0].Name, variables, EngineOperation.PathRead);
+        return EngineSelector.SelectPathRead(options.EngineSelection, this.compilation, segments[0].Name, EngineOperation.PathRead);
     }
 
     /// <summary>

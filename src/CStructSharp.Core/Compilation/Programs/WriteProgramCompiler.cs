@@ -497,11 +497,6 @@ internal sealed class WriteProgramCompiler
             builder.Emit(WriteOpCode.CheckFixedCount, index, field.Array.TotalFixedElementCount!.Value, 0);
             return null;
         case CompiledArrayKind.Runtime:
-            if (this.FirstUnslottedName(field.Array.CountExpression!) is { } unslotted)
-            {
-                return ReadProgramCompiler.Refuse(location, field, ReadProgramCompiler.UnslottedName + unslotted);
-            }
-
             builder.Emit(WriteOpCode.EvaluateCount, index, builder.AddExpression(field.Array.CountExpression!, "array length for " + field.Name), 0);
             return null;
         case CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated:
@@ -700,21 +695,5 @@ internal sealed class WriteProgramCompiler
         {
             builder.Emit(WriteOpCode.CaptureValue, index, slot, published);
         }
-    }
-
-    /// <summary>Returns the first identifier an expression names that has no slot in the layout's table, if any.</summary>
-    /// <param name="expression">The expression.</param>
-    /// <returns>The name, or <see langword="null"/> when every name has a slot.</returns>
-    private string? FirstUnslottedName(Expr expression)
-    {
-        foreach (string name in this.cache.Table.Evaluator.GetDependencies(expression))
-        {
-            if (!this.cache.Table.TryGetSlot(name, out _))
-            {
-                return name;
-            }
-        }
-
-        return null;
     }
 }

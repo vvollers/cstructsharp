@@ -195,7 +195,7 @@ public class PointerArithmeticTests
                 () => cstruct.ParseWithDebug(
                     debugStream,
                     "root",
-                    new Dictionary<string, Syntax.Expr>(),
+                    new Dictionary<string, int>(),
                     options));
             Assert.IsInstanceOfType<OverflowException>(exception.InnerException);
         }
@@ -268,7 +268,7 @@ public class PointerArithmeticTests
                 () => cstruct.ParseWithDebug(
                     debugStream,
                     "root",
-                    new Dictionary<string, Syntax.Expr>(),
+                    new Dictionary<string, int>(),
                     noDereference));
         }
 
@@ -303,9 +303,9 @@ public class PointerArithmeticTests
             isLittleEndian: isLittleEndian);
         byte[] dependentBytes = new byte[9];
         RegressionTestSupport.EncodeUnsigned((ulong)long.MaxValue, 8, isLittleEndian).CopyTo(dependentBytes, 0);
-        var staleOverride = new Dictionary<string, Syntax.Expr>
+        var staleOverride = new Dictionary<string, int>
         {
-            ["ptr"] = new Syntax.Literal(1),
+            ["ptr"] = 1,
         };
         using var dependentParse = new MemoryStream((byte[])dependentBytes.Clone());
         _ = Assert.Throws<CStructReadException>(

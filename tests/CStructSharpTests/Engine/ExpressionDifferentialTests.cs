@@ -341,41 +341,6 @@ public class ExpressionDifferentialTests
         Assert.AreEqual("value -2147483647", Evaluate(string.Empty, "n + 1", relevant));
     }
 
-    /// <summary>
-    ///     Internal expression inputs that stay unevaluated - an identifier or an expression naming a name without a
-    ///     slot - are evaluated by the dictionary evaluator over the slots and the entries without a slot, and set
-    ///     capture-all.
-    /// </summary>
-    [TestMethod]
-    public void ExpressionInputs_OutsideTheTable_UseTheDictionaryEvaluator()
-    {
-        const string definitions = "#define D 1\n#define E 2\n";
-        var inputs = new Dictionary<string, Expr>(StringComparer.Ordinal)
-        {
-            ["D"] = new Identifier("zz_missing"),
-            ["E"] = LayoutParser.ParseExpression("m + zz_a"),
-            ["zz_a"] = new Literal(4),
-        };
-
-        StringAssert.Contains(Evaluate(definitions, "D + m", inputs, ("m", new Literal(3))), "Undefined expression identifier: zz_missing");
-        Assert.AreEqual("value 7", Evaluate(definitions, "E", inputs, ("m", new Literal(3))));
-        StringAssert.Contains(Evaluate(definitions, "E", inputs), "Undefined expression identifier: m");
-
-        // A supplied expression that is not a definition must resolve when the operation starts, in both models.
-        var unresolved = new Dictionary<string, Expr>(StringComparer.Ordinal) { ["q"] = new Identifier("zz_nothing"), };
-        StringAssert.Contains(Evaluate(definitions, "q + m", unresolved), "Layout expression could not be resolved: Undefined expression identifier: zz_nothing");
-
-        (LayoutCompilation compilation, _) = Layout(definitions, "D + E + m", null, []);
-        SlotTable table = compilation.SlotTable;
-        Assert.IsTrue(table.TryGetSlot("E", out int slot));
-        using CStructSharp.Engine.VariableSlots slots = CStructSharp.Engine.VariableSlots.Create(table, LayoutVariableInput.FromExpressions(inputs));
-        Assert.AreEqual(SlotState.LiveExpression, slots.Get(slot).State);
-        Assert.IsFalse(((ProgramExpression)slots.Get(slot).Payload!).IsNative);
-        Assert.IsTrue(table.TryGetSlot("D", out slot));
-        Assert.AreEqual(SlotState.Identifier, slots.Get(slot).State);
-        Assert.IsTrue(slots.CaptureAll);
-    }
-
     /// <summary>Generates the text of a random expression, fully parenthesized.</summary>
     /// <param name="random">The generator.</param>
     /// <param name="level">The current nesting level; deeper levels favor leaves.</param>
@@ -426,7 +391,7 @@ public class ExpressionDifferentialTests
     /// <summary>Evaluates one expression in both models with the given inputs and captures, asserting they agree.</summary>
     /// <param name="definitions">Definitions placed before the layout.</param>
     /// <param name="expression">The expression.</param>
-    /// <param name="variables">Integer caller variables, expression inputs, or <see langword="null"/>.</param>
+    /// <param name="variables">Integer caller variables, or <see langword="null"/>.</param>
     /// <param name="captures">Values captured after creation.</param>
     /// <returns>The Read-domain outcome.</returns>
     private static string Evaluate(string definitions, string expression, object? variables, params (string Name, Expr? Value)[] captures)
@@ -435,18 +400,14 @@ public class ExpressionDifferentialTests
     /// <summary>Evaluates one expression in both models with the given compilation options, inputs and captures.</summary>
     /// <param name="definitions">Definitions placed before the layout.</param>
     /// <param name="expression">The expression.</param>
-    /// <param name="variables">Integer caller variables, expression inputs, or <see langword="null"/>.</param>
+    /// <param name="variables">Integer caller variables, or <see langword="null"/>.</param>
     /// <param name="options">The compilation options, or <see langword="null"/>.</param>
     /// <param name="captures">Values captured after creation.</param>
     /// <returns>The Read-domain outcome.</returns>
     private static string Evaluate(string definitions, string expression, object? variables, CStructCompilationOptions? options, params (string Name, Expr? Value)[] captures)
     {
         (LayoutCompilation compilation, Expr parsed) = Layout(definitions, expression, options, captures.Select(capture => capture.Name));
-        LayoutVariableInput input = variables switch
-        {
-            IReadOnlyDictionary<string, Expr> expressions => LayoutVariableInput.FromExpressions(expressions),
-            _ => LayoutVariableInput.FromIntegers((IReadOnlyDictionary<string, int>?)variables),
-        };
+        LayoutVariableInput input = LayoutVariableInput.FromIntegers((IReadOnlyDictionary<string, int>?)variables);
         var counts = new ExpressionDifferentialCounts();
         ExpressionFailureDomain[] domains = [ExpressionFailureDomain.Read, ExpressionFailureDomain.Layout, ExpressionFailureDomain.Write];
         return ExpressionDifferential.Compare(expression, compilation, parsed, input, captures, domains, counts);

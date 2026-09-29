@@ -123,7 +123,7 @@ public class CompiledIntermediateRepresentationTests
             cstruct.ResolveAddress(
                 stream,
                 "root.tail",
-                new Dictionary<string, Expr> { ["COUNT"] = new Literal(3), }));
+                new Dictionary<string, int> { ["COUNT"] = 3, }));
     }
 
     /// <summary>

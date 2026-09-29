@@ -35,17 +35,6 @@ public class CStructOperationContextTests
         }
     }
 
-    /// <summary>Only a resolved selective dictionary can skip publishing unreferenced layout variables.</summary>
-    [TestMethod]
-    public void Constructor_PreservesSelectiveAndCaptureAllVariableModes()
-    {
-        using var stream = new MemoryStream();
-        ReadOperationSettings settings = ReadOperationSettings.SnapshotReadOptions(null);
-        Assert.IsTrue(new CStructOperationContext(stream, [], false, settings).CaptureAllLayoutVariables);
-        Assert.IsFalse(new CStructOperationContext(stream, new LayoutVariables(), false, settings).CaptureAllLayoutVariables);
-        Assert.IsTrue(new CStructOperationContext(stream, new LayoutVariables { CaptureAll = true, }, false, settings).CaptureAllLayoutVariables);
-    }
-
     /// <summary>Leaving a nested scope removes its prefix marker and missing fields cannot retain stale qualified values.</summary>
     [TestMethod]
     public void PublishQualified_RemovesStaleValuesAndReleasesPrefixState()

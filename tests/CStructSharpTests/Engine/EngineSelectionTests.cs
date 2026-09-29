@@ -17,13 +17,10 @@ public class EngineSelectionTests
     private const string SizedLayout = "struct inner { uint8 a; }; struct rec { uint8 n; uint16 items[n]; inner last; uint8 tail; };";
 
     /// <summary>
-    ///     A root the engine cannot read: a type spelling whose count names a caller variable no expression of the layout
-    ///     uses, so the variable has no slot (<see cref="UnslottedVariables"/>).
+    ///     A root spelled at run time whose count names a caller variable no expression of the layout uses, so the variable
+    ///     has no slot (<see cref="UnslottedVariables"/>); the engine reads it through the caller's value all the same.
     /// </summary>
     private const string UnslottedRoot = "uint8[M]";
-
-    /// <summary>The reason the engine declines <see cref="UnslottedRoot"/>.</summary>
-    private const string UnslottedReason = UnslottedRoot + "." + UnslottedRoot + ": " + Compilation.Programs.ReadProgramCompiler.UnslottedName + "M";
 
     /// <summary>The caller variables <see cref="UnslottedRoot"/> is read with.</summary>
     private static readonly Dictionary<string, int> UnslottedVariables = new() { ["M"] = 2, };
@@ -228,8 +225,9 @@ public class EngineSelectionTests
         Assert.AreEqual((byte)9, ((StructValue)layout.ReadValue(new MemoryStream(SizedData), "rec", options: read)!)["tail"]);
 
         using var unslottedSource = new MemoryStream([1, 2, 3, 4]);
-        AssertRequired(EngineOperation.RootRead, () => layout.Parse(unslottedSource, UnslottedRoot, UnslottedVariables, read), UnslottedReason);
-        Assert.AreEqual(0, unslottedSource.Position, "the stream does not move");
+        object? spelled = layout.ReadValue(unslottedSource, UnslottedRoot, UnslottedVariables, read);
+        Assert.AreEqual(2, ((System.Collections.IEnumerable)spelled!).Cast<object?>().Count(), "the caller's M counts the elements");
+        Assert.AreEqual(2, unslottedSource.Position);
         AssertRequired(EngineOperation.PathRead, () => layout.ReadValue(SizedData, "nosuch.x", options: read), "nosuch: the layout declares no such root");
         Assert.AreEqual((ushort)1, layout.ReadValue(SizedData, "rec.items[0]", options: read));
         Assert.AreEqual((byte)9, layout.ParseWithDebug(SizedData, "rec", options: read).Value["tail"]);
@@ -266,7 +264,6 @@ public class EngineSelectionTests
 
         // The asynchronous forms copy the options with a linked token; the selection survives the copy.
         using var cancellation = new CancellationTokenSource();
-        AssertRequired(EngineOperation.RootRead, () => layout.ParseAsync(new MemoryStream([1, 2, 3, 4]), UnslottedRoot, UnslottedVariables, read, cancellation.Token).AsTask().GetAwaiter().GetResult(), UnslottedReason);
         Assert.AreEqual((byte)9, layout.ParseAsync(new MemoryStream(SizedData), "rec", options: read, cancellationToken: cancellation.Token).AsTask().GetAwaiter().GetResult()["tail"]);
         using var asyncWritten = new MemoryStream();
         layout.WriteAsync(asyncWritten, "rec", value, options: write, cancellationToken: cancellation.Token).AsTask().GetAwaiter().GetResult();
@@ -332,6 +329,8 @@ public class EngineSelectionTests
 
         diagnostics.RecordDecline(EngineOperation.Update, "last");
         Assert.AreEqual(new EngineDecline(EngineOperation.Update, "last"), diagnostics.LastDecline);
+        Assert.AreEqual(EngineOperation.Update, diagnostics.LastDecline!.Value.Operation);
+        Assert.AreEqual("last", diagnostics.LastDecline!.Value.Reason);
         Assert.AreEqual(new EngineDecline(EngineOperation.Update, "last"), diagnostics.RecentDeclines[^1]);
         Assert.AreEqual(EngineOperation.Update, diagnostics.LastOperation);
     }

@@ -397,9 +397,12 @@ public class ReadEngineTests
                 EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.ChunkedStream3, "uint8[N]", variables, elementLimit), expectEngine: true, path: path);
             }
 
-            // M is only the caller's, and no expression of the layout names it: no slot, so no program.
-            EngineComparison unslotted = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "uint8[M]", new Dictionary<string, int> { ["M"] = 3, }), expectEngine: false, path: path);
-            StringAssert.Contains(unslotted.Automatic.LastDecline!.Value.Reason, Compilation.Programs.ReadProgramCompiler.UnslottedName + "M");
+            // M is only the caller's, and no expression of the layout names it: it has no slot, and the count reads the
+            // caller's value through the dictionary the slots stand for.
+            var callerOnly = new Dictionary<string, int> { ["M"] = 3, };
+            EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "uint8[M]", callerOnly), expectEngine: true, path: path);
+            EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.ChunkedStream3, "uint8[M]", callerOnly), expectEngine: true, path: path);
+            EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Span, "uint8[M]"), expectEngine: true, path: path);
         }
     }
 
@@ -1015,37 +1018,31 @@ public class ReadEngineTests
     }
 
     /// <summary>
-    ///     A parse whose internal expression variables all evaluate runs on the engine as integers do; one whose expression
-    ///     stays unevaluated - and so may name any field, which makes the interpreter capture every field - is left to the
-    ///     interpreter, and so is a root the compiler cannot read yet.
+    ///     A root spelled at run time whose count names a caller variable no expression of the layout uses runs on the
+    ///     engine through every operation, identically: parsed, read as a value, debug-parsed, measured, written and updated,
+    ///     with the variable, without it (the count names nothing), and next to an unrelated caller variable.
     /// </summary>
     [TestMethod]
-    public void IneligibleOperations_AreDeclinedBeforeReading()
+    public void SpelledRootWithCallerOnlyVariable_RunsOnTheEngine()
     {
         var layout = new CStruct("struct rec { uint8 n; uint8 d[n]; };");
-        var evaluated = new Dictionary<string, Syntax.Expr> { ["m"] = new Syntax.Literal(2), };
-        using (EngineRecording recording = EngineDiagnostics.Record())
+        const string spelled = "uint16[M]";
+        byte[] data = [1, 0, 2, 0, 3, 0];
+        object value = new ushort[] { 7, 8, };
+        IReadOnlyDictionary<string, int>?[] variableSets = [new Dictionary<string, int> { ["M"] = 2, }, null, new Dictionary<string, int> { ["M"] = 3, ["unrelated"] = 1, }];
+        foreach (IReadOnlyDictionary<string, int>? variables in variableSets)
         {
-            object value = layout.ParseStreamCore(new MemoryStream([1, 5]), "rec", Expressions.LayoutVariableInput.FromExpressions(evaluated), null);
-            Assert.AreEqual((byte)1, ((StructValue)value)["n"]);
-            Assert.AreEqual(1, recording.Diagnostics.EngineRuns);
-            Assert.AreEqual(0, recording.Diagnostics.Declines);
+            foreach (ExecutionPath path in Paths)
+            {
+                EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Span, spelled, variables), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Stream, spelled, variables), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.ReadValueWithDebug(layout, data, EngineInput.Span, spelled, variables), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.GetArrayLength(layout, data, EngineInput.Span, spelled, variables), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.Serialize(layout, spelled, value, variables), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.Write(layout, [0xAA, 0xAA], 1, spelled, value, variables), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.Update(layout, data, EngineInput.Span, spelled, value, variables), expectEngine: true, path: path);
+            }
         }
-
-        // A definition overridden by an expression that names a field stays unevaluated until the field is read.
-        var overridden = new CStruct("#define M 1\nstruct rec { uint8 n; uint8 d[n]; uint8 e[M]; };");
-        var unevaluated = new Dictionary<string, Syntax.Expr> { ["M"] = new Syntax.Identifier("n"), };
-        using (EngineRecording recording = EngineDiagnostics.Record())
-        {
-            object value = overridden.ParseStreamCore(new MemoryStream([1, 5, 7]), "rec", Expressions.LayoutVariableInput.FromExpressions(unevaluated), null);
-            Assert.AreEqual((byte)1, ((StructValue)value)["n"]);
-            Assert.AreEqual(new EngineDecline(EngineOperation.RootRead, EngineSelector.ExpressionInputs), recording.Diagnostics.LastDecline);
-        }
-
-        // A type-spelling root whose count names a caller variable no expression of the layout uses has no slot for it.
-        const string unslotted = "uint8[M]";
-        EngineComparison comparison = EngineDifferential.AssertSame(EngineOperations.Parse(layout, [1, 5], EngineInput.Stream, unslotted, new Dictionary<string, int> { ["M"] = 2, }), expectEngine: false);
-        StringAssert.Contains(comparison.Automatic.LastDecline!.Value.Reason, Compilation.Programs.ReadProgramCompiler.UnslottedName + "M");
     }
 
     /// <summary>Encodes a <c>blob</c> (<see cref="LengthPrefixedCodec"/>) of <paramref name="length"/> zero bytes.</summary>

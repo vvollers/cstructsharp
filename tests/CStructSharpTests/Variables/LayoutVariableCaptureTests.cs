@@ -74,25 +74,6 @@ public class LayoutVariableCaptureTests
     }
 
     /// <summary>
-    ///     Supplied variables cannot name a field: integers are literals, and an expression naming a field is rejected
-    ///     when the operation starts, so the capture-all fallback is a safety net rather than a reachable path. The
-    ///     flag still survives the copies operations make of their variables.
-    /// </summary>
-    [TestMethod]
-    public void SuppliedVariables_CannotReferenceFields_AndTheFallbackFlagPropagates()
-    {
-        var cstruct = new CStruct("struct root { uint8 unused; uint8 n; uint8 items[n]; };");
-        LayoutVariableResolver resolver = cstruct.Compilation.LayoutVariableResolver;
-        Assert.IsFalse(LayoutVariableInput.FromIntegers(new Dictionary<string, int> { ["n"] = 1 }).Resolve(resolver) is LayoutVariables { CaptureAll: true });
-        Assert.ThrowsExactly<CStructLayoutException>(() => LayoutVariableInput.FromExpressions(
-            new Dictionary<string, Expr> { ["n"] = new BinaryOp(BinaryOperatorType.Add, new Identifier("unused"), new Literal(1)) }).Resolve(resolver));
-
-        var flagged = new LayoutVariables { CaptureAll = true };
-        Assert.IsTrue(new LayoutVariables(flagged).CaptureAll);
-        Assert.IsFalse(new LayoutVariables(new Dictionary<string, Expr>()).CaptureAll);
-    }
-
-    /// <summary>
     ///     The read-only dictionary overrides COUNT from 1 to 2, so every operation must treat values as two uint16
     ///     elements.
     /// </summary>

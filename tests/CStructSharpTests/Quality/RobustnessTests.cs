@@ -117,7 +117,7 @@ public class RobustnessTests
         dynamic result = cstruct.Parse(
                                              stream,
                                              "root",
-                                             new System.Collections.Generic.Dictionary<string, Expr>(),
+                                             new System.Collections.Generic.Dictionary<string, int>(),
                                              new ReadOptions { DereferencePointers = false, });
         Pointer pointer = result.target;
 
@@ -161,7 +161,7 @@ public class RobustnessTests
                                              () => cstruct.Parse(
                                                  stream,
                                                  "root",
-                                                 new System.Collections.Generic.Dictionary<string, Expr>(),
+                                                 new System.Collections.Generic.Dictionary<string, int>(),
                                                  new ReadOptions { MaxPointerTargetBytes = 2, }));
     }
 
@@ -283,9 +283,9 @@ public class RobustnessTests
     public void ParseStream_ResolvesForwardDefinesWithoutMutatingSuppliedVariables()
     {
         const string layout = "#define second first + 1 #define first 2 struct root { byte values[second]; };";
-        var variables = new System.Collections.Generic.Dictionary<string, Expr>
+        var variables = new System.Collections.Generic.Dictionary<string, int>
         {
-            ["external"] = new Literal(42),
+            ["external"] = 42,
         };
         using var stream = new MemoryStream([0x01, 0x02, 0x03,]);
         var cstruct = new CStruct(layout);
@@ -294,7 +294,7 @@ public class RobustnessTests
 
         Assert.AreEqual(3, result.values.Count);
         Assert.AreEqual(1, variables.Count);
-        Assert.AreEqual(42, variables["external"].Evaluate());
+        Assert.AreEqual(42, variables["external"]);
     }
 
     /// <summary>

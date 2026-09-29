@@ -14,19 +14,6 @@ using CStructSharp.Writing;
 [TestClass]
 public class WriterStateBoundaryTests
 {
-    /// <summary>Unknown caller expressions require full capture while resolved variable dictionaries may use selective capture.</summary>
-    [TestMethod]
-    public void CapturePolicy_DistinguishesResolvedAndUnknownVariables()
-    {
-        using var stream = new MemoryStream();
-        var selective = new CStructElementWriterState(stream, new LayoutVariables(), false, new WriteOptions());
-        var full = new CStructElementWriterState(stream, new LayoutVariables { CaptureAll = true, }, false, new WriteOptions());
-        var unknown = new CStructElementWriterState(stream, new Dictionary<string, Expr>(), false, new WriteOptions());
-        Assert.IsFalse(selective.CaptureAllLayoutVariables);
-        Assert.IsTrue(full.CaptureAllLayoutVariables);
-        Assert.IsTrue(unknown.CaptureAllLayoutVariables);
-    }
-
     /// <summary>Starting at the exact nesting limit is valid, but one more or a negative depth is rejected with context.</summary>
     [TestMethod]
     public void InitialDepth_AcceptsExactLimitAndExplainsInvalidValues()

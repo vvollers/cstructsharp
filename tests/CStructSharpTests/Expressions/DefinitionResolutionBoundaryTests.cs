@@ -20,49 +20,29 @@ public class DefinitionResolutionBoundaryTests
     public void LiteralOverrides_DoNotCompileDependencyPrograms()
     {
         var resolver = new LayoutVariableResolver([], new ExpressionEvaluator(new ExpressionEvaluationLimits(256, 100_000)));
-        var reused = new Dictionary<string, Expr>();
-        var fresh = new Dictionary<string, Expr>();
+        var reused = new Dictionary<string, int>();
+        var fresh = new Dictionary<string, int>();
         for (int index = 0; index < 32; index++)
         {
-            reused.Add("VALUE" + index, new Literal(index));
-            fresh.Add("VALUE" + index, new Literal(index));
+            reused.Add("VALUE" + index, index);
+            fresh.Add("VALUE" + index, index);
         }
 
         // Input construction is outside the measurement. Both operations copy the same values and key shape.
         for (int index = 0; index < 32; index++)
         {
-            _ = resolver.Create(reused);
+            _ = resolver.CreateIntegers(reused);
         }
 
         long before = GC.GetAllocatedBytesForCurrentThread();
-        Dictionary<string, Expr> repeatedResult = resolver.Create(reused);
+        Dictionary<string, Expr> repeatedResult = resolver.CreateIntegers(reused);
         long repeatedBytes = GC.GetAllocatedBytesForCurrentThread() - before;
         before = GC.GetAllocatedBytesForCurrentThread();
-        Dictionary<string, Expr> freshResult = resolver.Create(fresh);
+        Dictionary<string, Expr> freshResult = resolver.CreateIntegers(fresh);
         long freshBytes = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.AreEqual(32, repeatedResult.Count);
         Assert.AreEqual(32, freshResult.Count);
-        Assert.IsFalse(((LayoutVariables)freshResult).CaptureAll);
-        Assert.IsTrue(freshBytes <= repeatedBytes + 1024, $"Fresh literals allocated {freshBytes} bytes versus {repeatedBytes}; literal capture checks must not compile expression programs.");
-    }
-
-    /// <summary>Once a deferred override requires all fields, capture detection does not continue enumerating caller keys.</summary>
-    [TestMethod]
-    public void CaptureDetection_StopsAfterTheFirstDeferredOverride()
-    {
-        var resolver = new LayoutVariableResolver(
-            [new Definition(new Identifier("COUNT"), new Literal(1)),],
-            ExpressionEvaluator.Default);
-        var supplied = new KeyVisitDictionary
-        {
-            ["COUNT"] = new Identifier("laterField"),
-            ["UNRELATED"] = new Literal(2),
-        };
-
-        var resolved = (LayoutVariables)resolver.Create(supplied);
-        Assert.IsTrue(resolved.CaptureAll);
-        Assert.AreEqual(2, resolved["UNRELATED"].Evaluate());
-        Assert.AreEqual(1, supplied.KeyVisits[^1], "Capture detection has its answer after the first key and must stop scanning.");
+        Assert.IsTrue(freshBytes <= repeatedBytes + 1024, $"Fresh literals allocated {freshBytes} bytes versus {repeatedBytes}; literal overrides must not compile expression programs.");
     }
 
     /// <summary>Without overrides, a resolved layout needs only its isolated dictionary copy, not another evaluation session.</summary>
@@ -80,11 +60,11 @@ public class DefinitionResolutionBoundaryTests
 
         var resolver = new LayoutVariableResolver(definitions, ExpressionEvaluator.Default);
         var baseline = (IDictionary<string, Expr>)resolver.CreateStatic();
-        IReadOnlyDictionary<string, Expr>? supplied = emptyOverrides ? new Dictionary<string, Expr>() : null;
+        IReadOnlyDictionary<string, int>? supplied = emptyOverrides ? new Dictionary<string, int>() : null;
 
         // Both delegates allocate the required isolated dictionary; only repeated resolution adds avoidable work.
         Func<Dictionary<string, Expr>> copy = () => new LayoutVariables(baseline);
-        Func<Dictionary<string, Expr>> resolve = () => resolver.Create(supplied);
+        Func<Dictionary<string, Expr>> resolve = () => resolver.CreateIntegers(supplied);
         _ = MeasureCopies(copy);
         _ = MeasureCopies(resolve);
         long copyBytes = MeasureCopies(copy);
@@ -92,24 +72,9 @@ public class DefinitionResolutionBoundaryTests
         Assert.IsTrue(resolutionBytes <= copyBytes + (64 * 128), "An unchanged baseline must not rebuild expression sessions or dependency collections for each copy.");
     }
 
-    /// <summary>An override of an existing definition may defer its field dependency and must enable full field capture.</summary>
+    /// <summary>A wide exact-enum expression retains its original interpretation in every operation's variables.</summary>
     [TestMethod]
-    public void DeferredDefinitionOverride_CapturesFieldValues()
-    {
-        var resolver = new LayoutVariableResolver(
-            [new Definition(new Identifier("COUNT"), new Literal(1)),],
-            ExpressionEvaluator.Default);
-        var expression = new Identifier("laterField");
-        Dictionary<string, Expr> resolved = resolver.Create(new Dictionary<string, Expr> { ["COUNT"] = expression, });
-        Assert.IsInstanceOfType<LayoutVariables>(resolved);
-        Assert.IsTrue(((LayoutVariables)resolved).CaptureAll);
-        Assert.AreSame(expression, resolved["COUNT"]);
-        Assert.AreEqual(1, resolver.CreateStatic()["COUNT"].Evaluate());
-    }
-
-    /// <summary>A wide exact-enum expression retains its original interpretation without capturing unrelated fields.</summary>
-    [TestMethod]
-    public void ExactEnumWithoutDependencies_DoesNotCaptureFields()
+    public void ExactEnumWithoutDependencies_KeepsItsExpression()
     {
         var expression = new BinaryOp(BinaryOperatorType.Add, new Literal(Int128.MaxValue), new Literal(1));
         var resolver = new LayoutVariableResolver(
@@ -117,9 +82,7 @@ public class DefinitionResolutionBoundaryTests
             ExpressionEvaluator.Default,
             ["WIDE",]);
         Assert.AreSame(expression, resolver.CreateStatic()["WIDE"]);
-        Dictionary<string, Expr> resolved = resolver.Create(new Dictionary<string, Expr> { ["WIDE"] = expression, });
-        Assert.AreSame(expression, resolved["WIDE"]);
-        Assert.IsFalse(((LayoutVariables)resolved).CaptureAll);
+        Assert.AreSame(expression, resolver.CreateIntegers(null)["WIDE"]);
     }
 
     /// <summary>Compile-time arithmetic failures keep the layout-resolution prefix and original cause.</summary>
@@ -132,20 +95,6 @@ public class DefinitionResolutionBoundaryTests
         CStructLayoutException failure = Assert.ThrowsExactly<CStructLayoutException>(() => new LayoutVariableResolver(
             [new Definition(new Identifier("BAD"), expression),],
             ExpressionEvaluator.Default));
-        StringAssert.StartsWith(failure.Message, "Layout expression could not be resolved: ");
-        Assert.IsInstanceOfType<DivideByZeroException>(failure.InnerException);
-    }
-
-    /// <summary>An invalid caller expression has the same useful resolution context as a static definition failure.</summary>
-    [TestMethod]
-    public void SuppliedArithmeticFailure_IdentifiesLayoutResolution()
-    {
-        var resolver = new LayoutVariableResolver([], ExpressionEvaluator.Default);
-        var expression = new BinaryOp(BinaryOperatorType.Div, new Literal(1), new Literal(0));
-
-        // Unlike a deferred layout definition, an unknown caller variable must resolve at operation entry.
-        CStructLayoutException failure = Assert.ThrowsExactly<CStructLayoutException>(() => resolver.Create(
-            new Dictionary<string, Expr> { ["BAD"] = expression, }));
         StringAssert.StartsWith(failure.Message, "Layout expression could not be resolved: ");
         Assert.IsInstanceOfType<DivideByZeroException>(failure.InnerException);
     }
@@ -166,20 +115,6 @@ public class DefinitionResolutionBoundaryTests
         Assert.AreEqual("Circular expression dependency detected at: FIRST", failure.Message);
     }
 
-    /// <summary>A caller's overflowing expression is rejected rather than retained as an unevaluated layout definition.</summary>
-    [TestMethod]
-    public void SuppliedOverflow_IsNotDeferredAsADefinition()
-    {
-        var resolver = new LayoutVariableResolver([], ExpressionEvaluator.Default);
-        var expression = new BinaryOp(BinaryOperatorType.Add, new Literal(Int128.MaxValue), new Literal(1));
-
-        // Only declared definitions have the exact-value fallback; caller variables must be valid domain values.
-        CStructLayoutException failure = Assert.ThrowsExactly<CStructLayoutException>(() => resolver.Create(
-            new Dictionary<string, Expr> { ["BAD"] = expression, }));
-        StringAssert.StartsWith(failure.Message, "Layout expression could not be resolved: ");
-        Assert.IsInstanceOfType<OverflowException>(failure.InnerException);
-    }
-
     /// <summary>An unused definition that fails both checked and exact evaluation retains its expression.</summary>
     [TestMethod]
     public void UnusedArithmeticFailure_RemainsDeferred()
@@ -191,7 +126,7 @@ public class DefinitionResolutionBoundaryTests
             [new Definition(new Identifier("HUGE"), expression),],
             ExpressionEvaluator.Default);
         Assert.AreSame(expression, resolver.CreateStatic()["HUGE"]);
-        Assert.AreSame(expression, resolver.Create(null)["HUGE"]);
+        Assert.AreSame(expression, resolver.CreateIntegers(null)["HUGE"]);
 
         // Domain evaluation rejects the literal beyond 128 bits on the left; exact evaluation reaches division by zero
         // on the right. The unused macro remains deferred, but a later consumer must still reject it.
@@ -235,26 +170,5 @@ public class DefinitionResolutionBoundaryTests
         }
 
         return GC.GetAllocatedBytesForCurrentThread() - before;
-    }
-
-    /// <summary>Counts keys visited in each enumeration independently of dictionary value enumeration.</summary>
-    private sealed class KeyVisitDictionary : Dictionary<string, Expr>, IReadOnlyDictionary<string, Expr>
-    {
-        public List<int> KeyVisits { get; } = [];
-
-        IEnumerable<string> IReadOnlyDictionary<string, Expr>.Keys => this.VisitKeys();
-
-        /// <summary>Yields the original keys while recording how far each caller advances this enumeration.</summary>
-        /// <returns>Keys in the underlying dictionary's enumeration order.</returns>
-        private IEnumerable<string> VisitKeys()
-        {
-            int visit = this.KeyVisits.Count;
-            this.KeyVisits.Add(0);
-            foreach (string key in this.Keys)
-            {
-                this.KeyVisits[visit]++;
-                yield return key;
-            }
-        }
     }
 }

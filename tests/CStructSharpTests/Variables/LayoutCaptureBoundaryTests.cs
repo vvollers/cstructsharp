@@ -11,20 +11,6 @@ using CStructSharp.Syntax;
 [TestClass]
 public class LayoutCaptureBoundaryTests
 {
-    /// <summary>A deferred internal definition override captures an otherwise unreferenced field while reading.</summary>
-    [TestMethod]
-    public void DeferredDefinition_ReadsItsRuntimeCountField()
-    {
-        var layout = new CStruct("#define COUNT 1\nstruct root { uint8 count; uint8 values[COUNT]; };");
-        var variables = new Dictionary<string, Expr> { ["COUNT"] = new Identifier("count"), };
-        using var input = new MemoryStream(new byte[] { 2, 11, 12, });
-
-        dynamic parsed = layout.Parse(input, "root", variables);
-        Assert.AreEqual((byte)2, parsed.count);
-        CollectionAssert.AreEqual(new object?[] { (byte)11, (byte)12, }, ((IList<object?>)parsed.values).ToArray());
-        Assert.AreEqual(3L, input.Position);
-    }
-
     /// <summary>Both conditional arms and unary operands contribute dependencies before an input selects one arm.</summary>
     [TestMethod]
     public void ConditionalAndUnaryCounts_CaptureEveryReferencedField()
@@ -83,21 +69,6 @@ public class LayoutCaptureBoundaryTests
     {
         CStructLayoutException failure = Assert.ThrowsExactly<CStructLayoutException>(() => new CStruct(definition));
         StringAssert.Contains(failure.Message, "Field 'value' is " + reason);
-    }
-
-    /// <summary>A deferred definition override can use a field that the original layout did not reference.</summary>
-    [TestMethod]
-    public void DeferredDefinition_CapturesItsRuntimeField()
-    {
-        var layout = new CStruct("#define COUNT 1\nstruct root { uint8 count; uint8 values[COUNT]; };");
-        var data = new Dictionary<string, object?>
-        {
-            ["count"] = (byte)2,
-            ["values"] = new byte[] { 11, 12, },
-        };
-        var variables = new Dictionary<string, Expr> { ["COUNT"] = new Identifier("count"), };
-
-        CollectionAssert.AreEqual(new byte[] { 2, 11, 12, }, layout.Serialize("root", data, variables));
     }
 
     /// <summary>Returns the uniquely named field whose capture and dependency metadata the test examines.</summary>

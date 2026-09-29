@@ -243,7 +243,7 @@ public sealed partial class CStruct
                     {
                         object value = field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size));
                         destination.SetFreshSlot(operation.Slot, value);
-                        if (state is not null && (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables))
+                        if (state is not null && field.CapturesLayoutVariable)
                         {
                             LayoutVariableCapture.Capture(state.Variables, field.Declaration.Name.Name, field, value);
                             state.PublishQualified(field.Declaration.Name.Name);
@@ -257,7 +257,7 @@ public sealed partial class CStruct
                         object storage = field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size));
                         EnumValueResult value = CreateEnumValue(field.Enum!, storage);
                         destination.SetFreshSlot(operation.Slot, value);
-                        if (state is not null && (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables))
+                        if (state is not null && field.CapturesLayoutVariable)
                         {
                             LayoutVariableCapture.Capture(state.Variables, field.Declaration.Name.Name, field, value);
                             state.PublishQualified(field.Declaration.Name.Name);
@@ -276,7 +276,7 @@ public sealed partial class CStruct
                         string latin1 = ReadLatin1Characters(bytes.Slice(operation.Offset, operation.Count));
                         string text = trimFixedText ? latin1.TrimEnd('\0') : latin1;
                         destination.SetFreshSlot(operation.Slot, text);
-                        if (state is not null && (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables))
+                        if (state is not null && field.CapturesLayoutVariable)
                         {
                             LayoutVariableCapture.Capture(state.Variables, field.Declaration.Name.Name, field, text);
                             state.PublishQualified(field.Declaration.Name.Name);
@@ -300,7 +300,7 @@ public sealed partial class CStruct
 
                         IList<object?> values = PrimitiveArrayReader.Decode(bytes.Slice(operation.Offset, operation.Count * field.Codec.Size), field.Codec, operation.Count);
                         destination.SetFreshSlot(operation.Slot, values);
-                        if (state is not null && (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables))
+                        if (state is not null && field.CapturesLayoutVariable)
                         {
                             LayoutVariableCapture.Capture(state.Variables, field.Declaration.Name.Name, field, values);
                             state.PublishQualified(field.Declaration.Name.Name);

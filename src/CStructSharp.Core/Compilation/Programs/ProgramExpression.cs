@@ -34,9 +34,10 @@ using ExpressionOpcode = CStructSharp.Expressions.ExpressionEvaluator.Expression
 ///             <b>Dictionary path</b>: the dictionary evaluator itself, run over <see cref="SlotTable.CreateDictionary"/>.
 ///             Used when the program is not native - its expression does not compile (a call, a tree over the limits:
 ///             the compile failure is the result) or names an identifier without a slot - and when an evaluation reaches
-///             an <see cref="SlotState.Identifier"/> slot or a live expression whose program is not native. Only internal
-///             expression inputs and expressions from outside the layout produce these. Because evaluation has no side
-///             effects, restarting on the dictionary path when such a slot is reached gives the dictionary result.
+///             a live expression whose program is not native. Only the count of a root spelled at run time
+///             (<c>uint8[M]</c>), which may name a caller variable no layout expression reads, names an identifier without
+///             a slot; the dictionary holds the caller's value of it. Because evaluation has no side effects, restarting on
+///             the dictionary path when such a slot is reached gives the dictionary result.
 ///         </item>
 ///     </list>
 ///     <para>The program is immutable and may be evaluated by any number of threads at once.</para>
@@ -194,7 +195,7 @@ internal sealed class ProgramExpression
     ///     <c>Cannot evaluate {context}: {reason}</c> and the failure as its inner exception.
     /// </summary>
     /// <param name="values">The operation's slot array (the table's slots first; the array may be longer).</param>
-    /// <param name="unslotted">The operation's entries without a slot (internal expression inputs), or <see langword="null"/>.</param>
+    /// <param name="unslotted">The operation's caller variables without a slot, or <see langword="null"/>.</param>
     /// <param name="context">What is being evaluated, used in the failure message.</param>
     /// <param name="domain">Whether a failure is reported as a layout, read, or write exception.</param>
     /// <returns>The signed 128-bit value.</returns>

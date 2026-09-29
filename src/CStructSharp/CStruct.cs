@@ -256,7 +256,7 @@ public sealed partial class CStruct
         ArgumentNullException.ThrowIfNull(stream);
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
         IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
-        if (EngineSelector.SelectPathRead(effectiveOptions.EngineSelection, this.compilation, segments[0].Name, variables, EngineOperation.LengthQuery) is not null)
+        if (EngineSelector.SelectPathRead(effectiveOptions.EngineSelection, this.compilation, segments[0].Name, EngineOperation.LengthQuery) is not null)
         {
             VariableSlots slots = VariableSlots.Create(this.compilation.SlotTable, variables);
             try
@@ -500,7 +500,7 @@ public sealed partial class CStruct
         ArgumentNullException.ThrowIfNull(stream);
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
         IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
-        if (EngineSelector.SelectPathRead(effectiveOptions.EngineSelection, this.compilation, segments[0].Name, variables, EngineOperation.AddressResolution) is not null)
+        if (EngineSelector.SelectPathRead(effectiveOptions.EngineSelection, this.compilation, segments[0].Name, EngineOperation.AddressResolution) is not null)
         {
             VariableSlots slots = VariableSlots.Create(this.compilation.SlotTable, variables);
             try

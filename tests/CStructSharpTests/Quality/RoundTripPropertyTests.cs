@@ -375,7 +375,7 @@ public class RoundTripPropertyTests
         string layout = prefix +
                         $" struct root {{ byte head; child children[{item.Children.Count}]; " +
                         "struct { uint32 code; } inlineValue; word values[N]; char label[5]; };";
-        var variables = new Dictionary<string, Expr> { ["N"] = new Literal(item.Values.Count), };
+        var variables = new Dictionary<string, int> { ["N"] = item.Values.Count, };
         var cstruct = new CStruct(layout, aligned: item.Aligned, isLittleEndian: item.LittleEndian);
         IDictionary<string, object?> data = new ExpandoObject();
         data.Add("head", item.Head);
@@ -695,7 +695,7 @@ public class RoundTripPropertyTests
         dynamic reparsed = cstruct.Parse(
             rootStream,
             "root",
-            new Dictionary<string, Expr>(),
+            new Dictionary<string, int>(),
             new ReadOptions { DereferencePointers = false, });
         Assert.AreEqual(firstTarget, ((Pointer)reparsed.ptr).Address);
         Assert.IsFalse(((Pointer)reparsed.ptr).IsDereferenced);

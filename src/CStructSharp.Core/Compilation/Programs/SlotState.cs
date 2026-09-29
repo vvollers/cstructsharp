@@ -29,10 +29,4 @@ internal enum SlotState : byte
     ///     the payload is its <see cref="ProgramExpression"/>.
     /// </summary>
     LiveExpression,
-
-    /// <summary>
-    ///     A bare reference to a name that has no slot in the table; the payload is that name. Only internal expression
-    ///     inputs can produce it, and an evaluation that selects it runs on the dictionary evaluator.
-    /// </summary>
-    Identifier,
 }

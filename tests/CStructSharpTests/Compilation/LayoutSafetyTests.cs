@@ -210,7 +210,7 @@ public class LayoutSafetyTests
                                              () => cstruct.Parse(
                                                  stream,
                                                  "root",
-                                                 new Dictionary<string, Expr>(),
+                                                 new Dictionary<string, int>(),
                                                  new ReadOptions { MaxArrayElements = 2, }));
     }
 
@@ -249,7 +249,7 @@ public class LayoutSafetyTests
                                              () => cstruct.Parse(
                                                  stream,
                                                  "root",
-                                                 new Dictionary<string, Expr>(),
+                                                 new Dictionary<string, int>(),
                                                  new ReadOptions { MaxPointerTargetBytes = 64, }));
     }
 
@@ -272,7 +272,7 @@ public class LayoutSafetyTests
                                              () => cstruct.Parse(
                                                  stream,
                                                  "root",
-                                                 new Dictionary<string, Expr>(),
+                                                 new Dictionary<string, int>(),
                                                  new ReadOptions { MaxStringBytes = 3, }));
     }
 
@@ -295,7 +295,7 @@ public class LayoutSafetyTests
                                              () => cstruct.Parse(
                                                  stream,
                                                  "root",
-                                                 new Dictionary<string, Expr>(),
+                                                 new Dictionary<string, int>(),
                                                  new ReadOptions { MaxTotalBytesRead = 3, }));
     }
 
@@ -317,7 +317,7 @@ public class LayoutSafetyTests
                                              () => cstruct.Parse(
                                                  stream,
                                                  "a",
-                                                 new Dictionary<string, Expr>(),
+                                                 new Dictionary<string, int>(),
                                                  new ReadOptions { MaxNestingDepth = 2, }));
     }
 
@@ -468,7 +468,7 @@ public class LayoutSafetyTests
             using var stream = new MemoryStream(bytes);
             try
             {
-                Assert.IsNotNull(cstruct.Parse(stream, "root", new Dictionary<string, Expr>(), options));
+                Assert.IsNotNull(cstruct.Parse(stream, "root", new Dictionary<string, int>(), options));
                 successfulParses++;
             }
             catch (CStructReadException)
