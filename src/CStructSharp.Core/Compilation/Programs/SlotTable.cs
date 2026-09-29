@@ -276,6 +276,26 @@ internal sealed class SlotTable
     }
 
     /// <summary>
+    ///     Whether an operation with these internal expression variables must capture every field (a supplied expression
+    ///     stays unevaluated and may name any field, <see cref="LayoutVariables.CaptureAll"/>), which the compiled programs,
+    ///     capturing only the fields the layout's own expressions name, do not do. Resolving has no side effects; variables
+    ///     that cannot be resolved give <see langword="false"/>, because an operation fails on them identically either way.
+    /// </summary>
+    /// <param name="variables">The supplied expressions, or <see langword="null"/>.</param>
+    /// <returns>Whether the operation must capture every field.</returns>
+    public bool RequiresCaptureAll(IReadOnlyDictionary<string, Expr>? variables)
+    {
+        try
+        {
+            return this.resolver.Create(variables) is LayoutVariables { CaptureAll: true, };
+        }
+        catch (CStructLayoutException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
     ///     Builds the dictionary the slots stand for: every defined slot under its name, then the entries without a
     ///     slot. The dictionary evaluator run over it gives the result the slot evaluation must give.
     /// </summary>

@@ -157,13 +157,13 @@ public sealed partial class CStruct
     ///     The compiled engine's counterpart of
     ///     <see cref="CaptureUpdateLayout(Stream, long, CStructElement, Dictionary{string, Expr}, ReadOperationSettings)"/>:
     ///     the same reading of the root with its debug program, giving the same records and conditional-layout trace entry
-    ///     for entry, or <see langword="null"/> when the engine cannot read the root (an ineligible root, or variables given
-    ///     as expressions).
+    ///     for entry, or <see langword="null"/> when the engine cannot read the root (an ineligible root, or expression
+    ///     variables that make every field captured).
     /// </summary>
     /// <remarks>
-    ///     An update runs on one implementation from start to end, and the engine selector declines updates, so an update
-    ///     still captures its layouts with the interpreter; the differential tests hold this counterpart to it for every
-    ///     conditional root and terminated value they sweep.
+    ///     An update runs on one implementation from start to end: the engine's update captures its layouts with the engine
+    ///     (<c>ReadEngine.CaptureLayout</c>), the interpreter's with the interpreter. The differential tests hold this
+    ///     counterpart to the interpreter's capture for every conditional root and terminated value they sweep.
     /// </remarks>
     /// <param name="stream">The data, the original or a staged copy.</param>
     /// <param name="origin">The root's position.</param>
@@ -175,7 +175,7 @@ public sealed partial class CStruct
     internal (string Path, long Start, long End)[]? CaptureUpdateLayoutWithEngine(
         Stream stream, long origin, string rootName, in LayoutVariableInput variables, in ReadOperationSettings options)
     {
-        if (!variables.UsesIntegers || this.compilation.GetRootDebugReadProgram(rootName).Program is not { } program)
+        if (EngineSelector.CapturesEveryField(this.compilation, variables) || this.compilation.GetRootDebugReadProgram(rootName).Program is not { } program)
         {
             return null;
         }

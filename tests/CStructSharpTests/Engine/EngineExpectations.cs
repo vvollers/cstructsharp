@@ -12,7 +12,8 @@ using CStructSharp.Diagnostics;
 ///     writes a whole root to any destination (<c>Serialize</c> to an array, a span or a buffer writer, <c>Write</c> to a
 ///     stream, and <c>WriteAsync</c>) exactly when the root's write program is eligible (<c>WriteProgramEligibility.txt</c>),
 ///     and a nested path exactly when the path selects a writable member whose own program is eligible, under plain and
-///     update options alike; it runs a debug parse (<c>ParseWithDebug</c>, <c>ReadValueWithDebug</c>) of a root or a path
+///     update options alike, and updates a path exactly when its root is readable and what it selects writable; it runs a
+///     debug parse (<c>ParseWithDebug</c>, <c>ReadValueWithDebug</c>) of a root or a path
 ///     exactly when the root's debug program is, which is exactly when its read program is; every other operation is the
 ///     interpreter's.
 /// </summary>
@@ -61,6 +62,30 @@ internal static class EngineExpectations
         }
 
         return layout.Compilation.GetRootDebugReadProgram(segments[0].Name).IsEligible;
+    }
+
+    /// <summary>
+    ///     Whether the engine must update the value <paramref name="path"/> names (<c>Update</c> of a span or a stream,
+    ///     <c>UpdateAsync</c>): the path parses, its root is declared, and the layout finds the root readable and what the
+    ///     path selects writable (<see cref="LayoutCompilation.DeclineUpdate"/>).
+    /// </summary>
+    /// <param name="layout">The compiled layout.</param>
+    /// <param name="path">The update's path.</param>
+    /// <returns>Whether the engine must run; <see langword="false"/> for an unparsable path, an unknown root, or a declined update.</returns>
+    public static bool Update(CStruct layout, string path)
+    {
+        IReadOnlyList<PathSegment> segments;
+        try
+        {
+            segments = layout.ParsePath(path);
+        }
+        catch (CStructException)
+        {
+            return false;
+        }
+
+        return layout.Compilation.ModelQueries.TryGetCompiledDeclaration(segments[0].Name, out Syntax.CStructElement? root) &&
+               layout.Compilation.DeclineUpdate(root, segments) is null;
     }
 
     /// <summary>

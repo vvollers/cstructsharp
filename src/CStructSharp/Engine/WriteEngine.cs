@@ -127,6 +127,35 @@ internal static partial class WriteEngine
     }
 
     /// <summary>
+    ///     Writes what an update's resolved path selects into the update's sparse staging, as the interpreter's update
+    ///     writes it: the value exactly as given (not normalized), from the resolved address, standalone, with the slots the
+    ///     path's walk captured into, and a bitfield target seeded with its placed unit. The caller has observed the token and
+    ///     attaches failure context.
+    /// </summary>
+    /// <param name="layout">The layout.</param>
+    /// <param name="program">The root's write program, or the program of the member or pointed-to storage the path selects.</param>
+    /// <param name="budget">The write budget over the update's sparse staging, positioned at the target.</param>
+    /// <param name="value">The replacement value.</param>
+    /// <param name="slots">The operation's slots, as the walk left them; the caller disposes them.</param>
+    /// <param name="options">The update's options, which switch on update semantics.</param>
+    /// <param name="seededBitOffset">The target bitfield's first bit within its unit.</param>
+    /// <param name="seededUnitSize">The target bitfield's placed unit size in bytes, or 0 when the target is not a bitfield.</param>
+    /// <exception cref="CStructException">The replacement cannot be written.</exception>
+    public static void WriteUpdateTarget(CStruct layout, WriteProgram program, WriteBudgetStream budget, object? value, VariableSlots slots, UpdateOptions options, int seededBitOffset, int seededUnitSize)
+    {
+        var destination = new StreamWriteDestination(budget, budget);
+        var state = new WriteEngineState(layout, slots, options) { SeededBitOffset = seededBitOffset, SeededUnitSize = seededUnitSize, };
+        try
+        {
+            RunFrame(ref destination, ref state, program, value!, 0);
+        }
+        finally
+        {
+            state.Release();
+        }
+    }
+
+    /// <summary>
     ///     Runs a write whose token was checked: a nested path first selects its value and checks its indexes (nothing is
     ///     written before), then the program writes; a failure gets the path and the position attached as the interpreter
     ///     attaches them for the destination.
@@ -574,8 +603,19 @@ internal static partial class WriteEngine
                     break;
 
                 case WriteOpCode.OpenBitfieldUnit:
-                    bitOffset = 0;
-                    unitSize = program.Fields[step.Field].BitStorageSize!.Value;
+                    if (state.SeededUnitSize > 0)
+                    {
+                        // An update's resolved target arrives with its placed unit; nothing to derive.
+                        bitOffset = state.SeededBitOffset;
+                        unitSize = state.SeededUnitSize;
+                        state.SeededUnitSize = 0;
+                    }
+                    else
+                    {
+                        bitOffset = 0;
+                        unitSize = program.Fields[step.Field].BitStorageSize!.Value;
+                    }
+
                     break;
 
                 case WriteOpCode.RewindToUnionStart:

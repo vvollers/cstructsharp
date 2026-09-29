@@ -26,21 +26,25 @@ using CStructSharp.Syntax;
 ///         same conditions, and the debug parse of a nested path through <see cref="SelectPathRead"/>. It also runs writes
 ///         (<see cref="SelectWrite"/>: <c>Serialize</c> to a new array, a span or a buffer writer, <c>Write</c> to a stream,
 ///         and <c>WriteAsync</c>, which serializes first) of a root whose write program is eligible, or of a nested path
-///         whose selected member's program is, under plain or update options. Every other operation, and one it cannot
-///         reproduce, is declined before anything is read or written, and the interpreter runs it (<see cref="Decide"/>).
+///         whose selected member's program is, under plain or update options, and updates (<see cref="SelectUpdate"/>:
+///         <c>Update</c> of a stream or a span, <c>UpdateAsync</c>, and the Memory API's patches) whose root is readable and
+///         whose selected storage is writable. It declines, before anything is read or written, only what it cannot
+///         reproduce - a root or member the programs cannot compile, a path whose shape selects no writable storage, and
+///         internal expression variables that make every field captured - and the interpreter runs those.
 ///     </para>
 ///     <para>
-///         Outside a test recording (<see cref="EngineDiagnostics.Record"/>) a decision records nothing: a declined
-///         operation costs one comparison and one static read, a root read one program lookup in the layout's cache.
+///         Outside a test recording (<see cref="EngineDiagnostics.Record"/>) a decision records nothing: a root read costs
+///         one program lookup in the layout's cache.
 ///     </para>
 /// </remarks>
 internal static class EngineSelector
 {
-    /// <summary>The reason the engine declines an operation it cannot run yet.</summary>
-    public const string OperationNotSupported = "the compiled engine does not support this operation yet";
-
-    /// <summary>The reason the engine declines an operation whose variables are internal expression inputs rather than integers.</summary>
-    public const string ExpressionInputs = "caller variables given as expressions are not supported yet (stage 10)";
+    /// <summary>
+    ///     The reason the engine declines an operation whose internal expression variables leave an expression unevaluated,
+    ///     so every field must be captured (run-time CaptureAll); the compiled programs capture only the fields the layout's
+    ///     own expressions name.
+    /// </summary>
+    public const string ExpressionInputs = "a caller variable given as an unevaluated expression makes the operation capture every field, which the compiled programs do not";
 
     /// <summary>
     ///     Whether <c>ReadValue</c> of a root field has the path resolver take the root array's count first, by rules of its
@@ -52,26 +56,6 @@ internal static class EngineSelector
     /// <returns>Whether the root's count is taken first.</returns>
     public static bool ResolvesCountFirst(CompiledField root)
         => root.Array.Kind is CompiledArrayKind.Runtime or CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated || root.Array.Dimensions.Length > 1;
-
-    /// <summary>
-    ///     Decides which implementation runs an operation the engine does not support and records the decision in the
-    ///     recording active on the calling flow, if any. Returning means the interpreter runs the operation.
-    /// </summary>
-    /// <param name="selection">The operation's snapshotted engine selection.</param>
-    /// <param name="operation">The kind of operation.</param>
-    /// <exception cref="InvalidOperationException">
-    ///     <paramref name="selection"/> is <see cref="EngineSelection.EngineRequired"/>; the message names the operation
-    ///     and the reason.
-    /// </exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Decide(EngineSelection selection, EngineOperation operation)
-    {
-        // The production case - automatic selection, no recording open - is one comparison and one static read.
-        if (selection != EngineSelection.Automatic || EngineDiagnostics.IsRecording)
-        {
-            DecideAndRecord(selection, operation, OperationNotSupported);
-        }
-    }
 
     /// <summary>
     ///     Decides whether the engine reads a whole root and records the decision: the engine runs when the selection
@@ -126,9 +110,8 @@ internal static class EngineSelector
             return null;
         }
 
-        // Expression inputs can make the operation capture every field (run-time CaptureAll); stage 10 moves them to slots.
         string reason = ExpressionInputs;
-        if (variables.UsesIntegers)
+        if (!CapturesEveryField(compilation, variables))
         {
             ReadProgramOutcome outcome = debug ? compilation.GetRootDebugReadProgram(rootName) : compilation.GetRootReadProgram(rootName);
             if (outcome.Program is { } program)
@@ -163,9 +146,8 @@ internal static class EngineSelector
             return null;
         }
 
-        // Expression inputs can make the operation capture every field (run-time CaptureAll); stage 10 moves them to slots.
         string reason = ExpressionInputs;
-        if (variables.UsesIntegers)
+        if (!CapturesEveryField(compilation, variables))
         {
             ReadProgramOutcome outcome = compilation.GetRootDebugReadProgram(rootName);
             if (outcome.Program is { } program)
@@ -227,7 +209,7 @@ internal static class EngineSelector
     private static string? DeclineWrite(LayoutCompilation compilation, IReadOnlyList<PathSegment> segments, IReadOnlyList<PathSegment>? childSegments, CStructElement rootElement, in LayoutVariableInput variables, out WriteProgram? program)
     {
         program = null;
-        if (!variables.UsesIntegers)
+        if (CapturesEveryField(compilation, variables))
         {
             return ExpressionInputs;
         }
@@ -250,8 +232,8 @@ internal static class EngineSelector
         program = null;
 
         // Expression inputs can leave a supplied expression unevaluated, which makes the operation capture every field
-        // (run-time CaptureAll) and may name identifiers without a slot; stage 10 moves them to slots.
-        if (!variables.UsesIntegers)
+        // (run-time CaptureAll), which the programs do not; expressions that are all evaluated work as integers do.
+        if (CapturesEveryField(compilation, variables))
         {
             return ExpressionInputs;
         }
@@ -260,6 +242,48 @@ internal static class EngineSelector
         program = outcome.Program;
         return outcome.Reason;
     }
+
+    /// <summary>
+    ///     Decides whether the engine runs an <c>Update</c> (of a stream, a span, and <c>UpdateAsync</c> and the Memory API's
+    ///     patches through it) and records the decision: the engine runs when the variables need no capture of every field
+    ///     and <see cref="LayoutCompilation.DeclineUpdate"/> finds the root readable and what the path selects writable.
+    ///     Anything else is declined before anything is read or written.
+    /// </summary>
+    /// <param name="selection">The operation's snapshotted engine selection.</param>
+    /// <param name="compilation">The layout.</param>
+    /// <param name="segments">The parsed path.</param>
+    /// <param name="rootElement">The root's declaration.</param>
+    /// <param name="variables">The operation's variable input.</param>
+    /// <returns>Whether the engine runs the update.</returns>
+    /// <exception cref="InvalidOperationException">The engine is required and declined the operation.</exception>
+    public static bool SelectUpdate(EngineSelection selection, LayoutCompilation compilation, IReadOnlyList<PathSegment> segments, CStructElement rootElement, in LayoutVariableInput variables)
+    {
+        if (selection == EngineSelection.InterpreterOnly)
+        {
+            EngineDiagnostics.Current?.RecordInterpreterSelection(EngineOperation.Update);
+            return false;
+        }
+
+        string? reason = CapturesEveryField(compilation, variables) ? ExpressionInputs : compilation.DeclineUpdate(rootElement, segments);
+        if (reason is null)
+        {
+            EngineDiagnostics.Current?.RecordRun(EngineOperation.Update);
+            return true;
+        }
+
+        DecideAndRecord(selection, EngineOperation.Update, reason);
+        return false;
+    }
+
+    /// <summary>
+    ///     Whether an operation's variables make it capture every field: internal expression variables that leave an
+    ///     expression unevaluated. Integer variables, and expressions that all evaluate, never do.
+    /// </summary>
+    /// <param name="compilation">The layout.</param>
+    /// <param name="variables">The operation's variable input.</param>
+    /// <returns>Whether every field must be captured.</returns>
+    public static bool CapturesEveryField(LayoutCompilation compilation, in LayoutVariableInput variables)
+        => !variables.UsesIntegers && compilation.SlotTable.RequiresCaptureAll(variables.Expressions);
 
     /// <summary>Records a decision the engine cannot take: an interpreter selection, or a decline that fails a required engine.</summary>
     /// <param name="selection">The operation's snapshotted engine selection.</param>

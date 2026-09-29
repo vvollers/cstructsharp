@@ -10,8 +10,8 @@ using Variant = EngineSweepLayouts.Variant;
 ///     member missing, and every top-level member replaced by values of the wrong kind, range or shape - through
 ///     <c>Serialize</c> to an array and into spans of every capacity and <c>Write</c> into a stream that already holds
 ///     bytes - and every member a nested path can select, written on its own to every destination with plain and update
-///     options, under <see cref="ExecutionPath.Fastest"/> and <see cref="ExecutionPath.GeneralOnly"/>, with the engine
-///     required wherever the root or the selected member is eligible.
+///     options, and updated in place, under <see cref="ExecutionPath.Fastest"/> and <see cref="ExecutionPath.GeneralOnly"/>,
+///     with the engine required wherever the root or the selected member is eligible.
 /// </summary>
 /// <remarks>
 ///     The replacements cover the conversions the codecs apply (numeric text, fractions, out-of-range numbers, booleans,
@@ -125,6 +125,86 @@ public class EngineWriteSweepTests
     }
 
     /// <summary>
+    ///     Every member a path selects (and the root, pointer targets and addresses, and paths that select nothing) is
+    ///     updated in place with the value the parse holds there, with values of other kinds, sizes and lengths, and - for
+    ///     text, arrays and unions - with replacements that change a terminated value's length or a conditional selection,
+    ///     which the update's layout comparison must accept or reject exactly as the interpreter does: in a span, in a span
+    ///     one byte short, in a stream, asynchronously, and with union storage kept.
+    /// </summary>
+    /// <param name="name">The sweep layout.</param>
+    [TestMethod]
+    [DynamicData(nameof(Layouts))]
+    public void PathUpdates_UpdateEveryMemberIdentically(string name)
+    {
+        var keep = new UpdateOptions { ClearUnionStorage = false, };
+        foreach (Variant variant in EngineSweepLayouts.Both(name))
+        {
+            IReadOnlyDictionary<string, int>? variables = variant.Source.Variables;
+            byte[] data = variant.Data;
+            var paths = MemberPaths("rec", variant.Value).ToList();
+            paths.Add(("rec", variant.Value));
+            paths.Add(("rec.zz", null));
+            foreach ((string path, object? atPath) in paths)
+            {
+                foreach (object? value in UpdateValues(atPath, variant.Value))
+                {
+                    string label = variant.Name + " " + path + " = " + Describe(value);
+                    foreach (ExecutionPath execution in SweepPaths)
+                    {
+                        Same(label, EngineOperations.Update(variant.Layout, data, EngineInput.Span, path, value!, variables), execution);
+                        Same(label, EngineOperations.Update(variant.Layout, data, EngineInput.Stream, path, value!, variables), execution);
+                        Same(label, EngineOperations.Update(variant.Layout, data[..^1], EngineInput.Span, path, value!, variables), execution);
+                        Same(label, EngineOperations.Update(variant.Layout, data, EngineInput.Span, path, value!, variables, keep), execution);
+                        Same(label, EngineOperations.UpdateAsync(variant.Layout, data, path, value!, variables), execution);
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    ///     The replacements an update sweep tries at one path: the parsed value there, the whole root (which a member path
+    ///     rejects), values of the wrong kind, and - for text, integers, arrays and unions - values that keep or change the
+    ///     encoded length or the selection: longer and shorter text, other numbers, one element more or fewer, a union's
+    ///     other member.
+    /// </summary>
+    /// <param name="atPath">The parsed value at the path.</param>
+    /// <param name="root">The whole parsed root.</param>
+    /// <returns>The values.</returns>
+    private static IEnumerable<object?> UpdateValues(object? atPath, StructValue root)
+    {
+        yield return atPath;
+        yield return root;
+        yield return null;
+        yield return "x";
+        yield return 0;
+        yield return 70000;
+        switch (atPath)
+        {
+        case string text:
+            yield return text + "ab";
+            yield return text.Length > 0 ? text[..^1] : "abc";
+            break;
+        case byte or ushort or uint or sbyte or short or int or long or ulong:
+            yield return 1;
+            yield return 2;
+            break;
+        case IList list when list.Count > 0:
+            var elements = list.Cast<object?>().ToList();
+            yield return elements.Append(elements[^1]).ToList();
+            yield return elements.Take(elements.Count - 1).ToList();
+            break;
+        case UnionValue union:
+            foreach (KeyValuePair<string, object?> member in union.Members)
+            {
+                yield return UnionValue.FromMember(union.UnionName, member.Key, member.Value);
+            }
+
+            break;
+        }
+    }
+
+    /// <summary>
     ///     Whole roots written with update options switch on update semantics in both implementations - tail padding keeps
     ///     the stream's bytes, a bitfield unit must already be present, no static plan or block write is used, and a union
     ///     kept by <see cref="UpdateOptions.ClearUnionStorage"/> is staged over the existing bytes - into streams holding
@@ -165,7 +245,8 @@ public class EngineWriteSweepTests
     /// <summary>
     ///     The paths of every member a write can select below <paramref name="prefix"/>, with the parsed value at each: struct
     ///     and union members by name, recursively; for arrays and text the first and last element (recursively) and one
-    ///     index past the last, which the write rejects; a pointer's <c>value</c>, which a write cannot dereference.
+    ///     index past the last, which the write rejects; a pointer's <c>value</c> (and the members of its target) and <c>address</c>,
+    ///     which a write cannot select but an update can.
     /// </summary>
     /// <param name="prefix">The path of <paramref name="value"/>.</param>
     /// <param name="value">A parsed value.</param>
@@ -202,6 +283,12 @@ public class EngineWriteSweepTests
 
         case Pointer pointer:
             yield return (prefix + ".value", pointer.Value);
+            yield return (prefix + ".address", pointer.Address);
+            foreach ((string, object?) inner in MemberPaths(prefix + ".value", pointer.Value))
+            {
+                yield return inner;
+            }
+
             break;
 
         case string text when text.Length > 0:

@@ -61,7 +61,6 @@ public class EngineSelectionTests
     {
         var layout = new CStruct(SizedLayout);
         var value = new Dictionary<string, object?> { ["n"] = (byte)1, ["items"] = new ushort[] { 4, }, ["last"] = new Dictionary<string, object?> { ["a"] = (byte)5, }, ["tail"] = (byte)9, };
-        const string NotSupported = EngineSelector.OperationNotSupported;
         var cases = new (string Name, EngineOperation Kind, string? Reason, Action<ReadOptions, WriteOptions, UpdateOptions> Run)[]
         {
             ("Parse(Span)", EngineOperation.RootRead, null, (read, _, _) => layout.Parse(SizedData.AsSpan(), "rec", options: read)),
@@ -93,9 +92,9 @@ public class EngineSelectionTests
             ("Serialize(path)", EngineOperation.Write, null, (_, write, _) => layout.Serialize("rec.last", value["last"]!, options: write)),
             ("Write(UpdateOptions)", EngineOperation.Write, null, (_, _, update) => layout.Write(new MemoryStream(), "rec", value, options: update)),
             ("WriteAsync", EngineOperation.Write, null, (_, write, _) => layout.WriteAsync(new MemoryStream(), "rec", value, options: write).AsTask().GetAwaiter().GetResult()),
-            ("Update(Span)", EngineOperation.Update, NotSupported, (_, _, update) => layout.Update((byte[])SizedData.Clone(), "rec.tail", (byte)1, options: update)),
-            ("Update(Stream)", EngineOperation.Update, NotSupported, (_, _, update) => layout.Update(new MemoryStream((byte[])SizedData.Clone()), "rec.tail", (byte)1, options: update)),
-            ("UpdateAsync", EngineOperation.Update, NotSupported, (_, _, update) => layout.UpdateAsync(new MemoryStream((byte[])SizedData.Clone()), "rec.tail", (byte)1, options: update).AsTask().GetAwaiter().GetResult()),
+            ("Update(Span)", EngineOperation.Update, null, (_, _, update) => layout.Update((byte[])SizedData.Clone(), "rec.tail", (byte)1, options: update)),
+            ("Update(Stream)", EngineOperation.Update, null, (_, _, update) => layout.Update(new MemoryStream((byte[])SizedData.Clone()), "rec.tail", (byte)1, options: update)),
+            ("UpdateAsync", EngineOperation.Update, null, (_, _, update) => layout.UpdateAsync(new MemoryStream((byte[])SizedData.Clone()), "rec.tail", (byte)1, options: update).AsTask().GetAwaiter().GetResult()),
         };
 
         foreach ((string name, EngineOperation kind, string? reason, Action<ReadOptions, WriteOptions, UpdateOptions> run) in cases)
@@ -257,9 +256,13 @@ public class EngineSelectionTests
 
         using var stream = new MemoryStream((byte[])SizedData.Clone());
         stream.Position = 1;
-        AssertRequired(EngineOperation.Update, () => layout.Update(stream, "rec.tail", (byte)1, options: update));
+        AssertRequired(EngineOperation.Update, () => layout.Update(stream, "rec.nosuch", (byte)1, options: update), Compilation.Programs.WriteProgramCompiler.UnresolvedPath + "Unknown field 'nosuch' in 'rec'.");
         Assert.AreEqual(1, stream.Position, "the stream does not move");
         CollectionAssert.AreEqual(SizedData, stream.ToArray(), "nothing is changed");
+        stream.Position = 0;
+        layout.Update(stream, "rec.tail", (byte)1, options: update);
+        Assert.AreEqual(0, stream.Position, "the update restores the position");
+        CollectionAssert.AreEqual(new byte[] { 2, 1, 0, 2, 0, 5, 1, }, stream.ToArray(), "only the tail changed");
 
         // The asynchronous forms copy the options with a linked token; the selection survives the copy.
         using var cancellation = new CancellationTokenSource();
@@ -268,7 +271,9 @@ public class EngineSelectionTests
         using var asyncWritten = new MemoryStream();
         layout.WriteAsync(asyncWritten, "rec", value, options: write, cancellationToken: cancellation.Token).AsTask().GetAwaiter().GetResult();
         CollectionAssert.AreEqual(new byte[] { 1, 4, 0, 5, 9, }, asyncWritten.ToArray(), "WriteAsync serializes through the engine");
-        AssertRequired(EngineOperation.Update, () => layout.UpdateAsync(new MemoryStream((byte[])SizedData.Clone()), "rec.tail", (byte)1, options: update, cancellationToken: cancellation.Token).AsTask().GetAwaiter().GetResult());
+        using var asyncUpdated = new MemoryStream((byte[])SizedData.Clone());
+        layout.UpdateAsync(asyncUpdated, "rec.last.a", (byte)6, options: update, cancellationToken: cancellation.Token).AsTask().GetAwaiter().GetResult();
+        CollectionAssert.AreEqual(new byte[] { 2, 1, 0, 2, 0, 6, 9, }, asyncUpdated.ToArray(), "UpdateAsync updates its buffer through the engine");
     }
 
     /// <summary>
@@ -335,7 +340,7 @@ public class EngineSelectionTests
     /// <param name="kind">The kind of operation the message must name.</param>
     /// <param name="operation">The operation.</param>
     /// <param name="reason">The decline reason the message must give.</param>
-    private static void AssertRequired(EngineOperation kind, Action operation, string reason = EngineSelector.OperationNotSupported)
+    private static void AssertRequired(EngineOperation kind, Action operation, string reason)
     {
         InvalidOperationException failure = Assert.Throws<InvalidOperationException>(operation);
         Assert.AreEqual($"The compiled engine is required but declined the {kind} operation: {reason}.", failure.Message);

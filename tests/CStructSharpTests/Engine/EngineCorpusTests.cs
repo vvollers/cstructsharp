@@ -55,6 +55,40 @@ public class EngineCorpusTests
         Assert.AreEqual(6, EngineCorpora.Fuzz.Count);
     }
 
+    /// <summary>
+    ///     With the engine required, every public read, write and update of every corpus case whose root the engine can read
+    ///     runs on the engine (<see cref="EngineCorpusCase.RunRequiringEngine"/>): after the update stage nothing is declined
+    ///     for the kind of operation, source, destination or options - only for a root or member the programs cannot
+    ///     compile, and for a path that selects nothing writable, which the interpreter rejects too.
+    /// </summary>
+    [TestMethod]
+    public void EveryCorpus_RunsEveryOperationOnTheEngineWhenRequired()
+    {
+        IEnumerable<EngineCorpusCase> cases = EngineCorpora.Parity.Values
+                                                           .Concat(EngineCorpora.Benchmarks.Values)
+                                                           .Concat(EngineCorpora.Manual.Values)
+                                                           .Concat(EngineCorpora.Portable.Values)
+                                                           .Concat(EngineCorpora.WellKnown.Values)
+                                                           .Concat(EngineCorpora.Inspector.Values)
+                                                           .Concat(EngineCorpora.Fuzz.Values.SelectMany(items => items));
+        var failures = new StringBuilder();
+        int ran = 0;
+        foreach (EngineCorpusCase item in cases)
+        {
+            try
+            {
+                ran += item.RunRequiringEngine();
+            }
+            catch (AssertFailedException failure)
+            {
+                failures.Append(failure.Message).Append('\n');
+            }
+        }
+
+        Assert.AreEqual(0, failures.Length, failures.ToString());
+        Assert.IsGreaterThan(5000, ran);
+    }
+
     /// <summary>A layout of the generated-parity index, over the input that suite uses, reads and writes identically.</summary>
     /// <param name="id">The layout's source and id.</param>
     [TestMethod]

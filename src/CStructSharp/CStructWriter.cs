@@ -1233,11 +1233,15 @@ public sealed partial class CStruct
     }
 
     /// <summary>Encodes a caller value with a field's compiled primitive codec at the stream position.</summary>
-    /// <remarks>An in-place update of a variable-length (LEB128 or unsized custom) value must keep its existing encoded length. Only expected caller-value conversion failures become <see cref="CStructWriteException"/>.</remarks>
+    /// <remarks>
+    ///     An in-place update of a variable-length (LEB128 or unsized custom) value must keep its existing encoded length.
+    ///     Only expected caller-value conversion failures become <see cref="CStructWriteException"/>. The compiled engine
+    ///     writes such a value in sparse update staging through this method too.
+    /// </remarks>
     /// <param name="field">The field whose codec encodes the value.</param>
     /// <param name="stream">The destination, positioned at the value.</param>
     /// <param name="value">The caller value.</param>
-    private void WritePrimitiveValue(
+    internal void WritePrimitiveValue(
         CompiledField field,
         Stream stream,
         object value)
@@ -1352,24 +1356,53 @@ public sealed partial class CStruct
         UpdateOptions effectiveOptions = CStructElementWriterState.SnapshotUpdateOptions(options);
         CStructElementWriterState.ValidateWriteOptions(effectiveOptions);
 
-        // Copy caller variables and calculate #defines so array lengths are evaluated exactly as they are for normal writes.
-        Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
-        IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
-
-        if (segments.Count == 0)
+        // Copy caller variables and calculate #defines so array lengths are evaluated exactly as they are for normal writes:
+        // slots for an update the engine may run, the interpreter's dictionary otherwise; both resolve, and fail, identically.
+        bool slotted = effectiveOptions.EngineSelection != EngineSelection.InterpreterOnly;
+        VariableSlots slots = slotted ? VariableSlots.Create(this.compilation.SlotTable, variables) : default;
+        Dictionary<string, Expr>? resolved;
+        IReadOnlyList<PathSegment> segments;
+        CStructElement? rootElement;
+        string rootName;
+        try
         {
-            throw new CStructPathException("Path is empty.");
+            resolved = slotted ? null : variables.Resolve(this.layoutVariableResolver);
+            segments = this.ParsePath(elementNameOrPath);
+            if (segments.Count == 0)
+            {
+                throw new CStructPathException("Path is empty.");
+            }
+
+            rootName = segments[0].Name;
+            if (!this.compiledModelQueries.TryGetCompiledDeclaration(rootName, out rootElement))
+            {
+                CStructPathException exception = this.compiledModelQueries.UnknownRoot(rootName);
+                ExceptionContext.Attach(exception, segments, stream);
+                throw exception;
+            }
+
+            if (EngineSelector.SelectUpdate(effectiveOptions.EngineSelection, this.compilation, segments, rootElement, variables))
+            {
+                this.UpdateWithEngine(stream, segments, value, slots, effectiveOptions);
+                return;
+            }
+
+            if (slotted)
+            {
+                // The engine declined: the interpreter resolves its dictionary, which succeeds as the slots did.
+                resolved = variables.Resolve(this.layoutVariableResolver);
+            }
+        }
+        finally
+        {
+            if (slotted)
+            {
+                slots.Dispose();
+            }
         }
 
-        string rootName = segments[0].Name;
-        if (!this.compiledModelQueries.TryGetCompiledDeclaration(rootName, out CStructElement? rootElement))
-        {
-            CStructPathException exception = this.compiledModelQueries.UnknownRoot(rootName);
-            ExceptionContext.Attach(exception, segments, stream);
-            throw exception;
-        }
+        Dictionary<string, Expr> effectiveVariables = resolved!;
 
-        EngineSelector.Decide(effectiveOptions.EngineSelection, EngineOperation.Update);
         ReadOperationSettings readOptions = ReadOperationSettings.SnapshotTraversalOptions(effectiveOptions);
         var readState = new CStructOperationContext(
             stream,
@@ -1455,7 +1488,6 @@ public sealed partial class CStruct
             // The caller sees writes only after every library-detectable writer failure has been ruled out.
             if (originalLayout is not null)
             {
-                const string ExtentChanged = "Update changes the extent of a terminated value and would move the fields that follow; the replacement must have the same encoded length, or serialize a new buffer instead.";
                 (string Path, long Start, long End)[] changedLayout;
                 try
                 {
@@ -1464,12 +1496,12 @@ public sealed partial class CStruct
                 catch (CStructException inner) when (variableExtentTarget)
                 {
                     // The moved fields no longer read at all (a later field ran past the end, a pointer went astray).
-                    throw new CStructWriteException(ExtentChanged, inner);
+                    throw new CStructWriteException(UpdateExtentChanged, inner);
                 }
 
                 if (!originalLayout.SequenceEqual(changedLayout))
                 {
-                    throw new CStructWriteException(variableExtentTarget ? ExtentChanged : "Update changes the active conditional storage layout; serialize a new buffer instead.");
+                    throw new CStructWriteException(variableExtentTarget ? UpdateExtentChanged : UpdateLayoutChanged);
                 }
             }
 
@@ -1581,7 +1613,7 @@ public sealed partial class CStruct
 
         // Definitions and supplied variables form the small expression environment used for array counts: slots for a
         // write the engine may run, the interpreter's dictionary otherwise; both resolve, and fail, identically.
-        bool slotted = variables.UsesIntegers && effectiveOptions.EngineSelection != EngineSelection.InterpreterOnly;
+        bool slotted = effectiveOptions.EngineSelection != EngineSelection.InterpreterOnly;
         VariableSlots slots = slotted ? VariableSlots.Create(this.compilation.SlotTable, variables) : default;
         Dictionary<string, Expr>? effectiveVariables = slotted ? null : variables.Resolve(this.layoutVariableResolver);
         try

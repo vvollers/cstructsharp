@@ -234,8 +234,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   result. Bitfields, unions (including promoted ones), pointers, custom codecs and to-end, terminated and
   multidimensional arrays are covered. Bytes, partial output on failure, exceptions and write budgets are identical.
   `Write` to a stream, writes of a nested path and `Serialize` to an `IBufferWriter` run on the engine too (a stream
-  write of a small record allocates 64 B instead of 240 B). Updates still use the general writer until the engine
-  covers them.
+  write of a small record allocates 64 B instead of 240 B). `Update` and `UpdateAsync` (and the memory API's patches)
+  run on the engine too, allocating about 55-75 % less (a bitfield update 560 B instead of 1,960 B) and up to 23 %
+  faster.
 - Reads of layouts with runtime-sized members (counts from fields, conditionals, text, nested structs) run on a compiled
   engine: each struct is compiled once into a flat program of read steps, with variables in indexed slots instead of a
   dictionary. Results, failures, positions and read budgets are identical. The comparison benchmark's `packet` record
@@ -247,7 +248,7 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   `ReadValueWithDebug`) run on the engine too, with identical records, about 20-35 % faster and with 7-20 % less
   allocation. Nested-path reads and parses, `ResolveAddress` and `GetArrayLength` run on the engine as well:
   `ResolveAddress` is 30-55 % faster with about 90 % less allocation, and `ReadValue` of a nested scalar about 12 %
-  faster with 85 % less. Updates still use the general reader until the engine covers them.
+  faster with 85 % less. Updates run on the engine as well.
 - Runtime reads place each field with less work: the placement cursor keeps its position without nullable round
   trips, and ordinary struct and union members are read through one inlined call. A layout of 1 000 bitfield records
   reads about 9% faster, and pointer-heavy and union-heavy layouts 6-10% faster.

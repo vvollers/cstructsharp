@@ -99,6 +99,19 @@ internal struct VariableSlots : IDisposable
         }
     }
 
+    /// <summary>
+    ///     Creates independent slots holding the same values, as the interpreter copies its variable dictionary (an update's
+    ///     layout captures each start from a copy); the copy is disposed separately.
+    /// </summary>
+    /// <returns>The copy.</returns>
+    public readonly VariableSlots Clone()
+    {
+        SlotValue[] copy = Rent(this.table.Count);
+        Array.Copy(this.values, copy, this.table.Count);
+        Dictionary<string, Expr>? unslotted = this.unslotted is null ? null : new Dictionary<string, Expr>(this.unslotted, StringComparer.Ordinal);
+        return new VariableSlots(this.table, copy, unslotted, this.CaptureAll);
+    }
+
     /// <summary>Copies every slot into <paramref name="destination"/> from <paramref name="offset"/> on (a union's entry values).</summary>
     /// <param name="destination">The array receiving <see cref="Count"/> values.</param>
     /// <param name="offset">The first index written.</param>

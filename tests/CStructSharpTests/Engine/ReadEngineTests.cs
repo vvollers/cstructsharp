@@ -1015,17 +1015,29 @@ public class ReadEngineTests
     }
 
     /// <summary>
-    ///     A parse whose variables are internal expressions is left to the interpreter (run-time CaptureAll and names
-    ///     without slots move to the engine in stage 10), and so is a root the compiler cannot read yet.
+    ///     A parse whose internal expression variables all evaluate runs on the engine as integers do; one whose expression
+    ///     stays unevaluated - and so may name any field, which makes the interpreter capture every field - is left to the
+    ///     interpreter, and so is a root the compiler cannot read yet.
     /// </summary>
     [TestMethod]
     public void IneligibleOperations_AreDeclinedBeforeReading()
     {
         var layout = new CStruct("struct rec { uint8 n; uint8 d[n]; };");
-        var expressions = new Dictionary<string, Syntax.Expr> { ["m"] = new Syntax.Literal(2), };
+        var evaluated = new Dictionary<string, Syntax.Expr> { ["m"] = new Syntax.Literal(2), };
         using (EngineRecording recording = EngineDiagnostics.Record())
         {
-            object value = layout.ParseStreamCore(new MemoryStream([1, 5]), "rec", Expressions.LayoutVariableInput.FromExpressions(expressions), null);
+            object value = layout.ParseStreamCore(new MemoryStream([1, 5]), "rec", Expressions.LayoutVariableInput.FromExpressions(evaluated), null);
+            Assert.AreEqual((byte)1, ((StructValue)value)["n"]);
+            Assert.AreEqual(1, recording.Diagnostics.EngineRuns);
+            Assert.AreEqual(0, recording.Diagnostics.Declines);
+        }
+
+        // A definition overridden by an expression that names a field stays unevaluated until the field is read.
+        var overridden = new CStruct("#define M 1\nstruct rec { uint8 n; uint8 d[n]; uint8 e[M]; };");
+        var unevaluated = new Dictionary<string, Syntax.Expr> { ["M"] = new Syntax.Identifier("n"), };
+        using (EngineRecording recording = EngineDiagnostics.Record())
+        {
+            object value = overridden.ParseStreamCore(new MemoryStream([1, 5, 7]), "rec", Expressions.LayoutVariableInput.FromExpressions(unevaluated), null);
             Assert.AreEqual((byte)1, ((StructValue)value)["n"]);
             Assert.AreEqual(new EngineDecline(EngineOperation.RootRead, EngineSelector.ExpressionInputs), recording.Diagnostics.LastDecline);
         }

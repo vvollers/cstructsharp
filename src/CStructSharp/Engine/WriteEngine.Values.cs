@@ -14,6 +14,7 @@ using CStructSharp.Compilation.Programs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Generated;
 using CStructSharp.Reading;
+using CStructSharp.Streams;
 using CStructSharp.Values;
 using CStructSharp.Writing;
 
@@ -52,6 +53,7 @@ internal static partial class WriteEngine
     /// <summary>
     ///     Writes one value through its codec's stream writer, the interpreter's primitive write: conversion failures of the
     ///     codec become a write failure naming the value and the field's type; the codec's own write failures pass unchanged.
+    ///     In an update's sparse staging a LEB128 or variable-size custom value must keep its existing encoded length.
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
     /// <param name="destination">The operation's destination.</param>
@@ -66,6 +68,14 @@ internal static partial class WriteEngine
         if (codec.Primitive.IsTerminatedText)
         {
             WriteTerminatedText(ref destination, codec.Primitive, field, value);
+            return;
+        }
+
+        if (destination.Stream is WriteBudgetStream { IsSparseUpdate: true, } && (field.Codec.IsLeb128 || (field.Codec.IsCustom && !field.FixedElementSize.HasValue)))
+        {
+            // An update's staging keeps a variable-length value at its existing encoded length, as the interpreter's
+            // primitive write checks it (outside a union's staging, which is not the update's sparse stream).
+            state.Layout.WritePrimitiveValue(field, destination.Stream, value);
             return;
         }
 

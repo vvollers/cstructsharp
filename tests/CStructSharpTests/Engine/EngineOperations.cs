@@ -434,7 +434,7 @@ internal static class EngineOperations
     {
         if (input == EngineInput.Stream)
         {
-            return StreamWrite("Update " + path, data, 0, (stream, side) => layout.Update(stream, path, value, variables, side.Update(options)));
+            return StreamWrite("Update " + path, data, 0, (stream, side) => layout.Update(stream, path, value, variables, side.Update(options)), EngineExpectations.Update(layout, path));
         }
 
         if (input != EngineInput.Span)
@@ -449,7 +449,8 @@ internal static class EngineOperations
                 byte[] copy = (byte[])data.Clone();
                 output.Capture("failure", () => layout.Update(copy.AsSpan(), path, value, variables, side.Update(options)));
                 output.Bytes("data", copy);
-            });
+            },
+            EngineExpectations.Update(layout, path));
     }
 
     /// <summary><c>UpdateAsync</c> of a stream holding <paramref name="data"/>.</summary>
@@ -461,7 +462,7 @@ internal static class EngineOperations
     /// <param name="options">The case's update options, which each side adjusts.</param>
     /// <returns>The operation.</returns>
     public static DifferentialOperation UpdateAsync(CStruct layout, byte[] data, string path, object value, IReadOnlyDictionary<string, int>? variables = null, UpdateOptions? options = null)
-        => StreamWrite("UpdateAsync " + path, data, 0, (stream, side) => layout.UpdateAsync(stream, path, value, variables, side.Update(options)).AsTask().GetAwaiter().GetResult());
+        => StreamWrite("UpdateAsync " + path, data, 0, (stream, side) => layout.UpdateAsync(stream, path, value, variables, side.Update(options)).AsTask().GetAwaiter().GetResult(), EngineExpectations.Update(layout, path));
 
     /// <summary>Renders a result as a value under <c>result</c>.</summary>
     /// <param name="output">The rendering.</param>

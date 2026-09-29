@@ -79,6 +79,19 @@ internal struct WriteEngineState
     /// </summary>
     public bool PreservesUnionStorage { get; }
 
+    /// <summary>
+    ///     Gets or sets the first bit of the storage unit an update's resolved bitfield target starts at, used with
+    ///     <see cref="SeededUnitSize"/>.
+    /// </summary>
+    public int SeededBitOffset { get; set; }
+
+    /// <summary>
+    ///     Gets or sets the size in bytes of the placed storage unit an update's resolved bitfield target lies in, or 0: the
+    ///     first standalone bitfield written takes this unit and offset instead of opening a unit of its own, then clears it,
+    ///     as the interpreter's seeded writer state does.
+    /// </summary>
+    public int SeededUnitSize { get; set; }
+
     /// <summary>Gets the operation's cancellation token, observed where the interpreter observes it.</summary>
     public CancellationToken CancellationToken { get; }
 
