@@ -240,7 +240,7 @@ internal static partial class PrimitiveCodecs
             int valueBytes = encoding.GetByteCount(value);
             int terminatorBytes = encoding.GetByteCount(new ReadOnlySpan<char>(in terminator));
             long encodedByteCount = checked((long)valueBytes + terminatorBytes);
-            if (stream is WriteBudgetStream budget)
+            if (stream is IWriteBudget budget)
             {
                 budget.EnsureStringBytes(encodedByteCount);
             }

@@ -59,6 +59,14 @@ internal sealed class CodecTable
         return field.CodecId < 0 ? null : this.writers[field.CodecId];
     }
 
+    /// <summary>The writer of a catalog codec id, as the compiled engine's write programs name codecs, or <see langword="null"/>.</summary>
+    /// <param name="codecId">A codec id of this table's catalog, or a negative id for none.</param>
+    /// <returns>A delegate that writes one boxed element to a stream, or null.</returns>
+    public Action<Stream, object>? WriterOfCodec(int codecId)
+    {
+        return codecId < 0 ? null : this.writers[codecId];
+    }
+
     /// <summary>
     ///     The caller's codec a custom codec id names, which the compiled engine runs through
     ///     <see cref="CustomCodecAdapter"/> exactly as this table's adapter delegate does.

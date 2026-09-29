@@ -7,6 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using CStructSharp.Addressing;
 using CStructSharp.Compilation.Programs;
 using CStructSharp.Diagnostics;
+using CStructSharp.Engine;
 using CStructSharp.Expressions;
 using CStructSharp.Reading;
 using CStructSharp.Streams;
@@ -131,7 +132,10 @@ public sealed partial class CStruct
         }
     }
 
-    /// <summary>Runs the existing writer once against an initially empty logical extent over caller storage.</summary>
+    /// <summary>
+    ///     Serializes into caller storage: the direct fixed-root path first, then the compiled engine for an eligible root,
+    ///     otherwise the interpreter against an initially empty logical extent over the storage.
+    /// </summary>
     private unsafe int SerializeToMemoryCore(
         Span<byte> destination,
         string elementNameOrPath,
@@ -144,15 +148,24 @@ public sealed partial class CStruct
             return written;
         }
 
+        WritePreparation request = this.PrepareWrite(null, elementNameOrPath, LayoutVariableInput.FromIntegers(variables), options, serializes: true);
         fixed (byte* buffer = destination)
         {
+            if (request.Program is { } program)
+            {
+                VariableSlots slots = request.Slots;
+                try
+                {
+                    return WriteEngine.SerializeToSpan(this, program, buffer, destination.Length, WriteDataBinding.NormalizeRootData(data, request.Segments[0].Name), request.Segments, slots, request.Options);
+                }
+                finally
+                {
+                    slots.Dispose();
+                }
+            }
+
             using var stream = new FixedBufferStream(buffer, destination.Length, writable: true);
-            this.WriteStreamCore(
-                stream,
-                elementNameOrPath,
-                data,
-                LayoutVariableInput.FromIntegers(variables),
-                options);
+            this.WriteRequested(stream, request, data);
             return checked((int)stream.Length);
         }
     }

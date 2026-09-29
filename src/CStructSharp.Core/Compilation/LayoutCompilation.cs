@@ -454,4 +454,20 @@ internal sealed partial class LayoutCompilation
     /// <param name="rootName">A declared root name, or a type spelling already registered as a root.</param>
     /// <returns>The program, or the reason the engine cannot read the root yet.</returns>
     public ReadProgramOutcome GetRootReadProgram(string rootName) => this.SlotTable.ReadPrograms.GetRoot(this, rootName);
+
+    /// <summary>
+    ///     Returns the compiled engine's write program of a composite of this layout, compiling it on first request; see
+    ///     <see cref="WriteProgramCompiler"/>.
+    /// </summary>
+    /// <param name="composite">A composite of this layout.</param>
+    /// <returns>The program, or the reason the engine cannot write the composite yet.</returns>
+    public WriteProgramOutcome GetWriteProgram(CompiledCompositeType composite) => this.SlotTable.WritePrograms.GetComposite(this, composite);
+
+    /// <summary>
+    ///     Returns the compiled engine's write program of a root, compiling it on first request. A root is eligible when
+    ///     every struct it writes compiled without a reason.
+    /// </summary>
+    /// <param name="rootName">A declared root name, or a type spelling already registered as a root.</param>
+    /// <returns>The program, or the reason the engine cannot write the root yet.</returns>
+    public WriteProgramOutcome GetRootWriteProgram(string rootName) => this.SlotTable.WritePrograms.GetRoot(this, rootName);
 }

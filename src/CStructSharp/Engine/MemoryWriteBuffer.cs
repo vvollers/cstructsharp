@@ -1,0 +1,459 @@
+namespace CStructSharp.Engine;
+
+using System;
+using System.Buffers;
+using System.IO;
+using CStructSharp.Diagnostics;
+using CStructSharp.Streams;
+
+/// <summary>
+///     The compiled engine's destination for <c>Serialize</c>: either the caller's pinned span or a growable pooled buffer
+///     for a new array, together with the operation's output budget. It behaves exactly as the interpreter's
+///     <see cref="WriteBudgetStream"/> over a <see cref="FixedBufferStream"/> (a span) or an <see cref="OwnedMemoryStream"/>
+///     (a new array) does, byte for byte and failure for failure, without the two wrapper calls per write.
+/// </summary>
+/// <remarks>
+///     <para>
+///         <b>Extent.</b> The buffer starts empty. <see cref="Length"/> is the high-water mark of the bytes written; a read
+///         returns nothing past it (a bitfield unit or a static plan's preserved bytes read back zero there), and a write
+///         that lands past it first fills the gap with zeroes, as both interpreter streams do. The caller's span beyond the
+///         bytes written is never touched.
+///     </para>
+///     <para>
+///         <b>Budget.</b> Each write is checked before any byte moves: the larger of the physical bytes written so far
+///         (plus this write) and the new extent must stay within <see cref="WriteOptions.MaxTotalBytesWritten"/>; seeking
+///         charges nothing. Only then is a span destination's capacity checked, so a write that fails both reports the
+///         budget, as the interpreter's wrapper does.
+///     </para>
+///     <para>
+///         It is a <see cref="Stream"/> so the codec writers the interpreter uses (terminated text, LEB128, wide integers)
+///         write through it unchanged, and an <see cref="IWriteBudget"/> so they check the per-string limit as they do on
+///         the interpreter's stream. One operation owns it on one thread; a growable buffer returns its array to the pool
+///         when disposed.
+///     </para>
+/// </remarks>
+internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
+{
+    /// <summary>The largest zero-fill chunk <see cref="WriteZeroes"/> writes at once, the interpreter's zero buffer length.</summary>
+    private const int ZeroChunk = 8192;
+
+    /// <summary>The capacity a growable buffer rents first; it then doubles.</summary>
+    private const int InitialCapacity = 256;
+
+    /// <summary>The caller's first byte for a span destination (which may be <see langword="null"/> for an empty span).</summary>
+    private readonly byte* region;
+
+    /// <summary>Whether the destination is the caller's span rather than a growable buffer.</summary>
+    private readonly bool span;
+
+    /// <summary>The span destination's length in bytes; unused for a growable buffer.</summary>
+    private readonly int capacity;
+
+    /// <summary>The operation's <see cref="WriteOptions.MaxTotalBytesWritten"/>.</summary>
+    private readonly long maxTotalBytesWritten;
+
+    /// <summary>The growable buffer's rented array, or <see langword="null"/> for a span or before the first write.</summary>
+    private byte[]? array;
+
+    /// <summary>The position in bytes from the destination's start.</summary>
+    private long position;
+
+    /// <summary>The high-water mark: the number of leading bytes that hold written data.</summary>
+    private long length;
+
+    /// <summary>The physical bytes written so far, counted as the interpreter's wrapper counts them.</summary>
+    private long bytesWritten;
+
+    /// <summary>Creates a buffer; <see cref="ForSpan"/> and <see cref="ForNewArray"/> name the two forms.</summary>
+    /// <param name="span">Whether the destination is the caller's span.</param>
+    /// <param name="region">The caller's pinned first byte; unused for a growable buffer.</param>
+    /// <param name="capacity">The span's length in bytes.</param>
+    /// <param name="options">The operation's snapshotted options, which supply the byte limits.</param>
+    private MemoryWriteBuffer(bool span, byte* region, int capacity, WriteOptions options)
+    {
+        this.span = span;
+        this.region = region;
+        this.capacity = capacity;
+        this.maxTotalBytesWritten = options.MaxTotalBytesWritten;
+        this.MaxStringBytes = options.MaxStringBytes;
+    }
+
+    /// <summary>Gets the configured per-string encoded-byte budget.</summary>
+    public long MaxStringBytes { get; }
+
+    /// <summary>Gets a value indicating whether the buffer can read back what it holds; always <see langword="true"/>.</summary>
+    public override bool CanRead => true;
+
+    /// <summary>Gets a value indicating whether the buffer can seek; always <see langword="true"/>.</summary>
+    public override bool CanSeek => true;
+
+    /// <summary>Gets a value indicating whether the buffer can write; always <see langword="true"/>.</summary>
+    public override bool CanWrite => true;
+
+    /// <summary>Gets the high-water mark in bytes: the length of the serialized output.</summary>
+    public override long Length => this.length;
+
+    /// <summary>
+    ///     Gets or sets the position in bytes; moving it charges nothing. A span rejects a position outside it as the
+    ///     interpreter's region stream does; a growable buffer rejects what a <see cref="MemoryStream"/> rejects.
+    /// </summary>
+    public override long Position
+    {
+        get => this.position;
+        set
+        {
+            if (this.span)
+            {
+                if (value < 0 || value > this.capacity)
+                {
+                    throw new CStructWriteException("The requested position is outside the supplied memory region.");
+                }
+            }
+            else if (value < 0 || value > int.MaxValue)
+            {
+                // A memory stream's own check throws the exact exception the interpreter's stream reports.
+                using var probe = new MemoryStream();
+                probe.Position = value;
+            }
+
+            this.position = value;
+        }
+    }
+
+    /// <summary>Creates the destination of <c>Serialize(Span)</c> over the caller's pinned span.</summary>
+    /// <param name="region">The span's first byte; the caller keeps it pinned for the buffer's lifetime.</param>
+    /// <param name="capacity">The span's length in bytes.</param>
+    /// <param name="options">The operation's snapshotted options.</param>
+    /// <returns>An empty buffer over the span.</returns>
+    public static MemoryWriteBuffer ForSpan(byte* region, int capacity, WriteOptions options) => new(true, region, capacity, options);
+
+    /// <summary>Creates the growable destination of <c>Serialize</c> to a new array.</summary>
+    /// <param name="options">The operation's snapshotted options.</param>
+    /// <returns>An empty buffer.</returns>
+    public static MemoryWriteBuffer ForNewArray(WriteOptions options) => new(false, null, 0, options);
+
+    /// <summary>Has nothing to flush.</summary>
+    public override void Flush()
+    {
+    }
+
+    /// <summary>Returns the bytes written, <see cref="Length"/> of them, as a new array.</summary>
+    /// <returns>The serialized output.</returns>
+    public byte[] ToArray()
+    {
+        if (this.length == 0)
+        {
+            return [];
+        }
+
+        return this.span
+                   ? new ReadOnlySpan<byte>(this.region, (int)this.length).ToArray()
+                   : this.array.AsSpan(0, (int)this.length).ToArray();
+    }
+
+    /// <summary>
+    ///     Whether <paramref name="size"/> bytes at the position fit the budget, charged as <paramref name="chargedBytes"/> of
+    ///     physical traffic, and - for a span - its capacity: the interpreter's checks before it writes a block.
+    /// </summary>
+    /// <param name="size">The block's length in bytes, which decides how far it extends the output.</param>
+    /// <param name="chargedBytes">The physical traffic in bytes the block adds to the budget.</param>
+    /// <returns>Whether the block can be written without a failure.</returns>
+    public bool CanAffordBlock(int size, int chargedBytes)
+    {
+        try
+        {
+            long next = checked(this.bytesWritten + chargedBytes);
+            long extent = Math.Max(0, checked(this.position + size));
+            if (Math.Max(next, extent) > this.maxTotalBytesWritten)
+            {
+                return false;
+            }
+        }
+        catch (OverflowException)
+        {
+            return false;
+        }
+
+        return !this.span || this.position + size <= this.capacity;
+    }
+
+    /// <summary>Writes a block prepared in advance (a static plan, a typed array, text), charging <paramref name="chargedBytes"/>.</summary>
+    /// <param name="block">The bytes, written at the position.</param>
+    /// <param name="chargedBytes">The physical traffic in bytes to charge, which may differ from the block's length.</param>
+    /// <exception cref="CStructWriteLimitException">The block would exceed the total output budget.</exception>
+    /// <exception cref="CStructWriteException">A span destination cannot hold the block.</exception>
+    public void WriteBlock(ReadOnlySpan<byte> block, int chargedBytes)
+    {
+        long next;
+        try
+        {
+            next = checked(this.bytesWritten + chargedBytes);
+            this.EnsureWithinBudget(next, Math.Max(0, checked(this.position + block.Length)));
+        }
+        catch (OverflowException exception)
+        {
+            throw new CStructWriteException("Write output accounting overflowed the supported stream range.", exception);
+        }
+
+        this.Store(block);
+        this.bytesWritten = next;
+    }
+
+    /// <summary>Writes bytes at the position after the budget and the destination's room are checked.</summary>
+    /// <param name="buffer">The bytes to write.</param>
+    public override void Write(ReadOnlySpan<byte> buffer)
+    {
+        long next = this.ProjectUsage(buffer.Length);
+        this.Store(buffer);
+        this.bytesWritten = next;
+    }
+
+    /// <summary>Writes a byte range at the position after the budget and the destination's room are checked.</summary>
+    /// <param name="buffer">The array holding the bytes.</param>
+    /// <param name="offset">The index of the first byte to write.</param>
+    /// <param name="count">The number of bytes to write.</param>
+    public override void Write(byte[] buffer, int offset, int count)
+    {
+        ValidateBufferArguments(buffer, offset, count);
+        this.Write(buffer.AsSpan(offset, count));
+    }
+
+    /// <summary>Writes one byte at the position after the budget and the destination's room are checked.</summary>
+    /// <param name="value">The byte.</param>
+    public override void WriteByte(byte value) => this.Write(new ReadOnlySpan<byte>(in value));
+
+    /// <summary>
+    ///     Writes <paramref name="count"/> zero bytes, checking the whole region against the budget first and then writing
+    ///     it in chunks, as the interpreter's zero fill does (a span can run out of room between chunks).
+    /// </summary>
+    /// <param name="count">The number of zero bytes; zero writes nothing.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
+    public void WriteZeroes(int count)
+    {
+        if (count < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(count));
+        }
+
+        if (count == 0)
+        {
+            return;
+        }
+
+        _ = this.ProjectUsage(count);
+        while (count > 0)
+        {
+            int chunk = Math.Min(count, ZeroChunk);
+            long next = this.ProjectUsage(chunk);
+            this.StoreZeroes(chunk);
+            this.bytesWritten = next;
+            count -= chunk;
+        }
+    }
+
+    /// <summary>Rejects a string before its encoded payload is allocated or written.</summary>
+    /// <param name="encodedByteCount">The string's encoded length in bytes.</param>
+    /// <exception cref="CStructWriteLimitException">
+    ///     <paramref name="encodedByteCount"/> is negative or exceeds <see cref="MaxStringBytes"/>.
+    /// </exception>
+    public void EnsureStringBytes(long encodedByteCount)
+    {
+        if (encodedByteCount < 0 || encodedByteCount > this.MaxStringBytes)
+        {
+            throw new CStructWriteLimitException(WriteFailures.StringBytesLimit);
+        }
+    }
+
+    /// <summary>Reads written bytes from the position; nothing past the high-water mark.</summary>
+    /// <param name="buffer">The span to fill.</param>
+    /// <returns>The number of bytes copied, or 0 at or past <see cref="Length"/>.</returns>
+    public override int Read(Span<byte> buffer)
+    {
+        int count = (int)Math.Min(buffer.Length, Math.Max(0, this.length - this.position));
+        if (count == 0)
+        {
+            return 0;
+        }
+
+        this.Bytes(this.position, count).CopyTo(buffer);
+        this.position += count;
+        return count;
+    }
+
+    /// <summary>Reads written bytes from the position; nothing past the high-water mark.</summary>
+    /// <param name="buffer">The array receiving the bytes.</param>
+    /// <param name="offset">The index of the first byte stored.</param>
+    /// <param name="count">The maximum number of bytes to read.</param>
+    /// <returns>The number of bytes copied.</returns>
+    public override int Read(byte[] buffer, int offset, int count)
+    {
+        ValidateBufferArguments(buffer, offset, count);
+        return this.Read(buffer.AsSpan(offset, count));
+    }
+
+    /// <summary>
+    ///     Not used: the engine and the codec writers it calls move the position through <see cref="Position"/>, which
+    ///     checks it as the interpreter's streams do.
+    /// </summary>
+    /// <param name="offset">The signed distance in bytes.</param>
+    /// <param name="origin">The reference point.</param>
+    /// <returns>Never returns.</returns>
+    /// <exception cref="NotSupportedException">Always.</exception>
+    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException("The compiled engine's write buffer moves only through its position.");
+
+    /// <summary>Not used: nothing the engine writes changes the destination's length other than by writing.</summary>
+    /// <param name="value">The new length in bytes.</param>
+    /// <exception cref="NotSupportedException">Always.</exception>
+    public override void SetLength(long value) => throw new NotSupportedException("The compiled engine's write buffer grows only by writing.");
+
+    /// <summary>Returns a growable buffer's array to the pool.</summary>
+    /// <param name="disposing">Whether the call comes from <see cref="Stream.Dispose()"/>.</param>
+    protected override void Dispose(bool disposing)
+    {
+        if (this.array is { } rented)
+        {
+            this.array = null;
+            ArrayPool<byte>.Shared.Return(rented);
+        }
+
+        base.Dispose(disposing);
+    }
+
+    /// <summary>
+    ///     The budget check of one write of <paramref name="count"/> bytes at the position, as the interpreter's wrapper
+    ///     projects it; nothing changes.
+    /// </summary>
+    /// <param name="count">The bytes about to be written.</param>
+    /// <returns>The physical byte count after the write.</returns>
+    private long ProjectUsage(int count)
+    {
+        try
+        {
+            long next = checked(this.bytesWritten + count);
+            this.EnsureWithinBudget(next, Math.Max(0, checked(this.position + count)));
+            return next;
+        }
+        catch (OverflowException exception)
+        {
+            throw new CStructWriteException("Write output accounting overflowed the supported stream range.", exception);
+        }
+    }
+
+    /// <summary>Uses the larger of physical traffic and new extent, so neither repeated writes nor gaps bypass the limit.</summary>
+    /// <param name="physicalBytes">The physical bytes written, including the write being checked.</param>
+    /// <param name="newExtent">The output's extent after the write.</param>
+    /// <exception cref="CStructWriteLimitException">The larger of the two exceeds the limit.</exception>
+    private void EnsureWithinBudget(long physicalBytes, long newExtent)
+    {
+        if (Math.Max(physicalBytes, newExtent) > this.maxTotalBytesWritten)
+        {
+            throw new CStructWriteLimitException(WriteFailures.TotalBytesLimit);
+        }
+    }
+
+    /// <summary>Copies bytes to the position once the budget allowed them: the destination's room, the gap, then the data.</summary>
+    /// <param name="source">The bytes.</param>
+    private void Store(ReadOnlySpan<byte> source)
+    {
+        this.Room(source.Length);
+        this.FillGap();
+        source.CopyTo(this.Bytes(this.position, source.Length));
+        this.Advance(source.Length);
+    }
+
+    /// <summary>Writes zero bytes at the position once the budget allowed them.</summary>
+    /// <param name="count">The number of zero bytes.</param>
+    private void StoreZeroes(int count)
+    {
+        this.Room(count);
+        this.FillGap();
+        this.Bytes(this.position, count).Clear();
+        this.Advance(count);
+    }
+
+    /// <summary>
+    ///     Makes room for <paramref name="count"/> bytes at the position: a span that cannot hold them fails as the
+    ///     interpreter's region stream does, a growable buffer grows (and fails past the largest array as a memory stream).
+    /// </summary>
+    /// <param name="count">The bytes about to be written.</param>
+    private void Room(int count)
+    {
+        if (this.span)
+        {
+            if (count > this.capacity - this.position)
+            {
+                throw new CStructWriteException(WriteFailures.DestinationCapacity);
+            }
+
+            return;
+        }
+
+        long end = this.position + count;
+        if (end > int.MaxValue)
+        {
+            // The interpreter's memory stream fails such a write with an I/O error, which its wrapper reports as a write
+            // failure at the position; the probe raises the same error.
+            try
+            {
+                using var probe = new MemoryStream();
+                probe.Position = this.position;
+                probe.Write(new byte[count], 0, count);
+            }
+            catch (IOException exception)
+            {
+                var failure = new CStructWriteException("Cannot write to the destination stream.", exception);
+                failure.AttachContext(offset: this.position);
+                throw failure;
+            }
+        }
+
+        this.Reserve(end);
+    }
+
+    /// <summary>Grows a growable buffer's array to hold at least <paramref name="size"/> bytes, keeping the bytes written.</summary>
+    /// <param name="size">The bytes the array must hold.</param>
+    private void Reserve(long size)
+    {
+        if (this.span || (this.array is { } current && current.Length >= size))
+        {
+            return;
+        }
+
+        int grown = (int)Math.Min(int.MaxValue, Math.Max(size, Math.Max(InitialCapacity, (long)(this.array?.Length ?? 0) * 2)));
+        byte[] replacement = ArrayPool<byte>.Shared.Rent(grown);
+        if (this.array is { } old)
+        {
+            old.AsSpan(0, (int)this.length).CopyTo(replacement);
+            ArrayPool<byte>.Shared.Return(old);
+        }
+
+        this.array = replacement;
+    }
+
+    /// <summary>Clears the bytes between the high-water mark and a position past it, which a write there turns into data.</summary>
+    private void FillGap()
+    {
+        if (this.position > this.length)
+        {
+            this.Bytes(this.length, (int)(this.position - this.length)).Clear();
+        }
+    }
+
+    /// <summary>Moves the position past bytes just stored and raises the high-water mark to it.</summary>
+    /// <param name="count">The bytes stored.</param>
+    private void Advance(int count)
+    {
+        this.position += count;
+        if (this.position > this.length)
+        {
+            this.length = this.position;
+        }
+    }
+
+    /// <summary>The destination's bytes from <paramref name="start"/>; the caller has made room for them.</summary>
+    /// <param name="start">The first byte's offset.</param>
+    /// <param name="count">The number of bytes.</param>
+    /// <returns>The bytes.</returns>
+    private Span<byte> Bytes(long start, int count)
+        => this.span ? new Span<byte>(this.region + start, count) : this.array.AsSpan((int)start, count);
+}

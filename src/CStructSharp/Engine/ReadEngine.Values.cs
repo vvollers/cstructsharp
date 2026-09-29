@@ -785,7 +785,7 @@ internal static partial class ReadEngine
         }
 
         string name = field.Declaration.Name.Name;
-        SlotValue captured = field.NotANumberReason is { } reason ? SlotValue.FromUnusable(new NotANumberVariable(reason)) : CaptureValue(value);
+        SlotValue captured = field.NotANumberReason is { } reason ? SlotValue.FromUnusable(new NotANumberVariable(reason)) : LayoutVariableCapture.ToSlotValue(value);
         SlotTable table = state.Slots.Table;
         if (table.TryGetSlot(name, out int slot))
         {

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using CStructSharp.Compilation;
+using CStructSharp.Compilation.Programs;
 using CStructSharp.Syntax;
 using CStructSharp.Values;
 
@@ -79,6 +80,31 @@ internal static class LayoutVariableCapture
         return wide is UInt128 or BigInteger
                    ? new WideValueVariable(wide)
                    : null;
+    }
+
+    /// <summary>
+    ///     Converts an integer field's value into the slot value the compiled engine stores for it, by the same rule as
+    ///     <see cref="ToExpression"/>: an integer in the 128-bit domain is a literal, a wider one an unusable value that
+    ///     fails naming the number, and anything with no integer meaning removes the name (an undefined slot).
+    /// </summary>
+    /// <param name="value">The value, possibly wrapped as a pointer or an enum result.</param>
+    /// <returns>The slot value.</returns>
+    public static SlotValue ToSlotValue(object? value)
+    {
+        Int128 captured;
+        bool converted = value switch
+        {
+            Pointer pointer => Converted(pointer.Address, out captured),
+            EnumValueResult enumValue => ExpressionValueCapture.TryFromBigInteger(enumValue.Value, out captured),
+            _ => ExpressionValueCapture.TryConvert(value, out captured),
+        };
+        if (converted)
+        {
+            return SlotValue.FromLiteral(captured);
+        }
+
+        object? wide = value is EnumValueResult result ? result.Value : value;
+        return wide is UInt128 or BigInteger ? SlotValue.FromUnusable(new WideValueVariable(wide)) : SlotValue.Undefined;
     }
 
     /// <summary>Stores a value that is already in the domain.</summary>

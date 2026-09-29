@@ -566,7 +566,7 @@ internal static partial class ReadEngine
                 case ReadOpCode.CaptureInteger:
                 case ReadOpCode.CaptureUInt128:
                 case ReadOpCode.CaptureEnum:
-                    state.Slots.Set(step.A, CaptureValue(last));
+                    state.Slots.Set(step.A, LayoutVariableCapture.ToSlotValue(last));
                     captureSkipped = false;
                     break;
 
@@ -602,7 +602,7 @@ internal static partial class ReadEngine
                     break;
 
                 case ReadOpCode.SelectArm:
-                    if (SelectedArm(ref state, program, program.Branches[step.A], arms) != program.Branches[step.A].Arm)
+                    if (state.SelectedArm(program, program.Branches[step.A], arms) != program.Branches[step.A].Arm)
                     {
                         // The loop's increment lands on the first step after the member.
                         index = step.B - 1;
@@ -611,7 +611,7 @@ internal static partial class ReadEngine
                     break;
 
                 case ReadOpCode.CompleteMember:
-                    CompleteMember(ref state, program.Scope!, field, locals);
+                    state.CompleteMember(program.Scope!, field, locals);
                     break;
 
                 case ReadOpCode.FinishComposite:
@@ -900,93 +900,6 @@ internal static partial class ReadEngine
         {
             destination.StoreSlot(slot, value);
         }
-    }
-
-    /// <summary>
-    ///     Returns the arm a conditional branch's group selected in this frame, evaluating the group's selector the first
-    ///     time the frame needs it, as <c>ConditionalFieldSelection</c> does once per composite instance.
-    /// </summary>
-    /// <param name="state">The operation's state.</param>
-    /// <param name="program">The program.</param>
-    /// <param name="branch">The branch being tested.</param>
-    /// <param name="arms">The base of the frame's selected arms in the state's arena.</param>
-    /// <returns>The selected arm of the branch's group.</returns>
-    /// <exception cref="CStructException">The selector cannot be evaluated.</exception>
-    private static int SelectedArm(ref ReadEngineState state, ReadProgram program, ReadProgram.ConditionalBranch branch, int arms)
-    {
-        int arm = state.Arms[arms + branch.Group];
-        if (arm == ReadEngineState.Undecided)
-        {
-            ReadProgram.ConditionalGroup group = program.Groups[branch.Group];
-            Int128 value = state.Slots.Evaluate(program.Expressions[group.Selector], program.ExpressionContexts[group.Selector], ExpressionFailureDomain.Read);
-            arm = group.Decision.SelectArm(value);
-            state.Arms[arms + branch.Group] = arm;
-        }
-
-        return arm;
-    }
-
-    /// <summary>
-    ///     After an active member of a conditional composite, saves the member's own names into the frame's locals, then
-    ///     restores the composite's names a nested declaration replaced (an absent saved value removes the name), in the
-    ///     order <c>ConditionalVariableScope.CompleteField</c> uses.
-    /// </summary>
-    /// <param name="state">The operation's state.</param>
-    /// <param name="scope">The composite's scope in slot terms.</param>
-    /// <param name="member">The member's index.</param>
-    /// <param name="locals">The base of the frame's saved values in the state's arena.</param>
-    private static void CompleteMember(ref ReadEngineState state, ReadConditionalScope scope, int member, int locals)
-    {
-        SlotValue[] saved = state.Locals;
-        IReadOnlyList<int> captured = scope.GetCaptured(member);
-        for (int index = 0; index < captured.Count; index++)
-        {
-            int local = captured[index];
-            saved[locals + local] = state.Slots.Get(scope.LocalSlots[local]);
-        }
-
-        IReadOnlyList<int> restored = scope.GetRestored(member);
-        for (int index = 0; index < restored.Count; index++)
-        {
-            int local = restored[index];
-            state.Slots.Set(scope.LocalSlots[local], saved[locals + local]);
-        }
-    }
-
-    /// <summary>
-    ///     Converts a value just read into what a capture stores, by the rule every path shares
-    ///     (<see cref="LayoutVariableCapture.ToExpression"/>): an integer in the 128-bit domain is a literal, a wider one
-    ///     an unusable value that fails naming the number, and anything with no integer meaning removes the name.
-    /// </summary>
-    /// <param name="value">The value: an integer, <see cref="bool"/>, <see cref="char"/>, or enum result.</param>
-    /// <returns>The slot value.</returns>
-    private static SlotValue CaptureValue(object? value)
-    {
-        // A pointer's stored address can only arrive here as a caller codec's value; the shared rule unwraps it too.
-        Int128 captured;
-        bool converted = value switch
-        {
-            EnumValueResult enumValue => ExpressionValueCapture.TryFromBigInteger(enumValue.Value, out captured),
-            Pointer pointer => FromAddress(pointer.Address, out captured),
-            _ => ExpressionValueCapture.TryConvert(value, out captured),
-        };
-        if (converted)
-        {
-            return SlotValue.FromLiteral(captured);
-        }
-
-        object? wide = value is EnumValueResult result ? result.Value : value;
-        return wide is UInt128 or System.Numerics.BigInteger ? SlotValue.FromUnusable(new WideValueVariable(wide)) : SlotValue.Undefined;
-    }
-
-    /// <summary>Widens a stored address into the expression domain, which holds every <see cref="long"/>.</summary>
-    /// <param name="address">The address.</param>
-    /// <param name="captured">Receives <paramref name="address"/>.</param>
-    /// <returns>Always <see langword="true"/>.</returns>
-    private static bool FromAddress(long address, out Int128 captured)
-    {
-        captured = address;
-        return true;
     }
 
     /// <summary>

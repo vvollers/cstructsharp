@@ -12,6 +12,7 @@ using System.Text;
 using CStructSharp.Addressing;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
+using CStructSharp.Compilation.Programs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Engine;
 using CStructSharp.Expressions;
@@ -512,8 +513,12 @@ public sealed partial class CStruct
     ///     <see cref="UnknownMemberPolicy.Reject"/>: every member the supplied value carries must be one the composite
     ///     declares, matched by exact key (the lookup the writer performs). A parsed <see cref="UnionValue"/> is
     ///     trusted; a mapped class was materialized into the composite's own shape and so cannot carry an unknown key.
+    ///     The interpreter's writer and the compiled engine both call it at every non-promoted struct they enter.
     /// </summary>
-    private static void RejectUnknownMembers(CompiledCompositeType composite, object data)
+    /// <param name="composite">The struct whose declared members are allowed.</param>
+    /// <param name="data">The struct's bound value.</param>
+    /// <exception cref="CStructWriteException">The value carries a member the struct does not declare.</exception>
+    internal static void RejectUnknownMembers(CompiledCompositeType composite, object data)
     {
         StructShape shape = composite.Shape;
         if (data is UnionValue)
@@ -586,7 +591,9 @@ public sealed partial class CStruct
     }
 
     /// <summary>The all-zero value an unnamed padding field is written with: a zero scalar, or one zero per fixed element.</summary>
-    private static object CreatePaddingValue(CompiledField field)
+    /// <param name="field">The unnamed field.</param>
+    /// <returns>A new value: <c>0</c>, an empty string for characters, or an array of zeroes.</returns>
+    internal static object CreatePaddingValue(CompiledField field)
     {
         if (field.Array.Kind == CompiledArrayKind.Scalar)
         {
@@ -1260,7 +1267,10 @@ public sealed partial class CStruct
     }
 
     /// <summary>The shared unwritable-value text (<see cref="WriteFailures.UnwritableValue"/>) for one compiled field.</summary>
-    private static string DescribeUnwritableValue(object? value, CompiledField field)
+    /// <param name="value">The value that could not be encoded.</param>
+    /// <param name="field">The field it was written as, whose type and accepted range the text names.</param>
+    /// <returns>The failure message.</returns>
+    internal static string DescribeUnwritableValue(object? value, CompiledField field)
         => WriteFailures.UnwritableValue(value, field.TypeSpelling, WriteFailures.AcceptedRange(field.Codec.Kind));
 
     /// <summary>
@@ -1277,9 +1287,24 @@ public sealed partial class CStruct
         LayoutVariableInput variables,
         WriteOptions? options = null)
     {
-        // Serialize is the convenience entry point: write to a temporary stream, then hand its complete contents to the caller.
+        // Serialize is the convenience entry point: the compiled engine writes an eligible root into a growable buffer;
+        // otherwise the interpreter writes to a temporary stream. Either hands its complete contents to the caller.
+        WritePreparation request = this.PrepareWrite(null, elementNameOrPath, variables, options, serializes: true);
+        if (request.Program is { } program)
+        {
+            VariableSlots slots = request.Slots;
+            try
+            {
+                return WriteEngine.SerializeToArray(this, program, WriteDataBinding.NormalizeRootData(data, request.Segments[0].Name), request.Segments, slots, request.Options);
+            }
+            finally
+            {
+                slots.Dispose();
+            }
+        }
+
         using var stream = new OwnedMemoryStream();
-        this.WriteStreamCore(stream, elementNameOrPath, data, variables, options);
+        this.WriteRequested(stream, request, data);
         return stream.ToArray();
     }
 
@@ -1500,6 +1525,31 @@ public sealed partial class CStruct
             throw new ArgumentException("Writing requires a writable, seekable stream.", nameof(stream));
         }
 
+        WritePreparation request = this.PrepareWrite(stream, elementNameOrPath, variables, options, serializes: false);
+        this.WriteRequested(stream, request, data);
+    }
+
+    /// <summary>
+    ///     Settles everything a write decides before it writes, in the interpreter's order: the path is present, the
+    ///     options are snapshotted and valid, the variables resolve (a definition that cannot be resolved fails here,
+    ///     before the path is parsed), the root exists, and the engine selector decides once which implementation writes.
+    /// </summary>
+    /// <param name="stream">
+    ///     The caller's destination, whose position an unknown-root failure reports; <see langword="null"/> for
+    ///     <c>Serialize</c>, whose new destination is at position 0.
+    /// </param>
+    /// <param name="elementNameOrPath">The case-sensitive root name or nested field path to write.</param>
+    /// <param name="variables">The caller's layout variables; they are copied and never mutated.</param>
+    /// <param name="options">Write limits and pointer settings; <see langword="null"/> uses the defaults.</param>
+    /// <param name="serializes">Whether the destination is a new array or a caller's span, which the engine can write.</param>
+    /// <returns>
+    ///     The settled write: with the engine's program and the variables as slots, which the caller disposes, or with the
+    ///     interpreter's variable dictionary.
+    /// </returns>
+    /// <exception cref="CStructPathException">The path is empty or names no root.</exception>
+    /// <exception cref="InvalidOperationException">The engine is required and declined the write.</exception>
+    private WritePreparation PrepareWrite(Stream? stream, string elementNameOrPath, LayoutVariableInput variables, WriteOptions? options, bool serializes)
+    {
         // Validate the requested root before touching the stream so bad paths fail without partial output.
         if (string.IsNullOrWhiteSpace(elementNameOrPath))
         {
@@ -1509,27 +1559,73 @@ public sealed partial class CStruct
         WriteOptions effectiveOptions = CStructElementWriterState.SnapshotWriteOptions(options);
         CStructElementWriterState.ValidateWriteOptions(effectiveOptions);
 
-        // Definitions and supplied variables form the small expression environment used for array counts.
-        Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
-        IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
-
-        if (segments.Count == 0)
+        // Definitions and supplied variables form the small expression environment used for array counts: slots for a
+        // write the engine may run, the interpreter's dictionary otherwise; both resolve, and fail, identically.
+        bool slotted = serializes && variables.UsesIntegers && effectiveOptions is not UpdateOptions &&
+                       effectiveOptions.EngineSelection != EngineSelection.InterpreterOnly;
+        VariableSlots slots = slotted ? VariableSlots.Create(this.compilation.SlotTable, variables) : default;
+        Dictionary<string, Expr>? effectiveVariables = slotted ? null : variables.Resolve(this.layoutVariableResolver);
+        try
         {
-            throw new CStructPathException("Path is empty.");
-        }
+            IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
+            if (segments.Count == 0)
+            {
+                throw new CStructPathException("Path is empty.");
+            }
 
-        string rootName = segments[0].Name;
-        if (!this.compiledModelQueries.TryGetCompiledDeclaration(rootName, out CStructElement? rootElement))
+            string rootName = segments[0].Name;
+            if (!this.compiledModelQueries.TryGetCompiledDeclaration(rootName, out CStructElement? rootElement))
+            {
+                CStructPathException exception = this.compiledModelQueries.UnknownRoot(rootName);
+                if (stream is null)
+                {
+                    ExceptionContext.Attach(exception, segments, 0);
+                }
+                else
+                {
+                    ExceptionContext.Attach(exception, segments, stream);
+                }
+
+                throw exception;
+            }
+
+            WriteProgram? program = EngineSelector.SelectRootWrite(effectiveOptions.EngineSelection, this.compilation, segments, variables, effectiveOptions, serializes);
+            if (program is null && slotted)
+            {
+                // The engine declined: the interpreter resolves its dictionary, which succeeds as the slots did.
+                slotted = false;
+                slots.Dispose();
+                effectiveVariables = variables.Resolve(this.layoutVariableResolver);
+            }
+
+            return new WritePreparation(effectiveOptions, segments, rootElement, effectiveVariables, slots, program);
+        }
+        catch
         {
-            CStructPathException exception = this.compiledModelQueries.UnknownRoot(rootName);
-            ExceptionContext.Attach(exception, segments, stream);
-            throw exception;
-        }
+            if (slotted)
+            {
+                slots.Dispose();
+            }
 
-        EngineSelector.Decide(effectiveOptions.EngineSelection, EngineOperation.Write);
+            throw;
+        }
+    }
+
+    /// <summary>
+    ///     Writes a settled root or path with the interpreter: the root data is normalized, the writer state checks the
+    ///     token and wraps the stream in the budget, and a failure gets the path and the stream's position attached.
+    /// </summary>
+    /// <param name="stream">The destination, writable and seekable; fields written before a later failure remain in it.</param>
+    /// <param name="request">The settled write, with the interpreter's variable dictionary.</param>
+    /// <param name="data">The value to encode.</param>
+    private void WriteRequested(Stream stream, in WritePreparation request, object data)
+    {
+        IReadOnlyList<PathSegment> segments = request.Segments;
+        CStructElement rootElement = request.RootElement;
+        Dictionary<string, Expr> effectiveVariables = request.Variables!;
 
         // Callers may pass either { root: ... } or the root object itself; accept both forms at the public boundary.
-        object rootData = WriteDataBinding.NormalizeRootData(data, rootName);
+        object rootData = WriteDataBinding.NormalizeRootData(data, segments[0].Name);
 
         // Keep all write-time choices in one state object for recursive struct and field calls.
         try
@@ -1538,7 +1634,7 @@ public sealed partial class CStruct
                 stream,
                 effectiveVariables,
                 this.Aligned,
-                effectiveOptions);
+                request.Options);
 
             if (segments.Count == 1)
             {
@@ -1572,4 +1668,22 @@ public sealed partial class CStruct
             throw;
         }
     }
+
+    /// <summary>
+    ///     What a write settled before writing (<see cref="PrepareWrite"/>): its options, path and root, and either the
+    ///     engine's program with the variables as slots or the interpreter's variable dictionary.
+    /// </summary>
+    /// <param name="Options">The snapshotted, validated options.</param>
+    /// <param name="Segments">The parsed path; the first segment names the root.</param>
+    /// <param name="RootElement">The root's declaration.</param>
+    /// <param name="Variables">The interpreter's variables, or <see langword="null"/> when the engine writes.</param>
+    /// <param name="Slots">The engine's variables when <paramref name="Program"/> is set; the writer disposes them.</param>
+    /// <param name="Program">The root's write program when the engine writes; otherwise <see langword="null"/>.</param>
+    private readonly record struct WritePreparation(
+        WriteOptions Options,
+        IReadOnlyList<PathSegment> Segments,
+        CStructElement RootElement,
+        Dictionary<string, Expr>? Variables,
+        VariableSlots Slots,
+        WriteProgram? Program);
 }

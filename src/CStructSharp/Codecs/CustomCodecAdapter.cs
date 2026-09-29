@@ -141,14 +141,14 @@ internal static class CustomCodecAdapter
     /// <summary>Writes one value at the stream position and leaves the stream after it.</summary>
     /// <param name="codec">The custom codec that encodes the value.</param>
     /// <param name="stream">
-    ///     The destination, at the value's first byte; a <see cref="WriteBudgetStream"/> supplies the byte limit.
+    ///     The destination, at the value's first byte; a stream that enforces the write budget (<see cref="IWriteBudget"/>) supplies the byte limit.
     /// </param>
     /// <param name="value">The caller value to encode.</param>
     /// <exception cref="CStructWriteException">The codec rejects the value or reports an impossible length.</exception>
     /// <exception cref="CStructWriteLimitException">The encoding needs more bytes than the limit allows.</exception>
     public static void Write(ICustomCodec codec, Stream stream, object value)
     {
-        long limit = (stream as WriteBudgetStream)?.MaxStringBytes ?? int.MaxValue;
+        long limit = (stream as IWriteBudget)?.MaxStringBytes ?? int.MaxValue;
         byte[] rented = EncodeToRented(codec, value, limit, out int written);
         try
         {

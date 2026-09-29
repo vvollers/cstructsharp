@@ -16,7 +16,11 @@ using CStructSharp.Values;
 ///     views, an inline struct view and a promoted union, a union whose struct view has conditionals and captures a name
 ///     the struct outside it also uses, and bitfields in a union; pointer arrays, a linked list followed through nested
 ///     deferred targets, a pointer in a union view with a <c>void *</c> and a two-level pointer, and counted struct and
-///     text targets whose counts are later fields. Each is compiled packed and aligned (<see cref="Variant"/>).
+///     text targets whose counts are later fields. For the writers: every text form (character, wide and byte-counted
+///     buffers, terminated strings, an unsized <c>char[]</c>), scalar and counted arrays of enums and flags, unnamed padding
+///     fields, the wide and fixed-point codecs, a conditional scope whose nested structs and struct array replace a name
+///     the switch then reads, and a count reached through a two-level qualified name and a define with an offset
+///     assertion after it. Each is compiled packed and aligned (<see cref="Variant"/>).
 /// </summary>
 internal static class EngineSweepLayouts
 {
@@ -275,6 +279,63 @@ internal static class EngineSweepLayouts
             ["rec.label", "rec.word", "rec.tail"],
             "rec.name",
             [("rec.name", "abc"), ("rec.word", "e")]),
+        new(
+            "write-text",
+            "struct rec { char a[4]; wchar> w[2]; latin1 l[3]; utf16be u[4]; cstring c; utf8_string_zero z; uint8 tail; char rest[]; };",
+            [
+                (byte)'h', (byte)'i', 0x00, 0x00, 0x00, (byte)'o', 0x00, (byte)'k', 0xE9, (byte)'a', 0x00, 0x00, (byte)'z', 0x00, 0x00, (byte)'a', (byte)'b', 0x00,
+                0xC3, 0xA9, 0x00, 0x09, (byte)'x', (byte)'y', 0x00,
+            ],
+            ["rec.w", "rec.c", "rec.tail"],
+            "rec.a",
+            [("rec.tail", (byte)3), ("rec.a", "yo")]),
+        new(
+            "write-enums",
+            "enum color : uint8 { red = 1, green = 2 }; flag perm : uint16 { r, w, x }; struct rec { color c; perm p; color cs[2]; uint8 n; color more[n]; perm ps[n]; int8 tail; };",
+            [0x02, 0x05, 0x00, 0x01, 0x02, 0x02, 0x02, 0x01, 0x03, 0x00, 0x04, 0x00, 0xFF],
+            ["rec.p", "rec.more[1]", "rec.tail"],
+            "rec.more",
+            [("rec.c", "red"), ("rec.more[0]", "green")],
+            Names: ["n"]),
+        new(
+            "write-padding",
+            "struct rec { uint8 n; uint8 _[2]; char _[2]; uint16 a; int32 _; uint8 items[n]; uint8 tail; };",
+            [0x01, 0x00, 0x00, 0x00, 0x00, 0x34, 0x12, 0x00, 0x00, 0x00, 0x00, 0x05, 0x09],
+            ["rec.a", "rec.items", "rec.tail"],
+            "rec.items",
+            [("rec.a", (ushort)5), ("rec.tail", (byte)1)],
+            Names: ["n"]),
+        new(
+            "write-codecs",
+            "struct rec { int24 a; uint24 b; int48 c; uint48 d; int128 e; uint128 f; float16 g; fixed16_16 h; ufixed8_8 i; uuid j; bool k; sleb128_32 l; uleb128_64 m; float64 n; int64 o; uint64 p; };",
+            [
+                0xFE, 0xFF, 0xFF, 0x56, 0x34, 0x12, 0xFD, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                0x00, 0x3C, 0x00, 0x80, 0x01, 0x00, 0x80, 0x02,
+                0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+                0x01, 0x7F, 0xAC, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xE0, 0x3F,
+                0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            ],
+            ["rec.c", "rec.j", "rec.p"],
+            null,
+            [("rec.b", 7u), ("rec.k", true)]),
+        new(
+            "write-scope",
+            "struct inner { uint8 kind; if (kind == 1) { uint8 x; } }; struct rec { uint8 kind; inner a; uint8 items[kind]; inner pair[2]; switch (kind) { case 2: { uint16 y; } default: { uint8 z; } } uint8 tail; };",
+            [0x02, 0x01, 0x07, 0x0A, 0x0B, 0x01, 0x03, 0x00, 0x34, 0x12, 0x09],
+            ["rec.items[1]", "rec.y", "rec.tail"],
+            "rec.items",
+            [("rec.tail", (byte)3), ("rec.items[0]", (byte)5)],
+            Names: ["kind"]),
+        new(
+            "write-qualified",
+            "#define W 2\nstruct h { uint8 n; }; struct m { uint8 pad; h hdr; }; struct rec { m outer; uint16 items[outer.hdr.n + W - 2]; uint8 flag @4; };",
+            [0x00, 0x01, 0x05, 0x00, 0x09],
+            ["rec.items[0]", "rec.flag", "rec.outer.hdr.n"],
+            "rec.items",
+            [("rec.flag", (byte)3)],
+            Names: ["W"]),
         new(
             "variables",
             "struct rec { uint8 n; uint8 items[(extra * extra) / extra - extra + n + more]; uint8 tail; };",

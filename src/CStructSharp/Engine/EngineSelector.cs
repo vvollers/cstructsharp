@@ -1,7 +1,9 @@
 namespace CStructSharp.Engine;
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using CStructSharp.Addressing;
 using CStructSharp.Compilation;
 using CStructSharp.Compilation.Programs;
 using CStructSharp.Expressions;
@@ -16,7 +18,9 @@ using CStructSharp.Expressions;
 ///         The engine runs whole-root reads (<see cref="SelectRootRead"/>: <c>Parse</c>, <c>ParseAsync</c>, each record of
 ///         <c>ParseMany</c>, and <c>ReadValue</c> of a bare root, over every source) whose root program is eligible
 ///         (<see cref="LayoutCompilation.GetRootReadProgram"/>). Every other operation, and a root read it cannot
-///         reproduce, is declined before anything is read, and the interpreter runs it (<see cref="Decide"/>).
+///         reproduce, is declined before anything is read, and the interpreter runs it (<see cref="Decide"/>). It also
+///         runs whole-root writes to memory (<see cref="SelectRootWrite"/>: <c>Serialize</c> to a new array or a span, and
+///         <c>WriteAsync</c>, which serializes first) whose root write program is eligible.
 ///     </para>
 ///     <para>
 ///         Outside a test recording (<see cref="EngineDiagnostics.Record"/>) a decision records nothing: a declined
@@ -30,6 +34,15 @@ internal static class EngineSelector
 
     /// <summary>The reason the engine declines an operation whose variables are internal expression inputs rather than integers.</summary>
     public const string ExpressionInputs = "caller variables given as expressions are not supported yet (stage 10)";
+
+    /// <summary>The reason the engine declines a write to a caller's stream or buffer writer (<c>Write</c>, <c>Serialize(IBufferWriter)</c>).</summary>
+    public const string StreamDestinations = "writing to a stream or a buffer writer is not supported yet (stage 9)";
+
+    /// <summary>The reason the engine declines a write of a nested path rather than a whole root.</summary>
+    public const string PathWrites = "a write of a nested path is not supported yet (stage 9)";
+
+    /// <summary>The reason the engine declines a write whose options are <see cref="UpdateOptions"/>, which switch on update semantics.</summary>
+    public const string UpdateSemantics = "a write with update semantics (UpdateOptions) is not supported yet (stage 10)";
 
     /// <summary>
     ///     The reason the engine declines <c>ReadValue</c> of a root array whose count the interpreter's path resolver takes
@@ -106,6 +119,74 @@ internal static class EngineSelector
 
         DecideAndRecord(selection, EngineOperation.RootRead, reason);
         return null;
+    }
+
+    /// <summary>
+    ///     Decides whether the engine writes a whole root and records the decision: the engine runs a <c>Serialize</c> to a
+    ///     new array or a caller's span (which <c>WriteAsync</c> serializes through) of a bare root, with integer variables,
+    ///     plain write options and an eligible root program. Anything else is declined before a byte is written.
+    /// </summary>
+    /// <param name="selection">The operation's snapshotted engine selection.</param>
+    /// <param name="compilation">The layout.</param>
+    /// <param name="segments">The parsed path.</param>
+    /// <param name="variables">The operation's variable input.</param>
+    /// <param name="options">The operation's snapshotted options.</param>
+    /// <param name="serializes">Whether the destination is a new array or a caller's span rather than a stream or buffer writer.</param>
+    /// <returns>The root's write program when the engine runs the operation; <see langword="null"/> when the interpreter does.</returns>
+    /// <exception cref="InvalidOperationException">The engine is required and declined the operation.</exception>
+    public static WriteProgram? SelectRootWrite(EngineSelection selection, LayoutCompilation compilation, IReadOnlyList<PathSegment> segments, in LayoutVariableInput variables, WriteOptions options, bool serializes)
+    {
+        if (selection == EngineSelection.InterpreterOnly)
+        {
+            EngineDiagnostics.Current?.RecordInterpreterSelection(EngineOperation.Write);
+            return null;
+        }
+
+        string? reason = DeclineRootWrite(compilation, segments, variables, options, serializes, out WriteProgram? program);
+        if (reason is null)
+        {
+            EngineDiagnostics.Current?.RecordRun(EngineOperation.Write);
+            return program;
+        }
+
+        DecideAndRecord(selection, EngineOperation.Write, reason);
+        return null;
+    }
+
+    /// <summary>Returns why the engine cannot write a whole root, or <see langword="null"/> with the root's program when it can.</summary>
+    /// <param name="compilation">The layout.</param>
+    /// <param name="segments">The parsed path.</param>
+    /// <param name="variables">The operation's variable input.</param>
+    /// <param name="options">The operation's options.</param>
+    /// <param name="serializes">Whether the destination is a new array or a caller's span.</param>
+    /// <param name="program">The root's program when the engine can write it.</param>
+    /// <returns>The decline reason, or <see langword="null"/>.</returns>
+    private static string? DeclineRootWrite(LayoutCompilation compilation, IReadOnlyList<PathSegment> segments, in LayoutVariableInput variables, WriteOptions options, bool serializes, out WriteProgram? program)
+    {
+        program = null;
+        if (!serializes)
+        {
+            return StreamDestinations;
+        }
+
+        if (segments.Count != 1 || segments[0].Indexes.Count > 0)
+        {
+            return PathWrites;
+        }
+
+        if (!variables.UsesIntegers)
+        {
+            return ExpressionInputs;
+        }
+
+        if (options is UpdateOptions)
+        {
+            return UpdateSemantics;
+        }
+
+        WriteProgramOutcome outcome = compilation.GetRootWriteProgram(segments[0].Name);
+        program = outcome.Program;
+        return outcome.Reason;
     }
 
     /// <summary>Returns why the engine cannot read a whole root, or <see langword="null"/> with the root's program when it can.</summary>

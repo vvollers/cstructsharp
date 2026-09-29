@@ -246,7 +246,8 @@ internal static class EngineOperations
     {
         return new DifferentialOperation(
             "Serialize " + path,
-            (side, output) => output.Capture("failure", () => output.Bytes("result", layout.Serialize(path, value, variables, side.Write(options)))));
+            (side, output) => output.Capture("failure", () => output.Bytes("result", layout.Serialize(path, value, variables, side.Write(options)))),
+            EngineExpectations.RootWrite(layout, path, options));
     }
 
     /// <summary><c>Serialize</c> into a span of <paramref name="capacity"/> bytes filled with <see cref="Unwritten"/>: the returned count, then the whole span.</summary>
@@ -267,7 +268,8 @@ internal static class EngineOperations
                 destination.AsSpan().Fill(Unwritten);
                 output.Capture("failure", () => output.Value("result", layout.Serialize(destination.AsSpan(), path, value, variables, side.Write(options))));
                 output.Bytes("destination", destination);
-            });
+            },
+            EngineExpectations.RootWrite(layout, path, options));
     }
 
     /// <summary><c>Serialize</c> to an <see cref="ArrayBufferWriter{T}"/>: the returned count, then everything the writer holds.</summary>
@@ -335,7 +337,7 @@ internal static class EngineOperations
     /// <param name="options">The case's write options, which each side adjusts.</param>
     /// <returns>The operation.</returns>
     public static DifferentialOperation WriteAsync(CStruct layout, byte[] prefill, long start, string path, object value, IReadOnlyDictionary<string, int>? variables = null, WriteOptions? options = null)
-        => StreamWrite("WriteAsync " + path, prefill, start, (stream, side) => layout.WriteAsync(stream, path, value, variables, side.Write(options)).AsTask().GetAwaiter().GetResult());
+        => StreamWrite("WriteAsync " + path, prefill, start, (stream, side) => layout.WriteAsync(stream, path, value, variables, side.Write(options)).AsTask().GetAwaiter().GetResult(), EngineExpectations.RootWrite(layout, path, options));
 
     /// <summary><c>Update</c> of a span or a stream holding <paramref name="data"/>: the data afterwards, and a stream's final position.</summary>
     /// <param name="layout">The compiled layout.</param>
@@ -499,8 +501,12 @@ internal static class EngineOperations
     /// <param name="prefill">The stream's bytes before the call.</param>
     /// <param name="start">The stream position the call starts at.</param>
     /// <param name="call">The call, given the stream and the side.</param>
+    /// <param name="engine">
+    ///     Whether automatic selection must run the engine (<see cref="DifferentialOperation.Engine"/>): <c>WriteAsync</c>
+    ///     serializes through the engine before it writes the stream.
+    /// </param>
     /// <returns>The operation.</returns>
-    private static DifferentialOperation StreamWrite(string name, byte[] prefill, long start, Action<Stream, EngineSide> call)
+    private static DifferentialOperation StreamWrite(string name, byte[] prefill, long start, Action<Stream, EngineSide> call, bool? engine = false)
     {
         return new DifferentialOperation(
             name + " (Stream)",
@@ -512,6 +518,7 @@ internal static class EngineOperations
                 output.Capture("failure", () => call(stream, side));
                 RenderPosition(output, stream);
                 output.Bytes("stream", stream.ToArray());
-            });
+            },
+            engine);
     }
 }

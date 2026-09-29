@@ -5,7 +5,7 @@ using System.IO;
 using CStructSharp.Diagnostics;
 
 /// <summary>Counts bounded output through a caller-owned seekable stream without taking ownership of it.</summary>
-internal sealed class WriteBudgetStream : Stream
+internal sealed class WriteBudgetStream : Stream, IWriteBudget
 {
     private static readonly byte[] ZeroBuffer = new byte[8192];
     private readonly long initialLength;

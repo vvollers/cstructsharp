@@ -73,10 +73,7 @@ internal sealed class ReadProgramCompiler
 
     private readonly LayoutCompilation compilation;
     private readonly ReadProgramCache cache;
-
-    // Whether each composite examined so far holds a caller's codec anywhere inside it (see ContainsCustomCodec); created
-    // only for a layout that registers custom codecs.
-    private Dictionary<CompiledCompositeType, bool>? customComposites;
+    private readonly MemberExtents extents;
 
     /// <summary>Creates a compiler for one request.</summary>
     /// <param name="compilation">The layout.</param>
@@ -85,6 +82,7 @@ internal sealed class ReadProgramCompiler
     {
         this.compilation = compilation;
         this.cache = cache;
+        this.extents = new MemberExtents(compilation);
     }
 
     /// <summary>Compiles a struct read into a value of its own.</summary>
@@ -142,13 +140,13 @@ internal sealed class ReadProgramCompiler
     /// <param name="field">The member.</param>
     /// <param name="what">What is not supported.</param>
     /// <returns>The reason, <c>struct.member: what</c>.</returns>
-    private static string Refuse(string location, CompiledField field, string what)
+    internal static string Refuse(string location, CompiledField field, string what)
         => location + "." + (field.Name.Length > 0 ? field.Name : field.IsPromotedComposite ? "(anonymous)" : "(unnamed)") + ": " + what;
 
     /// <summary>The location a struct's reasons name: its name, or a marker for an anonymous one.</summary>
     /// <param name="composite">The composite.</param>
     /// <returns>The name.</returns>
-    private static string Locate(CompiledCompositeType composite)
+    internal static string Locate(CompiledCompositeType composite)
         => composite.Name.Length > 0 ? composite.Name : composite.IsUnion ? "(anonymous union)" : "(anonymous struct)";
 
     /// <summary>
@@ -191,29 +189,6 @@ internal sealed class ReadProgramCompiler
         };
     }
 
-    /// <summary>
-    ///     A size a dynamic member's extent is always a multiple of, which carries alignment knowledge past it (see
-    ///     <see cref="ReadPlacement.Restart"/>): the element size of an array whose count the data decides, or the
-    ///     alignment of a struct in an aligned layout (its tail padding makes its size a multiple of it); otherwise 1.
-    ///     Elements that hold a caller's codec have no size to rely on, only a struct's alignment.
-    /// </summary>
-    /// <param name="field">The member.</param>
-    /// <param name="aligned">Whether the layout is aligned.</param>
-    /// <param name="custom">Whether the member holds a caller's codec.</param>
-    /// <returns>The unit in bytes.</returns>
-    private static long ExtentUnit(CompiledField field, bool aligned, bool custom)
-    {
-        bool array = field.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime or CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated;
-        if (array && !custom && field.FixedElementSize is int size && size > 0)
-        {
-            return size;
-        }
-
-        return (array || field.Array.Kind == CompiledArrayKind.Scalar) && aligned && field.Composite is { } composite
-                   ? composite.Symbol.Alignment
-                   : 1;
-    }
-
     /// <summary>Emits the step that nests a multidimensional array's flat elements by its dimensions.</summary>
     /// <param name="builder">The program under construction.</param>
     /// <param name="index">The member's index.</param>
@@ -224,74 +199,6 @@ internal sealed class ReadProgramCompiler
         {
             builder.Emit(ReadOpCode.ReshapeTable, index, 0, 0);
         }
-    }
-
-    /// <summary>
-    ///     Records where the position is after a member: a known size advances, a size the data decides restarts from a
-    ///     new anchor. A member holding a caller's codec restarts even when it declares a fixed size, because the
-    ///     interpreter continues from where the codec's bytes actually end.
-    /// </summary>
-    /// <param name="placement">The placement state after the member was placed; the position's guarantee there is the member's start guarantee.</param>
-    /// <param name="field">The member.</param>
-    private void AdvancePast(ref ReadPlacement placement, CompiledField field)
-    {
-        bool custom = this.ContainsCustomCodec(field);
-        if (field.FixedStorageSize is int size && !custom)
-        {
-            placement.Advance(size);
-        }
-        else
-        {
-            placement.Restart(ExtentUnit(field, this.compilation.Aligned, custom));
-        }
-    }
-
-    /// <summary>
-    ///     Whether a member is read, anywhere inside it, by a caller's codec: the member's own codec, or a member of the
-    ///     struct it holds (nested structs, arrays of them and promoted members included; a pointer's own storage has a
-    ///     fixed size). Such a codec reports how many bytes a value took, which can differ from the size it declares.
-    /// </summary>
-    /// <param name="field">The member.</param>
-    /// <returns>Whether the member's extent depends on a caller's codec.</returns>
-    private bool ContainsCustomCodec(CompiledField field)
-    {
-        if (field.PointerDepth > 0 || this.compilation.Catalog.CustomCodecs.IsEmpty)
-        {
-            return false;
-        }
-
-        if (field.Codec.IsCustom)
-        {
-            return true;
-        }
-
-        CompiledCompositeType? composite = field.Composite ??
-                                           (field.Declaration is Struct inline ? this.compilation.SizeQueries.GetCompiledComposite(inline) : null);
-        if (composite is null)
-        {
-            return false;
-        }
-
-        this.customComposites ??= new Dictionary<CompiledCompositeType, bool>(ReferenceEqualityComparer.Instance);
-        if (this.customComposites.TryGetValue(composite, out bool known))
-        {
-            return known;
-        }
-
-        // Marked first, so a composite reached again while its own members are examined answers without recursing.
-        this.customComposites[composite] = false;
-        bool custom = false;
-        foreach (CompiledField member in composite.Fields)
-        {
-            if (this.ContainsCustomCodec(member))
-            {
-                custom = true;
-                break;
-            }
-        }
-
-        this.customComposites[composite] = custom;
-        return custom;
     }
 
     /// <summary>Compiles a root that reads one struct or union into a new value under <paramref name="key"/>.</summary>
@@ -660,7 +567,7 @@ internal sealed class ReadProgramCompiler
         }
         else
         {
-            this.AdvancePast(ref placement, builder.Fields[index]);
+            this.extents.AdvancePast(ref placement, builder.Fields[index]);
         }
     }
 

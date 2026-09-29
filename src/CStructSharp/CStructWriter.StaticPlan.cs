@@ -90,7 +90,8 @@ public sealed partial class CStruct
 
             span[preserved..].Clear();
             stream.Position = position;
-            this.ExecuteStaticWritePlan(plan, composite, span, data, state);
+            var captures = new WriterStateCaptures(state);
+            this.ExecuteStaticWritePlan(plan, composite, span, data, ref captures);
             stream.WriteBlock(span, chargedBytes);
         }
         finally
@@ -103,10 +104,11 @@ public sealed partial class CStruct
     }
 
     /// <summary>
-    ///     Encodes <paramref name="data"/> into <paramref name="bytes"/> through the static plan. With a writer
-    ///     <paramref name="state"/>, fields publish the layout variables later fields of the operation may read; a
-    ///     direct root write (<see langword="null"/> state) writes nothing afterwards, so it skips them.
+    ///     Encodes <paramref name="data"/> into <paramref name="bytes"/> through the static plan. Fields publish the layout
+    ///     variables later fields of the operation may read through <paramref name="captures"/>: the interpreter's
+    ///     variables, the compiled engine's slots, or nothing for a direct root write, which writes nothing afterwards.
     /// </summary>
+    /// <typeparam name="TCaptures">The capture sink type, a struct so the plan is compiled per sink.</typeparam>
     /// <param name="plan">The composite's plan.</param>
     /// <param name="composite">The composite being written.</param>
     /// <param name="bytes">Exactly the composite's bytes, with padding already cleared or preserved.</param>
@@ -115,8 +117,9 @@ public sealed partial class CStruct
     ///     struct's value, including a mapped instance held by a dictionary or struct value, is bound through
     ///     <see cref="WriteDataBinding.Bind"/> before its plan runs, as the general writer binds it.
     /// </param>
-    /// <param name="state">The operation state, or <see langword="null"/> for a direct root write.</param>
-    private void ExecuteStaticWritePlan(StaticReadPlan plan, CompiledCompositeType composite, Span<byte> bytes, object data, CStructElementWriterState? state)
+    /// <param name="captures">Where captured variables and the qualified prefix go.</param>
+    internal void ExecuteStaticWritePlan<TCaptures>(StaticReadPlan plan, CompiledCompositeType composite, Span<byte> bytes, object data, ref TCaptures captures)
+        where TCaptures : struct, IStaticWriteCaptures
     {
         if (this.Aligned)
         {
@@ -139,15 +142,14 @@ public sealed partial class CStruct
                     throw new CStructWriteException(WriteFailures.NullForNonPointer(name));
                 }
 
-                CStructElementWriterState? captureState = state is not null && (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables) ? state : null;
+                bool capture = captures.Captures(field);
                 switch (operation.Kind)
                 {
                 case StaticReadKind.Numeric:
                     WriteNumericValue(field, bytes.Slice(operation.Offset, field.Codec.Size), value, name);
-                    if (captureState is not null)
+                    if (capture)
                     {
-                        LayoutVariableCapture.Capture(captureState.Variables, name, field, value);
-                        captureState.PublishQualified(name);
+                        captures.Capture(name, field, value);
                     }
 
                     break;
@@ -157,10 +159,9 @@ public sealed partial class CStruct
                         CompiledEnumType compiledEnum = field.Enum!;
                         BigInteger enumValue = EnumFieldValueParser.GetEnumValue(compiledEnum, value);
                         field.Codec.WriteNumeric(bytes.Slice(operation.Offset, field.Codec.Size), compiledEnum.Integer.ToStorageValue(enumValue));
-                        if (captureState is not null)
+                        if (capture)
                         {
-                            LayoutVariableCapture.Capture(captureState.Variables, name, field, enumValue);
-                            captureState.PublishQualified(name);
+                            captures.Capture(name, field, enumValue);
                         }
 
                         break;
@@ -185,41 +186,35 @@ public sealed partial class CStruct
                             }
                         }
 
-                        if (captureState is not null)
+                        if (capture)
                         {
-                            LayoutVariableCapture.Capture(captureState.Variables, name, field, value);
-                            captureState.PublishQualified(name);
+                            captures.Capture(name, field, value);
                         }
 
                         break;
                     }
 
                 case StaticReadKind.Nested:
-                    // Nested composites are written here without re-entering the struct writer, so each binds its own value.
-                    value = WriteDataBinding.Bind(value, operation.NestedComposite!);
-                    if (state is null)
                     {
-                        this.ExecuteStaticWritePlan(operation.NestedPlan!, operation.NestedComposite!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), value, null);
-                    }
-                    else
-                    {
-                        string? outerPrefix = state.QualifiedPrefix;
+                        // Nested composites are written here without re-entering the struct writer, so each binds its own
+                        // value. A sink without variables (a direct root write) keeps no prefix, so setting one changes
+                        // nothing there.
+                        value = WriteDataBinding.Bind(value, operation.NestedComposite!);
+                        string? outerPrefix = captures.QualifiedPrefix;
                         if (field.HasQualifiedPrefix)
                         {
-                            state.QualifiedPrefix = outerPrefix is null ? field.QualifiedPrefix : outerPrefix + field.QualifiedPrefix;
+                            captures.QualifiedPrefix = outerPrefix is null ? field.QualifiedPrefix : outerPrefix + field.QualifiedPrefix;
                         }
 
-                        this.ExecuteStaticWritePlan(operation.NestedPlan!, operation.NestedComposite!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), value, state);
-                        state.QualifiedPrefix = outerPrefix;
-                    }
+                        this.ExecuteStaticWritePlan(operation.NestedPlan!, operation.NestedComposite!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), value, ref captures);
+                        captures.QualifiedPrefix = outerPrefix;
+                        if (capture)
+                        {
+                            captures.Capture(name, field, value);
+                        }
 
-                    if (captureState is not null)
-                    {
-                        LayoutVariableCapture.Capture(captureState.Variables, name, field, value);
-                        captureState.PublishQualified(name);
+                        break;
                     }
-
-                    break;
 
                 case StaticReadKind.NestedArray:
                     {
@@ -236,13 +231,12 @@ public sealed partial class CStruct
                             object item = WriteDataBinding.Bind(
                                 items[element] ?? throw new CStructWriteException(WriteFailures.NullComposite(operation.NestedDeclaration!.Name.Name)),
                                 operation.NestedComposite!);
-                            this.ExecuteStaticWritePlan(nestedPlan, operation.NestedComposite!, bytes.Slice(operation.Offset + (element * nestedPlan.Size), nestedPlan.Size), item, state);
+                            this.ExecuteStaticWritePlan(nestedPlan, operation.NestedComposite!, bytes.Slice(operation.Offset + (element * nestedPlan.Size), nestedPlan.Size), item, ref captures);
                         }
 
-                        if (captureState is not null)
+                        if (capture)
                         {
-                            LayoutVariableCapture.Capture(captureState.Variables, name, field, value);
-                            captureState.PublishQualified(name);
+                            captures.Capture(name, field, value);
                         }
 
                         break;
@@ -294,7 +288,12 @@ public sealed partial class CStruct
     ///     one vectorized byte swap when the layout's byte order differs from the machine's. Anything else -
     ///     including a length mismatch, so its message stays the general writer's - takes the element loop.
     /// </summary>
-    private static bool TryWriteTypedArray(CompiledField field, Span<byte> target, object value, int count)
+    /// <param name="field">The numeric array field, whose codec gives the element type and byte order.</param>
+    /// <param name="target">The destination bytes, exactly <paramref name="count"/> elements long.</param>
+    /// <param name="value">The supplied array value.</param>
+    /// <param name="count">The declared element count.</param>
+    /// <returns>Whether the value was typed storage of that length and was encoded; otherwise nothing is written.</returns>
+    internal static bool TryWriteTypedArray(CompiledField field, Span<byte> target, object value, int count)
     {
         PrimitiveCodec codec = field.Codec;
         return codec.Kind switch

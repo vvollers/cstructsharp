@@ -18,30 +18,15 @@ using CStructSharp.Reading;
 ///         disposes them.
 ///     </para>
 ///     <para>
-///         <b>Frame arena.</b> Each frame's selected conditional arms and conditional-scope locals live in two stacks the
-///         state owns rather than in arrays of their own: a frame takes a range on entry and gives it back when it
-///         completes, so frames nest like the calls that run them. A failed operation abandons its ranges;
+///         <b>Frame arena.</b> Each frame's selected conditional arms and conditional-scope locals live in the two stacks
+///         of the state's <see cref="FrameArena"/> (the writer's state has one too) rather than in arrays of their own: a
+///         frame takes a range on entry and gives it back when it completes, so frames nest like the calls that run them. A failed operation abandons its ranges;
 ///         <see cref="Release"/> returns the stacks, cleared, to the thread's spares when the operation ends.
 ///     </para>
 /// </remarks>
 internal struct ReadEngineState
 {
-    /// <summary>The selected-arm value of a conditional group whose selector the frame has not evaluated yet.</summary>
-    public const int Undecided = int.MinValue;
-
-    // The thread's spare stacks, taken for the length of an operation; a nested operation on the same thread (from a
-    // callback) finds them taken and allocates its own.
-    [ThreadStatic]
-    private static int[]? spareArms;
-
-    [ThreadStatic]
-    private static SlotValue[]? spareLocals;
-
-    private int[]? arms;
-    private int armTop;
-    private SlotValue[]? locals;
-    private int localTop;
-    private int localHigh;
+    private FrameArena arena;
     private int unionSlots;
     private PointerTraversal? pointers;
 
@@ -67,11 +52,7 @@ internal struct ReadEngineState
         this.pointers = null;
         this.StructureDepth = 0;
         this.QualifiedPrefix = null;
-        this.arms = null;
-        this.armTop = 0;
-        this.locals = null;
-        this.localTop = 0;
-        this.localHigh = 0;
+        this.arena = default;
         this.unionSlots = -1;
     }
 
@@ -136,53 +117,43 @@ internal struct ReadEngineState
     public string? QualifiedPrefix { get; set; }
 
     /// <summary>Gets the selected-arm stack; a frame reads its arms at the base <see cref="TakeArms"/> returned. Read it again after a nested frame ran, which may have grown it.</summary>
-    public readonly int[] Arms => this.arms!;
+    public readonly int[] Arms => this.arena.Arms;
 
     /// <summary>Gets the conditional-scope locals stack; a frame reads its locals at the base <see cref="TakeLocals"/> returned. Read it again after a nested frame ran.</summary>
-    public readonly SlotValue[] Locals => this.locals!;
+    public readonly SlotValue[] Locals => this.arena.Locals;
 
-    /// <summary>Takes a frame's selected arms, every group <see cref="Undecided"/>.</summary>
+    /// <summary>Takes a frame's selected arms, every group <see cref="FrameArena.Undecided"/>.</summary>
     /// <param name="count">The frame's conditional group count, positive.</param>
     /// <returns>The index of the frame's first arm in <see cref="Arms"/>.</returns>
-    public int TakeArms(int count)
-    {
-        int start = this.armTop;
-        int end = start + count;
-        if (this.arms is null || this.arms.Length < end)
-        {
-            this.arms = Grow(this.arms, ref spareArms, end);
-        }
-
-        System.Array.Fill(this.arms, Undecided, start, count);
-        this.armTop = end;
-        return start;
-    }
+    public int TakeArms(int count) => this.arena.TakeArms(count);
 
     /// <summary>Gives back the arms a completed frame took.</summary>
     /// <param name="start">The base <see cref="TakeArms"/> returned.</param>
-    public void ReleaseArms(int start) => this.armTop = start;
+    public void ReleaseArms(int start) => this.arena.ReleaseArms(start);
 
     /// <summary>Takes a frame's conditional-scope locals, every one <see cref="SlotValue.Undefined"/> (the interpreter's "no saved value").</summary>
     /// <param name="count">The scope's local count (or a union's slot count), not negative.</param>
     /// <returns>The index of the frame's first local in <see cref="Locals"/>.</returns>
-    public int TakeLocals(int count)
-    {
-        int start = this.localTop;
-        int end = start + count;
-        if (this.locals is null || this.locals.Length < end)
-        {
-            this.locals = Grow(this.locals, ref spareLocals, end);
-        }
-
-        System.Array.Clear(this.locals, start, count);
-        this.localTop = end;
-        this.localHigh = System.Math.Max(this.localHigh, end);
-        return start;
-    }
+    public int TakeLocals(int count) => this.arena.TakeLocals(count);
 
     /// <summary>Gives back the locals a completed frame took.</summary>
     /// <param name="start">The base <see cref="TakeLocals"/> returned.</param>
-    public void ReleaseLocals(int start) => this.localTop = start;
+    public void ReleaseLocals(int start) => this.arena.ReleaseLocals(start);
+
+    /// <summary>Selects a branch's arm in a frame through the shared arena rule (<see cref="FrameArena.SelectedArm"/>), in the read domain.</summary>
+    /// <param name="program">The program.</param>
+    /// <param name="branch">The branch being tested.</param>
+    /// <param name="armBase">The base of the frame's selected arms.</param>
+    /// <returns>The selected arm of the branch's group.</returns>
+    public int SelectedArm(ReadProgram program, ReadProgram.ConditionalBranch branch, int armBase)
+        => FrameArena.SelectedArm(ref this.arena, this.Slots, program.Groups, program.Expressions, program.ExpressionContexts, branch, armBase, ExpressionFailureDomain.Read);
+
+    /// <summary>Completes a member of a conditional composite through the shared arena rule (<see cref="FrameArena.CompleteMember"/>).</summary>
+    /// <param name="scope">The composite's scope in slot terms.</param>
+    /// <param name="member">The member's index.</param>
+    /// <param name="localBase">The base of the frame's saved values.</param>
+    public void CompleteMember(ReadConditionalScope scope, int member, int localBase)
+        => FrameArena.CompleteMember(ref this.arena, this.Slots, scope, member, localBase);
 
     /// <summary>
     ///     Saves every variable slot as the innermost union's entry values, in the locals stack after the current frames,
@@ -193,12 +164,12 @@ internal struct ReadEngineState
     {
         int outer = this.unionSlots;
         this.unionSlots = this.TakeLocals(this.Slots.Count);
-        this.Slots.CopyTo(this.locals!, this.unionSlots);
+        this.Slots.CopyTo(this.arena.Locals, this.unionSlots);
         return outer;
     }
 
     /// <summary>Restores every variable slot to the innermost union's entry values, before each member view and when the union ends.</summary>
-    public readonly void RestoreUnionSlots() => this.Slots.CopyFrom(this.locals!, this.unionSlots);
+    public readonly void RestoreUnionSlots() => this.Slots.CopyFrom(this.arena.Locals, this.unionSlots);
 
     /// <summary>Gives back the innermost union's saved values and makes the enclosing union's current again.</summary>
     /// <param name="outer">What <see cref="SaveUnionSlots"/> returned.</param>
@@ -233,18 +204,7 @@ internal struct ReadEngineState
             this.pointers = null;
         }
 
-        if (this.arms is not null)
-        {
-            spareArms = this.arms;
-            this.arms = null;
-        }
-
-        if (this.locals is not null)
-        {
-            System.Array.Clear(this.locals, 0, this.localHigh);
-            spareLocals = this.locals;
-            this.locals = null;
-        }
+        this.arena.Release();
     }
 
     /// <summary>
@@ -275,31 +235,6 @@ internal struct ReadEngineState
     /// <returns>Whether the plan's structs and arrays stay within the limits.</returns>
     public readonly bool CoversPlan(StaticReadPlan plan)
         => this.StructureDepth + plan.NestingDepth <= this.MaxNestingDepth && plan.MaximumArrayCount <= this.MaxArrayElements;
-
-    /// <summary>Returns a stack of at least <paramref name="length"/> entries holding the current one's entries: the thread's spare when it is free and large enough, else a new, larger array.</summary>
-    /// <typeparam name="T">The entry type.</typeparam>
-    /// <param name="current">The stack in use, or <see langword="null"/>.</param>
-    /// <param name="spare">The thread's spare of this type; taken when used.</param>
-    /// <param name="length">The length needed.</param>
-    /// <returns>The stack.</returns>
-    private static T[] Grow<T>(T[]? current, ref T[]? spare, int length)
-    {
-        T[] grown;
-        if (current is null && spare is { } free && free.Length >= length)
-        {
-            grown = free;
-            spare = null;
-            return grown;
-        }
-
-        grown = new T[System.Math.Max(16, System.Math.Max(length, (current?.Length ?? 0) * 2))];
-        if (current is not null)
-        {
-            System.Array.Copy(current, grown, current.Length);
-        }
-
-        return grown;
-    }
 
     /// <summary>Applies <see cref="TrimFixedText"/> to one decoded fixed-capacity string.</summary>
     /// <param name="text">The decoded text, including any NUL padding.</param>

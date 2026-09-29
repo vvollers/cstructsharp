@@ -96,7 +96,8 @@ public sealed partial class CStruct
 
             // A declined direct write may have left bytes behind.
             block.Clear();
-            this.ExecuteStaticWritePlan(plan, composite, block, rootData, null);
+            var captures = default(NoStaticWriteCaptures);
+            this.ExecuteStaticWritePlan(plan, composite, block, rootData, ref captures);
             block.CopyTo(destination);
         }
         catch (CStructException exception)
