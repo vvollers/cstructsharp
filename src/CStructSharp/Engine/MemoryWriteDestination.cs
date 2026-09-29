@@ -1,7 +1,10 @@
 namespace CStructSharp.Engine;
 
 using System;
+using System.Collections.Generic;
 using System.IO;
+using CStructSharp.Addressing;
+using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     The <see cref="IWriteDestination"/> of <c>Serialize</c>: a caller's span or a new array, through the operation's
@@ -29,6 +32,9 @@ internal readonly struct MemoryWriteDestination : IWriteDestination
     public long Length => this.buffer.Length;
 
     /// <inheritdoc/>
+    public bool CanRead => true;
+
+    /// <inheritdoc/>
     public bool AllowsBlocks => this.buffer.AllowsBlocks;
 
     /// <inheritdoc/>
@@ -51,4 +57,7 @@ internal readonly struct MemoryWriteDestination : IWriteDestination
 
     /// <inheritdoc/>
     public int Read(Span<byte> buffer) => this.buffer.Read(buffer);
+
+    /// <inheritdoc/>
+    public void AttachContext(CStructException exception, IReadOnlyList<PathSegment> segments) => ExceptionContext.Attach(exception, segments, this.buffer.Position);
 }

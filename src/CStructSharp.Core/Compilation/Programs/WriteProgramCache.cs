@@ -3,12 +3,13 @@ namespace CStructSharp.Compilation.Programs;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using CStructSharp.Syntax;
 
 /// <summary>
 ///     The write programs of one compiled layout, compiled on first request and kept: one outcome per composite (shared
-///     by every struct and root that holds it) and one per root name. Held by the layout's <see cref="SlotTable"/>, like
+///     by every struct and root that holds it), one per root name, and one per member a nested path selects. Held by the layout's <see cref="SlotTable"/>, like
 ///     its <see cref="ReadProgramCache"/>, whose qualified publication targets the write programs share.
 /// </summary>
 /// <remarks>
@@ -19,6 +20,7 @@ internal sealed class WriteProgramCache
 {
     private readonly ConcurrentDictionary<CompiledCompositeType, WriteProgramOutcome> composites = new(ReferenceEqualityComparer.Instance);
     private readonly ConcurrentDictionary<string, WriteProgramOutcome> roots = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<MemberKey, WriteProgramOutcome> members = new();
 
     // The most recent root lookup, as in ReadProgramCache: a repeated write of the same root is one string comparison.
     private RootEntry? lastRoot;
@@ -75,10 +77,66 @@ internal sealed class WriteProgramCache
         return outcome;
     }
 
+    /// <summary>
+    ///     Returns the program that writes one member on its own - the member a nested path selects, with the dimensions its
+    ///     indexes peel - compiling it on first request. The key is the declared member and the peeled dimension count, both
+    ///     bounded by the layout, so paths cannot grow the cache without bound.
+    /// </summary>
+    /// <param name="compilation">The layout the member belongs to (the compilation that owns this cache).</param>
+    /// <param name="declared">The declared member.</param>
+    /// <param name="peeled">The number of array dimensions the path's indexes select into.</param>
+    /// <returns>The program, or the reason the engine cannot write the member yet.</returns>
+    public WriteProgramOutcome GetMember(LayoutCompilation compilation, CompiledField declared, int peeled)
+    {
+        var key = new MemberKey(declared, peeled);
+        if (this.members.TryGetValue(key, out WriteProgramOutcome? outcome))
+        {
+            return outcome;
+        }
+
+        CompiledField selected = declared;
+        for (int dimension = 0; dimension < peeled; dimension++)
+        {
+            selected = selected.SelectArrayElement();
+        }
+
+        return this.members.GetOrAdd(key, new WriteProgramCompiler(compilation, this).CompileMember(selected));
+    }
+
     /// <summary>Returns the slots a capture of <paramref name="name"/> is published to under each qualified prefix.</summary>
     /// <param name="name">The bare field name.</param>
     /// <returns>The targets; empty when no expression spells the name with a prefix.</returns>
     public ReadProgram.QualifiedTarget[] GetQualifiedTargets(string name) => this.Table.ReadPrograms.GetQualifiedTargets(name);
+
+    /// <summary>A member a nested path selects: the declared member, by reference, and the dimensions its indexes peel.</summary>
+    private readonly struct MemberKey : IEquatable<MemberKey>
+    {
+        private readonly CompiledField field;
+        private readonly int peeled;
+
+        /// <summary>Creates a key.</summary>
+        /// <param name="field">The declared member.</param>
+        /// <param name="peeled">The peeled dimension count.</param>
+        public MemberKey(CompiledField field, int peeled)
+        {
+            this.field = field;
+            this.peeled = peeled;
+        }
+
+        /// <summary>Whether two keys name the same member instance with the same peeled dimensions.</summary>
+        /// <param name="other">The other key.</param>
+        /// <returns>Whether they are equal.</returns>
+        public bool Equals(MemberKey other) => ReferenceEquals(this.field, other.field) && this.peeled == other.peeled;
+
+        /// <summary>Whether <paramref name="obj"/> is an equal key.</summary>
+        /// <param name="obj">The object.</param>
+        /// <returns>Whether it is an equal key.</returns>
+        public override bool Equals(object? obj) => obj is MemberKey other && this.Equals(other);
+
+        /// <summary>A hash of the member's identity and the peeled dimensions.</summary>
+        /// <returns>The hash.</returns>
+        public override int GetHashCode() => HashCode.Combine(RuntimeHelpers.GetHashCode(this.field), this.peeled);
+    }
 
     /// <summary>One cached root lookup: a declared root's name and its outcome.</summary>
     private sealed class RootEntry

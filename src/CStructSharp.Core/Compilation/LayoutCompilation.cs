@@ -479,4 +479,29 @@ internal sealed partial class LayoutCompilation
     /// <param name="rootName">A declared root name, or a type spelling already registered as a root.</param>
     /// <returns>The program, or the reason the engine cannot write the root yet.</returns>
     public WriteProgramOutcome GetRootWriteProgram(string rootName) => this.SlotTable.WritePrograms.GetRoot(this, rootName);
+
+    /// <summary>
+    ///     Returns the compiled engine's write program of the member a nested path selects - written on its own from the
+    ///     value at the path, as the interpreter's writer writes it - compiling it on first request. The path's shape is
+    ///     resolved without variables (a write checks its indexes against the counts when it runs), so the program depends
+    ///     only on the member and the dimensions the indexes peel.
+    /// </summary>
+    /// <param name="root">The path's root declaration.</param>
+    /// <param name="childSegments">The segments after the root; at least one.</param>
+    /// <returns>The program, or the reason the engine cannot write the path: it selects no writable member, or the member cannot be written yet.</returns>
+    public WriteProgramOutcome GetPathWriteProgram(CStructElement root, IReadOnlyList<PathSegment> childSegments)
+    {
+        CompiledField declared;
+        int peeled;
+        try
+        {
+            _ = this.ResolveElementPath(root, childSegments, null, out declared, out peeled);
+        }
+        catch (CStructException exception)
+        {
+            return WriteProgramOutcome.NotSupported(WriteProgramCompiler.UnresolvedPath + exception.Message);
+        }
+
+        return this.SlotTable.WritePrograms.GetMember(this, declared, peeled);
+    }
 }

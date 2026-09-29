@@ -1,7 +1,10 @@
 namespace CStructSharp.Engine;
 
 using System;
+using System.Collections.Generic;
 using System.IO;
+using CStructSharp.Addressing;
+using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     Byte access for the compiled engine's writer: positions, budget-checked writes, read-back of bytes already
@@ -12,15 +15,19 @@ using System.IO;
 /// <remarks>
 ///     Every member behaves as the interpreter's <see cref="Streams.WriteBudgetStream"/> over the corresponding destination
 ///     stream does: the budget is checked before a byte moves, a failure leaves the position where the interpreter's
-///     stream leaves it, and bytes past the high-water mark read back as nothing.
+///     stream leaves it, and bytes past the destination's end read back as nothing (a new array's or span's end is its
+///     high-water mark; a caller's stream reads back the bytes it already held).
 /// </remarks>
 internal interface IWriteDestination
 {
     /// <summary>Gets or sets the position in bytes from the destination's start; moving it charges nothing.</summary>
     long Position { get; set; }
 
-    /// <summary>Gets the high-water mark: the number of leading bytes that hold written data.</summary>
+    /// <summary>Gets the destination's length in bytes: the high-water mark of a new array or span, a caller's stream's own length.</summary>
     long Length { get; }
+
+    /// <summary>Gets a value indicating whether bytes already in the destination can be read back.</summary>
+    bool CanRead { get; }
 
     /// <summary>Gets a value indicating whether a block may be written where the interpreter would write element by element (not into a union's staging).</summary>
     bool AllowsBlocks { get; }
@@ -55,4 +62,13 @@ internal interface IWriteDestination
     /// <param name="buffer">The span to fill.</param>
     /// <returns>The number of bytes read; 0 at or past <see cref="Length"/>.</returns>
     int Read(Span<byte> buffer);
+
+    /// <summary>
+    ///     Attaches the operation's path and the position the failure left, as the interpreter attaches them for the same
+    ///     destination: the position of a new array or span, or whatever the caller's stream reports (nothing when it
+    ///     cannot report one).
+    /// </summary>
+    /// <param name="exception">The failure; context already attached is kept.</param>
+    /// <param name="segments">The operation's parsed path.</param>
+    void AttachContext(CStructException exception, IReadOnlyList<PathSegment> segments);
 }

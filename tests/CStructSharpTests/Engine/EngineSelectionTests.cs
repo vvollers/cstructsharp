@@ -6,9 +6,9 @@ using CStructSharp.Values;
 
 /// <summary>
 ///     Pins the engine selection option and its diagnostics: the selector decides once per operation that reaches the
-///     general path, counts the decision in the recording open on the calling flow, runs the engine for whole-root reads,
-///     debug parses and serializations of eligible roots and declines every other operation, and fails an operation that requires the
-///     engine with the decline reason before reading or writing anything.
+///     general path, counts the decision in the recording open on the calling flow, runs the engine for reads, debug
+///     parses and writes of eligible roots and paths and declines every other operation, and fails an operation that
+///     requires the engine with the decline reason before reading or writing anything.
 /// </summary>
 [TestClass]
 public class EngineSelectionTests
@@ -51,8 +51,10 @@ public class EngineSelectionTests
     ///     Each public operation that reaches the general path records exactly one decision of its own kind: a run for a
     ///     whole-root read of an eligible root over every source, for a read, debug parse, address or length of a path in an
     ///     eligible root (<c>Parse</c>, <c>ReadValue</c>, <c>ParseWithDebug</c>, <c>ReadValueWithDebug</c>,
-    ///     <c>ResolveAddress</c>, <c>GetArrayLength</c>, and asynchronously), and for a whole-root <c>Serialize</c> to an
-    ///     array or a span (and <c>WriteAsync</c>, which serializes first); a decline with its reason for everything else.
+    ///     <c>ResolveAddress</c>, <c>GetArrayLength</c>, and asynchronously), and for a write of a root or a nested path to
+    ///     every destination (<c>Serialize</c> to an array, a span or a buffer writer, <c>Write</c> to a stream, and
+    ///     <c>WriteAsync</c>, which serializes first), with plain or update options; a decline with its reason for everything
+    ///     else.
     /// </summary>
     [TestMethod]
     public void EveryOperation_RecordsOneDecisionOfItsKind()
@@ -60,7 +62,6 @@ public class EngineSelectionTests
         var layout = new CStruct(SizedLayout);
         var value = new Dictionary<string, object?> { ["n"] = (byte)1, ["items"] = new ushort[] { 4, }, ["last"] = new Dictionary<string, object?> { ["a"] = (byte)5, }, ["tail"] = (byte)9, };
         const string NotSupported = EngineSelector.OperationNotSupported;
-        const string StreamDestinations = EngineSelector.StreamDestinations;
         var cases = new (string Name, EngineOperation Kind, string? Reason, Action<ReadOptions, WriteOptions, UpdateOptions> Run)[]
         {
             ("Parse(Span)", EngineOperation.RootRead, null, (read, _, _) => layout.Parse(SizedData.AsSpan(), "rec", options: read)),
@@ -86,8 +87,11 @@ public class EngineSelectionTests
             ("GetArrayLength", EngineOperation.LengthQuery, null, (read, _, _) => layout.GetArrayLength(SizedData, "rec.items", options: read)),
             ("Serialize(byte[])", EngineOperation.Write, null, (_, write, _) => layout.Serialize("rec", value, options: write)),
             ("Serialize(Span)", EngineOperation.Write, null, (_, write, _) => layout.Serialize(new byte[16].AsSpan(), "rec", value, options: write)),
-            ("Serialize(IBufferWriter)", EngineOperation.Write, StreamDestinations, (_, write, _) => layout.Serialize(new ArrayBufferWriter<byte>(), "rec", value, options: write)),
-            ("Write", EngineOperation.Write, StreamDestinations, (_, write, _) => layout.Write(new MemoryStream(), "rec", value, options: write)),
+            ("Serialize(IBufferWriter)", EngineOperation.Write, null, (_, write, _) => layout.Serialize(new ArrayBufferWriter<byte>(), "rec", value, options: write)),
+            ("Write", EngineOperation.Write, null, (_, write, _) => layout.Write(new MemoryStream(), "rec", value, options: write)),
+            ("Write(path)", EngineOperation.Write, null, (_, write, _) => layout.Write(new MemoryStream(), "rec.last", value["last"]!, options: write)),
+            ("Serialize(path)", EngineOperation.Write, null, (_, write, _) => layout.Serialize("rec.last", value["last"]!, options: write)),
+            ("Write(UpdateOptions)", EngineOperation.Write, null, (_, _, update) => layout.Write(new MemoryStream(), "rec", value, options: update)),
             ("WriteAsync", EngineOperation.Write, null, (_, write, _) => layout.WriteAsync(new MemoryStream(), "rec", value, options: write).AsTask().GetAwaiter().GetResult()),
             ("Update(Span)", EngineOperation.Update, NotSupported, (_, _, update) => layout.Update((byte[])SizedData.Clone(), "rec.tail", (byte)1, options: update)),
             ("Update(Stream)", EngineOperation.Update, NotSupported, (_, _, update) => layout.Update(new MemoryStream((byte[])SizedData.Clone()), "rec.tail", (byte)1, options: update)),
@@ -209,7 +213,8 @@ public class EngineSelectionTests
     /// <summary>
     ///     Requiring the engine fails every operation the engine declines with <see cref="InvalidOperationException"/>
     ///     naming the operation and the decline reason, before any byte is read or written or a stream moves; a whole-root
-    ///     read, a debug parse, and the path operations of an eligible root run.
+    ///     read, a debug parse, the path operations of an eligible root, and writes of it and its members to every
+    ///     destination run.
     /// </summary>
     [TestMethod]
     public void EngineRequired_ThrowsWithTheDeclineReason_BeforeTouchingData()
@@ -233,16 +238,22 @@ public class EngineSelectionTests
         Assert.AreEqual(6L, layout.ResolveAddress(SizedData, "rec.tail", options: read));
         Assert.AreEqual(2, layout.GetArrayLength(SizedData, "rec.items", options: read));
         CollectionAssert.AreEqual(new byte[] { 1, 4, 0, 5, 9, }, layout.Serialize("rec", value, options: write));
-        AssertRequired(EngineOperation.Write, () => layout.Serialize(new ArrayBufferWriter<byte>(), "rec", value, options: write), EngineSelector.StreamDestinations);
+        var appended = new ArrayBufferWriter<byte>();
+        Assert.AreEqual(5L, layout.Serialize(appended, "rec", value, options: write));
+        CollectionAssert.AreEqual(new byte[] { 1, 4, 0, 5, 9, }, appended.WrittenSpan.ToArray());
 
         byte[] destination = [0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC];
-        AssertRequired(EngineOperation.Write, () => layout.Serialize(destination.AsSpan(), "rec.tail", (byte)1, options: write), EngineSelector.PathWrites);
-        CollectionAssert.AreEqual(new byte[] { 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, }, destination, "nothing is written");
-        using var written = new MemoryStream([7, 7]);
+        Assert.AreEqual(1, layout.Serialize(destination.AsSpan(), "rec.tail", (byte)1, options: write));
+        AssertRequired(EngineOperation.Write, () => layout.Serialize(destination.AsSpan(1), "rec.nosuch", (byte)1, options: write), Compilation.Programs.WriteProgramCompiler.UnresolvedPath + "Unknown field 'nosuch' in 'rec'.");
+        CollectionAssert.AreEqual(new byte[] { 1, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, }, destination, "nothing is written for the declined path");
+        using var written = new MemoryStream();
+        written.Write([7, 7]);
         written.Position = 1;
-        AssertRequired(EngineOperation.Write, () => layout.Write(written, "rec", value, options: write), EngineSelector.StreamDestinations);
-        Assert.AreEqual(1, written.Position, "the stream does not move");
-        CollectionAssert.AreEqual(new byte[] { 7, 7, }, written.ToArray(), "nothing is written to the stream");
+        layout.Write(written, "rec", value, options: write);
+        Assert.AreEqual(6, written.Position, "the stream ends after the record");
+        CollectionAssert.AreEqual(new byte[] { 7, 1, 4, 0, 5, 9, }, written.ToArray(), "the record overwrites and extends the stream");
+        layout.Write(written, "rec.last", value["last"]!, options: EngineSelections.EngineRequired(new UpdateOptions()));
+        CollectionAssert.AreEqual(new byte[] { 7, 1, 4, 0, 5, 9, 5, }, written.ToArray(), "a member is written on its own, with update options too");
 
         using var stream = new MemoryStream((byte[])SizedData.Clone());
         stream.Position = 1;

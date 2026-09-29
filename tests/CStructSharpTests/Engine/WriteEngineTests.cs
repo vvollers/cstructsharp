@@ -9,8 +9,9 @@ using CStructSharp.Values;
 ///     interpreter through the differential harness and pinned to its expected outcome: every codec at every write budget
 ///     and span capacity, every terminated text type, the prefix a failed write leaves in a span, the narrow text path that
 ///     fails after writing earlier characters, tail padding written and charged, the inactive conditional member check,
-///     captures of converted supplied values, bitfield units, staged unions, pointers, and the memory destination's own
-///     rules (gaps, read-back, budget, chunked zero fill).
+///     captures of converted supplied values, bitfield units, staged unions, pointers, the memory destination's own
+///     rules (gaps, read-back, budget, chunked zero fill), bitfields merged into a caller's stream, members written on their
+///     own through a nested path, and update semantics switched on by update options.
 /// </summary>
 [TestClass]
 public class WriteEngineTests
@@ -277,6 +278,103 @@ public class WriteEngineTests
             {
                 EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", value, options: new WriteOptions { MaxTotalBytesWritten = limit, }), true, path);
                 EngineDifferential.AssertSame(EngineOperations.SerializeToSpan(layout, limit - 1, "rec", value), true, path);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     A bitfield written to a caller's stream merges into the bytes the stream already holds - bits no field covers keep
+    ///     them - where a new array reads zero; the member a nested path selects opens its own unit at the stream's position;
+    ///     and past the stream's end the unit reads zero, except under update options, which fail before writing.
+    /// </summary>
+    [TestMethod]
+    public void StreamBitfields_MergeIntoTheStreamsBytes()
+    {
+        var layout = new CStruct("struct rec { uint8 n; uint8 v[n]; uint8 a : 3; uint8 b : 2; uint8 tail; };");
+        var value = new Dictionary<string, object?> { ["n"] = (byte)0, ["v"] = Array.Empty<byte>(), ["a"] = (byte)5, ["b"] = (byte)1, ["tail"] = (byte)9, };
+        WriteOptions required = EngineSelections.EngineRequired(new WriteOptions());
+        CollectionAssert.AreEqual(new byte[] { 0, 0x0D, 9, }, layout.Serialize("rec", value, options: required));
+
+        using var stream = new MemoryStream();
+        stream.Write([0xFF, 0xFF, 0xFF, 0xFF]);
+        stream.Position = 0;
+        layout.Write(stream, "rec", value, options: required);
+        CollectionAssert.AreEqual(new byte[] { 0, 0xED, 9, 0xFF, }, stream.ToArray(), "bits 5 to 7 keep the stream's ones");
+        Assert.AreEqual(3L, stream.Position);
+
+        stream.Position = 3;
+        layout.Write(stream, "rec.b", (byte)2, options: required);
+        CollectionAssert.AreEqual(new byte[] { 0, 0xED, 9, 0xFE, }, stream.ToArray(), "a selected bitfield opens its own unit at the position");
+        Assert.AreEqual(3L, stream.Position, "the unit is not full, so the position returns to its start");
+        stream.Position = 4;
+        layout.Write(stream, "rec.a", (byte)3, options: required);
+        CollectionAssert.AreEqual(new byte[] { 0, 0xED, 9, 0xFE, 3, }, stream.ToArray(), "past the end the unit reads zero");
+        stream.Position = 5;
+        CStructReadException incomplete = Assert.Throws<CStructReadException>(() => layout.Write(stream, "rec.a", (byte)3, options: EngineSelections.EngineRequired(new UpdateOptions())));
+        StringAssert.StartsWith(incomplete.Message, WriteFailures.IncompleteBitfieldUnit.TrimEnd('.'));
+        Assert.AreEqual(5L, stream.Length, "nothing is written");
+
+        byte[][] prefills = [[], [0xFF, 0xFF, 0xFF, 0xFF], [0x00, 0xA5, 0x5A], [0x81]];
+        foreach (ExecutionPath path in Paths)
+        {
+            foreach (byte[] prefill in prefills)
+            {
+                for (long start = 0; start <= prefill.Length; start++)
+                {
+                    EngineDifferential.AssertSame(EngineOperations.Write(layout, prefill, start, "rec", value), true, path);
+                    EngineDifferential.AssertSame(EngineOperations.Write(layout, prefill, start, "rec.b", (byte)3), true, path);
+                    EngineDifferential.AssertSame(EngineOperations.Write(layout, prefill, start, "rec.a", (byte)9), true, path);
+                    EngineDifferential.AssertSame(EngineOperations.Write(layout, prefill, start, "rec", value, options: new UpdateOptions()), true, path);
+                    EngineDifferential.AssertSame(EngineOperations.Write(layout, prefill, start, "rec.b", (byte)1, options: new UpdateOptions()), true, path);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Update options switch on update semantics for <c>Write</c> and <c>Serialize</c>: tail padding keeps the bytes it
+    ///     holds (a new array ends before it), a union is staged over its existing bytes when
+    ///     <see cref="UpdateOptions.ClearUnionStorage"/> is off (and fails before writing it when the stream does not hold the
+    ///     whole union), and plain options still zero the tail and the union.
+    /// </summary>
+    [TestMethod]
+    public void UpdateOptions_KeepPaddingAndUnionStorage()
+    {
+        var layout = new CStruct("union u { uint8 a; uint32 b; }; struct rec { uint8 n; uint8 v[n]; u x; uint16 w; uint8 t; };", aligned: true);
+        var value = new Dictionary<string, object?> { ["n"] = (byte)1, ["v"] = new byte[] { 7, }, ["x"] = UnionValue.FromMember("u", "a", (byte)9), ["w"] = (ushort)0x0102, ["t"] = (byte)3, };
+        byte[] prefill = Enumerable.Repeat((byte)0xEE, 14).ToArray();
+
+        // Writes the value over a copy of the prefill with the given options and returns the stream's bytes.
+        byte[] WriteOver(byte[] bytes, WriteOptions options)
+        {
+            using var stream = new MemoryStream();
+            stream.Write(bytes);
+            stream.Position = 0;
+            layout.Write(stream, "rec", value, options: options);
+            return stream.ToArray();
+        }
+
+        CollectionAssert.AreEqual(new byte[] { 1, 7, 0xEE, 0xEE, 9, 0, 0, 0, 2, 1, 3, 0, 0xEE, 0xEE, }, WriteOver(prefill, EngineSelections.EngineRequired(new WriteOptions())), "padding between members is skipped, the tail zeroed");
+        CollectionAssert.AreEqual(new byte[] { 1, 7, 0xEE, 0xEE, 9, 0, 0, 0, 2, 1, 3, 0xEE, 0xEE, 0xEE, }, WriteOver(prefill, EngineSelections.EngineRequired(new UpdateOptions())), "the tail keeps its bytes");
+        CollectionAssert.AreEqual(new byte[] { 1, 7, 0xEE, 0xEE, 9, 0xEE, 0xEE, 0xEE, 2, 1, 3, 0xEE, 0xEE, 0xEE, }, WriteOver(prefill, EngineSelections.EngineRequired(new UpdateOptions { ClearUnionStorage = false, })), "the union keeps its other bytes");
+        CStructReadException incompleteUnion = Assert.Throws<CStructReadException>(() => WriteOver(prefill[..6], EngineSelections.EngineRequired(new UpdateOptions { ClearUnionStorage = false, })));
+        StringAssert.StartsWith(incompleteUnion.Message, WriteFailures.IncompleteUnionStorage.TrimEnd('.'));
+        Assert.IsInstanceOfType<EndOfStreamException>(incompleteUnion.InnerException);
+        CollectionAssert.AreEqual(new byte[] { 1, 7, 0, 0, 9, 0, 0, 0, 2, 1, 3, }, layout.Serialize("rec", value, options: EngineSelections.EngineRequired(new UpdateOptions())), "a new array ends before the skipped tail");
+
+        foreach (ExecutionPath path in Paths)
+        {
+            foreach (UpdateOptions options in new[] { new UpdateOptions(), new UpdateOptions { ClearUnionStorage = false, }, })
+            {
+                foreach (int length in (int[])[0, 6, 8, 11, 14])
+                {
+                    EngineDifferential.AssertSame(EngineOperations.Write(layout, prefill[..length], 0, "rec", value, options: options), true, path);
+                    EngineDifferential.AssertSame(EngineOperations.Write(layout, prefill[..length], 0, "rec.x", value["x"]!, options: options), true, path);
+                }
+
+                EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", value, options: options), true, path);
+                EngineDifferential.AssertSame(EngineOperations.SerializeToSpan(layout, 12, "rec", value, options: options), true, path);
+                EngineDifferential.AssertSame(EngineOperations.SerializeToWindows(layout, 1, "rec", value, options: options), true, path);
             }
         }
     }

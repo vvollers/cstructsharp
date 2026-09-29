@@ -8,8 +8,10 @@ using Variant = EngineSweepLayouts.Variant;
 ///     Sweeps the writers over the values a caller can hand them, beyond the parsed values the other sweeps write: every
 ///     sweep layout's value as plain dictionaries and lists (the by-name lookups and element loops), every top-level
 ///     member missing, and every top-level member replaced by values of the wrong kind, range or shape - through
-///     <c>Serialize</c> to an array and into spans of every capacity, under <see cref="ExecutionPath.Fastest"/> and
-///     <see cref="ExecutionPath.GeneralOnly"/>, with the engine required wherever the root is eligible.
+///     <c>Serialize</c> to an array and into spans of every capacity and <c>Write</c> into a stream that already holds
+///     bytes - and every member a nested path can select, written on its own to every destination with plain and update
+///     options, under <see cref="ExecutionPath.Fastest"/> and <see cref="ExecutionPath.GeneralOnly"/>, with the engine
+///     required wherever the root or the selected member is eligible.
 /// </summary>
 /// <remarks>
 ///     The replacements cover the conversions the codecs apply (numeric text, fractions, out-of-range numbers, booleans,
@@ -48,6 +50,7 @@ public class EngineWriteSweepTests
                     Same(variant.Name + " " + label, EngineOperations.SerializeToSpan(variant.Layout, length, "rec", value, variables), path);
                     Same(variant.Name + " " + label, EngineOperations.SerializeToSpan(variant.Layout, length / 2, "rec", value, variables), path);
                     Same(variant.Name + " " + label, EngineOperations.Serialize(variant.Layout, "rec", value, variables, reject), path);
+                    Same(variant.Name + " " + label, EngineOperations.Write(variant.Layout, Prefill(length), 3, "rec", value, variables), path);
                 }
             }
         }
@@ -78,6 +81,167 @@ public class EngineWriteSweepTests
             }
         }
     }
+
+    /// <summary>
+    ///     Every member a nested path selects - each struct and union member at every depth, the first and last element of
+    ///     every array and text (and one past the last), and paths that select no writable member - is written on its own
+    ///     from the value the parse holds there, from the whole parsed root (which the write walks down), and from values
+    ///     of the wrong kind: to a new array, a span too small for most members, a stream that already holds bytes (at its
+    ///     start and inside it), a buffer writer with one-byte windows, and a stream under update options with and without
+    ///     union storage kept. Each outcome - bytes, failures, final positions - is the interpreter's.
+    /// </summary>
+    /// <param name="name">The sweep layout.</param>
+    [TestMethod]
+    [DynamicData(nameof(Layouts))]
+    public void PathWrites_WriteEveryMemberIdentically(string name)
+    {
+        var keep = new UpdateOptions { ClearUnionStorage = false, };
+        foreach (Variant variant in EngineSweepLayouts.Both(name))
+        {
+            IReadOnlyDictionary<string, int>? variables = variant.Source.Variables;
+            byte[] prefill = Prefill(variant.Data.Length);
+            var paths = MemberPaths("rec", variant.Value).ToList();
+            paths.Add(("rec.zz", null));
+            paths.Add(("rec.zz.y", null));
+            foreach ((string path, object? atPath) in paths)
+            {
+                object?[] values = [atPath, variant.Value, null, "x", 70000];
+                foreach (object? value in values)
+                {
+                    string label = variant.Name + " " + path + " = " + Describe(value);
+                    foreach (ExecutionPath execution in SweepPaths)
+                    {
+                        Same(label, EngineOperations.Serialize(variant.Layout, path, value!, variables), execution);
+                        Same(label, EngineOperations.SerializeToSpan(variant.Layout, 3, path, value!, variables), execution);
+                        Same(label, EngineOperations.Write(variant.Layout, prefill, 0, path, value!, variables), execution);
+                        Same(label, EngineOperations.Write(variant.Layout, prefill, 3, path, value!, variables), execution);
+                        Same(label, EngineOperations.SerializeToWindows(variant.Layout, 1, path, value!, variables), execution);
+                        Same(label, EngineOperations.Write(variant.Layout, prefill, 3, path, value!, variables, new UpdateOptions()), execution);
+                        Same(label, EngineOperations.Write(variant.Layout, prefill, prefill.Length - 2, path, value!, variables, keep), execution);
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Whole roots written with update options switch on update semantics in both implementations - tail padding keeps
+    ///     the stream's bytes, a bitfield unit must already be present, no static plan or block write is used, and a union
+    ///     kept by <see cref="UpdateOptions.ClearUnionStorage"/> is staged over the existing bytes - into streams holding
+    ///     bytes from several starts (including their end, where nothing exists yet), new arrays, spans and buffer writers.
+    /// </summary>
+    /// <param name="name">The sweep layout.</param>
+    [TestMethod]
+    [DynamicData(nameof(Layouts))]
+    public void UpdateOptionWrites_WriteIdentically(string name)
+    {
+        UpdateOptions[] updates = [new UpdateOptions(), new UpdateOptions { ClearUnionStorage = false, }];
+        foreach (Variant variant in EngineSweepLayouts.Both(name))
+        {
+            IReadOnlyDictionary<string, int>? variables = variant.Source.Variables;
+            int n = variant.Data.Length;
+            byte[] prefill = Prefill(n + 4);
+            object[] values = [variant.Value, ToPlain(variant.Value, lists: false)!];
+            foreach (UpdateOptions update in updates)
+            {
+                foreach (object value in values)
+                {
+                    foreach (ExecutionPath path in SweepPaths)
+                    {
+                        foreach (long start in (long[])[0, 3, n, n + 4])
+                        {
+                            Same(variant.Name + " start " + start, EngineOperations.Write(variant.Layout, prefill, start, "rec", value, variables, update), path);
+                        }
+
+                        Same(variant.Name, EngineOperations.Serialize(variant.Layout, "rec", value, variables, update), path);
+                        Same(variant.Name, EngineOperations.SerializeToSpan(variant.Layout, n, "rec", value, variables, update), path);
+                        Same(variant.Name, EngineOperations.SerializeToWindows(variant.Layout, 3, "rec", value, variables, update), path);
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    ///     The paths of every member a write can select below <paramref name="prefix"/>, with the parsed value at each: struct
+    ///     and union members by name, recursively; for arrays and text the first and last element (recursively) and one
+    ///     index past the last, which the write rejects; a pointer's <c>value</c>, which a write cannot dereference.
+    /// </summary>
+    /// <param name="prefix">The path of <paramref name="value"/>.</param>
+    /// <param name="value">A parsed value.</param>
+    /// <returns>Each path with the parsed value there (the first element's for the index past the last).</returns>
+    private static IEnumerable<(string Path, object? Value)> MemberPaths(string prefix, object? value)
+    {
+        switch (value)
+        {
+        case StructValue structValue:
+            foreach (KeyValuePair<string, object?> member in structValue)
+            {
+                string path = prefix + "." + member.Key;
+                yield return (path, member.Value);
+                foreach ((string, object?) inner in MemberPaths(path, member.Value))
+                {
+                    yield return inner;
+                }
+            }
+
+            break;
+
+        case UnionValue union:
+            foreach (KeyValuePair<string, object?> member in union.Members)
+            {
+                string path = prefix + "." + member.Key;
+                yield return (path, member.Value);
+                foreach ((string, object?) inner in MemberPaths(path, member.Value))
+                {
+                    yield return inner;
+                }
+            }
+
+            break;
+
+        case Pointer pointer:
+            yield return (prefix + ".value", pointer.Value);
+            break;
+
+        case string text when text.Length > 0:
+            yield return (prefix + "[0]", text[0]);
+            yield return (prefix + "[" + text.Length + "]", text[0]);
+            break;
+
+        case IList list when list.Count > 0:
+            {
+                yield return (prefix + "[0]", list[0]);
+                foreach ((string, object?) inner in MemberPaths(prefix + "[0]", list[0]))
+                {
+                    yield return inner;
+                }
+
+                if (list.Count > 1)
+                {
+                    string last = prefix + "[" + (list.Count - 1) + "]";
+                    yield return (last, list[^1]);
+                    foreach ((string, object?) inner in MemberPaths(last, list[^1]))
+                    {
+                        yield return inner;
+                    }
+                }
+
+                yield return (prefix + "[" + list.Count + "]", list[0]);
+                break;
+            }
+        }
+    }
+
+    /// <summary>A short description of a written value for failure labels: its type, or <c>null</c>.</summary>
+    /// <param name="value">The value.</param>
+    /// <returns>The description.</returns>
+    private static string Describe(object? value) => value is null ? "null" : value.GetType().Name + " " + value;
+
+    /// <summary>Returns the bytes a destination stream holds before a write: <paramref name="length"/> non-zero bytes, so a byte the write keeps is visible.</summary>
+    /// <param name="length">The stream's length in bytes.</param>
+    /// <returns>A new array of 0xA5 bytes.</returns>
+    private static byte[] Prefill(int length) => Enumerable.Repeat((byte)0xA5, length).ToArray();
 
     /// <summary>
     ///     The value variants of one parsed value: the value itself, its dictionary form, its dictionary form with every

@@ -33,6 +33,8 @@ internal struct WriteEngineState
         this.MaxNestingDepth = options.MaxNestingDepth;
         this.RejectUnknownMembers = options.UnknownMembers == UnknownMemberPolicy.Reject;
         this.GeneralPathOnly = options.ExecutionPath == ExecutionPath.GeneralOnly;
+        this.UpdateSemantics = options is UpdateOptions;
+        this.PreservesUnionStorage = options is UpdateOptions { ClearUnionStorage: false, };
         this.CancellationToken = options.CancellationToken;
         this.StructureDepth = 0;
         this.QualifiedPrefix = null;
@@ -62,6 +64,20 @@ internal struct WriteEngineState
     ///     as the interpreter does under the same option.
     /// </summary>
     public bool GeneralPathOnly { get; }
+
+    /// <summary>
+    ///     Gets a value indicating whether the write has update semantics - its options are <see cref="UpdateOptions"/>, as
+    ///     for the interpreter - so it changes values without normalizing the storage around them: tail padding keeps the
+    ///     bytes it holds (the position moves past it), a bitfield's whole storage unit must already be present, and neither
+    ///     static write plans nor block writes are used.
+    /// </summary>
+    public bool UpdateSemantics { get; }
+
+    /// <summary>
+    ///     Gets a value indicating whether a union member is staged over the union's existing bytes rather than zeroes
+    ///     (update semantics with <see cref="UpdateOptions.ClearUnionStorage"/> off); the whole extent must be present.
+    /// </summary>
+    public bool PreservesUnionStorage { get; }
 
     /// <summary>Gets the operation's cancellation token, observed where the interpreter observes it.</summary>
     public CancellationToken CancellationToken { get; }

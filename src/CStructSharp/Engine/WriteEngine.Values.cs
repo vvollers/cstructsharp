@@ -320,8 +320,9 @@ internal static partial class WriteEngine
 
     /// <summary>
     ///     Whether <paramref name="length"/> bytes can be written as one block with the outcome of writing them one by one:
-    ///     the block path is allowed (not <see cref="ExecutionPath.GeneralOnly"/>, and not into a union's staging, where the
-    ///     interpreter writes element by element too), and the budget and the destination's room hold them all.
+    ///     the block path is allowed (not <see cref="ExecutionPath.GeneralOnly"/>, no update semantics, and neither a stream
+    ///     nor a union's staging, into which the interpreter writes element by element too), and the budget and the
+    ///     destination's room hold them all.
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
     /// <param name="destination">The operation's destination.</param>
@@ -330,7 +331,7 @@ internal static partial class WriteEngine
     /// <returns>Whether the block path applies.</returns>
     private static bool CanWriteBlock<TDestination>(ref TDestination destination, ref WriteEngineState state, int length)
         where TDestination : struct, IWriteDestination
-        => !state.GeneralPathOnly && destination.AllowsBlocks && destination.CanAffordBlock(length, length);
+        => !state.GeneralPathOnly && !state.UpdateSemantics && destination.AllowsBlocks && destination.CanAffordBlock(length, length);
 
     /// <summary>
     ///     Writes fixed-width numbers: as one block from typed storage (a parsed <see cref="PrimitiveArray{T}"/> or an exact
@@ -541,8 +542,9 @@ internal static partial class WriteEngine
     /// <summary>
     ///     Replaces one bitfield inside its storage unit without changing the neighbouring bits, as the interpreter does:
     ///     an enum is resolved to its raw bits, the slice is validated, the unit's existing bytes are read back (zero past
-    ///     the output's end), the bits merged, and the whole unit written - and charged - again. While later bitfields
-    ///     share the unit the position returns to its start.
+    ///     the destination's end: a new output's high-water mark, or a caller's stream's own end), the bits merged, and the
+    ///     whole unit written - and charged - again. While later bitfields share the unit the position returns to its start.
+    ///     Under update semantics a unit the destination does not wholly hold fails before anything is written.
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
     /// <param name="destination">The operation's destination, at the unit's first byte.</param>
@@ -553,6 +555,7 @@ internal static partial class WriteEngine
     /// <param name="unitSize">The placed unit's size in bytes, or 0 for the field's declared storage size.</param>
     /// <param name="scratch">The frame's scratch buffer.</param>
     /// <exception cref="CStructWriteException">The value does not fit the field, or the field does not fit the unit.</exception>
+    /// <exception cref="CStructReadException">Under update semantics, the destination does not hold the whole unit.</exception>
     private static void WriteBitfield<TDestination>(ref TDestination destination, ref WriteEngineState state, CompiledField field, object value, ref int bitOffset, int unitSize, Span<byte> scratch)
         where TDestination : struct, IWriteDestination
     {
@@ -572,7 +575,7 @@ internal static partial class WriteEngine
         ulong bits = BitfieldCodecTable.ValidateBitfieldWriteValue(field.Name, field.BitSize, value);
 
         // Read the unit back so the bits of the other fields survive; a destination that does not hold all of it yet
-        // reads the rest as zero.
+        // reads the rest as zero, except under update semantics, which only change bytes that exist.
         long unitStart = destination.Position;
         Span<byte> unit = BinaryPrimitiveIO.UnitOf(scratch, byteSize);
         int offset = 0;
@@ -581,6 +584,11 @@ internal static partial class WriteEngine
             int read = destination.Read(unit[offset..]);
             if (read == 0)
             {
+                if (state.UpdateSemantics)
+                {
+                    throw new CStructReadException(WriteFailures.IncompleteBitfieldUnit);
+                }
+
                 unit[offset..].Clear();
                 break;
             }

@@ -9,10 +9,12 @@ using CStructSharp.Diagnostics;
 ///     operation: the engine reads a whole root or a path (<c>Parse</c>, <c>ParseAsync</c>, <c>ParseMany</c>,
 ///     <c>ReadValue</c>, <c>ResolveAddress</c>, <c>GetArrayLength</c>) exactly when the read program of the path's root is
 ///     eligible - the property the eligibility report (<c>ReadProgramEligibility.txt</c>) pins for every corpus root - and
-///     serializes a whole root to a new array or a span (<c>Serialize</c>, and <c>WriteAsync</c> through it) exactly when
-///     the root's write program is eligible (<c>WriteProgramEligibility.txt</c>); it runs a debug parse (<c>ParseWithDebug</c>,
-///     <c>ReadValueWithDebug</c>) of a root or a path exactly when the root's debug program is, which is exactly when its
-///     read program is; every other operation is the interpreter's.
+///     writes a whole root to any destination (<c>Serialize</c> to an array, a span or a buffer writer, <c>Write</c> to a
+///     stream, and <c>WriteAsync</c>) exactly when the root's write program is eligible (<c>WriteProgramEligibility.txt</c>),
+///     and a nested path exactly when the path selects a writable member whose own program is eligible, under plain and
+///     update options alike; it runs a debug parse (<c>ParseWithDebug</c>, <c>ReadValueWithDebug</c>) of a root or a path
+///     exactly when the root's debug program is, which is exactly when its read program is; every other operation is the
+///     interpreter's.
 /// </summary>
 internal static class EngineExpectations
 {
@@ -62,14 +64,14 @@ internal static class EngineExpectations
     }
 
     /// <summary>
-    ///     Whether the engine must serialize the root <paramref name="path"/> names: the path is one segment without an
-    ///     index, the options are not update options, and the root's write program is eligible.
+    ///     Whether the engine must write the root or nested path <paramref name="path"/> names, to any destination and under
+    ///     any write options: for a root, its write program is eligible; for a nested path, the path selects a writable
+    ///     member (its shape, before any index is checked against a count) and that member's own program is eligible.
     /// </summary>
     /// <param name="layout">The compiled layout.</param>
     /// <param name="path">The operation's root name or path.</param>
-    /// <param name="options">The case's write options, or <see langword="null"/>.</param>
-    /// <returns>Whether the engine must run; <see langword="false"/> for a nested path, an unknown root, or an ineligible one.</returns>
-    public static bool RootWrite(CStruct layout, string path, WriteOptions? options)
+    /// <returns>Whether the engine must run; <see langword="false"/> for an unparsable path, an unknown root, a path of no writable member, or an ineligible program.</returns>
+    public static bool Write(CStruct layout, string path)
     {
         IReadOnlyList<PathSegment> segments;
         try
@@ -81,6 +83,14 @@ internal static class EngineExpectations
             return false;
         }
 
-        return segments is [{ Indexes.Count: 0, } root,] && options is not UpdateOptions && layout.Compilation.GetRootWriteProgram(root.Name).IsEligible;
+        LayoutCompilation compilation = layout.Compilation;
+        if (!compilation.ModelQueries.TryGetCompiledDeclaration(segments[0].Name, out Syntax.CStructElement? root))
+        {
+            return false;
+        }
+
+        return segments.Count == 1
+                   ? compilation.GetRootWriteProgram(segments[0].Name).IsEligible
+                   : compilation.GetPathWriteProgram(root, segments.Skip(1).ToArray()).IsEligible;
     }
 }

@@ -19,6 +19,12 @@ internal static class WriteFailures
     /// <summary>A value whose nested structs go deeper than the configured write nesting limit.</summary>
     public const string NestingLimit = "Maximum nested struct write depth exceeded.";
 
+    /// <summary>An update-semantics write of a bitfield whose whole storage unit the destination does not hold yet.</summary>
+    public const string IncompleteBitfieldUnit = "Cannot update a bitfield whose complete storage unit is not present.";
+
+    /// <summary>An update-semantics write that keeps union storage where the destination does not hold the union's whole extent.</summary>
+    public const string IncompleteUnionStorage = "Cannot preserve union storage because the complete existing extent is not present.";
+
     /// <summary>A serialized value that does not fit the caller's destination buffer.</summary>
     public const string DestinationCapacity = "The serialized value exceeds the supplied destination capacity.";
 

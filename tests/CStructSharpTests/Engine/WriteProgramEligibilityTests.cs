@@ -2,8 +2,8 @@ namespace CStructSharp.Tests;
 
 /// <summary>
 ///     The write eligibility report: for every root of the repository's layout corpora (<see cref="EngineCorpora"/>),
-///     whether the compiled engine has a write program for it - so <c>Serialize</c> to an array or a span, and
-///     <c>WriteAsync</c>, run on the engine - and if not, the first reason. The report is pinned in
+///     whether the compiled engine has a write program for it - so <c>Serialize</c> to an array, a span or a buffer
+///     writer, <c>Write</c> to a stream and <c>WriteAsync</c> run on the engine - and if not, the first reason. The report is pinned in
 ///     <c>WriteProgramEligibility.txt</c> beside this file, so the writer's coverage grows deliberately, like the reader's
 ///     (<see cref="ReadProgramEligibilityTests"/>).
 /// </summary>

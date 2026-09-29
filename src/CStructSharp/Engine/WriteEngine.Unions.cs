@@ -2,6 +2,7 @@ namespace CStructSharp.Engine;
 
 using System;
 using System.Buffers;
+using System.IO;
 using CStructSharp.Compilation;
 using CStructSharp.Compilation.Programs;
 using CStructSharp.Diagnostics;
@@ -9,9 +10,10 @@ using CStructSharp.Values;
 
 /// <summary>
 ///     The unions of the compiled engine's writer and the end of a struct with bitfields. A union is written as the
-///     interpreter writes it: its whole storage is staged away from the destination - zeroes with the selected member
-///     written over them from the union's first byte, with a budget of its own and a copy of the variables - and then
-///     written to the destination once, so a member that cannot be written leaves the destination unchanged.
+///     interpreter writes it: its whole storage is staged away from the destination - zeroes (or, under update semantics
+///     that keep union storage, the union's existing bytes) with the selected member written over them from the union's
+///     first byte, with a budget of its own and a copy of the variables - and then written to the destination once, so a
+///     member that cannot be written leaves the destination unchanged.
 /// </summary>
 internal static partial class WriteEngine
 {
@@ -46,7 +48,8 @@ internal static partial class WriteEngine
             throw new CStructWriteException(WriteFailures.RawStorageLengthMismatch(composite.Name, size, raw.Length));
         }
 
-        long end = checked(destination.Position + size);
+        long start = destination.Position;
+        long end = checked(start + size);
         if (!unionValue.HasSelection)
         {
             destination.Write(raw!);
@@ -61,8 +64,7 @@ internal static partial class WriteEngine
             throw new CStructWriteException(WriteFailures.UnknownUnionMember(composite.Name, selected));
         }
 
-        WriteStaged(ref destination, ref state, union, member, unionValue.SelectedValue!, size);
-        destination.Position = end;
+        destination.Position = WriteStaged(ref destination, ref state, union, member, unionValue.SelectedValue!, start, size);
     }
 
     /// <summary>
@@ -113,17 +115,18 @@ internal static partial class WriteEngine
             throw new CStructWriteException("No member of the anonymous union was supplied; provide one of: " + string.Join(", ", composite.Shape.Names));
         }
 
-        WriteStaged(ref destination, ref state, union, selected, selectedValue!, size);
-        destination.Position = checked(start + size);
+        destination.Position = WriteStaged(ref destination, ref state, union, selected, selectedValue!, start, size);
     }
 
     /// <summary>
-    ///     Stages one union member into a fresh extent of zeroes and writes the extent at the position, as the interpreter's
+    ///     Stages one union member into a fresh extent of zeroes - or of the union's existing bytes, read back from the
+    ///     destination, when the write keeps union storage - and writes the extent at the position, as the interpreter's
     ///     <c>StageUnionMember</c> does. The member is written standalone from the extent's first byte by its segment of the
     ///     union's program, into a staging buffer with a budget of its own, under the operation's depth, with a copy of the
     ///     variables (nothing it captures escapes) and no qualified prefix. A failure the interpreter reports as a member
     ///     that cannot be written - an invalid operation, argument, arithmetic, format, cast or unsupported operation - is
-    ///     wrapped as such; the destination is written only after the member succeeded.
+    ///     wrapped as such; the destination is written only after the member succeeded and the union's end is known to be
+    ///     representable (an end past the largest position fails before the destination is touched).
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
     /// <param name="destination">The operation's destination, at the union's first byte.</param>
@@ -131,14 +134,38 @@ internal static partial class WriteEngine
     /// <param name="union">The union's program.</param>
     /// <param name="member">The member's index.</param>
     /// <param name="value">The member's value; for a promoted member, the data that carries its members.</param>
+    /// <param name="start">The union's first byte in the destination, where the position is.</param>
     /// <param name="size">The union's size in bytes.</param>
-    private static void WriteStaged<TDestination>(ref TDestination destination, ref WriteEngineState state, WriteProgram union, int member, object value, int size)
+    /// <returns>The union's end: its first byte plus its size.</returns>
+    /// <exception cref="CStructReadException">The write keeps union storage and the destination does not hold the whole extent.</exception>
+    /// <exception cref="OverflowException">The union's end is past the largest position.</exception>
+    private static long WriteStaged<TDestination>(ref TDestination destination, ref WriteEngineState state, WriteProgram union, int member, object value, long start, int size)
         where TDestination : struct, IWriteDestination
     {
         byte[] storage = ArrayPool<byte>.Shared.Rent(size);
         try
         {
-            storage.AsSpan(0, size).Clear();
+            if (state.PreservesUnionStorage)
+            {
+                // The existing extent is read exactly as the interpreter reads it (a short read fails with the end of the
+                // stream as its cause), and the position returns to the union's first byte either way.
+                try
+                {
+                    destination.Stream.ReadExactly(storage.AsSpan(0, size));
+                }
+                catch (EndOfStreamException exception)
+                {
+                    throw new CStructReadException(WriteFailures.IncompleteUnionStorage, exception);
+                }
+                finally
+                {
+                    destination.Position = start;
+                }
+            }
+            else
+            {
+                storage.AsSpan(0, size).Clear();
+            }
 
             // The interpreter's staging writer state observes the token when it is created.
             state.CancellationToken.ThrowIfCancellationRequested();
@@ -165,7 +192,9 @@ internal static partial class WriteEngine
                 state.StructureDepth = depth;
             }
 
+            long end = checked(start + size);
             destination.Write(storage.AsSpan(0, size));
+            return end;
         }
         finally
         {
@@ -186,7 +215,7 @@ internal static partial class WriteEngine
     /// <summary>
     ///     Ends a struct with bitfields as the interpreter does: the position moves to where the runtime cursor ended (past a
     ///     unit a bitfield reserved), and in an aligned layout the tail padding up to the struct's alignment is written as
-    ///     zeroes.
+    ///     zeroes - or, under update semantics, moved past.
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
     /// <param name="destination">The operation's destination.</param>
@@ -204,9 +233,19 @@ internal static partial class WriteEngine
         }
 
         long end = placer.Finish(alignment)!.Value;
-        if (end != current)
+        if (end == current)
         {
-            destination.WriteZeroes(checked((int)(end - current)));
+            return;
+        }
+
+        int padding = checked((int)(end - current));
+        if (state.UpdateSemantics)
+        {
+            destination.Position += padding;
+        }
+        else
+        {
+            destination.WriteZeroes(padding);
         }
     }
 }

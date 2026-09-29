@@ -3,6 +3,7 @@ namespace CStructSharp.Engine;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.IO;
 using System.Numerics;
 using CStructSharp.Addressing;
 using CStructSharp.Compilation;
@@ -10,14 +11,17 @@ using CStructSharp.Compilation.Programs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
 using CStructSharp.Reading;
+using CStructSharp.Streams;
 using CStructSharp.Values;
 using CStructSharp.Writing;
 
 /// <summary>
-///     The compiled engine's writer: executes a root's <see cref="WriteProgram"/> into a destination and produces exactly
-///     what the interpreter's writer produces for the same <c>Serialize</c> - the same bytes (and, in a caller's span, the
-///     same bytes left behind by a failure), the same returned count, the same exception type, message, member, path and
-///     offset, and the same write-budget charges.
+///     The compiled engine's writer: executes a root's (or a nested path's member's) <see cref="WriteProgram"/> into a
+///     destination and produces exactly what the interpreter's writer produces for the same <c>Serialize</c>, <c>Write</c>
+///     or buffer-writer write - the same bytes (and the bytes a failure leaves in a caller's span, stream or committed
+///     buffer-writer windows), the same returned count, the same exception type, message, member, path and offset, the
+///     same final stream position, and the same write-budget charges. <see cref="UpdateOptions"/> switch on the
+///     interpreter's update semantics (<see cref="WriteEngineState.UpdateSemantics"/>).
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -46,71 +50,109 @@ internal static partial class WriteEngine
     private const int StackStagingLimit = 512;
 
     /// <summary>
-    ///     Serializes a root into a new array: what the interpreter's <c>Serialize</c> produces over its growable stream.
+    ///     Serializes a root or nested path into a new array: what the interpreter's <c>Serialize</c> produces over its
+    ///     growable stream.
     /// </summary>
     /// <param name="layout">The layout the program belongs to.</param>
-    /// <param name="program">The root's program.</param>
-    /// <param name="rootData">The root's value, already normalized from the caller's data.</param>
-    /// <param name="segments">The one-segment path that names the root, for failure context.</param>
-    /// <param name="slots">The operation's initialized variable slots; the caller disposes them.</param>
-    /// <param name="options">The operation's snapshotted and validated options.</param>
+    /// <param name="request">The settled write, with the engine's program and slots; the caller disposes the slots.</param>
+    /// <param name="data">The caller's data, normalized here as the interpreter normalizes it.</param>
     /// <returns>A new array holding exactly the encoded bytes.</returns>
     /// <exception cref="OperationCanceledException">The token is cancelled before or during the write.</exception>
     /// <exception cref="CStructException">The value cannot be written; the path and offset are attached.</exception>
-    public static byte[] SerializeToArray(CStruct layout, WriteProgram program, object rootData, IReadOnlyList<PathSegment> segments, VariableSlots slots, WriteOptions options)
+    public static byte[] SerializeToArray(CStruct layout, in WritePreparation request, object data)
     {
-        using var buffer = MemoryWriteBuffer.ForNewArray(options);
+        object rootData = WriteDataBinding.NormalizeRootData(data, request.Segments[0].Name);
+
+        // The interpreter's writer state observes the token when it is created, before the destination is touched.
+        request.Options.CancellationToken.ThrowIfCancellationRequested();
+        using var buffer = MemoryWriteBuffer.ForNewArray(request.Options);
         var destination = new MemoryWriteDestination(buffer);
-        Run(ref destination, layout, program, rootData, segments, slots, options);
+        Run(ref destination, layout, request, rootData);
         return buffer.ToArray();
     }
 
     /// <summary>
-    ///     Serializes a root into a caller's pinned span: what the interpreter's <c>Serialize(Span)</c> produces over its
-    ///     region stream, including the prefix a failure leaves in the span.
+    ///     Serializes a root or nested path into a caller's pinned span: what the interpreter's <c>Serialize(Span)</c>
+    ///     produces over its region stream, including the prefix a failure leaves in the span.
     /// </summary>
     /// <param name="layout">The layout the program belongs to.</param>
-    /// <param name="program">The root's program.</param>
+    /// <param name="request">The settled write, with the engine's program and slots; the caller disposes the slots.</param>
     /// <param name="region">The span's first byte; the caller keeps it pinned until the method returns.</param>
     /// <param name="capacity">The span's length in bytes.</param>
-    /// <param name="rootData">The root's value, already normalized from the caller's data.</param>
-    /// <param name="segments">The one-segment path that names the root, for failure context.</param>
-    /// <param name="slots">The operation's initialized variable slots; the caller disposes them.</param>
-    /// <param name="options">The operation's snapshotted and validated options.</param>
-    /// <returns>The number of bytes written at the span's start.</returns>
+    /// <param name="data">The caller's data, normalized here as the interpreter normalizes it.</param>
+    /// <returns>The number of bytes written at the span's start: the high-water mark.</returns>
     /// <exception cref="OperationCanceledException">The token is cancelled before or during the write.</exception>
     /// <exception cref="CStructException">The value cannot be written; the path and offset are attached.</exception>
-    public static unsafe int SerializeToSpan(CStruct layout, WriteProgram program, byte* region, int capacity, object rootData, IReadOnlyList<PathSegment> segments, VariableSlots slots, WriteOptions options)
+    public static unsafe int SerializeToSpan(CStruct layout, in WritePreparation request, byte* region, int capacity, object data)
     {
-        using var buffer = MemoryWriteBuffer.ForSpan(region, capacity, options);
+        object rootData = WriteDataBinding.NormalizeRootData(data, request.Segments[0].Name);
+        request.Options.CancellationToken.ThrowIfCancellationRequested();
+        using var buffer = MemoryWriteBuffer.ForSpan(region, capacity, request.Options);
         var destination = new MemoryWriteDestination(buffer);
-        Run(ref destination, layout, program, rootData, segments, slots, options);
+        Run(ref destination, layout, request, rootData);
         return checked((int)buffer.Length);
     }
 
     /// <summary>
-    ///     Runs a root program: the token is checked first, as the interpreter's writer state checks it when it is created;
-    ///     a failure gets the path and the destination's position attached, as the interpreter attaches its stream's.
+    ///     Writes a root or nested path into a caller's stream at its position - a buffer writer arrives as its
+    ///     <see cref="BufferWriterStream"/> - through the budget stream the interpreter wraps it in: the fields written
+    ///     before a failure stay in the stream, bitfields merge into the bytes the stream already holds, and the stream is
+    ///     left where the interpreter leaves it.
+    /// </summary>
+    /// <param name="layout">The layout the program belongs to.</param>
+    /// <param name="request">The settled write, with the engine's program and slots; the caller disposes the slots.</param>
+    /// <param name="stream">The caller's writable, seekable stream; it stays open and is not flushed.</param>
+    /// <param name="data">The caller's data, normalized here as the interpreter normalizes it.</param>
+    /// <exception cref="OperationCanceledException">The token is cancelled before or during the write.</exception>
+    /// <exception cref="CStructException">The value cannot be written, or the stream fails; the path and the stream's position are attached.</exception>
+    public static void WriteToStream(CStruct layout, in WritePreparation request, Stream stream, object data)
+    {
+        object rootData = WriteDataBinding.NormalizeRootData(data, request.Segments[0].Name);
+        request.Options.CancellationToken.ThrowIfCancellationRequested();
+
+        // The budget stream reads the stream's length when it is created, as the interpreter's writer state creates it.
+        WriteBudgetStream budget;
+        try
+        {
+            budget = new WriteBudgetStream(stream, request.Options);
+        }
+        catch (CStructException exception)
+        {
+            ExceptionContext.Attach(exception, request.Segments, stream);
+            throw;
+        }
+
+        var destination = new StreamWriteDestination(budget, stream);
+        Run(ref destination, layout, request, rootData);
+    }
+
+    /// <summary>
+    ///     Runs a write whose token was checked: a nested path first selects its value and checks its indexes (nothing is
+    ///     written before), then the program writes; a failure gets the path and the position attached as the interpreter
+    ///     attaches them for the destination.
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
     /// <param name="destination">The operation's destination.</param>
     /// <param name="layout">The layout.</param>
-    /// <param name="program">The root's program.</param>
-    /// <param name="rootData">The root's value.</param>
-    /// <param name="segments">The root's path.</param>
-    /// <param name="slots">The operation's slots.</param>
-    /// <param name="options">The operation's options.</param>
-    private static void Run<TDestination>(ref TDestination destination, CStruct layout, WriteProgram program, object rootData, IReadOnlyList<PathSegment> segments, VariableSlots slots, WriteOptions options)
+    /// <param name="request">The settled write.</param>
+    /// <param name="rootData">The normalized root data.</param>
+    private static void Run<TDestination>(ref TDestination destination, CStruct layout, in WritePreparation request, object rootData)
         where TDestination : struct, IWriteDestination
     {
-        var state = new WriteEngineState(layout, slots, options);
+        WriteProgram program = request.Program!;
+        var state = new WriteEngineState(layout, request.Slots, request.Options);
         try
         {
-            options.CancellationToken.ThrowIfCancellationRequested();
-
-            // A struct root is written straight from the root value: its one-step root frame would only pass it on.
-            if (program.Steps is [{ Op: WriteOpCode.WriteRootStruct, } root,])
+            if (request.ChildSegments is { } childSegments)
             {
+                // The member the path selects is written on its own from the value at the path: its program is the one the
+                // selector chose for the same member, so only the selected value and the index checks remain.
+                object value = layout.SelectWrittenPathValue(request.RootElement, childSegments, rootData, request.Variables!, out _);
+                RunFrame(ref destination, ref state, program, value, 0);
+            }
+            else if (program.Steps is [{ Op: WriteOpCode.WriteRootStruct, } root,])
+            {
+                // A struct root is written straight from the root value: its one-step root frame would only pass it on.
                 WriteComposite(ref destination, ref state, program.Nested[root.A], rootData, promoted: false);
             }
             else
@@ -120,7 +162,7 @@ internal static partial class WriteEngine
         }
         catch (CStructException exception)
         {
-            ExceptionContext.Attach(exception, segments, destination.Position);
+            destination.AttachContext(exception, request.Segments);
             throw;
         }
         finally
@@ -188,11 +230,11 @@ internal static partial class WriteEngine
     }
 
     /// <summary>
-    ///     Writes a fixed struct through its static write plan exactly when the interpreter's writer does: not restricted
-    ///     to the general path, the plan within one block and the nesting and array limits, and its whole block within the
-    ///     budget and the destination's room. The bytes already under the block are read back first, so padding keeps what
-    ///     it held (in a new destination: zeroes), the members are encoded before any byte is written, and the block is
-    ///     written once with the interpreter's charge.
+    ///     Writes a fixed struct through its static write plan exactly when the interpreter's writer does: no update
+    ///     semantics, not restricted to the general path, the plan within one block and the nesting and array limits, the
+    ///     bytes under the block readable, and its whole block within the budget and the destination's room. The bytes
+    ///     already under the block are read back first, so padding keeps what it held (in a new destination: zeroes), the
+    ///     members are encoded before any byte is written, and the block is written once with the interpreter's charge.
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
     /// <param name="destination">The operation's destination, at the struct's first byte.</param>
@@ -204,7 +246,7 @@ internal static partial class WriteEngine
     private static bool TryWriteStaticPlan<TDestination>(ref TDestination destination, ref WriteEngineState state, CompiledCompositeType composite, object data, bool promoted)
         where TDestination : struct, IWriteDestination
     {
-        if (state.GeneralPathOnly || composite.StaticPlan is not { SupportsWrite: true } plan || plan.Size > ReadBlock.Size ||
+        if (state.UpdateSemantics || state.GeneralPathOnly || composite.StaticPlan is not { SupportsWrite: true } plan || plan.Size > ReadBlock.Size ||
             state.StructureDepth + plan.NestingDepth - (promoted ? 1 : 0) > state.MaxNestingDepth || plan.MaximumArrayCount > state.MaxArrayElements)
         {
             return false;
@@ -213,10 +255,10 @@ internal static partial class WriteEngine
         long position = destination.Position;
         long existing = Math.Min(plan.Size, Math.Max(0, destination.Length - position));
         int chargedBytes = state.Layout.Aligned ? plan.ChargedAlignedBytes : plan.ChargedFieldBytes;
-        if (!destination.CanAffordBlock(plan.Size, chargedBytes))
+        if ((existing > 0 && !destination.CanRead) || !destination.CanAffordBlock(plan.Size, chargedBytes))
         {
-            // A span that cannot hold the block, or a budget that cannot pay for it, keeps the member-by-member writes:
-            // the members that fit are written before the failure is reported.
+            // Bytes under the block that cannot be read back, a span that cannot hold the block, or a budget that cannot
+            // pay for it keep the member-by-member writes: the members that fit are written before a failure is reported.
             return false;
         }
 
@@ -507,7 +549,7 @@ internal static partial class WriteEngine
                     break;
 
                 case WriteOpCode.FinishComposite:
-                    FinishComposite(ref destination, start, step.A, step.B);
+                    FinishComposite(ref destination, start, step.A, step.B, state.UpdateSemantics);
                     break;
 
                 case WriteOpCode.PlaceMember:
@@ -710,14 +752,16 @@ internal static partial class WriteEngine
 
     /// <summary>
     ///     Writes a composite's tail padding as zeroes: the known padding, or up to the composite's alignment from its first
-    ///     byte. Zero bytes are written (and charged) so the output's length is the composite's size.
+    ///     byte. Zero bytes are written (and charged) so the output's length is the composite's size. Under update
+    ///     semantics the padding keeps the bytes it holds: the position moves past it and nothing is written or charged.
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
     /// <param name="destination">The operation's destination, after the composite's last member.</param>
     /// <param name="start">The composite's first byte.</param>
     /// <param name="padding">The known padding in bytes, or -1.</param>
     /// <param name="alignment">The composite's alignment, used when the padding is not known.</param>
-    private static void FinishComposite<TDestination>(ref TDestination destination, long start, int padding, int alignment)
+    /// <param name="update">Whether the write has update semantics.</param>
+    private static void FinishComposite<TDestination>(ref TDestination destination, long start, int padding, int alignment, bool update)
         where TDestination : struct, IWriteDestination
     {
         if (padding < 0)
@@ -726,6 +770,13 @@ internal static partial class WriteEngine
             padding = checked((int)(start + LayoutMath.AlignUp(position - start, (long)alignment) - position));
         }
 
-        destination.WriteZeroes(padding);
+        if (!update)
+        {
+            destination.WriteZeroes(padding);
+        }
+        else if (padding > 0)
+        {
+            destination.Position = checked(destination.Position + padding);
+        }
     }
 }

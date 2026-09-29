@@ -233,7 +233,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   the comparison benchmark's `packet` record serializes in 248 ns instead of 496 ns and allocates only its 88-byte
   result. Bitfields, unions (including promoted ones), pointers, custom codecs and to-end, terminated and
   multidimensional arrays are covered. Bytes, partial output on failure, exceptions and write budgets are identical.
-  Stream and buffer-writer writes and updates still use the general writer until the engine covers them.
+  `Write` to a stream, writes of a nested path and `Serialize` to an `IBufferWriter` run on the engine too (a stream
+  write of a small record allocates 64 B instead of 240 B). Updates still use the general writer until the engine
+  covers them.
 - Reads of layouts with runtime-sized members (counts from fields, conditionals, text, nested structs) run on a compiled
   engine: each struct is compiled once into a flat program of read steps, with variables in indexed slots instead of a
   dictionary. Results, failures, positions and read budgets are identical. The comparison benchmark's `packet` record

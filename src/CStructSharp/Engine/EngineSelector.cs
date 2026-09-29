@@ -7,6 +7,7 @@ using CStructSharp.Addressing;
 using CStructSharp.Compilation;
 using CStructSharp.Compilation.Programs;
 using CStructSharp.Expressions;
+using CStructSharp.Syntax;
 
 /// <summary>
 ///     The single decision point between the compiled engine and the interpreter. Every public operation asks once,
@@ -22,11 +23,11 @@ using CStructSharp.Expressions;
 ///         path's root program is eligible, because every struct, union and pointer target a path can reach is then
 ///         compiled. It runs the debug parse of a whole root (<see cref="SelectDebugRead"/>: <c>ParseWithDebug</c> and
 ///         <c>ReadValueWithDebug</c> of a bare root, synchronous and asynchronous) through the root's debug program under the
-///         same conditions, and the debug parse of a nested path through <see cref="SelectPathRead"/>. It also runs
-///         whole-root writes to memory (<see cref="SelectRootWrite"/>: <c>Serialize</c> to a new array or a span, and
-///         <c>WriteAsync</c>, which serializes first) whose root write program is eligible. Every other operation, and one it
-///         cannot reproduce, is declined before anything is read or written, and the interpreter runs it
-///         (<see cref="Decide"/>).
+///         same conditions, and the debug parse of a nested path through <see cref="SelectPathRead"/>. It also runs writes
+///         (<see cref="SelectWrite"/>: <c>Serialize</c> to a new array, a span or a buffer writer, <c>Write</c> to a stream,
+///         and <c>WriteAsync</c>, which serializes first) of a root whose write program is eligible, or of a nested path
+///         whose selected member's program is, under plain or update options. Every other operation, and one it cannot
+///         reproduce, is declined before anything is read or written, and the interpreter runs it (<see cref="Decide"/>).
 ///     </para>
 ///     <para>
 ///         Outside a test recording (<see cref="EngineDiagnostics.Record"/>) a decision records nothing: a declined
@@ -40,15 +41,6 @@ internal static class EngineSelector
 
     /// <summary>The reason the engine declines an operation whose variables are internal expression inputs rather than integers.</summary>
     public const string ExpressionInputs = "caller variables given as expressions are not supported yet (stage 10)";
-
-    /// <summary>The reason the engine declines a write to a caller's stream or buffer writer (<c>Write</c>, <c>Serialize(IBufferWriter)</c>).</summary>
-    public const string StreamDestinations = "writing to a stream or a buffer writer is not supported yet (stage 9)";
-
-    /// <summary>The reason the engine declines a write of a nested path rather than a whole root.</summary>
-    public const string PathWrites = "a write of a nested path is not supported yet (stage 9)";
-
-    /// <summary>The reason the engine declines a write whose options are <see cref="UpdateOptions"/>, which switch on update semantics.</summary>
-    public const string UpdateSemantics = "a write with update semantics (UpdateOptions) is not supported yet (stage 10)";
 
     /// <summary>
     ///     Whether <c>ReadValue</c> of a root field has the path resolver take the root array's count first, by rules of its
@@ -190,19 +182,22 @@ internal static class EngineSelector
     }
 
     /// <summary>
-    ///     Decides whether the engine writes a whole root and records the decision: the engine runs a <c>Serialize</c> to a
-    ///     new array or a caller's span (which <c>WriteAsync</c> serializes through) of a bare root, with integer variables,
-    ///     plain write options and an eligible root program. Anything else is declined before a byte is written.
+    ///     Decides whether the engine runs a write and records the decision, for every destination (a new array, a span, a
+    ///     stream, a buffer writer) and every write option (update options switch on the same update semantics in both
+    ///     implementations): the engine runs when the variables are integers and the program is eligible - the root's for a
+    ///     whole root (any indexes on its one segment are ignored, as the interpreter ignores them), or the program of the
+    ///     member a nested path selects, written on its own. A nested path that selects no writable member is declined, so
+    ///     the interpreter reports it. Anything declined is declined before a byte is written.
     /// </summary>
     /// <param name="selection">The operation's snapshotted engine selection.</param>
     /// <param name="compilation">The layout.</param>
     /// <param name="segments">The parsed path.</param>
+    /// <param name="childSegments">The segments after the root for a nested path, or <see langword="null"/>.</param>
+    /// <param name="rootElement">The root's declaration.</param>
     /// <param name="variables">The operation's variable input.</param>
-    /// <param name="options">The operation's snapshotted options.</param>
-    /// <param name="serializes">Whether the destination is a new array or a caller's span rather than a stream or buffer writer.</param>
-    /// <returns>The root's write program when the engine runs the operation; <see langword="null"/> when the interpreter does.</returns>
+    /// <returns>The program the engine runs; <see langword="null"/> when the interpreter writes.</returns>
     /// <exception cref="InvalidOperationException">The engine is required and declined the operation.</exception>
-    public static WriteProgram? SelectRootWrite(EngineSelection selection, LayoutCompilation compilation, IReadOnlyList<PathSegment> segments, in LayoutVariableInput variables, WriteOptions options, bool serializes)
+    public static WriteProgram? SelectWrite(EngineSelection selection, LayoutCompilation compilation, IReadOnlyList<PathSegment> segments, IReadOnlyList<PathSegment>? childSegments, CStructElement rootElement, in LayoutVariableInput variables)
     {
         if (selection == EngineSelection.InterpreterOnly)
         {
@@ -210,7 +205,7 @@ internal static class EngineSelector
             return null;
         }
 
-        string? reason = DeclineRootWrite(compilation, segments, variables, options, serializes, out WriteProgram? program);
+        string? reason = DeclineWrite(compilation, segments, childSegments, rootElement, variables, out WriteProgram? program);
         if (reason is null)
         {
             EngineDiagnostics.Current?.RecordRun(EngineOperation.Write);
@@ -221,38 +216,25 @@ internal static class EngineSelector
         return null;
     }
 
-    /// <summary>Returns why the engine cannot write a whole root, or <see langword="null"/> with the root's program when it can.</summary>
+    /// <summary>Returns why the engine cannot run a write, or <see langword="null"/> with the program it runs when it can.</summary>
     /// <param name="compilation">The layout.</param>
     /// <param name="segments">The parsed path.</param>
+    /// <param name="childSegments">The segments after the root for a nested path, or <see langword="null"/>.</param>
+    /// <param name="rootElement">The root's declaration.</param>
     /// <param name="variables">The operation's variable input.</param>
-    /// <param name="options">The operation's options.</param>
-    /// <param name="serializes">Whether the destination is a new array or a caller's span.</param>
-    /// <param name="program">The root's program when the engine can write it.</param>
+    /// <param name="program">The program when the engine can run the write.</param>
     /// <returns>The decline reason, or <see langword="null"/>.</returns>
-    private static string? DeclineRootWrite(LayoutCompilation compilation, IReadOnlyList<PathSegment> segments, in LayoutVariableInput variables, WriteOptions options, bool serializes, out WriteProgram? program)
+    private static string? DeclineWrite(LayoutCompilation compilation, IReadOnlyList<PathSegment> segments, IReadOnlyList<PathSegment>? childSegments, CStructElement rootElement, in LayoutVariableInput variables, out WriteProgram? program)
     {
         program = null;
-        if (!serializes)
-        {
-            return StreamDestinations;
-        }
-
-        if (segments.Count != 1 || segments[0].Indexes.Count > 0)
-        {
-            return PathWrites;
-        }
-
         if (!variables.UsesIntegers)
         {
             return ExpressionInputs;
         }
 
-        if (options is UpdateOptions)
-        {
-            return UpdateSemantics;
-        }
-
-        WriteProgramOutcome outcome = compilation.GetRootWriteProgram(segments[0].Name);
+        WriteProgramOutcome outcome = childSegments is null
+                                          ? compilation.GetRootWriteProgram(segments[0].Name)
+                                          : compilation.GetPathWriteProgram(rootElement, childSegments);
         program = outcome.Program;
         return outcome.Reason;
     }

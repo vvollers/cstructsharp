@@ -469,9 +469,10 @@ public class EngineSweepTests
 
     /// <summary>
     ///     Writes and updates produce identical bytes and failures in every destination: a new array; spans of 0, 5,
-    ///     n-1, n and n+3 bytes filled with 0xCC; streams that already hold bytes, written from their start and from
-    ///     inside them, synchronously and asynchronously; a growing buffer writer and buffer writers with 1-, 3- and
-    ///     7-byte windows; and in-place updates of a span and a stream.
+    ///     n-1, n and n+3 bytes filled with 0xCC; streams that already hold bytes, written from their start, from inside
+    ///     them and from their end, synchronously and asynchronously - growing memory streams, one that reports it cannot
+    ///     be read, and a fixed-capacity one that returns one byte per read; a growing buffer writer and buffer writers
+    ///     with 1-, 3- and 7-byte windows; and in-place updates of a span and a stream.
     /// </summary>
     /// <param name="name">The sweep layout.</param>
     [TestMethod]
@@ -501,6 +502,8 @@ public class EngineSweepTests
                 foreach (long start in (long[])[0, 3, n + 4])
                 {
                     Same(EngineOperations.Write(variant.Layout, prefill, start, "rec", variant.Value, variables), path);
+                    Same(EngineOperations.WriteTo(variant.Layout, "unreadable", OpenUnreadable, prefill, start, "rec", variant.Value, variables), path);
+                    Same(EngineOperations.WriteTo(variant.Layout, "fixed, 1-byte reads", bytes => new ChunkedMemoryStream(bytes, 1, writable: true), prefill, start, "rec", variant.Value, variables), path);
                 }
 
                 Same(EngineOperations.WriteAsync(variant.Layout, prefill, 3, "rec", variant.Value, variables), path);
@@ -514,6 +517,16 @@ public class EngineSweepTests
                 }
             }
         }
+    }
+
+    /// <summary>A growing memory stream holding <paramref name="bytes"/> that reports it cannot be read (its bytes still read back).</summary>
+    /// <param name="bytes">The stream's initial bytes.</param>
+    /// <returns>The stream, positioned at its end.</returns>
+    private static Stream OpenUnreadable(byte[] bytes)
+    {
+        var stream = new UnreadableStream();
+        stream.Write(bytes);
+        return stream;
     }
 
     /// <summary>

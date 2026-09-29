@@ -38,7 +38,8 @@ internal sealed record EngineCorpusCase(
     ///     (the sources must agree with each other), read as a value, debug-parsed, its update layout captured, and a few of
     ///     its paths resolved;
     ///     when the interpreter reads a value, that value is written back to a new array, a span of the input's
-    ///     length, and a stream.
+    ///     length, a stream and a buffer writer with small windows, and each selected member's value is written on its own
+    ///     through its path to a stream and a new array.
     /// </summary>
     /// <returns>Whether the layout compiled and had a composite to read.</returns>
     public bool Run()
@@ -112,6 +113,17 @@ internal sealed record EngineCorpusCase(
                 Same(EngineOperations.Serialize(layout, root, value, this.Variables, this.Write), path);
                 Same(EngineOperations.SerializeToSpan(layout, this.Data.Length, root, value, this.Variables, this.Write), path);
                 Same(EngineOperations.Write(layout, [0xAA, 0xAA], 1, root, value, this.Variables, this.Write), path);
+                Same(EngineOperations.SerializeToWindows(layout, 3, root, value, this.Variables, this.Write), path);
+
+                // Each selected member written on its own from the value the read selects there.
+                foreach (string selected in this.Paths ?? [])
+                {
+                    if (Attempt(() => layout.ReadValue(this.Data, selected, this.Variables, EngineSelections.InterpreterOnly(read))) is { } member)
+                    {
+                        Same(EngineOperations.Write(layout, [0xAA, 0xAA], 1, selected, member, this.Variables, this.Write), path);
+                        Same(EngineOperations.Serialize(layout, selected, member, this.Variables, this.Write), path);
+                    }
+                }
             }
         }
 

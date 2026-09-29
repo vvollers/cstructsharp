@@ -47,6 +47,9 @@ internal sealed class WriteProgramCompiler
     /// <summary>The reason for a declaration kind that is not a writable root.</summary>
     public const string UnwritableRoot = "the declaration is not a writable root";
 
+    /// <summary>The reason for a nested path that selects no writable member; the path's own failure text follows.</summary>
+    public const string UnresolvedPath = "the path selects no writable member: ";
+
     private readonly LayoutCompilation compilation;
     private readonly WriteProgramCache cache;
     private readonly MemberExtents extents;
@@ -109,6 +112,25 @@ internal sealed class WriteProgramCompiler
         default:
             return WriteProgramOutcome.NotSupported(rootName + ": " + UnwritableRoot);
         }
+    }
+
+    /// <summary>
+    ///     Compiles the write of one member on its own, as the interpreter writes the member a nested path selects
+    ///     (<c>WriteFieldValue</c> without a placing struct): the value is the frame's data, a bitfield opens its own storage
+    ///     unit, and no member context is noted. Its shape is its own, so no caller's value is mistaken for a struct of it.
+    /// </summary>
+    /// <param name="field">The member, narrowed to the element or sub-array a path's indexes select.</param>
+    /// <returns>The program, or why it cannot be built.</returns>
+    public WriteProgramOutcome CompileMember(CompiledField field)
+    {
+        var builder = new WriteProgramBuilder(this.cache.Table, [field], new StructShape([field.Name]), 0);
+        var unplaced = new ReadPlacement(false);
+        if (this.EmitMember(builder, 0, field.Name, standalone: true, ref unplaced) is { } reason)
+        {
+            return WriteProgramOutcome.NotSupported(reason);
+        }
+
+        return WriteProgramOutcome.Eligible(builder.Build(WriteProgramKind.Root, field.Name, null));
     }
 
     /// <summary>

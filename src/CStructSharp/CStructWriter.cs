@@ -82,7 +82,7 @@ public sealed partial class CStruct
                     // Update promises to modify bytes that already exist. Extending a partially present storage
                     // unit would manufacture neighbouring bits and overwrite data the caller did not supply, so stop
                     // before the later write can mutate the stream.
-                    throw new CStructReadException("Cannot update a bitfield whose complete storage unit is not present.");
+                    throw new CStructReadException(WriteFailures.IncompleteBitfieldUnit);
                 }
 
                 // A new Serialize/Write destination may not contain the rest of this storage unit yet. Only a
@@ -479,9 +479,7 @@ public sealed partial class CStruct
             }
             catch (EndOfStreamException exception)
             {
-                throw new CStructReadException(
-                    "Cannot preserve union storage because the complete existing extent is not present.",
-                    exception);
+                throw new CStructReadException(WriteFailures.IncompleteUnionStorage, exception);
             }
             finally
             {
@@ -1296,19 +1294,18 @@ public sealed partial class CStruct
         LayoutVariableInput variables,
         WriteOptions? options = null)
     {
-        // Serialize is the convenience entry point: the compiled engine writes an eligible root into a growable buffer;
-        // otherwise the interpreter writes to a temporary stream. Either hands its complete contents to the caller.
-        WritePreparation request = this.PrepareWrite(null, elementNameOrPath, variables, options, serializes: true);
-        if (request.Program is { } program)
+        // Serialize is the convenience entry point: the compiled engine writes an eligible root or path into a growable
+        // buffer; otherwise the interpreter writes to a temporary stream. Either hands its complete contents to the caller.
+        WritePreparation request = this.PrepareWrite(null, elementNameOrPath, variables, options);
+        if (request.Program is not null)
         {
-            VariableSlots slots = request.Slots;
             try
             {
-                return WriteEngine.SerializeToArray(this, program, WriteDataBinding.NormalizeRootData(data, request.Segments[0].Name), request.Segments, slots, request.Options);
+                return WriteEngine.SerializeToArray(this, request, data);
             }
             finally
             {
-                slots.Dispose();
+                request.Slots.Dispose();
             }
         }
 
@@ -1534,7 +1531,21 @@ public sealed partial class CStruct
             throw new ArgumentException("Writing requires a writable, seekable stream.", nameof(stream));
         }
 
-        WritePreparation request = this.PrepareWrite(stream, elementNameOrPath, variables, options, serializes: false);
+        WritePreparation request = this.PrepareWrite(stream, elementNameOrPath, variables, options);
+        if (request.Program is not null)
+        {
+            try
+            {
+                WriteEngine.WriteToStream(this, request, stream, data);
+            }
+            finally
+            {
+                request.Slots.Dispose();
+            }
+
+            return;
+        }
+
         this.WriteRequested(stream, request, data);
     }
 
@@ -1542,6 +1553,7 @@ public sealed partial class CStruct
     ///     Settles everything a write decides before it writes, in the interpreter's order: the path is present, the
     ///     options are snapshotted and valid, the variables resolve (a definition that cannot be resolved fails here,
     ///     before the path is parsed), the root exists, and the engine selector decides once which implementation writes.
+    ///     A nested path keeps the segments after its root, and the variables as a dictionary for its index checks.
     /// </summary>
     /// <param name="stream">
     ///     The caller's destination, whose position an unknown-root failure reports; <see langword="null"/> for
@@ -1550,14 +1562,13 @@ public sealed partial class CStruct
     /// <param name="elementNameOrPath">The case-sensitive root name or nested field path to write.</param>
     /// <param name="variables">The caller's layout variables; they are copied and never mutated.</param>
     /// <param name="options">Write limits and pointer settings; <see langword="null"/> uses the defaults.</param>
-    /// <param name="serializes">Whether the destination is a new array or a caller's span, which the engine can write.</param>
     /// <returns>
     ///     The settled write: with the engine's program and the variables as slots, which the caller disposes, or with the
     ///     interpreter's variable dictionary.
     /// </returns>
     /// <exception cref="CStructPathException">The path is empty or names no root.</exception>
     /// <exception cref="InvalidOperationException">The engine is required and declined the write.</exception>
-    private WritePreparation PrepareWrite(Stream? stream, string elementNameOrPath, LayoutVariableInput variables, WriteOptions? options, bool serializes)
+    private WritePreparation PrepareWrite(Stream? stream, string elementNameOrPath, LayoutVariableInput variables, WriteOptions? options)
     {
         // Validate the requested root before touching the stream so bad paths fail without partial output.
         if (string.IsNullOrWhiteSpace(elementNameOrPath))
@@ -1570,8 +1581,7 @@ public sealed partial class CStruct
 
         // Definitions and supplied variables form the small expression environment used for array counts: slots for a
         // write the engine may run, the interpreter's dictionary otherwise; both resolve, and fail, identically.
-        bool slotted = serializes && variables.UsesIntegers && effectiveOptions is not UpdateOptions &&
-                       effectiveOptions.EngineSelection != EngineSelection.InterpreterOnly;
+        bool slotted = variables.UsesIntegers && effectiveOptions.EngineSelection != EngineSelection.InterpreterOnly;
         VariableSlots slots = slotted ? VariableSlots.Create(this.compilation.SlotTable, variables) : default;
         Dictionary<string, Expr>? effectiveVariables = slotted ? null : variables.Resolve(this.layoutVariableResolver);
         try
@@ -1598,7 +1608,8 @@ public sealed partial class CStruct
                 throw exception;
             }
 
-            WriteProgram? program = EngineSelector.SelectRootWrite(effectiveOptions.EngineSelection, this.compilation, segments, variables, effectiveOptions, serializes);
+            PathSegment[]? childSegments = segments.Count > 1 ? segments.Skip(1).ToArray() : null;
+            WriteProgram? program = EngineSelector.SelectWrite(effectiveOptions.EngineSelection, this.compilation, segments, childSegments, rootElement, variables);
             if (program is null && slotted)
             {
                 // The engine declined: the interpreter resolves its dictionary, which succeeds as the slots did.
@@ -1606,8 +1617,13 @@ public sealed partial class CStruct
                 slots.Dispose();
                 effectiveVariables = variables.Resolve(this.layoutVariableResolver);
             }
+            else if (program is not null && childSegments is not null)
+            {
+                // A nested path's indexes are checked against counts in the resolved variables when the write runs.
+                effectiveVariables = variables.Resolve(this.layoutVariableResolver);
+            }
 
-            return new WritePreparation(effectiveOptions, segments, rootElement, effectiveVariables, slots, program);
+            return new WritePreparation(effectiveOptions, segments, childSegments, rootElement, effectiveVariables, slots, program);
         }
         catch
         {
@@ -1645,30 +1661,14 @@ public sealed partial class CStruct
                 this.Aligned,
                 request.Options);
 
-            if (segments.Count == 1)
+            if (request.ChildSegments is not { } childSegments)
             {
                 // The common case writes the entire root declaration.
                 this.WriteCStructElement(rootElement, rootData, state);
                 return;
             }
 
-            IReadOnlyList<PathSegment> childSegments = segments.Skip(1).ToArray();
-
-            // A mapped-class root becomes a StructValue first so its members can be walked like any other root object.
-            if (rootData is not null && !WriteDataBinding.IsMemberSource(rootData) && this.TryGetRootComposite(rootElement, out CompiledCompositeType? rootComposite))
-            {
-                rootData = WriteDataBinding.Materialize(rootData, rootComposite)!;
-            }
-
-            object subData = rootData!;
-            if (WriteDataBinding.TryGetMemberValue(rootData!, childSegments[0].Name, out _))
-            {
-                // If the caller supplied a complete root object, walk down to the matching nested source value.
-                subData = WriteDataBinding.ResolveDataPath(rootData!, childSegments);
-            }
-
-            // Separately resolve the layout shape so the writer knows whether the selected target is a field, struct, or typedef.
-            CompiledField targetField = this.compilation.ResolveElementPath(rootElement, childSegments, effectiveVariables);
+            object subData = this.SelectWrittenPathValue(rootElement, childSegments, rootData, effectiveVariables, out CompiledField targetField);
             this.WriteFieldValue(targetField, subData, state, -1);
         }
         catch (CStructException exception)
@@ -1679,20 +1679,36 @@ public sealed partial class CStruct
     }
 
     /// <summary>
-    ///     What a write settled before writing (<see cref="PrepareWrite"/>): its options, path and root, and either the
-    ///     engine's program with the variables as slots or the interpreter's variable dictionary.
+    ///     Selects what a write of a nested path writes, in the interpreter's order, before anything is written: a
+    ///     mapped-class root becomes a struct value, the value at the path is taken from a complete root value (the data is
+    ///     the value itself when it lacks the path's first member), and the layout member the path selects is resolved, its
+    ///     indexes checked against the counts the variables give. The compiled engine and the interpreter both call it.
     /// </summary>
-    /// <param name="Options">The snapshotted, validated options.</param>
-    /// <param name="Segments">The parsed path; the first segment names the root.</param>
-    /// <param name="RootElement">The root's declaration.</param>
-    /// <param name="Variables">The interpreter's variables, or <see langword="null"/> when the engine writes.</param>
-    /// <param name="Slots">The engine's variables when <paramref name="Program"/> is set; the writer disposes them.</param>
-    /// <param name="Program">The root's write program when the engine writes; otherwise <see langword="null"/>.</param>
-    private readonly record struct WritePreparation(
-        WriteOptions Options,
-        IReadOnlyList<PathSegment> Segments,
-        CStructElement RootElement,
-        Dictionary<string, Expr>? Variables,
-        VariableSlots Slots,
-        WriteProgram? Program);
+    /// <param name="rootElement">The path's root declaration.</param>
+    /// <param name="childSegments">The segments after the root; at least one.</param>
+    /// <param name="rootData">The normalized root data, or <see langword="null"/>.</param>
+    /// <param name="variables">The operation's resolved variables, before anything is written.</param>
+    /// <param name="target">The member the path selects, narrowed by its indexes.</param>
+    /// <returns>The value to write as <paramref name="target"/>.</returns>
+    /// <exception cref="CStructPathException">The path selects no writable member, or an index is out of range.</exception>
+    /// <exception cref="CStructWriteException">The root value lacks a member or element the path names.</exception>
+    internal object SelectWrittenPathValue(CStructElement rootElement, IReadOnlyList<PathSegment> childSegments, object rootData, Dictionary<string, Expr> variables, out CompiledField target)
+    {
+        // A mapped-class root becomes a StructValue first so its members can be walked like any other root object.
+        if (rootData is not null && !WriteDataBinding.IsMemberSource(rootData) && this.TryGetRootComposite(rootElement, out CompiledCompositeType? rootComposite))
+        {
+            rootData = WriteDataBinding.Materialize(rootData, rootComposite)!;
+        }
+
+        object subData = rootData!;
+        if (WriteDataBinding.TryGetMemberValue(rootData!, childSegments[0].Name, out _))
+        {
+            // If the caller supplied a complete root object, walk down to the matching nested source value.
+            subData = WriteDataBinding.ResolveDataPath(rootData!, childSegments);
+        }
+
+        // Separately resolve the layout shape so the writer knows whether the selected target is a field, struct, or typedef.
+        target = this.compilation.ResolveElementPath(rootElement, childSegments, variables);
+        return subData;
+    }
 }

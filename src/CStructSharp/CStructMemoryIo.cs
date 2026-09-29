@@ -12,6 +12,7 @@ using CStructSharp.Expressions;
 using CStructSharp.Reading;
 using CStructSharp.Streams;
 using CStructSharp.Values;
+using CStructSharp.Writing;
 
 /// <summary>
 ///     Provides synchronous zero-copy memory input and caller-owned memory output entry points. Pointer coordinates
@@ -142,7 +143,7 @@ public sealed partial class CStruct
     }
 
     /// <summary>
-    ///     Serializes into caller storage: the direct fixed-root path first, then the compiled engine for an eligible root,
+    ///     Serializes into caller storage: the direct fixed-root path first, then the compiled engine for an eligible root or path,
     ///     otherwise the interpreter against an initially empty logical extent over the storage.
     /// </summary>
     private unsafe int SerializeToMemoryCore(
@@ -157,19 +158,18 @@ public sealed partial class CStruct
             return written;
         }
 
-        WritePreparation request = this.PrepareWrite(null, elementNameOrPath, LayoutVariableInput.FromIntegers(variables), options, serializes: true);
+        WritePreparation request = this.PrepareWrite(null, elementNameOrPath, LayoutVariableInput.FromIntegers(variables), options);
         fixed (byte* buffer = destination)
         {
-            if (request.Program is { } program)
+            if (request.Program is not null)
             {
-                VariableSlots slots = request.Slots;
                 try
                 {
-                    return WriteEngine.SerializeToSpan(this, program, buffer, destination.Length, WriteDataBinding.NormalizeRootData(data, request.Segments[0].Name), request.Segments, slots, request.Options);
+                    return WriteEngine.SerializeToSpan(this, request, buffer, destination.Length, data);
                 }
                 finally
                 {
-                    slots.Dispose();
+                    request.Slots.Dispose();
                 }
             }
 
