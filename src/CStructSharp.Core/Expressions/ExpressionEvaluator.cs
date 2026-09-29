@@ -226,8 +226,18 @@ internal sealed class ExpressionEvaluator
         return this.GetProgram(expression).Dependencies;
     }
 
-    /// <summary>Gets or creates the postfix program for an immutable expression node.</summary>
-    private CompiledExpression GetProgram(Expr expression)
+    /// <summary>Gets the depth and work limits every compilation and evaluation of this evaluator applies.</summary>
+    internal ExpressionEvaluationLimits Limits => this.limits;
+
+    /// <summary>
+    ///     Gets or creates the postfix program for an immutable expression node. Slot-indexed programs
+    ///     (<c>ProgramExpression</c>) are translated from these programs, so both run the same instructions.
+    /// </summary>
+    /// <param name="expression">The expression tree to compile (or fetch from the cache).</param>
+    /// <returns>The cached program.</returns>
+    /// <exception cref="CStructLayoutException">The tree exceeds the depth or work limit.</exception>
+    /// <exception cref="NotSupportedException">The tree contains a call or an unsupported node.</exception>
+    internal CompiledExpression GetProgram(Expr expression)
     {
         if (expression is null)
         {
@@ -860,7 +870,7 @@ internal sealed class ExpressionEvaluator
     }
 
     /// <summary>Stores one immutable postfix program and its direct dependencies.</summary>
-    private sealed class CompiledExpression
+    internal sealed class CompiledExpression
     {
         /// <summary>
         ///     Stores a program and measures it once: its deepest syntax level, the largest value stack it needs, and
@@ -938,22 +948,32 @@ internal sealed class ExpressionEvaluator
             this.MaximumStackSize = maximumStackSize;
         }
 
+        /// <summary>Gets the distinct identifier names the program reads directly.</summary>
         public string[] Dependencies { get; }
 
+        /// <summary>
+        ///     Gets the identifier occurrences outside short-circuit and conditional arms, in instruction order: the
+        ///     names a session validates before it evaluates the program.
+        /// </summary>
         public ExpressionIdentifierReference[] IdentifierReferences { get; }
 
+        /// <summary>Gets the postfix instructions, in execution order.</summary>
         public ExpressionInstruction[] Instructions { get; }
 
+        /// <summary>Gets the deepest syntax level of any instruction (the root is level 1).</summary>
         public int MaximumDepth { get; }
 
+        /// <summary>Gets the largest number of values the program's stack holds at once (over-estimated by one for <c>?:</c>).</summary>
         public int MaximumStackSize { get; }
     }
 
     /// <summary>Represents one iterative compilation frame.</summary>
     private readonly record struct CompilationFrame(Expr Expression, int Depth, bool EmitOperator, int BranchStage = 0, BranchPatch? Patch = null, bool Conditional = false, BranchPatch? ElsePatch = null);
 
-    private sealed class BranchPatch
+    /// <summary>The target of a jump, filled in once the compiler has emitted the instruction the jump lands on.</summary>
+    internal sealed class BranchPatch
     {
+        /// <summary>Gets or sets the index of the instruction the jump continues at.</summary>
         public int Target { get; set; }
     }
 
@@ -965,10 +985,21 @@ internal sealed class ExpressionEvaluator
         string? EnteredIdentifier);
 
     /// <summary>Records one identifier occurrence and its syntax-tree depth inside a compiled program.</summary>
-    private readonly record struct ExpressionIdentifierReference(string Name, int Depth);
+    /// <param name="Name">The identifier's name.</param>
+    /// <param name="Depth">The identifier's syntax level inside its program (the root is level 1).</param>
+    internal readonly record struct ExpressionIdentifierReference(string Name, int Depth);
 
     /// <summary>Represents one postfix stack-machine instruction.</summary>
-    private readonly record struct ExpressionInstruction(
+    /// <param name="Opcode">The operation.</param>
+    /// <param name="Value">The constant a <see cref="ExpressionOpcode.Literal"/> pushes.</param>
+    /// <param name="Name">
+    ///     The name an <see cref="ExpressionOpcode.Identifier"/> reads, or the message an
+    ///     <see cref="ExpressionOpcode.OutOfDomainLiteral"/> fails with.
+    /// </param>
+    /// <param name="Depth">The syntax level of the node the instruction came from (the root is level 1).</param>
+    /// <param name="Patch">The jump target of a jump or branch instruction.</param>
+    /// <param name="Conditional">Whether an identifier sits inside a short-circuit or <c>?:</c> arm, so it is validated only when selected.</param>
+    internal readonly record struct ExpressionInstruction(
         ExpressionOpcode Opcode,
         Int128 Value,
         string? Name,

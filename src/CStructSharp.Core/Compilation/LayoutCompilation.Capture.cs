@@ -226,6 +226,28 @@ internal sealed partial class LayoutCompilation
     /// <returns>The names and the dotted-reference heads.</returns>
     private LayoutReferences CollectLayoutReferences()
     {
+        HashSet<string>? referenced = this.CollectDeclaredReferences();
+        List<string>? qualifiedHeads = ExpandQualifiedReferences(referenced);
+        return new LayoutReferences(referenced, qualifiedHeads);
+    }
+
+    /// <summary>
+    ///     The names the layout's expressions can read, with every dotted reference expanded to its remainders
+    ///     (<c>a.b.n</c> adds <c>b.n</c> and <c>n</c>): the same set that decides which fields publish their values, and
+    ///     the expression names of the layout's slot table.
+    /// </summary>
+    /// <returns>The names; empty when no expression names anything.</returns>
+    private IReadOnlyCollection<string> CollectReferencedNames()
+    {
+        HashSet<string>? referenced = this.CollectDeclaredReferences();
+        _ = ExpandQualifiedReferences(referenced);
+        return referenced is null ? Array.Empty<string>() : referenced;
+    }
+
+    /// <summary>Walks every declaration's expressions and collects the identifiers they name, before dotted names are expanded.</summary>
+    /// <returns>The names, or <see langword="null"/> when no expression names anything.</returns>
+    private HashSet<string>? CollectDeclaredReferences()
+    {
         HashSet<string>? referenced = null;
         Stack<Expr>? pending = null;
         foreach (CStructElement element in this.cStructElements.Values)
@@ -233,8 +255,7 @@ internal sealed partial class LayoutCompilation
             CollectExpressionReferences(element, ref referenced, ref pending);
         }
 
-        List<string>? qualifiedHeads = ExpandQualifiedReferences(referenced);
-        return new LayoutReferences(referenced, qualifiedHeads);
+        return referenced;
     }
 
     /// <summary>

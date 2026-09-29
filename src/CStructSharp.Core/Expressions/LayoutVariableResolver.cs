@@ -67,6 +67,14 @@ internal sealed class LayoutVariableResolver
         }
     }
 
+    /// <summary>Gets the layout's definitions (<c>#define</c>s and qualified enum members) by name, as written.</summary>
+    public IReadOnlyDictionary<string, Defines> Definitions => this.definitions;
+
+    /// <summary>Returns the names a definition's expression reads directly, including names that are not definitions.</summary>
+    /// <param name="name">A name of <see cref="Definitions"/>.</param>
+    /// <returns>The direct dependencies.</returns>
+    public ImmutableArray<string> GetDefinitionDependencies(string name) => this.definitionDependencies[name];
+
     /// <summary>Returns an isolated operation dictionary, reusing every unaffected static literal.</summary>
     /// <param name="suppliedVariables">
     ///     The caller's expressions, which replace definitions of the same name, or <see langword="null"/> for none.
@@ -219,8 +227,13 @@ internal sealed class LayoutVariableResolver
             StringComparer.Ordinal);
     }
 
-    /// <summary>Finds supplied names and every definition that depends on them directly or transitively.</summary>
-    private HashSet<string> FindInvalidatedDefinitions(IEnumerable<string> suppliedNames)
+    /// <summary>
+    ///     Finds supplied names and every definition that depends on them directly or transitively: the names a caller
+    ///     override removes from the static state, so their definitions are resolved again for that operation.
+    /// </summary>
+    /// <param name="suppliedNames">The names a caller overrides.</param>
+    /// <returns>The supplied names and their transitive dependents.</returns>
+    public HashSet<string> FindInvalidatedDefinitions(IEnumerable<string> suppliedNames)
     {
         var invalidated = new HashSet<string>(StringComparer.Ordinal);
         var pending = new Queue<string>();

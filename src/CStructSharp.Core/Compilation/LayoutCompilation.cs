@@ -5,9 +5,11 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Numerics;
+using System.Threading;
 using CStructSharp;
 using CStructSharp.Addressing;
 using CStructSharp.Codecs;
+using CStructSharp.Compilation.Programs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
 using CStructSharp.Introspection;
@@ -41,6 +43,10 @@ internal sealed partial class LayoutCompilation
     private readonly IReadOnlyDictionary<string, Expr> staticLayoutVariables;
     private readonly Lazy<IReadOnlyDictionary<string, LayoutConstant>> constants;
     private readonly Lazy<LayoutInfo> layoutInfo;
+
+    // Built on first use, never by the constructor: a layout that only takes the static and direct paths must not pay
+    // for it (construction allocation is budgeted).
+    private SlotTable? slotTable;
 
     /// <summary>
     ///     Parses and compiles <paramref name="layout"/> (the prelude already prepended and the source validated by
@@ -285,6 +291,15 @@ internal sealed partial class LayoutCompilation
     /// <summary>Gets the layout's definitions resolved without caller overrides, by name.</summary>
     public IReadOnlyDictionary<string, Expr> StaticLayoutVariables => this.staticLayoutVariables;
 
+    /// <summary>
+    ///     Gets the layout's slot table: one slot per name a layout expression can read, the resolved definitions'
+    ///     initial states, and the slot-indexed expression programs. Built on first access and shared by every thread.
+    /// </summary>
+    public SlotTable SlotTable => Volatile.Read(ref this.slotTable) ?? this.BuildSlotTable();
+
+    /// <summary>Gets a value indicating whether <see cref="SlotTable"/> has been built.</summary>
+    public bool HasSlotTable => Volatile.Read(ref this.slotTable) is not null;
+
     /// <summary>Gets a value indicating whether neutral primitive spellings resolve to little-endian.</summary>
     public bool IsLittleEndian { get; }
 
@@ -340,6 +355,17 @@ internal sealed partial class LayoutCompilation
         }
 
         return new LayoutCompilation(layout, (byte)pointerSize, aligned, isLittleEndian, compilationOptions, catalog);
+    }
+
+    /// <summary>
+    ///     Builds the slot table and publishes it; when two threads race, both build one and every caller then uses
+    ///     the first one published (the tables are equal, so the loser's is simply dropped).
+    /// </summary>
+    /// <returns>The published table.</returns>
+    private SlotTable BuildSlotTable()
+    {
+        SlotTable built = SlotTable.Create(this.CollectReferencedNames(), this.layoutVariableResolver, this.expressionEvaluator);
+        return Interlocked.CompareExchange(ref this.slotTable, built, null) ?? built;
     }
 
     /// <summary>Finds a named struct or union declaration through its finite chain of aliases.</summary>

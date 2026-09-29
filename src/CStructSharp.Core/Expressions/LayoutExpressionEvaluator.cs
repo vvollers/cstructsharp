@@ -127,16 +127,12 @@ internal sealed class LayoutExpressionEvaluator
         ExpressionFailureDomain domain = ExpressionFailureDomain.Layout)
         => RequireInt32(this.Evaluate(expression, variables, context, domain), context, domain);
 
-    /// <summary>Replaces framework wording with the layout expression's own terms.</summary>
-    private static string Describe(Exception exception)
-    {
-        return exception is OverflowException
-                   ? "the result is outside the 128-bit range that layout expressions support."
-                   : exception.Message;
-    }
-
     /// <summary>Creates the exception of <paramref name="domain"/> with the given message and optional cause.</summary>
-    private static CStructException CreateFailure(ExpressionFailureDomain domain, string message, Exception? inner)
+    /// <param name="domain">Whether the failure is a layout, read, or write exception.</param>
+    /// <param name="message">The complete message.</param>
+    /// <param name="inner">The expression failure that caused it, or <see langword="null"/>.</param>
+    /// <returns>The exception to throw.</returns>
+    internal static CStructException CreateFailure(ExpressionFailureDomain domain, string message, Exception? inner)
     {
         if (inner is null)
         {
@@ -154,5 +150,13 @@ internal sealed class LayoutExpressionEvaluator
             ExpressionFailureDomain.Write => new CStructWriteException(message, inner),
             _ => new CStructLayoutException(message, inner),
         };
+    }
+
+    /// <summary>Replaces framework wording with the layout expression's own terms.</summary>
+    private static string Describe(Exception exception)
+    {
+        return exception is OverflowException
+                   ? "the result is outside the 128-bit range that layout expressions support."
+                   : exception.Message;
     }
 }

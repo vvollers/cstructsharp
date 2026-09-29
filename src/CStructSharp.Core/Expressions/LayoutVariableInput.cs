@@ -21,6 +21,15 @@ internal readonly struct LayoutVariableInput
         this.useIntegers = useIntegers;
     }
 
+    /// <summary>Gets a value indicating whether the input holds the public integer variables rather than expressions.</summary>
+    public bool UsesIntegers => this.useIntegers;
+
+    /// <summary>Gets the caller's integer variables, or <see langword="null"/> for none or for an expression input.</summary>
+    public IReadOnlyDictionary<string, int>? Integers => this.integers;
+
+    /// <summary>Gets the internal expression variables, or <see langword="null"/> for none or for an integer input.</summary>
+    public IReadOnlyDictionary<string, Expr>? Expressions => this.expressions;
+
     /// <summary>Creates an input for the simple public contract.</summary>
     /// <param name="variables">
     ///     The caller's integer layout variables by name, or <see langword="null"/> for none.
