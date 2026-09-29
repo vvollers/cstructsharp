@@ -122,6 +122,12 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Fixed
 
+- `UnknownMemberPolicy.Reject` accepts the members of an anonymous promoted struct supplied on the parent value, as a
+  parse returns them, on every write path; runtime-sized layouts, structs promoted through a union and mapped classes
+  with promoted members were rejected with "'…' is not a member of ''". Genuinely unknown keys are still rejected, with
+  the same message on every path.
+- A mapped-class instance nested in a dictionary or `StructValue` root (as a member or an array element) is written on
+  every path; fixed layouts failed with "No value was supplied" on the fast path.
 - Address, array-length, selected-read and update operations use an enum or flag bitfield's own bits when a later
   count or condition names it, as parsing does; they used the bitfield's whole storage unit and computed wrong offsets
   and lengths when other bitfields shared the unit.

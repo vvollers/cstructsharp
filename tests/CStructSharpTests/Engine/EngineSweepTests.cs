@@ -231,6 +231,59 @@ public class EngineSweepTests
     }
 
     /// <summary>
+    ///     The writers bind the caller's data identically on the fast and general paths, in every destination: the
+    ///     promoted-member layouts under <see cref="UnknownMemberPolicy.Reject"/> (the parsed value, the same members in a
+    ///     dictionary, and a dictionary with an undeclared key), and a dictionary root whose nested struct and array
+    ///     elements are mapped instances, packed and aligned.
+    /// </summary>
+    [TestMethod]
+    public void WriteBinding_AgreesAcrossExecutionPaths()
+    {
+        var reject = new WriteOptions { UnknownMembers = UnknownMemberPolicy.Reject, };
+        var cases = new List<(string Name, CStruct Layout, object Value, int Length)>();
+        foreach (Variant variant in EngineSweepLayouts.Both("promoted").Concat(EngineSweepLayouts.Both("promoted-union")))
+        {
+            int length = variant.Data.Length;
+            var dictionary = variant.Value.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+            cases.Add((variant.Name + " parsed", variant.Layout, variant.Value, length));
+            cases.Add((variant.Name + " dictionary", variant.Layout, dictionary, length));
+            cases.Add((variant.Name + " unknown key", variant.Layout, new Dictionary<string, object?>(dictionary) { ["zz"] = 1, }, length));
+        }
+
+        foreach (bool aligned in (bool[])[false, true])
+        {
+            var mapped = new CStruct("struct inner { uint8 a; }; struct rec { uint16 kind; inner nested; inner items[2]; };", aligned: aligned);
+            var value = new Dictionary<string, object?>
+            {
+                ["kind"] = (ushort)1,
+                ["nested"] = new SharpEdgeOptionTests.InnerPoco { A = 5, },
+                ["items"] = new object[] { new SharpEdgeOptionTests.InnerPoco { A = 6, }, new SharpEdgeOptionTests.InnerPoco { A = 7, }, },
+            };
+            cases.Add(("nested mapped" + (aligned ? "/aligned" : "/packed"), mapped, value, mapped.GetStructSizeInBytes("rec")));
+        }
+
+        foreach ((string name, CStruct layout, object value, int length) in cases)
+        {
+            var operations = new List<DifferentialOperation>
+            {
+                EngineOperations.Serialize(layout, "rec", value, null, reject),
+                EngineOperations.SerializeToSpan(layout, length + 3, "rec", value, null, reject),
+                EngineOperations.SerializeToWindows(layout, 3, "rec", value, null, reject),
+                EngineOperations.Write(layout, new byte[length + 4], 2, "rec", value, null, reject),
+            };
+            foreach (DifferentialOperation operation in operations)
+            {
+                string general = Same(operation, ExecutionPath.GeneralOnly);
+                string fastest = Same(operation, ExecutionPath.Fastest);
+                if (!string.Equals(general, fastest, StringComparison.Ordinal))
+                {
+                    Assert.Fail(name + ", " + operation.Name + ": the general path (-) and the fast paths (+) differ:\n" + EngineDifferential.Diff(general, fastest));
+                }
+            }
+        }
+    }
+
+    /// <summary>
     ///     Every nesting limit from 0 to 4 - read, write, and update traversal - gives the same outcome on the fast paths
     ///     as on the general path, so a layout exactly at the limit (with anonymous promoted members, which add no level)
     ///     is accepted or rejected by both.

@@ -104,8 +104,9 @@ Two options change behavior rather than a limit. Both default to the permissive 
 - `WriteOptions.UnknownMembers` (default `Ignore`): a supplied value may carry members the struct does not declare
   and they are skipped. `UnknownMemberPolicy.Reject` fails the write before any byte is written -
   `'bogus' is not a member of 'root' (WriteOptions.UnknownMembers is Reject). The layout declares: kind, tail.` -
-  for dictionaries, `StructValue`s, and .NET objects alike, nested structs included. It also applies to
-  `UpdateOptions`.
+  for dictionaries, `StructValue`s, and .NET objects alike, nested structs included. The members of an anonymous
+  promoted struct or union are declared members of the struct that contains it, so they are accepted on that parent
+  value, as a parse returns them. It also applies to `UpdateOptions`.
 
 The [what is not an error](errors-and-recovery.md#what-is-not-an-error) list explains the other quiet cases.
 

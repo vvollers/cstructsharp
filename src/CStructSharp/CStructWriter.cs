@@ -202,9 +202,11 @@ public sealed partial class CStruct
         // A mapped-class instance becomes a StructValue of this composite's shape once, here, so every path
         // below (static plan included) reads plain members.
         data = WriteDataBinding.Materialize(data, composite);
-        if (state.RejectUnknownMembers)
+        if (state.RejectUnknownMembers && !promoted)
         {
-            // Checked before the static plan, which writes nested composites without re-entering this method.
+            // Checked before the static plan, which writes nested composites without re-entering this method. A promoted
+            // struct's data is its parent's, whose check already covered every key (the parent's shape includes the
+            // promoted members) and every composite nested in the promoted struct.
             RejectUnknownMembers(composite, data);
         }
 

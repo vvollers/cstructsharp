@@ -115,7 +115,11 @@ public sealed partial class CStruct
     /// <param name="plan">The composite's plan.</param>
     /// <param name="composite">The composite being written.</param>
     /// <param name="bytes">Exactly the composite's bytes, with padding already cleared or preserved.</param>
-    /// <param name="data">The composite's value.</param>
+    /// <param name="data">
+    ///     The composite's value, already bound by the caller (a root) or by the nested step that reached it. A nested
+    ///     struct's value, including a mapped instance held by a dictionary or struct value, is bound through
+    ///     <see cref="WriteDataBinding.Bind"/> before its plan runs, as the general writer binds it.
+    /// </param>
     /// <param name="state">The operation state, or <see langword="null"/> for a direct root write.</param>
     private void ExecuteStaticWritePlan(StaticReadPlan plan, CompiledCompositeType composite, Span<byte> bytes, object data, CStructElementWriterState? state)
     {
@@ -196,6 +200,8 @@ public sealed partial class CStruct
                     }
 
                 case StaticReadKind.Nested:
+                    // Nested composites are written here without re-entering the struct writer, so each binds its own value.
+                    value = WriteDataBinding.Bind(value, operation.NestedComposite!);
                     if (state is null)
                     {
                         this.ExecuteStaticWritePlan(operation.NestedPlan!, operation.NestedComposite!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), value, null);
@@ -232,9 +238,9 @@ public sealed partial class CStruct
 
                         for (int element = 0; element < operation.Count; element++)
                         {
-                            object item = items[element] ??
-                                          throw new CStructWriteException(
-                                              WriteFailures.NullComposite(operation.NestedDeclaration!.Name.Name));
+                            object item = WriteDataBinding.Bind(
+                                items[element] ?? throw new CStructWriteException(WriteFailures.NullComposite(operation.NestedDeclaration!.Name.Name)),
+                                operation.NestedComposite!);
                             this.ExecuteStaticWritePlan(nestedPlan, operation.NestedComposite!, bytes.Slice(operation.Offset + (element * nestedPlan.Size), nestedPlan.Size), item, state);
                         }
 

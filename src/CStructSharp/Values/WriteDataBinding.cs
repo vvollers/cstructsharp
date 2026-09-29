@@ -3,6 +3,7 @@ namespace CStructSharp.Values;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using CStructSharp.Addressing;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
@@ -57,6 +58,16 @@ internal static class WriteDataBinding
         MaterializeNested(target, composite);
         return target;
     }
+
+    /// <summary>
+    ///     Binds one nested struct's value exactly as <see cref="Materialize"/> does, returning a <see cref="StructValue"/>
+    ///     - the value a parse produces, and so the common case - without a call.
+    /// </summary>
+    /// <param name="data">The nested struct's value, or null.</param>
+    /// <param name="composite">The compiled struct whose shape a mapped instance takes.</param>
+    /// <returns>The value to read members from.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static object Bind(object data, CompiledCompositeType composite) => data is StructValue ? data : Materialize(data, composite);
 
     /// <summary>
     ///     A mapper stores nested mapped instances as they are; they become struct values here so every consumer
