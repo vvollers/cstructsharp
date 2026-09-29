@@ -59,14 +59,9 @@ public sealed partial class CStruct
             return false;
         }
 
+        // The plan's offsets are relative to the struct start, as the general writer places members, so it runs at any
+        // position.
         long position = stream.Position;
-        if (this.Aligned && position % composite.Symbol.Alignment != 0)
-        {
-            // The general writer aligns members to absolute stream positions; the plan's offsets are relative to
-            // the struct start, which coincide only when the struct itself starts on its alignment boundary.
-            return false;
-        }
-
         long existing = Math.Min(plan.Size, Math.Max(0, stream.Length - position));
         int chargedBytes = this.Aligned ? plan.ChargedAlignedBytes : plan.ChargedFieldBytes;
         if ((existing > 0 && !stream.CanRead) || !stream.CanAffordBlock(plan.Size, chargedBytes) ||

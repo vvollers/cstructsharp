@@ -46,19 +46,22 @@ public class ReaderDispatchBoundaryTests
         Assert.AreEqual(0L, stream.Position);
     }
 
-    /// <summary>A root primitive alias aligns from the actual stream position without rewinding into earlier bytes.</summary>
+    /// <summary>
+    ///     A root primitive alias starts exactly at the stream position, odd or not, in an aligned layout: alignment is
+    ///     measured from the value's own first byte, so the stream is neither advanced nor rewound first.
+    /// </summary>
     /// <param name="type">The primitive behind the root alias.</param>
     /// <param name="alignment">Its byte alignment and encoded width.</param>
     [TestMethod]
     [DataRow("uint16", 2)]
     [DataRow("uint32", 4)]
-    public void PrimitiveRootAlias_AlignsFromANonzeroOrigin(string type, int alignment)
+    public void PrimitiveRootAlias_StartsAtANonzeroOrigin(string type, int alignment)
     {
         var layout = new CStruct("typedef " + type + " word;", aligned: true);
-        var bytes = new byte[alignment * 2];
-        bytes.AsSpan(0, alignment).Fill(99);
-        bytes[alignment] = 0x34;
-        bytes[alignment + 1] = 0x12;
+        var bytes = new byte[1 + alignment];
+        bytes[0] = 99;
+        bytes[1] = 0x34;
+        bytes[2] = 0x12;
         using var stream = new MemoryStream(bytes);
         stream.Position = 1;
         Assert.AreEqual(0x1234U, layout.ReadValue<uint>(stream, "word"));

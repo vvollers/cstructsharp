@@ -7,7 +7,10 @@ using CStructSharp.Generated;
 [TestClass]
 public class CompositeCursorBoundaryTests
 {
-    /// <summary>Aligned cursors round both an ordinary field start and the final composite extent; packed cursors do neither.</summary>
+    /// <summary>
+    ///     Aligned cursors round both an ordinary field start and the final composite extent, measured from the
+    ///     composite's own first byte; packed cursors do neither.
+    /// </summary>
     /// <param name="aligned">Whether natural byte alignment applies.</param>
     [TestMethod]
     [DataRow(false)]
@@ -15,10 +18,12 @@ public class CompositeCursorBoundaryTests
     public void OrdinaryFieldAndFinish_ApplyAlignmentOnlyWhenEnabled(bool aligned)
     {
         var cursor = CompositeCursor.Start(1, aligned, BitfieldPacking.SysV, BitfieldAllocation.LowBitFirst);
-        Assert.AreEqual(aligned ? 4L : 1L, cursor.AdvanceToField(4));
-        cursor.CompleteField(5);
-        Assert.AreEqual(aligned ? 8L : 5L, cursor.Finish(4));
-        Assert.AreEqual(5L, cursor.Current, "Finishing computes tail padding without changing field placement state.");
+        Assert.AreEqual(1L, cursor.AdvanceToField(4), "The first field sits at the composite's start whatever its alignment.");
+        cursor.CompleteField(2);
+        Assert.AreEqual(aligned ? 5L : 2L, cursor.AdvanceToField(4));
+        cursor.CompleteField(6);
+        Assert.AreEqual(aligned ? 9L : 6L, cursor.Finish(4));
+        Assert.AreEqual(6L, cursor.Current, "Finishing computes tail padding without changing field placement state.");
     }
 
     /// <summary>A packed field wholly inside a declared cell retains that shared storage window, including its final bit.</summary>
@@ -33,12 +38,15 @@ public class CompositeCursorBoundaryTests
         Assert.AreEqual(new BitfieldSlot(0, 4, precedingBits), cursor.AdvanceToBitfield(4, 4, 1, 32, true, "after"));
     }
 
-    /// <summary>A leading MSVC separator starts from the actual origin and adds alignment only when requested.</summary>
+    /// <summary>
+    ///     A leading MSVC separator places nothing: the composite's start is already aligned for its first member,
+    ///     whatever its stream position, so the next field starts there with or without alignment.
+    /// </summary>
     /// <param name="aligned">Whether the separator's declared alignment applies.</param>
-    /// <param name="expected">The next field's input-relative byte offset.</param>
+    /// <param name="expected">The next field's stream position.</param>
     [TestMethod]
     [DataRow(false, 3L)]
-    [DataRow(true, 4L)]
+    [DataRow(true, 3L)]
     public void MsvcLeadingSeparator_UsesTheCompositeOrigin(bool aligned, long expected)
     {
         var cursor = CompositeCursor.Start(3, aligned, BitfieldPacking.Msvc, BitfieldAllocation.LowBitFirst);
@@ -58,14 +66,18 @@ public class CompositeCursorBoundaryTests
         Assert.AreEqual(11L, cursor.Current);
     }
 
-    /// <summary>A leading SysV separator rounds its actual bit position to the declared cell boundary.</summary>
+    /// <summary>
+    ///     A SysV separator rounds its bit position to the declared cell boundary counted from the composite's own
+    ///     first byte: leading, it places nothing; after a bit, it moves to the next four-byte cell of the composite.
+    /// </summary>
     [TestMethod]
     public void SysVLeadingSeparator_UsesTheCompositeOriginInBits()
     {
         var cursor = CompositeCursor.Start(3, false, BitfieldPacking.SysV, BitfieldAllocation.LowBitFirst);
-        Assert.AreEqual(4L, cursor.AdvanceToSeparator(4, 4, 16));
-        Assert.AreEqual(new BitfieldSlot(4, 1, 0), cursor.AdvanceToBitfield(1, 1, 3, 16, true, "value"));
-        Assert.AreEqual(5L, cursor.Current);
+        Assert.AreEqual(3L, cursor.AdvanceToSeparator(4, 4, 16));
+        Assert.AreEqual(new BitfieldSlot(3, 1, 0), cursor.AdvanceToBitfield(1, 1, 3, 16, true, "value"));
+        Assert.AreEqual(4L, cursor.Current);
+        Assert.AreEqual(7L, cursor.AdvanceToSeparator(4, 4, 16));
     }
 
     /// <summary>A SysV reverse-filled cell remains fully occupied when a smaller separator follows it.</summary>

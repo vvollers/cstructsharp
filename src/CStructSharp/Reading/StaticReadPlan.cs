@@ -111,18 +111,6 @@ internal sealed class StaticReadPlan
     /// </summary>
     public StaticReadOperation[] Operations { get; }
 
-    /// <summary>
-    ///     Returns whether the plan can run at <paramref name="position"/>: the general reader aligns members to absolute
-    ///     positions and the plan's offsets are relative to the struct start, which agree only when an aligned layout's
-    ///     struct starts on its own boundary.
-    /// </summary>
-    /// <param name="composite">The composite the plan belongs to.</param>
-    /// <param name="aligned">Whether the layout aligns its members.</param>
-    /// <param name="position">The absolute position the struct starts at.</param>
-    /// <returns>Whether the plan's offsets match the general reader's placement there.</returns>
-    public static bool CanRunAt(CompiledCompositeType composite, bool aligned, long position)
-        => !aligned || position % composite.Symbol.Alignment == 0;
-
     /// <summary>Builds the plan for <paramref name="composite"/>, or returns null when any member needs the general reader.</summary>
     /// <param name="composite">The compiled composite whose offsets are relative to its own start.</param>
     /// <returns>A fixed-offset read plan, or null when interpretation is required.</returns>

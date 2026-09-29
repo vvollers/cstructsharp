@@ -7,9 +7,17 @@ namespace CStructSharp.Compilation;
 ///     generated code - so they agree byte for byte.
 /// </summary>
 /// <remarks>
+///     <para>
+///         Alignment is measured from the composite's own first byte, as a C compiler places members: a member's offset
+///         within its struct does not depend on where the struct sits. Positions are in the caller's coordinates (a
+///         stream position, or 0 for compilation), so a struct that starts at an odd stream position, or a pointer
+///         target at an unaligned address, keeps the offsets it has at 0.
+///     </para>
+///     <para>
 ///     The position can be unknown (<see langword="null"/>): compilation places fields before any data exists, and a
 ///     field after a runtime-sized one has no build-time offset. Placing anything from an unknown position keeps it
 ///     unknown; the runtime always starts from a known position.
+///     </para>
 /// </remarks>
 internal struct PlacementCursor
 {
@@ -76,7 +84,7 @@ internal struct PlacementCursor
 
         if (this.aligned)
         {
-            this.position = LayoutMath.AlignUp(this.position, alignment);
+            this.position = this.start + LayoutMath.AlignUp(this.position - this.start, alignment);
         }
 
         return this.position;
@@ -97,9 +105,10 @@ internal struct PlacementCursor
             return null;
         }
 
-        (long unitStart, int unitSize, int bitOffset) = this.bitfields.Place(this.position, declaredSize, alignment, width, runBits, littleEndian, member);
-        this.position = this.bitfields.RunEnd;
-        return (unitStart, unitSize, bitOffset);
+        // Bitfield units are placed in the composite's own coordinates, like every other member.
+        (long unitStart, int unitSize, int bitOffset) = this.bitfields.Place(this.position - this.start, declaredSize, alignment, width, runBits, littleEndian, member);
+        this.position = this.start + this.bitfields.RunEnd;
+        return (this.start + unitStart, unitSize, bitOffset);
     }
 
     /// <summary>Applies a <c>: 0</c> separator: the next bitfield opens a new storage unit.</summary>
@@ -114,8 +123,8 @@ internal struct PlacementCursor
             return null;
         }
 
-        this.bitfields.PlaceSeparator(this.position, declaredSize, alignment, runBits);
-        this.position = this.bitfields.RunEnd;
+        this.bitfields.PlaceSeparator(this.position - this.start, declaredSize, alignment, runBits);
+        this.position = this.start + this.bitfields.RunEnd;
         return this.position;
     }
 
@@ -138,5 +147,5 @@ internal struct PlacementCursor
     /// <param name="compositeAlignment">The composite's alignment.</param>
     /// <returns>The position after the composite, or <see langword="null"/> when unknown.</returns>
     public readonly long? Finish(int compositeAlignment)
-        => !this.known ? null : this.aligned ? LayoutMath.AlignUp(this.position, compositeAlignment) : this.position;
+        => !this.known ? null : this.aligned ? this.start + LayoutMath.AlignUp(this.position - this.start, compositeAlignment) : this.position;
 }

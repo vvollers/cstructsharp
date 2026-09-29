@@ -83,10 +83,12 @@ the same defaults for total bytes (64 MiB), pointer depth (64), and nesting dept
 [memory budgets](memory-reliability.md#budget-an-operation-not-each-individual-read).
 
 `MaxTotalBytesRead` counts every byte read from the stream, including rereads. It is not a limit on the input's
-file size. Debug parsing spends the same budget as a plain parse: a packed header with a `uint16` and a `uint32`
-needs a budget of 6 either way, because debug records carry byte ranges rather than copies. Layouts with unions,
-pointers, or selected reads may reread bytes for traversal or overlapping fields, so the input size is a lower
-bound, not the exact cost.
+file size. A terminated string (`cstring`, `char name[]`, `unicode_string_zero`) reads ahead in chunks of up to 256
+bytes while it searches for its terminator, and those bytes count too; a stream that returns fewer bytes per read
+therefore reaches the limit later than a span or a memory stream does. Debug parsing spends the same budget as a
+plain parse: a packed header with a `uint16` and a `uint32` needs a budget of 6 either way, because debug records
+carry byte ranges rather than copies. Layouts with unions, pointers, or selected reads may reread bytes for traversal
+or overlapping fields, so the input size is a lower bound, not the exact cost.
 
 `UpdateOptions` has separate `MaxTraversal*` values for bytes read while finding the destination. After the target is
 found, its inherited write limits apply to the replacement.

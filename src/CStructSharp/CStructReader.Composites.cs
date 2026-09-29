@@ -87,10 +87,10 @@ public sealed partial class CStruct
         // container, whose slots belong to the parent's shape.
         // Limits that the general reader reports at a field inside the composite are checked up front, so a plan
         // never consumes bytes and then fails: such inputs go to the general reader and fail where they always did.
-        // The general reader aligns members to absolute stream positions; the plan's offsets are relative to the
-        // struct start, which coincide only when the struct itself starts on its alignment boundary.
+        // The plan's offsets are relative to the struct start, as the general reader places members, so it runs at any
+        // position.
         if (!state.Debug && !state.GeneralPathOnly && ReferenceEquals(destination.Shape, composite.Shape) && composite.StaticPlan is StaticReadPlan plan &&
-            state.CoversPlan(plan) && StaticReadPlan.CanRunAt(composite, this.Aligned, state.Stream.Position))
+            state.CoversPlan(plan))
         {
             // A stream source (FileStream, a MemoryStream without an exposed buffer) stages the composite's extent in a
             // pooled block; composites beyond the block size stay on the general reader.

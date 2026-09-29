@@ -69,19 +69,22 @@ public class SelectedValueBoundaryTests
         Assert.AreEqual(2L, stream.Position);
     }
 
-    /// <summary>A selected composite array keeps its resolved union start while each record places its own child fields.</summary>
+    /// <summary>
+    ///     A selected composite array keeps its resolved union start - here an unaligned pointer target at 1 - while each
+    ///     four-byte record places its own child fields from the record's first byte.
+    /// </summary>
     [TestMethod]
     public void SelectedCompositeArray_KeepsItsUnionStart()
     {
         var layout = new CStruct("struct item { uint8 first; uint16 second; }; union choice { item entries[2]; uint64 raw; }; struct root { choice *target; };", pointerSize: 1, aligned: true);
-        using var stream = new MemoryStream(new byte[] { 1, 0xA1, 0xB2, 0xC3, 0xD4, 0xE5, 0x16, 0x27, 0x38, });
+        using var stream = new MemoryStream(new byte[] { 1, 0xA1, 0xEE, 0xB2, 0xC3, 0xD4, 0xEE, 0x16, 0x27, });
         StructValue[] values = layout.ReadValue<StructValue[]>(stream, "root.target.value.entries");
         Assert.HasCount(2, values);
         Assert.AreEqual((byte)0xA1, values[0]["first"]);
         Assert.AreEqual((ushort)0xC3B2, values[0]["second"]);
         Assert.AreEqual((byte)0xD4, values[1]["first"]);
         Assert.AreEqual((ushort)0x2716, values[1]["second"]);
-        Assert.AreEqual(8L, stream.Position);
+        Assert.AreEqual(9L, stream.Position);
     }
 
     /// <summary>One accessor of a double pointer returns the remaining pointer, not its final scalar target.</summary>

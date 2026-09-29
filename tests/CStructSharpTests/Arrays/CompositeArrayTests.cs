@@ -84,19 +84,25 @@ public class CompositeArrayTests
         Assert.AreEqual(1, codec.ReadCalls);
     }
 
-    /// <summary>A smaller field alignment must not authorize relative-offset block decoding.</summary>
+    /// <summary>
+    ///     A smaller field alignment moves where an array of structs starts, not how each element is laid out: an
+    ///     element at an odd offset keeps its four-byte layout, on the fast and the general path.
+    /// </summary>
     [TestMethod]
-    public void FieldAlignmentOverride_PreservesAbsoluteChildOffsets()
+    public void FieldAlignmentOverride_KeepsTheElementLayout()
     {
         var layout = new CStruct("struct item { uint8 first; uint16 second; }; struct root { uint8 count; uint8 prefix[count]; item values[2] @align(1); uint8 tail; };", aligned: true, isLittleEndian: true);
-        byte[] bytes = [0, 0xA1, 0xB2, 0xC3, 0xD4, 0xEE, 0x16, 0x27, 99, 0,];
-        dynamic parsed = layout.Parse(bytes.AsSpan(), "root");
-        var values = ((IEnumerable<object?>)parsed.values).Cast<StructValue>().ToArray();
-        Assert.AreEqual((byte)0xA1, values[0]["first"]);
-        Assert.AreEqual((ushort)0xC3B2, values[0]["second"]);
-        Assert.AreEqual((byte)0xD4, values[1]["first"]);
-        Assert.AreEqual((ushort)0x2716, values[1]["second"]);
-        Assert.AreEqual((byte)99, (byte)parsed.tail);
+        byte[] bytes = [0, 0xA1, 0xEE, 0xB2, 0xC3, 0xD4, 0xEE, 0x16, 0x27, 99, 0,];
+        foreach (ExecutionPath path in (ExecutionPath[])[ExecutionPath.Fastest, ExecutionPath.GeneralOnly])
+        {
+            dynamic parsed = layout.Parse(bytes.AsSpan(), "root", null, new ReadOptions { ExecutionPath = path, });
+            var values = ((IEnumerable<object?>)parsed.values).Cast<StructValue>().ToArray();
+            Assert.AreEqual((byte)0xA1, values[0]["first"]);
+            Assert.AreEqual((ushort)0xC3B2, values[0]["second"]);
+            Assert.AreEqual((byte)0xD4, values[1]["first"]);
+            Assert.AreEqual((ushort)0x2716, values[1]["second"]);
+            Assert.AreEqual((byte)99, (byte)parsed.tail);
+        }
     }
 
     /// <summary>An inner array limit fails after the preceding scalar, without consuming the remaining record block.</summary>
@@ -114,12 +120,12 @@ public class CompositeArrayTests
         Assert.AreEqual(2L, error.Offset);
     }
 
-    /// <summary>An aligned root array advances past an odd input position before reading its first record.</summary>
+    /// <summary>An aligned root array starts at an odd input position, and each record keeps its own layout.</summary>
     [TestMethod]
-    public void RootArray_AlignsItsFirstRecord()
+    public void RootArray_StartsAtAnOddPosition()
     {
         var layout = new CStruct("struct item { uint8 first; uint16 second; }; typedef item pair[2];", aligned: true);
-        using var source = new MemoryStream(new byte[] { 0, 0xEE, 0xA1, 0, 0xB2, 0xC3, 0xD4, 0, 0xE5, 0xF6, });
+        using var source = new MemoryStream(new byte[] { 0xEE, 0xA1, 0, 0xB2, 0xC3, 0xD4, 0, 0xE5, 0xF6, });
         source.Position = 1;
         StructValue[] values = layout.ReadValue<StructValue[]>(source, "pair");
         Assert.HasCount(2, values);
@@ -127,7 +133,7 @@ public class CompositeArrayTests
         Assert.AreEqual((ushort)0xC3B2, values[0]["second"]);
         Assert.AreEqual((byte)0xD4, values[1]["first"]);
         Assert.AreEqual((ushort)0xF6E5, values[1]["second"]);
-        Assert.AreEqual(10L, source.Position);
+        Assert.AreEqual(9L, source.Position);
     }
 
     /// <summary>Declares a large fixed storage extent while handling truncated spans without allocation.</summary>

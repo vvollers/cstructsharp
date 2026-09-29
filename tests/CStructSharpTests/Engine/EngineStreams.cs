@@ -8,10 +8,10 @@ namespace CStructSharp.Tests;
 internal static class EngineStreams
 {
     /// <summary>
-    ///     The stream position at which the data of an <see cref="EngineInput.ExposedStream"/> starts: a multiple of every
-    ///     alignment, because a stream read places aligned members by absolute stream position.
+    ///     The stream position at which the data of an <see cref="EngineInput.ExposedStream"/> starts: odd, so the sweeps
+    ///     check that aligned members are placed from the record's own first byte, not from the stream's origin.
     /// </summary>
-    public const int ExposedStart = 8;
+    public const int ExposedStart = 5;
 
     /// <summary>The number of buffer bytes before an <see cref="EngineInput.ExposedStream"/>'s origin.</summary>
     private const int ExposedOrigin = 3;

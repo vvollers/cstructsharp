@@ -51,11 +51,13 @@ public sealed partial class CStruct
         return currentLevel;
     }
 
-    /// <summary>Moves a nested struct to the same compiled parent boundary used by size, write, and address operations.</summary>
-    private void PrepareNestedStructStart(
-        CompiledCompositeType strct,
-        CStructOperationContext state,
-        long unionPosition)
+    /// <summary>
+    ///     Prepares a struct read without a parent cursor - a root, a union member, or a pointer target - which starts
+    ///     exactly at the stream position: its members align from that first byte (see <see cref="PlacementCursor"/>),
+    ///     so the start itself is never moved. Only an unfinished bitfield unit of a preceding read is closed.
+    /// </summary>
+    /// <param name="state">The read state.</param>
+    private static void PrepareNestedStructStart(CStructOperationContext state)
     {
         if (state.CurrentBitOffset > 0)
         {
@@ -63,13 +65,6 @@ public sealed partial class CStruct
             state.Stream.Position = state.NextPosition;
             state.ResetBitfieldUnit();
         }
-
-        if (!state.Aligned || unionPosition != -1)
-        {
-            return;
-        }
-
-        state.Stream.Position = LayoutMath.AlignUp(state.Stream.Position, strct.Symbol.Alignment);
     }
 
     /// <summary>
@@ -120,7 +115,7 @@ public sealed partial class CStruct
             }
             else
             {
-                this.PrepareNestedStructStart(composite, state, unionPosition);
+                PrepareNestedStructStart(state);
             }
         }
 
@@ -1184,7 +1179,7 @@ public sealed partial class CStruct
             compiledField.PointerDepth == 0 && compiledField.Composite is { IsUnion: false } composite && compiledField.Array.Dimensions.Length == 1)
         {
             if (composite.StaticPlan is StaticReadPlan plan && plan.Size > 0 && compiledField.FixedElementSize == plan.Size &&
-                state.CoversPlan(plan) && StaticReadPlan.CanRunAt(composite, this.Aligned, state.Stream.Position) &&
+                state.CoversPlan(plan) &&
                 (long)count * plan.Size <= int.MaxValue &&
                 state.Stream.TryReadSpanWithinBudget(count * plan.Size, out ReadOnlySpan<byte> elements))
             {
@@ -1286,13 +1281,8 @@ public sealed partial class CStruct
     {
         CompiledField compiledField = read.Field;
 
-        // The cursor already aligned the field once (not per array element); only a standalone root field aligns here.
+        // The cursor already aligned the field once (not per array element); a standalone field starts where it is.
         long start = state.Stream.Position;
-        if (read.Standalone && state.Aligned && read.UnionPosition == -1 && !read.PositionIsResolvedTarget)
-        {
-            state.Stream.Position = LayoutMath.AlignUp(start, compiledField.Alignment);
-            start = state.Stream.Position;
-        }
 
         EnumValueResult value = this.ReadEnumValue(compiledField, enm, state.Stream);
         if (state.Debug)
@@ -1321,7 +1311,7 @@ public sealed partial class CStruct
         CompiledField compiledField = read.Field;
         if (read.Standalone && !read.PositionIsResolvedTarget)
         {
-            this.PrepareNestedStructStart(nested, state, read.UnionPosition);
+            PrepareNestedStructStart(state);
         }
 
         string? outerPrefix = state.QualifiedPrefix;
@@ -1371,15 +1361,9 @@ public sealed partial class CStruct
                                         throw new InvalidOperationException("Compiled bitfield has no storage size: " + compiledField.Name);
         }
 
+        // A standalone field - a root, a union member, a pointer target or a resolved target - starts exactly where the
+        // stream is: alignment is measured from the start of the value being read, never from the stream's origin.
         long start = state.Stream.Position;
-        if (read.Standalone && state.Aligned && read.UnionPosition == -1 && !read.PositionIsResolvedTarget)
-        {
-            // Only a root declaration gets here: a union member starts exactly at the union's compiled start (even when a
-            // pointer target is not naturally aligned in the containing stream), and a resolved target at its resolved
-            // address. A root starts at its own boundary.
-            state.Stream.Position = LayoutMath.AlignUp(start, compiledField.Alignment);
-            start = state.Stream.Position;
-        }
 
         // A bitfield whose placed unit differs from its declared type (a packed SysV window) is read as a raw unsigned
         // unit of that size. Fixed-width numerics decode straight from a memory-backed stream; every other codec, and

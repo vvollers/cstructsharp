@@ -4,26 +4,35 @@ namespace CStructSharp.Tests;
 [TestClass]
 public class TerminatedRecordExtentOverflowTests
 {
-    /// <summary>Reading the array rejects a terminator whose aligned end exceeds the stream-coordinate domain.</summary>
+    /// <summary>
+    ///     Reading the array up to the last stream coordinate succeeds, and the field after it fails as truncated there:
+    ///     the records keep their eight-byte layout wherever they start, so the terminator ends exactly at the end.
+    /// </summary>
     [TestMethod]
-    public void ReadAlignedTerminator_RejectsAnUnrepresentableEnd()
+    public void ReadAlignedTerminator_EndsAtTheLastCoordinate()
     {
         var layout = new CStruct("struct item { uint8 value @align(8); }; struct root { item items[] @align(1); uint8 tail; };", aligned: true);
         byte[] bytes = new byte[16];
         bytes[0] = 1;
         using var source = new HighOriginSource(bytes);
-        Assert.Throws<OverflowException>(() => layout.Parse(source, "root"));
+        CStructSharp.Diagnostics.CStructReadException failure = Assert.ThrowsExactly<CStructSharp.Diagnostics.CStructReadException>(() => layout.Parse(source, "root"));
+        StringAssert.StartsWith(failure.Message, CStructSharp.Diagnostics.ReadFailures.ShortReadPrefix);
+        Assert.AreEqual(long.MaxValue, failure.Offset);
     }
 
-    /// <summary>Absolute member alignment can leave insufficient coordinate space for the final terminator.</summary>
+    /// <summary>
+    ///     A field that starts at the last stream coordinate resolves there, and resolving past it fails as truncated
+    ///     rather than wrapping: here <c>tail</c> starts at <see cref="long.MaxValue"/>, so <c>after</c> has no bytes.
+    /// </summary>
     [TestMethod]
-    public void AlignedTerminator_RejectsAnUnrepresentableEnd()
+    public void AlignedTerminator_ResolvesUpToTheLastCoordinate()
     {
-        var layout = new CStruct("struct item { uint8 value @align(8); }; struct root { item items[] @align(1); uint8 tail; };", aligned: true);
+        var layout = new CStruct("struct item { uint8 value @align(8); }; struct root { item items[] @align(1); uint64 tail; uint8 after; };", aligned: true);
         byte[] bytes = new byte[16];
         bytes[0] = 1;
         using var source = new HighOriginSource(bytes);
-        Assert.Throws<OverflowException>(() => layout.ResolveAddress(source, "root.tail"));
+        Assert.AreEqual(long.MaxValue, layout.ResolveAddress(source, "root.tail"));
+        Assert.ThrowsExactly<CStructSharp.Diagnostics.CStructReadException>(() => layout.ResolveAddress(source, "root.after"));
         Assert.AreEqual(long.MaxValue - 16, source.Position);
     }
 

@@ -732,11 +732,11 @@ public sealed partial class CStruct
     /// <summary>
     ///     Places a field for a write: a union member at the union's start, a struct member where the composite cursor
     ///     puts it (with its bitfield unit, once for every array element). A standalone field - a root declaration, a
-    ///     union member, or a resolved path target - has no cursor, starts with no open bitfield unit, and only a root
-    ///     declaration aligns, as in the reader.
+    ///     union member, or a resolved path target - has no cursor, starts with no open bitfield unit, and starts exactly
+    ///     at the stream position, as in the reader: alignment is measured from the value's own first byte.
     /// </summary>
     /// <param name="compiledField">The field.</param>
-    /// <param name="valueField">The field the value is written as, whose alignment a root applies.</param>
+    /// <param name="valueField">The field the value is written as, whose alignment the composite cursor applies.</param>
     /// <param name="state">The write state, whose stream and bitfield unit are set.</param>
     /// <param name="unionPosition">The union's start, or -1.</param>
     /// <param name="cursor">The containing struct's cursor, or <see langword="null"/>.</param>
@@ -765,12 +765,6 @@ public sealed partial class CStruct
                 state.BitfieldUnitOpen = true;
                 state.CurrentBitfieldSize = compiledField.BitStorageSize ??
                                             throw new InvalidOperationException("Compiled bitfield has no storage size: " + compiledField.Name);
-            }
-
-            // The alignment is the real field type's, after pointers and aliases.
-            if (state.Aligned && unionPosition == -1 && !positionIsResolvedTarget)
-            {
-                state.Stream.Position = LayoutMath.AlignUp(state.Stream.Position, valueField.Alignment);
             }
 
             return true;

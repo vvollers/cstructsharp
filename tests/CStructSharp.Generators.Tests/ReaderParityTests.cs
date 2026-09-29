@@ -206,6 +206,17 @@ public class ReaderParityTests
     }
 
     /// <summary>
+    ///     A pointer target at an unaligned address places its members from the target's own first byte in both
+    ///     readers: <c>t.b</c> of a target at 3 is at 7.
+    /// </summary>
+    [TestMethod]
+    public void UnalignedPointerTarget_MatchesTheRuntime()
+    {
+        const string Root = "Root = \"rec\", PointerSize = 1, Aligned = true, LittleEndian = true";
+        RunParity("unaligned-pointer-target", "struct t { uint8 a; uint32 b; }; struct rec { uint8 tag; t *p; };", Root, "rec", [0x09, 0x03, 0xEE, 0x11, 0xEE, 0xEE, 0xEE, 0x44, 0x33, 0x22, 0x11,], new Dictionary<string, int>(), null, null);
+    }
+
+    /// <summary>
     ///     An enum or flag bitfield that sizes a later array counts with its own bits in both readers, whichever bits of
     ///     its storage unit it occupies.
     /// </summary>

@@ -94,6 +94,22 @@ after padding, such as `11 00 00 00`, fails at the next field with `Not enough b
 failure, message, and offset: a span, an array, a sequence, and every kind of stream. Supply the padding bytes, or
 use a packed layout when the format has no padding.
 
+Alignment is measured from the struct's own first byte, not from the start of the stream. This is how a C compiler
+places members: a member's offset inside its struct is the same wherever the struct sits. So a record reads the
+same values from a span and from a stream positioned anywhere, even at an odd position. Suppose a stream holds three
+unrelated bytes and then the 12 aligned bytes of `sample`, and it is positioned at 3:
+
+```text
+stream position  0  1  2 | 3  4  5  6  7  8  9  10 11 12 13 14
+field            (other) | a  pad───── b────────── c──── pad──
+bytes            EE EE EE| 11 00 00 00 55 44 33 22 77 66 00 00
+```
+
+`a` is at 3, `b` at 3 + 4 = 7, and `c` at 3 + 8 = 11, the offsets 0, 4, and 8 that a span shows. Positions that an
+operation reports - `ResolveAddress`, debug byte ranges, failure offsets, and where the stream is left - are stream
+positions, so `ResolveAddress(stream, "sample.b")` returns 7. The same rule places a struct that a pointer targets:
+its members count from the target address, even an unaligned one.
+
 Neutral multi-byte fields follow `isLittleEndian`. `<` forces little-endian for one supported primitive and `>`
 forces big-endian:
 

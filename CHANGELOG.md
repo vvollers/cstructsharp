@@ -10,6 +10,15 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Breaking changes
 
+- **Breaking (layout):** in an aligned layout a struct's members are aligned from the struct's own first byte, as C
+  lays them out, instead of from stream position 0. A record read from or written to a stream at a position that is not
+  a multiple of its alignment, a pointer target at an unaligned address, a root scalar or array at such a position, and
+  the elements of an array of structs whose field has a smaller `@align` override keep their compiled offsets, so they
+  read and write what the same bytes in a span give; members and roots were moved to absolute alignment boundaries.
+  Reported positions (`ResolveAddress`, debug ranges, failure offsets, pointer addresses) remain stream positions.
+  Migration: if your data relied on alignment counted from the start of the stream, position the stream at a multiple
+  of the struct's alignment or add the padding explicitly (an `@N` offset or a padding field), and re-check pointer
+  targets at unaligned addresses.
 - **Breaking (reading):** an aligned struct whose input ends inside its padding - between fields or after the last
   field - fails with `ReadFailed` ("The requested position is outside the supplied memory region") from every source,
   as a span already did. A stream missing only the tail padding succeeded and left its position past its length, and a

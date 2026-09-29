@@ -20,7 +20,8 @@ internal enum EngineInput
 
     /// <summary>
     ///     A <see cref="MemoryStream"/> that exposes its buffer, whose origin is three bytes into that buffer and whose
-    ///     data starts eight bytes after the origin, where the stream is positioned (<see cref="EngineStreams.ExposedStart"/>).
+    ///     data starts five bytes after the origin - an odd stream position - where the stream is positioned
+    ///     (<see cref="EngineStreams.ExposedStart"/>).
     /// </summary>
     ExposedStream,
 
