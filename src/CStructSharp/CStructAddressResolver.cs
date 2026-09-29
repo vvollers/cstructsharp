@@ -399,7 +399,7 @@ public sealed partial class CStruct
         this.EnsurePointerTargetSize(
             compiledField.PointerDepth,
             compiledField,
-            state,
+            state.MaxPointerTargetBytes,
             1);
 
         long target = this.ReadPointerTargetAddress(pointerStorage, state);

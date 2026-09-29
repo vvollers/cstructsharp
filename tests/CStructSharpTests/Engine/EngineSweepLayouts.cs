@@ -14,8 +14,9 @@ using CStructSharp.Values;
 ///     one inside nested structs, LEB128, fixed text, and caller variables in 128-bit expressions; bitfields under the
 ///     MSVC rule, high bit first with a <c>: 0</c> separator, and enum bitfields that size arrays; nested unions with array
 ///     views, an inline struct view and a promoted union, a union whose struct view has conditionals and captures a name
-///     the struct outside it also uses, and bitfields in a union. Each is compiled packed and aligned
-///     (<see cref="Variant"/>).
+///     the struct outside it also uses, and bitfields in a union; pointer arrays, a linked list followed through nested
+///     deferred targets, a pointer in a union view with a <c>void *</c> and a two-level pointer, and counted struct and
+///     text targets whose counts are later fields. Each is compiled packed and aligned (<see cref="Variant"/>).
 /// </summary>
 internal static class EngineSweepLayouts
 {
@@ -160,6 +161,40 @@ internal static class EngineSweepLayouts
             [("rec.p.value.w", (byte)5), ("rec.tail", (byte)4)],
             PointerSize: 1,
             Names: ["n"]),
+        new(
+            "pointer-arrays",
+            "struct node { uint8 v; }; struct rec { uint8 n; node *items[2]; uint8 *bytes[n]; uint8 tail; };",
+            [0x02, 0x06, 0x07, 0x08, 0x00, 0x09, 0xA1, 0xA2, 0xB1],
+            ["rec.items", "rec.bytes", "rec.tail"],
+            "rec.bytes",
+            [("rec.tail", (byte)4)],
+            PointerSize: 1,
+            Names: ["n"]),
+        new(
+            "pointer-list",
+            "struct node { uint8 v; node *next; }; struct rec { node head; node spare[2]; uint8 tail; };",
+            [0x11, 0x02, 0x12, 0x04, 0x13, 0x00, 0x19],
+            ["rec.head", "rec.head.next.value", "rec.tail"],
+            null,
+            [("rec.tail", (byte)4)],
+            PointerSize: 1),
+        new(
+            "pointer-views",
+            "union u { uint8 raw; uint8 *p; }; struct rec { uint8 tag; u view; void *opaque; uint8 **pp; uint8 tail; };",
+            [0x07, 0x05, 0x06, 0x05, 0x09, 0x06, 0xAB],
+            ["rec.pp", "rec.view", "rec.tail"],
+            null,
+            [("rec.tail", (byte)4)],
+            PointerSize: 1),
+        new(
+            "pointer-counted",
+            "struct pt { uint8 x; uint8 y; }; struct rec { pt *pts @count(n); char *name @count(k); uint8 n; uint8 k; uint8 tail; };",
+            [0x05, 0x09, 0x02, 0x02, 0x09, 0x01, 0x02, 0x03, 0x04, (byte)'h', (byte)'i'],
+            ["rec.pts.value", "rec.name.value", "rec.tail"],
+            null,
+            [("rec.tail", (byte)4)],
+            PointerSize: 1,
+            Names: ["n", "k"]),
         new(
             "terminated",
             "struct entry { uint8 a; uint8 b; }; struct rec { char name[]; entry entries[]; uint8 tail; };",

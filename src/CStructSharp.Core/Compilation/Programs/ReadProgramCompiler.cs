@@ -37,17 +37,20 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 ///         program of member views, each read from the union's first byte with the variables it was entered with.
 ///     </para>
 ///     <para>
-///         Anything outside the engine's current feature set gives a reason instead of a program: pointers (stage 5). A
-///         compiler is used for one request on one thread.
+///         A pointer inside a struct is deferred where the interpreter defers it: its address is read in place and its
+///         target followed after the struct's last member (<see cref="ReadOpCode.FollowPendingPointers"/>). A pointer's
+///         struct or union target is not compiled with the program that points to it (a linked list points to itself); a
+///         root is eligible only when every composite its pointers can reach compiled.
+///     </para>
+///     <para>
+///         A member the engine cannot read gives a reason instead of a program. A compiler is used for one request on one
+///         thread.
 ///     </para>
 /// </remarks>
 internal sealed class ReadProgramCompiler
 {
     /// <summary>The reason for an array of bitfields, which the interpreter has no reader for either.</summary>
     public const string BitfieldArrays = "a bitfield array has no reader";
-
-    /// <summary>The reason for a pointer field.</summary>
-    public const string Pointers = "pointers are not supported yet (stage 5)";
 
     /// <summary>The reason for a field the catalog has no reader for; the interpreter fails such a read.</summary>
     public const string NoReader = "the field has no codec reader";
@@ -117,7 +120,7 @@ internal sealed class ReadProgramCompiler
                     return ReadProgramOutcome.NotSupported(reason);
                 }
 
-                return ReadProgramOutcome.Eligible(builder.Build(ReadProgramKind.Root, rootName, null));
+                return this.CheckPointerTargets(builder.Build(ReadProgramKind.Root, rootName, null));
             }
 
         case Defines definition:
@@ -312,7 +315,53 @@ internal sealed class ReadProgramCompiler
 
         var builder = new ReadProgramBuilder(this.cache.Table, [], rootShape, 0);
         builder.Emit(composite.IsUnion ? ReadOpCode.ReadRootUnion : ReadOpCode.ReadRootStruct, -1, builder.AddNested(program), -1);
-        return ReadProgramOutcome.Eligible(builder.Build(ReadProgramKind.Root, key, null));
+        return this.CheckPointerTargets(builder.Build(ReadProgramKind.Root, key, null));
+    }
+
+    /// <summary>
+    ///     Makes a root eligible only when every struct or union its pointers can reach - through nested programs and
+    ///     through the targets' own pointers - has a program: each is compiled on first request, and the first one that
+    ///     cannot be read gives the root its reason.
+    /// </summary>
+    /// <param name="root">The root's program.</param>
+    /// <returns>The root's outcome.</returns>
+    private ReadProgramOutcome CheckPointerTargets(ReadProgram root)
+    {
+        var visited = new HashSet<ReadProgram>(ReferenceEqualityComparer.Instance) { root, };
+        var pending = new Stack<ReadProgram>();
+        pending.Push(root);
+        while (pending.Count > 0)
+        {
+            ReadProgram program = pending.Pop();
+            foreach (ReadProgram nested in program.Nested)
+            {
+                if (visited.Add(nested))
+                {
+                    pending.Push(nested);
+                }
+            }
+
+            foreach (ReadPointerTarget target in program.PointerTargets)
+            {
+                if (target.Composite is not { } composite)
+                {
+                    continue;
+                }
+
+                ReadProgramOutcome outcome = this.cache.GetComposite(this.compilation, composite);
+                if (outcome.Program is not { } reached)
+                {
+                    return outcome;
+                }
+
+                if (visited.Add(reached))
+                {
+                    pending.Push(reached);
+                }
+            }
+        }
+
+        return ReadProgramOutcome.Eligible(root);
     }
 
     /// <summary>
@@ -398,6 +447,13 @@ internal sealed class ReadProgramCompiler
         }
 
         int alignment = composite.Symbol.Alignment;
+
+        // A named struct follows the pointers it and its promoted members deferred once every member is read.
+        if (kind == ReadProgramKind.Composite && builder.DefersPointers)
+        {
+            builder.Emit(ReadOpCode.FollowPendingPointers, -1, 0, 0);
+        }
+
         if (builder.UsesPlacementCursor)
         {
             builder.Emit(ReadOpCode.FinishPlaced, -1, 0, alignment);
@@ -436,11 +492,6 @@ internal sealed class ReadProgramCompiler
             }
 
             return null;
-        }
-
-        if (field.PointerDepth > 0)
-        {
-            return Refuse(location, field, Pointers);
         }
 
         if (field.BitSize > 0)
@@ -658,6 +709,8 @@ internal sealed class ReadProgramCompiler
             return nested.Reason;
         }
 
+        // A promoted struct's deferred pointers are followed by this struct.
+        builder.DefersPointers |= promoted && program.DefersPointers;
         int prefix = field.HasQualifiedPrefix ? builder.AddPrefix(field.QualifiedPrefix!) : -1;
         builder.Emit(
             (promoted, composite.IsUnion) switch
@@ -721,6 +774,11 @@ internal sealed class ReadProgramCompiler
     private string? EmitRead(ReadProgramBuilder builder, int index, string location, bool standalone)
     {
         CompiledField field = builder.Fields[index];
+        if (field.PointerDepth > 0)
+        {
+            return this.EmitPointerRead(builder, index, location, standalone);
+        }
+
         int codec = builder.AddCodec(field.CodecId, field.Codec);
         switch (field.Array.Kind)
         {
@@ -861,6 +919,96 @@ internal sealed class ReadProgramCompiler
         builder.Emit(op, index, codec, 0);
         EmitReshape(builder, index, table);
         return null;
+    }
+
+    /// <summary>
+    ///     Emits a pointer member's read: its target description, and the pointer (or, for an array, each element) read
+    ///     deferred where the interpreter defers it - a pointer a struct places that <see cref="CompiledField.FollowsAfterStruct"/>
+    ///     - and followed in place otherwise.
+    /// </summary>
+    /// <param name="builder">The program under construction.</param>
+    /// <param name="index">The member's index.</param>
+    /// <param name="location">The struct's name, for reasons.</param>
+    /// <param name="standalone">Whether no composite places the member (a root, a union view).</param>
+    /// <returns>A reason, or <see langword="null"/>.</returns>
+    private string? EmitPointerRead(ReadProgramBuilder builder, int index, string location, bool standalone)
+    {
+        CompiledField field = builder.Fields[index];
+        if (this.DescribePointerTarget(field) is not { } target)
+        {
+            return Refuse(location, field, UnslottedName + this.FirstUnslottedName(field.PointerElements!.CountExpression!));
+        }
+
+        bool deferred = !standalone && field.FollowsAfterStruct;
+        builder.DefersPointers |= deferred;
+        bool array = field.Array.Kind != CompiledArrayKind.Scalar;
+        builder.Emit(array ? ReadOpCode.ReadPointerArray : ReadOpCode.ReadPointer, index, builder.AddPointerTarget(target), deferred ? 1 : 0);
+        EmitReshape(builder, index, field.Array.Dimensions.Length > 1);
+        return null;
+    }
+
+    /// <summary>
+    ///     Describes a pointer's final target in the interpreter's order of checks: a counted target (by its element's
+    ///     kind), an enum, a struct or union, terminated text, then any other value through its codec.
+    /// </summary>
+    /// <param name="field">The pointer field.</param>
+    /// <returns>The target, or <see langword="null"/> when a data-dependent count names an identifier without a slot.</returns>
+    private ReadPointerTarget? DescribePointerTarget(CompiledField field)
+    {
+        int pointerSize = this.compilation.PointerSize;
+        if (field.HasCountedTarget)
+        {
+            CompiledArrayShape elements = field.PointerElements!;
+            ProgramExpression? count = null;
+            if (elements.FixedCount is null)
+            {
+                if (this.FirstUnslottedName(elements.CountExpression!) is not null)
+                {
+                    return null;
+                }
+
+                count = this.cache.Table.Compile(elements.CountExpression!);
+            }
+
+            CompiledField element = field.CountedElement(pointerSize);
+            var elementCodec = new ReadProgram.Codec(element.CodecId, element.Codec);
+            if (element.IsCharElement || element.IsWideCharElement)
+            {
+                return new ReadPointerTarget(field, ReadPointerTargetKind.CountedText, elementCodec, null, null, element, count);
+            }
+
+            if (element.Codec.IsFixedWidthNumeric && element.Enum is null)
+            {
+                return new ReadPointerTarget(field, ReadPointerTargetKind.CountedNumbers, elementCodec, null, null, element, count);
+            }
+
+            if (element.Type.Symbol.Definition is CompiledCompositeType elementComposite)
+            {
+                return new ReadPointerTarget(field, ReadPointerTargetKind.CountedComposites, elementCodec, null, elementComposite, element, count);
+            }
+
+            return element.Enum is { } elementEnum
+                       ? new ReadPointerTarget(field, ReadPointerTargetKind.CountedEnums, elementCodec, elementEnum, null, element, count)
+                       : new ReadPointerTarget(field, ReadPointerTargetKind.CountedValues, elementCodec, null, null, element, count);
+        }
+
+        CompiledField view = field.SelectPointerTarget(0, null, pointerSize);
+        var codec = new ReadProgram.Codec(field.CodecId, view.Codec);
+        return field.Type.Symbol.Definition switch
+        {
+            CompiledEnumType enm => new ReadPointerTarget(field, ReadPointerTargetKind.Enum, codec, enm, null, null, null),
+            CompiledCompositeType composite => new ReadPointerTarget(field, ReadPointerTargetKind.Composite, codec, null, composite, null, null),
+            _ when field.HasTerminatedCodec => new ReadPointerTarget(
+                field,
+                ReadPointerTargetKind.Terminated,
+                new ReadProgram.Codec(field.TerminatedCodecId, PrimitiveCodec.Resolve(PrimitiveCatalog.CanonicalNames[field.TerminatedCodecId], field.LayoutLittleEndian)),
+                null,
+                null,
+                null,
+                null),
+            _ when field.CodecId >= 0 => new ReadPointerTarget(field, ReadPointerTargetKind.Value, codec, null, null, null, null),
+            _ => new ReadPointerTarget(field, ReadPointerTargetKind.NoReader, codec, null, null, null, null),
+        };
     }
 
     /// <summary>

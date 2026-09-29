@@ -467,19 +467,12 @@ public class ReadProgramCompilerTests
     }
 
     /// <summary>
-    ///     Anything the engine cannot read yet is refused with the innermost struct and member and the stage that adds it,
-    ///     and the refusal reaches every struct and root that holds it.
+    ///     A root the engine cannot read is refused with the reason: an undeclared name, and a definition whose value is not
+    ///     an integer.
     /// </summary>
     [TestMethod]
     public void Reasons_NameTheInnermostUnsupportedMember()
     {
-        AssertReason("union u { uint8 a; uint8 *p; }; struct root { u value; };", "root", "u.p: " + ReadProgramCompiler.Pointers);
-        AssertReason("struct root { union { uint8 a; uint8 *p; }; };", "root", "(anonymous union).p: " + ReadProgramCompiler.Pointers);
-        AssertReason("union u { uint8 a; uint8 *p; };", "u", "u.p: " + ReadProgramCompiler.Pointers);
-        AssertReason("struct root { uint8 *p; };", "root", "root.p: " + ReadProgramCompiler.Pointers);
-        AssertReason("struct leaf { uint8 *p; }; struct mid { leaf l; }; struct root { uint8 a; mid m[2]; };", "root", "leaf.p: " + ReadProgramCompiler.Pointers);
-        AssertReason("struct root { uint8 a; struct { uint8 *p; }; };", "root", "(anonymous struct).p: " + ReadProgramCompiler.Pointers);
-        AssertReason("struct root { uint8 grid[2][2]; uint8 *p; };", "root", "root.p: " + ReadProgramCompiler.Pointers);
         AssertReason("struct root { uint8 a; };", "missing", "missing: the layout declares no such root");
         AssertReason("#define MAGIC \"PNG\"\nstruct root { uint8 a; };", "MAGIC", "MAGIC: " + ReadProgramCompiler.UnreadableRoot);
     }
@@ -528,6 +521,26 @@ public class ReadProgramCompilerTests
         AssertLines(
             ["ReadCustom w Custom", "ReadUInt8 b UInt8", "FinishComposite - tail to 4"],
             ReadProgramDump.Lines(root.Nested.Single(), layout.Compilation.SlotTable));
+    }
+
+    /// <summary>
+    ///     Pointers compile where the interpreter reads them: a struct defers its own and its promoted members' pointers and
+    ///     follows them after its last member, a union view and a root follow in place, and a pointer's struct target is
+    ///     compiled on its own - a self-referential list is eligible, and every struct a pointer reaches is checked.
+    /// </summary>
+    [TestMethod]
+    public void Pointers_DeferInStructsAndFollowInPlaceElsewhere()
+    {
+        var layout = new CStruct("struct node { uint8 v; node *next; }; struct root { uint8 n; struct { node *head; }; uint8 *bytes @count(n); }; union u { uint8 a; node *p; };", 1);
+        AssertLines(
+            ["ReadUInt8 n UInt8", "CaptureInteger n -> n", "ReadPromotedStruct (anonymous) (anonymous)", "ReadPointer bytes deferred CountedNumbers", "FollowPendingPointers -", "FinishComposite - tail +0"],
+            ReadProgramDump.Lines(RootProgram(layout, "root").Nested[0], layout.Compilation.SlotTable));
+        AssertLines(
+            ["ReadUInt8 v UInt8", "ReadPointer next deferred Composite", "FollowPendingPointers -", "FinishComposite - tail +0"],
+            ReadProgramDump.Lines(RootProgram(layout, "node").Nested[0], layout.Compilation.SlotTable));
+        ReadProgram union = RootProgram(layout, "u").Nested[0];
+        Assert.AreEqual(0, union.Steps.Single(step => step.Op == ReadOpCode.ReadPointer).B, "a union view reads in place (its follow is suppressed)");
+        Assert.IsTrue(union.Steps.All(step => step.Op != ReadOpCode.FollowPendingPointers));
     }
 
     /// <summary>Applies one placement step to a simulated position.</summary>

@@ -614,14 +614,18 @@ internal static partial class ReadEngine
         }
 
         int outer = state.SaveUnionSlots();
+        bool suppressed = state.SuppressPointers;
         try
         {
+            // An untagged union has no active member: a view never follows a pointer its bytes happen to hold.
+            state.SuppressPointers = true;
             RunFrame(ref cursor, ref state, program, members);
         }
         finally
         {
             state.RestoreUnionSlots();
             state.ReleaseUnionSlots(outer);
+            state.SuppressPointers = suppressed;
             if (!promoted)
             {
                 state.StructureDepth--;

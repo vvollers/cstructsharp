@@ -230,6 +230,7 @@ internal static partial class ReadEngine
             }
         }
 
+        int pendingStart = state.PendingPointerCount;
         state.EnterStructure(ref cursor);
         try
         {
@@ -237,6 +238,8 @@ internal static partial class ReadEngine
         }
         finally
         {
+            // After a failure the struct's unfollowed pointers are dropped, so no later read follows them.
+            state.DiscardPendingPointers(pendingStart);
             state.StructureDepth--;
         }
     }
@@ -283,6 +286,10 @@ internal static partial class ReadEngine
                                      : default;
         int bitOffset = 0;
         int unitSize = 0;
+
+        // The deferred pointers of enclosing structs; the ones queued after them are this struct's to follow. A program
+        // that defers none never reads it.
+        int pendingStart = program.DefersPointers ? state.PendingPointerCount : 0;
         try
         {
             for (int index = 0; index < steps.Length; index++)
@@ -650,6 +657,27 @@ internal static partial class ReadEngine
                 case ReadOpCode.ReadBitfield:
                     last = ReadBitfield(ref cursor, ref state, program.Fields[field], program.Codecs[step.A].Primitive, ref bitOffset, unitSize, scratch);
                     Store(destination, program, field, last);
+                    break;
+
+                case ReadOpCode.ReadPointer:
+                    last = ReadPointerField(ref cursor, ref state, program.PointerTargets[step.A], step.B == 1, scratch);
+                    Store(destination, program, field, last);
+                    break;
+
+                case ReadOpCode.ReadPointerArray:
+                    {
+                        var pointers = new List<object?>(count);
+                        for (int element = 0; element < count; element++)
+                        {
+                            pointers.Add(ReadPointerField(ref cursor, ref state, program.PointerTargets[step.A], step.B == 1, scratch));
+                        }
+
+                        Store(destination, program, field, pointers);
+                        break;
+                    }
+
+                case ReadOpCode.FollowPendingPointers:
+                    FollowPendingPointers(ref cursor, ref state, pendingStart, scratch);
                     break;
 
                 case ReadOpCode.RewindToUnionStart:

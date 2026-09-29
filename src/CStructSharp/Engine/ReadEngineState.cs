@@ -43,6 +43,7 @@ internal struct ReadEngineState
     private int localTop;
     private int localHigh;
     private int unionSlots;
+    private PointerTraversal? pointers;
 
     /// <summary>Creates the state of one operation.</summary>
     /// <param name="layout">The layout being read, which owns the codecs and text encodings the steps use.</param>
@@ -56,6 +57,14 @@ internal struct ReadEngineState
         this.MaxNestingDepth = options.MaxNestingDepth;
         this.TrimFixedText = options.TrimFixedText;
         this.GeneralPathOnly = options.ExecutionPath == ExecutionPath.GeneralOnly;
+        this.DereferencePointers = options.DereferencePointers;
+        this.AddressingMode = options.AddressingMode;
+        this.PointerOrigin = options.Origin;
+        this.MaxPointerDepth = options.MaxPointerDepth;
+        this.MaxPointerTargetBytes = options.MaxPointerTargetBytes;
+        this.PointerDepth = 0;
+        this.SuppressPointers = false;
+        this.pointers = null;
         this.StructureDepth = 0;
         this.QualifiedPrefix = null;
         this.arms = null;
@@ -86,6 +95,36 @@ internal struct ReadEngineState
     ///     as the interpreter does under the same option.
     /// </summary>
     public bool GeneralPathOnly { get; }
+
+    /// <summary>Gets a value indicating whether pointer targets are followed (<see cref="ReadOptions.DereferencePointers"/>).</summary>
+    public bool DereferencePointers { get; }
+
+    /// <summary>Gets whether stored addresses are input positions or offsets from <see cref="PointerOrigin"/>.</summary>
+    public PointerAddressingMode AddressingMode { get; }
+
+    /// <summary>Gets the position relative addresses count from.</summary>
+    public long PointerOrigin { get; }
+
+    /// <summary>Gets the largest number of pointer levels the read may follow on one path.</summary>
+    public int MaxPointerDepth { get; }
+
+    /// <summary>Gets the largest fixed size a pointer target may have, or <see langword="null"/> for no limit.</summary>
+    public long? MaxPointerTargetBytes { get; }
+
+    /// <summary>Gets or sets the number of pointer levels followed on the active path.</summary>
+    public int PointerDepth { get; set; }
+
+    /// <summary>Gets or sets a value indicating whether following is suppressed: while a union's views are read, a pointer keeps only its address.</summary>
+    public bool SuppressPointers { get; set; }
+
+    /// <summary>Gets the number of deferred pointers queued, none before the operation's first pointer.</summary>
+    public readonly int PendingPointerCount => this.pointers?.Pending.Count ?? 0;
+
+    /// <summary>
+    ///     Gets the operation's pointer bookkeeping - the targets on the active path and the deferred pointers - taken on
+    ///     first use from the thread's cache the interpreter shares, and given back by <see cref="Release"/>.
+    /// </summary>
+    public PointerTraversal Pointers => this.pointers ??= PointerTraversal.Rent();
 
     /// <summary>Gets or sets the number of struct levels entered on the active path.</summary>
     public int StructureDepth { get; set; }
@@ -169,9 +208,31 @@ internal struct ReadEngineState
         this.unionSlots = outer;
     }
 
-    /// <summary>Returns the frame stacks to the thread's spares at the end of the operation, the locals cleared so no payload stays alive.</summary>
+    /// <summary>
+    ///     Drops the deferred pointers queued after <paramref name="count"/> entries: a struct that failed never follows its
+    ///     own, as the interpreter discards them when the struct's read ends.
+    /// </summary>
+    /// <param name="count">The entries of enclosing structs, which stay queued.</param>
+    public readonly void DiscardPendingPointers(int count)
+    {
+        if (this.pointers?.Pending is { } pending && pending.Count > count)
+        {
+            pending.RemoveRange(count, pending.Count - count);
+        }
+    }
+
+    /// <summary>
+    ///     Returns the frame stacks to the thread's spares at the end of the operation, the locals cleared so no payload
+    ///     stays alive, and the pointer bookkeeping to the thread's cache.
+    /// </summary>
     public void Release()
     {
+        if (this.pointers is not null)
+        {
+            PointerTraversal.Return(this.pointers);
+            this.pointers = null;
+        }
+
         if (this.arms is not null)
         {
             spareArms = this.arms;

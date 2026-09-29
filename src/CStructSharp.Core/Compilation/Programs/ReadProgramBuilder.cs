@@ -22,6 +22,7 @@ internal sealed class ReadProgramBuilder
     private readonly List<ReadProgram.QualifiedTarget[]> qualifiedTargets = [];
     private readonly List<UnusableVariable> unusables = [];
     private readonly List<ReadProgram.ConditionalBranch> branches = [];
+    private readonly List<ReadPointerTarget> pointerTargets = [];
     private readonly ReadProgram.ConditionalGroup?[] groups;
     private readonly SlotTable table;
 
@@ -55,6 +56,12 @@ internal sealed class ReadProgramBuilder
 
     /// <summary>Gets or sets a value indicating whether the members are placed by a runtime placement cursor (a struct with bitfields).</summary>
     public bool UsesPlacementCursor { get; set; }
+
+    /// <summary>
+    ///     Gets or sets a value indicating whether a member (or a promoted member's member) defers a pointer target this
+    ///     program follows after its last member.
+    /// </summary>
+    public bool DefersPointers { get; set; }
 
     /// <summary>Gets or sets a value indicating whether the members are a union's views, each read from the union's first byte.</summary>
     public bool UnionMembers { get; set; }
@@ -114,6 +121,15 @@ internal sealed class ReadProgramBuilder
     /// <param name="codec">The codec identity.</param>
     /// <returns>The codec's index.</returns>
     public int AddCodec(int codecId, PrimitiveCodec codec) => IndexOf(this.codecs, new ReadProgram.Codec(codecId, codec));
+
+    /// <summary>Adds a pointer target.</summary>
+    /// <param name="target">The target.</param>
+    /// <returns>The target's index.</returns>
+    public int AddPointerTarget(ReadPointerTarget target)
+    {
+        this.pointerTargets.Add(target);
+        return this.pointerTargets.Count - 1;
+    }
 
     /// <summary>Adds an enum type, or finds it.</summary>
     /// <param name="enm">The enum.</param>
@@ -215,7 +231,9 @@ internal sealed class ReadProgramBuilder
                 groupArray,
                 this.branches.ToArray(),
                 this.Scope,
-                this.UsesPlacementCursor));
+                this.UsesPlacementCursor,
+                this.pointerTargets.ToArray(),
+                this.DefersPointers));
     }
 
     /// <summary>Finds an equal item or appends it.</summary>

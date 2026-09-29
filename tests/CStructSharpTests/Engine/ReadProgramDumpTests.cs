@@ -405,6 +405,50 @@ public class ReadProgramDumpTests
         AssertDump(union, layout, "u");
     }
 
+    /// <summary>
+    ///     Pointers: deferred scalars and arrays whose targets a struct follows after its last member (a counted target
+    ///     whose count is a later field, list nodes, whose program is taken from the cache when followed rather than nested),
+    ///     a promoted member's <c>void *</c>, read in place and never followed, and a pointer in a union view, read in place.
+    /// </summary>
+    [TestMethod]
+    public void Pointers()
+    {
+        const string definition = """
+                                  struct node { uint8 v; node *next; };
+                                  union view { uint8 raw; char *text; };
+                                  struct root { uint8 *bytes @count(n); node *items[2]; struct { void *opaque; }; view v; uint8 n; };
+                                  """;
+        const string expected = """
+                                root root
+                                    0  ReadRootStruct               -            root
+
+                                struct root
+                                    0  ReadPointer                  bytes        deferred CountedNumbers
+                                    1  CheckFixedCount              items        count 2
+                                    2  ReadPointerArray             items        deferred Composite
+                                    3  ReadPromotedStruct           (anonymous)  (anonymous)
+                                    4  ReadUnion                    v            view
+                                    5  ReadUInt8                    n            UInt8
+                                    6  CaptureInteger               n            -> n
+                                    7  FollowPendingPointers        -
+                                    8  FinishComposite              -            tail +0
+
+                                promoted struct (anonymous)
+                                    0  ReadPointer                  opaque       in place NoReader
+                                    1  FinishComposite              -            tail +0
+
+                                union view
+                                    0  RestoreUnionSlots            -
+                                    1  RewindToUnionStart           raw
+                                    2  ReadUInt8                    raw          UInt8
+                                    3  RestoreUnionSlots            -
+                                    4  RewindToUnionStart           text
+                                    5  ReadPointer                  text         in place Terminated
+
+                                """;
+        AssertDump(expected, new CStruct(definition, 1), "root");
+    }
+
     /// <summary>Asserts a root's dump, showing the actual dump on failure so an intended change can be pasted in.</summary>
     /// <param name="expected">The expected dump.</param>
     /// <param name="layout">The layout.</param>

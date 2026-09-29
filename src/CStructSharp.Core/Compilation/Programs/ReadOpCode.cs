@@ -404,6 +404,25 @@ internal enum ReadOpCode : byte
     RestoreUnionSlots,
 
     /// <summary>
+    ///     Reads a pointer's stored address (the layout's pointer width and byte order) and its target
+    ///     (<see cref="ReadProgram.PointerTargets"/> <c>A</c>). With <c>B</c> = 1 the target is deferred: a pointer that
+    ///     would be followed is stored unresolved and queued, and the struct follows it after its last member; with
+    ///     <c>B</c> = 0 it is followed in place, as for a root, a union view (where following is suppressed) or a pointer the
+    ///     interpreter never defers.
+    /// </summary>
+    ReadPointer,
+
+    /// <summary>Reads count-register pointers, each as <see cref="ReadPointer"/> reads one (target <c>A</c>, deferred when <c>B</c> = 1), into a list.</summary>
+    ReadPointerArray,
+
+    /// <summary>
+    ///     After a struct's last member, follows the pointers it (and its promoted members) deferred, in declaration order:
+    ///     each from just after its stored address, its <c>@count</c> evaluated first, and resolves the stored pointer in
+    ///     place; a failure names the pointer and leaves the position after its address. <c>Field</c> is -1.
+    /// </summary>
+    FollowPendingPointers,
+
+    /// <summary>
     ///     A <c>#define</c> root: evaluates its expression <c>A</c> and stores the value in slot <c>B</c> (or nowhere when
     ///     -1). Nothing is read and the root value stays empty. <c>Field</c> is -1.
     /// </summary>

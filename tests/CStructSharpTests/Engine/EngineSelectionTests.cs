@@ -16,8 +16,17 @@ public class EngineSelectionTests
     /// <summary>A layout with a data-sized array, so no direct fixed-root path can take its whole-root operations.</summary>
     private const string SizedLayout = "struct inner { uint8 a; }; struct rec { uint8 n; uint16 items[n]; inner last; uint8 tail; };";
 
-    /// <summary>A layout the engine cannot read yet: its root holds a pointer (stage 5); compiled with one-byte pointers.</summary>
-    private const string PointerLayout = "struct rec { uint8 n; uint8 *value; uint8 tail; };";
+    /// <summary>
+    ///     A root the engine cannot read: a type spelling whose count names a caller variable no expression of the layout
+    ///     uses, so the variable has no slot (<see cref="UnslottedVariables"/>).
+    /// </summary>
+    private const string UnslottedRoot = "uint8[M]";
+
+    /// <summary>The reason the engine declines <see cref="UnslottedRoot"/>.</summary>
+    private const string UnslottedReason = UnslottedRoot + "." + UnslottedRoot + ": " + Compilation.Programs.ReadProgramCompiler.UnslottedName + "M";
+
+    /// <summary>The caller variables <see cref="UnslottedRoot"/> is read with.</summary>
+    private static readonly Dictionary<string, int> UnslottedVariables = new() { ["M"] = 2, };
 
     /// <summary>Input for <see cref="SizedLayout"/>: two items, then <c>last.a</c> and <c>tail</c>.</summary>
     private static readonly byte[] SizedData = [2, 1, 0, 2, 0, 5, 9];
@@ -113,7 +122,7 @@ public class EngineSelectionTests
 
     /// <summary>
     ///     A record sequence decides once per record, so a recording sees one engine run for each record read, and one
-    ///     decline, naming the first unsupported member, for each record of a root the engine cannot read.
+    ///     interpreter selection for each record when the options force the interpreter.
     /// </summary>
     [TestMethod]
     public void RecordSequence_DecidesPerRecord()
@@ -127,13 +136,11 @@ public class EngineSelectionTests
             Assert.AreEqual(0, recording.Diagnostics.Declines);
         }
 
-        var pointers = new CStruct(PointerLayout, 1);
         using (EngineRecording recording = EngineDiagnostics.Record())
         {
-            Assert.HasCount(2, pointers.ParseMany(new byte[] { 1, 0, 3, 4, 0, 7, }.AsMemory(), "rec").ToList());
-            CollectionAssert.AreEqual(
-                Enumerable.Repeat(new EngineDecline(EngineOperation.RootRead, "rec.value: pointers are not supported yet (stage 5)"), 2).ToArray(),
-                recording.Diagnostics.RecentDeclines.ToArray());
+            Assert.HasCount(3, layout.ParseMany(new byte[] { 1, 7, 0, 2, 8, 9, }.AsMemory(), "rec", options: EngineSelections.InterpreterOnly()).ToList());
+            Assert.AreEqual(3, recording.Diagnostics.InterpreterSelections);
+            Assert.AreEqual(0, recording.Diagnostics.EngineRuns + recording.Diagnostics.Declines);
         }
     }
 
@@ -206,10 +213,9 @@ public class EngineSelectionTests
         Assert.AreEqual((byte)9, layout.Parse(SizedData.AsSpan(), "rec", options: read)["tail"]);
         Assert.AreEqual((byte)9, ((StructValue)layout.ReadValue(new MemoryStream(SizedData), "rec", options: read)!)["tail"]);
 
-        var pointers = new CStruct(PointerLayout, 1);
-        using var pointerSource = new MemoryStream([1, 2, 3, 4]);
-        AssertRequired(EngineOperation.RootRead, () => pointers.Parse(pointerSource, "rec", options: read), "rec.value: pointers are not supported yet (stage 5)");
-        Assert.AreEqual(0, pointerSource.Position, "the stream does not move");
+        using var unslottedSource = new MemoryStream([1, 2, 3, 4]);
+        AssertRequired(EngineOperation.RootRead, () => layout.Parse(unslottedSource, UnslottedRoot, UnslottedVariables, read), UnslottedReason);
+        Assert.AreEqual(0, unslottedSource.Position, "the stream does not move");
         AssertRequired(EngineOperation.PathRead, () => layout.ReadValue(SizedData, "rec.items[0]", options: read));
         AssertRequired(EngineOperation.DebugRead, () => layout.ParseWithDebug(SizedData, "rec", options: read));
         AssertRequired(EngineOperation.AddressResolution, () => layout.ResolveAddress(SizedData, "rec.tail", options: read));
@@ -228,7 +234,7 @@ public class EngineSelectionTests
 
         // The asynchronous forms copy the options with a linked token; the selection survives the copy.
         using var cancellation = new CancellationTokenSource();
-        AssertRequired(EngineOperation.RootRead, () => pointers.ParseAsync(new MemoryStream([1, 2, 3, 4]), "rec", options: read, cancellationToken: cancellation.Token).AsTask().GetAwaiter().GetResult(), "rec.value: pointers are not supported yet (stage 5)");
+        AssertRequired(EngineOperation.RootRead, () => layout.ParseAsync(new MemoryStream([1, 2, 3, 4]), UnslottedRoot, UnslottedVariables, read, cancellation.Token).AsTask().GetAwaiter().GetResult(), UnslottedReason);
         Assert.AreEqual((byte)9, layout.ParseAsync(new MemoryStream(SizedData), "rec", options: read, cancellationToken: cancellation.Token).AsTask().GetAwaiter().GetResult()["tail"]);
         AssertRequired(EngineOperation.Write, () => layout.WriteAsync(new MemoryStream(), "rec", value, options: write, cancellationToken: cancellation.Token).AsTask().GetAwaiter().GetResult());
         AssertRequired(EngineOperation.Update, () => layout.UpdateAsync(new MemoryStream((byte[])SizedData.Clone()), "rec.tail", (byte)1, options: update, cancellationToken: cancellation.Token).AsTask().GetAwaiter().GetResult());

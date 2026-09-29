@@ -225,10 +225,10 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   dictionary. Results, failures, positions and read budgets are identical. The comparison benchmark's `packet` record
   parses from a span and reads its fields in 345 ns instead of 745 ns (the parse alone takes 227 ns) and allocates 432 B
   instead of 1,544 B; from a `MemoryStream` it parses in 352 ns instead of 815 ns. Each further scalar field costs about
-  5 ns instead of 20-33 ns, and a 128-branch conditional record parses about 3 times faster with half the allocation. To-end, terminated and multidimensional arrays, custom codecs, bitfields and unions run on the
-  engine too (a thousand bitfield records parse about 32 % faster, a thousand unions about 40 % faster, each with 16 %
-  less allocation). Layouts with pointers, debug parses, path reads, writes and updates still use the general reader
-  until the engine covers them.
+  5 ns instead of 20-33 ns, and a 128-branch conditional record parses about 3 times faster with half the allocation. To-end, terminated and multidimensional arrays, custom codecs, bitfields, unions and pointers run on
+  the engine too (a thousand bitfield records parse about 32 % faster, a thousand unions about 40 % faster, each with
+  16 % less allocation; a bounded pointer graph about 38 % faster with half the allocation). Debug parses, path reads,
+  writes and updates still use the general reader until the engine covers them.
 - Runtime reads place each field with less work: the placement cursor keeps its position without nullable round
   trips, and ordinary struct and union members are read through one inlined call. A layout of 1 000 bitfield records
   reads about 9% faster, and pointer-heavy and union-heavy layouts 6-10% faster.

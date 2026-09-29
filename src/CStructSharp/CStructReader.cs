@@ -814,7 +814,7 @@ public sealed partial class CStruct
         }
 
         // Apply the optional fixed-target budget before seeking, preventing unexpectedly large referenced reads.
-        this.EnsurePointerTargetSize(pointerDepth, field, state, elementCount);
+        this.EnsurePointerTargetSize(pointerDepth, field, state.MaxPointerTargetBytes, elementCount);
 
         (long Address, string TypeName, int PointerDepth) targetKey =
             (targetAddress, field.TypeSpelling, pointerDepth);
@@ -850,18 +850,22 @@ public sealed partial class CStruct
         }
     }
 
-    /// <summary>Checks an optional caller limit before reading a fixed-size pointer target.</summary>
+    /// <summary>
+    ///     Checks an optional caller limit before reading a fixed-size pointer target; the interpreter and the compiled
+    ///     engine both check it here.
+    /// </summary>
     /// <param name="pointerDepth">The pointer levels still to follow; above 1 the target is another pointer.</param>
     /// <param name="field">The pointer field.</param>
-    /// <param name="state">The read state holding the limit.</param>
+    /// <param name="maxPointerTargetBytes">The operation's <see cref="ReadOptions.MaxPointerTargetBytes"/>, or <see langword="null"/> for none.</param>
     /// <param name="elementCount">The number of target elements: the evaluated <c>@count</c>, otherwise 1.</param>
-    private void EnsurePointerTargetSize(
+    /// <exception cref="CStructReadLimitException">The target's size is unknown, or larger than the limit.</exception>
+    internal void EnsurePointerTargetSize(
         int pointerDepth,
         CompiledField field,
-        CStructOperationContext state,
+        long? maxPointerTargetBytes,
         int elementCount)
     {
-        if (!state.MaxPointerTargetBytes.HasValue)
+        if (!maxPointerTargetBytes.HasValue)
         {
             // No configured budget means the existing pointer behavior remains unrestricted.
             return;
@@ -878,7 +882,7 @@ public sealed partial class CStruct
             throw new CStructReadLimitException(ReadFailures.PointerTargetVariableLength);
         }
 
-        if (targetSize.Value > state.MaxPointerTargetBytes.Value)
+        if (targetSize.Value > maxPointerTargetBytes.Value)
         {
             // Refuse the target before decoding so malformed data cannot bypass the caller's memory-safety policy.
             throw new CStructReadLimitException(ReadFailures.PointerTargetLimit);

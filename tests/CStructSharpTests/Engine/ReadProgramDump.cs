@@ -140,6 +140,11 @@ internal static class ReadProgramDump
         case ReadOpCode.RewindToUnionStart:
         case ReadOpCode.RestoreUnionSlots:
             return string.Empty;
+        case ReadOpCode.ReadPointer:
+        case ReadOpCode.ReadPointerArray:
+            return (step.B == 1 ? "deferred " : "in place ") + program.PointerTargets[step.A].Kind;
+        case ReadOpCode.FollowPendingPointers:
+            return string.Empty;
         case ReadOpCode.FinishPlaced:
             return "tail to " + step.B;
         case ReadOpCode.ReadPromotedStruct:

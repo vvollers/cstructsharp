@@ -53,6 +53,8 @@ internal sealed class ReadProgram
         this.Branches = parts.Branches;
         this.Scope = parts.Scope;
         this.UsesPlacementCursor = parts.UsesPlacementCursor;
+        this.PointerTargets = parts.PointerTargets;
+        this.DefersPointers = parts.DefersPointers;
         (this.ScalarRunLengths, this.ScalarRunBytes) = FindScalarRuns(parts.Steps, parts.Codecs);
     }
 
@@ -85,6 +87,16 @@ internal sealed class ReadProgram
     ///     with steps decided when the program was built.
     /// </summary>
     public bool UsesPlacementCursor { get; }
+
+    /// <summary>Gets the pointer targets <see cref="ReadOpCode.ReadPointer"/> and <see cref="ReadOpCode.ReadPointerArray"/> steps read, indexed by their <c>A</c>.</summary>
+    public ReadPointerTarget[] PointerTargets { get; }
+
+    /// <summary>
+    ///     Gets a value indicating whether the program defers pointer targets, its own or a promoted member's: a struct
+    ///     follows them after its last member (<see cref="ReadOpCode.FollowPendingPointers"/>), a promoted member leaves
+    ///     them to the struct it is promoted into.
+    /// </summary>
+    public bool DefersPointers { get; }
 
     /// <summary>Gets a value indicating whether a failure inside a member names that member, as the interpreter's field loop does; a root program names none.</summary>
     public bool NotesMembers => this.Kind != ReadProgramKind.Root;
@@ -218,6 +230,8 @@ internal sealed class ReadProgram
     /// <param name="Branches">The conditional branches.</param>
     /// <param name="Scope">The conditional scope, or <see langword="null"/>.</param>
     /// <param name="UsesPlacementCursor">Whether the members are placed by a runtime placement cursor.</param>
+    /// <param name="PointerTargets">The pointer targets.</param>
+    /// <param name="DefersPointers">Whether the program defers pointer targets.</param>
     internal sealed record ReadProgramParts(
         ReadStep[] Steps,
         CompiledField[] Fields,
@@ -233,5 +247,7 @@ internal sealed class ReadProgram
         ConditionalGroup[] Groups,
         ConditionalBranch[] Branches,
         ReadConditionalScope? Scope,
-        bool UsesPlacementCursor);
+        bool UsesPlacementCursor,
+        ReadPointerTarget[] PointerTargets,
+        bool DefersPointers);
 }
