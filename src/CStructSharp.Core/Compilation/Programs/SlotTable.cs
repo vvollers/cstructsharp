@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
 using CStructSharp.Syntax;
@@ -25,7 +26,8 @@ using CStructSharp.Syntax;
 ///         The table is immutable after construction and is shared by every thread. It precomputes the operation's
 ///         initial state without caller variables (exactly what <see cref="LayoutVariableResolver.CreateIntegers"/>
 ///         returns for none) and, per slot, the definitions that depend on it, which decide whether a caller variable
-///         can simply overwrite its slot.
+///         can simply overwrite its slot. The only state it gains later is its caches (expression programs and
+///         <see cref="ReadPrograms"/>), which are thread-safe and hold values derived from the immutable parts.
 ///     </para>
 /// </remarks>
 internal sealed class SlotTable
@@ -39,6 +41,7 @@ internal sealed class SlotTable
     private readonly LayoutVariableResolver resolver;
     private readonly Dictionary<string, int> slots;
     private readonly SlotValue[]? staticState;
+    private ReadProgramCache? readPrograms;
 
     /// <summary>Assigns the slots, then records dependents and the static state, which compile against them.</summary>
     /// <param name="names">The distinct names, in slot order.</param>
@@ -80,6 +83,13 @@ internal sealed class SlotTable
     ///     operation initializes through the resolver and fails as it does today.
     /// </summary>
     public bool HasStaticState => this.staticState is not null;
+
+    /// <summary>
+    ///     Gets the read programs compiled against this table (<see cref="LayoutCompilation.GetReadProgram"/>), created
+    ///     on first access: a program's slots are this table's, so its cache lives with the table.
+    /// </summary>
+    public ReadProgramCache ReadPrograms
+        => Volatile.Read(ref this.readPrograms) ?? Interlocked.CompareExchange(ref this.readPrograms, new ReadProgramCache(this), null) ?? this.readPrograms!;
 
     /// <summary>Builds the table of one compiled layout.</summary>
     /// <param name="referencedNames">The names the layout's expressions read, with dotted names expanded.</param>

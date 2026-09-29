@@ -437,4 +437,21 @@ internal sealed partial class LayoutCompilation
             this.staticLayoutVariables,
             true);
     }
+
+    /// <summary>
+    ///     Returns the compiled engine's read program of a composite of this layout, compiling it (and the programs of the
+    ///     structs it holds) on first request; see <see cref="ReadProgramCompiler"/>. Nothing is compiled by constructing
+    ///     the layout.
+    /// </summary>
+    /// <param name="composite">A composite of this layout.</param>
+    /// <returns>The program, or the reason the engine cannot read the composite yet.</returns>
+    public ReadProgramOutcome GetReadProgram(CompiledCompositeType composite) => this.SlotTable.ReadPrograms.GetComposite(this, composite);
+
+    /// <summary>
+    ///     Returns the compiled engine's read program of a root, compiling it on first request. A root is eligible when
+    ///     every struct it reaches compiled without a reason (engine plan 6.2).
+    /// </summary>
+    /// <param name="rootName">A declared root name, or a type spelling already registered as a root.</param>
+    /// <returns>The program, or the reason the engine cannot read the root yet.</returns>
+    public ReadProgramOutcome GetRootReadProgram(string rootName) => this.SlotTable.ReadPrograms.GetRoot(this, rootName);
 }

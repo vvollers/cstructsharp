@@ -1,0 +1,191 @@
+namespace CStructSharp.Tests;
+
+/// <summary>
+///     Golden dumps of small read programs (<see cref="ReadProgramDump"/>), so a change to the step format or to what a
+///     layout compiles to shows up as a readable diff. When a change is intended, replace the expected text with the
+///     dump the failure prints and check each changed step against the interpreter's behaviour.
+/// </summary>
+[TestClass]
+public class ReadProgramDumpTests
+{
+    /// <summary>The engine plan's <c>packet</c> layout.</summary>
+    private const string Packet = "struct packet { uint32 id; uint16 count; int32 samples[count]; uint8 name_length; char name[name_length]; uint8 kind; " +
+                                  "if (kind == 1) { float64 value; } else { uint32 code; } cstring note; };";
+
+    /// <summary>The engine plan's <c>packet</c> layout, packed: no placement steps, counts before their arrays, a lazy if/else.</summary>
+    [TestMethod]
+    public void Packet_Packed()
+    {
+        const string expected = """
+                                root packet
+                                    0  ReadRootStruct               -            packet
+
+                                struct packet
+                                    0  EnterConditionalScope        -            clear count, name_length, kind
+                                    1  ReadUInt32Le                 id           UInt32 le
+                                    2  ReadUInt16Le                 count        UInt16 le
+                                    3  CaptureInteger               count        -> count
+                                    4  CompleteMember               count        save [count] restore []
+                                    5  EvaluateCount                samples      count = count
+                                    6  ReadNumericArray             samples      Int32 le
+                                    7  ReadUInt8                    name_length  UInt8
+                                    8  CaptureInteger               name_length  -> name_length
+                                    9  CompleteMember               name_length  save [name_length] restore []
+                                   10  EvaluateCount                name         count = name_length
+                                   11  ReadCharArray                name         Char
+                                   12  ReadUInt8                    kind         UInt8
+                                   13  CaptureInteger               kind         -> kind
+                                   14  CompleteMember               kind         save [kind] restore []
+                                   15  SelectArm                    -            group 0 ((kind == 1)) arm 1, else -> 17
+                                   16  ReadFloat64Le                value        Float64 le
+                                   17  SelectArm                    -            group 0 ((kind == 1)) arm 0, else -> 19
+                                   18  ReadUInt32Le                 code         UInt32 le
+                                   19  ReadTerminatedText           note         TerminatedAscii
+                                   20  FinishComposite              -            tail +0
+
+                                """;
+        AssertDump(expected, new CStruct(Packet), "packet");
+    }
+
+    /// <summary>The same layout aligned: known padding is a seek, padding after data-sized members an align, and so is the tail.</summary>
+    [TestMethod]
+    public void Packet_Aligned()
+    {
+        const string expected = """
+                                root packet
+                                    0  ReadRootStruct               -            packet
+
+                                struct packet
+                                    0  EnterConditionalScope        -            clear count, name_length, kind
+                                    1  ReadUInt32Le                 id           UInt32 le
+                                    2  ReadUInt16Le                 count        UInt16 le
+                                    3  CaptureInteger               count        -> count
+                                    4  CompleteMember               count        save [count] restore []
+                                    5  EvaluateCount                samples      count = count
+                                    6  Seek                         samples      +2
+                                    7  ReadNumericArray             samples      Int32 le
+                                    8  ReadUInt8                    name_length  UInt8
+                                    9  CaptureInteger               name_length  -> name_length
+                                   10  CompleteMember               name_length  save [name_length] restore []
+                                   11  EvaluateCount                name         count = name_length
+                                   12  ReadCharArray                name         Char
+                                   13  ReadUInt8                    kind         UInt8
+                                   14  CaptureInteger               kind         -> kind
+                                   15  CompleteMember               kind         save [kind] restore []
+                                   16  SelectArm                    -            group 0 ((kind == 1)) arm 1, else -> 19
+                                   17  Align                        value        to 8
+                                   18  ReadFloat64Le                value        Float64 le
+                                   19  SelectArm                    -            group 0 ((kind == 1)) arm 0, else -> 22
+                                   20  Align                        code         to 4
+                                   21  ReadUInt32Le                 code         UInt32 le
+                                   22  ReadTerminatedText           note         TerminatedAscii
+                                   23  FinishComposite              -            tail to 8
+
+                                """;
+        AssertDump(expected, new CStruct(Packet, aligned: true), "packet");
+    }
+
+    /// <summary>
+    ///     Nested structs: a shared named program with its qualified prefix and publication, an inline named struct, an
+    ///     anonymous promoted member compiled into its parent, and a struct array.
+    /// </summary>
+    [TestMethod]
+    public void Nested_Promoted_AndQualified()
+    {
+        const string definition = """
+                                  struct h { uint8 n; };
+                                  struct root { h hdr; struct { uint8 m; uint16 k; } inner; struct { uint8 p; }; uint8 v[hdr.n]; h copies[2]; char tail[]; };
+                                  """;
+        const string expected = """
+                                root root
+                                    0  ReadRootStruct               -            root
+
+                                struct root
+                                    0  ReadStruct                   hdr          h, prefix hdr.
+                                    1  Seek                         inner        +1
+                                    2  ReadStruct                   inner        inner
+                                    3  ReadPromotedStruct           (anonymous)  (anonymous)
+                                    4  EvaluateCount                v            count = hdr.n
+                                    5  ReadNumericArray             v            UInt8
+                                    6  CheckFixedCount              copies       count 2
+                                    7  ReadStructArray              copies       h
+                                    8  ReadTerminatedText           tail         TerminatedAscii
+                                    9  FinishComposite              -            tail to 2
+
+                                struct h
+                                    0  ReadUInt8                    n            UInt8
+                                    1  CaptureInteger               n            -> n
+                                    2  PublishQualified             n            n -> hdr.*=hdr.n
+                                    3  FinishComposite              -            tail +0
+
+                                struct inner
+                                    0  ReadUInt8                    m            UInt8
+                                    1  Seek                         k            +1
+                                    2  ReadUInt16Le                 k            UInt16 le
+                                    3  FinishComposite              -            tail +0
+
+                                promoted struct (anonymous)
+                                    0  ReadUInt8                    p            UInt8
+                                    1  FinishComposite              -            tail +0
+
+                                """;
+        AssertDump(expected, new CStruct(definition, aligned: true), "root");
+    }
+
+    /// <summary>A switch with a nested <c>if</c> and a conditional scope that restores a name a nested struct may replace.</summary>
+    [TestMethod]
+    public void Switch_WithNestedGroup_AndScope()
+    {
+        const string definition = """
+                                  enum kind_t : uint8 { small = 1, large = 2 };
+                                  struct body { uint8 size; };
+                                  struct root {
+                                      kind_t kind; body b; uint8 size;
+                                      switch (kind) { case kind_t.small: { uint8 a[size]; } case kind_t.large: { uint16 count; if (count > 4) { uint32 big; } } default: { } }
+                                  };
+                                  """;
+        const string expected = """
+                                root root
+                                    0  ReadRootStruct               -            root
+
+                                struct root
+                                    0  EnterConditionalScope        -            clear kind, size, count
+                                    1  ReadEnum                     kind         UInt8 as kind_t
+                                    2  CaptureEnum                  kind         -> kind
+                                    3  CompleteMember               kind         save [kind] restore []
+                                    4  ReadStruct                   b            body
+                                    5  CompleteMember               b            save [] restore [size]
+                                    6  ReadUInt8                    size         UInt8
+                                    7  CaptureInteger               size         -> size
+                                    8  CompleteMember               size         save [size] restore []
+                                    9  SelectArm                    -            group 0 (kind) arm 0, else -> 12
+                                   10  EvaluateCount                a            count = size
+                                   11  ReadNumericArray             a            UInt8
+                                   12  SelectArm                    -            group 0 (kind) arm 1, else -> 16
+                                   13  ReadUInt16Le                 count        UInt16 le
+                                   14  CaptureInteger               count        -> count
+                                   15  CompleteMember               count        save [count] restore []
+                                   16  SelectArm                    -            group 0 (kind) arm 1, else -> 19
+                                   17  SelectArm                    -            group 1 ((count > 4)) arm 1, else -> 19
+                                   18  ReadUInt32Le                 big          UInt32 le
+                                   19  FinishComposite              -            tail +0
+
+                                struct body
+                                    0  ReadUInt8                    size         UInt8
+                                    1  CaptureInteger               size         -> size
+                                    2  FinishComposite              -            tail +0
+
+                                """;
+        AssertDump(expected, new CStruct(definition), "root");
+    }
+
+    /// <summary>Asserts a root's dump, showing the actual dump on failure so an intended change can be pasted in.</summary>
+    /// <param name="expected">The expected dump.</param>
+    /// <param name="layout">The layout.</param>
+    /// <param name="root">The root.</param>
+    private static void AssertDump(string expected, CStruct layout, string root)
+    {
+        string actual = ReadProgramDump.RenderRoot(layout, root);
+        Assert.AreEqual(expected.ReplaceLineEndings("\n"), actual, "actual dump:\n" + actual);
+    }
+}

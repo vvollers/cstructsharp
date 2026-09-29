@@ -4,7 +4,7 @@
  "files": [
   {
    "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.cs",
-   "sourceSha256": "078c783cf2f837ba834c6c120a116694c2bb80063e9ada65ac6d7aa53caac0e6",
+   "sourceSha256": "da48ea65bd7f4d8d9296892c39fa122c7d293345868f26c3e25f5621228c6157",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": "remainingDeclarations-- >= 0",
      "location": {"start":{"line":392,"column":42},"end":{"line":392,"column":69}},
