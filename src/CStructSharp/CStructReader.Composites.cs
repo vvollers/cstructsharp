@@ -64,7 +64,11 @@ public sealed partial class CStruct
         return composite;
     }
 
-    /// <summary>Reads one non-union struct through the shared compiled traversal and completes its storage extent.</summary>
+    /// <summary>
+    ///     Reads one non-union struct through the shared compiled traversal and completes its storage extent. The struct
+    ///     claims one nesting level unless it is an anonymous promoted member, whose fields belong to the parent that
+    ///     already holds the level (the static read plan flattens them the same way).
+    /// </summary>
     /// <param name="composite">The compiled struct whose fields are read in declaration order.</param>
     /// <param name="destination">The result, or its parent's result for an anonymous promoted struct.</param>
     /// <param name="state">The input position, limits, variables and optional debug records.</param>
@@ -110,7 +114,17 @@ public sealed partial class CStruct
         int pendingStart = state.PendingPointerCount;
         bool followsOwnPointers = ReferenceEquals(destination.Shape, composite.Shape);
 
-        state.EnterStructure();
+        // Only a struct with a value of its own is a nesting level; a promoted member still observes cancellation on
+        // entry, as every composite does.
+        if (followsOwnPointers)
+        {
+            state.EnterStructure();
+        }
+        else
+        {
+            state.CancellationToken.ThrowIfCancellationRequested();
+        }
+
         try
         {
             foreach (CompiledField field in composite.Fields)
@@ -162,9 +176,8 @@ public sealed partial class CStruct
                 // After a failure, drop this struct's unfollowed pointers so a caller that reuses the state (a
                 // record sequence, a conditional retry) never follows them later.
                 state.DiscardPendingPointers(pendingStart);
+                state.ExitStructure();
             }
-
-            state.ExitStructure();
         }
 
         // General field decoding retains padding temporarily for array/text conversion and debug records only.
@@ -377,12 +390,17 @@ public sealed partial class CStruct
     /// <param name="union">The compiled union whose named views share one storage window.</param>
     /// <param name="state">The input position, read limits and debug records; parent variables are restored.</param>
     /// <param name="debugStack">The enclosing debug path, or null for an ordinary read.</param>
+    /// <param name="promoted">
+    ///     Whether the union is an anonymous promoted member, whose views belong to the parent struct: it claims no
+    ///     nesting level of its own, like a promoted struct.
+    /// </param>
     /// <returns>The raw bytes and named member views, excluding unnamed padding.</returns>
     /// <exception cref="CStructReadException">The union storage or a member view cannot be read within the limits.</exception>
     private UnionValue ReadUnionValue(
         CompiledCompositeType union,
         CStructOperationContext state,
-        DebugPath? debugStack)
+        DebugPath? debugStack,
+        bool promoted = false)
     {
         long unionPosition = state.Stream.Position;
         int unionSize = this.compiledSizeQueries.GetCompiledStructSizeInBytes(union, state.Variables, false);
@@ -395,7 +413,15 @@ public sealed partial class CStruct
         bool previousPointerSuppression = state.SuppressPointerDereference;
         var unionInputVariables = new Dictionary<string, Expr>(state.Variables, StringComparer.Ordinal);
 
-        state.EnterStructure();
+        if (promoted)
+        {
+            state.CancellationToken.ThrowIfCancellationRequested();
+        }
+        else
+        {
+            state.EnterStructure();
+        }
+
         try
         {
             // An untagged union does not identify an active member. Decode local views, but never follow an external
@@ -426,7 +452,11 @@ public sealed partial class CStruct
         {
             RestoreVariables(state.Variables, unionInputVariables);
             state.SuppressPointerDereference = previousPointerSuppression;
-            state.ExitStructure();
+            if (!promoted)
+            {
+                state.ExitStructure();
+            }
+
             state.Stream.Position = unionEnd;
             state.NextPosition = unionEnd;
             state.ResetBitfieldUnit();

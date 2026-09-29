@@ -483,7 +483,6 @@ namespace Demo
             //  
             {
                 cursor.Seek(placement.AdvanceToField(1), member, memberType);
-                cursor.EnterComposite(member, memberType);
                 var placementN = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
                 // uint8 x
                 {
@@ -498,7 +497,6 @@ namespace Demo
                     placementN.CompleteField(cursor.Position);
                 }
                 cursor.Seek(placementN.Finish(1), member, memberType);
-                cursor.ExitComposite();
                 placement.CompleteField(cursor.Position);
             }
             // uint8 b
@@ -647,7 +645,6 @@ namespace Demo
             //  
             {
                 cursor.Seek(placement.AdvanceToField(1), member, memberType);
-                cursor.EnterComposite(member, memberType);
                 var placementN = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
                 // uint8 x
                 {
@@ -663,7 +660,6 @@ namespace Demo
                 }
                 cursor.Seek(placementN.Current, member, memberType);
                 cursor.Pad((int)(placementN.Finish(1) - placementN.Current), member, memberType);
-                cursor.ExitComposite();
                 placement.CompleteField(cursor.Position);
             }
             // uint8 b

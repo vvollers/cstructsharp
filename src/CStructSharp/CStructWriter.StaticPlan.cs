@@ -36,10 +36,18 @@ public sealed partial class CStruct
     ///     Values are converted before any byte reaches the destination: a conversion failure leaves the stream
     ///     untouched instead of partially written.
     /// </remarks>
-    private bool TryWriteStaticPlan(CompiledCompositeType composite, object data, CStructElementWriterState state)
+    /// <param name="composite">The struct to write.</param>
+    /// <param name="data">Its value; for a promoted struct, the parent's value that carries its fields.</param>
+    /// <param name="state">The destination, limits and variables of the write.</param>
+    /// <param name="promoted">
+    ///     Whether the struct is an anonymous promoted member, which claims no nesting level of its own, so the plan's
+    ///     levels below it are one fewer than <see cref="StaticReadPlan.NestingDepth"/>.
+    /// </param>
+    /// <returns>Whether the plan wrote the struct.</returns>
+    private bool TryWriteStaticPlan(CompiledCompositeType composite, object data, CStructElementWriterState state, bool promoted)
     {
         if (state.Options is UpdateOptions || state.GeneralPathOnly || composite.StaticPlan is not { SupportsWrite: true } plan ||
-            plan.Size > ReadBlock.Size || state.StructureDepth + plan.NestingDepth > state.MaxNestingDepth ||
+            plan.Size > ReadBlock.Size || state.StructureDepth + plan.NestingDepth - (promoted ? 1 : 0) > state.MaxNestingDepth ||
             plan.MaximumArrayCount > state.Options.MaxArrayElements)
         {
             return false;

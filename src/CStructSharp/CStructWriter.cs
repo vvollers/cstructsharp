@@ -181,8 +181,17 @@ public sealed partial class CStruct
         return composite is not null;
     }
 
-    /// <summary>Writes one struct or union while charging exactly one active composite-depth level.</summary>
-    private void WriteStruct(CompiledCompositeType composite, object data, CStructElementWriterState state)
+    /// <summary>
+    ///     Writes one struct or union while charging exactly one active composite-depth level, or none for an anonymous
+    ///     promoted struct, whose fields are members of the parent that already holds the level.
+    /// </summary>
+    /// <param name="composite">The struct or union to write at the stream position.</param>
+    /// <param name="data">The value; for a promoted struct, the parent's value that carries its fields.</param>
+    /// <param name="state">The destination, limits and variables of the write.</param>
+    /// <param name="promoted">Whether <paramref name="composite"/> is an anonymous promoted member of its parent.</param>
+    /// <exception cref="CStructWriteException">The value cannot be written.</exception>
+    /// <exception cref="CStructWriteLimitException">A write limit, the nesting limit included, is exceeded.</exception>
+    private void WriteStruct(CompiledCompositeType composite, object data, CStructElementWriterState state, bool promoted = false)
     {
         state.Options.CancellationToken.ThrowIfCancellationRequested();
         if (data is null)
@@ -201,12 +210,16 @@ public sealed partial class CStruct
 
         // Static write plan: a fully fixed composite is encoded into one block and written once when that
         // is exactly equivalent to the field-by-field path below (see TryWriteStaticPlan for the conditions).
-        if (!composite.IsUnion && this.TryWriteStaticPlan(composite, data, state))
+        if (!composite.IsUnion && this.TryWriteStaticPlan(composite, data, state, promoted))
         {
             return;
         }
 
-        state.EnterStructure();
+        if (!promoted)
+        {
+            state.EnterStructure();
+        }
+
         try
         {
             if (composite.IsUnion)
@@ -291,7 +304,10 @@ public sealed partial class CStruct
         }
         finally
         {
-            state.ExitStructure();
+            if (!promoted)
+            {
+                state.ExitStructure();
+            }
         }
     }
 
@@ -1191,7 +1207,7 @@ public sealed partial class CStruct
                 state.QualifiedPrefix = outerPrefix is null ? compiledField.QualifiedPrefix : outerPrefix + compiledField.QualifiedPrefix;
             }
 
-            this.WriteStruct(strct, value, state);
+            this.WriteStruct(strct, value, state, compiledField.IsPromotedComposite);
             state.QualifiedPrefix = outerPrefix;
             return null;
         }

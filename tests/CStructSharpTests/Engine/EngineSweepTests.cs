@@ -183,6 +183,53 @@ public class EngineSweepTests
     }
 
     /// <summary>
+    ///     Every nesting limit from 0 to 4 - read, write, and update traversal - gives the same outcome on the fast paths
+    ///     as on the general path, so a layout exactly at the limit (with anonymous promoted members, which add no level)
+    ///     is accepted or rejected by both.
+    /// </summary>
+    /// <param name="name">The sweep layout.</param>
+    [TestMethod]
+    [DynamicData(nameof(Layouts))]
+    public void NestingLimits_AgreeAcrossExecutionPaths(string name)
+    {
+        foreach (Variant variant in EngineSweepLayouts.Both(name))
+        {
+            SweepLayout source = variant.Source;
+            byte[] data = variant.Data;
+            IReadOnlyDictionary<string, int>? variables = source.Variables;
+            (string target, object replacement) = source.Updates[0];
+            for (int depth = 0; depth <= 4; depth++)
+            {
+                ReadOptions read = variant.BaseRead() with { MaxNestingDepth = depth, };
+                var operations = new List<DifferentialOperation>
+                {
+                    EngineOperations.Parse(variant.Layout, data, EngineInput.Span, "rec", variables, read),
+                    EngineOperations.Parse(variant.Layout, data, EngineInput.Stream, "rec", variables, read),
+                    EngineOperations.ParseWithDebug(variant.Layout, data, EngineInput.Span, "rec", variables, read),
+                    EngineOperations.ReadValue(variant.Layout, data, EngineInput.Span, source.Paths[0], variables, read),
+                    EngineOperations.ResolveAddress(variant.Layout, data, EngineInput.Span, source.Paths[^1], variables, read),
+                    EngineOperations.Serialize(variant.Layout, "rec", variant.Value, variables, new WriteOptions { MaxNestingDepth = depth, }),
+                    EngineOperations.Update(variant.Layout, data, EngineInput.Span, target, replacement, variables, new UpdateOptions { MaxNestingDepth = depth, MaxTraversalNestingDepth = depth, }),
+                };
+                if (source.ArrayPath is not null)
+                {
+                    operations.Add(EngineOperations.GetArrayLength(variant.Layout, data, EngineInput.Span, source.ArrayPath, variables, read));
+                }
+
+                foreach (DifferentialOperation operation in operations)
+                {
+                    string general = Same(operation, ExecutionPath.GeneralOnly);
+                    string fastest = Same(operation, ExecutionPath.Fastest);
+                    if (!string.Equals(general, fastest, StringComparison.Ordinal))
+                    {
+                        Assert.Fail(variant.Name + " depth " + depth + ", " + operation.Name + ": the general path (-) and the fast paths (+) differ:\n" + EngineDifferential.Diff(general, fastest));
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
     ///     Fixed text trimming, pointer dereferencing, and absolute and relative addressing from several origins -
     ///     including one past the input and one that overflows - read identically from memory and from streams that
     ///     start at their beginning or past it.

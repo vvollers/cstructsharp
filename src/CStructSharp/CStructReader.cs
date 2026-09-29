@@ -121,7 +121,7 @@ public sealed partial class CStruct
                 // An anonymous promoted union (the promoted-member rule extended to unions): its members are spliced
                 // into the parent's container exactly like an anonymous struct's, read from the
                 // union's own decoded views so every member sees the same overlapping bytes.
-                UnionValue promoted = this.ReadUnionValue(composite, state, debugStack);
+                UnionValue promoted = this.ReadUnionValue(composite, state, debugStack, promoted: true);
                 foreach (KeyValuePair<string, object?> member in promoted.Members)
                 {
                     currentContainerDict[member.Key] = member.Value;

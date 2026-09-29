@@ -122,6 +122,10 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Fixed
 
+- An anonymous promoted struct or union (`struct { … };`, `union { … };`) no longer counts as a level of
+  `MaxNestingDepth`: parse, debug parse, selected reads, address and length queries, serialize, write, update and
+  generated readers and writers all count only the root and by-value named structs and unions, as the fixed-layout
+  fast paths already did. A layout exactly at the limit no longer fails on some paths and succeeds on others.
 - Browser bridge: an unknown `addressingMode` or an `origin` that is not a decimal integer in the signed 64-bit
   range is reported as `invalid-input` with a message naming the accepted values; an overflowing origin was
   `operation-failed`. `parse()` of a small input with an empty definition or invalid options resolves with the

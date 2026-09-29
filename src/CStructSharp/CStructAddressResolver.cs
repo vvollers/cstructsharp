@@ -98,7 +98,11 @@ public sealed partial class CStruct
         return this.ResolveTargetInStruct(this.compiledSizeQueries.GetCompiledComposite(rootStruct), rootStart, segments, 1, state, context);
     }
 
-    /// <summary>Finds a requested child while measuring only fields that precede it.</summary>
+    /// <summary>
+    ///     Finds a requested child while measuring only fields that precede it. The struct or union claims one nesting
+    ///     level; an anonymous promoted member, whose fields belong to the parent that already holds the level, is
+    ///     searched through <see cref="ResolveTargetInPromoted"/> instead.
+    /// </summary>
     private ResolvedTarget ResolveTargetInStruct(
         CompiledCompositeType strct,
         long structStart,
@@ -122,6 +126,29 @@ public sealed partial class CStruct
         {
             state.ExitStructure();
         }
+    }
+
+    /// <summary>
+    ///     Finds a requested child inside an anonymous promoted struct or union. The member claims no nesting level of
+    ///     its own, as in the reader and writer, but observes cancellation on entry like every composite.
+    /// </summary>
+    /// <param name="promoted">The promoted member's struct or union.</param>
+    /// <param name="start">Its first byte's stream position.</param>
+    /// <param name="segments">The parsed path.</param>
+    /// <param name="pathIndex">The segment to find, which the promoted member does not consume.</param>
+    /// <param name="state">The input, limits and captured variables of the resolution.</param>
+    /// <param name="context">The path resolved so far, for diagnostics.</param>
+    /// <returns>The resolved target.</returns>
+    private ResolvedTarget ResolveTargetInPromoted(
+        CompiledCompositeType promoted,
+        long start,
+        IReadOnlyList<PathSegment> segments,
+        int pathIndex,
+        CStructOperationContext state,
+        TargetResolutionContext context)
+    {
+        state.CancellationToken.ThrowIfCancellationRequested();
+        return this.ResolveTargetInStructCore(promoted, start, segments, pathIndex, state, context);
     }
 
     /// <summary>Resolves one already-budgeted structure level.</summary>
@@ -149,7 +176,7 @@ public sealed partial class CStruct
                 {
                     if (promoted.Composite is { } promotedMember && promotedMember.TryFindField(requested.Name, out _))
                     {
-                        return this.ResolveTargetInStruct(promotedMember, structStart, segments, pathIndex, state, context);
+                        return this.ResolveTargetInPromoted(promotedMember, structStart, segments, pathIndex, state, context);
                     }
                 }
             }
@@ -211,7 +238,7 @@ public sealed partial class CStruct
                 compiledField.Composite is { } promotedStruct &&
                 promotedStruct.TryFindField(requested.Name, out _))
             {
-                return this.ResolveTargetInStruct(promotedStruct, fieldStart, segments, pathIndex, state, context);
+                return this.ResolveTargetInPromoted(promotedStruct, fieldStart, segments, pathIndex, state, context);
             }
 
             this.CaptureLayoutVariable(compiledField, fieldStart, bitOffset, unitSize, state);
@@ -713,9 +740,18 @@ public sealed partial class CStruct
                 state.QualifiedPrefix = outerPrefix is null ? compiledField.QualifiedPrefix : outerPrefix + compiledField.QualifiedPrefix;
             }
 
-            for (int i = 0; i < count; i++)
+            if (compiledField.IsPromotedComposite)
             {
-                current = this.MeasureStructEnd(nested, current, state);
+                // A promoted member's fields belong to the current struct's nesting level.
+                state.CancellationToken.ThrowIfCancellationRequested();
+                current = this.MeasureStructEndCore(nested, current, state);
+            }
+            else
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    current = this.MeasureStructEnd(nested, current, state);
+                }
             }
 
             state.QualifiedPrefix = outerPrefix;
@@ -845,6 +881,13 @@ public sealed partial class CStruct
                             : this.GetBoundedArrayCount(compiledField, state, 0);
             if (count == 0 || compiledField.Composite is not { } nested)
             {
+                continue;
+            }
+
+            if (compiledField.IsPromotedComposite)
+            {
+                // A promoted member's fields belong to this composite's level.
+                this.ValidateCompositeTraversalLimits(nested, state);
                 continue;
             }
 

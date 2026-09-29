@@ -487,13 +487,11 @@ namespace Demo
             {
                 cursor.Seek(placement.AdvanceToField(4), member, memberType);
                 int unionStart = cursor.Position;
-                cursor.EnterComposite(member, memberType);
                 _ = cursor.Take(4, member, memberType);
                 cursor.EnterUnion();
                 cursor.Position = unionStart;
                 //  
                 {
-                    cursor.EnterComposite(member, memberType);
                     var placementUN = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
                     // uint16 ea_size
                     {
@@ -508,7 +506,6 @@ namespace Demo
                         placementUN.CompleteField(cursor.Position);
                     }
                     cursor.Seek(placementUN.Finish(2), member, memberType);
-                    cursor.ExitComposite();
                 }
                 cursor.Position = unionStart;
                 // uint32 reparse_tag
@@ -516,7 +513,6 @@ namespace Demo
                     value.ReparseTag = global::CStructSharp.Generated.Codec.ReadUInt32(cursor.Take(4, "reparse_tag", "uint32"), true);
                 }
                 cursor.ExitUnion();
-                cursor.ExitComposite();
                 cursor.Position = unionStart + 4;
                 placement.CompleteField(cursor.Position);
             }
@@ -667,12 +663,10 @@ namespace Demo
             {
                 cursor.Seek(placement.AdvanceToField(4), member, memberType);
                 int unionStart = cursor.Position;
-                cursor.EnterComposite(member, memberType);
                 cursor.Pad(4, member, memberType);
                 cursor.Position = unionStart;
                 //  
                 {
-                    cursor.EnterComposite(member, memberType);
                     var placementUN = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
                     // uint16 ea_size
                     {
@@ -688,9 +682,7 @@ namespace Demo
                     }
                     cursor.Seek(placementUN.Current, member, memberType);
                     cursor.Pad((int)(placementUN.Finish(2) - placementUN.Current), member, memberType);
-                    cursor.ExitComposite();
                 }
-                cursor.ExitComposite();
                 cursor.Position = unionStart + 4;
                 placement.CompleteField(cursor.Position);
             }

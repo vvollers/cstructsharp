@@ -189,6 +189,28 @@ public class ReaderParityTests
     }
 
     /// <summary>
+    ///     An anonymous promoted struct or union adds no nesting level: with <c>MaxNestingDepth</c> at the two levels
+    ///     of <c>root</c> and <c>leaf</c> both readers succeed, and one level fewer fails with the runtime's message.
+    /// </summary>
+    /// <remarks>
+    ///     The failing read is compared for the promoted struct only: a failure inside any union, named or promoted,
+    ///     carries the union's end as its offset in the runtime and the failing member's start in the generated reader.
+    /// </remarks>
+    [TestMethod]
+    public void PromotedMemberNesting_MatchesTheRuntime()
+    {
+        const string Root = "Root = \"root\", PointerSize = 1, Aligned = false, LittleEndian = true";
+        const string Leaf = "struct leaf { uint8 v; }; ";
+        const string PromotedStruct = Leaf + "struct root { uint8 a; struct { leaf inner; uint8 b; }; uint8 tail; };";
+        var none = new Dictionary<string, int>();
+        var twoLevels = new ReadOptions { MaxNestingDepth = 2, };
+        RunParity("nesting-promoted-struct", PromotedStruct, Root, "root", [1, 2, 3, 4,], none, twoLevels, null);
+        RunParity("nesting-promoted-union", Leaf + "struct root { uint8 a; union { leaf inner; uint8 b; }; uint8 tail; };", Root, "root", [1, 2, 3, 4,], none, twoLevels, null);
+        RunParity("nesting-promoted-through-union", Leaf + "struct root { uint8 a; union { struct { leaf inner; uint8 b; }; uint16 w; }; uint8 tail; };", Root, "root", [1, 2, 3, 4,], none, twoLevels, null);
+        RunParity("nesting-promoted-struct-short", PromotedStruct, Root, "root", [1, 2, 3, 4,], none, new ReadOptions { MaxNestingDepth = 1, }, "CStructReadLimitException");
+    }
+
+    /// <summary>
     ///     Arrays of <c>bool</c> and <c>int8</c> are decoded and encoded in bulk: a fixed struct through the fixed reader
     ///     and writer, a runtime-sized one member by member. Both match the runtime, and so do the written bytes.
     /// </summary>

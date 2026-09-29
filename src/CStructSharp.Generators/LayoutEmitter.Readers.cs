@@ -501,7 +501,8 @@ internal sealed partial class LayoutEmitter
         CompiledCompositeType? inline = this.InlineComposite(field);
         if (field.IsUnnamed && inline is not null)
         {
-            // Promoted: read the anonymous composite's members straight into this value.
+            // Promoted: read the anonymous composite's members straight into this value. Its members belong to this
+            // struct, so it enters no nesting level of its own, as in the runtime.
             if (inline.IsUnion)
             {
                 this.EmitPromotedUnion(writer, inline, scope, target, member, memberType, placement);
@@ -509,11 +510,9 @@ internal sealed partial class LayoutEmitter
             else
             {
                 string inner = placement + "N";
-                writer.Line("cursor.EnterComposite(" + member + ", " + memberType + ");");
                 writer.Line("var " + inner + " = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);");
                 this.EmitFields(writer, inline, scope, target, inner);
                 writer.Line("cursor.Seek(" + inner + ".Finish(" + Int(inline.Symbol.Alignment) + "), " + member + ", " + memberType + ");");
-                writer.Line("cursor.ExitComposite();");
             }
         }
         else if (field.IsUnnamed)
@@ -547,12 +546,23 @@ internal sealed partial class LayoutEmitter
         }
     }
 
+    /// <summary>
+    ///     Emits the read of an anonymous union inside a struct: every member is decoded from the union's start into the
+    ///     parent's value, pointers inside are not followed, and the cursor ends past the union's extent. The union's
+    ///     members belong to the parent, so it enters no nesting level of its own.
+    /// </summary>
+    /// <param name="writer">The source being emitted.</param>
+    /// <param name="union">The anonymous union.</param>
+    /// <param name="scope">The generated members of the enclosing reader.</param>
+    /// <param name="target">The expression naming the parent's value.</param>
+    /// <param name="member">The diagnostic member expression of the enclosing field.</param>
+    /// <param name="memberType">The diagnostic type expression of the enclosing field.</param>
+    /// <param name="placement">The parent's placement cursor variable.</param>
     private void EmitPromotedUnion(SourceWriter writer, CompiledCompositeType union, ReaderScope scope, string target, string member, string memberType, string placement)
     {
         // The runtime reads the anonymous union as a union value and splices its members into the parent.
         writer.Line("int unionStart = cursor.Position;");
         int? size = union.Symbol.FixedSize;
-        writer.Line("cursor.EnterComposite(" + member + ", " + memberType + ");");
         if (size is { } fixedSize)
         {
             writer.Line("_ = cursor.Take(" + Int(fixedSize) + ", " + member + ", " + memberType + ");");
@@ -575,7 +585,6 @@ internal sealed partial class LayoutEmitter
         }
 
         writer.Line("cursor.ExitUnion();");
-        writer.Line("cursor.ExitComposite();");
         writer.Line(size is { } end ? "cursor.Position = unionStart + " + Int(end) + ";" : "cursor.Position = unionEnd;");
     }
 

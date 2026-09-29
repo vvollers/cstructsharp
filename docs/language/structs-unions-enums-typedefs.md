@@ -142,6 +142,11 @@ and a new value needs only one member (`reparse_tag`, or `ea_size` with `reserve
 union extent, exactly as `UnionValue.FromMember` does; supplying none of them is a write error. Updating a promoted
 member changes only that member's bytes.
 
+Because a promoted member's fields belong to the containing struct, a promoted struct or union does not count toward
+the `MaxNestingDepth` read and write limit. In `file_name` above, the promoted union and the struct inside it add no
+levels, so `file_name` needs one level; a named member such as `} info;` would add one. [How nesting depth is
+counted](limits-and-diagnostics.md#how-nesting-depth-is-counted) works through an example.
+
 The `anonymous-promoted-member` fixture checks `a=1`, `x=2`, `y=3`, `b=4`, size 4, and bytes `01020304` on both
 frameworks; the `inline-unions` fixture checks the union shape above.
 

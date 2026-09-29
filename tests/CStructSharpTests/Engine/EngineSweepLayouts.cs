@@ -6,9 +6,9 @@ using CStructSharp.Values;
 /// <summary>
 ///     The representative layouts the differential sweeps (<see cref="EngineSweepTests"/>) run over: one per shape the
 ///     general reader and writer handle differently - a fixed record, a count-sized array, a conditional, nested
-///     structs, a union, bitfields, pointers (followed after the struct, one with an <c>@count</c> target), terminated
-///     strings and arrays, a to-end array, a custom codec, LEB128, fixed text, and caller variables in 128-bit
-///     expressions. Each is compiled packed and aligned (<see cref="Variant"/>).
+///     structs, anonymous promoted members (which add no nesting level), a union, bitfields, pointers (followed after
+///     the struct, one with an <c>@count</c> target), terminated strings and arrays, a to-end array, a custom codec,
+///     LEB128, fixed text, and caller variables in 128-bit expressions. Each is compiled packed and aligned (<see cref="Variant"/>).
 /// </summary>
 internal static class EngineSweepLayouts
 {
@@ -46,6 +46,20 @@ internal static class EngineSweepLayouts
             "rec.items",
             [("rec.items[1].b", (ushort)9), ("rec.last.a", (byte)8)],
             Names: ["n"]),
+        new(
+            "promoted",
+            "struct inner { uint8 a; uint16 b; }; struct rec { uint8 tag; struct { inner item; uint8 c[2]; }; uint8 tail; };",
+            [0x07, 0x01, 0x02, 0x00, 0x03, 0x04, 0x09],
+            ["rec.item.b", "rec.c", "rec.item"],
+            "rec.c",
+            [("rec.item.b", (ushort)9), ("rec.c[1]", (byte)5)]),
+        new(
+            "promoted-union",
+            "struct inner { uint8 a; uint16 b; }; struct rec { uint8 tag; union { inner item; uint16 half; }; uint8 tail; };",
+            [0x07, 0x01, 0x02, 0x00, 0x09],
+            ["rec.item.b", "rec.half", "rec.item"],
+            null,
+            [("rec.item.b", (ushort)9), ("rec.tail", (byte)3)]),
         new(
             "union",
             "union u { uint8 a; uint16 b; uint32 c; }; struct rec { uint8 tag; u value; uint8 tail; };",

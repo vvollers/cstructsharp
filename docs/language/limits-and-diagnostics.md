@@ -73,6 +73,35 @@ The `bounded-failures` fixture reads `41 42 00` as `"AB"` under normal settings,
 Update path traversal has its own `MaxTraversal*` read limits. Those checks happen before staged replacement output
 is committed.
 
+### How nesting depth is counted
+
+`MaxNestingDepth` (on `ReadOptions` and `WriteOptions`, default 256) limits how many structs and unions are open at the
+same time. The struct you parse or write is level 1. Each struct or union stored inside it by value - a named member,
+or one element of an array of structs - is one level deeper while it is read or written.
+
+An *anonymous promoted member* is an inline `struct { ... };` or `union { ... };` with no member name (see
+[anonymous promoted members](structs-unions-enums-typedefs.md#anonymous-promoted-members)). It is not a level of its
+own: its fields are members of the struct that contains it. C11 describes anonymous members the same way: "The members
+of an anonymous structure or union are considered to be members of the containing structure or union"
+(ISO/IEC 9899:2011, 6.7.2.1, paragraph 13).
+
+```c
+struct point { int16 x; int16 y; };
+
+struct shape {
+    uint8 kind;
+    struct { point origin; uint8 flags; };   // promoted: no level of its own
+    union { point centre; uint32 raw; };     // promoted: no level of its own
+};
+```
+
+`shape` is level 1 and `origin` and `centre` are level 2, so `MaxNestingDepth = 2` reads and writes a `shape`. With
+`MaxNestingDepth = 1` the read fails with `ReadLimitExceeded` when it reaches `origin`. If the anonymous struct had a
+name (`} body;`), `body` would be level 2 and `origin` level 3.
+
+Path operations count the same levels along the path: `ReadValue` and `ResolveAddress` of `shape.origin.x` need
+two levels, and `Update` checks the levels of its path against `MaxTraversalNestingDepth`.
+
 ## Stable error categories
 
 Every expected layout-operation failure derives from `CStructException`:

@@ -95,6 +95,16 @@ public class WriterParityTests
         Compare("limit-string", Limits, limits, "text", "hello", new WriteOptions { MaxStringBytes = 4 });
         Compare("limit-total", Limits, limits, "text", "hello", new WriteOptions { MaxTotalBytesWritten = 6 });
         Compare("limit-nesting", Limits, limits, "n", (byte)2, new WriteOptions { MaxNestingDepth = 1 });
+
+        // An anonymous promoted struct or union adds no level: root and leaf need two. The failing write is compared for
+        // the promoted struct only: a failure inside a promoted union names no member in the runtime.
+        const string Leaf = "struct leaf { uint8 v; }; ";
+        const string PromotedStruct = Leaf + "struct root { uint8 a; struct { leaf inner; uint8 b; }; uint8 tail; };";
+        var twoLevels = new WriteOptions { MaxNestingDepth = 2 };
+        Compare("nesting-promoted-struct", PromotedStruct, [1, 2, 3, 4], "a", (byte)5, twoLevels);
+        Compare("nesting-promoted-union", Leaf + "struct root { uint8 a; union { leaf inner; uint8 b; }; uint8 tail; };", [1, 2, 3, 4], "a", (byte)5, twoLevels);
+        Compare("nesting-promoted-through-union", Leaf + "struct root { uint8 a; union { struct { leaf inner; uint8 b; }; uint16 w; }; uint8 tail; };", [1, 2, 3, 4], "a", (byte)5, twoLevels);
+        Compare("nesting-promoted-struct-short", PromotedStruct, [1, 2, 3, 4], "a", (byte)5, new WriteOptions { MaxNestingDepth = 1 });
     }
 
     /// <summary>

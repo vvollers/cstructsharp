@@ -363,12 +363,11 @@ internal sealed partial class LayoutEmitter
             }
             else
             {
+                // The promoted members belong to this struct, so the anonymous struct enters no nesting level of its own.
                 string inner = placement + "N";
-                writer.Line("cursor.EnterComposite(" + member + ", " + memberType + ");");
                 writer.Line("var " + inner + " = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);");
                 this.EmitWriteFields(writer, inline, scope, target, inner);
                 EmitTailPadding(writer, inner, inline.Symbol.Alignment, member, memberType);
-                writer.Line("cursor.ExitComposite();");
             }
         }
         else if (field.IsUnnamed)
@@ -405,8 +404,16 @@ internal sealed partial class LayoutEmitter
 
     /// <summary>
     ///     An anonymous union inside a struct, as the runtime writes it from the parent's members: the widest member
-    ///     (declaration order among equals) is written at the union's start and the rest of the extent is zero.
+    ///     (declaration order among equals) is written at the union's start and the rest of the extent is zero. The
+    ///     union's members belong to the parent, so it enters no nesting level of its own.
     /// </summary>
+    /// <param name="writer">The source being emitted.</param>
+    /// <param name="union">The anonymous union.</param>
+    /// <param name="scope">The generated members of the enclosing writer.</param>
+    /// <param name="target">The expression naming the parent's value.</param>
+    /// <param name="member">The diagnostic member expression of the enclosing field.</param>
+    /// <param name="memberType">The diagnostic type expression of the enclosing field.</param>
+    /// <param name="placement">The parent's placement cursor variable.</param>
     private void EmitPromotedUnionWriter(SourceWriter writer, CompiledCompositeType union, ReaderScope scope, string target, string member, string memberType, string placement)
     {
         if (union.Symbol.FixedSize is not { } size)
@@ -417,11 +424,9 @@ internal sealed partial class LayoutEmitter
 
         CompiledField widest = union.Fields.Where(item => !item.IsZeroWidthBitfield).OrderByDescending(item => item.FixedStorageSize ?? int.MaxValue).First();
         writer.Line("int unionStart = cursor.Position;");
-        writer.Line("cursor.EnterComposite(" + member + ", " + memberType + ");");
         writer.Line("cursor.Pad(" + Int(size) + ", " + member + ", " + memberType + ");");
         writer.Line("cursor.Position = unionStart;");
         this.EmitWriteField(writer, widest, union, scope, target, inUnion: true, placement + "U");
-        writer.Line("cursor.ExitComposite();");
         writer.Line("cursor.Position = unionStart + " + Int(size) + ";");
     }
 

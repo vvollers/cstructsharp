@@ -103,7 +103,7 @@ public class WriterStateBoundaryTests
         var writeField = typeof(CStruct).GetMethod("WriteSingleFieldValue", BindingFlags.Instance | BindingFlags.NonPublic)!
             .CreateDelegate<Func<CompiledField, object, CStructElementWriterState, BigInteger?>>(layout);
         var writeStruct = typeof(CStruct).GetMethod("WriteStruct", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .CreateDelegate<Action<CompiledCompositeType, object, CStructElementWriterState>>(layout);
+            .CreateDelegate<Action<CompiledCompositeType, object, CStructElementWriterState, bool>>(layout);
         using var fieldOutput = new MemoryStream(new byte[1]);
         using var controlOutput = new MemoryStream(new byte[1]);
         var fieldState = new CStructElementWriterState(fieldOutput, new Dictionary<string, Expr>(), false, new WriteOptions()) { QualifiedPrefix = "outer.", };
@@ -120,7 +120,7 @@ public class WriterStateBoundaryTests
         Action control = () =>
         {
             controlOutput.Position = 0;
-            writeStruct(field.Composite!, data, controlState);
+            writeStruct(field.Composite!, data, controlState, false);
             controlState.QualifiedPrefix = "outer.";
         };
         for (int index = 0; index < 100; index++)
