@@ -658,6 +658,12 @@ internal static partial class ReadEngine
                     unitSize = program.Fields[field].BitStorageSize!.Value;
                     break;
 
+                case ReadOpCode.OpenSeededBitfieldUnit:
+                    // A selected bitfield reads the unit its struct placed, as the path resolver measured it.
+                    bitOffset = state.SeededBitOffset;
+                    unitSize = state.SeededUnitSize;
+                    break;
+
                 case ReadOpCode.ReadBitfield:
                     last = ReadBitfield(ref cursor, ref state, program.Fields[field], program.Codecs[step.A].Primitive, ref bitOffset, unitSize, scratch);
                     Store(destination, program, field, last);

@@ -4,6 +4,7 @@ using System.Buffers;
 using CStructSharp.Codecs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Streams;
+using CStructSharp.Values;
 
 /// <summary>Checks codec byte counts, bounded scratch-window growth and caller-visible value handling.</summary>
 [TestClass]
@@ -135,25 +136,32 @@ public class CustomCodecBoundaryTests
         CollectionAssert.AreEqual(new byte[] { 17, 17, 17, 17, }, stream.ToArray());
     }
 
-    /// <summary>A successful codec may consume or write zero bytes without being mistaken for an invalid count.</summary>
+    /// <summary>
+    ///     A successful codec may consume or write zero bytes without being mistaken for an invalid count; a fixed-size
+    ///     value still occupies its declared size, read past and written as zeros.
+    /// </summary>
     [TestMethod]
     public void ZeroByteSuccess_IsAcceptedForMemoryStreamsAndWrites()
     {
-        var codec = new RecordingCodec(0, 4);
-        Assert.IsNull(CustomCodecAdapter.DecodeFromMemory(codec, new byte[4], out object? value, out int consumed));
-        Assert.AreEqual((byte)17, value);
-        Assert.AreEqual(0, consumed);
-        using var stream = new MemoryStream(new byte[8]) { Position = 2, };
-        Assert.AreEqual((byte)17, CustomCodecAdapter.Read(codec, stream));
-        Assert.AreEqual(2L, stream.Position);
-        byte[] buffer = CustomCodecAdapter.EncodeToRented(codec, (byte)17, 4, out int written);
-        try
+        foreach ((int? fixedSize, int extent) in ((int?, int)[])[(null, 0), (4, 4)])
         {
-            Assert.AreEqual(0, written);
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(buffer);
+            var codec = new RecordingCodec(0, fixedSize);
+            Assert.IsNull(CustomCodecAdapter.DecodeFromMemory(codec, new byte[4], out object? value, out int consumed));
+            Assert.AreEqual((byte)17, value);
+            Assert.AreEqual(extent, consumed);
+            using var stream = new MemoryStream(new byte[8]) { Position = 2, };
+            Assert.AreEqual((byte)17, CustomCodecAdapter.Read(codec, stream));
+            Assert.AreEqual(2L + extent, stream.Position);
+            byte[] buffer = CustomCodecAdapter.EncodeToRented(codec, (byte)17, 256, out int written);
+            try
+            {
+                Assert.AreEqual(extent, written);
+                Assert.IsTrue(buffer.AsSpan(0, written).IndexOfAnyExcept((byte)0) < 0);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
         }
     }
 
@@ -206,6 +214,86 @@ public class CustomCodecBoundaryTests
         CollectionAssert.AreEqual(new[] { 256, 300, }, codec.WriteWindows);
     }
 
+    /// <summary>
+    ///     A codec's declared fixed size is the value's extent on every path: a codec that decodes from two of its four
+    ///     declared bytes leaves the later members at their declared offsets for a parse, a selected read, an address and a
+    ///     length, over memory and a stream, on the compiled engine and the interpreter and under every execution path; a
+    ///     write pads the two encoded bytes to four with zeros, so a parse, a serialization and an update round-trip.
+    /// </summary>
+    [TestMethod]
+    public void FixedSizeCodecTakingFewerBytes_OccupiesItsDeclaredSize()
+    {
+        var layout = new CStruct(
+            "struct rec { half a; half pair[2]; uint8 n; uint8 items[n]; uint8 tail; };",
+            compilationOptions: new CStructCompilationOptions { Codecs = [new HalfWordCodec(),], });
+        byte[] data = [0x34, 0x12, 0xAA, 0xBB, 1, 0, 0xCC, 0xCC, 2, 0, 0xDD, 0xDD, 2, 7, 8, 9];
+        byte[] canonical = [0x34, 0x12, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 2, 7, 8, 9];
+        foreach (ExecutionPath path in (ExecutionPath[])[ExecutionPath.Fastest, ExecutionPath.NoDirectAccess, ExecutionPath.GeneralOnly])
+        {
+            foreach (EngineSelection selection in (EngineSelection[])[EngineSelection.EngineRequired, EngineSelection.InterpreterOnly])
+            {
+                string context = path + ", " + selection;
+                ReadOptions read = EngineSelections.With(selection, new ReadOptions { ExecutionPath = path, });
+                foreach (bool stream in (bool[])[false, true])
+                {
+                    // A stream that hides its buffer reads through the codec's window, memory in place.
+                    StructValue parsed = stream
+                                             ? layout.Parse(new MemoryStream(data, 0, data.Length, false, false), "rec", options: read)
+                                             : layout.Parse(data.AsSpan(), "rec", options: read);
+                    Assert.AreEqual((ushort)0x1234, parsed["a"], context);
+                    Assert.AreEqual((byte)2, parsed["n"], context);
+                    Assert.AreEqual((byte)9, parsed["tail"], context);
+                }
+
+                Assert.AreEqual((byte)9, layout.ReadValue<byte>(data, "rec.tail", options: read), context);
+                Assert.AreEqual((ushort)2, layout.ReadValue<ushort>(data, "rec.pair[1]", options: read), context);
+                Assert.AreEqual(8L, layout.ResolveAddress(data, "rec.pair[1]", options: read), context);
+                Assert.AreEqual(12L, layout.ResolveAddress(data, "rec.n", options: read), context);
+                Assert.AreEqual(15L, layout.ResolveAddress(new MemoryStream(data, 0, data.Length, false, false), "rec.tail", options: read), context);
+                Assert.AreEqual(2, layout.GetArrayLength(data, "rec.items", options: read), context);
+
+                WriteOptions write = EngineSelections.With(selection, new WriteOptions { ExecutionPath = path, });
+                CollectionAssert.AreEqual(canonical, layout.Serialize("rec", layout.Parse(data.AsSpan(), "rec", options: read), options: write), context);
+            }
+
+            byte[] updated = (byte[])data.Clone();
+            var update = new UpdateOptions { ExecutionPath = path, };
+            layout.Update(updated, "rec.tail", (byte)5, options: update);
+            layout.Update(updated, "rec.pair[1]", (ushort)0x5678, options: update);
+            CollectionAssert.AreEqual(new byte[] { 0x34, 0x12, 0xAA, 0xBB, 1, 0, 0xCC, 0xCC, 0x78, 0x56, 0, 0, 2, 7, 8, 5, }, updated, path.ToString());
+        }
+    }
+
+    /// <summary>
+    ///     A fixed-size codec cannot take more than its declared size: consuming more when decoding, or asking for more room
+    ///     when encoding, fails on the engine and the interpreter alike, as does an input that ends before the declared size.
+    /// </summary>
+    [TestMethod]
+    public void FixedSizeCodec_FailsBeyondItsDeclaredSize()
+    {
+        var greedy = new CStruct("struct rec { half a; uint8 tail; };", compilationOptions: new CStructCompilationOptions { Codecs = [new HalfWordCodec(consumed: 6, writtenRoom: 6),], });
+        var layout = new CStruct("struct rec { half a; uint8 tail; };", compilationOptions: new CStructCompilationOptions { Codecs = [new HalfWordCodec(),], });
+        byte[] data = [1, 2, 3, 4, 5, 6, 7];
+        foreach (EngineSelection selection in (EngineSelection[])[EngineSelection.Automatic, EngineSelection.InterpreterOnly])
+        {
+            ReadOptions read = EngineSelections.With(selection);
+            CStructReadException consumed = Assert.ThrowsExactly<CStructReadException>(() => greedy.Parse(data.AsSpan(), "rec", options: read));
+            StringAssert.Contains(consumed.Message, "Custom codec 'half' reported 6 bytes consumed, more than its fixed size of 4 bytes");
+            Assert.AreEqual(0L, consumed.Offset);
+            consumed = Assert.ThrowsExactly<CStructReadException>(() => greedy.Parse(new MemoryStream(data, 0, data.Length, false, false), "rec", options: read));
+            StringAssert.Contains(consumed.Message, "more than its fixed size of 4 bytes");
+            Assert.AreEqual(0L, consumed.Offset);
+
+            CStructReadException shortInput = Assert.ThrowsExactly<CStructReadException>(() => layout.Parse(data.AsSpan(0, 3), "rec", options: read));
+            StringAssert.Contains(shortInput.Message, "Not enough bytes: custom codec 'half' needs more than the 3 available");
+            Assert.AreEqual(3L, shortInput.Offset);
+
+            var value = new Dictionary<string, object?> { ["a"] = (ushort)1, ["tail"] = (byte)2, };
+            CStructWriteException room = Assert.ThrowsExactly<CStructWriteException>(() => greedy.Serialize("rec", value, options: EngineSelections.With(selection, new WriteOptions())));
+            StringAssert.Contains(room.Message, "Custom codec 'half' needs more than its fixed size of 4 bytes for one value");
+        }
+    }
+
     /// <summary>Models a source that reports an I/O failure if asked to read after its requested window is already full.</summary>
     private sealed class NoEmptyReadStream : MemoryStream
     {
@@ -227,6 +315,68 @@ public class CustomCodecBoundaryTests
             }
 
             return base.Read(buffer);
+        }
+    }
+
+    /// <summary>
+    ///     A codec spelled <c>half</c> that declares a fixed size of four bytes but decodes and encodes a little-endian
+    ///     <see cref="ushort"/> in two; configured, it reports more bytes consumed, or asks for more room, than it declares.
+    /// </summary>
+    private sealed class HalfWordCodec : ICustomCodec
+    {
+        private readonly int consumed;
+        private readonly int writtenRoom;
+
+        /// <summary>Creates the codec.</summary>
+        /// <param name="consumed">The byte count a decode reports.</param>
+        /// <param name="writtenRoom">The room an encode needs before it writes its two bytes.</param>
+        public HalfWordCodec(int consumed = 2, int writtenRoom = 2)
+        {
+            this.consumed = consumed;
+            this.writtenRoom = writtenRoom;
+        }
+
+        public string Name => "half";
+
+        public int? FixedSize => 4;
+
+        public int Alignment => 1;
+
+        /// <summary>Decodes the first two bytes, reporting the configured byte count.</summary>
+        /// <param name="source">The bytes from the value's start.</param>
+        /// <param name="value">Receives the <see cref="ushort"/>.</param>
+        /// <param name="bytesConsumed">Receives the configured count.</param>
+        /// <returns>Done, or NeedMoreData when fewer bytes than the reported count are available.</returns>
+        public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesConsumed)
+        {
+            value = null;
+            bytesConsumed = 0;
+            if (source.Length < this.consumed)
+            {
+                return OperationStatus.NeedMoreData;
+            }
+
+            value = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(source);
+            bytesConsumed = this.consumed;
+            return OperationStatus.Done;
+        }
+
+        /// <summary>Encodes a <see cref="ushort"/> in two bytes once the window offers the configured room.</summary>
+        /// <param name="destination">The window.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="bytesWritten">Receives 2.</param>
+        /// <returns>Done, or DestinationTooSmall while the window is smaller than the configured room.</returns>
+        public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)
+        {
+            bytesWritten = 0;
+            if (destination.Length < this.writtenRoom)
+            {
+                return OperationStatus.DestinationTooSmall;
+            }
+
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(destination, Convert.ToUInt16(value, System.Globalization.CultureInfo.InvariantCulture));
+            bytesWritten = 2;
+            return OperationStatus.Done;
         }
     }
 

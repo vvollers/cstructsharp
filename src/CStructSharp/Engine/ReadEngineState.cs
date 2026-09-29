@@ -58,6 +58,8 @@ internal struct ReadEngineState
         this.pointers = null;
         this.StructureDepth = 0;
         this.QualifiedPrefix = null;
+        this.SeededBitOffset = 0;
+        this.SeededUnitSize = 0;
         this.arena = default;
         this.unionSlots = -1;
     }
@@ -106,6 +108,15 @@ internal struct ReadEngineState
 
     /// <summary>Gets or sets a value indicating whether following is suppressed: while a union's views are read, a pointer keeps only its address.</summary>
     public bool SuppressPointers { get; set; }
+
+    /// <summary>
+    ///     Gets or sets the bit offset, within its storage unit, of a bitfield a path selected: the offset its struct's
+    ///     placement gave it, which a selection program's <see cref="ReadOpCode.OpenSeededBitfieldUnit"/> step reads.
+    /// </summary>
+    public int SeededBitOffset { get; set; }
+
+    /// <summary>Gets or sets the size in bytes of the storage unit its struct placed a selected bitfield in (<see cref="SeededBitOffset"/>).</summary>
+    public int SeededUnitSize { get; set; }
 
     /// <summary>Gets the number of deferred pointers queued, none before the operation's first pointer.</summary>
     public readonly int PendingPointerCount => this.pointers?.Pending.Count ?? 0;

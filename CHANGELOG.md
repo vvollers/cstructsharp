@@ -10,6 +10,12 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Breaking changes
 
+- **Breaking (custom codecs):** a custom codec's `FixedSize` is authoritative: a fixed-size value always occupies
+  exactly its declared size. `Parse`, `ReadValue`, `ResolveAddress`, `GetArrayLength` and the generated readers place
+  the members after it at the declared offsets even when `Read` reports fewer bytes, and an input that ends before the
+  declared size is a short read. Writes pad a shorter encoding with zero bytes. A codec that reports more bytes consumed,
+  or asks for more room, than its `FixedSize` fails. Migration: return `null` from `FixedSize` for a codec whose
+  encoded length varies; otherwise make `Read` consume, and `Write` produce, exactly the declared size.
 - **Breaking (values):** a one-dimensional array of a fixed-width number or `bool` is a `PrimitiveArray<T>` wherever it
   is read - including a union member view, an array with no elements, a debug parse (`ParseWithDebug`,
   `ReadValueWithDebug`), a selected read of the array and a pointer target - where these returned `List<object?>`; rows
@@ -237,7 +243,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   the engine too (a thousand bitfield records parse about 32 % faster, a thousand unions about 40 % faster, each with
   16 % less allocation; a bounded pointer graph about 38 % faster with half the allocation). Debug parses (`ParseWithDebug`,
   `ReadValueWithDebug`) run on the engine too, with identical records, about 20-35 % faster and with 7-20 % less
-  allocation. Path reads and updates still use the general reader until the engine covers them.
+  allocation. Nested-path reads and parses, `ResolveAddress` and `GetArrayLength` run on the engine as well:
+  `ResolveAddress` is 30-55 % faster with about 90 % less allocation, and `ReadValue` of a nested scalar about 12 %
+  faster with 85 % less. Updates still use the general reader until the engine covers them.
 - Runtime reads place each field with less work: the placement cursor keeps its position without nullable round
   trips, and ordinary struct and union members are read through one inlined call. A layout of 1 000 bitfield records
   reads about 9% faster, and pointer-heavy and union-heavy layouts 6-10% faster.

@@ -49,9 +49,10 @@ public class EngineSelectionTests
 
     /// <summary>
     ///     Each public operation that reaches the general path records exactly one decision of its own kind: a run for a
-    ///     whole-root read of an eligible root over every source, for a whole-root debug parse (<c>ParseWithDebug</c>,
-    ///     <c>ReadValueWithDebug</c>, and asynchronously), and for a whole-root <c>Serialize</c> to an array or a span
-    ///     (and <c>WriteAsync</c>, which serializes first); a decline with its reason for everything else.
+    ///     whole-root read of an eligible root over every source, for a read, debug parse, address or length of a path in an
+    ///     eligible root (<c>Parse</c>, <c>ReadValue</c>, <c>ParseWithDebug</c>, <c>ReadValueWithDebug</c>,
+    ///     <c>ResolveAddress</c>, <c>GetArrayLength</c>, and asynchronously), and for a whole-root <c>Serialize</c> to an
+    ///     array or a span (and <c>WriteAsync</c>, which serializes first); a decline with its reason for everything else.
     /// </summary>
     [TestMethod]
     public void EveryOperation_RecordsOneDecisionOfItsKind()
@@ -68,21 +69,21 @@ public class EngineSelectionTests
             ("Parse(chunked stream)", EngineOperation.RootRead, null, (read, _, _) => layout.Parse(EngineStreams.Open(EngineInput.ChunkedStream3, SizedData), "rec", options: read)),
             ("ParseMany(Stream)", EngineOperation.RootRead, null, (read, _, _) => layout.ParseMany(new MemoryStream(SizedData), "rec", options: read).ToList()),
             ("ParseAsync", EngineOperation.RootRead, null, (read, _, _) => layout.ParseAsync(new MemoryStream(SizedData), "rec", options: read).AsTask().GetAwaiter().GetResult()),
-            ("Parse(path)", EngineOperation.PathRead, NotSupported, (read, _, _) => layout.Parse(SizedData, "rec.last", options: read)),
+            ("Parse(path)", EngineOperation.PathRead, null, (read, _, _) => layout.Parse(SizedData, "rec.last", options: read)),
             ("ReadValue(root)", EngineOperation.RootRead, null, (read, _, _) => layout.ReadValue(SizedData, "rec", options: read)),
             ("ReadValue<T>(root)", EngineOperation.RootRead, null, (read, _, _) => layout.ReadValue<StructValue>(SizedData, "rec", options: read)),
-            ("ReadValue(path)", EngineOperation.PathRead, NotSupported, (read, _, _) => layout.ReadValue(SizedData, "rec.items[1]", options: read)),
-            ("ReadValue<T>(path)", EngineOperation.PathRead, NotSupported, (read, _, _) => layout.ReadValue<int>(SizedData, "rec.tail", options: read)),
+            ("ReadValue(path)", EngineOperation.PathRead, null, (read, _, _) => layout.ReadValue(SizedData, "rec.items[1]", options: read)),
+            ("ReadValue<T>(path)", EngineOperation.PathRead, null, (read, _, _) => layout.ReadValue<int>(SizedData, "rec.tail", options: read)),
             ("ParseWithDebug", EngineOperation.DebugRead, null, (read, _, _) => layout.ParseWithDebug(SizedData, "rec", options: read)),
             ("ParseWithDebug(Stream)", EngineOperation.DebugRead, null, (read, _, _) => layout.ParseWithDebug(new MemoryStream(SizedData), "rec", options: read)),
             ("ParseWithDebugAsync", EngineOperation.DebugRead, null, (read, _, _) => layout.ParseWithDebugAsync(new MemoryStream(SizedData), "rec", options: read).AsTask().GetAwaiter().GetResult()),
             ("ReadValueWithDebug(root)", EngineOperation.DebugRead, null, (read, _, _) => layout.ReadValueWithDebug(SizedData, "rec", options: read)),
             ("ReadValueWithDebugAsync(root)", EngineOperation.DebugRead, null, (read, _, _) => layout.ReadValueWithDebugAsync(new MemoryStream(SizedData), "rec", options: read).AsTask().GetAwaiter().GetResult()),
-            ("ParseWithDebug(path)", EngineOperation.DebugRead, NotSupported, (read, _, _) => layout.ParseWithDebug(SizedData, "rec.last", options: read)),
-            ("ReadValueWithDebug(path)", EngineOperation.DebugRead, NotSupported, (read, _, _) => layout.ReadValueWithDebug(SizedData, "rec.last", options: read)),
-            ("ResolveAddress", EngineOperation.AddressResolution, NotSupported, (read, _, _) => layout.ResolveAddress(SizedData, "rec.tail", options: read)),
-            ("ResolveAddressAsync", EngineOperation.AddressResolution, NotSupported, (read, _, _) => layout.ResolveAddressAsync(new MemoryStream(SizedData), "rec.tail", options: read).AsTask().GetAwaiter().GetResult()),
-            ("GetArrayLength", EngineOperation.LengthQuery, NotSupported, (read, _, _) => layout.GetArrayLength(SizedData, "rec.items", options: read)),
+            ("ParseWithDebug(path)", EngineOperation.DebugRead, null, (read, _, _) => layout.ParseWithDebug(SizedData, "rec.last", options: read)),
+            ("ReadValueWithDebug(path)", EngineOperation.DebugRead, null, (read, _, _) => layout.ReadValueWithDebug(SizedData, "rec.last", options: read)),
+            ("ResolveAddress", EngineOperation.AddressResolution, null, (read, _, _) => layout.ResolveAddress(SizedData, "rec.tail", options: read)),
+            ("ResolveAddressAsync", EngineOperation.AddressResolution, null, (read, _, _) => layout.ResolveAddressAsync(new MemoryStream(SizedData), "rec.tail", options: read).AsTask().GetAwaiter().GetResult()),
+            ("GetArrayLength", EngineOperation.LengthQuery, null, (read, _, _) => layout.GetArrayLength(SizedData, "rec.items", options: read)),
             ("Serialize(byte[])", EngineOperation.Write, null, (_, write, _) => layout.Serialize("rec", value, options: write)),
             ("Serialize(Span)", EngineOperation.Write, null, (_, write, _) => layout.Serialize(new byte[16].AsSpan(), "rec", value, options: write)),
             ("Serialize(IBufferWriter)", EngineOperation.Write, StreamDestinations, (_, write, _) => layout.Serialize(new ArrayBufferWriter<byte>(), "rec", value, options: write)),
@@ -195,7 +196,7 @@ public class EngineSelectionTests
 
         layout.GetArrayLength(SizedData, "rec.items");
         Assert.AreEqual(3, outer.Diagnostics.Decisions, "the flow's read, the task's read, then the length query after the inner recording");
-        Assert.AreEqual(2, outer.Diagnostics.EngineRuns, "the two whole-root reads");
+        Assert.AreEqual(3, outer.Diagnostics.EngineRuns, "the two whole-root reads and the length query");
         Assert.AreEqual(EngineOperation.LengthQuery, outer.Diagnostics.LastOperation);
         Assert.AreSame(outer.Diagnostics, EngineDiagnostics.Current);
 
@@ -208,7 +209,7 @@ public class EngineSelectionTests
     /// <summary>
     ///     Requiring the engine fails every operation the engine declines with <see cref="InvalidOperationException"/>
     ///     naming the operation and the decline reason, before any byte is read or written or a stream moves; a whole-root
-    ///     read and a whole-root debug parse of an eligible root run.
+    ///     read, a debug parse, and the path operations of an eligible root run.
     /// </summary>
     [TestMethod]
     public void EngineRequired_ThrowsWithTheDeclineReason_BeforeTouchingData()
@@ -225,11 +226,12 @@ public class EngineSelectionTests
         using var unslottedSource = new MemoryStream([1, 2, 3, 4]);
         AssertRequired(EngineOperation.RootRead, () => layout.Parse(unslottedSource, UnslottedRoot, UnslottedVariables, read), UnslottedReason);
         Assert.AreEqual(0, unslottedSource.Position, "the stream does not move");
-        AssertRequired(EngineOperation.PathRead, () => layout.ReadValue(SizedData, "rec.items[0]", options: read));
+        AssertRequired(EngineOperation.PathRead, () => layout.ReadValue(SizedData, "nosuch.x", options: read), "nosuch: the layout declares no such root");
+        Assert.AreEqual((ushort)1, layout.ReadValue(SizedData, "rec.items[0]", options: read));
         Assert.AreEqual((byte)9, layout.ParseWithDebug(SizedData, "rec", options: read).Value["tail"]);
-        AssertRequired(EngineOperation.DebugRead, () => layout.ParseWithDebug(SizedData, "rec.last", options: read));
-        AssertRequired(EngineOperation.AddressResolution, () => layout.ResolveAddress(SizedData, "rec.tail", options: read));
-        AssertRequired(EngineOperation.LengthQuery, () => layout.GetArrayLength(SizedData, "rec.items", options: read));
+        Assert.AreEqual((byte)5, layout.ParseWithDebug(SizedData, "rec.last", options: read).Value["a"]);
+        Assert.AreEqual(6L, layout.ResolveAddress(SizedData, "rec.tail", options: read));
+        Assert.AreEqual(2, layout.GetArrayLength(SizedData, "rec.items", options: read));
         CollectionAssert.AreEqual(new byte[] { 1, 4, 0, 5, 9, }, layout.Serialize("rec", value, options: write));
         AssertRequired(EngineOperation.Write, () => layout.Serialize(new ArrayBufferWriter<byte>(), "rec", value, options: write), EngineSelector.StreamDestinations);
 

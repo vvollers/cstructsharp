@@ -503,23 +503,22 @@ public class ReadProgramCompilerTests
     }
 
     /// <summary>
-    ///     A caller's codec may take fewer bytes than the size it declares, so the position after it (or after a struct
-    ///     holding it) is not known when the program is built: a later member is aligned at run time even though the layout
-    ///     compiled its offset, and the struct's tail is aligned at run time too.
+    ///     A caller's codec with a fixed size occupies exactly that size, so the members after it (and after a struct holding
+    ///     it) are placed when the program is built, at the offsets the layout compiled, with the tails known too.
     /// </summary>
     [TestMethod]
-    public void FixedSizeCustomCodec_PlacesLaterMembersAtRunTime()
+    public void FixedSizeCustomCodec_PlacesLaterMembersStatically()
     {
         var options = new CStructCompilationOptions { Codecs = [FixedWordCodec.Instance], };
         var layout = new CStruct("struct inner { word4 w; uint8 b; }; struct root { word4 a; uint32 x; inner i; uint16 y; };", aligned: true, compilationOptions: options);
         ReadProgram root = RootProgram(layout, "root").Nested[0];
 
-        // i ends a multiple of its alignment (4) after its start, so y needs no run-time step; i itself ends aligned at run time.
+        // a takes 4 bytes, so x needs no padding; inner's 5 bytes are padded to 8, and root's 18 to 20.
         AssertLines(
-            ["ReadCustom a Custom", "Align x to 4", "ReadUInt32Le x UInt32 le", "ReadStruct i inner", "ReadUInt16Le y UInt16 le", "FinishComposite - tail +2"],
+            ["ReadCustom a Custom", "ReadUInt32Le x UInt32 le", "ReadStruct i inner", "ReadUInt16Le y UInt16 le", "FinishComposite - tail +2"],
             ReadProgramDump.Lines(root, layout.Compilation.SlotTable));
         AssertLines(
-            ["ReadCustom w Custom", "ReadUInt8 b UInt8", "FinishComposite - tail to 4"],
+            ["ReadCustom w Custom", "ReadUInt8 b UInt8", "FinishComposite - tail +3"],
             ReadProgramDump.Lines(root.Nested.Single(), layout.Compilation.SlotTable));
     }
 

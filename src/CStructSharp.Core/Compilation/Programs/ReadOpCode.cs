@@ -379,6 +379,13 @@ internal enum ReadOpCode : byte
     OpenBitfieldUnit,
 
     /// <summary>
+    ///     Opens the storage unit of a bitfield a path selected (the only member of a selection program): the bit offset and
+    ///     unit size its struct's placement gave it, which the path resolver measured and the operation state carries
+    ///     (<c>ReadEngineState.SeededBitOffset</c> and <c>SeededUnitSize</c>), so the selected bits are read from the placed unit.
+    /// </summary>
+    OpenSeededBitfieldUnit,
+
+    /// <summary>
     ///     Reads a bitfield (storage codec <c>A</c>) from the unit the bit registers describe: the whole unit is read again
     ///     for every bitfield in it (and charged each time), its bits are extracted without sign extension (an
     ///     <see cref="int"/> below 32 bits, a <see cref="ulong"/> otherwise, or the enum result of an enum bitfield), and the

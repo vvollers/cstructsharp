@@ -361,8 +361,8 @@ public class ReadEngineTests
     /// <summary>
     ///     Typedef, enum and type-spelling roots are read standalone - element by element for arrays, never through the
     ///     block paths a placed member takes - into their typed shapes, and a count past the element limit fails before
-    ///     the read. A spelling root counted by a caller's name has no slot for it and is left to the interpreter, and so
-    ///     is <c>ReadValue</c> of a runtime-sized root, whose count the interpreter's path resolution evaluates first.
+    ///     the read. <c>ReadValue</c> of a runtime-sized root takes the count first, as the path resolver does, and then
+    ///     reads the root. A spelling root counted by a caller's name has no slot for it and is left to the interpreter.
     /// </summary>
     [TestMethod]
     public void StandaloneRoots_ReadIdentically()
@@ -387,10 +387,15 @@ public class ReadEngineTests
             EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "points"), expectEngine: true, path: path);
             EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Span, "uint16[2]"), expectEngine: true, path: path);
 
-            // N is a definition, so the spelling root's count has a slot: the parse runs, the selected read is declined.
+            // N is a definition, so the spelling root's count has a slot: the parse and the selected read both run, the read
+            // taking the count (checked against the element limit) before it reads the root.
             EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Stream, "uint8[N]", variables), expectEngine: true, path: path);
-            EngineComparison resolved = EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Span, "uint8[N]", variables), expectEngine: false, path: path);
-            Assert.AreEqual(new EngineDecline(EngineOperation.RootRead, EngineSelector.ResolvedRootArray), resolved.Automatic.LastDecline);
+            foreach (int limit in (int[])[2, 3])
+            {
+                var elementLimit = new ReadOptions { MaxArrayElements = limit, };
+                EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Span, "uint8[N]", variables, elementLimit), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.ChunkedStream3, "uint8[N]", variables, elementLimit), expectEngine: true, path: path);
+            }
 
             // M is only the caller's, and no expression of the layout names it: no slot, so no program.
             EngineComparison unslotted = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "uint8[M]", new Dictionary<string, int> { ["M"] = 3, }), expectEngine: false, path: path);
@@ -561,12 +566,12 @@ public class ReadEngineTests
     }
 
     /// <summary>
-    ///     A caller's codec that declares four bytes may take one: every later member, nested struct and tail is placed
-    ///     from where its bytes actually end, as the interpreter's placement cursor does, not from the offsets the layout
-    ///     compiled - packed and aligned, in the short and the full form, at every truncation and byte budget.
+    ///     A caller's codec that declares four bytes and takes one still occupies four: every later member, nested struct
+    ///     and tail is at the offset the layout compiled, as the interpreter places it - packed and aligned, in the short and
+    ///     the full form, at every truncation and byte budget.
     /// </summary>
     [TestMethod]
-    public void FixedSizeCustomCodec_PlacesLaterMembersWhereItsBytesEnd()
+    public void FixedSizeCustomCodec_OccupiesItsDeclaredSize()
     {
         var options = new CStructCompilationOptions { Codecs = [FixedWordCodec.Instance,], };
         const string definition = "struct inner { word4 w; uint8 b; }; struct rec { word4 a; uint16 x; inner i; uint16 y; };";
@@ -574,9 +579,9 @@ public class ReadEngineTests
         var aligned = new CStruct(definition, aligned: true, compilationOptions: options);
         (CStruct Layout, byte[] Data)[] cases =
         [
-            (packed, [0xEE, 0x34, 0x12, 0xEE, 0x05, 0x78, 0x56]),
+            (packed, [0xEE, 0xAA, 0xAA, 0xAA, 0x34, 0x12, 0xEE, 0xAA, 0xAA, 0xAA, 0x05, 0x78, 0x56]),
             (packed, [1, 0, 0, 0, 0x34, 0x12, 2, 0, 0, 0, 0x05, 0x78, 0x56]),
-            (aligned, [0xEE, 0, 0x34, 0x12, 0xEE, 0x05, 0, 0, 0x78, 0x56, 0, 0]),
+            (aligned, [0xEE, 0xAA, 0xAA, 0xAA, 0x34, 0x12, 0, 0, 0xEE, 0xAA, 0xAA, 0xAA, 0x05, 0, 0, 0, 0x78, 0x56, 0, 0]),
             (aligned, [1, 0, 0, 0, 0x34, 0x12, 0, 0, 2, 0, 0, 0, 0x05, 0, 0, 0, 0x78, 0x56, 0, 0]),
         ];
         foreach (ExecutionPath path in Paths)
@@ -612,8 +617,8 @@ public class ReadEngineTests
     /// <summary>
     ///     A multidimensional array reads all its elements in row-major order under one element limit and is then nested:
     ///     lists at every level (never typed arrays), <c>wchar</c> rows as strings validated row by row after every
-    ///     character was read, and three dimensions. Typedef roots read standalone; their selected reads, whose outermost
-    ///     count the interpreter's path resolver checks first, are left to the interpreter.
+    ///     character was read, and three dimensions. Typedef roots read standalone; their selected reads check the outermost
+    ///     count against the element limit first, as the path resolver does, and then the read checks the total.
     /// </summary>
     [TestMethod]
     public void MultidimensionalArrays_ReadFlatThenNest()
@@ -664,8 +669,14 @@ public class ReadEngineTests
                     EngineDifferential.AssertSame(EngineOperations.Parse(roots, data[1..(1 + length)], EngineInput.Span, root), expectEngine: true, path: path);
                 }
 
-                EngineComparison selected = EngineDifferential.AssertSame(EngineOperations.ReadValue(roots, data[1..7], EngineInput.Span, root), expectEngine: false, path: path);
-                Assert.AreEqual(new EngineDecline(EngineOperation.RootRead, EngineSelector.ResolvedRootArray), selected.Automatic.LastDecline);
+                // The outermost count (2) passes a limit of 2 before the read's total (6) fails it.
+                foreach (int limit in (int[])[1, 2, 5, 6])
+                {
+                    var limited = new ReadOptions { MaxArrayElements = limit, };
+                    EngineDifferential.AssertSame(EngineOperations.ReadValue(roots, data[1..7], EngineInput.Span, root, options: limited), expectEngine: true, path: path);
+                }
+
+                EngineDifferential.AssertSame(EngineOperations.ReadValue(roots, data[1..7], EngineInput.Span, root), expectEngine: true, path: path);
             }
         }
     }

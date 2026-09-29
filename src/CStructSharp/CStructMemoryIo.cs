@@ -39,7 +39,15 @@ public sealed partial class CStruct
         ReadProgram? engineRoot = this.SelectParse(settings, segments, input, debug);
         fixed (byte* buffer = source)
         {
-            // The engine reads the pinned region directly; the interpreter reads it through a read-only region stream.
+            // The engine reads the pinned region directly; the interpreter reads it through a read-only region stream. A
+            // nested path is resolved on that stream by both, so they report the same positions.
+            if (engineRoot is not null && segments.Count > 1)
+            {
+                using var region = new FixedBufferStream(buffer, source.Length, writable: false);
+                (List<DebugData> nestedRecords, object nested) = this.ParseNestedWithEngine(region, segments, input, settings, debug);
+                return (nested, nestedRecords);
+            }
+
             if (engineRoot is not null)
             {
                 DebugRecorder? recorder = debug ? new DebugRecorder(trace: false) : null;
@@ -74,7 +82,7 @@ public sealed partial class CStruct
         {
             if (engineRoot is not null)
             {
-                return this.ReadRootValueWithEngine(buffer, source.Length, segments, engineRoot, input, settings, out _);
+                return this.ReadValueWithEngine(buffer, source.Length, segments, engineRoot, input, settings, out _);
             }
 
             using var stream = new FixedBufferStream(buffer, source.Length, writable: false);
@@ -108,7 +116,7 @@ public sealed partial class CStruct
                 object? naturalValue;
                 if (this.SelectValueRead(settings, segments, input) is { } engineRoot)
                 {
-                    naturalValue = this.ReadRootValueWithEngine(buffer, source.Length, segments, engineRoot, input, settings, out position);
+                    naturalValue = this.ReadValueWithEngine(buffer, source.Length, segments, engineRoot, input, settings, out position);
                 }
                 else
                 {

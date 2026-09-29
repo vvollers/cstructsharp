@@ -29,7 +29,7 @@ internal static partial class ReadEngine
     /// <returns>The decoded value.</returns>
     /// <exception cref="CStructReadException">The input ends early or holds an invalid value.</exception>
     /// <exception cref="CStructReadLimitException">The bytes exceed a budget.</exception>
-    private static object ReadCodecValue<TCursor>(ref TCursor cursor, PrimitiveCodec codec, Span<byte> scratch)
+    internal static object ReadCodecValue<TCursor>(ref TCursor cursor, PrimitiveCodec codec, Span<byte> scratch)
         where TCursor : struct, IReadCursor
     {
         bool littleEndian = codec.LittleEndian;

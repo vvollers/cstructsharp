@@ -20,7 +20,8 @@ public sealed partial class CStruct
 {
     /// <summary>
     ///     Makes the one engine decision of a parse: a whole-root parse asks for the root's program, a whole-root debug parse
-    ///     for the root's debug program; a nested path is declined (and recorded) for the interpreter.
+    ///     for the root's debug program, and a nested path for its root's program (its debug program for a debug parse),
+    ///     which proves every struct the path can reach readable.
     /// </summary>
     /// <param name="options">The operation's snapshotted settings.</param>
     /// <param name="segments">The parsed path.</param>
@@ -34,11 +35,39 @@ public sealed partial class CStruct
         {
             return debug
                        ? EngineSelector.SelectDebugRead(options.EngineSelection, this.compilation, segments[0].Name, variables)
-                       : EngineSelector.SelectRootRead(options.EngineSelection, this.compilation, segments[0].Name, variables, selectsValue: false);
+                       : EngineSelector.SelectRootRead(options.EngineSelection, this.compilation, segments[0].Name, variables);
         }
 
-        EngineSelector.Decide(options.EngineSelection, debug ? EngineOperation.DebugRead : EngineOperation.PathRead);
-        return null;
+        return EngineSelector.SelectPathRead(options.EngineSelection, this.compilation, segments[0].Name, variables, debug ? EngineOperation.DebugRead : EngineOperation.PathRead, debug);
+    }
+
+    /// <summary>
+    ///     Parses the struct or union a nested path selects from a stream with the compiled engine, in the interpreter's
+    ///     order: the caller's variables are resolved into the layout's slots (a definition that cannot be resolved fails
+    ///     here, without a path), then the source and settings are validated, the path resolved and the composite read - in a
+    ///     debug parse with every value recorded under the path's names.
+    /// </summary>
+    /// <param name="stream">The caller's source, positioned at the root.</param>
+    /// <param name="segments">The parsed path, more than one segment.</param>
+    /// <param name="variables">The caller's layout variables, integers.</param>
+    /// <param name="options">The operation's snapshotted settings.</param>
+    /// <param name="debug">Whether the parse records debug byte ranges.</param>
+    /// <returns>The debug records (an empty shared list outside a debug parse) and the struct or union value.</returns>
+    /// <exception cref="ArgumentException"><paramref name="stream"/> cannot read or seek.</exception>
+    /// <exception cref="CStructException">A definition cannot be resolved, the path cannot be resolved, or the input cannot be read.</exception>
+    private (List<DebugData> DebugData, object Result) ParseNestedWithEngine(Stream stream, IReadOnlyList<PathSegment> segments, in LayoutVariableInput variables, in ReadOperationSettings options, bool debug)
+    {
+        DebugRecorder? recorder = debug ? new DebugRecorder(trace: false) : null;
+        VariableSlots slots = VariableSlots.Create(this.compilation.SlotTable, variables);
+        try
+        {
+            object value = ReadEngine.ReadComposite(this, stream, segments, slots, options, recorder);
+            return (recorder?.Records ?? NoDebugData, value);
+        }
+        finally
+        {
+            slots.Dispose();
+        }
     }
 
     /// <summary>

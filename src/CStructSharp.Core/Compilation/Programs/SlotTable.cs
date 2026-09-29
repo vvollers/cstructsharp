@@ -44,6 +44,7 @@ internal sealed class SlotTable
     private ReadProgramCache? readPrograms;
     private ReadProgramCache? debugReadPrograms;
     private WriteProgramCache? writePrograms;
+    private TargetProgramCache? targetPrograms;
 
     /// <summary>Assigns the slots, then records dependents and the static state, which compile against them.</summary>
     /// <param name="names">The distinct names, in slot order.</param>
@@ -106,6 +107,14 @@ internal sealed class SlotTable
     /// </summary>
     public WriteProgramCache WritePrograms
         => Volatile.Read(ref this.writePrograms) ?? Interlocked.CompareExchange(ref this.writePrograms, new WriteProgramCache(this), null) ?? this.writePrograms!;
+
+    /// <summary>
+    ///     Gets what the path resolver compiled against this table (the walks of structs and unions and the reads of
+    ///     selected members), created on first access like <see cref="ReadPrograms"/>, so a layout no path is resolved in
+    ///     compiles none.
+    /// </summary>
+    public TargetProgramCache TargetPrograms
+        => Volatile.Read(ref this.targetPrograms) ?? Interlocked.CompareExchange(ref this.targetPrograms, new TargetProgramCache(this), null) ?? this.targetPrograms!;
 
     /// <summary>Builds the table of one compiled layout.</summary>
     /// <param name="referencedNames">The names the layout's expressions read, with dotted names expanded.</param>

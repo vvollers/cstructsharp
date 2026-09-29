@@ -256,7 +256,19 @@ public sealed partial class CStruct
         ArgumentNullException.ThrowIfNull(stream);
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
         IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
-        EngineSelector.Decide(effectiveOptions.EngineSelection, EngineOperation.LengthQuery);
+        if (EngineSelector.SelectPathRead(effectiveOptions.EngineSelection, this.compilation, segments[0].Name, variables, EngineOperation.LengthQuery) is not null)
+        {
+            VariableSlots slots = VariableSlots.Create(this.compilation.SlotTable, variables);
+            try
+            {
+                return ReadEngine.GetArrayLength(this, stream, segments, elementNameOrPath, slots, effectiveOptions);
+            }
+            finally
+            {
+                slots.Dispose();
+            }
+        }
+
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
         var state = new CStructOperationContext(
             stream,
@@ -367,6 +379,11 @@ public sealed partial class CStruct
         IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
         if (this.SelectParse(effectiveOptions, segments, variables, debug) is { } engineRoot)
         {
+            if (segments.Count > 1)
+            {
+                return this.ParseNestedWithEngine(stream, segments, variables, effectiveOptions, debug);
+            }
+
             if (debug)
             {
                 return this.ParseWithEngineDebug(stream, segments, engineRoot, variables, effectiveOptions);
@@ -483,7 +500,19 @@ public sealed partial class CStruct
         ArgumentNullException.ThrowIfNull(stream);
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
         IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
-        EngineSelector.Decide(effectiveOptions.EngineSelection, EngineOperation.AddressResolution);
+        if (EngineSelector.SelectPathRead(effectiveOptions.EngineSelection, this.compilation, segments[0].Name, variables, EngineOperation.AddressResolution) is not null)
+        {
+            VariableSlots slots = VariableSlots.Create(this.compilation.SlotTable, variables);
+            try
+            {
+                return ReadEngine.ResolveAddress(this, stream, segments, slots, effectiveOptions);
+            }
+            finally
+            {
+                slots.Dispose();
+            }
+        }
+
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
         var state = new CStructOperationContext(
             stream,

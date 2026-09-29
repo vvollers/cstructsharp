@@ -42,7 +42,7 @@ internal static class EngineOperations
             (source, read) => layout.Parse(source, path, variables, read),
             (source, read) => layout.Parse(source, path, variables, read),
             RenderValue,
-            EngineExpectations.RootRead(layout, path, selectsValue: false));
+            EngineExpectations.Read(layout, path));
 
     /// <summary><c>ParseAsync</c> over a stream that hides its buffer.</summary>
     /// <param name="layout">The compiled layout.</param>
@@ -63,7 +63,7 @@ internal static class EngineOperations
     /// <param name="options">The case's read options, which each side adjusts.</param>
     /// <returns>The operation.</returns>
     public static DifferentialOperation ParseAsync(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
-        => StreamRead("ParseAsync " + path, data, input, options, (source, read) => layout.ParseAsync(source, path, variables, read).AsTask().GetAwaiter().GetResult(), RenderValue, EngineExpectations.RootRead(layout, path, selectsValue: false));
+        => StreamRead("ParseAsync " + path, data, input, options, (source, read) => layout.ParseAsync(source, path, variables, read).AsTask().GetAwaiter().GetResult(), RenderValue, EngineExpectations.Read(layout, path));
 
     /// <summary><c>ParseMany</c>: every record until the input ends, then the record count.</summary>
     /// <param name="layout">The compiled layout.</param>
@@ -103,7 +103,7 @@ internal static class EngineOperations
                 output.Line("count", count.ToString(CultureInfo.InvariantCulture));
                 RenderPosition(output, stream, EngineStreams.IsStream(input) ? EngineStreams.StartOf(input) : 0);
             },
-            EngineExpectations.RootRead(layout, path, selectsValue: false));
+            EngineExpectations.Read(layout, path));
     }
 
     /// <summary><c>ReadValue</c> of a root or a path, in its natural representation.</summary>
@@ -126,7 +126,7 @@ internal static class EngineOperations
             (source, read) => layout.ReadValue(source, path, variables, read),
             (source, read) => layout.ReadValue(source, path, variables, read),
             RenderValue,
-            EngineExpectations.RootRead(layout, path, selectsValue: true));
+            EngineExpectations.Read(layout, path));
 
     /// <summary><c>ReadValue&lt;T&gt;</c> of a root or a path, converted or bound to <typeparamref name="T"/>.</summary>
     /// <typeparam name="T">The destination type.</typeparam>
@@ -149,7 +149,7 @@ internal static class EngineOperations
             (source, read) => layout.ReadValue<T>(source, path, variables, read),
             (source, read) => layout.ReadValue<T>(source, path, variables, read),
             RenderValue,
-            EngineExpectations.RootRead(layout, path, selectsValue: true));
+            EngineExpectations.Read(layout, path));
 
     /// <summary><c>ParseWithDebug</c>: the struct, then every debug record.</summary>
     /// <param name="layout">The compiled layout.</param>
@@ -250,7 +250,8 @@ internal static class EngineOperations
             (source, read) => layout.ResolveAddress(source, path, variables, read),
             (source, read) => layout.ResolveAddress(source, path, variables, read),
             (source, read) => layout.ResolveAddress(source, path, variables, read),
-            RenderValue);
+            RenderValue,
+            EngineExpectations.Read(layout, path));
 
     /// <summary><c>GetArrayLength</c>: the element or character count of a path.</summary>
     /// <param name="layout">The compiled layout.</param>
@@ -271,7 +272,8 @@ internal static class EngineOperations
             (source, read) => layout.GetArrayLength(source, path, variables, read),
             (source, read) => layout.GetArrayLength(source, path, variables, read),
             (source, read) => layout.GetArrayLength(source, path, variables, read),
-            RenderValue);
+            RenderValue,
+            EngineExpectations.Read(layout, path));
 
     /// <summary><c>Serialize</c> to a new byte array.</summary>
     /// <param name="layout">The compiled layout.</param>

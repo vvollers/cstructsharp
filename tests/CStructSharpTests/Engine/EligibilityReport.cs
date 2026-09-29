@@ -171,7 +171,7 @@ internal static class EligibilityReport
 
         if (segments.Count != 1 || segments[0].Indexes.Count > 0)
         {
-            return "(the root is a nested path, stage 8)";
+            return "(the root is a nested path, not a root the report classifies)";
         }
 
         return outcome(layout, segments[0].Name) ?? Eligible;

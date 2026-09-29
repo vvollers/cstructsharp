@@ -28,8 +28,8 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 ///     <para>
 ///         A data-sized array is counted from the input after it is placed (<see cref="ReadOpCode.CountToEnd"/>,
 ///         <see cref="ReadOpCode.CountTerminated"/>); a multidimensional one is read as its flat elements and then nested. A
-///         caller's codec (and any struct holding one) ends where the codec says, whatever size it declares, so the position
-///         after it is a new anchor.
+///         caller's codec without a fixed size (and any struct holding one) ends where the codec says, so the position
+///         after it is a new anchor; one with a fixed size occupies exactly that size, like any fixed-size member.
 ///     </para>
 ///     <para>
 ///         A struct with bitfields places every member through a runtime <see cref="PlacementCursor"/>, the one the
@@ -58,6 +58,12 @@ internal sealed class ReadProgramCompiler
     /// <summary>The reason for an array of bitfields, which the interpreter has no reader for either.</summary>
     public const string BitfieldArrays = "a bitfield array has no reader";
 
+    /// <summary>
+    ///     The reason for a multidimensional array with more elements than an <see cref="int"/> counts: the interpreter's
+    ///     read fails when it multiplies the dimensions, while its path resolver checks the exact total against the limit.
+    /// </summary>
+    public const string ElementCountOverflow = "the array has more elements than an int counts";
+
     /// <summary>The reason for a field the catalog has no reader for; the interpreter fails such a read.</summary>
     public const string NoReader = "the field has no codec reader";
 
@@ -83,6 +89,10 @@ internal sealed class ReadProgramCompiler
 
     // Whether the programs are the debug programs of a debug parse; set by the cache the compiler serves.
     private readonly bool debug;
+
+    // Whether the program being compiled reads a member a path selected (CompileSelection), whose bitfield unit the path
+    // resolver placed.
+    private bool selection;
 
     /// <summary>Creates a compiler for one request.</summary>
     /// <param name="compilation">The layout.</param>
@@ -145,6 +155,35 @@ internal sealed class ReadProgramCompiler
         }
     }
 
+    /// <summary>
+    ///     Compiles the read of a member a path selected (a field, an array element or a sub-array row), as the interpreter
+    ///     reads a resolved target: one field read standalone from its resolved address - no placement, no alignment, no
+    ///     block paths - into a one-member value under the field's name. A selected bitfield reads the storage unit its
+    ///     struct placed (<see cref="ReadOpCode.OpenSeededBitfieldUnit"/>).
+    /// </summary>
+    /// <param name="field">The selected field, peeled to the element or row the path's indexes select.</param>
+    /// <returns>The program (<see cref="ReadProgramKind.Root"/>), or why it cannot be built.</returns>
+    public ReadProgramOutcome CompileSelection(CompiledField field)
+    {
+        this.selection = true;
+        var builder = new ReadProgramBuilder(this.cache.Table, [field], this.compilation.ModelQueries.GetRootShape(field.Name), 0);
+        var unplaced = new ReadPlacement(false);
+        if (this.EmitMember(builder, 0, field.Name, standalone: true, ref unplaced) is { } reason)
+        {
+            return ReadProgramOutcome.NotSupported(reason);
+        }
+
+        return this.CheckPointerTargets(builder.Build(ReadProgramKind.Root, field.Name, null));
+    }
+
+    /// <summary>
+    ///     Describes how the target of a pointer field (or of a pointer view that still has levels to follow) is read, in the
+    ///     interpreter's order of checks, for a path that follows the pointer and then reads what it reaches.
+    /// </summary>
+    /// <param name="field">The pointer field or view.</param>
+    /// <returns>The target, or <see langword="null"/> when a data-dependent count names an identifier without a slot.</returns>
+    public ReadPointerTarget? DescribeSelectedPointer(CompiledField field) => this.DescribePointerTarget(field);
+
     /// <summary>Formats a reason with the struct and member it concerns.</summary>
     /// <param name="location">The struct (or root) name.</param>
     /// <param name="field">The member.</param>
@@ -197,6 +236,21 @@ internal sealed class ReadProgramCompiler
             PrimitiveCodecKind.TerminatedAscii or PrimitiveCodecKind.TerminatedUtf8 or PrimitiveCodecKind.TerminatedUtf16 => ReadOpCode.ReadTerminatedText,
             _ => null,
         };
+    }
+
+    /// <summary>The number of elements a fixed array holds, every dimension together, or <see langword="null"/> when it does not fit an <see cref="int"/>.</summary>
+    /// <param name="field">The fixed array.</param>
+    /// <returns>The total, or <see langword="null"/>.</returns>
+    private static int? FixedTotal(CompiledField field)
+    {
+        try
+        {
+            return field.Array.TotalFixedElementCount;
+        }
+        catch (System.OverflowException)
+        {
+            return null;
+        }
     }
 
     /// <summary>Emits the step that nests a multidimensional array's flat elements by its dimensions.</summary>
@@ -453,7 +507,12 @@ internal sealed class ReadProgramCompiler
         {
         case CompiledArrayKind.Fixed:
             // A multidimensional array is read as all its elements, so the limit applies to their total.
-            builder.Emit(ReadOpCode.CheckFixedCount, index, field.Array.TotalFixedElementCount!.Value, 0);
+            if (FixedTotal(field) is not int total)
+            {
+                return Refuse(location, field, ElementCountOverflow);
+            }
+
+            builder.Emit(ReadOpCode.CheckFixedCount, index, total, 0);
             break;
         case CompiledArrayKind.Runtime:
             if (this.FirstUnslottedName(field.Array.CountExpression!) is { } unslotted)
@@ -535,7 +594,9 @@ internal sealed class ReadProgramCompiler
                 builder.Emit(ReadOpCode.RewindToUnionStart, index, 0, 0);
             }
 
-            builder.Emit(ReadOpCode.OpenBitfieldUnit, index, 0, 0);
+            // A selected bitfield reads the unit its struct placed, which the path resolver measured; any other standalone
+            // bitfield (a union view, a root) opens a unit of its declared size at bit 0.
+            builder.Emit(this.selection && !builder.UnionMembers ? ReadOpCode.OpenSeededBitfieldUnit : ReadOpCode.OpenBitfieldUnit, index, 0, 0);
         }
         else
         {
@@ -687,8 +748,8 @@ internal sealed class ReadProgramCompiler
     /// <param name="placement">The placement state.</param>
     /// <returns>
     ///     A reason when a statically known placement contradicts the compiled offset; otherwise <see langword="null"/>. A
-    ///     placement the data decides (after a caller's codec, whose bytes may end before its declared size) is aligned at
-    ///     run time from the struct's start, as the interpreter places it, whatever offset the layout compiled.
+    ///     placement the data decides (after a member whose size the data decides) is aligned at run time from the struct's
+    ///     start, as the interpreter places it.
     /// </returns>
     private string? EmitPlacement(ReadProgramBuilder builder, int index, ref ReadPlacement placement)
     {
@@ -871,11 +932,13 @@ internal sealed class ReadProgramCompiler
             return null;
         }
 
-        // A debug parse reads every numeric element on its own, with a record, whoever places the array.
+        // A debug parse reads every numeric element on its own, with a record, whoever places the array. A row of a
+        // multidimensional array that a path selected is a list like every row, never a typed array.
+        bool list = table || field.IsArrayRow;
         ReadOpCode op = !field.Codec.IsFixedWidthNumeric ? this.debug ? ReadOpCode.DebugCodecArray : ReadOpCode.ReadCodecArray
-                        : this.debug ? table ? ReadOpCode.DebugNumericElementList : ReadOpCode.DebugNumericElements
+                        : this.debug ? list ? ReadOpCode.DebugNumericElementList : ReadOpCode.DebugNumericElements
                         : table ? standalone ? ReadOpCode.ReadNumericElementList : ReadOpCode.ReadNumericList
-                        : standalone ? ReadOpCode.ReadNumericElements
+                        : standalone ? field.IsArrayRow ? ReadOpCode.ReadNumericElementList : ReadOpCode.ReadNumericElements
                         : ReadOpCode.ReadNumericArray;
         builder.Emit(op, index, codec, 0);
         EmitReshape(builder, index, table);

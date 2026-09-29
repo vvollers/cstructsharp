@@ -331,8 +331,8 @@ public class ReadProgramDumpTests
     }
 
     /// <summary>
-    ///     Caller-supplied codecs: a variable-length value that counts a later array of them, and a fixed-size one in an
-    ///     aligned layout, after which members are placed at run time because the codec may take fewer bytes than it declares.
+    ///     Caller-supplied codecs: a variable-length value that counts a later array of them, after which a member is aligned
+    ///     at run time, and a fixed-size one in an aligned layout, which occupies its declared size like any fixed member.
     /// </summary>
     [TestMethod]
     public void CustomCodecs()
@@ -349,9 +349,8 @@ public class ReadProgramDumpTests
                                     3  ReadCustomArray              values       Custom
                                     4  Align                        w            to 4
                                     5  ReadCustom                   w            Custom
-                                    6  Align                        after        to 4
-                                    7  ReadUInt32Le                 after        UInt32 le
-                                    8  FinishComposite              -            tail +0
+                                    6  ReadUInt32Le                 after        UInt32 le
+                                    7  FinishComposite              -            tail +0
 
                                 """;
         var options = new CStructCompilationOptions { Codecs = [VlqCodec.Instance, FixedWordCodec.Instance,], };

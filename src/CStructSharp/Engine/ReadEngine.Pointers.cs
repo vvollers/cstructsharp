@@ -74,7 +74,7 @@ internal static partial class ReadEngine
     /// <param name="scratch">A buffer of at least 8 bytes.</param>
     /// <returns>The stored address.</returns>
     /// <exception cref="CStructReadException">The input ends early, or the address is at or above 2^63.</exception>
-    private static long ReadPointerAddress<TCursor>(ref TCursor cursor, ref ReadEngineState state, Span<byte> scratch)
+    internal static long ReadPointerAddress<TCursor>(ref TCursor cursor, ref ReadEngineState state, Span<byte> scratch)
         where TCursor : struct, IReadCursor
     {
         Span<byte> bytes = scratch[..state.Layout.PointerSize];

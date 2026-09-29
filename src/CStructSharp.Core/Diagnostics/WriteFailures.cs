@@ -127,6 +127,13 @@ internal static class WriteFailures
     public static string CustomCodecWritten(string codecName, int written, int window)
         => "Custom codec '" + codecName + "' reported " + written.ToString(System.Globalization.CultureInfo.InvariantCulture) + " bytes written into a " + window.ToString(System.Globalization.CultureInfo.InvariantCulture) + "-byte window.";
 
+    /// <summary>A custom codec with a fixed size that needs more room than that size to encode a value.</summary>
+    /// <param name="codecName">The custom codec's name.</param>
+    /// <param name="fixedSize">The codec's declared fixed size in bytes.</param>
+    /// <returns>The message.</returns>
+    public static string CustomCodecOversized(string codecName, int fixedSize)
+        => "Custom codec '" + codecName + "' needs more than its fixed size of " + fixedSize.ToString(System.Globalization.CultureInfo.InvariantCulture) + " bytes for one value.";
+
     /// <summary>A custom codec that needs a window past the string byte limit.</summary>
     /// <param name="codecName">The custom codec's name.</param>
     /// <param name="limit">The configured <c>MaxStringBytes</c> limit in bytes.</param>

@@ -17,12 +17,16 @@ using CStructSharp.Expressions;
 ///     <para>
 ///         The engine runs whole-root reads (<see cref="SelectRootRead"/>: <c>Parse</c>, <c>ParseAsync</c>, each record of
 ///         <c>ParseMany</c>, and <c>ReadValue</c> of a bare root, over every source) whose root program is eligible
-///         (<see cref="LayoutCompilation.GetRootReadProgram"/>). Every other operation, and a root read it cannot
-///         reproduce, is declined before anything is read, and the interpreter runs it (<see cref="Decide"/>). It runs the
-///         debug parse of a whole root (<see cref="SelectDebugRead"/>: <c>ParseWithDebug</c> and <c>ReadValueWithDebug</c> of
-///         a bare root, synchronous and asynchronous) through the root's debug program under the same conditions. It also
-///         runs whole-root writes to memory (<see cref="SelectRootWrite"/>: <c>Serialize</c> to a new array or a span, and
-///         <c>WriteAsync</c>, which serializes first) whose root write program is eligible.
+///         (<see cref="LayoutCompilation.GetRootReadProgram"/>). It runs the path operations (<see cref="SelectPathRead"/>:
+///         <c>ReadValue</c> and <c>Parse</c> of a nested path, <c>ResolveAddress</c> and <c>GetArrayLength</c>) when the
+///         path's root program is eligible, because every struct, union and pointer target a path can reach is then
+///         compiled. It runs the debug parse of a whole root (<see cref="SelectDebugRead"/>: <c>ParseWithDebug</c> and
+///         <c>ReadValueWithDebug</c> of a bare root, synchronous and asynchronous) through the root's debug program under the
+///         same conditions, and the debug parse of a nested path through <see cref="SelectPathRead"/>. It also runs
+///         whole-root writes to memory (<see cref="SelectRootWrite"/>: <c>Serialize</c> to a new array or a span, and
+///         <c>WriteAsync</c>, which serializes first) whose root write program is eligible. Every other operation, and one it
+///         cannot reproduce, is declined before anything is read or written, and the interpreter runs it
+///         (<see cref="Decide"/>).
 ///     </para>
 ///     <para>
 ///         Outside a test recording (<see cref="EngineDiagnostics.Record"/>) a decision records nothing: a declined
@@ -47,20 +51,13 @@ internal static class EngineSelector
     public const string UpdateSemantics = "a write with update semantics (UpdateOptions) is not supported yet (stage 10)";
 
     /// <summary>
-    ///     The reason the engine declines <c>ReadValue</c> of a root array whose count the interpreter's path resolver takes
-    ///     by its own rules before the read: a runtime-sized one (a type-spelling root such as <c>uint8[N]</c>), a data-sized
-    ///     one (<c>uint16[EOF]</c>, whose terminated form the resolver scans, and charges, once more) and a multidimensional
-    ///     one (whose outermost count the resolver checks against the element limit, where the read checks the total).
-    /// </summary>
-    public const string ResolvedRootArray = "a selected read of a root array whose count the path resolver takes first is not supported yet (stage 8)";
-
-    /// <summary>
-    ///     Whether <c>ReadValue</c> of a root field would have the interpreter's path resolver take the root array's count
-    ///     first, by rules of its own: a runtime-sized, data-sized or multidimensional array. A fixed one-dimensional count is
-    ///     checked exactly as the read checks it, so that read is the engine's.
+    ///     Whether <c>ReadValue</c> of a root field has the path resolver take the root array's count first, by rules of its
+    ///     own, before the root is read: a runtime-sized array, a data-sized one (<c>uint16[EOF]</c>; a terminated one is
+    ///     scanned, and charged, once more) and a multidimensional one (whose outermost count is checked against the element
+    ///     limit, where the read checks the total). A fixed one-dimensional count is checked exactly as the read checks it.
     /// </summary>
     /// <param name="root">The root program's only field.</param>
-    /// <returns>Whether the selected read is declined.</returns>
+    /// <returns>Whether the root's count is taken first.</returns>
     public static bool ResolvesCountFirst(CompiledField root)
         => root.Array.Kind is CompiledArrayKind.Runtime or CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated || root.Array.Dimensions.Length > 1;
 
@@ -86,25 +83,16 @@ internal static class EngineSelector
 
     /// <summary>
     ///     Decides whether the engine reads a whole root and records the decision: the engine runs when the selection
-    ///     allows it, the variables are integers, the root's program is eligible, and - for <c>ReadValue</c> - the root is
-    ///     not an array whose count the path resolver takes first (<see cref="ResolvesCountFirst"/>). Anything else is
-    ///     declined before a byte is read.
+    ///     allows it, the variables are integers and the root's program is eligible. Anything else is declined before a
+    ///     byte is read.
     /// </summary>
-    /// <remarks>
-    ///     <c>ReadValue</c> of a root first resolves the root as a path in the interpreter; for a root that is an array
-    ///     that resolution checks the count against <c>MaxArrayElements</c> before the read does. For a fixed
-    ///     one-dimensional count the check is the read's own, with the same failure at the same position; a runtime,
-    ///     data-sized or multidimensional count is taken by the resolver's own rules, so that read is declined until stage 8
-    ///     moves path resolution to the engine.
-    /// </remarks>
     /// <param name="selection">The operation's snapshotted engine selection.</param>
     /// <param name="compilation">The layout.</param>
     /// <param name="rootName">The root's name, the path's only segment.</param>
     /// <param name="variables">The operation's variable input.</param>
-    /// <param name="selectsValue">Whether the operation is <c>ReadValue</c>, which the interpreter resolves as a path before reading.</param>
     /// <returns>The root's program when the engine runs the operation; <see langword="null"/> when the interpreter does.</returns>
     /// <exception cref="InvalidOperationException">The engine is required and declined the operation.</exception>
-    public static ReadProgram? SelectRootRead(EngineSelection selection, LayoutCompilation compilation, string rootName, in LayoutVariableInput variables, bool selectsValue)
+    public static ReadProgram? SelectRootRead(EngineSelection selection, LayoutCompilation compilation, string rootName, in LayoutVariableInput variables)
     {
         if (selection == EngineSelection.InterpreterOnly)
         {
@@ -112,7 +100,7 @@ internal static class EngineSelector
             return null;
         }
 
-        string? reason = DeclineRootRead(compilation, rootName, variables, selectsValue, out ReadProgram? program);
+        string? reason = DeclineRootRead(compilation, rootName, variables, out ReadProgram? program);
         if (reason is null)
         {
             EngineDiagnostics.Current?.RecordRun(EngineOperation.RootRead);
@@ -120,6 +108,47 @@ internal static class EngineSelector
         }
 
         DecideAndRecord(selection, EngineOperation.RootRead, reason);
+        return null;
+    }
+
+    /// <summary>
+    ///     Decides whether the engine runs an operation on a path - <c>ReadValue</c> or <c>Parse</c> of a nested path (a
+    ///     debug parse through the debug programs), <c>ResolveAddress</c> or <c>GetArrayLength</c> of any path - and records
+    ///     the decision: the engine runs when the selection allows it, the variables are integers and the program of the
+    ///     path's root is eligible, which makes every struct, union and pointer target the path can reach readable. Anything
+    ///     else is declined before a byte is read.
+    /// </summary>
+    /// <param name="selection">The operation's snapshotted engine selection.</param>
+    /// <param name="compilation">The layout.</param>
+    /// <param name="rootName">The name of the path's root, its first segment.</param>
+    /// <param name="variables">The operation's variable input.</param>
+    /// <param name="operation">The kind of operation, which the decision is recorded under.</param>
+    /// <param name="debug">Whether the operation is a debug parse, which runs the root's debug program.</param>
+    /// <returns>The root's program (its debug program for a debug parse) when the engine runs the operation; <see langword="null"/> when the interpreter does.</returns>
+    /// <exception cref="InvalidOperationException">The engine is required and declined the operation.</exception>
+    public static ReadProgram? SelectPathRead(EngineSelection selection, LayoutCompilation compilation, string rootName, in LayoutVariableInput variables, EngineOperation operation, bool debug = false)
+    {
+        if (selection == EngineSelection.InterpreterOnly)
+        {
+            EngineDiagnostics.Current?.RecordInterpreterSelection(operation);
+            return null;
+        }
+
+        // Expression inputs can make the operation capture every field (run-time CaptureAll); stage 10 moves them to slots.
+        string reason = ExpressionInputs;
+        if (variables.UsesIntegers)
+        {
+            ReadProgramOutcome outcome = debug ? compilation.GetRootDebugReadProgram(rootName) : compilation.GetRootReadProgram(rootName);
+            if (outcome.Program is { } program)
+            {
+                EngineDiagnostics.Current?.RecordRun(operation);
+                return program;
+            }
+
+            reason = outcome.Reason!;
+        }
+
+        DecideAndRecord(selection, operation, reason);
         return null;
     }
 
@@ -232,10 +261,9 @@ internal static class EngineSelector
     /// <param name="compilation">The layout.</param>
     /// <param name="rootName">The root's name.</param>
     /// <param name="variables">The operation's variable input.</param>
-    /// <param name="selectsValue">Whether the operation is <c>ReadValue</c>.</param>
     /// <param name="program">The root's program when the engine can read it.</param>
     /// <returns>The decline reason, or <see langword="null"/>.</returns>
-    private static string? DeclineRootRead(LayoutCompilation compilation, string rootName, in LayoutVariableInput variables, bool selectsValue, out ReadProgram? program)
+    private static string? DeclineRootRead(LayoutCompilation compilation, string rootName, in LayoutVariableInput variables, out ReadProgram? program)
     {
         program = null;
 
@@ -247,18 +275,8 @@ internal static class EngineSelector
         }
 
         ReadProgramOutcome outcome = compilation.GetRootReadProgram(rootName);
-        if (outcome.Program is not { } root)
-        {
-            return outcome.Reason;
-        }
-
-        if (selectsValue && root.Fields is [{ } only,] && ResolvesCountFirst(only))
-        {
-            return ResolvedRootArray;
-        }
-
-        program = root;
-        return null;
+        program = outcome.Program;
+        return outcome.Reason;
     }
 
     /// <summary>Records a decision the engine cannot take: an interpreter selection, or a decline that fails a required engine.</summary>

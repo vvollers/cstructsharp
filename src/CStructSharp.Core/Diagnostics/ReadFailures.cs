@@ -147,6 +147,14 @@ internal static class ReadFailures
     public static string CustomCodecConsumed(string codecName, int consumed, int available)
         => "Custom codec '" + codecName + "' reported " + consumed.ToString(CultureInfo.InvariantCulture) + " bytes consumed, but " + available.ToString(CultureInfo.InvariantCulture) + " were available.";
 
+    /// <summary>A custom codec with a fixed size that reported more bytes consumed than that size.</summary>
+    /// <param name="codecName">The registered name of the custom codec.</param>
+    /// <param name="consumed">The number of bytes the codec reported as consumed.</param>
+    /// <param name="fixedSize">The codec's declared fixed size in bytes.</param>
+    /// <returns>The diagnostic text naming the codec and both byte counts.</returns>
+    public static string CustomCodecOversized(string codecName, int consumed, int fixedSize)
+        => "Custom codec '" + codecName + "' reported " + consumed.ToString(CultureInfo.InvariantCulture) + " bytes consumed, more than its fixed size of " + fixedSize.ToString(CultureInfo.InvariantCulture) + " bytes.";
+
     /// <summary>A custom codec that needs more bytes than the input has.</summary>
     /// <param name="codecName">The registered name of the custom codec.</param>
     /// <param name="available">The number of bytes the input still had.</param>
@@ -205,6 +213,14 @@ internal static class ReadFailures
     /// <returns>The diagnostic text naming the codec and both byte counts.</returns>
     public static string CustomCodecConsumed(string codecName, int consumed, int available)
         => string.Create(CultureInfo.InvariantCulture, $"Custom codec '{codecName}' reported {consumed} bytes consumed, but {available} were available.");
+
+    /// <summary>A custom codec with a fixed size that reported more bytes consumed than that size.</summary>
+    /// <param name="codecName">The registered name of the custom codec.</param>
+    /// <param name="consumed">The number of bytes the codec reported as consumed.</param>
+    /// <param name="fixedSize">The codec's declared fixed size in bytes.</param>
+    /// <returns>The diagnostic text naming the codec and both byte counts.</returns>
+    public static string CustomCodecOversized(string codecName, int consumed, int fixedSize)
+        => string.Create(CultureInfo.InvariantCulture, $"Custom codec '{codecName}' reported {consumed} bytes consumed, more than its fixed size of {fixedSize} bytes.");
 
     /// <summary>A custom codec that needs more bytes than the input has.</summary>
     /// <param name="codecName">The registered name of the custom codec.</param>

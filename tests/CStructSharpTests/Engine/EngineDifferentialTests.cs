@@ -96,9 +96,10 @@ public class EngineDifferentialTests
         Assert.AreEqual(1, comparison.Automatic.EngineRuns);
         Assert.AreEqual(0, comparison.Automatic.Declines);
 
-        // A selected read of a member is a path read the engine leaves to the interpreter.
+        // A selected read of a member is a path read the engine runs.
         comparison = EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Span, "rec.items"));
-        Assert.AreEqual(1, comparison.Automatic.Declines);
+        Assert.AreEqual(1, comparison.Automatic.EngineRuns);
+        Assert.AreEqual(0, comparison.Automatic.Declines);
     }
 
     /// <summary>Both branches of a conditional group read identically.</summary>

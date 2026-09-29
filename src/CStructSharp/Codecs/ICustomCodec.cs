@@ -14,7 +14,8 @@ using System.Buffers;
 ///         <see cref="Read"/> receives the bytes from the value's start: the whole remaining input for memory input
 ///         and <see cref="System.IO.MemoryStream"/>s, or a window for other streams that grows while the codec
 ///         answers <see cref="OperationStatus.NeedMoreData"/>. It reports how many bytes the value took; the library
-///         charges them to the read budget and advances past them. <see cref="Write"/> receives a destination window
+///         charges them to the read budget and advances past them (past the declared size of a fixed-size codec, see
+///         <see cref="FixedSize"/>). <see cref="Write"/> receives a destination window
 ///         and reports the bytes it wrote, or <see cref="OperationStatus.DestinationTooSmall"/> to be offered a
 ///         larger one (a stream destination grows its scratch window; caller-owned memory cannot and the write
 ///         fails). Either method may answer <see cref="OperationStatus.InvalidData"/> - or throw - for a value it
@@ -31,6 +32,13 @@ public interface ICustomCodec
     string Name { get; }
 
     /// <summary>Gets the encoded size in bytes when every value has the same size; <see langword="null"/> for a variable-length encoding.</summary>
+    /// <remarks>
+    ///     A fixed size is a promise every operation relies on: the layout compiles the offsets after the value from it, and
+    ///     each value occupies exactly this many bytes. A read continues after the declared size even when
+    ///     <see cref="Read"/> reports fewer bytes consumed, and an input that ends before it is a short read; a write pads a
+    ///     shorter encoding with zero bytes. A codec that reports more bytes consumed, or asks for more room, than its fixed
+    ///     size fails. Return <see langword="null"/> for an encoding whose length varies.
+    /// </remarks>
     int? FixedSize { get; }
 
     /// <summary>Gets the alignment used by aligned placement; 1 for no alignment requirement.</summary>

@@ -12,6 +12,12 @@ using CStructSharp.Streams;
 ///     the remaining bytes directly; a stream source or destination goes through a scratch window that grows while
 ///     the codec asks for more room, up to the operation's per-value byte limit.
 /// </summary>
+/// <remarks>
+///     A codec that declares a <see cref="ICustomCodec.FixedSize"/> keeps that promise on every path: a value it decodes
+///     occupies exactly that many bytes (the read continues after them even when the codec took fewer, and an input that
+///     ends before them is a short read), a value it encodes is padded with zero bytes to that size, and a codec that
+///     consumes or needs more than that size fails.
+/// </remarks>
 internal static class CustomCodecAdapter
 {
     private const int InitialWindow = 256;
@@ -24,7 +30,10 @@ internal static class CustomCodecAdapter
     /// <param name="codec">The codec.</param>
     /// <param name="remaining">The bytes from the value's start to the end of the input.</param>
     /// <param name="value">The decoded value when there is no failure.</param>
-    /// <param name="consumed">The bytes to advance by: the value's length, or the whole window on a short read.</param>
+    /// <param name="consumed">
+    ///     The bytes to advance by: the value's length (a fixed-size codec's declared size), or the whole window on a short
+    ///     read.
+    /// </param>
     /// <returns>The failure to throw, or <see langword="null"/>.</returns>
     public static CStructReadException? DecodeFromMemory(ICustomCodec codec, ReadOnlySpan<byte> remaining, out object? value, out int consumed)
     {
@@ -39,7 +48,7 @@ internal static class CustomCodecAdapter
                 return new CStructReadException(ReadFailures.CustomCodecConsumed(codec.Name, reported, remaining.Length));
             }
 
-            return null;
+            return codec.FixedSize is int size ? ToFixedSize(codec, size, remaining.Length, ref consumed) : null;
         case OperationStatus.NeedMoreData:
             consumed = remaining.Length;
             return new CStructReadException(ReadFailures.CustomCodecShortRead(codec.Name, remaining.Length));
@@ -90,8 +99,11 @@ internal static class CustomCodecAdapter
                         throw new CStructReadException(ReadFailures.CustomCodecConsumed(codec.Name, consumed, read));
                     }
 
+                    // A fixed-size value ends at its declared size, whatever the codec took; the window held every byte
+                    // of the input up to that size, so the failures and positions are the memory path's.
+                    CStructReadException? failure = codec.FixedSize is int size ? ToFixedSize(codec, size, read, ref consumed) : null;
                     stream.Position = start + consumed;
-                    return value!;
+                    return failure is null ? value! : throw failure;
                 case OperationStatus.NeedMoreData when read < window:
                     throw new CStructReadException(ReadFailures.CustomCodecShortRead(codec.Name, read));
                 case OperationStatus.NeedMoreData when window >= limit:
@@ -187,9 +199,18 @@ internal static class CustomCodecAdapter
                         throw new CStructWriteException(WriteFailures.CustomCodecWritten(codec.Name, written, window));
                     }
 
+                    if (codec.FixedSize is int size && written < size)
+                    {
+                        // A fixed-size value occupies its declared size: the bytes the codec left are zero.
+                        rented.AsSpan(written, size - written).Clear();
+                        written = size;
+                    }
+
                     byte[] result = rented;
                     rented = null!;
                     return result;
+                case OperationStatus.DestinationTooSmall when codec.FixedSize is int fixedSize:
+                    throw new CStructWriteException(WriteFailures.CustomCodecOversized(codec.Name, fixedSize));
                 case OperationStatus.DestinationTooSmall when window >= limit:
                     throw new CStructWriteLimitException(WriteFailures.CustomCodecLimit(codec.Name, limit));
                 case OperationStatus.DestinationTooSmall:
@@ -211,6 +232,42 @@ internal static class CustomCodecAdapter
         }
     }
 
+    /// <summary>
+    ///     Makes a fixed-size value occupy its declared size after the codec decoded it: a codec that took more than the size
+    ///     fails without moving; one whose declared size runs past the input is a short read that moves to the input's end;
+    ///     otherwise the read moves past the whole declared size.
+    /// </summary>
+    /// <param name="codec">The codec.</param>
+    /// <param name="size">The codec's declared fixed size in bytes.</param>
+    /// <param name="available">The bytes of the input from the value's start (the window a stream read filled).</param>
+    /// <param name="consumed">The bytes the codec reported; replaced by the bytes to advance by.</param>
+    /// <returns>The failure to throw, or <see langword="null"/>.</returns>
+    private static CStructReadException? ToFixedSize(ICustomCodec codec, int size, int available, ref int consumed)
+    {
+        if (consumed > size)
+        {
+            int reported = consumed;
+            consumed = 0;
+            return new CStructReadException(ReadFailures.CustomCodecOversized(codec.Name, reported, size));
+        }
+
+        if (size > available)
+        {
+            consumed = available;
+            return new CStructReadException(ReadFailures.CustomCodecShortRead(codec.Name, available));
+        }
+
+        consumed = size;
+        return null;
+    }
+
+    /// <summary>Runs the codec's <see cref="ICustomCodec.Read"/>, turning an exception it throws into the read failure that names the codec.</summary>
+    /// <param name="codec">The codec.</param>
+    /// <param name="source">The bytes from the value's start.</param>
+    /// <param name="value">The decoded value when the status is <see cref="OperationStatus.Done"/>.</param>
+    /// <param name="consumed">The byte count the codec reported.</param>
+    /// <returns>The codec's status.</returns>
+    /// <exception cref="CStructReadException">The codec threw.</exception>
     private static OperationStatus Decode(ICustomCodec codec, ReadOnlySpan<byte> source, out object? value, out int consumed)
     {
         try
@@ -223,6 +280,13 @@ internal static class CustomCodecAdapter
         }
     }
 
+    /// <summary>Runs the codec's <see cref="ICustomCodec.Write"/>, turning an exception it throws into the write failure that names the codec.</summary>
+    /// <param name="codec">The codec.</param>
+    /// <param name="destination">The window to encode into.</param>
+    /// <param name="value">The value.</param>
+    /// <param name="written">The byte count the codec reported.</param>
+    /// <returns>The codec's status.</returns>
+    /// <exception cref="CStructWriteException">The codec threw.</exception>
     private static OperationStatus Encode(ICustomCodec codec, Span<byte> destination, object value, out int written)
     {
         try
@@ -235,6 +299,10 @@ internal static class CustomCodecAdapter
         }
     }
 
+    /// <summary>Fills <paramref name="destination"/> from the stream until it is full or the stream ends.</summary>
+    /// <param name="stream">The source.</param>
+    /// <param name="destination">The window to fill.</param>
+    /// <returns>The number of bytes read.</returns>
     private static int ReadUpTo(Stream stream, Span<byte> destination)
     {
         int total = 0;
