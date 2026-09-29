@@ -9,7 +9,8 @@ using CStructSharp.Engine;
 ///     <c>ReadBudgetStream</c> driven the way the interpreter drives it, over every input form the sweeps use, with
 ///     scripted operation sequences under a sweep of read budgets. Traces compare values, positions after every step
 ///     (including after failures), failure types, messages, offsets and inner causes, the charge points (the step at
-///     which each budget fails), cancellation observation points and the flushed final position.
+///     which each budget fails), cancellation observation points and the flushed final position. The reference traces
+///     are the golden ones (<see cref="CursorDifferential.Expected"/>), hashed per input and script.
 /// </summary>
 [TestClass]
 public class CursorDifferentialTests
@@ -46,10 +47,11 @@ public class CursorDifferentialTests
     {
         var differences = new List<string>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (byte[] data in SmallInputs())
+        foreach ((byte[] data, int dataIndex) in SmallInputs().Select((data, index) => (data, index)))
         {
-            foreach (CursorStep[] script in SmallScripts())
+            foreach ((CursorStep[] script, int scriptIndex) in SmallScripts().Select((script, index) => (script, index)))
             {
+                using IDisposable part = EngineGolden.Part("input " + dataIndex + ", script " + scriptIndex);
                 foreach (EngineInput input in CursorDifferential.MemoryForms.Concat(CursorDifferential.StreamOnlyForms))
                 {
                     foreach (long budget in input == EngineInput.FileStream ? FileBudgets : SmallBudgets)
@@ -79,8 +81,9 @@ public class CursorDifferentialTests
 
         var differences = new List<string>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (CursorStep[] script in LargeScripts())
+        foreach ((CursorStep[] script, int scriptIndex) in LargeScripts().Select((script, index) => (script, index)))
         {
+            using IDisposable part = EngineGolden.Part("script " + scriptIndex);
             foreach (EngineInput input in CursorDifferential.MemoryForms.Concat(CursorDifferential.StreamOnlyForms))
             {
                 foreach (long budget in LargeBudgets)
@@ -159,7 +162,7 @@ public class CursorDifferentialTests
             new(CursorOperation.Cancel, 0), new(CursorOperation.Fixed, 4), new(CursorOperation.Exact, 2), new(CursorOperation.ByteExactly, 0),
             new(CursorOperation.Bounded, 2, 0), new(CursorOperation.Checkpoint, 0), new(CursorOperation.Array, 0, 2), new(CursorOperation.Terminated, 0),
         ];
-        List<string> trace = CursorDifferential.Reference(EngineInput.Span, data, script, long.MaxValue);
+        List<string> trace = EngineGolden.Invariant(() => CursorDifferential.Expected(EngineInput.Span, data, script, long.MaxValue));
         string[] observed = [.. trace.Where(line => line.Contains(nameof(OperationCanceledException), StringComparison.Ordinal)).Select(line => line[..line.IndexOf('(', StringComparison.Ordinal)])];
         CollectionAssert.AreEqual(new[] { "Checkpoint", "Array", "Terminated", }, observed, string.Join("\n", trace));
 
@@ -172,7 +175,11 @@ public class CursorDifferentialTests
         Assert.IsEmpty(differences, string.Join("\n\n", differences));
     }
 
-    /// <summary>Runs one case on every side that reads <paramref name="input"/> and records any trace that differs.</summary>
+    /// <summary>
+    ///     Runs one case under the invariant culture on every side that reads <paramref name="input"/> and records any
+    ///     trace that differs from the reference (<see cref="CursorDifferential.Expected"/>), whose trace is then checked
+    ///     against the golden reference under the input and budget, except for a planted defect's run.
+    /// </summary>
     /// <param name="input">The input form.</param>
     /// <param name="data">The input bytes.</param>
     /// <param name="script">The steps.</param>
@@ -181,8 +188,20 @@ public class CursorDifferentialTests
     /// <param name="differences">Receives a description of each differing side.</param>
     /// <param name="seen">Receives the failure kinds the reference trace contains.</param>
     private static void CompareSides(EngineInput input, byte[] data, CursorStep[] script, long budget, bool planted, List<string> differences, HashSet<string> seen)
+        => EngineGolden.Invariant(() => CompareSidesInvariantly(input, data, script, budget, planted, differences, seen));
+
+    /// <summary>The body of <see cref="CompareSides"/>, run under the invariant culture.</summary>
+    /// <param name="input">The input form.</param>
+    /// <param name="data">The input bytes.</param>
+    /// <param name="script">The steps.</param>
+    /// <param name="budget">The read budget.</param>
+    /// <param name="planted">Whether the memory side runs the planted defect.</param>
+    /// <param name="differences">Receives a description of each differing side.</param>
+    /// <param name="seen">Receives the failure kinds the reference trace contains.</param>
+    /// <returns><see langword="true"/>, for <see cref="EngineGolden.Invariant{T}"/>.</returns>
+    private static bool CompareSidesInvariantly(EngineInput input, byte[] data, CursorStep[] script, long budget, bool planted, List<string> differences, HashSet<string> seen)
     {
-        List<string> expected = CursorDifferential.Reference(input, data, script, budget);
+        List<string> expected = CursorDifferential.Expected(input, data, script, budget);
         foreach (string kind in FailureKinds)
         {
             if (expected.Exists(line => line.Contains(kind, StringComparison.Ordinal)))
@@ -192,7 +211,7 @@ public class CursorDifferentialTests
         }
 
         string label = $"{input}, {data.Length} bytes, budget {budget}, script {string.Join(" ", script)}";
-        if (!planted)
+        if (EngineGolden.ComparesInterpreter && !planted)
         {
             Record(differences, "stream cursor", label, expected, CursorDifferential.StreamCursor(input, data, script, budget));
         }
@@ -201,13 +220,20 @@ public class CursorDifferentialTests
         {
             Record(differences, "memory cursor", label, expected, CursorDifferential.MemoryCursor(input, data, script, budget, planted));
         }
+
+        if (!planted)
+        {
+            EngineGolden.Check(input + " budget " + budget, string.Join("\n", expected));
+        }
+
+        return true;
     }
 
     /// <summary>Adds a description of the first differing line when the traces differ.</summary>
     /// <param name="differences">The list of differences.</param>
     /// <param name="side">The side being compared.</param>
     /// <param name="label">The case.</param>
-    /// <param name="expected">ReadBudgetStream's trace.</param>
+    /// <param name="expected">The reference trace.</param>
     /// <param name="actual">The side's trace.</param>
     private static void Record(List<string> differences, string side, string label, List<string> expected, List<string> actual)
     {
@@ -222,7 +248,7 @@ public class CursorDifferentialTests
             return;
         }
 
-        differences.Add($"{side} differs ({label}) at line {line}:\n  ReadBudgetStream: {(line < expected.Count ? expected[line] : "<end>")}\n  {side}: {(line < actual.Count ? actual[line] : "<end>")}");
+        differences.Add($"{side} differs ({label}) at line {line}:\n  reference: {(line < expected.Count ? expected[line] : "<end>")}\n  {side}: {(line < actual.Count ? actual[line] : "<end>")}");
     }
 
     /// <summary>Asserts that the small sweep produced every failure kind, so no comparison is vacuous.</summary>

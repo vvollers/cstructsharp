@@ -9,7 +9,8 @@ using CStructSharp.Values;
 ///     truncation and byte budget, an offset assertion checked before its member is placed, cancellation only at the
 ///     documented boundaries (engine plan Appendix A), nesting limits with promoted members, the conditional variable
 ///     scope, qualified prefixes through static plans, and the member, path and offset a failure reports. Each case
-///     compares the engine with the interpreter through the differential harness, and pins the expected outcome.
+///     compares the engine with the interpreter's golden outcomes through the differential harness, and pins the expected
+///     outcome.
 /// </summary>
 [TestClass]
 public class ReadEngineTests

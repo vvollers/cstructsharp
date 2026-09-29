@@ -1,0 +1,623 @@
+# Golden outcomes of ReadEngineTests: the reference each differential comparison checks the engine against.
+# Regenerate only for an intended, explained behaviour change: node tools/quality/engine-golden.mjs record (CONTRIBUTING.md).
+# @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes.
+
+@test BitfieldUnits_AreReadAgainForEveryBitfield
+@hash 93486513cb1c0fcbb2bc6123dd6735c492458d0bc54bb6c87f6656a08e2b1b04 326
+
+@test Cancellation_IsObservedAtStructEntriesOnly
+@case Parse (cancelled at byte 0) (Fastest)
+  failure = failure System.OperationCanceledException
+  failure.message = "The operation was canceled."
+  position = 3
+  decisions = 1
+@case Parse (cancelled at byte 1) (Fastest)
+  failure = failure System.OperationCanceledException
+  failure.message = "The operation was canceled."
+  position = 3
+  decisions = 1
+@case Parse (cancelled at byte 2) (Fastest)
+  failure = failure System.OperationCanceledException
+  failure.message = "The operation was canceled."
+  position = 3
+  decisions = 1
+@case Parse (cancelled at byte 3) (Fastest)
+  failure = failure System.OperationCanceledException
+  failure.message = "The operation was canceled."
+  position = 5
+  decisions = 1
+@case Parse (cancelled at byte 4) (Fastest)
+  failure = failure System.OperationCanceledException
+  failure.message = "The operation was canceled."
+  position = 5
+  decisions = 1
+@case Parse (cancelled at byte 5) (Fastest)
+  failure = failure System.OperationCanceledException
+  failure.message = "The operation was canceled."
+  position = 7
+  decisions = 1
+@case Parse (cancelled at byte 6) (Fastest)
+  failure = failure System.OperationCanceledException
+  failure.message = "The operation was canceled."
+  position = 7
+  decisions = 1
+@case Parse (cancelled at byte 7) (Fastest)
+  result = StructValue {3}
+  result.n = Byte 3
+  result.items = List<Object> [3]
+  result.items[0] = StructValue {2}
+  result.items[0].a = Byte 1
+  result.items[0].b = Byte 2
+  result.items[1] = StructValue {2}
+  result.items[1].a = Byte 3
+  result.items[1].b = Byte 4
+  result.items[2] = StructValue {2}
+  result.items[2].a = Byte 5
+  result.items[2].b = Byte 6
+  result.tail = Byte 9
+  position = 8
+  decisions = 1
+@case Parse (cancelled at byte 0) (GeneralOnly)
+  failure = failure System.OperationCanceledException
+  failure.message = "The operation was canceled."
+  position = 1
+  decisions = 1
+@case Parse (cancelled at byte 1) (GeneralOnly)
+  failure = failure System.OperationCanceledException
+  failure.message = "The operation was canceled."
+  position = 3
+  decisions = 1
+@case Parse (cancelled at byte 2) (GeneralOnly)
+  failure = failure System.OperationCanceledException
+  failure.message = "The operation was canceled."
+  position = 3
+  decisions = 1
+@case Parse (cancelled at byte 3) (GeneralOnly)
+  failure = failure System.OperationCanceledException
+  failure.message = "The operation was canceled."
+  position = 5
+  decisions = 1
+@case Parse (cancelled at byte 4) (GeneralOnly)
+  failure = failure System.OperationCanceledException
+  failure.message = "The operation was canceled."
+  position = 5
+  decisions = 1
+@case Parse (cancelled at byte 5) (GeneralOnly)
+  result = StructValue {3}
+  result.n = Byte 3
+  result.items = List<Object> [3]
+  result.items[0] = StructValue {2}
+  result.items[0].a = Byte 1
+  result.items[0].b = Byte 2
+  result.items[1] = StructValue {2}
+  result.items[1].a = Byte 3
+  result.items[1].b = Byte 4
+  result.items[2] = StructValue {2}
+  result.items[2].a = Byte 5
+  result.items[2].b = Byte 6
+  result.tail = Byte 9
+  position = 8
+  decisions = 1
+@case Parse (cancelled at byte 6) (GeneralOnly)
+  result = StructValue {3}
+  result.n = Byte 3
+  result.items = List<Object> [3]
+  result.items[0] = StructValue {2}
+  result.items[0].a = Byte 1
+  result.items[0].b = Byte 2
+  result.items[1] = StructValue {2}
+  result.items[1].a = Byte 3
+  result.items[1].b = Byte 4
+  result.items[2] = StructValue {2}
+  result.items[2].a = Byte 5
+  result.items[2].b = Byte 6
+  result.tail = Byte 9
+  position = 8
+  decisions = 1
+@case Parse (cancelled at byte 7) (GeneralOnly)
+  result = StructValue {3}
+  result.n = Byte 3
+  result.items = List<Object> [3]
+  result.items[0] = StructValue {2}
+  result.items[0].a = Byte 1
+  result.items[0].b = Byte 2
+  result.items[1] = StructValue {2}
+  result.items[1].a = Byte 3
+  result.items[1].b = Byte 4
+  result.items[2] = StructValue {2}
+  result.items[2].a = Byte 5
+  result.items[2].b = Byte 6
+  result.tail = Byte 9
+  position = 8
+  decisions = 1
+@case Parse (cancelled at byte 0) (GeneralOnly) #2
+  result = StructValue {3}
+  result.a = Byte 1
+  result.b = UInt16 2
+  result.c = Byte 3
+  position = 4
+  decisions = 1
+@case Parse (cancelled at byte 1) (GeneralOnly) #2
+  result = StructValue {3}
+  result.a = Byte 1
+  result.b = UInt16 2
+  result.c = Byte 3
+  position = 4
+  decisions = 1
+@case Parse (cancelled at byte 2) (GeneralOnly) #2
+  result = StructValue {3}
+  result.a = Byte 1
+  result.b = UInt16 2
+  result.c = Byte 3
+  position = 4
+  decisions = 1
+@case Parse (cancelled at byte 3) (GeneralOnly) #2
+  result = StructValue {3}
+  result.a = Byte 1
+  result.b = UInt16 2
+  result.c = Byte 3
+  position = 4
+  decisions = 1
+
+@test ConditionalScope_RemovesAndRestoresTheCompositesNames
+@case Parse rec (Span) (Fastest)
+  result = StructValue {4}
+  result.n = Byte 1
+  result.i = StructValue {1}
+  result.i.n = Byte 3
+  result.d = PrimitiveArray<Byte> [1]
+  result.d[0] = Byte 7
+  result.e = PrimitiveArray<Byte> [1]
+  result.e[0] = Byte 8
+  decisions = 1
+@case Parse rec (Span) (Fastest) #2
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Cannot evaluate array length for d: Undefined expression identifier: n (field 'd' (uint8), in 'rec', offset 1)."
+  failure.code = ReadFailed
+  failure.member = "d"
+  failure.memberType = "uint8"
+  failure.path = "rec"
+  failure.offset = 1
+  failure.inner = failure System.Collections.Generic.KeyNotFoundException
+  failure.inner.message = "Undefined expression identifier: n"
+  decisions = 1
+@case Parse rec (Stream) (Fastest)
+  result = StructValue {3}
+  result.k = Byte 1
+  result.n = Byte 2
+  result.d = PrimitiveArray<Byte> [2]
+  result.d[0] = Byte 5
+  result.d[1] = Byte 6
+  position = 4
+  decisions = 1
+@case Parse rec (Span) (GeneralOnly)
+  result = StructValue {4}
+  result.n = Byte 1
+  result.i = StructValue {1}
+  result.i.n = Byte 3
+  result.d = PrimitiveArray<Byte> [1]
+  result.d[0] = Byte 7
+  result.e = PrimitiveArray<Byte> [1]
+  result.e[0] = Byte 8
+  decisions = 1
+@case Parse rec (Span) (GeneralOnly) #2
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Cannot evaluate array length for d: Undefined expression identifier: n (field 'd' (uint8), in 'rec', offset 1)."
+  failure.code = ReadFailed
+  failure.member = "d"
+  failure.memberType = "uint8"
+  failure.path = "rec"
+  failure.offset = 1
+  failure.inner = failure System.Collections.Generic.KeyNotFoundException
+  failure.inner.message = "Undefined expression identifier: n"
+  decisions = 1
+@case Parse rec (Stream) (GeneralOnly)
+  result = StructValue {3}
+  result.k = Byte 1
+  result.n = Byte 2
+  result.d = PrimitiveArray<Byte> [2]
+  result.d[0] = Byte 5
+  result.d[1] = Byte 6
+  position = 4
+  decisions = 1
+
+@test CustomCodecs_ReadThroughTheAdapterFromEverySource
+@hash 8c0f3bd54790a872cb2e08f3b3d54f155c19fd4991e10fd882d386585eec0218 6174
+
+@test DefinitionRoot_EvaluatesAndReadsNothing
+@hash 8c0875c4a7a5cc98bc0423adc307cbe1e959e4ef8d2d3a0855bd65fda03799a2 19
+
+@test EveryCodec_ReadsIdenticallyAtEveryTruncationAndBudget
+@hash e26310e25a455d65de59d4d0f15fd57ad1e85876fe403bfd80c3c3392724e34c 1687
+
+@test Failure_NamesTheInnermostMember_WithPathAndOffset
+@case Parse rec (Span) (Fastest)
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Not enough bytes: needed 2, available 1 (field 'b' (uint16), in 'rec', offset 6)."
+  failure.code = ReadFailed
+  failure.member = "b"
+  failure.memberType = "uint16"
+  failure.path = "rec"
+  failure.offset = 6
+  failure.inner = failure System.IO.EndOfStreamException
+  failure.inner.message = "Unable to read beyond the end of the stream."
+  decisions = 1
+@case Parse rec (Stream) (Fastest)
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Not enough bytes: needed 2, available 1 (field 'b' (uint16), in 'rec', offset 6)."
+  failure.code = ReadFailed
+  failure.member = "b"
+  failure.memberType = "uint16"
+  failure.path = "rec"
+  failure.offset = 6
+  failure.inner = failure System.IO.EndOfStreamException
+  failure.inner.message = "Unable to read beyond the end of the stream."
+  position = 6
+  decisions = 1
+@case Parse rec (ChunkedStream1) (Fastest)
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Not enough bytes: needed 2, available 1 (field 'b' (uint16), in 'rec', offset 6)."
+  failure.code = ReadFailed
+  failure.member = "b"
+  failure.memberType = "uint16"
+  failure.path = "rec"
+  failure.offset = 6
+  failure.inner = failure System.IO.EndOfStreamException
+  failure.inner.message = "Unable to read beyond the end of the stream."
+  position = 6
+  decisions = 1
+@case Parse rec (Span) (GeneralOnly)
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Not enough bytes: needed 2, available 1 (field 'b' (uint16), in 'rec', offset 6)."
+  failure.code = ReadFailed
+  failure.member = "b"
+  failure.memberType = "uint16"
+  failure.path = "rec"
+  failure.offset = 6
+  failure.inner = failure System.IO.EndOfStreamException
+  failure.inner.message = "Unable to read beyond the end of the stream."
+  decisions = 1
+@case Parse rec (Stream) (GeneralOnly)
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Not enough bytes: needed 2, available 1 (field 'b' (uint16), in 'rec', offset 6)."
+  failure.code = ReadFailed
+  failure.member = "b"
+  failure.memberType = "uint16"
+  failure.path = "rec"
+  failure.offset = 6
+  failure.inner = failure System.IO.EndOfStreamException
+  failure.inner.message = "Unable to read beyond the end of the stream."
+  position = 6
+  decisions = 1
+@case Parse rec (ChunkedStream1) (GeneralOnly)
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Not enough bytes: needed 2, available 1 (field 'b' (uint16), in 'rec', offset 6)."
+  failure.code = ReadFailed
+  failure.member = "b"
+  failure.memberType = "uint16"
+  failure.path = "rec"
+  failure.offset = 6
+  failure.inner = failure System.IO.EndOfStreamException
+  failure.inner.message = "Unable to read beyond the end of the stream."
+  position = 6
+  decisions = 1
+
+@test FixedSizeCustomCodec_OccupiesItsDeclaredSize
+@hash d97cff5ba37d4d87558d5d6da1d34c19bb5e84e3109160f1ee86e040084acc43 724
+
+@test LargeArrays_FailAtTheSame64KiBBlocks
+@hash 67294267592b1b2c6e0ec29d8142b1a40326867b240fff8092542b2de959bf2a 76
+
+@test MultidimensionalArrays_ReadFlatThenNest
+@hash 6c35db6dc15422037c3974cdfd54d2950e4b171831f1c92d61856f394c5dc055 334
+
+@test NestingLimit_CountsNamedStructsButNotPromotedMembers
+@case Parse rec (Span) (Fastest)
+  failure = failure CStructSharp.Diagnostics.CStructReadLimitException
+  failure.message = "Maximum nested struct depth exceeded (field 'items' (b), in 'rec', offset 1)."
+  failure.code = ReadLimitExceeded
+  failure.member = "items"
+  failure.memberType = "b"
+  failure.path = "rec"
+  failure.offset = 1
+  decisions = 1
+@case Parse rec (ChunkedStream3) (Fastest)
+  failure = failure CStructSharp.Diagnostics.CStructReadLimitException
+  failure.message = "Maximum nested struct depth exceeded (field 'items' (b), in 'rec', offset 1)."
+  failure.code = ReadLimitExceeded
+  failure.member = "items"
+  failure.memberType = "b"
+  failure.path = "rec"
+  failure.offset = 1
+  position = 1
+  decisions = 1
+@case Parse rec (Span) (Fastest) #2
+  failure = failure CStructSharp.Diagnostics.CStructReadLimitException
+  failure.message = "Maximum nested struct depth exceeded (field 'x' (a), in 'rec', offset 1)."
+  failure.code = ReadLimitExceeded
+  failure.member = "x"
+  failure.memberType = "a"
+  failure.path = "rec"
+  failure.offset = 1
+  decisions = 1
+@case Parse rec (ChunkedStream3) (Fastest) #2
+  failure = failure CStructSharp.Diagnostics.CStructReadLimitException
+  failure.message = "Maximum nested struct depth exceeded (field 'x' (a), in 'rec', offset 1)."
+  failure.code = ReadLimitExceeded
+  failure.member = "x"
+  failure.memberType = "a"
+  failure.path = "rec"
+  failure.offset = 1
+  position = 1
+  decisions = 1
+@case Parse rec (Span) (Fastest) #3
+  result = StructValue {4}
+  result.n = Byte 2
+  result.items = List<Object> [2]
+  result.items[0] = StructValue {2}
+  result.items[0].x = StructValue {1}
+  result.items[0].x.v = Byte 1
+  result.items[0].w = Byte 2
+  result.items[1] = StructValue {2}
+  result.items[1].x = StructValue {1}
+  result.items[1].x.v = Byte 3
+  result.items[1].w = Byte 4
+  result.p = StructValue {1}
+  result.p.v = Byte 5
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (ChunkedStream3) (Fastest) #3
+  result = StructValue {4}
+  result.n = Byte 2
+  result.items = List<Object> [2]
+  result.items[0] = StructValue {2}
+  result.items[0].x = StructValue {1}
+  result.items[0].x.v = Byte 1
+  result.items[0].w = Byte 2
+  result.items[1] = StructValue {2}
+  result.items[1].x = StructValue {1}
+  result.items[1].x.v = Byte 3
+  result.items[1].w = Byte 4
+  result.p = StructValue {1}
+  result.p.v = Byte 5
+  result.tail = Byte 9
+  position = 7
+  decisions = 1
+@case Parse rec (Span) (Fastest) #4
+  result = StructValue {4}
+  result.n = Byte 2
+  result.items = List<Object> [2]
+  result.items[0] = StructValue {2}
+  result.items[0].x = StructValue {1}
+  result.items[0].x.v = Byte 1
+  result.items[0].w = Byte 2
+  result.items[1] = StructValue {2}
+  result.items[1].x = StructValue {1}
+  result.items[1].x.v = Byte 3
+  result.items[1].w = Byte 4
+  result.p = StructValue {1}
+  result.p.v = Byte 5
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (ChunkedStream3) (Fastest) #4
+  result = StructValue {4}
+  result.n = Byte 2
+  result.items = List<Object> [2]
+  result.items[0] = StructValue {2}
+  result.items[0].x = StructValue {1}
+  result.items[0].x.v = Byte 1
+  result.items[0].w = Byte 2
+  result.items[1] = StructValue {2}
+  result.items[1].x = StructValue {1}
+  result.items[1].x.v = Byte 3
+  result.items[1].w = Byte 4
+  result.p = StructValue {1}
+  result.p.v = Byte 5
+  result.tail = Byte 9
+  position = 7
+  decisions = 1
+@case Parse rec (Span) (GeneralOnly)
+  failure = failure CStructSharp.Diagnostics.CStructReadLimitException
+  failure.message = "Maximum nested struct depth exceeded (field 'items' (b), in 'rec', offset 1)."
+  failure.code = ReadLimitExceeded
+  failure.member = "items"
+  failure.memberType = "b"
+  failure.path = "rec"
+  failure.offset = 1
+  decisions = 1
+@case Parse rec (ChunkedStream3) (GeneralOnly)
+  failure = failure CStructSharp.Diagnostics.CStructReadLimitException
+  failure.message = "Maximum nested struct depth exceeded (field 'items' (b), in 'rec', offset 1)."
+  failure.code = ReadLimitExceeded
+  failure.member = "items"
+  failure.memberType = "b"
+  failure.path = "rec"
+  failure.offset = 1
+  position = 1
+  decisions = 1
+@case Parse rec (Span) (GeneralOnly) #2
+  failure = failure CStructSharp.Diagnostics.CStructReadLimitException
+  failure.message = "Maximum nested struct depth exceeded (field 'x' (a), in 'rec', offset 1)."
+  failure.code = ReadLimitExceeded
+  failure.member = "x"
+  failure.memberType = "a"
+  failure.path = "rec"
+  failure.offset = 1
+  decisions = 1
+@case Parse rec (ChunkedStream3) (GeneralOnly) #2
+  failure = failure CStructSharp.Diagnostics.CStructReadLimitException
+  failure.message = "Maximum nested struct depth exceeded (field 'x' (a), in 'rec', offset 1)."
+  failure.code = ReadLimitExceeded
+  failure.member = "x"
+  failure.memberType = "a"
+  failure.path = "rec"
+  failure.offset = 1
+  position = 1
+  decisions = 1
+@case Parse rec (Span) (GeneralOnly) #3
+  result = StructValue {4}
+  result.n = Byte 2
+  result.items = List<Object> [2]
+  result.items[0] = StructValue {2}
+  result.items[0].x = StructValue {1}
+  result.items[0].x.v = Byte 1
+  result.items[0].w = Byte 2
+  result.items[1] = StructValue {2}
+  result.items[1].x = StructValue {1}
+  result.items[1].x.v = Byte 3
+  result.items[1].w = Byte 4
+  result.p = StructValue {1}
+  result.p.v = Byte 5
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (ChunkedStream3) (GeneralOnly) #3
+  result = StructValue {4}
+  result.n = Byte 2
+  result.items = List<Object> [2]
+  result.items[0] = StructValue {2}
+  result.items[0].x = StructValue {1}
+  result.items[0].x.v = Byte 1
+  result.items[0].w = Byte 2
+  result.items[1] = StructValue {2}
+  result.items[1].x = StructValue {1}
+  result.items[1].x.v = Byte 3
+  result.items[1].w = Byte 4
+  result.p = StructValue {1}
+  result.p.v = Byte 5
+  result.tail = Byte 9
+  position = 7
+  decisions = 1
+@case Parse rec (Span) (GeneralOnly) #4
+  result = StructValue {4}
+  result.n = Byte 2
+  result.items = List<Object> [2]
+  result.items[0] = StructValue {2}
+  result.items[0].x = StructValue {1}
+  result.items[0].x.v = Byte 1
+  result.items[0].w = Byte 2
+  result.items[1] = StructValue {2}
+  result.items[1].x = StructValue {1}
+  result.items[1].x.v = Byte 3
+  result.items[1].w = Byte 4
+  result.p = StructValue {1}
+  result.p.v = Byte 5
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (ChunkedStream3) (GeneralOnly) #4
+  result = StructValue {4}
+  result.n = Byte 2
+  result.items = List<Object> [2]
+  result.items[0] = StructValue {2}
+  result.items[0].x = StructValue {1}
+  result.items[0].x.v = Byte 1
+  result.items[0].w = Byte 2
+  result.items[1] = StructValue {2}
+  result.items[1].x = StructValue {1}
+  result.items[1].x.v = Byte 3
+  result.items[1].w = Byte 4
+  result.p = StructValue {1}
+  result.p.v = Byte 5
+  result.tail = Byte 9
+  position = 7
+  decisions = 1
+
+@test OffsetAssertion_IsCheckedBeforeTheMemberIsPlaced
+@case Parse rec (Stream) (Fastest)
+  result = StructValue {3}
+  result.n = Byte 5
+  result.d = PrimitiveArray<Byte> [5]
+  result.d[0] = Byte 0
+  result.d[1] = Byte 0
+  result.d[2] = Byte 0
+  result.d[3] = Byte 0
+  result.d[4] = Byte 0
+  result.x = UInt32 7
+  position = 12
+  decisions = 1
+@case Parse rec (Stream) (Fastest) #2
+  failure = failure CStructSharp.Diagnostics.CStructLayoutException
+  failure.message = "Field 'x' asserts offset 8 but computed offset is 4 (field 'x' (uint32), in 'rec', offset 2)."
+  failure.code = InvalidLayout
+  failure.member = "x"
+  failure.memberType = "uint32"
+  failure.path = "rec"
+  failure.offset = 2
+  failure.position = :
+  position = 2
+  decisions = 1
+@case Parse rec (Span) (Fastest)
+  failure = failure CStructSharp.Diagnostics.CStructLayoutException
+  failure.message = "Field 'x' asserts offset 8 but computed offset is 4 (field 'x' (uint32), in 'rec', offset 2)."
+  failure.code = InvalidLayout
+  failure.member = "x"
+  failure.memberType = "uint32"
+  failure.path = "rec"
+  failure.offset = 2
+  failure.position = :
+  decisions = 1
+@case Parse rec (Stream) (GeneralOnly)
+  result = StructValue {3}
+  result.n = Byte 5
+  result.d = PrimitiveArray<Byte> [5]
+  result.d[0] = Byte 0
+  result.d[1] = Byte 0
+  result.d[2] = Byte 0
+  result.d[3] = Byte 0
+  result.d[4] = Byte 0
+  result.x = UInt32 7
+  position = 12
+  decisions = 1
+@case Parse rec (Stream) (GeneralOnly) #2
+  failure = failure CStructSharp.Diagnostics.CStructLayoutException
+  failure.message = "Field 'x' asserts offset 8 but computed offset is 4 (field 'x' (uint32), in 'rec', offset 2)."
+  failure.code = InvalidLayout
+  failure.member = "x"
+  failure.memberType = "uint32"
+  failure.path = "rec"
+  failure.offset = 2
+  failure.position = :
+  position = 2
+  decisions = 1
+@case Parse rec (Span) (GeneralOnly)
+  failure = failure CStructSharp.Diagnostics.CStructLayoutException
+  failure.message = "Field 'x' asserts offset 8 but computed offset is 4 (field 'x' (uint32), in 'rec', offset 2)."
+  failure.code = InvalidLayout
+  failure.member = "x"
+  failure.memberType = "uint32"
+  failure.path = "rec"
+  failure.offset = 2
+  failure.position = :
+  decisions = 1
+
+@test Pointers_DetectCycles_AndLimitTheDepth
+@hash e9797093c1c8888a8114b8040fda13f68b98369b67225cb4bcec4bcea383b398 44
+
+@test Pointers_FollowAfterTheStruct_InDeclarationOrder
+@hash 59ae150f0e6c46a4f99aa330ce2ae821cc4d73ee8d528d926d9881fee70daf20 148
+
+@test Pointers_TargetLimits_UnionViews_AndOpaqueAddresses
+@hash 12450c25a4b053e281af6a1ad7363087d32e69f7cfa19cbc8259851ef61fe2f9 54
+
+@test QualifiedPrefixes_PublishThroughStaticPlansAndMembers
+@hash 336ed9f7d38f00dc391049aa5dff1df9bc061708af1a7aa09ab4d5b8eab6a0da 34
+
+@test SpelledRootWithCallerOnlyVariable_RunsOnTheEngine
+@hash 11969e2092cc93b7f09f5d5fa555e81587ffa8d6421c26aee86faa68d8a95b58 42
+
+@test StandaloneRoots_ReadIdentically
+@hash bd3d95b6cd6085377ed043907339860342319d31a4cc4cfd4d79c151917c7cc8 150
+
+@test TerminatedArrays_ChargeTheScanAndTheReread
+@hash 9762d70bb8e823616b781a9c4532020b3562580dbc2542e30c520d0dcd7bf9b1 364
+
+@test TerminatedStrings_ReadInPlaceLikeTheChunkedReader
+@hash 9dd096e3db3cfea4056f7052271c6dd42bb5536c4adc9d0039bbfc86a2355cc1 2942
+
+@test ToEndArrays_CountWholeElementsFromTheirStart
+@hash d90579a852494e87e96330cd369ad4f0b2e03c54c183e34a7bd1b3bdd1ac8235 286
+
+@test Unions_ChargeStorageAndViews_AndRestoreTheirEntryState
+@hash 14525a009909ae812351e44b818284f0c60f8b9a191172e590a17571a3492639 142
+
+@test UnsizedTypedefCharacters_ReadAsTerminatedText
+@hash 7265840a4c98927a7b22bc80989067e9dd65f2bd0cd70337a52038ca1fb1bcb7 62

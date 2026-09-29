@@ -192,11 +192,24 @@ internal static class ExpressionArithmetic
     }
 
     /// <summary>
-    ///     Rejects the one quotient that has no representation, 2^127 (<see cref="Int128.MinValue"/> / -1), and lets
-    ///     a zero divisor fail with <see cref="DivideByZeroException"/> first, as integer division does.
+    ///     Rejects a zero divisor with <see cref="DivideByZeroException"/>, and the one quotient that has no
+    ///     representation, 2^127 (<see cref="Int128.MinValue"/> / -1).
     /// </summary>
+    /// <remarks>
+    ///     The zero check is explicit because the .NET 8 runtime's 128-bit division throws an index or argument exception
+    ///     instead of <see cref="DivideByZeroException"/> for a dividend of 64 bits or more.
+    /// </remarks>
+    /// <param name="left">The dividend.</param>
+    /// <param name="right">The divisor.</param>
+    /// <exception cref="DivideByZeroException"><paramref name="right"/> is 0.</exception>
+    /// <exception cref="OverflowException"><paramref name="left"/> is <see cref="Int128.MinValue"/> and <paramref name="right"/> is -1.</exception>
     private static void RejectUnrepresentableQuotient(Int128 left, Int128 right)
     {
+        if (right == Int128.Zero)
+        {
+            throw new DivideByZeroException();
+        }
+
         if (right == Int128.NegativeOne && left == Int128.MinValue)
         {
             throw new OverflowException();

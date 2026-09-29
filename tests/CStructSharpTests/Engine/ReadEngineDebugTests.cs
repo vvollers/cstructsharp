@@ -9,7 +9,7 @@ using CStructSharp.Values;
 ///     segment, bitfields over their whole storage unit, an enum's number, a record per character of a <c>char[N]</c>, one
 ///     record for byte-counted text, element paths of a struct array, a union's own record after its views, and a deferred
 ///     pointer's target after its struct's last member. Each case also runs through the differential harness, so the
-///     interpreter records exactly the same.
+///     interpreter's golden outcomes record exactly the same.
 /// </summary>
 [TestClass]
 public class ReadEngineDebugTests

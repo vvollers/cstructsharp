@@ -55,4 +55,24 @@ public class ExpressionArithmeticBoundaryTests
         Assert.Throws<OverflowException>(() => ExpressionArithmetic.ShiftLeft((Int128)3 << 125, 1), "a bit shifted into the sign flips it");
         Assert.AreEqual((Int128)1 << 31, ExpressionArithmetic.ShiftLeft(1, 31), "the old 32-bit boundary is an ordinary value");
     }
+
+    /// <summary>
+    ///     A zero divisor fails with <see cref="DivideByZeroException"/> for every dividend, including dividends of 64 bits
+    ///     or more, for which the .NET 8 runtime's own 128-bit division throws an index or argument exception instead.
+    /// </summary>
+    /// <param name="exponent">The dividend is 2 raised to this power plus 5, negated when <paramref name="negative"/> is set.</param>
+    /// <param name="negative">Whether the dividend is negative.</param>
+    [TestMethod]
+    [DataRow(0, false)]
+    [DataRow(33, false)]
+    [DataRow(64, false)]
+    [DataRow(70, true)]
+    [DataRow(100, false)]
+    [DataRow(126, true)]
+    public void ZeroDivisor_FailsAsDivisionByZeroForEveryDividend(int exponent, bool negative)
+    {
+        Int128 dividend = negative ? -(Int128.One << exponent) - 5 : (Int128.One << exponent) + 5;
+        Assert.ThrowsExactly<DivideByZeroException>(() => ExpressionArithmetic.Divide(dividend, Int128.Zero));
+        Assert.ThrowsExactly<DivideByZeroException>(() => ExpressionArithmetic.Modulo(dividend, Int128.Zero));
+    }
 }

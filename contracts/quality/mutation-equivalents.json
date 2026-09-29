@@ -1180,6 +1180,15 @@
      "location": {"start":{"line":226,"column":43},"end":{"line":226,"column":75}},
      "reason": "TryReadSpan repeats the original subtraction-based availability check. If a nonnegative requested count is available, the memoryBacked conjunct has already excluded a stream-mode core, and every memory core reads an Int32-sized input (a FixedBufferStream region, an exposed MemoryStream array, or the span, array or memory the engine pins), so length + position cannot overflow Int64 and is at least length - position. Thus every originally successful preflight still reaches the same read. Extra candidates are rejected by the unchanged inner check without consuming or charging bytes." }
    ]
+  },
+  {
+   "pattern": "**/CStructSharp.Core/Expressions/ExpressionArithmetic.cs",
+   "sourceSha256": "8e8a80986f6a1bcc04550a79915d2668e63e0702f77bf52ee0cdb6934894a97a",
+   "mutants": [
+    { "mutatorName": "Statement mutation", "replacement": ";",
+     "location": {"start":{"line":210,"column":13},"end":{"line":210,"column":47}},
+     "reason": "The mutation workflow runs on net10.0, whose Int128 division and remainder throw DivideByZeroException, with the same default message, for every dividend when the divisor is zero. Without this statement Divide and Modulo still reject a zero divisor through the runtime operator, before any result is used, so no value, failure type, message or evaluation order changes on net10.0. The statement exists for net8.0, whose 128-bit division throws IndexOutOfRangeException or ArgumentOutOfRangeException for dividends of 64 bits or more; ExpressionArithmeticBoundaryTests.ZeroDivisor_FailsAsDivisionByZeroForEveryDividend kills the mutant there." }
+   ]
   }
  ]
 }

@@ -86,8 +86,8 @@ internal static partial class EngineCorpora
     /// <summary>
     ///     The 207 layouts of <c>tests/CStructSharp.Generated.Parity/layouts.json</c>, with the inputs that parity suite
     ///     uses: manual layouts their fixture bytes and variables, benchmark layouts their fixture's bytes and read
-    ///     options, shape layouts the bytes the interpreter writes from their values, conditional layouts a filled
-    ///     buffer, and recipe layouts (which carry no input) 64 deterministic pseudo-random bytes.
+    ///     options, shape layouts the bytes the reference implementation writes from their values, conditional layouts a
+    ///     filled buffer, and recipe layouts (which carry no input) 64 deterministic pseudo-random bytes.
     /// </summary>
     /// <returns>The cases.</returns>
     private static IEnumerable<EngineCorpusCase> LoadParityLayouts()
@@ -496,7 +496,8 @@ internal static partial class EngineCorpora
     }
 
     /// <summary>
-    ///     The bytes the interpreter writes for a shape layout's values (a union root sets its one member); a zeroed
+    ///     The bytes the reference implementation (<see cref="EngineSelections.Reference(WriteOptions?)"/>) writes for a
+    ///     shape layout's values (a union root sets its one member); a zeroed
     ///     buffer of the root's size when the values cannot be written.
     /// </summary>
     /// <param name="layout">The compiled shape layout.</param>
@@ -514,7 +515,7 @@ internal static partial class EngineCorpora
 
         try
         {
-            return layout.Serialize(root, value, options: EngineSelections.InterpreterOnly(new WriteOptions()));
+            return layout.Serialize(root, value, options: EngineSelections.Reference(new WriteOptions()));
         }
         catch (Diagnostics.CStructException)
         {

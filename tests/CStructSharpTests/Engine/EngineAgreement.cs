@@ -6,14 +6,16 @@ using System.Text.RegularExpressions;
 using CStructSharp.Diagnostics;
 
 /// <summary>
-///     Checks the interpreter against itself: the same read from different sources must render the same outcome. The
-///     differential harness compares implementations for one source; this compares sources for one implementation, so
-///     a disagreement that exists before the engine runs is reported as the interpreter's, not the engine's.
+///     Checks one implementation against itself: the same read from different sources must render the same outcome.
+///     The differential harness compares an implementation with the golden reference for one source; this compares the
+///     sources' renderings with each other, so a source that disagrees is reported as such even when every rendering
+///     matches its own golden outcome (the golden outcomes are recorded from the interpreter, which is held to the same
+///     rule while they are recorded).
 /// </summary>
 internal static class EngineAgreement
 {
     /// <summary>
-    ///     Asserts that the sources agree with each other, which checks the interpreter against itself: the memory
+    ///     Asserts that the sources agree with each other, which checks the implementation against itself: the memory
     ///     forms must render exactly what the first memory form renders, the stream forms exactly what the first stream
     ///     form renders (final positions included), and the first stream form what the first memory form renders apart
     ///     from the position, which only streams report. A failure reports stream positions, so the positions in an
@@ -80,7 +82,7 @@ internal static class EngineAgreement
 
         if (failures.Length > 0)
         {
-            Assert.Fail(label + ": the interpreter disagrees with itself across sources:\n" + failures);
+            Assert.Fail(label + ": the sources disagree:\n" + failures);
         }
     }
 

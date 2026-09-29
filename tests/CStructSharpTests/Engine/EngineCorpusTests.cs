@@ -5,9 +5,9 @@ using System.Text;
 /// <summary>
 ///     Runs the differential harness over the repository's layout corpora (<see cref="EngineCorpora"/>): every case is
 ///     parsed from several sources (which must agree), read as a value, debug-parsed, has paths resolved, and has the
-///     value the interpreter reads written back, under <see cref="ExecutionPath.Fastest"/> and
-///     <see cref="ExecutionPath.GeneralOnly"/>, comparing the interpreter with automatic engine selection
-///     (<see cref="EngineCorpusCase.Run"/>).
+///     value it reads written back, under <see cref="ExecutionPath.Fastest"/> and
+///     <see cref="ExecutionPath.GeneralOnly"/>, checking automatic engine selection against the golden outcomes
+///     (<see cref="EngineCorpusCase.Run"/>, <see cref="EngineGolden"/>).
 /// </summary>
 [TestClass]
 public class EngineCorpusTests
@@ -59,7 +59,7 @@ public class EngineCorpusTests
     ///     With the engine required, every public read, write and update of every corpus case whose root the engine can read
     ///     runs on the engine (<see cref="EngineCorpusCase.RunRequiringEngine"/>): after the update stage nothing is declined
     ///     for the kind of operation, source, destination or options - only for a root or member the programs cannot
-    ///     compile, and for a path that selects nothing writable, which the interpreter rejects too.
+    ///     compile, and for a path that selects nothing writable, which the public operation rejects too.
     /// </summary>
     [TestMethod]
     public void EveryCorpus_RunsEveryOperationOnTheEngineWhenRequired()
@@ -158,6 +158,8 @@ public class EngineCorpusTests
         {
             try
             {
+                // Each input is its own golden group, so a difference names the input.
+                using IDisposable part = EngineGolden.Part(item.Id);
                 ran += item.Run() ? 1 : 0;
             }
             catch (AssertFailedException failure)

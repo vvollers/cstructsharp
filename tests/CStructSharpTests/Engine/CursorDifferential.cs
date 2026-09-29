@@ -16,6 +16,10 @@ using CStructSharp.Streams;
 ///     every step's value or failure (type, message, offset, inner cause) and the position after it, relative to the
 ///     data's first byte, then the position flushed back to the source. Equal traces under every read budget mean equal
 ///     charge points; equal traces after a <see cref="CursorOperation.Cancel"/> step mean equal cancellation boundaries.
+///     The <c>ReadBudgetStream</c> traces are the golden reference (<see cref="EngineGolden"/>): a run that compares with
+///     the interpreter (<see cref="EngineGolden.ComparesInterpreter"/>) compares both cursors with them and checks or
+///     records them, and an ordinary run checks the stream cursor's traces against the
+///     recorded ones and the memory cursor's against the stream cursor's (<see cref="Expected"/>).
 /// </summary>
 internal static class CursorDifferential
 {
@@ -63,6 +67,19 @@ internal static class CursorDifferential
 
     /// <summary>Gets the number of bounded types a script may select.</summary>
     public static int BoundedTypeCount => BoundedTypes.Length;
+
+    /// <summary>
+    ///     Runs <paramref name="script"/> on the reference side of a comparison: <c>ReadBudgetStream</c> driven the way
+    ///     the interpreter drives it (<see cref="Reference"/>) while a run compares with the interpreter, otherwise the stream
+    ///     cursor (<see cref="StreamCursor"/>), whose traces the golden outcomes check.
+    /// </summary>
+    /// <param name="input">The input form.</param>
+    /// <param name="data">The input bytes.</param>
+    /// <param name="script">The steps.</param>
+    /// <param name="budget">The operation's <c>MaxTotalBytesRead</c>.</param>
+    /// <returns>The trace.</returns>
+    public static List<string> Expected(EngineInput input, byte[] data, CursorStep[] script, long budget)
+        => EngineGolden.ComparesInterpreter ? Reference(input, data, script, budget) : StreamCursor(input, data, script, budget);
 
     /// <summary>Runs <paramref name="script"/> through <c>ReadBudgetStream</c> the way the interpreter calls it.</summary>
     /// <param name="input">The input form.</param>

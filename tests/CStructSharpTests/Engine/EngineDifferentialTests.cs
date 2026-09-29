@@ -4,10 +4,10 @@ using System.Collections.Generic;
 using CStructSharp.Values;
 
 /// <summary>
-///     Runs the differential harness over a representative set of layouts and operations: the interpreter forced and
-///     automatic engine selection must render identically, and the engine must run exactly the whole-root reads of
-///     eligible roots (<see cref="EngineExpectations"/>). The harness itself must report a planted difference as a
-///     readable diff.
+///     Runs the differential harness over a representative set of layouts and operations: automatic engine selection must
+///     render the golden outcome (the interpreter's, <see cref="EngineGolden"/>), and the engine must run exactly the
+///     whole-root reads of eligible roots (<see cref="EngineExpectations"/>). The harness itself must report a planted
+///     difference as a readable diff.
 /// </summary>
 [TestClass]
 public class EngineDifferentialTests
@@ -301,8 +301,9 @@ public class EngineDifferentialTests
     }
 
     /// <summary>
-    ///     The harness detects a difference planted in the automatic side's rendering and reports it as a line diff that
-    ///     shows the interpreter's line (-) and the changed line (+).
+    ///     The harness detects a difference planted in the automatic run's rendering and reports it as a line diff that
+    ///     shows the reference line (-) and the changed line (+): the golden outcome's, or the interpreter's when the run
+    ///     compares with it (<see cref="EngineGolden.ComparesInterpreter"/>).
     /// </summary>
     [TestMethod]
     public void PlantedDifference_FailsWithReadableDiff()
@@ -312,7 +313,8 @@ public class EngineDifferentialTests
 
         AssertFailedException failure = Assert.Throws<AssertFailedException>(
             () => EngineDifferential.AssertSame(operation, alterAutomatic: rendering => rendering.Replace("result.items[1] = UInt16 2", "result.items[1] = UInt16 3", StringComparison.Ordinal)));
-        StringAssert.Contains(failure.Message, "Parse rec (Span) (Fastest): the interpreter (-) and automatic selection (+) differ:");
+        string header = EngineGolden.ComparesInterpreter ? "the interpreter (-) and automatic selection (+) differ:" : "the golden outcome (-) and the engine (+) differ:";
+        StringAssert.Contains(failure.Message, "Parse rec (Span) (Fastest): " + header);
         StringAssert.Contains(failure.Message, "\n  result.items[0] = UInt16 1\n- result.items[1] = UInt16 2\n+ result.items[1] = UInt16 3\n  result.tail = Byte 9\n");
 
         // A dropped line and an added line are reported as well; an unchanged rendering passes.

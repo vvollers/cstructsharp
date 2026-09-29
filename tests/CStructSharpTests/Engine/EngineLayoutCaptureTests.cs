@@ -5,9 +5,10 @@ using Variant = EngineSweepLayouts.Variant;
 
 /// <summary>
 ///     Sweeps the layout capture an update compares (every value's path and byte range, then the conditional-layout trace)
-///     over the representative layouts of <see cref="EngineSweepLayouts"/>, packed and aligned, comparing the interpreter
-///     with the compiled engine's debug program (<see cref="EngineLayoutCapture"/>): conditional roots, whose trace records
-///     each decision and the position it was made at, and terminated values, whose extent the update compares.
+///     over the representative layouts of <see cref="EngineSweepLayouts"/>, packed and aligned, checking the compiled
+///     engine's debug program against the golden captures (<see cref="EngineLayoutCapture"/>): conditional roots, whose
+///     trace records each decision and the position it was made at, and terminated values, whose extent the update
+///     compares.
 /// </summary>
 [TestClass]
 public class EngineLayoutCaptureTests

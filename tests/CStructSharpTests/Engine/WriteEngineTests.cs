@@ -6,9 +6,9 @@ using CStructSharp.Values;
 
 /// <summary>
 ///     The compiled write engine's step semantics where the sweeps and corpora do not reach, each compared with the
-///     interpreter through the differential harness and pinned to its expected outcome: every codec at every write budget
-///     and span capacity, every terminated text type, the prefix a failed write leaves in a span, the narrow text path that
-///     fails after writing earlier characters, tail padding written and charged, the inactive conditional member check,
+///     interpreter's golden outcomes through the differential harness and pinned to its expected outcome: every codec at
+///     every write budget and span capacity, every terminated text type, the prefix a failed write leaves in a span, the
+///     narrow text path that fails after writing earlier characters, tail padding written and charged, the inactive conditional member check,
 ///     captures of converted supplied values, bitfield units, staged unions, pointers, the memory destination's own
 ///     rules (gaps, read-back, budget, chunked zero fill), bitfields merged into a caller's stream, members written on their
 ///     own through a nested path, and update semantics switched on by update options.
@@ -74,7 +74,7 @@ public class WriteEngineTests
     {
         var layout = new CStruct(CodecLayout);
         byte[] data = CodecData;
-        StructValue value = layout.Parse(data.AsSpan(), "rec", options: EngineSelections.InterpreterOnly());
+        StructValue value = layout.Parse(data.AsSpan(), "rec", options: EngineSelections.Reference());
         CollectionAssert.AreEqual(data, layout.Serialize("rec", value, options: EngineSelections.EngineRequired(new WriteOptions())));
         foreach (ExecutionPath path in Paths)
         {

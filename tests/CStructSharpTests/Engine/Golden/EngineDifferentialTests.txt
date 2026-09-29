@@ -1,0 +1,1145 @@
+# Golden outcomes of EngineDifferentialTests: the reference each differential comparison checks the engine against.
+# Regenerate only for an intended, explained behaviour change: node tools/quality/engine-golden.mjs record (CONTRIBUTING.md).
+# @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes.
+
+@test Bitfields_ReadAndUpdateIdentically
+@case Parse rec (Span) (Fastest)
+  result = StructValue {3}
+  result.low = Int32 1
+  result.high = Int32 2
+  result.rest = UInt16 4660
+  decisions = 1
+@case ReadValue rec.high (Span) (Fastest)
+  result = Int32 2
+  decisions = 1
+@case ResolveAddress rec.rest (Span) (Fastest)
+  result = Int64 1
+  decisions = 1
+@case Parse rec (ByteArray) (Fastest)
+  result = StructValue {3}
+  result.low = Int32 1
+  result.high = Int32 2
+  result.rest = UInt16 4660
+  decisions = 1
+@case ReadValue rec.high (ByteArray) (Fastest)
+  result = Int32 2
+  decisions = 1
+@case ResolveAddress rec.rest (ByteArray) (Fastest)
+  result = Int64 1
+  decisions = 1
+@case Parse rec (Memory) (Fastest)
+  result = StructValue {3}
+  result.low = Int32 1
+  result.high = Int32 2
+  result.rest = UInt16 4660
+  decisions = 1
+@case ReadValue rec.high (Memory) (Fastest)
+  result = Int32 2
+  decisions = 1
+@case ResolveAddress rec.rest (Memory) (Fastest)
+  result = Int64 1
+  decisions = 1
+@case Parse rec (Stream) (Fastest)
+  result = StructValue {3}
+  result.low = Int32 1
+  result.high = Int32 2
+  result.rest = UInt16 4660
+  position = 3
+  decisions = 1
+@case ReadValue rec.high (Stream) (Fastest)
+  result = Int32 2
+  position = 1
+  decisions = 1
+@case ResolveAddress rec.rest (Stream) (Fastest)
+  result = Int64 1
+  position = 0
+  decisions = 1
+@case Parse rec (Sequence) (Fastest)
+  result = StructValue {3}
+  result.low = Int32 1
+  result.high = Int32 2
+  result.rest = UInt16 4660
+  decisions = 1
+@case ReadValue rec.high (Sequence) (Fastest)
+  result = Int32 2
+  decisions = 1
+@case ResolveAddress rec.rest (Sequence) (Fastest)
+  result = Int64 1
+  decisions = 1
+@case Update(Span) rec.high (Fastest)
+  data = [3] 713412
+  decisions = 1
+@case Update rec.high (Stream) (Fastest)
+  failure = failure CStructSharp.Diagnostics.CStructWriteException
+  failure.message = "Bitfield value for 'high' exceeds the unsigned 4-bit range (path 'rec.high', offset 0)."
+  failure.code = WriteFailed
+  failure.member = null
+  failure.memberType = null
+  failure.path = "rec.high"
+  failure.offset = 0
+  position = 0
+  stream = [3] 213412
+  decisions = 1
+
+@test Conditional_ReadsIdentically
+@case Parse rec (Span) (Fastest)
+  result = StructValue {3}
+  result.flag = Byte 1
+  result.yes = UInt16 4660
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (Span) (Fastest) #2
+  result = StructValue {3}
+  result.flag = Byte 0
+  result.no = Byte 5
+  result.tail = Byte 9
+  decisions = 1
+@case ReadValue rec.yes (Span) (Fastest)
+  failure = failure CStructSharp.Diagnostics.CStructPathException
+  failure.message = "Unknown field 'yes' in 'rec' (path 'rec.yes', offset 3)."
+  failure.code = InvalidPath
+  failure.member = null
+  failure.memberType = null
+  failure.path = "rec.yes"
+  failure.offset = 3
+  decisions = 1
+@case ResolveAddress rec.tail (Span) (Fastest)
+  result = Int64 3
+  decisions = 1
+@case Parse rec (ByteArray) (Fastest)
+  result = StructValue {3}
+  result.flag = Byte 1
+  result.yes = UInt16 4660
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (ByteArray) (Fastest) #2
+  result = StructValue {3}
+  result.flag = Byte 0
+  result.no = Byte 5
+  result.tail = Byte 9
+  decisions = 1
+@case ReadValue rec.yes (ByteArray) (Fastest)
+  failure = failure CStructSharp.Diagnostics.CStructPathException
+  failure.message = "Unknown field 'yes' in 'rec' (path 'rec.yes', offset 3)."
+  failure.code = InvalidPath
+  failure.member = null
+  failure.memberType = null
+  failure.path = "rec.yes"
+  failure.offset = 3
+  decisions = 1
+@case ResolveAddress rec.tail (ByteArray) (Fastest)
+  result = Int64 3
+  decisions = 1
+@case Parse rec (Memory) (Fastest)
+  result = StructValue {3}
+  result.flag = Byte 1
+  result.yes = UInt16 4660
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (Memory) (Fastest) #2
+  result = StructValue {3}
+  result.flag = Byte 0
+  result.no = Byte 5
+  result.tail = Byte 9
+  decisions = 1
+@case ReadValue rec.yes (Memory) (Fastest)
+  failure = failure CStructSharp.Diagnostics.CStructPathException
+  failure.message = "Unknown field 'yes' in 'rec' (path 'rec.yes', offset 3)."
+  failure.code = InvalidPath
+  failure.member = null
+  failure.memberType = null
+  failure.path = "rec.yes"
+  failure.offset = 3
+  decisions = 1
+@case ResolveAddress rec.tail (Memory) (Fastest)
+  result = Int64 3
+  decisions = 1
+@case Parse rec (Stream) (Fastest)
+  result = StructValue {3}
+  result.flag = Byte 1
+  result.yes = UInt16 4660
+  result.tail = Byte 9
+  position = 4
+  decisions = 1
+@case Parse rec (Stream) (Fastest) #2
+  result = StructValue {3}
+  result.flag = Byte 0
+  result.no = Byte 5
+  result.tail = Byte 9
+  position = 3
+  decisions = 1
+@case ReadValue rec.yes (Stream) (Fastest)
+  failure = failure CStructSharp.Diagnostics.CStructPathException
+  failure.message = "Unknown field 'yes' in 'rec' (path 'rec.yes', offset 3)."
+  failure.code = InvalidPath
+  failure.member = null
+  failure.memberType = null
+  failure.path = "rec.yes"
+  failure.offset = 3
+  position = 3
+  decisions = 1
+@case ResolveAddress rec.tail (Stream) (Fastest)
+  result = Int64 3
+  position = 0
+  decisions = 1
+@case Parse rec (Sequence) (Fastest)
+  result = StructValue {3}
+  result.flag = Byte 1
+  result.yes = UInt16 4660
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (Sequence) (Fastest) #2
+  result = StructValue {3}
+  result.flag = Byte 0
+  result.no = Byte 5
+  result.tail = Byte 9
+  decisions = 1
+@case ReadValue rec.yes (Sequence) (Fastest)
+  failure = failure CStructSharp.Diagnostics.CStructPathException
+  failure.message = "Unknown field 'yes' in 'rec' (path 'rec.yes', offset 3)."
+  failure.code = InvalidPath
+  failure.member = null
+  failure.memberType = null
+  failure.path = "rec.yes"
+  failure.offset = 3
+  decisions = 1
+@case ResolveAddress rec.tail (Sequence) (Fastest)
+  result = Int64 3
+  decisions = 1
+
+@test CountSizedArray_ReadsIdentically
+@hash 6b3d904c4b1c9eca200b96be7a5c7a30ae47fd18cc483beb950d52336e7aefcb 47
+
+@test CustomCodec_RoundTripsIdentically
+@case Parse rec (Span) (Fastest)
+  result = StructValue {3}
+  result.count = UInt32 2
+  result.values = List<Object> [2]
+  result.values[0] = UInt32 128
+  result.values[1] = UInt32 5
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (Span) (Fastest) #2
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Not enough bytes: custom codec 'vlq' needs more than the 1 available (field 'values' (vlq), in 'rec', offset 2)."
+  failure.code = ReadFailed
+  failure.member = "values"
+  failure.memberType = "vlq"
+  failure.path = "rec"
+  failure.offset = 2
+  decisions = 1
+@case ResolveAddress rec.tail (Span) (Fastest)
+  result = Int64 4
+  decisions = 1
+@case Parse rec (ByteArray) (Fastest)
+  result = StructValue {3}
+  result.count = UInt32 2
+  result.values = List<Object> [2]
+  result.values[0] = UInt32 128
+  result.values[1] = UInt32 5
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (ByteArray) (Fastest) #2
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Not enough bytes: custom codec 'vlq' needs more than the 1 available (field 'values' (vlq), in 'rec', offset 2)."
+  failure.code = ReadFailed
+  failure.member = "values"
+  failure.memberType = "vlq"
+  failure.path = "rec"
+  failure.offset = 2
+  decisions = 1
+@case ResolveAddress rec.tail (ByteArray) (Fastest)
+  result = Int64 4
+  decisions = 1
+@case Parse rec (Memory) (Fastest)
+  result = StructValue {3}
+  result.count = UInt32 2
+  result.values = List<Object> [2]
+  result.values[0] = UInt32 128
+  result.values[1] = UInt32 5
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (Memory) (Fastest) #2
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Not enough bytes: custom codec 'vlq' needs more than the 1 available (field 'values' (vlq), in 'rec', offset 2)."
+  failure.code = ReadFailed
+  failure.member = "values"
+  failure.memberType = "vlq"
+  failure.path = "rec"
+  failure.offset = 2
+  decisions = 1
+@case ResolveAddress rec.tail (Memory) (Fastest)
+  result = Int64 4
+  decisions = 1
+@case Parse rec (Stream) (Fastest)
+  result = StructValue {3}
+  result.count = UInt32 2
+  result.values = List<Object> [2]
+  result.values[0] = UInt32 128
+  result.values[1] = UInt32 5
+  result.tail = Byte 9
+  position = 5
+  decisions = 1
+@case Parse rec (Stream) (Fastest) #2
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Not enough bytes: custom codec 'vlq' needs more than the 1 available (field 'values' (vlq), in 'rec', offset 2)."
+  failure.code = ReadFailed
+  failure.member = "values"
+  failure.memberType = "vlq"
+  failure.path = "rec"
+  failure.offset = 2
+  position = 2
+  decisions = 1
+@case ResolveAddress rec.tail (Stream) (Fastest)
+  result = Int64 4
+  position = 0
+  decisions = 1
+@case Parse rec (Sequence) (Fastest)
+  result = StructValue {3}
+  result.count = UInt32 2
+  result.values = List<Object> [2]
+  result.values[0] = UInt32 128
+  result.values[1] = UInt32 5
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (Sequence) (Fastest) #2
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Not enough bytes: custom codec 'vlq' needs more than the 1 available (field 'values' (vlq), in 'rec', offset 2)."
+  failure.code = ReadFailed
+  failure.member = "values"
+  failure.memberType = "vlq"
+  failure.path = "rec"
+  failure.offset = 2
+  decisions = 1
+@case ResolveAddress rec.tail (Sequence) (Fastest)
+  result = Int64 4
+  decisions = 1
+@case Serialize rec (Fastest)
+  result = [5] 0280010509
+  decisions = 1
+@case Serialize(Span[3]) rec (Fastest)
+  failure = failure CStructSharp.Diagnostics.CStructWriteException
+  failure.message = "The serialized value exceeds the supplied destination capacity (field 'values' (vlq), in 'rec', offset 3)."
+  failure.code = WriteFailed
+  failure.member = "values"
+  failure.memberType = "vlq"
+  failure.path = "rec"
+  failure.offset = 3
+  destination = [3] 028001
+  decisions = 1
+@case Update(Span) rec.values[1] (Fastest)
+  data = [5] 0280010609
+  decisions = 1
+@case Update(Span) rec.values[1] (Fastest) #2
+  failure = failure CStructSharp.Diagnostics.CStructWriteException
+  failure.message = "LEB128 updates must preserve the existing encoded byte length (path 'rec.values[1]', offset 5)."
+  failure.code = WriteFailed
+  failure.member = null
+  failure.memberType = null
+  failure.path = "rec.values[1]"
+  failure.offset = 5
+  data = [5] 0280010509
+  decisions = 1
+
+@test DebugParses_RecordIdentically
+@hash 947f2c9ef04a108d6570fd2bbda4ae965544f3c1175fa04d1b8a24f80d32be1f 26
+
+@test FixedRecord_ReadsIdentically
+@hash c299e97a7b7eb18c3568f548e2e168409c4a6bf283f4d2fce2053702f5df4149 112
+
+@test NestedStructs_ReadIdentically
+@case Parse rec (Span) (Fastest)
+  result = StructValue {3}
+  result.n = Byte 2
+  result.items = List<Object> [2]
+  result.items[0] = StructValue {2}
+  result.items[0].a = Byte 1
+  result.items[0].b = Byte 2
+  result.items[1] = StructValue {2}
+  result.items[1].a = Byte 3
+  result.items[1].b = Byte 4
+  result.last = StructValue {2}
+  result.last.a = Byte 5
+  result.last.b = Byte 6
+  decisions = 1
+@case Parse rec.last (Span) (Fastest)
+  result = StructValue {2}
+  result.a = Byte 5
+  result.b = Byte 6
+  decisions = 1
+@case Parse rec.items[1] (Span) (Fastest)
+  result = StructValue {2}
+  result.a = Byte 3
+  result.b = Byte 4
+  decisions = 1
+@case ReadValue rec.items (Span) (Fastest)
+  result = List<Object> [2]
+  result[0] = StructValue {2}
+  result[0].a = Byte 1
+  result[0].b = Byte 2
+  result[1] = StructValue {2}
+  result[1].a = Byte 3
+  result[1].b = Byte 4
+  decisions = 1
+@case ReadValue rec.last.b (Span) (Fastest)
+  result = Byte 6
+  decisions = 1
+@case Parse rec (ByteArray) (Fastest)
+  result = StructValue {3}
+  result.n = Byte 2
+  result.items = List<Object> [2]
+  result.items[0] = StructValue {2}
+  result.items[0].a = Byte 1
+  result.items[0].b = Byte 2
+  result.items[1] = StructValue {2}
+  result.items[1].a = Byte 3
+  result.items[1].b = Byte 4
+  result.last = StructValue {2}
+  result.last.a = Byte 5
+  result.last.b = Byte 6
+  decisions = 1
+@case Parse rec.last (ByteArray) (Fastest)
+  result = StructValue {2}
+  result.a = Byte 5
+  result.b = Byte 6
+  decisions = 1
+@case Parse rec.items[1] (ByteArray) (Fastest)
+  result = StructValue {2}
+  result.a = Byte 3
+  result.b = Byte 4
+  decisions = 1
+@case ReadValue rec.items (ByteArray) (Fastest)
+  result = List<Object> [2]
+  result[0] = StructValue {2}
+  result[0].a = Byte 1
+  result[0].b = Byte 2
+  result[1] = StructValue {2}
+  result[1].a = Byte 3
+  result[1].b = Byte 4
+  decisions = 1
+@case ReadValue rec.last.b (ByteArray) (Fastest)
+  result = Byte 6
+  decisions = 1
+@case Parse rec (Memory) (Fastest)
+  result = StructValue {3}
+  result.n = Byte 2
+  result.items = List<Object> [2]
+  result.items[0] = StructValue {2}
+  result.items[0].a = Byte 1
+  result.items[0].b = Byte 2
+  result.items[1] = StructValue {2}
+  result.items[1].a = Byte 3
+  result.items[1].b = Byte 4
+  result.last = StructValue {2}
+  result.last.a = Byte 5
+  result.last.b = Byte 6
+  decisions = 1
+@case Parse rec.last (Memory) (Fastest)
+  result = StructValue {2}
+  result.a = Byte 5
+  result.b = Byte 6
+  decisions = 1
+@case Parse rec.items[1] (Memory) (Fastest)
+  result = StructValue {2}
+  result.a = Byte 3
+  result.b = Byte 4
+  decisions = 1
+@case ReadValue rec.items (Memory) (Fastest)
+  result = List<Object> [2]
+  result[0] = StructValue {2}
+  result[0].a = Byte 1
+  result[0].b = Byte 2
+  result[1] = StructValue {2}
+  result[1].a = Byte 3
+  result[1].b = Byte 4
+  decisions = 1
+@case ReadValue rec.last.b (Memory) (Fastest)
+  result = Byte 6
+  decisions = 1
+@case Parse rec (Stream) (Fastest)
+  result = StructValue {3}
+  result.n = Byte 2
+  result.items = List<Object> [2]
+  result.items[0] = StructValue {2}
+  result.items[0].a = Byte 1
+  result.items[0].b = Byte 2
+  result.items[1] = StructValue {2}
+  result.items[1].a = Byte 3
+  result.items[1].b = Byte 4
+  result.last = StructValue {2}
+  result.last.a = Byte 5
+  result.last.b = Byte 6
+  position = 7
+  decisions = 1
+@case Parse rec.last (Stream) (Fastest)
+  result = StructValue {2}
+  result.a = Byte 5
+  result.b = Byte 6
+  position = 7
+  decisions = 1
+@case Parse rec.items[1] (Stream) (Fastest)
+  result = StructValue {2}
+  result.a = Byte 3
+  result.b = Byte 4
+  position = 5
+  decisions = 1
+@case ReadValue rec.items (Stream) (Fastest)
+  result = List<Object> [2]
+  result[0] = StructValue {2}
+  result[0].a = Byte 1
+  result[0].b = Byte 2
+  result[1] = StructValue {2}
+  result[1].a = Byte 3
+  result[1].b = Byte 4
+  position = 5
+  decisions = 1
+@case ReadValue rec.last.b (Stream) (Fastest)
+  result = Byte 6
+  position = 7
+  decisions = 1
+@case Parse rec (Sequence) (Fastest)
+  result = StructValue {3}
+  result.n = Byte 2
+  result.items = List<Object> [2]
+  result.items[0] = StructValue {2}
+  result.items[0].a = Byte 1
+  result.items[0].b = Byte 2
+  result.items[1] = StructValue {2}
+  result.items[1].a = Byte 3
+  result.items[1].b = Byte 4
+  result.last = StructValue {2}
+  result.last.a = Byte 5
+  result.last.b = Byte 6
+  decisions = 1
+@case Parse rec.last (Sequence) (Fastest)
+  result = StructValue {2}
+  result.a = Byte 5
+  result.b = Byte 6
+  decisions = 1
+@case Parse rec.items[1] (Sequence) (Fastest)
+  result = StructValue {2}
+  result.a = Byte 3
+  result.b = Byte 4
+  decisions = 1
+@case ReadValue rec.items (Sequence) (Fastest)
+  result = List<Object> [2]
+  result[0] = StructValue {2}
+  result[0].a = Byte 1
+  result[0].b = Byte 2
+  result[1] = StructValue {2}
+  result[1].a = Byte 3
+  result[1].b = Byte 4
+  decisions = 1
+@case ReadValue rec.last.b (Sequence) (Fastest)
+  result = Byte 6
+  decisions = 1
+@case ReadValue rec.items (Span) (Fastest) #2
+  result = List<Object> [2]
+  result[0] = StructValue {2}
+  result[0].a = Byte 1
+  result[0].b = Byte 2
+  result[1] = StructValue {2}
+  result[1].a = Byte 3
+  result[1].b = Byte 4
+  decisions = 1
+
+@test PlantedDifference_FailsWithReadableDiff
+@case Parse rec (Span) (Fastest)
+  result = StructValue {3}
+  result.n = Byte 2
+  result.items = PrimitiveArray<UInt16> [2]
+  result.items[0] = UInt16 1
+  result.items[1] = UInt16 2
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (Span) (Fastest) #2
+  result = StructValue {3}
+  result.n = Byte 2
+  result.items = PrimitiveArray<UInt16> [2]
+  result.items[0] = UInt16 1
+  result.items[1] = UInt16 2
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (Span) (Fastest) #3
+  result = StructValue {3}
+  result.n = Byte 2
+  result.items = PrimitiveArray<UInt16> [2]
+  result.items[0] = UInt16 1
+  result.items[1] = UInt16 2
+  result.tail = Byte 9
+  decisions = 1
+
+@test Pointer_ReadsIdentically
+@case Parse rec (Span) (Fastest)
+  result = StructValue {2}
+  result.p = Pointer address=8 depth=1 dereferenced=True null=False
+  result.p-> = UInt16 4660
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (Span) (Fastest) #2
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Pointer target is outside the readable stream range: 40 (field 'p' (uint16), in 'rec', offset 4)."
+  failure.code = ReadFailed
+  failure.member = "p"
+  failure.memberType = "uint16"
+  failure.path = "rec"
+  failure.offset = 4
+  decisions = 1
+@case Parse rec (Span) (Fastest) #3
+  result = StructValue {2}
+  result.p = Pointer address=8 depth=1 dereferenced=False null=False
+  result.p-> = null
+  result.tail = Byte 9
+  decisions = 1
+@case ReadValue rec.p (Span) (Fastest)
+  result = Pointer address=8 depth=1 dereferenced=True null=False
+  result-> = UInt16 4660
+  decisions = 1
+@case ReadValue rec.p.value (Span) (Fastest)
+  result = UInt16 4660
+  decisions = 1
+@case ResolveAddress rec.p.value (Span) (Fastest)
+  result = Int64 8
+  decisions = 1
+@case ResolveAddress rec.p.address (Span) (Fastest)
+  result = Int64 0
+  decisions = 1
+@case Parse rec (ByteArray) (Fastest)
+  result = StructValue {2}
+  result.p = Pointer address=8 depth=1 dereferenced=True null=False
+  result.p-> = UInt16 4660
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (ByteArray) (Fastest) #2
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Pointer target is outside the readable stream range: 40 (field 'p' (uint16), in 'rec', offset 4)."
+  failure.code = ReadFailed
+  failure.member = "p"
+  failure.memberType = "uint16"
+  failure.path = "rec"
+  failure.offset = 4
+  decisions = 1
+@case Parse rec (ByteArray) (Fastest) #3
+  result = StructValue {2}
+  result.p = Pointer address=8 depth=1 dereferenced=False null=False
+  result.p-> = null
+  result.tail = Byte 9
+  decisions = 1
+@case ReadValue rec.p (ByteArray) (Fastest)
+  result = Pointer address=8 depth=1 dereferenced=True null=False
+  result-> = UInt16 4660
+  decisions = 1
+@case ReadValue rec.p.value (ByteArray) (Fastest)
+  result = UInt16 4660
+  decisions = 1
+@case ResolveAddress rec.p.value (ByteArray) (Fastest)
+  result = Int64 8
+  decisions = 1
+@case ResolveAddress rec.p.address (ByteArray) (Fastest)
+  result = Int64 0
+  decisions = 1
+@case Parse rec (Memory) (Fastest)
+  result = StructValue {2}
+  result.p = Pointer address=8 depth=1 dereferenced=True null=False
+  result.p-> = UInt16 4660
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (Memory) (Fastest) #2
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Pointer target is outside the readable stream range: 40 (field 'p' (uint16), in 'rec', offset 4)."
+  failure.code = ReadFailed
+  failure.member = "p"
+  failure.memberType = "uint16"
+  failure.path = "rec"
+  failure.offset = 4
+  decisions = 1
+@case Parse rec (Memory) (Fastest) #3
+  result = StructValue {2}
+  result.p = Pointer address=8 depth=1 dereferenced=False null=False
+  result.p-> = null
+  result.tail = Byte 9
+  decisions = 1
+@case ReadValue rec.p (Memory) (Fastest)
+  result = Pointer address=8 depth=1 dereferenced=True null=False
+  result-> = UInt16 4660
+  decisions = 1
+@case ReadValue rec.p.value (Memory) (Fastest)
+  result = UInt16 4660
+  decisions = 1
+@case ResolveAddress rec.p.value (Memory) (Fastest)
+  result = Int64 8
+  decisions = 1
+@case ResolveAddress rec.p.address (Memory) (Fastest)
+  result = Int64 0
+  decisions = 1
+@case Parse rec (Stream) (Fastest)
+  result = StructValue {2}
+  result.p = Pointer address=8 depth=1 dereferenced=True null=False
+  result.p-> = UInt16 4660
+  result.tail = Byte 9
+  position = 5
+  decisions = 1
+@case Parse rec (Stream) (Fastest) #2
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Pointer target is outside the readable stream range: 40 (field 'p' (uint16), in 'rec', offset 4)."
+  failure.code = ReadFailed
+  failure.member = "p"
+  failure.memberType = "uint16"
+  failure.path = "rec"
+  failure.offset = 4
+  position = 4
+  decisions = 1
+@case Parse rec (Stream) (Fastest) #3
+  result = StructValue {2}
+  result.p = Pointer address=8 depth=1 dereferenced=False null=False
+  result.p-> = null
+  result.tail = Byte 9
+  position = 5
+  decisions = 1
+@case ReadValue rec.p (Stream) (Fastest)
+  result = Pointer address=8 depth=1 dereferenced=True null=False
+  result-> = UInt16 4660
+  position = 4
+  decisions = 1
+@case ReadValue rec.p.value (Stream) (Fastest)
+  result = UInt16 4660
+  position = 10
+  decisions = 1
+@case ResolveAddress rec.p.value (Stream) (Fastest)
+  result = Int64 8
+  position = 0
+  decisions = 1
+@case ResolveAddress rec.p.address (Stream) (Fastest)
+  result = Int64 0
+  position = 0
+  decisions = 1
+@case Parse rec (Sequence) (Fastest)
+  result = StructValue {2}
+  result.p = Pointer address=8 depth=1 dereferenced=True null=False
+  result.p-> = UInt16 4660
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (Sequence) (Fastest) #2
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Pointer target is outside the readable stream range: 40 (field 'p' (uint16), in 'rec', offset 4)."
+  failure.code = ReadFailed
+  failure.member = "p"
+  failure.memberType = "uint16"
+  failure.path = "rec"
+  failure.offset = 4
+  decisions = 1
+@case Parse rec (Sequence) (Fastest) #3
+  result = StructValue {2}
+  result.p = Pointer address=8 depth=1 dereferenced=False null=False
+  result.p-> = null
+  result.tail = Byte 9
+  decisions = 1
+@case ReadValue rec.p (Sequence) (Fastest)
+  result = Pointer address=8 depth=1 dereferenced=True null=False
+  result-> = UInt16 4660
+  decisions = 1
+@case ReadValue rec.p.value (Sequence) (Fastest)
+  result = UInt16 4660
+  decisions = 1
+@case ResolveAddress rec.p.value (Sequence) (Fastest)
+  result = Int64 8
+  decisions = 1
+@case ResolveAddress rec.p.address (Sequence) (Fastest)
+  result = Int64 0
+  decisions = 1
+@case Parse rec (Span) (Fastest) #4
+  result = StructValue {2}
+  result.p = Pointer address=8 depth=1 dereferenced=True null=False
+  result.p-> = UInt16 4660
+  result.tail = Byte 9
+  decisions = 1
+
+@test RecordSequences_ReadIdentically
+@case ParseMany rec (Memory) (Fastest)
+  record[0] = StructValue {4}
+  record[0].id = UInt16 7
+  record[0].value = Int32 -2
+  record[0].which = EnumValueResult kind name=large value=2 raw=2 storage=uint8 bits=8 signed=False
+  record[0].tag = String "ab\u0000\u0000"
+  record[1] = StructValue {4}
+  record[1].id = UInt16 8
+  record[1].value = Int32 1
+  record[1].which = EnumValueResult kind name=small value=1 raw=1 storage=uint8 bits=8 signed=False
+  record[1].tag = String "xyzw"
+  count = 2
+  decisions = 2
+@case ParseMany rec (Memory) (Fastest) #2
+  record[0] = StructValue {4}
+  record[0].id = UInt16 7
+  record[0].value = Int32 -2
+  record[0].which = EnumValueResult kind name=large value=2 raw=2 storage=uint8 bits=8 signed=False
+  record[0].tag = String "ab\u0000\u0000"
+  record[1] = StructValue {4}
+  record[1].id = UInt16 8
+  record[1].value = Int32 1
+  record[1].which = EnumValueResult kind name=small value=1 raw=1 storage=uint8 bits=8 signed=False
+  record[1].tag = String "xyzw"
+  count = 2
+  decisions = 2
+@case ParseMany rec (Memory) (Fastest) #3
+  record[0] = StructValue {2}
+  record[0].n = Byte 2
+  record[0].items = PrimitiveArray<Byte> [2]
+  record[0].items[0] = Byte 1
+  record[0].items[1] = Byte 2
+  record[1] = StructValue {2}
+  record[1].n = Byte 0
+  record[1].items = PrimitiveArray<Byte> [0]
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Not enough bytes: 3 elements of 1 bytes need 3, available 1 (field 'items' (uint8), in '[2].rec', offset 6)."
+  failure.code = ReadFailed
+  failure.member = "items"
+  failure.memberType = "uint8"
+  failure.path = "[2].rec"
+  failure.offset = 6
+  count = 2
+  decisions = 3
+@case ParseMany rec (Sequence) (Fastest)
+  record[0] = StructValue {4}
+  record[0].id = UInt16 7
+  record[0].value = Int32 -2
+  record[0].which = EnumValueResult kind name=large value=2 raw=2 storage=uint8 bits=8 signed=False
+  record[0].tag = String "ab\u0000\u0000"
+  record[1] = StructValue {4}
+  record[1].id = UInt16 8
+  record[1].value = Int32 1
+  record[1].which = EnumValueResult kind name=small value=1 raw=1 storage=uint8 bits=8 signed=False
+  record[1].tag = String "xyzw"
+  count = 2
+  decisions = 2
+@case ParseMany rec (Sequence) (Fastest) #2
+  record[0] = StructValue {4}
+  record[0].id = UInt16 7
+  record[0].value = Int32 -2
+  record[0].which = EnumValueResult kind name=large value=2 raw=2 storage=uint8 bits=8 signed=False
+  record[0].tag = String "ab\u0000\u0000"
+  record[1] = StructValue {4}
+  record[1].id = UInt16 8
+  record[1].value = Int32 1
+  record[1].which = EnumValueResult kind name=small value=1 raw=1 storage=uint8 bits=8 signed=False
+  record[1].tag = String "xyzw"
+  count = 2
+  decisions = 2
+@case ParseMany rec (Sequence) (Fastest) #3
+  record[0] = StructValue {2}
+  record[0].n = Byte 2
+  record[0].items = PrimitiveArray<Byte> [2]
+  record[0].items[0] = Byte 1
+  record[0].items[1] = Byte 2
+  record[1] = StructValue {2}
+  record[1].n = Byte 0
+  record[1].items = PrimitiveArray<Byte> [0]
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Not enough bytes: 3 elements of 1 bytes need 3, available 1 (field 'items' (uint8), in '[2].rec', offset 6)."
+  failure.code = ReadFailed
+  failure.member = "items"
+  failure.memberType = "uint8"
+  failure.path = "[2].rec"
+  failure.offset = 6
+  count = 2
+  decisions = 3
+@case ParseMany rec (Stream) (Fastest)
+  record[0] = StructValue {4}
+  record[0].id = UInt16 7
+  record[0].value = Int32 -2
+  record[0].which = EnumValueResult kind name=large value=2 raw=2 storage=uint8 bits=8 signed=False
+  record[0].tag = String "ab\u0000\u0000"
+  record[1] = StructValue {4}
+  record[1].id = UInt16 8
+  record[1].value = Int32 1
+  record[1].which = EnumValueResult kind name=small value=1 raw=1 storage=uint8 bits=8 signed=False
+  record[1].tag = String "xyzw"
+  count = 2
+  position = 22
+  decisions = 2
+@case ParseMany rec (Stream) (Fastest) #2
+  record[0] = StructValue {4}
+  record[0].id = UInt16 7
+  record[0].value = Int32 -2
+  record[0].which = EnumValueResult kind name=large value=2 raw=2 storage=uint8 bits=8 signed=False
+  record[0].tag = String "ab\u0000\u0000"
+  record[1] = StructValue {4}
+  record[1].id = UInt16 8
+  record[1].value = Int32 1
+  record[1].which = EnumValueResult kind name=small value=1 raw=1 storage=uint8 bits=8 signed=False
+  record[1].tag = String "xyzw"
+  count = 2
+  position = 22
+  decisions = 2
+@case ParseMany rec (Stream) (Fastest) #3
+  record[0] = StructValue {2}
+  record[0].n = Byte 2
+  record[0].items = PrimitiveArray<Byte> [2]
+  record[0].items[0] = Byte 1
+  record[0].items[1] = Byte 2
+  record[1] = StructValue {2}
+  record[1].n = Byte 0
+  record[1].items = PrimitiveArray<Byte> [0]
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Not enough bytes: 3 elements of 1 bytes need 3, available 1 (field 'items' (uint8), in '[2].rec', offset 6)."
+  failure.code = ReadFailed
+  failure.member = "items"
+  failure.memberType = "uint8"
+  failure.path = "[2].rec"
+  failure.offset = 6
+  count = 2
+  position = 6
+  decisions = 3
+
+@test TerminatedString_ReadsIdentically
+@case Parse rec (Span) (Fastest)
+  result = StructValue {2}
+  result.name = String "hi"
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (Span) (Fastest) #2
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Not enough bytes: the terminated string has no terminator before the end of the input (field 'name' (cstring), in 'rec', offset 2)."
+  failure.code = ReadFailed
+  failure.member = "name"
+  failure.memberType = "cstring"
+  failure.path = "rec"
+  failure.offset = 2
+  decisions = 1
+@case Parse rec (Span) (Fastest) #3
+  failure = failure CStructSharp.Diagnostics.CStructReadLimitException
+  failure.message = "String field exceeded the configured encoded-byte limit (field 'name' (cstring), in 'rec', offset 3)."
+  failure.code = ReadLimitExceeded
+  failure.member = "name"
+  failure.memberType = "cstring"
+  failure.path = "rec"
+  failure.offset = 3
+  decisions = 1
+@case GetArrayLength rec.name (Span) (Fastest)
+  result = Int32 2
+  decisions = 1
+@case ResolveAddress rec.tail (Span) (Fastest)
+  result = Int64 3
+  decisions = 1
+@case Parse rec (ByteArray) (Fastest)
+  result = StructValue {2}
+  result.name = String "hi"
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (ByteArray) (Fastest) #2
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Not enough bytes: the terminated string has no terminator before the end of the input (field 'name' (cstring), in 'rec', offset 2)."
+  failure.code = ReadFailed
+  failure.member = "name"
+  failure.memberType = "cstring"
+  failure.path = "rec"
+  failure.offset = 2
+  decisions = 1
+@case Parse rec (ByteArray) (Fastest) #3
+  failure = failure CStructSharp.Diagnostics.CStructReadLimitException
+  failure.message = "String field exceeded the configured encoded-byte limit (field 'name' (cstring), in 'rec', offset 3)."
+  failure.code = ReadLimitExceeded
+  failure.member = "name"
+  failure.memberType = "cstring"
+  failure.path = "rec"
+  failure.offset = 3
+  decisions = 1
+@case GetArrayLength rec.name (ByteArray) (Fastest)
+  result = Int32 2
+  decisions = 1
+@case ResolveAddress rec.tail (ByteArray) (Fastest)
+  result = Int64 3
+  decisions = 1
+@case Parse rec (Memory) (Fastest)
+  result = StructValue {2}
+  result.name = String "hi"
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (Memory) (Fastest) #2
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Not enough bytes: the terminated string has no terminator before the end of the input (field 'name' (cstring), in 'rec', offset 2)."
+  failure.code = ReadFailed
+  failure.member = "name"
+  failure.memberType = "cstring"
+  failure.path = "rec"
+  failure.offset = 2
+  decisions = 1
+@case Parse rec (Memory) (Fastest) #3
+  failure = failure CStructSharp.Diagnostics.CStructReadLimitException
+  failure.message = "String field exceeded the configured encoded-byte limit (field 'name' (cstring), in 'rec', offset 3)."
+  failure.code = ReadLimitExceeded
+  failure.member = "name"
+  failure.memberType = "cstring"
+  failure.path = "rec"
+  failure.offset = 3
+  decisions = 1
+@case GetArrayLength rec.name (Memory) (Fastest)
+  result = Int32 2
+  decisions = 1
+@case ResolveAddress rec.tail (Memory) (Fastest)
+  result = Int64 3
+  decisions = 1
+@case Parse rec (Stream) (Fastest)
+  result = StructValue {2}
+  result.name = String "hi"
+  result.tail = Byte 9
+  position = 4
+  decisions = 1
+@case Parse rec (Stream) (Fastest) #2
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Not enough bytes: the terminated string has no terminator before the end of the input (field 'name' (cstring), in 'rec', offset 2)."
+  failure.code = ReadFailed
+  failure.member = "name"
+  failure.memberType = "cstring"
+  failure.path = "rec"
+  failure.offset = 2
+  position = 2
+  decisions = 1
+@case Parse rec (Stream) (Fastest) #3
+  failure = failure CStructSharp.Diagnostics.CStructReadLimitException
+  failure.message = "String field exceeded the configured encoded-byte limit (field 'name' (cstring), in 'rec', offset 3)."
+  failure.code = ReadLimitExceeded
+  failure.member = "name"
+  failure.memberType = "cstring"
+  failure.path = "rec"
+  failure.offset = 3
+  position = 3
+  decisions = 1
+@case GetArrayLength rec.name (Stream) (Fastest)
+  result = Int32 2
+  position = 0
+  decisions = 1
+@case ResolveAddress rec.tail (Stream) (Fastest)
+  result = Int64 3
+  position = 0
+  decisions = 1
+@case Parse rec (Sequence) (Fastest)
+  result = StructValue {2}
+  result.name = String "hi"
+  result.tail = Byte 9
+  decisions = 1
+@case Parse rec (Sequence) (Fastest) #2
+  failure = failure CStructSharp.Diagnostics.CStructReadException
+  failure.message = "Not enough bytes: the terminated string has no terminator before the end of the input (field 'name' (cstring), in 'rec', offset 2)."
+  failure.code = ReadFailed
+  failure.member = "name"
+  failure.memberType = "cstring"
+  failure.path = "rec"
+  failure.offset = 2
+  decisions = 1
+@case Parse rec (Sequence) (Fastest) #3
+  failure = failure CStructSharp.Diagnostics.CStructReadLimitException
+  failure.message = "String field exceeded the configured encoded-byte limit (field 'name' (cstring), in 'rec', offset 3)."
+  failure.code = ReadLimitExceeded
+  failure.member = "name"
+  failure.memberType = "cstring"
+  failure.path = "rec"
+  failure.offset = 3
+  decisions = 1
+@case GetArrayLength rec.name (Sequence) (Fastest)
+  result = Int32 2
+  decisions = 1
+@case ResolveAddress rec.tail (Sequence) (Fastest)
+  result = Int64 3
+  decisions = 1
+
+@test Union_ReadsIdentically
+@case Parse rec (Span) (Fastest)
+  result = StructValue {2}
+  result.value = UnionValue "u" {2} selected=none raw=[2] 3412
+  result.value.a = Byte 52
+  result.value.b = UInt16 4660
+  result.tail = Byte 9
+  decisions = 1
+@case ReadValue rec.value (Span) (Fastest)
+  result = UnionValue "u" {2} selected=none raw=[2] 3412
+  result.a = Byte 52
+  result.b = UInt16 4660
+  decisions = 1
+@case ReadValue u (Span) (Fastest)
+  result = UnionValue "u" {2} selected=none raw=[2] 3412
+  result.a = Byte 52
+  result.b = UInt16 4660
+  decisions = 1
+@case Parse rec (ByteArray) (Fastest)
+  result = StructValue {2}
+  result.value = UnionValue "u" {2} selected=none raw=[2] 3412
+  result.value.a = Byte 52
+  result.value.b = UInt16 4660
+  result.tail = Byte 9
+  decisions = 1
+@case ReadValue rec.value (ByteArray) (Fastest)
+  result = UnionValue "u" {2} selected=none raw=[2] 3412
+  result.a = Byte 52
+  result.b = UInt16 4660
+  decisions = 1
+@case ReadValue u (ByteArray) (Fastest)
+  result = UnionValue "u" {2} selected=none raw=[2] 3412
+  result.a = Byte 52
+  result.b = UInt16 4660
+  decisions = 1
+@case Parse rec (Memory) (Fastest)
+  result = StructValue {2}
+  result.value = UnionValue "u" {2} selected=none raw=[2] 3412
+  result.value.a = Byte 52
+  result.value.b = UInt16 4660
+  result.tail = Byte 9
+  decisions = 1
+@case ReadValue rec.value (Memory) (Fastest)
+  result = UnionValue "u" {2} selected=none raw=[2] 3412
+  result.a = Byte 52
+  result.b = UInt16 4660
+  decisions = 1
+@case ReadValue u (Memory) (Fastest)
+  result = UnionValue "u" {2} selected=none raw=[2] 3412
+  result.a = Byte 52
+  result.b = UInt16 4660
+  decisions = 1
+@case Parse rec (Stream) (Fastest)
+  result = StructValue {2}
+  result.value = UnionValue "u" {2} selected=none raw=[2] 3412
+  result.value.a = Byte 52
+  result.value.b = UInt16 4660
+  result.tail = Byte 9
+  position = 3
+  decisions = 1
+@case ReadValue rec.value (Stream) (Fastest)
+  result = UnionValue "u" {2} selected=none raw=[2] 3412
+  result.a = Byte 52
+  result.b = UInt16 4660
+  position = 2
+  decisions = 1
+@case ReadValue u (Stream) (Fastest)
+  result = UnionValue "u" {2} selected=none raw=[2] 3412
+  result.a = Byte 52
+  result.b = UInt16 4660
+  position = 2
+  decisions = 1
+@case Parse rec (Sequence) (Fastest)
+  result = StructValue {2}
+  result.value = UnionValue "u" {2} selected=none raw=[2] 3412
+  result.value.a = Byte 52
+  result.value.b = UInt16 4660
+  result.tail = Byte 9
+  decisions = 1
+@case ReadValue rec.value (Sequence) (Fastest)
+  result = UnionValue "u" {2} selected=none raw=[2] 3412
+  result.a = Byte 52
+  result.b = UInt16 4660
+  decisions = 1
+@case ReadValue u (Sequence) (Fastest)
+  result = UnionValue "u" {2} selected=none raw=[2] 3412
+  result.a = Byte 52
+  result.b = UInt16 4660
+  decisions = 1
+@case ReadValue rec.value (Span) (Fastest) #2
+  result = UnionValue "u" {2} selected=none raw=[2] 3412
+  result.a = Byte 52
+  result.b = UInt16 4660
+  decisions = 1
+
+@test Updates_ChangeIdenticalBytes
+@hash f68ad6570bf51b64103c12673e9bd4fb10a73adafb5652e5775a9cc545ba10ff 39
+
+@test Writes_ProduceIdenticalBytes
+@hash 34bc835d78837ee42450f720e012d219d7e73c3ede51a80b633547e4cc179e06 94

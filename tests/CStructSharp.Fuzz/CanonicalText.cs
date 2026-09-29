@@ -77,7 +77,8 @@ internal sealed class CanonicalText
 
     /// <summary>
     ///     Appends a failure: its CLR type, message, and, for a library failure, error code, member, member type, path,
-    ///     and offset; argument names, layout positions, and inner failures follow.
+    ///     and offset; argument names, layout positions, and inner failures follow. A line break in a message is rendered
+    ///     as a line feed, since system messages break lines with the platform's newline.
     /// </summary>
     /// <param name="label">The failure's label.</param>
     /// <param name="failure">The failure.</param>
@@ -117,7 +118,11 @@ internal sealed class CanonicalText
         return quoted.Append('"').ToString();
     }
 
-    /// <summary>Renders a scalar as its type name and invariant text; floating-point values add their bit pattern.</summary>
+    /// <summary>
+    ///     Renders a scalar as its type name and invariant text; floating-point values add their bit pattern. A
+    ///     <see cref="Guid"/> is a scalar too, rendered in its hyphenated form, so its rendering does not depend on the
+    ///     public properties a runtime version gives it.
+    /// </summary>
     /// <param name="value">A non-null scalar.</param>
     /// <returns>The text, or <see langword="null"/> when the value is not a scalar.</returns>
     private static string? Scalar(object value)
@@ -131,6 +136,7 @@ internal sealed class CanonicalText
             double number => type + " " + number.ToString("R", CultureInfo.InvariantCulture) + " bits=" + BitConverter.DoubleToInt64Bits(number).ToString("X16", CultureInfo.InvariantCulture),
             float number => type + " " + number.ToString("R", CultureInfo.InvariantCulture) + " bits=" + BitConverter.SingleToInt32Bits(number).ToString("X8", CultureInfo.InvariantCulture),
             Half number => type + " " + number.ToString(CultureInfo.InvariantCulture) + " bits=" + BitConverter.HalfToInt16Bits(number).ToString("X4", CultureInfo.InvariantCulture),
+            Guid guid => type + " " + guid.ToString("D", CultureInfo.InvariantCulture),
             Enum member => type + " " + member + "(" + Convert.ToString(Convert.ChangeType(member, Enum.GetUnderlyingType(member.GetType()), CultureInfo.InvariantCulture), CultureInfo.InvariantCulture) + ")",
             BigInteger or Int128 or UInt128 or decimal => type + " " + ((IFormattable)value).ToString(null, CultureInfo.InvariantCulture),
             IFormattable formattable when value.GetType().IsPrimitive => type + " " + formattable.ToString(null, CultureInfo.InvariantCulture),
@@ -256,7 +262,7 @@ internal sealed class CanonicalText
     private void Failure(string label, Exception failure, int depth)
     {
         this.Line(label, "failure " + failure.GetType().FullName);
-        this.Line(label + ".message", Quote(failure.Message));
+        this.Line(label + ".message", Quote(failure.Message.Replace("\r\n", "\n", StringComparison.Ordinal)));
         if (failure is CStructException library)
         {
             this.Line(label + ".code", library.Code.ToString());

@@ -36,11 +36,11 @@ internal sealed record EngineCorpusCase(
     ///     Runs the case through the harness under <see cref="ExecutionPath.Fastest"/> and
     ///     <see cref="ExecutionPath.GeneralOnly"/>: the root is read from memory, a multi-segment sequence, and streams
     ///     (the sources must agree with each other), read as a value, debug-parsed, its update layout captured, and a few of
-    ///     its paths resolved;
-    ///     when the interpreter reads a value, that value is written back to a new array, a span of the input's
-    ///     length, a stream and a buffer writer with small windows, and each selected member's value is written on its own
-    ///     through its path to a stream and a new array; the root and every member a debug record or selected path names are
-    ///     updated in place with the value they hold, in a span and (for the selected paths) a stream.
+    ///     its paths resolved; when the reference implementation reads a value
+    ///     (<see cref="EngineSelections.Reference(ReadOptions?)"/>), that value is written back to a new array, a span of
+    ///     the input's length, a stream and a buffer writer with small windows, and each selected member's value is written
+    ///     on its own through its path to a stream and a new array; the root and every member a debug record or selected path
+    ///     names are updated in place with the value they hold, in a span and (for the selected paths) a stream.
     /// </summary>
     /// <returns>Whether the layout compiled and had a composite to read.</returns>
     public bool Run()
@@ -68,7 +68,7 @@ internal sealed record EngineCorpusCase(
         bool union = declaration?.Kind == LayoutDeclarationKind.Union;
         ReadOptions read = this.Read ?? new ReadOptions();
         bool detailed = this.Data.Length <= DetailedInputLimit;
-        object? value = Attempt(() => layout.ReadValue(this.Data, root, this.Variables, EngineSelections.InterpreterOnly(read)));
+        object? value = Attempt(() => layout.ReadValue(this.Data, root, this.Variables, EngineSelections.Reference(read)));
         string[] addresses = [.. this.DebugPaths(layout, root, read), .. this.Paths ?? []];
         EngineInput[] sources = detailed
                                     ? [EngineInput.Span, EngineInput.Sequence, EngineInput.Stream, EngineInput.ChunkedStream1, EngineInput.ChunkedStream7]
@@ -119,7 +119,7 @@ internal sealed record EngineCorpusCase(
                 // Each selected member written on its own from the value the read selects there.
                 foreach (string selected in this.Paths ?? [])
                 {
-                    if (Attempt(() => layout.ReadValue(this.Data, selected, this.Variables, EngineSelections.InterpreterOnly(read))) is { } member)
+                    if (Attempt(() => layout.ReadValue(this.Data, selected, this.Variables, EngineSelections.Reference(read))) is { } member)
                     {
                         Same(EngineOperations.Write(layout, [0xAA, 0xAA], 1, selected, member, this.Variables, this.Write), path);
                         Same(EngineOperations.Serialize(layout, selected, member, this.Variables, this.Write), path);
@@ -133,7 +133,7 @@ internal sealed record EngineCorpusCase(
                     Same(EngineOperations.Update(layout, this.Data, EngineInput.Span, root, value, this.Variables), path);
                     foreach (string address in addresses)
                     {
-                        if (Attempt(() => layout.ReadValue(this.Data, address, this.Variables, EngineSelections.InterpreterOnly(read))) is { } member)
+                        if (Attempt(() => layout.ReadValue(this.Data, address, this.Variables, EngineSelections.Reference(read))) is { } member)
                         {
                             Same(EngineOperations.Update(layout, this.Data, EngineInput.Span, address, member, this.Variables), path);
                         }
@@ -151,7 +151,7 @@ internal sealed record EngineCorpusCase(
     ///     path, the root written to every destination, and each path written and updated with the value it holds. Nothing
     ///     may be declined for the operation's kind, source, destination, options or variables - a root spelled at run time
     ///     whose count names a caller-only variable included - and every root reads and writes on the engine; only a path
-    ///     that selects nothing it can write or names no root is declined, which the interpreter then rejects as well.
+    ///     that selects nothing it can write or names no root is declined, which the public operation then rejects as well.
     /// </summary>
     /// <returns>The number of operations run, 0 when the layout does not compile or has nothing to read.</returns>
     /// <exception cref="AssertFailedException">The engine declined an operation it must run.</exception>
@@ -191,7 +191,7 @@ internal sealed record EngineCorpusCase(
         IReadOnlyDictionary<string, int>? variables = this.Variables;
         int ran = 0;
 
-        // Runs one operation with the engine required; a decline must be for a path the interpreter rejects too.
+        // Runs one operation with the engine required; a decline must be for a path the public operation rejects too.
         void Required(string label, Action<EngineSelection> operation)
         {
             ran++;
@@ -204,17 +204,17 @@ internal sealed record EngineCorpusCase(
                 bool invalidPath = declined.Message.Contains(Compilation.Programs.WriteProgramCompiler.UnresolvedPath, StringComparison.Ordinal) ||
                                    declined.Message.Contains(": the layout declares no such root", StringComparison.Ordinal);
                 Assert.IsTrue(invalidPath, this.Id + " " + label + ": " + declined.Message);
-                OperationOutcome interpreted = OperationOutcome.Of(
+                OperationOutcome selected = OperationOutcome.Of(
                     () =>
                     {
-                        operation(EngineSelection.InterpreterOnly);
+                        operation(EngineSelection.Automatic);
                         return null;
                     });
-                Assert.IsInstanceOfType<CStructException>(interpreted.Failure, this.Id + " " + label + ": the interpreter accepts the path the engine declined");
+                Assert.IsInstanceOfType<CStructException>(selected.Failure, this.Id + " " + label + ": the public operation accepts the path the engine declined");
             }
             catch (Exception exception) when (exception is not UnitTestAssertException)
             {
-                // The operation fails as it fails on the interpreter; only a decline matters here.
+                // The operation fails as the golden outcomes of the differential runs record; only a decline matters here.
             }
         }
 
@@ -250,7 +250,7 @@ internal sealed record EngineCorpusCase(
             Required("Update " + spelled, selection => layout.Update((byte[])data.Clone(), spelled, elements, callerOnly, EngineSelections.With(selection, new UpdateOptions())));
         }
 
-        object? value = Attempt(() => layout.ReadValue(data, root, variables, EngineSelections.InterpreterOnly(read)));
+        object? value = Attempt(() => layout.ReadValue(data, root, variables, EngineSelections.Reference(read)));
         if (value is null)
         {
             return ran;
@@ -268,7 +268,7 @@ internal sealed record EngineCorpusCase(
         Required("UpdateAsync", selection => layout.UpdateAsync(new MemoryStream((byte[])data.Clone()), root, value, variables, EngineSelections.With(selection, new UpdateOptions())).AsTask().GetAwaiter().GetResult());
         foreach (string address in addresses)
         {
-            if (Attempt(() => layout.ReadValue(data, address, variables, EngineSelections.InterpreterOnly(read))) is not { } member)
+            if (Attempt(() => layout.ReadValue(data, address, variables, EngineSelections.Reference(read))) is not { } member)
             {
                 continue;
             }
@@ -311,8 +311,8 @@ internal sealed record EngineCorpusCase(
     }
 
     /// <summary>
-    ///     The paths of the first, middle, and last debug records of the interpreter's debug parse of the root, which
-    ///     the run resolves as addresses; none when that parse fails.
+    ///     The paths of the first, middle, and last debug records of the reference implementation's debug parse of the
+    ///     root, which the run resolves as addresses; none when that parse fails.
     /// </summary>
     /// <param name="layout">The compiled layout.</param>
     /// <param name="root">The root to parse.</param>
@@ -325,7 +325,7 @@ internal sealed record EngineCorpusCase(
             return [];
         }
 
-        var records = Attempt(() => layout.ReadValueWithDebug(this.Data, root, this.Variables, EngineSelections.InterpreterOnly(read))) as ReadResult;
+        var records = Attempt(() => layout.ReadValueWithDebug(this.Data, root, this.Variables, EngineSelections.Reference(read))) as ReadResult;
         if (records is null || records.Debug.Count == 0)
         {
             return [];

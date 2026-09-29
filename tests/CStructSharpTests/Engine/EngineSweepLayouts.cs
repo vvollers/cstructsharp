@@ -360,10 +360,24 @@ internal static class EngineSweepLayouts
     public static Variant Get(string name, bool aligned)
         => Variants.GetOrAdd((name, aligned), key => new Variant(All.Single(layout => layout.Name == key.Name), key.Aligned));
 
-    /// <summary>Returns both variants of the named layout: packed, then aligned.</summary>
+    /// <summary>
+    ///     Returns both variants of the named layout: packed, then aligned. While the caller works on a variant, the
+    ///     running test is inside a golden part named after it (<see cref="EngineGolden.Part"/>), so the golden outcomes
+    ///     are keyed and grouped per variant.
+    /// </summary>
     /// <param name="name">A layout name from <see cref="All"/>.</param>
     /// <returns>The variants.</returns>
-    public static Variant[] Both(string name) => [Get(name, false), Get(name, true)];
+    public static IEnumerable<Variant> Both(string name)
+    {
+        foreach (bool aligned in (bool[])[false, true])
+        {
+            Variant variant = Get(name, aligned);
+            using (EngineGolden.Part(variant.Name))
+            {
+                yield return variant;
+            }
+        }
+    }
 
     /// <summary>
     ///     One sweep layout: its definition, its packed input bytes, the paths the sweeps select, and the updates
@@ -401,7 +415,8 @@ internal static class EngineSweepLayouts
 
     /// <summary>
     ///     A sweep layout compiled packed or aligned, with its input bytes for that placement and the value the
-    ///     interpreter reads from them, which the write sweeps encode.
+    ///     reference implementation reads from them (<see cref="EngineSelections.Reference(ReadOptions?)"/>), which the
+    ///     write sweeps encode.
     /// </summary>
     internal sealed class Variant
     {
@@ -419,18 +434,18 @@ internal static class EngineSweepLayouts
             if (aligned)
             {
                 CStruct packed = Compile(layout, false);
-                StructValue value = packed.Parse(layout.Data.AsSpan(), "rec", layout.Variables, EngineSelections.InterpreterOnly(this.BaseRead()));
+                StructValue value = packed.Parse(layout.Data.AsSpan(), "rec", layout.Variables, EngineSelections.Reference(this.BaseRead()));
 
                 // A pointer's target is not part of the written value, so the pointer layout (all one-byte members,
                 // placed identically either way) keeps its packed bytes.
-                this.Data = layout.HasPointers ? layout.Data : this.Layout.Serialize("rec", value, layout.Variables, EngineSelections.InterpreterOnly(new WriteOptions()));
+                this.Data = layout.HasPointers ? layout.Data : this.Layout.Serialize("rec", value, layout.Variables, EngineSelections.Reference(new WriteOptions()));
             }
             else
             {
                 this.Data = layout.Data;
             }
 
-            this.Value = this.Layout.Parse(this.Data.AsSpan(), "rec", layout.Variables, EngineSelections.InterpreterOnly(this.BaseRead()));
+            this.Value = this.Layout.Parse(this.Data.AsSpan(), "rec", layout.Variables, EngineSelections.Reference(this.BaseRead()));
         }
 
         /// <summary>Gets the sweep layout.</summary>
@@ -445,7 +460,7 @@ internal static class EngineSweepLayouts
         /// <summary>Gets the complete input for this placement.</summary>
         public byte[] Data { get; }
 
-        /// <summary>Gets the value the interpreter reads from <see cref="Data"/>.</summary>
+        /// <summary>Gets the value the reference implementation reads from <see cref="Data"/>.</summary>
         public StructValue Value { get; }
 
         /// <summary>Gets the variant's name for failure messages, such as <c>count/aligned</c>.</summary>

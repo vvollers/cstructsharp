@@ -1,8 +1,8 @@
 namespace CStructSharp.Tests;
 
 /// <summary>
-///     Holds the compiled engine's path resolution (<c>TargetResolver</c>) to the interpreter's through the differential
-///     harness, path by path: every member kind the resolver walks past (read to measure it, or skipped by its size),
+///     Holds the compiled engine's path resolution (<c>TargetResolver</c>) to the interpreter's golden outcomes through
+///     the differential harness, path by path: every member kind the resolver walks past (read to measure it, or skipped by its size),
 ///     pointer accessors with their checks and limits, selected bitfields in their placed units, conditional members,
 ///     nested parses and their debug records, and the failures of paths that select nothing. Each case must run on the
 ///     engine, and each is also truncated at every length and read under every byte budget.

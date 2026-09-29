@@ -150,6 +150,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Fixed
 
+- On .NET 8, a layout expression that divides a value of 64 bits or more by zero fails with `DivideByZeroException`
+  (reported as the usual expression failure), as on .NET 10; it threw an index or argument exception.
 - In aligned layouts, `Serialize`, `Write` and `WriteAsync` place an unsized wide-character array (`wchar name[]`) at its
   element's alignment, where `Parse` reads it. The writer placed it unaligned after an odd-length member, so the
   written bytes did not read back, and an `@N` assertion the layout accepted failed when writing.
@@ -260,6 +262,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Documentation and tooling
 
+- Tests: the engine's differential tests compare against recorded golden outcomes (`tests/CStructSharpTests/Engine/Golden/`)
+  instead of running a second implementation; `node tools/quality/engine-golden.mjs record` regenerates them for an
+  intended, explained behaviour change, and `CONTRIBUTING.md` states when that is allowed.
 - Tests: independent references for the general path. Every benchmark fixture is checked against its recorded
   hash, length and value by an MSTest and by `FixtureTool verify` (one shared implementation); the fuzz replay digest
   hashes each outcome (the value, or the failure's type, message, code, path and offset), not only success or

@@ -65,6 +65,7 @@ public class ExpressionDifferentialTests
             string key = string.Join("\n", compilation.Source, options.MaxExpressionNestingDepth, options.MaxExpressionTokens, options.CLongWidth, options.DefaultEnumStorage, variables);
             if (seen.Add(key))
             {
+                using IDisposable part = EngineGolden.Part(item.Id);
                 counts.Add(ExpressionDifferential.Run(item.Id, compilation, item.Variables));
             }
         }

@@ -10,8 +10,8 @@ using Variant = EngineSweepLayouts.Variant;
 ///     aligned, under <see cref="ExecutionPath.Fastest"/> and <see cref="ExecutionPath.GeneralOnly"/> (the path the
 ///     compiled engine replaces): every truncation of the input, every byte budget up to the operation's natural total,
 ///     every other limit around the value the input needs, the read options that change decoding, caller variables,
-///     every input source, and every destination. Each comparison runs the interpreter against automatic engine
-///     selection; the sources must also agree with each other, which checks the interpreter against itself.
+///     every input source, and every destination. Each comparison checks automatic engine selection against the golden
+///     outcomes (<see cref="EngineGolden"/>), hashed per layout variant; the sources must also agree with each other.
 /// </summary>
 /// <remarks>
 ///     Every sweep is exhaustive over its range (no sampling). The ranges are small because the inputs are: an element,
@@ -94,8 +94,8 @@ public class EngineSweepTests
             SweepLayout source = variant.Source;
             byte[] data = variant.Data;
             IReadOnlyDictionary<string, int>? variables = source.Variables;
-            int readTotal = Smallest(budget => Succeeds(() => variant.Layout.Parse(data.AsSpan(), "rec", variables, Interpreter(variant.BaseRead() with { MaxTotalBytesRead = budget, }))), (16 * data.Length) + 64);
-            int writeTotal = Smallest(budget => Succeeds(() => variant.Layout.Serialize("rec", variant.Value, variables, Interpreter(new WriteOptions { MaxTotalBytesWritten = budget, }))), (16 * data.Length) + 64);
+            int readTotal = Smallest(budget => Succeeds(() => variant.Layout.Parse(data.AsSpan(), "rec", variables, EngineSelections.Reference(variant.BaseRead() with { MaxTotalBytesRead = budget, }))), (16 * data.Length) + 64);
+            int writeTotal = Smallest(budget => Succeeds(() => variant.Layout.Serialize("rec", variant.Value, variables, EngineSelections.Reference(new WriteOptions { MaxTotalBytesWritten = budget, }))), (16 * data.Length) + 64);
             foreach (ExecutionPath path in SweepPaths)
             {
                 for (long budget = 1; budget <= readTotal + 1; budget++)
@@ -269,6 +269,7 @@ public class EngineSweepTests
 
         foreach ((string name, CStruct layout, object value, int length) in cases)
         {
+            using IDisposable part = EngineGolden.Part(name);
             var operations = new List<DifferentialOperation>
             {
                 EngineOperations.Serialize(layout, "rec", value, null, reject),
@@ -582,16 +583,6 @@ public class EngineSweepTests
         value = current;
         return true;
     }
-
-    /// <summary>Returns <paramref name="options"/> restricted to the interpreter, for computing a sweep's range.</summary>
-    /// <param name="options">The read options.</param>
-    /// <returns>The restricted options.</returns>
-    private static ReadOptions Interpreter(ReadOptions options) => EngineSelections.InterpreterOnly(options);
-
-    /// <summary>Returns <paramref name="options"/> restricted to the interpreter, for computing a sweep's range.</summary>
-    /// <param name="options">The write options.</param>
-    /// <returns>The restricted options.</returns>
-    private static WriteOptions Interpreter(WriteOptions options) => EngineSelections.InterpreterOnly(options);
 
     /// <summary>Returns whether <paramref name="call"/> completes without throwing.</summary>
     /// <param name="call">The call.</param>

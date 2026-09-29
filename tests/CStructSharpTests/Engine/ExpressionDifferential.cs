@@ -14,7 +14,9 @@ using CStructSharp.Syntax;
 ///     with the dictionary model (<see cref="LayoutVariableResolver"/> and <see cref="LayoutExpressionEvaluator"/>) over
 ///     every expression of a compiled layout: the initial states must stand for the same dictionary, and every
 ///     evaluation must give the same value or the same failure (type, message, <see cref="CStructException"/> fields and
-///     inner exception).
+///     inner exception). The dictionary model's outcomes are the golden reference (<see cref="EngineGolden"/>): a
+///     recording run compares both models and records them, and an ordinary run checks the slot model against the
+///     recorded outcomes; a comparing run (<see cref="EngineGolden.ComparesInterpreter"/>) does both.
 /// </summary>
 internal static class ExpressionDifferential
 {
@@ -61,7 +63,11 @@ internal static class ExpressionDifferential
     {
         SlotTable table = compilation.SlotTable;
         var counts = new ExpressionDifferentialCounts { Layouts = 1, };
-        List<Expr> expressions = CollectExpressions(compilation);
+
+        // The compiled model's dictionaries enumerate in an order that varies between runs (reference and randomized
+        // string hashes), so the expressions are compared in the order of their invariant text; the golden outcomes of
+        // the layout are hashed in that order.
+        List<Expr> expressions = [.. EngineGolden.Invariant(() => CollectExpressions(compilation).OrderBy(expression => expression.ToString(), StringComparer.Ordinal).ToList())];
         foreach (Expr expression in expressions)
         {
             ProgramExpression program = table.Compile(expression);
@@ -135,18 +141,40 @@ internal static class ExpressionDifferential
     }
 
     /// <summary>
-    ///     Creates both models' state for one scenario, compares the states, applies the captures to both, and compares
-    ///     the evaluations of <paramref name="expression"/> (128-bit and <c>int</c> consumers) in each domain.
+    ///     Creates the slot model's state for one scenario, applies the captures, evaluates <paramref name="expression"/>
+    ///     (128-bit and <c>int</c> consumers) in each domain, and checks the creation, the initial state and the
+    ///     evaluations against the golden reference under <paramref name="label"/>. When the run compares with the
+    ///     interpreter (<see cref="EngineGolden.ComparesInterpreter"/>), the dictionary model runs beside it: its state and
+    ///     every evaluation must be the same.
     /// </summary>
-    /// <param name="label">The scenario's name in failure messages.</param>
+    /// <param name="label">The scenario's name in failure messages, and its golden key.</param>
     /// <param name="compilation">The compiled layout.</param>
     /// <param name="expression">The expression.</param>
     /// <param name="input">The caller variables.</param>
     /// <param name="captures">The values captured after creation (<see langword="null"/> removes the name), or <see langword="null"/>.</param>
     /// <param name="domains">The domains to evaluate in.</param>
     /// <param name="counts">The counters to add to.</param>
-    /// <returns>The outcome of the first domain's 128-bit evaluation, or of the creation when both failed.</returns>
+    /// <returns>The outcome of the first domain's 128-bit evaluation, or of the creation when it failed.</returns>
     public static string Compare(
+        string label,
+        LayoutCompilation compilation,
+        Expr expression,
+        LayoutVariableInput input,
+        (string Name, Expr? Value)[]? captures,
+        ExpressionFailureDomain[] domains,
+        ExpressionDifferentialCounts counts)
+        => EngineGolden.Invariant(() => CompareInvariantly(label, compilation, expression, input, captures, domains, counts));
+
+    /// <summary>The body of <see cref="Compare"/>, run under the invariant culture.</summary>
+    /// <param name="label">The scenario's name in failure messages, and its golden key.</param>
+    /// <param name="compilation">The compiled layout.</param>
+    /// <param name="expression">The expression.</param>
+    /// <param name="input">The caller variables.</param>
+    /// <param name="captures">The values captured after creation, or <see langword="null"/>.</param>
+    /// <param name="domains">The domains to evaluate in.</param>
+    /// <param name="counts">The counters to add to.</param>
+    /// <returns>The outcome of the first domain's 128-bit evaluation, or of the creation when it failed.</returns>
+    private static string CompareInvariantly(
         string label,
         LayoutCompilation compilation,
         Expr expression,
@@ -157,7 +185,7 @@ internal static class ExpressionDifferential
     {
         SlotTable table = compilation.SlotTable;
         Dictionary<string, Expr>? dictionary = null;
-        string expectedCreation = Outcome(() => dictionary = input.Resolve(compilation.LayoutVariableResolver));
+        string? expectedCreation = EngineGolden.ComparesInterpreter ? Outcome(() => dictionary = input.Resolve(compilation.LayoutVariableResolver)) : null;
         VariableSlots slots = default;
         bool created = false;
         string actualCreation = Outcome(() =>
@@ -168,26 +196,48 @@ internal static class ExpressionDifferential
         });
         try
         {
-            Assert.AreEqual(dictionary is null, !created, label + ": creation " + expectedCreation + " vs " + actualCreation);
-            if (dictionary is null)
+            if (expectedCreation is not null)
             {
-                Assert.AreEqual(expectedCreation, actualCreation, label + ": creation failure");
+                Assert.AreEqual(dictionary is null, !created, label + ": creation " + expectedCreation + " vs " + actualCreation);
+                if (dictionary is null)
+                {
+                    Assert.AreEqual(expectedCreation, actualCreation, label + ": creation failure");
+                }
+            }
+
+            if (!created)
+            {
                 counts.Evaluations++;
+                EngineGolden.Check(label, "creation = " + actualCreation);
                 return actualCreation;
             }
 
-            AssertSameState(label, table, dictionary, slots);
+            if (dictionary is not null)
+            {
+                AssertSameState(label, table, dictionary, slots);
+            }
+
+            var outcome = new StringBuilder("state =");
+            foreach ((string name, Expr value) in slots.ToDictionary().OrderBy(pair => pair.Key, StringComparer.Ordinal))
+            {
+                outcome.Append(' ').Append(name).Append(": ").Append(value.GetType().Name).Append(' ').Append(value).Append(';');
+            }
+
             foreach ((string name, Expr? value) in captures ?? [])
             {
                 Assert.IsTrue(table.TryGetSlot(name, out int slot), label + ": " + name + " has no slot");
                 if (value is null)
                 {
-                    dictionary.Remove(name);
+                    _ = dictionary?.Remove(name);
                     slots.Set(slot, SlotValue.Undefined);
                 }
                 else
                 {
-                    dictionary[name] = value;
+                    if (dictionary is not null)
+                    {
+                        dictionary[name] = value;
+                    }
+
                     slots.Set(slot, table.ToSlotValue(value));
                 }
             }
@@ -198,17 +248,21 @@ internal static class ExpressionDifferential
             foreach (ExpressionFailureDomain domain in domains)
             {
                 VariableSlots current = slots;
-                string expected = Outcome(() => evaluator.Evaluate(expression, dictionary, Context, domain));
                 string actual = Outcome(() => current.Evaluate(program, Context, domain));
-                Assert.AreEqual(expected, actual, label + " (" + domain + ")");
+                string actualInt = Outcome(() => current.EvaluateInt32(program, Context, domain));
+                if (dictionary is not null)
+                {
+                    Assert.AreEqual(Outcome(() => evaluator.Evaluate(expression, dictionary, Context, domain)), actual, label + " (" + domain + ")");
+                    Assert.AreEqual(Outcome(() => evaluator.EvaluateInt32(expression, dictionary, Context, domain)), actualInt, label + " (" + domain + ", int)");
+                }
+
+                outcome.Append('\n').Append(domain).Append(" = ").Append(actual).Append('\n').Append(domain).Append(" int = ").Append(actualInt);
                 first ??= actual;
-                expected = Outcome(() => evaluator.EvaluateInt32(expression, dictionary, Context, domain));
-                actual = Outcome(() => current.EvaluateInt32(program, Context, domain));
-                Assert.AreEqual(expected, actual, label + " (" + domain + ", int)");
                 counts.Evaluations += 2;
-                counts.Failures += expected.StartsWith("value ", StringComparison.Ordinal) ? 0 : 1;
+                counts.Failures += actualInt.StartsWith("value ", StringComparison.Ordinal) ? 0 : 1;
             }
 
+            EngineGolden.Check(label, outcome.ToString());
             return first!;
         }
         finally
