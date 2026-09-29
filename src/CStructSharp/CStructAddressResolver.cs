@@ -943,7 +943,7 @@ public sealed partial class CStruct
         {
             value = this.ReadPointerAddress(state);
         }
-        else if (compiledField.Enum is { } enm)
+        else if (compiledField.Enum is { } enm && compiledField.BitSize == 0)
         {
             value = this.codecs.ReaderOf(compiledField)?.Invoke(state.Stream) ??
                     throw new InvalidOperationException(
@@ -978,8 +978,8 @@ public sealed partial class CStruct
 
         if (compiledField.BitSize > 0)
         {
-            int unitBits = checked(unitSize * 8);
-            value = BitfieldCodecTable.ExtractBitfieldValue(value, BitfieldCodecTable.EffectiveShift(bitOffset, compiledField.BitSize, unitBits, this.highBitFirst), compiledField.BitSize);
+            // The field's own bits (an enum bitfield's enum value), decoded exactly as the reader decodes them.
+            value = this.DecodeBitfield(compiledField, value, bitOffset, checked(unitSize * 8));
         }
 
         // A parsed scalar shadows any caller/define value with the same spelling. Keeping the older value would

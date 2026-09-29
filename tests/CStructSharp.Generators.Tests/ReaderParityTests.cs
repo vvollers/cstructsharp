@@ -206,6 +206,21 @@ public class ReaderParityTests
     }
 
     /// <summary>
+    ///     An enum or flag bitfield that sizes a later array counts with its own bits in both readers, whichever bits of
+    ///     its storage unit it occupies.
+    /// </summary>
+    [TestMethod]
+    public void EnumBitfieldCounts_MatchTheRuntime()
+    {
+        const string Root = "Root = \"r\", PointerSize = 1, Aligned = false, LittleEndian = true";
+        var none = new Dictionary<string, int>();
+        RunParity("enum-bitfield-high", "enum kind : uint8 { A = 1, B = 2 }; struct r { uint8 lo : 4; kind k : 4; uint8 items[k]; uint8 tail; };", Root, "r", [0x21, 7, 8, 9,], none, null, null);
+        RunParity("enum-bitfield-low", "enum kind : uint8 { A = 1, B = 2 }; struct r { kind k : 4; uint8 hi : 4; uint8 items[k]; uint8 tail; };", Root, "r", [0x52, 7, 8, 9,], none, null, null);
+        RunParity("enum-bitfield-wide", "enum kind : uint16 { A = 1, B = 2 }; struct r { uint8 lo : 4; kind k : 4; uint8 items[k]; uint8 tail; };", Root, "r", [0x21, 7, 8, 9,], none, null, null);
+        RunParity("flag-bitfield", "flag perms : uint8 { X = 1, Y = 2 }; struct r { uint8 lo : 4; perms k : 4; uint8 items[k]; uint8 tail; };", Root, "r", [0x31, 7, 8, 9, 10,], none, null, null);
+    }
+
+    /// <summary>
     ///     An anonymous promoted struct or union adds no nesting level: with <c>MaxNestingDepth</c> at the two levels
     ///     of <c>root</c> and <c>leaf</c> both readers succeed, and one level fewer fails with the runtime's message.
     /// </summary>

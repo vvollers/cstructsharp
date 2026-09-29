@@ -7,9 +7,10 @@ using CStructSharp.Values;
 ///     The representative layouts the differential sweeps (<see cref="EngineSweepTests"/>) run over: one per shape the
 ///     general reader and writer handle differently - a fixed record, a count-sized array, a conditional, nested
 ///     structs, an inline named struct that a qualified reference (<c>hdr.n</c>) names, anonymous promoted members
-///     (which add no nesting level), a union, bitfields, pointers (followed after the struct, one with an
-///     <c>@count</c> target), terminated strings and arrays, a to-end array, a custom codec, LEB128, fixed text, and
-///     caller variables in 128-bit expressions. Each is compiled packed and aligned (<see cref="Variant"/>).
+///     (which add no nesting level), a union, bitfields, an enum bitfield that sizes a later array, pointers (followed
+///     after the struct, one with an <c>@count</c> target), terminated strings and arrays, a to-end array, a custom
+///     codec, LEB128, fixed text, and caller variables in 128-bit expressions. Each is compiled packed and aligned
+///     (<see cref="Variant"/>).
 /// </summary>
 internal static class EngineSweepLayouts
 {
@@ -82,6 +83,13 @@ internal static class EngineSweepLayouts
             ["rec.high", "rec.top", "rec.tail"],
             null,
             [("rec.high", 7), ("rec.mid", 3)]),
+        new(
+            "enum-bitfield",
+            "enum kind : uint8 { A = 1, B = 2 }; struct rec { uint8 lo : 4; kind k : 4; uint16 items[k]; uint8 tail; };",
+            [0x21, 0x01, 0x00, 0x02, 0x00, 0x09],
+            ["rec.items[1]", "rec.k", "rec.tail"],
+            "rec.items",
+            [("rec.items[1]", (ushort)7), ("rec.tail", (byte)3)]),
         new(
             "pointers",
             "struct node { uint8 v; uint8 w; }; struct rec { uint8 tag; node *p; uint8 *q @count(n); uint8 n; uint8 tail; };",

@@ -1,5 +1,7 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 using SweepLayout = EngineSweepLayouts.SweepLayout;
 using Variant = EngineSweepLayouts.Variant;
 
@@ -177,6 +179,52 @@ public class EngineSweepTests
                     Compare(baseRead with { MaxNestingDepth = depth, }, new WriteOptions { MaxNestingDepth = depth, }, new UpdateOptions { MaxTraversalNestingDepth = depth, });
                     Compare(baseRead with { MaxPointerDepth = depth, }, null, new UpdateOptions { MaxTraversalPointerDepth = depth, });
                     Compare(baseRead, null, new UpdateOptions { MaxNestingDepth = depth, });
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    ///     A selected read of every sweep path returns the value the parse holds at that path, and the length of the
+    ///     sweep's array is the element count the parse read, on the fast and general paths. The selected operations
+    ///     measure the fields before their target through the address resolver, so this checks the resolver's captures
+    ///     against the reader's, which the implementation comparisons cannot: both sides share the resolver. A path the
+    ///     parse has no value at (an inactive branch) and a path no selected read accepts (the target of an
+    ///     <c>@count</c> pointer) are skipped.
+    /// </summary>
+    /// <param name="name">The sweep layout.</param>
+    [TestMethod]
+    [DynamicData(nameof(Layouts))]
+    public void SelectedReads_MatchTheParse(string name)
+    {
+        foreach (Variant variant in EngineSweepLayouts.Both(name))
+        {
+            SweepLayout source = variant.Source;
+            foreach (ExecutionPath path in SweepPaths)
+            {
+                ReadOptions read = variant.BaseRead() with { ExecutionPath = path, };
+                foreach (string selected in source.Paths)
+                {
+                    if (!TrySelect(variant.Value, selected, out object? expected))
+                    {
+                        continue;
+                    }
+
+                    OperationOutcome actual = OperationOutcome.Of(() => variant.Layout.ReadValue(variant.Data.AsSpan(), selected, source.Variables, read));
+                    if (actual.Failure is CStructPathException)
+                    {
+                        continue;
+                    }
+
+                    Assert.IsNull(actual.Failure, variant.Name + " " + selected + " (" + path + "): " + actual.Failure?.Message);
+                    Assert.AreEqual(OperationOutcome.Render(expected), OperationOutcome.Render(actual.Result), variant.Name + " " + selected + " (" + path + ")");
+                }
+
+                if (source.ArrayPath is not null)
+                {
+                    Assert.IsTrue(TrySelect(variant.Value, source.ArrayPath, out object? array), variant.Name + " " + source.ArrayPath);
+                    var elements = (System.Collections.IEnumerable)array!;
+                    Assert.AreEqual(elements.Cast<object?>().Count(), variant.Layout.GetArrayLength(variant.Data.AsSpan(), source.ArrayPath, source.Variables, read), variant.Name + " length (" + path + ")");
                 }
             }
         }
@@ -415,6 +463,51 @@ public class EngineSweepTests
     /// <param name="path">The execution path both sides use.</param>
     /// <returns>The shared rendering.</returns>
     private static string Same(DifferentialOperation operation, ExecutionPath path) => EngineDifferential.AssertSame(operation, expectEngine: null, path: path).Rendering;
+
+    /// <summary>
+    ///     Finds the value at a sweep path (<c>rec.items[1].b</c>, <c>rec.p.value</c>) in a parsed value: struct and union
+    ///     members by name, array elements by index, and a pointer's <c>value</c> and <c>address</c> accessors.
+    /// </summary>
+    /// <param name="root">The parsed root value.</param>
+    /// <param name="path">The path, starting with the root's name.</param>
+    /// <param name="value">The value at the path.</param>
+    /// <returns>Whether the parsed value has the path; a member of an inactive branch is absent.</returns>
+    private static bool TrySelect(StructValue root, string path, out object? value)
+    {
+        object? current = root;
+        value = null;
+        foreach (string segment in path.Split('.').Skip(1))
+        {
+            int bracket = segment.IndexOf('[', StringComparison.Ordinal);
+            string member = bracket < 0 ? segment : segment[..bracket];
+            switch (current)
+            {
+            case Pointer pointer when member == "value":
+                current = pointer.Value;
+                break;
+            case Pointer pointer when member == "address":
+                current = pointer.Address;
+                break;
+            case UnionValue union when union.Members.TryGetValue(member, out object? view):
+                current = view;
+                break;
+            case StructValue parent when parent.TryGetValue(member, out object? child):
+                current = child;
+                break;
+            default:
+                return false;
+            }
+
+            if (bracket >= 0)
+            {
+                int index = int.Parse(segment[(bracket + 1)..^1], System.Globalization.CultureInfo.InvariantCulture);
+                current = ((System.Collections.IEnumerable)current!).Cast<object?>().ElementAt(index);
+            }
+        }
+
+        value = current;
+        return true;
+    }
 
     /// <summary>Returns <paramref name="options"/> restricted to the interpreter, for computing a sweep's range.</summary>
     /// <param name="options">The read options.</param>

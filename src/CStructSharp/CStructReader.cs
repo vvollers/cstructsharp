@@ -573,6 +573,26 @@ public sealed partial class CStruct
         return CreateEnumValue(enm, storageValue);
     }
 
+    /// <summary>
+    ///     Decodes one bitfield from its placed storage unit, the one rule the reader and the address resolver share: the
+    ///     field's own bits, as an <see cref="int"/> below 32 bits and a <see cref="ulong"/> otherwise, and for an enum or
+    ///     flag bitfield the enum result of those bits.
+    /// </summary>
+    /// <param name="field">The bitfield.</param>
+    /// <param name="unit">The storage unit's value as read.</param>
+    /// <param name="bitOffset">The field's bit offset in the unit, in declaration order.</param>
+    /// <param name="unitBits">The unit's width in bits.</param>
+    /// <returns>The field's value.</returns>
+    private object DecodeBitfield(CompiledField field, object unit, int bitOffset, int unitBits)
+    {
+        ulong extracted = BitfieldCodecTable.ExtractBitfieldValue(
+            unit,
+            BitfieldCodecTable.EffectiveShift(bitOffset, field.BitSize, unitBits, this.highBitFirst),
+            field.BitSize);
+        object content = field.BitSize < 32 ? (object)(int)extracted : extracted;
+        return field.Enum is { } enm ? CreateEnumValue(enm, content) : content;
+    }
+
     /// <summary>Maps a decoded storage value to the enum result (shared by the general and static readers).</summary>
     private static EnumValueResult CreateEnumValue(CompiledEnumType compiled, object storageValue)
     {
@@ -1388,16 +1408,7 @@ public sealed partial class CStruct
                 throw new CStructReadException(LayoutFailures.BitfieldExceedsUnit(compiledField.Name));
             }
 
-            ulong extracted = BitfieldCodecTable.ExtractBitfieldValue(
-                content,
-                BitfieldCodecTable.EffectiveShift(state.CurrentBitOffset, compiledField.BitSize, unitBits, this.highBitFirst),
-                compiledField.BitSize);
-            content = compiledField.BitSize < 32 ? (object)(int)extracted : extracted;
-            if (compiledField.Enum is { } bitfieldEnum)
-            {
-                content = CreateEnumValue(bitfieldEnum, content);
-            }
-
+            content = this.DecodeBitfield(compiledField, content, state.CurrentBitOffset, unitBits);
             state.CurrentBitOffset += compiledField.BitSize;
             if (1 + (state.CurrentBitOffset / 8) > end - start)
             {

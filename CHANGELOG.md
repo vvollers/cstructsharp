@@ -122,6 +122,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Fixed
 
+- Address, array-length, selected-read and update operations use an enum or flag bitfield's own bits when a later
+  count or condition names it, as parsing does; they used the bitfield's whole storage unit and computed wrong offsets
+  and lengths when other bitfields shared the unit.
 - A layout expression can name a field of an inline named struct through its member name (`struct { uint8 n; } hdr;
   uint8 v[hdr.n];`), as it can for a member of a named struct type: parsing, debug parsing and whole-value reads no
   longer fail with "Undefined expression identifier: hdr.n" (address, length, selected-read, write and update
