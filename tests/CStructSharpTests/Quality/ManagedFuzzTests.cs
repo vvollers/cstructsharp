@@ -60,7 +60,7 @@ public class ManagedFuzzTests
             ["definition"] = (
                 4,
                 128,
-                "E10EAFC7094CB5274EB45B8E7425106CDBA6504A40157BC8A6B003C2F7BD2A6D"),
+                "FF52028EDEA5FA1684856EC77144469E3825103DA99176BB169CB24FB8596E0A"),
             ["expression"] = (
                 5,
                 127,

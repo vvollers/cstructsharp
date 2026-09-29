@@ -125,7 +125,9 @@ internal sealed class FuzzTargets
             aligned: input.Length % 2 == 0,
             isLittleEndian: input.Length % 3 != 0,
             compilationOptions: this.CreateCompilationOptions());
-        output.Value("definition", cstruct.ToDefinition());
+
+        // ToDefinition ends lines with the platform's newline; the replay digest must be the same on every OS.
+        output.Value("definition", cstruct.ToDefinition().ReplaceLineEndings("\n"));
     }
 
     /// <summary>Uses the input as an array-count expression and renders the size of the struct it produces.</summary>
