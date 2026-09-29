@@ -122,6 +122,10 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Fixed
 
+- A layout expression can name a field of an inline named struct through its member name (`struct { uint8 n; } hdr;
+  uint8 v[hdr.n];`), as it can for a member of a named struct type: parsing, debug parsing and whole-value reads no
+  longer fail with "Undefined expression identifier: hdr.n" (address, length, selected-read, write and update
+  operations already accepted it).
 - An anonymous promoted struct or union (`struct { … };`, `union { … };`) no longer counts as a level of
   `MaxNestingDepth`: parse, debug parse, selected reads, address and length queries, serialize, write, update and
   generated readers and writers all count only the root and by-value named structs and unions, as the fixed-layout

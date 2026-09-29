@@ -189,6 +189,23 @@ public class ReaderParityTests
     }
 
     /// <summary>
+    ///     A qualified reference into an inline named struct (<c>struct { uint8 n; } hdr; uint8 v[hdr.n];</c>) sizes the
+    ///     array in both readers, like a reference into a typed member, also two levels deep, in an array element, and
+    ///     in a conditional; the values are written back identically.
+    /// </summary>
+    [TestMethod]
+    public void InlineQualifiedReferences_MatchTheRuntime()
+    {
+        const string Root = "Root = \"root\", PointerSize = 1, Aligned = false, LittleEndian = true";
+        var none = new Dictionary<string, int>();
+        RunParity("inline-qualified", "struct root { struct { uint8 n; } hdr; uint8 v[hdr.n]; uint8 tail; };", Root, "root", [2, 7, 8, 9,], none, null, null);
+        RunParity("inline-qualified-runtime", "struct root { struct { uint8 n; uint8 d[n]; } hdr; uint8 v[hdr.n]; uint8 tail; };", Root, "root", [1, 5, 7, 9,], none, null, null);
+        RunParity("inline-qualified-deep", "struct root { struct { struct { uint8 n; } b; } a; uint8 v[a.b.n]; uint8 tail; };", Root, "root", [2, 7, 8, 9,], none, null, null);
+        RunParity("inline-qualified-element", "struct item { struct { uint8 n; } hdr; uint8 v[hdr.n]; }; struct root { uint8 count; item items[count]; uint8 tail; };", Root, "root", [2, 1, 5, 2, 6, 7, 9,], none, null, null);
+        RunParity("inline-qualified-conditional", "struct root { struct { uint8 kind; } hdr; if (hdr.kind == 1) { uint16 wide; } else { uint8 narrow; } uint8 tail; };", Root, "root", [1, 0x34, 0x12, 9,], none, null, null);
+    }
+
+    /// <summary>
     ///     An anonymous promoted struct or union adds no nesting level: with <c>MaxNestingDepth</c> at the two levels
     ///     of <c>root</c> and <c>leaf</c> both readers succeed, and one level fewer fails with the runtime's message.
     /// </summary>

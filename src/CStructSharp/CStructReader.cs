@@ -75,8 +75,19 @@ public sealed partial class CStruct
     /// <summary>
     ///     Reads one struct or union member (a root, a named nested composite, or an inline body) into
     ///     <paramref name="currentContainer"/>: a named composite becomes a nested value, an anonymous one is
-    ///     promoted into the parent, and a union is decoded through <see cref="ReadUnionValue"/>.
+    ///     promoted into the parent, and a union is decoded through <see cref="ReadUnionValue"/>. A named inline member
+    ///     (<c>struct { ... } hdr;</c>) publishes its fields under its qualified prefix (<c>hdr.n</c>) while its body is
+    ///     read, exactly as a typed member (<c>h hdr;</c>) does.
     /// </summary>
+    /// <param name="composite">The struct or union to read.</param>
+    /// <param name="name">The member name, or empty for an anonymous promoted member.</param>
+    /// <param name="currentContainer">The value receiving the member.</param>
+    /// <param name="state">The input position, limits, variables and optional debug records.</param>
+    /// <param name="debugStack">The enclosing debug path, or null when no path is needed.</param>
+    /// <param name="unionPosition">The containing union's start, or -1 outside a union.</param>
+    /// <param name="alignInlineStructStart">Whether an inline member needs its parent placement applied.</param>
+    /// <param name="fieldDescriptor">The member's compiled field, or null for a root.</param>
+    /// <param name="cursor">The containing struct's placement cursor, when traversing its fields.</param>
     private void ReadCompositeMember(
         CompiledCompositeType composite,
         string name,
@@ -113,6 +124,13 @@ public sealed partial class CStruct
             }
         }
 
+        // A named inline member republishes its fields under its prefix; the prefix is restored when the body is read.
+        string? outerPrefix = state.QualifiedPrefix;
+        if (name.Length > 0 && fieldDescriptor is { HasQualifiedPrefix: true, } && fieldDescriptor.Array.Kind == CompiledArrayKind.Scalar)
+        {
+            state.QualifiedPrefix = outerPrefix is null ? fieldDescriptor.QualifiedPrefix : outerPrefix + fieldDescriptor.QualifiedPrefix;
+        }
+
         if (composite.IsUnion)
         {
             IDictionary<string, object?> currentContainerDict = currentContainer;
@@ -132,6 +150,7 @@ public sealed partial class CStruct
                 string unionName = name;
                 DebugPath? unionDebugStack = state.Debug ? new DebugPath(debugStack, unionName) : debugStack;
                 currentContainerDict[unionName] = this.ReadUnionValue(composite, state, unionDebugStack);
+                state.QualifiedPrefix = outerPrefix;
             }
 
             if (usesCursor)
@@ -173,6 +192,7 @@ public sealed partial class CStruct
         }
 
         this.ReadCompiledStructInto(composite, newContainer, state, debugStack);
+        state.QualifiedPrefix = outerPrefix;
 
         if (usesCursor)
         {

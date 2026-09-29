@@ -67,7 +67,9 @@ is already true of every inline struct, named or not.
 Inline structs may nest, and a struct may nest an inline union the same way (`union { ... } choice;`), which reads
 as a `UnionValue` exactly like a field of a named union type. A union body may in turn hold inline structs and
 unions. Apart from name reuse, an inline composite follows the same placement, read, write, and update rules as a
-named child. An inline composite is always a single member; declare an array of a named type for repeated ones.
+named child, and a layout expression names its fields the same way (`item.kind`; see
+[a nested field's value](expressions-defines-and-variables.md#a-nested-fields-value)).
+An inline composite is always a single member; declare an array of a named type for repeated ones.
 
 A tagged inline body (`struct gen { ... } gen;` or `union version_information { ... };` inside another body)
 declares its tag as a global type, exactly as C and dissect do: the member-name form is then an ordinary field of

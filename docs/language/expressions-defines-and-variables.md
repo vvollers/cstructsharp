@@ -89,10 +89,27 @@ struct root {
 ```
 
 `a.n` and `b.n` are the values of `n` inside `a` and `b`; a path may reach through several levels (`a.b.n`). The
-head of a path is a scalar struct or union field of the layout (not an array element and not a pointer target),
-and the value is published while that field is read, written, or measured, so every operation counts with the same
-number. A path that names no such field is an undefined identifier when it is evaluated, like any other unknown
-name. The `nested-references` fixture checks `v[hdr.n]` through parsing, addressing, and serialization.
+head of a path is a scalar struct field of the layout (not an array element and not a pointer target), and the
+value is published while that field is read, written, or measured, so every operation counts with the same number.
+A path that names no such field is an undefined identifier when it is evaluated, like any other unknown name. The
+`nested-references` fixture checks `v[hdr.n]` through parsing, addressing, and serialization.
+
+An [inline struct](structs-unions-enums-typedefs.md#inline-structs) with a member name works exactly like a member
+of a named struct type. Its body has no type name, but the member name starts the path:
+
+```c
+struct packet {
+    struct { uint8 count; uint8 flags; } hdr;
+    uint16 items[hdr.count];
+};
+```
+
+With the input `02 00 0A 00 0B 00`, `hdr.count` is 2, so `items` holds the two values 10 and 11 and the struct is
+six bytes long.
+
+A union's members are different. They are published only while the union itself is read: the members overlap the
+same bytes, so no single value of theirs remains once the union ends. After a union member `u`, both `u.n` and
+`n` are undefined identifiers, whether `u` has a named union type or is an inline `union { ... } u;`.
 
 ## Which fields an expression can use
 
