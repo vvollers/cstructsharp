@@ -18,4 +18,11 @@ internal enum WriteProgramKind : byte
 
     /// <summary>A root: one struct, one typedef or enum field written standalone (no composite places it), or a <c>#define</c>.</summary>
     Root,
+
+    /// <summary>
+    ///     A union: one segment of steps per member (<see cref="WriteProgram.UnionEntries"/>), each writing that member
+    ///     standalone from the union's first byte into a staged copy of the union's storage; the executor runs only the
+    ///     selected member's segment. Cached per composite.
+    /// </summary>
+    Union,
 }

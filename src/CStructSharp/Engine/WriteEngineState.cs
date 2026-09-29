@@ -1,5 +1,6 @@
 namespace CStructSharp.Engine;
 
+using System;
 using System.Threading;
 using CStructSharp.Compilation.Programs;
 using CStructSharp.Diagnostics;
@@ -27,6 +28,7 @@ internal struct WriteEngineState
     {
         this.Layout = layout;
         this.Slots = slots;
+        this.Options = options;
         this.MaxArrayElements = options.MaxArrayElements;
         this.MaxNestingDepth = options.MaxNestingDepth;
         this.RejectUnknownMembers = options.UnknownMembers == UnknownMemberPolicy.Reject;
@@ -39,6 +41,9 @@ internal struct WriteEngineState
 
     /// <summary>Gets the layout being written.</summary>
     public CStruct Layout { get; }
+
+    /// <summary>Gets the operation's snapshotted options: the limits, addressing and budget a union's staging buffer takes too.</summary>
+    public WriteOptions Options { get; }
 
     /// <summary>Gets the operation's layout variables as slots.</summary>
     public VariableSlots Slots { get; }
@@ -70,15 +75,6 @@ internal struct WriteEngineState
     /// </summary>
     public string? QualifiedPrefix { get; set; }
 
-    /// <summary>Takes a frame's selected arms, every group undecided.</summary>
-    /// <param name="count">The frame's conditional group count, positive.</param>
-    /// <returns>The base of the frame's arms.</returns>
-    public int TakeArms(int count) => this.arena.TakeArms(count);
-
-    /// <summary>Gives back the arms a completed frame took.</summary>
-    /// <param name="start">The base <see cref="TakeArms"/> returned.</param>
-    public void ReleaseArms(int start) => this.arena.ReleaseArms(start);
-
     /// <summary>Takes a frame's conditional-scope locals, every one undefined.</summary>
     /// <param name="count">The scope's local count.</param>
     /// <returns>The base of the frame's locals.</returns>
@@ -91,10 +87,10 @@ internal struct WriteEngineState
     /// <summary>Selects a branch's arm in a frame by the shared rule (<see cref="FrameArena.SelectedArm"/>), in the write domain.</summary>
     /// <param name="program">The program.</param>
     /// <param name="branch">The branch being tested.</param>
-    /// <param name="armBase">The base of the frame's selected arms.</param>
+    /// <param name="frameArms">The frame's selected arms, which the frame keeps on its stack.</param>
     /// <returns>The selected arm of the branch's group.</returns>
-    public int SelectedArm(WriteProgram program, ReadProgram.ConditionalBranch branch, int armBase)
-        => FrameArena.SelectedArm(ref this.arena, this.Slots, program.Groups, program.Expressions, program.ExpressionContexts, branch, armBase, ExpressionFailureDomain.Write);
+    public readonly int SelectedArm(WriteProgram program, ReadProgram.ConditionalBranch branch, Span<int> frameArms)
+        => FrameArena.SelectedArm(frameArms, this.Slots, program.Groups, program.Expressions, program.ExpressionContexts, branch, ExpressionFailureDomain.Write);
 
     /// <summary>Completes a member of a conditional composite by the shared rule (<see cref="FrameArena.CompleteMember"/>).</summary>
     /// <param name="scope">The composite's scope in slot terms.</param>
@@ -102,6 +98,26 @@ internal struct WriteEngineState
     /// <param name="localBase">The base of the frame's saved values.</param>
     public void CompleteMember(ReadConditionalScope scope, int member, int localBase)
         => FrameArena.CompleteMember(ref this.arena, this.Slots, scope, member, localBase);
+
+    /// <summary>
+    ///     Saves every variable slot before a union member is staged, as the interpreter stages it with a copy of the
+    ///     variables: nothing the member captures escapes the union.
+    /// </summary>
+    /// <returns>Where the saved values are, for <see cref="RestoreSlots"/>.</returns>
+    public int SaveSlots()
+    {
+        int saved = this.arena.TakeLocals(this.Slots.Count);
+        this.Slots.CopyTo(this.arena.Locals, saved);
+        return saved;
+    }
+
+    /// <summary>Restores every variable slot saved by <see cref="SaveSlots"/> and gives the saved values back.</summary>
+    /// <param name="saved">What <see cref="SaveSlots"/> returned.</param>
+    public void RestoreSlots(int saved)
+    {
+        this.Slots.CopyFrom(this.arena.Locals, saved);
+        this.arena.ReleaseLocals(saved);
+    }
 
     /// <summary>Claims one struct level as the interpreter's writer does, failing past the nesting limit.</summary>
     /// <exception cref="CStructWriteLimitException">The level would exceed <see cref="MaxNestingDepth"/>.</exception>
@@ -137,6 +153,6 @@ internal struct WriteEngineState
         }
     }
 
-    /// <summary>Returns the frame stacks to the thread's spares at the end of the operation.</summary>
+    /// <summary>Returns the frame arena's locals stack to the thread's spare at the end of the operation.</summary>
     public void Release() => this.arena.Release();
 }

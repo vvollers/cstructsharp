@@ -7,14 +7,16 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Streams;
 
 /// <summary>
-///     The compiled engine's destination for <c>Serialize</c>: either the caller's pinned span or a growable pooled buffer
-///     for a new array, together with the operation's output budget. It behaves exactly as the interpreter's
-///     <see cref="WriteBudgetStream"/> over a <see cref="FixedBufferStream"/> (a span) or an <see cref="OwnedMemoryStream"/>
-///     (a new array) does, byte for byte and failure for failure, without the two wrapper calls per write.
+///     The compiled engine's destination for <c>Serialize</c>: the caller's pinned span, a growable pooled buffer for a new
+///     array, or a union's staged storage, together with the operation's output budget. It behaves exactly as the
+///     interpreter's <see cref="WriteBudgetStream"/> over a <see cref="FixedBufferStream"/> (a span), an
+///     <see cref="OwnedMemoryStream"/> (a new array) or a fixed <see cref="MemoryStream"/> over the staging array (a union
+///     member) does, byte for byte and failure for failure, without the two wrapper calls per write.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <b>Extent.</b> The buffer starts empty. <see cref="Length"/> is the high-water mark of the bytes written; a read
+///         <b>Extent.</b> The buffer starts empty (a staging buffer: full of its union's zero or preserved bytes, which it
+///         cannot grow past). <see cref="Length"/> is the high-water mark of the bytes written; a read
 ///         returns nothing past it (a bitfield unit or a static plan's preserved bytes read back zero there), and a write
 ///         that lands past it first fills the gap with zeroes, as both interpreter streams do. The caller's span beyond the
 ///         bytes written is never touched.
@@ -40,17 +42,31 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
     /// <summary>The capacity a growable buffer rents first; it then doubles.</summary>
     private const int InitialCapacity = 256;
 
+    /// <summary>The largest array a released buffer keeps for the thread's next operation; a larger one goes back to the pool.</summary>
+    private const int RetainedCapacity = 64 * 1024;
+
+    // The thread's released buffer, reused by its next operation with the array it had grown (up to RetainedCapacity); an
+    // operation that starts while another on the thread holds it (a nested one from a callback) creates its own.
+    [ThreadStatic]
+    private static MemoryWriteBuffer? spare;
+
     /// <summary>The caller's first byte for a span destination (which may be <see langword="null"/> for an empty span).</summary>
-    private readonly byte* region;
+    private byte* region;
 
     /// <summary>Whether the destination is the caller's span rather than a growable buffer.</summary>
-    private readonly bool span;
+    private bool span;
+
+    /// <summary>Whether the destination is a union's staged storage: initialized, of a fixed capacity, and not the caller's.</summary>
+    private bool staging;
+
+    /// <summary>The destination's length before the operation, which the budget's extent is counted from (a staging buffer's capacity).</summary>
+    private long initialLength;
 
     /// <summary>The span destination's length in bytes; unused for a growable buffer.</summary>
-    private readonly int capacity;
+    private int capacity;
 
     /// <summary>The operation's <see cref="WriteOptions.MaxTotalBytesWritten"/>.</summary>
-    private readonly long maxTotalBytesWritten;
+    private long maxTotalBytesWritten;
 
     /// <summary>The growable buffer's rented array, or <see langword="null"/> for a span or before the first write.</summary>
     private byte[]? array;
@@ -64,22 +80,26 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
     /// <summary>The physical bytes written so far, counted as the interpreter's wrapper counts them.</summary>
     private long bytesWritten;
 
-    /// <summary>Creates a buffer; <see cref="ForSpan"/> and <see cref="ForNewArray"/> name the two forms.</summary>
+    /// <summary>Creates a buffer; <see cref="ForSpan"/>, <see cref="ForNewArray"/> and <see cref="ForStaging"/> name the three forms.</summary>
     /// <param name="span">Whether the destination is the caller's span.</param>
-    /// <param name="region">The caller's pinned first byte; unused for a growable buffer.</param>
-    /// <param name="capacity">The span's length in bytes.</param>
+    /// <param name="region">The caller's pinned first byte; unused for any other buffer.</param>
+    /// <param name="staging">The staging array of a union, or <see langword="null"/>.</param>
+    /// <param name="capacity">The span's or staging storage's length in bytes.</param>
     /// <param name="options">The operation's snapshotted options, which supply the byte limits.</param>
-    private MemoryWriteBuffer(bool span, byte* region, int capacity, WriteOptions options)
+    private MemoryWriteBuffer(bool span, byte* region, byte[]? staging, int capacity, WriteOptions options)
     {
-        this.span = span;
-        this.region = region;
-        this.capacity = capacity;
-        this.maxTotalBytesWritten = options.MaxTotalBytesWritten;
-        this.MaxStringBytes = options.MaxStringBytes;
+        this.Start(span, region, staging, capacity, options);
     }
 
     /// <summary>Gets the configured per-string encoded-byte budget.</summary>
-    public long MaxStringBytes { get; }
+    public long MaxStringBytes { get; private set; }
+
+    /// <summary>
+    ///     Gets a value indicating whether a block may be written in one piece where the interpreter writes element by
+    ///     element (a typed array, narrow text): the interpreter does so only into a span or its own growable stream, never
+    ///     into a union's staging stream.
+    /// </summary>
+    public bool AllowsBlocks => !this.staging;
 
     /// <summary>Gets a value indicating whether the buffer can read back what it holds; always <see langword="true"/>.</summary>
     public override bool CanRead => true;
@@ -125,12 +145,23 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
     /// <param name="capacity">The span's length in bytes.</param>
     /// <param name="options">The operation's snapshotted options.</param>
     /// <returns>An empty buffer over the span.</returns>
-    public static MemoryWriteBuffer ForSpan(byte* region, int capacity, WriteOptions options) => new(true, region, capacity, options);
+    public static MemoryWriteBuffer ForSpan(byte* region, int capacity, WriteOptions options) => Take(true, region, capacity, options);
 
     /// <summary>Creates the growable destination of <c>Serialize</c> to a new array.</summary>
     /// <param name="options">The operation's snapshotted options.</param>
     /// <returns>An empty buffer.</returns>
-    public static MemoryWriteBuffer ForNewArray(WriteOptions options) => new(false, null, 0, options);
+    public static MemoryWriteBuffer ForNewArray(WriteOptions options) => Take(false, null, 0, options);
+
+    /// <summary>
+    ///     Creates the destination a union member is staged into: <paramref name="size"/> initialized bytes of
+    ///     <paramref name="storage"/> (the caller clears or fills them and keeps the array), with a budget of its own whose
+    ///     extent counts only growth past them, as the interpreter's staging stream has.
+    /// </summary>
+    /// <param name="storage">The staging array, at least <paramref name="size"/> bytes; not returned to any pool here.</param>
+    /// <param name="size">The union's size in bytes.</param>
+    /// <param name="options">The operation's snapshotted options.</param>
+    /// <returns>The staging buffer, positioned at the union's first byte.</returns>
+    public static MemoryWriteBuffer ForStaging(byte[] storage, int size, WriteOptions options) => new(false, null, storage, size, options);
 
     /// <summary>Has nothing to flush.</summary>
     public override void Flush()
@@ -163,7 +194,7 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
         try
         {
             long next = checked(this.bytesWritten + chargedBytes);
-            long extent = Math.Max(0, checked(this.position + size));
+            long extent = Math.Max(0, checked(checked(this.position + size) - this.initialLength));
             if (Math.Max(next, extent) > this.maxTotalBytesWritten)
             {
                 return false;
@@ -188,7 +219,7 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
         try
         {
             next = checked(this.bytesWritten + chargedBytes);
-            this.EnsureWithinBudget(next, Math.Max(0, checked(this.position + block.Length)));
+            this.EnsureWithinBudget(next, Math.Max(0, checked(checked(this.position + block.Length) - this.initialLength)));
         }
         catch (OverflowException exception)
         {
@@ -202,6 +233,33 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
     /// <summary>Writes bytes at the position after the budget and the destination's room are checked.</summary>
     /// <param name="buffer">The bytes to write.</param>
     public override void Write(ReadOnlySpan<byte> buffer)
+    {
+        // The common write - at or before the high-water mark, with room, within the budget - copies straight in. Positions
+        // and counts stay far below the range where the budget's checked arithmetic could overflow: a span or staging
+        // position is bounded by its capacity, a growable one by the largest array.
+        long position = this.position;
+        long end = position + buffer.Length;
+        long next = this.bytesWritten + buffer.Length;
+        if (position <= this.length && Math.Max(next, end - this.initialLength) <= this.maxTotalBytesWritten &&
+            (this.span ? end <= this.capacity : !this.staging && this.array is { } array && end <= array.Length))
+        {
+            buffer.CopyTo(this.span ? new Span<byte>(this.region + position, buffer.Length) : this.array.AsSpan((int)position, buffer.Length));
+            this.position = end;
+            if (end > this.length)
+            {
+                this.length = end;
+            }
+
+            this.bytesWritten = next;
+            return;
+        }
+
+        this.WriteChecked(buffer);
+    }
+
+    /// <summary>Writes bytes at the position through the full checks: the budget, the destination's room, the gap, then the data.</summary>
+    /// <param name="buffer">The bytes to write.</param>
+    private void WriteChecked(ReadOnlySpan<byte> buffer)
     {
         long next = this.ProjectUsage(buffer.Length);
         this.Store(buffer);
@@ -306,17 +364,71 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
     /// <exception cref="NotSupportedException">Always.</exception>
     public override void SetLength(long value) => throw new NotSupportedException("The compiled engine's write buffer grows only by writing.");
 
-    /// <summary>Returns a growable buffer's array to the pool.</summary>
+    /// <summary>
+    ///     Releases the buffer: a span or growable buffer becomes the thread's spare for its next operation, keeping an array
+    ///     of up to <see cref="RetainedCapacity"/> bytes (a larger one goes back to the pool); a staging array stays its
+    ///     owner's. The buffer must not be used afterwards.
+    /// </summary>
     /// <param name="disposing">Whether the call comes from <see cref="Stream.Dispose()"/>.</param>
     protected override void Dispose(bool disposing)
     {
-        if (this.array is { } rented)
+        if (this.staging)
         {
             this.array = null;
-            ArrayPool<byte>.Shared.Return(rented);
+        }
+        else
+        {
+            if (this.array is { Length: > RetainedCapacity, } rented)
+            {
+                this.array = null;
+                ArrayPool<byte>.Shared.Return(rented);
+            }
+
+            this.region = null;
+            spare = this;
         }
 
         base.Dispose(disposing);
+    }
+
+    /// <summary>Returns the thread's spare buffer started for an operation, or a new one.</summary>
+    /// <param name="span">Whether the destination is the caller's span.</param>
+    /// <param name="region">The span's pinned first byte.</param>
+    /// <param name="capacity">The span's length in bytes.</param>
+    /// <param name="options">The operation's snapshotted options.</param>
+    /// <returns>An empty buffer.</returns>
+    private static MemoryWriteBuffer Take(bool span, byte* region, int capacity, WriteOptions options)
+    {
+        MemoryWriteBuffer? buffer = spare;
+        if (buffer is null)
+        {
+            return new MemoryWriteBuffer(span, region, null, capacity, options);
+        }
+
+        spare = null;
+        buffer.Start(span, region, null, capacity, options);
+        return buffer;
+    }
+
+    /// <summary>Resets every field for a new operation; a growable buffer keeps the array it already holds.</summary>
+    /// <param name="span">Whether the destination is the caller's span.</param>
+    /// <param name="region">The span's pinned first byte.</param>
+    /// <param name="staging">The staging array of a union, or <see langword="null"/>.</param>
+    /// <param name="capacity">The span's or staging storage's length in bytes.</param>
+    /// <param name="options">The operation's snapshotted options.</param>
+    private void Start(bool span, byte* region, byte[]? staging, int capacity, WriteOptions options)
+    {
+        this.span = span;
+        this.region = region;
+        this.capacity = capacity;
+        this.staging = staging is not null;
+        this.array = staging ?? this.array;
+        this.length = this.staging ? capacity : 0;
+        this.initialLength = this.length;
+        this.position = 0;
+        this.bytesWritten = 0;
+        this.maxTotalBytesWritten = options.MaxTotalBytesWritten;
+        this.MaxStringBytes = options.MaxStringBytes;
     }
 
     /// <summary>
@@ -330,7 +442,7 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
         try
         {
             long next = checked(this.bytesWritten + count);
-            this.EnsureWithinBudget(next, Math.Max(0, checked(this.position + count)));
+            this.EnsureWithinBudget(next, Math.Max(0, checked(checked(this.position + count) - this.initialLength)));
             return next;
         }
         catch (OverflowException exception)
@@ -373,7 +485,8 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
 
     /// <summary>
     ///     Makes room for <paramref name="count"/> bytes at the position: a span that cannot hold them fails as the
-    ///     interpreter's region stream does, a growable buffer grows (and fails past the largest array as a memory stream).
+    ///     interpreter's region stream does, a growable buffer grows (and fails past the largest array as a memory stream),
+    ///     and a union's staging buffer refuses to grow past its union as the interpreter's fixed staging stream does.
     /// </summary>
     /// <param name="count">The bytes about to be written.</param>
     private void Room(int count)
@@ -388,11 +501,12 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
             return;
         }
 
+        // Both interpreter memory streams (a growable one and a union's fixed staging one) first refuse a write that would
+        // end past the largest array with an I/O error, which their wrapper reports as a write failure at the position;
+        // the probe raises the same error.
         long end = this.position + count;
         if (end > int.MaxValue)
         {
-            // The interpreter's memory stream fails such a write with an I/O error, which its wrapper reports as a write
-            // failure at the position; the probe raises the same error.
             try
             {
                 using var probe = new MemoryStream();
@@ -407,6 +521,22 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
             }
         }
 
+        if (this.staging && end > this.capacity)
+        {
+            // A staging stream cannot grow past its union either; the probe raises its refusal.
+            try
+            {
+                using var probe = new MemoryStream([], writable: true);
+                probe.WriteByte(0);
+            }
+            catch (NotSupportedException exception)
+            {
+                var failure = new CStructWriteException("Cannot write to the destination stream.", exception);
+                failure.AttachContext(offset: this.position);
+                throw failure;
+            }
+        }
+
         this.Reserve(end);
     }
 
@@ -414,7 +544,7 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
     /// <param name="size">The bytes the array must hold.</param>
     private void Reserve(long size)
     {
-        if (this.span || (this.array is { } current && current.Length >= size))
+        if (this.span || this.staging || (this.array is { } current && current.Length >= size))
         {
             return;
         }

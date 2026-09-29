@@ -29,6 +29,9 @@ internal readonly struct MemoryWriteDestination : IWriteDestination
     public long Length => this.buffer.Length;
 
     /// <inheritdoc/>
+    public bool AllowsBlocks => this.buffer.AllowsBlocks;
+
+    /// <inheritdoc/>
     public Stream Stream => this.buffer;
 
     /// <inheritdoc/>

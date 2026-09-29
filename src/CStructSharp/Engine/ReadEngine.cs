@@ -265,8 +265,10 @@ internal static partial class ReadEngine
         // places nothing.
         long start = program.Kind == ReadProgramKind.Root ? 0 : cursor.Position;
 
-        // The frame's selected arms and scope locals are ranges of the operation's arena, given back on completion.
-        int arms = program.GroupCount == 0 ? -1 : state.TakeArms(program.GroupCount);
+        // The frame's selected conditional arms live on its stack (a composite with more groups than fit allocates them);
+        // its scope locals are a range of the operation's arena, given back on completion.
+        Span<int> arms = program.GroupCount <= FrameArena.StackArmLimit ? stackalloc int[FrameArena.StackArmLimit] : new int[program.GroupCount];
+        arms[..program.GroupCount].Fill(FrameArena.Undecided);
         int locals = program.Scope is { LocalCount: > 0, } scope ? state.TakeLocals(scope.LocalCount) : -1;
         Span<byte> scratch = stackalloc byte[ScratchSize];
 
@@ -760,11 +762,6 @@ internal static partial class ReadEngine
             if (locals >= 0)
             {
                 state.ReleaseLocals(locals);
-            }
-
-            if (arms >= 0)
-            {
-                state.ReleaseArms(arms);
             }
         }
         catch (CStructException exception) when (field >= 0 && program.NotesMembers && NoteMember(exception, program.Fields[field]))

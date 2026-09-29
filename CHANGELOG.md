@@ -224,9 +224,10 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 ### Performance
 
 - `Serialize` (to an array or a span) and `WriteAsync` of layouts with runtime-sized members run on the compiled engine:
-  the comparison benchmark's `packet` record serializes in 296 ns instead of 496 ns and allocates 88 B. Bytes, partial
-  output on failure, exceptions and write budgets are identical. Bitfields, unions, pointers, custom codecs and some
-  array shapes, stream and buffer-writer writes, and updates still use the general writer until the engine covers them.
+  the comparison benchmark's `packet` record serializes in 248 ns instead of 496 ns and allocates only its 88-byte
+  result. Bitfields, unions (including promoted ones), pointers, custom codecs and to-end, terminated and
+  multidimensional arrays are covered. Bytes, partial output on failure, exceptions and write budgets are identical.
+  Stream and buffer-writer writes and updates still use the general writer until the engine covers them.
 - Reads of layouts with runtime-sized members (counts from fields, conditionals, text, nested structs) run on a compiled
   engine: each struct is compiled once into a flat program of read steps, with variables in indexed slots instead of a
   dictionary. Results, failures, positions and read budgets are identical. The comparison benchmark's `packet` record

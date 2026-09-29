@@ -51,6 +51,8 @@ internal sealed class WriteProgram
         this.Groups = parts.Groups;
         this.Branches = parts.Branches;
         this.Scope = parts.Scope;
+        this.UsesPlacementCursor = parts.UsesPlacementCursor;
+        this.UnionEntries = parts.UnionEntries;
     }
 
     /// <summary>Gets what the program writes.</summary>
@@ -124,6 +126,19 @@ internal sealed class WriteProgram
     /// <summary>Gets the composite's conditional variable scope in slot terms, or <see langword="null"/> when it has no conditional member.</summary>
     public ReadConditionalScope? Scope { get; }
 
+    /// <summary>
+    ///     Gets a value indicating whether the members are placed at run time by a <see cref="PlacementCursor"/> the frame
+    ///     starts at its first byte, as the interpreter places them: a struct with bitfields, whose storage units the
+    ///     layout's packing rule shares. Other structs place their members with steps decided when the program was built.
+    /// </summary>
+    public bool UsesPlacementCursor { get; }
+
+    /// <summary>
+    ///     Gets, for a <see cref="WriteProgramKind.Union"/> program, the index of each member's first step, parallel to
+    ///     <see cref="Fields"/>; each segment ends with <see cref="WriteOpCode.Return"/>. Empty for every other program.
+    /// </summary>
+    public int[] UnionEntries { get; }
+
     /// <summary>Gets the member slots, parallel to <see cref="Fields"/>.</summary>
     internal int[] ShapeSlots { get; }
 
@@ -149,6 +164,8 @@ internal sealed class WriteProgram
     /// <param name="Groups">The conditional groups.</param>
     /// <param name="Branches">The conditional branches.</param>
     /// <param name="Scope">The conditional scope, or <see langword="null"/>.</param>
+    /// <param name="UsesPlacementCursor">Whether the members are placed by a runtime placement cursor.</param>
+    /// <param name="UnionEntries">A union program's first step per member, or an empty array.</param>
     internal sealed record WriteProgramParts(
         WriteStep[] Steps,
         int[] NotedMembers,
@@ -165,5 +182,7 @@ internal sealed class WriteProgram
         ReadProgram.QualifiedTarget[][] QualifiedTargets,
         ReadProgram.ConditionalGroup[] Groups,
         ReadProgram.ConditionalBranch[] Branches,
-        ReadConditionalScope? Scope);
+        ReadConditionalScope? Scope,
+        bool UsesPlacementCursor,
+        int[] UnionEntries);
 }

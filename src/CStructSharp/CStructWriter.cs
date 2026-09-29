@@ -346,7 +346,7 @@ public sealed partial class CStruct
 
             if (composite.PromotedFields.Contains(member))
             {
-                if (this.SuppliesAnyPromotedMember(member, data, state))
+                if (SuppliesAnyPromotedMember(member, data))
                 {
                     (selected, selectedValue, selectedSize) = (member, data, size);
                 }
@@ -372,7 +372,10 @@ public sealed partial class CStruct
     }
 
     /// <summary>Whether the data supplies at least one leaf of an anonymous promoted member (transitively).</summary>
-    private bool SuppliesAnyPromotedMember(CompiledField promoted, object data, CStructElementWriterState state)
+    /// <param name="promoted">The anonymous member.</param>
+    /// <param name="data">The data that would carry its members.</param>
+    /// <returns>Whether any named member under it is supplied.</returns>
+    internal static bool SuppliesAnyPromotedMember(CompiledField promoted, object data)
     {
         if (promoted.Type.Symbol.Definition is not CompiledCompositeType composite)
         {
@@ -383,7 +386,7 @@ public sealed partial class CStruct
         {
             if (composite.PromotedFields.Contains(member))
             {
-                if (this.SuppliesAnyPromotedMember(member, data, state))
+                if (SuppliesAnyPromotedMember(member, data))
                 {
                     return true;
                 }
@@ -820,7 +823,7 @@ public sealed partial class CStruct
                 // The innermost dimension of a fixed string table collapses one caller-supplied string per row, like a
                 // one-dimensional char[32]; only the outer dimensions flatten.
                 int rowSize = dimensionSizes[^1];
-                foreach (object row in this.FlattenNestedArrayValues(value, dimensionSizes[..^1], compiledField.Name))
+                foreach (object row in FlattenNestedArrayValues(value, dimensionSizes[..^1], compiledField.Name))
                 {
                     string rowString = row as string ?? WriteValueMaterialization.ConvertToBoundedCharString(row, rowSize, compiledField.Name);
                     this.WriteFixedCharArray(compiledField, rowString, rowSize, state);
@@ -828,7 +831,7 @@ public sealed partial class CStruct
             }
             else
             {
-                List<object> leaves = this.FlattenNestedArrayValues(value, dimensionSizes, compiledField.Name);
+                List<object> leaves = FlattenNestedArrayValues(value, dimensionSizes, compiledField.Name);
                 for (int i = 0; i < leaves.Count; i++)
                 {
                     _ = this.WriteSingleFieldValue(compiledField, leaves[i], state);
@@ -890,7 +893,12 @@ public sealed partial class CStruct
     ///     with the same <see cref="WriteValueMaterialization.ConvertToObjectList"/> a single-dimension array
     ///     already uses once - this just repeats that call once per remaining dimension.
     /// </summary>
-    private List<object> FlattenNestedArrayValues(object value, IReadOnlyList<int> dimensionSizes, string fieldName)
+    /// <param name="value">The caller's nested collection.</param>
+    /// <param name="dimensionSizes">The declared size of each remaining dimension, outermost first.</param>
+    /// <param name="fieldName">The array field, named in a failure.</param>
+    /// <returns>The leaves in row-major order.</returns>
+    /// <exception cref="CStructWriteException">A level is not a collection or has a different number of elements.</exception>
+    internal static List<object> FlattenNestedArrayValues(object value, IReadOnlyList<int> dimensionSizes, string fieldName)
     {
         IList<object> level = WriteValueMaterialization.ConvertToObjectList(value, dimensionSizes[0], fieldName);
         if (level.Count != dimensionSizes[0])
@@ -907,7 +915,7 @@ public sealed partial class CStruct
         var flattened = new List<object>();
         foreach (object item in level)
         {
-            flattened.AddRange(this.FlattenNestedArrayValues(item, remainingDimensions, fieldName));
+            flattened.AddRange(FlattenNestedArrayValues(item, remainingDimensions, fieldName));
         }
 
         return flattened;

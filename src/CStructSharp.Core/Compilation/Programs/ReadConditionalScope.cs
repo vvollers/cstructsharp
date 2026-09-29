@@ -59,12 +59,12 @@ internal sealed class ReadConditionalScope
     /// <summary>Returns the locals a member saves once it is read: its own visible names that have slots.</summary>
     /// <param name="member">The member's index in its composite.</param>
     /// <returns>Local indexes; empty when the member saves nothing observable.</returns>
-    public IReadOnlyList<int> GetCaptured(int member) => this.captured[member];
+    public int[] GetCaptured(int member) => this.captured[member];
 
     /// <summary>Returns the locals a member restores once it is read: the composite's names a nested declaration inside it may have replaced.</summary>
     /// <param name="member">The member's index in its composite.</param>
     /// <returns>Local indexes; empty when the member restores nothing observable.</returns>
-    public IReadOnlyList<int> GetRestored(int member) => this.restored[member];
+    public int[] GetRestored(int member) => this.restored[member];
 
     /// <summary>Whether completing a member has an observable effect, so the compiler emits its <see cref="ReadOpCode.CompleteMember"/> step.</summary>
     /// <param name="member">The member's index in its composite.</param>

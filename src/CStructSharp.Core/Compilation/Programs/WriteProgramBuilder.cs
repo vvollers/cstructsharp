@@ -52,6 +52,15 @@ internal sealed class WriteProgramBuilder
     /// <summary>Gets each member's value slot, -1 until <see cref="SetShapeSlot"/> assigns one.</summary>
     public int[] ShapeSlots { get; }
 
+    /// <summary>Gets or sets a value indicating whether the members are placed by a runtime placement cursor (a struct with bitfields).</summary>
+    public bool UsesPlacementCursor { get; set; }
+
+    /// <summary>Gets or sets a union program's first step per member, or <see langword="null"/> for any other program.</summary>
+    public int[]? UnionEntries { get; set; }
+
+    /// <summary>Gets the index the next step will have.</summary>
+    public int Count => this.steps.Count;
+
     /// <summary>Gets or sets the composite's conditional scope in slot terms.</summary>
     public ReadConditionalScope? Scope { get; set; }
 
@@ -177,6 +186,8 @@ internal sealed class WriteProgramBuilder
                 this.tables.QualifiedTargets(),
                 this.tables.Groups(),
                 this.tables.Branches(),
-                this.Scope));
+                this.Scope,
+                this.UsesPlacementCursor,
+                this.UnionEntries ?? []));
     }
 }

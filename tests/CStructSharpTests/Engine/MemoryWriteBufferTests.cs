@@ -74,6 +74,31 @@ public class MemoryWriteBufferTests
         }
     }
 
+    /// <summary>
+    ///     The same scripts against a union's staging buffer and the interpreter's staging stream - a budget stream over a
+    ///     fixed <see cref="MemoryStream"/> holding the union's zero bytes - agree too, including a write past the union.
+    /// </summary>
+    /// <param name="name">The script's name.</param>
+    /// <param name="options">The operation's options.</param>
+    /// <param name="capacity">The union's size (for a -1 row, 12).</param>
+    /// <param name="script">The operations.</param>
+    [TestMethod]
+    [DynamicData(nameof(Scripts))]
+    public void StagingScript_BehavesAsTheInterpretersStagingStream(string name, WriteOptions options, int capacity, string[] script)
+    {
+        int size = capacity < 0 ? 12 : capacity;
+        byte[] engineStorage = new byte[size + 4];
+        byte[] interpreterStorage = new byte[size];
+        using MemoryWriteBuffer buffer = MemoryWriteBuffer.ForStaging(engineStorage, size, options);
+        using var inner = new MemoryStream(interpreterStorage, writable: true);
+        using var stream = new WriteBudgetStream(inner, options);
+        string expected = Run(script, new Target(stream, stream.WriteZeroes, stream.EnsureStringBytes, stream.CanAffordBlock, stream.WriteBlock));
+        string actual = Run(script, new Target(buffer, buffer.WriteZeroes, buffer.EnsureStringBytes, buffer.CanAffordBlock, buffer.WriteBlock));
+        Assert.AreEqual(expected, actual, name + " (staging " + size + ")");
+        CollectionAssert.AreEqual(interpreterStorage, engineStorage[..size], name + ": the staged bytes agree");
+        Assert.IsFalse(buffer.AllowsBlocks);
+    }
+
     /// <summary>The operations the engine never uses are refused rather than half-implemented.</summary>
     [TestMethod]
     public void SeekAndSetLength_AreNotSupported()

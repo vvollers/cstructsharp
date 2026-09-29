@@ -87,28 +87,48 @@ public class WriteProgramCompilerTests
         Assert.AreEqual(1, program.Steps.Single(step => step.Op == WriteOpCode.Seek).A);
     }
 
-    /// <summary>The shapes a later sub-stage adds are refused with a reason naming the struct and member.</summary>
+    /// <summary>
+    ///     Every shape of the layout language compiles: bitfields (through the runtime cursor), unions (one segment per
+    ///     member), promoted unions, pointers, caller's codecs, data-sized and multidimensional arrays.
+    /// </summary>
     [TestMethod]
-    public void UnsupportedShapes_AreRefused_WithTheirMember()
+    public void EveryShape_Compiles()
     {
-        (string Layout, string Reason)[] cases =
+        string[] definitions =
         [
-            ("struct root { uint8 a : 3; uint8 b : 5; };", "root.a: " + WriteProgramCompiler.Bitfields),
-            ("union u { uint8 a; uint16 b; }; struct root { u v; };", "root.v: " + WriteProgramCompiler.Unions),
-            ("struct root { uint8 t; union { uint8 a; uint16 b; }; };", "root.(anonymous): " + WriteProgramCompiler.Unions),
-            ("struct root { uint8 *p; };", "root.p: " + WriteProgramCompiler.Pointers),
-            ("struct root { uint16 v[EOF]; };", "root.v: " + WriteProgramCompiler.DataSizedArrays),
-            ("struct root { uint16 v[]; };", "root.v: " + WriteProgramCompiler.DataSizedArrays),
-            ("struct root { uint8 g[2][2]; };", "root.g: " + WriteProgramCompiler.MultidimensionalArrays),
+            "struct root { uint8 a : 3; uint8 : 0; uint8 b : 5; };",
+            "union u { uint8 a; uint16 b; }; struct root { u v; u many[2]; };",
+            "struct root { uint8 t; union { uint8 a; uint16 b; }; };",
+            "struct root { uint8 *p; uint8 *q[2]; };",
+            "struct root { uint16 v[]; uint16 w[EOF]; };",
+            "struct root { uint8 g[2][2]; char rows[2][3]; };",
         ];
-        foreach ((string definition, string reason) in cases)
+        foreach (string definition in definitions)
         {
             WriteProgramOutcome outcome = new CStruct(definition).Compilation.GetRootWriteProgram("root");
-            Assert.AreEqual(reason, outcome.Reason, definition);
-            Assert.IsNull(outcome.Program);
+            Assert.IsNull(outcome.Reason, definition);
         }
 
-        Assert.AreEqual("root.v: " + WriteProgramCompiler.CustomCodecs, new CStruct("struct root { vlq v; };", compilationOptions: new CStructCompilationOptions { Codecs = [VlqCodec.Instance,], }).Compilation.GetRootWriteProgram("root").Reason);
+        Assert.IsTrue(new CStruct("struct root { vlq v; word4 _; };", compilationOptions: new CStructCompilationOptions { Codecs = [VlqCodec.Instance, FixedWordCodec.Instance,], }).Compilation.GetRootWriteProgram("root").IsEligible);
+    }
+
+    /// <summary>
+    ///     A struct with bitfields is placed through the runtime cursor and ended by it; a union's program has one segment
+    ///     per member, each written from the union's first byte and ending with a return.
+    /// </summary>
+    [TestMethod]
+    public void BitfieldsAndUnions_HaveTheirOwnPlacement()
+    {
+        WriteProgram bits = Program("struct root { uint8 a : 3; uint8 : 0; uint16 b : 5; uint8 c; };", "root", aligned: true);
+        Assert.IsTrue(bits.UsesPlacementCursor);
+        Assert.AreEqual(
+            "LoadMember a|PlaceBitfield a|WriteBitfield a|PlaceSeparator (unnamed)|LoadMember b|PlaceBitfield b|WriteBitfield b|LoadMember c|PlaceMember c|WriteNumeric c|CompletePlacement c|FinishPlaced -",
+            Render(bits).Replace("PlaceSeparator |", "PlaceSeparator (unnamed)|", StringComparison.Ordinal));
+
+        WriteProgram union = new CStruct("union u { uint8 a; uint16 w : 12; }; struct root { u v; };").Compilation.GetRootWriteProgram("root").Program!.Nested[0].Nested[0];
+        Assert.AreEqual(WriteProgramKind.Union, union.Kind);
+        CollectionAssert.AreEqual(new[] { 0, 4, }, union.UnionEntries);
+        Assert.AreEqual("LoadRoot a|RewindToUnionStart a|WriteNumeric a|Return a|LoadRoot w|RewindToUnionStart w|OpenBitfieldUnit w|WriteBitfield w|Return w", Render(union));
     }
 
     /// <summary>Returns a root's composite.</summary>

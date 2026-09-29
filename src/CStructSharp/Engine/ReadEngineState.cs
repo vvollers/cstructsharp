@@ -1,5 +1,6 @@
 namespace CStructSharp.Engine;
 
+using System;
 using CStructSharp.Compilation.Programs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
@@ -18,10 +19,11 @@ using CStructSharp.Reading;
 ///         disposes them.
 ///     </para>
 ///     <para>
-///         <b>Frame arena.</b> Each frame's selected conditional arms and conditional-scope locals live in the two stacks
-///         of the state's <see cref="FrameArena"/> (the writer's state has one too) rather than in arrays of their own: a
-///         frame takes a range on entry and gives it back when it completes, so frames nest like the calls that run them. A failed operation abandons its ranges;
-///         <see cref="Release"/> returns the stacks, cleared, to the thread's spares when the operation ends.
+///         <b>Frame arena.</b> Each frame's conditional-scope locals live in the locals stack of the state's
+///         <see cref="FrameArena"/> (the writer's state has one too) rather than in arrays of their own: a frame takes a
+///         range on entry and gives it back when it completes, so frames nest like the calls that run them. A failed
+///         operation abandons its ranges; <see cref="Release"/> returns the stack, cleared, to the thread's spare when the
+///         operation ends. A frame's selected conditional arms are a few integers it keeps on its own call stack.
 ///     </para>
 /// </remarks>
 internal struct ReadEngineState
@@ -116,20 +118,8 @@ internal struct ReadEngineState
     /// </summary>
     public string? QualifiedPrefix { get; set; }
 
-    /// <summary>Gets the selected-arm stack; a frame reads its arms at the base <see cref="TakeArms"/> returned. Read it again after a nested frame ran, which may have grown it.</summary>
-    public readonly int[] Arms => this.arena.Arms;
-
     /// <summary>Gets the conditional-scope locals stack; a frame reads its locals at the base <see cref="TakeLocals"/> returned. Read it again after a nested frame ran.</summary>
     public readonly SlotValue[] Locals => this.arena.Locals;
-
-    /// <summary>Takes a frame's selected arms, every group <see cref="FrameArena.Undecided"/>.</summary>
-    /// <param name="count">The frame's conditional group count, positive.</param>
-    /// <returns>The index of the frame's first arm in <see cref="Arms"/>.</returns>
-    public int TakeArms(int count) => this.arena.TakeArms(count);
-
-    /// <summary>Gives back the arms a completed frame took.</summary>
-    /// <param name="start">The base <see cref="TakeArms"/> returned.</param>
-    public void ReleaseArms(int start) => this.arena.ReleaseArms(start);
 
     /// <summary>Takes a frame's conditional-scope locals, every one <see cref="SlotValue.Undefined"/> (the interpreter's "no saved value").</summary>
     /// <param name="count">The scope's local count (or a union's slot count), not negative.</param>
@@ -140,13 +130,13 @@ internal struct ReadEngineState
     /// <param name="start">The base <see cref="TakeLocals"/> returned.</param>
     public void ReleaseLocals(int start) => this.arena.ReleaseLocals(start);
 
-    /// <summary>Selects a branch's arm in a frame through the shared arena rule (<see cref="FrameArena.SelectedArm"/>), in the read domain.</summary>
+    /// <summary>Selects a branch's arm in a frame through the shared rule (<see cref="FrameArena.SelectedArm"/>), in the read domain.</summary>
     /// <param name="program">The program.</param>
     /// <param name="branch">The branch being tested.</param>
-    /// <param name="armBase">The base of the frame's selected arms.</param>
+    /// <param name="frameArms">The frame's selected arms, which the frame keeps on its stack.</param>
     /// <returns>The selected arm of the branch's group.</returns>
-    public int SelectedArm(ReadProgram program, ReadProgram.ConditionalBranch branch, int armBase)
-        => FrameArena.SelectedArm(ref this.arena, this.Slots, program.Groups, program.Expressions, program.ExpressionContexts, branch, armBase, ExpressionFailureDomain.Read);
+    public readonly int SelectedArm(ReadProgram program, ReadProgram.ConditionalBranch branch, Span<int> frameArms)
+        => FrameArena.SelectedArm(frameArms, this.Slots, program.Groups, program.Expressions, program.ExpressionContexts, branch, ExpressionFailureDomain.Read);
 
     /// <summary>Completes a member of a conditional composite through the shared arena rule (<see cref="FrameArena.CompleteMember"/>).</summary>
     /// <param name="scope">The composite's scope in slot terms.</param>
@@ -193,7 +183,7 @@ internal struct ReadEngineState
     }
 
     /// <summary>
-    ///     Returns the frame stacks to the thread's spares at the end of the operation, the locals cleared so no payload
+    ///     Returns the frame arena's locals stack to the thread's spare at the end of the operation, cleared so no payload
     ///     stays alive, and the pointer bookkeeping to the thread's cache.
     /// </summary>
     public void Release()

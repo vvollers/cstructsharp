@@ -11,6 +11,7 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
 using CStructSharp.Reading;
 using CStructSharp.Values;
+using CStructSharp.Writing;
 
 /// <summary>
 ///     The compiled engine's writer: executes a root's <see cref="WriteProgram"/> into a destination and produces exactly
@@ -106,7 +107,16 @@ internal static partial class WriteEngine
         try
         {
             options.CancellationToken.ThrowIfCancellationRequested();
-            RunFrame(ref destination, ref state, program, rootData);
+
+            // A struct root is written straight from the root value: its one-step root frame would only pass it on.
+            if (program.Steps is [{ Op: WriteOpCode.WriteRootStruct, } root,])
+            {
+                WriteComposite(ref destination, ref state, program.Nested[root.A], rootData, promoted: false);
+            }
+            else
+            {
+                RunFrame(ref destination, ref state, program, rootData, 0);
+            }
         }
         catch (CStructException exception)
         {
@@ -120,17 +130,17 @@ internal static partial class WriteEngine
     }
 
     /// <summary>
-    ///     Writes a struct from its value, as the interpreter's <c>WriteStruct</c> does: the token, a null value, the
-    ///     mapped-class binding, the unknown-member policy (not for a promoted struct, whose data its parent checked), then
-    ///     the static write plan when the interpreter would take it, otherwise member by member inside one claimed nesting
-    ///     level (none for a promoted struct).
+    ///     Writes a struct or union from its value, as the interpreter's <c>WriteStruct</c> does: the token, a null value,
+    ///     the mapped-class binding, the unknown-member policy (not for a promoted member, whose data its parent checked),
+    ///     then for a struct the static write plan when the interpreter would take it, otherwise member by member - or the
+    ///     union's selection staged - inside one claimed nesting level (none for a promoted member).
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
     /// <param name="destination">The operation's destination, at the struct's first byte.</param>
     /// <param name="state">The operation's state.</param>
-    /// <param name="program">The struct's program.</param>
-    /// <param name="data">The struct's value; for a promoted struct, the parent's value that carries its members.</param>
-    /// <param name="promoted">Whether the struct is an anonymous promoted member of its parent.</param>
+    /// <param name="program">The struct's or union's program.</param>
+    /// <param name="data">The value; for a promoted member, the parent's value that carries its members.</param>
+    /// <param name="promoted">Whether the struct or union is an anonymous promoted member.</param>
     private static void WriteComposite<TDestination>(ref TDestination destination, ref WriteEngineState state, WriteProgram program, object? data, bool promoted)
         where TDestination : struct, IWriteDestination
     {
@@ -141,13 +151,13 @@ internal static partial class WriteEngine
             throw new CStructWriteException(WriteFailures.NullComposite(composite.Name));
         }
 
-        data = WriteDataBinding.Materialize(data, composite);
+        data = WriteDataBinding.Bind(data, composite);
         if (state.RejectUnknownMembers && !promoted)
         {
             CStruct.RejectUnknownMembers(composite, data);
         }
 
-        if (TryWriteStaticPlan(ref destination, ref state, composite, data, promoted))
+        if (!composite.IsUnion && TryWriteStaticPlan(ref destination, ref state, composite, data, promoted))
         {
             return;
         }
@@ -159,7 +169,14 @@ internal static partial class WriteEngine
 
         try
         {
-            RunFrame(ref destination, ref state, program, data);
+            if (program.Kind == WriteProgramKind.Union)
+            {
+                WriteUnion(ref destination, ref state, program, data);
+            }
+            else
+            {
+                RunFrame(ref destination, ref state, program, data, 0);
+            }
         }
         finally
         {
@@ -234,41 +251,57 @@ internal static partial class WriteEngine
     }
 
     /// <summary>
-    ///     Executes one program's steps in this call's frame. A failure inside a named member (from its value lookup to
-    ///     its capture) is attributed to that member by the exception filter, which runs before any inner
+    ///     Executes one program's steps in this call's frame, from step <paramref name="entry"/> to the end (or, in a union,
+    ///     to the member segment's <see cref="WriteOpCode.Return"/>). A failure inside a named member (from its value lookup
+    ///     to its capture) is attributed to that member by the exception filter, which runs before any inner
     ///     <see langword="finally"/>, so the innermost member wins, as in the interpreter's field loop.
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
     /// <param name="destination">The operation's destination, at the program's first byte.</param>
     /// <param name="state">The operation's state.</param>
     /// <param name="program">The program.</param>
-    /// <param name="data">The value the members are read from: the struct's, the parent's for a promoted struct, or the root value.</param>
-    private static void RunFrame<TDestination>(ref TDestination destination, ref WriteEngineState state, WriteProgram program, object data)
+    /// <param name="data">
+    ///     The value the members are read from: the struct's, the parent's for a promoted struct, the root value, or a union
+    ///     member's selected value.
+    /// </param>
+    /// <param name="entry">The first step: 0, or a union member's segment.</param>
+    private static void RunFrame<TDestination>(ref TDestination destination, ref WriteEngineState state, WriteProgram program, object data, int entry)
         where TDestination : struct, IWriteDestination
     {
         WriteStep[] steps = program.Steps;
 
-        // Alignment, offset assertions and the tail are measured from the struct's own first byte (D-18).
+        // Alignment, offset assertions and the tail are measured from the struct's own first byte (D-18); a union's
+        // members start at its first byte, which is the staging buffer's.
         long start = program.Kind == WriteProgramKind.Root ? 0 : destination.Position;
-        int arms = program.GroupCount == 0 ? -1 : state.TakeArms(program.GroupCount);
+
+        // The frame's selected conditional arms live on its stack; a composite with more groups than fit allocates them.
+        Span<int> arms = program.GroupCount <= FrameArena.StackArmLimit ? stackalloc int[FrameArena.StackArmLimit] : new int[program.GroupCount];
+        arms[..program.GroupCount].Fill(FrameArena.Undecided);
         int locals = program.Scope is { LocalCount: > 0, } scope ? state.TakeLocals(scope.LocalCount) : -1;
         Span<byte> scratch = stackalloc byte[ScratchSize];
 
         // A value of this program's own shape (a parse's result) is read by slot, any other data by name.
         StructValue? same = data is StructValue structValue && ReferenceEquals(structValue.Shape, program.Shape) ? structValue : null;
 
-        // The registers: the member's supplied value, its element count, the exact number an enum write produced (which a
-        // capture stores instead of the supplied value), and a member start computed by a placement step but not yet
-        // moved to because an offset assertion is checked first.
+        // The registers: the member's supplied value, its element count (-1: the value decides it), the exact number an
+        // enum write produced (which a capture stores instead of the supplied value), a member start computed by a
+        // placement step but not yet moved to because an offset assertion is checked first, and the open bitfield unit.
         object? value = null;
         int count = 0;
         BigInteger enumValue = default;
         bool hasEnumValue = false;
         long placed = -1;
-        int index = 0;
+        int bitOffset = 0;
+        int unitSize = 0;
+
+        // A struct with bitfields places its members through the runtime cursor the interpreter uses, held on the stack.
+        PlacementCursor placer = program.UsesPlacementCursor
+                                     ? new PlacementCursor(start, state.Layout.Aligned, state.Layout.BitfieldPacking, state.Layout.Compilation.HighBitFirst)
+                                     : default;
+        int index = entry;
         try
         {
-            for (index = 0; index < steps.Length; index++)
+            for (; index < steps.Length; index++)
             {
                 WriteStep step = steps[index];
                 switch (step.Op)
@@ -320,6 +353,10 @@ internal static partial class WriteEngine
                         state.MaxArrayElements);
                     break;
 
+                case WriteOpCode.SetCount:
+                    count = step.A;
+                    break;
+
                 case WriteOpCode.LoadMember:
                     value = LoadMember(same, data, step.A, program.Fields[step.Field]);
                     hasEnumValue = false;
@@ -331,7 +368,7 @@ internal static partial class WriteEngine
                     break;
 
                 case WriteOpCode.LoadRoot:
-                    value = data ?? throw new CStructWriteException(WriteFailures.NullForNonPointer(program.Fields[step.Field].Name));
+                    value = RejectNull(data, program.Fields[step.Field]);
                     hasEnumValue = false;
                     break;
 
@@ -340,7 +377,7 @@ internal static partial class WriteEngine
                     break;
 
                 case WriteOpCode.WriteCodecValue:
-                    WriteThroughCodec(ref destination, ref state, program.Codecs[step.A].CodecId, program.ValueFields[step.Field], value!);
+                    WriteThroughCodec(ref destination, ref state, program.Codecs[step.A], program.ValueFields[step.Field], value!);
                     break;
 
                 case WriteOpCode.WriteEnum:
@@ -349,19 +386,40 @@ internal static partial class WriteEngine
                     break;
 
                 case WriteOpCode.WriteText:
-                    WriteText(ref destination, ref state, program.Fields[step.Field], program.Codecs[step.A].CodecId, value!, count);
+                    {
+                        CompiledField field = program.Fields[step.Field];
+                        string text = value as string ?? WriteValueMaterialization.ConvertToBoundedCharString(value!, count, field.Name);
+                        WriteText(ref destination, ref state, field, program.Codecs[step.A].CodecId, text, count);
+                        break;
+                    }
+
+                case WriteOpCode.WriteTextTable:
+                    WriteTextTable(ref destination, ref state, program.Fields[step.Field], program.Codecs[step.A].CodecId, value!);
                     break;
 
                 case WriteOpCode.WriteNumericArray:
                     WriteNumericArray(ref destination, ref state, program.Fields[step.Field], program.Codecs[step.A].Primitive, value!, count, step.B == 0, scratch);
                     break;
 
-                case WriteOpCode.WriteCodecArray:
-                    WriteCodecArray(ref destination, ref state, program.Fields[step.Field], program.Codecs[step.A].CodecId, value!, count);
+                case WriteOpCode.WriteElements:
+                    WriteElements(ref destination, ref state, program, step.Field, (WriteElementKind)step.B, step.A, value!, count, scratch);
                     break;
 
-                case WriteOpCode.WriteEnumArray:
-                    WriteEnumArray(ref destination, ref state, program.Fields[step.Field], program.Codecs[step.A], program.Enums[step.B], value!, count, scratch);
+                case WriteOpCode.WriteLeaves:
+                    WriteLeaves(ref destination, ref state, program, step.Field, (WriteElementKind)step.B, step.A, value!, scratch);
+                    break;
+
+                case WriteOpCode.WriteTerminator:
+                case WriteOpCode.WriteZeroes:
+                    destination.WriteZeroes(step.A);
+                    break;
+
+                case WriteOpCode.WritePointer:
+                    WritePointer(ref destination, ref state, value, scratch);
+                    break;
+
+                case WriteOpCode.WriteBitfield:
+                    WriteBitfield(ref destination, ref state, program.Fields[step.Field], value!, ref bitOffset, unitSize, scratch);
                     break;
 
                 case WriteOpCode.WriteStruct:
@@ -377,10 +435,6 @@ internal static partial class WriteEngine
                         break;
                     }
 
-                case WriteOpCode.WriteStructArray:
-                    WriteStructArray(ref destination, ref state, program.Fields[step.Field], program.Nested[step.A], value!, count);
-                    break;
-
                 case WriteOpCode.WritePromotedStruct:
                     {
                         string? outer = state.QualifiedPrefix;
@@ -393,6 +447,10 @@ internal static partial class WriteEngine
                         state.QualifiedPrefix = outer;
                         break;
                     }
+
+                case WriteOpCode.WritePromotedUnion:
+                    WritePromotedUnion(ref destination, ref state, program.Nested[step.A], data);
+                    break;
 
                 case WriteOpCode.WriteRootStruct:
                     WriteComposite(ref destination, ref state, program.Nested[step.A], data, promoted: false);
@@ -452,6 +510,41 @@ internal static partial class WriteEngine
                     FinishComposite(ref destination, start, step.A, step.B);
                     break;
 
+                case WriteOpCode.PlaceMember:
+                case WriteOpCode.PlaceSeparator:
+                    destination.Position = CompositeFieldPlacementCursor.AdvanceToField(ref placer, program.Fields[step.Field]).FieldStart;
+                    bitOffset = 0;
+                    break;
+
+                case WriteOpCode.PlaceBitfield:
+                    {
+                        (long unitStart, bitOffset, unitSize) = CompositeFieldPlacementCursor.AdvanceToField(ref placer, program.Fields[step.Field]);
+                        destination.Position = unitStart;
+                        break;
+                    }
+
+                case WriteOpCode.CompletePlacement:
+                    placer.CompleteField(destination.Position);
+                    break;
+
+                case WriteOpCode.FinishPlaced:
+                    FinishPlaced(ref destination, ref state, ref placer, step.B);
+                    break;
+
+                case WriteOpCode.OpenBitfieldUnit:
+                    bitOffset = 0;
+                    unitSize = program.Fields[step.Field].BitStorageSize!.Value;
+                    break;
+
+                case WriteOpCode.RewindToUnionStart:
+                    destination.Position = start;
+                    bitOffset = 0;
+                    break;
+
+                case WriteOpCode.Return:
+                    index = steps.Length - 1;
+                    break;
+
                 case WriteOpCode.EvaluateDefinition:
                     {
                         Int128 defined = state.Slots.Evaluate(program.Expressions[step.A], program.ExpressionContexts[step.A], ExpressionFailureDomain.Write);
@@ -471,11 +564,6 @@ internal static partial class WriteEngine
             if (locals >= 0)
             {
                 state.ReleaseLocals(locals);
-            }
-
-            if (arms >= 0)
-            {
-                state.ReleaseArms(arms);
             }
         }
         catch (CStructException exception) when (NoteMember(exception, program, index))
@@ -568,7 +656,7 @@ internal static partial class WriteEngine
     /// <param name="data">The frame's data.</param>
     /// <param name="slot">The member's slot in the program's shape.</param>
     /// <param name="member">The member.</param>
-    /// <returns>The value.</returns>
+    /// <returns>The value; <see langword="null"/> only for a scalar pointer.</returns>
     /// <exception cref="CStructWriteException">No value, or a null value, was supplied.</exception>
     private static object LoadMember(StructValue? same, object data, int slot, CompiledField member)
     {
@@ -585,8 +673,21 @@ internal static partial class WriteEngine
             value = WriteDataBinding.GetMemberValueOrThrow(data, member.Name);
         }
 
-        return value ?? throw new CStructWriteException(WriteFailures.NullForNonPointer(member.Name));
+        return RejectNull(value, member)!;
     }
+
+    /// <summary>
+    ///     Rejects a null value, as the interpreter's field write does, unless the member is a scalar pointer, whose null
+    ///     value is the null address.
+    /// </summary>
+    /// <param name="value">The supplied value.</param>
+    /// <param name="member">The member.</param>
+    /// <returns>The value.</returns>
+    /// <exception cref="CStructWriteException">The value is null and the member is not a scalar pointer.</exception>
+    private static object? RejectNull(object? value, CompiledField member)
+        => value is null && (member.PointerDepth == 0 || member.Array.Kind != CompiledArrayKind.Scalar)
+               ? throw new CStructWriteException(WriteFailures.NullForNonPointer(member.Name))
+               : value;
 
     /// <summary>
     ///     Rejects a value supplied for any name an unselected conditional member makes visible, as the interpreter does

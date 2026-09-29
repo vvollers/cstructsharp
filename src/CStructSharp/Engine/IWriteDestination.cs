@@ -22,6 +22,9 @@ internal interface IWriteDestination
     /// <summary>Gets the high-water mark: the number of leading bytes that hold written data.</summary>
     long Length { get; }
 
+    /// <summary>Gets a value indicating whether a block may be written where the interpreter would write element by element (not into a union's staging).</summary>
+    bool AllowsBlocks { get; }
+
     /// <summary>Gets the destination as the stream codec writers write to; it enforces the same budget.</summary>
     Stream Stream { get; }
 

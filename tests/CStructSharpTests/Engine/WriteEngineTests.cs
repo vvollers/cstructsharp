@@ -7,9 +7,10 @@ using CStructSharp.Values;
 /// <summary>
 ///     The compiled write engine's step semantics where the sweeps and corpora do not reach, each compared with the
 ///     interpreter through the differential harness and pinned to its expected outcome: every codec at every write budget
-///     and span capacity, the prefix a failed write leaves in a span, the narrow text path that fails after writing earlier
-///     characters, tail padding written and charged, the inactive conditional member check, captures of converted supplied
-///     values, and the memory destination's own rules (gaps, read-back, budget, chunked zero fill).
+///     and span capacity, every terminated text type, the prefix a failed write leaves in a span, the narrow text path that
+///     fails after writing earlier characters, tail padding written and charged, the inactive conditional member check,
+///     captures of converted supplied values, bitfield units, staged unions, pointers, and the memory destination's own
+///     rules (gaps, read-back, budget, chunked zero fill).
 /// </summary>
 [TestClass]
 public class WriteEngineTests
@@ -106,6 +107,43 @@ public class WriteEngineTests
             EngineDifferential.AssertSame(EngineOperations.SerializeToSpan(layout, 8, "rec", value), true, path);
             EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", value), true, path);
         }
+    }
+
+    /// <summary>
+    ///     Every terminated text type is encoded as the catalog's terminated-string writer encodes it: the text and its
+    ///     terminator in the type's encoding and byte order, a terminator inside the value rejected, text the encoding cannot
+    ///     represent rejected, a non-text value converted to invariant text, and the per-string limit counted with the
+    ///     terminator.
+    /// </summary>
+    [TestMethod]
+    public void TerminatedText_EncodesAsTheCatalogWriter()
+    {
+        string[] types =
+        [
+            "ascii_string_zero", "ascii_string_newline", "utf8_string_zero", "utf8_string_newline",
+            "unicode_string_zero>", "unicode_string_zero<", "unicode_string_newline>", "unicode_string_newline<", "cstring",
+        ];
+        object[] values = ["abc", string.Empty, "a\0b", "a\nb", "é", "\uD800", 1.5, 42];
+        foreach (string type in types)
+        {
+            var layout = new CStruct($"struct rec {{ uint8 n; uint8 items[n]; {type} s; uint8 tail; }};");
+            foreach (object text in values)
+            {
+                var value = new Dictionary<string, object?> { ["n"] = (byte)0, ["items"] = Array.Empty<byte>(), ["s"] = text, ["tail"] = (byte)9, };
+                foreach (ExecutionPath path in Paths)
+                {
+                    EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", value), true, path);
+                    for (int limit = 0; limit <= 8; limit++)
+                    {
+                        EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", value, options: new WriteOptions { MaxStringBytes = limit, }), true, path);
+                    }
+                }
+            }
+        }
+
+        var bigEndian = new CStruct("struct rec { uint8 n; uint8 items[n]; unicode_string_newline> s; };");
+        var sample = new Dictionary<string, object?> { ["n"] = (byte)0, ["items"] = Array.Empty<byte>(), ["s"] = "hi", };
+        CollectionAssert.AreEqual(new byte[] { 0, 0, (byte)'h', 0, (byte)'i', 0, (byte)'\n', }, bigEndian.Serialize("rec", sample, options: EngineSelections.EngineRequired(new WriteOptions())));
     }
 
     /// <summary>
@@ -213,6 +251,114 @@ public class WriteEngineTests
                 EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", unknownInside, options: options), true, path);
                 EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", new SharpEdgeOptionTests.InnerPoco { A = 1, }, options: options), true, path);
                 EngineDifferential.AssertSame(EngineOperations.SerializeToSpan(layout, 3, "rec", mapped, options: options), true, path);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     A bitfield merges into its storage unit by reading the unit back: in a new span the bytes past what was written
+    ///     read as zero (not the span's old contents), and every bitfield rewrites - and is charged for - its whole unit, so
+    ///     a budget that covers the output's extent but not the rewrites fails at the second field.
+    /// </summary>
+    [TestMethod]
+    public void Bitfields_ReadTheUnitBackAsWritten_AndChargeEveryRewrite()
+    {
+        var layout = new CStruct("struct rec { uint8 n; uint8 v[n]; uint8 a : 3; uint8 b : 5; };");
+        var value = new Dictionary<string, object?> { ["n"] = (byte)0, ["v"] = Array.Empty<byte>(), ["a"] = (byte)5, ["b"] = (byte)3, };
+        byte[] span = Enumerable.Repeat(EngineOperations.Unwritten, 4).ToArray();
+        Assert.AreEqual(2, layout.Serialize(span.AsSpan(), "rec", value, options: EngineSelections.EngineRequired(new WriteOptions())));
+        CollectionAssert.AreEqual(new byte[] { 0, 0x1D, 0xCC, 0xCC, }, span);
+        CStructWriteLimitException failure = Assert.Throws<CStructWriteLimitException>(() => layout.Serialize("rec", value, options: EngineSelections.EngineRequired(new WriteOptions { MaxTotalBytesWritten = 2, })));
+        Assert.AreEqual("b", failure.Member);
+        CollectionAssert.AreEqual(new byte[] { 0, 0x1D, }, layout.Serialize("rec", value, options: EngineSelections.EngineRequired(new WriteOptions { MaxTotalBytesWritten = 3, })));
+        foreach (ExecutionPath path in Paths)
+        {
+            for (int limit = 1; limit <= 4; limit++)
+            {
+                EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", value, options: new WriteOptions { MaxTotalBytesWritten = limit, }), true, path);
+                EngineDifferential.AssertSame(EngineOperations.SerializeToSpan(layout, limit - 1, "rec", value), true, path);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     A union's selected member is staged away from the destination: a member that cannot be written leaves the
+    ///     union's bytes unwritten (a span keeps what preceded it), the staging has a budget of its own so the union is
+    ///     charged once for its whole storage, and raw storage of the wrong size is rejected before anything is written.
+    /// </summary>
+    [TestMethod]
+    public void Unions_AreStagedAndChargedOnce()
+    {
+        var layout = new CStruct("union u { uint8 a; uint32 b; }; struct rec { uint8 n; uint8 v[n]; u x; };");
+
+        // Builds the record's value around one union selection.
+        Dictionary<string, object?> Value(UnionValue union) => new() { ["n"] = (byte)1, ["v"] = new byte[] { 7, }, ["x"] = union, };
+        WriteOptions required = EngineSelections.EngineRequired(new WriteOptions());
+        CollectionAssert.AreEqual(new byte[] { 1, 7, 9, 0, 0, 0, }, layout.Serialize("rec", Value(UnionValue.FromMember("u", "a", (byte)9)), options: required));
+        CollectionAssert.AreEqual(new byte[] { 1, 7, 9, 0, 0, 0, }, layout.Serialize("rec", Value(UnionValue.FromMember("u", "a", (byte)9)), options: required with { MaxTotalBytesWritten = 6, }));
+
+        byte[] span = Enumerable.Repeat(EngineOperations.Unwritten, 7).ToArray();
+        Assert.Throws<CStructWriteException>(() => layout.Serialize(span.AsSpan(), "rec", Value(UnionValue.FromMember("u", "b", "x")), options: required));
+        CollectionAssert.AreEqual(new byte[] { 1, 7, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, }, span, "nothing of the union is written");
+
+        UnionValue[] unions = [UnionValue.FromMember("u", "a", (byte)9), UnionValue.FromMember("u", "b", 0x01020304u), UnionValue.FromMember("u", "b", "x"), UnionValue.FromMember("u", "zz", 1), UnionValue.FromRaw("u", [1, 2]), UnionValue.FromRaw("u", [1, 2, 3, 4]), UnionValue.FromMember("v", "a", (byte)1)];
+        foreach (ExecutionPath path in Paths)
+        {
+            foreach (UnionValue union in unions)
+            {
+                for (int limit = 4; limit <= 7; limit++)
+                {
+                    EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", Value(union), options: new WriteOptions { MaxTotalBytesWritten = limit, }), true, path);
+                    EngineDifferential.AssertSame(EngineOperations.SerializeToSpan(layout, limit, "rec", Value(union)), true, path);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    ///     An anonymous promoted union writes the widest member its parent's value supplies, staged like a named union's
+    ///     selection, and fails naming the union's members when none is supplied.
+    /// </summary>
+    [TestMethod]
+    public void PromotedUnion_WritesTheWidestSuppliedMember()
+    {
+        var layout = new CStruct("struct rec { uint8 n; uint8 v[n]; union { uint8 small; uint16 wide; struct { uint8 lo; uint8 hi; }; }; };");
+        WriteOptions required = EngineSelections.EngineRequired(new WriteOptions());
+        var both = new Dictionary<string, object?> { ["n"] = (byte)0, ["v"] = Array.Empty<byte>(), ["small"] = (byte)1, ["wide"] = (ushort)0x0302, };
+        CollectionAssert.AreEqual(new byte[] { 0, 2, 3, }, layout.Serialize("rec", both, options: required));
+        var parts = new Dictionary<string, object?> { ["n"] = (byte)0, ["v"] = Array.Empty<byte>(), ["hi"] = (byte)6, };
+        var none = new Dictionary<string, object?> { ["n"] = (byte)0, ["v"] = Array.Empty<byte>(), };
+        StringAssert.StartsWith(Assert.Throws<CStructWriteException>(() => layout.Serialize("rec", none, options: required)).Message, "No member of the anonymous union was supplied");
+        foreach (ExecutionPath path in Paths)
+        {
+            foreach (Dictionary<string, object?> value in new[] { both, parts, none, })
+            {
+                EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", value), true, path);
+                EngineDifferential.AssertSame(EngineOperations.SerializeToSpan(layout, 2, "rec", value), true, path);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     A pointer writes only its stored address, encoded by the operation's addressing mode and origin, and a scalar
+    ///     pointer may be null (the null address) while a pointer array may not.
+    /// </summary>
+    [TestMethod]
+    public void Pointers_WriteTheirEncodedAddress()
+    {
+        var layout = new CStruct("struct rec { uint8 n; uint8 v[n]; uint8 *p; uint8 *q[2]; };", 2);
+        var value = new Dictionary<string, object?> { ["n"] = (byte)0, ["v"] = Array.Empty<byte>(), ["p"] = 10L, ["q"] = new object?[] { null, 12L, }, };
+        CollectionAssert.AreEqual(new byte[] { 0, 10, 0, 0, 0, 12, 0, }, layout.Serialize("rec", value, options: EngineSelections.EngineRequired(new WriteOptions())));
+        CollectionAssert.AreEqual(new byte[] { 0, 6, 0, 0, 0, 8, 0, }, layout.Serialize("rec", value, options: EngineSelections.EngineRequired(new WriteOptions { AddressingMode = PointerAddressingMode.Relative, Origin = 4, })));
+        foreach (ExecutionPath path in Paths)
+        {
+            foreach (object? pointer in new object?[] { null, 10L, -1L, 70000L, "x", })
+            {
+                foreach (WriteOptions options in new[] { new WriteOptions(), new WriteOptions { AddressingMode = PointerAddressingMode.Relative, Origin = 11, }, })
+                {
+                    EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", new Dictionary<string, object?>(value) { ["p"] = pointer, }, options: options), true, path);
+                    EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", new Dictionary<string, object?>(value) { ["q"] = pointer, }, options: options), true, path);
+                }
             }
         }
     }
