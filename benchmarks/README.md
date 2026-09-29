@@ -12,7 +12,7 @@ retain instability and canary warnings, and do not refresh baselines merely to m
 
 | Path | Purpose |
 | --- | --- |
-| `CStructSharp.Benchmarks/` | BenchmarkDotNet host. `Scenarios/` holds one fixture-driven class per operation (category `Scenario`: compile, parse, stream, path and typed reads, write, update, debug, malformed input, hand-written comparators); the classes beside it measure single operations (addresses, reads, text writes, memory analysis in category `Memory`); `GeneratedBenchmarks` (category `Generated`) compares generated code with the runtime, `AsyncBenchmarks` (category `Async`) the stream forms with their awaitable twins, `SequenceBenchmarks` (category `Sequences`) segmented input and record sequences (`ParseMany`, `Records`, the view enumerator) with the loops a caller would write. The `Gate` category selects the release-gate cases, and `Impact` the quick before/after subset. `--profile <scenario>` runs a manual loop for sampling profilers. |
+| `CStructSharp.Benchmarks/` | BenchmarkDotNet host. `Scenarios/` holds one fixture-driven class per operation (category `Scenario`: compile, parse, stream, path and typed reads, write, update, debug, malformed input, hand-written comparators); the classes beside it measure single operations (addresses, reads, text writes, memory analysis in category `Memory`); `GeneratedBenchmarks` (category `Generated`) compares generated code with the runtime, `AsyncBenchmarks` (category `Async`) the stream forms with their awaitable twins, `SequenceBenchmarks` (category `Sequences`) segmented input and record sequences (`ParseMany`, `Records`, the view enumerator) with the loops a caller would write, `PacketBenchmarks` (category `Packet`) the general reader and writer on the comparison's data-dependent record, and `CostModelBenchmarks` (category `CostModel`) synthetic layouts whose differences give the general reader's cost per call and per member. The `Gate` category selects the release-gate cases, and `Impact` the quick before/after subset. `--profile <scenario>` runs a manual loop for sampling profilers. |
 | `CStructSharp.Comparison/` | The serializer comparison shown in the root README: a fixed 79-byte record and a data-dependent record deserialized and serialized by CStructSharp and by other .NET serializers. It is outside both solutions; see [Compare with other serializers](#compare-with-other-serializers). |
 | `CStructSharp.FixtureTool/` | Fills and verifies `fixtures/` expectations with the managed library; also the shared fixture loader the benchmarks use. |
 | `fixtures/` | Seeded fixture corpus shared by .NET, Node, and browser harnesses (see its README). |
@@ -62,12 +62,13 @@ performance contracts.
 
 ## Check a change quickly: the Impact category
 
-The full suite takes about 45 minutes. The `Impact` category is a subset of about 40 cases that covers every
+The full suite takes about 45 minutes. The `Impact` category is a subset of 46 cases that covers every
 execution path a change can affect: compilation, span parses of eleven fixtures chosen for their differences
 (`ImpactParseBenchmarks`: fixed records, nested structs, big-endian arrays, runtime counts, conditions, strings, a
 real file header, pointers, bitfields, unions, alias spellings), generated parse, view and serialize, a hand-written
-canary, paths, typed reads, serialize and update, debug ranges, async and segmented input. One run takes about seven
-minutes:
+canary, paths, typed reads, serialize and update, debug ranges, async and segmented input, and the data-dependent
+`packet` record (`PacketBenchmarks`: parse from a span, a `MemoryStream` and a `FileStream`, read into a mapped class,
+serialize a `StructValue` and a mapped instance). One run takes about eight minutes:
 
 ```sh
 dotnet build ./CStructSharp.NonWeb.slnf -c Release
@@ -77,7 +78,7 @@ CSTRUCTSHARP_BENCHMARK_JOB=Short dotnet run --project benchmarks/CStructSharp.Be
 
 To compare a change with the code before it, build a second checkout of the earlier revision and let
 `quick-perf-check.mjs` run both, interleaved, keeping the best median of each case. The `Quick` job measures the
-whole `Impact` category on both sides, twice, in about a minute and a half:
+whole `Impact` category on both sides, twice, in about a minute and forty seconds:
 
 ```sh
 git worktree add ../cstructsharp-before HEAD
@@ -131,7 +132,8 @@ times and reports how long one call takes. Every case works on one of two record
   structs and a fixed array of eight `int32` samples. Every member has the same offset in every record.
 - **The data-dependent record** (`Variable/PacketLayout.cs`): a count-sized `int32` array, a length-prefixed
   name, a member chosen by `kind` (`float64` or `uint32`), and a zero-terminated note. The sample is 62 bytes,
-  but the offsets of most members are known only after the earlier bytes are read.
+  but the offsets of most members are known only after the earlier bytes are read. `CStructSharp.Benchmarks`
+  compiles the same layout, mapped class, and sample from these source files for its `Packet` cases.
 
 The cases fall into four groups, each a BenchmarkDotNet category:
 
@@ -249,8 +251,9 @@ uses the npm build of `kaitai-struct-compiler`, so no Java is required.
 
 ## Memory analysis workloads
 
-`MemoryAnalysisBenchmarks` measures cross-page selected reads, cached reads, ISF import, bounded traversal,
-4,096 stored-pointer links, a selected field in a sparse one-million-byte record, and mapped offline updates.
+`MemoryAnalysisBenchmarks` measures cross-page selected reads, cached reads, one scalar member read by name from a
+byte-array source (`ScalarReadByName`), ISF import, bounded traversal, 4,096 stored-pointer links, a selected field in
+a sparse one-million-byte record, and mapped offline updates.
 Run `--filter '*MemoryAnalysisBenchmarks*'` with the same Release job and runtime
 settings shown above. The synthetic consumer at `docs/examples/memory-analysis` also checks source-request
 budgets, physical fragments, and preservation of the original image. Its sources do not depend on real captures.
@@ -260,6 +263,28 @@ Run both checkouts repeatedly on the same machine with identical filters, runtim
 Keep separate artifact directories using `CSTRUCTSHARP_BENCHMARK_ARTIFACTS`. Compare allocations as well as timing;
 do not run builds, tests, or mutation analysis while benchmarks are measuring.
 
+## Cost model of the general reader
+
+The *general reader* is the path that reads a layout member by member, used whenever a root has no fixed size (for
+example, because an array's length comes from the data). `CostModelBenchmarks` parses seven synthetic layouts from
+memory. Each one differs from another by one kind of member, so subtracting two medians gives the cost of that member:
+
+| Shape | Members before `uint8 n; uint8 tail[n];` (`n = 0`) | Compare with | Gives |
+| --- | --- | --- | --- |
+| `fixed-1` | only `uint8 a;`, no tail: a fixed root | – | the direct reader, for contrast |
+| `general-1` | none | – | the fixed cost of one call |
+| `scalars-16`, `scalars-32` | 16 or 32 `uint32` | each other | the cost of one scalar field (difference / 16) |
+| `plain-8`, `conditional-8` | `uint8 k;` and 8 `uint32`, plain or each in `if (k == 1) { … } else { … }` | each other | the extra cost of one conditional group (difference / 8) |
+| `char8-8` | 8 `char[8]` | `general-1` | the cost of one `char[8]` (difference / 8) |
+
+The trailing runtime-counted array keeps every shape but `fixed-1` off the fixed-size fast paths. Seven cases take
+about five seconds with the Quick job:
+
+```sh
+CSTRUCTSHARP_BENCHMARK_JOB=Quick DOTNET_TieredCompilation=0 \
+  dotnet benchmarks/CStructSharp.Benchmarks/bin/Release/net10.0/CStructSharp.Benchmarks.dll --filter '*CostModel*'
+```
+
 ## Profiling
 
 ```sh
@@ -267,6 +292,17 @@ benchmarks/profiling/profile-dotnet.sh ParsePrimitiveArray1KiB 10 artifacts/prof
 #   scenarios: CompileSmall, CompileMedium, ParsePrimitiveArray1KiB, ParseNestedUnaligned, SerializeNested256, ReadTypedNested256, ParseCondIf128, ParseDynamic1024,
 #   SerializePocoToSpan, ParseRealPng, ParseArrayU32Be (benchmarks/CStructSharp.Benchmarks/ProfileDriver.cs)
 node benchmarks/js/bench/profile-browser.mjs real-png 2000 artifacts/profiles            # Chromium CDP CPU profile
+```
+
+On any operating system, `CSTRUCTSHARP_BENCHMARK_PROFILE=cpu` samples one benchmark case with EventPipe and writes a
+`.nettrace` and a `.speedscope.json` (open it at [speedscope.app](https://www.speedscope.app)) into the artifacts
+directory. Use the Short job: the in-process Quick job does not support the profiler. A filter can include a
+parameter value, so one fixture takes about 30 seconds:
+
+```sh
+CSTRUCTSHARP_BENCHMARK_JOB=Short CSTRUCTSHARP_BENCHMARK_PROFILE=cpu CSTRUCTSHARP_BENCHMARK_ARTIFACTS=artifacts/profiles \
+  dotnet benchmarks/CStructSharp.Benchmarks/bin/Release/net10.0/CStructSharp.Benchmarks.dll \
+  --filter '*ImpactParseBenchmarks*cond-if128*'
 ```
 
 ## Anti-benchmarking rules

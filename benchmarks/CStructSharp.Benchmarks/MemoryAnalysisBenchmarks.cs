@@ -17,8 +17,10 @@ public class MemoryAnalysisBenchmarks
     private MemoryRegion largeRegion = null!;
     private MemorySession listSession = null!;
     private MemoryRegion listHead = null!;
+    private MemorySession recordSession = null!;
+    private MemoryRegion recordRegion = null!;
 
-    /// <summary>Builds a two-page mapping and warms a bounded cache with the same selected read.</summary>
+    /// <summary>Builds a two-page mapping, warms a bounded cache with the same selected read, and prepares the other workloads.</summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -42,6 +44,8 @@ public class MemoryAnalysisBenchmarks
         var listSpace = new MappedMemorySource("list space", [new(0xffff800000000000, new MemoryRegion(listSource, 0, listBytes.Length)),]);
         this.listHead = new MemoryRegion(listSpace, 0xffff800000000000, 8);
         _ = this.session.Read(this.cached, "u32");
+        this.recordSession = new MemorySession(new MemorySchema([new("u32", "u32", MemoryTypeKind.Scalar, 4, scalarType: "uint32"), new("record", "record", MemoryTypeKind.Struct, 8, [new("tag", "u32", 0), new("value", "u32", 4),]),]));
+        this.recordRegion = new MemoryRegion(new ByteArrayMemorySource("record image", [1, 0, 0, 0, 42, 0, 0, 0]), 0, 8);
         this.metadata = Encoding.UTF8.GetBytes("""
             {"metadata":{"format":"6.2.0"},"base_types":{"u32":{"kind":"int","size":4,"signed":false,"endian":"little"}},
             "user_types":{"record":{"kind":"struct","size":8,"fields":{"value":{"offset":4,"type":{"kind":"base","name":"u32"}}}}},"enums":{},"symbols":{}}
@@ -67,6 +71,11 @@ public class MemoryAnalysisBenchmarks
         _ = this.session.Read(this.cached, "u32", context: context);
         return context;
     }
+
+    /// <summary>Reads one scalar member of an eight-byte record by name from a byte-array source, with a default budget.</summary>
+    /// <returns>The decoded member.</returns>
+    [Benchmark]
+    public object? ScalarReadByName() => this.recordSession.Read(this.recordRegion, "record", "value");
 
     /// <summary>Reads four mapped bytes from a one-million-byte sparse record without materializing its gaps.</summary>
     /// <returns>The access context that recorded the sparse read.</returns>

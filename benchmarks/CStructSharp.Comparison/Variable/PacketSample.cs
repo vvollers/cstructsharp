@@ -4,9 +4,9 @@ using System.Buffers.Binary;
 using CStructSharp.Values;
 
 /// <summary>
-///     The variable-length packet the <see cref="VariableBenchmarks"/> read and write: the sample values, a hand-written
-///     reader and writer (the speed ceiling and the reference bytes), and the fingerprints every reader's result must
-///     agree on.
+///     The variable-length packet that <c>VariableBenchmarks</c> (and <c>PacketBenchmarks</c> in
+///     <c>CStructSharp.Benchmarks</c>, which links this file) read and write: the sample values, a hand-written reader
+///     and writer (the speed ceiling and the reference bytes), and the fingerprints every reader's result must agree on.
 /// </summary>
 public static class PacketSample
 {

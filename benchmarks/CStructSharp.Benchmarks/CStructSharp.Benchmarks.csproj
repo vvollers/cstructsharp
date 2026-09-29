@@ -18,4 +18,16 @@
     <ProjectReference Include="..\CStructSharp.FixtureTool\CStructSharp.FixtureTool.csproj" />
   </ItemGroup>
 
+  <!--
+    PacketBenchmarks: the comparison project's data-dependent packet (layout, mapped class, sample and accessors),
+    compiled here from the same source files so both projects measure the same layout and bytes.
+  -->
+  <ItemGroup>
+    <Compile Include="..\CStructSharp.Comparison\Fingerprint.cs" Link="Packet\Fingerprint.cs" />
+    <Compile Include="..\CStructSharp.Comparison\Variable\PacketAccessors.cs" Link="Packet\PacketAccessors.cs" />
+    <Compile Include="..\CStructSharp.Comparison\Variable\PacketDto.cs" Link="Packet\PacketDto.cs" />
+    <Compile Include="..\CStructSharp.Comparison\Variable\PacketLayout.cs" Link="Packet\PacketLayout.cs" />
+    <Compile Include="..\CStructSharp.Comparison\Variable\PacketSample.cs" Link="Packet\PacketSample.cs" />
+  </ItemGroup>
+
 </Project>
