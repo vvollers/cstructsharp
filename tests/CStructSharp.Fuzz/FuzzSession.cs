@@ -247,6 +247,21 @@ public sealed class FuzzSession
         };
     }
 
+    /// <summary>
+    ///     Runs one input and appends it to the replay digest: the target name, the input length (32-bit little-endian)
+    ///     and bytes, the outcome byte (0 success, 1 documented failure), then the outcome itself as the UTF-8 byte
+    ///     length (32-bit little-endian) and bytes of its <see cref="CanonicalText"/> rendering - the target's result on
+    ///     success, or the exception's type, message, error code, member, path, offset and inner failures.
+    /// </summary>
+    /// <param name="target">The target.</param>
+    /// <param name="input">The input.</param>
+    /// <param name="source">The replay name of the input, for a failure report.</param>
+    /// <param name="seed">The run seed, for a failure report.</param>
+    /// <param name="iteration">The input's index within its kind, for a failure report.</param>
+    /// <param name="digest">The target's replay digest.</param>
+    /// <param name="successes">The success count, incremented on success.</param>
+    /// <param name="documentedFailures">The documented-failure count, incremented on a documented failure.</param>
+    /// <exception cref="FuzzFailureException">The target threw an exception it does not document.</exception>
     private void ExecuteCase(
         FuzzTarget target,
         byte[] input,
@@ -258,16 +273,20 @@ public sealed class FuzzSession
         ref int documentedFailures)
     {
         byte outcome;
+        var rendering = new CanonicalText();
         try
         {
-            target.Execute(input);
+            target.Execute(input, rendering);
             outcome = 0;
             successes++;
         }
         catch (Exception exception) when (target.IsDocumentedFailure(exception))
         {
+            // Whatever the target rendered before it failed is discarded; the outcome is the failure alone.
             outcome = 1;
             documentedFailures++;
+            rendering = new CanonicalText();
+            rendering.Failure("failure", exception);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
@@ -287,5 +306,11 @@ public sealed class FuzzSession
         digest.AppendData(length);
         digest.AppendData(input);
         digest.AppendData([outcome,]);
+
+        // The rendering is length-prefixed so that no two different sequences of cases hash the same bytes.
+        byte[] renderingBytes = Encoding.UTF8.GetBytes(rendering.ToString());
+        BinaryPrimitives.WriteInt32LittleEndian(length, renderingBytes.Length);
+        digest.AppendData(length);
+        digest.AppendData(renderingBytes);
     }
 }

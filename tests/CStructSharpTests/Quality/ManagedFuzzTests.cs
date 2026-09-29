@@ -34,15 +34,18 @@ public class ManagedFuzzTests
     }
 
     /// <summary>
-    ///     Running the reviewed corpus produces 660 seed and mutation outcomes.
+    ///     Running the reviewed corpus produces 792 seed and mutation outcomes.
     /// </summary>
     /// <remarks>
     ///     Success counts, documented-failure counts, and digests must match the saved expectations for every target.
-    ///     Stable results make unexpected behavior changes visible and let the same cases be reproduced across
-    ///     supported .NET targets. The expression target's recorded outcomes include the <c>%</c>, <c>^</c> and
-    ///     <c>?:</c> operators. The
-    ///     generated-differential target (the generated readers and writers against the runtime) has no documented
-    ///     failures by construction: every input must produce the same outcome on both paths.
+    ///     Each digest covers every input and its outcome: the canonical rendering of the value a success produced, or
+    ///     the failure's type, message, path and offset, so a changed value or diagnostic changes the digest even when
+    ///     the counts stay the same. Stable results make unexpected behavior changes visible and let the same cases be
+    ///     reproduced across supported .NET targets; the fuzz CLI (<c>--target all</c> with the corpus's iteration
+    ///     count) prints the digests of a deliberate behavior change for review. The expression target's recorded
+    ///     outcomes include the <c>%</c>, <c>^</c> and <c>?:</c> operators. The generated-differential target (the
+    ///     generated readers and writers against the runtime) has no documented failures by construction: every input
+    ///     must produce the same outcome on both paths.
     /// </remarks>
     [TestMethod]
     public void ReviewedRun_MatchesTheFrozenReplayManifest()
@@ -53,27 +56,27 @@ public class ManagedFuzzTests
             ["binary-roundtrip"] = (
                 17,
                 115,
-                "BE7FD9D9D5066B8BF4E67995D1BF32E47E3C952568E53993571A478FC553F40A"),
+                "784CCA52D4652FDC2ACD77B65411EF2C2AE2AD77AF41F6C6FBDA8F2025509855"),
             ["definition"] = (
                 4,
                 128,
-                "7656099E98432A41718C6821C82A588E492D4271FC4E4AC70AD855E65D313095"),
+                "E10EAFC7094CB5274EB45B8E7425106CDBA6504A40157BC8A6B003C2F7BD2A6D"),
             ["expression"] = (
                 5,
                 127,
-                "048AB5601B50C06A5EEE44A4656A7502350FC64FFDDB2ABC681E19242891FE7C"),
+                "5D04AD2D65FAFE50545C14375A5077D897715D90BC022CE9CCC337ED77256930"),
             ["generated-differential"] = (
                 132,
                 0,
-                "E72541BBAE27870AB51666E66F2090638C44148A4F29E4E1DA11A00BA608B0F0"),
+                "98CBE527CC19DBAF2CE09E15E7989A71A594A6E2E173522C02612A3A1A430D97"),
             ["path"] = (
                 0,
                 132,
-                "BFC69FFF247794C3BF1C98874C422D6DBA224558717DE4FC54AA2DA6AAAB91D3"),
+                "775BD3B059217545A7CE36B8540196006D5F741123AC2DC97C13E54A6A7FE6E0"),
             ["pointer-union"] = (
                 26,
                 106,
-                "E0CBD9D958149264D0E5481F7477E6C9034DE9E94716381601627AA30C2CBE7C"),
+                "F44DABA1AEC122889F0017147700F0CC83CC2C9E5F7A554E1D094BC1831CB69A"),
         };
 
         Assert.AreEqual(1, report.SchemaVersion);

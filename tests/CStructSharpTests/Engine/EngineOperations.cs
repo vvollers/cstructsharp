@@ -2,6 +2,7 @@ namespace CStructSharp.Tests;
 
 using System.Buffers;
 using System.Globalization;
+using CStructSharp.Fuzzing;
 using CStructSharp.Values;
 
 /// <summary>

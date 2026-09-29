@@ -171,6 +171,13 @@ readers of the harness's layouts and with the runtime, and writes both values ba
 way (type and message) or produce the same bytes, so the target has no documented failures - any disagreement fails
 the run.
 
+Each target's report ends with a replay digest: a SHA-256 over every input and its outcome. The outcome is the
+canonical text of the value a success produced, or the failure's type, message, path and offset.
+`ManagedFuzzTests` pins the digests, so a change to a value or a diagnostic fails that test even when the success and
+failure counts stay the same. After a reviewed, deliberate behavior change, run
+`dotnet run --project tests/CStructSharp.Fuzz -c Release -f net10.0 -- --target all` and copy the printed digests
+into the test.
+
 The dissect corpus sweep (`DissectCorpusSweepTests.Corpus_NeverRegresses`) compiles every definition extracted
 from the dissect ecosystem and is in the `OptIn` test category, which `tests/CStructSharpTests/default.runsettings`
 excludes from ordinary runs. To run it, extract a corpus with `node tools/quality/extract-dissect-corpus.mjs

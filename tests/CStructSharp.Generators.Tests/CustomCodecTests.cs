@@ -115,7 +115,7 @@ public class CustomCodecTests
         // head, name "hi", colour 0x102030, ptr → offset 12 (the rgb after items), items "a" and "", tail, target.
         byte[] bytes = [7, 2, 0, (byte)'h', (byte)'i', 0x10, 0x20, 0x30, 12, 1, 0, (byte)'a', 0, 0, 9, 0xAA, 0xBB, 0xCC];
         object generated = parse.Invoke(null, [bytes, null, null])!;
-        ParityComparer.AssertSame(runtime.Parse(bytes, "root"), generated, "root");
+        ParityComparer.AssertSame(runtime.Parse(bytes, "root"), generated, "root", strict: true);
         Assert.AreEqual("hi", packet.GetNestedType("Root")!.GetProperty("Name")!.GetValue(generated));
 
         // The failure texts and offsets: a short read (the position moves to the end), a rejected value, a codec that
@@ -135,7 +135,7 @@ public class CustomCodecTests
             if (expected is null)
             {
                 Assert.IsNull(actual, actual?.Message);
-                ParityComparer.AssertSame(runtime.Parse(input, "root", options: options), parse.Invoke(null, [input, null, options]), "root");
+                ParityComparer.AssertSame(runtime.Parse(input, "root", options: options), parse.Invoke(null, [input, null, options]), "root", strict: true);
                 continue;
             }
 

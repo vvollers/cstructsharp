@@ -16,3 +16,6 @@ Real-format fixtures are imported from `apps/inspector/src/schema-catalog.ts`, w
 conditional fixtures reuse `benchmarks/fixtures/conditional-cases.json` definitions. The canonical JSON shape mirrors
 the WASM bridge (`CStructJsonConversion.cs`) so the JS harness can compare `result.data` directly.
 Expectations are inputs to the correctness gate: never regenerate them to hide a behavior change.
+`verify` checks the expected exception type, the SHA-256 and length of the canonical JSON, and the inline value when
+one is stored. `tests/CStructSharpTests/Quality/BenchmarkFixtureExpectationTests.cs` applies the same check to every
+case (through the tool's `FixtureVerification`) in the ordinary managed test run.

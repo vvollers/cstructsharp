@@ -185,6 +185,11 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Documentation and tooling
 
+- Tests: independent references for the general path. Every benchmark fixture is checked against its recorded
+  hash, length and value by an MSTest and by `FixtureTool verify` (one shared implementation); the fuzz replay digest
+  hashes each outcome (the value, or the failure's type, message, code, path and offset), not only success or
+  failure; generator/runtime parity compares member order and CLR types; and runtime `ResolveAddress` is checked
+  against debug-record ranges and the generator's offset constants.
 - Tests: an engine differential harness (`tests/CStructSharpTests/Engine/`) runs every read, write and update form
   twice - with the general interpreter forced and with automatic engine selection - and compares values with their CLR
   types, failures with every diagnostic field, final positions, written bytes and debug records. An internal

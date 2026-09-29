@@ -1,4 +1,4 @@
-namespace CStructSharp.Tests;
+namespace CStructSharp.Fuzzing;
 
 using System.Collections;
 using System.Globalization;
@@ -12,7 +12,8 @@ using CStructSharp.Values;
 ///     The canonical rendering of one operation's observable outcome, one <c>label = text</c> line per fact, so two
 ///     implementations can be compared as text and a difference shows as a readable line diff. Values carry their CLR
 ///     type names and member order; failures carry their type, message, error code, member, member type, path, offset,
-///     and inner failures; floating-point values carry their bit patterns.
+///     and inner failures; floating-point values carry their bit patterns. The fuzz replay digest hashes it, and the
+///     managed engine differential compares it.
 /// </summary>
 internal sealed class CanonicalText
 {
@@ -81,27 +82,6 @@ internal sealed class CanonicalText
     /// <param name="label">The failure's label.</param>
     /// <param name="failure">The failure.</param>
     public void Failure(string label, Exception failure) => this.Failure(label, failure, 0);
-
-    /// <summary>
-    ///     Runs part of an operation and, when it throws, appends the failure under <paramref name="label"/>. Every
-    ///     exception except a test assertion counts, so an unexpected exception type is compared rather than lost.
-    /// </summary>
-    /// <param name="label">The label of a failure.</param>
-    /// <param name="body">The part of the operation, which appends its own results.</param>
-    /// <returns>Whether <paramref name="body"/> completed.</returns>
-    public bool Capture(string label, Action body)
-    {
-        try
-        {
-            body();
-            return true;
-        }
-        catch (Exception failure) when (failure is not UnitTestAssertException)
-        {
-            this.Failure(label, failure);
-            return false;
-        }
-    }
 
     /// <summary>Returns the rendering.</summary>
     /// <returns>The lines appended so far, each ending in a line feed.</returns>

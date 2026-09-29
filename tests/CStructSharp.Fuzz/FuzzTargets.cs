@@ -3,6 +3,7 @@ namespace CStructSharp.Fuzzing;
 using System.Text;
 using CStructSharp;
 using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>Owns the five bounded managed fuzz target entry points.</summary>
 internal sealed class FuzzTargets
@@ -112,18 +113,25 @@ internal sealed class FuzzTargets
         return exception is CStructReadException;
     }
 
-    private void Definition(byte[] input)
+    /// <summary>Compiles the input as a layout definition and renders the compiled layout as its canonical definition text.</summary>
+    /// <param name="input">The definition as UTF-8; its length selects alignment and byte order.</param>
+    /// <param name="output">The rendering of the outcome.</param>
+    private void Definition(byte[] input, CanonicalText output)
     {
         string definition = Encoding.UTF8.GetString(input);
-        _ = new CStruct(
+        var cstruct = new CStruct(
             definition,
             pointerSize: 2,
             aligned: input.Length % 2 == 0,
             isLittleEndian: input.Length % 3 != 0,
             compilationOptions: this.CreateCompilationOptions());
+        output.Value("definition", cstruct.ToDefinition());
     }
 
-    private void Expression(byte[] input)
+    /// <summary>Uses the input as an array-count expression and renders the size of the struct it produces.</summary>
+    /// <param name="input">The expression as UTF-8.</param>
+    /// <param name="output">The rendering of the outcome.</param>
+    private void Expression(byte[] input, CanonicalText output)
     {
         string expression = Encoding.UTF8.GetString(input);
         string definition = $"struct root {{ byte values[({expression}) & 15]; }};";
@@ -131,10 +139,13 @@ internal sealed class FuzzTargets
             definition,
             pointerSize: 2,
             compilationOptions: this.CreateCompilationOptions());
-        _ = cstruct.GetStructSizeInBytes("root");
+        output.Value("size", cstruct.GetStructSizeInBytes("root"));
     }
 
-    private void Path(byte[] input)
+    /// <summary>Uses the input as a path into a fixed 32-byte buffer and renders the resolved address, value, or array length.</summary>
+    /// <param name="input">The path as UTF-8; its length modulo 3 selects the operation.</param>
+    /// <param name="output">The rendering of the outcome.</param>
+    private void Path(byte[] input, CanonicalText output)
     {
         string path = Encoding.UTF8.GetString(input);
         byte[] bytes = new byte[32];
@@ -144,48 +155,64 @@ internal sealed class FuzzTargets
         switch (input.Length % 3)
         {
         case 0:
-            _ = this.pathLayout.ResolveAddress(stream, path, options: this.readOptions);
+            output.Value("address", this.pathLayout.ResolveAddress(stream, path, options: this.readOptions));
             break;
         case 1:
-            _ = this.pathLayout.ReadValue(stream, path, options: this.readOptions);
+            output.Value("value", this.pathLayout.ReadValue(stream, path, options: this.readOptions));
             break;
         default:
-            _ = this.pathLayout.GetArrayLength(stream, path, options: this.readOptions);
+            output.Value("length", this.pathLayout.GetArrayLength(stream, path, options: this.readOptions));
             break;
         }
     }
 
-    private void BinaryRoundTrip(byte[] input)
+    /// <summary>
+    ///     Parses the input, writes the value back through the owned and stream writers (which must agree), parses the
+    ///     written bytes again, and renders the value, the bytes, and the second value.
+    /// </summary>
+    /// <param name="input">The encoded root struct.</param>
+    /// <param name="output">The rendering of the outcome.</param>
+    /// <exception cref="InvalidDataException">The two writers produce different bytes.</exception>
+    private void BinaryRoundTrip(byte[] input, CanonicalText output)
     {
         object parsed = this.binaryLayout.Parse(input.AsSpan(), "root", options: this.readOptions);
         byte[] serialized = this.binaryLayout.Serialize("root", parsed, options: this.writeOptions);
-        using var output = new MemoryStream();
-        this.binaryLayout.Write(output, "root", parsed, options: this.writeOptions);
-        if (!serialized.AsSpan().SequenceEqual(output.ToArray()))
+        using var written = new MemoryStream();
+        this.binaryLayout.Write(written, "root", parsed, options: this.writeOptions);
+        if (!serialized.AsSpan().SequenceEqual(written.ToArray()))
         {
             throw new InvalidDataException("Owned and stream writer paths produced different bytes.");
         }
 
-        _ = this.binaryLayout.Parse(serialized.AsSpan(), "root", options: this.readOptions);
+        output.Value("parsed", parsed);
+        output.Bytes("serialized", serialized);
+        output.Value("reparsed", this.binaryLayout.Parse(serialized.AsSpan(), "root", options: this.readOptions));
     }
 
-    private void PointerUnion(byte[] input)
+    /// <summary>Parses the input as a pointer-linked node, with debug records when the first byte is odd, and renders the result.</summary>
+    /// <param name="input">The encoded node.</param>
+    /// <param name="output">The rendering of the outcome.</param>
+    private void PointerUnion(byte[] input, CanonicalText output)
     {
         using var stream = new MemoryStream(input, writable: false);
         if (input.Length > 0 && (input[0] & 1) != 0)
         {
-            _ = this.pointerUnionLayout.ParseWithDebug(stream, "node", options: this.readOptions);
+            ParseResult result = this.pointerUnionLayout.ParseWithDebug(stream, "node", options: this.readOptions);
+            output.Value("result", result.Value);
+            output.Debug("debug", result.Debug);
         }
         else
         {
-            _ = this.pointerUnionLayout.Parse(stream, "node", options: this.readOptions);
+            output.Value("result", this.pointerUnionLayout.Parse(stream, "node", options: this.readOptions));
         }
     }
 
     /// <summary>The generated readers and writers against the runtime over the harness's layouts; every outcome must agree, so no failure is a documented one.</summary>
-    private void GeneratedDifferentialTarget(byte[] input)
+    /// <param name="input">The encoded input every layout reads.</param>
+    /// <param name="output">The rendering of the agreed outcomes.</param>
+    private void GeneratedDifferentialTarget(byte[] input, CanonicalText output)
     {
-        GeneratedDifferential.Run(input, this.readOptions, this.writeOptions);
+        GeneratedDifferential.Run(input, this.readOptions, this.writeOptions, output);
     }
 
     private CStructCompilationOptions CreateCompilationOptions()

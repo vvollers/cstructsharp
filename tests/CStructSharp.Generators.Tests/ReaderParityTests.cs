@@ -256,7 +256,7 @@ public class ReaderParityTests
         {
             object runtimeValue = runtime.ReadValue(bytes, root, variables, options)!;
             object generatedValue = Invoke(parse, bytes, variables, options);
-            ParityComparer.AssertSame(runtimeValue, generatedValue, root);
+            ParityComparer.AssertSame(runtimeValue, generatedValue, root, strict: true);
             WriteParity.AssertRoundTrip(id, generated, runtime, root, runtimeValue, generatedValue, variables);
         }
 

@@ -92,14 +92,14 @@ public class ViewTests
         Assert.AreEqual(0L, readings[8], "no allocation across the accessors");
         Assert.AreEqual(runtime.GetStructSizeInBytes("hdr"), readings[9]);
         Assert.AreEqual("Not enough bytes: needed 20, available 3 (path 'hdr', offset 0).", readings[10]);
-        ParityComparer.AssertSame(runtime.Parse(bytes, "root"), readings[11], "root");
+        ParityComparer.AssertSame(runtime.Parse(bytes, "root"), readings[11], "root", strict: true);
 
         // Parse(Stream): the same value as the span reader, the stream left after the value.
         MethodInfo parseStream = packet.GetMethods().Single(method => method.Name == "ParseRoot" && method.GetParameters()[0].ParameterType == typeof(Stream));
         using var stream = new MemoryStream([0xEE, .. bytes, 0xFF]);
         stream.Position = 1;
         object value = parseStream.Invoke(null, [stream, null, null])!;
-        ParityComparer.AssertSame(runtime.Parse(bytes, "root"), value, "root");
+        ParityComparer.AssertSame(runtime.Parse(bytes, "root"), value, "root", strict: true);
         Assert.AreEqual(1 + bytes.Length, stream.Position);
         stream.Position = 1;
         Exception truncated = Assert.Throws<TargetInvocationException>(() => parseStream.Invoke(null, [new MemoryStream(bytes[..10]), null, null])).InnerException!;
@@ -110,7 +110,7 @@ public class ViewTests
         MethodInfo parseAsync = packet.GetMethods().Single(method => method.Name == "ParseRootAsync");
         using var asyncStream = new MemoryStream([0xEE, .. bytes, 0xFF], 0, bytes.Length + 2, writable: false, publiclyVisible: false) { Position = 1 };
         object asyncValue = ((dynamic)parseAsync.Invoke(null, [asyncStream, null, null, CancellationToken.None])!).AsTask().Result;
-        ParityComparer.AssertSame(runtime.Parse(bytes, "root"), asyncValue, "root");
+        ParityComparer.AssertSame(runtime.Parse(bytes, "root"), asyncValue, "root", strict: true);
         Assert.AreEqual(1 + bytes.Length, asyncStream.Position);
         asyncStream.Position = 1;
         using var shortStream = new MemoryStream(bytes[..10]) { Position = 0 };
@@ -134,7 +134,7 @@ public class ViewTests
             object whole = inputType == typeof(byte[]) ? bytes : inputType == typeof(ReadOnlyMemory<byte>) ? new ReadOnlyMemory<byte>(bytes) : inputType == typeof(Stream) ? new MemoryStream(bytes) : new System.Buffers.ReadOnlySequence<byte>(bytes);
             object?[] ok = [whole, null, null, null, null];
             Assert.IsTrue((bool)tryParse.Invoke(null, ok)!, inputType.Name);
-            ParityComparer.AssertSame(runtime.Parse(bytes, "root"), ok[1]!, "root");
+            ParityComparer.AssertSame(runtime.Parse(bytes, "root"), ok[1]!, "root", strict: true);
             Assert.IsNull(ok[2], inputType.Name);
             byte[] cut = bytes[..10];
             object part = inputType == typeof(byte[]) ? cut : inputType == typeof(ReadOnlyMemory<byte>) ? new ReadOnlyMemory<byte>(cut) : inputType == typeof(Stream) ? new MemoryStream([0xEE, .. cut]) { Position = 1 } : new System.Buffers.ReadOnlySequence<byte>(cut);
@@ -158,8 +158,8 @@ public class ViewTests
 
         // A ReadOnlySequence<byte>: one segment reads in place; several are copied and read like the flat bytes.
         MethodInfo parseSequence = packet.GetMethods().Single(method => method.Name == "ParseRoot" && method.GetParameters()[0].ParameterType == typeof(System.Buffers.ReadOnlySequence<byte>));
-        ParityComparer.AssertSame(runtime.Parse(bytes, "root"), parseSequence.Invoke(null, [new System.Buffers.ReadOnlySequence<byte>(bytes), null, null])!, "root");
-        ParityComparer.AssertSame(runtime.Parse(bytes, "root"), parseSequence.Invoke(null, [Segmented(bytes, 3, 5, 9), null, null])!, "root");
+        ParityComparer.AssertSame(runtime.Parse(bytes, "root"), parseSequence.Invoke(null, [new System.Buffers.ReadOnlySequence<byte>(bytes), null, null])!, "root", strict: true);
+        ParityComparer.AssertSame(runtime.Parse(bytes, "root"), parseSequence.Invoke(null, [Segmented(bytes, 3, 5, 9), null, null])!, "root", strict: true);
         Exception truncatedSequence = Assert.Throws<TargetInvocationException>(() => parseSequence.Invoke(null, [Segmented(bytes[..10], 4), null, null])).InnerException!;
         Assert.AreEqual(truncated.Message, truncatedSequence.Message);
 

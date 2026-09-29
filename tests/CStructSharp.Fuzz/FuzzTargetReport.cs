@@ -22,8 +22,9 @@ public sealed class FuzzTargetReport
     public int DocumentedFailures { get; init; }
 
     /// <summary>
-    ///     Gets the uppercase hexadecimal SHA-256 over every case's target name, input length, input bytes and
-    ///     outcome, so two runs with the same seed can be compared for identical behavior.
+    ///     Gets the uppercase hexadecimal SHA-256 over every case's target name, input length, input bytes, outcome
+    ///     kind and outcome - the canonical rendering of the value produced, or of the failure's type, message, path
+    ///     and offset - so two runs with the same seed can be compared for identical behavior.
     /// </summary>
     public string Digest { get; init; } = string.Empty;
 }

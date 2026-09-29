@@ -2,6 +2,7 @@ namespace CStructSharp.Tests;
 
 using System.Text;
 using CStructSharp.Engine;
+using CStructSharp.Fuzzing;
 
 /// <summary>
 ///     The differential harness: runs one operation twice - once with the interpreter forced

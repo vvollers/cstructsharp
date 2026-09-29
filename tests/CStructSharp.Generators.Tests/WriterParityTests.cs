@@ -191,7 +191,7 @@ public class WriterParityTests
         StructValue runtimeValue = runtime.Parse(bytes, "root");
         MethodInfo parse = generated.GetMethods().Single(method => method.Name == "ParseRoot" && method.GetParameters()[0].ParameterType == typeof(byte[]));
         object generatedValue = parse.Invoke(null, [bytes, null, null])!;
-        ParityComparer.AssertSame(runtimeValue, generatedValue, "root");
+        ParityComparer.AssertSame(runtimeValue, generatedValue, "root", strict: true);
         return (runtime, generated, runtimeValue, generatedValue);
     }
 

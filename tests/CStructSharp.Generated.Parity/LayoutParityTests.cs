@@ -14,8 +14,9 @@ using CStructSharp.Values;
 /// <summary>
 ///     Every fixture layout of the repository, generated into this project (<c>Layouts.g.cs</c>) and compared with
 ///     the runtime on both target frameworks: the value the generated <c>Parse</c> produces equals the runtime's,
-///     both writers reproduce it byte for byte, the debug ranges and the addresses of the paths a fixture lists
-///     agree, and every truncated prefix fails the same way. A layout without bytes still proves it generates,
+///     both writers reproduce it byte for byte, the debug ranges agree, the runtime resolves each member to the
+///     address the reader placed it at and the generated offset constants name, and every truncated prefix fails the
+///     same way. A layout without bytes still proves it generates,
 ///     compiles, builds its runtime layout, agrees on every static size, and fails identically on empty input.
 /// </summary>
 [TestClass]
@@ -178,9 +179,16 @@ public class LayoutParityTests
 
     /// <summary>
     ///     Asserts that a generated class matches the runtime for one input: the value or expected error, the array
-    ///     and asynchronous forms, record sequences, debug ranges, and every truncated prefix through <c>Parse</c> and
-    ///     <c>TryParse</c>.
+    ///     and asynchronous forms, record sequences, debug ranges, addresses, and every truncated prefix through
+    ///     <c>Parse</c> and <c>TryParse</c>.
     /// </summary>
+    /// <remarks>
+    ///     Values are compared strictly (<see cref="ParityComparer"/>): besides equal content, the generated properties
+    ///     follow the runtime's member order, scalars have the same CLR type, and the runtime returns the array kind the
+    ///     generated element type implies. The runtime/generator differences named in the remarks on
+    ///     <see cref="ParityComparer"/> stay lenient: bitfields (read as <see cref="int"/> or <see cref="ulong"/> by the
+    ///     runtime) are compared by value, and the kind of a union's array member or of an empty array is not checked.
+    /// </remarks>
     /// <param name="id">The case name used in failure messages.</param>
     /// <param name="generated">The generated layout class.</param>
     /// <param name="root">The layout name of the composite to read.</param>
@@ -209,7 +217,7 @@ public class LayoutParityTests
 
         object runtimeValue = runtime.ReadValue(bytes, root, variables, options)!;
         object generatedValue = Invoke(parse, bytes, variables, options);
-        ParityComparer.AssertSame(runtimeValue, generatedValue, root);
+        ParityComparer.AssertSame(runtimeValue, generatedValue, root, strict: true);
 
         if (runtimeValue is StructValue or UnionValue)
         {
@@ -232,7 +240,7 @@ public class LayoutParityTests
             MethodInfo writeAsync = generated.GetMethods().Single(method => method.Name == "Write" + rootClass + "Async");
             using var asyncSource = new MemoryStream(bytes, 0, bytes.Length, writable: false, publiclyVisible: false);
             object generatedAsync = Await(parseAsync.Invoke(null, [asyncSource, variables, options, CancellationToken.None])!)!;
-            ParityComparer.AssertSame(runtimeValue, generatedAsync, root);
+            ParityComparer.AssertSame(runtimeValue, generatedAsync, root, strict: true);
             object runtimeAsync = runtime.ReadValueAsync(new MemoryStream(bytes, 0, bytes.Length, writable: false, publiclyVisible: false), root, variables, options).AsTask().Result!;
             CollectionAssert.AreEqual(expected, runtime.Serialize(root, runtimeAsync, variables), id + ": runtime ReadValueAsync value");
             using var generatedTarget = new MemoryStream();
@@ -267,13 +275,14 @@ public class LayoutParityTests
                     Assert.AreEqual(runtimeRecords.Count, generatedRecords.Count, $"{id} {label}: record count");
                     for (int index = 0; index < runtimeRecords.Count; index++)
                     {
-                        ParityComparer.AssertSame(runtimeRecords[index], generatedRecords[index], $"[{index}].{root}");
+                        ParityComparer.AssertSame(runtimeRecords[index], generatedRecords[index], $"[{index}].{root}", strict: true);
                     }
                 }
             }
 
-            // The runtime's debug ranges through the generated ParseWithDebug (a root only), and the fixture's addresses.
-            if (root == generated.GetField("RootName")!.GetValue(null) as string && runtimeValue is StructValue)
+            // The runtime's debug ranges through the generated ParseWithDebug (a root only). The runtime's ResolveAddress
+            // must agree with where the reader placed each value and with the generator's static offsetof constants.
+            if (root == generated.GetField("RootName")!.GetValue(null) as string && runtimeValue is StructValue structValue)
             {
                 MethodInfo? withDebug = generated.GetMethod("ParseWithDebug");
                 if (withDebug is not null)
@@ -281,7 +290,14 @@ public class LayoutParityTests
                     object pair = InvokeSpan(withDebug, bytes, variables, options);
                     var records = (IReadOnlyList<DebugData>)pair.GetType().GetField("Item2")!.GetValue(pair)!;
                     Assert.AreEqual(runtime.ParseWithDebug(bytes, root, variables, options).Debug.Count, records.Count, id + ": debug ranges");
-                    ParityComparer.AssertSame(runtimeValue, pair.GetType().GetField("Item1")!.GetValue(pair), root);
+                    ParityComparer.AssertSame(runtimeValue, pair.GetType().GetField("Item1")!.GetValue(pair), root, strict: true);
+                    Assert.IsGreaterThan(0, AssertDebugAddresses(id, runtime, bytes, variables, options, structValue, root, records), id + ": no address compared");
+                }
+
+                if (generated.GetNestedType("Offsets") is { } offsets)
+                {
+                    int checkedOffsets = AssertStaticOffsets(id, runtime, bytes, variables, options, offsets, structValue, generatedValue.GetType(), root);
+                    Assert.AreEqual(CountConstants(offsets), checkedOffsets, id + ": every generated offset is compared with an address");
                 }
             }
         }
@@ -302,6 +318,142 @@ public class LayoutParityTests
             Assert.AreEqual(generatedError is null, attempt[1] is not null, $"{id} truncated to {length}: TryParse value");
         }
     }
+
+    /// <summary>
+    ///     Asserts that the runtime's <c>ResolveAddress</c> of representative paths is the byte where the reader placed
+    ///     the value: every member, nested members, and of each array its first and last elements.
+    /// </summary>
+    /// <remarks>
+    ///     The expected address is the start of the value's debug record: the reader places each value while it decodes,
+    ///     and <c>ResolveAddress</c> walks the layout to one path without building values, so the two implementations
+    ///     must agree on every offset, alignment gap, runtime count and conditional member. The value is walked in read
+    ///     order, pairing each leaf with the next record of its debug path. A debug path names the element of an array of
+    ///     composites by index but not the element of an array of scalars, so the scalar elements of one array share it.
+    ///     Pointer targets are not walked. The elements between the first and the last follow the same path arithmetic;
+    ///     skipping them keeps a large array from costing one traversal per element.
+    /// </remarks>
+    /// <param name="id">The case name used in failure messages.</param>
+    /// <param name="runtime">The runtime layout.</param>
+    /// <param name="bytes">The input.</param>
+    /// <param name="variables">The caller variables, or <see langword="null"/> for none.</param>
+    /// <param name="options">The read options, or <see langword="null"/> for the defaults.</param>
+    /// <param name="value">The runtime's value of the root.</param>
+    /// <param name="root">The root's layout name, the first segment of every path.</param>
+    /// <param name="records">The debug records of the whole root, in read order.</param>
+    /// <returns>The number of addresses compared.</returns>
+    private static int AssertDebugAddresses(string id, CStruct runtime, byte[] bytes, IReadOnlyDictionary<string, int>? variables, ReadOptions? options, StructValue value, string root, IReadOnlyList<DebugData> records)
+    {
+        var pending = new Dictionary<string, Queue<DebugData>>(StringComparer.Ordinal);
+        foreach (DebugData record in records)
+        {
+            if (!pending.TryGetValue(record.Path, out Queue<DebugData>? queue))
+            {
+                queue = new Queue<DebugData>();
+                pending.Add(record.Path, queue);
+            }
+
+            queue.Enqueue(record);
+        }
+
+        int compared = 0;
+        Walk(value, root, root, true);
+        return compared;
+
+        // Pairs each leaf of a value with its debug record and compares the selected leaves' addresses.
+        void Walk(object? item, string path, string debugPath, bool selected)
+        {
+            switch (item)
+            {
+            case StructValue structValue:
+                foreach (KeyValuePair<string, object?> member in structValue)
+                {
+                    Walk(member.Value, path + "." + member.Key, debugPath + "." + member.Key, selected);
+                }
+
+                return;
+            case UnionValue union:
+                foreach (KeyValuePair<string, object?> member in union.Members)
+                {
+                    Walk(member.Value, path + "." + member.Key, debugPath + "." + member.Key, selected);
+                }
+
+                return;
+            case System.Collections.IList list and not byte[]:
+                for (int index = 0; index < list.Count; index++)
+                {
+                    bool composite = list[index] is StructValue or UnionValue;
+                    string suffix = "[" + index + "]";
+                    Walk(list[index], path + suffix, composite ? debugPath + suffix : debugPath, selected && (index == 0 || index == list.Count - 1));
+                }
+
+                return;
+            default:
+                Assert.IsTrue(pending.TryGetValue(debugPath, out Queue<DebugData>? queue) && queue.Count > 0, id + ": no debug record for " + path);
+                DebugData record = queue.Dequeue();
+                if (selected)
+                {
+                    Assert.AreEqual(record.Start, runtime.ResolveAddress(bytes, path, variables, options), id + ": address of " + path);
+                    compared++;
+                }
+
+                return;
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Asserts that every constant of a generated <c>Offsets</c> class equals the runtime's <c>ResolveAddress</c> of
+    ///     the member it names, descending into the nested class of each statically placed struct member.
+    /// </summary>
+    /// <remarks>
+    ///     The generator computes these <c>offsetof</c> constants at build time from the static placement of the members;
+    ///     the runtime resolves the same member by walking the layout over the input. The input starts at the root, so an
+    ///     offset from the root's first byte is also the member's address.
+    /// </remarks>
+    /// <param name="id">The case name used in failure messages.</param>
+    /// <param name="runtime">The runtime layout.</param>
+    /// <param name="bytes">The input.</param>
+    /// <param name="variables">The caller variables, or <see langword="null"/> for none.</param>
+    /// <param name="options">The read options, or <see langword="null"/> for the defaults.</param>
+    /// <param name="offsets">The generated <c>Offsets</c> class, or one of its nested classes.</param>
+    /// <param name="value">The runtime's value of the struct the class describes.</param>
+    /// <param name="generatedType">The generated class of that struct, whose property names the constants reuse.</param>
+    /// <param name="path">The runtime path of that struct.</param>
+    /// <returns>The number of constants compared.</returns>
+    private static int AssertStaticOffsets(string id, CStruct runtime, byte[] bytes, IReadOnlyDictionary<string, int>? variables, ReadOptions? options, Type offsets, StructValue value, Type generatedType, string path)
+    {
+        int compared = 0;
+        foreach (KeyValuePair<string, object?> member in value)
+        {
+            PropertyInfo? property = ParityComparer.FindProperty(generatedType, member.Key);
+            if (property is null)
+            {
+                continue;
+            }
+
+            // A member named like its enclosing class is emitted with a Member suffix (C# forbids the clash).
+            string memberPath = path + "." + member.Key;
+            FieldInfo? constant = offsets.GetField(property.Name) ?? offsets.GetField(property.Name + "Member");
+            if (constant is { IsLiteral: true })
+            {
+                Assert.AreEqual((long)(int)constant.GetRawConstantValue()!, runtime.ResolveAddress(bytes, memberPath, variables, options), id + ": offset of " + memberPath);
+                compared++;
+            }
+
+            if (offsets.GetNestedType(property.Name) is { } nested && member.Value is StructValue nestedValue)
+            {
+                compared += AssertStaticOffsets(id, runtime, bytes, variables, options, nested, nestedValue, property.PropertyType, memberPath);
+            }
+        }
+
+        return compared;
+    }
+
+    /// <summary>Counts the constants of a generated <c>Offsets</c> class and its nested classes.</summary>
+    /// <param name="offsets">The class.</param>
+    /// <returns>The number of constants.</returns>
+    private static int CountConstants(Type offsets)
+        => offsets.GetFields().Count(field => field.IsLiteral) + offsets.GetNestedTypes().Sum(CountConstants);
 
     /// <summary>A shape fixture's value as the runtime writer takes it: integers, doubles, nested objects, and arrays.</summary>
     private static object? ShapeValue(JsonElement element)

@@ -100,7 +100,7 @@ public class SequenceTests
                 Assert.HasCount(count, actual, kind);
                 for (int index = 0; index < count; index++)
                 {
-                    ParityComparer.AssertSame(expected[index], actual[index], $"[{index}].{layoutName} via {kind}");
+                    ParityComparer.AssertSame(expected[index], actual[index], $"[{index}].{layoutName} via {kind}", strict: true);
                 }
 
                 if (input is MemoryStream stream)
@@ -115,7 +115,7 @@ public class SequenceTests
             {
                 List<object> actual = CollectAsync(recordsAsync.Invoke(null, [stream, null, null, CancellationToken.None])!);
                 Assert.HasCount(count, actual);
-                ParityComparer.AssertSame(expected[count - 1], actual[count - 1], $"[{count - 1}].{layoutName} async");
+                ParityComparer.AssertSame(expected[count - 1], actual[count - 1], $"[{count - 1}].{layoutName} async", strict: true);
             }
 
             // The root forms.
@@ -145,7 +145,7 @@ public class SequenceTests
         var window = new ReadOptions { MaxTotalBytesRead = 10, };
         List<object> windowed = CollectAsync(rootAsyncForm.Invoke(null, [new MemoryStream(Roots, 0, Roots.Length, writable: false, publiclyVisible: false), null, window, CancellationToken.None])!);
         Assert.HasCount(2, windowed);
-        ParityComparer.AssertSame(runtime.ParseMany(Roots, "root").Last(), windowed[1], "[1].root windowed");
+        ParityComparer.AssertSame(runtime.ParseMany(Roots, "root").Last(), windowed[1], "[1].root windowed", strict: true);
 
         // Cancellation between records: the record before it is delivered, the next step throws.
         using var cancelled = new CancellationTokenSource();

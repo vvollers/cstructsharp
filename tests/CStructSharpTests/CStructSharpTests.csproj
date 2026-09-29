@@ -27,6 +27,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\CStructSharp\CStructSharp.csproj"/>
     <ProjectReference Include="..\CStructSharp.Fuzz\CStructSharp.Fuzz.csproj"/>
+    <!-- The benchmark fixture expectations are checked with the fixture tool's own evaluation and comparison. -->
+    <ProjectReference Include="..\..\benchmarks\CStructSharp.FixtureTool\CStructSharp.FixtureTool.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

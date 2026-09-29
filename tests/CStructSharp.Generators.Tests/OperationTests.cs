@@ -107,7 +107,7 @@ public class OperationTests
         object pair = InvokeSpan(debug, bytes, null);
         var debugRecords = (IReadOnlyList<DebugData>)pair.GetType().GetField("Item2")!.GetValue(pair)!;
         Assert.AreEqual(runtime.ParseWithDebug(bytes, "root").Debug.Count, debugRecords.Count);
-        ParityComparer.AssertSame(runtime.Parse(bytes, "root"), pair.GetType().GetField("Item1")!.GetValue(pair), "root");
+        ParityComparer.AssertSame(runtime.Parse(bytes, "root"), pair.GetType().GetField("Item1")!.GetValue(pair), "root", strict: true);
 
         // The root class implements ICStructGenerated<Root> with the class's own operations.
         Type root = assembly.GetType("Demo.Packet+Root")!;

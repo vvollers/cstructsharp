@@ -124,7 +124,7 @@ public class MappedClassTests
         Type packet = assembly.GetType("Demo.Packet")!;
         object generatedValue = packet.GetMethods().Single(method => method.Name == "ParseRoot" && method.GetParameters()[0].ParameterType == typeof(byte[])).Invoke(null, [bytes, null, null])!;
         var structValue = (StructValue)packet.GetMethod("ToStructValue")!.Invoke(null, [generatedValue, null, null])!;
-        ParityComparer.AssertSame(runtime.Parse(bytes, "root"), generatedValue, "root");
+        ParityComparer.AssertSame(runtime.Parse(bytes, "root"), generatedValue, "root", strict: true);
         Assert.AreEqual((byte)9, structValue["extra"]);
         object bridged = packet.GetMethod("ToMapped")!.MakeGenericMethod(record).Invoke(null, [generatedValue, null])!;
         Assert.AreEqual(8u, record.GetProperty("BitDepth")!.GetValue(bridged));

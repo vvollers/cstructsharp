@@ -1,5 +1,7 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Fuzzing;
+
 /// <summary>
 ///     One operation a differential comparison runs once per side: <paramref name="Run"/> performs the call with the
 ///     side's options on its own fresh input and destination, and appends everything observable to the rendering -
