@@ -53,6 +53,12 @@ internal sealed class ReadProgramBuilder
     /// <summary>Gets each member's value slot, -1 until <see cref="SetShapeSlot"/> assigns one.</summary>
     public int[] ShapeSlots { get; }
 
+    /// <summary>Gets or sets a value indicating whether the members are placed by a runtime placement cursor (a struct with bitfields).</summary>
+    public bool UsesPlacementCursor { get; set; }
+
+    /// <summary>Gets or sets a value indicating whether the members are a union's views, each read from the union's first byte.</summary>
+    public bool UnionMembers { get; set; }
+
     /// <summary>Gets or sets the composite's conditional scope in slot terms.</summary>
     public ReadConditionalScope? Scope { get; set; }
 
@@ -208,7 +214,8 @@ internal sealed class ReadProgramBuilder
                 this.unusables.ToArray(),
                 groupArray,
                 this.branches.ToArray(),
-                this.Scope));
+                this.Scope,
+                this.UsesPlacementCursor));
     }
 
     /// <summary>Finds an equal item or appends it.</summary>

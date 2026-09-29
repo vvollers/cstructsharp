@@ -748,6 +748,126 @@ public class ReadEngineTests
     }
 
     /// <summary>
+    ///     Every bitfield reads its whole storage unit again, and is charged for it (engine plan section 4.3): three
+    ///     bitfields sharing a two-byte unit cost 6 bytes, the tail 1 more. While bits of a unit remain, the position is
+    ///     back at the unit's start, so a later member that cannot be placed fails from there. A packed window whose
+    ///     placed unit differs from its declared type, the MSVC and high-bit-first rules, and values without sign extension
+    ///     (an <see cref="int"/> below 32 bits, a <see cref="ulong"/> from 32 on) read identically from every source.
+    /// </summary>
+    [TestMethod]
+    public void BitfieldUnits_AreReadAgainForEveryBitfield()
+    {
+        var layout = new CStruct("struct rec { uint16 a : 4; uint16 b : 4; uint16 c : 8; uint8 tail; };");
+        byte[] data = [0x21, 0x43, 0x09];
+        var aligned = new CStruct("struct rec { uint8 a : 4; uint32 b; };", aligned: true);
+        var window = new CStruct("struct rec { uint8 a : 7; uint16 b : 9; uint8 tail; };");
+        var signs = new CStruct("struct rec { int8 s : 4; uint64 big : 40; };");
+        var options = new CStructCompilationOptions { BitfieldPacking = BitfieldPacking.Msvc, BitfieldAllocation = BitfieldAllocation.HighBitFirst, };
+        var msvc = new CStruct("struct rec { uint8 a : 3; uint16 b : 5; uint16 c : 9; uint8 tail; };", compilationOptions: options);
+        foreach (ExecutionPath path in Paths)
+        {
+            for (long budget = 1; budget <= 8; budget++)
+            {
+                foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1])
+                {
+                    EngineComparison comparison = EngineDifferential.AssertSame(
+                        EngineOperations.Parse(layout, data, input, "rec", options: new ReadOptions { MaxTotalBytesRead = budget, }),
+                        expectEngine: true,
+                        path: path);
+                    StringAssert.Contains(comparison.Rendering, budget < 7 ? "CStructReadLimitException" : "result.tail = Byte 9\n", "budget " + budget);
+                }
+            }
+
+            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), expectEngine: true, path: path);
+            StringAssert.Contains(complete.Rendering, "result.b = Int32 2\n");
+            StringAssert.Contains(complete.Rendering, "result.c = Int32 67\n");
+
+            // a leaves bits of its unit, so the position is back at 0 when b's aligned start (4) lies past the input.
+            EngineComparison rewound = EngineDifferential.AssertSame(EngineOperations.Parse(aligned, [0x05], EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            StringAssert.Contains(rewound.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
+            StringAssert.Contains(rewound.Rendering, "position = 0\n");
+
+            EngineComparison unsigned = EngineDifferential.AssertSame(EngineOperations.Parse(signs, [0xFF, 0x01, 0x02, 0x03, 0x04, 0xFF, 0, 0, 0], EngineInput.Span, "rec"), expectEngine: true, path: path);
+            StringAssert.Contains(unsigned.Rendering, "result.s = Int32 15\n");
+            StringAssert.Contains(unsigned.Rendering, "result.big = UInt64 ");
+            foreach ((CStruct subject, byte[] bytes) in ((CStruct, byte[])[])[(layout, data), (window, [0xFF, 0x81, 0x02, 0x09]), (msvc, [0x05, 0x34, 0x12, 0x09]), (signs, [0xFF, 0x01, 0x02, 0x03, 0x04, 0xFF, 0, 0, 0])])
+            {
+                for (int length = 0; length <= bytes.Length; length++)
+                {
+                    foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1])
+                    {
+                        EngineDifferential.AssertSame(EngineOperations.Parse(subject, bytes[..length], input, "rec"), expectEngine: true, path: path);
+                    }
+                }
+
+                for (long budget = 1; budget <= (bytes.Length * 3) + 1; budget++)
+                {
+                    EngineDifferential.AssertSame(EngineOperations.Parse(subject, bytes, EngineInput.Span, "rec", options: new ReadOptions { MaxTotalBytesRead = budget, }), expectEngine: true, path: path);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    ///     A union charges its raw storage and then each member view (3 + 1 + 2 + 3 bytes here); every member starts at the
+    ///     union's first byte with the variables it was entered with, and nothing a member captures is visible after the
+    ///     union, so the struct's own <c>n</c> sizes the later array. A member that fails leaves the position at the union's
+    ///     end, a nesting limit at its start; a promoted union claims no nesting level; numeric array views are typed arrays.
+    /// </summary>
+    [TestMethod]
+    public void Unions_ChargeStorageAndViews_AndRestoreTheirEntryState()
+    {
+        var layout = new CStruct("union u { uint8 n; uint16 w; uint8 bytes[3]; }; struct rec { uint8 n; u value; uint8 items[n]; uint8 tail; };");
+        byte[] data = [2, 7, 0, 0, 5, 6, 9];
+        var invalid = new CStruct("union v { uint8 raw[4]; wchar< s[2]; }; struct rec { uint8 tag; v value; uint8 tail; };");
+        var promoted = new CStruct("struct rec { uint8 a; union { uint8 x; uint16 y; }; uint8 tail; };");
+        var hidden = new CStruct("union w { uint8 m; }; struct rec { w value; uint8 items[m]; };");
+        foreach (ExecutionPath path in Paths)
+        {
+            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), expectEngine: true, path: path);
+            StringAssert.Contains(complete.Rendering, "result.items = PrimitiveArray<Byte> [2]\n");
+            StringAssert.Contains(complete.Rendering, "PrimitiveArray<Byte> [3]\n");
+            for (long budget = 1; budget <= 14; budget++)
+            {
+                foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1])
+                {
+                    EngineComparison comparison = EngineDifferential.AssertSame(
+                        EngineOperations.Parse(layout, data, input, "rec", options: new ReadOptions { MaxTotalBytesRead = budget, }),
+                        expectEngine: true,
+                        path: path);
+                    StringAssert.Contains(comparison.Rendering, budget < 13 ? "CStructReadLimitException" : "result.tail = Byte 9\n", "budget " + budget);
+                }
+            }
+
+            for (int length = 0; length <= data.Length; length++)
+            {
+                foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream3])
+                {
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), expectEngine: true, path: path);
+                }
+            }
+
+            EngineComparison failed = EngineDifferential.AssertSame(EngineOperations.Parse(invalid, [1, 0x00, 0xD8, 0x41, 0x00, 9], EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            StringAssert.Contains(failed.Rendering, "failure.member = \"s\"\n");
+            StringAssert.Contains(failed.Rendering, "position = 5\n");
+
+            EngineComparison nested = EngineDifferential.AssertSame(
+                EngineOperations.Parse(layout, data, EngineInput.Stream, "rec", options: new ReadOptions { MaxNestingDepth = 1, }),
+                expectEngine: true,
+                path: path);
+            StringAssert.Contains(nested.Rendering, "CStructReadLimitException");
+            StringAssert.Contains(nested.Rendering, "position = 1\n");
+            EngineComparison flat = EngineDifferential.AssertSame(
+                EngineOperations.Parse(promoted, [1, 2, 3, 9], EngineInput.Span, "rec", options: new ReadOptions { MaxNestingDepth = 1, }),
+                expectEngine: true,
+                path: path);
+            StringAssert.Contains(flat.Rendering, "result.tail = Byte 9\n");
+            EngineComparison invisible = EngineDifferential.AssertSame(EngineOperations.Parse(hidden, [1, 5], EngineInput.Span, "rec"), expectEngine: true, path: path);
+            StringAssert.Contains(invisible.Rendering, "Undefined expression identifier: m");
+        }
+    }
+
+    /// <summary>
     ///     A parse whose variables are internal expressions is left to the interpreter (run-time CaptureAll and names
     ///     without slots move to the engine in stage 10), and so is a root the compiler cannot read yet.
     /// </summary>
@@ -763,9 +883,9 @@ public class ReadEngineTests
             Assert.AreEqual(new EngineDecline(EngineOperation.RootRead, EngineSelector.ExpressionInputs), recording.Diagnostics.LastDecline);
         }
 
-        var bitfields = new CStruct("struct rec { uint8 lo : 4; uint8 hi : 4; };");
-        EngineComparison comparison = EngineDifferential.AssertSame(EngineOperations.Parse(bitfields, [0x21], EngineInput.Stream, "rec"), expectEngine: false);
-        Assert.AreEqual("rec.lo: bitfields are not supported yet (stage 4)", comparison.Automatic.LastDecline!.Value.Reason);
+        var pointers = new CStruct("struct rec { uint8 lo; uint8 *p; };", 1);
+        EngineComparison comparison = EngineDifferential.AssertSame(EngineOperations.Parse(pointers, [0x21, 0], EngineInput.Stream, "rec"), expectEngine: false);
+        Assert.AreEqual("rec.p: pointers are not supported yet (stage 5)", comparison.Automatic.LastDecline!.Value.Reason);
     }
 
     /// <summary>Encodes a <c>blob</c> (<see cref="LengthPrefixedCodec"/>) of <paramref name="length"/> zero bytes.</summary>

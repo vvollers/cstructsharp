@@ -78,6 +78,7 @@ internal static class ReadProgramDump
         {
             ReadProgramKind.Composite => "struct",
             ReadProgramKind.Promoted => "promoted struct",
+            ReadProgramKind.Union => "union",
             _ => "root",
         };
         text.Append(kind).Append(' ').Append(program.Name.Length > 0 ? program.Name : "(anonymous)").Append('\n');
@@ -129,10 +130,24 @@ internal static class ReadProgramDump
         case ReadOpCode.ReadEnumArray:
             return Codec(program.Codecs[step.A]) + " as " + program.Enums[step.B].Name;
         case ReadOpCode.ReadStruct:
-            return program.Nested[step.A].Name + (step.B >= 0 ? ", prefix " + program.Prefixes[step.B] : string.Empty);
+        case ReadOpCode.ReadUnion:
+            return (program.Nested[step.A].Name is { Length: > 0 } named ? named : "(anonymous)") + (step.B >= 0 ? ", prefix " + program.Prefixes[step.B] : string.Empty);
+        case ReadOpCode.PlaceMember:
+        case ReadOpCode.PlaceBitfield:
+        case ReadOpCode.PlaceSeparator:
+        case ReadOpCode.CompletePlacement:
+        case ReadOpCode.OpenBitfieldUnit:
+        case ReadOpCode.RewindToUnionStart:
+        case ReadOpCode.RestoreUnionSlots:
+            return string.Empty;
+        case ReadOpCode.FinishPlaced:
+            return "tail to " + step.B;
         case ReadOpCode.ReadPromotedStruct:
         case ReadOpCode.ReadStructArray:
         case ReadOpCode.ReadStructElements:
+        case ReadOpCode.ReadPromotedUnion:
+        case ReadOpCode.ReadUnionArray:
+        case ReadOpCode.ReadRootUnion:
         case ReadOpCode.ReadRootStruct:
             return program.Nested[step.A].Name is { Length: > 0 } nested ? nested : "(anonymous)";
         case ReadOpCode.CaptureInteger:

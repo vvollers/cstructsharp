@@ -573,16 +573,16 @@ public sealed partial class CStruct
     }
 
     /// <summary>
-    ///     Decodes one bitfield from its placed storage unit, the one rule the reader and the address resolver share: the
-    ///     field's own bits, as an <see cref="int"/> below 32 bits and a <see cref="ulong"/> otherwise, and for an enum or
-    ///     flag bitfield the enum result of those bits.
+    ///     Decodes one bitfield from its placed storage unit, the one rule the reader, the address resolver and the compiled
+    ///     read engine share: the field's own bits, as an <see cref="int"/> below 32 bits and a <see cref="ulong"/>
+    ///     otherwise, and for an enum or flag bitfield the enum result of those bits.
     /// </summary>
     /// <param name="field">The bitfield.</param>
     /// <param name="unit">The storage unit's value as read.</param>
     /// <param name="bitOffset">The field's bit offset in the unit, in declaration order.</param>
     /// <param name="unitBits">The unit's width in bits.</param>
     /// <returns>The field's value.</returns>
-    private object DecodeBitfield(CompiledField field, object unit, int bitOffset, int unitBits)
+    internal object DecodeBitfield(CompiledField field, object unit, int bitOffset, int unitBits)
     {
         ulong extracted = BitfieldCodecTable.ExtractBitfieldValue(
             unit,

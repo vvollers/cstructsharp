@@ -50,6 +50,9 @@ internal struct VariableSlots : IDisposable
     /// </summary>
     public bool CaptureAll { get; }
 
+    /// <summary>Gets the number of slots, the layout table's.</summary>
+    public readonly int Count => this.table.Count;
+
     /// <summary>Creates the slots of an operation with public integer variables.</summary>
     /// <param name="table">The layout's table.</param>
     /// <param name="variables">The caller's variables, or <see langword="null"/>; a name without a slot is ignored.</param>
@@ -95,6 +98,16 @@ internal struct VariableSlots : IDisposable
             throw;
         }
     }
+
+    /// <summary>Copies every slot into <paramref name="destination"/> from <paramref name="offset"/> on (a union's entry values).</summary>
+    /// <param name="destination">The array receiving <see cref="Count"/> values.</param>
+    /// <param name="offset">The first index written.</param>
+    public readonly void CopyTo(SlotValue[] destination, int offset) => Array.Copy(this.values, 0, destination, offset, this.table.Count);
+
+    /// <summary>Replaces every slot with the values saved at <paramref name="offset"/> of <paramref name="source"/>.</summary>
+    /// <param name="source">The array holding <see cref="Count"/> saved values.</param>
+    /// <param name="offset">The first index read.</param>
+    public readonly void CopyFrom(SlotValue[] source, int offset) => Array.Copy(source, offset, this.values, 0, this.table.Count);
 
     /// <summary>Returns a slot's value.</summary>
     /// <param name="slot">The slot.</param>

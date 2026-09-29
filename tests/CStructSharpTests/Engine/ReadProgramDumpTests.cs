@@ -291,6 +291,120 @@ public class ReadProgramDumpTests
         AssertDump(expected, new CStruct(definition, aligned: true, compilationOptions: options), "root");
     }
 
+    /// <summary>
+    ///     A struct with bitfields, aligned: every member is placed by the runtime cursor (a bitfield opens or continues a
+    ///     storage unit, a separator closes it), ordinary members complete their placement, and the cursor ends the struct.
+    ///     An enum bitfield is captured for the count that follows.
+    /// </summary>
+    [TestMethod]
+    public void Bitfields_PlacedAtRunTime()
+    {
+        const string definition = "enum kind : uint8 { A = 1 }; struct root { uint8 tag; uint16 lo : 4; kind k : 3; uint8 : 0; uint8 items[k]; };";
+        const string expected = """
+                                root root
+                                    0  ReadRootStruct               -            root
+
+                                struct root
+                                    0  PlaceMember                  tag
+                                    1  ReadUInt8                    tag          UInt8
+                                    2  CompletePlacement            tag
+                                    3  PlaceBitfield                lo
+                                    4  ReadBitfield                 lo           UInt16 le
+                                    5  PlaceBitfield                k
+                                    6  ReadBitfield                 k            UInt8
+                                    7  CaptureEnum                  k            -> k
+                                    8  PlaceSeparator               (unnamed)
+                                    9  EvaluateCount                items        count = k
+                                   10  PlaceMember                  items
+                                   11  ReadNumericArray             items        UInt8
+                                   12  CompletePlacement            items
+                                   13  FinishPlaced                 -            tail to 2
+
+                                """;
+        AssertDump(expected, new CStruct(definition, aligned: true), "root");
+    }
+
+    /// <summary>
+    ///     Unions: a named member union and an anonymous promoted one, each a program of member views that restores the
+    ///     variables and rewinds to the union's start before each member (a bitfield view opens its own unit), and a union
+    ///     root.
+    /// </summary>
+    [TestMethod]
+    public void Unions()
+    {
+        const string definition = """
+                                  union u { uint8 n; uint16 w : 12; struct { uint8 a; uint8 b; } pair; };
+                                  struct root { uint8 n; u value; union { uint16 half; uint8 bytes[2]; }; uint8 items[n]; };
+                                  """;
+        const string expected = """
+                                root root
+                                    0  ReadRootStruct               -            root
+
+                                struct root
+                                    0  ReadUInt8                    n            UInt8
+                                    1  CaptureInteger               n            -> n
+                                    2  ReadUnion                    value        u
+                                    3  ReadPromotedUnion            (anonymous)  (anonymous)
+                                    4  EvaluateCount                items        count = n
+                                    5  ReadNumericArray             items        UInt8
+                                    6  FinishComposite              -            tail +0
+
+                                union u
+                                    0  RestoreUnionSlots            -
+                                    1  RewindToUnionStart           n
+                                    2  ReadUInt8                    n            UInt8
+                                    3  CaptureInteger               n            -> n
+                                    4  RestoreUnionSlots            -
+                                    5  RewindToUnionStart           w
+                                    6  OpenBitfieldUnit             w
+                                    7  ReadBitfield                 w            UInt16 le
+                                    8  RestoreUnionSlots            -
+                                    9  RewindToUnionStart           pair
+                                   10  ReadStruct                   pair         pair
+
+                                union (anonymous)
+                                    0  RestoreUnionSlots            -
+                                    1  RewindToUnionStart           half
+                                    2  ReadUInt16Le                 half         UInt16 le
+                                    3  RestoreUnionSlots            -
+                                    4  CheckFixedCount              bytes        count 2
+                                    5  RewindToUnionStart           bytes
+                                    6  ReadNumericElements          bytes        UInt8
+
+                                struct pair
+                                    0  ReadUInt8                    a            UInt8
+                                    1  ReadUInt8                    b            UInt8
+                                    2  FinishComposite              -            tail +0
+
+                                """;
+        var layout = new CStruct(definition);
+        AssertDump(expected, layout, "root");
+        const string union = """
+                                root u
+                                    0  ReadRootUnion                -            u
+
+                                union u
+                                    0  RestoreUnionSlots            -
+                                    1  RewindToUnionStart           n
+                                    2  ReadUInt8                    n            UInt8
+                                    3  CaptureInteger               n            -> n
+                                    4  RestoreUnionSlots            -
+                                    5  RewindToUnionStart           w
+                                    6  OpenBitfieldUnit             w
+                                    7  ReadBitfield                 w            UInt16 le
+                                    8  RestoreUnionSlots            -
+                                    9  RewindToUnionStart           pair
+                                   10  ReadStruct                   pair         pair
+
+                                struct pair
+                                    0  ReadUInt8                    a            UInt8
+                                    1  ReadUInt8                    b            UInt8
+                                    2  FinishComposite              -            tail +0
+
+                                """;
+        AssertDump(union, layout, "u");
+    }
+
     /// <summary>Asserts a root's dump, showing the actual dump on failure so an intended change can be pasted in.</summary>
     /// <param name="expected">The expected dump.</param>
     /// <param name="layout">The layout.</param>

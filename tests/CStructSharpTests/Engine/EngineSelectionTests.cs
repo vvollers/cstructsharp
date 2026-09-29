@@ -16,8 +16,8 @@ public class EngineSelectionTests
     /// <summary>A layout with a data-sized array, so no direct fixed-root path can take its whole-root operations.</summary>
     private const string SizedLayout = "struct inner { uint8 a; }; struct rec { uint8 n; uint16 items[n]; inner last; uint8 tail; };";
 
-    /// <summary>A layout the engine cannot read yet: its root holds a union (stage 4).</summary>
-    private const string UnionLayout = "union u { uint8 a; uint16 b; }; struct rec { uint8 n; u value; uint8 tail; };";
+    /// <summary>A layout the engine cannot read yet: its root holds a pointer (stage 5); compiled with one-byte pointers.</summary>
+    private const string PointerLayout = "struct rec { uint8 n; uint8 *value; uint8 tail; };";
 
     /// <summary>Input for <see cref="SizedLayout"/>: two items, then <c>last.a</c> and <c>tail</c>.</summary>
     private static readonly byte[] SizedData = [2, 1, 0, 2, 0, 5, 9];
@@ -127,12 +127,12 @@ public class EngineSelectionTests
             Assert.AreEqual(0, recording.Diagnostics.Declines);
         }
 
-        var unions = new CStruct(UnionLayout);
+        var pointers = new CStruct(PointerLayout, 1);
         using (EngineRecording recording = EngineDiagnostics.Record())
         {
-            Assert.HasCount(2, unions.ParseMany(new byte[] { 1, 2, 3, 4, 4, 5, 6, 7, }.AsMemory(), "rec").ToList());
+            Assert.HasCount(2, pointers.ParseMany(new byte[] { 1, 0, 3, 4, 0, 7, }.AsMemory(), "rec").ToList());
             CollectionAssert.AreEqual(
-                Enumerable.Repeat(new EngineDecline(EngineOperation.RootRead, "rec.value: unions are not supported yet (stage 4)"), 2).ToArray(),
+                Enumerable.Repeat(new EngineDecline(EngineOperation.RootRead, "rec.value: pointers are not supported yet (stage 5)"), 2).ToArray(),
                 recording.Diagnostics.RecentDeclines.ToArray());
         }
     }
@@ -206,10 +206,10 @@ public class EngineSelectionTests
         Assert.AreEqual((byte)9, layout.Parse(SizedData.AsSpan(), "rec", options: read)["tail"]);
         Assert.AreEqual((byte)9, ((StructValue)layout.ReadValue(new MemoryStream(SizedData), "rec", options: read)!)["tail"]);
 
-        var unions = new CStruct(UnionLayout);
-        using var unionSource = new MemoryStream([1, 2, 3, 4]);
-        AssertRequired(EngineOperation.RootRead, () => unions.Parse(unionSource, "rec", options: read), "rec.value: unions are not supported yet (stage 4)");
-        Assert.AreEqual(0, unionSource.Position, "the stream does not move");
+        var pointers = new CStruct(PointerLayout, 1);
+        using var pointerSource = new MemoryStream([1, 2, 3, 4]);
+        AssertRequired(EngineOperation.RootRead, () => pointers.Parse(pointerSource, "rec", options: read), "rec.value: pointers are not supported yet (stage 5)");
+        Assert.AreEqual(0, pointerSource.Position, "the stream does not move");
         AssertRequired(EngineOperation.PathRead, () => layout.ReadValue(SizedData, "rec.items[0]", options: read));
         AssertRequired(EngineOperation.DebugRead, () => layout.ParseWithDebug(SizedData, "rec", options: read));
         AssertRequired(EngineOperation.AddressResolution, () => layout.ResolveAddress(SizedData, "rec.tail", options: read));
@@ -228,7 +228,7 @@ public class EngineSelectionTests
 
         // The asynchronous forms copy the options with a linked token; the selection survives the copy.
         using var cancellation = new CancellationTokenSource();
-        AssertRequired(EngineOperation.RootRead, () => unions.ParseAsync(new MemoryStream([1, 2, 3, 4]), "rec", options: read, cancellationToken: cancellation.Token).AsTask().GetAwaiter().GetResult(), "rec.value: unions are not supported yet (stage 4)");
+        AssertRequired(EngineOperation.RootRead, () => pointers.ParseAsync(new MemoryStream([1, 2, 3, 4]), "rec", options: read, cancellationToken: cancellation.Token).AsTask().GetAwaiter().GetResult(), "rec.value: pointers are not supported yet (stage 5)");
         Assert.AreEqual((byte)9, layout.ParseAsync(new MemoryStream(SizedData), "rec", options: read, cancellationToken: cancellation.Token).AsTask().GetAwaiter().GetResult()["tail"]);
         AssertRequired(EngineOperation.Write, () => layout.WriteAsync(new MemoryStream(), "rec", value, options: write, cancellationToken: cancellation.Token).AsTask().GetAwaiter().GetResult());
         AssertRequired(EngineOperation.Update, () => layout.UpdateAsync(new MemoryStream((byte[])SizedData.Clone()), "rec.tail", (byte)1, options: update, cancellationToken: cancellation.Token).AsTask().GetAwaiter().GetResult());

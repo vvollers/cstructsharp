@@ -221,7 +221,7 @@ internal static partial class ReadEngine
     private static string ReadCharArray<TCursor>(ref TCursor cursor, ref ReadEngineState state, ReadProgram program, int field, int codec, int count, Span<byte> scratch)
         where TCursor : struct, IReadCursor
     {
-        if (program.Kind != ReadProgramKind.Root && count > 0 && !program.Fields[field].CapturesLayoutVariable && !state.GeneralPathOnly)
+        if (program.PlacesMembers && count > 0 && !program.Fields[field].CapturesLayoutVariable && !state.GeneralPathOnly)
         {
             byte[]? rented = null;
             try
@@ -510,7 +510,7 @@ internal static partial class ReadEngine
         where TCursor : struct, IReadCursor
     {
         CompiledCompositeType composite = element.Composite!;
-        if (program.Kind != ReadProgramKind.Root && count > 0 && !state.GeneralPathOnly && composite.StaticPlan is { Size: > 0, } plan &&
+        if (program.PlacesMembers && count > 0 && !state.GeneralPathOnly && composite.StaticPlan is { Size: > 0, } plan &&
             program.Fields[field].FixedElementSize == plan.Size && state.CoversPlan(plan) && (long)count * plan.Size <= int.MaxValue &&
             cursor.TryReadSpanWithinBudget(count * plan.Size, out ReadOnlySpan<byte> bytes))
         {
@@ -527,6 +527,129 @@ internal static partial class ReadEngine
         }
 
         return ReadStructElements(ref cursor, ref state, element, count);
+    }
+
+    /// <summary>
+    ///     Reads one bitfield as the interpreter's scalar reader does: the storage unit the bit registers describe is read
+    ///     whole (a packed window whose placed unit differs from the declared type as a raw unsigned unit, any other unit
+    ///     through its storage codec), a field that overruns the unit fails, and the field's bits are decoded by the shared
+    ///     rule. While bits of the unit remain after the field, the position returns to the unit's start, so the next
+    ///     bitfield of the unit reads, and is charged for, the whole unit again.
+    /// </summary>
+    /// <typeparam name="TCursor">The cursor type.</typeparam>
+    /// <param name="cursor">The operation's cursor, at the unit's start.</param>
+    /// <param name="state">The operation's state, whose layout decodes the bits.</param>
+    /// <param name="member">The bitfield.</param>
+    /// <param name="codec">The bitfield's storage codec.</param>
+    /// <param name="bitOffset">The field's bit offset in the unit; advanced past the field.</param>
+    /// <param name="unitSize">The placed unit's size in bytes, 1 to 8.</param>
+    /// <param name="scratch">A buffer of at least 16 bytes.</param>
+    /// <returns>The field's value: an <see cref="int"/>, a <see cref="ulong"/>, or an enum result.</returns>
+    /// <exception cref="CStructReadException">The input ends inside the unit, or the field overruns it.</exception>
+    /// <exception cref="CStructReadLimitException">The unit exceeds the total read budget.</exception>
+    private static object ReadBitfield<TCursor>(ref TCursor cursor, ref ReadEngineState state, CompiledField member, PrimitiveCodec codec, ref int bitOffset, int unitSize, Span<byte> scratch)
+        where TCursor : struct, IReadCursor
+    {
+        long start = cursor.Position;
+        object unit;
+        if (unitSize != codec.Size)
+        {
+            ReadOnlySpan<byte> bytes = cursor.TryReadSpan(unitSize, out ReadOnlySpan<byte> direct) ? direct : ReadExact(ref cursor, scratch[..unitSize]);
+            unit = BinaryPrimitiveIO.ReadUnsigned(bytes, member.BitStorageIsLittleEndian ?? true);
+        }
+        else
+        {
+            unit = codec.IsFixedWidthNumeric ? codec.ReadNumeric(cursor.ReadFixed(scratch[..codec.Size])) : ReadCodecValue(ref cursor, codec, scratch);
+        }
+
+        long end = cursor.Position;
+        int unitBits = checked(unitSize * 8);
+        if (bitOffset + member.BitSize > unitBits)
+        {
+            throw new CStructReadException(LayoutFailures.BitfieldExceedsUnit(member.Name));
+        }
+
+        object value = state.Layout.DecodeBitfield(member, unit, bitOffset, unitBits);
+        bitOffset += member.BitSize;
+        if (1 + (bitOffset / 8) <= end - start)
+        {
+            cursor.Position = start;
+        }
+
+        return value;
+    }
+
+    /// <summary>
+    ///     Reads a union as the interpreter does: its size (fixed, or measured from the variables at entry), its raw storage
+    ///     read and charged whole, then - from its start, inside one nesting level (a promoted union only observes
+    ///     cancellation) and with every variable restored to its entry value before each member - its member views, which
+    ///     are charged again. Whatever happens in a member, the variables are restored and the position ends at the union's
+    ///     end, so a failure inside a member reports that position; nothing a member captures is visible after the union.
+    /// </summary>
+    /// <typeparam name="TCursor">The cursor type.</typeparam>
+    /// <param name="cursor">The operation's cursor, at the union's first byte.</param>
+    /// <param name="state">The operation's state.</param>
+    /// <param name="program">The union's program (<see cref="ReadProgramKind.Union"/>).</param>
+    /// <param name="promoted">Whether the union is an anonymous member whose views belong to its parent.</param>
+    /// <returns>The union value with its raw storage and member views.</returns>
+    /// <exception cref="CStructException">The size cannot be measured, the storage is short, a limit is exceeded, or a member fails.</exception>
+    private static UnionValue ReadUnion<TCursor>(ref TCursor cursor, ref ReadEngineState state, ReadProgram program, bool promoted)
+        where TCursor : struct, IReadCursor
+    {
+        CompiledCompositeType union = program.Composite!;
+        long start = cursor.Position;
+        int size = union.Symbol.FixedSize ?? state.Layout.Compilation.SizeQueries.GetCompiledStructSizeInBytes(union, state.Slots.ToDictionary(), false);
+        long end = checked(start + size);
+        byte[] raw = new byte[size];
+        cursor.ReadExactly(raw);
+        cursor.Position = start;
+        var members = new StructValue(union.Shape);
+        if (promoted)
+        {
+            cursor.ThrowIfCancellationRequested();
+        }
+        else
+        {
+            state.EnterStructure(ref cursor);
+        }
+
+        int outer = state.SaveUnionSlots();
+        try
+        {
+            RunFrame(ref cursor, ref state, program, members);
+        }
+        finally
+        {
+            state.RestoreUnionSlots();
+            state.ReleaseUnionSlots(outer);
+            if (!promoted)
+            {
+                state.StructureDepth--;
+            }
+
+            cursor.Position = end;
+        }
+
+        return UnionValue.FromParsed(union.Name, raw, members);
+    }
+
+    /// <summary>Reads count-register unions, each a union value of its own, into a list.</summary>
+    /// <typeparam name="TCursor">The cursor type.</typeparam>
+    /// <param name="cursor">The operation's cursor.</param>
+    /// <param name="state">The operation's state.</param>
+    /// <param name="element">The element union's program.</param>
+    /// <param name="count">The element count.</param>
+    /// <returns>The elements.</returns>
+    private static List<object?> ReadUnionArray<TCursor>(ref TCursor cursor, ref ReadEngineState state, ReadProgram element, int count)
+        where TCursor : struct, IReadCursor
+    {
+        var elements = new List<object?>(count);
+        for (int index = 0; index < count; index++)
+        {
+            elements.Add(ReadUnion(ref cursor, ref state, element, promoted: false));
+        }
+
+        return elements;
     }
 
     /// <summary>

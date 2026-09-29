@@ -21,4 +21,11 @@ internal enum ReadProgramKind : byte
     ///     <c>#define</c>. Its value is stored under the root's name in a one-member root value.
     /// </summary>
     Root,
+
+    /// <summary>
+    ///     A union's member views: each member is read from the union's first byte with the variables it was entered
+    ///     with, as the interpreter reads them; the executor reads the raw storage, claims the nesting level and ends at the
+    ///     union's end around the program. Cached per composite.
+    /// </summary>
+    Union,
 }

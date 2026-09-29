@@ -28,6 +28,41 @@ internal sealed class CompositeFieldPlacementCursor
     public long Current => this.cursor.Current!.Value;
 
     /// <summary>
+    ///     Advances a placement cursor held by value to one field's start: the one dispatch every runtime placer uses (this
+    ///     class, and the compiled read engine, which keeps its cursor on the stack), so they place a separator, a bitfield
+    ///     and an ordinary field identically.
+    /// </summary>
+    /// <param name="cursor">The composite's cursor, started at the composite's first byte; it is advanced.</param>
+    /// <param name="compiledField">The next field in declaration order.</param>
+    /// <returns>The field's start (a bitfield's unit start), the bit offset inside the unit, and the unit size in bytes (0 for an ordinary field).</returns>
+    /// <exception cref="CStructLayoutException">The field does not sit at its asserted offset.</exception>
+    public static (long FieldStart, int BitOffset, int UnitSize) AdvanceToField(ref PlacementCursor cursor, CompiledField compiledField)
+    {
+        if (compiledField.IsZeroWidthBitfield)
+        {
+            return (cursor.AdvanceToSeparator(compiledField.BitStorageSize ?? 1, compiledField.Alignment, compiledField.BitRunBits)!.Value, 0, 0);
+        }
+
+        if (compiledField.BitSize > 0)
+        {
+            int declaredSize = compiledField.BitStorageSize ??
+                               throw new InvalidOperationException(
+                                   "Compiled bitfield has no storage size: " + compiledField.Name);
+            (long unitStart, int unitSize, int bitOffset) = cursor.AdvanceToBitfield(declaredSize, compiledField.Alignment, compiledField.BitSize, compiledField.BitRunBits, compiledField.BitStorageIsLittleEndian ?? true, compiledField.Name)!.Value;
+            return (unitStart, bitOffset, unitSize);
+        }
+
+        long fieldStart = cursor.AdvanceToField(compiledField.Alignment)!.Value;
+        if (compiledField.AssertedOffset is int asserted && compiledField.FixedOffset is null &&
+            cursor.CheckAssertedOffset(fieldStart, asserted, compiledField.Name) is { } failure)
+        {
+            throw new CStructLayoutException(failure);
+        }
+
+        return (fieldStart, 0, 0);
+    }
+
+    /// <summary>
     ///     Advances to one field's start, placing a bitfield in its storage unit (opening a new one when the packing
     ///     rule requires) or aligning an ordinary field normally.
     /// </summary>
@@ -39,30 +74,7 @@ internal sealed class CompositeFieldPlacementCursor
     /// <returns>The field's start (a bitfield's unit start), the bit offset inside the unit, and the unit size in bytes (0 for an ordinary field).</returns>
     /// <exception cref="CStructLayoutException">The field does not sit at its asserted offset.</exception>
     public (long FieldStart, int BitOffset, int UnitSize) AdvanceToField(CompiledField compiledField)
-    {
-        if (compiledField.IsZeroWidthBitfield)
-        {
-            return (this.cursor.AdvanceToSeparator(compiledField.BitStorageSize ?? 1, compiledField.Alignment, compiledField.BitRunBits)!.Value, 0, 0);
-        }
-
-        if (compiledField.BitSize > 0)
-        {
-            int declaredSize = compiledField.BitStorageSize ??
-                               throw new InvalidOperationException(
-                                   "Compiled bitfield has no storage size: " + compiledField.Name);
-            (long unitStart, int unitSize, int bitOffset) = this.cursor.AdvanceToBitfield(declaredSize, compiledField.Alignment, compiledField.BitSize, compiledField.BitRunBits, compiledField.BitStorageIsLittleEndian ?? true, compiledField.Name)!.Value;
-            return (unitStart, bitOffset, unitSize);
-        }
-
-        long fieldStart = this.cursor.AdvanceToField(compiledField.Alignment)!.Value;
-        if (compiledField.AssertedOffset is int asserted && compiledField.FixedOffset is null &&
-            this.cursor.CheckAssertedOffset(fieldStart, asserted, compiledField.Name) is { } failure)
-        {
-            throw new CStructLayoutException(failure);
-        }
-
-        return (fieldStart, 0, 0);
-    }
+        => AdvanceToField(ref this.cursor, compiledField);
 
     /// <summary>Records where a just-placed non-bitfield field actually ends, so the next field starts after it.</summary>
     /// <param name="fieldEnd">The position one byte past the field's last byte, in the start's coordinates.</param>

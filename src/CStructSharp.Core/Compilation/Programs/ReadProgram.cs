@@ -52,6 +52,7 @@ internal sealed class ReadProgram
         this.Groups = parts.Groups;
         this.Branches = parts.Branches;
         this.Scope = parts.Scope;
+        this.UsesPlacementCursor = parts.UsesPlacementCursor;
         (this.ScalarRunLengths, this.ScalarRunBytes) = FindScalarRuns(parts.Steps, parts.Codecs);
     }
 
@@ -69,6 +70,21 @@ internal sealed class ReadProgram
     ///     named struct for a <see cref="ReadProgramKind.Promoted"/> program, or the one-member root shape.
     /// </summary>
     public StructShape Shape { get; }
+
+    /// <summary>
+    ///     Gets a value indicating whether a composite places this program's members (a struct, or a promoted struct inside
+    ///     one): the interpreter takes its block paths (a <c>char[N]</c> or a fixed struct array as one span) only there, never
+    ///     for a root field or a union member view.
+    /// </summary>
+    public bool PlacesMembers => this.Kind is ReadProgramKind.Composite or ReadProgramKind.Promoted;
+
+    /// <summary>
+    ///     Gets a value indicating whether the members are placed at run time by a <see cref="PlacementCursor"/> the frame
+    ///     starts at its first byte (<see cref="ReadOpCode.PlaceMember"/> and its siblings), as the interpreter places them:
+    ///     a struct with bitfields, whose storage units the layout's packing rule shares. Other structs place their members
+    ///     with steps decided when the program was built.
+    /// </summary>
+    public bool UsesPlacementCursor { get; }
 
     /// <summary>Gets a value indicating whether a failure inside a member names that member, as the interpreter's field loop does; a root program names none.</summary>
     public bool NotesMembers => this.Kind != ReadProgramKind.Root;
@@ -201,6 +217,7 @@ internal sealed class ReadProgram
     /// <param name="Groups">The conditional groups.</param>
     /// <param name="Branches">The conditional branches.</param>
     /// <param name="Scope">The conditional scope, or <see langword="null"/>.</param>
+    /// <param name="UsesPlacementCursor">Whether the members are placed by a runtime placement cursor.</param>
     internal sealed record ReadProgramParts(
         ReadStep[] Steps,
         CompiledField[] Fields,
@@ -215,5 +232,6 @@ internal sealed class ReadProgram
         UnusableVariable[] Unusables,
         ConditionalGroup[] Groups,
         ConditionalBranch[] Branches,
-        ReadConditionalScope? Scope);
+        ReadConditionalScope? Scope,
+        bool UsesPlacementCursor);
 }

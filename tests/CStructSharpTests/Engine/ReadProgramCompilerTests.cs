@@ -473,11 +473,9 @@ public class ReadProgramCompilerTests
     [TestMethod]
     public void Reasons_NameTheInnermostUnsupportedMember()
     {
-        AssertReason("struct root { uint8 low : 4; uint8 high : 4; };", "root", "root.low: " + ReadProgramCompiler.Bitfields);
-        AssertReason("struct root { uint8 a; uint32 : 0; };", "root", "root.(unnamed): " + ReadProgramCompiler.Bitfields);
-        AssertReason("union u { uint8 a; uint16 b; }; struct root { u value; };", "root", "root.value: " + ReadProgramCompiler.Unions);
-        AssertReason("struct root { union { uint8 a; uint16 b; }; };", "root", "root.(anonymous): " + ReadProgramCompiler.Unions);
-        AssertReason("union u { uint8 a; uint16 b; };", "u", "u: " + ReadProgramCompiler.Unions);
+        AssertReason("union u { uint8 a; uint8 *p; }; struct root { u value; };", "root", "u.p: " + ReadProgramCompiler.Pointers);
+        AssertReason("struct root { union { uint8 a; uint8 *p; }; };", "root", "(anonymous union).p: " + ReadProgramCompiler.Pointers);
+        AssertReason("union u { uint8 a; uint8 *p; };", "u", "u.p: " + ReadProgramCompiler.Pointers);
         AssertReason("struct root { uint8 *p; };", "root", "root.p: " + ReadProgramCompiler.Pointers);
         AssertReason("struct leaf { uint8 *p; }; struct mid { leaf l; }; struct root { uint8 a; mid m[2]; };", "root", "leaf.p: " + ReadProgramCompiler.Pointers);
         AssertReason("struct root { uint8 a; struct { uint8 *p; }; };", "root", "(anonymous struct).p: " + ReadProgramCompiler.Pointers);

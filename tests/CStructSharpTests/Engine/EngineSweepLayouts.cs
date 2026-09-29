@@ -11,8 +11,11 @@ using CStructSharp.Values;
 ///     that sizes a later array, pointers (followed after the struct, one with an <c>@count</c> target), terminated
 ///     strings and arrays of structs and of scalars, to-end arrays of scalars and of structs, two- and three-dimensional
 ///     arrays of numbers, character rows, structs, enums and other codecs, a variable-length custom codec and a fixed-size
-///     one inside nested structs, LEB128, fixed text, and caller variables in 128-bit expressions. Each is compiled packed
-///     and aligned (<see cref="Variant"/>).
+///     one inside nested structs, LEB128, fixed text, and caller variables in 128-bit expressions; bitfields under the
+///     MSVC rule, high bit first with a <c>: 0</c> separator, and enum bitfields that size arrays; nested unions with array
+///     views, an inline struct view and a promoted union, a union whose struct view has conditionals and captures a name
+///     the struct outside it also uses, and bitfields in a union. Each is compiled packed and aligned
+///     (<see cref="Variant"/>).
 /// </summary>
 internal static class EngineSweepLayouts
 {
@@ -79,6 +82,29 @@ internal static class EngineSweepLayouts
             null,
             [("rec.value.b", (ushort)0xBEEF), ("rec.tail", (byte)3)]),
         new(
+            "union-nested",
+            "union inner { uint16 w; uint8 b[2]; }; union outer { inner in; uint32 whole; struct { uint8 lo; uint8 hi; } parts; }; struct rec { uint8 n; outer value; union { uint16 half; uint8 bytes[2]; }; uint8 items[n]; uint8 tail; };",
+            [0x02, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x01, 0x02, 0x09],
+            ["rec.value.whole", "rec.half", "rec.items[1]", "rec.tail"],
+            "rec.items",
+            [("rec.tail", (byte)3), ("rec.half", (ushort)5)],
+            Names: ["n"]),
+        new(
+            "union-conditional",
+            "#define MODE 1\nstruct body { uint8 kind; if (MODE == 1) { uint16 a; } else { uint8 b; } }; union u { body parsed; uint8 raw[4]; }; struct rec { uint8 kind; u value; uint8 items[kind]; uint8 tail; };",
+            [0x02, 0x01, 0x34, 0x12, 0x00, 0x05, 0x06, 0x09],
+            ["rec.value.parsed", "rec.items[1]", "rec.tail"],
+            "rec.items",
+            [("rec.tail", (byte)3), ("rec.items[1]", (byte)8)],
+            Names: ["kind"]),
+        new(
+            "union-bitfields",
+            "union flags { uint8 all; struct { uint8 lo : 4; uint8 hi : 4; } nib; uint16 wide : 12; }; struct rec { uint8 tag; flags f; uint8 tail; };",
+            [0x07, 0x21, 0x43, 0x09],
+            ["rec.f.nib", "rec.f.wide", "rec.tail"],
+            null,
+            [("rec.tail", (byte)3), ("rec.tag", (byte)5)]),
+        new(
             "union-arrays",
             "union u { uint16 w[2]; uint8 b[4]; }; struct rec { uint8 n; u value; uint16 items[n]; uint8 tail; };",
             [0x00, 0x01, 0x00, 0x02, 0x00, 0x09],
@@ -93,6 +119,31 @@ internal static class EngineSweepLayouts
             ["rec.high", "rec.top", "rec.tail"],
             null,
             [("rec.high", 7), ("rec.mid", 3)]),
+        new(
+            "bitfields-msvc",
+            "struct rec { uint8 a : 3; uint16 b : 5; uint16 c : 9; uint32 d : 20; uint8 tail; };",
+            [0x05, 0x34, 0x12, 0x78, 0x56, 0x34, 0x02, 0x09],
+            ["rec.c", "rec.d", "rec.tail"],
+            null,
+            [("rec.c", 7), ("rec.tail", (byte)3)],
+            Packing: BitfieldPacking.Msvc),
+        new(
+            "bitfields-high",
+            "struct rec { uint16 lo : 4; uint16 mid : 7; uint16 hi : 5; uint8 : 0; uint8 x : 3; uint8 y : 5; uint8 tail; };",
+            [0xA5, 0x5A, 0x3C, 0x09],
+            ["rec.mid", "rec.y", "rec.tail"],
+            null,
+            [("rec.mid", 9), ("rec.tail", (byte)3)],
+            Allocation: BitfieldAllocation.HighBitFirst),
+        new(
+            "bitfields-enum-counts",
+            "enum kind : uint8 { A = 1, B = 2 }; struct rec { uint8 tag; uint16 n : 3; kind k : 4; uint16 items[n]; kind kinds[k]; uint8 tail; };",
+            [0x07, 0x02, 0x00, 0x01, 0x01, 0x00, 0x02, 0x00, 0x02, 0x09],
+            ["rec.items[1]", "rec.kinds", "rec.tail"],
+            "rec.items",
+            [("rec.items[1]", (ushort)7), ("rec.tail", (byte)3)],
+            Names: ["n", "k"],
+            Packing: BitfieldPacking.Msvc),
         new(
             "enum-bitfield",
             "enum kind : uint8 { A = 1, B = 2 }; struct rec { uint8 lo : 4; kind k : 4; uint16 items[k]; uint8 tail; };",
@@ -232,6 +283,8 @@ internal static class EngineSweepLayouts
     /// <param name="Names">The identifiers the layout's expressions use, which the caller-variable sweep overrides.</param>
     /// <param name="Codec">Whether the layout registers <see cref="VlqCodec"/> and <see cref="FixedWordCodec"/>.</param>
     /// <param name="Variables">The caller variables the layout needs, or <see langword="null"/> for none.</param>
+    /// <param name="Packing">The bitfield storage-sharing rule the layout is compiled with.</param>
+    /// <param name="Allocation">Where the first bitfield of a unit sits in the layout.</param>
     internal sealed record SweepLayout(
         string Name,
         string Definition,
@@ -242,7 +295,9 @@ internal static class EngineSweepLayouts
         byte PointerSize = 8,
         string[]? Names = null,
         bool Codec = false,
-        IReadOnlyDictionary<string, int>? Variables = null)
+        IReadOnlyDictionary<string, int>? Variables = null,
+        BitfieldPacking Packing = BitfieldPacking.SysV,
+        BitfieldAllocation Allocation = BitfieldAllocation.LowBitFirst)
     {
         /// <summary>Gets whether the layout declares a pointer, so reads over a stream at a non-zero start need a relative origin.</summary>
         public bool HasPointers => this.Definition.Contains('*', StringComparison.Ordinal);
@@ -327,6 +382,11 @@ internal static class EngineSweepLayouts
                 layout.Definition,
                 layout.PointerSize,
                 aligned,
-                compilationOptions: layout.Codec ? new CStructCompilationOptions { Codecs = [VlqCodec.Instance, FixedWordCodec.Instance,], } : null);
+                compilationOptions: new CStructCompilationOptions
+                {
+                    Codecs = layout.Codec ? [VlqCodec.Instance, FixedWordCodec.Instance,] : null,
+                    BitfieldPacking = layout.Packing,
+                    BitfieldAllocation = layout.Allocation,
+                });
     }
 }

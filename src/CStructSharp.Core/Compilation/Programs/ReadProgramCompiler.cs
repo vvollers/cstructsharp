@@ -32,17 +32,19 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 ///         after it is a new anchor.
 ///     </para>
 ///     <para>
-///         Anything outside the engine's current feature set gives a reason instead of a program: bitfields and unions
-///         (stage 4) and pointers (stage 5). A compiler is used for one request on one thread.
+///         A struct with bitfields places every member through a runtime <see cref="PlacementCursor"/>, the one the
+///         interpreter uses, because the layout's packing rule decides which bitfields share a storage unit. A union is a
+///         program of member views, each read from the union's first byte with the variables it was entered with.
+///     </para>
+///     <para>
+///         Anything outside the engine's current feature set gives a reason instead of a program: pointers (stage 5). A
+///         compiler is used for one request on one thread.
 ///     </para>
 /// </remarks>
 internal sealed class ReadProgramCompiler
 {
-    /// <summary>The reason for a bitfield or <c>: 0</c> separator.</summary>
-    public const string Bitfields = "bitfields are not supported yet (stage 4)";
-
-    /// <summary>The reason for a union member or root.</summary>
-    public const string Unions = "unions are not supported yet (stage 4)";
+    /// <summary>The reason for an array of bitfields, which the interpreter has no reader for either.</summary>
+    public const string BitfieldArrays = "a bitfield array has no reader";
 
     /// <summary>The reason for a pointer field.</summary>
     public const string Pointers = "pointers are not supported yet (stage 5)";
@@ -86,7 +88,7 @@ internal sealed class ReadProgramCompiler
     /// <param name="composite">The composite.</param>
     /// <returns>The program, or why it cannot be built yet.</returns>
     public ReadProgramOutcome CompileComposite(CompiledCompositeType composite)
-        => this.CompileStruct(composite, ReadProgramKind.Composite, composite.Shape);
+        => composite.IsUnion ? this.CompileUnion(composite) : this.CompileStruct(composite, ReadProgramKind.Composite, composite.Shape);
 
     /// <summary>
     ///     Compiles a root, as the interpreter's root dispatch reads it: a struct (or a typedef of an inline struct, stored
@@ -143,7 +145,8 @@ internal sealed class ReadProgramCompiler
     /// <summary>The location a struct's reasons name: its name, or a marker for an anonymous one.</summary>
     /// <param name="composite">The composite.</param>
     /// <returns>The name.</returns>
-    private static string Locate(CompiledCompositeType composite) => composite.Name.Length > 0 ? composite.Name : "(anonymous struct)";
+    private static string Locate(CompiledCompositeType composite)
+        => composite.Name.Length > 0 ? composite.Name : composite.IsUnion ? "(anonymous union)" : "(anonymous struct)";
 
     /// <summary>
     ///     The step that reads one scalar of a codec, or <see langword="null"/> for a codec the engine does not read
@@ -288,19 +291,14 @@ internal sealed class ReadProgramCompiler
         return custom;
     }
 
-    /// <summary>Compiles a root that reads one struct into a new value under <paramref name="key"/>.</summary>
+    /// <summary>Compiles a root that reads one struct or union into a new value under <paramref name="key"/>.</summary>
     /// <param name="rootName">The name the root is requested by.</param>
-    /// <param name="key">The name the struct's value is stored under (a typedef's name for a typedef of an inline struct).</param>
-    /// <param name="composite">The struct.</param>
+    /// <param name="key">The name the value is stored under (a typedef's name for a typedef of an inline struct or union).</param>
+    /// <param name="composite">The struct or union.</param>
     /// <param name="rootShape">The one-member root shape.</param>
     /// <returns>The program, or why it cannot be built yet.</returns>
     private ReadProgramOutcome CompileRootStruct(string rootName, string key, CompiledCompositeType composite, StructShape rootShape)
     {
-        if (composite.IsUnion)
-        {
-            return ReadProgramOutcome.NotSupported(rootName + ": " + Unions);
-        }
-
         ReadProgramOutcome nested = this.cache.GetComposite(this.compilation, composite);
         if (nested.Program is not { } program)
         {
@@ -313,8 +311,33 @@ internal sealed class ReadProgramCompiler
         }
 
         var builder = new ReadProgramBuilder(this.cache.Table, [], rootShape, 0);
-        builder.Emit(ReadOpCode.ReadRootStruct, -1, builder.AddNested(program), -1);
+        builder.Emit(composite.IsUnion ? ReadOpCode.ReadRootUnion : ReadOpCode.ReadRootStruct, -1, builder.AddNested(program), -1);
         return ReadProgramOutcome.Eligible(builder.Build(ReadProgramKind.Root, key, null));
+    }
+
+    /// <summary>
+    ///     Compiles a union's member views: before each member every variable is restored to the union's entry values, and
+    ///     each member is read from the union's first byte as a standalone field (no alignment, no block paths), as the
+    ///     interpreter reads them. Conditions on a union's own members are not evaluated there, so none are here.
+    /// </summary>
+    /// <param name="union">The union.</param>
+    /// <returns>The program, or why it cannot be built yet.</returns>
+    private ReadProgramOutcome CompileUnion(CompiledCompositeType union)
+    {
+        string location = Locate(union);
+        CompiledField[] fields = [.. union.Fields];
+        var builder = new ReadProgramBuilder(this.cache.Table, fields, union.Shape, 0) { UnionMembers = true, };
+        var unplaced = new ReadPlacement(false);
+        for (int index = 0; index < fields.Length; index++)
+        {
+            builder.Emit(ReadOpCode.RestoreUnionSlots, -1, 0, 0);
+            if (this.EmitMember(builder, index, location, standalone: true, ref unplaced) is { } reason)
+            {
+                return ReadProgramOutcome.NotSupported(reason);
+            }
+        }
+
+        return ReadProgramOutcome.Eligible(builder.Build(ReadProgramKind.Union, union.Name, union));
     }
 
     /// <summary>Compiles a struct's members into a program.</summary>
@@ -325,13 +348,13 @@ internal sealed class ReadProgramCompiler
     private ReadProgramOutcome CompileStruct(CompiledCompositeType composite, ReadProgramKind kind, StructShape shape)
     {
         string location = Locate(composite);
-        if (composite.IsUnion)
-        {
-            return ReadProgramOutcome.NotSupported(location + ": " + Unions);
-        }
-
         CompiledField[] fields = [.. composite.Fields];
-        var builder = new ReadProgramBuilder(this.cache.Table, fields, shape, composite.ConditionalGroupCount);
+
+        // Bitfields share storage units by the layout's packing rule, which only the runtime placement cursor applies.
+        var builder = new ReadProgramBuilder(this.cache.Table, fields, shape, composite.ConditionalGroupCount)
+        {
+            UsesPlacementCursor = System.Array.Exists(fields, field => field.BitSize > 0 || field.IsZeroWidthBitfield),
+        };
         if (composite.ConditionalScope is { } scope)
         {
             // The interpreter removes the kept names at entry; only the ones an expression can read matter.
@@ -375,6 +398,12 @@ internal sealed class ReadProgramCompiler
         }
 
         int alignment = composite.Symbol.Alignment;
+        if (builder.UsesPlacementCursor)
+        {
+            builder.Emit(ReadOpCode.FinishPlaced, -1, 0, alignment);
+            return ReadProgramOutcome.Eligible(builder.Build(kind, composite.Name, composite));
+        }
+
         bool knownTail = placement.TryFinish(alignment, out int padding);
         if (knownTail && placement.KnownOffset is long end && composite.Symbol.FixedSize is int size && end + padding != size)
         {
@@ -392,15 +421,21 @@ internal sealed class ReadProgramCompiler
     /// <param name="builder">The program under construction.</param>
     /// <param name="index">The member's index.</param>
     /// <param name="location">The struct's name, for reasons.</param>
-    /// <param name="standalone">Whether the member is a root field that no composite places.</param>
+    /// <param name="standalone">Whether no composite places the member: a root field or a union member view.</param>
     /// <param name="placement">The placement state; advanced past the member (a standalone field leaves it alone).</param>
     /// <returns>A reason, or <see langword="null"/> when the member was emitted.</returns>
     private string? EmitMember(ReadProgramBuilder builder, int index, string location, bool standalone, ref ReadPlacement placement)
     {
         CompiledField field = builder.Fields[index];
-        if (field.IsZeroWidthBitfield || field.BitSize > 0)
+        if (field.IsZeroWidthBitfield)
         {
-            return Refuse(location, field, Bitfields);
+            // A separator reads nothing; in a union it does not even move the position (the next member rewinds).
+            if (!standalone)
+            {
+                builder.Emit(ReadOpCode.PlaceSeparator, index, 0, 0);
+            }
+
+            return null;
         }
 
         if (field.PointerDepth > 0)
@@ -408,9 +443,9 @@ internal sealed class ReadProgramCompiler
             return Refuse(location, field, Pointers);
         }
 
-        if (field.Composite is { IsUnion: true, } || field.Declaration is Struct { IsUnion: true, })
+        if (field.BitSize > 0)
         {
-            return Refuse(location, field, Unions);
+            return this.EmitBitfield(builder, index, location, standalone);
         }
 
         bool promoted = field.IsPromotedComposite;
@@ -440,7 +475,7 @@ internal sealed class ReadProgramCompiler
             break;
         }
 
-        if (!standalone && this.EmitPlacement(builder, index, ref placement) is { } misplaced)
+        if (this.EmitMemberPlacement(builder, index, standalone, ref placement) is { } misplaced)
         {
             return Refuse(location, field, misplaced);
         }
@@ -469,13 +504,113 @@ internal sealed class ReadProgramCompiler
             builder.Emit(ReadOpCode.SkipTerminator, index, field.FixedElementSize!.Value, 0);
         }
 
+        this.EmitCompletion(builder, index, standalone, ref placement);
         this.EmitCapture(builder, index);
-        if (!standalone)
+        return null;
+    }
+
+    /// <summary>
+    ///     Emits a bitfield: its placement (the runtime cursor's storage unit in a struct, or a unit of its declared size at
+    ///     bit 0 in a union), the unit read with the bit extraction, and the capture. A bitfield never completes its
+    ///     placement: the cursor reserved the whole unit when it opened it.
+    /// </summary>
+    /// <param name="builder">The program under construction.</param>
+    /// <param name="index">The member's index.</param>
+    /// <param name="location">The struct's name, for reasons.</param>
+    /// <param name="standalone">Whether no composite places the member.</param>
+    /// <returns>A reason, or <see langword="null"/>.</returns>
+    private string? EmitBitfield(ReadProgramBuilder builder, int index, string location, bool standalone)
+    {
+        CompiledField field = builder.Fields[index];
+        if (field.Array.Kind != CompiledArrayKind.Scalar)
         {
-            this.AdvancePast(ref placement, field);
+            return Refuse(location, field, BitfieldArrays);
         }
 
+        if (field.Name.Length > 0 && !builder.SetShapeSlot(index))
+        {
+            return Refuse(location, field, NoShapeSlot);
+        }
+
+        if (field.CodecId < 0)
+        {
+            return Refuse(location, field, NoReader);
+        }
+
+        if (standalone)
+        {
+            if (builder.UnionMembers)
+            {
+                builder.Emit(ReadOpCode.RewindToUnionStart, index, 0, 0);
+            }
+
+            builder.Emit(ReadOpCode.OpenBitfieldUnit, index, 0, 0);
+        }
+        else
+        {
+            builder.Emit(ReadOpCode.PlaceBitfield, index, 0, 0);
+        }
+
+        builder.Emit(ReadOpCode.ReadBitfield, index, builder.AddCodec(field.CodecId, field.Codec), 0);
+        this.EmitCapture(builder, index);
         return null;
+    }
+
+    /// <summary>
+    ///     Emits where a member starts: a union member view moves back to the union's first byte, a member of a struct with
+    ///     bitfields is placed by the runtime cursor, and any other placed member by the steps its static placement needs;
+    ///     a root field is not placed.
+    /// </summary>
+    /// <param name="builder">The program under construction.</param>
+    /// <param name="index">The member's index.</param>
+    /// <param name="standalone">Whether no composite places the member.</param>
+    /// <param name="placement">The static placement state.</param>
+    /// <returns>A reason when a static placement contradicts the compiled offset; otherwise <see langword="null"/>.</returns>
+    private string? EmitMemberPlacement(ReadProgramBuilder builder, int index, bool standalone, ref ReadPlacement placement)
+    {
+        if (builder.UnionMembers)
+        {
+            builder.Emit(ReadOpCode.RewindToUnionStart, index, 0, 0);
+            return null;
+        }
+
+        if (standalone)
+        {
+            return null;
+        }
+
+        if (builder.UsesPlacementCursor)
+        {
+            builder.Emit(ReadOpCode.PlaceMember, index, 0, 0);
+            return null;
+        }
+
+        return this.EmitPlacement(builder, index, ref placement);
+    }
+
+    /// <summary>
+    ///     Records where a placed member ended: the runtime cursor learns the position after its read, and a static
+    ///     placement advances past its size (or restarts after a size the data decides).
+    /// </summary>
+    /// <param name="builder">The program under construction.</param>
+    /// <param name="index">The member's index.</param>
+    /// <param name="standalone">Whether no composite places the member; nothing is recorded then.</param>
+    /// <param name="placement">The static placement state.</param>
+    private void EmitCompletion(ReadProgramBuilder builder, int index, bool standalone, ref ReadPlacement placement)
+    {
+        if (standalone)
+        {
+            return;
+        }
+
+        if (builder.UsesPlacementCursor)
+        {
+            builder.Emit(ReadOpCode.CompletePlacement, index, 0, 0);
+        }
+        else
+        {
+            this.AdvancePast(ref placement, builder.Fields[index]);
+        }
     }
 
     /// <summary>Returns the first identifier an expression names that has no slot in the layout's table, if any.</summary>
@@ -508,12 +643,14 @@ internal sealed class ReadProgramCompiler
     {
         CompiledField field = builder.Fields[index];
         CompiledCompositeType composite = field.Composite ?? this.compilation.SizeQueries.GetCompiledComposite((Struct)field.Declaration);
-        if (this.EmitPlacement(builder, index, ref placement) is { } misplaced)
+        if (this.EmitMemberPlacement(builder, index, standalone: false, ref placement) is { } misplaced)
         {
             return Refuse(location, field, misplaced);
         }
 
-        ReadProgramOutcome nested = promoted
+        // An anonymous struct is compiled into this program's value; an anonymous union keeps its own cached program,
+        // whose views are copied into this value after it is read.
+        ReadProgramOutcome nested = promoted && !composite.IsUnion
                                         ? this.CompileStruct(composite, ReadProgramKind.Promoted, builder.Shape)
                                         : this.cache.GetComposite(this.compilation, composite);
         if (nested.Program is not { } program)
@@ -521,16 +658,23 @@ internal sealed class ReadProgramCompiler
             return nested.Reason;
         }
 
-        if (promoted)
+        int prefix = field.HasQualifiedPrefix ? builder.AddPrefix(field.QualifiedPrefix!) : -1;
+        builder.Emit(
+            (promoted, composite.IsUnion) switch
+            {
+                (true, true) => ReadOpCode.ReadPromotedUnion,
+                (true, false) => ReadOpCode.ReadPromotedStruct,
+                (false, true) => ReadOpCode.ReadUnion,
+                _ => ReadOpCode.ReadStruct,
+            },
+            index,
+            builder.AddNested(program),
+            promoted ? -1 : prefix);
+        if (!builder.UnionMembers)
         {
-            builder.Emit(ReadOpCode.ReadPromotedStruct, index, builder.AddNested(program), -1);
-        }
-        else
-        {
-            builder.Emit(ReadOpCode.ReadStruct, index, builder.AddNested(program), field.HasQualifiedPrefix ? builder.AddPrefix(field.QualifiedPrefix!) : -1);
+            this.EmitCompletion(builder, index, standalone: false, ref placement);
         }
 
-        this.AdvancePast(ref placement, field);
         return null;
     }
 
@@ -602,7 +746,7 @@ internal sealed class ReadProgramCompiler
                     return outcome.Reason;
                 }
 
-                builder.Emit(ReadOpCode.ReadStruct, index, builder.AddNested(program), field.HasQualifiedPrefix ? builder.AddPrefix(field.QualifiedPrefix!) : -1);
+                builder.Emit(nested.IsUnion ? ReadOpCode.ReadUnion : ReadOpCode.ReadStruct, index, builder.AddNested(program), field.HasQualifiedPrefix ? builder.AddPrefix(field.QualifiedPrefix!) : -1);
                 return null;
             }
 
@@ -660,8 +804,13 @@ internal sealed class ReadProgramCompiler
                 return outcome.Reason;
             }
 
-            // The interpreter takes an element struct's block path over the whole array only for one dimension.
-            builder.Emit(table ? ReadOpCode.ReadStructElements : ReadOpCode.ReadStructArray, index, builder.AddNested(program), 0);
+            // The interpreter takes an element struct's block path over the whole array only for one dimension, and never
+            // for union elements.
+            builder.Emit(
+                nested.IsUnion ? ReadOpCode.ReadUnionArray : table ? ReadOpCode.ReadStructElements : ReadOpCode.ReadStructArray,
+                index,
+                builder.AddNested(program),
+                0);
             EmitReshape(builder, index, table);
             return null;
         }

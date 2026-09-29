@@ -275,6 +275,14 @@ internal static partial class ReadEngine
         bool captureSkipped = false;
         long placed = -1;
         int field = -1;
+
+        // A struct with bitfields places its members through the runtime cursor the interpreter uses, held on the stack;
+        // a bitfield's placement sets the bit registers - its bit offset in the unit and the unit's size in bytes.
+        PlacementCursor placer = program.UsesPlacementCursor
+                                     ? new PlacementCursor(start, state.Layout.Aligned, state.Layout.BitfieldPacking, state.Layout.Compilation.HighBitFirst)
+                                     : default;
+        int bitOffset = 0;
+        int unitSize = 0;
         try
         {
             for (int index = 0; index < steps.Length; index++)
@@ -610,6 +618,88 @@ internal static partial class ReadEngine
                     }
 
                     break;
+
+                case ReadOpCode.PlaceMember:
+                    cursor.Position = CompositeFieldPlacementCursor.AdvanceToField(ref placer, program.Fields[field]).FieldStart;
+                    break;
+
+                case ReadOpCode.PlaceBitfield:
+                    {
+                        (long unitStart, bitOffset, unitSize) = CompositeFieldPlacementCursor.AdvanceToField(ref placer, program.Fields[field]);
+                        cursor.Position = unitStart;
+                        break;
+                    }
+
+                case ReadOpCode.PlaceSeparator:
+                    cursor.Position = CompositeFieldPlacementCursor.AdvanceToField(ref placer, program.Fields[field]).FieldStart;
+                    break;
+
+                case ReadOpCode.CompletePlacement:
+                    placer.CompleteField(cursor.Position);
+                    break;
+
+                case ReadOpCode.FinishPlaced:
+                    cursor.Position = placer.Finish(step.B)!.Value;
+                    break;
+
+                case ReadOpCode.OpenBitfieldUnit:
+                    bitOffset = 0;
+                    unitSize = program.Fields[field].BitStorageSize!.Value;
+                    break;
+
+                case ReadOpCode.ReadBitfield:
+                    last = ReadBitfield(ref cursor, ref state, program.Fields[field], program.Codecs[step.A].Primitive, ref bitOffset, unitSize, scratch);
+                    Store(destination, program, field, last);
+                    break;
+
+                case ReadOpCode.RewindToUnionStart:
+                    cursor.Position = start;
+                    break;
+
+                case ReadOpCode.RestoreUnionSlots:
+                    state.RestoreUnionSlots();
+                    break;
+
+                case ReadOpCode.ReadUnion:
+                    {
+                        string? outer = state.QualifiedPrefix;
+                        if (step.B >= 0)
+                        {
+                            state.QualifiedPrefix = outer is null ? program.Prefixes[step.B] : outer + program.Prefixes[step.B];
+                        }
+
+                        UnionValue union = ReadUnion(ref cursor, ref state, program.Nested[step.A], promoted: false);
+                        state.QualifiedPrefix = outer;
+                        Store(destination, program, field, union);
+                        break;
+                    }
+
+                case ReadOpCode.ReadPromotedUnion:
+                    {
+                        // The views belong to this value: copied in by name, in the union's member order, as the interpreter
+                        // copies them into its container.
+                        UnionValue union = ReadUnion(ref cursor, ref state, program.Nested[step.A], promoted: true);
+                        IDictionary<string, object?> members = destination;
+                        foreach (KeyValuePair<string, object?> member in union.Members)
+                        {
+                            members[member.Key] = member.Value;
+                        }
+
+                        break;
+                    }
+
+                case ReadOpCode.ReadUnionArray:
+                    Store(destination, program, field, ReadUnionArray(ref cursor, ref state, program.Nested[step.A], count));
+                    break;
+
+                case ReadOpCode.ReadRootUnion:
+                    {
+                        // Unlike a struct, the interpreter attaches a root union's value only once it is read.
+                        UnionValue union = ReadUnion(ref cursor, ref state, program.Nested[step.A], promoted: false);
+                        _ = program.Shape.TryGetIndex(program.Name, out int slot);
+                        destination.StoreSlot(slot, union);
+                        break;
+                    }
 
                 case ReadOpCode.ReadRootStruct:
                     {

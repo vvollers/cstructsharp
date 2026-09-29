@@ -337,6 +337,73 @@ internal enum ReadOpCode : byte
     ReadRootStruct,
 
     /// <summary>
+    ///     Reads a root union with program <c>A</c> (<see cref="ReadProgramKind.Union"/>) and stores its value under the
+    ///     root's name once it is read. <c>Field</c> is -1.
+    /// </summary>
+    ReadRootUnion,
+
+    /// <summary>
+    ///     Places the member through the frame's runtime placement cursor (<see cref="ReadProgram.UsesPlacementCursor"/>),
+    ///     which also checks a run-time <c>@N</c> assertion, and moves to its start.
+    /// </summary>
+    PlaceMember,
+
+    /// <summary>
+    ///     Places a bitfield through the frame's runtime placement cursor, which opens a storage unit or continues the open
+    ///     one under the layout's packing rule, moves to the unit's start, and sets the bit registers (the field's bit
+    ///     offset and the unit's size) the next <see cref="ReadBitfield"/> uses.
+    /// </summary>
+    PlaceBitfield,
+
+    /// <summary>Applies a <c>: 0</c> separator through the frame's runtime placement cursor and moves to the position after it; nothing is read.</summary>
+    PlaceSeparator,
+
+    /// <summary>Records in the frame's runtime placement cursor where an ordinary member ended: the position after its read.</summary>
+    CompletePlacement,
+
+    /// <summary>
+    ///     Ends a composite placed by the runtime placement cursor: moves to the cursor's end, padded to the composite's
+    ///     alignment <c>B</c> from its first byte. <c>Field</c> is -1.
+    /// </summary>
+    FinishPlaced,
+
+    /// <summary>
+    ///     Opens the storage unit of a bitfield no composite places (a union member): bit offset 0 in a unit of the
+    ///     declared storage size.
+    /// </summary>
+    OpenBitfieldUnit,
+
+    /// <summary>
+    ///     Reads a bitfield (storage codec <c>A</c>) from the unit the bit registers describe: the whole unit is read again
+    ///     for every bitfield in it (and charged each time), its bits are extracted without sign extension (an
+    ///     <see cref="int"/> below 32 bits, a <see cref="ulong"/> otherwise, or the enum result of an enum bitfield), and the
+    ///     position returns to the unit's start while bits of the unit remain.
+    /// </summary>
+    ReadBitfield,
+
+    /// <summary>
+    ///     Reads a union with program <c>A</c> into a new union value: its raw storage (charged), then each member view from
+    ///     the union's start with the variables restored, one nesting level, ending at the union's end. <c>B</c> is the
+    ///     member's qualified prefix, as for <see cref="ReadStruct"/>, or -1.
+    /// </summary>
+    ReadUnion,
+
+    /// <summary>
+    ///     Reads an anonymous union member with program <c>A</c> and copies its member views into the current value; it
+    ///     claims no nesting level but observes cancellation on entry.
+    /// </summary>
+    ReadPromotedUnion,
+
+    /// <summary>Reads count-register unions, each with program <c>A</c>, into a list.</summary>
+    ReadUnionArray,
+
+    /// <summary>Moves back to the start of the union a member view is read from (the frame's first byte).</summary>
+    RewindToUnionStart,
+
+    /// <summary>Restores every variable slot to the values it held when the union was entered, before the next member view.</summary>
+    RestoreUnionSlots,
+
+    /// <summary>
     ///     A <c>#define</c> root: evaluates its expression <c>A</c> and stores the value in slot <c>B</c> (or nowhere when
     ///     -1). Nothing is read and the root value stays empty. <c>Field</c> is -1.
     /// </summary>

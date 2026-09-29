@@ -42,6 +42,7 @@ internal struct ReadEngineState
     private SlotValue[]? locals;
     private int localTop;
     private int localHigh;
+    private int unionSlots;
 
     /// <summary>Creates the state of one operation.</summary>
     /// <param name="layout">The layout being read, which owns the codecs and text encodings the steps use.</param>
@@ -62,6 +63,7 @@ internal struct ReadEngineState
         this.locals = null;
         this.localTop = 0;
         this.localHigh = 0;
+        this.unionSlots = -1;
     }
 
     /// <summary>Gets the layout being read.</summary>
@@ -122,7 +124,7 @@ internal struct ReadEngineState
     public void ReleaseArms(int start) => this.armTop = start;
 
     /// <summary>Takes a frame's conditional-scope locals, every one <see cref="SlotValue.Undefined"/> (the interpreter's "no saved value").</summary>
-    /// <param name="count">The scope's local count, positive.</param>
+    /// <param name="count">The scope's local count (or a union's slot count), not negative.</param>
     /// <returns>The index of the frame's first local in <see cref="Locals"/>.</returns>
     public int TakeLocals(int count)
     {
@@ -142,6 +144,30 @@ internal struct ReadEngineState
     /// <summary>Gives back the locals a completed frame took.</summary>
     /// <param name="start">The base <see cref="TakeLocals"/> returned.</param>
     public void ReleaseLocals(int start) => this.localTop = start;
+
+    /// <summary>
+    ///     Saves every variable slot as the innermost union's entry values, in the locals stack after the current frames,
+    ///     as the interpreter snapshots its whole variable dictionary when it enters a union.
+    /// </summary>
+    /// <returns>The enclosing union's saved values, which <see cref="ReleaseUnionSlots"/> makes current again.</returns>
+    public int SaveUnionSlots()
+    {
+        int outer = this.unionSlots;
+        this.unionSlots = this.TakeLocals(this.Slots.Count);
+        this.Slots.CopyTo(this.locals!, this.unionSlots);
+        return outer;
+    }
+
+    /// <summary>Restores every variable slot to the innermost union's entry values, before each member view and when the union ends.</summary>
+    public readonly void RestoreUnionSlots() => this.Slots.CopyFrom(this.locals!, this.unionSlots);
+
+    /// <summary>Gives back the innermost union's saved values and makes the enclosing union's current again.</summary>
+    /// <param name="outer">What <see cref="SaveUnionSlots"/> returned.</param>
+    public void ReleaseUnionSlots(int outer)
+    {
+        this.ReleaseLocals(this.unionSlots);
+        this.unionSlots = outer;
+    }
 
     /// <summary>Returns the frame stacks to the thread's spares at the end of the operation, the locals cleared so no payload stays alive.</summary>
     public void Release()
