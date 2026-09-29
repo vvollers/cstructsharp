@@ -428,6 +428,13 @@ internal sealed class CompiledField
     public bool IsPromotedComposite => this.Declaration is Struct { Name.Name.Length: 0, };
 
     /// <summary>
+    ///     Whether the field is a row of a multidimensional array selected by fewer indices than it has dimensions
+    ///     (<c>matrix[1]</c> of <c>uint8 matrix[3][4]</c>). A row keeps the shape it has inside the whole array's
+    ///     value - a list - rather than the typed array a declared one-dimensional array reads as.
+    /// </summary>
+    public bool IsArrayRow { get; private init; }
+
+    /// <summary>
     ///     The codec id of the delegate pair that reads and writes one element of this field, or
     ///     <see cref="PrimitiveCatalog.NoCodec"/> for a composite, a pointer (read by the pointer reader), and a
     ///     bare terminated-string target. The runtime's <c>CodecTable</c> is indexed by it.
@@ -513,7 +520,10 @@ internal sealed class CompiledField
             this.BitUnitSize,
             this.BitRunBits,
             this.MemberIndex,
-            ImmutableArray<CompiledConditionalBranch>.Empty);
+            ImmutableArray<CompiledConditionalBranch>.Empty)
+        {
+            IsArrayRow = !isScalarResult,
+        };
     }
 
     /// <summary>

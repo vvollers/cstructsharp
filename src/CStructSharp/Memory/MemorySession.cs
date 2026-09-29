@@ -4,6 +4,7 @@ using System.Collections;
 using System.Globalization;
 using System.Numerics;
 using CStructSharp.Diagnostics;
+using CStructSharp.Reading;
 using CStructSharp.Values;
 
 /// <summary>Applies a <see cref="MemorySchema"/> to regions of caller-owned address spaces: resolve a path, read or inspect a value, serialize a record, or plan an update.</summary>
@@ -616,35 +617,9 @@ public sealed class MemorySession
             return new List<object?>(values);
         }
 
+        // The core's typed-array rule (PrimitiveArrayReader), keyed by the decoded element's managed type.
         object? sample = values.Length > 0 ? values[0] : this.Schema.GetCodec(element).ReadValue(new byte[element.Size], MemorySchema.CodecRoot(element));
-        return sample switch
-        {
-            byte => Typed<byte>(values),
-            sbyte => Typed<sbyte>(values),
-            bool => Typed<bool>(values),
-            short => Typed<short>(values),
-            ushort => Typed<ushort>(values),
-            int => Typed<int>(values),
-            uint => Typed<uint>(values),
-            long => Typed<long>(values),
-            ulong => Typed<ulong>(values),
-            float => Typed<float>(values),
-            double => Typed<double>(values),
-            _ => new List<object?>(values),
-        };
-
-        // Copies boxed elements of one managed type into a typed array value.
-        static PrimitiveArray<T> Typed<T>(object?[] boxed)
-            where T : unmanaged
-        {
-            var typed = new T[boxed.Length];
-            for (int i = 0; i < boxed.Length; i++)
-            {
-                typed[i] = (T)boxed[i]!;
-            }
-
-            return new PrimitiveArray<T>(typed);
-        }
+        return (sample is null ? null : PrimitiveArrayReader.FromBoxed(sample.GetType(), values)) ?? new List<object?>(values);
     }
 
     /// <summary>Encodes a value into a destination span, using core serialization for scalars and explicit offsets for composites.</summary>

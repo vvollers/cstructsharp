@@ -532,7 +532,7 @@ public sealed partial class CStruct
 
         if (element.Codec.IsFixedWidthNumeric && element.Enum is null)
         {
-            return count == 0 ? new List<object?>(0) : PrimitiveArrayReader.Read(state.Stream, element.Codec, count);
+            return count == 0 ? PrimitiveArrayReader.Empty(element.Codec) : PrimitiveArrayReader.Read(state.Stream, element.Codec, count);
         }
 
         var values = new List<object?>(count);
@@ -1474,6 +1474,12 @@ public sealed partial class CStruct
         {
             // Expose a fixed character array as the string callers expect, after every character has been read.
             containerDict[compiledField.Name] = this.CharacterText(compiledField, state, (List<object?>)containerDict[compiledField.Name]!);
+        }
+        else if (containerDict[compiledField.Name] is List<object?> elements && PrimitiveArrayReader.IsTyped(compiledField))
+        {
+            // Elements read one at a time - a debug parse, a union member view, a selected or empty array - take the
+            // typed shape the bulk path gives, so a numeric array has one shape wherever it is read.
+            containerDict[compiledField.Name] = PrimitiveArrayReader.FromBoxed(PrimitiveArrayReader.GetElementType(compiledField.Codec), elements);
         }
     }
 

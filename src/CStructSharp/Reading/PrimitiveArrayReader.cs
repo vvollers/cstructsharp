@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using CStructSharp.Codecs;
+using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using CStructSharp.Generated;
 using CStructSharp.Streams;
@@ -86,6 +87,60 @@ internal static class PrimitiveArrayReader
             PrimitiveCodecKind.Float64 => typeof(double),
             _ => throw new InvalidOperationException("Codec is not a fixed-width numeric: " + codec.Kind),
         };
+    }
+
+    /// <summary>
+    ///     Whether a one-dimensional array of <paramref name="field"/>'s elements is read as a
+    ///     <see cref="PrimitiveArray{T}"/>: a fixed-width number or <c>bool</c> that is neither an enum, a pointer, nor a
+    ///     struct, and not a row selected from a multidimensional array (rows are lists, as inside the whole array's
+    ///     value). This is the one rule every reader shares - the bulk path, the element loop (debug parses, union
+    ///     member views, selected reads), empty arrays and pointer targets.
+    /// </summary>
+    /// <param name="field">The array field, or a pointer target's element field.</param>
+    /// <returns>Whether its one-dimensional arrays are typed.</returns>
+    public static bool IsTyped(CompiledField field)
+        => field.Codec.IsFixedWidthNumeric && field.Enum is null && field.Composite is null && !field.IsPointer && field.BitSize == 0 && !field.IsArrayRow;
+
+    /// <summary>An empty <see cref="PrimitiveArray{T}"/> of the codec's element type.</summary>
+    /// <param name="codec">A fixed-width numeric codec.</param>
+    /// <returns>The empty array value.</returns>
+    /// <exception cref="InvalidOperationException">The codec is not a fixed-width numeric codec.</exception>
+    public static IList<object?> Empty(PrimitiveCodec codec) => Decode(ReadOnlySpan<byte>.Empty, codec, 0);
+
+    /// <summary>
+    ///     Copies boxed elements into a <see cref="PrimitiveArray{T}"/> of <paramref name="elementType"/>: the shape of an
+    ///     array whose elements were decoded one at a time (debug parses, union member views, the memory API).
+    /// </summary>
+    /// <param name="elementType">The element type, as <see cref="GetElementType"/> gives it.</param>
+    /// <param name="values">The elements, each of <paramref name="elementType"/>.</param>
+    /// <returns>The typed array, or <see langword="null"/> when <paramref name="elementType"/> has no typed array.</returns>
+    public static IList<object?>? FromBoxed(Type elementType, IReadOnlyList<object?> values)
+    {
+        return elementType == typeof(byte) ? Typed<byte>(values)
+             : elementType == typeof(sbyte) ? Typed<sbyte>(values)
+             : elementType == typeof(bool) ? Typed<bool>(values)
+             : elementType == typeof(short) ? Typed<short>(values)
+             : elementType == typeof(ushort) ? Typed<ushort>(values)
+             : elementType == typeof(int) ? Typed<int>(values)
+             : elementType == typeof(uint) ? Typed<uint>(values)
+             : elementType == typeof(long) ? Typed<long>(values)
+             : elementType == typeof(ulong) ? Typed<ulong>(values)
+             : elementType == typeof(float) ? Typed<float>(values)
+             : elementType == typeof(double) ? Typed<double>(values)
+             : null;
+
+        // Unboxes every element into a new typed array.
+        static PrimitiveArray<T> Typed<T>(IReadOnlyList<object?> boxed)
+            where T : unmanaged
+        {
+            var typed = new T[boxed.Count];
+            for (int index = 0; index < typed.Length; index++)
+            {
+                typed[index] = (T)boxed[index]!;
+            }
+
+            return new PrimitiveArray<T>(typed);
+        }
     }
 
     /// <summary>Decodes <paramref name="count"/> elements that are already in memory (static read plan).</summary>

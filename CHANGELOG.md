@@ -10,6 +10,13 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Breaking changes
 
+- **Breaking (values):** a one-dimensional array of a fixed-width number or `bool` is a `PrimitiveArray<T>` wherever it
+  is read - including a union member view, an array with no elements, a debug parse (`ParseWithDebug`,
+  `ReadValueWithDebug`), a selected read of the array and a pointer target - where these returned `List<object?>`; rows
+  of multidimensional arrays (also when selected, as `matrix[1]`) stay lists. `PrimitiveArray<T>`'s indexer throws
+  `ArgumentOutOfRangeException` for an index outside the array, as lists do (it threw `IndexOutOfRangeException`).
+  Migration: read arrays through `IList<object?>` (or `PrimitiveArray<T>` and its `Span`) instead of casting to
+  `List<object?>`, and catch `ArgumentOutOfRangeException` for out-of-range indexes.
 - **Breaking (layout):** in an aligned layout a struct's members are aligned from the struct's own first byte, as C
   lays them out, instead of from stream position 0. A record read from or written to a stream at a position that is not
   a multiple of its alignment, a pointer target at an unaligned address, a root scalar or array at such a position, and

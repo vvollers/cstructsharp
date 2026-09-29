@@ -56,7 +56,7 @@ public class ManagedFuzzTests
             ["binary-roundtrip"] = (
                 17,
                 115,
-                "784CCA52D4652FDC2ACD77B65411EF2C2AE2AD77AF41F6C6FBDA8F2025509855"),
+                "20A1609D0538D32D37294E2702C91E2D1CEEB05FDB0D2C7040668E140506B8C2"),
             ["definition"] = (
                 4,
                 128,
@@ -76,7 +76,7 @@ public class ManagedFuzzTests
             ["pointer-union"] = (
                 26,
                 106,
-                "F44DABA1AEC122889F0017147700F0CC83CC2C9E5F7A554E1D094BC1831CB69A"),
+                "5CEEF89A6B1B467E9707EECD204021319ABAB5A24EEBD238729AE67526C1DF4E"),
         };
 
         Assert.AreEqual(1, report.SchemaVersion);

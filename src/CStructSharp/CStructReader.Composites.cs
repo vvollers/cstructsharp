@@ -292,7 +292,7 @@ public sealed partial class CStruct
 
                         if (operation.Count == 0)
                         {
-                            destination.SetFreshSlot(operation.Slot, new List<object?>(0));
+                            destination.SetFreshSlot(operation.Slot, PrimitiveArrayReader.Empty(field.Codec));
                             break;
                         }
 

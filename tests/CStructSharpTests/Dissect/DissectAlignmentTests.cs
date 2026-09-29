@@ -82,12 +82,12 @@ public class DissectAlignmentTests
         Assert.AreEqual(64, c.GetStructSizeInBytes("test"));
         Assert.AreEqual(0x00U, (uint)result.a);
         Assert.IsTrue(
-                      ((List<object>)result.b).Select(o => (ulong)o).
+                      ((IList<object?>)result.b).Select(o => (ulong)o!).
                                                     ToArray().
                                                     SequenceEqual(new ulong[] { 0x08, 0x10, 0x18, 0x20, }));
         Assert.AreEqual(0x28U, (uint)result.c);
         Assert.IsTrue(
-                      ((List<object>)result.d).Select(o => (uint)o).
+                      ((IList<object?>)result.d).Select(o => (uint)o!).
                                                     ToArray().
                                                     SequenceEqual(new uint[] { 0x2C, 0x30, }));
         Assert.AreEqual(0x38U, (uint)result.e);
@@ -212,7 +212,7 @@ public class DissectAlignmentTests
 
         Assert.AreEqual(0x06, (byte)result.a);
         Assert.IsTrue(
-                      ((List<object>)result.b).Select(o => (ushort)o).
+                      ((IList<object?>)result.b).Select(o => (ushort)o!).
                                                     ToArray().
                                                     SequenceEqual(
                                                                   new ushort[]
@@ -223,7 +223,7 @@ public class DissectAlignmentTests
         Assert.AreEqual(0x18, (long)result.d);
         Assert.AreEqual(0x02, (byte)result.e);
         Assert.IsTrue(
-                      ((List<object>)result.f).Select(o => (uint)o).
+                      ((IList<object?>)result.f).Select(o => (uint)o!).
                                                     ToArray().
                                                     SequenceEqual(new uint[] { 0x24, 0x28, }));
         Assert.AreEqual(0x30, (long)result.g);

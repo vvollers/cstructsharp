@@ -27,14 +27,10 @@ using Pointer = CStructSharp.Values.Pointer;
 ///         enums or pointers).
 ///     </para>
 ///     <para>
-///         Three runtime/generator differences stay lenient in the strict mode. A bitfield: the runtime reads one
+///         One runtime/generator difference stays lenient in the strict mode. A bitfield: the runtime reads one
 ///         narrower than 32 bits as <see cref="int"/> and a wider one as <see cref="ulong"/>, whatever its declared
 ///         type, while the generated property has the declared type; an <see cref="int"/> or <see cref="ulong"/>
-///         runtime integer against another generated integer type is therefore compared by value. An array member of a
-///         union: the runtime decodes it as <c>List&lt;object?&gt;</c> even when it is a one-dimensional scalar array, so
-///         the array kind of a union member is not checked. An empty scalar array: the runtime returns an empty
-///         <c>List&lt;object?&gt;</c> rather than a <see cref="PrimitiveArray{T}"/>, so the kind of an empty array is not
-///         checked.
+///         runtime integer against another generated integer type is therefore compared by value.
 ///     </para>
 /// </remarks>
 internal static class ParityComparer
@@ -47,9 +43,6 @@ internal static class ParityComparer
 
         /// <summary>A row of a multi-dimensional array, which the runtime always returns as <c>List&lt;object?&gt;</c>.</summary>
         Row,
-
-        /// <summary>A member of a union, whose array kind is not checked (see the remarks on <see cref="ParityComparer"/>).</summary>
-        UnionMember,
     }
 
     /// <summary>Fails the test at the first member where the generated value differs from the runtime value.</summary>
@@ -181,16 +174,7 @@ internal static class ParityComparer
             PropertyInfo? property = FindProperty(type, member.Key);
             Assert.IsNotNull(property, path + "." + member.Key + ": no generated property on " + type.Name);
             object? value = property.GetValue(generated);
-            if (member.Value is IList array && value is Array)
-            {
-                // Difference: the runtime decodes a union's array member as List<object?>, even a one-dimensional
-                // scalar array that it reads as PrimitiveArray<T> anywhere else; the array kind is not checked here.
-                AssertList(array, value, path + "." + member.Key, strict, ArrayPosition.UnionMember);
-            }
-            else
-            {
-                AssertSame(member.Value, value, path + "." + member.Key, strict);
-            }
+            AssertSame(member.Value, value, path + "." + member.Key, strict);
 
             properties.Add(property);
         }
@@ -250,7 +234,7 @@ internal static class ParityComparer
         Assert.IsNotNull(generated, path + ": expected an array");
         object?[] expected = runtime.Cast<object?>().ToArray();
         Assert.IsInstanceOfType<IEnumerable>(generated, path + ": expected an array, found " + generated!.GetType());
-        if (strict && position != ArrayPosition.UnionMember)
+        if (strict)
         {
             AssertArrayKind(runtime, generated, path, position == ArrayPosition.Row);
         }
@@ -288,12 +272,6 @@ internal static class ParityComparer
         string message = path + ": array kind - runtime " + TypeName(runtimeType) + ", generated " + TypeName(generated.GetType());
         if (!row && element is not null && IsScalar(element))
         {
-            if (((Array)generated).Length == 0)
-            {
-                // Difference: the runtime reads an empty scalar array as an empty List<object?>; its kind is not checked.
-                return;
-            }
-
             Type expected = typeof(PrimitiveArray<>).MakeGenericType(element);
             Assert.AreEqual(expected, runtimeType, message);
             return;

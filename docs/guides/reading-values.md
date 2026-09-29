@@ -164,10 +164,15 @@ These richer enum, union, and pointer objects retain information that a plain in
 them when you intend to write the value back faithfully.
 
 A `StructValue` supports dynamic member access and dictionary lookup. Field names match the layout exactly.
-`PrimitiveArray<T>` has a fixed length: you can replace an element, but cannot add or remove one. Its `Span`
-accesses typed elements without boxing (wrapping a value in an object); `ToArray()` makes an independent copy.
-Multidimensional arrays use nested collections, and text buffers return strings. Editing a parsed value does not
-change the input bytes. Use serialization or an explicit update to write those changes.
+A one-dimensional array of a fixed-width number or `bool` is a `PrimitiveArray<T>` wherever it appears: a struct
+member, a member view of a union, an array with no elements, a debug parse, a selected read, and a pointer target.
+Read it through `IList<object?>` (or `PrimitiveArray<T>`), not `List<object?>`. `PrimitiveArray<T>` has a fixed
+length: you can replace an element, but cannot add or remove one, and an index outside it throws
+`ArgumentOutOfRangeException` as a list does. Its `Span` accesses typed elements without boxing (wrapping a value in
+an object); `ToArray()` makes an independent copy. Multidimensional arrays use nested lists (a row selected with
+fewer indices than dimensions, such as `matrix[1]`, is one of those lists), and text buffers return strings.
+Editing a parsed value does not change the input bytes. Use serialization or an explicit update to write those
+changes.
 
 ## Stream position and failures
 

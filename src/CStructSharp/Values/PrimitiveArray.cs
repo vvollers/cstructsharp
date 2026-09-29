@@ -67,18 +67,34 @@ public sealed class PrimitiveArray<T> : IList<object?>, IReadOnlyList<object?>, 
     /// </summary>
     /// <param name="index">The zero-based element index.</param>
     /// <returns>The boxed element at <paramref name="index"/>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is outside the array.</exception>
     object? IList.this[int index]
     {
-        get => this.values[index];
-        set => this.values[index] = ConvertElement(value);
+        get => this.values[this.CheckIndex(index)];
+        set => this.values[this.CheckIndex(index)] = ConvertElement(value);
     }
 
     /// <summary>Gets or replaces one element; the boxed element is a <typeparamref name="T"/>, and a replacement is converted to <typeparamref name="T"/>.</summary>
     /// <param name="index">The zero-based element index.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is outside the array, as for any list.</exception>
     public object? this[int index]
     {
-        get => this.values[index];
-        set => this.values[index] = ConvertElement(value);
+        get => this.values[this.CheckIndex(index)];
+        set => this.values[this.CheckIndex(index)] = ConvertElement(value);
+    }
+
+    /// <summary>Returns <paramref name="index"/> when it selects an element, so the indexers fail as a list's do.</summary>
+    /// <param name="index">The zero-based element index.</param>
+    /// <returns>The index.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is negative or not less than the count.</exception>
+    private int CheckIndex(int index)
+    {
+        if ((uint)index >= (uint)this.values.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(index), index, "The index is outside the array.");
+        }
+
+        return index;
     }
 
     /// <summary>Copies the elements into a new <typeparamref name="T"/>[] typed as <see cref="Array"/>.</summary>

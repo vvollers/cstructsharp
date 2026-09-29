@@ -19,7 +19,7 @@
   },
   {
    "pattern": "CStructReader.Composites.cs",
-   "sourceSha256": "4a6e6613cd35ba85e183f61c95dc5d5b6b14c6c309d4c535ae27503dcf0ab85c",
+   "sourceSha256": "796f15520c4be3c2a634b1663031081e2a086b3f0129befd4a9302801935e2c8",
    "mutants": [
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount) :null)",
      "location": {"start":{"line":109,"column":25},"end":{"line":109,"column":165}},
@@ -373,10 +373,10 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/CompiledField.cs",
-   "sourceSha256": "ee79710ffd093818ff7555dea24498b164765653d67603af4a969833c0bec999",
+   "sourceSha256": "0609769e6add07dfcb62e44fce6d6c7f633a4daf8019f254f4cb3553df2e41ac",
    "mutants": [
     { "mutatorName": "Remove checked expression", "replacement": "elementSize * remainingCount",
-     "location": {"start":{"line":494,"column":43},"end":{"line":494,"column":80}},
+     "location": {"start":{"line":501,"column":43},"end":{"line":501,"column":80}},
      "reason": "This multiplication is reached only when peeling a multidimensional field with a known nonnegative element size. Multidimensional dimensions have dependency-free fixed counts; LayoutCompilation.Model and CompileSyntheticRootField already checked the complete count and element-size product when constructing such a field. All production SelectArrayElement callers are the read/address and write path resolvers, which first reject indices outside the current dimension. A reachable peeled dimension therefore has a positive outer count, so its remaining byte extent cannot exceed its already validated parent's extent. A zero outer count cannot be indexed; variable-sized elements skip this multiplication entirely. Repeated peeling preserves the bound, and pointer-target views are scalar. Removing only this checked wrapper cannot change a supported result; the separate checked total-count calculations remain required, including for arrays of variable-sized records." }
    ]
   },
@@ -982,7 +982,7 @@
   },
   {
    "pattern": "CStructReader.cs",
-   "sourceSha256": "cd5cf7c3bcb53a03e8cfffa5aa4621fc3e747156c55f1f266c87d2c0a2a3d392",
+   "sourceSha256": "d9dd1f20489496b822e342b1c3909662a179010f28002b6882f8b6d50344aa12",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":118,"column":17},"end":{"line":118,"column":49}},
