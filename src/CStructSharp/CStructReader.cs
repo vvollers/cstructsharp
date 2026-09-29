@@ -588,8 +588,11 @@ public sealed partial class CStruct
         return field.Enum is { } enm ? CreateEnumValue(enm, content) : content;
     }
 
-    /// <summary>Maps a decoded storage value to the enum result (shared by the general and static readers).</summary>
-    private static EnumValueResult CreateEnumValue(CompiledEnumType compiled, object storageValue)
+    /// <summary>Maps a decoded storage value to the enum result (shared by the general and static readers and the compiled engine).</summary>
+    /// <param name="compiled">The enum or flag type.</param>
+    /// <param name="storageValue">The value its storage codec decoded.</param>
+    /// <returns>The enum result: the value, its member name if any, and (for a flag) its decomposition on first use.</returns>
+    internal static EnumValueResult CreateEnumValue(CompiledEnumType compiled, object storageValue)
     {
         BigInteger value = compiled.Integer.FromStorageValue(storageValue);
         ulong rawBits = compiled.Integer.ToRawBits(value);

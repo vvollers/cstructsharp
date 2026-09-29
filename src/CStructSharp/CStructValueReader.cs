@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using CStructSharp.Addressing;
 using CStructSharp.Compilation;
+using CStructSharp.Compilation.Programs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Engine;
 using CStructSharp.Expressions;
@@ -97,9 +98,28 @@ public sealed partial class CStruct
         ReadOptions? options)
     {
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
-        EngineSelector.Decide(
-            effectiveOptions.EngineSelection,
-            segments.Count == 1 ? EngineOperation.RootRead : EngineOperation.PathRead);
+        if (segments.Count == 1)
+        {
+            if (EngineSelector.SelectRootRead(effectiveOptions.EngineSelection, this.compilation, segments[0].Name, variables, selectsValue: true) is { } program)
+            {
+                StructValue root = this.ReadRootWithEngine(stream, segments, program, variables, effectiveOptions);
+                try
+                {
+                    return ExtractOnlyValue(root, segments[0].Name);
+                }
+                catch (CStructException exception)
+                {
+                    // The interpreter extracts inside its operation's context, so the failure carries the path and offset.
+                    ExceptionContext.Attach(exception, segments, stream);
+                    throw;
+                }
+            }
+        }
+        else
+        {
+            EngineSelector.Decide(effectiveOptions.EngineSelection, EngineOperation.PathRead);
+        }
+
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
         var state = new CStructOperationContext(
             stream,

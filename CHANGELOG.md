@@ -216,6 +216,12 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Performance
 
+- Reads of layouts with runtime-sized members (counts from fields, conditionals, text, nested structs) run on a compiled
+  engine: each struct is compiled once into a flat program of read steps, with variables in indexed slots instead of a
+  dictionary. Results, failures, positions and read budgets are identical. The comparison benchmark's `packet` record
+  parses from a span in 455 ns instead of 745 ns and allocates 976 B instead of 1,544 B; a 128-branch conditional
+  record parses about 2.7 times faster. Layouts with bitfields, unions, pointers and some array shapes, debug parses,
+  path reads, writes and updates still use the general reader until the engine covers them.
 - Runtime reads place each field with less work: the placement cursor keeps its position without nullable round
   trips, and ordinary struct and union members are read through one inlined call. A layout of 1 000 bitfield records
   reads about 9% faster, and pointer-heavy and union-heavy layouts 6-10% faster.

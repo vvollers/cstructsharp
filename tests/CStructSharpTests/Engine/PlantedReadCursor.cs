@@ -85,6 +85,9 @@ internal struct PlantedReadCursor : IReadCursor
     }
 
     /// <inheritdoc/>
+    public void ReadExactlyOrEndOfStream(Span<byte> destination) => this.inner.ReadExactlyOrEndOfStream(destination);
+
+    /// <inheritdoc/>
     public ReadOnlySpan<byte> ReadFixed(Span<byte> scratch) => this.inner.ReadFixed(scratch);
 
     /// <inheritdoc/>

@@ -38,7 +38,12 @@ public class StaticReadAllocationBoundaryTests
         Assert.IsTrue(allocations[2] >= allocations[1] + (8 * 514), $"Large scratch allocations: {allocations[1]}, {allocations[2]}.");
     }
 
-    /// <summary>Both a fixed root and a runtime-count array retain the allocation benefit of fixed record decoding.</summary>
+    /// <summary>
+    ///     Both a fixed root and a runtime-count array of fixed records allocate no more through their static plans than
+    ///     through the general path. The general path is the compiled engine, which stores each record's members straight
+    ///     into its value just as the plan does, so for the array of fixed records the two allocate the same (the
+    ///     interpreter allocated more per record); the fixed root still allocates less through its plan.
+    /// </summary>
     /// <param name="runtimeCount">Whether the array count comes from an input field rather than the declaration.</param>
     [TestMethod]
     [DataRow(false)]
@@ -63,7 +68,7 @@ public class StaticReadAllocationBoundaryTests
 
         long planned = Measure(layout, bytes, false);
         long general = Measure(layout, bytes, true);
-        Assert.IsTrue(planned < general, $"Fixed record plans allocated {planned} bytes; general decoding allocated {general} bytes.");
+        Assert.IsTrue(planned <= general, $"Fixed record plans allocated {planned} bytes; general decoding allocated {general} bytes.");
 
         // A valid count or depth exactly at its limit should retain the same fixed-record allocation savings.
         var generous = new ReadOptions { MaxNestingDepth = 3, MaxArrayElements = 257, };

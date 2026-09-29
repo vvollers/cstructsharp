@@ -3,6 +3,7 @@ namespace CStructSharp.Compilation.Programs;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
 using CStructSharp.Syntax;
 
 /// <summary>
@@ -23,6 +24,10 @@ internal sealed class ReadProgramCache
     private readonly ConcurrentDictionary<CompiledCompositeType, ReadProgramOutcome> composites = new(ReferenceEqualityComparer.Instance);
     private readonly ConcurrentDictionary<string, ReadProgramOutcome> roots = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ReadProgram.QualifiedTarget[]> qualifiedTargets;
+
+    // The most recent root lookup. Callers read the same root call after call, so a repeated lookup is one string
+    // comparison instead of a dictionary lookup; the entry is immutable and replaced whole, so no reader sees it torn.
+    private RootEntry? lastRoot;
 
     /// <summary>Creates the cache of one slot table and indexes its qualified names.</summary>
     /// <param name="table">The layout's slot table.</param>
@@ -85,17 +90,23 @@ internal sealed class ReadProgramCache
     /// <returns>The program, or the reason the engine cannot read the root yet.</returns>
     public ReadProgramOutcome GetRoot(LayoutCompilation compilation, string rootName)
     {
-        if (this.roots.TryGetValue(rootName, out ReadProgramOutcome? outcome))
+        if (Volatile.Read(ref this.lastRoot) is { } last && string.Equals(last.Name, rootName, StringComparison.Ordinal))
         {
-            return outcome;
+            return last.Outcome;
         }
 
-        if (!compilation.ModelQueries.TryGetCompiledDeclaration(rootName, out CStructElement? declaration))
+        if (!this.roots.TryGetValue(rootName, out ReadProgramOutcome? outcome))
         {
-            return ReadProgramOutcome.NotSupported(rootName + ": the layout declares no such root");
+            if (!compilation.ModelQueries.TryGetCompiledDeclaration(rootName, out CStructElement? declaration))
+            {
+                return ReadProgramOutcome.NotSupported(rootName + ": the layout declares no such root");
+            }
+
+            outcome = this.roots.GetOrAdd(rootName, new ReadProgramCompiler(compilation, this).CompileRoot(rootName, declaration));
         }
 
-        return this.roots.GetOrAdd(rootName, new ReadProgramCompiler(compilation, this).CompileRoot(rootName, declaration));
+        Volatile.Write(ref this.lastRoot, new RootEntry(rootName, outcome));
+        return outcome;
     }
 
     /// <summary>Returns the slots a capture of <paramref name="name"/> is published to under each qualified prefix.</summary>
@@ -103,4 +114,23 @@ internal sealed class ReadProgramCache
     /// <returns>The targets; empty when no expression spells the name with a prefix.</returns>
     public ReadProgram.QualifiedTarget[] GetQualifiedTargets(string name)
         => this.qualifiedTargets.TryGetValue(name, out ReadProgram.QualifiedTarget[]? targets) ? targets : NoTargets;
+
+    /// <summary>One cached root lookup: a declared root's name and its outcome.</summary>
+    private sealed class RootEntry
+    {
+        /// <summary>Stores the lookup.</summary>
+        /// <param name="name">The root's name.</param>
+        /// <param name="outcome">The root's program or reason.</param>
+        public RootEntry(string name, ReadProgramOutcome outcome)
+        {
+            this.Name = name;
+            this.Outcome = outcome;
+        }
+
+        /// <summary>Gets the root's name.</summary>
+        public string Name { get; }
+
+        /// <summary>Gets the root's program or reason.</summary>
+        public ReadProgramOutcome Outcome { get; }
+    }
 }

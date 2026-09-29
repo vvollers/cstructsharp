@@ -66,6 +66,13 @@ internal sealed class ReadProgramCompiler
     /// <summary>The reason for a declaration kind that is not a readable root.</summary>
     public const string UnreadableRoot = "the declaration is not a readable root";
 
+    /// <summary>
+    ///     The start of the reason for an expression that names an identifier the layout's slot table does not hold. Only a
+    ///     type-spelling root (<c>uint8[N]</c>), registered after the table was built, can: a caller's value of that name
+    ///     would have no slot to live in.
+    /// </summary>
+    public const string UnslottedName = "the expression names an identifier without a slot: ";
+
     private readonly LayoutCompilation compilation;
     private readonly ReadProgramCache cache;
 
@@ -371,6 +378,11 @@ internal sealed class ReadProgramCompiler
             builder.Emit(ReadOpCode.CheckFixedCount, index, field.Array.FixedCount!.Value, 0);
             break;
         case CompiledArrayKind.Runtime:
+            if (this.FirstUnslottedName(field.Array.CountExpression!) is { } unslotted)
+            {
+                return Refuse(location, field, UnslottedName + unslotted);
+            }
+
             builder.Emit(ReadOpCode.EvaluateCount, index, builder.AddExpression(field.Array.CountExpression!, "array length for " + field.Name), 0);
             break;
         }
@@ -389,6 +401,22 @@ internal sealed class ReadProgramCompiler
         if (!standalone)
         {
             AdvancePast(ref placement, field, this.compilation.Aligned);
+        }
+
+        return null;
+    }
+
+    /// <summary>Returns the first identifier an expression names that has no slot in the layout's table, if any.</summary>
+    /// <param name="expression">The expression.</param>
+    /// <returns>The name, or <see langword="null"/> when every name has a slot.</returns>
+    private string? FirstUnslottedName(Expr expression)
+    {
+        foreach (string name in this.cache.Table.Evaluator.GetDependencies(expression))
+        {
+            if (!this.cache.Table.TryGetSlot(name, out _))
+            {
+                return name;
+            }
         }
 
         return null;

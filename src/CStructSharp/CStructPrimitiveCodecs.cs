@@ -272,7 +272,9 @@ public sealed partial class CStruct
     }
 
     /// <summary>The UTF-16 encoding a wide-character field decodes with: its explicit suffix, or the layout byte order.</summary>
-    private Encoding GetWideCharacterEncoding(CompiledField field)
+    /// <param name="field">The <c>wchar</c> field.</param>
+    /// <returns>The strict encoding its text is validated with.</returns>
+    internal Encoding GetWideCharacterEncoding(CompiledField field)
     {
         return field.ExplicitWideCharacterEncoding ??
                (this.IsLittleEndian ? PrimitiveCodecs.StrictUtf16LittleEndianEncoding : PrimitiveCodecs.StrictUtf16BigEndianEncoding);

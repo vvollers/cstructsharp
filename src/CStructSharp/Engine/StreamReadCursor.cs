@@ -78,6 +78,9 @@ internal readonly struct StreamReadCursor : IReadCursor
     public void ReadExactly(Span<byte> destination) => BinaryPrimitiveIO.ReadExactlyOrThrow(this.stream, destination);
 
     /// <inheritdoc/>
+    public void ReadExactlyOrEndOfStream(Span<byte> destination) => this.stream.ReadExactly(destination);
+
+    /// <inheritdoc/>
     public ReadOnlySpan<byte> ReadFixed(Span<byte> scratch)
     {
         // The interpreter's order: a memory-backed stream serves the value in place; otherwise the codec's reader,

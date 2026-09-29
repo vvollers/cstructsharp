@@ -16,8 +16,9 @@ using CStructSharp.Syntax;
 public class SlotTableTests
 {
     /// <summary>
-    ///     Constructing a layout does not build its slot table, and nothing a plain read does builds it either; the
-    ///     first access builds it once, and construction allocates no more than without it.
+    ///     Constructing a layout does not build its slot table; the first access builds it once (the first whole-root
+    ///     read, which the compiled engine runs with it, or a direct access), and construction allocates no more than
+    ///     without it.
     /// </summary>
     [TestMethod]
     public void SlotTable_IsBuiltLazily_AndNotByConstruction()
@@ -33,14 +34,17 @@ public class SlotTableTests
         long construction = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.IsFalse(layout.Compilation.HasSlotTable);
 
-        _ = layout.Parse(new byte[2 + (200 * 4)], "root");
-        Assert.IsFalse(layout.Compilation.HasSlotTable, "no operation uses the slot table yet");
-
         before = GC.GetAllocatedBytesForCurrentThread();
         SlotTable table = layout.Compilation.SlotTable;
         long build = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.IsTrue(layout.Compilation.HasSlotTable);
         Assert.AreSame(table, layout.Compilation.SlotTable);
+        _ = layout.Parse(new byte[2 + (200 * 4)], "root");
+        Assert.AreSame(table, layout.Compilation.SlotTable, "a read uses the table already built");
+
+        var read = new CStruct(definition);
+        _ = read.Parse(new byte[2 + (200 * 4)], "root");
+        Assert.IsTrue(read.Compilation.HasSlotTable, "the first whole-root read builds the table the engine reads with");
 
         // The bound of ConditionalExecutionOptimizationTests.PrimitiveScopeMetadata_HasBoundedAllocation for this shape;
         // building the table is a separate, later cost.

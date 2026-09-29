@@ -6,14 +6,18 @@ using CStructSharp.Values;
 
 /// <summary>
 ///     Pins the engine selection option and its diagnostics: the selector decides once per operation that reaches the
-///     general path, counts the decision in the recording open on the calling flow, declines every operation today, and
-///     fails an operation that requires the engine with the decline reason before reading or writing anything.
+///     general path, counts the decision in the recording open on the calling flow, runs the engine for whole-root reads
+///     of eligible roots and declines every other operation, and fails an operation that requires the engine with the
+///     decline reason before reading or writing anything.
 /// </summary>
 [TestClass]
 public class EngineSelectionTests
 {
     /// <summary>A layout with a data-sized array, so no direct fixed-root path can take its whole-root operations.</summary>
     private const string SizedLayout = "struct inner { uint8 a; }; struct rec { uint8 n; uint16 items[n]; inner last; uint8 tail; };";
+
+    /// <summary>A layout the engine cannot read yet: its root holds a union (stage 4).</summary>
+    private const string UnionLayout = "union u { uint8 a; uint16 b; }; struct rec { uint8 n; u value; uint8 tail; };";
 
     /// <summary>Input for <see cref="SizedLayout"/>: two items, then <c>last.a</c> and <c>tail</c>.</summary>
     private static readonly byte[] SizedData = [2, 1, 0, 2, 0, 5, 9];
@@ -34,9 +38,12 @@ public class EngineSelectionTests
         Assert.AreEqual(EngineSelection.InterpreterOnly, write.EngineSelection);
     }
 
-    /// <summary>Each public operation that reaches the general path records exactly one decision, of its own kind, with the decline reason.</summary>
+    /// <summary>
+    ///     Each public operation that reaches the general path records exactly one decision of its own kind: a run for a
+    ///     whole-root read of an eligible root, over every source, and a decline with its reason for everything else.
+    /// </summary>
     [TestMethod]
-    public void EveryOperation_RecordsOneDeclineOfItsKind()
+    public void EveryOperation_RecordsOneDecisionOfItsKind()
     {
         var layout = new CStruct(SizedLayout);
         var value = new Dictionary<string, object?> { ["n"] = (byte)1, ["items"] = new ushort[] { 4, }, ["last"] = new Dictionary<string, object?> { ["a"] = (byte)5, }, ["tail"] = (byte)9, };
@@ -45,6 +52,8 @@ public class EngineSelectionTests
             ("Parse(Span)", EngineOperation.RootRead, (read, _, _) => layout.Parse(SizedData.AsSpan(), "rec", options: read)),
             ("Parse(Stream)", EngineOperation.RootRead, (read, _, _) => layout.Parse(new MemoryStream(SizedData), "rec", options: read)),
             ("Parse(Sequence)", EngineOperation.RootRead, (read, _, _) => layout.Parse(ChunkedSequence.Of(SizedData), "rec", options: read)),
+            ("Parse(chunked stream)", EngineOperation.RootRead, (read, _, _) => layout.Parse(EngineStreams.Open(EngineInput.ChunkedStream3, SizedData), "rec", options: read)),
+            ("ParseMany(Stream)", EngineOperation.RootRead, (read, _, _) => layout.ParseMany(new MemoryStream(SizedData), "rec", options: read).ToList()),
             ("ParseAsync", EngineOperation.RootRead, (read, _, _) => layout.ParseAsync(new MemoryStream(SizedData), "rec", options: read).AsTask().GetAwaiter().GetResult()),
             ("Parse(path)", EngineOperation.PathRead, (read, _, _) => layout.Parse(SizedData, "rec.last", options: read)),
             ("ReadValue(root)", EngineOperation.RootRead, (read, _, _) => layout.ReadValue(SizedData, "rec", options: read)),
@@ -75,13 +84,19 @@ public class EngineSelectionTests
                 run(EngineSelections.With(EngineSelection.Automatic), EngineSelections.With(EngineSelection.Automatic, new WriteOptions()), EngineSelections.With(EngineSelection.Automatic, new UpdateOptions()));
             }
 
-            Assert.AreEqual(1, diagnostics.Declines, name);
-            Assert.AreEqual(0, diagnostics.EngineRuns, name);
             Assert.AreEqual(0, diagnostics.InterpreterSelections, name);
-            Assert.AreEqual(new EngineDecline(kind, EngineSelector.OperationNotSupported), diagnostics.LastDecline, name);
             Assert.AreEqual(kind, diagnostics.LastOperation, name);
-            Assert.AreEqual(kind, diagnostics.LastDecline!.Value.Operation, name);
-            Assert.AreEqual(EngineSelector.OperationNotSupported, diagnostics.LastDecline!.Value.Reason, name);
+            if (kind == EngineOperation.RootRead)
+            {
+                Assert.AreEqual(1, diagnostics.EngineRuns, name);
+                Assert.AreEqual(0, diagnostics.Declines, name);
+            }
+            else
+            {
+                Assert.AreEqual(1, diagnostics.Declines, name);
+                Assert.AreEqual(0, diagnostics.EngineRuns, name);
+                Assert.AreEqual(new EngineDecline(kind, EngineSelector.OperationNotSupported), diagnostics.LastDecline, name);
+            }
 
             EngineDiagnostics forced;
             using (EngineRecording recording = EngineDiagnostics.Record())
@@ -96,18 +111,30 @@ public class EngineSelectionTests
         }
     }
 
-    /// <summary>A record sequence decides once per record, so a recording sees one decline for each record read.</summary>
+    /// <summary>
+    ///     A record sequence decides once per record, so a recording sees one engine run for each record read, and one
+    ///     decline, naming the first unsupported member, for each record of a root the engine cannot read.
+    /// </summary>
     [TestMethod]
     public void RecordSequence_DecidesPerRecord()
     {
         var layout = new CStruct("struct rec { uint8 n; uint8 items[n]; };");
-        using EngineRecording recording = EngineDiagnostics.Record();
-        List<StructValue> records = layout.ParseMany(new byte[] { 1, 7, 0, 2, 8, 9, }.AsMemory(), "rec").ToList();
-        Assert.HasCount(3, records);
-        Assert.AreEqual(3, recording.Diagnostics.Declines);
-        CollectionAssert.AreEqual(
-            Enumerable.Repeat(new EngineDecline(EngineOperation.RootRead, EngineSelector.OperationNotSupported), 3).ToArray(),
-            recording.Diagnostics.RecentDeclines.ToArray());
+        using (EngineRecording recording = EngineDiagnostics.Record())
+        {
+            List<StructValue> records = layout.ParseMany(new byte[] { 1, 7, 0, 2, 8, 9, }.AsMemory(), "rec").ToList();
+            Assert.HasCount(3, records);
+            Assert.AreEqual(3, recording.Diagnostics.EngineRuns);
+            Assert.AreEqual(0, recording.Diagnostics.Declines);
+        }
+
+        var unions = new CStruct(UnionLayout);
+        using (EngineRecording recording = EngineDiagnostics.Record())
+        {
+            Assert.HasCount(2, unions.ParseMany(new byte[] { 1, 2, 3, 4, 4, 5, 6, 7, }.AsMemory(), "rec").ToList());
+            CollectionAssert.AreEqual(
+                Enumerable.Repeat(new EngineDecline(EngineOperation.RootRead, "rec.value: unions are not supported yet (stage 4)"), 2).ToArray(),
+                recording.Diagnostics.RecentDeclines.ToArray());
+        }
     }
 
     /// <summary>
@@ -132,7 +159,7 @@ public class EngineSelectionTests
             }
 
             bothStarted.SignalAndWait();
-            return recording.Diagnostics.Declines;
+            return recording.Diagnostics.Decisions;
         }
 
         Task<int> first = Task.Run(() => CountOwnReads(3));
@@ -146,24 +173,26 @@ public class EngineSelectionTests
         using (EngineRecording inner = EngineDiagnostics.Record())
         {
             layout.ResolveAddress(SizedData, "rec.tail");
-            Assert.AreEqual(1, inner.Diagnostics.Declines);
+            Assert.AreEqual(1, inner.Diagnostics.Decisions);
             Assert.AreSame(inner.Diagnostics, EngineDiagnostics.Current);
         }
 
         layout.GetArrayLength(SizedData, "rec.items");
-        Assert.AreEqual(3, outer.Diagnostics.Declines, "the flow's read, the task's read, then the length query after the inner recording");
+        Assert.AreEqual(3, outer.Diagnostics.Decisions, "the flow's read, the task's read, then the length query after the inner recording");
+        Assert.AreEqual(2, outer.Diagnostics.EngineRuns, "the two whole-root reads");
         Assert.AreEqual(EngineOperation.LengthQuery, outer.Diagnostics.LastOperation);
         Assert.AreSame(outer.Diagnostics, EngineDiagnostics.Current);
 
         outer.Dispose();
         layout.Parse(SizedData, "rec");
-        Assert.AreEqual(3, outer.Diagnostics.Declines, "nothing is counted after disposal");
+        Assert.AreEqual(3, outer.Diagnostics.Decisions, "nothing is counted after disposal");
         Assert.IsNull(EngineDiagnostics.Current, "no recording is current on this flow after disposal");
     }
 
     /// <summary>
-    ///     Requiring the engine fails every operation that reaches the general path with <see cref="InvalidOperationException"/>
-    ///     naming the operation and the decline reason, before any byte is written or a stream moves.
+    ///     Requiring the engine fails every operation the engine declines with <see cref="InvalidOperationException"/>
+    ///     naming the operation and the decline reason, before any byte is read or written or a stream moves; a whole-root
+    ///     read of an eligible root runs.
     /// </summary>
     [TestMethod]
     public void EngineRequired_ThrowsWithTheDeclineReason_BeforeTouchingData()
@@ -174,7 +203,13 @@ public class EngineSelectionTests
         WriteOptions write = EngineSelections.EngineRequired(new WriteOptions());
         UpdateOptions update = EngineSelections.EngineRequired(new UpdateOptions());
 
-        AssertRequired(EngineOperation.RootRead, () => layout.Parse(SizedData.AsSpan(), "rec", options: read));
+        Assert.AreEqual((byte)9, layout.Parse(SizedData.AsSpan(), "rec", options: read)["tail"]);
+        Assert.AreEqual((byte)9, ((StructValue)layout.ReadValue(new MemoryStream(SizedData), "rec", options: read)!)["tail"]);
+
+        var unions = new CStruct(UnionLayout);
+        using var unionSource = new MemoryStream([1, 2, 3, 4]);
+        AssertRequired(EngineOperation.RootRead, () => unions.Parse(unionSource, "rec", options: read), "rec.value: unions are not supported yet (stage 4)");
+        Assert.AreEqual(0, unionSource.Position, "the stream does not move");
         AssertRequired(EngineOperation.PathRead, () => layout.ReadValue(SizedData, "rec.items[0]", options: read));
         AssertRequired(EngineOperation.DebugRead, () => layout.ParseWithDebug(SizedData, "rec", options: read));
         AssertRequired(EngineOperation.AddressResolution, () => layout.ResolveAddress(SizedData, "rec.tail", options: read));
@@ -193,14 +228,16 @@ public class EngineSelectionTests
 
         // The asynchronous forms copy the options with a linked token; the selection survives the copy.
         using var cancellation = new CancellationTokenSource();
-        AssertRequired(EngineOperation.RootRead, () => layout.ParseAsync(new MemoryStream(SizedData), "rec", options: read, cancellationToken: cancellation.Token).AsTask().GetAwaiter().GetResult());
+        AssertRequired(EngineOperation.RootRead, () => unions.ParseAsync(new MemoryStream([1, 2, 3, 4]), "rec", options: read, cancellationToken: cancellation.Token).AsTask().GetAwaiter().GetResult(), "rec.value: unions are not supported yet (stage 4)");
+        Assert.AreEqual((byte)9, layout.ParseAsync(new MemoryStream(SizedData), "rec", options: read, cancellationToken: cancellation.Token).AsTask().GetAwaiter().GetResult()["tail"]);
         AssertRequired(EngineOperation.Write, () => layout.WriteAsync(new MemoryStream(), "rec", value, options: write, cancellationToken: cancellation.Token).AsTask().GetAwaiter().GetResult());
         AssertRequired(EngineOperation.Update, () => layout.UpdateAsync(new MemoryStream((byte[])SizedData.Clone()), "rec.tail", (byte)1, options: update, cancellationToken: cancellation.Token).AsTask().GetAwaiter().GetResult());
     }
 
     /// <summary>
     ///     The selector runs only where the general path would: a whole fixed root read from memory or written to memory by
-    ///     the direct path asks nothing, so requiring the engine does not fail it, and a recording sees no decision.
+    ///     the direct path asks nothing, so a recording sees no decision; the same root read from a stream reaches the
+    ///     general path, where the engine runs it.
     /// </summary>
     [TestMethod]
     public void DirectFixedRootPaths_DoNotConsultTheSelector()
@@ -218,15 +255,16 @@ public class EngineSelectionTests
         Assert.AreEqual(3, layout.Serialize(new byte[4].AsSpan(), "rec", value, options: write));
         Assert.AreEqual(0, recording.Diagnostics.Decisions);
 
-        // The same root through a stream reaches the general path.
-        Assert.Throws<InvalidOperationException>(() => layout.Parse(new MemoryStream(data), "rec", options: read));
-        Assert.AreEqual(1, recording.Diagnostics.Declines);
+        // The same root through a stream reaches the general path, which the engine runs.
+        Assert.AreEqual((ushort)7, layout.Parse(new MemoryStream(data), "rec", options: read)["id"]);
+        Assert.AreEqual(1, recording.Diagnostics.EngineRuns);
 
         // Forcing the interpreter or leaving the choice automatic reads the same value.
         Assert.AreEqual((ushort)7, layout.Parse(new MemoryStream(data), "rec", options: EngineSelections.InterpreterOnly())["id"]);
         Assert.AreEqual((ushort)7, layout.Parse(new MemoryStream(data), "rec", options: EngineSelections.With(EngineSelection.Automatic))["id"]);
         Assert.AreEqual(1, recording.Diagnostics.InterpreterSelections);
-        Assert.AreEqual(2, recording.Diagnostics.Declines);
+        Assert.AreEqual(2, recording.Diagnostics.EngineRuns);
+        Assert.AreEqual(0, recording.Diagnostics.Declines);
     }
 
     /// <summary>The recorder counts concurrent decisions exactly and keeps only the most recent declines.</summary>
@@ -259,9 +297,10 @@ public class EngineSelectionTests
     /// <summary>Asserts that an operation fails because the required engine declined it.</summary>
     /// <param name="kind">The kind of operation the message must name.</param>
     /// <param name="operation">The operation.</param>
-    private static void AssertRequired(EngineOperation kind, Action operation)
+    /// <param name="reason">The decline reason the message must give.</param>
+    private static void AssertRequired(EngineOperation kind, Action operation, string reason = EngineSelector.OperationNotSupported)
     {
         InvalidOperationException failure = Assert.Throws<InvalidOperationException>(operation);
-        Assert.AreEqual($"The compiled engine is required but declined the {kind} operation: {EngineSelector.OperationNotSupported}.", failure.Message);
+        Assert.AreEqual($"The compiled engine is required but declined the {kind} operation: {reason}.", failure.Message);
     }
 }

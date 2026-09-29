@@ -8,7 +8,8 @@ using CStructSharp.Fuzzing;
 ///     The differential harness: runs one operation twice - once with the interpreter forced
 ///     (<see cref="EngineSelection.InterpreterOnly"/>) and once with <see cref="EngineSelection.Automatic"/> selection -
 ///     renders each outcome canonically (<see cref="CanonicalText"/>), and fails with a line diff when the renderings
-///     differ. Through each side's <see cref="EngineDiagnostics"/> it also asserts whether the engine ran.
+///     differ. Through each side's <see cref="EngineDiagnostics"/> it also asserts whether the engine ran: by default
+///     as the operation expects (<see cref="DifferentialOperation.Engine"/>).
 /// </summary>
 /// <remarks>
 ///     Both sides use the same <see cref="ExecutionPath"/>, so a case can compare the engine with the interpreter under
@@ -22,13 +23,15 @@ internal static class EngineDifferential
 
     /// <summary>
     ///     Asserts that the interpreter and automatic selection produce the same rendering for
-    ///     <paramref name="operation"/>, and that the engine ran exactly when <paramref name="expectEngine"/> says so.
+    ///     <paramref name="operation"/>, and that the engine ran exactly when <paramref name="expectEngine"/> (or, when
+    ///     it is <see langword="null"/>, the operation's own <see cref="DifferentialOperation.Engine"/>) says so.
     /// </summary>
     /// <param name="operation">The operation.</param>
     /// <param name="expectEngine">
-    ///     Whether automatic selection must run the engine for every decision; when <see langword="false"/> it must run
-    ///     the engine for none; when <see langword="null"/> either is accepted, which sweeps and corpora use so they
-    ///     compare whatever the selector chooses as the engine gains features.
+    ///     Whether automatic selection must run the engine for every decision the operation makes; when
+    ///     <see langword="false"/> it must run the engine for none; when <see langword="null"/> the operation's own
+    ///     expectation applies, and an operation that expects nothing accepts either. An operation whose general path is
+    ///     never reached (a direct fixed-root read, a pre-cancelled call) makes no decision and passes either way.
     /// </param>
     /// <param name="path">The execution path both sides use.</param>
     /// <param name="alterAutomatic">
@@ -36,10 +39,10 @@ internal static class EngineDifferential
     ///     harness detects a planted difference; <see langword="null"/> in real cases.
     /// </param>
     /// <returns>The comparison: the shared rendering and both sides' recorders.</returns>
-    /// <exception cref="AssertFailedException">The renderings differ, or the engine ran contrary to a non-null <paramref name="expectEngine"/>.</exception>
+    /// <exception cref="AssertFailedException">The renderings differ, or the engine ran contrary to the expectation.</exception>
     public static EngineComparison AssertSame(
         DifferentialOperation operation,
-        bool? expectEngine = false,
+        bool? expectEngine = null,
         ExecutionPath path = ExecutionPath.Fastest,
         Func<string, string>? alterAutomatic = null)
     {
@@ -64,10 +67,11 @@ internal static class EngineDifferential
         EngineDiagnostics selected = automatic.Diagnostics;
         Assert.AreEqual(0, forced.EngineRuns + forced.Declines, operation.Name + ": the interpreter side asked the engine");
         Assert.AreEqual(forced.InterpreterSelections, selected.Decisions, operation.Name + ": the sides made different numbers of decisions");
+        expectEngine ??= operation.Engine;
         if (expectEngine == true)
         {
-            Assert.IsTrue(selected.EngineRuns > 0, operation.Name + ": the engine did not run");
             Assert.AreEqual(0, selected.Declines, operation.Name + ": the engine declined: " + string.Join("; ", selected.RecentDeclines));
+            Assert.AreEqual(selected.Decisions, selected.EngineRuns, operation.Name + ": the engine did not run every decision");
         }
         else if (expectEngine == false)
         {

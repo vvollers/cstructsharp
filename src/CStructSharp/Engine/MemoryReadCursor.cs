@@ -171,6 +171,9 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
     }
 
     /// <inheritdoc/>
+    public void ReadExactlyOrEndOfStream(Span<byte> destination) => this.ReadAvailableExactly(destination);
+
+    /// <inheritdoc/>
     public ReadOnlySpan<byte> ReadFixed(Span<byte> scratch)
     {
         if (this.core.TryReadSpan(scratch.Length, out ReadOnlySpan<byte> direct))

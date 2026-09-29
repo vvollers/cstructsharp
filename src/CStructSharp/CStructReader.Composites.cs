@@ -25,7 +25,9 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 public sealed partial class CStruct
 {
     /// <summary>A <c>char[N]</c> buffer is one Latin-1 character per byte, exactly as the per-element <c>char</c> reader produces.</summary>
-    private static string ReadLatin1Characters(ReadOnlySpan<byte> bytes)
+    /// <param name="bytes">The buffer's bytes.</param>
+    /// <returns>The characters, untrimmed.</returns>
+    internal static string ReadLatin1Characters(ReadOnlySpan<byte> bytes)
     {
         Span<char> chars = bytes.Length <= 256 ? stackalloc char[bytes.Length] : new char[bytes.Length];
         for (int index = 0; index < chars.Length; index++)

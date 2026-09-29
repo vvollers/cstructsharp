@@ -1,0 +1,472 @@
+namespace CStructSharp.Tests;
+
+using CStructSharp.Diagnostics;
+using CStructSharp.Engine;
+using CStructSharp.Values;
+
+/// <summary>
+///     The compiled read engine's step semantics where the sweeps and corpora do not reach: every codec at every
+///     truncation and byte budget, an offset assertion checked before its member is placed, cancellation only at the
+///     documented boundaries (engine plan Appendix A), nesting limits with promoted members, the conditional variable
+///     scope, qualified prefixes through static plans, and the member, path and offset a failure reports. Each case
+///     compares the engine with the interpreter through the differential harness, and pins the expected outcome.
+/// </summary>
+[TestClass]
+public class ReadEngineTests
+{
+    /// <summary>A packed layout with one scalar or array of every codec the engine reads through a codec reader.</summary>
+    private const string CodecLayout = """
+        enum e16 : uint16 { A = 1, B = 4660 };
+        struct rec {
+          int48 a; uint48 b; int128 c; uint128 d; float16 h;
+          fixed16_16 f1; ufixed16_16 f2; fixed2_30 f3; ufixed8_8 f4;
+          uuid u; guid g;
+          uleb128_32 l1; uleb128_64 l2; sleb128_32 l3; sleb128_64 l4;
+          char ch; latin1 la; cp437 cp; utf8 u8; wchar w;
+          e16 en; e16 ens[2]; int48 as[2]; wchar ws[2]; char cs[3]; utf8 text[4]; cstring s;
+          uint8 tail;
+        };
+        """;
+
+    /// <summary>The execution paths each case runs under: the fast paths the interpreter takes, and the general path only.</summary>
+    private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.GeneralOnly];
+
+    /// <summary>Gets valid input for <see cref="CodecLayout"/>, field by field.</summary>
+    private static byte[] CodecData =>
+    [
+        0xFB, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // a = -5
+        0x07, 0, 0, 0, 0, 0, // b = 7
+        0xF7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // c = -9
+        0x0A, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // d = 10
+        0x00, 0x3E, // h = 1.5
+        0x00, 0x80, 0x01, 0x00, // f1 = 1.5
+        0x00, 0x40, 0x02, 0x00, // f2 = 2.25
+        0x00, 0x00, 0x00, 0x20, // f3 = 0.5
+        0x80, 0x03, // f4 = 3.5
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, // u
+        16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, // g
+        0xAC, 0x02, // l1 = 300
+        0xF0, 0xA2, 0x04, // l2 = 70000
+        0x7D, // l3 = -3
+        0xD4, 0x7D, // l4 = -300
+        0x41, 0xE9, 0x80, 0x7A, // ch, la, cp, u8
+        0xA9, 0x03, // w = U+03A9
+        0x34, 0x12, // en = B
+        0x01, 0x00, 0x34, 0x12, // ens
+        1, 0, 0, 0, 0, 0, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // as = 1, -2
+        0x41, 0x00, 0x42, 0x00, // ws = "AB"
+        0x78, 0x79, 0x00, // cs
+        0x68, 0x69, 0x00, 0x00, // text
+        0x6F, 0x6B, 0x00, // s = "ok"
+        0x09, // tail
+    ];
+
+    /// <summary>
+    ///     Every codec the engine reads through its reader (wide integers, float16, fixed-point, UUIDs, LEB128, character
+    ///     units, <c>wchar</c>, enum storage, their arrays, bounded and terminated text) reads identically at every
+    ///     truncation from memory and from streams that return one or seven bytes per read, and at every byte budget.
+    /// </summary>
+    [TestMethod]
+    public void EveryCodec_ReadsIdenticallyAtEveryTruncationAndBudget()
+    {
+        var layout = new CStruct(CodecLayout);
+        byte[] data = CodecData;
+        EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), expectEngine: true);
+        Assert.AreEqual(1, complete.Automatic.EngineRuns);
+        StringAssert.Contains(complete.Rendering, "result.a = Int64 -5\n");
+        StringAssert.Contains(complete.Rendering, "result.l4 = Int64 -300\n");
+        StringAssert.Contains(complete.Rendering, "result.w = Char");
+        StringAssert.Contains(complete.Rendering, "result.s = String \"ok\"\n");
+        StringAssert.Contains(complete.Rendering, "result.tail = Byte 9\n");
+
+        foreach (ExecutionPath path in Paths)
+        {
+            for (int length = 0; length <= data.Length; length++)
+            {
+                foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1, EngineInput.ChunkedStream7])
+                {
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), expectEngine: true, path: path);
+                }
+            }
+
+            for (long budget = 1; budget <= data.Length + 1; budget++)
+            {
+                var read = new ReadOptions { MaxTotalBytesRead = budget, };
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: read), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.ChunkedStream3, "rec", options: read), expectEngine: true, path: path);
+            }
+
+            // Invalid values fail inside their own codecs: an unterminated LEB128, invalid UTF-16, an invalid bounded text.
+            byte[] invalid = (byte[])data.Clone();
+            invalid[92] = 0x80;
+            invalid[93] = 0x80;
+            invalid[94] = 0x80;
+            invalid[95] = 0x80;
+            invalid[96] = 0x80;
+            EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, EngineInput.Span, "rec"), expectEngine: true, path: path);
+            invalid = (byte[])data.Clone();
+            invalid[127] = 0xD8;
+            EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            invalid = (byte[])data.Clone();
+            invalid[133] = 0xFF;
+            EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, EngineInput.Span, "rec"), expectEngine: true, path: path);
+        }
+    }
+
+    /// <summary>
+    ///     A runtime-checked <c>@N</c> assertion is checked before its member is placed, as the interpreter's placement
+    ///     cursor does: a failing assertion leaves the position before the padding and names the member, and it wins over
+    ///     a start that lies past the input.
+    /// </summary>
+    [TestMethod]
+    public void OffsetAssertion_IsCheckedBeforeTheMemberIsPlaced()
+    {
+        var layout = new CStruct("struct rec { uint8 n; uint8 d[n]; uint32 x @8; };", aligned: true);
+        foreach (ExecutionPath path in Paths)
+        {
+            // n = 5 ends the array at 6, so x is aligned to 8 as asserted.
+            EngineComparison valid = EngineDifferential.AssertSame(EngineOperations.Parse(layout, [5, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0], EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            StringAssert.Contains(valid.Rendering, "result.x = UInt32 7\n");
+
+            // n = 1 aligns x to 4, not 8: the stream stays after the array, before the padding.
+            EngineComparison misplaced = EngineDifferential.AssertSame(EngineOperations.Parse(layout, [1, 0, 0, 0, 7, 0, 0, 0], EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            StringAssert.Contains(misplaced.Rendering, "failure = failure CStructSharp.Diagnostics.CStructLayoutException\n");
+            StringAssert.Contains(misplaced.Rendering, "failure.member = \"x\"\n");
+            StringAssert.Contains(misplaced.Rendering, "position = 2\n");
+
+            // The same misplaced start past the end of the input still reports the assertion.
+            EngineComparison past = EngineDifferential.AssertSame(EngineOperations.Parse(layout, [1, 0], EngineInput.Span, "rec"), expectEngine: true, path: path);
+            StringAssert.Contains(past.Rendering, "failure = failure CStructSharp.Diagnostics.CStructLayoutException\n");
+        }
+    }
+
+    /// <summary>
+    ///     Cancellation is observed at struct entries (each element of a struct array is one) and never per primitive
+    ///     (engine plan Appendix A, CONTRACT): a token cancelled while a struct's primitives are read ends the read at
+    ///     the next struct entry, at the same position as the interpreter; a read with no further struct entry completes.
+    /// </summary>
+    [TestMethod]
+    public void Cancellation_IsObservedAtStructEntriesOnly()
+    {
+        var elements = new CStruct("struct inner { uint8 a; uint8 b; }; struct rec { uint8 n; inner items[n]; uint8 tail; };");
+        byte[] data = [3, 1, 2, 3, 4, 5, 6, 9];
+        foreach (ExecutionPath path in Paths)
+        {
+            for (int trigger = 0; trigger < data.Length; trigger++)
+            {
+                EngineComparison comparison = EngineDifferential.AssertSame(CancelledParse(elements, data, trigger), expectEngine: true, path: path);
+
+                // The next struct entry observes the token: the entry of the element after the one being read, or - on
+                // the fast path, which stages each element's bytes before entering it - the entry of the element whose
+                // bytes were just staged.
+                if (trigger <= (path == ExecutionPath.GeneralOnly ? 4 : 6))
+                {
+                    StringAssert.Contains(comparison.Rendering, "failure = failure System.OperationCanceledException\n", "trigger " + trigger);
+                }
+                else
+                {
+                    StringAssert.Contains(comparison.Rendering, "result.tail = Byte 9\n", "trigger " + trigger);
+                }
+            }
+        }
+
+        // Only primitives after the root's entry: the general path reads to the end whenever the token is cancelled.
+        var primitives = new CStruct("struct rec { uint8 a; uint16 b; uint8 c; };");
+        for (int trigger = 0; trigger < 4; trigger++)
+        {
+            EngineComparison comparison = EngineDifferential.AssertSame(CancelledParse(primitives, [1, 2, 0, 3], trigger), expectEngine: true, path: ExecutionPath.GeneralOnly);
+            StringAssert.Contains(comparison.Rendering, "result.c = Byte 3\n", "trigger " + trigger);
+        }
+    }
+
+    /// <summary>
+    ///     Every named struct claims a nesting level, a struct-array element included, and an anonymous promoted member
+    ///     claims none; the limit fails with the nesting message at exactly the depth the layout needs minus one, through
+    ///     the static plans and the general path alike.
+    /// </summary>
+    [TestMethod]
+    public void NestingLimit_CountsNamedStructsButNotPromotedMembers()
+    {
+        var layout = new CStruct("struct a { uint8 v; }; struct b { a x; uint8 w; }; struct rec { uint8 n; b items[n]; struct { a p; }; uint8 tail; };");
+        byte[] data = [2, 1, 2, 3, 4, 5, 9];
+        foreach (ExecutionPath path in Paths)
+        {
+            for (int depth = 1; depth <= 4; depth++)
+            {
+                foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.ChunkedStream3])
+                {
+                    EngineComparison comparison = EngineDifferential.AssertSame(
+                        EngineOperations.Parse(layout, data, input, "rec", options: new ReadOptions { MaxNestingDepth = depth, }),
+                        expectEngine: true,
+                        path: path);
+                    if (depth < 3)
+                    {
+                        // Depth 1 cannot enter the elements of items; depth 2 enters them but not their member x.
+                        string member = depth == 1 ? "'items' (b)" : "'x' (a)";
+                        StringAssert.Contains(comparison.Rendering, "failure.message = \"" + ReadFailures.NestingLimit.TrimEnd('.') + " (field " + member, "depth " + depth);
+                    }
+                    else
+                    {
+                        StringAssert.Contains(comparison.Rendering, "result.tail = Byte 9\n", "depth " + depth);
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    ///     A conditional composite's variable scope: its own names are removed on entry (a caller's value of such a name
+    ///     disappears), and after each member the names a nested declaration replaced are restored, so a later count in
+    ///     the composite reads the composite's own value.
+    /// </summary>
+    [TestMethod]
+    public void ConditionalScope_RemovesAndRestoresTheCompositesNames()
+    {
+        var restoring = new CStruct("struct inner { uint8 n; }; struct rec { uint8 n; if (n == 1) { inner i; uint8 d[n]; } uint8 e[n]; };");
+        var removing = new CStruct("struct rec { uint8 k; if (k == 1) { uint8 n; } uint8 d[n]; };");
+        var caller = new Dictionary<string, int> { ["n"] = 2, };
+        foreach (ExecutionPath path in Paths)
+        {
+            // inner.n = 3 leaks as n while i is read; the scope restores rec's n = 1 for d and e.
+            EngineComparison restored = EngineDifferential.AssertSame(EngineOperations.Parse(restoring, [1, 3, 7, 8, 9], EngineInput.Span, "rec"), expectEngine: true, path: path);
+            StringAssert.Contains(restored.Rendering, "result.d = PrimitiveArray<Byte> [1]\n");
+            StringAssert.Contains(restored.Rendering, "result.e = PrimitiveArray<Byte> [1]\n");
+
+            // The caller's n is removed on entry, so with the branch not taken d's count is undefined.
+            EngineComparison removed = EngineDifferential.AssertSame(EngineOperations.Parse(removing, [0, 5, 5], EngineInput.Span, "rec", caller), expectEngine: true, path: path);
+            StringAssert.Contains(removed.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
+            StringAssert.Contains(removed.Rendering, "Undefined expression identifier: n");
+            EngineComparison taken = EngineDifferential.AssertSame(EngineOperations.Parse(removing, [1, 2, 5, 6], EngineInput.Stream, "rec", caller), expectEngine: true, path: path);
+            StringAssert.Contains(taken.Rendering, "result.d = PrimitiveArray<Byte> [2]\n");
+        }
+    }
+
+    /// <summary>
+    ///     Captures in nested fixed structs, read through their static plans or member by member, are published under the
+    ///     active qualified prefixes (<c>hdr.n</c>, and <c>m.hdr.k</c> under an outer prefix) exactly as the interpreter
+    ///     publishes them.
+    /// </summary>
+    [TestMethod]
+    public void QualifiedPrefixes_PublishThroughStaticPlansAndMembers()
+    {
+        var layout = new CStruct("struct h { uint8 n; uint8 k; }; struct mid { h hdr; uint8 v[hdr.n]; }; struct rec { mid m; uint8 w[m.hdr.k]; uint8 tail; };");
+        byte[] data = [2, 1, 7, 8, 9, 4, 6];
+        foreach (ExecutionPath path in Paths)
+        {
+            foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.ChunkedStream1])
+            {
+                for (int length = 0; length <= data.Length; length++)
+                {
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), expectEngine: true, path: path);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    ///     A failure deep inside a struct-array element names the innermost member and its type, and carries the root's
+    ///     path and the position the failed read left, from every source.
+    /// </summary>
+    [TestMethod]
+    public void Failure_NamesTheInnermostMember_WithPathAndOffset()
+    {
+        var layout = new CStruct("struct inner { uint8 a; uint16 b; }; struct rec { uint8 n; inner items[n]; uint8 tail; };");
+        byte[] truncated = [2, 1, 2, 0, 3, 4];
+        foreach (ExecutionPath path in Paths)
+        {
+            foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1])
+            {
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, truncated, input, "rec"), expectEngine: true, path: path);
+            }
+
+            ReadOptions required = EngineSelections.EngineRequired() with { ExecutionPath = path, };
+            CStructReadException failure = Assert.Throws<CStructReadException>(() => layout.Parse(truncated.AsSpan(), "rec", options: required));
+            Assert.AreEqual("b", failure.Member);
+            Assert.AreEqual("uint16", failure.MemberType);
+            Assert.AreEqual("rec", failure.Path);
+            Assert.AreEqual(6, failure.Offset);
+        }
+    }
+
+    /// <summary>
+    ///     A <c>#define</c> root is evaluated and reads nothing: <c>Parse</c> reports that it selects no composite and
+    ///     <c>ReadValue</c> that it produces no value; a definition that names a field or an undefined caller variable
+    ///     fails while it is evaluated, and one a caller variable cannot resolve fails before the read.
+    /// </summary>
+    [TestMethod]
+    public void DefinitionRoot_EvaluatesAndReadsNothing()
+    {
+        var layout = new CStruct("#define SIZE (4 * n)\n#define LIVE (v + 1)\n#define RATIO (4 / n)\nstruct rec { uint8 v; };");
+        foreach (Dictionary<string, int>? variables in (Dictionary<string, int>?[])[null, new() { ["n"] = 3, }, new() { ["n"] = 0, }])
+        {
+            foreach (string root in (string[])["SIZE", "LIVE", "RATIO"])
+            {
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, [1], EngineInput.Span, root, variables), expectEngine: true);
+                EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, [1], EngineInput.Stream, root, variables), expectEngine: true);
+            }
+        }
+
+        EngineComparison live = EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, [1], EngineInput.Span, "LIVE"), expectEngine: true);
+        StringAssert.Contains(live.Rendering, "Undefined expression identifier: v");
+    }
+
+    /// <summary>
+    ///     Typedef, enum and type-spelling roots are read standalone - element by element for arrays, never through the
+    ///     block paths a placed member takes - into their typed shapes, and a count past the element limit fails before
+    ///     the read. A spelling root counted by a caller's name has no slot for it and is left to the interpreter, and so
+    ///     is <c>ReadValue</c> of a runtime-sized root, whose count the interpreter's path resolution evaluates first.
+    /// </summary>
+    [TestMethod]
+    public void StandaloneRoots_ReadIdentically()
+    {
+        var layout = new CStruct("#define N 2\nstruct p { uint8 x; uint8 y; }; typedef uint16 words[3]; typedef char name[4]; typedef p points[N]; enum kind : uint8 { A = 1 };");
+        byte[] data = [1, 0, 2, 0, 3, 0, 9];
+        var variables = new Dictionary<string, int> { ["N"] = 3, };
+        foreach (ExecutionPath path in Paths)
+        {
+            foreach (string root in (string[])["words", "name", "points", "kind"])
+            {
+                for (int length = 0; length <= data.Length; length++)
+                {
+                    EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data[..length], EngineInput.Span, root), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data[..length], EngineInput.ChunkedStream3, root), expectEngine: true, path: path);
+                }
+            }
+
+            EngineComparison limited = EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Stream, "words", options: new ReadOptions { MaxArrayElements = 2, }), expectEngine: true, path: path);
+            StringAssert.Contains(limited.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadLimitException\n");
+            StringAssert.Contains(limited.Rendering, "position = 0\n");
+            EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "points"), expectEngine: true, path: path);
+            EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Span, "uint16[2]"), expectEngine: true, path: path);
+
+            // N is a definition, so the spelling root's count has a slot: the parse runs, the selected read is declined.
+            EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Stream, "uint8[N]", variables), expectEngine: true, path: path);
+            EngineComparison resolved = EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Span, "uint8[N]", variables), expectEngine: false, path: path);
+            Assert.AreEqual(new EngineDecline(EngineOperation.RootRead, EngineSelector.ResolvedRootArray), resolved.Automatic.LastDecline);
+
+            // M is only the caller's, and no expression of the layout names it: no slot, so no program.
+            EngineComparison unslotted = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "uint8[M]", new Dictionary<string, int> { ["M"] = 3, }), expectEngine: false, path: path);
+            StringAssert.Contains(unslotted.Automatic.LastDecline!.Value.Reason, Compilation.Programs.ReadProgramCompiler.UnslottedName + "M");
+        }
+    }
+
+    /// <summary>
+    ///     A parse whose variables are internal expressions is left to the interpreter (run-time CaptureAll and names
+    ///     without slots move to the engine in stage 10), and so is a root the compiler cannot read yet.
+    /// </summary>
+    [TestMethod]
+    public void IneligibleOperations_AreDeclinedBeforeReading()
+    {
+        var layout = new CStruct("struct rec { uint8 n; uint8 d[n]; };");
+        var expressions = new Dictionary<string, Syntax.Expr> { ["m"] = new Syntax.Literal(2), };
+        using (EngineRecording recording = EngineDiagnostics.Record())
+        {
+            object value = layout.ParseStreamCore(new MemoryStream([1, 5]), "rec", Expressions.LayoutVariableInput.FromExpressions(expressions), null);
+            Assert.AreEqual((byte)1, ((StructValue)value)["n"]);
+            Assert.AreEqual(new EngineDecline(EngineOperation.RootRead, EngineSelector.ExpressionInputs), recording.Diagnostics.LastDecline);
+        }
+
+        var bitfields = new CStruct("struct rec { uint8 lo : 4; uint8 hi : 4; };");
+        EngineComparison comparison = EngineDifferential.AssertSame(EngineOperations.Parse(bitfields, [0x21], EngineInput.Stream, "rec"), expectEngine: false);
+        Assert.AreEqual("rec.lo: bitfields are not supported yet (stage 4)", comparison.Automatic.LastDecline!.Value.Reason);
+    }
+
+    /// <summary>
+    ///     A parse over a hidden-buffer stream whose operation token is cancelled when a read first reaches byte
+    ///     <paramref name="trigger"/>; each side gets its own token and stream.
+    /// </summary>
+    /// <param name="layout">The compiled layout.</param>
+    /// <param name="data">The input bytes.</param>
+    /// <param name="trigger">The byte whose read cancels the token.</param>
+    /// <returns>The operation, which renders the value or failure and the final position.</returns>
+    private static DifferentialOperation CancelledParse(CStruct layout, byte[] data, int trigger)
+    {
+        return new DifferentialOperation(
+            "Parse (cancelled at byte " + trigger + ")",
+            (side, output) =>
+            {
+                using var cancellation = new CancellationTokenSource();
+                using var stream = new CancellingStream(data, trigger, cancellation);
+                ReadOptions read = side.Read(new ReadOptions { CancellationToken = cancellation.Token, });
+                output.Capture("failure", () => output.Value("result", layout.Parse(stream, "rec", options: read)));
+                output.Line("position", stream.Position.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            },
+            true);
+    }
+
+    /// <summary>A seekable stream that hides its buffer and cancels a token when a read first covers a given byte.</summary>
+    private sealed class CancellingStream : MemoryStream
+    {
+        /// <summary>The byte whose read cancels the token.</summary>
+        private readonly int trigger;
+
+        /// <summary>The token source to cancel.</summary>
+        private readonly CancellationTokenSource cancellation;
+
+        /// <summary>Creates the stream over a copy of the data.</summary>
+        /// <param name="data">The bytes.</param>
+        /// <param name="trigger">The byte whose read cancels the token.</param>
+        /// <param name="cancellation">The token source to cancel.</param>
+        public CancellingStream(byte[] data, int trigger, CancellationTokenSource cancellation)
+            : base((byte[])data.Clone(), writable: false)
+        {
+            this.trigger = trigger;
+            this.cancellation = cancellation;
+        }
+
+        /// <summary>Reads, then cancels the token when the bytes read covered the trigger byte.</summary>
+        /// <param name="buffer">The destination.</param>
+        /// <returns>The number of bytes read.</returns>
+        public override int Read(Span<byte> buffer)
+        {
+            // MemoryStream's own span overload calls the array overload in a derived type, so it goes through there.
+            byte[] copy = new byte[buffer.Length];
+            int read = this.Read(copy, 0, copy.Length);
+            copy.AsSpan(0, read).CopyTo(buffer);
+            return read;
+        }
+
+        /// <summary>Reads, then cancels the token when the bytes read covered the trigger byte.</summary>
+        /// <param name="buffer">The destination array.</param>
+        /// <param name="offset">The first index to fill.</param>
+        /// <param name="count">The largest number of bytes to read.</param>
+        /// <returns>The number of bytes read.</returns>
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            long start = this.Position;
+            int read = base.Read(buffer, offset, count);
+            this.CancelIfCovered(start, read);
+            return read;
+        }
+
+        /// <summary>Reads one byte, then cancels the token when it was the trigger byte.</summary>
+        /// <returns>The byte, or -1 at the end.</returns>
+        public override int ReadByte()
+        {
+            long start = this.Position;
+            int value = base.ReadByte();
+            this.CancelIfCovered(start, value < 0 ? 0 : 1);
+            return value;
+        }
+
+        /// <summary>Hides the buffer, so the reader streams the bytes rather than reading them from memory.</summary>
+        /// <param name="buffer">Always the default segment.</param>
+        /// <returns><see langword="false"/>.</returns>
+        public override bool TryGetBuffer(out ArraySegment<byte> buffer)
+        {
+            buffer = default;
+            return false;
+        }
+
+        /// <summary>Cancels the token when the read range covered the trigger byte.</summary>
+        /// <param name="start">The read's first byte.</param>
+        /// <param name="read">The number of bytes read.</param>
+        private void CancelIfCovered(long start, int read)
+        {
+            if (start <= this.trigger && this.trigger < start + read)
+            {
+                this.cancellation.Cancel();
+            }
+        }
+    }
+}

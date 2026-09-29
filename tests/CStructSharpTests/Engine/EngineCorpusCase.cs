@@ -115,11 +115,15 @@ internal sealed record EngineCorpusCase(
     /// <returns>The identifier.</returns>
     public override string ToString() => this.Id;
 
-    /// <summary>Compares one operation through the harness, accepting whichever implementation the selector chooses.</summary>
+    /// <summary>
+    ///     Compares one operation through the harness, requiring the engine to run it exactly when the operation expects
+    ///     it: a whole-root read of a root whose program is eligible (the eligibility report's property,
+    ///     <see cref="EngineExpectations"/>).
+    /// </summary>
     /// <param name="operation">The operation.</param>
     /// <param name="path">The execution path both sides use.</param>
     /// <returns>The shared rendering.</returns>
-    private static string Same(DifferentialOperation operation, ExecutionPath path) => EngineDifferential.AssertSame(operation, expectEngine: null, path: path).Rendering;
+    private static string Same(DifferentialOperation operation, ExecutionPath path) => EngineDifferential.AssertSame(operation, path: path).Rendering;
 
     /// <summary>Returns the result of <paramref name="call"/>, or <see langword="null"/> when it throws.</summary>
     /// <param name="call">The call.</param>

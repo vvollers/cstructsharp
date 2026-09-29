@@ -128,6 +128,16 @@ internal interface IReadCursor
     void ReadExactly(Span<byte> destination);
 
     /// <summary>
+    ///     Reads exactly <c>destination.Length</c> bytes as <see cref="System.IO.Stream.ReadExactly(Span{byte})"/> does,
+    ///     for a codec that words its own short-read failure (a 16-byte identifier): on a short read the bytes that were
+    ///     there are consumed and charged, and the runtime's <see cref="System.IO.EndOfStreamException"/> is thrown.
+    /// </summary>
+    /// <param name="destination">The span to fill.</param>
+    /// <exception cref="System.IO.EndOfStreamException">The input ends before the span is full.</exception>
+    /// <exception cref="CStructReadLimitException">The bytes exceed the total read budget.</exception>
+    void ReadExactlyOrEndOfStream(Span<byte> destination);
+
+    /// <summary>
     ///     Reads one fixed-width value of <c>scratch.Length</c> bytes as a primitive codec does: straight from memory
     ///     when possible, otherwise into <paramref name="scratch"/> - a one-byte value through
     ///     <see cref="ReadByteExactly"/>, a wider one through <see cref="ReadExactly"/>. A bitfield storage unit

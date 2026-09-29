@@ -9,4 +9,10 @@ using CStructSharp.Fuzzing;
 /// </summary>
 /// <param name="Name">The operation and its case, for failure messages, such as <c>Parse(Span) root</c>.</param>
 /// <param name="Run">Runs the operation for one side and renders its outcome.</param>
-internal sealed record DifferentialOperation(string Name, Action<EngineSide, CanonicalText> Run);
+/// <param name="Engine">
+///     Whether automatic selection must run the compiled engine for the operation (<see langword="true"/>: a whole-root
+///     read of a root whose program is eligible, <see cref="EngineExpectations"/>), must leave it to the interpreter
+///     (<see langword="false"/>: every operation the engine does not cover yet, and roots it cannot read), or may do
+///     either (<see langword="null"/>, for a case whose expectation is not known up front).
+/// </param>
+internal sealed record DifferentialOperation(string Name, Action<EngineSide, CanonicalText> Run, bool? Engine = false);

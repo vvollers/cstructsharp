@@ -5,8 +5,9 @@ using CStructSharp.Values;
 
 /// <summary>
 ///     Runs the differential harness over a representative set of layouts and operations: the interpreter forced and
-///     automatic engine selection must render identically, and the engine must not run, since it supports no operation
-///     yet. The harness itself must report a planted difference as a readable diff.
+///     automatic engine selection must render identically, and the engine must run exactly the whole-root reads of
+///     eligible roots (<see cref="EngineExpectations"/>). The harness itself must report a planted difference as a
+///     readable diff.
 /// </summary>
 [TestClass]
 public class EngineDifferentialTests
@@ -47,6 +48,7 @@ public class EngineDifferentialTests
         }
 
         EngineComparison comparison = EngineDifferential.AssertSame(EngineOperations.Parse(layout, one, EngineInput.Stream, "rec"));
+        Assert.AreEqual(1, comparison.Automatic.EngineRuns);
         StringAssert.Contains(comparison.Rendering, "result.id = UInt16 7\n");
         StringAssert.Contains(comparison.Rendering, "result.value = Int32 -2\n");
         StringAssert.Contains(comparison.Rendering, "result.which = EnumValueResult kind name=large value=2");
@@ -91,6 +93,11 @@ public class EngineDifferentialTests
 
         EngineComparison comparison = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: ExecutionPath.GeneralOnly);
         StringAssert.Contains(comparison.Rendering, "result.items = PrimitiveArray<UInt16> [2]\n");
+        Assert.AreEqual(1, comparison.Automatic.EngineRuns);
+        Assert.AreEqual(0, comparison.Automatic.Declines);
+
+        // A selected read of a member is a path read the engine leaves to the interpreter.
+        comparison = EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Span, "rec.items"));
         Assert.AreEqual(1, comparison.Automatic.Declines);
     }
 

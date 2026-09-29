@@ -38,15 +38,7 @@ internal sealed class CStructOperationContext
         bool aligned,
         ReadOperationSettings options)
     {
-        ArgumentNullException.ThrowIfNull(stream);
-        if (!stream.CanRead || !stream.CanSeek)
-        {
-            throw new ArgumentException("Parsing requires a readable, seekable stream.", nameof(stream));
-        }
-
-        // A token cancelled before the call ends the operation before any byte is read.
-        options.CancellationToken.ThrowIfCancellationRequested();
-
+        Validate(stream, options);
         this.Stream = new ReadBudgetStream(
             stream,
             options.MaxStringBytes,
@@ -66,32 +58,6 @@ internal sealed class CStructOperationContext
         this.MaxNestingDepth = options.MaxNestingDepth;
         this.TrimFixedText = options.TrimFixedText;
         this.GeneralPathOnly = options.ExecutionPath == ExecutionPath.GeneralOnly;
-        if (this.MaxPointerDepth < 0)
-        {
-            // A negative limit has no meaningful safety interpretation and would make the comparison misleading.
-            throw new ArgumentOutOfRangeException(nameof(options), "Maximum pointer depth cannot be negative.");
-        }
-
-        if (this.MaxPointerTargetBytes < 0)
-        {
-            // Likewise, a byte budget must either be absent or be a non-negative number of bytes.
-            throw new ArgumentOutOfRangeException(nameof(options), "Maximum pointer target bytes cannot be negative.");
-        }
-
-        if (this.MaxArrayElements < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(options), "Maximum array elements cannot be negative.");
-        }
-
-        if (options.MaxStringBytes < 0 || options.MaxTotalBytesRead < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(options), "Read byte limits cannot be negative.");
-        }
-
-        if (this.MaxNestingDepth <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(options), "Maximum nesting depth must be greater than zero.");
-        }
     }
 
     /// <summary>Gets whether pointer values are stream positions or offsets from <see cref="PointerOrigin"/>.</summary>
@@ -226,6 +192,56 @@ internal sealed class CStructOperationContext
     ///     reader moves there when it leaves an unfinished bitfield unit.
     /// </summary>
     public long NextPosition { get; set; }
+
+    /// <summary>
+    ///     Rejects a source or settings a read operation cannot start with, before any byte is read: the checks the
+    ///     interpreter's operation state and the compiled engine both make, in this order, so a failing call reports the
+    ///     same exception whichever implementation runs it.
+    /// </summary>
+    /// <param name="stream">The caller's input stream.</param>
+    /// <param name="options">The operation's snapshotted settings.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="stream"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="stream"/> cannot read or cannot seek.</exception>
+    /// <exception cref="OperationCanceledException">The operation's token is already cancelled.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A limit in <paramref name="options"/> is negative, or the
+    ///     nesting depth is not positive.</exception>
+    public static void Validate(Stream stream, in ReadOperationSettings options)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        if (!stream.CanRead || !stream.CanSeek)
+        {
+            throw new ArgumentException("Parsing requires a readable, seekable stream.", nameof(stream));
+        }
+
+        // A token cancelled before the call ends the operation before any byte is read.
+        options.CancellationToken.ThrowIfCancellationRequested();
+        if (options.MaxPointerDepth < 0)
+        {
+            // A negative limit has no meaningful safety interpretation and would make the comparison misleading.
+            throw new ArgumentOutOfRangeException(nameof(options), "Maximum pointer depth cannot be negative.");
+        }
+
+        if (options.MaxPointerTargetBytes < 0)
+        {
+            // Likewise, a byte budget must either be absent or be a non-negative number of bytes.
+            throw new ArgumentOutOfRangeException(nameof(options), "Maximum pointer target bytes cannot be negative.");
+        }
+
+        if (options.MaxArrayElements < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), "Maximum array elements cannot be negative.");
+        }
+
+        if (options.MaxStringBytes < 0 || options.MaxTotalBytesRead < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), "Read byte limits cannot be negative.");
+        }
+
+        if (options.MaxNestingDepth <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), "Maximum nesting depth must be greater than zero.");
+        }
+    }
 
     /// <summary>Returns whether the nesting and array limits admit running <paramref name="plan"/> at the current structure depth.</summary>
     /// <param name="plan">The static read plan.</param>

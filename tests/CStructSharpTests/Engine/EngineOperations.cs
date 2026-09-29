@@ -41,7 +41,8 @@ internal static class EngineOperations
             (source, read) => layout.Parse(source, path, variables, read),
             (source, read) => layout.Parse(source, path, variables, read),
             (source, read) => layout.Parse(source, path, variables, read),
-            RenderValue);
+            RenderValue,
+            EngineExpectations.RootRead(layout, path, selectsValue: false));
 
     /// <summary><c>ParseAsync</c> over a stream that hides its buffer.</summary>
     /// <param name="layout">The compiled layout.</param>
@@ -62,7 +63,7 @@ internal static class EngineOperations
     /// <param name="options">The case's read options, which each side adjusts.</param>
     /// <returns>The operation.</returns>
     public static DifferentialOperation ParseAsync(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
-        => StreamRead("ParseAsync " + path, data, input, options, (source, read) => layout.ParseAsync(source, path, variables, read).AsTask().GetAwaiter().GetResult(), RenderValue);
+        => StreamRead("ParseAsync " + path, data, input, options, (source, read) => layout.ParseAsync(source, path, variables, read).AsTask().GetAwaiter().GetResult(), RenderValue, EngineExpectations.RootRead(layout, path, selectsValue: false));
 
     /// <summary><c>ParseMany</c>: every record until the input ends, then the record count.</summary>
     /// <param name="layout">The compiled layout.</param>
@@ -101,7 +102,8 @@ internal static class EngineOperations
                     });
                 output.Line("count", count.ToString(CultureInfo.InvariantCulture));
                 RenderPosition(output, stream, EngineStreams.IsStream(input) ? EngineStreams.StartOf(input) : 0);
-            });
+            },
+            EngineExpectations.RootRead(layout, path, selectsValue: false));
     }
 
     /// <summary><c>ReadValue</c> of a root or a path, in its natural representation.</summary>
@@ -123,7 +125,8 @@ internal static class EngineOperations
             (source, read) => layout.ReadValue(source, path, variables, read),
             (source, read) => layout.ReadValue(source, path, variables, read),
             (source, read) => layout.ReadValue(source, path, variables, read),
-            RenderValue);
+            RenderValue,
+            EngineExpectations.RootRead(layout, path, selectsValue: true));
 
     /// <summary><c>ReadValue&lt;T&gt;</c> of a root or a path, converted or bound to <typeparamref name="T"/>.</summary>
     /// <typeparam name="T">The destination type.</typeparam>
@@ -145,7 +148,8 @@ internal static class EngineOperations
             (source, read) => layout.ReadValue<T>(source, path, variables, read),
             (source, read) => layout.ReadValue<T>(source, path, variables, read),
             (source, read) => layout.ReadValue<T>(source, path, variables, read),
-            RenderValue);
+            RenderValue,
+            EngineExpectations.RootRead(layout, path, selectsValue: true));
 
     /// <summary><c>ParseWithDebug</c>: the struct, then every debug record.</summary>
     /// <param name="layout">The compiled layout.</param>
@@ -421,6 +425,7 @@ internal static class EngineOperations
     /// <param name="stream">The call over a stream.</param>
     /// <param name="sequence">The call over a multi-segment sequence.</param>
     /// <param name="render">Renders the call's result.</param>
+    /// <param name="engine">Whether automatic selection must run the engine (<see cref="DifferentialOperation.Engine"/>).</param>
     /// <returns>The operation.</returns>
     private static DifferentialOperation Read(
         string name,
@@ -432,11 +437,12 @@ internal static class EngineOperations
         Func<ReadOnlyMemory<byte>, ReadOptions, object?> memory,
         Func<Stream, ReadOptions, object?> stream,
         Func<ReadOnlySequence<byte>, ReadOptions, object?> sequence,
-        Action<CanonicalText, object?> render)
+        Action<CanonicalText, object?> render,
+        bool? engine = false)
     {
         if (EngineStreams.IsStream(input))
         {
-            return StreamRead(name, data, input, options, stream, render);
+            return StreamRead(name, data, input, options, stream, render, engine);
         }
 
         return new DifferentialOperation(
@@ -461,7 +467,8 @@ internal static class EngineOperations
                         };
                         render(output, result);
                     });
-            });
+            },
+            engine);
     }
 
     /// <summary>A read over one of the stream forms, rendering the result and then the stream's final position relative to the data's start.</summary>
@@ -471,8 +478,9 @@ internal static class EngineOperations
     /// <param name="options">The case's read options, which each side adjusts.</param>
     /// <param name="call">The call over the stream.</param>
     /// <param name="render">Renders the call's result.</param>
+    /// <param name="engine">Whether automatic selection must run the engine (<see cref="DifferentialOperation.Engine"/>).</param>
     /// <returns>The operation.</returns>
-    private static DifferentialOperation StreamRead(string name, byte[] data, EngineInput input, ReadOptions? options, Func<Stream, ReadOptions, object?> call, Action<CanonicalText, object?> render)
+    private static DifferentialOperation StreamRead(string name, byte[] data, EngineInput input, ReadOptions? options, Func<Stream, ReadOptions, object?> call, Action<CanonicalText, object?> render, bool? engine = false)
     {
         return new DifferentialOperation(
             name + " (" + input + ")",
@@ -482,7 +490,8 @@ internal static class EngineOperations
                 ReadOptions read = side.Read(options);
                 output.Capture("failure", () => render(output, call(source, read)));
                 RenderPosition(output, source, EngineStreams.StartOf(input));
-            });
+            },
+            engine);
     }
 
     /// <summary>A write or update of an expandable stream holding <paramref name="prefill"/>: the final position, then the contents.</summary>

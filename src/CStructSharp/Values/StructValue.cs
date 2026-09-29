@@ -365,6 +365,14 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
         this.count++;
     }
 
+    /// <summary>
+    ///     Stores a member by slot exactly as storing it by name does: a new member is counted and keeps its insertion
+    ///     position, a present one is replaced in place. The compiled engine stores every member value through here.
+    /// </summary>
+    /// <param name="index">The member's slot index in this value's shape.</param>
+    /// <param name="value">The member value.</param>
+    internal void StoreSlot(int index, object? value) => this.SetSlot(index, value);
+
     /// <summary>Slot write for bound call sites.</summary>
     private object? SetSlot(int index, object? value)
     {

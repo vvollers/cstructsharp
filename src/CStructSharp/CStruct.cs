@@ -10,6 +10,7 @@ using System.Numerics;
 using CStructSharp.Addressing;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
+using CStructSharp.Compilation.Programs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Engine;
 using CStructSharp.Expressions;
@@ -364,18 +365,22 @@ public sealed partial class CStruct
     {
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
         IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
-        EngineSelector.Decide(
-            effectiveOptions.EngineSelection,
-            debug ? EngineOperation.DebugRead : segments.Count == 1 ? EngineOperation.RootRead : EngineOperation.PathRead);
+        ReadProgram? engineRoot = null;
+        if (!debug && segments.Count == 1)
+        {
+            engineRoot = EngineSelector.SelectRootRead(effectiveOptions.EngineSelection, this.compilation, segments[0].Name, variables, selectsValue: false);
+        }
+        else
+        {
+            EngineSelector.Decide(effectiveOptions.EngineSelection, debug ? EngineOperation.DebugRead : EngineOperation.PathRead);
+        }
+
         if (segments.Count == 1)
         {
-            StructValue root = this.ParseStreamInternal(
-                stream,
-                segments,
-                variables,
-                effectiveOptions,
-                debug,
-                out List<DebugData> rootDebugData);
+            List<DebugData> rootDebugData = NoDebugData;
+            StructValue root = engineRoot is not null
+                                   ? this.ReadRootWithEngine(stream, segments, engineRoot, variables, effectiveOptions)
+                                   : this.ParseStreamInternal(stream, segments, variables, effectiveOptions, debug, out rootDebugData);
             var rootValues = (IDictionary<string, object?>)root;
             if (!rootValues.TryGetValue(segments[0].Name, out object? selected) || selected is null)
             {

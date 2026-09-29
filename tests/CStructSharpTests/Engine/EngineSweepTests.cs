@@ -511,11 +511,14 @@ public class EngineSweepTests
         }
     }
 
-    /// <summary>Compares one operation through the harness, accepting whichever implementation the selector chooses.</summary>
+    /// <summary>
+    ///     Compares one operation through the harness, requiring the engine to run it exactly when the operation expects
+    ///     it (a whole-root read of an eligible root, <see cref="EngineExpectations"/>).
+    /// </summary>
     /// <param name="operation">The operation.</param>
     /// <param name="path">The execution path both sides use.</param>
     /// <returns>The shared rendering.</returns>
-    private static string Same(DifferentialOperation operation, ExecutionPath path) => EngineDifferential.AssertSame(operation, expectEngine: null, path: path).Rendering;
+    private static string Same(DifferentialOperation operation, ExecutionPath path) => EngineDifferential.AssertSame(operation, path: path).Rendering;
 
     /// <summary>
     ///     Finds the value at a sweep path (<c>rec.items[1].b</c>, <c>rec.p.value</c>) in a parsed value: struct and union
