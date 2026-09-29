@@ -2,6 +2,7 @@ namespace CStructSharp.Engine;
 
 using CStructSharp.Compilation.Programs;
 using CStructSharp.Diagnostics;
+using CStructSharp.Expressions;
 using CStructSharp.Reading;
 
 /// <summary>
@@ -97,9 +98,9 @@ internal struct ReadEngineState
     public readonly string FixedText(string text) => this.TrimFixedText ? text.TrimEnd('\0') : text;
 
     /// <summary>
-    ///     While a qualified prefix is active, publishes a just-captured value under the one target the prefix and the
-    ///     bare name spell, as the interpreter copies (or removes) <c>prefix + name</c>; a spelling without a slot is not
-    ///     observable and is skipped.
+    ///     While a qualified prefix is active, publishes a just-captured value under every target the prefix covers
+    ///     (<see cref="QualifiedPublication.Covers"/>), as the interpreter copies (or removes) the qualified names; a
+    ///     spelling without a slot is not observable and is skipped.
     /// </summary>
     /// <param name="targets">The bare name's publication targets, one per prefix some expression spells it with.</param>
     /// <param name="value">The captured value; <see cref="SlotValue.Undefined"/> removes the qualified name.</param>
@@ -112,7 +113,7 @@ internal struct ReadEngineState
 
         foreach (ReadProgram.QualifiedTarget target in targets)
         {
-            if (string.Equals(target.Prefix, prefix, System.StringComparison.Ordinal))
+            if (QualifiedPublication.Covers(prefix, target.Prefix))
             {
                 this.Slots.Set(target.Slot, value);
             }

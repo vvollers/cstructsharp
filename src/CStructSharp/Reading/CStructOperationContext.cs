@@ -344,21 +344,16 @@ internal sealed class CStructOperationContext
                               });
     }
 
-    /// <summary>Republishes a just-captured variable under its qualified name when a dotted reference needs it.</summary>
+    /// <summary>
+    ///     Republishes a just-captured variable under the qualified names a dotted reference can spell while a prefix is
+    ///     active (<see cref="QualifiedPublication"/>).
+    /// </summary>
     /// <param name="name">The unqualified field name whose variable entry is copied or removed.</param>
     public void PublishQualified(string name)
     {
         if (this.hasQualifiedPrefix)
         {
-            string prefix = this.QualifiedPrefix!;
-            if (this.Variables.TryGetValue(name, out Expr? value))
-            {
-                this.Variables[prefix + name] = value;
-            }
-            else
-            {
-                this.Variables.Remove(prefix + name);
-            }
+            QualifiedPublication.Publish(this.Variables, this.QualifiedPrefix!, name);
         }
     }
 

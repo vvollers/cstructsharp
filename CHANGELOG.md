@@ -144,6 +144,10 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Fixed
 
+- A qualified reference such as `hdr.n` inside a struct that is itself a member an outer expression names (`struct mid {
+  h hdr; uint8 v[hdr.n]; }; struct rec { mid m; uint8 w[m.hdr.k]; };`) resolves on every path - parse, debug parse,
+  selected reads, address and length queries, write and update. A qualified name starts at the struct the expression is
+  written in, and, like a bare name, holds the value read last.
 - A UTF-16 terminated string (`unicode_string_*`, `string`) reads correctly from a stream that returns fewer bytes per
   read than asked: a code unit or terminator split across two reads is assembled, where such streams failed with "no
   terminator before the end of the input"; parsing, address and length queries and updates agree with a span.

@@ -27,6 +27,10 @@ public class InlineQualifiedReferenceTests
         ["inline struct two levels deep", "struct root { struct { struct { uint8 n; } b; } a; uint8 v[a.b.n]; uint8 tail; };", new byte[] { 2, 7, 8, 9, }, (byte)9, "root.v"],
         ["inline struct in an array element", "struct item { struct { uint8 n; } hdr; uint8 v[hdr.n]; }; struct root { uint8 count; item items[count]; uint8 tail; };", new byte[] { 2, 1, 5, 2, 6, 7, 9, }, (byte)9, "root.items[1].v"],
         ["conditional on an inline struct", "struct root { struct { uint8 kind; } hdr; if (hdr.kind == 1) { uint16 wide; } else { uint8 narrow; } uint8 tail; };", new byte[] { 1, 0x34, 0x12, 9, }, (byte)9, null!],
+        ["typed member naming its own member, inside a named member", "struct h { uint8 n; uint8 k; }; struct mid { h hdr; uint8 v[hdr.n]; }; struct root { mid m; uint8 w[m.hdr.k]; uint8 tail; };", new byte[] { 2, 1, 7, 8, 9, 4, }, (byte)4, "root.m.v"],
+        ["inline struct naming its own member, inside a named inline struct", "struct root { struct { struct { uint8 n; uint8 k; } hdr; uint8 v[hdr.n]; } m; uint8 w[m.hdr.k]; uint8 tail; };", new byte[] { 2, 1, 7, 8, 9, 4, }, (byte)4, "root.m.v"],
+        ["inline struct naming its own member, inside a named member", "struct mid { struct { uint8 n; uint8 k; } hdr; uint8 v[hdr.n]; }; struct root { mid m; uint8 w[m.hdr.k]; uint8 tail; };", new byte[] { 2, 1, 7, 8, 9, 4, }, (byte)4, "root.m.v"],
+        ["named member naming its own member, with no outer reference", "struct h { uint8 n; }; struct mid { h hdr; uint8 v[hdr.n]; }; struct root { mid m; uint8 tail; };", new byte[] { 2, 7, 8, 4, }, (byte)4, "root.m.v"],
     ];
 
     /// <summary>

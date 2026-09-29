@@ -107,6 +107,21 @@ struct packet {
 With the input `02 00 0A 00 0B 00`, `hdr.count` is 2, so `items` holds the two values 10 and 11 and the struct is
 six bytes long.
 
+A path starts at the struct the expression is written in, however deep that struct itself is nested. Below, `mid`
+counts `v` with `hdr.n`, its own member's field, and `root` counts `w` with `m.hdr.k`, the same kind of field one
+level further down:
+
+```c
+struct h { uint8 n; uint8 k; };
+struct mid { h hdr; uint8 v[hdr.n]; };
+struct root { mid m; uint8 w[m.hdr.k]; uint8 tail; };
+```
+
+With the input `02 01 07 08 09 04`, the reader first reads `m.hdr`: `n` is 2 and `k` is 1. Inside `m`, `hdr.n` is 2,
+so `v` holds `07 08`; back in `root`, `m.hdr.k` is 1, so `w` holds `09`, and `tail` is 4. While `m.hdr` is read, each
+of its fields is available under both spellings, `hdr.n` and `m.hdr.n`. Like a bare name, a path keeps the last
+value read under it, so a later `hdr` of another struct replaces the value of `hdr.n` from then on.
+
 A union's members are different. They are published only while the union itself is read: the members overlap the
 same bytes, so no single value of theirs remains once the union ends. After a union member `u`, both `u.n` and
 `n` are undefined identifiers, whether `u` has a named union type or is an inline `union { ... } u;`.

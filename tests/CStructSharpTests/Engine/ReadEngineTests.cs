@@ -242,9 +242,9 @@ public class ReadEngineTests
     }
 
     /// <summary>
-    ///     Captures in nested fixed structs, read through their static plans or member by member, are published under the
-    ///     active qualified prefixes (<c>hdr.n</c>, and <c>m.hdr.k</c> under an outer prefix) exactly as the interpreter
-    ///     publishes them.
+    ///     Captures in nested fixed structs, read through their static plans or member by member, are published under
+    ///     every qualified spelling the active prefix allows, exactly as the interpreter publishes them: <c>hdr.n</c> for
+    ///     the expression of <c>mid</c>, which holds <c>hdr</c>, and <c>m.hdr.k</c> for the expression of <c>rec</c>.
     /// </summary>
     [TestMethod]
     public void QualifiedPrefixes_PublishThroughStaticPlansAndMembers()
@@ -253,6 +253,11 @@ public class ReadEngineTests
         byte[] data = [2, 1, 7, 8, 9, 4, 6];
         foreach (ExecutionPath path in Paths)
         {
+            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), expectEngine: true, path: path);
+            StringAssert.Contains(complete.Rendering, "result.m.v = PrimitiveArray<Byte> [2]\n");
+            StringAssert.Contains(complete.Rendering, "result.w = PrimitiveArray<Byte> [1]\n");
+            StringAssert.Contains(complete.Rendering, "result.tail = Byte 4\n");
+
             foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.ChunkedStream1])
             {
                 for (int length = 0; length <= data.Length; length++)

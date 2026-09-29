@@ -673,7 +673,7 @@
   },
   {
    "pattern": "Writing/CStructElementWriterState.cs",
-   "sourceSha256": "ba703a12b71eb497c1788e5186af12f3d11187eca1161883a491013b190f5c59",
+   "sourceSha256": "d1a3a6819aa4828df671da48666e711989335a0eeacc45cccf9a25990aeaa30f",
    "mutants": [
     { "mutatorName": "Block removal mutation", "replacement": "{}",
      "location": {"start":{"line":193,"column":9},"end":{"line":195,"column":10}},
