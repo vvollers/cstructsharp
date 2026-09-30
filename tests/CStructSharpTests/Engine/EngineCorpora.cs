@@ -86,7 +86,7 @@ internal static partial class EngineCorpora
     /// <summary>
     ///     The 207 layouts of <c>tests/CStructSharp.Generated.Parity/layouts.json</c>, with the inputs that parity suite
     ///     uses: manual layouts their fixture bytes and variables, benchmark layouts their fixture's bytes and read
-    ///     options, shape layouts the bytes the reference implementation writes from their values, conditional layouts a
+    ///     options, shape layouts the bytes the library writes from their values, conditional layouts a
     ///     filled buffer, and recipe layouts (which carry no input) 64 deterministic pseudo-random bytes.
     /// </summary>
     /// <returns>The cases.</returns>

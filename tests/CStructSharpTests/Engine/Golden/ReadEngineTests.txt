@@ -3,10 +3,6 @@
 # @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes,
 # counted by kind on the indented line below it.
 
-@test BitfieldUnits_AreReadAgainForEveryBitfield
-@hash 8bedfcbbb8c427bff793aab67a5c221eb1a9a4b128d991b2f73038b6d5d35f85 326
-  ok 152, CStructReadException 98, CStructReadLimitException 76
-
 @test Cancellation_IsObservedAtStructEntriesOnly
 @case Parse (cancelled at byte 0) (Fastest)
   failure = failure System.OperationCanceledException
@@ -196,10 +192,6 @@
   result.d[0] = Byte 5
   result.d[1] = Byte 6
   position = 4
-
-@test CustomCodecs_ReadThroughTheAdapterFromEverySource
-@hash c10090645edc378068c59990a98f11e05f1f984fcec993560b7b3414f41b7e0c 6174
-  ok 44, CStructReadException 3662, CStructReadLimitException 2462, InvalidOperationException 6
 
 @test DefinitionRoot_EvaluatesAndReadsNothing
 @case Parse SIZE (Span) (Fastest)
@@ -400,10 +392,6 @@
   failure.inner = failure System.Collections.Generic.KeyNotFoundException
   failure.inner.message = "Undefined expression identifier: v"
 
-@test EveryCodec_ReadsAtEveryTruncationAndBudget
-@hash b41c753dfefcd31589e9454edb7ea8d77efbb109b1d10ff416c0c501d0a2f862 1687
-  ok 15, CStructReadException 1118, CStructReadLimitException 554
-
 @test Failure_NamesTheInnermostMember_WithPathAndOffset
 @case Parse rec (Span) (Fastest)
   failure = failure CStructSharp.Diagnostics.CStructReadException
@@ -469,18 +457,6 @@
   failure.inner = failure System.IO.EndOfStreamException
   failure.inner.message = "Unable to read beyond the end of the stream."
   position = 6
-
-@test FixedSizeCustomCodec_OccupiesItsDeclaredSize
-@hash 2b801fbf15b5cdee88f1962aa86bd01e1d7a18b4e3043658282ddf92186a2e5e 724
-  ok 120, CStructReadException 412, CStructReadLimitException 192
-
-@test LargeArrays_ReadAndFailIn64KiBBlocks
-@hash 46377fa67970ab9624b38421eb8fdbddab27298db8daf875b5bf4f1aae783338 76
-  ok 14, CStructReadException 20, CStructReadLimitException 40, OperationCanceledException 2
-
-@test MultidimensionalArrays_ReadFlatThenNest
-@hash d2bcd08db4477496e588af027eacbb7477fe0838d4b19f1823deef429e41b6c4 334
-  ok 26, CStructPathException 4, CStructReadException 182, CStructReadLimitException 122
 
 @test NestingLimit_CountsNamedStructsButNotPromotedMembers
 @case Parse rec (Span) (Fastest)
@@ -738,18 +714,6 @@
   failure.offset = 2
   failure.position = :
 
-@test Pointers_DetectCycles_AndLimitTheDepth
-@hash 468499d8334ecaec42879711c81d97526e7cc21c6e058b80d17f65e167132283 44
-  ok 14, CStructPathException 12, CStructReadException 6, CStructReadLimitException 12
-
-@test Pointers_FollowAfterTheStruct_InDeclarationOrder
-@hash fd81ad96e3f188ebeeccf0cea8217619f614e7a207dc90a36de07e6c73c0955b 148
-  ok 44, CStructReadException 54, CStructReadLimitException 50
-
-@test Pointers_TargetLimits_UnionViews_AndOpaqueAddresses
-@hash ffb17456a085f2b243625dc26d4c015e9e9f83f0a0a39e61be8376f46cb4e394 54
-  ok 14, CStructReadLimitException 40
-
 @test QualifiedPrefixes_PublishThroughStaticPlansAndMembers
 @hash 31156d6016c57d586d1b824529dcd4a2a51bdfc02a7ca4b1ea7bd0e43b8930f0 34
   ok 10, CStructReadException 24
@@ -761,23 +725,3 @@
 @test StandaloneRoots_ReadIntoTheirTypedShapes
 @hash c2475367de127cbd1515efbc6a800a6847c77f4c829b2fa356f218fb7e84c5fd 150
   ok 76, CStructPathException 6, CStructReadException 62, CStructReadLimitException 6
-
-@test TerminatedArrays_ChargeTheScanAndTheReread
-@hash 96cbc2118ce51ad2305443af73c632c3d38a68ccbee034025eee39233429c641 364
-  ok 92, CStructReadException 70, CStructReadLimitException 202
-
-@test TerminatedStrings_ReadInPlaceLikeTheChunkedReader
-@hash 7f04e12098a700126446b155a057c3090900ed5f0975f9fdcab0afbb1a9e69ab 2942
-  ok 1026, CStructReadException 620, CStructReadLimitException 1296
-
-@test ToEndArrays_CountWholeElementsFromTheirStart
-@hash 384948f2b56bc2d8fbe226bfdcb39fcace1dab0e6689c23809e9130a81625d0c 286
-  ok 136, CStructReadException 148, CStructReadLimitException 2
-
-@test Unions_ChargeStorageAndViews_AndRestoreTheirEntryState
-@hash 407548a034d569ca2be7be9d1db07faf2f515472c3cd0f26718301eb8c8f2173 142
-  ok 22, CStructReadException 46, CStructReadLimitException 74
-
-@test UnsizedTypedefCharacters_ReadAsTerminatedText
-@hash 955147cdcbfa1b5b67b87d037e1e54d0070aa83e842b62162dbfadd23e42147f 62
-  ok 12, CStructReadException 50

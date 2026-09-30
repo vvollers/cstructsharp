@@ -1,0 +1,16 @@
+# Golden outcomes of ReadEnginePointerTests: the reference each differential comparison checks the engine against.
+# Regenerate only for an intended, explained behaviour change: node tools/quality/engine-golden.mjs record (CONTRIBUTING.md).
+# @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes,
+# counted by kind on the indented line below it.
+
+@test Pointers_DetectCycles_AndLimitTheDepth
+@hash 468499d8334ecaec42879711c81d97526e7cc21c6e058b80d17f65e167132283 44
+  ok 14, CStructPathException 12, CStructReadException 6, CStructReadLimitException 12
+
+@test Pointers_FollowAfterTheStruct_InDeclarationOrder
+@hash fd81ad96e3f188ebeeccf0cea8217619f614e7a207dc90a36de07e6c73c0955b 148
+  ok 44, CStructReadException 54, CStructReadLimitException 50
+
+@test Pointers_TargetLimits_UnionViews_AndOpaqueAddresses
+@hash ffb17456a085f2b243625dc26d4c015e9e9f83f0a0a39e61be8376f46cb4e394 54
+  ok 14, CStructReadLimitException 40

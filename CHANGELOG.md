@@ -225,6 +225,7 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   read plan, agreement between the fast paths and member-by-member reads, and every operation on the engine; it
   replaces nine tests that each swept the whole corpus. `CStructSharp.Generated.Parity` is the only generator parity
   suite over the fixtures.
+- The read-engine tests are split by topic (codecs, arrays, shared storage, pointers, control flow).
 
 ## 0.10.0 — 2026-09-26
 

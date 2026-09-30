@@ -1,0 +1,12 @@
+# Golden outcomes of ReadEngineSharedStorageTests: the reference each differential comparison checks the engine against.
+# Regenerate only for an intended, explained behaviour change: node tools/quality/engine-golden.mjs record (CONTRIBUTING.md).
+# @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes,
+# counted by kind on the indented line below it.
+
+@test BitfieldUnits_AreReadAgainForEveryBitfield
+@hash 8bedfcbbb8c427bff793aab67a5c221eb1a9a4b128d991b2f73038b6d5d35f85 326
+  ok 152, CStructReadException 98, CStructReadLimitException 76
+
+@test Unions_ChargeStorageAndViews_AndRestoreTheirEntryState
+@hash 407548a034d569ca2be7be9d1db07faf2f515472c3cd0f26718301eb8c8f2173 142
+  ok 22, CStructReadException 46, CStructReadLimitException 74

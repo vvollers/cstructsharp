@@ -6,6 +6,13 @@ namespace CStructSharp.Tests;
 /// </summary>
 internal static class ExecutionPaths
 {
+    /// <summary>
+    ///     Gets the two execution paths a case runs under to show that the fast paths change nothing: the fast paths in
+    ///     front of the engine (<see cref="ExecutionPath.Fastest"/>), and the engine member by member only
+    ///     (<see cref="ExecutionPath.NoFastPaths"/>).
+    /// </summary>
+    public static ExecutionPath[] Both { get; } = [ExecutionPath.Fastest, ExecutionPath.NoFastPaths];
+
     /// <summary>Returns <paramref name="options"/> (or the defaults) restricted to member-by-member reads.</summary>
     /// <param name="options">The caller's read options, or <see langword="null"/> for the defaults.</param>
     /// <returns>A copy with <see cref="ExecutionPath.NoFastPaths"/>.</returns>

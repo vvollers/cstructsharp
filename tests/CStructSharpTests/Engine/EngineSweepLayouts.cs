@@ -460,7 +460,7 @@ internal static class EngineSweepLayouts
         /// <summary>Gets the complete input for this placement.</summary>
         public byte[] Data { get; }
 
-        /// <summary>Gets the value the reference implementation reads from <see cref="Data"/>.</summary>
+        /// <summary>Gets the value the library reads from <see cref="Data"/>.</summary>
         public StructValue Value { get; }
 
         /// <summary>Gets the variant's name for failure messages, such as <c>count/aligned</c>.</summary>

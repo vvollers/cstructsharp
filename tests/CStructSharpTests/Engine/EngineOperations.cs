@@ -562,7 +562,7 @@ internal static class EngineOperations
     /// <param name="name">The operation's name.</param>
     /// <param name="prefill">The stream's bytes before the call.</param>
     /// <param name="start">The stream position the call starts at.</param>
-    /// <param name="call">The call, given the stream and the side.</param>
+    /// <param name="call">The call, given the stream and the execution path.</param>
     /// <returns>The operation.</returns>
     private static GoldenOperation StreamWrite(string name, byte[] prefill, long start, Action<Stream, ExecutionPath> call)
     {
@@ -576,6 +576,28 @@ internal static class EngineOperations
                 output.Capture("failure", () => call(stream, execution));
                 RenderPosition(output, stream);
                 output.Bytes("stream", stream.ToArray());
+            });
+    }
+
+    /// <summary>
+    ///     A parse over a hidden-buffer stream whose operation token is cancelled when a read first reaches byte
+    ///     <paramref name="trigger"/>; each run gets its own token and stream (<see cref="CancellingStream"/>).
+    /// </summary>
+    /// <param name="layout">The compiled layout.</param>
+    /// <param name="data">The input bytes.</param>
+    /// <param name="trigger">The byte whose read cancels the token.</param>
+    /// <returns>The operation, which renders the value or failure and the final position.</returns>
+    public static GoldenOperation CancelledParse(CStruct layout, byte[] data, int trigger)
+    {
+        return new GoldenOperation(
+            "Parse (cancelled at byte " + trigger + ")",
+            (execution, output) =>
+            {
+                using var cancellation = new CancellationTokenSource();
+                using var stream = new CancellingStream(data, trigger, cancellation);
+                ReadOptions read = ExecutionPaths.Read(execution, new ReadOptions { CancellationToken = cancellation.Token, });
+                output.Capture("failure", () => output.Value("result", layout.Parse(stream, "rec", options: read)));
+                output.Line("position", stream.Position.ToString(CultureInfo.InvariantCulture));
             });
     }
 }
