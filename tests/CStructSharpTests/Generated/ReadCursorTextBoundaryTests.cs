@@ -152,6 +152,55 @@ public class ReadCursorTextBoundaryTests
         Assert.Throws<CStructReadLimitException>(() => new ReadCursor(new byte[] { 65, 0, }, new ReadOptions { MaxTotalBytesRead = 1, }).TakeTerminatedString(TerminatedTextEncoding.Ascii, '\0', "text", "string"));
     }
 
+    /// <summary>
+    ///     A string that ends in its first 256-byte chunk, terminated by NUL or a newline, reads to the same text and
+    ///     position as a longer one, and invalid bytes in it fail with the text, position and inner decoder failure of
+    ///     the chunked decoder.
+    /// </summary>
+    /// <param name="kind">The generated reader's supported terminated encoding.</param>
+    [TestMethod]
+    [DataRow(TerminatedTextEncoding.Ascii)]
+    [DataRow(TerminatedTextEncoding.Utf8)]
+    [DataRow(TerminatedTextEncoding.Utf16LittleEndian)]
+    [DataRow(TerminatedTextEncoding.Utf16BigEndian)]
+    public void TerminatedText_ReadsAFirstChunkStringLikeTheChunkedDecoder(TerminatedTextEncoding kind)
+    {
+        Encoding encoding = EncodingFor(kind);
+        string expected = kind == TerminatedTextEncoding.Ascii ? "hello" : "héllo";
+        foreach (char terminator in new[] { '\0', '\n', })
+        {
+            byte[] payload = encoding.GetBytes(expected + terminator);
+            byte[] source = [99, .. payload, 77,];
+            var cursor = new ReadCursor(source) { Position = 1, };
+            Assert.AreEqual(expected, cursor.TakeTerminatedString(kind, terminator, "text", "string"));
+            Assert.AreEqual(1 + payload.Length, cursor.Position);
+        }
+
+        // An invalid unit (a lone UTF-16 surrogate, bytes no UTF-8 or ASCII character has) before the terminator.
+        byte[] invalidPayload = kind is TerminatedTextEncoding.Utf16LittleEndian ? [0x41, 0, 0x00, 0xD8, 0, 0,]
+                              : kind is TerminatedTextEncoding.Utf16BigEndian ? [0, 0x41, 0xD8, 0x00, 0, 0,]
+                              : [0x41, 0xFF, 0,];
+        int unitSize = kind is TerminatedTextEncoding.Utf16LittleEndian or TerminatedTextEncoding.Utf16BigEndian ? 2 : 1;
+        byte[] invalidSource = [.. invalidPayload, 77, 78,];
+        DecoderFallbackException expectedCause = Assert.Throws<DecoderFallbackException>(
+            () => encoding.GetDecoder().Convert(invalidPayload.AsSpan(0, invalidPayload.Length - unitSize), new char[8], true, out _, out _, out _));
+        var invalid = new ReadCursor(invalidSource);
+        try
+        {
+            invalid.TakeTerminatedString(kind, '\0', "text", "string");
+            Assert.Fail("Invalid bytes must not decode.");
+        }
+        catch (CStructReadException failure)
+        {
+            StringAssert.Contains(failure.Message, "String field contains bytes that are invalid for its encoding");
+            Assert.IsInstanceOfType<DecoderFallbackException>(failure.InnerException);
+            Assert.AreEqual(expectedCause.Message, failure.InnerException.Message);
+
+            // The failure reports the end of the chunk being read: here the whole input.
+            Assert.AreEqual(invalidSource.Length, invalid.Position);
+        }
+    }
+
     /// <summary>Cancellation after constructing the cursor still ends a terminated read before consuming bytes.</summary>
     [TestMethod]
     public void TerminatedText_ObservesCancellationBeforeReading()

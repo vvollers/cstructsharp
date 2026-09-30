@@ -599,7 +599,9 @@ public ref struct ReadCursor
         // The runtime reads the string in 256-byte chunks and, per chunk, checks the string byte limit, decodes the
         // bytes before the terminator (flushing only when the terminator is in the chunk), and stops at the
         // terminator; the checks run in that order, and the position a failure reports is the end of the chunk
-        // being read (the limit failure: one byte past the limit).
+        // being read (the limit failure: one byte past the limit). A string that ends in its first chunk is decoded
+        // once, straight into the result; only a longer one needs the decoder and its scratch buffer, which carry an
+        // incomplete character from one chunk into the next.
         const int Chunk = 256;
         System.Text.Encoding strict = encoding switch
         {
@@ -610,11 +612,11 @@ public ref struct ReadCursor
         };
         int unitSize = encoding is TerminatedTextEncoding.Utf16LittleEndian or TerminatedTextEncoding.Utf16BigEndian ? 2 : 1;
         Span<byte> terminatorBytes = stackalloc byte[4];
-        int terminatorLength = strict.GetBytes(new ReadOnlySpan<char>(in terminator), terminatorBytes);
+        int terminatorLength = EncodeTerminator(strict, encoding, terminator, terminatorBytes);
         terminatorBytes = terminatorBytes.Slice(0, terminatorLength);
         ReadOnlySpan<byte> remaining = this.source.Slice(this.position);
         int start = this.position;
-        System.Text.Decoder decoder = strict.GetDecoder();
+        System.Text.Decoder? decoder = null;
         char[]? decoded = null;
         long encodedByteCount = 0;
         int offset = 0;
@@ -641,6 +643,25 @@ public ref struct ReadCursor
             }
 
             int prefixLength = terminatorIndex < 0 ? bytesRead : terminatorIndex;
+            if (terminatorIndex >= 0 && decoder is null)
+            {
+                // The whole string lies in the first chunk (offset 0): decoding it validates it exactly as the
+                // flushing decoder would, with the same failure.
+                string text;
+                try
+                {
+                    text = strict.GetString(chunk.Slice(0, prefixLength));
+                }
+                catch (System.Text.DecoderFallbackException exception)
+                {
+                    throw this.Fail(ReadFailures.TerminatedStringInvalid, member, memberType, exception);
+                }
+
+                this.position = start + prefixLength + terminatorLength;
+                return text;
+            }
+
+            decoder ??= strict.GetDecoder();
             decoded ??= new char[Chunk + 2];
             try
             {
@@ -661,6 +682,38 @@ public ref struct ReadCursor
             int payloadLength = offset + terminatorIndex;
             this.position = start + payloadLength + terminatorLength;
             return strict.GetString(remaining.Slice(0, payloadLength));
+        }
+    }
+
+    /// <summary>
+    ///     Encodes a terminated string's terminator into <paramref name="destination"/>: an ASCII terminator directly
+    ///     (one byte, or one UTF-16 code unit in the string's byte order), any other through <paramref name="strict"/>.
+    /// </summary>
+    /// <param name="strict">The string's strict encoding.</param>
+    /// <param name="encoding">The string's encoding kind, which fixes the code unit size and byte order.</param>
+    /// <param name="terminator">The terminator character.</param>
+    /// <param name="destination">At least four bytes for the encoded terminator.</param>
+    /// <returns>The number of bytes written.</returns>
+    private static int EncodeTerminator(System.Text.Encoding strict, TerminatedTextEncoding encoding, char terminator, Span<byte> destination)
+    {
+        if (terminator > 0x7F)
+        {
+            return strict.GetBytes(new ReadOnlySpan<char>(in terminator), destination);
+        }
+
+        switch (encoding)
+        {
+        case TerminatedTextEncoding.Utf16LittleEndian:
+            destination[0] = (byte)terminator;
+            destination[1] = 0;
+            return 2;
+        case TerminatedTextEncoding.Utf16BigEndian:
+            destination[0] = 0;
+            destination[1] = (byte)terminator;
+            return 2;
+        default:
+            destination[0] = (byte)terminator;
+            return 1;
         }
     }
 

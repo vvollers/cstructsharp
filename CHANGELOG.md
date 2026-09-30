@@ -238,6 +238,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   values, bytes and failures are unchanged.
 - The generated member-by-member readers and writers are never inlined into their callers, so the small cursor and
   codec calls inside them stay inlined: the generated parse of a bounded pointer graph takes 94 ns instead of 110 ns.
+- A generated reader decodes a terminated string (`cstring`, `utf8_string_zero`, ...) that ends within its first 256
+  bytes in one step, without a decoder and a 258-character scratch buffer: the comparison benchmark's `packet` record
+  parses from its generated class in 50 ns instead of 66 ns and allocates 200 B instead of 800 B.
 - `Serialize` (to an array or a span) and `WriteAsync` of layouts with runtime-sized members run on the compiled engine:
   the comparison benchmark's `packet` record serializes in 248 ns instead of 496 ns and allocates only its 88-byte
   result. Bitfields, unions (including promoted ones), pointers, custom codecs and to-end, terminated and
