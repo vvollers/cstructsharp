@@ -182,6 +182,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - Release: the publisher derives its required jobs and the Node matrix from the workflow files, and tests parse
   the real workflows, so a renamed job or a changed matrix can no longer leave the release waiting for jobs that
   do not exist.
+- The architecture, operations and performance pages and the README describe the compiled engine (cached per-struct
+  programs) instead of the pre-engine grammar and traversal; the Portable reference names revision 4, and the glossary
+  covers more terms.
 - The library no longer carries code the compiled engine replaced: the stream codec reader table and the stream
   readers behind it, the writers for numbers the engine encodes itself, and test-only types and members.
 

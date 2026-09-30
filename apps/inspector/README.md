@@ -90,7 +90,7 @@ specific feature. Keeping both as explicit variants preserves those examples wit
 Identical declarations, such as the EXE/DLL sample layout and TAR fields, are shared within the catalog.
 Catalog tests check detector coverage, unique IDs/extensions, aliases and sample placement.
 The managed tests also read this file (`tests/CStructSharpTests/Engine/InspectorSchemaCatalog.cs`) and run every
-detection layout and sample through the engine differential harness. That reader understands plain object literals,
+detection layout and sample through the engine's golden-outcome tests. That reader understands plain object literals,
 string and template constants, and `...spread`; it fails, rather than skipping an entry, when the catalog uses other
 syntax.
 

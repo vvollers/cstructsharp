@@ -31,7 +31,7 @@ There is no public API for selecting `MSVC`, `GCC`, `Clang`, `SysV`, `LP64`, `LL
 
 The files below let people, tests, and tools check the same details:
 
-- [`portable-v1.json`](../../contracts/language/portable-v1.json) records revision 3 of every primitive and alias
+- [`portable-v1.json`](../../contracts/language/portable-v1.json) records revision 4 of every primitive and alias
   spelling, the keywords, annotations (`@align`, `@count`) and preprocessor directives with an example of each,
   predicted layout examples, and representative unsupported C forms. The explorer and the inspector build their
   editor completion and hover help from this file.

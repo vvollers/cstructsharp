@@ -113,7 +113,7 @@ not replace the baseline simply to make the check green. For an intentional publ
 The browser API has its own compatibility files in `contracts/api/browser/`. Run the browser
 contract check when exports, options, result envelopes, error categories, or number handling change:
 
-```bash
+```sh
 node tools/quality/browser-contract.mjs
 ```
 

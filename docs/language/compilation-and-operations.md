@@ -36,8 +36,10 @@ Compilation prepares layout metadata, not native C machine code. The .NET runtim
 implementation methods and object-access delegates as part of executing the library.
 
 Fixed layouts can use cached read and write plans with known offsets. Eligible typed reads fill C# objects
-directly. Variable-sized and conditional layouts use general traversal where their positions depend on data.
-These choices preserve layout rules; they are not extra syntax the application needs to select.
+directly. Every other layout runs a *program*: a flat list of read or write steps built once per struct from the
+prepared model, on first use, and cached with the layout. Where a position, count, or condition depends on data,
+the step evaluates it from values read earlier in the same operation. These choices preserve layout rules; they are
+not extra syntax the application needs to select.
 
 ## Per-operation work
 
@@ -51,13 +53,13 @@ Each read-like call creates private state for:
 - bitfield position; and
 - optional debug ranges.
 
-Locating a selected path and then reading its value uses the same state, so earlier traversal counts toward the same
-limits. A runtime-sized nested struct consumes its actual data extent and final alignment rather than an invented
+Locating a selected path and then reading its value uses the same state, so the bytes read while locating it count
+toward the same limits. A runtime-sized nested struct consumes its actual data extent and final alignment rather than an invented
 fixed size.
 
-Struct reads at a root, nested field, array element, or pointer target share one prepared traversal. Union members
-share one overlapping storage region; a struct view inside a union begins at that union address and then advances
-through its own fields.
+Struct reads at a root, nested field, array element, or pointer target run the same program for that struct.
+Union members share one overlapping storage region; a struct view inside a union begins at that union address and
+then advances through its own fields.
 
 ## Concurrency
 

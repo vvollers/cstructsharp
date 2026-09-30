@@ -16,9 +16,9 @@ Constructing [`CStruct`](xref:CStructSharp.CStruct) has four stages:
    recursive-descent parser: one cursor over the source, direct character tests, and one method per grammar
    production. It builds the small model classes (`Struct`, `Field`, `Enum`, `Typedef`, `Defines`, and the `Expr`
    tree) the later stages consume, and reports every syntax error as a `CStructLayoutException` with a line and
-   column. The test project keeps a parser-combinator grammar as a frozen reference and parses the whole
-   fixture corpus through both to check accepted syntax and resulting trees. Explicitly documented exceptions
-   cover intentional differences; the Portable contract defines the supported language.
+   column. The Portable contract defines the supported language. The test project parses a corpus of every layout
+   in the repository, and thousands of mutated copies of it, to check that each input either parses or fails with
+   a syntax diagnostic; recorded syntax trees pin the accepted token spellings.
 2. **Check meaning.** The constructor resolves names and aliases, checks expression dependencies and value ranges,
    rejects recursive by-value storage, and confirms that each declaration has supported behavior.
 3. **Prepare the layout.** `CStructCompiledModel` records field order, direct value codecs, array counts and strides,
@@ -32,7 +32,7 @@ An expected failure during these stages becomes
 an invalid layout cannot partially read or write binary data.
 
 Parsed syntax objects help with diagnostics, but operations use the prepared model. This prevents the size, address,
-debug, read, and write paths from each interpreting the source in a different way.
+debug, read, and write paths from each reading the source in a different way.
 
 The source tree mirrors these stages: each folder under `src/CStructSharp` is a namespace (`Parsing`, `Syntax`,
 `Expressions`, `Compilation`, `Codecs`, `Streams`, `Addressing`, `Reading`, `Writing`, `Values`, `Introspection`,
@@ -84,7 +84,8 @@ reads a stream either one fixed-size record at a time or through a pooled window
 could not hold.
 
 Writers use the same prepared field shapes in reverse. `Serialize` stages through owned memory when returning an
-array. Fixed-struct write plans encode into one block before writing; other shapes use field traversal.
+array. Fixed-struct write plans encode into one block before writing; other shapes run each struct's cached write
+program, step by step, into the destination.
 Span, writer, and stream overloads still have the partial-output limits documented in the API guides: a validated
 block does not make a physical stream transactional.
 

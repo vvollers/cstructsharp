@@ -27,7 +27,8 @@ The highest-value choices are usually:
    [runtime or generated?](generated/choosing-runtime-or-generated.md)).
 
 Selected reads can avoid decoding unrelated later siblings, but they still perform the work needed to locate the
-target. Runtime arrays, alignment, terminated strings, and pointers before the selected field may need traversal.
+target. Runtime arrays, alignment, terminated strings, and pointers before the selected field must still be read
+to find where that field starts.
 
 Span output avoids creating the final result array but requires enough capacity. `IBufferWriter<byte>` can append
 through pooled windows. Both have partial-output behavior on late failure, so allocation is not the only tradeoff.
@@ -195,8 +196,8 @@ Two faster paths stay in front of the engine, and the engine only runs when neit
 - A **fixed struct** met inside a larger read or write (a record, an array element, a nested member) runs a
   *static plan*: all its members at their compile-time offsets in one pass over one block of bytes.
 
-The engine interprets its programs; it does not generate machine code at run time, which keeps the library usable with
-Native AOT, trimming and WebAssembly. Code the source generator writes for a `[CStructLayout]` class is still faster,
+The engine runs its programs one step at a time; it does not generate machine code at run time, which keeps the
+library usable with Native AOT, trimming and WebAssembly. Code the source generator writes for a `[CStructLayout]` class is still faster,
 because every step is written out as ordinary C# that the compiler optimizes
 ([runtime or generated?](generated/choosing-runtime-or-generated.md)).
 

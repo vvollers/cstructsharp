@@ -21,7 +21,9 @@ data. Use it from C#, Node.js, or JavaScript in a browser.
 **Zero runtime package dependencies.** The core .NET library uses only the .NET runtime, keeping integration
 simple and your application's dependency tree small.
 
-**Built for performance.** Serialization and deserialization speeds are competitive with hand-written implementations and other libraries. ([See the speed comparison](#speed-compared-with-other-net-serializers))
+**Built for performance.** Code generated from a layout at build time reads and writes in the same speed range as
+hand-written `BinaryPrimitives` code. The run-time `CStruct`, which loads layouts while the program runs, is slower
+but needs no build step. ([See the speed comparison](#speed-compared-with-other-net-serializers))
 
 ## Choose your starting point
 
@@ -267,13 +269,13 @@ an existing header.
 
 ## Why CStructSharp instead of …
 
-| If you would otherwise use                              | CStructSharp instead                                                                                                                                                                                                                                                                                                       |
-| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Manual offsets with `BinaryReader` / `BinaryPrimitives` | The layout text names every field, offset, width, and byte order once; reads, writes, updates, address lookups, and the debug byte map all come from that one description, and a change to the format is a change to the text.                                                                                             |
-| `[StructLayout]` structs with `MemoryMarshal`           | Portable widths never depend on the host process; layouts load at run time, so a tool can accept formats it did not compile against, and variable-length arrays, conditional fields, pointers, and strings are part of the description rather than hand code.                                                              |
-| A source generator or a serializer                      | The same layout text drives C#, Node.js, and the browser; on .NET you choose per layout between the run-time `CStruct` (no build step, layouts loaded at run time) and the `[CStructLayout]` generator (typed classes, views, and setters emitted at build time), and the two agree on every byte and every error.         |
-| Kaitai Struct or another schema language                | The schema is C: an existing header or a `dissect.cstruct` definition is the input, with `#define`, `#ifdef`, and `#pragma pack` honored, so format knowledge that already exists as C stays C.                                                                                                                            |
-| dissect.cstruct (Python)                                | The same definition language and habits on .NET and in JavaScript, with a compiled layout cache, bounded read budgets, trim-safe Native AOT support, and a [migration guide](https://vvollers.github.io/cstructsharp/docs/guides/migrating-from-dissect.html) for the few places the two libraries read bytes differently. |
+| If you would otherwise use                              | CStructSharp instead                                                                                                                                                                                                                                                                                                                |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Manual offsets with `BinaryReader` / `BinaryPrimitives` | The layout text names every field, offset, width, and byte order once; reads, writes, updates, address lookups, and the debug byte map all come from that one description, and a change to the format is a change to the text.                                                                                                      |
+| `[StructLayout]` structs with `MemoryMarshal`           | Portable widths never depend on the host process; layouts load at run time, so a tool can accept formats it did not compile against, and variable-length arrays, conditional fields, pointers, and strings are part of the description rather than hand code.                                                                       |
+| A source generator or a serializer                      | The same layout text drives C#, Node.js, and the browser; on .NET you choose per layout between the run-time `CStruct` (no build step, layouts loaded at run time) and the `[CStructLayout]` generator (typed classes, views, and setters emitted at build time), and the two agree on every byte and every error.                  |
+| Kaitai Struct or another schema language                | The schema is C-style: a `dissect.cstruct` definition or the struct declarations of an existing header are usually the input as they stand, with `#define`, `#ifdef`, and `#pragma pack` honored; [differences from C](https://vvollers.github.io/cstructsharp/docs/language/differences-from-c.html) lists what must be rewritten. |
+| dissect.cstruct (Python)                                | The same definition language and habits on .NET and in JavaScript, with a compiled layout cache, bounded read budgets, trim-safe Native AOT support, and a [migration guide](https://vvollers.github.io/cstructsharp/docs/guides/migrating-from-dissect.html) for the few places the two libraries read bytes differently.          |
 
 ## Speed compared with other .NET serializers
 
@@ -392,10 +394,11 @@ Keep these limits in mind when reading the tables:
 - The generated view reads members straight from the bytes and never builds an object, so it has no serialize
   column. Write with the generated `Serialize` method or the typed `Update` setters instead.
 - The Kaitai Struct C# runtime can read but not write.
-- On the fixed record, the runtime reads most members through prepared plans. On the `packet` record it walks the
-  layout field by field and evaluates each length and condition while reading, which costs more than ten times as
-  much as generated code. Choose generated code when a hot loop reads a data-dependent layout; choose the runtime when
-  layouts arrive while the program runs.
+- On the fixed record, the runtime reads most members through prepared plans with known offsets. On the `packet`
+  record it runs the layout's compiled program: a list of read steps prepared once per layout, which evaluates each
+  length and condition from values it has already read. That costs several times as much as generated code, which
+  the source generator writes out as ordinary C# at build time. Choose generated code when a hot loop reads a data-dependent layout;
+  choose the runtime when layouts arrive while the program runs.
 - The hand-written readers do only the bounds checks that `Span<T>` does. CStructSharp also enforces its configured
   limits and reports the failing field, so the rows are not doing identical work.
 - The timings leave out one-time costs: compiling a layout with `new CStruct(text)`, the first call of each method
