@@ -113,7 +113,7 @@ public class ResolvedPathTests
             fixed (byte* region = Data)
             {
                 var cursor = new MemoryReadCursor(region, Data.Length, 0, settings.MaxStringBytes, settings.MaxTotalBytesRead, default);
-                return TargetResolver.Resolve(ref cursor, ref state, layout.ParsePath(path), debugNames);
+                return TargetResolver.Resolve(ref cursor, ref state, layout.ParsePath(path), debugNames, readsTarget: false);
             }
         }
         finally

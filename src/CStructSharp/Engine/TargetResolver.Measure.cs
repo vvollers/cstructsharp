@@ -208,10 +208,12 @@ internal static partial class TargetResolver
                     continue;
                 }
 
-                Capture(ref cursor, ref state, member, fieldStart, bitOffset, unitSize);
+                bool readByCapture = Capture(ref cursor, ref state, member, fieldStart, bitOffset, unitSize);
                 if (field.BitSize == 0)
                 {
-                    placer.CompleteField(MeasureFieldEnd(ref cursor, ref state, walk, member, fieldStart));
+                    // A variable-length value the capture read ends where the capture left the cursor; reading it again to
+                    // measure it would read and charge its bytes twice.
+                    placer.CompleteField(readByCapture && ReadsToMeasure(member) ? cursor.Position : MeasureFieldEnd(ref cursor, ref state, walk, member, fieldStart));
                 }
 
                 if (scope is not null)

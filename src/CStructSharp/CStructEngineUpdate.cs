@@ -71,7 +71,7 @@ public sealed partial class CStruct
             ResolvedPath target;
             try
             {
-                target = TargetResolver.Resolve(ref cursor, ref readState, segments, null);
+                target = TargetResolver.Resolve(ref cursor, ref readState, segments, null, readsTarget: false);
             }
             catch (CStructException exception)
             {

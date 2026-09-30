@@ -3,25 +3,26 @@ namespace CStructSharp.Tests;
 using CStructSharp.Diagnostics;
 
 /// <summary>
-///     Checks how a read of a bare root array takes its count: a terminated root is scanned once to resolve the root as a
-///     path and once more by the read itself, and both scans are charged to the read budget; a multidimensional root's
-///     outermost count is checked against the element limit before the total is.
+///     Checks how a read of a bare root array takes its count: a terminated root is scanned once, by the read itself, and
+///     charged once; a multidimensional root's outermost count is checked against the element limit before the total is.
 /// </summary>
 [TestClass]
 public class RootCountResolutionTests
 {
     /// <summary>
-    ///     Reading <c>uint8[]</c> over <c>01 02 00</c> charges the three-byte scan twice and the two elements and the
-    ///     terminator once more: eight bytes. One byte less fails at the terminator's scan.
+    ///     Reading <c>uint8[]</c> over <c>01 02 00</c> needs the budget a parse of <c>struct one { uint8 a[]; }</c> needs over
+    ///     the same bytes; one byte less fails at the terminator.
     /// </summary>
     [TestMethod]
-    public void TerminatedRoot_ChargesTheResolutionScanAndTheRead()
+    public void TerminatedRoot_ChargesItsScanOnce()
     {
-        var layout = new CStruct("struct r { uint8 a; };");
+        var layout = new CStruct("struct one { uint8 a[]; };");
         byte[] data = [1, 2, 0, 9];
+        var enough = new ReadOptions { MaxTotalBytesRead = 5, };
 
-        CollectionAssert.AreEqual(new byte[] { 1, 2, }, ((IEnumerable<object?>)layout.ReadValue(data, "uint8[]", options: new ReadOptions { MaxTotalBytesRead = 8, })!).Cast<byte>().ToArray());
-        CStructReadLimitException failure = Assert.Throws<CStructReadLimitException>(() => layout.ReadValue(data, "uint8[]", options: new ReadOptions { MaxTotalBytesRead = 7, }));
+        _ = layout.Parse(data, "one", options: enough);
+        CollectionAssert.AreEqual(new byte[] { 1, 2, }, ((IEnumerable<object?>)layout.ReadValue(data, "uint8[]", options: enough)!).Cast<byte>().ToArray());
+        CStructReadLimitException failure = Assert.Throws<CStructReadLimitException>(() => layout.ReadValue(data, "uint8[]", options: new ReadOptions { MaxTotalBytesRead = 4, }));
         Assert.AreEqual(2L, failure.Offset);
     }
 

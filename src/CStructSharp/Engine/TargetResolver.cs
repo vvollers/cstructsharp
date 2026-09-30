@@ -29,9 +29,10 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 ///         from its size, after the counts inside it are checked against the limits.
 ///     </para>
 ///     <para>
-///         <b>Order.</b> A member is captured before it is measured, so a terminated string ahead of the target is read
-///         twice and charged twice. The target's own value is not read here; the caller reads it from the returned
-///         address (<see cref="ReadEngine"/>).
+///         <b>Order.</b> A member is captured before it is measured; a variable-length value the capture read is not read
+///         again to measure it, so every byte before the target is read and charged at most once. The target's own value is
+///         not read here; the caller reads it from the returned address (<see cref="ReadEngine"/>), and a whole terminated
+///         array the caller reads is not counted here either, since that read scans it.
 ///     </para>
 ///     <para>
 ///         <b>Pointers.</b> Only the pointers the path names are followed: <c>.value</c> reads the stored address and
@@ -71,10 +72,14 @@ internal static partial class TargetResolver
     ///     A list that receives the names of the path's struct and field segments (the path a debug parse of the target
     ///     records under), or <see langword="null"/> when no debug parse follows.
     /// </param>
+    /// <param name="readsTarget">
+    ///     Whether the caller reads the target's value next (<c>ReadValue</c>): a whole terminated array is then left to that
+    ///     read to scan, count and check, and its <see cref="ResolvedPath.ArrayLength"/> is <see langword="null"/>.
+    /// </param>
     /// <returns>The selected storage.</returns>
     /// <exception cref="CStructPathException">The path names nothing, indexes out of range, or traverses what it cannot.</exception>
     /// <exception cref="CStructException">A value the walk reads is short or invalid, or a limit is exceeded.</exception>
-    public static ResolvedPath Resolve<TCursor>(ref TCursor cursor, ref ReadEngineState state, IReadOnlyList<PathSegment> segments, List<string>? debugPrefix)
+    public static ResolvedPath Resolve<TCursor>(ref TCursor cursor, ref ReadEngineState state, IReadOnlyList<PathSegment> segments, List<string>? debugPrefix, bool readsTarget)
         where TCursor : struct, IReadCursor
     {
         if (segments.Count == 0)
@@ -91,7 +96,7 @@ internal static partial class TargetResolver
 
         long rootStart = cursor.Position;
         CStructElement? resolvedRoot = model.ResolveCompiledNamedElement(root);
-        var walk = new PathWalk(segments, debugPrefix, compilation.SlotTable.TargetPrograms);
+        var walk = new PathWalk(segments, debugPrefix, compilation.SlotTable.TargetPrograms, readsTarget);
         if (segments.Count == 1)
         {
             return ResolveRoot(ref cursor, ref state, walk, root, resolvedRoot, rootStart);
@@ -273,10 +278,12 @@ internal static partial class TargetResolver
                     return ResolveInPromoted(ref cursor, ref state, walk, NestedProgram(ref state, walk, member, promoted), fieldStart, pathIndex, pointers);
                 }
 
-                Capture(ref cursor, ref state, member, fieldStart, bitOffset, unitSize);
+                bool readByCapture = Capture(ref cursor, ref state, member, fieldStart, bitOffset, unitSize);
                 if (field.BitSize == 0)
                 {
-                    placer.CompleteField(MeasureFieldEnd(ref cursor, ref state, walk, member, fieldStart));
+                    // A variable-length value the capture read ends where the capture left the cursor; reading it again to
+                    // measure it would read and charge its bytes twice.
+                    placer.CompleteField(readByCapture && ReadsToMeasure(member) ? cursor.Position : MeasureFieldEnd(ref cursor, ref state, walk, member, fieldStart));
                 }
 
                 if (scope is not null)
@@ -389,7 +396,11 @@ internal static partial class TargetResolver
         }
 
         bool remainingIsArray = IsArray(resolved);
-        int? arrayLength = remainingIsArray ? Count(ref cursor, ref state, resolved, member, elementStart, allDimensions: false) : null;
+
+        // A whole terminated array the caller reads next is scanned, counted and checked by that read; counting it here too
+        // would read and charge its bytes twice.
+        bool readScansTarget = walk.ReadsTarget && pathIndex == walk.Segments.Count - 1 && resolved.Array.Kind == CompiledArrayKind.Terminated;
+        int? arrayLength = remainingIsArray && !readScansTarget ? Count(ref cursor, ref state, resolved, member, elementStart, allDimensions: false) : null;
         int? selectedIndex = segment.Indexes.Count > 0 && !remainingIsArray ? segment.Indexes[^1] : null;
         walk.DebugPrefix?.Add(declared.Name);
         if (remainingIsArray && pathIndex + 1 < walk.Segments.Count)
@@ -685,19 +696,24 @@ internal static partial class TargetResolver
     /// <param name="fieldStart">The member's first byte (its storage unit's, for a bitfield).</param>
     /// <param name="bitOffset">A bitfield's first bit within its unit.</param>
     /// <param name="unitSize">A bitfield's placed unit size in bytes.</param>
-    private static void Capture<TCursor>(ref TCursor cursor, ref ReadEngineState state, TargetMember member, long fieldStart, int bitOffset, int unitSize)
+    /// <returns>
+    ///     Whether the value was read through the member's codec, which leaves the cursor just after it: the walk then takes
+    ///     the end of a value only reading can measure (<see cref="ReadsToMeasure"/>) from there instead of reading it again.
+    /// </returns>
+    private static bool Capture<TCursor>(ref TCursor cursor, ref ReadEngineState state, TargetMember member, long fieldStart, int bitOffset, int unitSize)
         where TCursor : struct, IReadCursor
     {
         CompiledField field = member.Field;
         if (field.Array.Kind != CompiledArrayKind.Scalar || (field.PointerDepth == 0 && field.IsFixedPoint))
         {
             CaptureValue(ref state, member, null);
-            return;
+            return false;
         }
 
         cursor.Position = fieldStart;
         Span<byte> scratch = stackalloc byte[ScratchSize];
         object? value;
+        bool readThroughCodec = false;
         if (field.PointerDepth > 0)
         {
             value = ReadEngine.ReadPointerAddress(ref cursor, ref state, scratch);
@@ -706,12 +722,12 @@ internal static partial class TargetResolver
         {
             object storage = ReadEngine.ReadCodecValue(ref cursor, field.Codec, scratch);
             CaptureValue(ref state, member, enm.Integer.FromStorageValue(storage));
-            return;
+            return false;
         }
         else if (field.Composite is not null || field.CodecId < 0)
         {
             CaptureValue(ref state, member, null);
-            return;
+            return false;
         }
         else if (field.BitSize > 0 && unitSize != field.Codec.Size)
         {
@@ -722,11 +738,12 @@ internal static partial class TargetResolver
         else
         {
             value = ReadThroughCodec(ref cursor, ref state, field, scratch);
+            readThroughCodec = true;
         }
 
         if (member.CaptureSlot < 0)
         {
-            return;
+            return readThroughCodec;
         }
 
         if (field.BitSize > 0)
@@ -736,6 +753,7 @@ internal static partial class TargetResolver
         }
 
         CaptureValue(ref state, member, value);
+        return readThroughCodec;
     }
 
     /// <summary>
@@ -801,11 +819,12 @@ internal static partial class TargetResolver
     private static TargetProgram NestedProgram(ref ReadEngineState state, in PathWalk walk, TargetMember member, CompiledCompositeType composite)
         => member.Nested ??= walk.Programs.GetComposite(state.Layout.Compilation, composite);
 
-    /// <summary>What one resolution walks: the path, the debug path it collects, and the layout's programs.</summary>
+    /// <summary>What one resolution walks: the path, the debug path it collects, the layout's programs, and whether the target is read next.</summary>
     /// <param name="Segments">The parsed path.</param>
     /// <param name="DebugPrefix">The list collecting the debug path's names, or <see langword="null"/>.</param>
     /// <param name="Programs">The layout's target programs.</param>
-    private readonly record struct PathWalk(IReadOnlyList<PathSegment> Segments, List<string>? DebugPrefix, TargetProgramCache Programs);
+    /// <param name="ReadsTarget">Whether the caller reads the target's value next.</param>
+    private readonly record struct PathWalk(IReadOnlyList<PathSegment> Segments, List<string>? DebugPrefix, TargetProgramCache Programs, bool ReadsTarget);
 
     /// <summary>The pointers a path followed so far.</summary>
     /// <param name="TargetAddress">The address the last followed pointer stored, or <see langword="null"/> before any.</param>

@@ -31,14 +31,15 @@ internal static class EnginePrograms
 {
     /// <summary>
     ///     Whether <c>ReadValue</c> of a root field has the path resolver take the root array's count first, by rules of its
-    ///     own, before the root is read: a runtime-sized array, a data-sized one (<c>uint16[EOF]</c>; a terminated one is
-    ///     scanned, and charged, once more) and a multidimensional one (whose outermost count is checked against the element
-    ///     limit, where the read checks the total). A fixed one-dimensional count is checked exactly as the read checks it.
+    ///     own, before the root is read: a runtime-sized array, one sized to the end of the data (<c>uint16[EOF]</c>) and a
+    ///     multidimensional one (whose outermost count is checked against the element limit, where the read checks the
+    ///     total). A fixed one-dimensional count is checked exactly as the read checks it, and a terminated array is counted
+    ///     by the read's own scan, so its bytes are read and charged once.
     /// </summary>
     /// <param name="root">The root program's only field.</param>
     /// <returns>Whether the root's count is taken first.</returns>
     public static bool ResolvesCountFirst(CompiledField root)
-        => root.Array.Kind is CompiledArrayKind.Runtime or CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated || root.Array.Dimensions.Length > 1;
+        => root.Array.Kind is CompiledArrayKind.Runtime or CompiledArrayKind.ToEnd || root.Array.Dimensions.Length > 1;
 
     /// <summary>
     ///     Returns the program of a whole-root read - <c>Parse</c>, <c>ParseAsync</c>, each record of <c>ParseMany</c>, and

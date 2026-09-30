@@ -166,6 +166,12 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   next call, instead of a generic message and a failure it kept.
 - The explorer's editor offers "Format binary layout" when the CStruct language is passed explicitly, not only when it
   is left out.
+- Path operations read and charge each byte before their target once. A terminated string, LEB128 value or
+  variable-size custom-codec value before the target is no longer read again to find its end, and `ReadValue` of a
+  whole terminated array (`uint8[]`, `one.a`) scans it once. Example: `ReadValue(data, "s.x")` for
+  `struct s { cstring name; uint8 x; }` over `61 62 00 07` needs `MaxTotalBytesRead = 5` (was 9), the same as `Parse`.
+  A smaller read budget can now succeed. When such an array has no terminator, the failure comes from the read's own
+  scan, so on some inputs its reported offset is the end of the data (one byte later than before).
 
 ### Performance
 

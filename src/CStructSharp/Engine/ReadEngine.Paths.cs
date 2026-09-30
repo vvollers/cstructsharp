@@ -310,8 +310,9 @@ internal static partial class ReadEngine
                 if (segments.Count == 1)
                 {
                     // A bare root is resolved as a path before it is read: a root the layout does not declare fails there, and
-                    // a root array's count the resolver takes by its own rules (a runtime-sized, data-sized or
-                    // multidimensional one) is taken and checked first; any other root's checks are the read's own.
+                    // a root array's count the resolver takes by its own rules (a runtime-sized, to-end or multidimensional
+                    // one) is taken and checked first; any other root's checks, a terminated array's scan included, are the
+                    // read's own.
                     if (root is null || (root.Fields is [{ } only,] && EnginePrograms.ResolvesCountFirst(only)))
                     {
                         _ = Resolve(ref cursor, ref state, segments, null);
@@ -321,7 +322,7 @@ internal static partial class ReadEngine
                     return selected ? value : CStruct.ExtractOnlyValue(value, segments[0].Name);
                 }
 
-                ResolvedPath target = Resolve(ref cursor, ref state, segments, null);
+                ResolvedPath target = Resolve(ref cursor, ref state, segments, null, readsTarget: true);
                 return ReadTarget(ref cursor, ref state, target);
             }
             finally
@@ -460,13 +461,14 @@ internal static partial class ReadEngine
     /// <param name="state">The operation's state.</param>
     /// <param name="segments">The parsed path.</param>
     /// <param name="debugPrefix">The list receiving the debug path's names, or <see langword="null"/>.</param>
+    /// <param name="readsTarget">Whether the target's value is read next (see <see cref="TargetResolver.Resolve{TCursor}"/>).</param>
     /// <returns>The resolved target.</returns>
-    private static ResolvedPath Resolve<TCursor>(ref TCursor cursor, ref ReadEngineState state, IReadOnlyList<PathSegment> segments, List<string>? debugPrefix)
+    private static ResolvedPath Resolve<TCursor>(ref TCursor cursor, ref ReadEngineState state, IReadOnlyList<PathSegment> segments, List<string>? debugPrefix, bool readsTarget = false)
         where TCursor : struct, IReadCursor
     {
         try
         {
-            return TargetResolver.Resolve(ref cursor, ref state, segments, debugPrefix);
+            return TargetResolver.Resolve(ref cursor, ref state, segments, debugPrefix, readsTarget);
         }
         catch (CStructException exception)
         {

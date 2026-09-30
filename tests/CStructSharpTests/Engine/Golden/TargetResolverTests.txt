@@ -30,12 +30,12 @@
   ok 1498, CStructPathException 842, CStructReadException 578, CStructReadLimitException 358
 
 @test MeasuredMembers_PlaceLaterPathsWhereTheParseDoes
-@hash c107ad80abbe22b455481dd6f71095daf077dc8b6936695cd5c1fa3ee3de53c1 20596
-  ok 5828, CStructPathException 894, CStructReadException 3992, CStructReadLimitException 9882
+@hash fd73b4a32332853fda9ddb1c524217fb4dcf37ab0f1bc09ebd2644cb3d11bd0c 20596
+  ok 6766, CStructPathException 904, CStructReadException 4012, CStructReadLimitException 8914
 
 @test MemberShapes_ResolveEveryPath
-@hash 1b2b5d5a2bf19c6f0cce6f51da3927e58c0c495e80734242b91310796f4fad62 6338
-  ok 4530, CStructPathException 600, CStructReadException 766, CStructReadLimitException 442
+@hash 0bdd58e683ca41a06f2d58ad34f56ec5cba0679e7b64e4e06b9f88b4b47fc230 6338
+  ok 4554, CStructPathException 600, CStructReadException 766, CStructReadLimitException 418
 
 @test NestedParses_ReadTheSelectedComposite
 @hash ace42973cddb5d6f12d9bb39cbca81ff48459c82c84e2f08c32fb8b112096ae6 594
