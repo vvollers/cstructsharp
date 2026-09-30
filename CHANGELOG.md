@@ -10,71 +10,67 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Breaking changes
 
-- **Breaking (custom codecs):** a custom codec's `FixedSize` is authoritative: a fixed-size value always occupies
-  exactly its declared size. `Parse`, `ReadValue`, `ResolveAddress`, `GetArrayLength` and the generated readers place
-  the members after it at the declared offsets even when `Read` reports fewer bytes, and an input that ends before the
-  declared size is a short read. Writes pad a shorter encoding with zero bytes. A codec that reports more bytes consumed,
-  or asks for more room, than its `FixedSize` fails. Migration: return `null` from `FixedSize` for a codec whose
+- **Breaking (custom codecs):** a custom codec's `FixedSize` is authoritative: the value always occupies exactly its
+  declared size. Reads place the next members at their declared offsets even when `Read` reports fewer bytes, an input
+  that ends before the declared size is a short read, and writes pad a shorter encoding with zero bytes. A codec that
+  consumes or asks for more than its `FixedSize` fails. Migration: return `null` from `FixedSize` for a codec whose
   encoded length varies; otherwise make `Read` consume, and `Write` produce, exactly the declared size.
 - **Breaking (values):** a one-dimensional array of a fixed-width number or `bool` is a `PrimitiveArray<T>` wherever it
-  is read - including a union member view, an array with no elements, a debug parse (`ParseWithDebug`,
-  `ReadValueWithDebug`), a selected read of the array and a pointer target - where these returned `List<object?>`; rows
-  of multidimensional arrays (also when selected, as `matrix[1]`) stay lists. `PrimitiveArray<T>`'s indexer throws
-  `ArgumentOutOfRangeException` for an index outside the array, as lists do (it threw `IndexOutOfRangeException`).
-  Migration: read arrays through `IList<object?>` (or `PrimitiveArray<T>` and its `Span`) instead of casting to
-  `List<object?>`, and catch `ArgumentOutOfRangeException` for out-of-range indexes.
+  is read, including union member views, empty arrays, debug parses, selected reads and pointer targets, which
+  returned `List<object?>`; rows of multidimensional arrays stay lists. Its indexer throws
+  `ArgumentOutOfRangeException` for an index outside the array (it threw `IndexOutOfRangeException`). Migration: read
+  arrays through `IList<object?>` (or `PrimitiveArray<T>` and its `Span`) instead of casting to `List<object?>`.
 - **Breaking (layout):** in an aligned layout a struct's members are aligned from the struct's own first byte, as C
-  lays them out, instead of from stream position 0. A record read from or written to a stream at a position that is not
-  a multiple of its alignment, a pointer target at an unaligned address, a root scalar or array at such a position, and
-  the elements of an array of structs whose field has a smaller `@align` override keep their compiled offsets, so they
-  read and write what the same bytes in a span give; members and roots were moved to absolute alignment boundaries.
-  Reported positions (`ResolveAddress`, debug ranges, failure offsets, pointer addresses) remain stream positions.
-  Migration: if your data relied on alignment counted from the start of the stream, position the stream at a multiple
-  of the struct's alignment or add the padding explicitly (an `@N` offset or a padding field), and re-check pointer
-  targets at unaligned addresses.
-- **Breaking (reading):** an aligned struct whose input ends inside its padding - between fields or after the last
-  field - fails with `ReadFailed` ("The requested position is outside the supplied memory region") from every source,
-  as a span already did. A stream missing only the tail padding succeeded and left its position past its length, and a
-  stream missing padding between fields failed with a different message. Migration: supply the padding bytes (a
-  struct's size includes its tail padding, see `GetStructSizeInBytes`), or use a packed layout (`aligned: false`)
-  when the format stores no padding.
+  lays them out, instead of from stream position 0. A record or root value at a stream position that is not a
+  multiple of its alignment, a pointer target at an unaligned address, and the elements of an array of structs whose
+  field has a smaller `@align` override now read and write what the same bytes in a span give. Reported positions
+  (`ResolveAddress`, debug ranges, failure offsets, pointer addresses) remain stream positions. Migration: if your
+  data relied on alignment counted from the start of the stream, position the stream at a multiple of the struct's
+  alignment or add the padding explicitly (an `@N` offset or a padding field).
+- **Breaking (reading):** an aligned struct whose input ends inside its padding fails with `ReadFailed` from every
+  source, as a span already did; a stream missing only the tail padding used to succeed. Migration: supply the padding
+  bytes (a struct's size includes its tail padding, see `GetStructSizeInBytes`), or use a packed layout
+  (`aligned: false`) when the format stores no padding.
 - **Breaking (language):** layout expressions use exact 128-bit integers instead of 32-bit ones, so conditions,
-  switches and counts can use any 64-bit field: `struct node { uint64 next; if (next != 0) { uint32 payload; } };`
-  reads a kernel-style address such as `0xffff888000000000` correctly, and `switch (tag)` on a `uint64` accepts
-  `case 0xFFFFFFFFFFFFFFFF:`. Arithmetic stays checked (a result outside the signed 128-bit range fails), shift counts
-  are 0-127, and `/` and `%` truncate toward zero as in C. A count, offset, bit width or `@align` value is checked
-  where it is used, naming the value (an array longer than `MaxArrayElements` is a read-limit failure). A literal is
-  its exact value: `0xFFFFFFFF` is 4294967295, as in C, where it used to be -1. The language contract is
-  `portable-v1.json` revision 4. Generated code uses `Int128` in `CStructSharp.Generated.Expressions`
-  (`RequireInt32`, `RequireInt32Wide` and `Overflow` are removed); regenerate with this version. Caller variables
-  stay `IReadOnlyDictionary<string, int>`. Migration: write `-1` (or the intended positive value) where a hex literal
-  such as `0xFFFFFFFF` was meant as -1, and compare a signed field with a signed literal or declare the field
-  unsigned (the inspector's Zstandard schema now reads its magic as `uint32`).
+  switches and counts can use any 64-bit field (`if (next != 0)` on a `uint64` kernel address,
+  `case 0xFFFFFFFFFFFFFFFF:`). Arithmetic stays checked, shift counts are 0-127, and `/` and `%` truncate toward zero
+  as in C. A count, offset, bit width or `@align` value is range-checked where it is used, and the failure names the
+  value. A literal is its exact value: `0xFFFFFFFF` is 4294967295, as in C, where it used to be -1. The language
+  contract is `portable-v1.json` revision 4. Generated code uses `Int128` in `CStructSharp.Generated.Expressions`
+  (`RequireInt32`, `RequireInt32Wide` and `Overflow` are removed); caller variables stay
+  `IReadOnlyDictionary<string, int>`. Migration: regenerate code with this version; write `-1` (or the intended
+  positive value) where a hex literal meant -1, and compare a signed field with a signed literal or declare the field
+  unsigned.
+- **Breaking (language):** a layout expression can only use integer-valued fields: integers, characters, `bool`,
+  enums, pointers (the stored address) and custom-codec values that decode to an integer. Naming text, an array, a
+  struct or union, or a floating-point, fixed-point or UUID field is a layout error when the layout is built. Before,
+  text named another variable, an array gave its last element, floats were rounded, and operations disagreed. An
+  integer outside the 128-bit range, such as a large pointer address, fails with its exact value. Migration: read the
+  field as an integer or an enum (a four-character tag as `enum chunk : uint32 { IHDR = 0x52444849 }` with
+  `case chunk.IHDR:`), or name a numeric field.
+- **Breaking (language):** an `@N` offset assertion is a constant, like `@align(N)`: it is evaluated once when the
+  layout is built and can use numbers and `#define`s, but not fields or caller variables. It counts from the start of
+  the field's own struct, as C's `offsetof` does; after a runtime-sized field it counted from the start of the input,
+  so a nested struct failed on correct data. Generated writers for such layouts now compile. Migration: assert a
+  constant offset, or define the value with `#define`.
+- **Breaking (behavior):** a struct follows its pointers after its last field is read, in declaration order, instead
+  of at each pointer field, in the runtime and in generated code. Values are unchanged, but `ParseWithDebug` lists a
+  pointer's target records after the struct's own fields, and a bad field after a pointer is reported before an
+  unreadable pointer target. Migration: look debug records up by path, not by position.
 - **Breaking (browser bridge):** the interop contract is version 9: every managed export returns the same result
-  envelope, and write results hand their bytes over through `TakeOutput` after the envelope. The public JavaScript
-  API (`parse`, `parseWithDebug`, `serialize`, `update`, `resolveAddress`, `getVersion`, the large-source API)
-  returns what it returned before. Only the raw adapter from `loadCStructSharpWasm()` changes: its `serialize` and
-  `updateStream` return an envelope (`data` is the `Uint8Array`, `error` the failure) instead of returning bytes
-  or throwing an error whose message is JSON. Migration: for the raw adapter, read `result.data` when
-  `result.success` is true and `result.error` otherwise, instead of catching.
-- **Breaking (memory API):** the memory-analysis API uses the core library's value types, exceptions and limit
-  names, so code moving between `CStruct` and `MemorySession` needs one set of idioms.
-  - A union reads as a `UnionValue` (its raw storage and every member's view; the byte budget is charged once for
-    the storage and once per member) and is written from a `UnionValue` named like the union's
-    `MemoryTypeDefinition.Name`: `FromRaw` or a read value copies exact bytes, `FromMember` encodes one member over
-    zeroes. An array reads as a `PrimitiveArray<T>` (numeric or `bool` elements) or a `List<object?>`.
-  - Failures are `CStructException`s: `MemoryAccessException` derives from `CStructReadException` (`Code` is
-    `ReadLimitExceeded` for a budget failure) and has nullable `SourceId`/`Address` for failures without a source
-    address; `MemoryPatchCommitException` derives from `CStructWriteException`. Unresolvable paths throw
-    `CStructPathException`, values that cannot be encoded `CStructWriteException`, and invalid definitions or
-    malformed BTF/ISF metadata `CStructLayoutException`; null or out-of-range arguments keep the .NET argument
-    exceptions. A budget failure while planning an update names the selected region, not the root.
-  - `MemoryAccessContext` takes init properties named like `ReadOptions`: `MaxTotalBytes` (64 MiB),
-    `MaxRequests` (100 000), `MaxNestingDepth` (256, was 128) and a separate `MaxPointerDepth` (64) for `.value`
-    steps; a non-positive value throws `ArgumentOutOfRangeException`. Definitions may nest 256 levels (was 128).
-  - `MemoryTypeKind.Opaque` is renamed `RawBytes`; "opaque" now only describes a pointer without a target type.
-
-  Migration:
+  envelope, and write results hand their bytes over through `TakeOutput`. The managed `ParseWithDebug`,
+  `SerializeCompiled` and `UpdateCompiled` exports are removed. The public JavaScript API is unchanged; only the raw
+  adapter from `loadCStructSharpWasm()` changes: its `serialize` and `updateStream` return an envelope instead of
+  bytes or a thrown JSON message. Migration: read `result.data` when `result.success` is true and `result.error`
+  otherwise, instead of catching.
+- **Breaking (memory API):** the memory-analysis API uses the core library's value types, exceptions and limit names.
+  A union reads as a `UnionValue` and is written from one (`FromRaw` copies exact bytes, `FromMember` encodes one
+  member over zeroes); its read charges the byte budget once for the storage and once per member. An array reads as a
+  `PrimitiveArray<T>` or a `List<object?>`. `MemoryAccessException` derives from `CStructReadException` (`Code` is
+  `ReadLimitExceeded` for a budget failure), `MemoryPatchCommitException` from `CStructWriteException`, and bad
+  paths, values and definitions throw `CStructPathException`, `CStructWriteException` and `CStructLayoutException`.
+  `MemoryAccessContext` takes init properties: `MaxTotalBytes` (64 MiB), `MaxRequests` (100,000), `MaxNestingDepth`
+  (256, was 128) and `MaxPointerDepth` (64). `MemoryTypeKind.Opaque` is renamed `RawBytes`. Migration:
 
   | Before | After |
   | --- | --- |
@@ -90,311 +86,99 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   | `context.MaxBytes`, `context.MaxDepth` | `context.MaxTotalBytes`, `context.MaxNestingDepth` |
   | `MemoryTypeKind.Opaque` | `MemoryTypeKind.RawBytes` |
 
-- **Breaking (language):** a layout expression can only use integer fields: integers, characters (their code),
-  `bool` (1 or 0), enums (the member's number), pointers (the stored address), and custom-codec values that decode to an
-  integer. Naming text, an array, a struct or union, a floating-point, fixed-point or UUID field in an expression is
-  now a layout error when the layout is built. Before, text was read as the name of another variable, an array gave
-  its last element, and floats were rounded, and the reader, the path resolver and the writers disagreed on these
-  cases. Where a numeric field or a `#define` shares the name, the layout is valid and an expression that meets the
-  non-integer field's value fails with a message naming it.
-  Integers outside the 128-bit expression range - including pointer
-  addresses and enum numbers - fail with their exact value in every operation. Migration: read the field as an
-  integer type or an enum (for a four-character tag, `enum chunk : uint32 { IHDR = 0x52444849 }` and
-  `switch (tag) { case chunk.IHDR: ... }`), or name a numeric field instead.
-- **Breaking (language):** an `@N` offset assertion is a constant, like `@align(N)`: it is evaluated once when the
-  layout is built and can use numbers and `#define`s, but not fields or a caller's variables. Before, an assertion on a
-  field after a runtime-sized field was evaluated during each operation and could name fields and variables, while
-  the same assertion elsewhere failed to build. Migration: assert a constant offset, or define the value with
-  `#define`.
-- **Breaking (behaviour):** a struct now follows its pointers after its last field is read, in declaration order,
-  instead of at each pointer field. The runtime reader and generated code follow the same rule. Values are
-  unchanged. Two things change: `ParseWithDebug` lists a pointer's target records after the struct's own fields,
-  and when an input has several problems, a truncated or invalid field after a pointer is now reported before a
-  pointer whose target cannot be read. Pointer failures still name the pointer field and the offset just after its
-  address. Migration: code that relies on debug-record order should look records up by path.
-- **Breaking (API):** five generated-support members that generated code never calls are removed:
-  `Codec.ReadLeb128`, `ReadCursor.Align`, `ReadCursor.RequireTerminatedStringBytes`, `WriteCursor.Align` and
-  `WriteCursor.FailUnwritable`. Generated layouts are unaffected. Migration: decode LEB128 with
-  `ReadCursor.TakeLeb128`; for alignment, move `Position` to the padded offset (writers: `Pad` the gap).
-- **Breaking (API):** `MemorySchema.CompiledLayout` and `MemorySchema.GetCompiledName` are internal: they exposed the
-  generated storage views, whose names never appear in results. `PointerRequest.TargetTypeId` is non-nullable, since
-  every pointer request names its target type. Migration: use `MemorySchema.Types` and `GetType` for metadata, and
-  drop null checks on `TargetTypeId`.
-- **Breaking (API):** the BTF and ISF importers have one shape: parse the metadata once, then import a root with a
+- **Breaking (API):** the BTF and ISF importers parse the metadata once and import a root with a
   `MetadataImportOptions` record (`PointerSize`, `BestEffort`, `MaxTypes`). `IsfMetadata` is a parsed document
-  (`new IsfMetadata(json, isLittleEndian, maxBytes)`) instead of a static class, so one document serves several
-  roots, and ISF imports gain best-effort mode. Migration: replace `metadata.Import(id, pointerSize: 4,
-  bestEffort: true)` with `metadata.Import(id, new MetadataImportOptions { PointerSize = 4, BestEffort = true })`,
-  and `IsfMetadata.Import(json, "task", pointerSize, isLittleEndian, maxBytes, maxTypes)` with
-  `new IsfMetadata(json, isLittleEndian, maxBytes).Import("task", new MetadataImportOptions { PointerSize = pointerSize, MaxTypes = maxTypes })`.
+  instead of a static class, so one document serves several roots, and ISF imports gain best-effort mode. Migration:
+
+  | Before | After |
+  | --- | --- |
+  | `metadata.Import(id, pointerSize: 4, bestEffort: true)` | `metadata.Import(id, new MetadataImportOptions { PointerSize = 4, BestEffort = true })` |
+  | `IsfMetadata.Import(json, "task", pointerSize, isLittleEndian, maxBytes, maxTypes)` | `new IsfMetadata(json, isLittleEndian, maxBytes).Import("task", new MetadataImportOptions { PointerSize = pointerSize, MaxTypes = maxTypes })` |
+
+- **Breaking (API):** `Codec.ReadLeb128`, `ReadCursor.Align`, `ReadCursor.RequireTerminatedStringBytes`,
+  `WriteCursor.Align` and `WriteCursor.FailUnwritable` are removed; `MemorySchema.CompiledLayout` and
+  `MemorySchema.GetCompiledName` are internal; `PointerRequest.TargetTypeId` is non-nullable. Migration: decode LEB128
+  with `ReadCursor.TakeLeb128`; for alignment, move `Position` to the padded offset (writers: `Pad` the gap); use
+  `MemorySchema.Types` and `GetType` for metadata; drop null checks on `TargetTypeId`.
 
 ### Added
 
-- A syntax error's `CStructLayoutException` sets `Line` and `Column`, as a declaration error's does. The message is
-  unchanged: it already names the position (`unexpected '$' at line 1, column 30; expected '}'.`).
-- `@count(N)` on a pointer declarator reads `N` consecutive elements at the target: `uint8 *iv @count(iv_len);`
-  gives `Pointer.Value` a byte array (a string for `char`, a list for structs and other types). `N` may name a field
-  declared after the pointer, so C interfaces such as PKCS#11's `CK_GCM_MESSAGE_PARAMS` (`pIv` before `ulIvLen`) can
-  be described as they are. The count obeys `MaxArrayElements`, and `MaxPointerTargetBytes` applies to the whole
-  target. Generated code reads counted targets as `Pointer<T[]>`. Writing stores the address only, as for every
-  pointer. A path cannot select a counted target (`root.iv.value`), and the memory API does not project counted
-  pointers.
+- `@count(N)` on a pointer declarator reads `N` consecutive elements at the target: `uint8 *iv @count(iv_len);` gives
+  `Pointer.Value` a byte array (a string for `char`, a list for other types). `N` may name a field declared after the
+  pointer, as in PKCS#11's `CK_GCM_MESSAGE_PARAMS`. `MaxArrayElements` and `MaxPointerTargetBytes` apply, and
+  generated code reads counted targets as `Pointer<T[]>`. Writing stores the address only; a path cannot select a
+  counted target, and the memory API does not project counted pointers.
+- A syntax error's `CStructLayoutException` sets `Line` and `Column`, as a declaration error's does.
 
 ### Changed
 
-- Inspector schemas are easier to read: DICOM and GLB conditions name their enum members (`dicom_vr.AE`,
-  `glb_chunk_kind.Json`) instead of magic numbers, one comparison per line, and a detected schema no longer starts
-  with repository policy comments.
-- Explorer lessons show what to know first, an exercise to try, the answer behind a disclosure, and a link to the
-  guide for the topic. The lesson explanations describe the starting example and no longer give the answer away.
+- One compiled engine runs every runtime read, write and update of a layout that is not fixed-size, from a stream, a
+  span or memory: parses (including debug and nested-path reads), `ResolveAddress`, `GetArrayLength`, `Serialize`,
+  `Write`, `Update`, their async forms and the memory API. Each struct is compiled once into a flat program of steps;
+  the fixed-layout fast paths still run in front of it. Results are unchanged apart from the breaking changes above.
+- Inspector schemas name enum members in conditions (`dicom_vr.AE`, `glb_chunk_kind.Json`) instead of magic numbers,
+  and the Zstandard schema reads its magic as `uint32`.
+- Explorer lessons show what to know first, an exercise, the answer behind a disclosure, and a link to the guide.
 
 ### Fixed
 
 - Browser package: a number `origin` option (`origin: 10`, as `index.d.ts` allows) failed as `invalid-json`; it is
   now read as its decimal text, so `10` and `"10"` give the same result, and a fraction or an out-of-range number is
   `invalid-input` with the origin message.
-- On .NET 8, a layout expression that divides a value of 64 bits or more by zero fails with `DivideByZeroException`
-  (reported as the usual expression failure), as on .NET 10; it threw an index or argument exception.
-- In aligned layouts, `Serialize`, `Write` and `WriteAsync` place an unsized wide-character array (`wchar name[]`) at its
-  element's alignment, where `Parse` reads it. The writer placed it unaligned after an odd-length member, so the
-  written bytes did not read back, and an `@N` assertion the layout accepted failed when writing.
-- A qualified reference such as `hdr.n` inside a struct that is itself a member an outer expression names (`struct mid {
-  h hdr; uint8 v[hdr.n]; }; struct rec { mid m; uint8 w[m.hdr.k]; };`) resolves on every path - parse, debug parse,
-  selected reads, address and length queries, write and update. A qualified name starts at the struct the expression is
-  written in, and, like a bare name, holds the value read last.
-- A UTF-16 terminated string (`unicode_string_*`, `string`) reads correctly from a stream that returns fewer bytes per
-  read than asked: a code unit or terminator split across two reads is assembled, where such streams failed with "no
-  terminator before the end of the input"; parsing, address and length queries and updates agree with a span.
-- `UnknownMemberPolicy.Reject` accepts the members of an anonymous promoted struct supplied on the parent value, as a
-  parse returns them, on every write path; runtime-sized layouts, structs promoted through a union and mapped classes
-  with promoted members were rejected with "'…' is not a member of ''". Genuinely unknown keys are still rejected, with
-  the same message on every path.
-- A mapped-class instance nested in a dictionary or `StructValue` root (as a member or an array element) is written on
-  every path; fixed layouts failed with "No value was supplied" on the fast path.
-- Address, array-length, selected-read and update operations use an enum or flag bitfield's own bits when a later
-  count or condition names it, as parsing does; they used the bitfield's whole storage unit and computed wrong offsets
-  and lengths when other bitfields shared the unit.
-- A layout expression can name a field of an inline named struct through its member name (`struct { uint8 n; } hdr;
-  uint8 v[hdr.n];`), as it can for a member of a named struct type: parsing, debug parsing and whole-value reads no
-  longer fail with "Undefined expression identifier: hdr.n" (address, length, selected-read, write and update
-  operations already accepted it).
-- An anonymous promoted struct or union (`struct { … };`, `union { … };`) no longer counts as a level of
-  `MaxNestingDepth`: parse, debug parse, selected reads, address and length queries, serialize, write, update and
-  generated readers and writers all count only the root and by-value named structs and unions, as the fixed-layout
-  fast paths already did. A layout exactly at the limit no longer fails on some paths and succeeds on others.
-- Browser bridge: an unknown `addressingMode` or an `origin` that is not a decimal integer in the signed 64-bit
-  range is reported as `invalid-input` with a message naming the accepted values; an overflowing origin was
-  `operation-failed`. `parse()` of a small input with an empty definition or invalid options resolves with the
-  same failure envelope `parseWithDebug` returns, instead of rejecting with a raw managed error. Serializing an
-  `undefined` value is `write-failed`, not `operation-failed`.
-- npm package: `update(definition, source, path, value)` without an options argument no longer throws a
-  `TypeError`; the source collection step now accepts the `null` options the public API passes.
-- The explorer and inspector editors offer and highlight every word the language accepts, from one vocabulary
-  built from the language contract: the inspector now knows `int48`, `uint48`, `int128`, `uint128` and `float16`,
-  the explorer the C alias spellings (`int`, `uint32_t`, ...), and both `flag`, `sizeof`, `offsetof`, `@count` and
-  every preprocessor directive. The explorer editor also completes and describes the names a layout declares. The
-  language contract (`portable-v1.json`, revision 3) gains the `vocabulary` table, with an example of each word
-  that the tests compile.
-- An update that keeps union storage (`UpdateOptions.ClearUnionStorage = false`) keeps the bytes of an anonymous
-  union that the written member does not cover, as it already did for a named union; before, writing a struct that
-  contains an anonymous union zeroed them. A failure to encode an anonymous union's member is reported as a
-  `CStructWriteException`, as for a named union.
-- ISF import no longer fails on a long chain of types: it stopped about 42 pointer hops from the root with
-  "ISF type/depth budget exceeded". It now walks the graph with an explicit work list, as BTF import does, and is
-  bounded by the descriptor budget instead.
-- A mapped class's property finds its layout member by the same rule at build time and at run time. When two layout
-  members matched a property case-insensitively (`flag` and `FLAG` for `Flag`), the generator went on to the
-  underscore rule and could bind the property to a third member, while the runtime left it unmatched; both now
-  leave it unmatched (the generator reports `CSG102`).
-- The analyzer's path check (CSG200) covers every `CStruct` method that takes a path, including `TryReadValue`,
-  `GetAccessor` and `CreateView`, and the declaration name of `GetStructSizeInBytes`. It compiles a layout with the
-  settings it is built with - a constructor's constant pointer size, alignment and byte order, or a
-  `[CStructLayout]` class's settings and codecs - instead of the defaults, so a layout that only compiles with its
-  own settings is checked too.
-- An `@N` offset assertion that is checked during an operation (on a field after a runtime-sized field) counts from
-  the start of the field's own struct, as a check at construction does and as C's `offsetof` does. It counted from
-  the start of the input, so the assertion in a nested struct that does not start at byte 0 failed on correct data.
-  Generated writers for such a layout now compile.
-- A generated layout with an array of pointers (`node *items[2];`) no longer fails to compile.
-- Writing a string value to a numeric field no longer depends on the current culture: `"1.5"` written to a `float64`
-  under a comma-decimal culture such as de-DE now stores 1.5 instead of 15. Every conversion of a caller value to a
-  field uses the invariant culture.
-- `CStruct.ToDefinition()` renders conditional members as the `if`/`switch` groups they were declared in. It
-  dropped the condition of a conditional inline struct and the empty arms of a switch, and rendered one condition
-  per member, which could select differently from the original; the rendered text now reads every input like the
-  original layout.
-- A `switch` with about 256 or more cases compiles. Construction no longer compiles each member's combined
-  condition, which selection never uses; the expression limits (such as `MaxExpressionTokens`) apply to each
-  selector on its own, so nested short conditions are no longer rejected for their combined length.
-- A struct's cached fast read plan is published safely across threads. On weakly ordered processors such as ARM,
-  a thread could see the plan as built but missing and keep that struct on the slower general reader.
-- Best-effort memory schemas (`new MemorySchema(..., bestEffort: true)`, used by BTF and ISF import) give the same
-  result whatever order the definitions arrive in. A struct with a bitfield stored in a scalar that was demoted to
-  an opaque placeholder is now always demoted too, and `Diagnostics` lists its notes in ordinal order.
+- Qualified names resolve on every operation: a field of an inline named struct (`struct { uint8 n; } hdr;
+  uint8 v[hdr.n];`) no longer fails to parse, and a qualified name inside a nested named member resolves from the
+  struct the expression is written in.
+- Writers place an unsized wide-character array (`wchar name[]`) in an aligned layout where `Parse` reads it.
+- A UTF-16 terminated string reads correctly from a stream that returns fewer bytes per read than asked.
+- Address, array-length, selected-read and update operations use an enum or flag bitfield's own bits, not its whole
+  storage unit.
+- An anonymous promoted struct or union no longer counts toward `MaxNestingDepth`, on every operation.
+- `UnknownMemberPolicy.Reject` accepts promoted members supplied on the parent value, and a mapped-class instance
+  nested in a dictionary or `StructValue` root is written, on every write path.
+- An update with `ClearUnionStorage = false` keeps the uncovered bytes of an anonymous union, as for a named union.
+- Writing a string to a numeric field uses the invariant culture: `"1.5"` under de-DE stores 1.5, not 15.
+- `CStruct.ToDefinition()` renders conditional members as their original `if`/`switch` groups.
+- A `switch` with about 256 or more cases, and a generated layout with an array of pointers, compile.
+- A mapped-class property binds to its layout member by the same rule in the generator and the runtime (`CSG102`
+  reports an ambiguous match), and the analyzer's path check (`CSG200`) covers every method that takes a path, using
+  the layout's own settings.
+- On .NET 8, dividing a 64-bit or wider value by zero in an expression fails as on .NET 10.
+- ISF import no longer stops about 42 pointer hops from the root; best-effort memory schemas give the same result in
+  any definition order.
+- Browser bridge and npm package: invalid `addressingMode` or `origin` values are `invalid-input`; `parse()` with an
+  empty definition or invalid options resolves with a failure envelope; `update()` without options no longer throws.
+- The explorer and inspector editors offer and highlight every word the language accepts, from the language
+  contract's new `vocabulary` table; the explorer also completes the names a layout declares.
 
 ### Performance
 
-- Generated readers and writers of fixed-size structs keep their fixed path in a small method and the
-  member-by-member steps in separate `Read<Type>Members` and `Encode<Type>Members` methods, so the JIT inlines the
-  fixed path into its caller. The comparison benchmark's 79-byte `sensor` record serializes from its generated class
-  in 8.6 ns instead of 26.3 ns (the hand-written writer takes 7.6 ns) and parses in 23.8 ns instead of 27.3 ns. The
-  values, bytes and failures are unchanged.
-- The generated member-by-member readers and writers are never inlined into their callers, so the small cursor and
-  codec calls inside them stay inlined: the generated parse of a bounded pointer graph takes 94 ns instead of 110 ns.
-- A generated reader decodes a valid terminated string (`cstring`, `utf8_string_zero`, ...) within the read limits in
-  one step, without a decoder and a 258-character scratch buffer: the comparison benchmark's `packet` record parses
-  from its generated class in 50 ns instead of 66 ns and allocates 200 B instead of 800 B, and a record of four
-  1,024-character strings parses about 23 % faster with 23 % less allocation.
-- A generated fixed reader decodes a nested struct member into the value the class's property initializer already
-  created, instead of allocating a second one (unless your partial class declares a constructor). The `sensor` record
-  parses in 16.9 ns instead of 24.2 ns and allocates 184 B instead of 248 B; 256 nested records parse in 3.8 us
-  instead of 8.9 us with 55 % less allocation.
-- Generated member-by-member readers and writers leave out the placement step before a field that needs no
-  alignment in a struct without bitfields: the `packet` record parses in 43.7 ns instead of 49.4 ns and serializes in
-  26.9 ns instead of 34.5 ns, and a conditional record parses about 18 % faster.
-- A generated `Serialize` into a new array writes a value its fixed writer takes straight into an array of the struct's
-  size, without a pooled buffer and a copy: a small record serializes in 5.7 ns instead of 14.1 ns, and 256 nested
-  records in 0.96 us instead of 3.49 us.
-- A generated view's constructor builds its short-source failure in a separate function, so the JIT inlines the
-  constructor at every nested view access: reading three members of each of 256 nested records through views takes
-  193 ns instead of 414 ns.
-- `Serialize` (to an array or a span) and `WriteAsync` of layouts with runtime-sized members run on the compiled engine:
-  the comparison benchmark's `packet` record serializes in 248 ns instead of 496 ns and allocates only its 88-byte
-  result. Bitfields, unions (including promoted ones), pointers, custom codecs and to-end, terminated and
-  multidimensional arrays are covered. Bytes, partial output on failure, exceptions and write budgets are identical.
-  `Write` to a stream, writes of a nested path and `Serialize` to an `IBufferWriter` run on the engine too (a stream
-  write of a small record allocates 64 B instead of 240 B). `Update` and `UpdateAsync` (and the memory API's patches)
-  run on the engine too, allocating about 55-75 % less (a bitfield update 560 B instead of 1,960 B) and up to 23 %
-  faster.
-- Reads of layouts with runtime-sized members (counts from fields, conditionals, text, nested structs) run on a compiled
-  engine: each struct is compiled once into a flat program of read steps, with variables in indexed slots instead of a
-  dictionary. Results, failures, positions and read budgets are identical. The comparison benchmark's `packet` record
-  parses from a span and reads its fields in 345 ns instead of 745 ns (the parse alone takes 227 ns) and allocates 432 B
-  instead of 1,544 B; from a `MemoryStream` it parses in 352 ns instead of 815 ns. Each further scalar field costs about
-  5 ns instead of 20-33 ns, and a 128-branch conditional record parses about 3 times faster with half the allocation. To-end, terminated and multidimensional arrays, custom codecs, bitfields, unions and pointers run on
-  the engine too (a thousand bitfield records parse about 32 % faster, a thousand unions about 40 % faster, each with
-  16 % less allocation; a bounded pointer graph about 38 % faster with half the allocation). Debug parses (`ParseWithDebug`,
-  `ReadValueWithDebug`) run on the engine too, with identical records, about 20-35 % faster and with 7-20 % less
-  allocation. Nested-path reads and parses, `ResolveAddress` and `GetArrayLength` run on the engine as well:
-  `ResolveAddress` is 30-55 % faster with about 90 % less allocation, and `ReadValue` of a nested scalar about 12 %
-  faster with 85 % less. Updates run on the engine as well.
-- Runtime reads place each field with less work: the placement cursor keeps its position without nullable round
-  trips, and ordinary struct and union members are read through one inlined call. A layout of 1 000 bitfield records
-  reads about 9% faster, and pointer-heavy and union-heavy layouts 6-10% faster.
-- A read reuses its pointer bookkeeping (the cycle-detection set and the deferred-pointer list) from a per-thread
-  cache instead of allocating it, so a read that follows pointers allocates less than before.
-- An update allocates less: whether its root reaches an `if`/`switch` member is computed once per layout instead
-  of on every update, and bitfield and pointer writes encode through a stack buffer instead of new byte arrays (about
-  260 bytes less per update, 60 more for a bitfield).
+- Runtime reads of data-dependent layouts are about twice as fast: the comparison benchmark's `packet` record parses
+  and reads its fields in 352 ns instead of 745 ns, allocating 432 B instead of 1,544 B. Bitfield, union and pointer
+  layouts parse 30-40 % faster, a 128-branch conditional record about 3 times faster, and `ResolveAddress` 30-55 %
+  faster with about 90 % less allocation.
+- Runtime writes and updates are faster: the `packet` record serializes in 235 ns instead of 496 ns and allocates only
+  its result, and updates allocate 55-75 % less.
+- Generated code is faster: the 79-byte `sensor` record parses in 16.1 ns instead of 27.3 ns and serializes in 8.5 ns
+  instead of 26.3 ns; the `packet` record parses in 46.2 ns instead of 66 ns with 200 B instead of 800 B; 256 nested
+  records parse in 3.8 µs instead of 8.9 µs. A fixed reader decodes a nested struct into the instance the property
+  initializer created, unless your partial class declares a constructor.
 
 ### Documentation and tooling
 
-- The general reader and writer are replaced by the compiled engine; the performance guide explains how it works and which
-  fixed-layout fast paths run in front of it, and the API guides compare it with generated code, which stays fastest.
-  Mutation testing covers the engine's files.
-- Tests: the engine's differential tests compare against recorded golden outcomes (`tests/CStructSharpTests/Engine/Golden/`)
-  instead of running a second implementation; `node tools/quality/engine-golden.mjs record` regenerates them for an
-  intended, explained behaviour change, and `CONTRIBUTING.md` states when that is allowed.
-- Tests: independent references for the general path. Every benchmark fixture is checked against its recorded
-  hash, length and value by an MSTest and by `FixtureTool verify` (one shared implementation); the fuzz replay digest
-  hashes each outcome (the value, or the failure's type, message, code, path and offset), not only success or
-  failure; generator/runtime parity compares member order and CLR types; and runtime `ResolveAddress` is checked
-  against debug-record ranges and the generator's offset constants.
-- Tests: an engine differential harness (`tests/CStructSharpTests/Engine/`) runs every read, write and update form
-  twice - with the general interpreter forced and with automatic engine selection - and compares values with their CLR
-  types, failures with every diagnostic field, final positions, written bytes and debug records. An internal
-  engine-selection option and test-scoped recordings prepare the compiled general engine; behaviour is unchanged.
-- `quick-perf-check.mjs --job Quick` compares the whole `Impact` category before and after a change, on both sides and
-  twice, in about a minute and a half: the `Quick` benchmark job runs in-process with 25 ms iterations and tiered
-  compilation off. `benchmarks/README.md` explains when its numbers are comparable.
-- Browser bridge internals: one JSON writer (`InteropJsonWriter`) produces every result, with one escaping rule and
-  one safe-integer limit; the JavaScript limits and helpers shared by the package's modules live in
-  `cstructsharp-shared.js`, staged next to each consumer; the JavaScript package takes the contract version from the
-  managed results. `contract.json` lists all eleven exports. The WASM publication is about 46 KB smaller.
-- `CStructSharp.NonWeb.sln` is replaced by the solution filter `CStructSharp.NonWeb.slnf` over `CStructSharp.sln`.
-  Use it exactly as before (`dotnet build CStructSharp.NonWeb.slnf -c Release`); a new project is added only to
-  `CStructSharp.sln` and listed in the filter. Mutation testing no longer passes a solution to Stryker.
-- CI: one `web.yml` workflow replaces the explorer, inspector and npm package workflows and builds the WASM
-  publication once. `ci.yml`, `web.yml` and `docs.yml` run only when their area changes, plus weekly. Every workflow
-  reads Node from `.node-version`, and the npm package is also tested on Node 26.
-- The full documentation gate runs on Windows: tools start npm without a shell.
-- A new `Impact` benchmark category (about 40 cases, 7 minutes) checks a change quickly; `benchmarks/README.md`
-  describes before/after comparisons with `quick-perf-check.mjs`.
-- Benchmarks: one suite. The fixture-driven classes live in `Scenarios/` (category `Scenario`), the hand-written
-  duplicates of their compile, serialize, update and scalar-read cases are removed, and the release-gate category is
-  `Gate`. Every benchmark class and method is documented, and the generated benchmark layouts are checked against
-  their fixtures in setup. The performance contracts are named by role: `release-gate.json` (re-recorded with the
-  Gate job for the merged cases), `drift-scenarios.json`, `web-size-budget.json` and `web-drift.json`; their
-  published copies under `/docs/contracts/performance/` move with them. The release gate is documented as the manual
-  pre-release check it is, and the drift workflow runs the `Impact` cases against the matching scenario baseline
-  (`compare-benchmark-baseline.mjs --matching-only`).
-- Explorer: the generated test catalog loads as its own chunk, so the entry bundle holds application code only
-  (226 KB instead of 1.5 MB). The web size budget is re-measured, with the entry-bundle limit lowered to 256 KiB.
-- The repository is one npm workspace: the explorer, the inspector, their shared source package (`apps/shared`,
-  imported as `@cstructsharp/app-shared`) and the npm package (`packages/cstructsharp`), with one lockfile at the
-  root; run `npm ci` once at the repository root instead of in each app. Both apps use the same dependency versions,
-  and the `dompurify` override applies to both from the root manifest.
-- Both apps load and validate the WebAssembly runtime through one shared adapter (`apps/shared/src/wasm`) whose
-  types come from the npm package declarations, instead of two hand-copied modules.
-- The apps share the layout formatter (the explorer now also puts each enum and flag value on its own line), the
-  error recovery hints, the hex helpers, the option defaults and the settings tooltip.
-- The npm package's browser tests live with it (`packages/cstructsharp/tests`): the starter pages, the public type
-  consumer, the bridge contract and the trimmed runtime's write paths, exercised through the public API instead of
-  a Base64 test shim. Both apps build the same way (`apps/shared/scripts`): `npm run build` stages the publication from
-  `npm run build:wasm` and checks that the build embeds exactly that publication; the inspector did not check it.
-- Source comments, tests and the language pages describe current behavior only; release history stays in this
-  changelog. `differences-from-c.md` states which C forms are accepted and with what meaning.
-- Stale documentation facts are corrected: `MetadataImportResult.Diagnostics` also lists best-effort placeholders,
-  the memory example no longer states a snippet count, the README's version pin example is current, and the
-  maintenance pages describe releases without a release-candidate stage.
-- The library build enforces its documentation: every element, parameter, type parameter and return value of
-  `CStructSharp`, its shared Core sources, the source generator, the WASM bridge, and the test, benchmark, example
-  and tool projects is documented, and a missing comment is a build error (`Directory.Build.props` generates XML
-  documentation for every project). C# local functions, which cannot take XML documentation, take a plain comment.
-- JavaScript and TypeScript are held to the same rule: `eslint-plugin-jsdoc` requires a doc comment on every function,
-  method and class in the apps, the npm package sources and the repository tools, and every tool file states its
-  purpose and usage in a header.
-- Governance is trimmed. The feature-operation matrix and the tools no longer use traceability codes (`LANG-05`,
-  `QA-04`, ...): a blocked or limited feature, a known limit and an exclusion state their reason as text, and
-  `docs/project/work-items.md` is gone. The documentation site publishes only the contracts readers use (the ones
-  the pages link to, the API baselines and the memory contract); the performance baselines, mutation proofs and
-  other review data are no longer under `/docs/contracts/`. `CONTRIBUTING.md` is the one contributing guide (the
-  docs-site page is retired) and holds the one table of documentation update triggers; coverage and mutation
-  limits are stated where they are configured. The documentation workflow check requires SHA-pinned actions
-  without copying the pins, so Dependabot action updates no longer break it. The onboarding study page is removed.
-- API baselines are named by role: `contracts/api/managed` and `contracts/api/browser` (published under
-  `/docs/contracts/api/`). The managed manifest keeps the approved hash of every revision and the review text of the
-  current one; the release history is this changelog. The `frozen` status, work-item code and stale package version
-  are removed.
-- The feature-operation matrix no longer lists API compatibility baselines; the API contracts own them. The
-  benchmark drift workflow watches only files that exist.
-- The memory contract (`contracts/memory/v1.json`) describes the `Opaque` type kind, and its validator checks the
-  matrix against every `MemoryTypeKind` member.
-- The runtime tests are organized by feature: `tests/CStructSharpTests` has one folder per area (`Parsing`,
-  `Compilation`, `Reading`, `Writing`, `Unions`, `Memory`, ...), single-test classes are merged into the class of
-  their topic, and classes and methods are named after the behavior they check. Shared helpers live in `Support/`
-  (one outcome comparison for fast-path parity, one fixture locator) and `TestStreams/`.
-- `tools/quality/remap-mutation-equivalents.mjs --write --drop-blocked` deletes reviewed equivalent mutants whose code
-  changed or was removed, so the next mutation run reports them again for review.
-- Browser bridge: the managed `ParseWithDebug` export (the adapter now uses `ParseBytes` with debug ranges) and the
-  unused `SerializeCompiled` and `UpdateCompiled` exports are removed; the JavaScript API and the envelope are
-  unchanged. The analyzer release file lists the CSG rules as shipped in 0.7.0.
-- The test project no longer depends on Pidgin: `ParserCorpusTests` replaces the differential test against the frozen
-  reference grammar. The corpus and its mutations must parse or fail with a syntax diagnostic, and the token-convention
-  spellings keep their recorded syntax trees (`ParserTokenConventions.json`).
-- Tools: every script under `tools/` finds the repository through `tools/lib/tooling.mjs`, parses its options with
-  `parseArguments` and starts short child processes with `runCommand`. An unknown or misspelled option is now an
-  error instead of being ignored, and a non-numeric number option fails instead of becoming `NaN`. CI runs every
-  `tools/**/*.test.mjs` test with one `node --test`.
-- `sync-primitive-spellings.mjs --check` reads the alias tables again (it had misread the pointer-sized spellings as
-  `long` family members) and keeps the feature matrix's formatting; `comparison-benchmarks.mjs` renders the README
-  tables in their formatted, column-aligned form so `--check` passes. CI runs both checks.
-- Compiler comparison: the baselines now cover six compilers (Linux x64 GCC and Clang, Linux x86 GCC, macOS arm64
-  Clang, Windows x64 MSVC and clang-cl), and the table in *Differences from C* shows them all. Each shape gains a
-  `sysvX86` claim: on 32-bit x86 the library matches every shape except the three with an eight-byte scalar, which
-  the i386 ABI aligns to four bytes. The fixture gives its objects static storage, so padding bytes are zero instead
-  of stack contents, and a `-m32` recording names its i686 target. The `compiler-fixtures` workflow runs only when
-  started by hand.
+- The performance guide explains the compiled engine; guides describe current behavior only, and *Differences from C*
+  states which C forms are accepted and compares layouts with six compilers, including 32-bit x86.
+- The repository is one npm workspace: run `npm ci` once at the root. The apps and the npm package share
+  `apps/shared`. The explorer's entry bundle is 226 KB instead of 1.5 MB; the WASM publication is 46 KB smaller.
+- The solution filter `CStructSharp.NonWeb.slnf` replaces `CStructSharp.NonWeb.sln`; the build command is unchanged.
+- CI builds the WASM publication once in `web.yml`, runs workflows only for their area (plus weekly), reads Node from
+  `.node-version`, and the documentation gate runs on Windows.
+- Benchmarks are one suite; `quick-perf-check.mjs --job Quick` compares the `Impact` cases in about 90 seconds.
+- Every C# member and every JavaScript or TypeScript function and class needs a documentation comment; the build or
+  the lint fails without one.
+- Tests are organized by feature. Engine tests compare against golden outcomes; re-record them with
+  `node tools/quality/engine-golden.mjs record` only for an intended, explained change (see `CONTRIBUTING.md`).
+- `CONTRIBUTING.md` is the one contributing guide; API baselines live in `contracts/api/managed` and
+  `contracts/api/browser`. Tools reject unknown options.
 
 ## 0.10.0 — 2026-09-26
 
