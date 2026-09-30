@@ -938,11 +938,20 @@ namespace Demo
         private static Head ReadHeadFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
         {
             var value = new Head();
+            FillHeadFixed(source, trimFixedText, value);
+            return value;
+        }
+
+        /// <summary>Decodes one <c>head</c> from exactly its 6 bytes into a value just constructed, each member at its constant offset.</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <param name="value">A new value, whose nested struct members are the new values its constructor created; they are filled in place.</param>
+        private static void FillHeadFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText, Head value)
+        {
             // uint32 a
             value.A = global::CStructSharp.Generated.Codec.ReadUInt32(source.Slice(0, 4), true);
             // uint16 b
             value.B = global::CStructSharp.Generated.Codec.ReadUInt16(source.Slice(4, 2), true);
-            return value;
         }
 
         /// <summary>Groups a flat element array into rows of <paramref name="inner"/> elements (one nesting level of a multidimensional array).</summary>

@@ -913,11 +913,20 @@ namespace Demo
         private static Entry ReadEntryFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
         {
             var value = new Entry();
+            FillEntryFixed(source, trimFixedText, value);
+            return value;
+        }
+
+        /// <summary>Decodes one <c>entry</c> from exactly its 2 bytes into a value just constructed, each member at its constant offset.</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <param name="value">A new value, whose nested struct members are the new values its constructor created; they are filled in place.</param>
+        private static void FillEntryFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText, Entry value)
+        {
             // uint8 kind
             value.Kind = source.Slice(0, 1)[0];
             // uint8 size
             value.Size = source.Slice(1, 1)[0];
-            return value;
         }
 
         /// <summary>Groups a flat element array into rows of <paramref name="inner"/> elements (one nesting level of a multidimensional array).</summary>

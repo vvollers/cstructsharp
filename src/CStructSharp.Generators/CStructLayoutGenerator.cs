@@ -154,7 +154,23 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             SourceSpan.From(attributeLocation),
             definitionSpan,
             literalShape,
-            ((CSharpParseOptions)declaration.SyntaxTree.Options).LanguageVersion.ToDisplayString());
+            ((CSharpParseOptions)declaration.SyntaxTree.Options).LanguageVersion.ToDisplayString(),
+            TypesWithConstructors(symbol));
+    }
+
+    /// <summary>
+    ///     The nested classes of the attributed class for which the consumer declared an instance constructor. The
+    ///     generator's own output is not part of the compilation it inspects, so every constructor found is the
+    ///     consumer's.
+    /// </summary>
+    /// <param name="symbol">The attributed class.</param>
+    /// <returns>The names of those classes, in declaration order.</returns>
+    private static EquatableArray<string> TypesWithConstructors(INamedTypeSymbol symbol)
+    {
+        return new EquatableArray<string>(symbol.GetTypeMembers()
+                                                .Where(type => type.InstanceConstructors.Any(constructor => !constructor.IsImplicitlyDeclared))
+                                                .Select(type => type.Name)
+                                                .ToArray());
     }
 
     /// <summary>The declaration keyword of a containing type, for re-declaring it around the generated partial class.</summary>

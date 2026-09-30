@@ -241,6 +241,10 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - A generated reader decodes a terminated string (`cstring`, `utf8_string_zero`, ...) that ends within its first 256
   bytes in one step, without a decoder and a 258-character scratch buffer: the comparison benchmark's `packet` record
   parses from its generated class in 50 ns instead of 66 ns and allocates 200 B instead of 800 B.
+- A generated fixed reader decodes a nested struct member into the value the class's property initializer already
+  created, instead of allocating a second one (unless your partial class declares a constructor). The `sensor` record
+  parses in 16.9 ns instead of 24.2 ns and allocates 184 B instead of 248 B; 256 nested records parse in 3.8 us
+  instead of 8.9 us with 55 % less allocation.
 - `Serialize` (to an array or a span) and `WriteAsync` of layouts with runtime-sized members run on the compiled engine:
   the comparison benchmark's `packet` record serializes in 248 ns instead of 496 ns and allocates only its 88-byte
   result. Bitfields, unions (including promoted ones), pointers, custom codecs and to-end, terminated and

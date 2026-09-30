@@ -891,9 +891,18 @@ namespace Demo
         private static chunk ReadchunkFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
         {
             var value = new chunk();
+            FillchunkFixed(source, trimFixedText, value);
+            return value;
+        }
+
+        /// <summary>Decodes one <c>chunk</c> from exactly its 4 bytes into a value just constructed, each member at its constant offset.</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <param name="value">A new value, whose nested struct members are the new values its constructor created; they are filled in place.</param>
+        private static void FillchunkFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText, chunk value)
+        {
             // uint32 length
             value.length = global::CStructSharp.Generated.Codec.ReadUInt32(source.Slice(0, 4), true);
-            return value;
         }
 
         /// <summary>Reads one <c>root</c> from exactly its 5 bytes, each member at its constant offset (reached only through <c>ReadCursor.TryTakeFixed</c>).</summary>
@@ -903,11 +912,20 @@ namespace Demo
         private static root ReadrootFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
         {
             var value = new root();
+            FillrootFixed(source, trimFixedText, value);
+            return value;
+        }
+
+        /// <summary>Decodes one <c>root</c> from exactly its 5 bytes into a value just constructed, each member at its constant offset.</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <param name="value">A new value, whose nested struct members are the new values its constructor created; they are filled in place.</param>
+        private static void FillrootFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText, root value)
+        {
             // chunk first
-            value.first = ReadchunkFixed(source.Slice(0, 4), trimFixedText);
+            FillchunkFixed(source.Slice(0, 4), trimFixedText, value.first);
             // uint8 tail
             value.tail = source.Slice(4, 1)[0];
-            return value;
         }
 
         /// <summary>Groups a flat element array into rows of <paramref name="inner"/> elements (one nesting level of a multidimensional array).</summary>

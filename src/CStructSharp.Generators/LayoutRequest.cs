@@ -6,6 +6,12 @@ namespace CStructSharp.Generators;
 ///     <see cref="EquatableArray{T}"/>), so the incremental pipeline re-runs generation only when something the
 ///     output depends on changed.
 /// </summary>
+/// <remarks>
+///     <c>TypesWithConstructors</c> names the nested classes of the attributed class for which the consumer declared
+///     an instance constructor in a partial declaration. The generated class of such a composite may not hold the new
+///     nested values its property initializers create once construction ends, so its fixed reader replaces them
+///     instead of decoding into them.
+/// </remarks>
 internal sealed record LayoutRequest(
     string ClassName,
     string? Namespace,
@@ -23,7 +29,8 @@ internal sealed record LayoutRequest(
     SourceSpan AttributeSpan,
     SourceSpan? DefinitionSpan,
     DefinitionLiteralShape DefinitionLiteral,
-    string LanguageVersion)
+    string LanguageVersion,
+    EquatableArray<string> TypesWithConstructors)
 {
     /// <summary>The generated file's hint name: unique per attributed class.</summary>
     public string HintName

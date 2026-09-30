@@ -503,11 +503,20 @@ namespace Demo
         private static Header ReadHeaderFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
         {
             var value = new Header();
+            FillHeaderFixed(source, trimFixedText, value);
+            return value;
+        }
+
+        /// <summary>Decodes one <c>header</c> from exactly its 8 bytes into a value just constructed, each member at its constant offset.</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <param name="value">A new value, whose nested struct members are the new values its constructor created; they are filled in place.</param>
+        private static void FillHeaderFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText, Header value)
+        {
             // uint16 kind
             value.Kind = global::CStructSharp.Generated.Codec.ReadUInt16(source.Slice(0, 2), false);
             // uint32 length
             value.Length = global::CStructSharp.Generated.Codec.ReadUInt32(source.Slice(4, 4), false);
-            return value;
         }
 
         /// <summary>Groups a flat element array into rows of <paramref name="inner"/> elements (one nesting level of a multidimensional array).</summary>

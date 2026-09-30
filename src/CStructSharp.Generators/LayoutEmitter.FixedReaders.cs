@@ -2,6 +2,7 @@ namespace CStructSharp.Generators;
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using static CStructSharp.Generators.Emit;
@@ -59,24 +60,52 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <returns>The value.</returns>");
         writer.Open("private static " + name + " Read" + name + "Fixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)");
         writer.Line("var value = new " + name + "();");
+        writer.Line("Fill" + name + "Fixed(source, trimFixedText, value);");
+        writer.Line("return value;");
+        writer.Close();
+        writer.Line();
+        writer.Line("/// <summary>Decodes one <c>" + composite.LayoutName + "</c> from exactly its " + Int(plan.Size) + " bytes into a value just constructed, each member at its constant offset.</summary>");
+        writer.Line("/// <param name=\"source\">The struct's bytes.</param>");
+        writer.Line("/// <param name=\"trimFixedText\">Whether fixed-capacity text drops its trailing NUL padding.</param>");
+        writer.Line("/// <param name=\"value\">A new value, whose nested struct members are the new values its constructor created; they are filled in place.</param>");
+        writer.Open("private static void Fill" + name + "Fixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText, " + name + " value)");
         var scope = new ReaderScope(this, composite);
+
+        // Without a constructor of the consumer's, the property initializers alone decide what a new value holds.
+        bool nestedValuesAreNew = !this.request.TypesWithConstructors.Contains(name);
         foreach (CompiledField field in composite.Composite.Fields)
         {
             GeneratedMember member = scope.Member(field) ?? throw new InvalidOperationException("No generated member for field " + field.Name);
-            this.EmitFixedMember(writer, field, member, "value." + member.PropertyName);
+            this.EmitFixedMember(writer, field, member, "value." + member.PropertyName, nestedValuesAreNew);
         }
 
-        writer.Line("return value;");
         writer.Close();
     }
 
     /// <summary>Emits the statement that decodes one member of a fixed reader.</summary>
-    private void EmitFixedMember(SourceWriter writer, CompiledField field, GeneratedMember member, string property)
+    /// <param name="writer">The generated source destination.</param>
+    /// <param name="field">The member's compiled field.</param>
+    /// <param name="member">The generated member.</param>
+    /// <param name="property">The C# expression of the member's property on the value being filled.</param>
+    /// <param name="nestedValuesAreNew">
+    ///     Whether a nested struct member of the value is the new value its property initializer created, so it can be
+    ///     decoded in place; otherwise the member is replaced with a newly read value.
+    /// </param>
+    private void EmitFixedMember(SourceWriter writer, CompiledField field, GeneratedMember member, string property, bool nestedValuesAreNew)
     {
         int offset = field.FixedOffset ?? throw new InvalidOperationException("Fixed member without an offset: " + field.Name);
         writer.Line("// " + DescribeDeclaration(field));
         if (field.Array.Kind == CompiledArrayKind.Scalar)
         {
+            if (nestedValuesAreNew && member.Composite is { } nested && field.PointerDepth == 0)
+            {
+                // The value's constructor created this nested value (its property initializer): decode into it
+                // instead of replacing it with another new one.
+                int size = nested.Composite.Symbol.FixedSize ?? throw new InvalidOperationException("Fixed composite without a size: " + nested.Name);
+                writer.Line("Fill" + nested.Name + "Fixed(source.Slice(" + Int(offset) + ", " + Int(size) + "), trimFixedText, " + property + ");");
+                return;
+            }
+
             writer.Line(property + " = " + this.FixedElement(field, member, "source", Int(offset)) + ";");
             return;
         }

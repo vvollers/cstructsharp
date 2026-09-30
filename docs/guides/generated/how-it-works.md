@@ -57,13 +57,21 @@ checked by the cursor with the same texts, and the parity tests hold it to that.
 
 A struct whose every member sits at a build-time offset also gets a *fixed reader* (`Read<Type>Fixed`) that decodes
 each member at its constant offset. It is the build-time counterpart of the runtime's static read plan, and a fixed
-writer (`Write<Type>Fixed`) is its counterpart for writing. The member-by-member reader calls
-`ReadCursor.TryTakeFixed` first. That method hands over the struct's bytes only when the member-by-member code would
-read exactly those bytes without a failure: the bytes are present, the budget covers what the members would be
-charged, the nesting and array limits hold, and the start meets the struct's alignment. `WriteCursor.TryReserveFixed`
-does the same for writing, and the generated `Is<Type>FixedWritable` check first confirms that no nested value is null
-and every array has its declared length. Any other input goes member by member, so every failure keeps its text and
-position.
+writer (`Write<Type>Fixed`) is its counterpart for writing. The struct's `Read<Type>` calls `ReadCursor.TryTakeFixed`
+first and otherwise calls `Read<Type>Members`, the member-by-member reader. `TryTakeFixed` hands over the struct's
+bytes only when the member-by-member code would read exactly those bytes without a failure: the bytes are present, the
+budget covers what the members would be charged, the nesting and array limits hold, and the start meets the struct's
+alignment. `WriteCursor.TryReserveFixed` does the same for writing, and the generated `Is<Type>FixedWritable` check
+first confirms that no nested value is null and every array has its declared length. Any other input goes member by
+member, so every failure keeps its text and position.
+
+The split into a short `Read<Type>` and a separate member-by-member method is for speed. The .NET JIT copies a small,
+frequently called method into its caller (*inlining*), but it copies only so much code into one method. A
+member-by-member method is large, so it is marked `MethodImplOptions.NoInlining`: the fixed path is inlined whole, and
+the small cursor calls inside the member-by-member method stay inlined there. A fixed reader decodes a nested struct
+member into the new value that the class's property initializer created (`Fill<Type>Fixed`), so a parse allocates each
+nested value once. When your own partial declaration gives the class a constructor, which could replace those values,
+the fixed reader assigns newly read values instead.
 
 ## How parity is tested
 

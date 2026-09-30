@@ -952,13 +952,22 @@ namespace Demo
         private static Hdr ReadHdrFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
         {
             var value = new Hdr();
+            FillHdrFixed(source, trimFixedText, value);
+            return value;
+        }
+
+        /// <summary>Decodes one <c>hdr</c> from exactly its 4 bytes into a value just constructed, each member at its constant offset.</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <param name="value">A new value, whose nested struct members are the new values its constructor created; they are filled in place.</param>
+        private static void FillHdrFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText, Hdr value)
+        {
             // uint16 length
             value.Length = global::CStructSharp.Generated.Codec.ReadUInt16(source.Slice(0, 2), false);
             // uint8 tag
             value.Tag = source.Slice(2, 1)[0];
             // uint8 flags
             value.Flags = source.Slice(3, 1)[0];
-            return value;
         }
 
         /// <summary>Reads a <c>uint16 *link</c> pointer: the address, then the target when pointers are followed.</summary>

@@ -654,11 +654,20 @@ namespace Demo
         private static RootPos ReadRootPosFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
         {
             var value = new RootPos();
+            FillRootPosFixed(source, trimFixedText, value);
+            return value;
+        }
+
+        /// <summary>Decodes one <c>pos</c> from exactly its 2 bytes into a value just constructed, each member at its constant offset.</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <param name="value">A new value, whose nested struct members are the new values its constructor created; they are filled in place.</param>
+        private static void FillRootPosFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText, RootPos value)
+        {
             // uint8 x
             value.X = source.Slice(0, 1)[0];
             // uint8 y
             value.Y = source.Slice(1, 1)[0];
-            return value;
         }
 
         /// <summary>Groups a flat element array into rows of <paramref name="inner"/> elements (one nesting level of a multidimensional array).</summary>

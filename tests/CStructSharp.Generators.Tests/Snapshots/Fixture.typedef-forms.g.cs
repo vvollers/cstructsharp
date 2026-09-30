@@ -917,11 +917,20 @@ namespace Demo
         private static X ReadXFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
         {
             var value = new X();
+            FillXFixed(source, trimFixedText, value);
+            return value;
+        }
+
+        /// <summary>Decodes one <c>X</c> from exactly its 3 bytes into a value just constructed, each member at its constant offset.</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <param name="value">A new value, whose nested struct members are the new values its constructor created; they are filled in place.</param>
+        private static void FillXFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText, X value)
+        {
             // uint8 a
             value.A = source.Slice(0, 1)[0];
             // uint16 b
             value.B = global::CStructSharp.Generated.Codec.ReadUInt16(source.Slice(1, 2), true);
-            return value;
         }
 
         /// <summary>Reads one <c>root</c> from exactly its 8 bytes, each member at its constant offset (reached only through <c>ReadCursor.TryTakeFixed</c>).</summary>
@@ -931,10 +940,20 @@ namespace Demo
         private static Root ReadRootFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
         {
             var value = new Root();
+            FillRootFixed(source, trimFixedText, value);
+            return value;
+        }
+
+        /// <summary>Decodes one <c>root</c> from exactly its 8 bytes into a value just constructed, each member at its constant offset.</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <param name="value">A new value, whose nested struct members are the new values its constructor created; they are filled in place.</param>
+        private static void FillRootFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText, Root value)
+        {
             // X x
-            value.X = ReadXFixed(source.Slice(0, 3), trimFixedText);
+            FillXFixed(source.Slice(0, 3), trimFixedText, value.X);
             // _X y
-            value.Y = ReadXFixed(source.Slice(3, 3), trimFixedText);
+            FillXFixed(source.Slice(3, 3), trimFixedText, value.Y);
             // uint8 p[2]
             {
                 var elements = new byte[2];
@@ -942,7 +961,6 @@ namespace Demo
                 bytes.CopyTo(elements);
                 value.P = elements;
             }
-            return value;
         }
 
         /// <summary>Groups a flat element array into rows of <paramref name="inner"/> elements (one nesting level of a multidimensional array).</summary>

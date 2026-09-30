@@ -61,7 +61,7 @@ options (`Aligned`, `LittleEndian`, `PointerSize`, ...) passed through.
 One class per composite. It is `partial` too: you can add methods to it in your own file.
 
 ```csharp
-    private static Header ReadHeader(ref global::CStructSharp.Generated.ReadCursor cursor, ...)
+    private static Header ReadHeaderMembers(ref global::CStructSharp.Generated.ReadCursor cursor, ...)
     {
         cursor.EnterComposite(member ?? "header", memberType);
         var value = new Header();
@@ -87,20 +87,26 @@ Every member of `header` sits at an offset the generator knows at build time, so
     private static Header ReadHeaderFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
     {
         var value = new Header();
+        FillHeaderFixed(source, trimFixedText, value);
+        return value;
+    }
+
+    private static void FillHeaderFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText, Header value)
+    {
         // uint16 kind
         value.Kind = global::CStructSharp.Generated.Codec.ReadUInt16(source.Slice(0, 2), true);
         // uint32 length
         value.Length = global::CStructSharp.Generated.Codec.ReadUInt32(source.Slice(2, 4), true);
-        return value;
     }
 ```
 
-`ReadHeader` starts with `if (cursor.TryTakeFixed(6, 1, 6, 1, 0, out var fixedBytes)) return ReadHeaderFixed(...)`.
-`TryTakeFixed` hands over the struct's six bytes only when the member-by-member code would read exactly those bytes
-without a failure. That means the bytes are present, the read budget covers them, and the nesting and array limits
-hold. A short input therefore still reaches the member-by-member code and fails there with the message above. The
-writer has the same pair: `WriteHeaderFixed` stores each member at its constant offset, and `EncodeHeader` uses it
-when `WriteCursor.TryReserveFixed` confirms that nothing can fail. A struct with a runtime-sized array, a condition, a
+`ReadHeader`, the method the `Parse` overloads call, is short: `if (cursor.TryTakeFixed(6, 1, 6, 1, 0, out var
+fixedBytes)) return ReadHeaderFixed(...)`, and otherwise `return ReadHeaderMembers(...)`. `TryTakeFixed` hands over
+the struct's six bytes only when the member-by-member code would read exactly those bytes without a failure. That means
+the bytes are present, the read budget covers them, and the nesting and array limits hold. A short input therefore
+still reaches the member-by-member code and fails there with the message above. The writer has the same pair:
+`WriteHeaderFixed` stores each member at its constant offset, and `EncodeHeader` uses it when
+`WriteCursor.TryReserveFixed` confirms that nothing can fail, and otherwise calls `EncodeHeaderMembers`. A struct with a runtime-sized array, a condition, a
 pointer, a bitfield, or a union member gets no fixed reader and is always read member by member.
 
 The rest of the file holds the writer (`EncodeHeader`), the `Serialize`/`Write` overloads, the view, the constants,

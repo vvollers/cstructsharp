@@ -1513,9 +1513,18 @@ namespace Demo
         private static Inner ReadInnerFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
         {
             var value = new Inner();
+            FillInnerFixed(source, trimFixedText, value);
+            return value;
+        }
+
+        /// <summary>Decodes one <c>inner</c> from exactly its 1 bytes into a value just constructed, each member at its constant offset.</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <param name="value">A new value, whose nested struct members are the new values its constructor created; they are filled in place.</param>
+        private static void FillInnerFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText, Inner value)
+        {
             // uint8 z
             value.Z = source.Slice(0, 1)[0];
-            return value;
         }
 
         /// <summary>Reads a <c>void *raw</c> pointer: the address, then the target when pointers are followed.</summary>

@@ -1319,9 +1319,18 @@ namespace Demo
         private static X ReadXFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
         {
             var value = new X();
+            FillXFixed(source, trimFixedText, value);
+            return value;
+        }
+
+        /// <summary>Decodes one <c>X</c> from exactly its 1 bytes into a value just constructed, each member at its constant offset.</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <param name="value">A new value, whose nested struct members are the new values its constructor created; they are filled in place.</param>
+        private static void FillXFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText, X value)
+        {
             // uint8 a
             value.A = source.Slice(0, 1)[0];
-            return value;
         }
 
         /// <summary>Reads one <c>Anon</c> from exactly its 2 bytes, each member at its constant offset (reached only through <c>ReadCursor.TryTakeFixed</c>).</summary>
@@ -1331,9 +1340,18 @@ namespace Demo
         private static Anon ReadAnonFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
         {
             var value = new Anon();
+            FillAnonFixed(source, trimFixedText, value);
+            return value;
+        }
+
+        /// <summary>Decodes one <c>Anon</c> from exactly its 2 bytes into a value just constructed, each member at its constant offset.</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <param name="value">A new value, whose nested struct members are the new values its constructor created; they are filled in place.</param>
+        private static void FillAnonFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText, Anon value)
+        {
             // uint16 v
             value.V = global::CStructSharp.Generated.Codec.ReadUInt16(source.Slice(0, 2), true);
-            return value;
         }
 
         /// <summary>Reads a <c>X *p</c> pointer: the address, then the target when pointers are followed.</summary>
