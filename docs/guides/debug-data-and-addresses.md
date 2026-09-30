@@ -10,7 +10,8 @@ This is useful for hex viewers, format inspectors, and error reports.
 
 Use `ParseWithDebug` when you need a struct's values and ranges together; it returns a `ParseResult` whose `Value`
 is the same `StructValue` that `Parse` returns and whose `Debug` list holds one `DebugData` record per value read.
-`ParseWithDebug`, like `Parse`, accepts only a path that selects one struct or union. `ReadValueWithDebug` does the
+`ParseWithDebug`, like `Parse`, accepts only a path that selects one struct (a root, a nested struct, or one element
+of a struct array). To read a union, an array or a scalar with its ranges, use `ReadValueWithDebug`: it does the
 same for any selection (a struct, a union, an array, one element, a scalar, a bitfield, a pointer, an enum or a
 string) and returns a `ReadResult` whose `Value` is what `ReadValue` returns. Use
 `ResolveAddress` when you need only the absolute stream position of one path. `DebugData` lives in the

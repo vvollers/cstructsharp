@@ -5,8 +5,8 @@ description: Read a complete layout or select one nested field, array element, u
 
 # Read values and paths
 
-Use `Parse` when you want a complete struct or union. Use `ReadValue` when you want one value, including a scalar
-field deep inside a larger layout.
+Use `Parse` when you want one complete struct. Use `ReadValue` when you want any other selection, such as a union,
+an array, or a scalar field deep inside a larger layout.
 
 Before starting, you should have:
 
