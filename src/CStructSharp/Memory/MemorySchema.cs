@@ -2,6 +2,7 @@ namespace CStructSharp.Memory;
 
 using System.Collections.ObjectModel;
 using System.Text;
+using CStructSharp.Addressing;
 using CStructSharp.Diagnostics;
 
 /// <summary>A validated, immutable graph of type definitions with explicit placement, compiled so the core codecs can decode its scalars.</summary>
@@ -34,8 +35,8 @@ public sealed class MemorySchema
     /// </summary>
     internal const int MaxDefinitionNestingDepth = 256;
 
-    private readonly Dictionary<string, CStruct> scalarLayouts = new(StringComparer.Ordinal);
-    private readonly Dictionary<(string Type, string Field), CStruct> bitLayouts = new();
+    private readonly Dictionary<string, MemoryScalarCodec> scalarLayouts = new(StringComparer.Ordinal);
+    private readonly Dictionary<(string Type, string Field), MemoryScalarCodec> bitLayouts = new();
     private readonly Dictionary<string, string> compiledNames = new(StringComparer.Ordinal);
 
     /// <summary>Snapshots, validates, and compiles a type graph. Placement comes from the definitions; nothing is inferred from the host.</summary>
@@ -206,12 +207,12 @@ public sealed class MemorySchema
     /// <returns>The scalar's own type name, or <c>uintN</c> with N the pointer's size in bits.</returns>
     internal static string CodecRoot(MemoryTypeDefinition type) => type.Kind == MemoryTypeKind.Pointer ? $"uint{type.Size * 8}" : type.ScalarType!;
 
-    /// <summary>Returns the codec compiled for a whole scalar, or for one field's bit slice when the field has a width.</summary>
+    /// <summary>Returns the codec prepared for a whole scalar, or for one field's bit slice when the field has a width.</summary>
     /// <param name="type">Scalar or pointer definition being decoded.</param>
     /// <param name="field">The selecting field, whose bit slice chooses a slice codec; null for a whole value.</param>
     /// <param name="parentId">ID of the containing type, which keys the slice codec together with the field name.</param>
-    /// <returns>The compiled one-value layout this schema prepared for the scalar or the bit slice.</returns>
-    internal CStruct GetCodec(MemoryTypeDefinition type, MemoryField? field = null, string? parentId = null)
+    /// <returns>The codec of the scalar or the bit slice: its one-value layout and its direct decoding.</returns>
+    internal MemoryScalarCodec GetCodec(MemoryTypeDefinition type, MemoryField? field = null, string? parentId = null)
     {
         return field?.BitWidth is not null ? this.bitLayouts[(parentId!, field.Name)] : this.scalarLayouts[type.Id];
     }
@@ -335,7 +336,7 @@ public sealed class MemorySchema
                 throw new CStructLayoutException($"Scalar size disagrees with codec for '{type.Id}'.");
             }
 
-            this.scalarLayouts.Add(type.Id, codec);
+            this.scalarLayouts.Add(type.Id, MemoryScalarCodec.ForValue(codec, root));
         }
         else if (type.Kind == MemoryTypeKind.Array)
         {
@@ -366,6 +367,13 @@ public sealed class MemorySchema
             if (type.Kind is not (MemoryTypeKind.Struct or MemoryTypeKind.Union) || !names.Add(field.Name) || field.Name.Length == 0)
             {
                 throw new CStructLayoutException($"Invalid or duplicate member in '{type.Id}'.");
+            }
+
+            if (!CStructPathResolver.IsIdentifier(field.Name))
+            {
+                // A session path names members with the layout path grammar, so a member it cannot spell is unreachable.
+                throw new CStructLayoutException(
+                    $"Member name '{field.Name}' in '{type.Id}' is not an identifier (a letter or underscore, then letters, digits and underscores), so no path can select it.");
             }
 
             MemoryTypeDefinition member = this.Reference(type, field.TypeId);
@@ -404,7 +412,8 @@ public sealed class MemorySchema
                     BitfieldPacking = BitfieldPacking.Msvc,
                     BitfieldAllocation = BitfieldAllocation.LowBitFirst,
                 };
-                this.bitLayouts.Add((type.Id, field.Name), new CStruct((member.Declaration ?? string.Empty) + $"\nstruct __bits {{ {padding} {storage} value:{width}; }};", pointerSize: (byte)this.PointerSize, isLittleEndian: littleEndian, compilationOptions: bitOptions));
+                var slice = new CStruct((member.Declaration ?? string.Empty) + $"\nstruct __bits {{ {padding} {storage} value:{width}; }};", pointerSize: (byte)this.PointerSize, isLittleEndian: littleEndian, compilationOptions: bitOptions);
+                this.bitLayouts.Add((type.Id, field.Name), MemoryScalarCodec.ForSlice(slice, field.BitOffset.Value, width));
 
                 // Translate the logical slice into physical bit intervals, one per byte it touches. Logical bit b of
                 // the storage integer lives in byte b/8 for little-endian, or in byte (size-1-b/8) for big-endian.

@@ -231,16 +231,15 @@ Carriage return and line feed end the directive: a name cannot start on the next
 ```ebnf
 path             = segment, { ".", segment } ;
 segment          = identifier, { indexer } ;
-indexer          = "[", canonical-decimal-index, "]" ;
-canonical-decimal-index
-                 = "0" | nonzero-decimal-digit, { decimal-digit } ;
+indexer          = "[", decimal-index, "]" ;
+decimal-index    = decimal-digit, { decimal-digit } ;
 pointer-accessor = ".address" | ".value" ;
 ```
 
 `pointer-accessor` describes the special meaning of an ordinary path segment after a pointer: `.address` selects
 pointer storage and `.value` consumes one pointer level. It is not a separate lexical token. A non-pointer field may
-therefore still be named `address` or `value`. Indices have no sign, whitespace, leading zero, base prefix, or
-underscore, and must fit a non-negative 32-bit integer. A segment mirrors its field's own declaration syntax: an
+therefore still be named `address` or `value`. Indices have no sign, whitespace, base prefix, or underscore, and
+must fit a non-negative 32-bit integer; leading zeros are allowed, so `[01]` is the same index as `[1]`. A segment mirrors its field's own declaration syntax: an
 N-dimensional array accepts up to N repeated `indexer`s in one segment (`root.matrix[2][3]`, not
 comma-separated), one per dimension, outermost first. Supplying fewer than N selects the corresponding
 lower-dimensional sub-array rather than one scalar/struct element; supplying more than N is rejected. See
@@ -347,8 +346,8 @@ The table explains each production and links to the page that defines its additi
 | `equality` | Integer equality and inequality comparisons |
 | `relational` | Ordered integer comparisons |
 | `segment` | Named path component with zero or more indices, one per dimension actually indexed |
-| `indexer` | Normalized decimal array index |
-| `canonical-decimal-index` | Formal production name for `0` or an unpadded positive decimal integer |
+| `indexer` | Decimal array index in brackets |
+| `decimal-index` | One or more decimal digits; leading zeros are allowed |
 | `pointer-accessor` | `.address`/`.value` selection after a pointer |
 
 Invalid combinations—unknown types, duplicate names, recursive by-value storage, bad enum backing,

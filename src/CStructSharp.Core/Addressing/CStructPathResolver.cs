@@ -25,12 +25,14 @@ internal static class CStructPathResolver
     /// <exception cref="CStructPathException">The path is empty or malformed.</exception>
     public static IReadOnlyList<PathSegment> Parse(string path)
     {
+        // The cache is looked up here rather than through a shared helper: every read of a path parses it, so a hit costs
+        // no extra call.
         if (path is not null && Cache.TryGetValue(path, out PathSegment[]? cached))
         {
             return cached;
         }
 
-        PathSegment[] segments = ParseUncached(path!);
+        PathSegment[] segments = ParseUncached(path!, relative: false);
         if (Cache.Count < CacheCapacity)
         {
             Cache.TryAdd(path!, segments);
@@ -39,7 +41,60 @@ internal static class CStructPathResolver
         return segments;
     }
 
-    private static PathSegment[] ParseUncached(string path)
+    /// <summary>
+    ///     Splits a path that starts inside a value rather than at a layout root, such as a memory session's path relative to
+    ///     a type: the layout grammar with one extension. An empty (or white-space) path selects the value itself and has
+    ///     no segments, and a path may start with indexes (<c>[2].next</c>), which form a first segment with an empty name.
+    /// </summary>
+    /// <param name="path">The case-sensitive relative path; surrounding white space is ignored.</param>
+    /// <returns>The segments in order; the shared list must not be modified.</returns>
+    /// <exception cref="CStructPathException">The path is malformed.</exception>
+    public static IReadOnlyList<PathSegment> ParseRelative(string path)
+        => string.IsNullOrWhiteSpace(path) ? Array.Empty<PathSegment>() : ParseRelativeCached(path);
+
+    /// <summary>Returns whether a name is a path identifier: a letter or underscore, then letters, digits and underscores.</summary>
+    /// <param name="name">The name.</param>
+    /// <returns>Whether a path can name it.</returns>
+    public static bool IsIdentifier(string name)
+    {
+        bool valid = name.Length > 0 && (char.IsLetter(name[0]) || name[0] == '_');
+        for (int index = 1; valid && index < name.Length; index++)
+        {
+            valid = char.IsLetterOrDigit(name[index]) || name[index] == '_';
+        }
+
+        return valid;
+    }
+
+    /// <summary>Parses a relative path through the relative cache, adding the result while the cache has room.</summary>
+    /// <param name="path">The relative path, not empty or white space.</param>
+    /// <returns>The segments.</returns>
+    /// <exception cref="CStructPathException">The path is malformed.</exception>
+    private static PathSegment[] ParseRelativeCached(string path)
+    {
+        if (RelativeCache.Paths.TryGetValue(path, out PathSegment[]? cached))
+        {
+            return cached;
+        }
+
+        PathSegment[] segments = ParseUncached(path, relative: true);
+        if (RelativeCache.Paths.Count < CacheCapacity)
+        {
+            RelativeCache.Paths.TryAdd(path, segments);
+        }
+
+        return segments;
+    }
+
+    /// <summary>
+    ///     Splits a path at its dots into segments, each a name followed by any number of <c>[n]</c> indexes, after trimming
+    ///     surrounding white space.
+    /// </summary>
+    /// <param name="path">The path.</param>
+    /// <param name="relative">Whether the first segment may have an empty name when it starts with an index.</param>
+    /// <returns>The segments.</returns>
+    /// <exception cref="CStructPathException">The path is empty or malformed.</exception>
+    private static PathSegment[] ParseUncached(string path, bool relative)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -77,7 +132,10 @@ internal static class CStructPathResolver
             else
             {
                 string name = raw.Substring(0, bracketStart);
-                ValidateIdentifier(name, path);
+                if (!(relative && segmentIndex == 0 && name.Length == 0))
+                {
+                    ValidateIdentifier(name, path);
+                }
 
                 // Repeated brackets - matrix[2][3] - mirror declaration syntax; each pair is its own dimension's index.
                 var indexes = new List<int>();
@@ -97,7 +155,8 @@ internal static class CStructPathResolver
 
                     string indexText = raw.Substring(position + 1, bracketEnd);
 
-                    // Only non-negative decimal indexes that fit Int32 are part of the public path grammar.
+                    // Only non-negative decimal indexes that fit Int32 are part of the public path grammar; leading
+                    // zeros are allowed (`[01]` selects element 1).
                     if (indexText.Length == 0 ||
                         !AllDecimalDigits(indexText) ||
                         !int.TryParse(indexText, NumberStyles.None, CultureInfo.InvariantCulture, out int index))
@@ -123,6 +182,9 @@ internal static class CStructPathResolver
         return segments;
     }
 
+    /// <summary>Returns whether every character is an ASCII decimal digit.</summary>
+    /// <param name="text">The index text between the brackets.</param>
+    /// <returns>Whether the text holds digits only.</returns>
     private static bool AllDecimalDigits(string text)
     {
         foreach (char character in text)
@@ -136,17 +198,26 @@ internal static class CStructPathResolver
         return true;
     }
 
+    /// <summary>Rejects a segment name that is not an identifier (<see cref="IsIdentifier"/>).</summary>
+    /// <param name="name">The segment's name.</param>
+    /// <param name="completePath">The whole path, named in the failure.</param>
+    /// <exception cref="CStructPathException">The name is not an identifier.</exception>
     private static void ValidateIdentifier(string name, string completePath)
     {
-        bool valid = name.Length > 0 && (char.IsLetter(name[0]) || name[0] == '_');
-        for (int index = 1; valid && index < name.Length; index++)
-        {
-            valid = char.IsLetterOrDigit(name[index]) || name[index] == '_';
-        }
-
-        if (!valid)
+        if (!IsIdentifier(name))
         {
             throw new CStructPathException($"Invalid path name '{name}' in '{completePath}'.");
         }
+    }
+
+    /// <summary>
+    ///     The cache of relative paths, created on first use so a process that never parses one does not allocate it. It
+    ///     is separate from the layout cache: <c>[1]</c> is a relative path but not a layout path, so one shared cache could
+    ///     hand a layout operation a path its grammar rejects.
+    /// </summary>
+    private static class RelativeCache
+    {
+        /// <summary>The parsed relative paths, by exact text.</summary>
+        public static readonly ConcurrentDictionary<string, PathSegment[]> Paths = new(StringComparer.Ordinal);
     }
 }

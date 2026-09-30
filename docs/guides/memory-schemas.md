@@ -80,6 +80,8 @@ lets you write `record.flag` when `flag` lives in an unnamed inner union.
 The `MemorySchema` constructor validates the whole graph before it returns:
 
 - every referenced ID must exist, and a scalar's declared size must equal its codec's size;
+- every member name must be an identifier (a letter or underscore, then letters, digits and underscores), because
+  a path names members that way;
 - every member must fit inside its container, and an array's size must equal element size times count;
 - struct members must not overlap (two bit slices may share one storage unit as long as their bits are disjoint);
 - a type may not contain itself by value, directly or through other types, because that would need infinite

@@ -124,7 +124,7 @@ in nested input dictionaries. The resulting bytes are `[2, 31, 32, 41, 42, 99]`:
 padding occupies offsets 1–2, values occupy offsets 3–4, and the tail is at offset 5. The count describes elements,
 not bytes; these arrays happen to have one-byte elements.
 
-Paths use dot-separated names and one unpadded non-negative decimal index per selected array dimension, for example
+Paths use dot-separated names and one non-negative decimal index per selected array dimension, for example
 `root.items[2].value` or `root.matrix[1][2]`. Empty segments, signs, trailing text, too many indices, and indices on
 non-arrays produce `CStructPathException`. See [multidimensional paths](paths-and-selection.md#multidimensional-arrays).
 

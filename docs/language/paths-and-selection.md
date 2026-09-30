@@ -22,14 +22,14 @@ Paths and layout names are case-sensitive.
 ## Segments and indices
 
 Each dot-separated part is a *segment*. A segment may contain zero or more array indices, one per repeated `[...]`
-in the field's own declaration (`root.matrix[2][3]`, not comma-separated). Each index is zero or an unpadded
-positive decimal integer that fits `Int32`.
+in the field's own declaration (`root.matrix[2][3]`, not comma-separated). Each index is a non-negative decimal
+integer that fits `Int32`; leading zeros are allowed.
 
 | Path | Result |
 | --- | --- |
 | `root.items[0]` | Valid first element |
 | `root.items[12].value` | Valid nested field |
-| `root.items[01]` | `InvalidPath`; leading zero |
+| `root.items[01]` | Valid; the same element as `root.items[1]` |
 | `root.items[-1]` | `InvalidPath`; signs are not allowed |
 | `root.items[0x1]` | `InvalidPath`; decimal only |
 | `root.items[1][2]` | `InvalidPath`; `items` has only one dimension |

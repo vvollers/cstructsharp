@@ -32,8 +32,10 @@ Given `struct Node { uint32 value; Node *next; };`, a path has one of these mean
 | `next.value.value` | The target node's member named `value` |
 
 The first `value` after `next` is an accessor that means "follow the pointer"; the second is the member name.
-`address` must end a path. Arrays use zero-based indexes such as `nodes[2].next.value.value`. An empty path selects
-the root. Null pointers, opaque pointers, and pointers to incomplete targets cannot be dereferenced. An *opaque
+`address` must end a path. Arrays use zero-based indexes such as `nodes[2].next.value.value`. A memory path uses the
+[layout path grammar](../language/paths-and-selection.md) relative to the type you name: it starts with a member
+of that type instead of a root name, an empty path selects the value itself, and a path may start with an index
+when the type is an array (`[2].next`). Null pointers, opaque pointers, and pointers to incomplete targets cannot be dereferenced. An *opaque
 pointer* is a pointer with no target type (its `ElementTypeId` is null), like C's `void *`: it records an address
 but not what lives there. The stored value of such a pointer is still readable and often still useful.
 A path may follow at most `MaxPointerDepth` pointers (64 by default, set on the `MemoryAccessContext`); a path

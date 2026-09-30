@@ -14,7 +14,9 @@ The `defaults` are the `MemoryAccessContext` limits (`maxTotalBytes`, `maxReques
 `maxPointerDepth`; nesting and pointer depth match the core `ReadOptions`) and the cache, overlay, and importer
 budgets. Definition graphs may nest 256 levels, the core's default layout nesting limit. A `RawBytes` type has a
 known size but no usable members and is read and written as a raw `byte[]`; an opaque pointer is a `Pointer`
-with no target type (like C's `void *`) and cannot be followed.
+with no target type (like C's `void *`) and cannot be followed. A session path uses the layout path grammar
+relative to the type it names (an empty path is the value itself, and a path may start with an array index), so
+every member name must be an identifier.
 
 Failures follow `failureRules`: memory analysis uses the core `CStructException` hierarchy, so a memory access
 failure is a `CStructReadException`, and paths, values, and definitions fail with `CStructPathException`,

@@ -670,10 +670,10 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Addressing/CStructPathResolver.cs",
-   "sourceSha256": "11670c02b2dbde9b1587bcea26c2b88346fc41b21308d943a3c1db7a16ad7f71",
+   "sourceSha256": "ea4a97cb405bcc7a505a157cafc3dc92d708043e6e3c22a8e87af126b8dcf780",
    "mutants": [
     { "mutatorName": "Block removal mutation", "replacement": "{}",
-     "location": {"start":{"line":29,"column":9},"end":{"line":31,"column":10}},
+     "location": {"start":{"line":31,"column":9},"end":{"line":33,"column":10}},
      "reason": "Removing the cache-hit return reparses the identical immutable string with the same deterministic ParseUncached routine. Production consumers use only names and index values, never segment-array identity, and do not mutate the cached arrays. Cache hits can only exist for previously valid strings; null and invalid input follow the unchanged validation path. Only parsing/allocation work differs." }
    ]
   },

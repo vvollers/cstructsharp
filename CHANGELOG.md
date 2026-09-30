@@ -108,6 +108,12 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   adapter instead of `exports.CStructSharpWeb.Wasm.CStructExports`, or use the public `parse`/`parseWithDebug`.
 - **Breaking (npm raw adapter):** `parseSource(definition, source, options, debug)` requires `options` (or `null`) and
   `debug`; an omitted `debug` no longer means `true`. Migration: pass `null` and an explicit `true` or `false`.
+- **Breaking (memory analysis):** `MemorySession` paths use the layout path grammar and its messages, relative to the
+  type they name: an empty path is the value itself and a path may start with an array index (`[2].next`). Surrounding
+  white space is ignored; `a.[1]`, a member name that is not an identifier (`bad-name`, `a b`) and an index with a
+  trailing NUL character are rejected. A `MemorySchema` rejects a member whose name is not an identifier (a letter or
+  underscore, then letters, digits and underscores). Migration: rename such members in the metadata (for example
+  replace other characters with `_`) and write `a[1]` for `a.[1]`.
 
 ### Added
 
@@ -188,6 +194,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - The async reads, `ResolveAddress` and `GetArrayLength` over a span, a nested memory parse and each record of a
   memory sequence run the engine straight over the bytes instead of a stream wrapped around them: `ParseAsync` of a
   small record from a `MemoryStream` is about 4 % faster and allocates 13 % less.
+- Memory sessions decode a fixed-width number, enum or pointer, and a bit slice of one, straight from its bytes with
+  the engine's codec instead of reading it through a one-member layout.
 
 ### Documentation and tooling
 
@@ -266,6 +274,7 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   options and `root` sends a parse to WASM, and NaN and infinities stay on the JavaScript path.
 - Library source folders match their namespaces' roles: engine-only types live in `Engine/`, the codec table in
   `Codecs/`, and the value rules every write shares in `Writing/`; the permanent mutation scope covers 138 files.
+- The path grammar documents leading zeros in an index as accepted (`[01]` is `[1]`), as the parser always did.
 
 ## 0.10.0 — 2026-09-26
 

@@ -1,8 +1,10 @@
 namespace CStructSharp.Memory;
 
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Numerics;
+using CStructSharp.Addressing;
 using CStructSharp.Diagnostics;
 using CStructSharp.Reading;
 using CStructSharp.Values;
@@ -42,6 +44,15 @@ using CStructSharp.Values;
 /// </remarks>
 public sealed class MemorySession
 {
+    /// <summary>The number of distinct paths whose steps <see cref="Steps"/> keeps; later paths are split on every use.</summary>
+    private const int StepCacheCapacity = 256;
+
+    /// <summary>
+    ///     The steps of the paths resolved so far, by exact path text: paths are usually repeated literals, so a resolution
+    ///     reuses their steps instead of splitting the path again. Bounded so generated paths cannot grow it without limit.
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, PathStep[]> StepCache = new(StringComparer.Ordinal);
+
     private readonly Func<PointerRequest, MemoryRegion> resolver;
 
     /// <summary>Creates a session over a compiled schema, optionally with a custom pointer resolver.</summary>
@@ -164,7 +175,7 @@ public sealed class MemorySession
             int nesting = 0;
             int pointerSteps = 0;
             bool addressSelected = false;
-            foreach (string segment in Tokenize(path))
+            foreach (PathStep step in Steps(path))
             {
                 if (addressSelected)
                 {
@@ -176,14 +187,14 @@ public sealed class MemorySession
                 MemoryTypeDefinition type = selected.Type;
                 if (type.Kind == MemoryTypeKind.Pointer)
                 {
-                    if (segment == "address")
+                    if (step.Member == "address")
                     {
                         // Address selection retains StoredPointer semantics so writes cannot accidentally encode a resolved target.
                         addressSelected = true;
                         continue;
                     }
 
-                    if (segment != "value" || type.ElementTypeId is null)
+                    if (step.Member != "value" || type.ElementTypeId is null)
                     {
                         throw new CStructPathException("A typed pointer path must use '.value'; opaque pointers cannot be followed.");
                     }
@@ -209,9 +220,9 @@ public sealed class MemorySession
                     container = selected.Region;
                     nesting = 0;
                 }
-                else if (segment.StartsWith('[') && type.Kind == MemoryTypeKind.Array)
+                else if (step.Member is null && type.Kind == MemoryTypeKind.Array)
                 {
-                    int index = int.Parse(segment.AsSpan(1, segment.Length - 2), NumberStyles.None, CultureInfo.InvariantCulture);
+                    int index = step.Index;
                     if (index >= type.Count)
                     {
                         // As in the core path resolver, an index past the declared count is a path error.
@@ -222,14 +233,14 @@ public sealed class MemorySession
                     selected = new MemorySelection(selected.Region.Slice(checked(index * element.Size), element.Size), element, null, null);
                     container = selected.Region;
                 }
-                else if (type.Kind is MemoryTypeKind.Struct or MemoryTypeKind.Union)
+                else if (step.Member is not null && type.Kind is MemoryTypeKind.Struct or MemoryTypeKind.Union)
                 {
                     container = selected.Region;
-                    selected = this.FindMember(selected, segment, context, nesting);
+                    selected = this.FindMember(selected, step.Member, context, nesting);
                 }
                 else
                 {
-                    throw new CStructPathException($"Cannot traverse '{segment}' through '{type.Id}'.");
+                    throw new CStructPathException($"Cannot traverse '{step}' through '{type.Id}'.");
                 }
             }
 
@@ -320,8 +331,7 @@ public sealed class MemorySession
             if (selected.Field?.BitWidth is not null)
             {
                 // A bit slice is patched in place with the core's masked update, never re-encoded as a whole integer.
-                CStruct codec = this.Schema.GetCodec(selected.Type, selected.Field, selected.ParentTypeId);
-                codec.Update(bytes, "__bits.value", EncodeBits(selected.Field, value));
+                this.Schema.GetCodec(selected.Type, selected.Field, selected.ParentTypeId).Layout.Update(bytes, "__bits.value", EncodeBits(selected.Field, value));
             }
             else
             {
@@ -359,65 +369,54 @@ public sealed class MemorySession
     /// <param name="request">The pointer being followed and where it was found.</param>
     private static MemoryRegion ResolveAbsolute(PointerRequest request) => new(request.Storage.Source, request.Pointer.Address, request.TargetSize);
 
-    /// <summary>Splits a path into member names and bracketed indexes, rejecting anything malformed.</summary>
-    /// <remarks>Tokenizing is independent of types and bytes; <see cref="Resolve"/> later decides whether a token
-    /// is a member, an element, or a pointer accessor. Rejecting empty components, stray separators, and
-    /// non-numeric indexes here means a typo can never fall through to a neighboring but wrong selection.</remarks>
+    /// <summary>
+    ///     Splits a path into the steps the resolution takes: each member name, then each of its indexes. The path uses the
+    ///     layout path grammar relative to the selected type (<see cref="CStructPathResolver.ParseRelative"/>): an empty
+    ///     path is the value itself, and a path may start with an index of an array value.
+    /// </summary>
+    /// <remarks>Parsing is independent of types and bytes; <see cref="Resolve"/> later decides whether a member step is a
+    /// member or a pointer accessor, and whether an index fits. Rejecting malformed paths here means a typo can never fall
+    /// through to a neighboring but wrong selection.</remarks>
     /// <param name="path">Path text; empty means the root value.</param>
-    /// <returns>Tokens in order: member names and <c>[n]</c> index strings.</returns>
+    /// <returns>The steps in order; the shared array must not be modified.</returns>
     /// <exception cref="CStructPathException">The path is malformed.</exception>
-    private static IReadOnlyList<string> Tokenize(string path)
+    private static PathStep[] Steps(string path)
     {
-        if (path.Length == 0)
+        if (StepCache.TryGetValue(path, out PathStep[]? cached))
         {
-            return Array.Empty<string>();
+            return cached;
         }
 
-        var result = new List<string>();
-        int position = 0;
-        while (position < path.Length)
+        IReadOnlyList<PathSegment> segments = CStructPathResolver.ParseRelative(path);
+        int count = 0;
+        for (int index = 0; index < segments.Count; index++)
         {
-            int start = position;
-            if (path[position] == '[')
-            {
-                int end = path.IndexOf(']', position);
-                if (end < 0 || !int.TryParse(path.AsSpan(position + 1, end - position - 1), NumberStyles.None, CultureInfo.InvariantCulture, out _))
-                {
-                    throw new CStructPathException("Invalid array index.");
-                }
+            count += (segments[index].Name.Length > 0 ? 1 : 0) + segments[index].Indexes.Count;
+        }
 
-                position = end + 1;
-            }
-            else
+        PathStep[] steps = count == 0 ? [] : new PathStep[count];
+        int next = 0;
+        for (int index = 0; index < segments.Count; index++)
+        {
+            // A relative path's leading indexes form a first segment with no name.
+            PathSegment segment = segments[index];
+            if (segment.Name.Length > 0)
             {
-                while (position < path.Length && path[position] is not ('.' or '['))
-                {
-                    position++;
-                }
-
-                if (position == start)
-                {
-                    throw new CStructPathException("Empty path component.");
-                }
+                steps[next++] = new PathStep(segment.Name, 0);
             }
 
-            result.Add(path[start..position]);
-
-            // After a token comes either a '.', a '[' (starting an index), or the end of the path.
-            if (position < path.Length && path[position] == '.')
+            for (int dimension = 0; dimension < segment.Indexes.Count; dimension++)
             {
-                if (++position == path.Length)
-                {
-                    throw new CStructPathException("Trailing path separator.");
-                }
-            }
-            else if (position < path.Length && path[position] != '[')
-            {
-                throw new CStructPathException("Missing path separator.");
+                steps[next++] = new PathStep(null, segment.Indexes[dimension]);
             }
         }
 
-        return result;
+        if (StepCache.Count < StepCacheCapacity)
+        {
+            StepCache.TryAdd(path, steps);
+        }
+
+        return steps;
     }
 
     /// <summary>Range-checks a bit-slice input and converts it to the unsigned bit pattern the core updater expects.</summary>
@@ -522,8 +521,7 @@ public sealed class MemorySession
             // The scalar's bytes go to the core codec as a span; a bit slice uses its own slice codec.
             Span<byte> bytes = type.Size <= 64 ? stackalloc byte[type.Size] : new byte[type.Size];
             selected.Region.ReadExactly(bytes, context);
-            CStruct codec = this.Schema.GetCodec(type, selected.Field, selected.ParentTypeId);
-            object value = codec.ReadValue(bytes, selected.Field?.BitWidth is null ? MemorySchema.CodecRoot(type) : "__bits.value")!;
+            object value = this.Schema.GetCodec(type, selected.Field, selected.ParentTypeId).Decode(bytes);
             if (type.Kind == MemoryTypeKind.Pointer)
             {
                 return new StoredPointer(Convert.ToUInt64(value, CultureInfo.InvariantCulture), type.Size);
@@ -618,7 +616,7 @@ public sealed class MemorySession
         }
 
         // The core's typed-array rule (PrimitiveArrayReader), keyed by the decoded element's managed type.
-        object? sample = values.Length > 0 ? values[0] : this.Schema.GetCodec(element).ReadValue(new byte[element.Size], MemorySchema.CodecRoot(element));
+        object? sample = values.Length > 0 ? values[0] : this.Schema.GetCodec(element).Decode(new byte[element.Size]);
         return (sample is null ? null : PrimitiveArrayReader.FromBoxed(sample.GetType(), values)) ?? new List<object?>(values);
     }
 
@@ -659,7 +657,7 @@ public sealed class MemorySession
             }
 
             // The schema checked that the codec's size is the metadata extent, so it writes exactly the destination.
-            int written = this.Schema.GetCodec(type).Serialize(destination, MemorySchema.CodecRoot(type), scalar);
+            int written = this.Schema.GetCodec(type).Layout.Serialize(destination, MemorySchema.CodecRoot(type), scalar);
             if (written != destination.Length)
             {
                 throw new CStructWriteException($"Codec output for '{type.Id}' differs from the metadata extent.");
@@ -763,12 +761,22 @@ public sealed class MemorySession
         Span<byte> target = destination.Slice(field.Offset, member.Size);
         if (field.BitWidth is not null)
         {
-            this.Schema.GetCodec(member, field, parent.Id).Update(target, "__bits.value", EncodeBits(field, value));
+            this.Schema.GetCodec(member, field, parent.Id).Layout.Update(target, "__bits.value", EncodeBits(field, value));
             context.Charge(null, null, target.Length);
         }
         else
         {
             this.Encode(member, value, target, context, depth + 1);
         }
+    }
+
+    /// <summary>One step of a resolution: a member (or pointer accessor) name, or an array index.</summary>
+    /// <param name="Member">The member or accessor name, or <see langword="null"/> for an index.</param>
+    /// <param name="Index">The array index, when <paramref name="Member"/> is <see langword="null"/>.</param>
+    private readonly record struct PathStep(string? Member, int Index)
+    {
+        /// <summary>Returns the step as a path spells it: the member name, or <c>[n]</c>.</summary>
+        /// <returns>The step's text.</returns>
+        public override string ToString() => this.Member ?? string.Create(CultureInfo.InvariantCulture, $"[{this.Index}]");
     }
 }
