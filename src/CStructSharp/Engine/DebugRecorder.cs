@@ -41,10 +41,9 @@ internal sealed class DebugRecorder
 
     /// <summary>
     ///     Gets the conditional-layout trace, or <see langword="null"/> when the recorder keeps none: one entry per
-    ///     conditional member in the order the members were decided, holding the member's declaration name, the position
-    ///     at which it was decided, and 1 when it was active or 0 when it was not.
+    ///     conditional member in the order the members were decided.
     /// </summary>
-    public List<(string Path, long Start, long End)>? Trace { get; }
+    public List<ConditionalSelection>? Trace { get; }
 
     /// <summary>Gets or sets the path of the composite whose members are being read; <see langword="null"/> outside every composite (a root field).</summary>
     public DebugPath? Path { get; set; }
@@ -137,7 +136,7 @@ internal sealed class DebugRecorder
         if (this.Trace is { } trace)
         {
             this.condition = trace.Count;
-            trace.Add((field.Declaration.Name.Name, position, 0L));
+            trace.Add(new ConditionalSelection(field.Declaration.Name.Name, position, Active: false));
         }
     }
 
@@ -146,27 +145,24 @@ internal sealed class DebugRecorder
     {
         if (this.Trace is { } trace)
         {
-            (string path, long start, _) = trace[this.condition];
-            trace[this.condition] = (path, start, 1L);
+            trace[this.condition] = trace[this.condition] with { Active = true };
         }
     }
 
     /// <summary>
-    ///     Returns what an update compares before and after its change: each record's path and range, then the trace
-    ///     entries.
+    ///     Returns what an update compares before and after its change: each record's path and range, and the trace, which
+    ///     the capture takes over.
     /// </summary>
-    /// <returns>The records' paths and ranges followed by the trace.</returns>
-    public (string Path, long Start, long End)[] Layout()
+    /// <returns>The records' paths and ranges and the trace (empty when the recorder keeps none).</returns>
+    public CapturedLayout Layout()
     {
-        int traced = this.Trace?.Count ?? 0;
-        var layout = new (string Path, long Start, long End)[this.Records.Count + traced];
+        var ranges = new LayoutRange[this.Records.Count];
         for (int index = 0; index < this.Records.Count; index++)
         {
             DebugData record = this.Records[index];
-            layout[index] = (record.Path, record.Start, record.End);
+            ranges[index] = new LayoutRange(record.Path, record.Start, record.End);
         }
 
-        this.Trace?.CopyTo(layout, this.Records.Count);
-        return layout;
+        return new CapturedLayout(ranges, this.Trace ?? []);
     }
 }

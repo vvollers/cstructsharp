@@ -1,4 +1,4 @@
-namespace CStructSharp.Reading;
+namespace CStructSharp.Engine;
 
 using System;
 using System.Collections.Generic;

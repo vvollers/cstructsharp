@@ -45,10 +45,10 @@ internal static partial class ReadEngine
     /// <param name="program">The root's debug program.</param>
     /// <param name="slots">The operation's initialized variable slots; the caller disposes them.</param>
     /// <param name="options">The read settings.</param>
-    /// <returns>Each value's path and byte range, then each conditional member's name, position and selection (1 or 0).</returns>
+    /// <returns>Each value's path and byte range, and each conditional member's selection.</returns>
     /// <exception cref="ArgumentException"><paramref name="stream"/> cannot read or seek.</exception>
     /// <exception cref="CStructException">The data cannot be read.</exception>
-    public static (string Path, long Start, long End)[] CaptureLayout(CStruct layout, Stream stream, long origin, ReadProgram program, VariableSlots slots, in ReadOperationSettings options)
+    public static CapturedLayout CaptureLayout(CStruct layout, Stream stream, long origin, ReadProgram program, VariableSlots slots, in ReadOperationSettings options)
     {
         stream.Position = origin;
         ReadOperationSettings.Validate(stream, options);
@@ -446,7 +446,7 @@ internal static partial class ReadEngine
         for (int index = 0; index < count; index++)
         {
             long start = cursor.Position;
-            EnumValueResult value = CStruct.CreateEnumValue(enumType, ReadCodecValue(ref cursor, codec, scratch));
+            EnumValueResult value = ValueDecoding.CreateEnumValue(enumType, ReadCodecValue(ref cursor, codec, scratch));
             debug.Record(start, cursor.Position, path, value.Value, typeName);
             elements.Add(value);
         }
@@ -591,7 +591,7 @@ internal static partial class ReadEngine
     private static List<object?> CharacterRows(ref ReadEngineState state, CompiledField member, char[] characters)
     {
         // The capacity divides by the row size, so a zero-length row fails here.
-        int[] sizes = CStruct.FixedDimensionSizes(member);
+        int[] sizes = ValueDecoding.FixedDimensionSizes(member);
         int rowSize = sizes[^1];
         var rows = new List<object?>(characters.Length / rowSize);
         for (int start = 0; start < characters.Length; start += rowSize)
@@ -605,6 +605,6 @@ internal static partial class ReadEngine
             rows.Add(text);
         }
 
-        return CStruct.ReshapeFlatArrayValues(rows, sizes[..^1]);
+        return ValueDecoding.ReshapeFlatArrayValues(rows, sizes[..^1]);
     }
 }

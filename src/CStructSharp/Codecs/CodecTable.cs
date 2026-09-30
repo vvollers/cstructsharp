@@ -1,9 +1,8 @@
-namespace CStructSharp.Reading;
+namespace CStructSharp.Codecs;
 
 using System;
 using System.Collections.Immutable;
 using System.IO;
-using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 
 /// <summary>

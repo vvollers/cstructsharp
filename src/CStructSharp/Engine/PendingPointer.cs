@@ -1,4 +1,4 @@
-namespace CStructSharp.Reading;
+namespace CStructSharp.Engine;
 
 using CStructSharp.Compilation;
 using CStructSharp.Compilation.Programs;

@@ -471,7 +471,7 @@ internal static partial class ReadEngine
                     break;
 
                 case ReadOpCode.ReadEnum:
-                    last = CStruct.CreateEnumValue(program.Enums[step.B], ReadCodecValue(ref cursor, program.Codecs[step.A].Primitive, scratch));
+                    last = ValueDecoding.CreateEnumValue(program.Enums[step.B], ReadCodecValue(ref cursor, program.Codecs[step.A].Primitive, scratch));
                     Store(destination, program, field, last);
                     break;
 

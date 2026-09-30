@@ -45,15 +45,6 @@
    ]
   },
   {
-   "pattern": "Codecs/PrimitiveCodecs.cs",
-   "sourceSha256": "c8fc60cf5d6e8613de7ab49fe82d3bbe8fe52b588ab7db1dfcc093f81ede9cf1",
-   "mutants": [
-    { "mutatorName": "Remove checked expression", "replacement": "(long)valueBytes + terminatorBytes",
-     "location": {"start":{"line":341,"column":37},"end":{"line":341,"column":80}},
-     "reason": "Both Encoding.GetByteCount results are nonnegative Int32 values. The left operand is widened to Int64 before addition, so their sum is at most 2 * Int32.MaxValue, far below Int64.MaxValue. Removing checked from this sum cannot change overflow behavior, budget validation or the later allocation." }
-   ]
-  },
-  {
    "pattern": "**/CStructSharp.Core/Expressions/LayoutVariableResolver.cs",
    "sourceSha256": "04278dce21930ff9ff1c805c78205ad21c09051b0b44b2557c30a56582132aed",
    "mutants": [
@@ -373,31 +364,19 @@
   },
   {
    "pattern": "CStructWriter.cs",
-   "sourceSha256": "0aa21d838c55104a46e3f2f73d840b0132b93ba9693687637de1193e20ba7bd1",
+   "sourceSha256": "73728b92fecfb59f37cec397a6b5c72d24a5cec30b2624af446d6977f2348b72",
    "mutants": [
-    { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":86,"column":13},"end":{"line":86,"column":20}},
-     "reason": "UnionValue is sealed and implements IReadOnlyDictionary, not either mutable IDictionary interface inspected by WriteDataBinding.EnumerateMemberNames and TryGetMemberValue. Removing this early return therefore enumerates an empty name array; nested named fields also fail TryGetMemberValue without calling into the union value. Promoted composites recurse only over their finite inline declaration tree with that same unrecognized data object, reaching the same empty lookups. No caller callbacks, value validation or stream operations occur. WriteUnion still performs the actual union-name, storage-size and selected-member checks afterwards. This qualification does not apply to removing those validations." },
-    { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":141,"column":17},"end":{"line":141,"column":23}},
-     "reason": "This rethrow is inside catch (CStructException exception) when (exception.NoteMember(...)). The nonvirtual CStructException.NoteMember method attaches the innermost member context and unconditionally returns false. The exception therefore continues unwinding without entering this catch body. Removing its unreachable throw preserves the filter call, context attachment and original exception propagation. This qualification does not apply to the following conditional-scope CompleteField call or any cancellation checkpoint." },
     { "mutatorName": "Logical mutation", "replacement": "rootData is not null || !WriteDataBinding.IsMemberSource(rootData)",
-     "location": {"start":{"line":518,"column":13},"end":{"line":518,"column":79}},
+     "location": {"start":{"line":340,"column":13},"end":{"line":340,"column":79}},
      "reason": "This changes only the preliminary eligibility check for selected-path root materialization. Non-null non-member sources already take the same branch. The additional cases are null and member-source dictionaries: WriteDataBinding.Materialize returns those exact inputs immediately, before allocating a StructValue or invoking a mapper. IsMemberSource uses only interface type tests, so checking null has no callback. TryGetRootComposite examines the immutable root declaration and, for a compiled Struct or inline-struct typedef, reads its already-bound descriptor from the private symbol table; other roots return false. Neither extra lookup nor the early-return materialization changes caller data, state or failure behavior. The later path lookup and field writer therefore receive the same object (including null). This does not qualify removal of the distinct whole-composite null rejection in the write engine." },
-    { "mutatorName": "Boolean mutation", "replacement": "true",
-     "location": {"start":{"line":47,"column":20},"end":{"line":47,"column":25}},
-     "reason": "Every caller of SuppliesAnyPromotedMember (its own recursion and the compiled write engine's union selection) first requires membership in a compiled composite's PromotedFields set. That set contains only anonymous inline Struct declarations. CompileComposite resolves these declarations through compositeSymbols, completes and binds their CompiledCompositeType before publishing the parent model; the immutable field keeps that symbol. Thus promoted.Type.Symbol.Definition is always a CompiledCompositeType here, and the defensive non-composite return cannot execute. Changing only its boolean cannot affect recursive member selection." },
-    { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":59,"column":17},"end":{"line":59,"column":26}},
-     "reason": "The recursive promoted-member branch applies only to anonymous inline Struct declarations in PromotedFields. Their empty declaration names are preserved by effective-field compilation and placement. If recursion finds no supplied named leaf, removing this continue only reaches the next name.Length > 0 guard with an empty name. It short-circuits without consulting caller data and proceeds to the same next member. A successful recursion still returns true before this statement. The nonempty-name guard remains required and is not qualified by this proof." },
     { "mutatorName": "String mutation", "replacement": "\"\"",
-     "location": {"start":{"line":245,"column":45},"end":{"line":245,"column":77}},
+     "location": {"start":{"line":74,"column":45},"end":{"line":74,"column":77}},
      "reason": "WritePrimitiveValue has three callers. WriteSingleFieldValue first handles pointers, bitfields, enums and composites, then rejects HasCodec=false before calling it. WriteFixedCharArray handles bounded and wide text separately; its remaining per-character caller has the compiled built-in char codec. The compiled engine calls it only for a LEB128 or variable-size custom value in update staging, from a program whose compiler refused any field without a codec writer. BuildCodecTable fills every canonical id with a non-null writer and appends a non-null adapter delegate for every validated custom registration. Thus both callers supply an existing writer. A custom writer may throw, but cannot make its registered delegate null. The separate reachable no-handler error for a void alias is unaffected." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":466,"column":17},"end":{"line":466,"column":66}},
+     "location": {"start":{"line":288,"column":17},"end":{"line":288,"column":66}},
      "reason": "PrepareWrite rejects blank paths before ParsePath. CStructPathResolver.ParseUncached starts segmentCount at one and either throws or returns an array of that positive length. Both successful TryCreateSyntheticRoot branches return exactly one segment; false branches cannot replace the parsed result. The two private caches only store these successful results, and no caller changes their length. Therefore ParsePath cannot return an empty segment list to this writer. Removing only the second, unreachable empty-list throw changes neither accepted paths nor the earlier empty-path diagnostic." },
     { "mutatorName": "String mutation", "replacement": "\"\"",
-     "location": {"start":{"line":466,"column":48},"end":{"line":466,"column":64}},
+     "location": {"start":{"line":288,"column":48},"end":{"line":288,"column":64}},
      "reason": "PrepareWrite rejects blank paths before ParsePath. The ordinary path parser returns an array with at least one segment or throws; successful synthetic roots contain exactly one segment. Their private caches retain only these nonempty results. Thus the second empty-list guard cannot be reached, and changing only its diagnostic string has no observable effect. The earlier reachable empty-path exception remains unchanged." }
    ]
   },
@@ -876,15 +855,6 @@
    ]
   },
   {
-   "pattern": "CStructValueDecoding.cs",
-   "sourceSha256": "b7639e925e12af55bb58afbb003a50ce4e22ad20ff9c75c994f9c5a86e772671",
-   "mutants": [
-    { "mutatorName": "String mutation", "replacement": "\"\"",
-     "location": {"start":{"line":58,"column":68},"end":{"line":58,"column":123}},
-     "reason": "FixedDimensionSizes is called only from the multidimensional branches of the engine's reader and writer. CompileArrayShape rejects dependencies in every dimension of an array with more than one dimension, evaluates each count, and stores each result in CompiledArrayDimension.FixedCount. Peeling retains those fixed counts and placement preserves the array shape. Thus every multidimensional array reaching this helper has a non-null count for each dimension and a non-null total unless checked multiplication throws first. Changing only this unreachable missing-count message does not affect counts, overflow checks, decoding, writing or diagnostics." }
-   ]
-  },
-  {
    "pattern": "Writing/WriteOptionSnapshots.cs",
    "sourceSha256": "fe4692099cb7845afd81d4f2dbf39f2b3f2e0fbb48d583e92056f76fe9827cd5",
    "mutants": [
@@ -993,6 +963,42 @@
     { "mutatorName": "CoalesceAssignmentExpression to SimpleAssignmentExpression mutation", "replacement": "decoded = new char[Chunk + 2]",
      "location": {"start":{"line":159,"column":13},"end":{"line":159,"column":44}},
      "reason": "decoded is a private output-only scratch buffer passed to Decoder.Convert; its contents and output counts are never consumed. Decoder state is held by the separate decoder object, and the returned string is decoded independently from the original byte slice. Replacing the buffer adds allocations but changes no decoded result, consumption or failure." }
+   ]
+  },
+  {
+   "pattern": "Codecs/PrimitiveCodecs.IO.cs",
+   "sourceSha256": "c8fc60cf5d6e8613de7ab49fe82d3bbe8fe52b588ab7db1dfcc093f81ede9cf1",
+   "mutants": [
+    { "mutatorName": "Remove checked expression", "replacement": "(long)valueBytes + terminatorBytes",
+     "location": {"start":{"line":341,"column":37},"end":{"line":341,"column":80}},
+     "reason": "Both Encoding.GetByteCount results are nonnegative Int32 values. The left operand is widened to Int64 before addition, so their sum is at most 2 * Int32.MaxValue, far below Int64.MaxValue. Removing checked from this sum cannot change overflow behavior, budget validation or the later allocation." }
+   ]
+  },
+  {
+   "pattern": "Engine/ValueDecoding.cs",
+   "sourceSha256": "ea41bbd948677d1873d487c4a112cdb50af6be023123644082cc94307854c23c",
+   "mutants": [
+    { "mutatorName": "String mutation", "replacement": "\"\"",
+     "location": {"start":{"line":54,"column":68},"end":{"line":54,"column":123}},
+     "reason": "FixedDimensionSizes is called only from the multidimensional branches of the engine's reader and writer. CompileArrayShape rejects dependencies in every dimension of an array with more than one dimension, evaluates each count, and stores each result in CompiledArrayDimension.FixedCount. Peeling retains those fixed counts and placement preserves the array shape. Thus every multidimensional array reaching this helper has a non-null count for each dimension and a non-null total unless checked multiplication throws first. Changing only this unreachable missing-count message does not affect counts, overflow checks, decoding, writing or diagnostics." }
+   ]
+  },
+  {
+   "pattern": "Writing/WriteValueRules.cs",
+   "sourceSha256": "26cc5958856e4796c93b07b969a64125c0f29f023fdbd4d9cf1528de3e235656",
+   "mutants": [
+    { "mutatorName": "Statement mutation", "replacement": ";",
+     "location": {"start":{"line":67,"column":13},"end":{"line":67,"column":20}},
+     "reason": "UnionValue is sealed and implements IReadOnlyDictionary, not either mutable IDictionary interface inspected by WriteDataBinding.EnumerateMemberNames and TryGetMemberValue. Removing this early return therefore enumerates an empty name array; nested named fields also fail TryGetMemberValue without calling into the union value. Promoted composites recurse only over their finite inline declaration tree with that same unrecognized data object, reaching the same empty lookups. No caller callbacks, value validation or stream operations occur. WriteUnion still performs the actual union-name, storage-size and selected-member checks afterwards. This qualification does not apply to removing those validations." },
+    { "mutatorName": "Statement mutation", "replacement": ";",
+     "location": {"start":{"line":122,"column":17},"end":{"line":122,"column":23}},
+     "reason": "This rethrow is inside catch (CStructException exception) when (exception.NoteMember(...)). The nonvirtual CStructException.NoteMember method attaches the innermost member context and unconditionally returns false. The exception therefore continues unwinding without entering this catch body. Removing its unreachable throw preserves the filter call, context attachment and original exception propagation. This qualification does not apply to the following conditional-scope CompleteField call or any cancellation checkpoint." },
+    { "mutatorName": "Boolean mutation", "replacement": "true",
+     "location": {"start":{"line":28,"column":20},"end":{"line":28,"column":25}},
+     "reason": "Every caller of SuppliesAnyPromotedMember (its own recursion and the compiled write engine's union selection) first requires membership in a compiled composite's PromotedFields set. That set contains only anonymous inline Struct declarations. CompileComposite resolves these declarations through compositeSymbols, completes and binds their CompiledCompositeType before publishing the parent model; the immutable field keeps that symbol. Thus promoted.Type.Symbol.Definition is always a CompiledCompositeType here, and the defensive non-composite return cannot execute. Changing only its boolean cannot affect recursive member selection." },
+    { "mutatorName": "Statement mutation", "replacement": ";",
+     "location": {"start":{"line":40,"column":17},"end":{"line":40,"column":26}},
+     "reason": "The recursive promoted-member branch applies only to anonymous inline Struct declarations in PromotedFields. Their empty declaration names are preserved by effective-field compilation and placement. If recursion finds no supplied named leaf, removing this continue only reaches the next name.Length > 0 guard with an empty name. It short-circuits without consulting caller data and proceeds to the same next member. A successful recursion still returns true before this statement. The nonempty-name guard remains required and is not qualified by this proof." }
    ]
   }
  ]

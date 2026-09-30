@@ -229,7 +229,7 @@ internal static partial class WriteEngine
         data = WriteDataBinding.Bind(data, composite);
         if (state.RejectUnknownMembers && !promoted)
         {
-            CStruct.RejectUnknownMembers(composite, data);
+            WriteValueRules.RejectUnknownMembers(composite, data);
         }
 
         if (!composite.IsUnion && TryWriteStaticPlan(ref destination, ref state, composite, data, promoted))
@@ -438,7 +438,7 @@ internal static partial class WriteEngine
                     break;
 
                 case WriteOpCode.LoadPadding:
-                    value = CStruct.CreatePaddingValue(program.Fields[step.Field]);
+                    value = WriteValueRules.CreatePaddingValue(program.Fields[step.Field]);
                     hasEnumValue = false;
                     break;
 

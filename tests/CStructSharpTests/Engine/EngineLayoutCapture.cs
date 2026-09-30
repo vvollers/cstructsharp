@@ -60,9 +60,9 @@ internal static class EngineLayoutCapture
     /// <param name="root">The root's name.</param>
     /// <param name="variables">The operation's layout variables.</param>
     /// <param name="settings">The read settings.</param>
-    /// <returns>Each value's path and byte range, then each conditional member's name, position and selection (1 or 0).</returns>
+    /// <returns>Each value's path and byte range, and each conditional member's selection.</returns>
     /// <exception cref="Diagnostics.CStructPathException">The root is unknown.</exception>
-    public static (string Path, long Start, long End)[] Capture(CStruct layout, Stream stream, long origin, string root, in LayoutVariableInput variables, in ReadOperationSettings settings)
+    public static CapturedLayout Capture(CStruct layout, Stream stream, long origin, string root, in LayoutVariableInput variables, in ReadOperationSettings settings)
     {
         using VariableSlots slots = VariableSlots.Create(layout.Compilation.SlotTable, variables);
         ReadProgram program = layout.Compilation.GetRootDebugReadProgram(root) ?? throw layout.Compilation.ModelQueries.UnknownRoot(root);
@@ -77,7 +77,7 @@ internal static class EngineLayoutCapture
     /// <param name="input">The stream form.</param>
     /// <param name="capture">The capture, given the stream and the root's position in it.</param>
     /// <returns>The rendering.</returns>
-    private static string Render(byte[] data, EngineInput input, Func<Stream, long, (string Path, long Start, long End)[]> capture)
+    private static string Render(byte[] data, EngineInput input, Func<Stream, long, CapturedLayout> capture)
     {
         return EngineGolden.Invariant(
             () =>
@@ -89,15 +89,29 @@ internal static class EngineLayoutCapture
                     "failure",
                     () =>
                     {
-                        (string Path, long Start, long End)[] entries = capture(stream, origin);
-                        output.Line("entries", entries.Length.ToString(CultureInfo.InvariantCulture));
-                        foreach ((string path, long start, long end) in entries)
+                        CapturedLayout layout = capture(stream, origin);
+                        output.Line("entries", (layout.Values.Length + layout.Conditions.Count).ToString(CultureInfo.InvariantCulture));
+                        foreach (LayoutRange range in layout.Values)
                         {
-                            output.Line("entry", "\"" + path + "\" " + start.ToString(CultureInfo.InvariantCulture) + " " + end.ToString(CultureInfo.InvariantCulture));
+                            Entry(output, range.Path, range.Start, range.End);
+                        }
+
+                        // A selection renders as an entry too: the member, its decision position, and 1 or 0 for active.
+                        foreach (ConditionalSelection selection in layout.Conditions)
+                        {
+                            Entry(output, selection.Member, selection.Position, selection.Active ? 1 : 0);
                         }
                     });
                 output.Line("position", (stream.Position - origin).ToString(CultureInfo.InvariantCulture));
                 return output.ToString();
             });
     }
+
+    /// <summary>Writes one rendered capture entry: a quoted name and two numbers.</summary>
+    /// <param name="output">The rendering.</param>
+    /// <param name="name">The value's path or the conditional member's name.</param>
+    /// <param name="first">The range start or the decision position.</param>
+    /// <param name="second">The range end, or 1 or 0 for an active or inactive selection.</param>
+    private static void Entry(CanonicalText output, string name, long first, long second)
+        => output.Line("entry", "\"" + name + "\" " + first.ToString(CultureInfo.InvariantCulture) + " " + second.ToString(CultureInfo.InvariantCulture));
 }

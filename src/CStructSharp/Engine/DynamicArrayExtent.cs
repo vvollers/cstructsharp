@@ -1,9 +1,8 @@
-namespace CStructSharp.Reading;
+namespace CStructSharp.Engine;
 
 using System;
 using System.Buffers;
 using CStructSharp.Diagnostics;
-using CStructSharp.Engine;
 using CStructSharp.Streams;
 
 /// <summary>

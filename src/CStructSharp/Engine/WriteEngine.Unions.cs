@@ -7,6 +7,7 @@ using CStructSharp.Compilation;
 using CStructSharp.Compilation.Programs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
+using CStructSharp.Writing;
 
 /// <summary>
 ///     The unions of the compiled engine's writer and the end of a struct with bitfields. A union is written in two
@@ -98,7 +99,7 @@ internal static partial class WriteEngine
 
             if (composite.PromotedFields.Contains(member))
             {
-                if (CStruct.SuppliesAnyPromotedMember(member, data))
+                if (WriteValueRules.SuppliesAnyPromotedMember(member, data))
                 {
                     (selected, selectedValue, selectedSize) = (index, data, memberSize);
                 }

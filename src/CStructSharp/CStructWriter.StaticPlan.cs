@@ -92,7 +92,7 @@ public sealed partial class CStruct
                     {
                         int size = field.Codec.Size;
                         Span<byte> target = bytes.Slice(operation.Offset, size * operation.Count);
-                        if (!TryWriteTypedArray(field, target, value, operation.Count))
+                        if (!WriteValueRules.TryWriteTypedArray(field, target, value, operation.Count))
                         {
                             IList<object> items = WriteValueMaterialization.ConvertToObjectList(value, operation.Count, name);
                             if (items.Count != operation.Count)
@@ -198,65 +198,7 @@ public sealed partial class CStruct
         catch (Exception exception) when (exception is ArgumentException or ArithmeticException or
                                           FormatException or InvalidCastException)
         {
-            throw new CStructWriteException(DescribeUnwritableValue(value, field), exception);
+            throw new CStructWriteException(WriteValueRules.DescribeUnwritableValue(value, field), exception);
         }
-    }
-
-    /// <summary>
-    ///     Bulk path for a typed numeric array whose element type is the codec's own CLR type - the
-    ///     <see cref="PrimitiveArray{T}"/> a parse produced, or a plain <c>T[]</c> such as a mapped class's
-    ///     <c>int[]</c> - and whose length matches: the elements are encoded straight from the typed storage, with
-    ///     one vectorized byte swap when the layout's byte order differs from the machine's. Anything else -
-    ///     including a length mismatch, so its message stays the engine's - takes the element loop.
-    /// </summary>
-    /// <param name="field">The numeric array field, whose codec gives the element type and byte order.</param>
-    /// <param name="target">The destination bytes, exactly <paramref name="count"/> elements long.</param>
-    /// <param name="value">The supplied array value.</param>
-    /// <param name="count">The declared element count.</param>
-    /// <returns>Whether the value was typed storage of that length and was encoded; otherwise nothing is written.</returns>
-    internal static bool TryWriteTypedArray(CompiledField field, Span<byte> target, object value, int count)
-    {
-        PrimitiveCodec codec = field.Codec;
-        return codec.Kind switch
-        {
-            PrimitiveCodecKind.UInt8 => TryEncode<byte>(value, target, count, codec.LittleEndian),
-            PrimitiveCodecKind.Int8 => TryEncode<sbyte>(value, target, count, codec.LittleEndian),
-            PrimitiveCodecKind.Int16 => TryEncode<short>(value, target, count, codec.LittleEndian),
-            PrimitiveCodecKind.UInt16 => TryEncode<ushort>(value, target, count, codec.LittleEndian),
-            PrimitiveCodecKind.Int32 => TryEncode<int>(value, target, count, codec.LittleEndian),
-            PrimitiveCodecKind.UInt32 => TryEncode<uint>(value, target, count, codec.LittleEndian),
-            PrimitiveCodecKind.Int64 => TryEncode<long>(value, target, count, codec.LittleEndian),
-            PrimitiveCodecKind.UInt64 => TryEncode<ulong>(value, target, count, codec.LittleEndian),
-            PrimitiveCodecKind.Float32 => TryEncode<float>(value, target, count, codec.LittleEndian),
-            PrimitiveCodecKind.Float64 => TryEncode<double>(value, target, count, codec.LittleEndian),
-            _ => false,
-        };
-    }
-
-    /// <summary>Encodes <paramref name="value"/> when it is a <typeparamref name="T"/> array of exactly <paramref name="count"/> elements.</summary>
-    private static bool TryEncode<T>(object value, Span<byte> target, int count, bool littleEndian)
-        where T : unmanaged
-    {
-        ReadOnlySpan<T> elements;
-        switch (value)
-        {
-        case PrimitiveArray<T> parsed:
-            elements = parsed.Span;
-            break;
-        case T[] array when array.GetType() == typeof(T[]):
-            // The runtime lets a uint[] pass as an int[]; only the exact type encodes without the per-element range checks.
-            elements = array;
-            break;
-        default:
-            return false;
-        }
-
-        if (elements.Length != count)
-        {
-            return false;
-        }
-
-        Codec.EncodeIntegers(elements, target, littleEndian);
-        return true;
     }
 }

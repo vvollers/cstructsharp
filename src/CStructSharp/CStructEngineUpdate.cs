@@ -3,7 +3,6 @@ namespace CStructSharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using CStructSharp.Addressing;
 using CStructSharp.Compilation;
 using CStructSharp.Compilation.Programs;
@@ -57,7 +56,7 @@ public sealed partial class CStruct
         try
         {
             ReadProgram? layoutProgram = null;
-            (string Path, long Start, long End)[]? originalLayout = null;
+            CapturedLayout? originalLayout = null;
             bool variableExtentTarget = false;
             if (this.HasConditionalLayout(rootName))
             {
@@ -121,9 +120,9 @@ public sealed partial class CStruct
             }
 
             // The caller sees writes only after every library-detectable writer failure has been ruled out.
-            if (originalLayout is not null)
+            if (originalLayout is { } original)
             {
-                (string Path, long Start, long End)[] changedLayout;
+                CapturedLayout changedLayout;
                 try
                 {
                     changedLayout = this.CaptureLayoutFrom(staging, originalPosition, layoutProgram!, layoutSlots, readOptions);
@@ -134,7 +133,7 @@ public sealed partial class CStruct
                     throw new CStructWriteException(UpdateExtentChanged, inner);
                 }
 
-                if (!originalLayout.SequenceEqual(changedLayout))
+                if (!original.Equals(changedLayout))
                 {
                     throw new CStructWriteException(variableExtentTarget ? UpdateExtentChanged : UpdateLayoutChanged);
                 }
@@ -196,8 +195,8 @@ public sealed partial class CStruct
     /// <param name="program">The root's debug program.</param>
     /// <param name="snapshot">The variables every capture starts from; not changed.</param>
     /// <param name="options">The traversal's read settings.</param>
-    /// <returns>Each value's path and byte range, then each conditional member's name, position and selection.</returns>
-    private (string Path, long Start, long End)[] CaptureLayoutFrom(Stream stream, long origin, ReadProgram program, VariableSlots snapshot, in ReadOperationSettings options)
+    /// <returns>Each value's path and byte range, and each conditional member's selection.</returns>
+    private CapturedLayout CaptureLayoutFrom(Stream stream, long origin, ReadProgram program, VariableSlots snapshot, in ReadOperationSettings options)
     {
         VariableSlots copy = snapshot.Clone();
         try

@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
+using CStructSharp.Engine;
 using CStructSharp.Reading;
 using CStructSharp.Syntax;
 using CStructSharp.Values;
@@ -135,7 +136,7 @@ public sealed partial class CStruct
             case StaticReadKind.Enum:
                 {
                     object storage = field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size));
-                    destination.SetFreshSlot(operation.Slot, CreateEnumValue(field.Enum!, storage));
+                    destination.SetFreshSlot(operation.Slot, ValueDecoding.CreateEnumValue(field.Enum!, storage));
                     break;
                 }
 
@@ -146,7 +147,7 @@ public sealed partial class CStruct
                         throw new CStructReadLimitException(ReadFailures.ArrayLengthLimit(operation.Count, maxArrayElements));
                     }
 
-                    string latin1 = ReadLatin1Characters(bytes.Slice(operation.Offset, operation.Count));
+                    string latin1 = ValueDecoding.ReadLatin1Characters(bytes.Slice(operation.Offset, operation.Count));
                     destination.SetFreshSlot(operation.Slot, trimFixedText ? latin1.TrimEnd('\0') : latin1);
                     break;
                 }

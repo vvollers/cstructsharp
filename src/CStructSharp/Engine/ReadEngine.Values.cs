@@ -231,7 +231,7 @@ internal static partial class ReadEngine
             {
                 if (TryStage(ref cursor, count, out ReadOnlySpan<byte> bytes, out rented))
                 {
-                    return state.FixedText(CStruct.ReadLatin1Characters(bytes));
+                    return state.FixedText(ValueDecoding.ReadLatin1Characters(bytes));
                 }
             }
             finally
@@ -302,7 +302,7 @@ internal static partial class ReadEngine
         int slot = program.GetShapeSlot(field);
         if (slot >= 0 && destination.TryGetSlot(slot, out object? flat))
         {
-            destination.StoreSlot(slot, CStruct.ReshapeFlatArrayValues((List<object?>)flat!, CStruct.FixedDimensionSizes(program.Fields[field])));
+            destination.StoreSlot(slot, ValueDecoding.ReshapeFlatArrayValues((List<object?>)flat!, ValueDecoding.FixedDimensionSizes(program.Fields[field])));
         }
     }
 
@@ -450,7 +450,7 @@ internal static partial class ReadEngine
         var elements = new List<object?>(count);
         for (int index = 0; index < count; index++)
         {
-            elements.Add(CStruct.CreateEnumValue(enumType, ReadCodecValue(ref cursor, codec, scratch)));
+            elements.Add(ValueDecoding.CreateEnumValue(enumType, ReadCodecValue(ref cursor, codec, scratch)));
         }
 
         return elements;
@@ -676,7 +676,7 @@ internal static partial class ReadEngine
 
                 case StaticReadKind.Enum:
                     {
-                        EnumValueResult value = CStruct.CreateEnumValue(field.Enum!, field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size)));
+                        EnumValueResult value = ValueDecoding.CreateEnumValue(field.Enum!, field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size)));
                         destination.SetFreshSlot(operation.Slot, value);
                         CaptureStatic(ref state, field, value);
                         break;
@@ -685,7 +685,7 @@ internal static partial class ReadEngine
                 case StaticReadKind.CharArray:
                     {
                         CheckPlanCount(operation.Count, state.MaxArrayElements);
-                        string text = state.FixedText(CStruct.ReadLatin1Characters(bytes.Slice(operation.Offset, operation.Count)));
+                        string text = state.FixedText(ValueDecoding.ReadLatin1Characters(bytes.Slice(operation.Offset, operation.Count)));
                         destination.SetFreshSlot(operation.Slot, text);
                         CaptureStatic(ref state, field, text);
                         break;

@@ -198,7 +198,7 @@ internal static partial class ReadEngine
         switch (target.Kind)
         {
         case ReadPointerTargetKind.Enum:
-            return CStruct.CreateEnumValue(target.Enum!, ReadCodecValue(ref cursor, target.Codec.Primitive, scratch));
+            return ValueDecoding.CreateEnumValue(target.Enum!, ReadCodecValue(ref cursor, target.Codec.Primitive, scratch));
         case ReadPointerTargetKind.Composite:
             // A debug parse records the target's members under the pointer's path.
             return state.Debug is { } debug ? ReadRecordedPointerComposite(ref cursor, ref state, target, debug.Target) : ReadPointerComposite(ref cursor, ref state, target);
@@ -311,7 +311,7 @@ internal static partial class ReadEngine
                             ReadPointerTargetKind.CountedComposites => state.Debug is null
                                                                            ? ReadPointerComposite(ref cursor, ref state, target)
                                                                            : ReadRecordedPointerComposite(ref cursor, ref state, target, DebugRecorder.CountedElementPath(path, index)),
-                            ReadPointerTargetKind.CountedEnums => CStruct.CreateEnumValue(target.Enum!, ReadCodecValue(ref cursor, codec, scratch)),
+                            ReadPointerTargetKind.CountedEnums => ValueDecoding.CreateEnumValue(target.Enum!, ReadCodecValue(ref cursor, codec, scratch)),
                             _ => ReadTargetCodecValue(ref cursor, ref state, target, "Counted target has no reader: ", scratch),
                         });
                 }

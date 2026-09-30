@@ -91,7 +91,7 @@ public sealed partial class CStruct
             rootData = WriteDataBinding.Materialize(rootData, composite);
             if (settings.UnknownMembers == UnknownMemberPolicy.Reject)
             {
-                RejectUnknownMembers(composite, rootData);
+                WriteValueRules.RejectUnknownMembers(composite, rootData);
             }
 
             // A declined direct write may have left bytes behind.

@@ -44,7 +44,7 @@ internal static partial class WriteEngine
         }
         catch (Exception exception) when (exception is ArgumentException or ArithmeticException or FormatException or InvalidCastException)
         {
-            throw new CStructWriteException(CStruct.DescribeUnwritableValue(value, field), exception);
+            throw new CStructWriteException(WriteValueRules.DescribeUnwritableValue(value, field), exception);
         }
 
         destination.Write(bytes);
@@ -87,7 +87,7 @@ internal static partial class WriteEngine
         }
         catch (Exception exception) when (exception is ArgumentException or ArithmeticException or FormatException or InvalidCastException)
         {
-            throw new CStructWriteException(CStruct.DescribeUnwritableValue(value, field), exception);
+            throw new CStructWriteException(WriteValueRules.DescribeUnwritableValue(value, field), exception);
         }
     }
 
@@ -113,7 +113,7 @@ internal static partial class WriteEngine
         }
         catch (Exception exception) when (exception is ArgumentException or ArithmeticException or FormatException or InvalidCastException)
         {
-            throw new CStructWriteException(CStruct.DescribeUnwritableValue(value, field), exception);
+            throw new CStructWriteException(WriteValueRules.DescribeUnwritableValue(value, field), exception);
         }
 
         char terminator = codec.Terminator;
@@ -273,7 +273,7 @@ internal static partial class WriteEngine
             }
             catch (Exception exception) when (exception is ArgumentException or ArithmeticException or FormatException or InvalidCastException)
             {
-                throw new CStructWriteException(CStruct.DescribeUnwritableValue(character, field), exception);
+                throw new CStructWriteException(WriteValueRules.DescribeUnwritableValue(character, field), exception);
             }
         }
     }
@@ -397,7 +397,7 @@ internal static partial class WriteEngine
         Span<byte> block = length <= StackStagingLimit ? stackalloc byte[(int)length] : (rented = ArrayPool<byte>.Shared.Rent((int)length)).AsSpan(0, (int)length);
         try
         {
-            if (!CStruct.TryWriteTypedArray(field, block, value, count))
+            if (!WriteValueRules.TryWriteTypedArray(field, block, value, count))
             {
                 return false;
             }
@@ -464,7 +464,7 @@ internal static partial class WriteEngine
         where TDestination : struct, IWriteDestination
     {
         CompiledField field = program.Fields[member];
-        List<object> leaves = CStruct.FlattenNestedArrayValues(value, CStruct.FixedDimensionSizes(field), field.Name);
+        List<object> leaves = WriteValueRules.FlattenNestedArrayValues(value, ValueDecoding.FixedDimensionSizes(field), field.Name);
         for (int index = 0; index < leaves.Count; index++)
         {
             WriteElement(ref destination, ref state, program, field, kind, operand, leaves[index], scratch);
@@ -484,9 +484,9 @@ internal static partial class WriteEngine
     private static void WriteTextTable<TDestination>(ref TDestination destination, ref WriteEngineState state, CompiledField field, int codecId, object value)
         where TDestination : struct, IWriteDestination
     {
-        int[] dimensions = CStruct.FixedDimensionSizes(field);
+        int[] dimensions = ValueDecoding.FixedDimensionSizes(field);
         int rowSize = dimensions[^1];
-        foreach (object row in CStruct.FlattenNestedArrayValues(value, dimensions[..^1], field.Name))
+        foreach (object row in WriteValueRules.FlattenNestedArrayValues(value, dimensions[..^1], field.Name))
         {
             string text = row as string ?? WriteValueMaterialization.ConvertToBoundedCharString(row, rowSize, field.Name);
             WriteText(ref destination, ref state, field, codecId, text, rowSize);

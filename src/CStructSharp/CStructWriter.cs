@@ -20,7 +20,8 @@ using CStructSharp.Writing;
 /// <summary>
 ///     Contains the writing half of <see cref="CStruct"/>: the entry points of <c>Serialize</c>, <c>Write</c> and
 ///     <c>Update</c>, which settle a write's options, variables, path and program before the compiled engine writes it
-///     (<see cref="WriteEngine"/>), and the value rules the engine and the static write plans share.
+///     (<see cref="WriteEngine"/>), and the primitive and pointer writes the engine delegates to the layout. The value rules
+///     every write shares are in <see cref="WriteValueRules"/>.
 /// </summary>
 public sealed partial class CStruct
 {
@@ -34,178 +35,6 @@ public sealed partial class CStruct
             _ => null,
         };
         return composite is not null;
-    }
-
-    /// <summary>Whether the data supplies at least one leaf of an anonymous promoted member (transitively).</summary>
-    /// <param name="promoted">The anonymous member.</param>
-    /// <param name="data">The data that would carry its members.</param>
-    /// <returns>Whether any named member under it is supplied.</returns>
-    internal static bool SuppliesAnyPromotedMember(CompiledField promoted, object data)
-    {
-        if (promoted.Type.Symbol.Definition is not CompiledCompositeType composite)
-        {
-            return false;
-        }
-
-        foreach (CompiledField member in composite.Fields)
-        {
-            if (composite.PromotedFields.Contains(member))
-            {
-                if (SuppliesAnyPromotedMember(member, data))
-                {
-                    return true;
-                }
-
-                continue;
-            }
-
-            string name = member.Name;
-            if (name.Length > 0 && WriteDataBinding.TryGetMemberValue(data, name, out _))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    ///     <see cref="UnknownMemberPolicy.Reject"/>: every member the supplied value carries must be one the composite
-    ///     declares, matched by exact key (the lookup the writer performs). A parsed <see cref="UnionValue"/> is
-    ///     trusted; a mapped class was materialized into the composite's own shape and so cannot carry an unknown key.
-    ///     The compiled engine calls it at every non-promoted struct it enters, and the direct fixed-root write for its root.
-    /// </summary>
-    /// <param name="composite">The struct whose declared members are allowed.</param>
-    /// <param name="data">The struct's bound value.</param>
-    /// <exception cref="CStructWriteException">The value carries a member the struct does not declare.</exception>
-    internal static void RejectUnknownMembers(CompiledCompositeType composite, object data)
-    {
-        StructShape shape = composite.Shape;
-        if (data is UnionValue)
-        {
-            return;
-        }
-
-        foreach (string key in WriteDataBinding.EnumerateMemberNames(data))
-        {
-            if (!shape.TryGetIndex(key, out _))
-            {
-                throw UnknownMember(composite, key);
-            }
-        }
-
-        RejectUnknownNestedMembers(composite, data);
-    }
-
-    /// <summary>Applies the same check to every by-value nested struct the composite declares, arrays included.</summary>
-    private static void RejectUnknownNestedMembers(CompiledCompositeType composite, object data)
-    {
-        foreach (CompiledField field in composite.Fields)
-        {
-            if (field.Composite is not { } nested)
-            {
-                continue;
-            }
-
-            if (composite.PromotedFields.Contains(field))
-            {
-                // A promoted member's children live on the same data object; only its own nested composites need checking.
-                RejectUnknownNestedMembers(nested, data);
-                continue;
-            }
-
-            if (field.IsUnnamed || !WriteDataBinding.TryGetMemberValue(data, field.Name, out object? value) || value is null)
-            {
-                continue;
-            }
-
-            try
-            {
-                if (field.Array.Kind == CompiledArrayKind.Scalar)
-                {
-                    RejectUnknownMembers(nested, WriteDataBinding.Materialize(value, nested));
-                }
-                else if (value is System.Collections.IEnumerable elements and not string)
-                {
-                    foreach (object? element in elements)
-                    {
-                        if (element is not null)
-                        {
-                            RejectUnknownMembers(nested, WriteDataBinding.Materialize(element, nested));
-                        }
-                    }
-                }
-            }
-            catch (CStructException exception) when (exception.NoteMember(field.Name, field.DisplayTypeSpelling))
-            {
-                throw;
-            }
-        }
-    }
-
-    /// <summary>The failure of <see cref="UnknownMemberPolicy.Reject"/> for one member the composite does not declare.</summary>
-    /// <param name="composite">The struct whose declared members are allowed.</param>
-    /// <param name="member">The supplied member name.</param>
-    /// <returns>The failure, naming the member and the declared ones.</returns>
-    private static CStructWriteException UnknownMember(CompiledCompositeType composite, string member)
-    {
-        string declared = composite.Shape.Names.Length == 0 ? "no members" : string.Join(", ", composite.Shape.Names);
-        return new CStructWriteException(
-            $"'{member}' is not a member of '{composite.Name}' (WriteOptions.UnknownMembers is Reject). The layout declares: {declared}.");
-    }
-
-    /// <summary>The all-zero value an unnamed padding field is written with: a zero scalar, or one zero per fixed element.</summary>
-    /// <param name="field">The unnamed field.</param>
-    /// <returns>A new value: <c>0</c>, an empty string for characters, or an array of zeroes.</returns>
-    internal static object CreatePaddingValue(CompiledField field)
-    {
-        if (field.Array.Kind == CompiledArrayKind.Scalar)
-        {
-            return 0;
-        }
-
-        if (field.IsCharacterArray)
-        {
-            return string.Empty;
-        }
-
-        var zeroes = new object[field.Array.TotalFixedElementCount ?? 0];
-        Array.Fill(zeroes, 0);
-        return zeroes;
-    }
-
-    /// <summary>
-    ///     Materializes a caller-supplied N-deep nested collection into a flat, row-major list of leaf values,
-    ///     validating that every level matches its declared dimension size exactly. Each level is materialized
-    ///     with the same <see cref="WriteValueMaterialization.ConvertToObjectList"/> a single-dimension array
-    ///     already uses once - this just repeats that call once per remaining dimension.
-    /// </summary>
-    /// <param name="value">The caller's nested collection.</param>
-    /// <param name="dimensionSizes">The declared size of each remaining dimension, outermost first.</param>
-    /// <param name="fieldName">The array field, named in a failure.</param>
-    /// <returns>The leaves in row-major order.</returns>
-    /// <exception cref="CStructWriteException">A level is not a collection or has a different number of elements.</exception>
-    internal static List<object> FlattenNestedArrayValues(object value, IReadOnlyList<int> dimensionSizes, string fieldName)
-    {
-        IList<object> level = WriteValueMaterialization.ConvertToObjectList(value, dimensionSizes[0], fieldName);
-        if (level.Count != dimensionSizes[0])
-        {
-            throw new CStructWriteException(WriteFailures.ArrayLengthMismatch(fieldName, dimensionSizes[0], level.Count));
-        }
-
-        if (dimensionSizes.Count == 1)
-        {
-            return level as List<object> ?? level.ToList();
-        }
-
-        int[] remainingDimensions = [.. dimensionSizes.Skip(1),];
-        var flattened = new List<object>();
-        foreach (object item in level)
-        {
-            flattened.AddRange(FlattenNestedArrayValues(item, remainingDimensions, fieldName));
-        }
-
-        return flattened;
     }
 
     /// <summary>Writes a pointer address after applying the configured absolute or relative addressing rule.</summary>
@@ -267,7 +96,7 @@ public sealed partial class CStruct
         catch (Exception exception) when (exception is ArgumentException or ArithmeticException or
                                           FormatException or InvalidCastException)
         {
-            throw new CStructWriteException(DescribeUnwritableValue(value, field), exception);
+            throw new CStructWriteException(WriteValueRules.DescribeUnwritableValue(value, field), exception);
         }
     }
 
@@ -292,13 +121,6 @@ public sealed partial class CStruct
             kind is PrimitiveCodecKind.ULeb128_32 or PrimitiveCodecKind.SLeb128_32 ? 32 : 64,
             kind is PrimitiveCodecKind.SLeb128_32 or PrimitiveCodecKind.SLeb128_64);
     }
-
-    /// <summary>The shared unwritable-value text (<see cref="WriteFailures.UnwritableValue"/>) for one compiled field.</summary>
-    /// <param name="value">The value that could not be encoded.</param>
-    /// <param name="field">The field it was written as, whose type and accepted range the text names.</param>
-    /// <returns>The failure message.</returns>
-    internal static string DescribeUnwritableValue(object? value, CompiledField field)
-        => WriteFailures.UnwritableValue(value, field.TypeSpelling, WriteFailures.AcceptedRange(field.Codec.Kind));
 
     /// <summary>
     ///     Creates a new byte array while snapshotting expression variables from a read-only caller view.

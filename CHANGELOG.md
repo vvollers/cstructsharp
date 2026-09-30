@@ -258,6 +258,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - npm package: the JavaScript static-plan parse path was benchmarked against WASM (4–16× faster, about 9–14× on
   inputs under 1 KiB) and stays; its source comment now states the real routing: any option other than the compile
   options and `root` sends a parse to WASM, and NaN and infinities stay on the JavaScript path.
+- Library source folders match their namespaces' roles: engine-only types live in `Engine/`, the codec table in
+  `Codecs/`, and the value rules every write shares in `Writing/`; the permanent mutation scope covers 138 files.
 
 ## 0.10.0 — 2026-09-26
 
