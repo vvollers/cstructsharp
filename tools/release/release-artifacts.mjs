@@ -6,7 +6,7 @@ import path from "node:path";
 import { root, npmArtifacts, run } from "../packaging/npm-package-utils.mjs";
 import { validatePackageInfo } from "./npm-release.mjs";
 import { tagRelease } from "./release-state.mjs";
-import { verifySourceJobs } from "../lib/release-verification.mjs";
+import { expectedReleaseJobs, verifyReleaseJobs } from "../lib/release-verification.mjs";
 import { parseArguments } from "../lib/tooling.mjs";
 
 const {
@@ -75,7 +75,7 @@ if (command === "create") {
       manifest.versionFiles[file],
       `Version-bump file changed: ${file}`,
     );
-  // Only an original main-branch release run with all consumer gates passed can be resumed.
+  // Only an original main-branch release run whose every publication gate passed can be published or resumed.
   const repository = process.env.GITHUB_REPOSITORY;
   const originRun = JSON.parse(
     run("gh", ["api", `repos/${repository}/actions/runs/${manifest.runId}`]),
@@ -93,16 +93,8 @@ if (command === "create") {
     ]),
   );
   const jobs = jobPages.flatMap((page) => page.jobs);
-  verifySourceJobs(jobs, manifest.sourceSha);
-  assert.ok(
-    jobs.some(
-      (job) =>
-        job.name === "Build, test, and verify release artifacts" && job.conclusion === "success",
-    ),
-  );
-  const nodeJobs = jobs.filter((job) => job.name.startsWith("npm on "));
-  assert.equal(nodeJobs.length, 6, "All six OS/Node consumer checks must be present.");
-  assert.ok(nodeJobs.every((job) => job.conclusion === "success"));
+  // The gates come from release.yml at the verified source commit, which is the workflow the original run used.
+  verifyReleaseJobs(jobs, manifest.sourceSha, expectedReleaseJobs(root));
   // Record outputs only after validation, before any repository or registry write.
   fs.appendFileSync(
     process.env.GITHUB_OUTPUT,

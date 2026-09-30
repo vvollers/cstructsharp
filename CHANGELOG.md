@@ -179,6 +179,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   `node tools/quality/engine-golden.mjs record` only for an intended, explained change (see `CONTRIBUTING.md`).
 - `CONTRIBUTING.md` is the one contributing guide; API baselines live in `contracts/api/managed` and
   `contracts/api/browser`. Tools reject unknown options.
+- Release: the publisher derives its required jobs and the Node matrix from the workflow files, and tests parse
+  the real workflows, so a renamed job or a changed matrix can no longer leave the release waiting for jobs that
+  do not exist.
 - The library no longer carries code the compiled engine replaced: the stream codec reader table and the stream
   readers behind it, the writers for numbers the engine encodes itself, and test-only types and members.
 

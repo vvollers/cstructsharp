@@ -41,10 +41,14 @@ the workflow cannot promise publication of identical tested artifacts. Release a
 immutable commits. Start a release only after CI has passed on main.
 
 Ordinary workflow and check names remain unchanged. Inside a release, GitHub prefixes the reused jobs with
-`Managed verification /`, `Explorer verification /`, `Inspector verification /`, or `Documentation verification /`.
-The publisher verifies those exact names and their source SHA. Keep `tools/lib/release-verification.mjs` aligned
-with deliberate naming changes. Recovery verifies the original run and reuses its artifacts; it does not rerun
-the shared jobs or rebuild packages. Repository protection settings are not changed by this workflow design.
+`Managed verification /`, `Web verification /`, or `Documentation verification /`. The publisher does not keep its
+own list of these names. `tools/lib/release-verification.mjs` reads `release.yml` at the release's source commit,
+takes every job that the `publish` job waits for, replaces each reused workflow by its jobs, and expands each
+matrix into one job per combination. Each of those jobs must have passed exactly once on the source SHA. Renaming a
+job or changing a matrix therefore changes the expected list automatically;
+`node --test tools/quality/release-verification.test.mjs` checks the derivation against the real workflows.
+Recovery verifies the original run and reuses its artifacts; it does not rerun the shared jobs or rebuild packages.
+Repository protection settings are not changed by this workflow design.
 
 Reuse reduces duplicate gate definitions, not necessarily runner time: release now executes the complete shared
 source checks before artifact checks. Compare elapsed run time and the sum of job durations for equivalent source
