@@ -80,4 +80,38 @@ public class PrimitiveCodecIdentityTests
 
         Assert.IsNull(layout.Codecs.WriterOfCodec(PrimitiveCatalog.NoCodec));
     }
+
+    /// <summary>
+    ///     Every delegate writer encodes what the engine reads back: a sample value written by the canonical writer parses,
+    ///     through a one-member layout of that type, into a value that serializes to the same bytes, in both directions of
+    ///     every byte order the name spells.
+    /// </summary>
+    [TestMethod]
+    public void DelegateWriters_RoundTripThroughTheEngine()
+    {
+        var table = new CStruct("struct root { uint8 v; };").Codecs;
+        foreach (string name in PrimitiveCatalog.CanonicalNames)
+        {
+            if (table.WriterOfCodec(table.Catalog.CodecIdOf(name)) is not { } writer)
+            {
+                continue;
+            }
+
+            PrimitiveCodec codec = PrimitiveCodec.Resolve(name, true);
+            object sample = codec.Kind switch
+            {
+                PrimitiveCodecKind.Uuid or PrimitiveCodecKind.Guid => new Guid("00112233-4455-6677-8899-aabbccddeeff"),
+                PrimitiveCodecKind.Char or PrimitiveCodecKind.WChar => 'a',
+                _ when codec.IsTerminatedText => "ab",
+                _ => 1,
+            };
+            using var written = new MemoryStream();
+            writer(written, sample);
+            byte[] bytes = written.ToArray();
+            Assert.IsNotEmpty(bytes, name);
+
+            var layout = new CStruct("struct root { " + name + " v; };");
+            CollectionAssert.AreEqual(bytes, layout.Serialize("root", layout.Parse(bytes, "root")), name);
+        }
+    }
 }
