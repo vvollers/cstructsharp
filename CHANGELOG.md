@@ -289,6 +289,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - The layout-expression evaluator has one session core: the name-based evaluator (layout compilation) and the
   slot-based one (the compiled engine) run the same validation, execution and failure rules over a name or slot
   resolver; the permanent mutation scope covers 139 files.
+- CI checks that each `[CStructLayout]` class the generated-code benchmarks use still matches the fixture it copies
+  (`tools/quality/benchmark-generated-layouts.test.mjs`).
 
 ## 0.10.0 — 2026-09-26
 

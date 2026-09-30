@@ -60,7 +60,9 @@ public sealed class FixtureCase
     /// <remarks>
     ///     A <c>[CStructLayout]</c> attribute needs a constant, so each generated benchmark layout repeats its fixture's
     ///     definition and options. A generated case compared with a runtime case over different layouts would measure
-    ///     nothing useful, so a copy that drifted from its fixture stops the benchmark in setup.
+    ///     nothing useful, so a copy that drifted from its fixture stops the benchmark in setup. CI checks the same
+    ///     pairings without running a benchmark (<c>tools/quality/benchmark-generated-layouts.test.mjs</c> reads the
+    ///     <c>LoadMatching</c> calls); this check still guards a fixture directory chosen with <c>CSTRUCTSHARP_FIXTURES</c>.
     /// </remarks>
     /// <param name="id">The fixture id from <c>manifest.json</c>.</param>
     /// <param name="generatedLayout">The class that carries the fixture's <c>[CStructLayout]</c> copy.</param>
