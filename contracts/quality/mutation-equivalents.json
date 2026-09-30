@@ -568,37 +568,10 @@
   },
   {
    "pattern": "Generated/ReadCursor.cs",
-   "sourceSha256": "bafbd258d26d00f5f2d9da29ebb2e9684687ad7eab2c01f3025372a086a35ece",
+   "sourceSha256": "469d90acc36c8173832f932c9d8dff273fd4239dc5b3a632d31e2dd142ff4539",
    "mutants": [
-    { "mutatorName": "Conditional (true) mutation", "replacement": "(true?Codecs.PrimitiveCodecs.StrictUtf16LittleEndianEncoding :Codecs.PrimitiveCodecs.StrictUtf16BigEndianEncoding)",
-     "location": {"start":{"line":558,"column":18},"end":{"line":558,"column":141}},
-     "reason": "The input code units have already been read using the requested byte order. This call only validates the resulting string with GetByteCount; its count is discarded and it produces no bytes. Both UnicodeEncoding instances have identical strict surrogate fallback and no byte-order mark, differing only in output byte order, which cannot change string validity, byte count or EncoderFallbackException here." },
-    { "mutatorName": "Conditional (false) mutation", "replacement": "(false?Codecs.PrimitiveCodecs.StrictUtf16LittleEndianEncoding :Codecs.PrimitiveCodecs.StrictUtf16BigEndianEncoding)",
-     "location": {"start":{"line":558,"column":18},"end":{"line":558,"column":141}},
-     "reason": "ReadChar has already applied the requested input byte order before constructing text. GetByteCount only validates that string and its result is ignored. The two strict UnicodeEncoding instances differ only in encoded byte order, not accepted surrogate sequences, counts or fallback exceptions; no encoded bytes are exposed by this call." },
     { "mutatorName": "Equality mutation", "replacement": "count < 0",
-     "location": {"start":{"line":317,"column":13},"end":{"line":317,"column":23}},
-     "reason": "Only count zero with a positive element size newly reaches the body. The total is zero, remaining bytes and affordable bytes are nonnegative, both failure conditions stay false, and Take(0) returns an empty view without charging or moving. Cancellation is checked before either branch. Empty-span backing identity is unspecified; the supported result is the same empty element sequence and unchanged cursor/budget." },
-    { "mutatorName": "Equality mutation", "replacement": ">= 0",
-     "location": {"start":{"line":823,"column":48},"end":{"line":823,"column":51}},
-     "reason": "ExitPointer's supported use returns from one successful unmatched EnterPointer, which pushes exactly one target before returning its resume position. Thus the stack contains at least one entry on every valid exit and both predicates pop the same target. LayoutEmitter.Arrays emits EnterPointer before its try and exactly one ExitPointer in finally, including nested targets. An extra exit without a matching entry violates the documented pairing and is not an equivalent-input claim." },
-    { "mutatorName": "Block removal mutation", "replacement": "{}",
-     "location": {"start":{"line":446,"column":9},"end":{"line":448,"column":10}},
-     "reason": "For elementSize zero, count starts at zero and the valid cursor offset does not exceed source.Length. Slice(offset, 0) is empty and IndexOfAnyExcept returns -1, immediately returning the same zero count before any limit, increment or position change. Nonzero element sizes already bypass the removed block." },
-    { "mutatorName": "Arithmetic mutation", "replacement": "unitSize + (encodedByteCount % unitSize)",
-     "location": {"start":{"line":646,"column":42},"end":{"line":646,"column":82}},
-     "reason": "unitSize is one or two. Every continuing chunk has 256 bytes; a shorter unterminated last chunk is followed by the zero-byte failure before alignment is computed again. Thus encodedByteCount is a multiple of 256 whenever this expression is reached, its remainder is zero, and adding or subtracting that zero gives the same alignment." },
-    { "mutatorName": "Arithmetic mutation", "replacement": "encodedByteCount * unitSize",
-     "location": {"start":{"line":646,"column":54},"end":{"line":646,"column":81}},
-     "reason": "At each reached alignment calculation encodedByteCount is a multiple of the 256-byte chunk size and unitSize is one or two. The original inner remainder is zero; the replacement product is a multiple of unitSize, so the outer remainder remains zero. The count is bounded by an Int32-sized source, so its long product cannot overflow." },
-    { "mutatorName": "CoalesceAssignmentExpression to SimpleAssignmentExpression mutation", "replacement": "decoded = new char[Chunk + 2]",
-     "location": {"start":{"line":657,"column":13},"end":{"line":657,"column":44}},
-     "reason": "decoded is a private output-only scratch buffer passed to Decoder.Convert; its contents and output counts are never consumed. Decoder state is held by the separate decoder object, and the returned string is decoded independently from the original byte slice. Replacing the buffer adds allocations but changes no decoded result, consumption or failure." },
-    { "mutatorName": "Conditional (false) mutation", "replacement": "(false?new CStructReadException(message) :new CStructReadException(message, cause))",
-     "location": {"start":{"line":880,"column":25},"end":{"line":880,"column":117}},
-     "reason": "Only a null cause changes constructor selection. Both CStructReadException overloads delegate to the same protected constructor with ReadFailed, the same message and a null inner exception. The same Attach call follows, preserving category, message, field, path and offset." },
-    { "mutatorName": "Equality mutation", "replacement": "count < 0",
-     "location": {"start":{"line":966,"column":13},"end":{"line":966,"column":23}},
+     "location": {"start":{"line":145,"column":13},"end":{"line":145,"column":23}},
      "reason": "Only count zero newly reaches budget arithmetic. bytesRead starts at zero and only accepted charges update it, so it never exceeds the nonnegative fixed limit. Adding zero cannot overflow or fail the limit check and reassigns the same value; position is unchanged. Negative counts still return early." }
    ]
   },
@@ -969,6 +942,57 @@
     { "mutatorName": "Remove checked expression", "replacement": "(int)(LayoutMath.AlignUp(this.delta, (long)compositeAlignment) - this.delta)",
      "location": {"start":{"line":167,"column":19},"end":{"line":167,"column":104}},
      "reason": "The tail padding is less than the composite's alignment, a small power of two, so the conversion to int cannot overflow and the checked context never throws." }
+   ]
+  },
+  {
+   "pattern": "Generated/ReadCursor.Arrays.cs",
+   "sourceSha256": "95a46d265bc5ace570520724e6f1199cdea917d74e7e309c1ef58cfb469ed240",
+   "mutants": [
+    { "mutatorName": "Equality mutation", "replacement": "count < 0",
+     "location": {"start":{"line":88,"column":13},"end":{"line":88,"column":23}},
+     "reason": "Only count zero with a positive element size newly reaches the body. The total is zero, remaining bytes and affordable bytes are nonnegative, both failure conditions stay false, and Take(0) returns an empty view without charging or moving. Cancellation is checked before either branch. Empty-span backing identity is unspecified; the supported result is the same empty element sequence and unchanged cursor/budget." },
+    { "mutatorName": "Block removal mutation", "replacement": "{}",
+     "location": {"start":{"line":158,"column":9},"end":{"line":160,"column":10}},
+     "reason": "For elementSize zero, count starts at zero and the valid cursor offset does not exceed source.Length. Slice(offset, 0) is empty and IndexOfAnyExcept returns -1, immediately returning the same zero count before any limit, increment or position change. Nonzero element sizes already bypass the removed block." }
+   ]
+  },
+  {
+   "pattern": "Generated/ReadCursor.Failures.cs",
+   "sourceSha256": "8f16fd87ea0697c8ad1c28ec56fb0009110ab9536b62d289ef6491b03000178d",
+   "mutants": [
+    { "mutatorName": "Conditional (false) mutation", "replacement": "(false?new CStructReadException(message) :new CStructReadException(message, cause))",
+     "location": {"start":{"line":47,"column":25},"end":{"line":47,"column":117}},
+     "reason": "Only a null cause changes constructor selection. Both CStructReadException overloads delegate to the same protected constructor with ReadFailed, the same message and a null inner exception. The same Attach call follows, preserving category, message, field, path and offset." }
+   ]
+  },
+  {
+   "pattern": "Generated/ReadCursor.Nesting.cs",
+   "sourceSha256": "ee95a021dc8b3442d55ba34d7680ba859c469f19a21fca8279275a06211fc61d",
+   "mutants": [
+    { "mutatorName": "Equality mutation", "replacement": ">= 0",
+     "location": {"start":{"line":121,"column":48},"end":{"line":121,"column":51}},
+     "reason": "ExitPointer's supported use returns from one successful unmatched EnterPointer, which pushes exactly one target before returning its resume position. Thus the stack contains at least one entry on every valid exit and both predicates pop the same target. LayoutEmitter.Arrays emits EnterPointer before its try and exactly one ExitPointer in finally, including nested targets. An extra exit without a matching entry violates the documented pairing and is not an equivalent-input claim." }
+   ]
+  },
+  {
+   "pattern": "Generated/ReadCursor.Text.cs",
+   "sourceSha256": "451b6ab30ea453f33283e1004164bdd77c62823ec3e20af7fd95aa31d62ed5f7",
+   "mutants": [
+    { "mutatorName": "Conditional (true) mutation", "replacement": "(true?Codecs.PrimitiveCodecs.StrictUtf16LittleEndianEncoding :Codecs.PrimitiveCodecs.StrictUtf16BigEndianEncoding)",
+     "location": {"start":{"line":60,"column":18},"end":{"line":60,"column":141}},
+     "reason": "The input code units have already been read using the requested byte order. This call only validates the resulting string with GetByteCount; its count is discarded and it produces no bytes. Both UnicodeEncoding instances have identical strict surrogate fallback and no byte-order mark, differing only in output byte order, which cannot change string validity, byte count or EncoderFallbackException here." },
+    { "mutatorName": "Conditional (false) mutation", "replacement": "(false?Codecs.PrimitiveCodecs.StrictUtf16LittleEndianEncoding :Codecs.PrimitiveCodecs.StrictUtf16BigEndianEncoding)",
+     "location": {"start":{"line":60,"column":18},"end":{"line":60,"column":141}},
+     "reason": "ReadChar has already applied the requested input byte order before constructing text. GetByteCount only validates that string and its result is ignored. The two strict UnicodeEncoding instances differ only in encoded byte order, not accepted surrogate sequences, counts or fallback exceptions; no encoded bytes are exposed by this call." },
+    { "mutatorName": "Arithmetic mutation", "replacement": "unitSize + (encodedByteCount % unitSize)",
+     "location": {"start":{"line":148,"column":42},"end":{"line":148,"column":82}},
+     "reason": "unitSize is one or two. Every continuing chunk has 256 bytes; a shorter unterminated last chunk is followed by the zero-byte failure before alignment is computed again. Thus encodedByteCount is a multiple of 256 whenever this expression is reached, its remainder is zero, and adding or subtracting that zero gives the same alignment." },
+    { "mutatorName": "Arithmetic mutation", "replacement": "encodedByteCount * unitSize",
+     "location": {"start":{"line":148,"column":54},"end":{"line":148,"column":81}},
+     "reason": "At each reached alignment calculation encodedByteCount is a multiple of the 256-byte chunk size and unitSize is one or two. The original inner remainder is zero; the replacement product is a multiple of unitSize, so the outer remainder remains zero. The count is bounded by an Int32-sized source, so its long product cannot overflow." },
+    { "mutatorName": "CoalesceAssignmentExpression to SimpleAssignmentExpression mutation", "replacement": "decoded = new char[Chunk + 2]",
+     "location": {"start":{"line":159,"column":13},"end":{"line":159,"column":44}},
+     "reason": "decoded is a private output-only scratch buffer passed to Decoder.Convert; its contents and output counts are never consumed. Decoder state is held by the separate decoder object, and the returned string is decoded independently from the original byte slice. Replacing the buffer adds allocations but changes no decoded result, consumption or failure." }
    ]
   }
  ]
