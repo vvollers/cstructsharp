@@ -13,11 +13,10 @@ using CStructSharp.Streams;
 using CStructSharp.Values;
 
 /// <summary>
-///     The path operations of the compiled engine: a selected read (<c>ReadValue</c> of a path), a parse of a nested struct
-///     (<c>Parse</c> and the debug parses of a path), <c>ResolveAddress</c> and <c>GetArrayLength</c>. Each resolves its path
-///     with the <see cref="TargetResolver"/> on the operation's cursor and slots, then reads what the path selects the way
-///     the interpreter reads a resolved target: from its exact address, standalone, at the nesting and pointer depth the
-///     path reached.
+///     The path operations of the compiled engine: a selected read (<c>ReadValue</c> of a path), a parse of a nested
+///     struct (<c>Parse</c> and the debug parses of a path), <c>ResolveAddress</c> and <c>GetArrayLength</c>. Each
+///     resolves its path with the <see cref="TargetResolver"/> on the operation's cursor and slots, then reads what the
+///     path selects: from its exact address, standalone, at the nesting and pointer depth the path reached.
 /// </summary>
 internal static partial class ReadEngine
 {
@@ -29,15 +28,15 @@ internal static partial class ReadEngine
     /// <param name="layout">The layout.</param>
     /// <param name="stream">The caller's source, positioned at the root's first byte.</param>
     /// <param name="segments">The parsed path.</param>
-    /// <param name="root">The root's eligible read program.</param>
+    /// <param name="root">The root's read program for a bare root; <see langword="null"/> for a nested path or an undeclared root.</param>
     /// <param name="slots">The operation's initialized variable slots; the caller disposes them.</param>
     /// <param name="options">The operation's snapshotted settings.</param>
     /// <returns>The value, or <see langword="null"/> for a null pointer's <c>.value</c>.</returns>
     /// <exception cref="ArgumentException"><paramref name="stream"/> cannot read or seek.</exception>
     /// <exception cref="CStructException">The path cannot be resolved or the input cannot be read; the path and offset are attached.</exception>
-    public static object? ReadValue(CStruct layout, Stream stream, IReadOnlyList<PathSegment> segments, ReadProgram root, VariableSlots slots, in ReadOperationSettings options)
+    public static object? ReadValue(CStruct layout, Stream stream, IReadOnlyList<PathSegment> segments, ReadProgram? root, VariableSlots slots, in ReadOperationSettings options)
     {
-        CStructOperationContext.Validate(stream, options);
+        ReadOperationSettings.Validate(stream, options);
         var state = new ReadEngineState(layout, slots, options, null);
         try
         {
@@ -58,21 +57,21 @@ internal static partial class ReadEngine
     /// <summary>
     ///     Reads the natural value a path selects from a pinned memory region, the input's byte 0 at
     ///     <paramref name="region"/>: what <see cref="ReadValue(CStruct, Stream, IReadOnlyList{PathSegment}, ReadProgram, VariableSlots, in ReadOperationSettings)"/>
-    ///     does over the read-only region stream the interpreter wraps memory in, without the stream.
+    ///     does over a stream of the same bytes, without the stream.
     /// </summary>
     /// <param name="layout">The layout.</param>
     /// <param name="region">The input's byte 0; the caller keeps it pinned until the method returns.</param>
     /// <param name="length">The input length in bytes.</param>
     /// <param name="segments">The parsed path.</param>
-    /// <param name="root">The root's eligible read program.</param>
+    /// <param name="root">The root's read program for a bare root; <see langword="null"/> for a nested path or an undeclared root.</param>
     /// <param name="slots">The operation's initialized variable slots; the caller disposes them.</param>
     /// <param name="options">The operation's snapshotted settings.</param>
     /// <param name="position">The position the read ended at, in bytes from the region's start.</param>
     /// <returns>The value, or <see langword="null"/> for a null pointer's <c>.value</c>.</returns>
     /// <exception cref="CStructException">The path cannot be resolved or the input cannot be read; the path and offset are attached.</exception>
-    public static unsafe object? ReadValue(CStruct layout, byte* region, int length, IReadOnlyList<PathSegment> segments, ReadProgram root, VariableSlots slots, in ReadOperationSettings options, out long position)
+    public static unsafe object? ReadValue(CStruct layout, byte* region, int length, IReadOnlyList<PathSegment> segments, ReadProgram? root, VariableSlots slots, in ReadOperationSettings options, out long position)
     {
-        CStructOperationContext.ValidateSettings(options);
+        ReadOperationSettings.ValidateSettings(options);
         var state = new ReadEngineState(layout, slots, options, null);
         try
         {
@@ -109,7 +108,7 @@ internal static partial class ReadEngine
     /// <exception cref="CStructException">The path cannot be resolved or the input cannot be read; the path and offset are attached.</exception>
     public static object ReadComposite(CStruct layout, Stream stream, IReadOnlyList<PathSegment> segments, VariableSlots slots, in ReadOperationSettings options, DebugRecorder? debug)
     {
-        CStructOperationContext.Validate(stream, options);
+        ReadOperationSettings.Validate(stream, options);
         var state = new ReadEngineState(layout, slots, options, debug);
         try
         {
@@ -142,7 +141,7 @@ internal static partial class ReadEngine
     /// <exception cref="CStructException">The path cannot be resolved; the path and offset are attached.</exception>
     public static long ResolveAddress(CStruct layout, Stream stream, IReadOnlyList<PathSegment> segments, VariableSlots slots, in ReadOperationSettings options)
     {
-        CStructOperationContext.Validate(stream, options);
+        ReadOperationSettings.Validate(stream, options);
         var state = new ReadEngineState(layout, slots, options, null);
         try
         {
@@ -176,7 +175,7 @@ internal static partial class ReadEngine
     /// <exception cref="CStructException">The path cannot be resolved or the string read; the path and offset are attached.</exception>
     public static int GetArrayLength(CStruct layout, Stream stream, IReadOnlyList<PathSegment> segments, string path, VariableSlots slots, in ReadOperationSettings options)
     {
-        CStructOperationContext.Validate(stream, options);
+        ReadOperationSettings.Validate(stream, options);
         var state = new ReadEngineState(layout, slots, options, null);
         try
         {
@@ -202,10 +201,10 @@ internal static partial class ReadEngine
     /// <param name="cursor">The operation's cursor.</param>
     /// <param name="state">The operation's state.</param>
     /// <param name="segments">The parsed path.</param>
-    /// <param name="root">The root's read program, which reads a bare root.</param>
+    /// <param name="root">The root's read program, which reads a bare root; <see langword="null"/> for a nested path or an undeclared root.</param>
     /// <param name="stream">The caller's stream, whose position a failure reports; <see langword="null"/> for a memory region.</param>
     /// <returns>The value.</returns>
-    private static object? RunValue<TCursor>(ref TCursor cursor, ref ReadEngineState state, IReadOnlyList<PathSegment> segments, ReadProgram root, Stream? stream)
+    private static object? RunValue<TCursor>(ref TCursor cursor, ref ReadEngineState state, IReadOnlyList<PathSegment> segments, ReadProgram? root, Stream? stream)
         where TCursor : struct, IReadCursor
     {
         try
@@ -214,15 +213,15 @@ internal static partial class ReadEngine
             {
                 if (segments.Count == 1)
                 {
-                    // The interpreter resolves a bare root as a path before it reads it: a root array's count the resolver
-                    // takes by its own rules (a runtime-sized, data-sized or multidimensional one) is taken and checked
-                    // first; any other root's checks are the read's own.
-                    if (root.Fields is [{ } only,] && EngineSelector.ResolvesCountFirst(only))
+                    // A bare root is resolved as a path before it is read: a root the layout does not declare fails there, and
+                    // a root array's count the resolver takes by its own rules (a runtime-sized, data-sized or
+                    // multidimensional one) is taken and checked first; any other root's checks are the read's own.
+                    if (root is null || (root.Fields is [{ } only,] && EnginePrograms.ResolvesCountFirst(only)))
                     {
                         _ = Resolve(ref cursor, ref state, segments, null);
                     }
 
-                    StructValue value = ReadRootValue(ref cursor, ref state, root, segments[0].Name, out bool selected);
+                    StructValue value = ReadRootValue(ref cursor, ref state, root!, segments[0].Name, out bool selected);
                     return selected ? value : CStruct.ExtractOnlyValue(value, segments[0].Name);
                 }
 
@@ -358,7 +357,7 @@ internal static partial class ReadEngine
 
     /// <summary>
     ///     Resolves a path on the operation's cursor; a failure of the resolution carries the path and the position the walk
-    ///     reached, as the interpreter's resolver attaches them before anything else happens.
+    ///     reached, attached before anything else happens.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -414,10 +413,10 @@ internal static partial class ReadEngine
     }
 
     /// <summary>
-    ///     Reads what a resolved path selects, as the interpreter reads a resolved target: a pointer's stored address; a
-    ///     pointer's target (nothing for a null pointer), following any levels left; a struct or union at its address; or
-    ///     the selected field, element or row read standalone from its address (a bitfield from the unit its struct placed),
-    ///     at the nesting and pointer depth the path reached.
+    ///     Reads what a resolved path selects: a pointer's stored address; a pointer's target (nothing for a null
+    ///     pointer), following any levels left; a struct or union at its address; or the selected field, element or row
+    ///     read standalone from its address (a bitfield from the unit its struct placed), at the nesting and pointer
+    ///     depth the path reached.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -487,8 +486,8 @@ internal static partial class ReadEngine
     }
 
     /// <summary>
-    ///     Reads the struct or union a nested parse selects at its address, after the interpreter's check that the path
-    ///     selects one: not a pointer's storage, no pointer level left, and a composite type.
+    ///     Reads the struct or union a nested parse selects at its address, after checking that the path selects one:
+    ///     not a pointer's storage, no pointer level left, and a composite type.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -514,9 +513,9 @@ internal static partial class ReadEngine
     }
 
     /// <summary>
-    ///     Reads a struct or union at the position as the interpreter reads one at a resolved address: a union as a union
-    ///     value of its own, a struct through its program (or its static plan); in a debug parse through its debug program,
-    ///     recorded under <paramref name="path"/>.
+    ///     Reads a struct or union at the position of a resolved address: a union as a union value of its own, a struct
+    ///     through its program (or its static plan); in a debug parse through its debug program, recorded under
+    ///     <paramref name="path"/>.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor, at the composite's first byte.</param>

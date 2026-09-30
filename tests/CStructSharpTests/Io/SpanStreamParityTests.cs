@@ -46,13 +46,13 @@ public class SpanStreamParityTests
             using var chunked = new ChunkedMemoryStream(bytes, 7, writable: false);
             OperationOutcome chunkedOutcome = OperationOutcome.Of(() => layout.Parse(chunked, rootName, options: readOptions));
 
-            // The same memory-backed source through the general reader only (static read plans disabled).
+            // The same memory-backed source through the general path only (static read plans disabled).
             using var unplanned = new MemoryStream(bytes, writable: false);
             OperationOutcome unplannedOutcome = OperationOutcome.Of(() => layout.Parse(unplanned, rootName, options: readOptions with { ExecutionPath = ExecutionPath.GeneralOnly }));
 
             OperationOutcome.AssertSame(span, memory, id + ": span vs MemoryStream");
             OperationOutcome.AssertSame(span, chunkedOutcome, id + ": span vs chunked stream");
-            OperationOutcome.AssertSame(span, unplannedOutcome, id + ": plan vs general reader");
+            OperationOutcome.AssertSame(span, unplannedOutcome, id + ": plan vs member-by-member engine");
             Assert.AreEqual(chunked.Position, memoryStream.Position, id + ": final position");
             Assert.AreEqual(unplanned.Position, memoryStream.Position, id + ": final position without plan");
 

@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
 using CStructSharp.Compilation;
+using CStructSharp.Compilation.Programs;
 using CStructSharp.Expressions;
 using CStructSharp.Syntax;
 using CStructSharp.Values;
@@ -18,38 +19,35 @@ public class LayoutVariableCaptureValueTests
     [TestMethod]
     public void PointerField_StoresItsAddress()
     {
-        var variables = new Dictionary<string, Expr>();
-        LayoutVariableCapture.Capture(variables, "p", Field("p"), new Pointer(42, null, 1));
-        Assert.AreEqual(42, ((Literal)variables["p"]).ExactValue);
+        SlotValue captured = LayoutVariableCapture.ToSlotValue(Field("p"), new Pointer(42, null, 1));
+        Assert.AreEqual(SlotState.Literal, captured.State);
+        Assert.AreEqual((Int128)42, captured.Value);
     }
 
     /// <summary>A text field makes the name unusable, whatever its text says.</summary>
     [TestMethod]
     public void TextField_MakesTheNameUnusable()
     {
-        var variables = new Dictionary<string, Expr> { ["text"] = new Literal(1), };
-        LayoutVariableCapture.Capture(variables, "text", Field("text"), "12");
-        Assert.AreEqual("text", ((NotANumberVariable)variables["text"]).Reason);
+        SlotValue captured = LayoutVariableCapture.ToSlotValue(Field("text"), "12");
+        Assert.AreEqual(SlotState.Unusable, captured.State);
+        Assert.AreEqual("text", ((NotANumberVariable)captured.Payload!).Reason);
     }
 
     /// <summary>An integer field's value, or a caller's numeric text written to it, becomes a literal.</summary>
     [TestMethod]
     public void IntegerField_StoresALiteral()
     {
-        var variables = new Dictionary<string, Expr>();
-        LayoutVariableCapture.Capture(variables, "n", Field("n"), 99);
-        Assert.AreEqual(99, ((Literal)variables["n"]).ExactValue);
-        LayoutVariableCapture.Capture(variables, "n", Field("n"), "12");
-        Assert.AreEqual(12, ((Literal)variables["n"]).ExactValue);
+        Assert.AreEqual((Int128)99, LayoutVariableCapture.ToSlotValue(Field("n"), 99).Value);
+        SlotValue text = LayoutVariableCapture.ToSlotValue(Field("n"), "12");
+        Assert.AreEqual(SlotState.Literal, text.State);
+        Assert.AreEqual((Int128)12, text.Value);
     }
 
-    /// <summary>A value with no integer meaning removes a stale variable instead of throwing.</summary>
+    /// <summary>A value with no integer meaning leaves the name undefined, so a stale variable is removed, instead of throwing.</summary>
     [TestMethod]
     public void ValueWithoutIntegerMeaning_RemovesStaleVariable()
     {
-        var variables = new Dictionary<string, Expr> { ["n"] = new Literal(1), };
-        LayoutVariableCapture.Capture(variables, "n", Field("n"), new object());
-        Assert.IsFalse(variables.ContainsKey("n"));
+        Assert.AreEqual(SlotState.Undefined, LayoutVariableCapture.ToSlotValue(Field("n"), new object()).State);
     }
 
     /// <summary>
@@ -59,8 +57,7 @@ public class LayoutVariableCaptureValueTests
     [TestMethod]
     public void UnexpectedConversionFailure_Propagates()
     {
-        var variables = new Dictionary<string, Expr>();
-        Assert.Throws<InvalidOperationException>(() => LayoutVariableCapture.Capture(variables, "n", Field("n"), new ThrowsUnexpectedException()));
+        Assert.Throws<InvalidOperationException>(() => LayoutVariableCapture.ToSlotValue(Field("n"), new ThrowsUnexpectedException()));
     }
 
     /// <summary>The not-a-number state compares by what the field holds and names the field when an expression uses it.</summary>
@@ -81,9 +78,7 @@ public class LayoutVariableCaptureValueTests
     public void GeneratedHelpers_MatchTheRuntimeDiagnostics()
     {
         Assert.AreEqual((Int128)7, CStructSharp.Generated.Expressions.FromUInt128((UInt128)7, "n"));
-        var variables = new Dictionary<string, Expr>();
-        LayoutVariableCapture.Capture(variables, "n", Field("n"), UInt128.MaxValue);
-        string runtime = ((WideValueVariable)variables["n"]).CreateFailure("n").Message;
+        string runtime = ((WideValueVariable)LayoutVariableCapture.ToSlotValue(Field("n"), UInt128.MaxValue).Payload!).CreateFailure("n").Message;
         Assert.AreEqual(
             runtime,
             Assert.Throws<InvalidOperationException>(() => CStructSharp.Generated.Expressions.FromUInt128(UInt128.MaxValue, "n")).Message);

@@ -1,9 +1,9 @@
 namespace CStructSharp.Tests;
 
-/// <summary>Builds options that restrict one operation to the general reader or writer, to compare it with the fast paths.</summary>
+/// <summary>Builds options that restrict one operation to the general path, to compare it with the fast paths.</summary>
 internal static class ExecutionPaths
 {
-    /// <summary>Returns <paramref name="options"/> (or the defaults) restricted to the general per-member reader.</summary>
+    /// <summary>Returns <paramref name="options"/> (or the defaults) restricted to the general path.</summary>
     /// <param name="options">The caller's read options, or <see langword="null"/> for the defaults.</param>
     /// <returns>A copy with <see cref="ExecutionPath.GeneralOnly"/>.</returns>
     public static ReadOptions GeneralOnly(ReadOptions? options = null) => (options ?? new ReadOptions()) with { ExecutionPath = ExecutionPath.GeneralOnly };

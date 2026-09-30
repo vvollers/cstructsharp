@@ -2,10 +2,7 @@
 /**
  * Collect and merge runtime, compiled parity and generator-consumer coverage of the runtime assembly.
  * Build the non-Web solution first. Usage: node tools/quality/collect-library-coverage.mjs [--output-directory dir].
- * Tests execute sequentially because Coverlet temporarily instruments their output assemblies. The runtime suite runs
- * with CSTRUCTSHARP_ENGINE_GOLDEN_RECORD=compare: its differential tests check the committed golden outcomes and also
- * run the interpreter those outcomes were recorded from, which must agree with the engine, so the interpreter stays
- * covered while it is the golden reference.
+ * Tests execute sequentially because Coverlet temporarily instruments their output assemblies.
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -44,8 +41,7 @@ for (const [name, project] of suites) {
   }
   console.log(`Collecting ${name} coverage${previous ? `, merging ${previous}` : ""}`);
   // Direct with inherited output: a coverage run takes minutes, and its test progress should stream to the log.
-  const env = name === "runtime" ? { ...process.env, CSTRUCTSHARP_ENGINE_GOLDEN_RECORD: "compare" } : process.env;
-  execFileSync("dotnet", args, { cwd: repositoryRoot, stdio: "inherit", env });
+  execFileSync("dotnet", args, { cwd: repositoryRoot, stdio: "inherit" });
   // Multi-target projects add a framework suffix; discover exactly one report instead of guessing its name.
   // Match only reports written by this suite, never another suite's TRX or a previous collection.
   const reports = fs.readdirSync(directory).filter((file) => file.endsWith(format === "json" ? ".json" : ".cobertura.xml"));

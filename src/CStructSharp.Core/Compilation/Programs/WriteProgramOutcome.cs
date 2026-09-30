@@ -2,8 +2,8 @@ namespace CStructSharp.Compilation.Programs;
 
 /// <summary>
 ///     What compiling one composite or root for writing produced: a <see cref="WriteProgram"/>, or the reason the compiled
-///     engine cannot write it yet. A composite with a reason makes every struct and root that holds it ineligible, so a
-///     write of such a root is left to the interpreter before anything is written.
+///     engine cannot write it. A composite with a reason makes every struct and root that holds it ineligible, so a
+///     write of such a root fails with that reason before anything is written.
 /// </summary>
 internal sealed class WriteProgramOutcome
 {
@@ -16,12 +16,13 @@ internal sealed class WriteProgramOutcome
         this.Reason = reason;
     }
 
-    /// <summary>Gets the program, or <see langword="null"/> when the composite is not supported yet.</summary>
+    /// <summary>Gets the program, or <see langword="null"/> when the composite cannot be written.</summary>
     public WriteProgram? Program { get; }
 
     /// <summary>
-    ///     Gets why the composite is not supported yet, as <c>location: what</c> - the innermost struct and member that
-    ///     needs a feature a later engine stage adds; <see langword="null"/> when <see cref="Program"/> is set.
+    ///     Gets why the composite cannot be written, as <c>location: what</c> - the innermost struct and member at fault,
+    ///     or the failure a path or root with no writable storage reports; <see langword="null"/> when
+    ///     <see cref="Program"/> is set.
     /// </summary>
     public string? Reason { get; }
 
@@ -33,7 +34,7 @@ internal sealed class WriteProgramOutcome
     /// <returns>An eligible outcome.</returns>
     public static WriteProgramOutcome Eligible(WriteProgram program) => new(program, null);
 
-    /// <summary>Records why a composite or root is not supported yet.</summary>
+    /// <summary>Records why a composite or root cannot be written.</summary>
     /// <param name="reason">The reason, as <c>location: what</c>.</param>
     /// <returns>An ineligible outcome.</returns>
     public static WriteProgramOutcome NotSupported(string reason) => new(null, reason);

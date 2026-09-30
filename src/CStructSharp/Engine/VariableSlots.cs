@@ -75,8 +75,8 @@ internal struct VariableSlots : IDisposable
     public static VariableSlots Create(SlotTable table, LayoutVariableInput input) => Create(table, input.Integers);
 
     /// <summary>
-    ///     Creates independent slots holding the same values, as the interpreter copies its variable dictionary (an update's
-    ///     layout captures each start from a copy); the copy is disposed separately.
+    ///     Creates independent slots holding the same values (an update's layout captures each start from a copy); the
+    ///     copy is disposed separately.
     /// </summary>
     /// <returns>The copy.</returns>
     public readonly VariableSlots Clone()

@@ -9,8 +9,8 @@ using static CStructSharp.Generators.Emit;
 /// <summary>
 ///     The fixed readers: for a struct whose every member sits at an offset known at build time, a
 ///     <c>Read&lt;Type&gt;Fixed(source, trimFixedText)</c> that decodes each member at its constant offset, the
-///     build-time counterpart of the runtime's static read plan. The general reader tries it first through
-///     <c>ReadCursor.TryTakeFixed</c>, which hands over the struct's bytes only when the member-by-member reader would
+///     build-time counterpart of the runtime's static read plan. The generated member-by-member reader tries it first
+///     through <c>ReadCursor.TryTakeFixed</c>, which hands over the struct's bytes only when the member-by-member reader would
 ///     read exactly those bytes without a failure (enough input, within the read budget and the nesting and array
 ///     limits, and on the struct's alignment); any other input takes the member-by-member reader, which reports any
 ///     failure.

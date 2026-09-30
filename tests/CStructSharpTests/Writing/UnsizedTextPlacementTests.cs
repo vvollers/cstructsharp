@@ -6,7 +6,7 @@ using CStructSharp.Values;
 ///     Unsized wide text (<c>wchar name[]</c>) in an aligned layout is placed by the writer exactly where the reader
 ///     reads it - at the next multiple of its element's alignment - so what every write operation produces reads back,
 ///     and an <c>@N</c> assertion that holds for the layout holds for the write. Every write form is checked under every
-///     execution path and with both the interpreter and the compiled engine.
+///     execution path.
 /// </summary>
 [TestClass]
 public class UnsizedTextPlacementTests
@@ -20,11 +20,10 @@ public class UnsizedTextPlacementTests
     /// </summary>
     private static readonly byte[] Encoded = [0x01, (byte)'a', 0x00, 0x00, (byte)'x', 0x00, (byte)'y', 0x00, 0x00, 0x00, 0x07, 0x00];
 
-    /// <summary>Gets the execution paths and implementations every case runs under, as data rows.</summary>
+    /// <summary>Gets the execution paths every case runs under, as data rows.</summary>
     public static IEnumerable<object[]> Paths
         => from ExecutionPath path in (ExecutionPath[])[ExecutionPath.Fastest, ExecutionPath.NoDirectAccess, ExecutionPath.GeneralOnly]
-           from EngineSelection selection in (EngineSelection[])[EngineSelection.InterpreterOnly, EngineSelection.Automatic]
-           select new object[] { (int)path, (int)selection, };
+           select new object[] { (int)path, };
 
     /// <summary>Gets the value <see cref="Encoded"/> holds.</summary>
     private static Dictionary<string, object?> Value => new() { ["tag"] = (byte)1, ["name"] = "a", ["wide"] = "xy", ["after"] = (ushort)7, };
@@ -34,13 +33,12 @@ public class UnsizedTextPlacementTests
     ///     position all produce the reader's placement, and the bytes read back as the value.
     /// </summary>
     /// <param name="path">The execution path, as its number (the enum is internal).</param>
-    /// <param name="selection">The implementation of the general path, as its number.</param>
     [TestMethod]
     [DynamicData(nameof(Paths))]
-    public void EveryWrite_PlacesUnsizedWideTextAsTheReaderDoes(int path, int selection)
+    public void EveryWrite_PlacesUnsizedWideTextAsTheReaderDoes(int path)
     {
         var layout = new CStruct(Layout, aligned: true);
-        var options = new WriteOptions { ExecutionPath = (ExecutionPath)path, EngineSelection = (EngineSelection)selection, };
+        var options = new WriteOptions { ExecutionPath = (ExecutionPath)path, };
 
         CollectionAssert.AreEqual(Encoded, layout.Serialize("rec", Value, options: options));
 
@@ -57,20 +55,19 @@ public class UnsizedTextPlacementTests
         layout.WriteAsync(asyncStream, "rec", Value, options: options).AsTask().GetAwaiter().GetResult();
         CollectionAssert.AreEqual(Encoded, asyncStream.ToArray());
 
-        StructValue read = layout.Parse(Encoded.AsSpan(), "rec", options: new ReadOptions { ExecutionPath = (ExecutionPath)path, EngineSelection = (EngineSelection)selection, });
+        StructValue read = layout.Parse(Encoded.AsSpan(), "rec", options: new ReadOptions { ExecutionPath = (ExecutionPath)path, });
         Assert.AreEqual("xy", read["wide"]);
         Assert.AreEqual((ushort)7, read["after"]);
     }
 
     /// <summary>An update of the unsized wide text or of the field after it changes the bytes where the reader reads them.</summary>
     /// <param name="path">The execution path, as its number (the enum is internal).</param>
-    /// <param name="selection">The implementation of the general path, as its number.</param>
     [TestMethod]
     [DynamicData(nameof(Paths))]
-    public void Update_ChangesUnsizedWideTextInPlace(int path, int selection)
+    public void Update_ChangesUnsizedWideTextInPlace(int path)
     {
         var layout = new CStruct(Layout, aligned: true);
-        var options = new UpdateOptions { ExecutionPath = (ExecutionPath)path, EngineSelection = (EngineSelection)selection, };
+        var options = new UpdateOptions { ExecutionPath = (ExecutionPath)path, };
         byte[] data = (byte[])Encoded.Clone();
         layout.Update(data.AsSpan(), "rec.wide", "zq", options: options);
         layout.Update(data.AsSpan(), "rec.after", (ushort)9, options: options);
@@ -82,14 +79,13 @@ public class UnsizedTextPlacementTests
     ///     writer places it at the asserted, aligned offset instead of failing.
     /// </summary>
     /// <param name="path">The execution path, as its number (the enum is internal).</param>
-    /// <param name="selection">The implementation of the general path, as its number.</param>
     [TestMethod]
     [DynamicData(nameof(Paths))]
-    public void OffsetAssertion_HoldsWhenWritten(int path, int selection)
+    public void OffsetAssertion_HoldsWhenWritten(int path)
     {
         var layout = new CStruct("struct rec { uint8 tag; wchar< wide[] @2; };", aligned: true);
         var value = new Dictionary<string, object?> { ["tag"] = (byte)1, ["wide"] = "x", };
-        byte[] written = layout.Serialize("rec", value, options: new WriteOptions { ExecutionPath = (ExecutionPath)path, EngineSelection = (EngineSelection)selection, });
+        byte[] written = layout.Serialize("rec", value, options: new WriteOptions { ExecutionPath = (ExecutionPath)path, });
         CollectionAssert.AreEqual(new byte[] { 0x01, 0x00, (byte)'x', 0x00, 0x00, 0x00, }, written);
         Assert.AreEqual("x", layout.Parse(written.AsSpan(), "rec")["wide"]);
     }

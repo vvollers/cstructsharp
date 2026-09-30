@@ -20,7 +20,17 @@ using CStructSharp.Writing;
 /// </summary>
 public sealed partial class CStruct
 {
-    /// <summary>Runs the existing composite parser over one synchronously pinned read-only region.</summary>
+    /// <summary>
+    ///     Parses the composite a path selects from one synchronously pinned read-only region: a whole fixed root directly,
+    ///     anything else with the compiled engine - a whole root straight over the region, a nested path through a
+    ///     read-only stream over it, on which the path is resolved.
+    /// </summary>
+    /// <param name="source">The input; coordinate zero is its first byte.</param>
+    /// <param name="elementNameOrPath">The root name or nested path; <see langword="null"/> selects the first declared struct.</param>
+    /// <param name="variables">The caller's integer layout variables, or <see langword="null"/>.</param>
+    /// <param name="options">The read options, or <see langword="null"/> for the defaults.</param>
+    /// <param name="debug">Whether to record debug byte ranges.</param>
+    /// <returns>The selected composite and the debug records (a shared empty list outside a debug parse).</returns>
     private unsafe (object Value, List<DebugData> Debug) ParseMemoryCore(
         ReadOnlySpan<byte> source,
         string? elementNameOrPath,
@@ -37,32 +47,33 @@ public sealed partial class CStruct
         var input = LayoutVariableInput.FromIntegers(variables);
         ReadOperationSettings settings = ReadOperationSettings.SnapshotReadOptions(options);
         IReadOnlyList<PathSegment> segments = this.ParsePath(path);
-        ReadProgram? engineRoot = this.SelectParse(settings, segments, input, debug);
+        ReadProgram? engineRoot = this.SelectParse(segments, debug);
         fixed (byte* buffer = source)
         {
-            // The engine reads the pinned region directly; the interpreter reads it through a read-only region stream. A
-            // nested path is resolved on that stream by both, so they report the same positions.
-            if (engineRoot is not null && segments.Count > 1)
+            // A whole root is read straight from the pinned region; a nested path is resolved on a read-only stream over
+            // it, so its failures report the stream's positions.
+            if (segments.Count > 1)
             {
                 using var region = new FixedBufferStream(buffer, source.Length, writable: false);
                 (List<DebugData> nestedRecords, object nested) = this.ParseNestedWithEngine(region, segments, input, settings, debug);
                 return (nested, nestedRecords);
             }
 
-            if (engineRoot is not null)
-            {
-                DebugRecorder? recorder = debug ? new DebugRecorder(trace: false) : null;
-                StructValue value = this.ReadRootWithEngine(buffer, source.Length, segments, engineRoot, input, settings, recorder, out bool selected, out _);
-                return (selected ? value : this.SelectParsedRoot(value, segments), recorder?.Records ?? NoDebugData);
-            }
-
-            using var stream = new FixedBufferStream(buffer, source.Length, writable: false);
-            (List<DebugData> records, object result) = this.ParseWithInterpreter(stream, segments, input, settings, debug);
-            return (result, records);
+            DebugRecorder? recorder = debug ? new DebugRecorder(trace: false) : null;
+            StructValue value = this.ReadRootWithEngine(buffer, source.Length, segments, engineRoot, input, settings, recorder, out bool selected, out _);
+            return (selected ? value : this.SelectParsedRoot(value, segments), recorder?.Records ?? NoDebugData);
         }
     }
 
-    /// <summary>Runs the existing natural-value reader over one synchronously pinned read-only region.</summary>
+    /// <summary>
+    ///     Reads the natural value a path selects from one synchronously pinned read-only region: a whole fixed root
+    ///     directly, anything else with the compiled engine straight over the region.
+    /// </summary>
+    /// <param name="source">The input; coordinate zero is its first byte.</param>
+    /// <param name="elementNameOrPath">The root name or nested path; <see langword="null"/> selects the first declared struct.</param>
+    /// <param name="variables">The caller's integer layout variables, or <see langword="null"/>.</param>
+    /// <param name="options">The read options, or <see langword="null"/> for the defaults.</param>
+    /// <returns>The value, or <see langword="null"/> for a null pointer's <c>.value</c>.</returns>
     private unsafe object? ReadMemoryValueCore(
         ReadOnlySpan<byte> source,
         string? elementNameOrPath,
@@ -78,20 +89,24 @@ public sealed partial class CStruct
         var input = LayoutVariableInput.FromIntegers(variables);
         ReadOperationSettings settings = ReadOperationSettings.SnapshotReadOptions(options);
         IReadOnlyList<PathSegment> segments = this.ParsePath(path);
-        ReadProgram? engineRoot = this.SelectValueRead(settings, segments, input);
+        ReadProgram? engineRoot = this.SelectValueRead(segments);
         fixed (byte* buffer = source)
         {
-            if (engineRoot is not null)
-            {
-                return this.ReadValueWithEngine(buffer, source.Length, segments, engineRoot, input, settings, out _);
-            }
-
-            using var stream = new FixedBufferStream(buffer, source.Length, writable: false);
-            return this.ReadValueWithInterpreter(stream, segments, input, settings);
+            return this.ReadValueWithEngine(buffer, source.Length, segments, engineRoot, input, settings, out _);
         }
     }
 
-    /// <summary>Runs the existing typed-value reader over one synchronously pinned read-only region.</summary>
+    /// <summary>
+    ///     Reads the value a path selects from one synchronously pinned read-only region and maps it to
+    ///     <typeparamref name="T"/>: a whole fixed root directly, anything else with the compiled engine straight over the
+    ///     region, converted as <see cref="ReadTypedValueCore{T}"/> converts it.
+    /// </summary>
+    /// <typeparam name="T">The CLR type the value is converted to.</typeparam>
+    /// <param name="source">The input; coordinate zero is its first byte.</param>
+    /// <param name="elementNameOrPath">The root name or nested path; <see langword="null"/> selects the first declared struct.</param>
+    /// <param name="variables">The caller's integer layout variables, or <see langword="null"/>.</param>
+    /// <param name="options">The read options, or <see langword="null"/> for the defaults.</param>
+    /// <returns>The converted value.</returns>
     private unsafe T ReadMemoryValueCore<T>(
         ReadOnlySpan<byte> source,
         string? elementNameOrPath,
@@ -114,23 +129,7 @@ public sealed partial class CStruct
                 // The natural value is converted to T exactly as ReadTypedValueCore converts it; a failure of the read
                 // or the conversion carries the path and the position the read reached.
                 ReadOperationSettings settings = ReadOperationSettings.SnapshotReadOptions(options);
-                object? naturalValue;
-                if (this.SelectValueRead(settings, segments, input) is { } engineRoot)
-                {
-                    naturalValue = this.ReadValueWithEngine(buffer, source.Length, segments, engineRoot, input, settings, out position);
-                }
-                else
-                {
-                    using var stream = new FixedBufferStream(buffer, source.Length, writable: false);
-                    try
-                    {
-                        naturalValue = this.ReadValueWithInterpreter(stream, segments, input, settings);
-                    }
-                    finally
-                    {
-                        position = stream.Position;
-                    }
-                }
+                object? naturalValue = this.ReadValueWithEngine(buffer, source.Length, segments, this.SelectValueRead(segments), input, settings, out position);
 
                 return (T)TypedValueConverter.Convert(naturalValue, typeof(T), ExceptionContext.FormatPath(segments))!;
             }
@@ -143,9 +142,15 @@ public sealed partial class CStruct
     }
 
     /// <summary>
-    ///     Serializes into caller storage: the direct fixed-root path first, then the compiled engine for an eligible root or path,
-    ///     otherwise the interpreter against an initially empty logical extent over the storage.
+    ///     Serializes into caller storage: the direct fixed-root path first, then the compiled engine into the pinned
+    ///     storage, whose logical extent starts empty.
     /// </summary>
+    /// <param name="destination">The caller's storage; the value is written from its first byte.</param>
+    /// <param name="elementNameOrPath">The root name or nested path to write.</param>
+    /// <param name="data">The value to encode.</param>
+    /// <param name="variables">The caller's integer layout variables, or <see langword="null"/>.</param>
+    /// <param name="options">The write options, or <see langword="null"/> for the defaults.</param>
+    /// <returns>The number of bytes written at the storage's start.</returns>
     private unsafe int SerializeToMemoryCore(
         Span<byte> destination,
         string elementNameOrPath,
@@ -161,21 +166,14 @@ public sealed partial class CStruct
         WritePreparation request = this.PrepareWrite(null, elementNameOrPath, LayoutVariableInput.FromIntegers(variables), options);
         fixed (byte* buffer = destination)
         {
-            if (request.Program is not null)
+            try
             {
-                try
-                {
-                    return WriteEngine.SerializeToSpan(this, request, buffer, destination.Length, data);
-                }
-                finally
-                {
-                    request.Slots.Dispose();
-                }
+                return WriteEngine.SerializeToSpan(this, request, buffer, destination.Length, data);
             }
-
-            using var stream = new FixedBufferStream(buffer, destination.Length, writable: true);
-            this.WriteRequested(stream, request, data);
-            return checked((int)stream.Length);
+            finally
+            {
+                request.Slots.Dispose();
+            }
         }
     }
 }

@@ -7,21 +7,18 @@ using CStructSharp.Reading;
 
 /// <summary>
 ///     Checks the layout capture an update makes before and after its change - every value's path and byte range, then
-///     the conditional-layout trace, entry for entry - by the compiled engine's debug program
-///     (<c>CaptureUpdateLayoutWithEngine</c>) against the golden reference (<see cref="EngineGolden"/>), over one input and
-///     source. An update of a conditional root or of a terminated value accepts or rejects its change by this comparison,
-///     so the capture must match exactly, failures included. The golden capture is the interpreter's
-///     (<c>CaptureUpdateLayout</c>), which a run that compares with the interpreter
-///     (<see cref="EngineGolden.ComparesInterpreter"/>) also compares with the engine's.
+///     the conditional-layout trace, entry for entry - by the compiled engine's debug program (<c>CaptureUpdateLayout</c>)
+///     against the golden reference (<see cref="EngineGolden"/>), over one input and source. An update of a conditional root
+///     or of a terminated value accepts or rejects its change by this comparison, so the capture must match exactly,
+///     failures included.
 /// </summary>
 internal static class EngineLayoutCapture
 {
     /// <summary>
     ///     Asserts that the engine captures the golden layout of <paramref name="root"/> from <paramref name="data"/> read
-    ///     through <paramref name="input"/> - the same entries, or the same failure, and the same final stream position; an
-    ///     eligible root the engine does not capture renders as a failure. When the run compares with the interpreter,
-    ///     the interpreter's capture must match the engine's, and it is the one checked (or recorded). A root without a debug program (one the layout does not
-    ///     declare) has no layout: the engine must capture nothing, and nothing is checked against the golden reference.
+    ///     through <paramref name="input"/> - the same entries, or the same failure, and the same final stream position. A
+    ///     root the layout does not declare has no layout: the capture reports it as an unknown root, and nothing is checked
+    ///     against the golden reference.
     /// </summary>
     /// <param name="name">The case, which with the input keys it in the golden reference.</param>
     /// <param name="layout">The compiled layout.</param>
@@ -30,46 +27,23 @@ internal static class EngineLayoutCapture
     /// <param name="root">The root to capture.</param>
     /// <param name="variables">The caller variables, or <see langword="null"/>.</param>
     /// <param name="read">The read settings.</param>
-    /// <returns>The rendering of the capture, or <c>no layout</c> for a root without a debug program.</returns>
-    /// <exception cref="AssertFailedException">The capture differs, or the engine captured a root without a debug program.</exception>
+    /// <returns>The rendering of the capture, or <c>no layout</c> for a root the layout does not declare.</returns>
+    /// <exception cref="AssertFailedException">The capture differs, or an undeclared root is not reported as unknown.</exception>
     public static string AssertSame(string name, CStruct layout, byte[] data, EngineInput input, string root, IReadOnlyDictionary<string, int>? variables, ReadOptions read)
     {
         ReadOperationSettings settings = ReadOperationSettings.SnapshotReadOptions(read);
         LayoutVariableInput integers = LayoutVariableInput.FromIntegers(variables);
         string key = name + " (" + input + ")";
-        if (!layout.Compilation.GetRootDebugReadProgram(root).IsEligible)
+        if (!layout.Compilation.ModelQueries.TryGetCompiledDeclaration(root, out _))
         {
-            // Every root a layout declares has a debug program, so only an undeclared root lacks one: it has no layout to
-            // capture, which the interpreter reports as an unknown path.
+            // An undeclared root has no layout to capture: the capture reports it as an unknown path.
             using Stream stream = EngineStreams.Open(input, data);
-            Assert.IsNull(layout.CaptureUpdateLayoutWithEngine(stream, EngineStreams.StartOf(input), root, integers, settings), key + ": the engine captured a root without a debug program");
-            if (EngineGolden.ComparesInterpreter)
-            {
-                Assert.Throws<Diagnostics.CStructPathException>(() => layout.CaptureUpdateLayout(stream, EngineStreams.StartOf(input), root, integers, settings), key);
-            }
-
+            Assert.Throws<Diagnostics.CStructPathException>(() => layout.CaptureUpdateLayout(stream, EngineStreams.StartOf(input), root, integers, settings), key);
             return "no layout";
         }
 
-        string? expected = EngineGolden.ComparesInterpreter ? Render(data, input, (stream, origin) => layout.CaptureUpdateLayout(stream, origin, root, integers, settings)) : null;
-        string actual = Render(
-            data,
-            input,
-            (stream, origin) => layout.CaptureUpdateLayoutWithEngine(stream, origin, root, integers, settings) ??
-                                throw new InvalidOperationException("The engine did not capture the layout of the eligible root " + root + "."));
-        if (expected is null)
-        {
-            EngineGolden.Check(key, actual);
-        }
-        else
-        {
-            EngineGolden.Check(key, expected);
-            if (!string.Equals(expected, actual, StringComparison.Ordinal))
-            {
-                Assert.Fail(key + ": the interpreter's (-) and the engine's (+) layout captures differ:\n" + EngineDifferential.Diff(expected, actual));
-            }
-        }
-
+        string actual = Render(data, input, (stream, origin) => layout.CaptureUpdateLayout(stream, origin, root, integers, settings));
+        EngineGolden.Check(key, actual);
         return actual;
     }
 

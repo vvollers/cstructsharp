@@ -217,7 +217,7 @@ public class CustomCodecBoundaryTests
     /// <summary>
     ///     A codec's declared fixed size is the value's extent on every path: a codec that decodes from two of its four
     ///     declared bytes leaves the later members at their declared offsets for a parse, a selected read, an address and a
-    ///     length, over memory and a stream, on the compiled engine and the interpreter and under every execution path; a
+    ///     length, over memory and a stream, under every execution path; a
     ///     write pads the two encoded bytes to four with zeros, so a parse, a serialization and an update round-trip.
     /// </summary>
     [TestMethod]
@@ -230,10 +230,9 @@ public class CustomCodecBoundaryTests
         byte[] canonical = [0x34, 0x12, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 2, 7, 8, 9];
         foreach (ExecutionPath path in (ExecutionPath[])[ExecutionPath.Fastest, ExecutionPath.NoDirectAccess, ExecutionPath.GeneralOnly])
         {
-            foreach (EngineSelection selection in (EngineSelection[])[EngineSelection.EngineRequired, EngineSelection.InterpreterOnly])
             {
-                string context = path + ", " + selection;
-                ReadOptions read = EngineSelections.With(selection, new ReadOptions { ExecutionPath = path, });
+                string context = path.ToString();
+                var read = new ReadOptions { ExecutionPath = path, };
                 foreach (bool stream in (bool[])[false, true])
                 {
                     // A stream that hides its buffer reads through the codec's window, memory in place.
@@ -252,7 +251,7 @@ public class CustomCodecBoundaryTests
                 Assert.AreEqual(15L, layout.ResolveAddress(new MemoryStream(data, 0, data.Length, false, false), "rec.tail", options: read), context);
                 Assert.AreEqual(2, layout.GetArrayLength(data, "rec.items", options: read), context);
 
-                WriteOptions write = EngineSelections.With(selection, new WriteOptions { ExecutionPath = path, });
+                var write = new WriteOptions { ExecutionPath = path, };
                 CollectionAssert.AreEqual(canonical, layout.Serialize("rec", layout.Parse(data.AsSpan(), "rec", options: read), options: write), context);
             }
 
@@ -266,7 +265,7 @@ public class CustomCodecBoundaryTests
 
     /// <summary>
     ///     A fixed-size codec cannot take more than its declared size: consuming more when decoding, or asking for more room
-    ///     when encoding, fails on the engine and the interpreter alike, as does an input that ends before the declared size.
+    ///     when encoding, fails, as does an input that ends before the declared size.
     /// </summary>
     [TestMethod]
     public void FixedSizeCodec_FailsBeyondItsDeclaredSize()
@@ -274,9 +273,8 @@ public class CustomCodecBoundaryTests
         var greedy = new CStruct("struct rec { half a; uint8 tail; };", compilationOptions: new CStructCompilationOptions { Codecs = [new HalfWordCodec(consumed: 6, writtenRoom: 6),], });
         var layout = new CStruct("struct rec { half a; uint8 tail; };", compilationOptions: new CStructCompilationOptions { Codecs = [new HalfWordCodec(),], });
         byte[] data = [1, 2, 3, 4, 5, 6, 7];
-        foreach (EngineSelection selection in (EngineSelection[])[EngineSelection.Automatic, EngineSelection.InterpreterOnly])
         {
-            ReadOptions read = EngineSelections.With(selection);
+            var read = new ReadOptions();
             CStructReadException consumed = Assert.ThrowsExactly<CStructReadException>(() => greedy.Parse(data.AsSpan(), "rec", options: read));
             StringAssert.Contains(consumed.Message, "Custom codec 'half' reported 6 bytes consumed, more than its fixed size of 4 bytes");
             Assert.AreEqual(0L, consumed.Offset);
@@ -289,7 +287,7 @@ public class CustomCodecBoundaryTests
             Assert.AreEqual(3L, shortInput.Offset);
 
             var value = new Dictionary<string, object?> { ["a"] = (ushort)1, ["tail"] = (byte)2, };
-            CStructWriteException room = Assert.ThrowsExactly<CStructWriteException>(() => greedy.Serialize("rec", value, options: EngineSelections.With(selection, new WriteOptions())));
+            CStructWriteException room = Assert.ThrowsExactly<CStructWriteException>(() => greedy.Serialize("rec", value, options: new WriteOptions()));
             StringAssert.Contains(room.Message, "Custom codec 'half' needs more than its fixed size of 4 bytes for one value");
         }
     }

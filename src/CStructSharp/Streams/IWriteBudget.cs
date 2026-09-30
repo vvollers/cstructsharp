@@ -2,8 +2,8 @@ namespace CStructSharp.Streams;
 
 /// <summary>
 ///     The per-string part of a write operation's output budget, as a codec writer sees it through the stream it is given:
-///     the interpreter's <see cref="WriteBudgetStream"/> and the compiled engine's <see cref="Engine.MemoryWriteBuffer"/>
-///     both enforce <see cref="WriteOptions.MaxStringBytes"/> this way, so a codec that checks its encoded size before
+///     the stream destination's <see cref="WriteBudgetStream"/> and the memory destinations'
+///     <see cref="Engine.MemoryWriteBuffer"/> both enforce <see cref="WriteOptions.MaxStringBytes"/> this way, so a codec that checks its encoded size before
 ///     writing fails identically on both.
 /// </summary>
 internal interface IWriteBudget

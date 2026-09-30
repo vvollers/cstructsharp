@@ -17,11 +17,11 @@ using CStructSharp.Writing;
 
 /// <summary>
 ///     The compiled engine's writer: executes a root's (or a nested path's member's) <see cref="WriteProgram"/> into a
-///     destination and produces exactly what the interpreter's writer produces for the same <c>Serialize</c>, <c>Write</c>
-///     or buffer-writer write - the same bytes (and the bytes a failure leaves in a caller's span, stream or committed
-///     buffer-writer windows), the same returned count, the same exception type, message, member, path and offset, the
-///     same final stream position, and the same write-budget charges. <see cref="UpdateOptions"/> switch on the
-///     interpreter's update semantics (<see cref="WriteEngineState.UpdateSemantics"/>).
+///     destination for a <c>Serialize</c>, <c>Write</c> or buffer-writer write. Every destination observes the same
+///     contract: the same bytes (and the bytes a failure leaves in a caller's span, stream or committed buffer-writer
+///     windows), the returned count, the exception type, message, member, path and offset, the final stream position, and
+///     the write-budget charges, as the golden outcomes pin them. <see cref="UpdateOptions"/> switch on update semantics
+///     (<see cref="WriteEngineState.UpdateSemantics"/>).
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -30,15 +30,15 @@ using CStructSharp.Writing;
 ///         program's steps with one <see langword="switch"/> on the op code.
 ///     </para>
 ///     <para>
-///         <b>Frames.</b> Every composite program runs in its own call, as the interpreter writes every composite in its
-///         own call, so failures are attributed and state is restored in the interpreter's order: the member-noting filter
-///         (innermost member wins), the nesting level a struct claims after its static-plan attempt, the cancellation check
-///         at each struct's entry, and the frame's conditional selection and scope.
+///         <b>Frames.</b> Every composite program runs in its own call, so failures are attributed and state is restored
+///         in this order: the member-noting filter (innermost member wins), the nesting level a struct claims after its
+///         static-plan attempt, the cancellation check at each struct's entry, and the frame's conditional selection and
+///         scope.
 ///     </para>
 ///     <para>
-///         <b>Fast paths.</b> Where the interpreter writes a fixed composite through its static write plan, a numeric array
-///         from typed storage, or a <c>char[N]</c> as one block, the engine takes the same path under the same conditions,
-///         because those paths charge the budget and fail differently from the element-by-element writes.
+///         <b>Fast paths.</b> A fixed composite is written through its static write plan, a numeric array from typed
+///         storage, and a <c>char[N]</c> as one block, only under the conditions stated at each path, because those
+///         paths charge the budget and fail differently from the element-by-element writes.
 ///     </para>
 /// </remarks>
 internal static partial class WriteEngine
@@ -46,16 +46,15 @@ internal static partial class WriteEngine
     /// <summary>The widest single value a numeric step encodes, the size of each frame's scratch buffer.</summary>
     private const int ScratchSize = 16;
 
-    /// <summary>The largest block staged on the stack; a larger one is rented, as the interpreter stages it.</summary>
+    /// <summary>The largest block staged on the stack; a larger one is rented from the pool.</summary>
     private const int StackStagingLimit = 512;
 
     /// <summary>
-    ///     Serializes a root or nested path into a new array: what the interpreter's <c>Serialize</c> produces over its
-    ///     growable stream.
+    ///     Serializes a root or nested path into a new array: what <c>Serialize</c> produces.
     /// </summary>
     /// <param name="layout">The layout the program belongs to.</param>
     /// <param name="request">The settled write, with the engine's program and slots; the caller disposes the slots.</param>
-    /// <param name="data">The caller's data, normalized here as the interpreter normalizes it.</param>
+    /// <param name="data">The caller's data; its root wrapper is normalized here.</param>
     /// <returns>A new array holding exactly the encoded bytes.</returns>
     /// <exception cref="OperationCanceledException">The token is cancelled before or during the write.</exception>
     /// <exception cref="CStructException">The value cannot be written; the path and offset are attached.</exception>
@@ -63,7 +62,7 @@ internal static partial class WriteEngine
     {
         object rootData = WriteDataBinding.NormalizeRootData(data, request.Segments[0].Name);
 
-        // The interpreter's writer state observes the token when it is created, before the destination is touched.
+        // The token is observed before the destination is touched.
         request.Options.CancellationToken.ThrowIfCancellationRequested();
         using var buffer = MemoryWriteBuffer.ForNewArray(request.Options);
         var destination = new MemoryWriteDestination(buffer);
@@ -72,14 +71,14 @@ internal static partial class WriteEngine
     }
 
     /// <summary>
-    ///     Serializes a root or nested path into a caller's pinned span: what the interpreter's <c>Serialize(Span)</c>
-    ///     produces over its region stream, including the prefix a failure leaves in the span.
+    ///     Serializes a root or nested path into a caller's pinned span: what <c>Serialize(Span)</c> produces, including
+    ///     the prefix a failure leaves in the span.
     /// </summary>
     /// <param name="layout">The layout the program belongs to.</param>
     /// <param name="request">The settled write, with the engine's program and slots; the caller disposes the slots.</param>
     /// <param name="region">The span's first byte; the caller keeps it pinned until the method returns.</param>
     /// <param name="capacity">The span's length in bytes.</param>
-    /// <param name="data">The caller's data, normalized here as the interpreter normalizes it.</param>
+    /// <param name="data">The caller's data; its root wrapper is normalized here.</param>
     /// <returns>The number of bytes written at the span's start: the high-water mark.</returns>
     /// <exception cref="OperationCanceledException">The token is cancelled before or during the write.</exception>
     /// <exception cref="CStructException">The value cannot be written; the path and offset are attached.</exception>
@@ -95,14 +94,14 @@ internal static partial class WriteEngine
 
     /// <summary>
     ///     Writes a root or nested path into a caller's stream at its position - a buffer writer arrives as its
-    ///     <see cref="BufferWriterStream"/> - through the budget stream the interpreter wraps it in: the fields written
-    ///     before a failure stay in the stream, bitfields merge into the bytes the stream already holds, and the stream is
-    ///     left where the interpreter leaves it.
+    ///     <see cref="BufferWriterStream"/> - through a <see cref="WriteBudgetStream"/> wrapped around it: the fields
+    ///     written before a failure stay in the stream, bitfields merge into the bytes the stream already holds, and the
+    ///     stream is left where the last write (or failure) left it.
     /// </summary>
     /// <param name="layout">The layout the program belongs to.</param>
     /// <param name="request">The settled write, with the engine's program and slots; the caller disposes the slots.</param>
     /// <param name="stream">The caller's writable, seekable stream; it stays open and is not flushed.</param>
-    /// <param name="data">The caller's data, normalized here as the interpreter normalizes it.</param>
+    /// <param name="data">The caller's data; its root wrapper is normalized here.</param>
     /// <exception cref="OperationCanceledException">The token is cancelled before or during the write.</exception>
     /// <exception cref="CStructException">The value cannot be written, or the stream fails; the path and the stream's position are attached.</exception>
     public static void WriteToStream(CStruct layout, in WritePreparation request, Stream stream, object data)
@@ -110,7 +109,7 @@ internal static partial class WriteEngine
         object rootData = WriteDataBinding.NormalizeRootData(data, request.Segments[0].Name);
         request.Options.CancellationToken.ThrowIfCancellationRequested();
 
-        // The budget stream reads the stream's length when it is created, as the interpreter's writer state creates it.
+        // The budget stream reads the stream's length when it is created, after the token check and before any write.
         WriteBudgetStream budget;
         try
         {
@@ -127,8 +126,7 @@ internal static partial class WriteEngine
     }
 
     /// <summary>
-    ///     Writes what an update's resolved path selects into the update's sparse staging, as the interpreter's update
-    ///     writes it: the value exactly as given (not normalized), from the resolved address, standalone, with the slots the
+    ///     Writes what an update's resolved path selects into the update's sparse staging: the value exactly as given (not normalized), from the resolved address, standalone, with the slots the
     ///     path's walk captured into, and a bitfield target seeded with its placed unit. The caller has observed the token and
     ///     attaches failure context.
     /// </summary>
@@ -157,27 +155,33 @@ internal static partial class WriteEngine
 
     /// <summary>
     ///     Runs a write whose token was checked: a nested path first selects its value and checks its indexes (nothing is
-    ///     written before), then the program writes; a failure gets the path and the position attached as the interpreter
-    ///     attaches them for the destination.
+    ///     written before), then the program writes; a failure gets the path and the position attached for the destination.
+    ///     A write without a program fails here, before anything is written: a nested path with the failure of its
+    ///     resolution, a root with no binary storage with <see cref="WritePreparation.Unwritable"/>.
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
     /// <param name="destination">The operation's destination.</param>
     /// <param name="layout">The layout.</param>
     /// <param name="request">The settled write.</param>
     /// <param name="rootData">The normalized root data.</param>
+    /// <exception cref="InvalidOperationException">The root has no binary storage (a text <c>#define</c>).</exception>
     private static void Run<TDestination>(ref TDestination destination, CStruct layout, in WritePreparation request, object rootData)
         where TDestination : struct, IWriteDestination
     {
-        WriteProgram program = request.Program!;
+        WriteProgram? program = request.Program;
         var state = new WriteEngineState(layout, request.Slots, request.Options);
         try
         {
             if (request.ChildSegments is { } childSegments)
             {
-                // The member the path selects is written on its own from the value at the path: its program is the one the
-                // selector chose for the same member, so only the selected value and the index checks remain.
+                // The member the path selects is written on its own from the value at the path, so only the selected value
+                // and the index checks remain; a path that selects no writable member fails its resolution here.
                 object value = layout.SelectWrittenPathValue(request.RootElement, childSegments, rootData, request.Variables!, out _);
-                RunFrame(ref destination, ref state, program, value, 0);
+                RunFrame(ref destination, ref state, program ?? throw new InvalidOperationException(request.Unwritable), value, 0);
+            }
+            else if (program is null)
+            {
+                throw new InvalidOperationException(request.Unwritable);
             }
             else if (program.Steps is [{ Op: WriteOpCode.WriteRootStruct, } root,])
             {
@@ -201,9 +205,9 @@ internal static partial class WriteEngine
     }
 
     /// <summary>
-    ///     Writes a struct or union from its value, as the interpreter's <c>WriteStruct</c> does: the token, a null value,
-    ///     the mapped-class binding, the unknown-member policy (not for a promoted member, whose data its parent checked),
-    ///     then for a struct the static write plan when the interpreter would take it, otherwise member by member - or the
+    ///     Writes a struct or union from its value, checking in this order: the token, a null value, the mapped-class
+    ///     binding, the unknown-member policy (not for a promoted member, whose data its parent checked), then for a struct
+    ///     the static write plan when it qualifies, otherwise member by member - or the
     ///     union's selection staged - inside one claimed nesting level (none for a promoted member).
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
@@ -259,11 +263,11 @@ internal static partial class WriteEngine
     }
 
     /// <summary>
-    ///     Writes a fixed struct through its static write plan exactly when the interpreter's writer does: no update
+    ///     Writes a fixed struct through its static write plan when that cannot change the outcome: no update
     ///     semantics, not restricted to the general path, the plan within one block and the nesting and array limits, the
     ///     bytes under the block readable, and its whole block within the budget and the destination's room. The bytes
     ///     already under the block are read back first, so padding keeps what it held (in a new destination: zeroes), the
-    ///     members are encoded before any byte is written, and the block is written once with the interpreter's charge.
+    ///     members are encoded before any byte is written, and the block is written once with the plan's charge (field bytes, or in an aligned layout the aligned bytes).
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
     /// <param name="destination">The operation's destination, at the struct's first byte.</param>
@@ -325,7 +329,7 @@ internal static partial class WriteEngine
     ///     Executes one program's steps in this call's frame, from step <paramref name="entry"/> to the end (or, in a union,
     ///     to the member segment's <see cref="WriteOpCode.Return"/>). A failure inside a named member (from its value lookup
     ///     to its capture) is attributed to that member by the exception filter, which runs before any inner
-    ///     <see langword="finally"/>, so the innermost member wins, as in the interpreter's field loop.
+    ///     <see langword="finally"/>, so the innermost member wins.
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
     /// <param name="destination">The operation's destination, at the program's first byte.</param>
@@ -365,7 +369,7 @@ internal static partial class WriteEngine
         int bitOffset = 0;
         int unitSize = 0;
 
-        // A struct with bitfields places its members through the runtime cursor the interpreter uses, held on the stack.
+        // A struct with bitfields places its members through a runtime placement cursor, held on the stack.
         PlacementCursor placer = program.UsesPlacementCursor
                                      ? new PlacementCursor(start, state.Layout.Aligned, state.Layout.BitfieldPacking, state.Layout.Compilation.HighBitFirst)
                                      : default;
@@ -638,6 +642,9 @@ internal static partial class WriteEngine
                         break;
                     }
 
+                case WriteOpCode.FailNoWriter:
+                    throw new InvalidOperationException(WriteFailures.NoValueHandler(program.ValueFields[step.Field].TypeSpelling));
+
                 default:
                     throw new InvalidOperationException("The compiled engine has no executor for write step " + step.Op + ".");
                 }
@@ -655,7 +662,7 @@ internal static partial class WriteEngine
         }
     }
 
-    /// <summary>Records the member a failed step belongs to, as the interpreter's field-loop filter does; never catches.</summary>
+    /// <summary>Records the member a failed step belongs to (the innermost member wins); never catches.</summary>
     /// <param name="exception">The failure.</param>
     /// <param name="program">The program.</param>
     /// <param name="index">The failed step's index.</param>
@@ -679,8 +686,8 @@ internal static partial class WriteEngine
         => index + 1 < steps.Length && steps[index + 1].Op == WriteOpCode.CheckOffset && steps[index + 1].Field == steps[index].Field;
 
     /// <summary>
-    ///     Checks a member's <c>@N</c> assertion against its start, then moves there: the interpreter's placement cursor
-    ///     computes the start, checks the assertion, and only then sets the position.
+    ///     Checks a member's <c>@N</c> assertion against its start, then moves there: the start is computed, the
+    ///     assertion checked, and only then the position set.
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
     /// <param name="destination">The operation's destination.</param>
@@ -706,7 +713,7 @@ internal static partial class WriteEngine
     }
 
     /// <summary>
-    ///     Checks a runtime element count as the interpreter's writer does: a negative count is a write failure naming the
+    ///     Checks a runtime element count: a negative count is a write failure naming the
     ///     member, a count past <c>MaxArrayElements</c> a limit failure naming it.
     /// </summary>
     /// <param name="count">The count, in the expression domain.</param>
@@ -731,7 +738,7 @@ internal static partial class WriteEngine
     }
 
     /// <summary>
-    ///     Looks a member's value up as the interpreter's writer does - by slot in a value of the program's own shape, by
+    ///     Looks a member's value up - by slot in a value of the program's own shape, by
     ///     name in any other data - and rejects a missing or null value.
     /// </summary>
     /// <param name="same">The frame's data when it is a struct value of the program's shape, else <see langword="null"/>.</param>
@@ -759,7 +766,7 @@ internal static partial class WriteEngine
     }
 
     /// <summary>
-    ///     Rejects a null value, as the interpreter's field write does, unless the member is a scalar pointer, whose null
+    ///     Rejects a null value unless the member is a scalar pointer, whose null
     ///     value is the null address.
     /// </summary>
     /// <param name="value">The supplied value.</param>
@@ -772,8 +779,8 @@ internal static partial class WriteEngine
                : value;
 
     /// <summary>
-    ///     Rejects a value supplied for any name an unselected conditional member makes visible, as the interpreter does
-    ///     before it skips the member.
+    ///     Rejects a value supplied for any name an unselected conditional member makes visible, before the member is
+    ///     skipped.
     /// </summary>
     /// <param name="program">The program, whose composite owns the conditional scope.</param>
     /// <param name="member">The unselected member.</param>

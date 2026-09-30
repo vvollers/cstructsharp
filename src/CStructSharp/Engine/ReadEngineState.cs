@@ -8,8 +8,7 @@ using CStructSharp.Reading;
 
 /// <summary>
 ///     The state one compiled-engine read operation carries through its frames, beside the cursor: the layout-variable
-///     slots, the limits the executor checks itself, the nesting depth and the active qualified prefix. It holds what
-///     the interpreter's <see cref="CStructOperationContext"/> holds for the same read, minus the stream, which is the
+///     slots, the limits the executor checks itself, the nesting depth and the active qualified prefix; the stream is the
 ///     cursor. A debug parse adds its recorder (<see cref="Debug"/>).
 /// </summary>
 /// <remarks>
@@ -46,7 +45,7 @@ internal struct ReadEngineState
         this.MaxNestingDepth = options.MaxNestingDepth;
         this.TrimFixedText = options.TrimFixedText;
 
-        // A debug parse takes no static read plan, as the interpreter's does not: every value is read, and recorded, alone.
+        // A debug parse takes no static read plan: every value is read, and recorded, alone.
         this.GeneralPathOnly = options.ExecutionPath == ExecutionPath.GeneralOnly || debug is not null;
         this.DereferencePointers = options.DereferencePointers;
         this.AddressingMode = options.AddressingMode;
@@ -83,8 +82,8 @@ internal struct ReadEngineState
     public bool TrimFixedText { get; }
 
     /// <summary>
-    ///     Gets whether the read must avoid the static read plans and block reads (<see cref="ExecutionPath.GeneralOnly"/>,
-    ///     and every debug parse), as the interpreter does under the same conditions.
+    ///     Gets whether the read must avoid the static read plans and block reads
+    ///     (<see cref="ExecutionPath.GeneralOnly"/>, and every debug parse).
     /// </summary>
     public bool GeneralPathOnly { get; }
 
@@ -122,8 +121,8 @@ internal struct ReadEngineState
     public readonly int PendingPointerCount => this.pointers?.Pending.Count ?? 0;
 
     /// <summary>
-    ///     Gets the operation's pointer bookkeeping - the targets on the active path and the deferred pointers - taken on
-    ///     first use from the thread's cache the interpreter shares, and given back by <see cref="Release"/>.
+    ///     Gets the operation's pointer bookkeeping - the targets on the active path and the deferred pointers - taken
+    ///     on first use from the thread's cache, and given back by <see cref="Release"/>.
     /// </summary>
     public PointerTraversal Pointers => this.pointers ??= PointerTraversal.Rent();
 
@@ -139,7 +138,7 @@ internal struct ReadEngineState
     /// <summary>Gets the conditional-scope locals stack; a frame reads its locals at the base <see cref="TakeLocals"/> returned. Read it again after a nested frame ran.</summary>
     public readonly SlotValue[] Locals => this.arena.Locals;
 
-    /// <summary>Takes a frame's conditional-scope locals, every one <see cref="SlotValue.Undefined"/> (the interpreter's "no saved value").</summary>
+    /// <summary>Takes a frame's conditional-scope locals, every one <see cref="SlotValue.Undefined"/> ("no saved value").</summary>
     /// <param name="count">The scope's local count (or a union's slot count), not negative.</param>
     /// <returns>The index of the frame's first local in <see cref="Locals"/>.</returns>
     public int TakeLocals(int count) => this.arena.TakeLocals(count);
@@ -164,8 +163,8 @@ internal struct ReadEngineState
         => FrameArena.CompleteMember(ref this.arena, this.Slots, scope, member, localBase);
 
     /// <summary>
-    ///     Saves every variable slot as the innermost union's entry values, in the locals stack after the current frames,
-    ///     as the interpreter snapshots its whole variable dictionary when it enters a union.
+    ///     Saves every variable slot as the innermost union's entry values, in the locals stack after the current
+    ///     frames, so every variable a member changes can be restored to its value at the union's entry.
     /// </summary>
     /// <returns>The enclosing union's saved values, which <see cref="ReleaseUnionSlots"/> makes current again.</returns>
     public int SaveUnionSlots()
@@ -188,8 +187,8 @@ internal struct ReadEngineState
     }
 
     /// <summary>
-    ///     Drops the deferred pointers queued after <paramref name="count"/> entries: a struct that failed never follows its
-    ///     own, as the interpreter discards them when the struct's read ends.
+    ///     Drops the deferred pointers queued after <paramref name="count"/> entries: a struct that failed never
+    ///     follows its own.
     /// </summary>
     /// <param name="count">The entries of enclosing structs, which stay queued.</param>
     public readonly void DiscardPendingPointers(int count)
@@ -216,8 +215,7 @@ internal struct ReadEngineState
     }
 
     /// <summary>
-    ///     Claims one struct level as the interpreter's <c>EnterStructure</c> does: the cancellation token first, then the
-    ///     nesting limit.
+    ///     Claims one struct level: the cancellation token first, then the nesting limit.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor, which carries the token.</param>
@@ -236,8 +234,8 @@ internal struct ReadEngineState
     }
 
     /// <summary>
-    ///     Returns whether the nesting and array limits admit running <paramref name="plan"/> at the current depth, the
-    ///     interpreter's <c>CoversPlan</c>; the byte budget is checked when the bytes are taken.
+    ///     Returns whether the nesting and array limits admit running <paramref name="plan"/> at the current depth; the
+    ///     byte budget is checked when the bytes are taken.
     /// </summary>
     /// <param name="plan">The static read plan of a fixed composite.</param>
     /// <returns>Whether the plan's structs and arrays stay within the limits.</returns>
@@ -251,7 +249,7 @@ internal struct ReadEngineState
 
     /// <summary>
     ///     While a qualified prefix is active, publishes a just-captured value under every target the prefix covers
-    ///     (<see cref="QualifiedPublication.Covers"/>), as the interpreter copies (or removes) the qualified names; a
+    ///     (<see cref="QualifiedPublication.Covers"/>), copying (or removing) the qualified names; a
     ///     spelling without a slot is not observable and is skipped.
     /// </summary>
     /// <param name="targets">The bare name's publication targets, one per prefix some expression spells it with.</param>

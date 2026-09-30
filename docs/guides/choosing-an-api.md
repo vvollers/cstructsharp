@@ -57,6 +57,13 @@ refer to bytes before that slice.
 handles every selection: structs, unions (`UnionValue`), scalars, array elements, enum values, pointer parts, and
 other selected fields.
 
+The runtime operations (`Parse`, `ReadValue`, `Serialize`, ...) compile each struct into a small program the first
+time they read or write it, and run that program on every later call; a whole fixed-layout struct in memory skips even
+that and is decoded straight from the span ([how a layout is run](performance.md#how-a-layout-is-run-the-compiled-engine)).
+They still build a `StructValue` or read through your mapped class's `ReadFrom`, so a generated `[CStructLayout]` class
+stays the fastest choice when the layout is part of your program: its generated reader and writer are ordinary C#
+with every offset written out, and its views allocate nothing.
+
 The untyped `ReadValue` result uses the library's direct C# representation. For example, `uint16` becomes `ushort`,
 a struct becomes a `StructValue` (readable through `dynamic` members or as an `IDictionary<string, object?>`), an enum becomes `EnumValueResult`, and a union becomes `UnionValue`.
 `ReadValue<T>` performs an additional checked mapping to your requested type.

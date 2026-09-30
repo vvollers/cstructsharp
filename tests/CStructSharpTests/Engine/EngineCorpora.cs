@@ -496,7 +496,7 @@ internal static partial class EngineCorpora
     }
 
     /// <summary>
-    ///     The bytes the reference implementation (<see cref="EngineSelections.Reference(WriteOptions?)"/>) writes for a
+    ///     The bytes the engine writes for a
     ///     shape layout's values (a union root sets its one member); a zeroed
     ///     buffer of the root's size when the values cannot be written.
     /// </summary>
@@ -515,7 +515,7 @@ internal static partial class EngineCorpora
 
         try
         {
-            return layout.Serialize(root, value, options: EngineSelections.Reference(new WriteOptions()));
+            return layout.Serialize(root, value, options: new WriteOptions());
         }
         catch (Diagnostics.CStructException)
         {

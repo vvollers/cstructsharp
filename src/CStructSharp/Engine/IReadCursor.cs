@@ -17,9 +17,9 @@ using CStructSharp.Diagnostics;
 ///     <para>
 ///         Two cursors exist. <see cref="MemoryReadCursor"/> reads memory through the <c>MemoryReadCore</c> that
 ///         <c>ReadBudgetStream</c> also uses; <see cref="StreamReadCursor"/> calls the operation's
-///         <c>ReadBudgetStream</c> exactly as the interpreter does. Both therefore consume the same bytes, charge
-///         <c>MaxTotalBytesRead</c> at the same points (every byte read, including rereads, after the read) and fail
-///         with the same exception types, messages and final positions.
+///         <c>ReadBudgetStream</c> directly. Both therefore consume the same bytes, charge <c>MaxTotalBytesRead</c> at
+///         the same points (every byte read, including rereads, after the read) and fail with the same exception types,
+///         messages and final positions.
 ///     </para>
 ///     <para>
 ///         Positions are absolute: bytes from the input's byte 0 (a stream's origin, not its starting position). A
@@ -124,9 +124,9 @@ internal interface IReadCursor
     int Read(byte[] buffer, int offset, int count);
 
     /// <summary>
-    ///     Reads one value of a caller's codec through <see cref="CustomCodecAdapter"/>, the adapter the interpreter's codec
-    ///     delegate runs: a memory input is decoded in place (the cursor advances past the bytes the codec took, or the whole
-    ///     remainder when it needs more data, before a failure), a stream through its growing window.
+    ///     Reads one value of a caller's codec through <see cref="CustomCodecAdapter"/>, the adapter a caller's codec
+    ///     runs through: a memory input is decoded in place (the cursor advances past the bytes the codec took, or the
+    ///     whole remainder when it needs more data, before a failure), a stream through its growing window.
     /// </summary>
     /// <param name="codec">The codec.</param>
     /// <returns>The decoded value; <see langword="null"/> when the codec reported success without one.</returns>

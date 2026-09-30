@@ -1,8 +1,8 @@
 namespace CStructSharp.Compilation.Programs;
 
 /// <summary>
-///     What a <see cref="ReadOpCode.DebugRecord"/> step records about the value the read step before it produced, as the
-///     interpreter records the same value in a debug parse.
+///     What a <see cref="ReadOpCode.DebugRecord"/> step records about the value the read step before it produced, for the
+///     debug parse's record of that value.
 /// </summary>
 internal enum DebugRecordKind
 {
@@ -11,7 +11,7 @@ internal enum DebugRecordKind
 
     /// <summary>
     ///     An enum or flag result's number (<see cref="System.Numerics.BigInteger"/>) rather than the result, which is what
-    ///     the interpreter records for an enum member.
+    ///     a debug parse records for an enum member.
     /// </summary>
     EnumNumber,
 

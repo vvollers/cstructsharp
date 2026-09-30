@@ -11,15 +11,13 @@ using CStructSharp.Reading;
 using CStructSharp.Streams;
 
 /// <summary>
-///     Drives <c>ReadBudgetStream</c> (with the calls the interpreter makes), <see cref="StreamReadCursor"/> and
-///     <see cref="MemoryReadCursor"/> through the same scripted steps over the same input and records a trace per side:
-///     every step's value or failure (type, message, offset, inner cause) and the position after it, relative to the
-///     data's first byte, then the position flushed back to the source. Equal traces under every read budget mean equal
-///     charge points; equal traces after a <see cref="CursorOperation.Cancel"/> step mean equal cancellation boundaries.
-///     The <c>ReadBudgetStream</c> traces are the golden reference (<see cref="EngineGolden"/>): a run that compares with
-///     the interpreter (<see cref="EngineGolden.ComparesInterpreter"/>) compares both cursors with them and checks or
-///     records them, and an ordinary run checks the stream cursor's traces against the
-///     recorded ones and the memory cursor's against the stream cursor's (<see cref="Expected"/>).
+///     Drives <see cref="StreamReadCursor"/> and <see cref="MemoryReadCursor"/> through the same scripted steps over the
+///     same input and records a trace per side: every step's value or failure (type, message, offset, inner cause) and the
+///     position after it, relative to the data's first byte, then the position flushed back to the source. Equal traces
+///     under every read budget mean equal charge points; equal traces after a <see cref="CursorOperation.Cancel"/> step
+///     mean equal cancellation boundaries. The golden reference (<see cref="EngineGolden"/>) holds the traces of
+///     <c>ReadBudgetStream</c> driven by the reads of a stream source: the stream cursor's traces are checked against it, and
+///     the memory cursor's against the stream cursor's (<see cref="Expected"/>).
 /// </summary>
 internal static class CursorDifferential
 {
@@ -69,9 +67,8 @@ internal static class CursorDifferential
     public static int BoundedTypeCount => BoundedTypes.Length;
 
     /// <summary>
-    ///     Runs <paramref name="script"/> on the reference side of a comparison: <c>ReadBudgetStream</c> driven the way
-    ///     the interpreter drives it (<see cref="Reference"/>) while a run compares with the interpreter, otherwise the stream
-    ///     cursor (<see cref="StreamCursor"/>), whose traces the golden outcomes check.
+    ///     Runs <paramref name="script"/> on the reference side of a comparison: the stream cursor (<see cref="StreamCursor"/>),
+    ///     whose traces the golden outcomes check.
     /// </summary>
     /// <param name="input">The input form.</param>
     /// <param name="data">The input bytes.</param>
@@ -79,41 +76,7 @@ internal static class CursorDifferential
     /// <param name="budget">The operation's <c>MaxTotalBytesRead</c>.</param>
     /// <returns>The trace.</returns>
     public static List<string> Expected(EngineInput input, byte[] data, CursorStep[] script, long budget)
-        => EngineGolden.ComparesInterpreter ? Reference(input, data, script, budget) : StreamCursor(input, data, script, budget);
-
-    /// <summary>Runs <paramref name="script"/> through <c>ReadBudgetStream</c> the way the interpreter calls it.</summary>
-    /// <param name="input">The input form.</param>
-    /// <param name="data">The input bytes.</param>
-    /// <param name="script">The steps.</param>
-    /// <param name="budget">The operation's <c>MaxTotalBytesRead</c>.</param>
-    /// <returns>The trace.</returns>
-    public static List<string> Reference(EngineInput input, byte[] data, CursorStep[] script, long budget)
-    {
-        return WithSource(input, data, (source, start) =>
-        {
-            using var cancellation = new CancellationTokenSource();
-            using var stream = new ReadBudgetStream(source, MaxStringBytes, budget, cancellation.Token);
-            var trace = new List<string>(script.Length + 1);
-            foreach (CursorStep step in script)
-            {
-                string result;
-                try
-                {
-                    result = ApplyToStream(stream, step, start, cancellation);
-                }
-                catch (Exception exception) when (exception is not AssertFailedException)
-                {
-                    result = Render(exception);
-                }
-
-                trace.Add($"{step} -> {result} @{stream.Position - start}");
-            }
-
-            stream.FlushPosition();
-            trace.Add($"flushed @{source.Position - start}");
-            return trace;
-        });
-    }
+        => StreamCursor(input, data, script, budget);
 
     /// <summary>Runs <paramref name="script"/> through a <see cref="StreamReadCursor"/> over the operation's budget stream.</summary>
     /// <param name="input">The input form.</param>
@@ -354,104 +317,6 @@ internal static class CursorDifferential
             return "cancelled";
         case CursorOperation.Checkpoint:
             cursor.ThrowIfCancellationRequested();
-            return "ok";
-        default:
-            throw new ArgumentOutOfRangeException(nameof(step), step, "Unknown operation.");
-        }
-    }
-
-    /// <summary>
-    ///     Performs one step on <c>ReadBudgetStream</c> with the interpreter's calls: a fixed-width numeric codec
-    ///     tries the in-place span first, then its reader (one byte through <c>ReadByte</c>); int48 and int128 go
-    ///     straight to their readers; arrays, texts and exact reads use the shared readers.
-    /// </summary>
-    /// <param name="stream">The operation's budget stream.</param>
-    /// <param name="step">The step.</param>
-    /// <param name="start">The absolute position of the data's first byte.</param>
-    /// <param name="cancellation">The source of the stream's token.</param>
-    /// <returns>The rendered result.</returns>
-    private static string ApplyToStream(ReadBudgetStream stream, CursorStep step, long start, CancellationTokenSource cancellation)
-    {
-        switch (step.Operation)
-        {
-        case CursorOperation.Fixed:
-            {
-                if (step.A is not (6 or 16) && stream.TryReadSpan(step.A, out ReadOnlySpan<byte> direct))
-                {
-                    return Hex(direct);
-                }
-
-                UInt128 value = step.A switch
-                {
-                    1 => BinaryPrimitiveIO.ReadByteExactly(stream),
-                    3 => BinaryPrimitiveIO.ReadUInt24(stream, true),
-                    6 => BinaryPrimitiveIO.ReadUInt48(stream, true),
-                    16 => BinaryPrimitiveIO.ReadUInt128(stream, true),
-                    _ => BinaryPrimitiveIO.ReadUnsignedBySize(stream, step.A, true),
-                };
-                Span<byte> bytes = stackalloc byte[16];
-                BinaryPrimitives.WriteUInt128LittleEndian(bytes, value);
-                return Hex(bytes[..step.A]);
-            }
-
-        case CursorOperation.Seek:
-            stream.Position = start + step.A;
-            return "ok";
-        case CursorOperation.Skip:
-            stream.Position = checked(stream.Position + step.A);
-            return "ok";
-        case CursorOperation.Align:
-            {
-                long origin = start + step.A;
-                stream.Position = origin + LayoutMath.AlignUp(stream.Position - origin, step.B);
-                return "ok";
-            }
-
-        case CursorOperation.Array:
-            return RenderArray(PrimitiveArrayReader.Read(stream, ArrayCodecs[step.A], step.B));
-        case CursorOperation.Terminated:
-            return Quote(PrimitiveCodecs.ReadIntoString(stream, TerminatedForms[step.A].Encoding, TerminatedForms[step.A].Terminator));
-        case CursorOperation.Bounded:
-            return Quote(PrimitiveCodecs.ReadBoundedText(stream, step.A, BoundedTypes[step.B]));
-        case CursorOperation.IsShortBy:
-            return stream.IsShortBy(step.A) ? "short" : "not short";
-        case CursorOperation.SpanWithinBudget:
-            return stream.TryReadSpanWithinBudget(step.A, out ReadOnlySpan<byte> span) ? Hex(span) : "declined";
-        case CursorOperation.BlockWithinBudget:
-            {
-                byte[] block = new byte[step.A];
-                return stream.TryReadBlockWithinBudget(block) ? Hex(block) : "declined";
-            }
-
-        case CursorOperation.Exact:
-            {
-                byte[] bytes = new byte[step.A];
-                BinaryPrimitiveIO.ReadExactlyOrThrow(stream, bytes);
-                return Hex(bytes);
-            }
-
-        case CursorOperation.ByteExactly:
-            return BinaryPrimitiveIO.ReadByteExactly(stream).ToString("X2", CultureInfo.InvariantCulture);
-        case CursorOperation.PeekAdvance:
-            {
-                // The custom-codec adapter's use of a memory-backed stream.
-                if (!stream.TryPeekRemaining(out ReadOnlySpan<byte> remaining))
-                {
-                    return "no peek";
-                }
-
-                int consumed = Math.Min(step.A, remaining.Length);
-                stream.Advance(consumed);
-                return "advanced " + consumed;
-            }
-
-        case CursorOperation.Length:
-            return (stream.Length - start).ToString(CultureInfo.InvariantCulture);
-        case CursorOperation.Cancel:
-            cancellation.Cancel();
-            return "cancelled";
-        case CursorOperation.Checkpoint:
-            stream.CancellationToken.ThrowIfCancellationRequested();
             return "ok";
         default:
             throw new ArgumentOutOfRangeException(nameof(step), step, "Unknown operation.");

@@ -9,8 +9,7 @@ using CStructSharp.Diagnostics;
 ///     Checks one implementation against itself: the same read from different sources must render the same outcome.
 ///     The differential harness compares an implementation with the golden reference for one source; this compares the
 ///     sources' renderings with each other, so a source that disagrees is reported as such even when every rendering
-///     matches its own golden outcome (the golden outcomes are recorded from the interpreter, which is held to the same
-///     rule while they are recorded).
+///     matches its own golden outcome (the same rule holds while the golden outcomes are recorded).
 /// </summary>
 internal static class EngineAgreement
 {

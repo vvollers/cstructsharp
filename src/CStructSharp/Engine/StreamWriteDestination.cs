@@ -10,13 +10,13 @@ using CStructSharp.Streams;
 /// <summary>
 ///     The <see cref="IWriteDestination"/> of <c>Write</c> to a caller's stream and of <c>Serialize</c> to a buffer writer
 ///     (through its <see cref="BufferWriterStream"/>): every member calls the operation's <see cref="WriteBudgetStream"/>
-///     exactly as the interpreter's writer calls it, so the budget, the bytes left in the stream by a failure, the bytes a
-///     bitfield or a static plan reads back (the stream's existing bytes, not zeroes), a buffer writer's committed windows
-///     and its refusals to revisit them, and the final position are the interpreter's by construction.
+///     directly, so the budget, the bytes left in the stream by a failure, the bytes a bitfield or a static plan reads back
+///     (the stream's existing bytes, not zeroes), a buffer writer's committed windows and its refusals to revisit them, and
+///     the final position are the budget stream's by construction.
 /// </summary>
 /// <remarks>
 ///     A struct, so the writer is compiled for it with direct calls to the sealed budget stream. The caller's stream is
-///     kept beside the budget only for failure context, which the interpreter reads from the caller's stream itself.
+///     kept beside the budget only for failure context, which reports the caller's stream's own position.
 /// </remarks>
 internal readonly struct StreamWriteDestination : IWriteDestination
 {
@@ -46,8 +46,8 @@ internal readonly struct StreamWriteDestination : IWriteDestination
     public bool CanRead => this.budget.CanRead;
 
     /// <summary>
-    ///     Gets a value indicating whether a block may be written where the interpreter writes element by element; never
-    ///     for a stream, into which the interpreter writes typed arrays and narrow text element by element.
+    ///     Gets a value indicating whether a typed array or narrow text may be written as one block; never for a stream,
+    ///     into which they are written element by element so a failure leaves the earlier elements in the stream.
     /// </summary>
     public bool AllowsBlocks => false;
 

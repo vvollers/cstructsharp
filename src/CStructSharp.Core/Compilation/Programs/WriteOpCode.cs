@@ -14,8 +14,8 @@ namespace CStructSharp.Compilation.Programs;
 ///         already used and the unit's size in bytes).
 ///     </para>
 ///     <para>
-///         <b>Member context.</b> A failure is reported with a member's name and type only while the interpreter's field
-///         loop would report it: from a named member's value lookup to its capture (<see cref="WriteProgram.NotedMembers"/>).
+///         <b>Member context.</b> A failure is reported with a member's name and type only from a named member's
+///         value lookup to its capture (<see cref="WriteProgram.NotedMembers"/>).
 ///         Padding, anonymous promoted members, separators, selection, scope, union members and the tail belong to no member.
 ///     </para>
 ///     <para>
@@ -48,7 +48,7 @@ internal enum WriteOpCode : byte
 
     /// <summary>
     ///     Sets the count register to <c>A</c> without a check, for an array whose value gives its element count: -1 for
-    ///     its elements, and 1 for text, which the interpreter writes as a buffer of one character there.
+    ///     its elements, and 1 for text, which is written as a buffer of one character there.
     /// </summary>
     SetCount,
 
@@ -83,8 +83,8 @@ internal enum WriteOpCode : byte
     WriteText,
 
     /// <summary>
-    ///     Writes the counted fixed-width numbers of codec <c>A</c>: as one block from typed storage where the interpreter
-    ///     takes its block path (<c>B</c> is 0: a member a struct places, with a declared count), otherwise element by element.
+    ///     Writes the counted fixed-width numbers of codec <c>A</c>: as one block from typed storage where the block path
+    ///     applies (<c>B</c> is 0: a member a struct places, with a declared count), otherwise element by element.
     /// </summary>
     WriteNumericArray,
 
@@ -190,4 +190,11 @@ internal enum WriteOpCode : byte
 
     /// <summary>Evaluates a <c>#define</c> root's value <c>A</c> in the write domain and stores it in slot <c>B</c> (-1 for none).</summary>
     EvaluateDefinition,
+
+    /// <summary>
+    ///     Fails the write of a member whose type has no value writer (a <c>typedef void</c> alias written on its own, or
+    ///     the target of a <c>void*</c> an update selects): the write reports that the type has no handler, before anything
+    ///     of the member is written.
+    /// </summary>
+    FailNoWriter,
 }

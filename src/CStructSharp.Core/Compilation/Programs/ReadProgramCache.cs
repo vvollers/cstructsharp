@@ -72,7 +72,7 @@ internal sealed class ReadProgramCache
     /// <summary>
     ///     Gets a value indicating whether the cache holds debug programs: the programs a debug parse runs, which read
     ///     exactly what the ordinary programs read but record every value's byte range and path, and read every array one
-    ///     element at a time, as the interpreter does in a debug parse. Their nested and pointer-target programs are debug
+    ///     element at a time. Their nested and pointer-target programs are debug
     ///     programs of the same cache.
     /// </summary>
     public bool Debug { get; }
@@ -80,7 +80,7 @@ internal sealed class ReadProgramCache
     /// <summary>Returns the program of a composite, compiling it on first request.</summary>
     /// <param name="compilation">The layout the composite belongs to (the compilation that owns this cache).</param>
     /// <param name="composite">The composite.</param>
-    /// <returns>The program, or the reason the engine cannot read the composite yet.</returns>
+    /// <returns>The program, or the reason the engine cannot read the composite.</returns>
     public ReadProgramOutcome GetComposite(LayoutCompilation compilation, CompiledCompositeType composite)
     {
         if (this.composites.TryGetValue(composite, out ReadProgramOutcome? outcome))
@@ -97,7 +97,7 @@ internal sealed class ReadProgramCache
     /// </summary>
     /// <param name="compilation">The layout the root belongs to (the compilation that owns this cache).</param>
     /// <param name="rootName">The root's declared name, or a registered type spelling.</param>
-    /// <returns>The program, or the reason the engine cannot read the root yet.</returns>
+    /// <returns>The program, or the reason the engine cannot read the root.</returns>
     public ReadProgramOutcome GetRoot(LayoutCompilation compilation, string rootName)
     {
         if (Volatile.Read(ref this.lastRoot) is { } last && string.Equals(last.Name, rootName, StringComparison.Ordinal))

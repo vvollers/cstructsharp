@@ -12,7 +12,7 @@ internal enum ReadProgramKind : byte
     /// <summary>
     ///     An anonymous struct member whose members are promoted into its parent: its values go to the value of the
     ///     nearest named struct around it and it is not a nesting level, but it places its members from its own first
-    ///     byte and has its own conditional selection and scope, as the interpreter reads it.
+    ///     byte and has its own conditional selection and scope.
     /// </summary>
     Promoted,
 
@@ -24,7 +24,7 @@ internal enum ReadProgramKind : byte
 
     /// <summary>
     ///     A union's member views: each member is read from the union's first byte with the variables it was entered
-    ///     with, as the interpreter reads them; the executor reads the raw storage, claims the nesting level and ends at the
+    ///     with; the executor reads the raw storage, claims the nesting level and ends at the
     ///     union's end around the program. Cached per composite.
     /// </summary>
     Union,

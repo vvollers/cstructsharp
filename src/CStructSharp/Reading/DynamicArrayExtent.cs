@@ -8,41 +8,17 @@ using CStructSharp.Streams;
 
 /// <summary>
 ///     Counts the elements of the two data-sized array kinds (<see cref="Compilation.CompiledArrayKind.ToEnd"/> and
-///     <see cref="Compilation.CompiledArrayKind.Terminated"/>) so the reader, the address resolver, the length query and
-///     the compiled engine share one rule. Both need a fixed element size; the count is computed once per array, never
-///     per element.
+///     <see cref="Compilation.CompiledArrayKind.Terminated"/>) so the compiled engine's reader, its path resolver and the
+///     length query share one rule. Both need a fixed element size; the count is computed once per array, never per
+///     element.
 /// </summary>
 /// <remarks>
-///     Each count is written once, over a read cursor: the interpreter's overloads wrap the operation's
-///     <see cref="ReadBudgetStream"/> in a <see cref="StreamReadCursor"/>, whose members call exactly the stream methods
-///     the count always called, and the engine passes its own cursor, so a memory source is counted, charged and left
-///     where a memory-backed <see cref="ReadBudgetStream"/> would be.
+///     Each count is written once, over a read cursor: a stream source is counted through a <see cref="StreamReadCursor"/>
+///     over the operation's <see cref="ReadBudgetStream"/>, and a memory source through the memory cursor, which counts,
+///     charges and leaves the position where a memory-backed <see cref="ReadBudgetStream"/> would.
 /// </remarks>
 internal static class DynamicArrayExtent
 {
-    /// <summary>Whole elements between <paramref name="start"/> and the end of the input; a trailing partial element is an error.</summary>
-    /// <param name="stream">The operation's input, which must be seekable; its position is not changed.</param>
-    /// <param name="start">The array's first byte, as an absolute stream position.</param>
-    /// <param name="elementSize">The size of one element in bytes; zero yields an empty array.</param>
-    /// <param name="maximumElements">The largest element count the read options allow.</param>
-    /// <param name="fieldName">The array field, named in failure messages.</param>
-    /// <returns>The number of whole elements from <paramref name="start"/> to the end of the input.</returns>
-    /// <exception cref="CStructReadException">
-    ///     The stream cannot seek, <paramref name="start"/> is past the end, or the remaining bytes are not a whole
-    ///     number of elements.
-    /// </exception>
-    /// <exception cref="CStructReadLimitException">The count exceeds <paramref name="maximumElements"/>.</exception>
-    public static int CountToEnd(ReadBudgetStream stream, long start, int elementSize, int maximumElements, string fieldName)
-    {
-        if (!stream.CanSeek)
-        {
-            throw new CStructReadException("A read-to-end array needs a seekable input: " + fieldName);
-        }
-
-        var cursor = new StreamReadCursor(stream);
-        return CountToEnd(ref cursor, start, elementSize, maximumElements, fieldName);
-    }
-
     /// <summary>
     ///     Whole elements between <paramref name="start"/> and the end of a cursor's input (always seekable); nothing is
     ///     read or charged.
@@ -82,24 +58,6 @@ internal static class DynamicArrayExtent
         }
 
         return (int)count;
-    }
-
-    /// <summary>
-    ///     Elements from <paramref name="start"/> up to (not including) the first element whose bytes are all zero;
-    ///     that terminator must be present. The stream is left at <paramref name="start"/>.
-    /// </summary>
-    /// <param name="stream">The operation's seekable input, which is read from <paramref name="start"/>.</param>
-    /// <param name="start">The array's first byte, as an absolute stream position.</param>
-    /// <param name="elementSize">The size of one element in bytes; zero yields an empty array.</param>
-    /// <param name="maximumElements">The largest element count the read options allow.</param>
-    /// <param name="fieldName">The array field, named in failure messages.</param>
-    /// <returns>The number of elements before the terminator, which is not counted.</returns>
-    /// <exception cref="CStructReadException">The input ends before an all-zero element.</exception>
-    /// <exception cref="CStructReadLimitException">The count exceeds <paramref name="maximumElements"/>, or the scan exceeds the read budget.</exception>
-    public static int CountTerminated(ReadBudgetStream stream, long start, int elementSize, int maximumElements, string fieldName)
-    {
-        var cursor = new StreamReadCursor(stream);
-        return CountTerminated(ref cursor, start, elementSize, maximumElements, fieldName);
     }
 
     /// <summary>

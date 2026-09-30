@@ -246,5 +246,7 @@ operation reached a configured array, string, nesting, byte, or pointer limit.
 
 For typed application models, continue with [Map values to C# types](typed-values.md); when the layout is known
 at build time, the [generated code series](generated/index.md) reads it into generated classes without paths at
-all. For the exact path grammar,
+all. A path read compiles each struct it walks once and reuses that program on every later call
+([how a layout is run](performance.md#how-a-layout-is-run-the-compiled-engine)), so repeating it is cheap; generated
+code is still faster, because it reads each member at an offset written into the code and builds no `StructValue`. For the exact path grammar,
 including unions and pointer `.address`/`.value` access, see [Paths and selection](../language/paths-and-selection.md).

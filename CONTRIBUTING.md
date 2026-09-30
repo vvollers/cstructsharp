@@ -143,8 +143,8 @@ node tools/quality/fuzz-corpus.mjs
 
 The library reads, writes and updates general layouts with a compiled engine. Its tests in
 `tests/CStructSharpTests/Engine/` compare each operation's *outcome* - the value or failure, stream positions, written
-bytes and debug records, rendered as text - with a *golden outcome*: the outcome the interpreter, the reader and writer
-the engine replaced, produced for the same case. The golden outcomes are stored as manifests in
+bytes and debug records, rendered as text - with a *golden outcome*: the reviewed outcome recorded for the same case.
+The golden outcomes are stored as manifests in
 `tests/CStructSharpTests/Engine/Golden/`, one file per test class and one section per test. A small test keeps its
 outcomes readable; a sweep over many layouts or corpus cases keeps one SHA-256 hash per group of outcomes. A test fails
 when an outcome differs from its golden one, when it has no golden outcome, or when a golden outcome is no longer
@@ -156,14 +156,13 @@ Record the manifests again only for an intended, explained behaviour change, nev
 node tools/quality/engine-golden.mjs record
 ```
 
-The command runs the managed tests on .NET 10 with `CSTRUCTSHARP_ENGINE_GOLDEN_RECORD=1`, where every case also runs
-the interpreter and fails when the interpreter and the engine disagree, then checks the new manifests on .NET 8 and
-.NET 10 and lists the tests whose sections changed; `--filter` limits it to some tests. A new or renamed test needs a
+The command runs the managed tests on .NET 10 with `CSTRUCTSHARP_ENGINE_GOLDEN_RECORD=1`, where every case records its
+current outcome, then checks the new manifests on .NET 8 and .NET 10 and lists the tests whose sections changed;
+`--filter` limits it to some tests. A new or renamed test needs a
 recording as well. Review `git diff -- tests/CStructSharpTests/Engine/Golden` and explain every changed entry in the
 commit message: which behaviour changed, and why the new outcome is correct. A changed hash does not show which outcome
 changed; run the test with `CSTRUCTSHARP_ENGINE_GOLDEN_DUMP=<directory>` before and after the change and compare the
-files it writes. With `CSTRUCTSHARP_ENGINE_GOLDEN_RECORD=compare`, which the coverage collection uses, the tests check
-the committed outcomes and also compare the interpreter with the engine, recording nothing.
+files it writes.
 
 ### Mutation testing
 

@@ -41,8 +41,7 @@ internal static class EngineOperations
             (source, read) => layout.Parse(source, path, variables, read),
             (source, read) => layout.Parse(source, path, variables, read),
             (source, read) => layout.Parse(source, path, variables, read),
-            RenderValue,
-            EngineExpectations.Read(layout, path));
+            RenderValue);
 
     /// <summary><c>ParseAsync</c> over a stream that hides its buffer.</summary>
     /// <param name="layout">The compiled layout.</param>
@@ -63,7 +62,7 @@ internal static class EngineOperations
     /// <param name="options">The case's read options, which each side adjusts.</param>
     /// <returns>The operation.</returns>
     public static DifferentialOperation ParseAsync(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
-        => StreamRead("ParseAsync " + path, data, input, options, (source, read) => layout.ParseAsync(source, path, variables, read).AsTask().GetAwaiter().GetResult(), RenderValue, EngineExpectations.Read(layout, path));
+        => StreamRead("ParseAsync " + path, data, input, options, (source, read) => layout.ParseAsync(source, path, variables, read).AsTask().GetAwaiter().GetResult(), RenderValue);
 
     /// <summary><c>ParseMany</c>: every record until the input ends, then the record count.</summary>
     /// <param name="layout">The compiled layout.</param>
@@ -102,8 +101,7 @@ internal static class EngineOperations
                     });
                 output.Line("count", count.ToString(CultureInfo.InvariantCulture));
                 RenderPosition(output, stream, EngineStreams.IsStream(input) ? EngineStreams.StartOf(input) : 0);
-            },
-            EngineExpectations.Read(layout, path));
+            });
     }
 
     /// <summary><c>ReadValue</c> of a root or a path, in its natural representation.</summary>
@@ -125,8 +123,7 @@ internal static class EngineOperations
             (source, read) => layout.ReadValue(source, path, variables, read),
             (source, read) => layout.ReadValue(source, path, variables, read),
             (source, read) => layout.ReadValue(source, path, variables, read),
-            RenderValue,
-            EngineExpectations.Read(layout, path));
+            RenderValue);
 
     /// <summary><c>ReadValue&lt;T&gt;</c> of a root or a path, converted or bound to <typeparamref name="T"/>.</summary>
     /// <typeparam name="T">The destination type.</typeparam>
@@ -148,8 +145,7 @@ internal static class EngineOperations
             (source, read) => layout.ReadValue<T>(source, path, variables, read),
             (source, read) => layout.ReadValue<T>(source, path, variables, read),
             (source, read) => layout.ReadValue<T>(source, path, variables, read),
-            RenderValue,
-            EngineExpectations.Read(layout, path));
+            RenderValue);
 
     /// <summary><c>ParseWithDebug</c>: the struct, then every debug record.</summary>
     /// <param name="layout">The compiled layout.</param>
@@ -170,8 +166,7 @@ internal static class EngineOperations
             (source, read) => layout.ParseWithDebug(source, path, variables, read),
             (source, read) => layout.ParseWithDebug(source, path, variables, read),
             (source, read) => layout.ParseWithDebug(source, path, variables, read),
-            RenderDebugResult,
-            EngineExpectations.DebugRead(layout, path));
+            RenderDebugResult);
 
     /// <summary><c>ParseWithDebugAsync</c> over one of the stream forms: the struct, then every debug record in stream coordinates.</summary>
     /// <param name="layout">The compiled layout.</param>
@@ -188,8 +183,7 @@ internal static class EngineOperations
             input,
             options,
             (source, read) => layout.ParseWithDebugAsync(source, path, variables, read).AsTask().GetAwaiter().GetResult(),
-            RenderDebugResult,
-            EngineExpectations.DebugRead(layout, path));
+            RenderDebugResult);
 
     /// <summary><c>ReadValueWithDebugAsync</c> over one of the stream forms: the value, then every debug record in stream coordinates.</summary>
     /// <param name="layout">The compiled layout.</param>
@@ -206,8 +200,7 @@ internal static class EngineOperations
             input,
             options,
             (source, read) => layout.ReadValueWithDebugAsync(source, path, variables, read).AsTask().GetAwaiter().GetResult(),
-            RenderDebugResult,
-            EngineExpectations.DebugRead(layout, path));
+            RenderDebugResult);
 
     /// <summary><c>ReadValueWithDebug</c>: the value, then every debug record.</summary>
     /// <param name="layout">The compiled layout.</param>
@@ -228,8 +221,7 @@ internal static class EngineOperations
             (source, read) => layout.ReadValueWithDebug(source, path, variables, read),
             (source, read) => layout.ReadValueWithDebug(source, path, variables, read),
             (source, read) => layout.ReadValueWithDebug(source, path, variables, read),
-            RenderDebugResult,
-            EngineExpectations.DebugRead(layout, path));
+            RenderDebugResult);
 
     /// <summary><c>ResolveAddress</c>: the position of a path.</summary>
     /// <param name="layout">The compiled layout.</param>
@@ -250,8 +242,7 @@ internal static class EngineOperations
             (source, read) => layout.ResolveAddress(source, path, variables, read),
             (source, read) => layout.ResolveAddress(source, path, variables, read),
             (source, read) => layout.ResolveAddress(source, path, variables, read),
-            RenderValue,
-            EngineExpectations.Read(layout, path));
+            RenderValue);
 
     /// <summary><c>GetArrayLength</c>: the element or character count of a path.</summary>
     /// <param name="layout">The compiled layout.</param>
@@ -272,8 +263,7 @@ internal static class EngineOperations
             (source, read) => layout.GetArrayLength(source, path, variables, read),
             (source, read) => layout.GetArrayLength(source, path, variables, read),
             (source, read) => layout.GetArrayLength(source, path, variables, read),
-            RenderValue,
-            EngineExpectations.Read(layout, path));
+            RenderValue);
 
     /// <summary><c>Serialize</c> to a new byte array.</summary>
     /// <param name="layout">The compiled layout.</param>
@@ -286,8 +276,7 @@ internal static class EngineOperations
     {
         return new DifferentialOperation(
             "Serialize " + path,
-            (side, output) => output.Capture("failure", () => output.Bytes("result", layout.Serialize(path, value, variables, side.Write(options)))),
-            EngineExpectations.Write(layout, path));
+            (side, output) => output.Capture("failure", () => output.Bytes("result", layout.Serialize(path, value, variables, side.Write(options)))));
     }
 
     /// <summary><c>Serialize</c> into a span of <paramref name="capacity"/> bytes filled with <see cref="Unwritten"/>: the returned count, then the whole span.</summary>
@@ -308,8 +297,7 @@ internal static class EngineOperations
                 destination.AsSpan().Fill(Unwritten);
                 output.Capture("failure", () => output.Value("result", layout.Serialize(destination.AsSpan(), path, value, variables, side.Write(options))));
                 output.Bytes("destination", destination);
-            },
-            EngineExpectations.Write(layout, path));
+            });
     }
 
     /// <summary><c>Serialize</c> to an <see cref="ArrayBufferWriter{T}"/>: the returned count, then everything the writer holds.</summary>
@@ -329,8 +317,7 @@ internal static class EngineOperations
                 var destination = new ArrayBufferWriter<byte>(initialCapacity);
                 output.Capture("failure", () => output.Value("result", layout.Serialize(destination, path, value, variables, side.Write(options))));
                 output.Bytes("destination", destination.WrittenSpan);
-            },
-            EngineExpectations.Write(layout, path));
+            });
     }
 
     /// <summary>
@@ -353,8 +340,7 @@ internal static class EngineOperations
                 var destination = new WindowedBufferWriter(window);
                 output.Capture("failure", () => output.Value("result", layout.Serialize(destination, path, value, variables, side.Write(options))));
                 output.Bytes("destination", destination.Written);
-            },
-            EngineExpectations.Write(layout, path));
+            });
     }
 
     /// <summary><c>Write</c> into a stream that already holds <paramref name="prefill"/>, starting at <paramref name="start"/>: the final position, then the stream's contents.</summary>
@@ -367,7 +353,7 @@ internal static class EngineOperations
     /// <param name="options">The case's write options, which each side adjusts.</param>
     /// <returns>The operation.</returns>
     public static DifferentialOperation Write(CStruct layout, byte[] prefill, long start, string path, object value, IReadOnlyDictionary<string, int>? variables = null, WriteOptions? options = null)
-        => StreamWrite("Write " + path, prefill, start, (stream, side) => layout.Write(stream, path, value, variables, side.Write(options)), EngineExpectations.Write(layout, path));
+        => StreamWrite("Write " + path, prefill, start, (stream, side) => layout.Write(stream, path, value, variables, side.Write(options)));
 
     /// <summary>
     ///     <c>Write</c> into a stream of another kind (<paramref name="open"/>) that holds <paramref name="prefill"/>, starting
@@ -405,8 +391,7 @@ internal static class EngineOperations
                 }
 
                 output.Bytes("stream", contents.ToArray());
-            },
-            EngineExpectations.Write(layout, path));
+            });
     }
 
     /// <summary><c>WriteAsync</c> into a stream that already holds <paramref name="prefill"/>, starting at <paramref name="start"/>.</summary>
@@ -419,7 +404,7 @@ internal static class EngineOperations
     /// <param name="options">The case's write options, which each side adjusts.</param>
     /// <returns>The operation.</returns>
     public static DifferentialOperation WriteAsync(CStruct layout, byte[] prefill, long start, string path, object value, IReadOnlyDictionary<string, int>? variables = null, WriteOptions? options = null)
-        => StreamWrite("WriteAsync " + path, prefill, start, (stream, side) => layout.WriteAsync(stream, path, value, variables, side.Write(options)).AsTask().GetAwaiter().GetResult(), EngineExpectations.Write(layout, path));
+        => StreamWrite("WriteAsync " + path, prefill, start, (stream, side) => layout.WriteAsync(stream, path, value, variables, side.Write(options)).AsTask().GetAwaiter().GetResult());
 
     /// <summary><c>Update</c> of a span or a stream holding <paramref name="data"/>: the data afterwards, and a stream's final position.</summary>
     /// <param name="layout">The compiled layout.</param>
@@ -434,7 +419,7 @@ internal static class EngineOperations
     {
         if (input == EngineInput.Stream)
         {
-            return StreamWrite("Update " + path, data, 0, (stream, side) => layout.Update(stream, path, value, variables, side.Update(options)), EngineExpectations.Update(layout, path));
+            return StreamWrite("Update " + path, data, 0, (stream, side) => layout.Update(stream, path, value, variables, side.Update(options)));
         }
 
         if (input != EngineInput.Span)
@@ -449,8 +434,7 @@ internal static class EngineOperations
                 byte[] copy = (byte[])data.Clone();
                 output.Capture("failure", () => layout.Update(copy.AsSpan(), path, value, variables, side.Update(options)));
                 output.Bytes("data", copy);
-            },
-            EngineExpectations.Update(layout, path));
+            });
     }
 
     /// <summary><c>UpdateAsync</c> of a stream holding <paramref name="data"/>.</summary>
@@ -462,7 +446,7 @@ internal static class EngineOperations
     /// <param name="options">The case's update options, which each side adjusts.</param>
     /// <returns>The operation.</returns>
     public static DifferentialOperation UpdateAsync(CStruct layout, byte[] data, string path, object value, IReadOnlyDictionary<string, int>? variables = null, UpdateOptions? options = null)
-        => StreamWrite("UpdateAsync " + path, data, 0, (stream, side) => layout.UpdateAsync(stream, path, value, variables, side.Update(options)).AsTask().GetAwaiter().GetResult(), EngineExpectations.Update(layout, path));
+        => StreamWrite("UpdateAsync " + path, data, 0, (stream, side) => layout.UpdateAsync(stream, path, value, variables, side.Update(options)).AsTask().GetAwaiter().GetResult());
 
     /// <summary>Renders a result as a value under <c>result</c>.</summary>
     /// <param name="output">The rendering.</param>
@@ -510,7 +494,6 @@ internal static class EngineOperations
     /// <param name="stream">The call over a stream.</param>
     /// <param name="sequence">The call over a multi-segment sequence.</param>
     /// <param name="render">Renders the call's result.</param>
-    /// <param name="engine">Whether automatic selection must run the engine (<see cref="DifferentialOperation.Engine"/>).</param>
     /// <returns>The operation.</returns>
     private static DifferentialOperation Read(
         string name,
@@ -522,12 +505,11 @@ internal static class EngineOperations
         Func<ReadOnlyMemory<byte>, ReadOptions, object?> memory,
         Func<Stream, ReadOptions, object?> stream,
         Func<ReadOnlySequence<byte>, ReadOptions, object?> sequence,
-        Action<CanonicalText, object?> render,
-        bool? engine = false)
+        Action<CanonicalText, object?> render)
     {
         if (EngineStreams.IsStream(input))
         {
-            return StreamRead(name, data, input, options, stream, render, engine);
+            return StreamRead(name, data, input, options, stream, render);
         }
 
         return new DifferentialOperation(
@@ -552,8 +534,7 @@ internal static class EngineOperations
                         };
                         render(output, result);
                     });
-            },
-            engine);
+            });
     }
 
     /// <summary>A read over one of the stream forms, rendering the result and then the stream's final position relative to the data's start.</summary>
@@ -563,9 +544,8 @@ internal static class EngineOperations
     /// <param name="options">The case's read options, which each side adjusts.</param>
     /// <param name="call">The call over the stream.</param>
     /// <param name="render">Renders the call's result.</param>
-    /// <param name="engine">Whether automatic selection must run the engine (<see cref="DifferentialOperation.Engine"/>).</param>
     /// <returns>The operation.</returns>
-    private static DifferentialOperation StreamRead(string name, byte[] data, EngineInput input, ReadOptions? options, Func<Stream, ReadOptions, object?> call, Action<CanonicalText, object?> render, bool? engine = false)
+    private static DifferentialOperation StreamRead(string name, byte[] data, EngineInput input, ReadOptions? options, Func<Stream, ReadOptions, object?> call, Action<CanonicalText, object?> render)
     {
         return new DifferentialOperation(
             name + " (" + input + ")",
@@ -575,8 +555,7 @@ internal static class EngineOperations
                 ReadOptions read = side.Read(options);
                 output.Capture("failure", () => render(output, call(source, read)));
                 RenderPosition(output, source, EngineStreams.StartOf(input));
-            },
-            engine);
+            });
     }
 
     /// <summary>A write or update of an expandable stream holding <paramref name="prefill"/>: the final position, then the contents.</summary>
@@ -584,12 +563,8 @@ internal static class EngineOperations
     /// <param name="prefill">The stream's bytes before the call.</param>
     /// <param name="start">The stream position the call starts at.</param>
     /// <param name="call">The call, given the stream and the side.</param>
-    /// <param name="engine">
-    ///     Whether automatic selection must run the engine (<see cref="DifferentialOperation.Engine"/>): <c>Write</c> writes
-    ///     the stream through the engine, and <c>WriteAsync</c> serializes through it before it writes the stream.
-    /// </param>
     /// <returns>The operation.</returns>
-    private static DifferentialOperation StreamWrite(string name, byte[] prefill, long start, Action<Stream, EngineSide> call, bool? engine = false)
+    private static DifferentialOperation StreamWrite(string name, byte[] prefill, long start, Action<Stream, EngineSide> call)
     {
         return new DifferentialOperation(
             name + " (Stream)",
@@ -601,7 +576,6 @@ internal static class EngineOperations
                 output.Capture("failure", () => call(stream, side));
                 RenderPosition(output, stream);
                 output.Bytes("stream", stream.ToArray());
-            },
-            engine);
+            });
     }
 }

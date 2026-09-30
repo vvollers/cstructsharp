@@ -88,7 +88,7 @@ public class EngineWriteSweepTests
     ///     from the value the parse holds there, from the whole parsed root (which the write walks down), and from values
     ///     of the wrong kind: to a new array, a span too small for most members, a stream that already holds bytes (at its
     ///     start and inside it), a buffer writer with one-byte windows, and a stream under update options with and without
-    ///     union storage kept. Each outcome - bytes, failures, final positions - is the interpreter's.
+    ///     union storage kept. Each outcome - bytes, failures, final positions - matches its golden outcome.
     /// </summary>
     /// <param name="name">The sweep layout.</param>
     [TestMethod]
@@ -128,7 +128,7 @@ public class EngineWriteSweepTests
     ///     Every member a path selects (and the root, pointer targets and addresses, and paths that select nothing) is
     ///     updated in place with the value the parse holds there, with values of other kinds, sizes and lengths, and - for
     ///     text, arrays and unions - with replacements that change a terminated value's length or a conditional selection,
-    ///     which the update's layout comparison must accept or reject exactly as the interpreter does: in a span, in a span
+    ///     which the update's layout comparison must accept or reject exactly as the golden outcomes record: in a span, in a span
     ///     one byte short, in a stream, asynchronously, and with union storage kept.
     /// </summary>
     /// <param name="name">The sweep layout.</param>

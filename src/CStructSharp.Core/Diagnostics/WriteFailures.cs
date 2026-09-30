@@ -207,4 +207,14 @@ internal static class WriteFailures
             _ => null,
         };
     }
+
+    /// <summary>A member whose type has no value writer, such as a <c>typedef void</c> alias written on its own.</summary>
+    /// <param name="typeSpelling">The member's type as the layout spells it.</param>
+    /// <returns>The failure message.</returns>
+    public static string NoValueHandler(string typeSpelling) => "No handler for field type " + typeSpelling;
+
+    /// <summary>A write of a root declaration that has no binary storage, such as a text <c>#define</c>.</summary>
+    /// <param name="elementType">The declaration's kind, the name of its syntax type.</param>
+    /// <returns>The failure message.</returns>
+    public static string UnsupportedRootElement(string elementType) => "Unsupported element type for writing: " + elementType;
 }

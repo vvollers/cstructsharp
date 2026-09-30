@@ -5,8 +5,8 @@ using CStructSharp.Compilation.Programs;
 
 /// <summary>
 ///     The read program compiler (<see cref="ReadProgramCompiler"/>): which steps a struct becomes - placement decided
-///     statically where it can be, counts before placement, one read per value kind, captures exactly where the
-///     interpreter captures, conditional selection with skip targets and scope steps, shared nested programs - and which
+///     statically where it can be, counts before placement, one read per value kind, captures only where an
+///     expression can read the value, conditional selection with skip targets and scope steps, shared nested programs - and which
 ///     layouts it refuses, with a reason naming the innermost member.
 /// </summary>
 [TestClass]
@@ -260,7 +260,7 @@ public class ReadProgramCompilerTests
             lines.Select(line => line[..line.IndexOf(' ', StringComparison.Ordinal)]).ToArray());
     }
 
-    /// <summary>Each array element kind has its own read step, chosen in the interpreter's order.</summary>
+    /// <summary>Each array element kind has its own read step, chosen from the element's type.</summary>
     [TestMethod]
     public void Arrays_ReadThroughTheirElementKindsStep()
     {
@@ -279,7 +279,7 @@ public class ReadProgramCompilerTests
             lines.Where(line => line.StartsWith("Read", StringComparison.Ordinal) || line.StartsWith("Skip", StringComparison.Ordinal)).ToArray());
     }
 
-    /// <summary>A root field read standalone reads a numeric array element by element, as the interpreter does without a composite cursor.</summary>
+    /// <summary>A root field read standalone reads a numeric array element by element, since it has no enclosing composite to read it as one block.</summary>
     [TestMethod]
     public void Roots_ReadStructsStandaloneFieldsAndDefinitions()
     {
@@ -301,7 +301,7 @@ public class ReadProgramCompilerTests
     }
 
     /// <summary>
-    ///     A capture stores what the interpreter's capture rule stores for the value kind: an integer literal, a
+    ///     A capture stores what the capture rule stores for the value kind: an integer literal, a
     ///     <c>uint128</c> or enum that may be too wide, or a not-a-number value; an array whose count the data decides
     ///     only when it has elements.
     /// </summary>
@@ -331,9 +331,9 @@ public class ReadProgramCompilerTests
             "an empty fixed array captures nothing");
     }
 
-    /// <summary>Members no expression can read, structs and byte-counted text capture nothing, as in the interpreter.</summary>
+    /// <summary>Members no expression can read, structs and byte-counted text capture nothing.</summary>
     [TestMethod]
-    public void Captures_OnlyWhereTheInterpreterCaptures()
+    public void Captures_OnlyWhereAnExpressionReadsTheName()
     {
         const string definition = """
                                   struct other { uint8 s; uint8 b; };
@@ -467,14 +467,15 @@ public class ReadProgramCompilerTests
     }
 
     /// <summary>
-    ///     A root the engine cannot read is refused with the reason: an undeclared name, and a definition whose value is not
-    ///     an integer.
+    ///     An undeclared name has no program, with the reason; a definition whose value is not an integer stores no value,
+    ///     so its program reads nothing.
     /// </summary>
     [TestMethod]
     public void Reasons_NameTheInnermostUnsupportedMember()
     {
         AssertReason("struct root { uint8 a; };", "missing", "missing: the layout declares no such root");
-        AssertReason("#define MAGIC \"PNG\"\nstruct root { uint8 a; };", "MAGIC", "MAGIC: " + ReadProgramCompiler.UnreadableRoot);
+        var text = new CStruct("#define MAGIC \"PNG\"\nstruct root { uint8 a; };");
+        Assert.IsEmpty(text.Compilation.GetRootReadProgram("MAGIC").Program!.Steps);
     }
 
     /// <summary>
@@ -523,7 +524,7 @@ public class ReadProgramCompilerTests
     }
 
     /// <summary>
-    ///     Pointers compile where the interpreter reads them: a struct defers its own and its promoted members' pointers and
+    ///     Pointers compile where their targets are read: a struct defers its own and its promoted members' pointers and
     ///     follows them after its last member, a union view and a root follow in place, and a pointer's struct target is
     ///     compiled on its own - a self-referential list is eligible, and every struct a pointer reaches is checked.
     /// </summary>

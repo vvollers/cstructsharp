@@ -15,17 +15,17 @@ folders below with the same names hold the runtime halves of those namespaces.
 
 | Folder | Namespace | What lives there | Public? |
 | --- | --- | --- | --- |
-| `/` | `CStructSharp` | `CStruct` (one `partial class` across the `CStruct*.cs` files, one file per concern: reading, writing, address resolution, introspection, memory I/O, synthetic roots; `CStructOperations.Sequences.cs` holds the `ReadOnlySequence<byte>` overloads and `ParseMany`, `CStructOperations.Async.cs`/`.AsyncWrite.cs` the awaitable forms) plus `CStructCompilationOptions`, `ReadOptions`, `WriteOptions`, `UpdateOptions`, `BitfieldAllocation`, and `StaticHelpers`. The operation files execute over the compiled model only: after construction, `Syntax` nodes are consulted solely to resolve a root name. | Yes |
+| `/` | `CStructSharp` | `CStruct` (one `partial class` across the `CStruct*.cs` files, one file per concern: the engine's reads and update, writing, value decoding rules, the direct fixed-root reads and writes, accessors, introspection, memory I/O, synthetic roots; `CStructOperations.Sequences.cs` holds the `ReadOnlySequence<byte>` overloads and `ParseMany`, `CStructOperations.Async.cs`/`.AsyncWrite.cs` the awaitable forms) plus `CStructCompilationOptions`, `ReadOptions`, `WriteOptions`, `UpdateOptions`, `BitfieldAllocation`, and `StaticHelpers`. The operation files execute over the compiled model only: after construction, `Syntax` nodes are consulted solely to resolve a root name. | Yes |
 | `Syntax/` | `CStructSharp.Syntax` | The syntax tree the parser produces: `Struct`, `Field`, `Enum`, `Typedef`, `Defines`, and the expression nodes (`Expr`, `Literal`, `BinaryOp`, ...) | No |
 | `Parsing/` | `CStructSharp.Parsing` | `LayoutParser`, the hand-written parser for the layout language, with one entry point per production; `LayoutSourceValidator`, the size and nesting guard that runs before parsing | No |
 | `Expressions/` | `CStructSharp.Expressions` | `ExpressionEvaluator` and the layout-variable machinery that turns `count`-style expressions into bounded `Int32` values at construction and operation time | No |
 | `Compilation/` | `CStructSharp.Compilation` | The compiled model built once per layout: `Compiled*` types and fields, array shapes, size queries, symbol validation, and the process-wide `CStructLayoutCache` | No |
 | `Codecs/` | `CStructSharp.Codecs` | How individual primitives become bytes and back: integer, float, fixed-point, LEB128, text, identifier, enum, and bitfield codecs, plus the `PrimitiveSpellings` alias table and the `ICustomCodec` extension point | `ICustomCodec` |
 | `Streams/` | `CStructSharp.Streams` | Stream adapters used by operations: pinned-buffer and buffer-writer streams, read and write budget streams, the sparse update stream, and `AsyncStreamBuffer` (the one buffer-then-span rule the awaitable forms and the generated `Parse(Stream)` follow, plus the token linking) | No |
-| `Addressing/` | `CStructSharp.Addressing` | Public path syntax (`a.b[2].c`) parsing, target resolution, and pointer arithmetic | No |
-| `Reading/` | `CStructSharp.Reading` | Read-operation state, conditional field selection, data-sized array extents, the static and typed read plans that decode fixed composites quickly, and `RecordParser` (the runtime's one-record reader and stream form behind `ParseMany`) | No |
-| `Writing/` | `CStructSharp.Writing` | Write-operation state, value materialization, and projection of written values into the variable domain | No |
-| `Engine/` | `CStructSharp.Engine` | `EngineSelector`, the one decision per operation between the compiled engine and the interpreter (the internal `EngineSelection` option beside `ExecutionPath` in the root folder chooses or forces one), and `EngineDiagnostics`, which counts those decisions inside a test-scoped recording (`EngineDiagnostics.Record()`, an `AsyncLocal` read only while a recording is open); the compiled engine itself: step programs executed by `ReadEngine` over memory and stream cursors and by `WriteEngine` into memory and stream destinations. Reads, debug parses, path operations, writes and updates run on the engine when their programs are eligible | No |
+| `Addressing/` | `CStructSharp.Addressing` | Public path syntax (`a.b[2].c`) parsing, the kinds of target a path selects, and pointer arithmetic | No |
+| `Reading/` | `CStructSharp.Reading` | Read-operation settings, the codec table, data-sized array extents, primitive-array decoding, the static and typed read plans that decode fixed composites quickly, and `RecordParser` (the runtime's one-record reader and stream form behind `ParseMany`) | No |
+| `Writing/` | `CStructSharp.Writing` | Write-option snapshots, the settled write request, value materialization, and where a static write plan publishes the variables it captures | No |
+| `Engine/` | `CStructSharp.Engine` | The compiled engine that runs every read, debug parse, path operation, write and update the direct fixed-root paths do not take: step programs (compiled in `CStructSharp.Core/Compilation/Programs/`) executed by `ReadEngine` over memory and stream cursors and by `WriteEngine` into memory and stream destinations, `TargetResolver` for paths, the per-operation state and variable slots, and `EnginePrograms`, which looks up each operation's program once. `EngineDiagnostics` counts the operations that reach the engine inside a test-scoped recording (`EngineDiagnostics.Record()`, an `AsyncLocal` read only while a recording is open); the internal `ExecutionPath` option in the root folder turns the fast paths in front of the engine off for tests | No |
 | `Values/` | `CStructSharp.Values` | What reads return and writes accept: `StructValue`, `UnionValue`, `EnumValueResult`, `FlagValueResult`, `Pointer`, `PrimitiveArray<T>`, and the typed conversion (`TypedValueConverter`) behind `Get<T>` and mapped classes | Yes |
 | `Generated/` | `CStructSharp.Generated` | What generated code calls at run time: `ReadCursor`, `WriteCursor`, `CompositeCursor` (position, limits, budgets, path context, the runtime's failure texts), `Codec` (text and bitfield decoding), `Expressions` (the layout operators), `Pointer<T>`, and `RecordSequence` over a `RecordReader<T>` (the record-sequence rules the generated `Records` forms and the runtime's `ParseMany` share); the root also holds `CStructLayoutAttribute`, `CStructMappedAttribute`, `CStructMemberAttribute`, `ICStructGenerated<T>`, `ICStructMapped<T>`, and `MappedTypes` | Yes |
 | `Introspection/` | `CStructSharp.Introspection` | `LayoutInfo` and the `Layout*Info` records that describe a compiled layout's declarations, fields, offsets, and constants | Yes |
@@ -37,13 +37,14 @@ folders below with the same names hold the runtime halves of those namespaces.
 1. `new CStruct(text)`: `Parsing` validates and parses the text into `Syntax` nodes; `Compilation` resolves every
    type, offset, and size (evaluating constant `Expressions`) into an immutable compiled model, which
    `CStructLayoutCache` may already hold for identical inputs.
-2. `layout.Parse(bytes, "root")` or `ReadValue(stream, "root.field")`: `Addressing` turns the path into a resolved
-   target; `Reading` walks the compiled model (`CompiledCompositeType.Fields`, each `CompiledField` carrying its
-   name, width, pointer depth, codec, and direct references to its nested composite or enum) over a `Streams`
-   adapter, asking `Codecs` to decode each primitive.
+2. `layout.Parse(bytes, "root")` or `ReadValue(stream, "root.field")`: `Addressing` parses the path; a whole
+   fixed root in memory is decoded directly; otherwise `Engine` resolves the path and runs the read program of each
+   struct it reaches - built once from the compiled model (`CompiledCompositeType.Fields`, each `CompiledField`
+   carrying its name, width, pointer depth, codec, and direct references to its nested composite or enum) - over a
+   memory or stream cursor, asking `Codecs` to decode each primitive.
 3. The result is assembled from `Values` types; a failure is raised from `Diagnostics` with the path and position.
 
-Writes mirror this with `Writing` in place of `Reading`, and updates stage their bytes through
+Writes mirror this with write programs, and updates stage their bytes through
 `Streams/SparseUpdateStream` so unchanged surroundings are preserved. An awaitable form adds no reader: it buffers
 the stream through `Streams/AsyncStreamBuffer` and runs step 2 over the buffer; a record sequence
 (`Generated/RecordSequence`) runs step 2 once per record from the end of the previous one.

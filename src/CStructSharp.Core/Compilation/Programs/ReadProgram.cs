@@ -12,15 +12,13 @@ using CStructSharp.Expressions;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <b>Frames.</b> Each program runs in its own executor frame, as the interpreter reads each composite in its own
-///         call: the frame holds the composite's first byte (for <see cref="ReadOpCode.Align"/>, offset assertions and the
-///         tail), its selected conditional arms (<see cref="GroupCount"/> of them, undecided at entry, so every element of
+///         <b>Frames.</b> Each program runs in its own executor frame: the frame holds the composite's first byte
+///         (for <see cref="ReadOpCode.Align"/>, offset assertions and the tail), its selected conditional arms (<see cref="GroupCount"/> of them, undecided at entry, so every element of
 ///         a struct array selects afresh), its conditional scope locals, and the count register.
 ///     </para>
 ///     <para>
 ///         <b>Values.</b> A member's value is stored in slot <see cref="GetShapeSlot"/> of the frame's value, whose layout is
-///         <see cref="Shape"/>; a member without a slot (unnamed padding) is read and dropped, as the interpreter drops its
-///         temporary entry.
+///         <see cref="Shape"/>; a member without a slot (unnamed padding) is read and dropped.
 ///     </para>
 ///     <para>Immutable after construction and shared by every thread; the arrays must not be modified.</para>
 /// </remarks>
@@ -75,14 +73,14 @@ internal sealed class ReadProgram
 
     /// <summary>
     ///     Gets a value indicating whether a composite places this program's members (a struct, or a promoted struct inside
-    ///     one): the interpreter takes its block paths (a <c>char[N]</c> or a fixed struct array as one span) only there, never
+    ///     one): the engine takes its block paths (a <c>char[N]</c> or a fixed struct array as one span) only there, never
     ///     for a root field or a union member view.
     /// </summary>
     public bool PlacesMembers => this.Kind is ReadProgramKind.Composite or ReadProgramKind.Promoted;
 
     /// <summary>
     ///     Gets a value indicating whether the members are placed at run time by a <see cref="PlacementCursor"/> the frame
-    ///     starts at its first byte (<see cref="ReadOpCode.PlaceMember"/> and its siblings), as the interpreter places them:
+    ///     starts at its first byte (<see cref="ReadOpCode.PlaceMember"/> and its siblings):
     ///     a struct with bitfields, whose storage units the layout's packing rule shares. Other structs place their members
     ///     with steps decided when the program was built.
     /// </summary>
@@ -98,7 +96,7 @@ internal sealed class ReadProgram
     /// </summary>
     public bool DefersPointers { get; }
 
-    /// <summary>Gets a value indicating whether a failure inside a member names that member, as the interpreter's field loop does; a root program names none.</summary>
+    /// <summary>Gets a value indicating whether a failure inside a member names that member; a root program names none.</summary>
     public bool NotesMembers => this.Kind != ReadProgramKind.Root;
 
     /// <summary>Gets the steps in execution order.</summary>

@@ -83,7 +83,7 @@ public sealed class FieldAccessor<T>
     /// <summary>Gets whether the member is decoded directly at a constant offset when the input and limits allow it.</summary>
     internal bool HasFixedOffset => this.offset >= 0;
 
-    /// <summary>The CLR type a fixed-width numeric codec decodes to, or <see langword="null"/> for a codec the accessor decodes through the general reader.</summary>
+    /// <summary>The CLR type a fixed-width numeric codec decodes to, or <see langword="null"/> for a codec the accessor decodes through the read engine.</summary>
     /// <param name="codec">The member's codec.</param>
     /// <returns>The natural type of the member's value.</returns>
     internal static Type? NaturalType(PrimitiveCodec codec)

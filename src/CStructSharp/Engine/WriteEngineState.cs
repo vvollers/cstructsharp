@@ -9,8 +9,7 @@ using CStructSharp.Expressions;
 /// <summary>
 ///     The state one compiled-engine write operation carries through its frames, beside the destination: the
 ///     layout-variable slots, the options the executor checks itself, the nesting depth, the active qualified prefix and
-///     the frames' conditional stacks. It holds what the interpreter's <c>CStructElementWriterState</c> holds for the same
-///     write, minus the stream, which is the destination.
+///     the frames' conditional stacks. The stream is not part of it: that is the destination.
 /// </summary>
 /// <remarks>
 ///     A mutable struct owned by one operation and passed by reference to every frame, so the depth and prefix changes a
@@ -60,14 +59,14 @@ internal struct WriteEngineState
     public bool RejectUnknownMembers { get; }
 
     /// <summary>
-    ///     Gets whether the write must avoid the static write plans and block writes (<see cref="ExecutionPath.GeneralOnly"/>),
-    ///     as the interpreter does under the same option.
+    ///     Gets whether the write must avoid the static write plans and block writes (<see cref="ExecutionPath.GeneralOnly"/>)
+    ///     and write member by member and element by element.
     /// </summary>
     public bool GeneralPathOnly { get; }
 
     /// <summary>
-    ///     Gets a value indicating whether the write has update semantics - its options are <see cref="UpdateOptions"/>, as
-    ///     for the interpreter - so it changes values without normalizing the storage around them: tail padding keeps the
+    ///     Gets a value indicating whether the write has update semantics - its options are <see cref="UpdateOptions"/> - so
+    ///     it changes values without normalizing the storage around them: tail padding keeps the
     ///     bytes it holds (the position moves past it), a bitfield's whole storage unit must already be present, and neither
     ///     static write plans nor block writes are used.
     /// </summary>
@@ -87,12 +86,11 @@ internal struct WriteEngineState
 
     /// <summary>
     ///     Gets or sets the size in bytes of the placed storage unit an update's resolved bitfield target lies in, or 0: the
-    ///     first standalone bitfield written takes this unit and offset instead of opening a unit of its own, then clears it,
-    ///     as the interpreter's seeded writer state does.
+    ///     first standalone bitfield written takes this unit and offset instead of opening a unit of its own, then clears it.
     /// </summary>
     public int SeededUnitSize { get; set; }
 
-    /// <summary>Gets the operation's cancellation token, observed where the interpreter observes it.</summary>
+    /// <summary>Gets the operation's cancellation token, observed before the destination is touched, at each struct's entry, before each struct element and before a union member is staged.</summary>
     public CancellationToken CancellationToken { get; }
 
     /// <summary>Gets or sets the number of struct levels entered on the active path.</summary>
@@ -129,8 +127,8 @@ internal struct WriteEngineState
         => FrameArena.CompleteMember(ref this.arena, this.Slots, scope, member, localBase);
 
     /// <summary>
-    ///     Saves every variable slot before a union member is staged, as the interpreter stages it with a copy of the
-    ///     variables: nothing the member captures escapes the union.
+    ///     Saves every variable slot before a union member is staged, which runs on a copy of
+    ///     the variables: nothing the member captures escapes the union.
     /// </summary>
     /// <returns>Where the saved values are, for <see cref="RestoreSlots"/>.</returns>
     public int SaveSlots()
@@ -148,7 +146,7 @@ internal struct WriteEngineState
         this.arena.ReleaseLocals(saved);
     }
 
-    /// <summary>Claims one struct level as the interpreter's writer does, failing past the nesting limit.</summary>
+    /// <summary>Claims one struct level, failing past the nesting limit.</summary>
     /// <exception cref="CStructWriteLimitException">The level would exceed <see cref="MaxNestingDepth"/>.</exception>
     public void EnterStructure()
     {
@@ -162,7 +160,7 @@ internal struct WriteEngineState
 
     /// <summary>
     ///     While a qualified prefix is active, publishes a just-captured value under every target the prefix covers
-    ///     (<see cref="QualifiedPublication.Covers"/>), as the interpreter copies (or removes) the qualified names.
+    ///     (<see cref="QualifiedPublication.Covers"/>), or removes the qualified names for an undefined value.
     /// </summary>
     /// <param name="targets">The bare name's publication targets.</param>
     /// <param name="value">The captured value; <see cref="SlotValue.Undefined"/> removes the qualified name.</param>

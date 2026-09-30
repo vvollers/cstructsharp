@@ -10,8 +10,8 @@ namespace CStructSharp.Compilation.Programs;
 /// <remarks>
 ///     <para>
 ///         <b>Member context.</b> A failure of a step whose <c>Field</c> is a member is reported with that member's name
-///         and type (<c>CStructException.NoteMember</c>), as the interpreter's field loop does; selection steps and the
-///         composite's finish belong to no member, like the interpreter's code outside that loop's <c>try</c>. A root
+///         and type (<c>CStructException.NoteMember</c>); selection steps and the composite's finish belong to no member,
+///         so their failures name none. A root
 ///         program notes no member (<see cref="ReadProgram.NotesMembers"/>).
 ///     </para>
 ///     <para>
@@ -21,8 +21,8 @@ namespace CStructSharp.Compilation.Programs;
 ///     </para>
 ///     <para>
 ///         <b>Count register.</b> <see cref="CheckFixedCount"/> and <see cref="EvaluateCount"/> set the element count
-///         the next array step reads; the count is evaluated and checked before the field is placed, as the interpreter
-///         orders it. A data-sized array's count (<see cref="CountToEnd"/>, <see cref="CountTerminated"/>) is taken from the
+///         the next array step reads; the count is evaluated and checked before the field is placed, so a bad count
+///         fails before any placement. A data-sized array's count (<see cref="CountToEnd"/>, <see cref="CountTerminated"/>) is taken from the
 ///         input after placement, at the array's start.
 ///     </para>
 ///     <para>
@@ -189,7 +189,7 @@ internal enum ReadOpCode : byte
 
     /// <summary>
     ///     Reads count-register fixed-width numbers (codec <c>A</c>) of a standalone field (a root) one element at a time,
-    ///     as the interpreter reads a field no composite placed, then gives them the typed array shape.
+    ///     because no composite placed the field, then gives them the typed array shape.
     /// </summary>
     ReadNumericElements,
 
@@ -210,7 +210,7 @@ internal enum ReadOpCode : byte
 
     /// <summary>
     ///     Reads count-register elements of an unnamed padding array one at a time through codec <c>A</c> and keeps
-    ///     nothing, as the interpreter reads a field without a name.
+    ///     nothing, because the field has no name to store it under.
     /// </summary>
     SkipElements,
 
@@ -222,7 +222,7 @@ internal enum ReadOpCode : byte
 
     /// <summary>
     ///     Reads one value of a caller-supplied codec (codec <c>A</c>, <c>ICustomCodec</c>) through the custom-codec
-    ///     adapter the interpreter's codec delegate runs: in place from memory (the position advances, and is charged, before
+    ///     adapter: in place from memory (the position advances, and is charged, before
     ///     a failure), through a growing window from a stream.
     /// </summary>
     ReadCustom,
@@ -232,7 +232,7 @@ internal enum ReadOpCode : byte
 
     /// <summary>
     ///     Reads count-register fixed-width numbers (codec <c>A</c>) of a multidimensional member its composite placed into
-    ///     a flat list, in blocks of at most 64 KiB (the interpreter's boxed bulk path); <see cref="ReshapeTable"/> nests it.
+    ///     a flat list, in blocks of at most 64 KiB, boxing each element; <see cref="ReshapeTable"/> nests it.
     /// </summary>
     ReadNumericList,
 
@@ -258,8 +258,7 @@ internal enum ReadOpCode : byte
 
     /// <summary>
     ///     Nests the member's flat element list by its dimensions, outermost first, with a <c>List&lt;object?&gt;</c> at
-    ///     every level (rows are never typed arrays), as the interpreter shapes a multidimensional array after reading its
-    ///     elements; a member without a value slot is left alone.
+    ///     every level (rows are never typed arrays), after all of its elements are read; a member without a value slot is left alone.
     /// </summary>
     ReshapeTable,
 
@@ -302,7 +301,7 @@ internal enum ReadOpCode : byte
 
     /// <summary>
     ///     <see cref="CaptureNotANumber"/> for an array whose count the data decides: applied only when the count
-    ///     register is above zero, because the interpreter captures per element and an empty array captures nothing.
+    ///     register is above zero, because an array is captured per element and an empty array captures nothing.
     /// </summary>
     CaptureNotANumberIfElements,
 
@@ -419,8 +418,8 @@ internal enum ReadOpCode : byte
     ///     Reads a pointer's stored address (the layout's pointer width and byte order) and its target
     ///     (<see cref="ReadProgram.PointerTargets"/> <c>A</c>). With <c>B</c> = 1 the target is deferred: a pointer that
     ///     would be followed is stored unresolved and queued, and the struct follows it after its last member; with
-    ///     <c>B</c> = 0 it is followed in place, as for a root, a union view (where following is suppressed) or a pointer the
-    ///     interpreter never defers.
+    ///     <c>B</c> = 0 it is followed in place, as for a root, a union view (where following is suppressed) or any other pointer
+    ///     that is not deferred.
     /// </summary>
     ReadPointer,
 
@@ -439,6 +438,18 @@ internal enum ReadOpCode : byte
     ///     -1). Nothing is read and the root value stays empty. <c>Field</c> is -1.
     /// </summary>
     EvaluateDefinition,
+
+    /// <summary>
+    ///     Fails the read of a member whose type has no value reader (a <c>typedef void</c> alias read on its own): the
+    ///     read reports that the type has no handler, before anything of the member is read.
+    /// </summary>
+    FailNoReader,
+
+    /// <summary>
+    ///     Fails the read of a fixed array whose elements, every dimension together, are more than an <see cref="int"/>
+    ///     counts: the count overflows before it is checked against the element limit, as it is taken.
+    /// </summary>
+    FailElementCountOverflow,
 
     // The codes below appear only in debug programs (ReadProgramCache.Debug), which a debug parse runs with a recorder.
     // They follow every other code so an executor can hand the whole range to its debug handler.
@@ -475,7 +486,7 @@ internal enum ReadOpCode : byte
 
     /// <summary>
     ///     Debug programs: reads count-register fixed-width numbers (codec <c>A</c>) one at a time with a record each, as
-    ///     the interpreter reads every array in a debug parse, and gives them the typed array shape.
+    ///     a debug parse reads every array, and gives them the typed array shape.
     /// </summary>
     DebugNumericElements,
 

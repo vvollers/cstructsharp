@@ -4,15 +4,14 @@ using CStructSharp.Expressions;
 
 /// <summary>
 ///     A compiled write of one struct (or root): a flat array of <see cref="WriteStep"/>s and the side tables their
-///     operands index. Built once by <see cref="WriteProgramCompiler"/> from the compiled layout model, in the order the
-///     interpreter's writer takes each decision - value lookup, element count, placement, encoding, capture - so an
+///     operands index. Built once by <see cref="WriteProgramCompiler"/> from the compiled layout model, in the order each
+///     decision is taken - value lookup, element count, placement, encoding, capture - so an
 ///     executor re-derives nothing per field.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <b>Frames.</b> Each program runs in its own executor frame, as the interpreter writes each composite in its own
-///         call: the frame holds the composite's first byte (for alignment, offset assertions and the tail), its selected
-///         conditional arms (undecided at entry, so every element of a struct array selects afresh), its conditional-scope
+///         <b>Frames.</b> Each program runs in its own executor frame: the frame holds the composite's first byte
+///         (for alignment, offset assertions and the tail), its selected conditional arms (undecided at entry, so every element of a struct array selects afresh), its conditional-scope
 ///         locals and the value, count and enum registers.
 ///     </para>
 ///     <para>
@@ -75,8 +74,7 @@ internal sealed class WriteProgram
 
     /// <summary>
     ///     Gets, per step, the member a failure of the step is attributed to (<c>CStructException.NoteMember</c>), or -1:
-    ///     the steps from a named member's value lookup to its capture, which the interpreter's field loop wraps in its
-    ///     member-noting filter.
+    ///     the steps from a named member's value lookup to its capture. Every other step belongs to no member.
     /// </summary>
     public int[] NotedMembers { get; }
 
@@ -128,7 +126,7 @@ internal sealed class WriteProgram
 
     /// <summary>
     ///     Gets a value indicating whether the members are placed at run time by a <see cref="PlacementCursor"/> the frame
-    ///     starts at its first byte, as the interpreter places them: a struct with bitfields, whose storage units the
+    ///     starts at its first byte: a struct with bitfields, whose storage units the
     ///     layout's packing rule shares. Other structs place their members with steps decided when the program was built.
     /// </summary>
     public bool UsesPlacementCursor { get; }

@@ -69,25 +69,19 @@ public class WriterTailAndInputTests
     }
 
     /// <summary>
-    ///     An empty record reads its entry position and, only when aligned, compares its final boundary once in the
-    ///     interpreter; the compiled engine, which knows the empty record's tail when the program is built, queries the
-    ///     position no more often.
+    ///     An empty record queries the destination's position at most once, and at most twice when aligned: the compiled
+    ///     engine knows the empty record's tail when the program is built.
     /// </summary>
     /// <param name="aligned">Whether the layout requests a final alignment check.</param>
-    /// <param name="expectedReads">The interpreter's number of physical position queries, which the engine may not exceed.</param>
+    /// <param name="expectedReads">The most physical position queries the write may make.</param>
     [TestMethod]
     [DataRow(false, 1)]
     [DataRow(true, 2)]
     public void EmptyGeneralWrite_AvoidsRedundantPositionQueries(bool aligned, int expectedReads)
     {
         var layout = new CStruct("struct root {};", aligned: aligned);
-        using var interpreted = new PositionCountingStream();
-        layout.Write(interpreted, "root", new Dictionary<string, object?>(), options: EngineSelections.InterpreterOnly(ExecutionPaths.GeneralWrite()));
-        Assert.AreEqual(expectedReads, interpreted.PositionReads);
-        Assert.AreEqual(0L, interpreted.Length);
-
         using var compiled = new PositionCountingStream();
-        layout.Write(compiled, "root", new Dictionary<string, object?>(), options: EngineSelections.EngineRequired(ExecutionPaths.GeneralWrite()));
+        layout.Write(compiled, "root", new Dictionary<string, object?>(), options: ExecutionPaths.GeneralWrite());
         Assert.IsLessThanOrEqualTo(expectedReads, compiled.PositionReads);
         Assert.AreEqual(0L, compiled.Length);
     }

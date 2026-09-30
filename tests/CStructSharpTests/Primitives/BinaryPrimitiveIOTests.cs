@@ -9,26 +9,6 @@ using CStructSharp.Diagnostics;
 [TestClass]
 public class BinaryPrimitiveIOTests
 {
-    /// <summary>Every supported width decodes to the expected unsigned value in the requested byte order.</summary>
-    [TestMethod]
-    public void ReadUnsignedBySize_SupportedWidths_DecodesInRequestedByteOrder()
-    {
-        Assert.AreEqual(0x12UL, ReadUnsignedBySize([0x12,], true));
-        Assert.AreEqual(0x1234UL, ReadUnsignedBySize([0x34, 0x12,], true));
-        Assert.AreEqual(0x1234UL, ReadUnsignedBySize([0x12, 0x34,], false));
-        Assert.AreEqual(0x12345678UL, ReadUnsignedBySize([0x78, 0x56, 0x34, 0x12,], true));
-        Assert.AreEqual(0x0102030405060708UL, ReadUnsignedBySize([0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01,], true));
-    }
-
-    /// <summary>A stream that ends before the requested width is filled reports a layout-specific read error.</summary>
-    [TestMethod]
-    public void ReadUnsignedBySize_StreamEndsEarly_Throws()
-    {
-        using var stream = new MemoryStream([0x01, 0x02,]);
-
-        Assert.Throws<CStructReadException>(() => BinaryPrimitiveIO.ReadUnsignedBySize(stream, 4, true));
-    }
-
     /// <summary>Every typed reader decodes the expected value in the requested byte order, matching a hand-composed expectation.</summary>
     [TestMethod]
     public void TypedReaders_DecodeInRequestedByteOrder()
@@ -71,16 +51,6 @@ public class BinaryPrimitiveIOTests
         AssertRoundTrips(BinaryPrimitiveIO.WriteUInt64, BinaryPrimitiveIO.ReadUInt64, 0xDEADBEEFCAFEBABEUL);
         AssertRoundTrips(BinaryPrimitiveIO.WriteSingle, BinaryPrimitiveIO.ReadSingle, 3.14159f);
         AssertRoundTrips(BinaryPrimitiveIO.WriteDouble, BinaryPrimitiveIO.ReadDouble, 2.718281828459045);
-    }
-
-    /// <summary>Reads an unsigned value as wide as the given bytes.</summary>
-    /// <param name="bytes">The encoded value.</param>
-    /// <param name="isLittleEndian">The byte order.</param>
-    /// <returns>The value.</returns>
-    private static ulong ReadUnsignedBySize(byte[] bytes, bool isLittleEndian)
-    {
-        using var stream = new MemoryStream(bytes);
-        return BinaryPrimitiveIO.ReadUnsignedBySize(stream, bytes.Length, isLittleEndian);
     }
 
     /// <summary>Reads a value from bytes with a typed reader.</summary>

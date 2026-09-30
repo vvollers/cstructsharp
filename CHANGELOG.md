@@ -262,6 +262,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Documentation and tooling
 
+- The general reader and writer are replaced by the compiled engine; the performance guide explains how it works and which
+  fixed-layout fast paths run in front of it, and the API guides compare it with generated code, which stays fastest.
+  Mutation testing covers the engine's files.
 - Tests: the engine's differential tests compare against recorded golden outcomes (`tests/CStructSharpTests/Engine/Golden/`)
   instead of running a second implementation; `node tools/quality/engine-golden.mjs record` regenerates them for an
   intended, explained behaviour change, and `CONTRIBUTING.md` states when that is allowed.

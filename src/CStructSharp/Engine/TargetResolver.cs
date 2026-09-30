@@ -13,10 +13,10 @@ using CStructSharp.Syntax;
 using CstructEnum = CStructSharp.Syntax.Enum;
 
 /// <summary>
-///     The compiled engine's path resolver: finds the storage a path (<c>root.items[2].name</c>, <c>root.next.value.id</c>)
-///     selects by walking only the members before it, on the operation's cursor and variable slots, and produces what the
-///     interpreter's resolver produces for the same path - the same address, the same captures (a later member's count may
-///     name an earlier one), the same bytes read and charged, the same failures in the same order.
+///     The compiled engine's path resolver: finds the storage a path (<c>root.items[2].name</c>,
+///     <c>root.next.value.id</c>) selects by walking only the members before it, on the operation's cursor and variable
+///     slots, and produces its address, the captures a later member's count may name, the bytes read and charged, and
+///     the failures in a fixed order.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -29,9 +29,9 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 ///         from its size, after the counts inside it are checked against the limits.
 ///     </para>
 ///     <para>
-///         <b>Order.</b> A member is captured before it is measured, so a terminated string ahead of the target is read twice
-///         and charged twice, as the interpreter reads it. The target's own value is not read here; the caller reads it
-///         from the returned address (<see cref="ReadEngine"/>).
+///         <b>Order.</b> A member is captured before it is measured, so a terminated string ahead of the target is read
+///         twice and charged twice. The target's own value is not read here; the caller reads it from the returned
+///         address (<see cref="ReadEngine"/>).
 ///     </para>
 ///     <para>
 ///         <b>Pointers.</b> Only the pointers the path names are followed: <c>.value</c> reads the stored address and
@@ -50,8 +50,18 @@ internal static class TargetResolver
     private const int ScratchSize = 16;
 
     /// <summary>
-    ///     Resolves a path from the cursor's position (the root's first byte). A one-segment path selects the root itself,
-    ///     after a root array's count is taken and checked as the interpreter takes it; a longer path walks the root struct.
+    ///     The number of elements a terminated array stores: its values and the all-zero terminator element after them,
+    ///     which is part of the array's extent.
+    /// </summary>
+    /// <param name="valueCount">The number of values before the terminator.</param>
+    /// <returns>The stored element count.</returns>
+    /// <exception cref="OverflowException">The count and its terminator do not fit an <see cref="int"/>.</exception>
+    internal static int CountStoredTerminatedElements(int valueCount) => checked(valueCount + 1);
+
+    /// <summary>
+    ///     Resolves a path from the cursor's position (the root's first byte). A one-segment path selects the root
+    ///     itself, after a root array's count is taken and checked (<see cref="EnginePrograms.ResolvesCountFirst"/>); a
+    ///     longer path walks the root struct.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor, at the root's first byte; the walk leaves it where its last read ended.</param>
@@ -749,8 +759,8 @@ internal static class TargetResolver
     }
 
     /// <summary>
-    ///     Reads one value through the field's codec reader, as the interpreter's resolver calls it: a caller's codec through
-    ///     its adapter (its value may be <see langword="null"/>), any other codec as its stream reader reads it.
+    ///     Reads one value through the field's codec reader: a caller's codec through its adapter (its value may be
+    ///     <see langword="null"/>), any other codec as its stream reader reads it.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor, at the value.</param>
@@ -874,7 +884,7 @@ internal static class TargetResolver
         if (field.Array.Kind == CompiledArrayKind.Terminated)
         {
             // The terminator element is part of the field's extent.
-            scalarCount = checked(scalarCount + 1);
+            scalarCount = CountStoredTerminatedElements(scalarCount);
         }
 
         return checked(fieldStart + checked(elementSize * scalarCount));

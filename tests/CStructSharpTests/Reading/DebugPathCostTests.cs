@@ -7,19 +7,12 @@ using CStructSharp.Diagnostics;
 [TestClass]
 public class DebugPathCostTests
 {
-    /// <summary>
-    ///     Consumers may revisit a debug path many times without formatting it again, whether the interpreter or the
-    ///     compiled engine recorded it.
-    /// </summary>
-    /// <param name="engine">Whether the compiled engine must run the debug parse; otherwise the interpreter runs it.</param>
+    /// <summary>Consumers may revisit a debug path many times without formatting it again.</summary>
     [TestMethod]
-    [DataRow(false)]
-    [DataRow(true)]
-    public void RepeatedDebugPathAccess_DoesNotAllocate(bool engine)
+    public void RepeatedDebugPathAccess_DoesNotAllocate()
     {
         var layout = new CStruct("struct cell { uint8 value; }; struct root { cell cells[2]; };");
-        ReadOptions options = engine ? EngineSelections.EngineRequired() : EngineSelections.InterpreterOnly();
-        (_, IReadOnlyList<DebugData> debug) = layout.ParseWithDebug(new MemoryStream(new byte[2]), "root", options: options);
+        (_, IReadOnlyList<DebugData> debug) = layout.ParseWithDebug(new MemoryStream(new byte[2]), "root");
         DebugData item = debug[1];
         Assert.AreEqual("root.cells[1].value", item.Path);
         for (int index = 0; index < 1000; index++)

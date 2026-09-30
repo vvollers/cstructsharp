@@ -4,10 +4,10 @@ using CStructSharp.Addressing;
 using CStructSharp.Compilation;
 
 /// <summary>
-///     The storage a path selects, as the compiled engine's <see cref="TargetResolver"/> found it: its absolute address and
-///     the facts a byte address alone cannot express - the kind of target, the array selection, the bitfield unit, the
-///     pointers followed, the nesting depth above it - which the selected read, the address query and the length query
-///     use. It holds what the interpreter's resolved target holds for the same path.
+///     The storage a path selects, as the compiled engine's <see cref="TargetResolver"/> found it: its absolute address
+///     and the facts a byte address alone cannot express - the kind of target, the array selection, the bitfield unit,
+///     the pointers followed, the nesting depth above it - which the selected read, the address query and the length
+///     query use.
 /// </summary>
 /// <remarks>
 ///     A value created once per resolution. <see cref="Declared"/> and <see cref="Indexes"/> identify the member the path

@@ -5,8 +5,8 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Engine;
 
 /// <summary>
-///     The cursor differential: <see cref="MemoryReadCursor"/> and <see cref="StreamReadCursor"/> against
-///     <c>ReadBudgetStream</c> driven the way the interpreter drives it, over every input form the sweeps use, with
+///     The cursor differential: <see cref="MemoryReadCursor"/> and <see cref="StreamReadCursor"/> against the golden
+///     traces of <c>ReadBudgetStream</c> driven by the reads of a stream source, over every input form the sweeps use, with
 ///     scripted operation sequences under a sweep of read budgets. Traces compare values, positions after every step
 ///     (including after failures), failure types, messages, offsets and inner causes, the charge points (the step at
 ///     which each budget fails), cancellation observation points and the flushed final position. The reference traces
@@ -211,11 +211,6 @@ public class CursorDifferentialTests
         }
 
         string label = $"{input}, {data.Length} bytes, budget {budget}, script {string.Join(" ", script)}";
-        if (EngineGolden.ComparesInterpreter && !planted)
-        {
-            Record(differences, "stream cursor", label, expected, CursorDifferential.StreamCursor(input, data, script, budget));
-        }
-
         if (CursorDifferential.MemoryForms.Contains(input))
         {
             Record(differences, "memory cursor", label, expected, CursorDifferential.MemoryCursor(input, data, script, budget, planted));

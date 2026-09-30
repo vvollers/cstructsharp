@@ -13,16 +13,17 @@ using CStructSharp.Values;
 
 /// <summary>
 ///     The debug parse of the compiled engine: the steps only debug programs hold (<see cref="ReadProgramCache.Debug"/>),
-///     which record every value read as the interpreter's debug parse does - the same ranges, paths, type spellings,
-///     values and order - and the layout capture an update compares.
+///     which record every value read - its range, path, type spelling and value, in read order - and the layout capture
+///     an update compares.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         A debug program reads exactly what the ordinary program reads, with the same checks, but every array one element
-///         at a time and every struct member by member (the recorder turns the static read plans off,
-///         <see cref="ReadEngineState.GeneralPathOnly"/>), because the interpreter's debug parse takes none of its block
-///         paths. Its read steps are the ordinary ones, surrounded by <see cref="ReadOpCode.DebugMark"/> and
-///         <see cref="ReadOpCode.DebugRecord"/>; its array, composite and pointer steps are the debug codes handled here.
+///         A debug program reads exactly what the ordinary program reads, with the same checks, but every array one
+///         element at a time and every struct member by member (the recorder turns the static read plans off,
+///         <see cref="ReadEngineState.GeneralPathOnly"/>), because a block path would read many values without a record
+///         for each. Its read steps are the ordinary ones, surrounded by <see cref="ReadOpCode.DebugMark"/> and
+///         <see cref="ReadOpCode.DebugRecord"/>; its array, composite and pointer steps are the debug codes handled
+///         here.
 ///     </para>
 ///     <para>
 ///         <b>Order.</b> A value is recorded once it is read, so a struct's members come in declaration order, a union's
@@ -33,10 +34,10 @@ using CStructSharp.Values;
 internal static partial class ReadEngine
 {
     /// <summary>
-    ///     Reads one whole root with its debug program from a stream, as the interpreter's update captures the layout
-    ///     before and after a change: from <paramref name="origin"/>, through a new budget over the stream, with the
-    ///     conditional-layout trace, and without attaching a path or offset to a failure. The final position is written
-    ///     back to the stream.
+    ///     Reads one whole root with its debug program from a stream, as an update captures the layout before and after
+    ///     a change: from <paramref name="origin"/>, through a new budget over the stream, with the conditional-layout
+    ///     trace, and without attaching a path or offset to a failure. The final position is written back to the
+    ///     stream.
     /// </summary>
     /// <param name="layout">The layout the program belongs to.</param>
     /// <param name="stream">The data: the original input or an update's staged copy.</param>
@@ -50,7 +51,7 @@ internal static partial class ReadEngine
     public static (string Path, long Start, long End)[] CaptureLayout(CStruct layout, Stream stream, long origin, ReadProgram program, VariableSlots slots, in ReadOperationSettings options)
     {
         stream.Position = origin;
-        CStructOperationContext.Validate(stream, options);
+        ReadOperationSettings.Validate(stream, options);
         var recorder = new DebugRecorder(trace: true);
         var state = new ReadEngineState(layout, slots, options, recorder);
         try
@@ -291,7 +292,7 @@ internal static partial class ReadEngine
                 ReadProgram nested = program.Nested[step.A];
                 var value = new StructValue(nested.Shape);
 
-                // The interpreter attaches a root's value before reading its members; the compiler checked the slot.
+                // A root's value is attached before its members are read; the compiler checked the slot.
                 _ = program.Shape.TryGetIndex(program.Name, out int slot);
                 destination.StoreSlot(slot, value);
                 ReadRecordedComposite(ref cursor, ref state, nested, value, new DebugPath(null, program.Name));
@@ -341,8 +342,8 @@ internal static partial class ReadEngine
     }
 
     /// <summary>
-    ///     Reads count fixed-width numbers one at a time, as the interpreter's debug parse reads every numeric element
-    ///     (straight from memory when the value is there, else through the codec's reads), with a record each.
+    ///     Reads count fixed-width numbers one at a time, as a debug parse reads every numeric element (straight from
+    ///     memory when the value is there, else through the codec's reads), with a record each.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -497,7 +498,7 @@ internal static partial class ReadEngine
 
     /// <summary>
     ///     Reads a union with its views recorded under <paramref name="path"/>, then records the union itself: its whole
-    ///     storage range, its value and its raw storage, after the views, as the interpreter does.
+    ///     storage range, its value and its raw storage, after the views.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor, at the union's first byte.</param>
@@ -578,8 +579,8 @@ internal static partial class ReadEngine
 
     /// <summary>
     ///     Makes a multidimensional character array's rows: each innermost row a string - trimmed as the options say, and
-    ///     valid UTF-16 for <c>wchar</c>, checked row by row - nested by the outer dimensions, as the interpreter shapes the
-    ///     array after reading its characters.
+    ///     valid UTF-16 for <c>wchar</c>, checked row by row - nested by the outer dimensions, once all of the
+    ///     array's characters are read.
     /// </summary>
     /// <param name="state">The operation's state.</param>
     /// <param name="member">The array member.</param>
@@ -588,7 +589,7 @@ internal static partial class ReadEngine
     /// <exception cref="CStructReadException">A <c>wchar</c> row is not valid UTF-16.</exception>
     private static List<object?> CharacterRows(ref ReadEngineState state, CompiledField member, char[] characters)
     {
-        // The interpreter's row loop: its capacity divides by the row size, as a zero-length row fails there too.
+        // The capacity divides by the row size, so a zero-length row fails here.
         int[] sizes = CStruct.FixedDimensionSizes(member);
         int rowSize = sizes[^1];
         var rows = new List<object?>(characters.Length / rowSize);

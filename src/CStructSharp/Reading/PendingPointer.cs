@@ -14,5 +14,5 @@ using CStructSharp.Values;
 /// <param name="DebugStack">The debug path of the pointer field, or <see langword="null"/> for an ordinary read.</param>
 /// <param name="AddressEnd">The stream position just after the stored address, where the pointer was read; following starts
 /// there so a failure reports the same offset as a pointer followed in place.</param>
-/// <param name="Target">The compiled engine's description of the target, or <see langword="null"/> for the interpreter's entries.</param>
+/// <param name="Target">The read engine's description of the target, which it follows the pointer with.</param>
 internal readonly record struct PendingPointer(Pointer Placeholder, CompiledField Field, DebugPath? DebugStack, long AddressEnd, ReadPointerTarget? Target = null);

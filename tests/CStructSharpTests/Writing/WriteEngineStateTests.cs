@@ -1,94 +1,105 @@
 namespace CStructSharp.Tests;
 
 using CStructSharp.Diagnostics;
+using CStructSharp.Engine;
+using CStructSharp.Expressions;
+using CStructSharp.Streams;
 using CStructSharp.Writing;
 
-/// <summary>Exercises <see cref="CStructElementWriterState"/> directly, independent of a real write operation.</summary>
+/// <summary>
+///     Exercises the compiled engine's per-operation write state directly, independent of a real write: the options and
+///     nesting depth the state carries (<see cref="WriteEngineState"/>), the string budget and zero fill of the budget
+///     stream the engine writes through (<see cref="WriteBudgetStream"/>), and the option snapshots and validation every
+///     write takes at its boundary (<see cref="WriteOptionSnapshots"/>).
+/// </summary>
 [TestClass]
-public class CStructElementWriterStateTests
+public class WriteEngineStateTests
 {
-    /// <summary>A valid stream and options must produce a state exposing those options' derived fields.</summary>
+    /// <summary>A check that runs against a write state passed by reference.</summary>
+    /// <param name="state">The state.</param>
+    private delegate void StateAction(ref WriteEngineState state);
+
+    /// <summary>Valid options must produce a state exposing those options and the layout's placement, at depth zero.</summary>
     [TestMethod]
-    public void Constructor_ValidInputs_ExposesDerivedFields()
+    public void State_ExposesTheSuppliedOptions()
     {
-        using var stream = new MemoryStream();
-        var options = new WriteOptions { AddressingMode = PointerAddressingMode.Relative, Origin = 7, };
+        var options = new WriteOptions { AddressingMode = PointerAddressingMode.Relative, Origin = 7, UnknownMembers = UnknownMemberPolicy.Reject, };
 
-        var state = new CStructElementWriterState(stream, [], aligned: true, options);
-
-        Assert.AreEqual(PointerAddressingMode.Relative, state.AddressingMode);
-        Assert.AreEqual(7L, state.PointerOrigin);
-        Assert.IsTrue(state.Aligned);
-        Assert.AreEqual(0, state.StructureDepth);
-    }
-
-    /// <summary>A negative initial structure depth cannot represent a real traversal position.</summary>
-    [TestMethod]
-    public void Constructor_NegativeInitialStructureDepth_Throws()
-    {
-        using var stream = new MemoryStream();
-
-        Assert.Throws<ArgumentOutOfRangeException>(
-            () => new CStructElementWriterState(stream, [], aligned: false, new WriteOptions(), initialStructureDepth: -1));
-    }
-
-    /// <summary>An initial structure depth beyond the configured nesting limit is already out of range at construction.</summary>
-    [TestMethod]
-    public void Constructor_InitialStructureDepthBeyondLimit_Throws()
-    {
-        using var stream = new MemoryStream();
-        var options = new WriteOptions { MaxNestingDepth = 2, };
-
-        Assert.Throws<ArgumentOutOfRangeException>(
-            () => new CStructElementWriterState(stream, [], aligned: false, options, initialStructureDepth: 3));
+        RunState(
+            new CStruct("struct rec { uint8 a; };", aligned: true),
+            options,
+            (ref WriteEngineState state) =>
+            {
+                Assert.AreEqual(PointerAddressingMode.Relative, state.Options.AddressingMode);
+                Assert.AreEqual(7L, state.Options.Origin);
+                Assert.IsTrue(state.RejectUnknownMembers);
+                Assert.IsTrue(state.Layout.Aligned);
+                Assert.AreEqual(0, state.StructureDepth);
+            });
     }
 
     /// <summary>Entering structures up to the configured limit succeeds; one more must fail without corrupting the depth.</summary>
     [TestMethod]
     public void EnterStructure_ExceedsMaxNestingDepth_ThrowsAndLeavesDepthAtTheLimit()
     {
-        using var stream = new MemoryStream();
-        var state = new CStructElementWriterState(stream, [], aligned: false, new WriteOptions { MaxNestingDepth = 1, });
+        RunState(
+            new CStruct("struct rec { uint8 a; };"),
+            new WriteOptions { MaxNestingDepth = 1, },
+            (ref WriteEngineState state) =>
+            {
+                state.EnterStructure();
 
-        state.EnterStructure();
+                bool failed = false;
+                try
+                {
+                    state.EnterStructure();
+                }
+                catch (CStructWriteLimitException)
+                {
+                    failed = true;
+                }
 
-        Assert.Throws<CStructWriteLimitException>(() => state.EnterStructure());
-        Assert.AreEqual(1, state.StructureDepth);
+                Assert.IsTrue(failed, "a second level exceeds the limit");
+                Assert.AreEqual(1, state.StructureDepth);
+            });
     }
 
-    /// <summary>Exiting a structure releases exactly one level, allowing another entry afterward.</summary>
+    /// <summary>Releasing a structure level allows another entry afterward.</summary>
     [TestMethod]
-    public void ExitStructure_ReleasesOneLevel()
+    public void ReleasedLevel_AllowsAnotherEntry()
     {
-        using var stream = new MemoryStream();
-        var state = new CStructElementWriterState(stream, [], aligned: false, new WriteOptions { MaxNestingDepth = 1, });
+        RunState(
+            new CStruct("struct rec { uint8 a; };"),
+            new WriteOptions { MaxNestingDepth = 1, },
+            (ref WriteEngineState state) =>
+            {
+                state.EnterStructure();
+                state.StructureDepth--;
+                state.EnterStructure();
 
-        state.EnterStructure();
-        state.ExitStructure();
-        state.EnterStructure();
-
-        Assert.AreEqual(1, state.StructureDepth);
+                Assert.AreEqual(1, state.StructureDepth);
+            });
     }
 
-    /// <summary>EnsureStringBytes must delegate to the underlying write-budget stream's string-byte check.</summary>
+    /// <summary>The budget stream a write goes through checks one string's encoded bytes against the per-string limit.</summary>
     [TestMethod]
     public void EnsureStringBytes_ExceedsTheConfiguredBudget_Throws()
     {
         using var stream = new MemoryStream();
-        var state = new CStructElementWriterState(stream, [], aligned: false, new WriteOptions { MaxStringBytes = 4, });
+        var budget = new WriteBudgetStream(stream, new WriteOptions { MaxStringBytes = 4, });
 
-        state.EnsureStringBytes(4);
-        Assert.Throws<CStructWriteLimitException>(() => state.EnsureStringBytes(5));
+        budget.EnsureStringBytes(4);
+        Assert.Throws<CStructWriteLimitException>(() => budget.EnsureStringBytes(5));
     }
 
-    /// <summary>WriteZeroes must delegate to the underlying write-budget stream and actually advance the stream.</summary>
+    /// <summary>The budget stream writes a zero-filled region and advances the stream.</summary>
     [TestMethod]
     public void WriteZeroes_WritesTheRequestedZeroFilledRegion()
     {
         using var stream = new MemoryStream();
-        var state = new CStructElementWriterState(stream, [], aligned: false, new WriteOptions());
+        var budget = new WriteBudgetStream(stream, new WriteOptions());
 
-        state.WriteZeroes(3);
+        budget.WriteZeroes(3);
 
         CollectionAssert.AreEqual(new byte[] { 0, 0, 0, }, stream.ToArray());
     }
@@ -97,7 +108,7 @@ public class CStructElementWriterStateTests
     [TestMethod]
     public void SnapshotWriteOptions_NullOptions_UsesWriteOptionsDefaults()
     {
-        WriteOptions snapshot = CStructElementWriterState.SnapshotWriteOptions(null);
+        WriteOptions snapshot = WriteOptionSnapshots.SnapshotWriteOptions(null);
 
         Assert.AreEqual(new WriteOptions().MaxArrayElements, snapshot.MaxArrayElements);
         Assert.AreEqual(new WriteOptions().MaxNestingDepth, snapshot.MaxNestingDepth);
@@ -109,7 +120,7 @@ public class CStructElementWriterStateTests
     {
         var update = new UpdateOptions { DereferencePointers = false, };
 
-        WriteOptions snapshot = CStructElementWriterState.SnapshotWriteOptions(update);
+        WriteOptions snapshot = WriteOptionSnapshots.SnapshotWriteOptions(update);
 
         Assert.IsInstanceOfType<UpdateOptions>(snapshot);
         Assert.IsFalse(((UpdateOptions)snapshot).DereferencePointers);
@@ -128,7 +139,7 @@ public class CStructElementWriterStateTests
             MaxTraversalPointerDepth = 2,
         };
 
-        UpdateOptions snapshot = CStructElementWriterState.SnapshotUpdateOptions(options);
+        UpdateOptions snapshot = WriteOptionSnapshots.SnapshotUpdateOptions(options);
 
         Assert.AreEqual(3, snapshot.MaxArrayElements);
         Assert.IsFalse(snapshot.DereferencePointers);
@@ -163,7 +174,7 @@ public class CStructElementWriterStateTests
             MaxTraversalNestingDepth = 88,
         };
 
-        UpdateOptions snapshot = CStructElementWriterState.SnapshotUpdateOptions(options);
+        UpdateOptions snapshot = WriteOptionSnapshots.SnapshotUpdateOptions(options);
 
         Assert.AreEqual(options, snapshot);
         Assert.AreNotSame(options, snapshot);
@@ -183,7 +194,7 @@ public class CStructElementWriterStateTests
             Origin = 44,
         };
 
-        WriteOptions snapshot = CStructElementWriterState.SnapshotWriteOptions(options);
+        WriteOptions snapshot = WriteOptionSnapshots.SnapshotWriteOptions(options);
 
         Assert.AreEqual(options, snapshot);
         Assert.AreNotSame(options, snapshot);
@@ -195,7 +206,7 @@ public class CStructElementWriterStateTests
     {
         var options = new WriteOptions { MaxArrayElements = -1, };
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => CStructElementWriterState.ValidateWriteOptions(options));
+        Assert.Throws<ArgumentOutOfRangeException>(() => WriteOptionSnapshots.ValidateWriteOptions(options));
     }
 
     /// <summary>A non-positive nesting depth would forbid even the root object.</summary>
@@ -204,13 +215,32 @@ public class CStructElementWriterStateTests
     {
         var options = new WriteOptions { MaxNestingDepth = 0, };
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => CStructElementWriterState.ValidateWriteOptions(options));
+        Assert.Throws<ArgumentOutOfRangeException>(() => WriteOptionSnapshots.ValidateWriteOptions(options));
     }
 
     /// <summary>A finite, valid set of write options passes validation without throwing.</summary>
     [TestMethod]
     public void ValidateWriteOptions_ValidOptions_DoesNotThrow()
     {
-        CStructElementWriterState.ValidateWriteOptions(new WriteOptions());
+        WriteOptionSnapshots.ValidateWriteOptions(new WriteOptions());
+    }
+
+    /// <summary>Runs <paramref name="body"/> with the write state of one operation on <paramref name="layout"/>, then releases it.</summary>
+    /// <param name="layout">The layout.</param>
+    /// <param name="options">The operation's options.</param>
+    /// <param name="body">The checks, given the state by reference.</param>
+    private static void RunState(CStruct layout, WriteOptions options, StateAction body)
+    {
+        VariableSlots slots = VariableSlots.Create(layout.Compilation.SlotTable, LayoutVariableInput.FromIntegers(null));
+        var state = new WriteEngineState(layout, slots, options);
+        try
+        {
+            body(ref state);
+        }
+        finally
+        {
+            state.Release();
+            slots.Dispose();
+        }
     }
 }

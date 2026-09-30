@@ -25,88 +25,9 @@ using CStructSharp.Writing;
 public sealed partial class CStruct
 {
     /// <summary>
-    ///     Writes <paramref name="composite"/> through its static plan when that is exactly equivalent to the
-    ///     general writer; returns false (having written nothing) when it is not.
-    /// </summary>
-    /// <remarks>
-    ///     Equivalence conditions: no update semantics (an update skips padding instead of zero-filling it and stages
-    ///     through the sparse stream), a seekable destination whose existing bytes under the block can be read back
-    ///     so padding keeps whatever it held, and limits (nesting depth, array elements, total bytes) that the
-    ///     general writer would report at an inner field checked up front so the plan never fails after writing.
-    ///     Values are converted before any byte reaches the destination: a conversion failure leaves the stream
-    ///     untouched instead of partially written.
-    /// </remarks>
-    /// <param name="composite">The struct to write.</param>
-    /// <param name="data">Its value; for a promoted struct, the parent's value that carries its fields.</param>
-    /// <param name="state">The destination, limits and variables of the write.</param>
-    /// <param name="promoted">
-    ///     Whether the struct is an anonymous promoted member, which claims no nesting level of its own, so the plan's
-    ///     levels below it are one fewer than <see cref="StaticReadPlan.NestingDepth"/>.
-    /// </param>
-    /// <returns>Whether the plan wrote the struct.</returns>
-    private bool TryWriteStaticPlan(CompiledCompositeType composite, object data, CStructElementWriterState state, bool promoted)
-    {
-        if (state.Options is UpdateOptions || state.GeneralPathOnly || composite.StaticPlan is not { SupportsWrite: true } plan ||
-            plan.Size > ReadBlock.Size || state.StructureDepth + plan.NestingDepth - (promoted ? 1 : 0) > state.MaxNestingDepth ||
-            plan.MaximumArrayCount > state.Options.MaxArrayElements)
-        {
-            return false;
-        }
-
-        WriteBudgetStream stream = state.BudgetStream;
-        if (stream.IsSparseUpdate || !stream.CanSeek)
-        {
-            return false;
-        }
-
-        // The plan's offsets are relative to the struct start, as the general writer places members, so it runs at any
-        // position.
-        long position = stream.Position;
-        long existing = Math.Min(plan.Size, Math.Max(0, stream.Length - position));
-        int chargedBytes = this.Aligned ? plan.ChargedAlignedBytes : plan.ChargedFieldBytes;
-        if ((existing > 0 && !stream.CanRead) || !stream.CanAffordBlock(plan.Size, chargedBytes) ||
-            (stream.Inner is FixedBufferStream fixedBuffer && position + plan.Size > fixedBuffer.Capacity))
-        {
-            // A span destination that cannot hold the whole block keeps the general writer's field-by-field
-            // behavior (the fields that fit are written before the capacity failure is reported).
-            return false;
-        }
-
-        byte[] block = ArrayPool<byte>.Shared.Rent(plan.Size);
-        try
-        {
-            Span<byte> span = block.AsSpan(0, plan.Size);
-            int preserved = 0;
-            while (preserved < existing)
-            {
-                int read = stream.Read(span.Slice(preserved, (int)existing - preserved));
-                if (read <= 0)
-                {
-                    break;
-                }
-
-                preserved += read;
-            }
-
-            span[preserved..].Clear();
-            stream.Position = position;
-            var captures = new WriterStateCaptures(state);
-            this.ExecuteStaticWritePlan(plan, composite, span, data, ref captures);
-            stream.WriteBlock(span, chargedBytes);
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(block);
-        }
-
-        state.ResetBitfieldUnit();
-        return true;
-    }
-
-    /// <summary>
     ///     Encodes <paramref name="data"/> into <paramref name="bytes"/> through the static plan. Fields publish the layout
-    ///     variables later fields of the operation may read through <paramref name="captures"/>: the interpreter's
-    ///     variables, the compiled engine's slots, or nothing for a direct root write, which writes nothing afterwards.
+    ///     variables later fields of the operation may read through <paramref name="captures"/>: the compiled engine's
+    ///     slots, or nothing for a direct root write, which writes nothing afterwards.
     /// </summary>
     /// <typeparam name="TCaptures">The capture sink type, a struct so the plan is compiled per sink.</typeparam>
     /// <param name="plan">The composite's plan.</param>
@@ -115,7 +36,7 @@ public sealed partial class CStruct
     /// <param name="data">
     ///     The composite's value, already bound by the caller (a root) or by the nested step that reached it. A nested
     ///     struct's value, including a mapped instance held by a dictionary or struct value, is bound through
-    ///     <see cref="WriteDataBinding.Bind"/> before its plan runs, as the general writer binds it.
+    ///     <see cref="WriteDataBinding.Bind"/> before its plan runs, as the engine binds it member by member.
     /// </param>
     /// <param name="captures">Where captured variables and the qualified prefix go.</param>
     internal void ExecuteStaticWritePlan<TCaptures>(StaticReadPlan plan, CompiledCompositeType composite, Span<byte> bytes, object data, ref TCaptures captures)
@@ -123,7 +44,7 @@ public sealed partial class CStruct
     {
         if (this.Aligned)
         {
-            // The general writer materializes an aligned struct's tail padding as zeroes (CompleteStructTailPadding).
+            // An aligned struct's tail padding is written as zeroes, as the engine's member-by-member write completes it.
             bytes[plan.TailStart..].Clear();
         }
 
@@ -254,7 +175,7 @@ public sealed partial class CStruct
         }
     }
 
-    /// <summary>The member lookup the general writer performs, using the slot directly for a value of this composite's own shape.</summary>
+    /// <summary>The member lookup the engine performs, using the slot directly for a value of this composite's own shape.</summary>
     private static object GetMemberValue(StructValue? sameShape, object data, int slot, string name)
     {
         if (sameShape is not null)
@@ -267,7 +188,7 @@ public sealed partial class CStruct
         return WriteDataBinding.GetMemberValueOrThrow(data, name);
     }
 
-    /// <summary>One numeric value with the general writer's conversion-failure translation.</summary>
+    /// <summary>One numeric value with the engine's conversion-failure translation.</summary>
     private static void WriteNumericValue(CompiledField field, Span<byte> target, object value, string name)
     {
         try
@@ -286,7 +207,7 @@ public sealed partial class CStruct
     ///     <see cref="PrimitiveArray{T}"/> a parse produced, or a plain <c>T[]</c> such as a mapped class's
     ///     <c>int[]</c> - and whose length matches: the elements are encoded straight from the typed storage, with
     ///     one vectorized byte swap when the layout's byte order differs from the machine's. Anything else -
-    ///     including a length mismatch, so its message stays the general writer's - takes the element loop.
+    ///     including a length mismatch, so its message stays the engine's - takes the element loop.
     /// </summary>
     /// <param name="field">The numeric array field, whose codec gives the element type and byte order.</param>
     /// <param name="target">The destination bytes, exactly <paramref name="count"/> elements long.</param>

@@ -52,7 +52,7 @@ public class StaticReadPlanTests
         "prim-le-x1k", "real-bmp", "real-jpg", "real-png", "real-tar", "real-wav",
     ];
 
-    /// <summary>The parity fixtures whose roots are fixed and must be planned too (aliases resolve at construction; a promoted union keeps the general reader).</summary>
+    /// <summary>The parity fixtures whose roots are fixed and must be planned too (aliases resolve at construction; a promoted union keeps the general path).</summary>
     private static readonly string[] EligibleParityFixtures = ["parity-alias-x1k",];
 
     /// <summary>Composites get a plan exactly when every member is statically placed and decodable.</summary>
@@ -143,7 +143,7 @@ public class StaticReadPlanTests
         }
     }
 
-    /// <summary>A dynamic array of a fully fixed struct (the element plan looped over one span) matches the general reader on values, captured counts, truncation, budgets and limits.</summary>
+    /// <summary>A dynamic array of a fully fixed struct (the element plan looped over one span) matches the general path on values, captured counts, truncation, budgets and limits.</summary>
     [TestMethod]
     public void DynamicArray_OfStaticStructs_MatchesGeneralReader()
     {

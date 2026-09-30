@@ -13,39 +13,39 @@ using CStructSharp.Syntax;
 using CStructSharp.Values;
 
 /// <summary>
-///     The whole-root reads and debug parses the compiled engine runs when <see cref="EngineSelector"/> selects it, and its
-///     capture of the layout an update compares.
+///     The whole-root reads, nested parses and debug parses of the compiled engine, and its capture of the layout an update
+///     compares.
 /// </summary>
 public sealed partial class CStruct
 {
     /// <summary>
-    ///     Makes the one engine decision of a parse: a whole-root parse asks for the root's program, a whole-root debug parse
-    ///     for the root's debug program, and a nested path for its root's program (its debug program for a debug parse),
-    ///     which proves every struct the path can reach readable.
+    ///     Looks up the program of a parse once: a whole-root parse runs the root's program, a whole-root debug parse the
+    ///     root's debug program, and a nested path the programs the path resolver finds as it walks.
     /// </summary>
-    /// <param name="options">The operation's snapshotted settings.</param>
     /// <param name="segments">The parsed path.</param>
-    /// <param name="variables">The caller's layout variables.</param>
     /// <param name="debug">Whether the parse records debug byte ranges.</param>
-    /// <returns>The root's program (its debug program for a debug parse) when the engine runs the parse; otherwise <see langword="null"/>.</returns>
-    /// <exception cref="InvalidOperationException">The engine is required and declined the parse.</exception>
-    private ReadProgram? SelectParse(in ReadOperationSettings options, IReadOnlyList<PathSegment> segments, in LayoutVariableInput variables, bool debug)
+    /// <returns>
+    ///     The root's program (its debug program for a debug parse) for a whole root; <see langword="null"/> for a nested
+    ///     path, and for a root the layout does not declare, which the parse reports after resolving the variables.
+    /// </returns>
+    private ReadProgram? SelectParse(IReadOnlyList<PathSegment> segments, bool debug)
     {
         if (segments.Count == 1)
         {
             return debug
-                       ? EngineSelector.SelectDebugRead(options.EngineSelection, this.compilation, segments[0].Name)
-                       : EngineSelector.SelectRootRead(options.EngineSelection, this.compilation, segments[0].Name);
+                       ? EnginePrograms.DebugRead(this.compilation, segments[0].Name)
+                       : EnginePrograms.RootRead(this.compilation, segments[0].Name);
         }
 
-        return EngineSelector.SelectPathRead(options.EngineSelection, this.compilation, segments[0].Name, debug ? EngineOperation.DebugRead : EngineOperation.PathRead, debug);
+        EnginePrograms.PathOperation(debug ? EngineOperation.DebugRead : EngineOperation.PathRead);
+        return null;
     }
 
     /// <summary>
-    ///     Parses the struct or union a nested path selects from a stream with the compiled engine, in the interpreter's
-    ///     order: the caller's variables are resolved into the layout's slots (a definition that cannot be resolved fails
-    ///     here, without a path), then the source and settings are validated, the path resolved and the composite read - in a
-    ///     debug parse with every value recorded under the path's names.
+    ///     Parses the struct or union a nested path selects from a stream with the compiled engine: the caller's variables
+    ///     are resolved into the layout's slots (a definition that cannot be resolved fails here, without a path), then the
+    ///     source and settings are validated, the path resolved and the composite read - in a debug parse with every value
+    ///     recorded under the path's names.
     /// </summary>
     /// <param name="stream">The caller's source, positioned at the root.</param>
     /// <param name="segments">The parsed path, more than one segment.</param>
@@ -76,14 +76,14 @@ public sealed partial class CStruct
     /// </summary>
     /// <param name="stream">The caller's source, positioned at the root.</param>
     /// <param name="segments">The one-segment path that names the root.</param>
-    /// <param name="program">The root's eligible debug program.</param>
+    /// <param name="program">The root's debug program, or <see langword="null"/> for a root the layout does not declare.</param>
     /// <param name="variables">The caller's layout variables, integers.</param>
     /// <param name="options">The operation's snapshotted settings.</param>
     /// <returns>The debug records and the selected value.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="stream"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="stream"/> cannot seek.</exception>
-    /// <exception cref="CStructException">A definition cannot be resolved or the input cannot be read.</exception>
-    private (List<DebugData> DebugData, object Result) ParseWithEngineDebug(Stream stream, IReadOnlyList<PathSegment> segments, ReadProgram program, in LayoutVariableInput variables, in ReadOperationSettings options)
+    /// <exception cref="CStructException">A definition cannot be resolved, the root is unknown, or the input cannot be read.</exception>
+    private (List<DebugData> DebugData, object Result) ParseWithEngineDebug(Stream stream, IReadOnlyList<PathSegment> segments, ReadProgram? program, in LayoutVariableInput variables, in ReadOperationSettings options)
     {
         var recorder = new DebugRecorder(trace: false);
         StructValue value = this.ReadRootWithEngine(stream, segments, program, variables, options, recorder, out bool selected);
@@ -91,13 +91,17 @@ public sealed partial class CStruct
     }
 
     /// <summary>
-    ///     Reads a whole root from a stream with the compiled engine, in the interpreter's order: the stream is checked (a
-    ///     debug parse needs it seekable), the caller's variables resolved into the layout's slots (a definition that cannot
-    ///     be resolved fails here, without a path), then the source and settings are validated and the root is read.
+    ///     Reads a whole root from a stream with the compiled engine: the stream is checked (a debug parse needs it
+    ///     seekable), the caller's variables resolved into the layout's slots (a definition that cannot be resolved fails
+    ///     here, without a path), a root the layout does not declare is reported (without a path), then the source and
+    ///     settings are validated and the root is read.
     /// </summary>
     /// <param name="stream">The caller's source, positioned at the root.</param>
     /// <param name="segments">The one-segment path that names the root.</param>
-    /// <param name="program">The root's eligible program, or its debug program for a debug parse.</param>
+    /// <param name="program">
+    ///     The root's program, or its debug program for a debug parse; <see langword="null"/> for a root the layout does not
+    ///     declare.
+    /// </param>
     /// <param name="variables">The caller's layout variables, integers.</param>
     /// <param name="options">The operation's snapshotted settings.</param>
     /// <param name="debug">The recorder of a debug parse; <see langword="null"/> for an ordinary read.</param>
@@ -105,8 +109,8 @@ public sealed partial class CStruct
     /// <returns>The selected value, or the root value holding the root's value under its name.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="stream"/> is null.</exception>
     /// <exception cref="ArgumentException">A debug parse's <paramref name="stream"/> cannot seek.</exception>
-    /// <exception cref="CStructException">A definition cannot be resolved or the input cannot be read.</exception>
-    private StructValue ReadRootWithEngine(Stream stream, IReadOnlyList<PathSegment> segments, ReadProgram program, in LayoutVariableInput variables, in ReadOperationSettings options, DebugRecorder? debug, out bool selected)
+    /// <exception cref="CStructException">A definition cannot be resolved, the root is unknown, or the input cannot be read.</exception>
+    private StructValue ReadRootWithEngine(Stream stream, IReadOnlyList<PathSegment> segments, ReadProgram? program, in LayoutVariableInput variables, in ReadOperationSettings options, DebugRecorder? debug, out bool selected)
     {
         ArgumentNullException.ThrowIfNull(stream);
         if (debug is not null && !stream.CanSeek)
@@ -117,7 +121,8 @@ public sealed partial class CStruct
         VariableSlots slots = VariableSlots.Create(this.compilation.SlotTable, variables);
         try
         {
-            return ReadEngine.ReadRoot(this, stream, segments, program, slots, options, debug, out selected);
+            ReadProgram root = program ?? throw this.compiledModelQueries.UnknownRoot(segments[0].Name);
+            return ReadEngine.ReadRoot(this, stream, segments, root, slots, options, debug, out selected);
         }
         finally
         {
@@ -126,26 +131,31 @@ public sealed partial class CStruct
     }
 
     /// <summary>
-    ///     Reads a whole root from a pinned memory region with the compiled engine, in the interpreter's order: the
-    ///     caller's variables are resolved into the layout's slots, then the settings are validated and the root is read.
+    ///     Reads a whole root from a pinned memory region with the compiled engine: the caller's variables are resolved
+    ///     into the layout's slots, a root the layout does not declare is reported (without a path), then the settings are
+    ///     validated and the root is read.
     /// </summary>
     /// <param name="region">The input's byte 0; the caller keeps it pinned until the method returns.</param>
     /// <param name="length">The input length in bytes.</param>
     /// <param name="segments">The one-segment path that names the root.</param>
-    /// <param name="program">The root's eligible program, or its debug program for a debug parse.</param>
+    /// <param name="program">
+    ///     The root's program, or its debug program for a debug parse; <see langword="null"/> for a root the layout does not
+    ///     declare.
+    /// </param>
     /// <param name="variables">The caller's layout variables, integers.</param>
     /// <param name="options">The operation's snapshotted settings.</param>
     /// <param name="debug">The recorder of a debug parse; <see langword="null"/> for an ordinary read.</param>
     /// <param name="selected">Whether the result is the value the root's name selects rather than the root value.</param>
     /// <param name="position">The position the read ended at, in bytes from the region's start.</param>
     /// <returns>The selected value, or the root value holding the root's value under its name.</returns>
-    /// <exception cref="CStructException">A definition cannot be resolved or the input cannot be read.</exception>
-    private unsafe StructValue ReadRootWithEngine(byte* region, int length, IReadOnlyList<PathSegment> segments, ReadProgram program, in LayoutVariableInput variables, in ReadOperationSettings options, DebugRecorder? debug, out bool selected, out long position)
+    /// <exception cref="CStructException">A definition cannot be resolved, the root is unknown, or the input cannot be read.</exception>
+    private unsafe StructValue ReadRootWithEngine(byte* region, int length, IReadOnlyList<PathSegment> segments, ReadProgram? program, in LayoutVariableInput variables, in ReadOperationSettings options, DebugRecorder? debug, out bool selected, out long position)
     {
         VariableSlots slots = VariableSlots.Create(this.compilation.SlotTable, variables);
         try
         {
-            return ReadEngine.ReadRoot(this, region, length, segments, program, slots, options, debug, out selected, out position);
+            ReadProgram root = program ?? throw this.compiledModelQueries.UnknownRoot(segments[0].Name);
+            return ReadEngine.ReadRoot(this, region, length, segments, root, slots, options, debug, out selected, out position);
         }
         finally
         {
@@ -154,34 +164,24 @@ public sealed partial class CStruct
     }
 
     /// <summary>
-    ///     The compiled engine's counterpart of
-    ///     <see cref="CaptureUpdateLayout(Stream, long, CStructElement, Dictionary{string, Expr}, ReadOperationSettings)"/>:
-    ///     the same reading of the root with its debug program, giving the same records and conditional-layout trace entry
-    ///     for entry, or <see langword="null"/> when the engine cannot read the root.
+    ///     Captures a root's layout as an update captures it before and after its change, from the caller's variables: the
+    ///     root is read with its debug program (<c>ReadEngine.CaptureLayout</c>), which gives every value's path and byte
+    ///     range, then the conditional-layout trace. An update accepts or rejects its change by comparing two captures.
     /// </summary>
-    /// <remarks>
-    ///     An update runs on one implementation from start to end: the engine's update captures its layouts with the engine
-    ///     (<c>ReadEngine.CaptureLayout</c>), the interpreter's with the interpreter. The differential tests hold this
-    ///     counterpart to the interpreter's capture for every conditional root and terminated value they sweep.
-    /// </remarks>
     /// <param name="stream">The data, the original or a staged copy.</param>
     /// <param name="origin">The root's position.</param>
     /// <param name="rootName">The root's name.</param>
     /// <param name="variables">The operation's layout variables.</param>
     /// <param name="options">The read settings.</param>
-    /// <returns>Each value's path and byte range, then each conditional member's name, position and selection; or <see langword="null"/>.</returns>
-    /// <exception cref="Diagnostics.CStructException">A definition cannot be resolved or the data cannot be read.</exception>
-    internal (string Path, long Start, long End)[]? CaptureUpdateLayoutWithEngine(
+    /// <returns>Each value's path and byte range, then each conditional member's name, position and selection (1 or 0).</returns>
+    /// <exception cref="Diagnostics.CStructException">A definition cannot be resolved, the root is unknown, or the data cannot be read.</exception>
+    internal (string Path, long Start, long End)[] CaptureUpdateLayout(
         Stream stream, long origin, string rootName, in LayoutVariableInput variables, in ReadOperationSettings options)
     {
-        if (this.compilation.GetRootDebugReadProgram(rootName).Program is not { } program)
-        {
-            return null;
-        }
-
         VariableSlots slots = VariableSlots.Create(this.compilation.SlotTable, variables);
         try
         {
+            ReadProgram program = this.compilation.GetRootDebugReadProgram(rootName).Program ?? throw this.compiledModelQueries.UnknownRoot(rootName);
             return ReadEngine.CaptureLayout(this, stream, origin, program, slots, options);
         }
         finally

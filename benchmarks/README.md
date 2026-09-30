@@ -12,7 +12,7 @@ retain instability and canary warnings, and do not refresh baselines merely to m
 
 | Path | Purpose |
 | --- | --- |
-| `CStructSharp.Benchmarks/` | BenchmarkDotNet host. `Scenarios/` holds one fixture-driven class per operation (category `Scenario`: compile, parse, stream, path and typed reads, write, update, debug, malformed input, hand-written comparators); the classes beside it measure single operations (addresses, reads, text writes, memory analysis in category `Memory`); `GeneratedBenchmarks` (category `Generated`) compares generated code with the runtime, `AsyncBenchmarks` (category `Async`) the stream forms with their awaitable twins, `SequenceBenchmarks` (category `Sequences`) segmented input and record sequences (`ParseMany`, `Records`, the view enumerator) with the loops a caller would write, `PacketBenchmarks` (category `Packet`) the general reader and writer on the comparison's data-dependent record, and `CostModelBenchmarks` (category `CostModel`) synthetic layouts whose differences give the general reader's cost per call and per member. The `Gate` category selects the release-gate cases, and `Impact` the quick before/after subset. `--profile <scenario>` runs a manual loop for sampling profilers. |
+| `CStructSharp.Benchmarks/` | BenchmarkDotNet host. `Scenarios/` holds one fixture-driven class per operation (category `Scenario`: compile, parse, stream, path and typed reads, write, update, debug, malformed input, hand-written comparators); the classes beside it measure single operations (addresses, reads, text writes, memory analysis in category `Memory`); `GeneratedBenchmarks` (category `Generated`) compares generated code with the runtime, `AsyncBenchmarks` (category `Async`) the stream forms with their awaitable twins, `SequenceBenchmarks` (category `Sequences`) segmented input and record sequences (`ParseMany`, `Records`, the view enumerator) with the loops a caller would write, `PacketBenchmarks` (category `Packet`) the compiled engine's reader and writer on the comparison's data-dependent record, and `CostModelBenchmarks` (category `CostModel`) synthetic layouts whose differences give the engine's cost per call and per member. The `Gate` category selects the release-gate cases, and `Impact` the quick before/after subset. `--profile <scenario>` runs a manual loop for sampling profilers. |
 | `CStructSharp.Comparison/` | The serializer comparison shown in the root README: a fixed 79-byte record and a data-dependent record deserialized and serialized by CStructSharp and by other .NET serializers. It is outside both solutions; see [Compare with other serializers](#compare-with-other-serializers). |
 | `CStructSharp.FixtureTool/` | Fills and verifies `fixtures/` expectations with the managed library; also the shared fixture loader the benchmarks use. |
 | `fixtures/` | Seeded fixture corpus shared by .NET, Node, and browser harnesses (see its README). |
@@ -165,7 +165,7 @@ The CStructSharp rows show the different ways to use one layout:
 | Runtime view (`CreateView` + accessors) | Layout compiled at run time; members decoded from the bytes through prepared accessors, nothing allocated |
 | Runtime `Parse` + accessors | Layout compiled at run time; the record decoded into a `StructValue`, members read through prepared accessors |
 | Runtime `Parse` / `Serialize` (`StructValue`, path strings) | As above, but each member is found by a path string such as `"samples[3]"`, resolved again on every lookup |
-| Runtime rows of the data-dependent record | The general reader and writer: the layout is walked field by field, and lengths and conditions are evaluated while the bytes are read. The mapped class is filled by name after a full read, because only fixed layouts get a direct reader |
+| Runtime rows of the data-dependent record | The compiled engine: each struct is compiled once into a program of small steps, which reads or writes the members in order and evaluates lengths and conditions while the bytes are read. The mapped class is filled by name after a full read, because only fixed layouts get a direct reader |
 
 ### How it is measured
 
@@ -220,7 +220,7 @@ meaningful; comparing absolute times across machines is not.
 - FlatSharp runs in lazy mode, the mode that suits reading a record once. Other FlatSharp modes trade time for
   allocation differently.
 - The runtime's fast paths apply to fixed-size structs. The fixed record therefore shows the runtime at its best,
-  and the data-dependent record shows the general reader and writer that every other layout uses.
+  and the data-dependent record shows the compiled engine that every other layout uses.
 - Timings move by a few percent between runs, and more on laptops (power management, boost clocks) or shared
   virtual machines. Close the other programs and do not build or run tests while measuring. Treat differences
   below about 10 % as noise.
@@ -263,15 +263,16 @@ Run both checkouts repeatedly on the same machine with identical filters, runtim
 Keep separate artifact directories using `CSTRUCTSHARP_BENCHMARK_ARTIFACTS`. Compare allocations as well as timing;
 do not run builds, tests, or mutation analysis while benchmarks are measuring.
 
-## Cost model of the general reader
+## Cost model of the compiled engine
 
-The *general reader* is the path that reads a layout member by member, used whenever a root has no fixed size (for
-example, because an array's length comes from the data). `CostModelBenchmarks` parses seven synthetic layouts from
+The *compiled engine* reads a layout member by member through a program compiled once per struct, and runs whenever a
+root has no fixed size (for example, because an array's length comes from the data); see
+[how a layout is run](../docs/guides/performance.md#how-a-layout-is-run-the-compiled-engine). `CostModelBenchmarks` parses seven synthetic layouts from
 memory. Each one differs from another by one kind of member, so subtracting two medians gives the cost of that member:
 
 | Shape | Members before `uint8 n; uint8 tail[n];` (`n = 0`) | Compare with | Gives |
 | --- | --- | --- | --- |
-| `fixed-1` | only `uint8 a;`, no tail: a fixed root | – | the direct reader, for contrast |
+| `fixed-1` | only `uint8 a;`, no tail: a fixed root | – | the direct fixed-root reader, for contrast |
 | `general-1` | none | – | the fixed cost of one call |
 | `scalars-16`, `scalars-32` | 16 or 32 `uint32` | each other | the cost of one scalar field (difference / 16) |
 | `plain-8`, `conditional-8` | `uint8 k;` and 8 `uint32`, plain or each in `if (k == 1) { … } else { … }` | each other | the extra cost of one conditional group (difference / 8) |

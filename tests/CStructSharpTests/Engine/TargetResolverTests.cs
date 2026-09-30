@@ -1,7 +1,7 @@
 namespace CStructSharp.Tests;
 
 /// <summary>
-///     Holds the compiled engine's path resolution (<c>TargetResolver</c>) to the interpreter's golden outcomes through
+///     Holds the compiled engine's path resolution (<c>TargetResolver</c>) to the golden outcomes (<see cref="EngineGolden"/>) through
 ///     the differential harness, path by path: every member kind the resolver walks past (read to measure it, or skipped by its size),
 ///     pointer accessors with their checks and limits, selected bitfields in their placed units, conditional members,
 ///     nested parses and their debug records, and the failures of paths that select nothing. Each case must run on the
@@ -63,10 +63,10 @@ public class TargetResolverTests
 
         // The second follow of the self-referencing node is the first one's target again; a relative address past the
         // position range is a path failure, not a read failure.
-        EngineComparison cycle = EngineDifferential.AssertSame(EngineOperations.ResolveAddress(layout, data, EngineInput.Span, "rec.u.list.value.next.value.v"), expectEngine: true);
+        EngineComparison cycle = EngineDifferential.AssertSame(EngineOperations.ResolveAddress(layout, data, EngineInput.Span, "rec.u.list.value.next.value.v"));
         StringAssert.Contains(cycle.Rendering, "Cyclic pointer target detected at stream address 32 (path");
         var overflow = new ReadOptions { AddressingMode = PointerAddressingMode.Relative, Origin = long.MaxValue, };
-        EngineComparison relative = EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Span, "rec.p.value", options: overflow), expectEngine: true);
+        EngineComparison relative = EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Span, "rec.p.value", options: overflow));
         StringAssert.Contains(relative.Rendering, "failure = failure CStructSharp.Diagnostics.CStructPathException\n");
         StringAssert.Contains(relative.Rendering, "Relative pointer target overflowed the stream address range (path");
 
@@ -225,8 +225,7 @@ public class TargetResolverTests
         {
             var operation = new DifferentialOperation(
                 "ResolveAddress(Stream.Null) " + path,
-                (side, output) => output.Capture("failure", () => output.Value("result", layout.ResolveAddress(Stream.Null, path, options: side.Read(null)))),
-                Engine: true);
+                (side, output) => output.Capture("failure", () => output.Value("result", layout.ResolveAddress(Stream.Null, path, options: side.Read(null)))));
             EngineDifferential.AssertSame(operation);
         }
 
@@ -269,7 +268,7 @@ public class TargetResolverTests
 
     /// <summary>
     ///     Runs every path operation for each path over several sources, then over every truncation of the input and every
-    ///     byte budget up to twice its length, comparing the engine with the interpreter.
+    ///     byte budget up to twice its length, comparing the engine with the golden outcomes.
     /// </summary>
     /// <param name="layout">The layout.</param>
     /// <param name="data">The input.</param>
@@ -327,7 +326,7 @@ public class TargetResolverTests
     private static void Same(DifferentialOperation operation, ExecutionPath path)
         => EngineDifferential.AssertSame(operation, path: path);
 
-    /// <summary>Asserts that a root's program is eligible, so the comparisons of its paths hold the engine to the interpreter.</summary>
+    /// <summary>Asserts that a root's program is eligible, so the comparisons of its paths hold the engine to the golden outcomes.</summary>
     /// <param name="layout">The layout.</param>
     /// <param name="roots">The roots.</param>
     private static void AssertEligible(CStruct layout, params string[] roots)

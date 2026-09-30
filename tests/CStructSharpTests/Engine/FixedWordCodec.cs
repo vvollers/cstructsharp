@@ -8,8 +8,8 @@ using CStructSharp.Codecs;
 ///     A custom codec for the engine tests, spelled <c>word4</c>, that declares a fixed size of four bytes (aligned to
 ///     four) but may take fewer: a little-endian <see cref="uint"/> in four bytes, except the one-byte short form
 ///     <c>0xEE</c> for the value 238. A first byte of <c>0xFF</c> is invalid. A value still occupies its declared four
-///     bytes (a short form is read past and written padded with zeros), so this codec shows whether the engine places
-///     members after a caller's codec as the interpreter does.
+///     bytes (a short form is read past and written padded with zeros), so this codec shows that the engine places
+///     members after a caller's codec at their declared offsets.
 /// </summary>
 internal sealed class FixedWordCodec : ICustomCodec
 {

@@ -1,7 +1,7 @@
 namespace CStructSharp.Compilation.Programs;
 
 /// <summary>
-///     How one element of an array member is written, decided in the interpreter's order (<c>WriteSingleFieldValue</c>):
+///     How one element of an array member is written, decided by checking in this order:
 ///     unnamed custom-codec padding, a pointer's address, an enum, a struct or union, a fixed-width number, or any other
 ///     codec value. The <see cref="WriteOpCode.WriteElements"/> and <see cref="WriteOpCode.WriteLeaves"/> steps carry it in
 ///     their <c>B</c>.
@@ -25,4 +25,7 @@ internal enum WriteElementKind
 
     /// <summary>Any other value, through the stream writer of codec <c>A</c> (a caller's codec included).</summary>
     Codec,
+
+    /// <summary>A value of a type that has no writer (<c>void</c>): the write fails (<see cref="WriteOpCode.FailNoWriter"/>).</summary>
+    Unwritable,
 }

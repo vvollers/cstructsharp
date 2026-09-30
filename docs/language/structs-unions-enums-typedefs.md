@@ -251,8 +251,8 @@ Reading returns `FlagValueResult`, an `EnumValueResult` with `Names` (every memb
 declaration order, computed on first use), `Remainder` (the bits no member accounts for), and `Has(name)`; `Name`
 is still the single member equal to the whole value, when there is one. Writers additionally accept `"READ|EXEC"`, a
 sequence of member names, and a `[Flags]` CLR enum; typed reads map to a `[Flags]` enum by value. An anonymous
-`flag { ... };` declares constants like an anonymous enum. A struct holding a flag field reads through the general
-interpreter rather than the span fast path. The `flags` fixture checks the declaration above.
+`flag { ... };` declares constants like an anonymous enum. A struct holding a flag field reads through the compiled
+engine rather than the direct fixed-root path. The `flags` fixture checks the declaration above.
 
 ## Typedefs
 

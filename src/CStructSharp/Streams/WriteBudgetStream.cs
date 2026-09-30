@@ -31,9 +31,6 @@ internal sealed class WriteBudgetStream : Stream, IWriteBudget
     /// <summary>Identifies an atomic in-place update underneath the output budget wrapper.</summary>
     internal bool IsSparseUpdate => this.inner is SparseUpdateStream;
 
-    /// <summary>Gets the caller-owned stream this wrapper forwards to.</summary>
-    internal Stream Inner => this.inner;
-
     /// <summary>Gets a value indicating whether the wrapped stream can read existing bytes.</summary>
     public override bool CanRead => this.inner.CanRead;
 
@@ -207,7 +204,7 @@ internal sealed class WriteBudgetStream : Stream, IWriteBudget
     /// <summary>
     ///     Whether a block of <paramref name="length"/> bytes written at the current position, charged as
     ///     <paramref name="chargedBytes"/> of physical traffic, fits the budget; a false answer sends the caller to
-    ///     the general writer so the limit failure is raised at the field it was always raised at.
+    ///     the member-by-member write, so the limit failure is raised at the field that exceeds it.
     /// </summary>
     /// <param name="length">The block's length in bytes, which determines how far it extends the output.</param>
     /// <param name="chargedBytes">The physical traffic in bytes the block would add to the budget.</param>
@@ -226,7 +223,7 @@ internal sealed class WriteBudgetStream : Stream, IWriteBudget
         }
     }
 
-    /// <summary>Writes a block prepared by a static write plan, charging the bytes the general writer would have charged.</summary>
+    /// <summary>Writes a block prepared by a static write plan, charging the bytes a member-by-member write would charge.</summary>
     /// <param name="block">The prepared bytes, written at the current position.</param>
     /// <param name="chargedBytes">The physical traffic in bytes to charge against the budget for this block.</param>
     /// <exception cref="CStructWriteLimitException">The block would exceed the total output budget.</exception>

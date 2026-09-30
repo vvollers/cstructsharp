@@ -5,8 +5,8 @@
  * intended, explained behaviour change, never to hide a difference (CONTRIBUTING.md).
  *
  * `record` builds the managed test project, runs its tests on net10.0 with CSTRUCTSHARP_ENGINE_GOLDEN_RECORD=1 (every
- * differential case also runs the interpreter, which must agree with the engine, and its outcome is recorded), checks
- * the new manifests on net8.0 and net10.0, and lists the added, removed and changed test sections per manifest.
+ * differential case records its current outcome), checks the new manifests on net8.0 and net10.0, and lists the added,
+ * removed and changed test sections per manifest.
  * `check` runs the two checks alone. `--filter` passes a dotnet test filter to every run, so a recording rewrites only
  * the sections of the tests it ran; `--no-build` skips the build.
  *

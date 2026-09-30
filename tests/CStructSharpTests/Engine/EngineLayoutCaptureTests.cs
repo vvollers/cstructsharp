@@ -100,8 +100,8 @@ public class EngineLayoutCaptureTests
     }
 
     /// <summary>
-    ///     A root the layout does not declare has no layout to capture: the interpreter reports it as an unknown root, and
-    ///     the engine has no program for it.
+    ///     A root the layout does not declare has no layout to capture: the capture reports it as an unknown root, naming
+    ///     it, and the root has no debug program.
     /// </summary>
     [TestMethod]
     public void UnknownRoot_HasNoLayout()
@@ -112,6 +112,6 @@ public class EngineLayoutCaptureTests
         using var stream = new MemoryStream([1]);
         Diagnostics.CStructPathException failure = Assert.Throws<Diagnostics.CStructPathException>(() => layout.CaptureUpdateLayout(stream, 0, "missing", variables, settings));
         StringAssert.Contains(failure.Message, "missing");
-        Assert.IsNull(layout.CaptureUpdateLayoutWithEngine(stream, 0, "missing", variables, settings));
+        Assert.IsFalse(layout.Compilation.GetRootDebugReadProgram("missing").IsEligible);
     }
 }

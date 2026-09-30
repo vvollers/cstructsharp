@@ -2,8 +2,8 @@ namespace CStructSharp.Compilation.Programs;
 
 /// <summary>
 ///     What compiling one composite or root produced: a <see cref="ReadProgram"/>, or the reason the compiled engine
-///     cannot read it yet. A composite with a reason makes every struct and root that reaches it ineligible, so an
-///     operation over such a root is left to the interpreter before anything is read.
+///     cannot read it. A composite with a reason makes every struct and root that reaches it ineligible, so an
+///     operation over such a root fails before anything is read.
 /// </summary>
 internal sealed class ReadProgramOutcome
 {
@@ -16,13 +16,13 @@ internal sealed class ReadProgramOutcome
         this.Reason = reason;
     }
 
-    /// <summary>Gets the program, or <see langword="null"/> when the composite is not supported yet.</summary>
+    /// <summary>Gets the program, or <see langword="null"/> when the composite cannot be read.</summary>
     public ReadProgram? Program { get; }
 
     /// <summary>
-    ///     Gets why the composite is not supported yet, as <c>location: what</c> - the innermost struct and member that
-    ///     needs a feature a later engine stage adds, such as <c>header.flags: bitfields are not supported yet (stage 4)</c>;
-    ///     <see langword="null"/> when <see cref="Program"/> is set.
+    ///     Gets why the composite cannot be read, as <c>location: what</c> - the innermost struct and member at fault, such
+    ///     as <c>header.flags: the static placement differs from the compiled offset</c>; <see langword="null"/> when
+    ///     <see cref="Program"/> is set.
     /// </summary>
     public string? Reason { get; }
 
@@ -34,7 +34,7 @@ internal sealed class ReadProgramOutcome
     /// <returns>An eligible outcome.</returns>
     public static ReadProgramOutcome Eligible(ReadProgram program) => new(program, null);
 
-    /// <summary>Records why a composite or root is not supported yet.</summary>
+    /// <summary>Records why a composite or root cannot be read.</summary>
     /// <param name="reason">The reason, as <c>location: what</c>.</param>
     /// <returns>An ineligible outcome.</returns>
     public static ReadProgramOutcome NotSupported(string reason) => new(null, reason);

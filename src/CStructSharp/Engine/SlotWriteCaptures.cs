@@ -7,7 +7,7 @@ using CStructSharp.Writing;
 
 /// <summary>
 ///     The capture sink the compiled engine hands a static write plan: the operation's slots, and the qualified prefix
-///     active where the plan runs. A capture is stored by the shared rule (<see cref="LayoutVariableCapture.ToSlotValue"/>)
+///     active where the plan runs. A capture is stored by the shared rule (<see cref="LayoutVariableCapture.ToSlotValue(CompiledField, object?)"/>)
 ///     in the name's slot and published under the prefix's qualified spellings; a name without a slot is not observable
 ///     by any expression and is not stored.
 /// </summary>
@@ -42,7 +42,7 @@ internal struct SlotWriteCaptures : IStaticWriteCaptures
     /// <param name="value">The supplied value.</param>
     public readonly void Capture(string name, CompiledField field, object value)
     {
-        SlotValue captured = field.NotANumberReason is { } reason ? SlotValue.FromUnusable(new NotANumberVariable(reason)) : LayoutVariableCapture.ToSlotValue(value);
+        SlotValue captured = LayoutVariableCapture.ToSlotValue(field, value);
         SlotTable table = this.slots.Table;
         if (table.TryGetSlot(name, out int slot))
         {

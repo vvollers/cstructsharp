@@ -323,48 +323,12 @@ internal static class BinaryPrimitiveIO
         return Codec.ReadDouble(buffer, isLittleEndian);
     }
 
-    /// <summary>
-    ///     Reads a 1, 2, 4, or 8-byte unsigned integer whose width is a runtime value rather than known at the call
-    ///     site - used for the layout's configured pointer width.
-    /// </summary>
-    /// <param name="stream">The source, at the value's first byte; it advances past the bytes read.</param>
-    /// <param name="byteSize">The width in bytes: 1, 2, 4, or 8.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    /// <returns>The decoded value, zero-extended to 64 bits.</returns>
-    /// <exception cref="CStructReadException">The stream ends before all bytes of the value are read.</exception>
-    public static ulong ReadUnsignedBySize(Stream stream, int byteSize, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[8];
-        Span<byte> slice = buffer[..byteSize];
-        ReadExactlyOrThrow(stream, slice);
-        return Codec.ReadUnsigned(slice, isLittleEndian);
-    }
-
     /// <summary>Converts one to eight bytes into an unsigned number in the layout's byte order.</summary>
     /// <param name="buffer">The one to eight bytes of the value.</param>
     /// <param name="littleEndian">Whether the least significant byte comes first (little-endian).</param>
     /// <returns>The decoded value, zero-extended to 64 bits.</returns>
     public static ulong ReadUnsigned(ReadOnlySpan<byte> buffer, bool littleEndian)
         => Codec.ReadUnsigned(buffer, littleEndian);
-
-    /// <summary>Reads a one-to-eight-byte unsigned bitfield storage unit at the stream position, memory-backed when possible.</summary>
-    /// <param name="stream">The source, at the storage unit's first byte; it advances past the unit.</param>
-    /// <param name="byteSize">The storage unit width in bytes, 1 to 8.</param>
-    /// <param name="littleEndian">Whether the least significant byte comes first (little-endian).</param>
-    /// <returns>The whole storage unit, from which the caller extracts the bitfield bits.</returns>
-    /// <exception cref="CStructReadException">The stream ends before all bytes of the value are read.</exception>
-    public static ulong ReadBitfieldUnit(Stream stream, int byteSize, bool littleEndian)
-    {
-        if (stream is ReadBudgetStream budget && budget.TryReadSpan(byteSize, out ReadOnlySpan<byte> direct))
-        {
-            return ReadUnsigned(direct, littleEndian);
-        }
-
-        Span<byte> buffer = stackalloc byte[8];
-        Span<byte> slice = buffer[..byteSize];
-        ReadExactlyOrThrow(stream, slice);
-        return ReadUnsigned(slice, littleEndian);
-    }
 
     /// <summary>Writes a two-byte UTF-16 code unit in the requested byte order.</summary>
     /// <param name="stream">The destination, at the value's first byte; it advances past the bytes written.</param>

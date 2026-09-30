@@ -9,9 +9,9 @@ using CStructSharp.Values;
 /// <summary>
 ///     The flat operation list that reads one fully fixed composite from a span: every offset, size and
 ///     value kind is decided when the layout is compiled, so a parse of such a composite is a loop over
-///     <see cref="Operations"/> writing straight into <see cref="StructValue"/> slots instead of an interpretation
-///     of the declaration tree per field. Built lazily on the first parse of a composite; <see langword="null"/>
-///     on <see cref="CompiledCompositeType.StaticPlan"/> means the composite needs the general reader.
+///     <see cref="Operations"/> writing straight into <see cref="StructValue"/> slots instead of a member-by-member
+///     read. Built lazily on the first parse of a composite; <see langword="null"/>
+///     on <see cref="CompiledCompositeType.StaticPlan"/> means the composite is read member by member.
 /// </summary>
 internal sealed class StaticReadPlan
 {
@@ -74,7 +74,7 @@ internal sealed class StaticReadPlan
             arrayCount = System.Math.Max(arrayCount, operation.Count);
         }
 
-        // The general writer charges its budget for field bytes and, in an aligned layout, the zero-filled tail of
+        // A member-by-member write charges its budget for field bytes and, in an aligned layout, the zero-filled tail of
         // every struct - never for the padding it seeks over between fields; a plan write charges the same amount.
         this.NestingDepth = depth;
         this.MaximumArrayCount = arrayCount;
@@ -84,7 +84,7 @@ internal sealed class StaticReadPlan
         this.ChargedAlignedBytes = checked((int)(chargedAligned + (size - lastFieldEnd)));
     }
 
-    /// <summary>Whether every field has a span writer; character buffers and unnamed padding use the general writer.</summary>
+    /// <summary>Whether every field has a span writer; character buffers and unnamed padding are written member by member.</summary>
     public bool SupportsWrite { get; }
 
     /// <summary>The end of the last member; an aligned layout's writer zero-fills from here to <see cref="Size"/>.</summary>
@@ -111,9 +111,9 @@ internal sealed class StaticReadPlan
     /// </summary>
     public StaticReadOperation[] Operations { get; }
 
-    /// <summary>Builds the plan for <paramref name="composite"/>, or returns null when any member needs the general reader.</summary>
+    /// <summary>Builds the plan for <paramref name="composite"/>, or returns null when any member must be read member by member.</summary>
     /// <param name="composite">The compiled composite whose offsets are relative to its own start.</param>
-    /// <returns>A fixed-offset read plan, or null when interpretation is required.</returns>
+    /// <returns>A fixed-offset read plan, or null when the composite is read member by member.</returns>
     public static StaticReadPlan? TryBuild(CompiledCompositeType composite)
     {
         if (!FixedLayoutRule.IsFixedComposite(composite) || composite.Symbol.FixedSize is not int size)
@@ -160,7 +160,7 @@ internal sealed class StaticReadPlan
                 hasUnnamedPadding = true;
                 if (field.Array.Kind != CompiledArrayKind.Scalar)
                 {
-                    // Skipping result construction must not bypass the general reader's array-element limit.
+                    // Skipping result construction must not bypass the array-element limit a member-by-member read enforces.
                     maximumPaddingArrayCount = System.Math.Max(maximumPaddingArrayCount, field.Array.TotalFixedElementCount ?? 0);
                 }
 
@@ -215,7 +215,7 @@ internal sealed class StaticReadPlan
 
             case CompiledTypeKind.Enum:
                 // A flag's decomposition lives in FlagValueResult, which the span plan and its JavaScript twin do
-                // not produce; a struct holding one takes the interpreter path.
+                // not produce; a struct holding one is read member by member.
                 if (field.Array.Kind != CompiledArrayKind.Scalar || !field.Codec.IsFixedWidthNumeric || field.Type.Symbol.Definition is not CompiledEnumType { IsFlag: false })
                 {
                     return false;

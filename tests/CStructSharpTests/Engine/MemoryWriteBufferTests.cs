@@ -6,8 +6,8 @@ using CStructSharp.Engine;
 using CStructSharp.Streams;
 
 /// <summary>
-///     The compiled engine's write destination (<see cref="MemoryWriteBuffer"/>) against the interpreter's: scripts of
-///     position moves, writes, zero fills, blocks, budget checks and read-backs run on both a buffer and the interpreter's
+///     The compiled engine's memory write destination (<see cref="MemoryWriteBuffer"/>) against a reference stream: scripts
+///     of position moves, writes, zero fills, blocks, budget checks and read-backs run on both a buffer and a
 ///     <see cref="WriteBudgetStream"/> over the same destination (a <see cref="FixedBufferStream"/> for a span, an
 ///     <see cref="OwnedMemoryStream"/> for a new array), and every result, exception, position, length and byte must agree.
 /// </summary>
@@ -47,35 +47,35 @@ public class MemoryWriteBufferTests
         }
     }
 
-    /// <summary>A script's operations give the same results on the engine's buffer as on the interpreter's streams.</summary>
+    /// <summary>A script's operations give the same results on the engine's buffer as on a budget stream over the same destination.</summary>
     /// <param name="name">The script's name.</param>
     /// <param name="options">The operation's options, which set the budgets.</param>
     /// <param name="capacity">The span's length, or -1 for a new array.</param>
     /// <param name="script">The operations.</param>
     [TestMethod]
     [DynamicData(nameof(Scripts))]
-    public unsafe void Script_BehavesAsTheInterpretersStreams(string name, WriteOptions options, int capacity, string[] script)
+    public unsafe void Script_BehavesAsTheBudgetStreams(string name, WriteOptions options, int capacity, string[] script)
     {
         byte[] engineStorage = Enumerable.Repeat((byte)0xCC, Math.Max(capacity, 0)).ToArray();
-        byte[] interpreterStorage = (byte[])engineStorage.Clone();
+        byte[] referenceStorage = (byte[])engineStorage.Clone();
         fixed (byte* engineRegion = engineStorage)
         {
-            fixed (byte* interpreterRegion = interpreterStorage)
+            fixed (byte* referenceRegion = referenceStorage)
             {
                 using MemoryWriteBuffer buffer = capacity < 0 ? MemoryWriteBuffer.ForNewArray(options) : MemoryWriteBuffer.ForSpan(engineRegion, capacity, options);
-                using Stream inner = capacity < 0 ? new OwnedMemoryStream() : new FixedBufferStream(interpreterRegion, capacity, writable: true);
+                using Stream inner = capacity < 0 ? new OwnedMemoryStream() : new FixedBufferStream(referenceRegion, capacity, writable: true);
                 using var stream = new WriteBudgetStream(inner, options);
                 string expected = Run(script, new Target(stream, stream.WriteZeroes, stream.EnsureStringBytes, (size, charged) => stream.CanAffordBlock(size, charged) && (inner is not FixedBufferStream region || stream.Position + size <= region.Capacity), stream.WriteBlock));
                 string actual = Run(script, new Target(buffer, buffer.WriteZeroes, buffer.EnsureStringBytes, buffer.CanAffordBlock, buffer.WriteBlock));
                 Assert.AreEqual(expected, actual, name + " (capacity " + capacity + ")");
-                CollectionAssert.AreEqual(interpreterStorage, engineStorage, name + ": the span holds the same bytes");
-                CollectionAssert.AreEqual(capacity < 0 ? ((MemoryStream)inner).ToArray() : interpreterStorage[..(int)inner.Length], buffer.ToArray(), name + ": the written bytes agree");
+                CollectionAssert.AreEqual(referenceStorage, engineStorage, name + ": the span holds the same bytes");
+                CollectionAssert.AreEqual(capacity < 0 ? ((MemoryStream)inner).ToArray() : referenceStorage[..(int)inner.Length], buffer.ToArray(), name + ": the written bytes agree");
             }
         }
     }
 
     /// <summary>
-    ///     The same scripts against a union's staging buffer and the interpreter's staging stream - a budget stream over a
+    ///     The same scripts against a union's staging buffer and a reference staging stream - a budget stream over a
     ///     fixed <see cref="MemoryStream"/> holding the union's zero bytes - agree too, including a write past the union.
     /// </summary>
     /// <param name="name">The script's name.</param>
@@ -84,18 +84,18 @@ public class MemoryWriteBufferTests
     /// <param name="script">The operations.</param>
     [TestMethod]
     [DynamicData(nameof(Scripts))]
-    public void StagingScript_BehavesAsTheInterpretersStagingStream(string name, WriteOptions options, int capacity, string[] script)
+    public void StagingScript_BehavesAsTheStagingBudgetStream(string name, WriteOptions options, int capacity, string[] script)
     {
         int size = capacity < 0 ? 12 : capacity;
         byte[] engineStorage = new byte[size + 4];
-        byte[] interpreterStorage = new byte[size];
+        byte[] referenceStorage = new byte[size];
         using MemoryWriteBuffer buffer = MemoryWriteBuffer.ForStaging(engineStorage, size, options);
-        using var inner = new MemoryStream(interpreterStorage, writable: true);
+        using var inner = new MemoryStream(referenceStorage, writable: true);
         using var stream = new WriteBudgetStream(inner, options);
         string expected = Run(script, new Target(stream, stream.WriteZeroes, stream.EnsureStringBytes, stream.CanAffordBlock, stream.WriteBlock));
         string actual = Run(script, new Target(buffer, buffer.WriteZeroes, buffer.EnsureStringBytes, buffer.CanAffordBlock, buffer.WriteBlock));
         Assert.AreEqual(expected, actual, name + " (staging " + size + ")");
-        CollectionAssert.AreEqual(interpreterStorage, engineStorage[..size], name + ": the staged bytes agree");
+        CollectionAssert.AreEqual(referenceStorage, engineStorage[..size], name + ": the staged bytes agree");
         Assert.IsFalse(buffer.AllowsBlocks);
     }
 

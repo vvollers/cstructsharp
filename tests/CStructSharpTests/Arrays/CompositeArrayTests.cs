@@ -9,7 +9,7 @@ using CStructSharp.Values;
 /// <summary>
 ///     Checks arrays of structs: debug paths identify the exact element behind each byte range, records sit at their
 ///     absolute aligned offsets (root arrays and field alignment overrides included), a large extent does not wrap its
-///     span length, and a nested limit keeps the general reader's failure position.
+///     span length, and a nested limit keeps the general path's failure position.
 /// </summary>
 [TestClass]
 public class CompositeArrayTests

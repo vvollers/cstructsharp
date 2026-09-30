@@ -40,8 +40,8 @@ public ref struct WriteCursor
     /// <param name="path">The path the operation writes (<c>root</c>), reported by every failure as the runtime does.</param>
     public WriteCursor(WriteOptions? options, string? path)
     {
-        this.options = CStructElementWriterState.SnapshotWriteOptions(options);
-        CStructElementWriterState.ValidateWriteOptions(this.options);
+        this.options = WriteOptionSnapshots.SnapshotWriteOptions(options);
+        WriteOptionSnapshots.ValidateWriteOptions(this.options);
         this.path = path;
         this.owned = System.Buffers.ArrayPool<byte>.Shared.Rent(InitialOwnedCapacity);
         this.destination = this.owned;
@@ -54,8 +54,8 @@ public ref struct WriteCursor
     public WriteCursor(Span<byte> destination, WriteOptions? options = null, string? path = null)
     {
         this.destination = destination;
-        this.options = CStructElementWriterState.SnapshotWriteOptions(options);
-        CStructElementWriterState.ValidateWriteOptions(this.options);
+        this.options = WriteOptionSnapshots.SnapshotWriteOptions(options);
+        WriteOptionSnapshots.ValidateWriteOptions(this.options);
         this.path = path;
     }
 

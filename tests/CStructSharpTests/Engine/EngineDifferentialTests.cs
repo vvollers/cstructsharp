@@ -4,9 +4,8 @@ using System.Collections.Generic;
 using CStructSharp.Values;
 
 /// <summary>
-///     Runs the differential harness over a representative set of layouts and operations: automatic engine selection must
-///     render the golden outcome (the interpreter's, <see cref="EngineGolden"/>), and the engine must run exactly the
-///     whole-root reads of eligible roots (<see cref="EngineExpectations"/>). The harness itself must report a planted
+///     Runs the differential harness over a representative set of layouts and operations: every operation must render
+///     its golden outcome (<see cref="EngineGolden"/>) on the compiled engine. The harness itself must report a planted
 ///     difference as a readable diff.
 /// </summary>
 [TestClass]
@@ -48,7 +47,7 @@ public class EngineDifferentialTests
         }
 
         EngineComparison comparison = EngineDifferential.AssertSame(EngineOperations.Parse(layout, one, EngineInput.Stream, "rec"));
-        Assert.AreEqual(1, comparison.Automatic.EngineRuns);
+        Assert.AreEqual(1, comparison.Diagnostics.Runs);
         StringAssert.Contains(comparison.Rendering, "result.id = UInt16 7\n");
         StringAssert.Contains(comparison.Rendering, "result.value = Int32 -2\n");
         StringAssert.Contains(comparison.Rendering, "result.which = EnumValueResult kind name=large value=2");
@@ -93,13 +92,11 @@ public class EngineDifferentialTests
 
         EngineComparison comparison = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: ExecutionPath.GeneralOnly);
         StringAssert.Contains(comparison.Rendering, "result.items = PrimitiveArray<UInt16> [2]\n");
-        Assert.AreEqual(1, comparison.Automatic.EngineRuns);
-        Assert.AreEqual(0, comparison.Automatic.Declines);
+        Assert.AreEqual(1, comparison.Diagnostics.Runs);
 
         // A selected read of a member is a path read the engine runs.
         comparison = EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Span, "rec.items"));
-        Assert.AreEqual(1, comparison.Automatic.EngineRuns);
-        Assert.AreEqual(0, comparison.Automatic.Declines);
+        Assert.AreEqual(1, comparison.Diagnostics.Runs);
     }
 
     /// <summary>Both branches of a conditional group read identically.</summary>
@@ -301,9 +298,8 @@ public class EngineDifferentialTests
     }
 
     /// <summary>
-    ///     The harness detects a difference planted in the automatic run's rendering and reports it as a line diff that
-    ///     shows the reference line (-) and the changed line (+): the golden outcome's, or the interpreter's when the run
-    ///     compares with it (<see cref="EngineGolden.ComparesInterpreter"/>).
+    ///     The harness detects a difference planted in a run's rendering and reports it as a line diff that shows the golden
+    ///     outcome's line (-) and the changed line (+).
     /// </summary>
     [TestMethod]
     public void PlantedDifference_FailsWithReadableDiff()
@@ -312,16 +308,15 @@ public class EngineDifferentialTests
         DifferentialOperation operation = EngineOperations.Parse(layout, [2, 1, 0, 2, 0, 9], EngineInput.Span, "rec");
 
         AssertFailedException failure = Assert.Throws<AssertFailedException>(
-            () => EngineDifferential.AssertSame(operation, alterAutomatic: rendering => rendering.Replace("result.items[1] = UInt16 2", "result.items[1] = UInt16 3", StringComparison.Ordinal)));
-        string header = EngineGolden.ComparesInterpreter ? "the interpreter (-) and automatic selection (+) differ:" : "the golden outcome (-) and the engine (+) differ:";
-        StringAssert.Contains(failure.Message, "Parse rec (Span) (Fastest): " + header);
+            () => EngineDifferential.AssertSame(operation, alter: rendering => rendering.Replace("result.items[1] = UInt16 2", "result.items[1] = UInt16 3", StringComparison.Ordinal)));
+        StringAssert.Contains(failure.Message, "Parse rec (Span) (Fastest): the golden outcome (-) and the engine (+) differ:");
         StringAssert.Contains(failure.Message, "\n  result.items[0] = UInt16 1\n- result.items[1] = UInt16 2\n+ result.items[1] = UInt16 3\n  result.tail = Byte 9\n");
 
         // A dropped line and an added line are reported as well; an unchanged rendering passes.
         failure = Assert.Throws<AssertFailedException>(
-            () => EngineDifferential.AssertSame(operation, alterAutomatic: rendering => rendering + "position = 6\n"));
+            () => EngineDifferential.AssertSame(operation, alter: rendering => rendering + "position = 6\n"));
         StringAssert.Contains(failure.Message, "+ position = 6\n");
-        EngineDifferential.AssertSame(operation, alterAutomatic: rendering => rendering);
+        EngineDifferential.AssertSame(operation, alter: rendering => rendering);
     }
 
     /// <summary>The line diff keeps unchanged lines near a change, elides distant ones, and aligns insertions.</summary>

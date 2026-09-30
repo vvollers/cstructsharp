@@ -257,7 +257,7 @@ public class SlotTableTests
         {
             Assert.AreEqual(SlotValue.FromLiteral(5).Value, slots.Get(m).Value);
             Assert.AreEqual(SlotState.LiveExpression, slots.Get(d).State);
-            Assert.AreEqual<Syntax.Expr>(new Syntax.Literal(1), slots.ToDictionary()["unrelated"], "a caller variable without a slot is kept beside the slots, as the interpreter keeps it");
+            Assert.AreEqual<Syntax.Expr>(new Syntax.Literal(1), slots.ToDictionary()["unrelated"], "a caller variable without a slot is kept beside the slots, for an expression that names it");
         }
 
         using (VariableSlots slots = VariableSlots.Create(table, new Dictionary<string, int> { ["n"] = 21, }))

@@ -12,10 +12,10 @@ using CStructSharp.Reading;
 using CStructSharp.Values;
 
 /// <summary>
-///     The pointer reads of the compiled engine, each the interpreter's in the same order of checks: the stored address,
-///     a deferred or in-place follow, the target's value, and the deferred pointers a struct follows after its last
-///     member. The bookkeeping (targets on the active path for cycle detection, the deferred queue) is the interpreter's
-///     pooled <see cref="PointerTraversal"/>.
+///     The pointer reads of the compiled engine, each with a fixed order of checks: the stored address, a deferred or
+///     in-place follow, the target's value, and the deferred pointers a struct follows after its last member. The
+///     bookkeeping (targets on the active path for cycle detection, the deferred queue) is the pooled
+///     <see cref="PointerTraversal"/>.
 /// </summary>
 internal static partial class ReadEngine
 {
@@ -50,7 +50,7 @@ internal static partial class ReadEngine
         return pointer;
     }
 
-    /// <summary>Reads a stored address and follows it when the options allow, as the interpreter's <c>ReadPointerValue</c> does.</summary>
+    /// <summary>Reads a stored address and follows it when the options allow.</summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor, at the stored address; it ends just after it.</param>
     /// <param name="state">The operation's state.</param>
@@ -91,7 +91,7 @@ internal static partial class ReadEngine
     }
 
     /// <summary>
-    ///     Follows an address to its target in the interpreter's order: nothing for a null pointer, disabled or suppressed
+    ///     Follows an address to its target, checking in this order: nothing for a null pointer, disabled or suppressed
     ///     following, or a one-level <c>void *</c>; then the depth limit, the target address (relative overflow), its bounds,
     ///     the count of an in-place counted target, the target size limit, the cycle check, and cancellation. The target is
     ///     read one level deeper, and the depth, the active target and the position are restored whatever happens.
@@ -137,8 +137,7 @@ internal static partial class ReadEngine
 
         if (elementCount < 0)
         {
-            // Only an in-place follow gets here without a count; above the last level the count stays 1, as the
-            // interpreter passes it down.
+            // Only an in-place follow gets here without a count; above the last level the count passed down is 1.
             elementCount = depth == 1 && target.IsCounted ? EvaluatePointerCount(ref state, target) : 1;
         }
 
@@ -216,7 +215,7 @@ internal static partial class ReadEngine
 
     /// <summary>
     ///     Reads one value of a target's codec (a caller's codec through its adapter); a caller's codec that decodes no value
-    ///     fails with the interpreter's message for the missing reader.
+    ///     fails with the caller's message for the missing reader.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -238,8 +237,8 @@ internal static partial class ReadEngine
     }
 
     /// <summary>
-    ///     Reads a struct or union target as the interpreter reads one at a resolved address: a union as a union value of
-    ///     its own, a struct into a new value through its program (or its static plan), at the current nesting depth.
+    ///     Reads a struct or union target at its address: a union as a union value of its own, a struct into a new
+    ///     value through its program (or its static plan), at the current nesting depth.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor, at the target.</param>

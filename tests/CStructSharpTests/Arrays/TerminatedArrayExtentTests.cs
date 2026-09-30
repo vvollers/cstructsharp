@@ -1,5 +1,7 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Engine;
+
 /// <summary>
 ///     Checks the extent of terminated arrays: terminator-count arithmetic independently of scanning the encoded
 ///     values, and a following field that starts after the terminator.
@@ -16,14 +18,14 @@ public class TerminatedArrayExtentTests
     [DataRow(int.MaxValue - 1, int.MaxValue)]
     public void ValidValueCount_IncludesOneTerminator(int values, int stored)
     {
-        Assert.AreEqual(stored, CStruct.CountStoredTerminatedElements(values));
+        Assert.AreEqual(stored, TargetResolver.CountStoredTerminatedElements(values));
     }
 
     /// <summary>The arithmetic limit can be verified without allocating or scanning billions of encoded elements.</summary>
     [TestMethod]
     public void MaximumValueCount_CannotAlsoStoreATerminator()
     {
-        Assert.Throws<OverflowException>(() => CStruct.CountStoredTerminatedElements(int.MaxValue));
+        Assert.Throws<OverflowException>(() => TargetResolver.CountStoredTerminatedElements(int.MaxValue));
     }
 
     /// <summary>A later field begins after the array's values and its complete terminator.</summary>

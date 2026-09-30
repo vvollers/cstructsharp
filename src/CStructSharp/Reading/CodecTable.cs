@@ -75,14 +75,6 @@ internal sealed class CodecTable
     /// <returns>The codec instance.</returns>
     public ICustomCodec CustomCodecOf(int codecId) => this.CustomCodecs[codecId - PrimitiveCatalog.CanonicalNames.Length];
 
-    /// <summary>The terminated-string reader behind a <c>char *</c>-style pointer field, or <see langword="null"/>.</summary>
-    /// <param name="field">The compiled pointer field whose terminated codec id selects the reader.</param>
-    /// <returns>A delegate that reads the pointed-to terminated string, or null when the field has none.</returns>
-    public Func<Stream, object>? TerminatedReaderOf(CompiledField field)
-    {
-        return field.TerminatedCodecId < 0 ? null : this.readers[field.TerminatedCodecId];
-    }
-
     /// <summary>The reader registered for a readable name (canonical, neutral, alias, or custom), or <see langword="null"/>.</summary>
     /// <param name="name">The type spelling to look up in the catalog.</param>
     /// <returns>A delegate that reads one value of that type, or null when the name is unknown.</returns>

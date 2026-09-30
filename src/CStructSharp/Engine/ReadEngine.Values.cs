@@ -16,11 +16,11 @@ using CStructSharp.Values;
 internal static partial class ReadEngine
 {
     /// <summary>
-    ///     Reads one value exactly as the codec's stream reader does (the reader the interpreter calls for every codec
-    ///     that is not a fixed-width number, for enum storage and for array elements it does not read as a block): a
-    ///     one-byte value through <see cref="IReadCursor.ReadByteExactly"/>, a wider fixed-size one through
-    ///     <see cref="IReadCursor.ReadExactly"/>, LEB128 byte by byte, text up to its terminator, and a UUID through the
-    ///     plain exact read whose short-read failure it words itself. The boxed CLR type is the reader's.
+    ///     Reads one value exactly as the codec's stream reader does (the reader used for every codec that is not a
+    ///     fixed-width number, for enum storage and for array elements not read as a block): a one-byte value through
+    ///     <see cref="IReadCursor.ReadByteExactly"/>, a wider fixed-size one through
+    ///     <see cref="IReadCursor.ReadExactly"/>, LEB128 byte by byte, text up to its terminator, and a UUID through
+    ///     the plain exact read whose short-read failure it words itself. The boxed CLR type is the reader's.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -148,9 +148,8 @@ internal static partial class ReadEngine
     }
 
     /// <summary>
-    ///     Reads a numeric array of a member its composite placed: a non-empty one as one typed block (the interpreter's
-    ///     bulk path, failing at its block granularity), an empty one as the empty typed array of the same element type
-    ///     its element loop leaves.
+    ///     Reads a numeric array of a member its composite placed: a non-empty one as one typed block (the bulk path,
+    ///     failing at its block granularity), an empty one as the empty typed array of the same element type.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -162,9 +161,8 @@ internal static partial class ReadEngine
         => count > 0 ? cursor.ReadPrimitiveArray(codec, count) : PrimitiveArrayReader.Empty(codec);
 
     /// <summary>
-    ///     Reads a numeric array no composite placed (a root) one element at a time, as the interpreter's element loop
-    ///     does - each element straight from memory when it is there, else through the codec's reads - then gives the
-    ///     elements the typed shape.
+    ///     Reads a numeric array no composite placed (a root) one element at a time - each element straight from memory
+    ///     when it is there, else through the codec's reads - then gives the elements the typed shape.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -205,9 +203,9 @@ internal static partial class ReadEngine
     }
 
     /// <summary>
-    ///     Reads a <c>char[N]</c> as one Latin-1 string: as one block when the interpreter would (a member its composite
-    ///     placed, with characters, not captured, not restricted to the general path, and the whole extent present
-    ///     within the byte budget), otherwise character by character; then trimmed as the options say.
+    ///     Reads a <c>char[N]</c> as one Latin-1 string: as one block when the block path applies (a member its
+    ///     composite placed, with characters, not captured, not restricted to the general path, and the whole extent
+    ///     present within the byte budget), otherwise character by character; then trimmed as the options say.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -264,7 +262,7 @@ internal static partial class ReadEngine
     /// <summary>
     ///     Reads the characters of a multidimensional <c>char</c> or <c>wchar</c> array one at a time, then makes each
     ///     innermost row a string - trimmed as the options say, and valid UTF-16 for <c>wchar</c>, checked row by row - and
-    ///     nests the rows by the outer dimensions, all as the interpreter shapes the array after reading it.
+    ///     nests the rows by the outer dimensions, once the whole array is read.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -305,7 +303,7 @@ internal static partial class ReadEngine
 
     /// <summary>
     ///     Reads one value of the member's caller-supplied codec through the cursor's custom-codec adapter. A codec that
-    ///     reports success without a value fails as the interpreter's element read does when its reader returns nothing.
+    ///     reports success without a value fails with an <see cref="InvalidOperationException"/>.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -348,7 +346,7 @@ internal static partial class ReadEngine
 
     /// <summary>
     ///     Reads the flat elements of a multidimensional numeric array its composite placed into a list, through the
-    ///     interpreter's boxed block reader (64 KiB blocks, each one exact read); no elements read nothing.
+    ///     boxed block reader (64 KiB blocks, each one exact read); no elements read nothing.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -368,8 +366,8 @@ internal static partial class ReadEngine
     }
 
     /// <summary>
-    ///     Reads the flat elements of a multidimensional numeric root one at a time, as the interpreter reads a field no
-    ///     composite placed, into a list.
+    ///     Reads the flat elements of a multidimensional numeric root one at a time, as a field no composite placed is
+    ///     read, into a list.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -454,8 +452,8 @@ internal static partial class ReadEngine
     }
 
     /// <summary>
-    ///     Reads and discards the elements of an unnamed padding array one at a time, as the interpreter reads a field
-    ///     without a name: each element is read (and can fail) exactly as a named one would be.
+    ///     Reads and discards the elements of an unnamed padding array one at a time: each element is read (and can
+    ///     fail) exactly as a named one would be.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -480,7 +478,7 @@ internal static partial class ReadEngine
 
     /// <summary>
     ///     Reads an array of structs into a list. A fully fixed element struct of a member its composite placed is read
-    ///     through its static plan over one in-memory span when the interpreter would (cancellation observed before each
+    ///     through its static plan over one in-memory span when the plan applies (cancellation observed before each
     ///     element); otherwise each element is read as a struct of its own, with a fresh conditional selection.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
@@ -515,11 +513,11 @@ internal static partial class ReadEngine
     }
 
     /// <summary>
-    ///     Reads one bitfield as the interpreter's scalar reader does: the storage unit the bit registers describe is read
-    ///     whole (a packed window whose placed unit differs from the declared type as a raw unsigned unit, any other unit
-    ///     through its storage codec), a field that overruns the unit fails, and the field's bits are decoded by the shared
-    ///     rule. While bits of the unit remain after the field, the position returns to the unit's start, so the next
-    ///     bitfield of the unit reads, and is charged for, the whole unit again.
+    ///     Reads one bitfield: the storage unit the bit registers describe is read whole (a packed window whose placed
+    ///     unit differs from the declared type as a raw unsigned unit, any other unit through its storage codec), a
+    ///     field that overruns the unit fails, and the field's bits are decoded by the shared rule. While bits of the
+    ///     unit remain after the field, the position returns to the unit's start, so the next bitfield of the unit
+    ///     reads, and is charged for, the whole unit again.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor, at the unit's start.</param>
@@ -565,11 +563,11 @@ internal static partial class ReadEngine
     }
 
     /// <summary>
-    ///     Reads a union as the interpreter does: its size (fixed, or measured from the variables at entry), its raw storage
-    ///     read and charged whole, then - from its start, inside one nesting level (a promoted union only observes
-    ///     cancellation) and with every variable restored to its entry value before each member - its member views, which
-    ///     are charged again. Whatever happens in a member, the variables are restored and the position ends at the union's
-    ///     end, so a failure inside a member reports that position; nothing a member captures is visible after the union.
+    ///     Reads a union: its size (fixed, or measured from the variables at entry), its raw storage read and charged
+    ///     whole, then - from its start, inside one nesting level (a promoted union only observes cancellation) and
+    ///     with every variable restored to its entry value before each member - its member views, which are charged
+    ///     again. Whatever happens in a member, the variables are restored and the position ends at the union's end, so
+    ///     a failure inside a member reports that position; nothing a member captures is visible after the union.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor, at the union's first byte.</param>
@@ -642,9 +640,9 @@ internal static partial class ReadEngine
     }
 
     /// <summary>
-    ///     Runs a fixed composite's static read plan over its bytes with the interpreter's side effects: one nesting level
-    ///     per struct (cancellation observed on entry), values stored straight into their slots, and the captures and
-    ///     qualified publications a later expression may read.
+    ///     Runs a fixed composite's static read plan over its bytes with the member-by-member read's side effects: one
+    ///     nesting level per struct (cancellation observed on entry), values stored straight into their slots, and the
+    ///     captures and qualified publications a later expression may read.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type, which carries the cancellation token.</typeparam>
     /// <param name="cursor">The operation's cursor; the plan's bytes are already consumed.</param>
@@ -770,7 +768,7 @@ internal static partial class ReadEngine
         }
 
         string name = field.Declaration.Name.Name;
-        SlotValue captured = field.NotANumberReason is { } reason ? SlotValue.FromUnusable(new NotANumberVariable(reason)) : LayoutVariableCapture.ToSlotValue(value);
+        SlotValue captured = LayoutVariableCapture.ToSlotValue(field, value);
         SlotTable table = state.Slots.Table;
         if (table.TryGetSlot(name, out int slot))
         {

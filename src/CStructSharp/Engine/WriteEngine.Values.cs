@@ -23,7 +23,7 @@ internal static partial class WriteEngine
 {
     /// <summary>
     ///     Encodes one fixed-width number and writes it: the value is converted first (a conversion failure names the value
-    ///     and the field's type, as the interpreter's primitive writer reports it), then the budget and room are checked.
+    ///     and the field's type), then the budget and room are checked.
     ///     The conversion is the codec's own (<see cref="PrimitiveCodec.WriteNumeric"/>), the one the stream writers and the
     ///     static write plan share.
     /// </summary>
@@ -51,7 +51,7 @@ internal static partial class WriteEngine
     }
 
     /// <summary>
-    ///     Writes one value through its codec's stream writer, the interpreter's primitive write: conversion failures of the
+    ///     Writes one value through its codec's stream writer: conversion failures of the
     ///     codec become a write failure naming the value and the field's type; the codec's own write failures pass unchanged.
     ///     In an update's sparse staging a LEB128 or variable-size custom value must keep its existing encoded length.
     /// </summary>
@@ -73,8 +73,8 @@ internal static partial class WriteEngine
 
         if (destination.Stream is WriteBudgetStream { IsSparseUpdate: true, } && (field.Codec.IsLeb128 || (field.Codec.IsCustom && !field.FixedElementSize.HasValue)))
         {
-            // An update's staging keeps a variable-length value at its existing encoded length, as the interpreter's
-            // primitive write checks it (outside a union's staging, which is not the update's sparse stream).
+            // An update's staging keeps a variable-length value at its existing encoded length, which the layout's
+            // primitive write checks (outside a union's staging, which is not the update's sparse stream).
             state.Layout.WritePrimitiveValue(field, destination.Stream, value);
             return;
         }
@@ -154,7 +154,7 @@ internal static partial class WriteEngine
     }
 
     /// <summary>
-    ///     Writes one enum value as the interpreter does: the value is resolved to a member's exact number
+    ///     Writes one enum value: the value is resolved to a member's exact number
     ///     (<see cref="EnumFieldValueParser"/>, which reports its own failures), and its storage value is written without the
     ///     primitive writer's failure translation. A fixed-width storage encodes through the codec's own conversion, which
     ///     the stream writer and the static write plan share.
@@ -190,7 +190,7 @@ internal static partial class WriteEngine
 
     /// <summary>
     ///     Writes fixed-capacity text of <paramref name="count"/> characters (or bytes, for byte-counted text), padded with
-    ///     zeroes, in the interpreter's check order: the per-string limit, the text's length against the capacity, then the
+    ///     zeroes, checking in this order: the per-string limit, the text's length against the capacity, then the
     ///     encoding. A narrow <c>char[N]</c> is written as one block when every character fits a byte and the budget and
     ///     room hold the block; otherwise character by character, so a failure leaves the earlier characters written.
     /// </summary>
@@ -331,7 +331,7 @@ internal static partial class WriteEngine
     /// <summary>
     ///     Whether <paramref name="length"/> bytes can be written as one block with the outcome of writing them one by one:
     ///     the block path is allowed (not <see cref="ExecutionPath.GeneralOnly"/>, no update semantics, and neither a stream
-    ///     nor a union's staging, into which the interpreter writes element by element too), and the budget and the
+    ///     nor a union's staging, which are written element by element), and the budget and the
     ///     destination's room hold them all.
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
@@ -345,7 +345,7 @@ internal static partial class WriteEngine
 
     /// <summary>
     ///     Writes fixed-width numbers: as one block from typed storage (a parsed <see cref="PrimitiveArray{T}"/> or an exact
-    ///     <c>T[]</c> of the declared length) when the interpreter takes that path - a named member a struct places, with a
+    ///     <c>T[]</c> of the declared length) when the block path applies - a named member a struct places, with a
     ///     declared count, within one 64 KiB block, the budget and room - and otherwise element by element.
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
@@ -417,7 +417,7 @@ internal static partial class WriteEngine
 
     /// <summary>
     ///     Writes an array element by element, each by its kind, observing the token before each element whose type is a
-    ///     struct or union (a struct array, or a pointer array to structs), as the interpreter's element loop does.
+    ///     struct or union (a struct array, or a pointer array to structs).
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
     /// <param name="destination">The operation's destination.</param>
@@ -493,7 +493,7 @@ internal static partial class WriteEngine
         }
     }
 
-    /// <summary>Writes one element of an array by its kind, as the interpreter writes each element (<c>WriteSingleFieldValue</c>).</summary>
+    /// <summary>Writes one element of an array by its kind.</summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
     /// <param name="destination">The operation's destination.</param>
     /// <param name="state">The operation's state.</param>
@@ -530,7 +530,7 @@ internal static partial class WriteEngine
     }
 
     /// <summary>
-    ///     Writes a pointer's stored address as the interpreter does: the supplied value converted to a position (null is
+    ///     Writes a pointer's stored address: the supplied value converted to a position (null is
     ///     the null address), encoded by the operation's addressing mode and origin at the layout's pointer width and byte
     ///     order; failures are the address rules' own.
     /// </summary>
@@ -550,8 +550,8 @@ internal static partial class WriteEngine
     }
 
     /// <summary>
-    ///     Replaces one bitfield inside its storage unit without changing the neighbouring bits, as the interpreter does:
-    ///     an enum is resolved to its raw bits, the slice is validated, the unit's existing bytes are read back (zero past
+    ///     Replaces one bitfield inside its storage unit without changing the neighbouring bits: an
+    ///     enum is resolved to its raw bits, the slice is validated, the unit's existing bytes are read back (zero past
     ///     the destination's end: a new output's high-water mark, or a caller's stream's own end), the bits merged, and the
     ///     whole unit written - and charged - again. While later bitfields share the unit the position returns to its start.
     ///     Under update semantics a unit the destination does not wholly hold fails before anything is written.
@@ -628,7 +628,7 @@ internal static partial class WriteEngine
     }
 
     /// <summary>
-    ///     Materializes an array value as the interpreter does before its element loop: a declared count consumes at most
+    ///     Materializes an array value before its element loop: a declared count consumes at most
     ///     one element past it and rejects a different number of elements; a count the value decides (-1) takes every
     ///     element up to the element limit.
     /// </summary>

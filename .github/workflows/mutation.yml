@@ -33,7 +33,7 @@ jobs:
     timeout-minutes: ${{ matrix.id == 'p00' && 330 || 195 }}
     strategy:
       fail-fast: false
-      max-parallel: 16
+      max-parallel: 24
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

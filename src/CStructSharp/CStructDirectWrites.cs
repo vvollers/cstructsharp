@@ -11,19 +11,19 @@ using CStructSharp.Writing;
 
 /// <summary>
 ///     The direct write of a whole fixed-layout root into caller memory: <c>Serialize(span, "header", value)</c> for a
-///     struct whose every member has a fixed offset. The general writer would wrap the span in a stream, build the
-///     per-operation state, stage the struct in a pooled block through its static write plan, and copy the block
-///     out; this path runs the same plan over the same kind of staging block without the stream and state.
+///     struct whose every member has a fixed offset. The write engine would build the per-operation state and a
+///     budgeted destination over the span, stage the struct in a block through its static write plan, and copy the
+///     block out; this path runs the same plan over the same kind of staging block without the destination and state.
 /// </summary>
 /// <remarks>
-///     The direct path is taken only when it cannot behave differently from the general writer: no caller variables,
+///     The direct path is taken only when it cannot behave differently from the write engine: no caller variables,
 ///     a value that is not null, valid limits that the plan is known to satisfy, and a destination large enough for
-///     the whole struct. As in the general writer, the value is encoded completely before any byte reaches the
+///     the whole struct. As in the write engine, the value is encoded completely before any byte reaches the
 ///     destination, so a value that fails to encode leaves the destination untouched.
 /// </remarks>
 public sealed partial class CStruct
 {
-    // Composites up to this size are staged on the stack; larger ones rent a pooled block, as the general writer does.
+    // Composites up to this size are staged on the stack; larger ones rent a pooled block.
     private const int StackStagingLimit = 512;
 
     /// <summary>Writes a whole fixed root directly when the conditions in the class remarks hold.</summary>
@@ -51,9 +51,9 @@ public sealed partial class CStruct
             return false;
         }
 
-        // The general writer rejects invalid limits and a cancelled token before writing; leave both to it. With the
-        // limits valid, the plan qualifies exactly when the general writer's static plan would take the root.
-        WriteOptions settings = options ?? CStructElementWriterState.DefaultWriteOptions;
+        // The write engine rejects invalid limits and a cancelled token before writing; leave both to it. With the
+        // limits valid, the plan qualifies exactly when the engine's static plan would take the root.
+        WriteOptions settings = options ?? WriteOptionSnapshots.DefaultWriteOptions;
         if (settings.CancellationToken.IsCancellationRequested ||
             settings.MaxArrayElements < 0 || settings.MaxStringBytes < 0 || settings.MaxTotalBytesWritten < 0 || settings.MaxNestingDepth <= 0 ||
             plan.NestingDepth > settings.MaxNestingDepth || plan.MaximumArrayCount > settings.MaxArrayElements ||
@@ -62,7 +62,7 @@ public sealed partial class CStruct
             return false;
         }
 
-        // The same root preparation as the general writer: unwrap { root: value }, then turn a mapped-class instance
+        // The same root preparation as the write engine: unwrap { root: value }, then turn a mapped-class instance
         // into a value of the composite's shape.
         object rootData = WriteDataBinding.NormalizeRootData(data, path);
         if (rootData is null)
@@ -102,7 +102,7 @@ public sealed partial class CStruct
         }
         catch (CStructException exception)
         {
-            // The general writer attaches the path and the stream position, which is still the start of the root.
+            // The write engine attaches the path and the destination's position, which is still the start of the root.
             exception.AttachContext(path, 0);
             throw;
         }

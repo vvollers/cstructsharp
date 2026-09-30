@@ -16,9 +16,9 @@ using CStructSharp.Streams;
 using CStructSharp.Values;
 
 /// <summary>
-///     The compiled engine's reader: executes a root's <see cref="ReadProgram"/> through a cursor and produces exactly
-///     what the interpreter's reader produces for the same operation - the same values (CLR types and member order), the
-///     same exception type, message, member, path and offset, the same final position and the same read-budget charges.
+///     The compiled engine's reader: executes a root's <see cref="ReadProgram"/> through a cursor and produces the
+///     operation's result - its values (CLR types and member order), or its exception type, message, member, path and
+///     offset - with the final position and read-budget charges the golden outcomes pin.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -27,17 +27,16 @@ using CStructSharp.Values;
 ///         frame is a <see langword="for"/> loop over the program's steps with one <see langword="switch"/> on the op code.
 ///     </para>
 ///     <para>
-///         <b>Frames.</b> Every composite program runs in its own call, as the interpreter reads every composite in its
-///         own call, so the order in which failures are attributed and state is restored is the interpreter's: the member
-///         context filter (<see cref="CStructException"/> names the innermost member that was being read; filters run
-///         before inner <see langword="finally"/> blocks), the nesting level a struct claims on entry and releases on exit
-///         (cancellation is observed at that entry), the frame's selected conditional arms (fresh per struct-array
-///         element) and its conditional-scope locals.
+///         <b>Frames.</b> Every composite program runs in its own call, which fixes the order in which failures are
+///         attributed and state is restored: the member context filter (<see cref="CStructException"/> names the
+///         innermost member that was being read; filters run before inner <see langword="finally"/> blocks), the
+///         nesting level a struct claims on entry and releases on exit (cancellation is observed at that entry), the
+///         frame's selected conditional arms (fresh per struct-array element) and its conditional-scope locals.
 ///     </para>
 ///     <para>
-///         <b>Fast paths.</b> Where the interpreter reads a fully fixed composite through its static read plan or a
-///         <c>char[N]</c> through one block, the engine takes the same path under the same conditions, because those
-///         paths charge the read budget differently (a plan charges its whole extent, padding included).
+///         <b>Fast paths.</b> A fully fixed composite is read through its static read plan and a <c>char[N]</c> through
+///         one block under fixed conditions, because those paths charge the read budget differently (a plan charges its
+///         whole extent, padding included) and the observable charges depend on which path runs.
 ///     </para>
 /// </remarks>
 internal static partial class ReadEngine
@@ -46,11 +45,10 @@ internal static partial class ReadEngine
     private const int ScratchSize = 16;
 
     /// <summary>
-    ///     Reads one whole root from a caller's stream: validates the source and settings as the interpreter's operation
-    ///     state does, reads through a memory cursor when the interpreter would read the source from memory (a pinned
-    ///     region or an exposed <see cref="MemoryStream"/> buffer) and through the operation's
-    ///     <see cref="ReadBudgetStream"/> otherwise, writes the final position back to <paramref name="stream"/>, and
-    ///     attaches the path and offset to a failure.
+    ///     Reads one whole root from a caller's stream: validates the source and settings, reads through a memory
+    ///     cursor when the source is memory-backed (a pinned region or an exposed <see cref="MemoryStream"/> buffer)
+    ///     and through the operation's <see cref="ReadBudgetStream"/> otherwise, writes the final position back to
+    ///     <paramref name="stream"/>, and attaches the path and offset to a failure.
     /// </summary>
     /// <param name="layout">The layout the program belongs to.</param>
     /// <param name="stream">The caller's source, positioned at the root's first byte.</param>
@@ -61,7 +59,7 @@ internal static partial class ReadEngine
     /// <param name="debug">The recorder of a debug parse, whose program is <paramref name="program"/>; <see langword="null"/> for an ordinary read.</param>
     /// <param name="selected">
     ///     Whether the result is the value the root's name selects (a struct root read straight into its own value);
-    ///     otherwise it is the root value that holds the root's value under its name, as the interpreter builds it.
+    ///     otherwise it is the root value that holds the root's value under its name.
     /// </param>
     /// <returns>The selected value, or the root value (empty for a <c>#define</c> root).</returns>
     /// <exception cref="ArgumentException"><paramref name="stream"/> cannot read or seek.</exception>
@@ -70,7 +68,7 @@ internal static partial class ReadEngine
     /// <exception cref="CStructException">The input cannot be read; the path and offset are attached.</exception>
     public static StructValue ReadRoot(CStruct layout, Stream stream, IReadOnlyList<PathSegment> segments, ReadProgram program, VariableSlots slots, in ReadOperationSettings options, DebugRecorder? debug, out bool selected)
     {
-        CStructOperationContext.Validate(stream, options);
+        ReadOperationSettings.Validate(stream, options);
         var state = new ReadEngineState(layout, slots, options, debug);
         try
         {
@@ -91,8 +89,8 @@ internal static partial class ReadEngine
     /// <summary>
     ///     Reads one whole root from a pinned memory region, the input's byte 0 at <paramref name="region"/>: what
     ///     <see cref="ReadRoot(CStruct, Stream, IReadOnlyList{PathSegment}, ReadProgram, VariableSlots, in ReadOperationSettings, DebugRecorder, out bool)"/>
-    ///     does over the read-only region stream the interpreter wraps memory in, without the stream: the settings are
-    ///     validated (a region is always readable and seekable), and a failure reports the position the read reached.
+    ///     does over a read-only stream wrapping the region, without that stream: the settings are validated (a region
+    ///     is always readable and seekable), and a failure reports the position the read reached.
     /// </summary>
     /// <param name="layout">The layout the program belongs to.</param>
     /// <param name="region">The input's byte 0; the caller keeps it pinned until the method returns.</param>
@@ -110,7 +108,7 @@ internal static partial class ReadEngine
     /// <exception cref="CStructException">The input cannot be read; the path and offset are attached.</exception>
     public static unsafe StructValue ReadRoot(CStruct layout, byte* region, int length, IReadOnlyList<PathSegment> segments, ReadProgram program, VariableSlots slots, in ReadOperationSettings options, DebugRecorder? debug, out bool selected, out long position)
     {
-        CStructOperationContext.ValidateSettings(options);
+        ReadOperationSettings.ValidateSettings(options);
         var state = new ReadEngineState(layout, slots, options, debug);
         try
         {
@@ -127,8 +125,8 @@ internal static partial class ReadEngine
 
     /// <summary>
     ///     Runs the root program, then - on success and failure alike - writes the final position back to the caller's
-    ///     stream, and only then attaches the path and that position to a failure, as the interpreter completes its
-    ///     operation state before it attaches the context.
+    ///     stream, and only then attaches the path and that position to a failure, so the attached offset is the
+    ///     completed operation's final position.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -169,9 +167,9 @@ internal static partial class ReadEngine
 
     /// <summary>
     ///     Executes a root program. A struct root requested by its own name is read straight into its value, which is
-    ///     then the selected value; the one-member root value the interpreter wraps it in would only be looked up by that
-    ///     name again. Every other root (a field, a <c>#define</c>, a struct stored under another name) runs the root
-    ///     program into the root value.
+    ///     then the selected value; a one-member root value wrapping it would only be looked up by that name again.
+    ///     Every other root (a field, a <c>#define</c>, a struct stored under another name) runs the root program into
+    ///     the root value.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -199,10 +197,9 @@ internal static partial class ReadEngine
     }
 
     /// <summary>
-    ///     Reads a struct into a value of its own, as the interpreter's <c>ReadCompiledStructInto</c> does: through the
-    ///     composite's static read plan when the interpreter would take it (not restricted to the general path, the plan
-    ///     within the nesting and array limits, and its whole extent present within the byte budget), otherwise member by
-    ///     member inside one claimed nesting level.
+    ///     Reads a struct into a value of its own: through the composite's static read plan when that plan applies (not
+    ///     restricted to the general path, the plan within the nesting and array limits, and its whole extent present
+    ///     within the byte budget), otherwise member by member inside one claimed nesting level.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor, at the struct's first byte.</param>
@@ -248,9 +245,8 @@ internal static partial class ReadEngine
 
     /// <summary>
     ///     Executes one program's steps in this call's frame. A failure inside a member of a struct (not of a root) is
-    ///     attributed to that member by the exception filter, which runs before any inner <see langword="finally"/>, so the
-    ///     innermost member wins, as in the interpreter's field loop; selection, scope and finishing steps belong to no
-    ///     member.
+    ///     attributed to that member by the exception filter, which runs before any inner <see langword="finally"/>, so
+    ///     the innermost member wins; selection, scope and finishing steps belong to no member.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor, at the program's first byte.</param>
@@ -283,7 +279,7 @@ internal static partial class ReadEngine
         long placed = -1;
         int field = -1;
 
-        // A struct with bitfields places its members through the runtime cursor the interpreter uses, held on the stack;
+        // A struct with bitfields places its members through the runtime placement cursor, held on the stack;
         // a bitfield's placement sets the bit registers - its bit offset in the unit and the unit's size in bytes.
         PlacementCursor placer = program.UsesPlacementCursor
                                      ? new PlacementCursor(start, state.Layout.Aligned, state.Layout.BitfieldPacking, state.Layout.Compilation.HighBitFirst)
@@ -350,7 +346,7 @@ internal static partial class ReadEngine
                         state.MaxArrayElements);
                     break;
 
-                // Data-sized counts run the interpreter's own counting code over this cursor, from the placed start.
+                // Data-sized counts run the shared counting code over this cursor, from the placed start.
                 case ReadOpCode.CountToEnd:
                     count = DynamicArrayExtent.CountToEnd(ref cursor, cursor.Position, step.A, state.MaxArrayElements, program.Fields[field].Name);
                     break;
@@ -580,7 +576,7 @@ internal static partial class ReadEngine
                     break;
 
                 case ReadOpCode.CaptureNotANumberIfElements:
-                    // The interpreter captures per element, so an empty array captures (and publishes) nothing.
+                    // A capture is taken per element, so an empty array captures (and publishes) nothing.
                     captureSkipped = count == 0;
                     if (!captureSkipped)
                     {
@@ -714,8 +710,7 @@ internal static partial class ReadEngine
 
                 case ReadOpCode.ReadPromotedUnion:
                     {
-                        // The views belong to this value: copied in by name, in the union's member order, as the interpreter
-                        // copies them into its container.
+                        // The views belong to this value: copied in by name, in the union's member order.
                         UnionValue union = ReadUnion(ref cursor, ref state, program.Nested[step.A], promoted: true);
                         IDictionary<string, object?> members = destination;
                         foreach (KeyValuePair<string, object?> member in union.Members)
@@ -732,7 +727,7 @@ internal static partial class ReadEngine
 
                 case ReadOpCode.ReadRootUnion:
                     {
-                        // Unlike a struct, the interpreter attaches a root union's value only once it is read.
+                        // Unlike a struct, a root union's value is attached only once it is read.
                         UnionValue union = ReadUnion(ref cursor, ref state, program.Nested[step.A], promoted: false);
                         _ = program.Shape.TryGetIndex(program.Name, out int slot);
                         destination.StoreSlot(slot, union);
@@ -744,7 +739,7 @@ internal static partial class ReadEngine
                         ReadProgram nested = program.Nested[step.A];
                         var value = new StructValue(nested.Shape);
 
-                        // The interpreter attaches a root's value before reading its members; the compiler checked the slot.
+                        // A root's value is attached before its members are read; the compiler checked the slot.
                         _ = program.Shape.TryGetIndex(program.Name, out int slot);
                         destination.StoreSlot(slot, value);
                         ReadComposite(ref cursor, ref state, nested, value);
@@ -761,6 +756,13 @@ internal static partial class ReadEngine
 
                         break;
                     }
+
+                case ReadOpCode.FailNoReader:
+                    throw new InvalidOperationException(ReadFailures.NoValueHandler(program.Fields[field].DisplayTypeSpelling));
+
+                case ReadOpCode.FailElementCountOverflow:
+                    // The element count is the product of the dimensions, which overflows before any limit is checked.
+                    throw new OverflowException();
 
                 default:
                     // Only a debug program holds another code; its handler rejects anything else.
@@ -829,7 +831,7 @@ internal static partial class ReadEngine
         return value;
     }
 
-    /// <summary>Records the member a failure happened in, as the interpreter's field-loop filter does; never catches.</summary>
+    /// <summary>Records the member a failure happened in, as an exception filter; never catches.</summary>
     /// <param name="exception">The failure.</param>
     /// <param name="member">The member being read.</param>
     /// <returns><see langword="false"/>, so the exception propagates.</returns>
@@ -843,9 +845,9 @@ internal static partial class ReadEngine
         => index + 1 < steps.Length && steps[index + 1].Op == ReadOpCode.CheckOffset && steps[index + 1].Field == steps[index].Field;
 
     /// <summary>
-    ///     Checks a member's <c>@N</c> assertion against its start, then moves there. The interpreter's placement cursor
-    ///     computes the start, checks the assertion, and only then sets the position, so a failing assertion leaves the
-    ///     position before the padding and wins over a start that lies past the input.
+    ///     Checks a member's <c>@N</c> assertion against its start, then moves there. The start is computed, the
+    ///     assertion checked, and only then the position set, so a failing assertion leaves the position before the
+    ///     padding and wins over a start that lies past the input.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -871,8 +873,8 @@ internal static partial class ReadEngine
     }
 
     /// <summary>
-    ///     Checks an element count as the interpreter's <c>DeclaredElementCount</c> does: a negative count is a read
-    ///     failure naming the member, a count past <c>MaxArrayElements</c> a limit failure naming the exact value.
+    ///     Checks an element count: a negative count is a read failure naming the member, a count past
+    ///     <c>MaxArrayElements</c> a limit failure naming the exact value.
     /// </summary>
     /// <param name="count">The count, in the expression domain.</param>
     /// <param name="member">The array member.</param>
@@ -910,9 +912,9 @@ internal static partial class ReadEngine
     }
 
     /// <summary>
-    ///     Takes <paramref name="count"/> bytes the way the interpreter's <c>StagedBytes.Take</c> does: in place from a
-    ///     memory source within the budget, else - for an extent up to one 64 KiB block - into a rented block from a
-    ///     seekable stream that provably holds them within the budget; otherwise nothing is consumed or charged.
+    ///     Takes <paramref name="count"/> bytes as one staged block: in place from a memory source within the budget,
+    ///     else - for an extent up to one 64 KiB block - into a rented block from a seekable stream that provably holds
+    ///     them within the budget; otherwise nothing is consumed or charged.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>

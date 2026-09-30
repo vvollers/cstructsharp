@@ -14,9 +14,8 @@ using CStructSharp.Syntax;
 ///     with the dictionary model (<see cref="LayoutVariableResolver"/> and <see cref="LayoutExpressionEvaluator"/>) over
 ///     every expression of a compiled layout: the initial states must stand for the same dictionary, and every
 ///     evaluation must give the same value or the same failure (type, message, <see cref="CStructException"/> fields and
-///     inner exception). The dictionary model's outcomes are the golden reference (<see cref="EngineGolden"/>): a
-///     recording run compares both models and records them, and an ordinary run checks the slot model against the
-///     recorded outcomes; a comparing run (<see cref="EngineGolden.ComparesInterpreter"/>) does both.
+///     inner exception). The golden reference (<see cref="EngineGolden"/>) holds the dictionary model's outcomes, and a run
+///     checks the slot model against them.
 /// </summary>
 internal static class ExpressionDifferential
 {
@@ -143,9 +142,7 @@ internal static class ExpressionDifferential
     /// <summary>
     ///     Creates the slot model's state for one scenario, applies the captures, evaluates <paramref name="expression"/>
     ///     (128-bit and <c>int</c> consumers) in each domain, and checks the creation, the initial state and the
-    ///     evaluations against the golden reference under <paramref name="label"/>. When the run compares with the
-    ///     interpreter (<see cref="EngineGolden.ComparesInterpreter"/>), the dictionary model runs beside it: its state and
-    ///     every evaluation must be the same.
+    ///     evaluations against the golden reference under <paramref name="label"/>.
     /// </summary>
     /// <param name="label">The scenario's name in failure messages, and its golden key.</param>
     /// <param name="compilation">The compiled layout.</param>
@@ -184,8 +181,6 @@ internal static class ExpressionDifferential
         ExpressionDifferentialCounts counts)
     {
         SlotTable table = compilation.SlotTable;
-        Dictionary<string, Expr>? dictionary = null;
-        string? expectedCreation = EngineGolden.ComparesInterpreter ? Outcome(() => dictionary = input.Resolve(compilation.LayoutVariableResolver)) : null;
         VariableSlots slots = default;
         bool created = false;
         string actualCreation = Outcome(() =>
@@ -196,25 +191,11 @@ internal static class ExpressionDifferential
         });
         try
         {
-            if (expectedCreation is not null)
-            {
-                Assert.AreEqual(dictionary is null, !created, label + ": creation " + expectedCreation + " vs " + actualCreation);
-                if (dictionary is null)
-                {
-                    Assert.AreEqual(expectedCreation, actualCreation, label + ": creation failure");
-                }
-            }
-
             if (!created)
             {
                 counts.Evaluations++;
                 EngineGolden.Check(label, "creation = " + actualCreation);
                 return actualCreation;
-            }
-
-            if (dictionary is not null)
-            {
-                AssertSameState(label, table, dictionary, slots);
             }
 
             var outcome = new StringBuilder("state =");
@@ -228,34 +209,21 @@ internal static class ExpressionDifferential
                 Assert.IsTrue(table.TryGetSlot(name, out int slot), label + ": " + name + " has no slot");
                 if (value is null)
                 {
-                    _ = dictionary?.Remove(name);
                     slots.Set(slot, SlotValue.Undefined);
                 }
                 else
                 {
-                    if (dictionary is not null)
-                    {
-                        dictionary[name] = value;
-                    }
-
                     slots.Set(slot, table.ToSlotValue(value));
                 }
             }
 
             ProgramExpression program = table.Compile(expression);
-            LayoutExpressionEvaluator evaluator = compilation.LayoutExpressionEvaluator;
             string? first = null;
             foreach (ExpressionFailureDomain domain in domains)
             {
                 VariableSlots current = slots;
                 string actual = Outcome(() => current.Evaluate(program, Context, domain));
                 string actualInt = Outcome(() => current.EvaluateInt32(program, Context, domain));
-                if (dictionary is not null)
-                {
-                    Assert.AreEqual(Outcome(() => evaluator.Evaluate(expression, dictionary, Context, domain)), actual, label + " (" + domain + ")");
-                    Assert.AreEqual(Outcome(() => evaluator.EvaluateInt32(expression, dictionary, Context, domain)), actualInt, label + " (" + domain + ", int)");
-                }
-
                 outcome.Append('\n').Append(domain).Append(" = ").Append(actual).Append('\n').Append(domain).Append(" int = ").Append(actualInt);
                 first ??= actual;
                 counts.Evaluations += 2;
@@ -385,30 +353,6 @@ internal static class ExpressionDifferential
         }
 
         return expressions;
-    }
-
-    /// <summary>
-    ///     Asserts that the slots stand for the dictionary: every name with a slot has the same entry (or none), and every
-    ///     caller variable without a slot is kept beside the slots with its value.
-    /// </summary>
-    /// <param name="label">The scenario's name in failure messages.</param>
-    /// <param name="table">The layout's table, which the slots belong to.</param>
-    /// <param name="dictionary">The dictionary model's state.</param>
-    /// <param name="slots">The slot model's state.</param>
-    public static void AssertSameState(string label, SlotTable table, Dictionary<string, Expr> dictionary, VariableSlots slots)
-    {
-        Assert.AreSame(table, slots.Table, label + ": the slots belong to another table");
-        Dictionary<string, Expr> view = slots.ToDictionary();
-        foreach ((string name, Expr expected) in dictionary)
-        {
-            Assert.IsTrue(view.TryGetValue(name, out Expr? actual), label + ": " + name + " is missing from the slots");
-            Assert.AreEqual(expected, actual, label + ": state of " + name);
-        }
-
-        foreach (string name in view.Keys)
-        {
-            Assert.IsTrue(dictionary.ContainsKey(name), label + ": " + name + " is only in the slots");
-        }
     }
 
     /// <summary>Returns an integer input that sets each name to one value.</summary>

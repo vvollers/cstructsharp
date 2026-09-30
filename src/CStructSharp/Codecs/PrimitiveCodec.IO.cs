@@ -17,7 +17,7 @@ internal readonly partial record struct PrimitiveCodec
     /// <summary>
     ///     Encodes one caller-supplied value into exactly this codec's bytes, applying the same <see cref="Convert"/>
     ///     conversion (and the same range failures) as the stream write handler for the same primitive name, so a
-    ///     static write plan produces the bytes and the errors the general writer produces.
+    ///     static write plan produces the bytes and the errors of the member-by-member write.
     /// </summary>
     /// <param name="bytes">The destination, at least this codec's size; the value fills its first bytes.</param>
     /// <param name="value">The number to encode, converted to the codec's type with the invariant culture.</param>

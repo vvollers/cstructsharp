@@ -14,8 +14,8 @@ using CStructSharp.Streams;
 using CStructSharp.Syntax;
 
 /// <summary>
-///     The update the compiled engine runs when <see cref="EngineSelector.SelectUpdate"/> selects it: the interpreter's
-///     update step for step, on the engine's path resolver, layout capture and writer over the operation's variable slots.
+///     The update of the compiled engine: the path resolved by the engine's path resolver, the replacement staged by its
+///     writer, and the layout captured and compared by its debug programs, all over the operation's variable slots.
 /// </summary>
 public sealed partial class CStruct
 {
@@ -26,8 +26,7 @@ public sealed partial class CStruct
     private const string UpdateLayoutChanged = "Update changes the active conditional storage layout; serialize a new buffer instead.";
 
     /// <summary>
-    ///     Updates one value in a stream with the compiled engine, in the interpreter's order and with its observable
-    ///     effects: the settings are validated and the stream wrapped in the traversal budget; a root with conditional
+    ///     Updates one value in a stream with the compiled engine, in this order: the settings are validated and the stream wrapped in the traversal budget; a root with conditional
     ///     members has its layout captured first; the path is resolved (the walk's captures stay in the slots the write then
     ///     evaluates against); the replacement is written into sparse staging over the budget (a pointer's address as an
     ///     address, the root through its write program, anything else through the program of the storage it selects, a
@@ -45,7 +44,7 @@ public sealed partial class CStruct
     {
         string rootName = segments[0].Name;
         ReadOperationSettings readOptions = ReadOperationSettings.SnapshotTraversalOptions(options);
-        CStructOperationContext.Validate(stream, readOptions);
+        ReadOperationSettings.Validate(stream, readOptions);
         var budget = new ReadBudgetStream(stream, readOptions.MaxStringBytes, readOptions.MaxTotalBytesRead, readOptions.CancellationToken);
         var cursor = new StreamReadCursor(budget);
         var readState = new ReadEngineState(this, slots, readOptions, null);
@@ -88,8 +87,8 @@ public sealed partial class CStruct
                 throw new CStructReadException("Cannot update a null pointer target when RequireExistingPointerTarget is enabled.");
             }
 
-            // The staging's baseline reads share the traversal budget; the writer's budget wraps the staging as the
-            // interpreter's writer state wraps it, after observing the token.
+            // The staging's baseline reads share the traversal budget; the writer's budget wraps the staging after the
+            // token is observed.
             using var staging = new SparseUpdateStream(budget, target.Address);
             options.CancellationToken.ThrowIfCancellationRequested();
             var writeBudget = new WriteBudgetStream(staging, options);
@@ -182,9 +181,15 @@ public sealed partial class CStruct
         }
     }
 
+    /// <summary>Whether a root reaches a conditional member, which an update must capture around its change.</summary>
+    /// <param name="rootName">The declared root name.</param>
+    /// <returns>Whether any type reachable from the root has an <c>if</c> or <c>switch</c> member.</returns>
+    private bool HasConditionalLayout(string rootName)
+        => this.compilation.CompiledModel.Symbols[rootName].Symbol.Definition is CompiledCompositeType composite && composite.ReachesConditionalMembers;
+
     /// <summary>
-    ///     Captures a root's layout with its debug program from a copy of <paramref name="snapshot"/>, as the interpreter
-    ///     captures it from a copy of its layout variables, so every capture starts from the same variables.
+    ///     Captures a root's layout with its debug program from a copy of <paramref name="snapshot"/>, so every
+    ///     capture starts from the same variables.
     /// </summary>
     /// <param name="stream">The data: the traversal budget over the original, or the staged copy.</param>
     /// <param name="origin">The root's position.</param>

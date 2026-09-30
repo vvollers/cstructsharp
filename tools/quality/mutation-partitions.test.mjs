@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
-import { PERMANENT_SCOPE_SIZE, aggregateMutationPartitions, mutationInvocation, planMutationPartitions, requireCoreMutationTests } from "../lib/mutation-partitions.mjs";
+import { MUTATION_PARTITION_COUNT, PERMANENT_SCOPE_SIZE, aggregateMutationPartitions, mutationInvocation, planMutationPartitions, requireCoreMutationTests } from "../lib/mutation-partitions.mjs";
 import { repositoryRoot } from "../lib/tooling.mjs";
 
 // A step timeout must leave ordinary setup/upload headroom; incomplete evidence must still fail aggregation.
@@ -62,7 +62,7 @@ function selectedFile(report) {
 test("the repository plan includes every permanent source exactly once", () => {
   const config = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "stryker-config.json")))["stryker-config"];
   const plan = planMutationPartitions(repositoryRoot, config);
-  assert.equal(plan.length, 16);
+  assert.equal(plan.length, MUTATION_PARTITION_COUNT);
   // The extended workflow budget belongs to p00, which holds only the largest scope file.
   const largest = [...plan.flatMap((partition) => partition.files)].sort((left, right) => right.bytes - left.bytes)[0];
   assert.deepEqual(plan.find((partition) => partition.id === "p00").files.map((file) => file.pattern),

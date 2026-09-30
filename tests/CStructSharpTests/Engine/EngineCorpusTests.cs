@@ -56,13 +56,12 @@ public class EngineCorpusTests
     }
 
     /// <summary>
-    ///     With the engine required, every public read, write and update of every corpus case whose root the engine can read
-    ///     runs on the engine (<see cref="EngineCorpusCase.RunRequiringEngine"/>): after the update stage nothing is declined
-    ///     for the kind of operation, source, destination or options - only for a root or member the programs cannot
-    ///     compile, and for a path that selects nothing writable, which the public operation rejects too.
+    ///     Every public read, write and update of every corpus case runs on the engine
+    ///     (<see cref="EngineCorpusCase.RunEveryOperation"/>): every root compiles into read and write programs, and no
+    ///     operation, whatever its kind, source, destination or options, fails for want of a program.
     /// </summary>
     [TestMethod]
-    public void EveryCorpus_RunsEveryOperationOnTheEngineWhenRequired()
+    public void EveryCorpus_RunsEveryOperationOnTheEngine()
     {
         IEnumerable<EngineCorpusCase> cases = EngineCorpora.Parity.Values
                                                            .Concat(EngineCorpora.Benchmarks.Values)
@@ -77,7 +76,7 @@ public class EngineCorpusTests
         {
             try
             {
-                ran += item.RunRequiringEngine();
+                ran += item.RunEveryOperation();
             }
             catch (AssertFailedException failure)
             {

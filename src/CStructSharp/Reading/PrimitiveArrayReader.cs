@@ -110,18 +110,6 @@ internal static class PrimitiveArrayReader
         };
     }
 
-    /// <summary>
-    ///     Whether a one-dimensional array of <paramref name="field"/>'s elements is read as a
-    ///     <see cref="PrimitiveArray{T}"/>: a fixed-width number or <c>bool</c> that is neither an enum, a pointer, nor a
-    ///     struct, and not a row selected from a multidimensional array (rows are lists, as inside the whole array's
-    ///     value). This is the one rule every reader shares - the bulk path, the element loop (debug parses, union
-    ///     member views, selected reads), empty arrays and pointer targets.
-    /// </summary>
-    /// <param name="field">The array field, or a pointer target's element field.</param>
-    /// <returns>Whether its one-dimensional arrays are typed.</returns>
-    public static bool IsTyped(CompiledField field)
-        => field.Codec.IsFixedWidthNumeric && field.Enum is null && field.Composite is null && !field.IsPointer && field.BitSize == 0 && !field.IsArrayRow;
-
     /// <summary>An empty <see cref="PrimitiveArray{T}"/> of the codec's element type.</summary>
     /// <param name="codec">A fixed-width numeric codec.</param>
     /// <returns>The empty array value.</returns>

@@ -62,9 +62,8 @@ internal struct FrameArena
     }
 
     /// <summary>
-    ///     After an active member of a conditional composite, saves the member's own names into the frame's locals, then
-    ///     restores the composite's names a nested declaration replaced (an absent saved value removes the name), in the
-    ///     order <c>ConditionalVariableScope.CompleteField</c> uses.
+    ///     After an active member of a conditional composite, saves the member's own names into the frame's locals,
+    ///     then restores the composite's names a nested declaration replaced (an absent saved value removes the name).
     /// </summary>
     /// <param name="arena">The operation's arena.</param>
     /// <param name="slots">The operation's variables.</param>
@@ -89,7 +88,7 @@ internal struct FrameArena
         }
     }
 
-    /// <summary>Takes a frame's conditional-scope locals, every one <see cref="SlotValue.Undefined"/> (the interpreter's "no saved value").</summary>
+    /// <summary>Takes a frame's conditional-scope locals, every one <see cref="SlotValue.Undefined"/> ("no saved value").</summary>
     /// <param name="count">The scope's local count (or a union's slot count), not negative.</param>
     /// <returns>The index of the frame's first local in <see cref="Locals"/>.</returns>
     public int TakeLocals(int count)

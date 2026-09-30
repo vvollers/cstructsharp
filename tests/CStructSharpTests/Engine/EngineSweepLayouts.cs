@@ -5,7 +5,7 @@ using CStructSharp.Values;
 
 /// <summary>
 ///     The representative layouts the differential sweeps (<see cref="EngineSweepTests"/>) run over: one per shape the
-///     general reader and writer handle differently - a fixed record, a count-sized array, a conditional, nested
+///     engine's reads and writes handle differently - a fixed record, a count-sized array, a conditional, nested
 ///     structs, an inline named struct that a qualified reference (<c>hdr.n</c>) names, anonymous promoted members
 ///     (which add no nesting level), a union, numeric arrays in a union and an empty one, bitfields, an enum bitfield
 ///     that sizes a later array, pointers (followed after the struct, one with an <c>@count</c> target), terminated
@@ -415,7 +415,7 @@ internal static class EngineSweepLayouts
 
     /// <summary>
     ///     A sweep layout compiled packed or aligned, with its input bytes for that placement and the value the
-    ///     reference implementation reads from them (<see cref="EngineSelections.Reference(ReadOptions?)"/>), which the
+    ///     engine reads from them, which the
     ///     write sweeps encode.
     /// </summary>
     internal sealed class Variant
@@ -434,18 +434,18 @@ internal static class EngineSweepLayouts
             if (aligned)
             {
                 CStruct packed = Compile(layout, false);
-                StructValue value = packed.Parse(layout.Data.AsSpan(), "rec", layout.Variables, EngineSelections.Reference(this.BaseRead()));
+                StructValue value = packed.Parse(layout.Data.AsSpan(), "rec", layout.Variables, this.BaseRead());
 
                 // A pointer's target is not part of the written value, so the pointer layout (all one-byte members,
                 // placed identically either way) keeps its packed bytes.
-                this.Data = layout.HasPointers ? layout.Data : this.Layout.Serialize("rec", value, layout.Variables, EngineSelections.Reference(new WriteOptions()));
+                this.Data = layout.HasPointers ? layout.Data : this.Layout.Serialize("rec", value, layout.Variables, new WriteOptions());
             }
             else
             {
                 this.Data = layout.Data;
             }
 
-            this.Value = this.Layout.Parse(this.Data.AsSpan(), "rec", layout.Variables, EngineSelections.Reference(this.BaseRead()));
+            this.Value = this.Layout.Parse(this.Data.AsSpan(), "rec", layout.Variables, this.BaseRead());
         }
 
         /// <summary>Gets the sweep layout.</summary>

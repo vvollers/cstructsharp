@@ -256,72 +256,15 @@ public sealed partial class CStruct
         ArgumentNullException.ThrowIfNull(stream);
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
         IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
-        if (EngineSelector.SelectPathRead(effectiveOptions.EngineSelection, this.compilation, segments[0].Name, EngineOperation.LengthQuery) is not null)
-        {
-            VariableSlots slots = VariableSlots.Create(this.compilation.SlotTable, variables);
-            try
-            {
-                return ReadEngine.GetArrayLength(this, stream, segments, elementNameOrPath, slots, effectiveOptions);
-            }
-            finally
-            {
-                slots.Dispose();
-            }
-        }
-
-        Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
-        var state = new CStructOperationContext(
-            stream,
-            effectiveVariables,
-            this.Aligned,
-            effectiveOptions);
-        long originalPosition = state.Stream.Position;
-
+        EnginePrograms.PathOperation(EngineOperation.LengthQuery);
+        VariableSlots slots = VariableSlots.Create(this.compilation.SlotTable, variables);
         try
         {
-            ResolvedTarget target = this.ResolveTargetFromLayout(
-                state,
-                segments);
-            CompiledField compiledField = target.EffectiveCompiledField ??
-                                          throw new CStructPathException(
-                                              "Path does not resolve to an array or string field: " + elementNameOrPath);
-
-            if (compiledField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime or
-                CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated)
-            {
-                return target.ArrayLength ??
-                       throw new CStructPathException("Resolved array target has no compiled length.");
-            }
-
-            if (compiledField.Array.Kind == CompiledArrayKind.Flexible && compiledField.IsCharacterArray)
-            {
-                state.Stream.Position = target.Address;
-                Func<Stream, object> reader = (target.EffectiveCompiledField is { } stringField ? this.codecs.TerminatedReaderOf(stringField) : null) ??
-                                              throw new InvalidOperationException(
-                                                  "Resolved string target has no compiled reader.");
-                return ((string)reader(state.Stream)).Length;
-            }
-
-            if (compiledField.Array.Kind == CompiledArrayKind.Scalar && compiledField.Codec.IsTerminatedText)
-            {
-                state.Stream.Position = target.Address;
-                Func<Stream, object> reader = this.codecs.ReaderOf(compiledField) ??
-                                              throw new InvalidOperationException(
-                                                  "Resolved named string target has no compiled reader.");
-                return ((string)reader(state.Stream)).Length;
-            }
-
-            throw new CStructPathException("Path does not resolve to an array or string: " + elementNameOrPath);
-        }
-        catch (CStructException exception)
-        {
-            state.CompleteWithContext(exception, segments, stream);
-            throw;
+            return ReadEngine.GetArrayLength(this, stream, segments, elementNameOrPath, slots, effectiveOptions);
         }
         finally
         {
-            state.Stream.Position = originalPosition;
-            state.Complete();
+            slots.Dispose();
         }
     }
 
@@ -377,23 +320,19 @@ public sealed partial class CStruct
     {
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
         IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
-        if (this.SelectParse(effectiveOptions, segments, variables, debug) is { } engineRoot)
+        ReadProgram? root = this.SelectParse(segments, debug);
+        if (segments.Count > 1)
         {
-            if (segments.Count > 1)
-            {
-                return this.ParseNestedWithEngine(stream, segments, variables, effectiveOptions, debug);
-            }
-
-            if (debug)
-            {
-                return this.ParseWithEngineDebug(stream, segments, engineRoot, variables, effectiveOptions);
-            }
-
-            StructValue value = this.ReadRootWithEngine(stream, segments, engineRoot, variables, effectiveOptions, null, out bool selected);
-            return (NoDebugData, selected ? value : this.SelectParsedRoot(value, segments));
+            return this.ParseNestedWithEngine(stream, segments, variables, effectiveOptions, debug);
         }
 
-        return this.ParseWithInterpreter(stream, segments, variables, effectiveOptions, debug);
+        if (debug)
+        {
+            return this.ParseWithEngineDebug(stream, segments, root, variables, effectiveOptions);
+        }
+
+        StructValue value = this.ReadRootWithEngine(stream, segments, root, variables, effectiveOptions, null, out bool selected);
+        return (NoDebugData, selected ? value : this.SelectParsedRoot(value, segments));
     }
 
     /// <summary>
@@ -422,63 +361,6 @@ public sealed partial class CStruct
     }
 
     /// <summary>
-    ///     Reads the composite a path selects with the interpreter, after the engine declined the operation: a whole root
-    ///     through the root reader, a nested composite at its resolved address.
-    /// </summary>
-    /// <param name="stream">The source, at the operation origin.</param>
-    /// <param name="segments">The parsed path.</param>
-    /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="effectiveOptions">The operation's snapshotted settings.</param>
-    /// <param name="debug">Whether to record debug byte ranges.</param>
-    /// <returns>The debug records (a shared empty list outside debug mode) and the selected composite.</returns>
-    private (List<DebugData> DebugData, object Result) ParseWithInterpreter(
-        Stream stream,
-        IReadOnlyList<PathSegment> segments,
-        LayoutVariableInput variables,
-        ReadOperationSettings effectiveOptions,
-        bool debug)
-    {
-        if (segments.Count == 1)
-        {
-            StructValue root = this.ParseStreamInternal(stream, segments, variables, effectiveOptions, debug, out List<DebugData> rootDebugData);
-            return (rootDebugData, this.SelectParsedRoot(root, segments));
-        }
-
-        Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
-        var state = new CStructOperationContext(
-            stream,
-            effectiveVariables,
-            this.Aligned,
-            effectiveOptions);
-
-        try
-        {
-            ResolvedTarget resolvedTarget = this.ResolveTargetFromLayout(
-                state,
-                segments);
-            CompiledCompositeType target = ResolveStructTarget(resolvedTarget);
-            (object result, List<DebugData> debugData) = this.ParseCompiledStructAt(
-                state,
-                resolvedTarget.Address,
-                target,
-                debug ? DebugPath.FromNames(resolvedTarget.DebugPrefix) : null,
-                resolvedTarget.ContainingStructureDepth,
-                resolvedTarget.PointerAccessorsConsumed,
-                debug);
-            return (debugData, result);
-        }
-        catch (CStructException exception)
-        {
-            state.CompleteWithContext(exception, segments, stream);
-            throw;
-        }
-        finally
-        {
-            state.Complete();
-        }
-    }
-
-    /// <summary>
     ///     Resolves a path with variables supplied through a read-only view. The caller's entries are snapshotted and
     ///     never mutated.
     /// </summary>
@@ -500,35 +382,15 @@ public sealed partial class CStruct
         ArgumentNullException.ThrowIfNull(stream);
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
         IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
-        if (EngineSelector.SelectPathRead(effectiveOptions.EngineSelection, this.compilation, segments[0].Name, EngineOperation.AddressResolution) is not null)
-        {
-            VariableSlots slots = VariableSlots.Create(this.compilation.SlotTable, variables);
-            try
-            {
-                return ReadEngine.ResolveAddress(this, stream, segments, slots, effectiveOptions);
-            }
-            finally
-            {
-                slots.Dispose();
-            }
-        }
-
-        Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
-        var state = new CStructOperationContext(
-            stream,
-            effectiveVariables,
-            this.Aligned,
-            effectiveOptions);
-        long originalPosition = state.Stream.Position;
-
+        EnginePrograms.PathOperation(EngineOperation.AddressResolution);
+        VariableSlots slots = VariableSlots.Create(this.compilation.SlotTable, variables);
         try
         {
-            return this.ResolveTargetFromLayout(state, segments).Address;
+            return ReadEngine.ResolveAddress(this, stream, segments, slots, effectiveOptions);
         }
         finally
         {
-            state.Stream.Position = originalPosition;
-            state.Complete();
+            slots.Dispose();
         }
     }
 }

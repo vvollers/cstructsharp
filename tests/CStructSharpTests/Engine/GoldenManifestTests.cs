@@ -12,8 +12,8 @@ using System.Reflection;
 ///     <code>
 ///         node tools/quality/engine-golden.mjs record
 ///     </code>
-///     which runs the golden tests on net10.0 with <c>CSTRUCTSHARP_ENGINE_GOLDEN_RECORD=1</c> (the interpreter must agree
-///     with the engine on every case), checks the new manifests on net8.0 and net10.0, and reports the changed files.
+///     which runs the golden tests on net10.0 with <c>CSTRUCTSHARP_ENGINE_GOLDEN_RECORD=1</c> (every case records the
+///     engine's outcome), checks the new manifests on net8.0 and net10.0, and reports the changed files.
 /// </remarks>
 [TestClass]
 public class GoldenManifestTests

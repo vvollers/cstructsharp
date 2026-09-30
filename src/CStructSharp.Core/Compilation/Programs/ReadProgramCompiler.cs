@@ -6,18 +6,18 @@ using CStructSharp.Syntax;
 using CstructEnum = CStructSharp.Syntax.Enum;
 
 /// <summary>
-///     Translates a compiled struct (or a root) into a <see cref="ReadProgram"/> that reads exactly what the
-///     interpreter's reader reads, in the same order, with the same checks - or records why it cannot yet
-///     (<see cref="ReadProgramOutcome.Reason"/>), naming the innermost struct and member that needs a later engine stage.
+///     Translates a compiled struct (or a root) into a <see cref="ReadProgram"/> that reads each member of the
+///     layout in declaration order with its checks - or records why it cannot (<see cref="ReadProgramOutcome.Reason"/>),
+///     naming the innermost struct and member the engine cannot read.
 /// </summary>
 /// <remarks>
-///     <para>Per member, in the interpreter's order (engine plan section 10.1):</para>
+///     <para>Per member, in this order:</para>
 ///     <list type="number">
 ///         <item>one <see cref="ReadOpCode.SelectArm"/> per <c>if</c>/<c>switch</c> arm the member sits in, outermost first;</item>
 ///         <item>the element count: a fixed count is checked against the array limit, a data count is evaluated;</item>
 ///         <item>placement (<see cref="ReadPlacement"/>) and, where the build could not check it, the <c>@N</c> assertion;</item>
 ///         <item>the read, specialized by value kind;</item>
-///         <item>the layout-variable capture and its qualified publication, exactly where the interpreter captures;</item>
+///         <item>the layout-variable capture and its qualified publication, right after the read;</item>
 ///         <item>for a composite with conditional members, the scope step that saves and restores its names.</item>
 ///     </list>
 ///     <para>
@@ -32,21 +32,21 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 ///         after it is a new anchor; one with a fixed size occupies exactly that size, like any fixed-size member.
 ///     </para>
 ///     <para>
-///         A struct with bitfields places every member through a runtime <see cref="PlacementCursor"/>, the one the
-///         interpreter uses, because the layout's packing rule decides which bitfields share a storage unit. A union is a
-///         program of member views, each read from the union's first byte with the variables it was entered with.
+///         A struct with bitfields places every member through a runtime <see cref="PlacementCursor"/>, because the
+///         layout's packing rule decides which bitfields share a storage unit. A union is a program of member views,
+///         each read from the union's first byte with the variables it was entered with.
 ///     </para>
 ///     <para>
-///         A pointer inside a struct is deferred where the interpreter defers it: its address is read in place and its
+///         A pointer a struct places is deferred when it follows after the struct: its address is read in place and its
 ///         target followed after the struct's last member (<see cref="ReadOpCode.FollowPendingPointers"/>). A pointer's
 ///         struct or union target is not compiled with the program that points to it (a linked list points to itself); a
 ///         root is eligible only when every composite its pointers can reach compiled.
 ///     </para>
 ///     <para>
 ///         A debug program (<see cref="ReadProgramCache.Debug"/>) reads the same members with the same checks and adds what
-///         the interpreter records in a debug parse: each member's path, a record around every value read, the union's own
+///         a debug parse records: each member's path, a record around every value read, the union's own
 ///         record after its views, and the conditional-layout trace. It reads every array one element at a time with a
-///         record each, because the interpreter's debug parse takes none of its block paths.
+///         record each, because a debug parse takes no block paths: every value needs its own record.
 ///     </para>
 ///     <para>
 ///         A member the engine cannot read gives a reason instead of a program. A compiler is used for one request on one
@@ -55,16 +55,10 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 /// </remarks>
 internal sealed class ReadProgramCompiler
 {
-    /// <summary>The reason for an array of bitfields, which the interpreter has no reader for either.</summary>
+    /// <summary>The reason for an array of bitfields, which the layout's compilation rejects before a program is built.</summary>
     public const string BitfieldArrays = "a bitfield array has no reader";
 
-    /// <summary>
-    ///     The reason for a multidimensional array with more elements than an <see cref="int"/> counts: the interpreter's
-    ///     read fails when it multiplies the dimensions, while its path resolver checks the exact total against the limit.
-    /// </summary>
-    public const string ElementCountOverflow = "the array has more elements than an int counts";
-
-    /// <summary>The reason for a field the catalog has no reader for; the interpreter fails such a read.</summary>
+    /// <summary>The reason for an array, text or bitfield member the catalog has no reader for, which the layout's compilation never produces.</summary>
     public const string NoReader = "the field has no codec reader";
 
     /// <summary>The reason for a member whose name the value shape does not hold.</summary>
@@ -72,9 +66,6 @@ internal sealed class ReadProgramCompiler
 
     /// <summary>The reason for a member whose static offset differs from the offset the layout compiled.</summary>
     public const string PlacementMismatch = "the static placement differs from the compiled offset";
-
-    /// <summary>The reason for a declaration kind that is not a readable root.</summary>
-    public const string UnreadableRoot = "the declaration is not a readable root";
 
     private readonly LayoutCompilation compilation;
     private readonly ReadProgramCache cache;
@@ -100,17 +91,17 @@ internal sealed class ReadProgramCompiler
 
     /// <summary>Compiles a struct read into a value of its own.</summary>
     /// <param name="composite">The composite.</param>
-    /// <returns>The program, or why it cannot be built yet.</returns>
+    /// <returns>The program, or why it cannot be built.</returns>
     public ReadProgramOutcome CompileComposite(CompiledCompositeType composite)
         => composite.IsUnion ? this.CompileUnion(composite) : this.CompileStruct(composite, ReadProgramKind.Composite, composite.Shape);
 
     /// <summary>
-    ///     Compiles a root, as the interpreter's root dispatch reads it: a struct (or a typedef of an inline struct, stored
+    ///     Compiles a root by its declaration kind: a struct (or a typedef of an inline struct, stored
     ///     under the typedef's name), a typedef or enum field read standalone, or a <c>#define</c> evaluated for its failures.
     /// </summary>
     /// <param name="rootName">The name the root is requested by.</param>
     /// <param name="declaration">The root's declaration.</param>
-    /// <returns>The program, or why it cannot be built yet.</returns>
+    /// <returns>The program, or why it cannot be built.</returns>
     public ReadProgramOutcome CompileRoot(string rootName, CStructElement declaration)
     {
         StructShape rootShape = this.compilation.ModelQueries.GetRootShape(rootName);
@@ -144,13 +135,14 @@ internal sealed class ReadProgramCompiler
             }
 
         default:
-            return ReadProgramOutcome.NotSupported(rootName + ": " + UnreadableRoot);
+            // A declaration with no binary storage (a text #define) reads nothing; the root value stays empty.
+            return ReadProgramOutcome.Eligible(new ReadProgramBuilder(this.cache.Table, [], rootShape, 0).Build(ReadProgramKind.Root, rootName, null));
         }
     }
 
     /// <summary>
-    ///     Compiles the read of a member a path selected (a field, an array element or a sub-array row), as the interpreter
-    ///     reads a resolved target: one field read standalone from its resolved address - no placement, no alignment, no
+    ///     Compiles the read of a member a path selected (a field, an array element or a sub-array row) as a
+    ///     resolved target: one field read standalone from its resolved address - no placement, no alignment, no
     ///     block paths - into a one-member value under the field's name. A selected bitfield reads the storage unit its
     ///     struct placed (<see cref="ReadOpCode.OpenSeededBitfieldUnit"/>).
     /// </summary>
@@ -170,8 +162,8 @@ internal sealed class ReadProgramCompiler
     }
 
     /// <summary>
-    ///     Describes how the target of a pointer field (or of a pointer view that still has levels to follow) is read, in the
-    ///     interpreter's order of checks, for a path that follows the pointer and then reads what it reaches.
+    ///     Describes how the target of a pointer field (or of a pointer view that still has levels to follow) is read (checked in
+    ///     the order <see cref="ReadPointerTargetKind"/> lists), for a path that follows the pointer and then reads what it reaches.
     /// </summary>
     /// <param name="field">The pointer field or view.</param>
     /// <returns>The target.</returns>
@@ -263,7 +255,7 @@ internal sealed class ReadProgramCompiler
     /// <param name="key">The name the value is stored under (a typedef's name for a typedef of an inline struct or union).</param>
     /// <param name="composite">The struct or union.</param>
     /// <param name="rootShape">The one-member root shape.</param>
-    /// <returns>The program, or why it cannot be built yet.</returns>
+    /// <returns>The program, or why it cannot be built.</returns>
     private ReadProgramOutcome CompileRootStruct(string rootName, string key, CompiledCompositeType composite, StructShape rootShape)
     {
         ReadProgramOutcome nested = this.cache.GetComposite(this.compilation, composite);
@@ -337,11 +329,11 @@ internal sealed class ReadProgramCompiler
 
     /// <summary>
     ///     Compiles a union's member views: before each member every variable is restored to the union's entry values, and
-    ///     each member is read from the union's first byte as a standalone field (no alignment, no block paths), as the
-    ///     interpreter reads them. Conditions on a union's own members are not evaluated there, so none are here.
+    ///     each member is read from the union's first byte as a standalone field (no alignment, no block paths).
+    ///     Conditions on a union's own members are not evaluated there, so none are here.
     /// </summary>
     /// <param name="union">The union.</param>
-    /// <returns>The program, or why it cannot be built yet.</returns>
+    /// <returns>The program, or why it cannot be built.</returns>
     private ReadProgramOutcome CompileUnion(CompiledCompositeType union)
     {
         string location = Locate(union);
@@ -364,7 +356,7 @@ internal sealed class ReadProgramCompiler
     /// <param name="composite">The struct.</param>
     /// <param name="kind">Whether it has a value of its own or is promoted into its parent's.</param>
     /// <param name="shape">The layout of the value its members are stored into.</param>
-    /// <returns>The program, or why it cannot be built yet.</returns>
+    /// <returns>The program, or why it cannot be built.</returns>
     private ReadProgramOutcome CompileStruct(CompiledCompositeType composite, ReadProgramKind kind, StructShape shape)
     {
         string location = Locate(composite);
@@ -377,7 +369,7 @@ internal sealed class ReadProgramCompiler
         };
         if (composite.ConditionalScope is { } scope)
         {
-            // The interpreter removes the kept names at entry; only the ones an expression can read matter.
+            // The scope removes the kept names at entry; only the ones an expression can read matter.
             builder.Scope = new ReadConditionalScope(scope, this.cache.Table);
             if (builder.Scope.ClearedSlots.Length > 0)
             {
@@ -391,11 +383,10 @@ internal sealed class ReadProgramCompiler
         {
             CompiledField field = fields[index];
 
-            // An unselected member is skipped whole: no placement, no read, no scope step, as the interpreter's loop
-            // continues before any of them.
+            // An unselected member is skipped whole: no placement, no read, no scope step.
             selections.Clear();
 
-            // A debug program traces every conditional member where the interpreter decides it: inactive until its
+            // A debug program traces every conditional member where its selection is decided: inactive until its
             // selection passes, at the position before the member is placed.
             bool traced = this.debug && field.IsConditional;
             if (traced)
@@ -456,7 +447,7 @@ internal sealed class ReadProgramCompiler
     }
 
     /// <summary>
-    ///     Emits one member's count, placement, read and captures, or returns why the member cannot be read yet: a
+    ///     Emits one member's count, placement, read and captures, or returns why the member cannot be read: a
     ///     reason located at this member, or a nested struct's own reason unchanged.
     /// </summary>
     /// <param name="builder">The program under construction.</param>
@@ -499,10 +490,12 @@ internal sealed class ReadProgramCompiler
         switch (field.Array.Kind)
         {
         case CompiledArrayKind.Fixed:
-            // A multidimensional array is read as all its elements, so the limit applies to their total.
+            // A multidimensional array is read as all its elements, so the limit applies to their total. A total beyond an
+            // int fails when the member is reached; nothing after it in the struct is read, so nothing more is emitted.
             if (FixedTotal(field) is not int total)
             {
-                return Refuse(location, field, ElementCountOverflow);
+                builder.Emit(ReadOpCode.FailElementCountOverflow, index, 0, 0);
+                return null;
             }
 
             builder.Emit(ReadOpCode.CheckFixedCount, index, total, 0);
@@ -723,7 +716,7 @@ internal sealed class ReadProgramCompiler
     /// <returns>
     ///     A reason when a statically known placement contradicts the compiled offset; otherwise <see langword="null"/>. A
     ///     placement the data decides (after a member whose size the data decides) is aligned at run time from the struct's
-    ///     start, as the interpreter places it.
+    ///     start.
     /// </returns>
     private string? EmitPlacement(ReadProgramBuilder builder, int index, ref ReadPlacement placement)
     {
@@ -798,7 +791,9 @@ internal sealed class ReadProgramCompiler
 
             if (field.CodecId < 0)
             {
-                return Refuse(location, field, NoReader);
+                // A type with no codec (void) fails the read when the member is reached.
+                builder.Emit(ReadOpCode.FailNoReader, index, 0, 0);
+                return null;
             }
 
             if (field.Enum is { } enm)
@@ -827,7 +822,7 @@ internal sealed class ReadProgramCompiler
     }
 
     /// <summary>
-    ///     Emits an array's read step, chosen by its element kind in the interpreter's order. A multidimensional array
+    ///     Emits an array's read step, chosen by its element kind in the order checked below. A multidimensional array
     ///     reads its elements in flat row-major order and is then nested (<see cref="ReadOpCode.ReshapeTable"/>), except
     ///     characters, whose innermost rows become strings in <see cref="ReadOpCode.ReadCharTable"/>, and byte-counted text,
     ///     which is one string of all its bytes.
@@ -850,7 +845,7 @@ internal sealed class ReadProgramCompiler
                 return outcome.Reason;
             }
 
-            // The interpreter takes an element struct's block path over the whole array only for one dimension, and never
+            // The engine takes an element struct's block path over the whole array only for one dimension, and never
             // for union elements.
             ReadOpCode read = nested.IsUnion ? this.debug ? ReadOpCode.DebugUnionArray : ReadOpCode.ReadUnionArray
                               : this.debug ? ReadOpCode.DebugStructArray
@@ -873,7 +868,7 @@ internal sealed class ReadProgramCompiler
             return null;
         }
 
-        // Byte-counted text is decided on the spelling before any other array shape, as the interpreter does. A caller's
+        // Byte-counted text is decided on the spelling before any other array shape. A caller's
         // codec keeps its own step even for an unnamed member, which reads each value and keeps none.
         if (BoundedTextCodec.IsType(field.TypeSpelling))
         {
@@ -921,7 +916,7 @@ internal sealed class ReadProgramCompiler
 
     /// <summary>
     ///     Emits a pointer member's read: its target description, and the pointer (or, for an array, each element) read
-    ///     deferred where the interpreter defers it - a pointer a struct places that <see cref="CompiledField.FollowsAfterStruct"/>
+    ///     deferred for a pointer a struct places that <see cref="CompiledField.FollowsAfterStruct"/>
     ///     - and followed in place otherwise.
     /// </summary>
     /// <param name="builder">The program under construction.</param>
@@ -949,7 +944,7 @@ internal sealed class ReadProgramCompiler
     }
 
     /// <summary>
-    ///     Describes a pointer's final target in the interpreter's order of checks: a counted target (by its element's
+    ///     Describes a pointer's final target, checking in this order: a counted target (by its element's
     ///     kind), an enum, a struct or union, terminated text, then any other value through its codec.
     /// </summary>
     /// <param name="field">The pointer field.</param>
@@ -1020,7 +1015,7 @@ internal sealed class ReadProgramCompiler
 
     /// <summary>
     ///     Emits a read step that produces one value; a debug program surrounds it with the steps that record the value's
-    ///     byte range, as the interpreter records every scalar it reads in a debug parse.
+    ///     byte range, because a debug parse records every scalar it reads.
     /// </summary>
     /// <param name="builder">The program under construction.</param>
     /// <param name="op">The read step's operation.</param>
@@ -1042,9 +1037,9 @@ internal sealed class ReadProgramCompiler
     }
 
     /// <summary>
-    ///     Emits the capture of a member's value where the interpreter captures one: only a named member some expression
-    ///     can read, never a struct or byte-counted text, and an array only when it has elements (the interpreter
-    ///     captures per element or after a non-empty block).
+    ///     Emits the capture of a member's value where one is captured: only a named member some expression
+    ///     can read, never a struct or byte-counted text, and an array only when it has elements (an array is
+    ///     captured per element or after a non-empty block).
     /// </summary>
     /// <param name="builder">The program under construction.</param>
     /// <param name="index">The member's index.</param>

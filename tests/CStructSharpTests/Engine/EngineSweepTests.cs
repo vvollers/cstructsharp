@@ -94,8 +94,8 @@ public class EngineSweepTests
             SweepLayout source = variant.Source;
             byte[] data = variant.Data;
             IReadOnlyDictionary<string, int>? variables = source.Variables;
-            int readTotal = Smallest(budget => Succeeds(() => variant.Layout.Parse(data.AsSpan(), "rec", variables, EngineSelections.Reference(variant.BaseRead() with { MaxTotalBytesRead = budget, }))), (16 * data.Length) + 64);
-            int writeTotal = Smallest(budget => Succeeds(() => variant.Layout.Serialize("rec", variant.Value, variables, EngineSelections.Reference(new WriteOptions { MaxTotalBytesWritten = budget, }))), (16 * data.Length) + 64);
+            int readTotal = Smallest(budget => Succeeds(() => variant.Layout.Parse(data.AsSpan(), "rec", variables, variant.BaseRead() with { MaxTotalBytesRead = budget, })), (16 * data.Length) + 64);
+            int writeTotal = Smallest(budget => Succeeds(() => variant.Layout.Serialize("rec", variant.Value, variables, new WriteOptions { MaxTotalBytesWritten = budget, })), (16 * data.Length) + 64);
             foreach (ExecutionPath path in SweepPaths)
             {
                 for (long budget = 1; budget <= readTotal + 1; budget++)
@@ -530,13 +530,10 @@ public class EngineSweepTests
         return stream;
     }
 
-    /// <summary>
-    ///     Compares one operation through the harness, requiring the engine to run it exactly when the operation expects
-    ///     it (a whole-root read of an eligible root, <see cref="EngineExpectations"/>).
-    /// </summary>
+    /// <summary>Compares one operation's outcome with its golden outcome through the harness.</summary>
     /// <param name="operation">The operation.</param>
-    /// <param name="path">The execution path both sides use.</param>
-    /// <returns>The shared rendering.</returns>
+    /// <param name="path">The execution path the run uses.</param>
+    /// <returns>The rendering.</returns>
     private static string Same(DifferentialOperation operation, ExecutionPath path) => EngineDifferential.AssertSame(operation, path: path).Rendering;
 
     /// <summary>

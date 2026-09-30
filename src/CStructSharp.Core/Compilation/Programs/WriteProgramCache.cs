@@ -40,7 +40,7 @@ internal sealed class WriteProgramCache
     /// <summary>Returns the program of a composite, compiling it on first request.</summary>
     /// <param name="compilation">The layout the composite belongs to (the compilation that owns this cache).</param>
     /// <param name="composite">The composite.</param>
-    /// <returns>The program, or the reason the engine cannot write the composite yet.</returns>
+    /// <returns>The program, or the reason the engine cannot write the composite.</returns>
     public WriteProgramOutcome GetComposite(LayoutCompilation compilation, CompiledCompositeType composite)
     {
         if (this.composites.TryGetValue(composite, out WriteProgramOutcome? outcome))
@@ -57,7 +57,7 @@ internal sealed class WriteProgramCache
     /// </summary>
     /// <param name="compilation">The layout the root belongs to (the compilation that owns this cache).</param>
     /// <param name="rootName">The root's declared name, or a registered type spelling.</param>
-    /// <returns>The program, or the reason the engine cannot write the root yet.</returns>
+    /// <returns>The program, or the reason the engine cannot write the root.</returns>
     public WriteProgramOutcome GetRoot(LayoutCompilation compilation, string rootName)
     {
         if (Volatile.Read(ref this.lastRoot) is { } last && string.Equals(last.Name, rootName, StringComparison.Ordinal))
@@ -87,7 +87,7 @@ internal sealed class WriteProgramCache
     /// <param name="compilation">The layout the member belongs to (the compilation that owns this cache).</param>
     /// <param name="declared">The declared member.</param>
     /// <param name="peeled">The number of array dimensions the path's indexes select into.</param>
-    /// <returns>The program, or the reason the engine cannot write the member yet.</returns>
+    /// <returns>The program, or the reason the engine cannot write the member.</returns>
     public WriteProgramOutcome GetMember(LayoutCompilation compilation, CompiledField declared, int peeled)
     {
         var key = new MemberKey(declared, peeled, -1);
@@ -102,14 +102,14 @@ internal sealed class WriteProgramCache
     /// <summary>
     ///     Returns the program that writes the storage a pointer member's <c>.value</c> accessors reach - the pointed-to
     ///     value, or with levels left the pointer stored there - on its own, as an update writes it, compiling it on first
-    ///     request. The storage is described as the interpreter's resolver describes it: the pointer's view with
+    ///     request. The storage is described as the path resolver describes it: the pointer's view with
     ///     <paramref name="remaining"/> levels, a terminated string's codec for a pointed-to text value.
     /// </summary>
     /// <param name="compilation">The layout the member belongs to (the compilation that owns this cache).</param>
     /// <param name="declared">The declared pointer member.</param>
     /// <param name="peeled">The number of array dimensions the path's indexes select into.</param>
     /// <param name="remaining">The pointer levels left after the followed accessors.</param>
-    /// <returns>The program, or the reason the engine cannot write the storage yet.</returns>
+    /// <returns>The program, or the reason the engine cannot write the storage.</returns>
     public WriteProgramOutcome GetPointee(LayoutCompilation compilation, CompiledField declared, int peeled, int remaining)
     {
         var key = new MemberKey(declared, peeled, remaining);

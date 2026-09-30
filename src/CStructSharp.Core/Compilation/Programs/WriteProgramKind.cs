@@ -12,7 +12,7 @@ internal enum WriteProgramKind : byte
     /// <summary>
     ///     An anonymous struct member whose members are promoted into its parent: its values come from the parent's value
     ///     and it is not a nesting level, but it places its members from its own first byte and has its own conditional
-    ///     selection, scope and tail padding, as the interpreter writes it.
+    ///     selection, scope and tail padding.
     /// </summary>
     Promoted,
 

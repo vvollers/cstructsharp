@@ -1,6 +1,6 @@
 namespace CStructSharp.Compilation.Programs;
 
-/// <summary>How a pointer's final target is read (<see cref="ReadPointerTarget"/>), in the interpreter's order of checks.</summary>
+/// <summary>How a pointer's final target is read (<see cref="ReadPointerTarget"/>), listed in the order the kinds are checked.</summary>
 internal enum ReadPointerTargetKind : byte
 {
     /// <summary>An enum or flag value through its storage codec.</summary>

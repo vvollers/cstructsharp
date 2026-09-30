@@ -3,10 +3,10 @@ namespace CStructSharp.Writing;
 using CStructSharp.Compilation;
 
 /// <summary>
-///     Where a static write plan publishes the layout variables its fields supply: the interpreter's variable dictionary
-///     (<see cref="WriterStateCaptures"/>), the compiled engine's slots, or nowhere for a direct root write, which writes
-///     nothing afterwards (<see cref="NoStaticWriteCaptures"/>). The plan is executed once, generically over this sink, so
-///     every writer encodes a fixed struct with the same code.
+///     Where a static write plan publishes the layout variables its fields supply: the compiled engine's slots
+///     (<see cref="Engine.SlotWriteCaptures"/>), or nowhere for a direct root write, which writes nothing afterwards
+///     (<see cref="NoStaticWriteCaptures"/>). The plan is executed once, generically over this sink, so both encode a fixed
+///     struct with the same code.
 /// </summary>
 internal interface IStaticWriteCaptures
 {

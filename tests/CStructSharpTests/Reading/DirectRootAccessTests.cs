@@ -30,7 +30,7 @@ public class DirectRootAccessTests
 
     private static readonly string[] Roots = ["plain", "rec", "_rec"];
 
-    /// <summary>Parse, ReadValue and ReadValue&lt;T&gt; of a whole fixed root agree with the general reader on every input and limit.</summary>
+    /// <summary>Parse, ReadValue and ReadValue&lt;T&gt; of a whole fixed root agree with the general path on every input and limit.</summary>
     [TestMethod]
     public void DirectRead_MatchesGeneralReader_OnValuesFailuresAndContext()
     {
@@ -81,7 +81,7 @@ public class DirectRootAccessTests
         }
     }
 
-    /// <summary>Serialize into a span and into a new array agree with the general writer on bytes, counts and failures, and a failed write leaves the destination untouched.</summary>
+    /// <summary>Serialize into a span and into a new array agree with the general path on bytes, counts and failures, and a failed write leaves the destination untouched.</summary>
     [TestMethod]
     public void DirectWrite_MatchesGeneralWriter_OnBytesFailuresAndContext()
     {
@@ -266,7 +266,7 @@ public class DirectRootAccessTests
         Assert.AreEqual(1000, growable.ToArray().Length);
     }
 
-    /// <summary>Encodes a sample value of <paramref name="root"/> with the general writer.</summary>
+    /// <summary>Encodes a sample value of <paramref name="root"/> with the general path.</summary>
     private static byte[] SampleBytes(CStruct layout, string root)
     {
         StructValue value = root == "plain"

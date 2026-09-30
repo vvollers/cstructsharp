@@ -9,7 +9,7 @@ using CStructSharp.Values;
 ///     segment, bitfields over their whole storage unit, an enum's number, a record per character of a <c>char[N]</c>, one
 ///     record for byte-counted text, element paths of a struct array, a union's own record after its views, and a deferred
 ///     pointer's target after its struct's last member. Each case also runs through the differential harness, so the
-///     interpreter's golden outcomes record exactly the same.
+///     golden outcomes (<see cref="EngineGolden"/>) pin exactly these records.
 /// </summary>
 [TestClass]
 public class ReadEngineDebugTests
@@ -29,14 +29,14 @@ public class ReadEngineDebugTests
     private static readonly byte[] Data = [2, 0xAA, 0xC5, 2, (byte)'a', (byte)'b', 0, (byte)'h', (byte)'i', 0, 0, 7, 8, 0x34, 0x12, 17, 9, 0x55];
 
     /// <summary>
-    ///     The engine records every value in read order with the interpreter's ranges, paths, type spellings and values:
+    ///     The engine records every value in read order with its range, path, type spelling and value:
     ///     the pointer's own record at its address and its target's after the struct's last member.
     /// </summary>
     [TestMethod]
     public void DebugParse_RecordsEveryValueInReadOrder()
     {
         var layout = new CStruct(Layout, 1);
-        (StructValue value, IReadOnlyList<DebugData> debug) = layout.ParseWithDebug(Data, "rec", options: EngineSelections.EngineRequired());
+        (StructValue value, IReadOnlyList<DebugData> debug) = layout.ParseWithDebug(Data, "rec", options: new ReadOptions());
 
         string[] expected =
         [
@@ -70,14 +70,14 @@ public class ReadEngineDebugTests
         foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Sequence, EngineInput.ExposedStream, EngineInput.ChunkedStream1])
         {
             ReadOptions read = input == EngineInput.ExposedStream ? new ReadOptions { AddressingMode = PointerAddressingMode.Relative, Origin = EngineStreams.ExposedStart, } : new ReadOptions();
-            EngineDifferential.AssertSame(EngineOperations.ParseWithDebug(layout, Data, input, "rec", options: read), expectEngine: true);
-            EngineDifferential.AssertSame(EngineOperations.ReadValueWithDebug(layout, Data, input, "rec", options: read), expectEngine: true);
+            EngineDifferential.AssertSame(EngineOperations.ParseWithDebug(layout, Data, input, "rec", options: read));
+            EngineDifferential.AssertSame(EngineOperations.ReadValueWithDebug(layout, Data, input, "rec", options: read));
         }
     }
 
     /// <summary>
     ///     A debug parse returns no records when it fails, and the failure names the member, path and offset the
-    ///     interpreter's does, from every truncation of the input.
+    ///     golden outcomes record, from every truncation of the input.
     /// </summary>
     [TestMethod]
     public void DebugParse_FailsLikeTheInterpreter()
@@ -85,10 +85,10 @@ public class ReadEngineDebugTests
         var layout = new CStruct(Layout, 1);
         for (int length = 0; length < Data.Length; length++)
         {
-            EngineDifferential.AssertSame(EngineOperations.ParseWithDebug(layout, Data[..length], EngineInput.Span, "rec"), expectEngine: true);
-            EngineDifferential.AssertSame(EngineOperations.ReadValueWithDebug(layout, Data[..length], EngineInput.ChunkedStream3, "rec"), expectEngine: true);
+            EngineDifferential.AssertSame(EngineOperations.ParseWithDebug(layout, Data[..length], EngineInput.Span, "rec"));
+            EngineDifferential.AssertSame(EngineOperations.ReadValueWithDebug(layout, Data[..length], EngineInput.ChunkedStream3, "rec"));
         }
 
-        Assert.Throws<CStructReadException>(() => layout.ParseWithDebug(Data[..16], "rec", options: EngineSelections.EngineRequired()));
+        Assert.Throws<CStructReadException>(() => layout.ParseWithDebug(Data[..16], "rec", options: new ReadOptions()));
     }
 }

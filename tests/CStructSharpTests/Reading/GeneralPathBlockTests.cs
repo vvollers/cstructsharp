@@ -10,7 +10,7 @@ using CStructSharp.Values;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 /// <summary>
-///     Pins the block reads and writes inside the general reader and writer - a <c>char[n]</c> read and written as one
+///     Pins the block reads and writes inside the general path - a <c>char[n]</c> read and written as one
 ///     block, and a typed numeric array written as one block - against the element-by-element paths they replace
 ///     (the internal <see cref="ExecutionPath.GeneralOnly"/> option): the same values, bytes, destination contents, exception types,
 ///     messages, paths and offsets for every truncation, budget, capacity and invalid value.
@@ -164,7 +164,7 @@ public class GeneralPathBlockTests
         return copy;
     }
 
-    /// <summary>Runs a read with the caller's options and with only the general reader, and asserts the same outcome.</summary>
+    /// <summary>Runs a read with the caller's options and with only the general path, and asserts the same outcome.</summary>
     private static void AssertSameRead(Func<ReadOptions?, string> operation, ReadOptions? options, string label)
     {
         OperationOutcome block = OperationOutcome.Of(() => operation(options));
@@ -172,7 +172,7 @@ public class GeneralPathBlockTests
         OperationOutcome.AssertSame(element, block, label);
     }
 
-    /// <summary>Runs a write with the caller's options and with only the general writer, and asserts the same outcome.</summary>
+    /// <summary>Runs a write with the caller's options and with only the general path, and asserts the same outcome.</summary>
     private static void AssertSameWrite(Func<WriteOptions?, string> operation, WriteOptions? options, string label)
     {
         OperationOutcome block = OperationOutcome.Of(() => operation(options));

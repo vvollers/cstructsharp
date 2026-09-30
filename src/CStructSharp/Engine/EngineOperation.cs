@@ -1,9 +1,8 @@
 namespace CStructSharp.Engine;
 
 /// <summary>
-///     The kinds of public operation the engine selector decides for. Each names the general-path work one public
-///     call starts, so eligibility can differ per kind (a debug parse or an update may be declined while a plain root
-///     read is taken).
+///     The kinds of public operation the engine runs, as <see cref="EnginePrograms"/> counts them in an open test
+///     recording (<see cref="EngineDiagnostics"/>). Each names the general-path work one public call starts.
 /// </summary>
 internal enum EngineOperation
 {

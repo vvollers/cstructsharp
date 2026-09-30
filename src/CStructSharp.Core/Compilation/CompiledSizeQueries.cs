@@ -92,7 +92,7 @@ internal sealed class CompiledSizeQueries
             return checked((int)PlacementCursor.UnionEnd(largest, composite.Symbol.Alignment, this.aligned));
         }
 
-        // Drives the same cursor CStructAddressResolver/CStructReader/CStructWriter use, but sources each field's
+        // Drives the same cursor the read engine, write engine and TargetResolver use, but sources each field's
         // extent from pure arithmetic (GetCompiledFieldStorageSize) rather than a stream - this method must stay
         // callable with no Stream/operation context, both mid-compilation and from variables-only callers.
         var cursor = new CompositeFieldPlacementCursor(0, this.aligned, this.bitfieldPacking, this.highBitFirst);

@@ -5,15 +5,15 @@ using System.Collections.Immutable;
 
 /// <summary>
 ///     A composite's <see cref="CompiledConditionalScope"/> in slot terms, for the <see cref="ReadOpCode.EnterConditionalScope"/>
-///     and <see cref="ReadOpCode.CompleteMember"/> steps. The interpreter's <c>ConditionalVariableScope</c> keeps one
-///     local value per kept name; here each kept name is a <em>local</em> index with the slot it mirrors.
+///     and <see cref="ReadOpCode.CompleteMember"/> steps. Each kept name is a <em>local</em> index with the slot it
+///     mirrors, holding one local value per kept name.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         A kept name without a slot is dropped from every list: no expression of the layout can read it, so removing,
 ///         saving or restoring it is not observable. The executor holds one <see cref="SlotValue"/> per local for each
-///         composite instance, all <see cref="SlotValue.Undefined"/> at entry (the interpreter's "no saved value", which
-///         a restore turns into a removal).
+///         composite instance, all <see cref="SlotValue.Undefined"/> at entry ("no saved value", which a restore turns
+///         into a removal).
 ///     </para>
 ///     <para>Immutable and shared by every thread.</para>
 /// </remarks>

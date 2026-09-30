@@ -3,7 +3,7 @@ namespace CStructSharp.Tests;
 /// <summary>
 ///     Golden dumps of small read programs (<see cref="ReadProgramDump"/>), so a change to the step format or to what a
 ///     layout compiles to shows up as a readable diff. When a change is intended, replace the expected text with the
-///     dump the failure prints and check each changed step against the interpreter's behaviour.
+///     dump the failure prints and check each changed step against the golden outcomes and the layout's specification.
 /// </summary>
 [TestClass]
 public class ReadProgramDumpTests
@@ -523,5 +523,32 @@ public class ReadProgramDumpTests
     {
         string actual = ReadProgramDump.RenderRoot(layout, root);
         Assert.AreEqual(expected.ReplaceLineEndings("\n"), actual, "actual dump:\n" + actual);
+    }
+
+    /// <summary>
+    ///     A conditional member that occupies no bytes leaves the offset known whether it is selected or not, so the next
+    ///     member is placed by a fixed <c>Seek</c> rather than a run-time alignment, and the tail is known too.
+    /// </summary>
+    [TestMethod]
+    public void ZeroSizeConditionalMember_KeepsTheKnownOffset()
+    {
+        const string expected = """
+                                root r
+                                    0  ReadRootStruct               -            r
+
+                                struct r
+                                    0  EnterConditionalScope        -            clear k
+                                    1  ReadUInt8                    k            UInt8
+                                    2  CaptureInteger               k            -> k
+                                    3  CompleteMember               k            save [k] restore []
+                                    4  SelectArm                    -            group 0 ((k == 1)) arm 1, else -> 7
+                                    5  CheckFixedCount              z            count 0
+                                    6  ReadNumericArray             z            UInt8
+                                    7  Seek                         b            +1
+                                    8  ReadUInt16Le                 b            UInt16 le
+                                    9  FinishComposite              -            tail +0
+
+                                """;
+        AssertDump(expected, new CStruct("struct r { uint8 k; if (k == 1) { uint8 z[0]; } uint16 b; };", aligned: true), "r");
     }
 }

@@ -236,4 +236,9 @@ internal static class ReadFailures
     public static string CustomCodecLimit(string codecName, long limit)
         => string.Create(CultureInfo.InvariantCulture, $"Custom codec '{codecName}' needs more than MaxStringBytes ({limit}) for one value.");
 #endif
+
+    /// <summary>A member whose type has no value reader, such as a <c>typedef void</c> alias read on its own.</summary>
+    /// <param name="typeSpelling">The member's type as the layout spells it.</param>
+    /// <returns>The failure message.</returns>
+    public static string NoValueHandler(string typeSpelling) => "No handler for field type " + typeSpelling;
 }

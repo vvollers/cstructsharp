@@ -6,8 +6,7 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
 /// <summary>
-///     The debug records of one compiled-engine debug parse, identical to the ones the interpreter's operation state
-///     collects (<c>CStructOperationContext.RegisterDebugData</c>): one record per value read, in read order, holding the
+///     The debug records of one compiled-engine debug parse: one record per value read, in read order, holding the
 ///     value's byte range, path, type spelling and decoded value, and - when an update asks for it - the
 ///     conditional-layout trace.
 /// </summary>
@@ -63,8 +62,8 @@ internal sealed class DebugRecorder
     public long Start { get; set; }
 
     /// <summary>
-    ///     The path segment the interpreter gives a member: its name, <c>_</c> for unnamed padding (the name it was declared
-    ///     with), and an empty segment for an anonymous bitfield or an inline composite without a name.
+    ///     The path segment a debug record gives a member: its name, <c>_</c> for unnamed padding (the name it was
+    ///     declared with), and an empty segment for an anonymous bitfield or an inline composite without a name.
     /// </summary>
     /// <param name="field">The member.</param>
     /// <returns>The segment.</returns>
@@ -153,8 +152,8 @@ internal sealed class DebugRecorder
     }
 
     /// <summary>
-    ///     Returns what an update compares before and after its change, as the interpreter's layout capture does: each
-    ///     record's path and range, then the trace entries.
+    ///     Returns what an update compares before and after its change: each record's path and range, then the trace
+    ///     entries.
     /// </summary>
     /// <returns>The records' paths and ranges followed by the trace.</returns>
     public (string Path, long Start, long End)[] Layout()

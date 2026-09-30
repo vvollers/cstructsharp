@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using CStructSharp.Reading;
@@ -12,14 +13,14 @@ using CStructSharp.Values;
 
 /// <summary>
 ///     The direct read of a whole fixed-layout root from memory: <c>Parse(bytes, "header")</c> and
-///     <c>ReadValue&lt;T&gt;(bytes, "header")</c> for a struct whose every member has a fixed offset. The general reader
-///     would wrap the span in a stream, build the per-operation state, resolve the path, and then run the same
-///     <see cref="StaticReadPlan"/> over the same bytes; this path runs the plan straight over the span.
+///     <c>ReadValue&lt;T&gt;(bytes, "header")</c> for a struct whose every member has a fixed offset. The compiled engine
+///     would build the per-operation state and slots, resolve the path, and then run the same <see cref="StaticReadPlan"/>
+///     over the same bytes; this path runs the plan straight over the span.
 /// </summary>
 /// <remarks>
-///     The direct path is taken only when it cannot behave differently from the general reader: no caller variables,
+///     The direct path is taken only when it cannot behave differently from the compiled engine: no caller variables,
 ///     no debug records, valid limits that the plan is known to satisfy, and enough input. Every other call, and every
-///     input that would fail, goes through the general reader, so failures keep their messages and context.
+///     input that would fail, goes through the engine, so failures keep their messages and context.
 /// </remarks>
 public sealed partial class CStruct
 {
@@ -56,7 +57,7 @@ public sealed partial class CStruct
             return false;
         }
 
-        // The general reader validates the limits and observes a cancelled token before reading; leave both to it.
+        // The engine validates the limits and observes a cancelled token before reading; leave both to it.
         // Otherwise these are the preconditions under which it runs this plan for a root at offset zero.
         settings = ReadOperationSettings.SnapshotReadOptions(options);
         return settings.HasValidLimits && plan.Size <= source.Length && settings.CoversPlan(plan);
@@ -68,7 +69,7 @@ public sealed partial class CStruct
     /// <param name="variables">The caller's variables; any dictionary disqualifies the call.</param>
     /// <param name="options">The caller's read options.</param>
     /// <param name="result">The parsed root when the method returns <see langword="true"/>.</param>
-    /// <param name="consumed">The root's size, which is the stream position the general reader would end at.</param>
+    /// <param name="consumed">The root's size, which is the stream position the compiled engine would end at.</param>
     /// <returns><see langword="true"/> when the root was read directly.</returns>
     private bool TryReadFixedRoot(
         ReadOnlySpan<byte> source,
@@ -94,8 +95,107 @@ public sealed partial class CStruct
     private StructValue ReadPlannedRoot(ReadOnlySpan<byte> source, CompiledCompositeType composite, StaticReadPlan plan, ReadOperationSettings settings)
     {
         var value = new StructValue(composite.Shape);
-        this.ExecuteStaticPlan(plan, source[..plan.Size], value, null, settings.MaxArrayElements, settings.TrimFixedText, settings.CancellationToken);
+        ExecuteStaticPlan(plan, source[..plan.Size], value, settings.MaxArrayElements, settings.TrimFixedText, settings.CancellationToken);
         return value;
+    }
+
+    /// <summary>
+    ///     Runs a static read plan over exactly a composite's bytes into its value, as a direct read of a whole fixed root
+    ///     does: nothing is read afterwards, so no layout variable is published, and the caller checked the nesting limit.
+    ///     The token is observed on entering each composite, as the compiled engine observes it.
+    /// </summary>
+    /// <param name="plan">The plan of the composite being read.</param>
+    /// <param name="bytes">Exactly the composite's bytes.</param>
+    /// <param name="destination">The value receiving the members.</param>
+    /// <param name="maxArrayElements">The array element limit of the read.</param>
+    /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+    /// <param name="cancellationToken">The token observed on entering each composite.</param>
+    /// <exception cref="OperationCanceledException">The token is cancelled.</exception>
+    /// <exception cref="CStructReadLimitException">An array holds more elements than the limit.</exception>
+    private static void ExecuteStaticPlan(
+        StaticReadPlan plan,
+        ReadOnlySpan<byte> bytes,
+        StructValue destination,
+        int maxArrayElements,
+        bool trimFixedText,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        StaticReadOperation[] operations = plan.Operations;
+        for (int index = 0; index < operations.Length; index++)
+        {
+            StaticReadOperation operation = operations[index];
+            CompiledField field = operation.Field;
+            switch (operation.Kind)
+            {
+            case StaticReadKind.Numeric:
+                destination.SetFreshSlot(operation.Slot, field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size)));
+                break;
+
+            case StaticReadKind.Enum:
+                {
+                    object storage = field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size));
+                    destination.SetFreshSlot(operation.Slot, CreateEnumValue(field.Enum!, storage));
+                    break;
+                }
+
+            case StaticReadKind.CharArray:
+                {
+                    if (operation.Count > maxArrayElements)
+                    {
+                        throw new CStructReadLimitException(ReadFailures.ArrayLengthLimit(operation.Count, maxArrayElements));
+                    }
+
+                    string latin1 = ReadLatin1Characters(bytes.Slice(operation.Offset, operation.Count));
+                    destination.SetFreshSlot(operation.Slot, trimFixedText ? latin1.TrimEnd('\0') : latin1);
+                    break;
+                }
+
+            case StaticReadKind.NumericArray:
+                {
+                    if (operation.Count > maxArrayElements)
+                    {
+                        throw new CStructReadLimitException(ReadFailures.ArrayLengthLimit(operation.Count, maxArrayElements));
+                    }
+
+                    object values = operation.Count == 0
+                                        ? PrimitiveArrayReader.Empty(field.Codec)
+                                        : PrimitiveArrayReader.Decode(bytes.Slice(operation.Offset, operation.Count * field.Codec.Size), field.Codec, operation.Count);
+                    destination.SetFreshSlot(operation.Slot, values);
+                    break;
+                }
+
+            case StaticReadKind.Nested:
+                {
+                    var nested = new StructValue(operation.NestedComposite!.Shape);
+                    destination.SetFreshSlot(operation.Slot, nested);
+                    ExecuteStaticPlan(operation.NestedPlan!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), nested, maxArrayElements, trimFixedText, cancellationToken);
+                    break;
+                }
+
+            case StaticReadKind.NestedArray:
+                {
+                    if (operation.Count > maxArrayElements)
+                    {
+                        throw new CStructReadLimitException(ReadFailures.ArrayLengthLimit(operation.Count, maxArrayElements));
+                    }
+
+                    var elements = new List<object?>(operation.Count);
+                    destination.SetFreshSlot(operation.Slot, elements);
+                    StaticReadPlan nestedPlan = operation.NestedPlan!;
+                    StructShape nestedShape = operation.NestedComposite!.Shape;
+                    int elementOffset = operation.Offset;
+                    for (int element = 0; element < operation.Count; element++, elementOffset += nestedPlan.Size)
+                    {
+                        var nested = new StructValue(nestedShape);
+                        elements.Add(nested);
+                        ExecuteStaticPlan(nestedPlan, bytes.Slice(elementOffset, nestedPlan.Size), nested, maxArrayElements, trimFixedText, cancellationToken);
+                    }
+
+                    break;
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -144,7 +244,7 @@ public sealed partial class CStruct
         }
         catch (CStructException exception)
         {
-            // The general reader attaches the formatted path and the stream position after the root, its size.
+            // The engine attaches the formatted path and the stream position after the root, its size.
             exception.AttachContext(path, plan.Size);
             throw;
         }
@@ -188,14 +288,14 @@ public sealed partial class CStruct
         plan = null;
 
         // Only a declared name is a root selection; a dotted or indexed path, or anything the path parser would
-        // normalize or reject, takes the general reader.
+        // normalize or reject, takes the compiled engine.
         if (string.IsNullOrEmpty(path) || path.AsSpan().IndexOfAny(".[] \t\r\n") >= 0 ||
             !this.compiledModelQueries.TryGetCompiledDeclaration(path, out CStructElement? declaration))
         {
             return false;
         }
 
-        // The general reader stores the root under the struct's own name or the typedef alias; the direct result is
+        // The engine stores the root under the struct's own name or the typedef alias; the direct result is
         // that stored value, so the name must be the one the caller asked for.
         Struct? body = declaration switch
         {

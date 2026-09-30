@@ -49,7 +49,7 @@ public class WriterPaddingAndPromotionTests
         CollectionAssert.AreEqual(expected, layout.Serialize("root", data));
     }
 
-    /// <summary>Runtime-sized nested records publish full dotted count paths through the general writer.</summary>
+    /// <summary>Runtime-sized nested records publish full dotted count paths through the general path.</summary>
     /// <param name="enumCount">Whether the count is a layout enum rather than an ordinary byte.</param>
     [TestMethod]
     [DataRow(false)]

@@ -3,9 +3,9 @@ namespace CStructSharp.Compilation.Programs;
 using CStructSharp.Codecs;
 
 /// <summary>
-///     What a pointer field's final target is and how to read it, decided when the program is built: the order of the
-///     interpreter's target reader (a counted target, an enum, a struct or union, terminated text, then any other value
-///     through its codec). A <see cref="ReadOpCode.ReadPointer"/> or <see cref="ReadOpCode.ReadPointerArray"/> step names
+///     What a pointer field's final target is and how to read it, decided when the program is built, checking in this
+///     order: a counted target, an enum, a struct or union, terminated text, then any other value
+///     through its codec. A <see cref="ReadOpCode.ReadPointer"/> or <see cref="ReadOpCode.ReadPointerArray"/> step names
 ///     one (<see cref="ReadProgram.PointerTargets"/>), and a deferred pointer carries it until it is followed.
 /// </summary>
 /// <remarks>

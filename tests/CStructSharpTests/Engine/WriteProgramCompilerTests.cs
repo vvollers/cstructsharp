@@ -29,11 +29,11 @@ public class WriteProgramCompilerTests
     }
 
     /// <summary>
-    ///     A member's steps follow the interpreter's order - its value, its count, its placement, its encoding and its
+    ///     A member's steps follow a fixed order - its value, its count, its placement, its encoding and its
     ///     capture - and exactly those steps attribute a failure to the member; the tail padding belongs to none.
     /// </summary>
     [TestMethod]
-    public void MemberSteps_FollowTheInterpretersOrder_AndNoteOnlyTheMember()
+    public void MemberSteps_FollowTheWriteOrder_AndNoteOnlyTheMember()
     {
         WriteProgram program = Program("struct root { uint8 n; uint32 v[n]; };", "root", aligned: true);
         Assert.AreEqual(

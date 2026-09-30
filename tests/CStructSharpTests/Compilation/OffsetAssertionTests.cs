@@ -239,4 +239,20 @@ public class OffsetAssertionTests
 
         StringAssert.Contains(failure.Message, "The offset assertion for next is 2147483648, which does not fit in a signed 32-bit integer.");
     }
+
+    /// <summary>
+    ///     A member after one whose size the data decides has no build-time offset, so its assertion is checked when it is
+    ///     read - even where its distance from the dynamic member (1 byte past <c>a</c>, then <c>y</c>) equals the asserted
+    ///     number: here <c>x</c> is at offset 2, not 1.
+    /// </summary>
+    [TestMethod]
+    public void AssertionAfterDynamicMember_IsCheckedAgainstTheStructStart()
+    {
+        var cstruct = new CStruct("struct r { uint8 n; uint8 a[n]; uint8 y; uint8 x @1; };");
+
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => cstruct.Parse(new byte[] { 0, 5, 6, }, "r"));
+
+        StringAssert.StartsWith(failure.Message, "Field 'x' asserts offset 1 but computed offset is 2");
+        Assert.AreEqual("x", failure.Member);
+    }
 }

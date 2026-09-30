@@ -85,4 +85,36 @@ public class PrimitiveCodecIdentityTests
         Assert.AreEqual(0x07000080u, (uint)((IList<object?>)big.values)[7]!);
         CollectionAssert.AreEqual(((IList<object?>)explicitBig.values).ToArray(), ((IList<object?>)big.values).ToArray());
     }
+
+    /// <summary>
+    ///     Every canonical delegate pair round-trips: a sample value written by the writer reads back through the reader,
+    ///     and writing the value read produces the same bytes. The pairs are the catalog's runtime half, so every canonical
+    ///     name keeps a working reader and writer.
+    /// </summary>
+    [TestMethod]
+    public void CanonicalDelegatePairs_RoundTrip()
+    {
+        var layout = new CStruct("struct root { uint8 v; };");
+        foreach (string name in PrimitiveCatalog.CanonicalNames)
+        {
+            PrimitiveCodec codec = PrimitiveCodec.Resolve(name, true);
+            object sample = codec.Kind switch
+            {
+                PrimitiveCodecKind.Uuid or PrimitiveCodecKind.Guid => new Guid("00112233-4455-6677-8899-aabbccddeeff"),
+                PrimitiveCodecKind.Bool => true,
+                PrimitiveCodecKind.Char or PrimitiveCodecKind.WChar => 'a',
+                _ when codec.IsTerminatedText => "ab",
+                _ => 1,
+            };
+            using var first = new MemoryStream();
+            layout.Codecs.WriterOf(name)!(first, sample);
+            first.Position = 0;
+            object read = layout.Codecs.ReaderOf(name)!(first);
+            Assert.AreEqual(first.Length, first.Position, name + ": the reader consumes what the writer wrote");
+
+            using var second = new MemoryStream();
+            layout.Codecs.WriterOf(name)!(second, read);
+            CollectionAssert.AreEqual(first.ToArray(), second.ToArray(), name);
+        }
+    }
 }

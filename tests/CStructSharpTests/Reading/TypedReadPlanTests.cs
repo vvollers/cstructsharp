@@ -156,7 +156,7 @@ public class TypedReadPlanTests
         }
     }
 
-    /// <summary>Asserts that a typed read gives the same value or failure with the static plan and with only the general reader.</summary>
+    /// <summary>Asserts that a typed read gives the same value or failure with the static plan and with only the general path.</summary>
     private static void AssertSameOutcome<T>(CStruct layout, byte[] bytes, string path, ReadOptions? options, string label)
     {
         OperationOutcome fast = OperationOutcome.Of(() => layout.ReadValue<T>(bytes, path, options: options));

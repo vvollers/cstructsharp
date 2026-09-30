@@ -1,7 +1,7 @@
 namespace CStructSharp.Tests;
 
 /// <summary>
-///     One step of a scripted cursor sequence (<see cref="CursorStep"/>): each maps to the call the interpreter makes on
+///     One step of a scripted cursor sequence (<see cref="CursorStep"/>): each maps to a call on the reference
 ///     <c>ReadBudgetStream</c> and to the matching <c>IReadCursor</c> member. <c>A</c> and <c>B</c> are the step's operands.
 /// </summary>
 internal enum CursorOperation

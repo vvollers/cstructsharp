@@ -10,8 +10,9 @@
  * A mutant whose lines were changed or moved - within its file, or into another file of the mutation scope, as when
  * a method is extracted or a file is split into partial files - is looked up by its lines' text: when exactly one
  * place in the changed scope files has the same lines (indentation aside), it is carried there (columns shifted by
- * the new indentation) and always printed for review. A mutant found nowhere, or in several places, cannot be
- * carried: edit its entry by hand, or drop it.
+ * the new indentation) and always printed for review. The mutants of a deleted file are looked up the same way, since
+ * its code survives only where it was moved to. A mutant found nowhere, or in several places, cannot be carried: edit
+ * its entry by hand, or drop it.
  *
  *   node tools/quality/remap-mutation-equivalents.mjs --base <revision> [--context 15] [--write [--drop-blocked]]
  *
@@ -38,6 +39,11 @@ function sourceHash(text) {
 /** A working-tree source with normalized line endings. */
 function readCurrent(source) {
   return fs.readFileSync(path.join(repositoryRoot, source), "utf8").replaceAll("\r\n", "\n");
+}
+
+/** A working-tree source with normalized line endings, or null when the file was deleted. */
+function readCurrentOrNull(source) {
+  return fs.existsSync(path.join(repositoryRoot, source)) ? readCurrent(source) : null;
 }
 
 /** A source at `--base`, or null when the file did not exist there. */
@@ -156,8 +162,8 @@ await main(() => {
   let reviewed = 0;
   for (const entry of policy.files) {
     const source = mutationSource(entry.pattern);
-    const current = readCurrent(source);
-    if (sourceHash(current) === entry.sourceSha256) {
+    const current = readCurrentOrNull(source);
+    if (current !== null && sourceHash(current) === entry.sourceSha256) {
       carried.get(entry.pattern).push(...entry.mutants);
       continue;
     }
@@ -165,9 +171,10 @@ await main(() => {
     const old = readBase(source);
     assertCondition(old !== null && sourceHash(old) === entry.sourceSha256, `${entry.pattern}: the source at ${options.base} does not match the recorded hash; choose the reviewed revision.`);
     const oldLines = old.split("\n");
-    const newLines = current.split("\n");
-    const hunks = diffHunks(options.base, source);
-    console.log(`\n== ${entry.pattern}: ${entry.mutants.length} reviewed mutants, ${hunks.length} changed hunks`);
+    // A deleted file keeps none of its lines in place: every mutant is looked up where its code may have moved.
+    const newLines = current === null ? [] : current.split("\n");
+    const hunks = current === null ? [] : diffHunks(options.base, source);
+    console.log(`\n== ${entry.pattern}: ${entry.mutants.length} reviewed mutants, ${current === null ? "file deleted" : `${hunks.length} changed hunks`}`);
 
     for (const mutant of entry.mutants) {
       const { start, end } = mutant.location;
@@ -175,7 +182,7 @@ await main(() => {
       const newEnd = mapLine(end.line, hunks);
       const label = `${mutant.mutatorName} at ${entry.pattern}:${start.line}:${start.column} "${mutant.replacement.slice(0, 60)}"`;
       const mutatedLines = oldLines.slice(start.line - 1, end.line);
-      const identical = newStart !== null && newEnd !== null && newEnd - newStart === end.line - start.line &&
+      const identical = current !== null && newStart !== null && newEnd !== null && newEnd - newStart === end.line - start.line &&
                         mutatedLines.join("\n") === newLines.slice(newStart - 1, newEnd).join("\n");
       if (identical) {
         if (newStart !== start.line) moved++;

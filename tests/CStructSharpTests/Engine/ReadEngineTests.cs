@@ -9,8 +9,8 @@ using CStructSharp.Values;
 ///     truncation and byte budget, an offset assertion checked before its member is placed, cancellation only at the
 ///     documented boundaries (engine plan Appendix A), nesting limits with promoted members, the conditional variable
 ///     scope, qualified prefixes through static plans, and the member, path and offset a failure reports. Each case
-///     compares the engine with the interpreter's golden outcomes through the differential harness, and pins the expected
-///     outcome.
+///     compares the engine with the golden outcomes (<see cref="EngineGolden"/>) through the differential harness, and pins
+///     the expected outcome.
 /// </summary>
 [TestClass]
 public class ReadEngineTests
@@ -29,7 +29,7 @@ public class ReadEngineTests
         };
         """;
 
-    /// <summary>The execution paths each case runs under: the fast paths the interpreter takes, and the general path only.</summary>
+    /// <summary>The execution paths each case runs under: the fast paths in front of the engine, and the general path only.</summary>
     private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.GeneralOnly];
 
     /// <summary>Gets valid input for <see cref="CodecLayout"/>, field by field.</summary>
@@ -72,8 +72,8 @@ public class ReadEngineTests
     {
         var layout = new CStruct(CodecLayout);
         byte[] data = CodecData;
-        EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), expectEngine: true);
-        Assert.AreEqual(1, complete.Automatic.EngineRuns);
+        EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"));
+        Assert.AreEqual(1, complete.Diagnostics.Runs);
         StringAssert.Contains(complete.Rendering, "result.a = Int64 -5\n");
         StringAssert.Contains(complete.Rendering, "result.l4 = Int64 -300\n");
         StringAssert.Contains(complete.Rendering, "result.w = Char");
@@ -86,15 +86,15 @@ public class ReadEngineTests
             {
                 foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1, EngineInput.ChunkedStream7])
                 {
-                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), path: path);
                 }
             }
 
             for (long budget = 1; budget <= data.Length + 1; budget++)
             {
                 var read = new ReadOptions { MaxTotalBytesRead = budget, };
-                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: read), expectEngine: true, path: path);
-                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.ChunkedStream3, "rec", options: read), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: read), path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.ChunkedStream3, "rec", options: read), path: path);
             }
 
             // Invalid values fail inside their own codecs: an unterminated LEB128, invalid UTF-16, an invalid bounded text.
@@ -104,13 +104,13 @@ public class ReadEngineTests
             invalid[94] = 0x80;
             invalid[95] = 0x80;
             invalid[96] = 0x80;
-            EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, EngineInput.Span, "rec"), expectEngine: true, path: path);
+            EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, EngineInput.Span, "rec"), path: path);
             invalid = (byte[])data.Clone();
             invalid[127] = 0xD8;
-            EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, EngineInput.Stream, "rec"), path: path);
             invalid = (byte[])data.Clone();
             invalid[133] = 0xFF;
-            EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, EngineInput.Span, "rec"), expectEngine: true, path: path);
+            EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, EngineInput.Span, "rec"), path: path);
         }
     }
 
@@ -126,41 +126,40 @@ public class ReadEngineTests
         byte[] data = [7, .. Enumerable.Repeat((byte)'x', 300), 0, (byte)'h', 0, (byte)'i', 0, 0, 0, 9];
         foreach (ExecutionPath path in Paths)
         {
-            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), expectEngine: true, path: path);
+            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
             StringAssert.Contains(complete.Rendering, "result.w = String \"hi\"\n");
             StringAssert.Contains(complete.Rendering, "result.tail = Byte 9\n");
             for (long budget = 1; budget <= data.Length + 260; budget++)
             {
                 var read = new ReadOptions { MaxTotalBytesRead = budget, };
-                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: read), expectEngine: true, path: path);
-                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Stream, "rec", options: read), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: read), path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Stream, "rec", options: read), path: path);
             }
 
             foreach (int limit in (int[])[0, 4, 5, 6, 255, 256, 257, 300, 301, 302])
             {
                 var read = new ReadOptions { MaxStringBytes = limit, };
-                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: read), expectEngine: true, path: path);
-                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.ChunkedStream7, "rec", options: read), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: read), path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.ChunkedStream7, "rec", options: read), path: path);
             }
 
             for (int length = 0; length <= data.Length; length++)
             {
-                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], EngineInput.Span, "rec"), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], EngineInput.Span, "rec"), path: path);
             }
 
             byte[] invalid = (byte[])data.Clone();
             invalid[270] = 0xC3;
-            EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, EngineInput.Span, "rec"), expectEngine: true, path: path);
+            EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, EngineInput.Span, "rec"), path: path);
             invalid = (byte[])data.Clone();
             invalid[304] = 0xD8;
-            EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, EngineInput.Span, "rec"), expectEngine: true, path: path);
+            EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, EngineInput.Span, "rec"), path: path);
         }
     }
 
     /// <summary>
-    ///     A runtime-checked <c>@N</c> assertion is checked before its member is placed, as the interpreter's placement
-    ///     cursor does: a failing assertion leaves the position before the padding and names the member, and it wins over
-    ///     a start that lies past the input.
+    ///     A runtime-checked <c>@N</c> assertion is checked before its member is placed: a failing assertion leaves the
+    ///     position before the padding and names the member, and it wins over a start that lies past the input.
     /// </summary>
     [TestMethod]
     public void OffsetAssertion_IsCheckedBeforeTheMemberIsPlaced()
@@ -169,17 +168,17 @@ public class ReadEngineTests
         foreach (ExecutionPath path in Paths)
         {
             // n = 5 ends the array at 6, so x is aligned to 8 as asserted.
-            EngineComparison valid = EngineDifferential.AssertSame(EngineOperations.Parse(layout, [5, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0], EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            EngineComparison valid = EngineDifferential.AssertSame(EngineOperations.Parse(layout, [5, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0], EngineInput.Stream, "rec"), path: path);
             StringAssert.Contains(valid.Rendering, "result.x = UInt32 7\n");
 
             // n = 1 aligns x to 4, not 8: the stream stays after the array, before the padding.
-            EngineComparison misplaced = EngineDifferential.AssertSame(EngineOperations.Parse(layout, [1, 0, 0, 0, 7, 0, 0, 0], EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            EngineComparison misplaced = EngineDifferential.AssertSame(EngineOperations.Parse(layout, [1, 0, 0, 0, 7, 0, 0, 0], EngineInput.Stream, "rec"), path: path);
             StringAssert.Contains(misplaced.Rendering, "failure = failure CStructSharp.Diagnostics.CStructLayoutException\n");
             StringAssert.Contains(misplaced.Rendering, "failure.member = \"x\"\n");
             StringAssert.Contains(misplaced.Rendering, "position = 2\n");
 
             // The same misplaced start past the end of the input still reports the assertion.
-            EngineComparison past = EngineDifferential.AssertSame(EngineOperations.Parse(layout, [1, 0], EngineInput.Span, "rec"), expectEngine: true, path: path);
+            EngineComparison past = EngineDifferential.AssertSame(EngineOperations.Parse(layout, [1, 0], EngineInput.Span, "rec"), path: path);
             StringAssert.Contains(past.Rendering, "failure = failure CStructSharp.Diagnostics.CStructLayoutException\n");
         }
     }
@@ -187,7 +186,7 @@ public class ReadEngineTests
     /// <summary>
     ///     Cancellation is observed at struct entries (each element of a struct array is one) and never per primitive
     ///     (engine plan Appendix A, CONTRACT): a token cancelled while a struct's primitives are read ends the read at
-    ///     the next struct entry, at the same position as the interpreter; a read with no further struct entry completes.
+    ///     the next struct entry, at the position the golden outcomes record; a read with no further struct entry completes.
     /// </summary>
     [TestMethod]
     public void Cancellation_IsObservedAtStructEntriesOnly()
@@ -198,7 +197,7 @@ public class ReadEngineTests
         {
             for (int trigger = 0; trigger < data.Length; trigger++)
             {
-                EngineComparison comparison = EngineDifferential.AssertSame(CancelledParse(elements, data, trigger), expectEngine: true, path: path);
+                EngineComparison comparison = EngineDifferential.AssertSame(CancelledParse(elements, data, trigger), path: path);
 
                 // The next struct entry observes the token: the entry of the element after the one being read, or - on
                 // the fast path, which stages each element's bytes before entering it - the entry of the element whose
@@ -218,7 +217,7 @@ public class ReadEngineTests
         var primitives = new CStruct("struct rec { uint8 a; uint16 b; uint8 c; };");
         for (int trigger = 0; trigger < 4; trigger++)
         {
-            EngineComparison comparison = EngineDifferential.AssertSame(CancelledParse(primitives, [1, 2, 0, 3], trigger), expectEngine: true, path: ExecutionPath.GeneralOnly);
+            EngineComparison comparison = EngineDifferential.AssertSame(CancelledParse(primitives, [1, 2, 0, 3], trigger), path: ExecutionPath.GeneralOnly);
             StringAssert.Contains(comparison.Rendering, "result.c = Byte 3\n", "trigger " + trigger);
         }
     }
@@ -241,7 +240,6 @@ public class ReadEngineTests
                 {
                     EngineComparison comparison = EngineDifferential.AssertSame(
                         EngineOperations.Parse(layout, data, input, "rec", options: new ReadOptions { MaxNestingDepth = depth, }),
-                        expectEngine: true,
                         path: path);
                     if (depth < 3)
                     {
@@ -272,22 +270,22 @@ public class ReadEngineTests
         foreach (ExecutionPath path in Paths)
         {
             // inner.n = 3 leaks as n while i is read; the scope restores rec's n = 1 for d and e.
-            EngineComparison restored = EngineDifferential.AssertSame(EngineOperations.Parse(restoring, [1, 3, 7, 8, 9], EngineInput.Span, "rec"), expectEngine: true, path: path);
+            EngineComparison restored = EngineDifferential.AssertSame(EngineOperations.Parse(restoring, [1, 3, 7, 8, 9], EngineInput.Span, "rec"), path: path);
             StringAssert.Contains(restored.Rendering, "result.d = PrimitiveArray<Byte> [1]\n");
             StringAssert.Contains(restored.Rendering, "result.e = PrimitiveArray<Byte> [1]\n");
 
             // The caller's n is removed on entry, so with the branch not taken d's count is undefined.
-            EngineComparison removed = EngineDifferential.AssertSame(EngineOperations.Parse(removing, [0, 5, 5], EngineInput.Span, "rec", caller), expectEngine: true, path: path);
+            EngineComparison removed = EngineDifferential.AssertSame(EngineOperations.Parse(removing, [0, 5, 5], EngineInput.Span, "rec", caller), path: path);
             StringAssert.Contains(removed.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
             StringAssert.Contains(removed.Rendering, "Undefined expression identifier: n");
-            EngineComparison taken = EngineDifferential.AssertSame(EngineOperations.Parse(removing, [1, 2, 5, 6], EngineInput.Stream, "rec", caller), expectEngine: true, path: path);
+            EngineComparison taken = EngineDifferential.AssertSame(EngineOperations.Parse(removing, [1, 2, 5, 6], EngineInput.Stream, "rec", caller), path: path);
             StringAssert.Contains(taken.Rendering, "result.d = PrimitiveArray<Byte> [2]\n");
         }
     }
 
     /// <summary>
     ///     Captures in nested fixed structs, read through their static plans or member by member, are published under
-    ///     every qualified spelling the active prefix allows, exactly as the interpreter publishes them: <c>hdr.n</c> for
+    ///     every qualified spelling the active prefix allows: <c>hdr.n</c> for
     ///     the expression of <c>mid</c>, which holds <c>hdr</c>, and <c>m.hdr.k</c> for the expression of <c>rec</c>.
     /// </summary>
     [TestMethod]
@@ -297,7 +295,7 @@ public class ReadEngineTests
         byte[] data = [2, 1, 7, 8, 9, 4, 6];
         foreach (ExecutionPath path in Paths)
         {
-            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), expectEngine: true, path: path);
+            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
             StringAssert.Contains(complete.Rendering, "result.m.v = PrimitiveArray<Byte> [2]\n");
             StringAssert.Contains(complete.Rendering, "result.w = PrimitiveArray<Byte> [1]\n");
             StringAssert.Contains(complete.Rendering, "result.tail = Byte 4\n");
@@ -306,7 +304,7 @@ public class ReadEngineTests
             {
                 for (int length = 0; length <= data.Length; length++)
                 {
-                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), path: path);
                 }
             }
         }
@@ -325,10 +323,10 @@ public class ReadEngineTests
         {
             foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1])
             {
-                EngineDifferential.AssertSame(EngineOperations.Parse(layout, truncated, input, "rec"), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, truncated, input, "rec"), path: path);
             }
 
-            ReadOptions required = EngineSelections.EngineRequired() with { ExecutionPath = path, };
+            ReadOptions required = new ReadOptions() with { ExecutionPath = path, };
             CStructReadException failure = Assert.Throws<CStructReadException>(() => layout.Parse(truncated.AsSpan(), "rec", options: required));
             Assert.AreEqual("b", failure.Member);
             Assert.AreEqual("uint16", failure.MemberType);
@@ -350,12 +348,12 @@ public class ReadEngineTests
         {
             foreach (string root in (string[])["SIZE", "LIVE", "RATIO"])
             {
-                EngineDifferential.AssertSame(EngineOperations.Parse(layout, [1], EngineInput.Span, root, variables), expectEngine: true);
-                EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, [1], EngineInput.Stream, root, variables), expectEngine: true);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, [1], EngineInput.Span, root, variables));
+                EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, [1], EngineInput.Stream, root, variables));
             }
         }
 
-        EngineComparison live = EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, [1], EngineInput.Span, "LIVE"), expectEngine: true);
+        EngineComparison live = EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, [1], EngineInput.Span, "LIVE"));
         StringAssert.Contains(live.Rendering, "Undefined expression identifier: v");
     }
 
@@ -363,7 +361,8 @@ public class ReadEngineTests
     ///     Typedef, enum and type-spelling roots are read standalone - element by element for arrays, never through the
     ///     block paths a placed member takes - into their typed shapes, and a count past the element limit fails before
     ///     the read. <c>ReadValue</c> of a runtime-sized root takes the count first, as the path resolver does, and then
-    ///     reads the root. A spelling root counted by a caller's name has no slot for it and is left to the interpreter.
+    ///     reads the root. A spelling root counted by a caller's name has no slot for it, so its count reads the caller's
+    ///     value through the dictionary the slots stand for.
     /// </summary>
     [TestMethod]
     public void StandaloneRoots_ReadIdentically()
@@ -377,33 +376,33 @@ public class ReadEngineTests
             {
                 for (int length = 0; length <= data.Length; length++)
                 {
-                    EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data[..length], EngineInput.Span, root), expectEngine: true, path: path);
-                    EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data[..length], EngineInput.ChunkedStream3, root), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data[..length], EngineInput.Span, root), path: path);
+                    EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data[..length], EngineInput.ChunkedStream3, root), path: path);
                 }
             }
 
-            EngineComparison limited = EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Stream, "words", options: new ReadOptions { MaxArrayElements = 2, }), expectEngine: true, path: path);
+            EngineComparison limited = EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Stream, "words", options: new ReadOptions { MaxArrayElements = 2, }), path: path);
             StringAssert.Contains(limited.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadLimitException\n");
             StringAssert.Contains(limited.Rendering, "position = 0\n");
-            EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "points"), expectEngine: true, path: path);
-            EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Span, "uint16[2]"), expectEngine: true, path: path);
+            EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "points"), path: path);
+            EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Span, "uint16[2]"), path: path);
 
             // N is a definition, so the spelling root's count has a slot: the parse and the selected read both run, the read
             // taking the count (checked against the element limit) before it reads the root.
-            EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Stream, "uint8[N]", variables), expectEngine: true, path: path);
+            EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Stream, "uint8[N]", variables), path: path);
             foreach (int limit in (int[])[2, 3])
             {
                 var elementLimit = new ReadOptions { MaxArrayElements = limit, };
-                EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Span, "uint8[N]", variables, elementLimit), expectEngine: true, path: path);
-                EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.ChunkedStream3, "uint8[N]", variables, elementLimit), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Span, "uint8[N]", variables, elementLimit), path: path);
+                EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.ChunkedStream3, "uint8[N]", variables, elementLimit), path: path);
             }
 
             // M is only the caller's, and no expression of the layout names it: it has no slot, and the count reads the
             // caller's value through the dictionary the slots stand for.
             var callerOnly = new Dictionary<string, int> { ["M"] = 3, };
-            EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "uint8[M]", callerOnly), expectEngine: true, path: path);
-            EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.ChunkedStream3, "uint8[M]", callerOnly), expectEngine: true, path: path);
-            EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Span, "uint8[M]"), expectEngine: true, path: path);
+            EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "uint8[M]", callerOnly), path: path);
+            EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.ChunkedStream3, "uint8[M]", callerOnly), path: path);
+            EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Span, "uint8[M]"), path: path);
         }
     }
 
@@ -428,10 +427,10 @@ public class ReadEngineTests
                 var read = new ReadOptions { MaxTotalBytesRead = budget, };
                 foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1, EngineInput.ChunkedStream3])
                 {
-                    EngineComparison comparison = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, input, "rec", options: read), expectEngine: true, path: path);
+                    EngineComparison comparison = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, input, "rec", options: read), path: path);
                     string expected = budget < 16 ? "failure = failure CStructSharp.Diagnostics.CStructReadLimitException\n" : "result.tail = Byte 9\n";
                     StringAssert.Contains(comparison.Rendering, expected, "budget " + budget + " from " + input);
-                    EngineDifferential.AssertSame(EngineOperations.Parse(structs, entries, input, "rec", options: read), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(structs, entries, input, "rec", options: read), path: path);
                 }
             }
 
@@ -439,17 +438,16 @@ public class ReadEngineTests
             {
                 foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.ChunkedStream1])
                 {
-                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), expectEngine: true, path: path);
-                    EngineDifferential.AssertSame(EngineOperations.Parse(structs, entries[..Math.Min(length, entries.Length)], input, "rec"), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(structs, entries[..Math.Min(length, entries.Length)], input, "rec"), path: path);
                 }
             }
 
-            EngineComparison unterminated = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..5], EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            EngineComparison unterminated = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..5], EngineInput.Stream, "rec"), path: path);
             StringAssert.Contains(unterminated.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
             StringAssert.Contains(unterminated.Rendering, "position = 1\n");
             EngineComparison limited = EngineDifferential.AssertSame(
                 EngineOperations.Parse(layout, data, EngineInput.Stream, "rec", options: new ReadOptions { MaxArrayElements = 2, }),
-                expectEngine: true,
                 path: path);
             StringAssert.Contains(limited.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadLimitException\n");
             StringAssert.Contains(limited.Rendering, "position = 1\n");
@@ -480,34 +478,32 @@ public class ReadEngineTests
                     {
                         foreach (bool trim in (bool[])[true, false])
                         {
-                            EngineDifferential.AssertSame(EngineOperations.Parse(subject, bytes[..length], input, "rec", options: new ReadOptions { TrimFixedText = trim, }), expectEngine: true, path: path);
+                            EngineDifferential.AssertSame(EngineOperations.Parse(subject, bytes[..length], input, "rec", options: new ReadOptions { TrimFixedText = trim, }), path: path);
                         }
                     }
                 }
             }
 
-            EngineComparison remainder = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..6], EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            EngineComparison remainder = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..6], EngineInput.Stream, "rec"), path: path);
             StringAssert.Contains(remainder.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
             StringAssert.Contains(remainder.Rendering, "position = 1\n");
-            EngineComparison past = EngineDifferential.AssertSame(EngineOperations.Parse(aligned, words[..1], EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            EngineComparison past = EngineDifferential.AssertSame(EngineOperations.Parse(aligned, words[..1], EngineInput.Stream, "rec"), path: path);
             StringAssert.Contains(past.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
-            EngineComparison empty = EngineDifferential.AssertSame(EngineOperations.Parse(aligned, words[..4], EngineInput.Span, "rec"), expectEngine: true, path: path);
+            EngineComparison empty = EngineDifferential.AssertSame(EngineOperations.Parse(aligned, words[..4], EngineInput.Span, "rec"), path: path);
             StringAssert.Contains(empty.Rendering, "result.values = PrimitiveArray<UInt32> [0]\n");
             EngineComparison limited = EngineDifferential.AssertSame(
                 EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: new ReadOptions { MaxArrayElements = 2, }),
-                expectEngine: true,
                 path: path);
             StringAssert.Contains(limited.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadLimitException\n");
             EngineComparison trimmed = EngineDifferential.AssertSame(
                 EngineOperations.Parse(text, letters, EngineInput.Stream, "rec", options: new ReadOptions { TrimFixedText = true, }),
-                expectEngine: true,
                 path: path);
             StringAssert.Contains(trimmed.Rendering, "result.text = String \"hi\"\n");
         }
     }
 
     /// <summary>
-    ///     Caller-supplied codecs run through the same adapter as the interpreter's (engine plan Appendix A): from memory the
+    ///     Caller-supplied codecs run through one adapter on every path (engine plan Appendix A): from memory the
     ///     codec sees the whole remainder and the position advances, and is charged, before a failure - by the whole
     ///     remainder when the codec needs more data; from a stream through a window that doubles from 256 bytes up to
     ///     <see cref="ReadOptions.MaxStringBytes"/>. Every truncation, byte budget and string limit, and a codec that decodes
@@ -521,7 +517,7 @@ public class ReadEngineTests
         byte[] data = [7, 0x80, 0x01, .. Blob(600), 5, 6, 9];
         foreach (ExecutionPath path in Paths)
         {
-            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), expectEngine: true, path: path);
+            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
             StringAssert.Contains(complete.Rendering, "result.v = UInt32 128\n");
             StringAssert.Contains(complete.Rendering, "result.b = Int32 600\n");
             StringAssert.Contains(complete.Rendering, "result.tail = Byte 9\n");
@@ -529,28 +525,27 @@ public class ReadEngineTests
             {
                 for (int length = 0; length <= data.Length; length++)
                 {
-                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), path: path);
                 }
 
                 foreach (int limit in (int[])[255, 256, 257, 300, 512, 513, 601, 602, 603, 1024])
                 {
-                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, input, "rec", options: new ReadOptions { MaxStringBytes = limit, }), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, input, "rec", options: new ReadOptions { MaxStringBytes = limit, }), path: path);
                 }
             }
 
             for (long budget = 1; budget <= data.Length + 1; budget++)
             {
                 var read = new ReadOptions { MaxTotalBytesRead = budget, };
-                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: read), expectEngine: true, path: path);
-                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Stream, "rec", options: read), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: read), path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Stream, "rec", options: read), path: path);
             }
 
             // A value that continues past the input: memory charges the whole remainder, so a small budget fails first.
-            EngineComparison needsMore = EngineDifferential.AssertSame(EngineOperations.Parse(layout, [7, 0x80, 0x80, 0x80], EngineInput.Span, "rec"), expectEngine: true, path: path);
+            EngineComparison needsMore = EngineDifferential.AssertSame(EngineOperations.Parse(layout, [7, 0x80, 0x80, 0x80], EngineInput.Span, "rec"), path: path);
             StringAssert.Contains(needsMore.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
             EngineComparison charged = EngineDifferential.AssertSame(
                 EngineOperations.Parse(layout, [7, 0x80, 0x80, 0x80], EngineInput.Span, "rec", options: new ReadOptions { MaxTotalBytesRead = 3, }),
-                expectEngine: true,
                 path: path);
             StringAssert.Contains(charged.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadLimitException\n");
 
@@ -561,7 +556,6 @@ public class ReadEngineTests
                 {
                     EngineComparison comparison = EngineDifferential.AssertSame(
                         EngineOperations.Parse(layout, [7, 0x05, 0x00, 0x00, quirk, 6, 9], input, "rec"),
-                        expectEngine: true,
                         path: path);
                     StringAssert.Contains(comparison.Rendering, quirk == 0 ? "failure = failure System.InvalidOperationException\n" : "failure = failure CStructSharp.Diagnostics.CStructReadException\n", "quirk " + quirk);
                 }
@@ -571,7 +565,7 @@ public class ReadEngineTests
 
     /// <summary>
     ///     A caller's codec that declares four bytes and takes one still occupies four: every later member, nested struct
-    ///     and tail is at the offset the layout compiled, as the interpreter places it - packed and aligned, in the short and
+    ///     and tail is at the offset the layout compiled - packed and aligned, in the short and
     ///     the full form, at every truncation and byte budget.
     /// </summary>
     [TestMethod]
@@ -592,28 +586,28 @@ public class ReadEngineTests
         {
             foreach ((CStruct layout, byte[] data) in cases)
             {
-                EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), expectEngine: true, path: path);
+                EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
                 StringAssert.Contains(complete.Rendering, "result.x = UInt16 4660\n");
                 StringAssert.Contains(complete.Rendering, "result.y = UInt16 22136\n");
                 for (int length = 0; length <= data.Length; length++)
                 {
                     foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1])
                     {
-                        EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), expectEngine: true, path: path);
+                        EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), path: path);
                     }
                 }
 
                 for (long budget = 1; budget <= data.Length + 1; budget++)
                 {
                     var read = new ReadOptions { MaxTotalBytesRead = budget, };
-                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: read), expectEngine: true, path: path);
-                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Stream, "rec", options: read), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: read), path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Stream, "rec", options: read), path: path);
                 }
 
                 byte[] rejected = (byte[])data.Clone();
                 rejected[0] = FixedWordCodec.Invalid;
-                EngineDifferential.AssertSame(EngineOperations.Parse(layout, rejected, EngineInput.Span, "rec"), expectEngine: true, path: path);
-                EngineDifferential.AssertSame(EngineOperations.Parse(layout, rejected, EngineInput.Stream, "rec"), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, rejected, EngineInput.Span, "rec"), path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, rejected, EngineInput.Stream, "rec"), path: path);
             }
         }
     }
@@ -632,7 +626,7 @@ public class ReadEngineTests
         var roots = new CStruct("typedef uint8 table[2][3]; typedef char rows[2][3];");
         foreach (ExecutionPath path in Paths)
         {
-            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), expectEngine: true, path: path);
+            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
             StringAssert.Contains(complete.Rendering, "result.grid = List<Object> [2]\n");
             StringAssert.Contains(complete.Rendering, "result.grid[1] = List<Object> [3]\n");
             StringAssert.Contains(complete.Rendering, "result.names[1] = String \"bc\"\n");
@@ -641,28 +635,28 @@ public class ReadEngineTests
             {
                 foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1])
                 {
-                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), path: path);
                 }
             }
 
             for (long budget = 1; budget <= data.Length + 1; budget++)
             {
                 var read = new ReadOptions { MaxTotalBytesRead = budget, };
-                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: read), expectEngine: true, path: path);
-                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.ChunkedStream3, "rec", options: read), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: read), path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.ChunkedStream3, "rec", options: read), path: path);
             }
 
             // The limit applies to all 6 + 4 + 4 elements of a table, not its outermost count.
             foreach (int limit in (int[])[1, 2, 3, 4, 5, 6])
             {
-                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: new ReadOptions { MaxArrayElements = limit, }), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: new ReadOptions { MaxArrayElements = limit, }), path: path);
             }
 
             // A lone surrogate in the second row fails once every character was read, after the names.
             byte[] invalid = (byte[])data.Clone();
             invalid[17] = 0x00;
             invalid[18] = 0xD8;
-            EngineComparison surrogate = EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            EngineComparison surrogate = EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, EngineInput.Stream, "rec"), path: path);
             StringAssert.Contains(surrogate.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
             StringAssert.Contains(surrogate.Rendering, "position = 21\n");
 
@@ -670,17 +664,17 @@ public class ReadEngineTests
             {
                 for (int length = 0; length <= 6; length++)
                 {
-                    EngineDifferential.AssertSame(EngineOperations.Parse(roots, data[1..(1 + length)], EngineInput.Span, root), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(roots, data[1..(1 + length)], EngineInput.Span, root), path: path);
                 }
 
                 // The outermost count (2) passes a limit of 2 before the read's total (6) fails it.
                 foreach (int limit in (int[])[1, 2, 5, 6])
                 {
                     var limited = new ReadOptions { MaxArrayElements = limit, };
-                    EngineDifferential.AssertSame(EngineOperations.ReadValue(roots, data[1..7], EngineInput.Span, root, options: limited), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.ReadValue(roots, data[1..7], EngineInput.Span, root, options: limited), path: path);
                 }
 
-                EngineDifferential.AssertSame(EngineOperations.ReadValue(roots, data[1..7], EngineInput.Span, root), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.ReadValue(roots, data[1..7], EngineInput.Span, root), path: path);
             }
         }
     }
@@ -704,19 +698,18 @@ public class ReadEngineTests
             {
                 foreach (long budget in (long[])[65536, 65537, 65538, 90000, 90001, 90002])
                 {
-                    EngineDifferential.AssertSame(EngineOperations.Parse(table, big, input, "rec", options: new ReadOptions { MaxTotalBytesRead = budget, }), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(table, big, input, "rec", options: new ReadOptions { MaxTotalBytesRead = budget, }), path: path);
                 }
 
                 foreach (int length in (int[])[65536, 65537, 65538, 90000, 90001])
                 {
-                    EngineDifferential.AssertSame(EngineOperations.Parse(table, big[..length], input, "rec"), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(table, big[..length], input, "rec"), path: path);
                 }
 
                 foreach (long budget in (long[])[Scanned, Scanned + 1, Scanned + 65536, Scanned + 65537, Scanned + 70000, Scanned + 70001, Scanned + 70002])
                 {
                     EngineComparison comparison = EngineDifferential.AssertSame(
                         EngineOperations.Parse(terminated, list, input, "rec", options: new ReadOptions { MaxTotalBytesRead = budget, }),
-                        expectEngine: true,
                         path: path);
                     StringAssert.Contains(comparison.Rendering, budget < Scanned + 70001 ? "CStructReadLimitException" : "result.tail = Byte 9\n", "budget " + budget);
                 }
@@ -724,9 +717,9 @@ public class ReadEngineTests
 
             // Cancelled inside the first block, the check before the second block ends the read; inside the second, the
             // read completes, because no block, struct entry or string chunk follows.
-            EngineComparison first = EngineDifferential.AssertSame(CancelledParse(table, big, 10), expectEngine: true, path: path);
+            EngineComparison first = EngineDifferential.AssertSame(CancelledParse(table, big, 10), path: path);
             StringAssert.Contains(first.Rendering, "failure = failure System.OperationCanceledException\n");
-            EngineComparison second = EngineDifferential.AssertSame(CancelledParse(table, big, 70000), expectEngine: true, path: path);
+            EngineComparison second = EngineDifferential.AssertSame(CancelledParse(table, big, 70000), path: path);
             StringAssert.Contains(second.Rendering, "result.tail = Byte 9\n");
         }
     }
@@ -746,16 +739,16 @@ public class ReadEngineTests
         {
             foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1])
             {
-                EngineComparison valid = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, input, "rec"), expectEngine: true, path: path);
+                EngineComparison valid = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, input, "rec"), path: path);
                 StringAssert.Contains(valid.Rendering, "result.tail = Byte 9\n");
-                EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, input, "rec"), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, input, "rec"), path: path);
                 for (int length = 0; length <= data.Length; length++)
                 {
-                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), path: path);
                 }
             }
 
-            EngineComparison failed = EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            EngineComparison failed = EngineDifferential.AssertSame(EngineOperations.Parse(layout, invalid, EngineInput.Stream, "rec"), path: path);
             StringAssert.Contains(failed.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
             StringAssert.Contains(failed.Rendering, "failure.member = \"text\"\n");
             StringAssert.Contains(failed.Rendering, "position = 7\n");
@@ -787,22 +780,21 @@ public class ReadEngineTests
                 {
                     EngineComparison comparison = EngineDifferential.AssertSame(
                         EngineOperations.Parse(layout, data, input, "rec", options: new ReadOptions { MaxTotalBytesRead = budget, }),
-                        expectEngine: true,
                         path: path);
                     StringAssert.Contains(comparison.Rendering, budget < 7 ? "CStructReadLimitException" : "result.tail = Byte 9\n", "budget " + budget);
                 }
             }
 
-            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), expectEngine: true, path: path);
+            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
             StringAssert.Contains(complete.Rendering, "result.b = Int32 2\n");
             StringAssert.Contains(complete.Rendering, "result.c = Int32 67\n");
 
             // a leaves bits of its unit, so the position is back at 0 when b's aligned start (4) lies past the input.
-            EngineComparison rewound = EngineDifferential.AssertSame(EngineOperations.Parse(aligned, [0x05], EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            EngineComparison rewound = EngineDifferential.AssertSame(EngineOperations.Parse(aligned, [0x05], EngineInput.Stream, "rec"), path: path);
             StringAssert.Contains(rewound.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
             StringAssert.Contains(rewound.Rendering, "position = 0\n");
 
-            EngineComparison unsigned = EngineDifferential.AssertSame(EngineOperations.Parse(signs, [0xFF, 0x01, 0x02, 0x03, 0x04, 0xFF, 0, 0, 0], EngineInput.Span, "rec"), expectEngine: true, path: path);
+            EngineComparison unsigned = EngineDifferential.AssertSame(EngineOperations.Parse(signs, [0xFF, 0x01, 0x02, 0x03, 0x04, 0xFF, 0, 0, 0], EngineInput.Span, "rec"), path: path);
             StringAssert.Contains(unsigned.Rendering, "result.s = Int32 15\n");
             StringAssert.Contains(unsigned.Rendering, "result.big = UInt64 ");
             foreach ((CStruct subject, byte[] bytes) in ((CStruct, byte[])[])[(layout, data), (window, [0xFF, 0x81, 0x02, 0x09]), (msvc, [0x05, 0x34, 0x12, 0x09]), (signs, [0xFF, 0x01, 0x02, 0x03, 0x04, 0xFF, 0, 0, 0])])
@@ -811,13 +803,13 @@ public class ReadEngineTests
                 {
                     foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1])
                     {
-                        EngineDifferential.AssertSame(EngineOperations.Parse(subject, bytes[..length], input, "rec"), expectEngine: true, path: path);
+                        EngineDifferential.AssertSame(EngineOperations.Parse(subject, bytes[..length], input, "rec"), path: path);
                     }
                 }
 
                 for (long budget = 1; budget <= (bytes.Length * 3) + 1; budget++)
                 {
-                    EngineDifferential.AssertSame(EngineOperations.Parse(subject, bytes, EngineInput.Span, "rec", options: new ReadOptions { MaxTotalBytesRead = budget, }), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(subject, bytes, EngineInput.Span, "rec", options: new ReadOptions { MaxTotalBytesRead = budget, }), path: path);
                 }
             }
         }
@@ -839,7 +831,7 @@ public class ReadEngineTests
         var hidden = new CStruct("union w { uint8 m; }; struct rec { w value; uint8 items[m]; };");
         foreach (ExecutionPath path in Paths)
         {
-            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), expectEngine: true, path: path);
+            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
             StringAssert.Contains(complete.Rendering, "result.items = PrimitiveArray<Byte> [2]\n");
             StringAssert.Contains(complete.Rendering, "PrimitiveArray<Byte> [3]\n");
             for (long budget = 1; budget <= 14; budget++)
@@ -848,7 +840,6 @@ public class ReadEngineTests
                 {
                     EngineComparison comparison = EngineDifferential.AssertSame(
                         EngineOperations.Parse(layout, data, input, "rec", options: new ReadOptions { MaxTotalBytesRead = budget, }),
-                        expectEngine: true,
                         path: path);
                     StringAssert.Contains(comparison.Rendering, budget < 13 ? "CStructReadLimitException" : "result.tail = Byte 9\n", "budget " + budget);
                 }
@@ -858,26 +849,24 @@ public class ReadEngineTests
             {
                 foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream3])
                 {
-                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), path: path);
                 }
             }
 
-            EngineComparison failed = EngineDifferential.AssertSame(EngineOperations.Parse(invalid, [1, 0x00, 0xD8, 0x41, 0x00, 9], EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            EngineComparison failed = EngineDifferential.AssertSame(EngineOperations.Parse(invalid, [1, 0x00, 0xD8, 0x41, 0x00, 9], EngineInput.Stream, "rec"), path: path);
             StringAssert.Contains(failed.Rendering, "failure.member = \"s\"\n");
             StringAssert.Contains(failed.Rendering, "position = 5\n");
 
             EngineComparison nested = EngineDifferential.AssertSame(
                 EngineOperations.Parse(layout, data, EngineInput.Stream, "rec", options: new ReadOptions { MaxNestingDepth = 1, }),
-                expectEngine: true,
                 path: path);
             StringAssert.Contains(nested.Rendering, "CStructReadLimitException");
             StringAssert.Contains(nested.Rendering, "position = 1\n");
             EngineComparison flat = EngineDifferential.AssertSame(
                 EngineOperations.Parse(promoted, [1, 2, 3, 9], EngineInput.Span, "rec", options: new ReadOptions { MaxNestingDepth = 1, }),
-                expectEngine: true,
                 path: path);
             StringAssert.Contains(flat.Rendering, "result.tail = Byte 9\n");
-            EngineComparison invisible = EngineDifferential.AssertSame(EngineOperations.Parse(hidden, [1, 5], EngineInput.Span, "rec"), expectEngine: true, path: path);
+            EngineComparison invisible = EngineDifferential.AssertSame(EngineOperations.Parse(hidden, [1, 5], EngineInput.Span, "rec"), path: path);
             StringAssert.Contains(invisible.Rendering, "Undefined expression identifier: m");
         }
     }
@@ -898,7 +887,7 @@ public class ReadEngineTests
         var countFirst = new CStruct("struct rec { uint8 *c @count(n); uint8 n; };", 1);
         foreach (ExecutionPath path in Paths)
         {
-            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), expectEngine: true, path: path);
+            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
             StringAssert.Contains(complete.Rendering, "result.tail = Byte 9\n");
             for (long budget = 1; budget <= 10; budget++)
             {
@@ -906,7 +895,6 @@ public class ReadEngineTests
                 {
                     EngineComparison comparison = EngineDifferential.AssertSame(
                         EngineOperations.Parse(layout, data, input, "rec", options: new ReadOptions { MaxTotalBytesRead = budget, }),
-                        expectEngine: true,
                         path: path);
                     StringAssert.Contains(comparison.Rendering, budget < 9 ? "CStructReadLimitException" : "result.tail = Byte 9\n", "budget " + budget);
                 }
@@ -916,24 +904,23 @@ public class ReadEngineTests
             {
                 foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream3])
                 {
-                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data[..length], input, "rec"), path: path);
                 }
             }
 
             // a and b both point outside the input: a, declared first, fails first, after its own address.
-            EngineComparison outside = EngineDifferential.AssertSame(EngineOperations.Parse(layout, [0x20, 0x21, 0x05, 0x00, 0x09, 0xA1], EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            EngineComparison outside = EngineDifferential.AssertSame(EngineOperations.Parse(layout, [0x20, 0x21, 0x05, 0x00, 0x09, 0xA1], EngineInput.Stream, "rec"), path: path);
             StringAssert.Contains(outside.Rendering, "failure.member = \"a\"\n");
             StringAssert.Contains(outside.Rendering, "position = 1\n");
 
             // w's two-byte target starts at the last byte: the read fails, and the position is back after w's address.
-            EngineComparison truncated = EngineDifferential.AssertSame(EngineOperations.Parse(wide, [0x03, 0x03, 0x09, 0x07], EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            EngineComparison truncated = EngineDifferential.AssertSame(EngineOperations.Parse(wide, [0x03, 0x03, 0x09, 0x07], EngineInput.Stream, "rec"), path: path);
             StringAssert.Contains(truncated.Rendering, "failure.member = \"w\"\n");
             StringAssert.Contains(truncated.Rendering, "position = 2\n");
 
             // The deferred count is evaluated before the depth limit is checked.
             EngineComparison counted = EngineDifferential.AssertSame(
                 EngineOperations.Parse(countFirst, [0x02, 0x02, 0xA1, 0xA2], EngineInput.Span, "rec", options: new ReadOptions { MaxArrayElements = 1, MaxPointerDepth = 0, }),
-                expectEngine: true,
                 path: path);
             StringAssert.Contains(counted.Rendering, "failure.member = \"c\"\n");
             StringAssert.Contains(counted.Rendering, ReadFailures.ArrayLengthLimit(2, 1).TrimEnd('.'));
@@ -943,8 +930,8 @@ public class ReadEngineTests
                 foreach ((PointerAddressingMode mode, long origin) in ((PointerAddressingMode, long)[])[(PointerAddressingMode.Absolute, 0), (PointerAddressingMode.Relative, 0), (PointerAddressingMode.Relative, 2), (PointerAddressingMode.Relative, long.MaxValue)])
                 {
                     var read = new ReadOptions { DereferencePointers = dereference, AddressingMode = mode, Origin = origin, };
-                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: read), expectEngine: true, path: path);
-                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.ChunkedStream1, "rec", options: read), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: read), path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.ChunkedStream1, "rec", options: read), path: path);
                 }
             }
         }
@@ -965,10 +952,10 @@ public class ReadEngineTests
         byte[] rootData = [0x01, 0x02, 0x07];
         foreach (ExecutionPath path in Paths)
         {
-            EngineComparison fine = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), expectEngine: true, path: path);
+            EngineComparison fine = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
             StringAssert.Contains(fine.Rendering, "result.again.next");
 
-            EngineComparison cycle = EngineDifferential.AssertSame(EngineOperations.Parse(layout, [0x01, 0x04, 0x02, 0x00, 0x03, 0x04], EngineInput.Stream, "rec"), expectEngine: true, path: path);
+            EngineComparison cycle = EngineDifferential.AssertSame(EngineOperations.Parse(layout, [0x01, 0x04, 0x02, 0x00, 0x03, 0x04], EngineInput.Stream, "rec"), path: path);
             StringAssert.Contains(cycle.Rendering, "Cyclic pointer target");
             StringAssert.Contains(cycle.Rendering, "failure.member = \"next\"\n");
             StringAssert.Contains(cycle.Rendering, "position = 2\n");
@@ -977,14 +964,14 @@ public class ReadEngineTests
             {
                 foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream])
                 {
-                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, input, "rec", options: new ReadOptions { MaxPointerDepth = depth, }), expectEngine: true, path: path);
-                    EngineDifferential.AssertSame(EngineOperations.Parse(roots, rootData, input, "byte_ptr_ptr", options: new ReadOptions { MaxPointerDepth = depth, }), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, input, "rec", options: new ReadOptions { MaxPointerDepth = depth, }), path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(roots, rootData, input, "byte_ptr_ptr", options: new ReadOptions { MaxPointerDepth = depth, }), path: path);
                 }
             }
 
             for (int length = 0; length <= 3; length++)
             {
-                EngineDifferential.AssertSame(EngineOperations.Parse(roots, rootData[..length], EngineInput.Span, "byte_ptr"), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(roots, rootData[..length], EngineInput.Span, "byte_ptr"), path: path);
             }
         }
     }
@@ -1001,19 +988,19 @@ public class ReadEngineTests
         byte[] data = [0x05, 0x07, 0x07, 0x07, 0x02, (byte)'o', 0x00, 0xA1, 0xA2];
         foreach (ExecutionPath path in Paths)
         {
-            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), expectEngine: true, path: path);
+            EngineComparison complete = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
             StringAssert.Contains(complete.Rendering, "\"o\"");
             foreach (long? limit in (long?[])[null, 0, 1, 2, 3])
             {
                 foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.ChunkedStream1])
                 {
-                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, input, "rec", options: new ReadOptions { MaxPointerTargetBytes = limit, }), expectEngine: true, path: path);
+                    EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, input, "rec", options: new ReadOptions { MaxPointerTargetBytes = limit, }), path: path);
                 }
             }
 
             for (long budget = 1; budget <= 16; budget++)
             {
-                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Stream, "rec", options: new ReadOptions { MaxTotalBytesRead = budget, }), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Stream, "rec", options: new ReadOptions { MaxTotalBytesRead = budget, }), path: path);
             }
         }
     }
@@ -1035,13 +1022,13 @@ public class ReadEngineTests
         {
             foreach (ExecutionPath path in Paths)
             {
-                EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Span, spelled, variables), expectEngine: true, path: path);
-                EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Stream, spelled, variables), expectEngine: true, path: path);
-                EngineDifferential.AssertSame(EngineOperations.ReadValueWithDebug(layout, data, EngineInput.Span, spelled, variables), expectEngine: true, path: path);
-                EngineDifferential.AssertSame(EngineOperations.GetArrayLength(layout, data, EngineInput.Span, spelled, variables), expectEngine: true, path: path);
-                EngineDifferential.AssertSame(EngineOperations.Serialize(layout, spelled, value, variables), expectEngine: true, path: path);
-                EngineDifferential.AssertSame(EngineOperations.Write(layout, [0xAA, 0xAA], 1, spelled, value, variables), expectEngine: true, path: path);
-                EngineDifferential.AssertSame(EngineOperations.Update(layout, data, EngineInput.Span, spelled, value, variables), expectEngine: true, path: path);
+                EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Span, spelled, variables), path: path);
+                EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Stream, spelled, variables), path: path);
+                EngineDifferential.AssertSame(EngineOperations.ReadValueWithDebug(layout, data, EngineInput.Span, spelled, variables), path: path);
+                EngineDifferential.AssertSame(EngineOperations.GetArrayLength(layout, data, EngineInput.Span, spelled, variables), path: path);
+                EngineDifferential.AssertSame(EngineOperations.Serialize(layout, spelled, value, variables), path: path);
+                EngineDifferential.AssertSame(EngineOperations.Write(layout, [0xAA, 0xAA], 1, spelled, value, variables), path: path);
+                EngineDifferential.AssertSame(EngineOperations.Update(layout, data, EngineInput.Span, spelled, value, variables), path: path);
             }
         }
     }
@@ -1070,8 +1057,7 @@ public class ReadEngineTests
                 ReadOptions read = side.Read(new ReadOptions { CancellationToken = cancellation.Token, });
                 output.Capture("failure", () => output.Value("result", layout.Parse(stream, "rec", options: read)));
                 output.Line("position", stream.Position.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            },
-            true);
+            });
     }
 
     /// <summary>A seekable stream that hides its buffer and cancels a token when a read first covers a given byte.</summary>

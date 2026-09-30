@@ -2,17 +2,18 @@ namespace CStructSharp.Compilation.Programs;
 
 using System.Collections.Generic;
 using CStructSharp.Codecs;
+using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
 using CStructSharp.Syntax;
 using CstructEnum = CStructSharp.Syntax.Enum;
 
 /// <summary>
-///     Translates a compiled struct, union or root into a <see cref="WriteProgram"/> that writes exactly what the
-///     interpreter's writer writes, in the same order, with the same checks - or records why it cannot
-///     (<see cref="WriteProgramOutcome.Reason"/>), naming the innermost struct and member.
+///     Translates a compiled struct, union or root into a <see cref="WriteProgram"/> that writes each member of the
+///     layout in declaration order with its checks - or records why it cannot (<see cref="WriteProgramOutcome.Reason"/>),
+///     naming the innermost struct and member.
 /// </summary>
 /// <remarks>
-///     <para>Per member of a struct, in the interpreter's order (<c>WriteStruct</c> and <c>WriteFieldValue</c>):</para>
+///     <para>Per member of a struct, in this order:</para>
 ///     <list type="number">
 ///         <item>one <see cref="WriteOpCode.SelectArm"/> per <c>if</c>/<c>switch</c> arm the member sits in, outermost first;
 ///         an unselected member rejects a supplied value for any name it makes visible;</item>
@@ -28,24 +29,21 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 ///     <para>
 ///         The composite ends with its tail padding. A named nested struct or union refers to its own cached program; an
 ///         anonymous promoted struct is compiled into a program of its own that reads its members from the parent's value,
-///         because the interpreter writes it through a call of its own with the parent's data. A union's program has one
+///         because it places its members from its own first byte while their values come from the parent's data. A union's program has one
 ///         standalone segment per member, written from the union's first byte, of which the executor runs the selected one.
 ///     </para>
 ///     <para>A member the engine cannot write gives a reason instead of a program. A compiler is used for one request on one thread.</para>
 /// </remarks>
 internal sealed class WriteProgramCompiler
 {
-    /// <summary>The reason for an array of bitfields, which the interpreter writes through a path no layout reaches.</summary>
+    /// <summary>The reason for an array of bitfields, which the layout's compilation rejects before a program is built.</summary>
     public const string BitfieldArrays = "a bitfield array has no writer";
 
     /// <summary>The reason for an unsized array that is not text, which the compiled layout never produces.</summary>
     public const string UnsizedArrays = "an unsized array that is not text has no writer";
 
-    /// <summary>The reason for a field the catalog has no writer for; the interpreter fails such a write.</summary>
+    /// <summary>The reason for an array or text member the catalog has no writer for, which the layout's compilation never produces.</summary>
     public const string NoWriter = "the field has no codec writer";
-
-    /// <summary>The reason for a declaration kind that is not a writable root.</summary>
-    public const string UnwritableRoot = "the declaration is not a writable root";
 
     /// <summary>The reason for a nested path that selects no writable member; the path's own failure text follows.</summary>
     public const string UnresolvedPath = "the path selects no writable member: ";
@@ -71,7 +69,7 @@ internal sealed class WriteProgramCompiler
         => composite.IsUnion ? this.CompileUnion(composite) : this.CompileStruct(composite, WriteProgramKind.Composite, composite.Shape);
 
     /// <summary>
-    ///     Compiles a root, as the interpreter's root dispatch writes it: a struct or union (or a typedef of an inline one),
+    ///     Compiles a root by its declaration kind: a struct or union (or a typedef of an inline one),
     ///     a typedef or enum field written standalone, or a <c>#define</c> evaluated into the variables.
     /// </summary>
     /// <param name="rootName">The name the root is requested by.</param>
@@ -110,13 +108,14 @@ internal sealed class WriteProgramCompiler
             }
 
         default:
-            return WriteProgramOutcome.NotSupported(rootName + ": " + UnwritableRoot);
+            // A declaration with no binary storage (a text #define) has nothing to write; the reason is the write's failure.
+            return WriteProgramOutcome.NotSupported(WriteFailures.UnsupportedRootElement(declaration.GetType().Name));
         }
     }
 
     /// <summary>
-    ///     Compiles the write of one member on its own, as the interpreter writes the member a nested path selects
-    ///     (<c>WriteFieldValue</c> without a placing struct): the value is the frame's data, a bitfield opens its own storage
+    ///     Compiles the write of one member on its own, as the member a nested path selects is written (without a
+    ///     placing struct): the value is the frame's data, a bitfield opens its own storage
     ///     unit, and no member context is noted. Its shape is its own, so no caller's value is mistaken for a struct of it.
     /// </summary>
     /// <param name="field">The member, narrowed to the element or sub-array a path's indexes select.</param>
@@ -134,7 +133,7 @@ internal sealed class WriteProgramCompiler
     }
 
     /// <summary>
-    ///     The kind of one value of a member, in the interpreter's order (<c>WriteSingleFieldValue</c>): unnamed custom
+    ///     The kind of one value of a member, checked in this order: unnamed custom
     ///     padding, a pointer, an enum, a struct or union, a number, any other codec. Bitfields are decided by the caller.
     /// </summary>
     /// <param name="builder">The program under construction, which receives the operand.</param>
@@ -180,9 +179,16 @@ internal sealed class WriteProgramCompiler
             return null;
         }
 
+        // A type with no codec (void) is written by a step that fails the write when it is reached.
+        if (field.CodecId < 0)
+        {
+            kind = WriteElementKind.Unwritable;
+            return null;
+        }
+
         kind = field.Codec.IsFixedWidthNumeric ? WriteElementKind.Numeric : WriteElementKind.Codec;
         operand = builder.AddCodec(field.CodecId, field.Codec);
-        return field.CodecId < 0 ? ReadProgramCompiler.Refuse(location, member, NoWriter) : null;
+        return null;
     }
 
     /// <summary>Compiles a root that writes one struct or union from the root value.</summary>
@@ -205,7 +211,7 @@ internal sealed class WriteProgramCompiler
 
     /// <summary>
     ///     Compiles a union: one segment per member, each writing the member standalone from the union's first byte and
-    ///     ending with <see cref="WriteOpCode.Return"/>, as the interpreter stages the selected member.
+    ///     ending with <see cref="WriteOpCode.Return"/>; the executor runs the selected member's segment.
     /// </summary>
     /// <param name="union">The union.</param>
     /// <returns>The program, or why it cannot be built.</returns>
@@ -246,7 +252,7 @@ internal sealed class WriteProgramCompiler
         };
         if (composite.ConditionalScope is { } scope)
         {
-            // The interpreter removes the kept names at entry; only the ones an expression can read matter.
+            // The scope removes the kept names at entry; only the ones an expression can read matter.
             builder.Scope = new ReadConditionalScope(scope, this.cache.Table);
             if (builder.Scope.ClearedSlots.Length > 0)
             {
@@ -342,7 +348,7 @@ internal sealed class WriteProgramCompiler
         }
 
         // The value: the root value or union selection, the member looked up in the struct's data (a failure from here to
-        // the capture names the member, as the interpreter's field loop does), or the zero value padding is written with.
+        // the capture names the member), or the zero value padding is written with.
         if (standalone)
         {
             builder.Emit(WriteOpCode.LoadRoot, index, 0, 0);
@@ -481,7 +487,7 @@ internal sealed class WriteProgramCompiler
     /// <summary>
     ///     Emits the element count of an array member: a fixed count (every element of every dimension) checked against the
     ///     element limit, a runtime count evaluated in the write domain, or - for an array whose value decides its count -
-    ///     the value's own count (a text buffer of one character, as the interpreter writes it). A scalar and an unsized
+    ///     the value's own count (1 for text, written as a buffer of one character). A scalar and an unsized
     ///     character array (one terminated string) have none.
     /// </summary>
     /// <param name="builder">The program under construction.</param>
@@ -549,7 +555,7 @@ internal sealed class WriteProgramCompiler
     }
 
     /// <summary>
-    ///     Emits a member's encoding step in the interpreter's order: a multidimensional array (character rows or leaves),
+    ///     Emits a member's encoding step, checked in this order: a multidimensional array (character rows or leaves),
     ///     text, a numeric array (with its typed block path), any other array element by element; or a scalar by its kind.
     /// </summary>
     /// <param name="builder">The program under construction.</param>
@@ -591,6 +597,11 @@ internal sealed class WriteProgramCompiler
                 return refused;
             }
 
+            if (elements == WriteElementKind.Unwritable)
+            {
+                return ReadProgramCompiler.Refuse(location, field, NoWriter);
+            }
+
             WriteOpCode op = field.Array.Dimensions.Length > 1 ? WriteOpCode.WriteLeaves
                              : elements == WriteElementKind.Numeric ? WriteOpCode.WriteNumericArray
                              : WriteOpCode.WriteElements;
@@ -626,6 +637,9 @@ internal sealed class WriteProgramCompiler
         case WriteElementKind.Numeric:
             builder.Emit(WriteOpCode.WriteNumeric, index, scalar, 0);
             break;
+        case WriteElementKind.Unwritable:
+            builder.Emit(WriteOpCode.FailNoWriter, index, 0, 0);
+            break;
         default:
             builder.Emit(WriteOpCode.WriteCodecValue, index, scalar, 0);
             break;
@@ -635,7 +649,7 @@ internal sealed class WriteProgramCompiler
     }
 
     /// <summary>
-    ///     Emits an anonymous promoted member, outside the member-noting context as the interpreter writes it. In a struct it
+    ///     Emits an anonymous promoted member, outside the member-noting context, so a failure inside it names no member. In a struct it
     ///     is placed like any member: a promoted struct is written by a program of its own over the parent's value, and a
     ///     promoted union stages the widest member the value supplies. As a union's member it is written standalone from the
     ///     union's first byte, a promoted union there needing a union value of its own.
@@ -670,7 +684,7 @@ internal sealed class WriteProgramCompiler
     }
 
     /// <summary>
-    ///     Emits the capture of a member's supplied value where the interpreter captures one: a named member some expression
+    ///     Emits the capture of a member's supplied value where one is captured: a named member some expression
     ///     can read. Unlike the reader, the writer captures every such member - a struct, text or an empty array too - from
     ///     the value it was given, through the shared capture rule.
     /// </summary>

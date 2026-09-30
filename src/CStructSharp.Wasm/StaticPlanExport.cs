@@ -52,7 +52,7 @@ public partial class CStructExports
         }
         catch (Exception exception) when (exception is CStructException or ArgumentException or InvalidOperationException)
         {
-            // The layout has no describable plan; the parse itself takes the general reader and reports any error.
+            // The layout has no describable plan; the parse itself runs on the engine and reports any error.
             return SerializeNoStaticPlan(options);
         }
         catch (Exception exception)
@@ -84,7 +84,7 @@ public partial class CStructExports
 
     /// <summary>
     ///     The static read plan of <paramref name="root"/>, or <see langword="null"/> when the root is not a fully
-    ///     fixed struct or the read's own limits do not cover the plan (the parse then takes the general reader).
+    ///     fixed struct or the read's own limits do not cover the plan (the parse then runs on the engine).
     /// </summary>
     /// <param name="cstruct">The compiled layout.</param>
     /// <param name="root">The root declaration.</param>

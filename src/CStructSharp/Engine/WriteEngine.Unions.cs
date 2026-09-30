@@ -9,8 +9,8 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
 /// <summary>
-///     The unions of the compiled engine's writer and the end of a struct with bitfields. A union is written as the
-///     interpreter writes it: its whole storage is staged away from the destination - zeroes (or, under update semantics
+///     The unions of the compiled engine's writer and the end of a struct with bitfields. A union is written in two
+///     steps: its whole storage is staged away from the destination - zeroes (or, under update semantics
 ///     that keep union storage, the union's existing bytes) with the selected member written over them from the union's
 ///     first byte, with a budget of its own and a copy of the variables - and then written to the destination once, so a
 ///     member that cannot be written leaves the destination unchanged.
@@ -18,7 +18,7 @@ using CStructSharp.Values;
 internal static partial class WriteEngine
 {
     /// <summary>
-    ///     Writes a named union from its value, as the interpreter's <c>WriteUnion</c> does: the value must be a
+    ///     Writes a named union from its value: the value must be a
     ///     <see cref="UnionValue"/> of this union, raw storage must have the union's size, and a selected member is staged.
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
@@ -68,8 +68,7 @@ internal static partial class WriteEngine
     }
 
     /// <summary>
-    ///     Writes an anonymous promoted union from its parent's value, as the interpreter's <c>WritePromotedUnion</c> does:
-    ///     the member written is the widest one the data supplies (a member without a fixed size counts as the widest, the
+    ///     Writes an anonymous promoted union from its parent's value: the member written is the widest one the data supplies (a member without a fixed size counts as the widest, the
     ///     first declared among equals; a promoted struct member counts when the data supplies any of its members), staged
     ///     as a named union's selection is. It claims no nesting level and observes no cancellation of its own.
     /// </summary>
@@ -120,11 +119,10 @@ internal static partial class WriteEngine
 
     /// <summary>
     ///     Stages one union member into a fresh extent of zeroes - or of the union's existing bytes, read back from the
-    ///     destination, when the write keeps union storage - and writes the extent at the position, as the interpreter's
-    ///     <c>StageUnionMember</c> does. The member is written standalone from the extent's first byte by its segment of the
+    ///     destination, when the write keeps union storage - and writes the extent at the position. The member is written standalone from the extent's first byte by its segment of the
     ///     union's program, into a staging buffer with a budget of its own, under the operation's depth, with a copy of the
-    ///     variables (nothing it captures escapes) and no qualified prefix. A failure the interpreter reports as a member
-    ///     that cannot be written - an invalid operation, argument, arithmetic, format, cast or unsupported operation - is
+    ///     variables (nothing it captures escapes) and no qualified prefix. A failure that means the member cannot be
+    ///     written - an invalid operation, argument, arithmetic, format, cast or unsupported operation - is
     ///     wrapped as such; the destination is written only after the member succeeded and the union's end is known to be
     ///     representable (an end past the largest position fails before the destination is touched).
     /// </summary>
@@ -147,8 +145,8 @@ internal static partial class WriteEngine
         {
             if (state.PreservesUnionStorage)
             {
-                // The existing extent is read exactly as the interpreter reads it (a short read fails with the end of the
-                // stream as its cause), and the position returns to the union's first byte either way.
+                // The existing extent must be read whole (a short read fails with the end of the stream as its cause),
+                // and the position returns to the union's first byte either way.
                 try
                 {
                     destination.Stream.ReadExactly(storage.AsSpan(0, size));
@@ -167,7 +165,7 @@ internal static partial class WriteEngine
                 storage.AsSpan(0, size).Clear();
             }
 
-            // The interpreter's staging writer state observes the token when it is created.
+            // The token is observed once more before the member is staged.
             state.CancellationToken.ThrowIfCancellationRequested();
             using (var staging = MemoryWriteBuffer.ForStaging(storage, size, state.Options))
             {
@@ -203,7 +201,7 @@ internal static partial class WriteEngine
     }
 
     /// <summary>
-    ///     A union's size in bytes, as the interpreter computes it for a write: its fixed size, or the size its members'
+    ///     A union's size in bytes for a write: its fixed size, or the size its members'
     ///     expressions give under the operation's current variables.
     /// </summary>
     /// <param name="state">The operation's state.</param>
@@ -213,7 +211,7 @@ internal static partial class WriteEngine
         => composite.Symbol.FixedSize ?? state.Layout.Compilation.SizeQueries.GetCompiledStructSizeInBytes(composite, state.Slots.ToDictionary(), false);
 
     /// <summary>
-    ///     Ends a struct with bitfields as the interpreter does: the position moves to where the runtime cursor ended (past a
+    ///     Ends a struct with bitfields: the position moves to where the runtime cursor ended (past a
     ///     unit a bitfield reserved), and in an aligned layout the tail padding up to the struct's alignment is written as
     ///     zeroes - or, under update semantics, moved past.
     /// </summary>

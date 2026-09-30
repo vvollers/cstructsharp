@@ -1,46 +1,45 @@
 namespace CStructSharp.Tests;
 
-using System.Numerics;
-using System.Reflection;
-using CStructSharp.Compilation;
+using CStructSharp.Compilation.Programs;
+using CStructSharp.Diagnostics;
+using CStructSharp.Engine;
 using CStructSharp.Expressions;
-using CStructSharp.Syntax;
 using CStructSharp.Writing;
 
 /// <summary>
-///     Checks operation-owned writer state before the public writer's normalization can mask boundary errors, and that
-///     a nested field under a qualified parent reuses the existing prefix.
+///     Checks the operation-owned write state at its boundaries - the nesting limit, cancellation, the option limits, the
+///     qualified names a nested struct publishes - and that a nested field under a qualified parent costs no more than the
+///     flat equivalent.
 /// </summary>
 [TestClass]
 public class WriterStateBoundaryTests
 {
-    /// <summary>Starting at the exact nesting limit is valid, but one more or a negative depth is rejected with context.</summary>
+    /// <summary>A value exactly as deep as the nesting limit is written; one level more is rejected with the limit's text.</summary>
     [TestMethod]
-    public void InitialDepth_AcceptsExactLimitAndExplainsInvalidValues()
+    public void NestingDepth_AcceptsExactLimitAndExplainsTheNextLevel()
     {
-        using var stream = new MemoryStream();
-        var options = new WriteOptions { MaxNestingDepth = 2, };
-        var state = new CStructElementWriterState(stream, [], false, options, initialStructureDepth: 2);
-        Assert.AreEqual(2, state.StructureDepth);
-        foreach (int depth in new[] { -1, 3, })
+        var layout = new CStruct("struct leaf { uint8 v; }; struct middle { leaf inner; uint8 n; uint8 items[n]; }; struct root { middle m; };");
+        var value = new Dictionary<string, object?>
         {
-            // The constructor validates inherited depth before this state can be used by a nested writer.
-            ArgumentOutOfRangeException failure = Assert.Throws<ArgumentOutOfRangeException>(() => new CStructElementWriterState(stream, [], false, options, depth));
-            Assert.AreEqual("initialStructureDepth", failure.ParamName);
-            StringAssert.StartsWith(failure.Message, "The initial structure depth is outside the configured write limit.");
-        }
+            ["m"] = new Dictionary<string, object?> { ["inner"] = new Dictionary<string, object?> { ["v"] = (byte)7, }, ["n"] = (byte)0, ["items"] = Array.Empty<byte>(), },
+        };
+        CollectionAssert.AreEqual(new byte[] { 7, 0, }, layout.Serialize("root", value, options: new WriteOptions { MaxNestingDepth = 3, }));
+
+        CStructWriteLimitException failure = Assert.Throws<CStructWriteLimitException>(() => layout.Serialize("root", value, options: new WriteOptions { MaxNestingDepth = 2, }));
+        StringAssert.StartsWith(failure.Message, WriteFailures.NestingLimit.TrimEnd('.'));
     }
 
-    /// <summary>A cancelled write cannot construct usable state or touch the caller's output.</summary>
+    /// <summary>A cancelled write fails before it touches the caller's output.</summary>
     [TestMethod]
-    public void Constructor_ObservesCancellationBeforeOutput()
+    public void CancelledWrite_FailsBeforeOutput()
     {
+        var layout = new CStruct("struct rec { uint8 n; uint8 items[n]; };");
         using var stream = new MemoryStream();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        // Direct construction isolates the state-level check from the public operation's own early cancellation.
-        OperationCanceledException failure = Assert.Throws<OperationCanceledException>(() => new CStructElementWriterState(stream, [], false, new WriteOptions { CancellationToken = cancellation.Token, }));
+        OperationCanceledException failure = Assert.Throws<OperationCanceledException>(
+            () => layout.Write(stream, "rec", new Dictionary<string, object?> { ["n"] = (byte)0, ["items"] = Array.Empty<byte>(), }, options: new WriteOptions { CancellationToken = cancellation.Token, }));
         Assert.AreEqual(cancellation.Token, failure.CancellationToken);
         Assert.AreEqual(0L, stream.Length);
     }
@@ -49,89 +48,74 @@ public class WriterStateBoundaryTests
     [TestMethod]
     public void Limits_AcceptZeroByteCountsAndDescribeInvalidSettings()
     {
-        CStructElementWriterState.ValidateWriteOptions(new WriteOptions { MaxArrayElements = 0, MaxStringBytes = 0, MaxTotalBytesWritten = 0, });
+        WriteOptionSnapshots.ValidateWriteOptions(new WriteOptions { MaxArrayElements = 0, MaxStringBytes = 0, MaxTotalBytesWritten = 0, });
 
         // Array counts, byte counts and nesting depth have different units and therefore different diagnostics.
-        StringAssert.StartsWith(Assert.Throws<ArgumentOutOfRangeException>(() => CStructElementWriterState.ValidateWriteOptions(new WriteOptions { MaxArrayElements = -1, })).Message, "Maximum array elements cannot be negative.");
-        StringAssert.StartsWith(Assert.Throws<ArgumentOutOfRangeException>(() => CStructElementWriterState.ValidateWriteOptions(new WriteOptions { MaxStringBytes = -1, })).Message, "Write byte limits cannot be negative.");
-        StringAssert.StartsWith(Assert.Throws<ArgumentOutOfRangeException>(() => CStructElementWriterState.ValidateWriteOptions(new WriteOptions { MaxNestingDepth = 0, })).Message, "Maximum nesting depth must be greater than zero.");
+        StringAssert.StartsWith(Assert.Throws<ArgumentOutOfRangeException>(() => WriteOptionSnapshots.ValidateWriteOptions(new WriteOptions { MaxArrayElements = -1, })).Message, "Maximum array elements cannot be negative.");
+        StringAssert.StartsWith(Assert.Throws<ArgumentOutOfRangeException>(() => WriteOptionSnapshots.ValidateWriteOptions(new WriteOptions { MaxStringBytes = -1, })).Message, "Write byte limits cannot be negative.");
+        StringAssert.StartsWith(Assert.Throws<ArgumentOutOfRangeException>(() => WriteOptionSnapshots.ValidateWriteOptions(new WriteOptions { MaxNestingDepth = 0, })).Message, "Maximum nesting depth must be greater than zero.");
     }
 
-    /// <summary>Removing a captured value clears its qualified alias, and leaving the scope releases prefix state.</summary>
+    /// <summary>
+    ///     While a prefix is active a captured value is published under its qualified name; a removed value removes the
+    ///     qualified one, so no stale alias survives; without a prefix nothing is published.
+    /// </summary>
     [TestMethod]
-    public void QualifiedScope_RemovesStaleAliasesAndPrefixStorage()
+    public void QualifiedScope_RemovesStaleAliasesAndStopsWithoutAPrefix()
     {
-        using var stream = new MemoryStream();
-        var state = new CStructElementWriterState(stream, [], false, new WriteOptions());
-        state.QualifiedPrefix = "nested.";
-        state.Variables["count"] = new Literal(3);
-        state.PublishQualified("count");
-        Assert.AreSame(state.Variables["count"], state.Variables["nested.count"]);
-        state.Variables.Remove("count");
-        state.PublishQualified("count");
-        Assert.IsFalse(state.Variables.ContainsKey("nested.count"));
-        state.QualifiedPrefix = null;
-        Assert.IsFalse(state.HasQualifiedPrefix);
-        Assert.IsNull(state.QualifiedPrefix);
-        Assert.AreEqual(0, state.Variables.Count);
+        var layout = new CStruct("struct child { uint8 count; }; struct rec { child nested; uint8 items[nested.count]; };");
+        ReadProgram.QualifiedTarget[] targets = layout.Compilation.SlotTable.ReadPrograms.GetQualifiedTargets("count");
+        Assert.HasCount(1, targets);
+        int slot = targets[0].Slot;
+        VariableSlots slots = VariableSlots.Create(layout.Compilation.SlotTable, LayoutVariableInput.FromIntegers(null));
+        var state = new WriteEngineState(layout, slots, new WriteOptions());
+        try
+        {
+            state.QualifiedPrefix = "nested.";
+            state.PublishQualified(targets, SlotValue.FromLiteral(3));
+            Assert.AreEqual((Int128)3, slots.Get(slot).Value);
+            state.PublishQualified(targets, SlotValue.Undefined);
+            Assert.AreEqual(SlotState.Undefined, slots.Get(slot).State);
+            state.QualifiedPrefix = null;
+            state.PublishQualified(targets, SlotValue.FromLiteral(5));
+            Assert.AreEqual(SlotState.Undefined, slots.Get(slot).State, "nothing is published without a prefix");
+        }
+        finally
+        {
+            state.Release();
+            slots.Dispose();
+        }
     }
 
-    /// <summary>The nested-field wrapper needs only the existing prefix restoration, not an extra prefix installation.</summary>
+    /// <summary>
+    ///     Writing a field through an unqualified nested struct allocates nothing beyond the flat equivalent's write: the
+    ///     nested struct publishes no prefix of its own, so only the result array is allocated either way.
+    /// </summary>
     [TestMethod]
     [DoNotParallelize]
-    public void UnqualifiedNestedField_AvoidsRedundantPrefixAllocation()
+    public void UnqualifiedNestedField_AllocatesNoMoreThanTheFlatWrite()
     {
-        var layout = new CStruct("struct child { uint8 value; }; struct root { child nested; };");
-        var root = (CompiledCompositeType)layout.CompiledModel.Symbols["root"].Symbol.Definition!;
-        CompiledField field = root.Fields[0];
-        Assert.IsFalse(field.HasQualifiedPrefix);
-        Assert.IsNotNull(field.Composite);
-        var data = new Dictionary<string, object?> { ["value"] = (byte)7, };
-        var writeField = typeof(CStruct).GetMethod("WriteSingleFieldValue", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .CreateDelegate<Func<CompiledField, object, CStructElementWriterState, BigInteger?>>(layout);
-        var writeStruct = typeof(CStruct).GetMethod("WriteStruct", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .CreateDelegate<Action<CompiledCompositeType, object, CStructElementWriterState, bool>>(layout);
-        using var fieldOutput = new MemoryStream(new byte[1]);
-        using var controlOutput = new MemoryStream(new byte[1]);
-        var fieldState = new CStructElementWriterState(fieldOutput, new Dictionary<string, Expr>(), false, new WriteOptions()) { QualifiedPrefix = "outer.", };
-        var controlState = new CStructElementWriterState(controlOutput, new Dictionary<string, Expr>(), false, new WriteOptions()) { QualifiedPrefix = "outer.", };
+        var nested = new CStruct("struct child { uint8 value; uint8 n; uint8 items[n]; }; struct root { child nested; };");
+        var flat = new CStruct("struct root { uint8 value; uint8 n; uint8 items[n]; };");
+        var member = new Dictionary<string, object?> { ["value"] = (byte)7, ["n"] = (byte)0, ["items"] = Array.Empty<byte>(), };
+        var nestedValue = new Dictionary<string, object?> { ["nested"] = member, };
+        WriteOptions options = ExecutionPaths.GeneralWrite();
+        byte[] nestedBytes = nested.Serialize("root", nestedValue, options: options);
+        CollectionAssert.AreEqual(flat.Serialize("root", member, options: options), nestedBytes);
 
-        // Exercise the same wrapper used for a scalar nested member under an already-qualified parent.
-        Action wrapped = () =>
-        {
-            fieldOutput.Position = 0;
-            _ = writeField(field, data, fieldState);
-        };
-
-        // Match the actual nested write and its required restoration without installing an unchanged prefix first.
-        Action control = () =>
-        {
-            controlOutput.Position = 0;
-            writeStruct(field.Composite!, data, controlState, false);
-            controlState.QualifiedPrefix = "outer.";
-        };
-        for (int index = 0; index < 100; index++)
-        {
-            wrapped();
-            control();
-        }
-
-        long wrappedBytes = long.MaxValue;
-        long controlBytes = long.MaxValue;
+        long nestedAllocated = long.MaxValue;
+        long flatAllocated = long.MaxValue;
         for (int sample = 0; sample < 3; sample++)
         {
-            wrappedBytes = Math.Min(wrappedBytes, Measure(wrapped));
-            controlBytes = Math.Min(controlBytes, Measure(control));
+            nestedAllocated = Math.Min(nestedAllocated, Measure(() => nested.Serialize("root", nestedValue, options: options)));
+            flatAllocated = Math.Min(flatAllocated, Measure(() => flat.Serialize("root", member, options: options)));
         }
 
-        Assert.AreEqual("outer.", fieldState.QualifiedPrefix);
-        CollectionAssert.AreEqual(new byte[] { 7, }, fieldOutput.ToArray());
-        CollectionAssert.AreEqual(fieldOutput.ToArray(), controlOutput.ToArray());
-        Assert.IsTrue(wrappedBytes <= controlBytes, $"Nested wrapper allocated {wrappedBytes} bytes; direct write and restoration allocated {controlBytes}.");
+        Assert.IsTrue(nestedAllocated <= flatAllocated, $"The nested write allocated {nestedAllocated} bytes; the flat write {flatAllocated}.");
     }
 
-    /// <summary>Measures repeated synchronous writes after the delegates and output buffers have warmed up.</summary>
-    /// <param name="operation">The already-bound write operation.</param>
+    /// <summary>Measures repeated synchronous writes after the layouts and pools have warmed up.</summary>
+    /// <param name="operation">The write.</param>
     /// <returns>The managed bytes allocated on the current thread during two hundred writes.</returns>
     private static long Measure(Action operation)
     {

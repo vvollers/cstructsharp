@@ -5,7 +5,7 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Reading;
 
 /// <summary>
-///     Checks that fixed record plans avoid the general reader's repeated per-record allocation, and the bounded stream
+///     Checks that fixed record plans allocate no more than the general path, and the bounded stream
 ///     block and exact buffer return they read through.
 /// </summary>
 [TestClass]
@@ -41,8 +41,8 @@ public class StaticReadAllocationBoundaryTests
     /// <summary>
     ///     Both a fixed root and a runtime-count array of fixed records allocate no more through their static plans than
     ///     through the general path. The general path is the compiled engine, which stores each record's members straight
-    ///     into its value just as the plan does, so for the array of fixed records the two allocate the same (the
-    ///     interpreter allocated more per record); the fixed root still allocates less through its plan.
+    ///     into its value just as the plan does, so for the array of fixed records the two allocate the same; the fixed
+    ///     root allocates less through its plan.
     /// </summary>
     /// <param name="runtimeCount">Whether the array count comes from an input field rather than the declaration.</param>
     [TestMethod]
@@ -118,7 +118,7 @@ public class StaticReadAllocationBoundaryTests
     /// <summary>Warms one decoding mode, then measures steady-state allocation.</summary>
     /// <param name="layout">The prepared record layout, excluded from the measured allocation.</param>
     /// <param name="bytes">The complete input, shared unchanged by both decoding modes.</param>
-    /// <param name="disabled">Whether to route fixed composites through the general reader.</param>
+    /// <param name="disabled">Whether to route fixed composites through the general path.</param>
     /// <param name="options">Optional read limits; construction is outside the measurement.</param>
     /// <returns>The smallest current-thread allocation across three batches of eight completed parses.</returns>
     private static long Measure(CStruct layout, byte[] bytes, bool disabled, ReadOptions? options = null)

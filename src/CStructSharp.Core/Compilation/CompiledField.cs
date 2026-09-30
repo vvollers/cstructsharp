@@ -442,9 +442,6 @@ internal sealed class CompiledField
     /// <summary>The codec id of the terminated-string handler behind a <c>char *</c>-style pointer, or <see cref="PrimitiveCatalog.NoCodec"/>.</summary>
     public int TerminatedCodecId { get; }
 
-    /// <summary>Whether a primitive delegate pair reads and writes this field (false for composites and pointers).</summary>
-    public bool HasCodec => this.CodecId != PrimitiveCatalog.NoCodec;
-
     /// <summary>Whether this field is a pointer to a terminated string (<c>char *</c> shorthand) whose target reads through a terminated handler.</summary>
     public bool HasTerminatedCodec => this.TerminatedCodecId != PrimitiveCatalog.NoCodec;
 

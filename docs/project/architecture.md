@@ -58,17 +58,20 @@ describes the pipeline for users; [Testing](testing.md) describes the snapshot a
 
 A public read-like call:
 
-1. copies the supplied integer variables and option values;
-2. creates one per-call state object for the stream, limits, nested depth, pointer traversal, and optional debug
-   ranges;
+1. copies the supplied integer variables and option values into the layout's numbered variable slots;
+2. creates one per-call state for the source (a memory or stream cursor), limits, nested depth, pointer traversal,
+   and optional debug ranges;
 3. resolves the requested root or path with its array, union, bitfield, alignment, and pointer context; and
-4. executes the prepared field readers.
+4. runs the compiled engine: the program of each struct it reaches, built once per layout from the compiled model
+   and cached with it (`src/CStructSharp/Engine/`, programs in `src/CStructSharp.Core/Compilation/Programs/`).
 
-All reads use the same compiled layout facts. Eligible fixed composites execute cached read plans; dynamic
-layouts and debug reads use general traversal. Numeric arrays can decode in blocks into `PrimitiveArray<T>`;
-struct results use a shared member shape with per-result values in `StructValue`. A typed read can fill its
-C# destination directly when the fixed layout and target type support that plan.
-Debug capture uses the general reader to record the fields and ranges it visits.
+All reads use the same compiled layout facts. A whole fixed-layout struct in memory is decoded directly from the span
+without the per-call state; inside other reads, fixed composites execute cached static read plans. Numeric arrays
+can decode in blocks into `PrimitiveArray<T>`; struct results use a shared member shape with per-result values in
+`StructValue`. A typed read can fill its C# destination directly when the fixed layout and target type support that
+plan. A debug read runs each struct's debug program, which records the fields and ranges it visits. Writes run write
+programs the same way, and an update resolves its path and captures its layout with read programs, then stages its
+replacement with a write program.
 
 The awaitable forms and the record sequences add no reader. An `*Async` read links the call's token with the
 options' token, reads the stream with `ReadAsync` into a pooled buffer (`Streams/AsyncStreamBuffer`: a seekable

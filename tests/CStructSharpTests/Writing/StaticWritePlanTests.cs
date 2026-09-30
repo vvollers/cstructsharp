@@ -79,7 +79,7 @@ public class StaticWritePlanTests
         Assert.Throws<CStructWriteLimitException>(() => layout.Serialize("root", data, options: new WriteOptions { MaxArrayElements = 2 }));
     }
 
-    /// <summary>The plan and the general writer produce identical bytes for a parsed value, a dictionary, and a mapped class, into every destination.</summary>
+    /// <summary>The plan and the general path produce identical bytes for a parsed value, a dictionary, and a mapped class, into every destination.</summary>
     [TestMethod]
     public void WritePlan_MatchesGeneralWriter_ForEveryInputAndDestination()
     {
@@ -98,7 +98,7 @@ public class StaticWritePlanTests
         }
     }
 
-    /// <summary>Every failure the general writer raises inside a planned composite is raised by the plan with the same type and message.</summary>
+    /// <summary>Every failure the general path raises inside a planned composite is raised by the plan with the same type and message.</summary>
     [TestMethod]
     public void WritePlan_MatchesGeneralWriter_OnFailures()
     {
@@ -157,7 +157,7 @@ public class StaticWritePlanTests
         Assert.AreEqual(0, destination.Length);
     }
 
-    /// <summary>Writing into a stream that already has bytes keeps whatever padding bytes held and appends beyond the end like the general writer.</summary>
+    /// <summary>Writing into a stream that already has bytes keeps whatever padding bytes held and appends beyond the end like the general path.</summary>
     [TestMethod]
     public void WritePlan_PreservesExistingPaddingBytes()
     {
@@ -269,7 +269,7 @@ public class StaticWritePlanTests
         Assert.IsGreaterThan(30, compared);
     }
 
-    /// <summary>Asserts that every write destination gives the same bytes and failure with the static write plan and with only the general writer.</summary>
+    /// <summary>Asserts that every write destination gives the same bytes and failure with the static write plan and with only the general path.</summary>
     private static void AssertSameOutcome(CStruct layout, object data, WriteOptions? options, string label)
     {
         foreach ((string destination, Func<object, WriteOptions?, byte[]> write) in new (string, Func<object, WriteOptions?, byte[]>)[]

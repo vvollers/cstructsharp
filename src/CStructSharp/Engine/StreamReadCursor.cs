@@ -11,9 +11,8 @@ using CStructSharp.Streams;
 
 /// <summary>
 ///     The cursor over the operation's <see cref="ReadBudgetStream"/>, for every source the engine does not read from
-///     memory: files, chunked and wrapper streams, hidden-buffer memory streams. Each member makes exactly the calls the
-///     interpreter makes for the same step, so chunk granularity, charges, failures and final positions are identical
-///     because the code is the same.
+///     memory: files, chunked and wrapper streams, hidden-buffer memory streams. Each member calls the stream's own
+///     reads, so chunk granularity, charges, failures and final positions are the stream's.
 /// </summary>
 internal readonly struct StreamReadCursor : IReadCursor
 {
@@ -89,7 +88,7 @@ internal readonly struct StreamReadCursor : IReadCursor
     /// <inheritdoc/>
     public ReadOnlySpan<byte> ReadFixed(Span<byte> scratch)
     {
-        // The interpreter's order: a memory-backed stream serves the value in place; otherwise the codec's reader,
+        // A memory-backed stream serves the value in place; otherwise the codec's reader,
         // which takes one byte through ReadByte and a wider value through ReadExactly.
         if (this.stream.TryReadSpan(scratch.Length, out ReadOnlySpan<byte> direct))
         {

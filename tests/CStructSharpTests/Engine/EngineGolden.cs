@@ -5,13 +5,11 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 
 /// <summary>
-///     The golden reference of the differential tests: the canonical outcomes the interpreter produced for every
-///     comparison, committed as manifests under <c>Engine/Golden/</c> (<see cref="GoldenManifest"/>). A comparison calls
-///     <see cref="Check"/> with its outcome; normally that compares the engine's outcome with the committed one, and with
-///     <c>CSTRUCTSHARP_ENGINE_GOLDEN_RECORD=1</c> the harness runs the interpreter too, requires both to agree, and records
-///     the interpreter's outcome as the new reference. With <c>CSTRUCTSHARP_ENGINE_GOLDEN_RECORD=compare</c> it runs and
-///     compares the interpreter as well but checks the committed outcomes instead of recording them
-///     (<see cref="ComparesInterpreter"/>).
+///     The golden reference of the differential tests: the reviewed canonical outcome of every comparison, committed as
+///     manifests under <c>Engine/Golden/</c> (<see cref="GoldenManifest"/>). A comparison calls <see cref="Check"/> with its
+///     outcome; normally that compares the outcome with the committed one, and with
+///     <c>CSTRUCTSHARP_ENGINE_GOLDEN_RECORD=1</c> it records the outcome as the new reference, for an intended and explained
+///     behaviour change.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -48,14 +46,6 @@ internal static partial class EngineGolden
 
     /// <summary>Gets whether this run records the reference outcomes (<see cref="RecordVariable"/> is <c>1</c>).</summary>
     public static bool Recording { get; } = Environment.GetEnvironmentVariable(RecordVariable) == "1";
-
-    /// <summary>
-    ///     Gets whether the harness also runs the interpreter and requires it to agree with the engine: while recording,
-    ///     and when <see cref="RecordVariable"/> is <c>compare</c>, which checks the committed outcomes as an ordinary run
-    ///     does and records nothing (the coverage collection runs this way, so the interpreter stays exercised while it
-    ///     is the golden reference).
-    /// </summary>
-    public static bool ComparesInterpreter { get; } = Recording || Environment.GetEnvironmentVariable(RecordVariable) == "compare";
 
     /// <summary>Gets the directory hashed outcomes are written to (<see cref="DumpVariable"/>), or <see langword="null"/> for none.</summary>
     public static string? DumpDirectory { get; } = Environment.GetEnvironmentVariable(DumpVariable) is { Length: > 0, } directory ? directory : null;

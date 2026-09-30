@@ -13,7 +13,13 @@ export function mutationFileHash(filename) {
  * The number of files in the permanent mutation scope. The tools and their tests check the configured allowlist against
  * it, so a file cannot leave the scope silently; a file split into partial files adds its parts here.
  */
-export const PERMANENT_SCOPE_SIZE = 81;
+export const PERMANENT_SCOPE_SIZE = 124;
+
+/**
+ * The number of file partitions the permanent scope runs in. The mutation workflow runs one job per partition, so the
+ * scope's size divided by this count sets each job's running time; revisit it with the scope size.
+ */
+export const MUTATION_PARTITION_COUNT = 24;
 
 /**
  * Maps an exact permanent-scope pattern to its repository source path.
@@ -60,10 +66,11 @@ export function requireCoreMutationTests(report) {
 }
 
 /**
- * Partitions every configured file once, assigning larger sources first to the currently smallest group.
- * Source length is a scheduling estimate, not a claim about mutation count or duration. Files are never split.
+ * Partitions every configured file once. The largest source runs alone in p00, the partition with the extended time
+ * budget; the others are assigned, larger sources first, to the currently smallest of the remaining groups. Source
+ * length is a scheduling estimate, not a claim about mutation count or duration. Files are never split.
  */
-export function planMutationPartitions(root, config, count = 16) {
+export function planMutationPartitions(root, config, count = MUTATION_PARTITION_COUNT) {
   assert.ok(Number.isInteger(count) && count > 0);
   const patterns = config.mutate;
   assert.ok(Array.isArray(patterns) && patterns.length >= count);
@@ -76,8 +83,10 @@ export function planMutationPartitions(root, config, count = 16) {
   files.sort((left, right) => right.bytes - left.bytes || left.source.localeCompare(right.source, "en"));
   // Stable identifiers make each uploaded report's owning partition unambiguous within one source revision.
   const partitions = Array.from({ length: count }, (_, index) => ({ id: `p${String(index).padStart(2, "0")}`, files: [], bytes: 0 }));
-  for (const file of files) {
-    const smallest = partitions.reduce((best, candidate) => candidate.bytes < best.bytes ? candidate : best);
+  for (const [index, file] of files.entries()) {
+    // With one partition everything shares it; otherwise p00 takes only the first, largest file.
+    const candidates = count === 1 ? partitions : index === 0 ? [partitions[0]] : partitions.slice(1);
+    const smallest = candidates.reduce((best, candidate) => candidate.bytes < best.bytes ? candidate : best);
     smallest.files.push(file);
     smallest.bytes += file.bytes;
   }

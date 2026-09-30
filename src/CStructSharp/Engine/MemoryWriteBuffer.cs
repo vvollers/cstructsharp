@@ -8,35 +8,36 @@ using CStructSharp.Streams;
 
 /// <summary>
 ///     The compiled engine's destination for <c>Serialize</c>: the caller's pinned span, a growable pooled buffer for a new
-///     array, or a union's staged storage, together with the operation's output budget. It behaves exactly as the
-///     interpreter's <see cref="WriteBudgetStream"/> over a <see cref="FixedBufferStream"/> (a span), an
+///     array, or a union's staged storage, together with the operation's output budget. It behaves exactly as a
+///     <see cref="WriteBudgetStream"/> over a <see cref="FixedBufferStream"/> (a span), an
 ///     <see cref="OwnedMemoryStream"/> (a new array) or a fixed <see cref="MemoryStream"/> over the staging array (a union
-///     member) does, byte for byte and failure for failure, without the two wrapper calls per write.
+///     member) would, byte for byte and failure for failure, so a write reports the same outcome into memory as into a
+///     stream, without the two wrapper calls per write.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         <b>Extent.</b> The buffer starts empty (a staging buffer: full of its union's zero or preserved bytes, which it
 ///         cannot grow past). <see cref="Length"/> is the high-water mark of the bytes written; a read
 ///         returns nothing past it (a bitfield unit or a static plan's preserved bytes read back zero there), and a write
-///         that lands past it first fills the gap with zeroes, as both interpreter streams do. The caller's span beyond the
+///         that lands past it first fills the gap with zeroes, as a memory stream does. The caller's span beyond the
 ///         bytes written is never touched.
 ///     </para>
 ///     <para>
 ///         <b>Budget.</b> Each write is checked before any byte moves: the larger of the physical bytes written so far
 ///         (plus this write) and the new extent must stay within <see cref="WriteOptions.MaxTotalBytesWritten"/>; seeking
 ///         charges nothing. Only then is a span destination's capacity checked, so a write that fails both reports the
-///         budget, as the interpreter's wrapper does.
+///         budget, as <see cref="WriteBudgetStream"/> does.
 ///     </para>
 ///     <para>
-///         It is a <see cref="Stream"/> so the codec writers the interpreter uses (terminated text, LEB128, wide integers)
-///         write through it unchanged, and an <see cref="IWriteBudget"/> so they check the per-string limit as they do on
-///         the interpreter's stream. One operation owns it on one thread; a growable buffer returns its array to the pool
+///         It is a <see cref="Stream"/> so the stream-based codec writers (terminated text, LEB128, wide integers) write
+///         through it unchanged, and an <see cref="IWriteBudget"/> so they check the per-string limit as they do on a
+///         <see cref="WriteBudgetStream"/>. One operation owns it on one thread; a growable buffer returns its array to the pool
 ///         when disposed.
 ///     </para>
 /// </remarks>
 internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
 {
-    /// <summary>The largest zero-fill chunk <see cref="WriteZeroes"/> writes at once, the interpreter's zero buffer length.</summary>
+    /// <summary>The largest zero-fill chunk <see cref="WriteZeroes"/> writes at once.</summary>
     private const int ZeroChunk = 8192;
 
     /// <summary>The capacity a growable buffer rents first; it then doubles.</summary>
@@ -77,7 +78,7 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
     /// <summary>The high-water mark: the number of leading bytes that hold written data.</summary>
     private long length;
 
-    /// <summary>The physical bytes written so far, counted as the interpreter's wrapper counts them.</summary>
+    /// <summary>The physical bytes written so far, counted as <see cref="WriteBudgetStream"/> counts them.</summary>
     private long bytesWritten;
 
     /// <summary>Creates a buffer; <see cref="ForSpan"/>, <see cref="ForNewArray"/> and <see cref="ForStaging"/> name the three forms.</summary>
@@ -95,9 +96,9 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
     public long MaxStringBytes { get; private set; }
 
     /// <summary>
-    ///     Gets a value indicating whether a block may be written in one piece where the interpreter writes element by
-    ///     element (a typed array, narrow text): the interpreter does so only into a span or its own growable stream, never
-    ///     into a union's staging stream.
+    ///     Gets a value indicating whether a block may be written in one piece instead of element by element (a typed
+    ///     array, narrow text): only into a span or a growable buffer, never into a union's staging, where the golden
+    ///     outcomes pin element-by-element writes.
     /// </summary>
     public bool AllowsBlocks => !this.staging;
 
@@ -114,8 +115,8 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
     public override long Length => this.length;
 
     /// <summary>
-    ///     Gets or sets the position in bytes; moving it charges nothing. A span rejects a position outside it as the
-    ///     interpreter's region stream does; a growable buffer rejects what a <see cref="MemoryStream"/> rejects.
+    ///     Gets or sets the position in bytes; moving it charges nothing. A span rejects a position outside it as a
+    ///     <see cref="FixedBufferStream"/> does; a growable buffer rejects what a <see cref="MemoryStream"/> rejects.
     /// </summary>
     public override long Position
     {
@@ -131,7 +132,7 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
             }
             else if (value < 0 || value > int.MaxValue)
             {
-                // A memory stream's own check throws the exact exception the interpreter's stream reports.
+                // A probe memory stream's own check throws the exact exception a memory stream reports for this position.
                 using var probe = new MemoryStream();
                 probe.Position = value;
             }
@@ -155,7 +156,7 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
     /// <summary>
     ///     Creates the destination a union member is staged into: <paramref name="size"/> initialized bytes of
     ///     <paramref name="storage"/> (the caller clears or fills them and keeps the array), with a budget of its own whose
-    ///     extent counts only growth past them, as the interpreter's staging stream has.
+    ///     extent counts only growth past them.
     /// </summary>
     /// <param name="storage">The staging array, at least <paramref name="size"/> bytes; not returned to any pool here.</param>
     /// <param name="size">The union's size in bytes.</param>
@@ -184,7 +185,7 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
 
     /// <summary>
     ///     Whether <paramref name="size"/> bytes at the position fit the budget, charged as <paramref name="chargedBytes"/> of
-    ///     physical traffic, and - for a span - its capacity: the interpreter's checks before it writes a block.
+    ///     physical traffic, and - for a span - its capacity: the checks made before a block is written.
     /// </summary>
     /// <param name="size">The block's length in bytes, which decides how far it extends the output.</param>
     /// <param name="chargedBytes">The physical traffic in bytes the block adds to the budget.</param>
@@ -282,7 +283,7 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
 
     /// <summary>
     ///     Writes <paramref name="count"/> zero bytes, checking the whole region against the budget first and then writing
-    ///     it in chunks, as the interpreter's zero fill does (a span can run out of room between chunks).
+    ///     it in chunks (a span can run out of room between chunks).
     /// </summary>
     /// <param name="count">The number of zero bytes; zero writes nothing.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
@@ -351,7 +352,7 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
 
     /// <summary>
     ///     Not used: the engine and the codec writers it calls move the position through <see cref="Position"/>, which
-    ///     checks it as the interpreter's streams do.
+    ///     checks it.
     /// </summary>
     /// <param name="offset">The signed distance in bytes.</param>
     /// <param name="origin">The reference point.</param>
@@ -432,8 +433,8 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
     }
 
     /// <summary>
-    ///     The budget check of one write of <paramref name="count"/> bytes at the position, as the interpreter's wrapper
-    ///     projects it; nothing changes.
+    ///     The budget check of one write of <paramref name="count"/> bytes at the position, as
+    ///     <see cref="WriteBudgetStream"/> projects it; nothing changes.
     /// </summary>
     /// <param name="count">The bytes about to be written.</param>
     /// <returns>The physical byte count after the write.</returns>
@@ -484,9 +485,9 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
     }
 
     /// <summary>
-    ///     Makes room for <paramref name="count"/> bytes at the position: a span that cannot hold them fails as the
-    ///     interpreter's region stream does, a growable buffer grows (and fails past the largest array as a memory stream),
-    ///     and a union's staging buffer refuses to grow past its union as the interpreter's fixed staging stream does.
+    ///     Makes room for <paramref name="count"/> bytes at the position: a span that cannot hold them fails as a
+    ///     <see cref="FixedBufferStream"/> does, a growable buffer grows (and fails past the largest array as a memory
+    ///     stream), and a union's staging buffer refuses to grow past its union as a fixed memory stream does.
     /// </summary>
     /// <param name="count">The bytes about to be written.</param>
     private void Room(int count)
@@ -501,9 +502,9 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
             return;
         }
 
-        // Both interpreter memory streams (a growable one and a union's fixed staging one) first refuse a write that would
-        // end past the largest array with an I/O error, which their wrapper reports as a write failure at the position;
-        // the probe raises the same error.
+        // A memory stream (growable, or fixed over a union's staging) first refuses a write that would end past the
+        // largest array with an I/O error, which a budget wrapper reports as a write failure at the position; the probe
+        // raises the same error.
         long end = this.position + count;
         if (end > int.MaxValue)
         {
