@@ -33,6 +33,7 @@ updates:
     schedule:
       interval: weekly
 
+  # The documentation checks (markdownlint, cspell, Playwright): one grouped pull request, like the other lockfiles.
   - package-ecosystem: npm
     directory: /docs
     ignore:
@@ -40,7 +41,17 @@ updates:
         versions: [">=7.0.0 <8.0.0"]
     schedule:
       interval: weekly
+    groups:
+      documentation-dependencies:
+        patterns:
+          - "*"
+
+  # The JavaScript benchmark harness (tinybench, Playwright).
   - package-ecosystem: npm
     directory: /benchmarks/js
     schedule:
       interval: weekly
+    groups:
+      benchmark-dependencies:
+        patterns:
+          - "*"
