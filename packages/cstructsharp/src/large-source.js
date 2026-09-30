@@ -492,11 +492,11 @@ const sharedSession = new WorkerSession();
  * Parses any supported binary source through the shared worker; the source is staged and removed afterwards.
  * @param {string} definition Portable layout source.
  * @param {unknown} input Binary source.
- * @param {object} [options] Parse options, including `signal` and `maxSpoolBytes`.
- * @param {boolean} [debug] Whether the result records every value's byte range.
+ * @param {object | null} options Parse options, including `signal` and `maxSpoolBytes`; null for none.
+ * @param {boolean} debug Whether the result records every value's byte range; every caller states it.
  * @returns {Promise<object>} The parse envelope.
  */
-export async function parseLargeSource(definition, input, options = {}, debug = true) {
+export async function parseLargeSource(definition, input, options, debug) {
   return sharedRequest("parse", definition, input, options, { debug });
 }
 

@@ -106,6 +106,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   exports directly bypassed the output handshake. The adapter checks at load that every managed export the page and the
   source worker call is present. Migration: call `serialize`, `updateStream`, `parseBytes` or `getStaticPlan` on the
   adapter instead of `exports.CStructSharpWeb.Wasm.CStructExports`, or use the public `parse`/`parseWithDebug`.
+- **Breaking (npm raw adapter):** `parseSource(definition, source, options, debug)` requires `options` (or `null`) and
+  `debug`; an omitted `debug` no longer means `true`. Migration: pass `null` and an explicit `true` or `false`.
 
 ### Added
 

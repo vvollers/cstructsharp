@@ -237,12 +237,12 @@ export interface RawWasmAdapter {
   ): Promise<CompiledLayout>;
   ready: true;
   error: null;
-  /** Parse any binary source in the shared worker; `debug` (default true) records every value's byte range. */
+  /** Parse any binary source in the shared worker; `debug` records every value's byte range. */
   parseSource(
     definition: string,
     source: BinarySource,
-    options?: (CompileOptions & ParseOptions) | null,
-    debug?: boolean,
+    options: (CompileOptions & ParseOptions) | null,
+    debug: boolean,
   ): Promise<ParseResult>;
   /** Resolve the absolute byte position of a path in the shared worker; the source is staged like a parse. */
   resolveAddressSource(
