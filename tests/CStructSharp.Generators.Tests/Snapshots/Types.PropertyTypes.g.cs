@@ -1337,7 +1337,7 @@ namespace Demo
                     bytes.CopyTo(elements);
                 }
                 value.Tail = elements;
-                cursor.Skip(1, "tail", "uint8");
+                cursor.TakeTerminator(1, "tail", "uint8");
                 placement.CompleteField(cursor.Position);
             }
             // uint16 rest[...][EOF]

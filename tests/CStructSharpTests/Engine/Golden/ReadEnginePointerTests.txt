@@ -12,5 +12,5 @@
   ok 44, CStructReadException 54, CStructReadLimitException 50
 
 @test Pointers_TargetLimits_UnionViews_AndOpaqueAddresses
-@hash ffb17456a085f2b243625dc26d4c015e9e9f83f0a0a39e61be8376f46cb4e394 54
-  ok 14, CStructReadLimitException 40
+@hash c215c9da6d398347efd18cce8c65e558586d1b3d5646998dfceb10a0c9a2c13f 54
+  ok 18, CStructReadLimitException 36

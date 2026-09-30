@@ -145,13 +145,17 @@ public ref partial struct ReadCursor
 
     /// <summary>
     ///     Counts the elements of a <c>T values[]</c> array up to (not including) its all-zero terminator element,
-    ///     leaving the position where it was; the runtime's texts report a missing terminator or too many elements.
+    ///     leaving the position where it was, with the runtime's scan: nothing is charged (the element reads and
+    ///     <see cref="TakeTerminator"/> charge the array), but an array whose elements and terminator exceed the read budget
+    ///     fails with the read-limit text, and the runtime's texts report a missing terminator or too many elements.
     /// </summary>
     /// <param name="elementSize">The element size in bytes.</param>
     /// <param name="fieldName">The layout field name, named in the messages.</param>
     /// <param name="member">The array field, for the diagnostics.</param>
     /// <param name="memberType">The field's type spelling, for the diagnostics.</param>
     /// <returns>The element count.</returns>
+    /// <exception cref="CStructReadException">The input ends before an all-zero element.</exception>
+    /// <exception cref="CStructReadLimitException">The count exceeds <c>MaxArrayElements</c>, or the array exceeds the read budget.</exception>
     public readonly int CountTerminated(int elementSize, string fieldName, string member, string? memberType)
     {
         if (elementSize == 0)
@@ -159,27 +163,33 @@ public ref partial struct ReadCursor
             return 0;
         }
 
-        int count = 0;
-        int offset = this.position;
-        while (true)
+        try
         {
-            if (offset + elementSize > this.source.Length)
-            {
-                throw this.Fail(ReadFailures.TerminatedArrayUnterminated(fieldName), member, memberType);
-            }
-
-            if (this.source.Slice(offset, elementSize).IndexOfAnyExcept((byte)0) < 0)
-            {
-                return count;
-            }
-
-            if (++count > this.settings.MaxArrayElements)
-            {
-                throw this.FailLimit(ReadFailures.ArrayLengthLimit(count, this.settings.MaxArrayElements), member, memberType);
-            }
-
-            offset += elementSize;
+            return Engine.DynamicArrayExtent.ScanSpan(this.source.Slice(this.position), elementSize, this.settings.MaxArrayElements, this.settings.MaxTotalBytesRead - this.bytesRead, fieldName);
         }
+        catch (CStructReadLimitException exception)
+        {
+            // The shared scan words the failure; the cursor adds the field, path and position context.
+            throw this.FailLimit(exception.Message, member, memberType);
+        }
+        catch (CStructReadException exception)
+        {
+            throw this.Fail(exception.Message, member, memberType);
+        }
+    }
+
+    /// <summary>
+    ///     Consumes a <c>T values[]</c> array's all-zero terminator element, which <see cref="CountTerminated"/> found: moves
+    ///     past it and charges its bytes to the read budget, as the runtime does after the elements.
+    /// </summary>
+    /// <param name="elementSize">The element size in bytes.</param>
+    /// <param name="member">The array field, for the diagnostics.</param>
+    /// <param name="memberType">The field's type spelling, for the diagnostics.</param>
+    /// <exception cref="CStructReadLimitException">The element reads used up the budget the count found for the terminator.</exception>
+    public void TakeTerminator(int elementSize, string member, string? memberType)
+    {
+        this.Skip(elementSize, member, memberType);
+        this.Charge(elementSize, member, memberType);
     }
 
     /// <summary>Validates an array length against <c>MaxArrayElements</c> and returns it as an <see cref="int"/>.</summary>

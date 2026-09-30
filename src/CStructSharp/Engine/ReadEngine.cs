@@ -352,11 +352,11 @@ internal static partial class ReadEngine
                     break;
 
                 case ReadOpCode.CountTerminated:
-                    count = DynamicArrayExtent.CountTerminated(ref cursor, cursor.Position, step.A, state.MaxArrayElements, program.Fields[field].Name);
+                    count = DynamicArrayExtent.CountTerminated(ref cursor, cursor.Position, step.A, state.MaxArrayElements, program.Fields[field].Name, chargeScan: false);
                     break;
 
                 case ReadOpCode.SkipTerminator:
-                    cursor.Skip(step.A);
+                    SkipTerminator(ref cursor, step.A);
                     break;
 
                 // Each multi-byte scalar decodes for its width and byte order directly (a value in memory is read in
@@ -781,6 +781,23 @@ internal static partial class ReadEngine
             // Never entered: the filter records the member and lets the exception propagate.
             throw;
         }
+    }
+
+    /// <summary>
+    ///     Moves past a terminated array's all-zero terminator element and charges its bytes: the count step's scan found
+    ///     the terminator but charged nothing. Kept out of <see cref="RunFrame{TCursor}"/>'s switch so the hot loop's code
+    ///     does not grow for a step most programs never run.
+    /// </summary>
+    /// <typeparam name="TCursor">The cursor type.</typeparam>
+    /// <param name="cursor">The operation's cursor, at the terminator.</param>
+    /// <param name="size">The terminator element's size in bytes.</param>
+    /// <exception cref="CStructReadLimitException">The terminator's bytes exceed the read budget.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void SkipTerminator<TCursor>(ref TCursor cursor, int size)
+        where TCursor : struct, IReadCursor
+    {
+        cursor.Skip(size);
+        cursor.Charge(size);
     }
 
     /// <summary>

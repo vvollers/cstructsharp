@@ -136,16 +136,16 @@
   ok 290, CStructReadException 8, CStructReadLimitException 108, CStructWriteLimitException 56
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("terminated")
-@hash b0555c871a00b869c31607d6d1b7b3133531a9482c0167d2e4187fe3e7c1e13e 748 terminated/packed
-  ok 192, CStructReadLimitException 468, CStructWriteException 12, CStructWriteLimitException 76
-@hash b0555c871a00b869c31607d6d1b7b3133531a9482c0167d2e4187fe3e7c1e13e 748 terminated/aligned
-  ok 192, CStructReadLimitException 468, CStructWriteException 12, CStructWriteLimitException 76
+@hash 330a8f114a4c16f2941ed9bc30ec6bd82dbef8db109fe33cc01629d278e8eb5c 418 terminated/packed
+  ok 96, CStructReadLimitException 246, CStructWriteLimitException 76
+@hash 330a8f114a4c16f2941ed9bc30ec6bd82dbef8db109fe33cc01629d278e8eb5c 418 terminated/aligned
+  ok 96, CStructReadLimitException 246, CStructWriteLimitException 76
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("terminated-scalars")
-@hash efa7c5aee6838fbb94c8cfaaa2a557f5e2be76c357e4bf3770799622b1116f72 462 terminated-scalars/packed
-  ok 194, CStructReadLimitException 210, CStructWriteLimitException 58
-@hash 9845a7336448605270e6bbb2d889a632fd3eb392be151dee6d36e7c488979427 478 terminated-scalars/aligned
-  ok 196, CStructReadException 12, CStructReadLimitException 198, CStructWriteLimitException 72
+@hash f1b10f0f1acb788224ceefac022bc8f8a6fe3277105cb9180267de12ef9d1c3c 342 terminated-scalars/packed
+  ok 114, CStructReadLimitException 170, CStructWriteLimitException 58
+@hash 2efc7edbc4d439f272d4b7f592040f50c40cb89e0fa9f124b1add249bcf996d0 358 terminated-scalars/aligned
+  ok 114, CStructReadException 16, CStructReadLimitException 156, CStructWriteLimitException 72
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("text")
 @hash 9a3a2d26582df8860636c000d50d8e656d55c1dfd3aa9b811fc973a4c362217f 684 text/packed
@@ -232,10 +232,10 @@
   ok 112, CStructReadException 2, CStructReadLimitException 262, CStructWriteLimitException 88
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("write-text")
-@hash f6474f3a5ad7bdd26b94cb3ce9a8f7fb8b69f195d535d6683631750c5936b776 1318 write-text/packed
-  ok 646, CStructReadLimitException 462, CStructWriteLimitException 210
-@hash 66e5966fad13ef31101f6c0786c7d30ae284ee6978cc8cc7b5ba80a8cd822eda 1416 write-text/aligned
-  ok 696, CStructReadLimitException 502, CStructWriteLimitException 218
+@hash ead9bfe965096b2e050dfb58cb77d386a44d038640144c2fc4d6d5037e4e4848 988 write-text/packed
+  ok 492, CStructReadLimitException 286, CStructWriteLimitException 210
+@hash 86e574e76eb7dd76e7a5ab90d74164258dc67800055051fe3acf372e9bc450be 996 write-text/aligned
+  ok 492, CStructReadLimitException 286, CStructWriteLimitException 218
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("bitfields")
 @hash 27d930f12b5b8493a79da099c8039227eaedc5ef2025a55ba2593d3135d01e33 36 bitfields/packed

@@ -66,9 +66,10 @@ internal enum ReadOpCode : byte
 
     /// <summary>
     ///     Sets the count register to the number of elements of <c>A</c> bytes before the first all-zero element, scanning
-    ///     from the member's placed start and returning there; the limit is checked per element. Every byte the scan reads
-    ///     is charged, and the elements and their terminator are charged again when the array step reads them. A
-    ///     terminated array (<c>T items[]</c>): input that ends before an all-zero element fails at the array's start.
+    ///     from the member's placed start and returning there; the limit is checked per element. The scan charges nothing -
+    ///     the array step charges the elements and <see cref="SkipTerminator"/> the terminator - but fails with the
+    ///     read-limit exception when the elements and the terminator exceed the remaining read budget. A terminated array
+    ///     (<c>T items[]</c>): input that ends before an all-zero element fails at the array's start.
     /// </summary>
     CountTerminated,
 
@@ -216,7 +217,9 @@ internal enum ReadOpCode : byte
 
     /// <summary>
     ///     Moves past a terminated array's all-zero terminator element of <c>A</c> bytes, which belongs to the member but
-    ///     not to its value; the count step already found it, so the move cannot fail.
+    ///     not to its value, and charges its bytes to the read budget; the count step already found it, so the move cannot
+    ///     fail, and the charge fails only when the elements' reads (pointer targets of struct elements) used up the
+    ///     budget the count found for it.
     /// </summary>
     SkipTerminator,
 

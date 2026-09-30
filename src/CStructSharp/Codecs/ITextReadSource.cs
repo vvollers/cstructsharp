@@ -19,6 +19,12 @@ internal interface ITextReadSource
     /// <summary>Gets the token checked before each chunk of a terminated string.</summary>
     CancellationToken CancellationToken { get; }
 
+    /// <summary>
+    ///     Gets the bytes the operation may still consume before its total read budget fails, or
+    ///     <see cref="long.MaxValue"/> when the source has no budget; a chunk of a terminated string reads no more.
+    /// </summary>
+    long RemainingReadBudget { get; }
+
     /// <summary>Reads up to <paramref name="count"/> bytes, advancing past and charging only the bytes returned.</summary>
     /// <param name="buffer">The array that receives the bytes.</param>
     /// <param name="offset">The index in <paramref name="buffer"/> of the first byte stored.</param>
@@ -32,6 +38,8 @@ internal interface ITextReadSource
     void ReadExactly(Span<byte> buffer);
 
     /// <summary>Moves the position back by <paramref name="count"/> bytes that were read but not consumed.</summary>
-    /// <param name="count">The positive number of bytes to give back; the budget keeps their charge.</param>
+    /// <param name="count">
+    ///     The positive number of bytes to give back; the budget gives back their charge too, so it counts consumed bytes.
+    /// </param>
     void Rewind(int count);
 }

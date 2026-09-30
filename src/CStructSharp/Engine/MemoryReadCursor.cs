@@ -90,6 +90,9 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
     /// <inheritdoc/>
     readonly long? ITextReadSource.StringByteLimit => this.maxStringBytes;
 
+    /// <inheritdoc/>
+    readonly long ITextReadSource.RemainingReadBudget => this.core.RemainingBudget;
+
     /// <summary>
     ///     Creates a cursor over <paramref name="source"/>'s memory when <see cref="ReadBudgetStream"/> would read it
     ///     from memory: a read-only pinned region stream or a seekable <see cref="MemoryStream"/> whose buffer is
@@ -110,6 +113,18 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
 
     /// <inheritdoc/>
     public readonly void ThrowIfCancellationRequested() => this.cancellationToken.ThrowIfCancellationRequested();
+
+    /// <inheritdoc/>
+    public void Charge(long count) => this.core.Charge(count);
+
+    /// <inheritdoc/>
+    /// <remarks>The scan runs over the input in place; the position does not move.</remarks>
+    public readonly int ScanTerminated(int elementSize, int maximumElements, string fieldName)
+    {
+        // A memory input always exposes its remaining bytes, since the position never passes the end.
+        _ = this.core.TryPeekRemaining(out ReadOnlySpan<byte> remaining);
+        return DynamicArrayExtent.ScanSpan(remaining, elementSize, maximumElements, this.core.RemainingBudget, fieldName);
+    }
 
     /// <inheritdoc/>
     public void Skip(long count) => this.core.SetPosition(checked(this.core.Position + count));
@@ -228,7 +243,11 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
     void ITextReadSource.ReadExactly(Span<byte> buffer) => this.ReadAvailableExactly(buffer);
 
     /// <inheritdoc/>
-    void ITextReadSource.Rewind(int count) => this.core.SetPosition(this.core.Position - count);
+    void ITextReadSource.Rewind(int count)
+    {
+        this.core.SetPosition(this.core.Position - count);
+        this.core.Refund(count);
+    }
 
     /// <summary>
     ///     Raises the runtime's own <see cref="EndOfStreamException"/>, the inner exception a stream's
@@ -245,10 +264,10 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
     /// <summary>
     ///     Reads a terminated string straight from memory when its outcome is known to be a success: the terminator is in
     ///     the input, the text up to it is within <c>MaxStringBytes</c> and valid, the token is not cancelled, and the
-    ///     bytes the chunked reader would take are within the read budget. The result, the charge (every 256-byte chunk up
-    ///     to the one holding the terminator, as <see cref="PrimitiveCodecs.ReadIntoString{TSource}"/> reads them) and the
-    ///     final position (just after the terminator) are then that reader's. Otherwise nothing is consumed or charged, and
-    ///     the caller runs the chunked reader, which reports the failure where it always has.
+    ///     string and its terminator are within the read budget. The result, the charge (the bytes through the terminator,
+    ///     as <see cref="PrimitiveCodecs.ReadIntoString{TSource}"/> charges them) and the final position (just after the
+    ///     terminator) are then that reader's. Otherwise nothing is consumed or charged, and the caller runs the chunked
+    ///     reader, which reports the failure where it always has.
     /// </summary>
     /// <param name="encoding">The strict encoding.</param>
     /// <param name="terminator">The terminating character.</param>
@@ -265,20 +284,13 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
         int unitSize = encoding is UnicodeEncoding ? 2 : 1;
         Span<byte> terminatorBytes = stackalloc byte[4];
         int terminatorLength = PrimitiveCodecs.EncodeTerminator(encoding, terminator, terminatorBytes);
-        if (!PrimitiveCodecs.TryReadWholeTerminated(remaining, encoding, unitSize, terminatorBytes[..terminatorLength], this.maxStringBytes, long.MaxValue, out text, out int consumed, out long charged))
+        if (!PrimitiveCodecs.TryReadWholeTerminated(remaining, encoding, unitSize, terminatorBytes[..terminatorLength], this.maxStringBytes, this.core.RemainingBudget, out text, out int consumed))
         {
             return false;
         }
 
-        // The core charges the chunks against the read budget; a string the budget cannot cover is read chunk by chunk.
-        long start = this.core.Position;
-        if (!this.core.TryReadSpanWithinBudget((int)charged, out _))
-        {
-            text = null;
-            return false;
-        }
-
-        this.core.SetPosition(start + consumed);
+        // The string and its terminator fit the budget, so consuming them cannot fail.
+        this.core.Advance(consumed);
         return true;
     }
 

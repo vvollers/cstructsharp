@@ -98,18 +98,20 @@ public ref partial struct ReadCursor
     /// <returns>The text without its terminator.</returns>
     public string TakeTerminatedString(TerminatedTextEncoding encoding, char terminator, string member, string? memberType)
     {
-        // The runtime reads the string in 256-byte chunks and, per chunk, checks the string byte limit, decodes the
-        // bytes before the terminator (flushing only when the terminator is in the chunk), and stops at the
-        // terminator; the checks run in that order, and the position a failure reports is the end of the chunk
-        // being read (the limit failure: one byte past the limit). A string those chunks would read without a failure is
-        // first read in one step (PrimitiveCodecs.TryReadWholeTerminated, shared with the engine's memory cursor); any
-        // other string goes chunk by chunk, which reports its failure.
+        // The runtime reads the string in chunks of 256 bytes (fewer when the read budget is smaller) and, per chunk,
+        // checks the string byte limit, decodes the bytes before the terminator (flushing only when the terminator is in
+        // the chunk), and stops at the terminator; the checks run in that order, and the position a failure reports is
+        // the end of the chunk being read (the limit failure: one byte past the limit). Only the bytes through the
+        // terminator are charged. A string those chunks would read without a failure is first read in one step
+        // (PrimitiveCodecs.TryReadWholeTerminated, shared with the engine's memory cursor); any other string goes chunk by
+        // chunk, which reports its failure.
         const int Chunk = Codecs.PrimitiveCodecs.TerminatedStringReadChunkSize;
         System.Text.Encoding strict = Codecs.PrimitiveCodecs.StrictEncodingOf(encoding);
         int unitSize = encoding is TerminatedTextEncoding.Utf16LittleEndian or TerminatedTextEncoding.Utf16BigEndian ? 2 : 1;
         Span<byte> terminatorBytes = stackalloc byte[4];
         int terminatorLength = Codecs.PrimitiveCodecs.EncodeTerminator(strict, terminator, terminatorBytes);
         terminatorBytes = terminatorBytes.Slice(0, terminatorLength);
+        long budget = this.settings.MaxTotalBytesRead - this.bytesRead;
         if (!this.settings.CancellationToken.IsCancellationRequested &&
             Codecs.PrimitiveCodecs.TryReadWholeTerminated(
                 this.source.Slice(this.position),
@@ -117,12 +119,11 @@ public ref partial struct ReadCursor
                 unitSize,
                 terminatorBytes,
                 this.settings.MaxStringBytes,
-                this.settings.MaxTotalBytesRead - this.bytesRead,
+                budget,
                 out string? whole,
-                out int consumed,
-                out long charged))
+                out int consumed))
         {
-            this.bytesRead += charged;
+            this.bytesRead += consumed;
             this.position += consumed;
             return whole;
         }
@@ -136,15 +137,32 @@ public ref partial struct ReadCursor
         while (true)
         {
             this.settings.CancellationToken.ThrowIfCancellationRequested();
-            int bytesRead = Math.Min(Chunk, remaining.Length - offset);
+            int bytesRead = Math.Min(Codecs.PrimitiveCodecs.ChunkRequest(budget - offset, unitSize), remaining.Length - offset);
             if (bytesRead == 0)
             {
                 throw this.Fail(ReadFailures.TerminatedStringUnterminated, member, memberType);
             }
 
-            ReadOnlySpan<byte> chunk = remaining.Slice(offset, bytesRead);
+            // The runtime charges each read as it happens: a read past the budget fails at its end. A budget below one
+            // code unit asks for one byte, and the runtime then reads the unit's second byte as a second read.
             this.position = start + offset + bytesRead;
-            this.Charge(bytesRead, member, memberType);
+            if (offset + bytesRead > budget)
+            {
+                throw this.FailLimit(ReadFailures.TotalBytesLimit, member, memberType);
+            }
+
+            if (bytesRead % unitSize != 0 && offset + bytesRead < remaining.Length)
+            {
+                bytesRead++;
+                this.position++;
+                if (offset + bytesRead > budget)
+                {
+                    throw this.FailLimit(ReadFailures.TotalBytesLimit, member, memberType);
+                }
+            }
+
+            ReadOnlySpan<byte> chunk = remaining.Slice(offset, bytesRead);
+
             int alignmentOffset = (int)((unitSize - (encodedByteCount % unitSize)) % unitSize);
             int terminatorIndex = Codec.FindTerminator(chunk, terminatorBytes, unitSize, alignmentOffset);
             long allowed = this.settings.MaxStringBytes - encodedByteCount;
@@ -173,7 +191,9 @@ public ref partial struct ReadCursor
                 continue;
             }
 
+            // Every chunk stayed within the budget, so charging the string and its terminator cannot fail.
             int payloadLength = offset + terminatorIndex;
+            this.Charge(payloadLength + terminatorLength, member, memberType);
             this.position = start + payloadLength + terminatorLength;
             return strict.GetString(remaining.Slice(0, payloadLength));
         }

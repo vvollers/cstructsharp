@@ -4,16 +4,16 @@
 # counted by kind on the indented line below it.
 
 @test LargeArrays_ReadAndFailIn64KiBBlocks
-@hash 46377fa67970ab9624b38421eb8fdbddab27298db8daf875b5bf4f1aae783338 76
+@hash b8bd96e204d5448981a39381397ad12e5339b25534831218702167ce873e529d 76
   ok 14, CStructReadException 20, CStructReadLimitException 40, OperationCanceledException 2
 
 @test MultidimensionalArrays_ReadFlatThenNest
 @hash d2bcd08db4477496e588af027eacbb7477fe0838d4b19f1823deef429e41b6c4 334
   ok 26, CStructPathException 4, CStructReadException 182, CStructReadLimitException 122
 
-@test TerminatedArrays_ChargeTheScanAndTheReread
-@hash 96cbc2118ce51ad2305443af73c632c3d38a68ccbee034025eee39233429c641 364
-  ok 92, CStructReadException 70, CStructReadLimitException 202
+@test TerminatedArrays_ChargeEachByteOnce
+@hash dbfb46d6881ec7eb83ff455572046b8c5c0fcf2099125edd163563c77d7b7305 364
+  ok 172, CStructReadException 70, CStructReadLimitException 122
 
 @test ToEndArrays_CountWholeElementsFromTheirStart
 @hash 384948f2b56bc2d8fbe226bfdcb39fcace1dab0e6689c23809e9130a81625d0c 286

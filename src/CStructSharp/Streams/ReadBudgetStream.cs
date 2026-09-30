@@ -69,6 +69,9 @@ internal sealed class ReadBudgetStream : Stream
     /// <summary>The operation's token, checked per chunk of a terminated string and per block of a primitive array.</summary>
     public System.Threading.CancellationToken CancellationToken { get; }
 
+    /// <summary>Gets the bytes the operation may still consume before the total read budget fails.</summary>
+    public long RemainingReadBudget => this.core.RemainingBudget;
+
     /// <summary>Gets a value indicating whether the inner stream can be read.</summary>
     public override bool CanRead => this.inner.CanRead;
 
@@ -246,6 +249,33 @@ internal sealed class ReadBudgetStream : Stream
         BinaryPrimitiveIO.ReadExactlyOrThrow(this, destination);
         return true;
     }
+
+    /// <summary>
+    ///     Charges <paramref name="count"/> bytes the operation consumed without reading them again - an array's terminator,
+    ///     or the elements a path walk passes, which a scan has already inspected.
+    /// </summary>
+    /// <param name="count">The nonnegative number of bytes.</param>
+    /// <exception cref="CStructReadLimitException">The total exceeds the budget.</exception>
+    public void Charge(long count) => this.core.Charge(count);
+
+    /// <summary>
+    ///     Moves the position back by <paramref name="count"/> bytes that were read but not consumed and gives back their
+    ///     charge: the budget counts consumed bytes, although the source has physically read them.
+    /// </summary>
+    /// <param name="count">The nonnegative number of bytes, at most the bytes read since the last consumed one.</param>
+    /// <exception cref="CStructReadException">The position cannot be moved.</exception>
+    public void Rewind(int count)
+    {
+        this.Position -= count;
+        this.Refund(count);
+    }
+
+    /// <summary>
+    ///     Gives back the charge of <paramref name="count"/> bytes that were read but not consumed: a terminated array's
+    ///     scan, which the element reads charge again, refunds everything it read.
+    /// </summary>
+    /// <param name="count">The nonnegative number of bytes, at most the bytes charged so far.</param>
+    public void Refund(long count) => this.core.Refund(count);
 
     /// <summary>Writes the memory-mode position back to the inner stream; a no-op for stream sources.</summary>
     public void FlushPosition()

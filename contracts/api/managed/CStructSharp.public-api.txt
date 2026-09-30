@@ -501,6 +501,7 @@ namespace CStructSharp.Generated
         public ulong TakeLeb128(int width, bool signed, string member, string? memberType) { }
         public long TakePointerAddress(int pointerSize, bool littleEndian, string member, string? memberType) { }
         public string TakeTerminatedString(CStructSharp.Generated.TerminatedTextEncoding encoding, char terminator, string member, string? memberType) { }
+        public void TakeTerminator(int elementSize, string member, string? memberType) { }
         public string TakeWideText(int count, bool littleEndian, string member, string? memberType) { }
         public bool TryTakeFixed(int size, int alignment, long chargedBytes, int nestingLevels, int maximumArrayCount, out System.ReadOnlySpan<byte> bytes) { }
         public static byte[] BufferStream(System.IO.Stream stream, CStructSharp.ReadOptions? options, out int length) { }

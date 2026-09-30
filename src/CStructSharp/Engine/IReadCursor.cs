@@ -18,8 +18,10 @@ using CStructSharp.Diagnostics;
 ///         Two cursors exist. <see cref="MemoryReadCursor"/> reads memory through the <c>MemoryReadCore</c> that
 ///         <c>ReadBudgetStream</c> also uses; <see cref="StreamReadCursor"/> calls the operation's
 ///         <c>ReadBudgetStream</c> directly. Both therefore consume the same bytes, charge <c>MaxTotalBytesRead</c> at
-///         the same points (every byte read, including rereads, after the read) and fail with the same exception types,
-///         messages and final positions.
+///         the same points (every byte consumed, once per read of it, after the read) and fail with the same exception
+///         types, messages and final positions. A look-ahead that is not consumed - the rest of a terminated string's
+///         chunk, a terminated array's scan for its terminator - is not charged, although a stream source may
+///         physically read it.
 ///     </para>
 ///     <para>
 ///         Positions are absolute: bytes from the input's byte 0 (a stream's origin, not its starting position). A
@@ -106,6 +108,28 @@ internal interface IReadCursor
     /// <returns>Whether the input is in memory; pair with <see cref="Advance"/>.</returns>
     bool TryPeekRemaining(out ReadOnlySpan<byte> bytes);
 
+    /// <summary>
+    ///     Charges <paramref name="count"/> bytes the operation consumes without reading them through the cursor: an
+    ///     array's terminator, or the elements a path walk passes, which a scan has already inspected.
+    /// </summary>
+    /// <param name="count">The nonnegative number of bytes.</param>
+    /// <exception cref="CStructReadLimitException">The bytes exceed the total read budget.</exception>
+    void Charge(long count);
+
+    /// <summary>
+    ///     Scans from the position for the first all-zero element of a terminated array without charging the read budget,
+    ///     through <see cref="DynamicArrayExtent"/>'s shared scanners: memory in place, a stream through its reads. The
+    ///     scan looks no further than the budget allows the array to consume, so an array whose elements and terminator
+    ///     exceed the budget fails here, as consuming them would. A stream source is left somewhere after the position.
+    /// </summary>
+    /// <param name="elementSize">The positive size of one element in bytes.</param>
+    /// <param name="maximumElements">The largest element count the read options allow.</param>
+    /// <param name="fieldName">The array field, named in failure messages.</param>
+    /// <returns>The number of elements before the terminator.</returns>
+    /// <exception cref="CStructReadException">The input ends before an all-zero element.</exception>
+    /// <exception cref="CStructReadLimitException">The count exceeds <paramref name="maximumElements"/>, or the array exceeds the read budget.</exception>
+    int ScanTerminated(int elementSize, int maximumElements, string fieldName);
+
     /// <summary>Consumes <paramref name="count"/> bytes that <see cref="TryPeekRemaining"/> exposed, charging them.</summary>
     /// <param name="count">The number of bytes consumed.</param>
     /// <exception cref="CStructReadLimitException">The bytes exceed the total read budget.</exception>
@@ -185,8 +209,8 @@ internal interface IReadCursor
     IList<object?> ReadPrimitiveArray(PrimitiveCodec codec, int count);
 
     /// <summary>
-    ///     Reads a terminated string through the shared reader in <see cref="PrimitiveCodecs"/>: 256-byte chunks
-    ///     (all charged), the position left just after the terminator.
+    ///     Reads a terminated string through the shared reader in <see cref="PrimitiveCodecs"/>: chunks of at most 256
+    ///     bytes, of which only the bytes through the terminator are charged, the position left just after the terminator.
     /// </summary>
     /// <param name="encoding">The strict encoding.</param>
     /// <param name="terminator">The terminating character.</param>

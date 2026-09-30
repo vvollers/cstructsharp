@@ -103,8 +103,8 @@ internal sealed partial class LayoutEmitter
 
         if (field.Array.Kind == CompiledArrayKind.Terminated)
         {
-            // The all-zero terminator element belongs to the field but not to its value.
-            writer.Line("cursor.Skip(" + Int(field.FixedElementSize ?? 0) + ", " + member + ", " + memberType + ");");
+            // The all-zero terminator element belongs to the field but not to its value; it is consumed, so it is charged.
+            writer.Line("cursor.TakeTerminator(" + Int(field.FixedElementSize ?? 0) + ", " + member + ", " + memberType + ");");
         }
     }
 

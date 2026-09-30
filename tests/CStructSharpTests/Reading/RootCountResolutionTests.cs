@@ -11,19 +11,19 @@ public class RootCountResolutionTests
 {
     /// <summary>
     ///     Reading <c>uint8[]</c> over <c>01 02 00</c> needs the budget a parse of <c>struct one { uint8 a[]; }</c> needs over
-    ///     the same bytes; one byte less fails at the terminator.
+    ///     the same bytes, its three bytes; one byte less fails at the scan, which reports the array's start.
     /// </summary>
     [TestMethod]
     public void TerminatedRoot_ChargesItsScanOnce()
     {
         var layout = new CStruct("struct one { uint8 a[]; };");
         byte[] data = [1, 2, 0, 9];
-        var enough = new ReadOptions { MaxTotalBytesRead = 5, };
+        var enough = new ReadOptions { MaxTotalBytesRead = 3, };
 
         _ = layout.Parse(data, "one", options: enough);
         CollectionAssert.AreEqual(new byte[] { 1, 2, }, ((IEnumerable<object?>)layout.ReadValue(data, "uint8[]", options: enough)!).Cast<byte>().ToArray());
-        CStructReadLimitException failure = Assert.Throws<CStructReadLimitException>(() => layout.ReadValue(data, "uint8[]", options: new ReadOptions { MaxTotalBytesRead = 4, }));
-        Assert.AreEqual(2L, failure.Offset);
+        CStructReadLimitException failure = Assert.Throws<CStructReadLimitException>(() => layout.ReadValue(data, "uint8[]", options: new ReadOptions { MaxTotalBytesRead = 2, }));
+        Assert.AreEqual(0L, failure.Offset);
     }
 
     /// <summary>

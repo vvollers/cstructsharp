@@ -46,6 +46,21 @@ internal readonly struct StreamReadCursor : IReadCursor
     public void ThrowIfCancellationRequested() => this.stream.CancellationToken.ThrowIfCancellationRequested();
 
     /// <inheritdoc/>
+    public void Charge(long count) => this.stream.Charge(count);
+
+    /// <inheritdoc/>
+    public int ScanTerminated(int elementSize, int maximumElements, string fieldName)
+    {
+        // Update reads span or exposable memory-stream input through this stream in memory mode: scan it in place.
+        if (this.stream.TryPeekRemaining(out ReadOnlySpan<byte> remaining))
+        {
+            return DynamicArrayExtent.ScanSpan(remaining, elementSize, maximumElements, this.stream.RemainingReadBudget, fieldName);
+        }
+
+        return DynamicArrayExtent.ScanStream(this.stream, elementSize, maximumElements, fieldName);
+    }
+
+    /// <inheritdoc/>
     public void Skip(long count) => this.stream.Position = checked(this.stream.Position + count);
 
     /// <inheritdoc/>

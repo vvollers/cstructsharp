@@ -152,6 +152,13 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - npm package: `parseWithDebug` decides where to run by the rule `parse` uses: any byte buffer or view without a
   cancellation signal is parsed on the calling thread, up to 4 MiB for a debug parse (64 KiB for `parse`). An
   `ArrayBuffer` or `DataView` used to go to the worker; a 1 KiB one now parses 19-27 % faster.
+- `ReadOptions.MaxTotalBytesRead` counts the bytes a read consumes, each byte once per read of it, in the runtime and
+  the generated reader and on every input form, so smaller budgets can now succeed. A terminated array's scan for its
+  terminator is no longer charged on top of its elements, and the terminator itself is charged once (the generated
+  reader did not charge it); a terminated string is charged through its terminator instead of up to the end of its
+  256-byte read chunk. `struct one { uint8 a[]; }` over `01 02 00` needs a budget of 3 (it needed 5, and 2 in generated
+  code). A scan that would pass the budget fails with `CStructReadLimitException`; a generated `Parse(Stream)` reported
+  it as a missing terminator. Regenerate generated code to pick up the terminator charge (`ReadCursor.TakeTerminator`).
 
 ### Fixed
 

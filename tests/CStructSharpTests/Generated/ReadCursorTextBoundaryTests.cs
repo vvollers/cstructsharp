@@ -21,7 +21,10 @@ public class ReadCursorTextBoundaryTests
         Assert.IsNull(failure.InnerException);
     }
 
-    /// <summary>Chunk failures retain input-relative offsets and enforce the string limit before finding a later terminator.</summary>
+    /// <summary>
+    ///     Chunk failures retain input-relative offsets and enforce the string limit before finding a later terminator; a
+    ///     total budget of 256 bytes reads one whole chunk and fails at the next byte (offset 1 + 256 + 1).
+    /// </summary>
     [TestMethod]
     public void TerminatedText_ReportsLimitsAtTheFailingChunk()
     {
@@ -44,7 +47,7 @@ public class ReadCursorTextBoundaryTests
                     throw;
                 }
             });
-            Assert.AreEqual(totalLimit ? 302L : 12L, failure.Offset);
+            Assert.AreEqual(totalLimit ? 258L : 12L, failure.Offset);
             Assert.AreEqual("text", failure.Member);
             Assert.AreEqual("root", failure.Path);
             StringAssert.Contains(failure.Message, totalLimit ? "total read-byte limit" : "configured encoded-byte limit");
@@ -202,8 +205,9 @@ public class ReadCursorTextBoundaryTests
     }
 
     /// <summary>
-    ///     A string that spans chunks is charged every 256-byte chunk read up to the one holding its terminator, and a
-    ///     budget one byte short, or invalid bytes in a later chunk, fail at the end of the chunk being read.
+    ///     A string that spans chunks is charged its bytes through the terminator, not the rest of the chunk holding it; a
+    ///     budget one byte short fails when the read reaches the byte past the budget, and invalid bytes in a later chunk
+    ///     fail at the end of the chunk being read.
     /// </summary>
     /// <param name="kind">The generated reader's supported terminated encoding.</param>
     [TestMethod]
@@ -211,15 +215,15 @@ public class ReadCursorTextBoundaryTests
     [DataRow(TerminatedTextEncoding.Utf8)]
     [DataRow(TerminatedTextEncoding.Utf16LittleEndian)]
     [DataRow(TerminatedTextEncoding.Utf16BigEndian)]
-    public void TerminatedText_ChargesEveryChunkUpToItsTerminator(TerminatedTextEncoding kind)
+    public void TerminatedText_ChargesTheBytesThroughItsTerminator(TerminatedTextEncoding kind)
     {
         Encoding encoding = EncodingFor(kind);
         string expected = new('x', kind is TerminatedTextEncoding.Utf16LittleEndian or TerminatedTextEncoding.Utf16BigEndian ? 150 : 300);
         byte[] payload = encoding.GetBytes(expected + '\0');
         byte[] source = [.. payload, .. new byte[300],];
 
-        // The terminator starts in the second chunk: 512 bytes are charged, so two more bytes fit a 514-byte budget.
-        var cursor = new ReadCursor(source, new ReadOptions { MaxTotalBytesRead = 514, });
+        // The terminator lies in the second chunk: the string's own bytes are charged, so two more bytes fit.
+        var cursor = new ReadCursor(source, new ReadOptions { MaxTotalBytesRead = payload.Length + 2, });
         Assert.AreEqual(expected, cursor.TakeTerminatedString(kind, '\0', "text", "string"));
         Assert.AreEqual(payload.Length, cursor.Position);
         _ = cursor.Take(2, "tail", "uint16");
@@ -233,17 +237,18 @@ public class ReadCursorTextBoundaryTests
             Assert.AreEqual(payload.Length + 2, cursor.Position);
         }
 
-        // One byte less and the second chunk is over the budget: the read fails at that chunk's end.
-        var overBudget = new ReadCursor(source, new ReadOptions { MaxTotalBytesRead = 511, });
+        // One byte less than the string and its terminator: the second chunk stops at the budget, and the read of the
+        // next byte - the terminator's last - fails after it.
+        var overBudget = new ReadCursor(source, new ReadOptions { MaxTotalBytesRead = payload.Length - 1, });
         try
         {
             overBudget.TakeTerminatedString(kind, '\0', "text", "string");
-            Assert.Fail("The second chunk exceeds the budget.");
+            Assert.Fail("The terminator exceeds the budget.");
         }
         catch (CStructReadLimitException failure)
         {
             StringAssert.Contains(failure.Message, "total read-byte limit");
-            Assert.AreEqual(512, overBudget.Position);
+            Assert.AreEqual(payload.Length, overBudget.Position);
         }
 
         // An invalid unit in the second chunk (a lone low surrogate, 0xDC78, in UTF-16; a byte no ASCII or UTF-8

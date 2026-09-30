@@ -62,10 +62,19 @@ public sealed record ReadOptions
     public long MaxStringBytes { get; init; } = 16 * 1024 * 1024;
 
     /// <summary>
-    ///     Gets the greatest total bytes one public read-like operation may physically read. Seeking across a gap
-    ///     does not consume this budget: a small target several terabytes into a file costs only its decoded bytes.
-    ///     Set a larger value, up to <see cref="long.MaxValue"/>, when intentionally reading more payload data.
+    ///     Gets the greatest total bytes one public read-like operation may consume. Each byte a read consumes counts
+    ///     once; a byte read again (a pointer target visited twice, a union's overlapping members) counts again. Bytes
+    ///     inspected before they are consumed do not count: the scan of a terminated array for its terminator, and the
+    ///     read-ahead of a terminated string past its terminator, although a stream source may physically read them.
+    ///     Seeking across a gap or padding does not consume this budget: a small target several terabytes into a file
+    ///     costs only its decoded bytes. Set a larger value, up to <see cref="long.MaxValue"/>, when intentionally
+    ///     reading more payload data.
     /// </summary>
+    /// <remarks>
+    ///     A parse of <c>struct one { uint8 a[]; }</c> over <c>01 02 00</c> consumes the two elements and the terminator,
+    ///     so it succeeds with a budget of 3 and fails with <see cref="Diagnostics.CStructReadLimitException"/> at 2. The
+    ///     runtime and the generated readers charge the same bytes on every input form.
+    /// </remarks>
     public long MaxTotalBytesRead { get; init; } = 64 * 1024 * 1024;
 
     /// <summary>Gets the greatest active struct depth permitted during one read-like operation.</summary>

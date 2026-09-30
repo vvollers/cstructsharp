@@ -20,7 +20,9 @@ public class PathByteChargeTests
         var layout = new CStruct("struct s { cstring name; uint8 x; };");
         byte[] data = [0x61, 0x62, 0x00, 0x07];
 
+        // A parse consumes the four bytes, each charged once.
         int parse = MinimumBudget(budget => layout.Parse(data, "s", options: Read(budget)));
+        Assert.AreEqual(4, parse);
         Assert.AreEqual(parse, MinimumBudget(budget => layout.ReadValue(data, "s.x", options: Read(budget))));
         Assert.AreEqual(parse - 1, MinimumBudget(budget => layout.ResolveAddress(new MemoryStream(data), "s.x", options: Read(budget))));
         Assert.AreEqual(parse - 1, MinimumBudget(budget => layout.Update(new MemoryStream([.. data]), "s.x", (byte)8, options: new UpdateOptions { MaxTraversalBytesRead = budget, })));
@@ -53,16 +55,18 @@ public class PathByteChargeTests
 
         Assert.AreEqual(2, layout.GetArrayLength(new MemoryStream(data), "g.a"));
 
-        // The text is read in chunks, which charge every byte the chunk holds; a struct of the text alone over the same
+        // The text is charged its bytes through the terminator (3); a struct of the text alone over the same
         // bytes is charged the same. The array adds its three bytes, scanned once.
         int text = MinimumBudget(budget => new CStruct("struct h { cstring name; };").Parse(data, "h", options: Read(budget)));
+        Assert.AreEqual(3, text);
         Assert.AreEqual(text + 3, MinimumBudget(budget => layout.GetArrayLength(new MemoryStream(data), "g.a", options: Read(budget))));
     }
 
     /// <summary>
     ///     A whole terminated array read through a path is scanned once, by the read: <c>struct one { uint8 a[]; }</c> over
-    ///     <c>01 02 00 09</c> reads <c>one.a</c> with the budget a parse of the struct needs, and the bare root
-    ///     <c>uint8[]</c> with the same budget.
+    ///     <c>01 02 00 09</c> reads <c>one.a</c> with the budget a parse of the struct needs - the three bytes it consumes,
+    ///     since the scan charges nothing and the read charges each byte once - and the bare root <c>uint8[]</c> with the
+    ///     same budget.
     /// </summary>
     [TestMethod]
     public void TerminatedArrayTarget_IsScannedOnce()
@@ -71,8 +75,24 @@ public class PathByteChargeTests
         byte[] data = [0x01, 0x02, 0x00, 0x09];
 
         int parse = MinimumBudget(budget => layout.Parse(data, "one", options: Read(budget)));
+        Assert.AreEqual(3, parse);
         Assert.AreEqual(parse, MinimumBudget(budget => layout.ReadValue(data, "one.a", options: Read(budget))));
         Assert.AreEqual(parse, MinimumBudget(budget => layout.ReadValue(data, "uint8[]", options: Read(budget))));
+    }
+
+    /// <summary>
+    ///     <c>struct p { n* ptr; }</c> whose pointer addresses <c>struct n { uint8 a[]; }</c> over <c>01 02 00</c> right after
+    ///     it: a parse needs the pointer's bytes and the target's three, each charged once.
+    /// </summary>
+    [TestMethod]
+    public void PointerTargetArray_IsChargedOnce()
+    {
+        var layout = new CStruct("struct n { uint8 a[]; }; struct p { n* ptr; };");
+        byte[] address = new byte[layout.PointerSize];
+        address[0] = layout.PointerSize;
+        byte[] data = [.. address, 0x01, 0x02, 0x00];
+
+        Assert.AreEqual(layout.PointerSize + 3, MinimumBudget(budget => layout.Parse(data, "p", options: Read(budget))));
     }
 
     /// <summary>Read options with a total read budget.</summary>

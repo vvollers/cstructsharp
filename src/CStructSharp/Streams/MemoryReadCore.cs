@@ -67,6 +67,12 @@ internal unsafe struct MemoryReadCore
     public readonly long Position => this.position;
 
     /// <summary>
+    ///     Gets the bytes the operation may still consume before the total read budget fails: a scan that inspects bytes
+    ///     before they are consumed (an array's search for its terminator) stops where consuming them would fail.
+    /// </summary>
+    public readonly long RemainingBudget => this.maxTotalBytesRead - this.bytesRead;
+
+    /// <summary>
     ///     Selects the backing of <paramref name="source"/>: a read-only pinned <see cref="FixedBufferStream"/> region
     ///     or an exposable, seekable <see cref="MemoryStream"/> buffer is read directly from memory, starting at the
     ///     stream's current position; any other stream gets a budget-only core (<see cref="ForStream"/>).
@@ -239,6 +245,13 @@ internal unsafe struct MemoryReadCore
     public readonly bool IsWithinBudget(long count) => count <= this.maxTotalBytesRead - this.bytesRead;
 
     /// <summary>
+    ///     Gives back the charge of <paramref name="count"/> bytes a reader took but did not consume - the look-ahead of a
+    ///     terminated string after its terminator - so the total counts each consumed byte once.
+    /// </summary>
+    /// <param name="count">The nonnegative number of bytes, at most the bytes charged so far.</param>
+    public void Refund(long count) => this.bytesRead -= count;
+
+    /// <summary>
     ///     Copies up to <c>buffer.Length</c> bytes from memory at the position, advancing and charging only the bytes
     ///     copied - the memory-mode form of <see cref="Stream.Read(Span{byte})"/>.
     /// </summary>
@@ -280,12 +293,13 @@ internal unsafe struct MemoryReadCore
     }
 
     /// <summary>
-    ///     Adds <paramref name="count"/> bytes to the operation's total. The total counts every byte read, including
-    ///     rereads; a read is charged after it happened, so the failing read has already consumed its bytes.
+    ///     Adds <paramref name="count"/> bytes to the operation's total. The total counts every byte consumed, once per
+    ///     read of it (a pointer target read twice is charged twice); a read is charged after it happened, so the failing
+    ///     read has already consumed its bytes.
     /// </summary>
     /// <param name="count">The number of bytes just read; zero or less charges nothing.</param>
     /// <exception cref="CStructReadLimitException">The total exceeds the budget or the accounting range.</exception>
-    public void Charge(int count)
+    public void Charge(long count)
     {
         if (count <= 0)
         {

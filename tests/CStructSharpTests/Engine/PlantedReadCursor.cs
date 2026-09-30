@@ -41,6 +41,12 @@ internal struct PlantedReadCursor : IReadCursor
     public readonly void ThrowIfCancellationRequested() => this.inner.ThrowIfCancellationRequested();
 
     /// <inheritdoc/>
+    public void Charge(long count) => this.inner.Charge(count);
+
+    /// <inheritdoc/>
+    public readonly int ScanTerminated(int elementSize, int maximumElements, string fieldName) => this.inner.ScanTerminated(elementSize, maximumElements, fieldName);
+
+    /// <inheritdoc/>
     public void Skip(long count) => this.inner.Skip(count);
 
     /// <inheritdoc/>

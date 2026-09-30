@@ -170,16 +170,16 @@
   ok 450, ArgumentOutOfRangeException 2, CStructReadLimitException 22
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("terminated")
-@hash eaee768d1bf734e8ba51f7057ae35ae4ad2603721689a0fa8181fd05ebe77942 550 terminated/packed
-  ok 503, ArgumentOutOfRangeException 2, CStructReadLimitException 45
-@hash eaee768d1bf734e8ba51f7057ae35ae4ad2603721689a0fa8181fd05ebe77942 550 terminated/aligned
-  ok 503, ArgumentOutOfRangeException 2, CStructReadLimitException 45
+@hash e2c5397b80b6c186174df767c5d2b11a08fc73a4b1f7ce47acac6a73439ba70a 550 terminated/packed
+  ok 518, ArgumentOutOfRangeException 2, CStructReadLimitException 30
+@hash e2c5397b80b6c186174df767c5d2b11a08fc73a4b1f7ce47acac6a73439ba70a 550 terminated/aligned
+  ok 518, ArgumentOutOfRangeException 2, CStructReadLimitException 30
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("terminated-scalars")
-@hash 58e0197b6aadec44f8778c4617e9fb77ae4afd85c4b68233098c2054bca63acb 474 terminated-scalars/packed
-  ok 446, ArgumentOutOfRangeException 2, CStructReadLimitException 26
-@hash 390bc1c2ef18ab827c156fa4b847bd3717273d83b8c6aa80268d1ccca38635b7 550 terminated-scalars/aligned
-  ok 522, ArgumentOutOfRangeException 2, CStructReadLimitException 26
+@hash 92101044c1ad97dce60ee0e06e708c246b5cd55cfec6b4129b02ddd7d736f594 474 terminated-scalars/packed
+  ok 454, ArgumentOutOfRangeException 2, CStructReadLimitException 18
+@hash 654badbecd08576330df3b13c9d3559f62dd3a60e74e37df861c0c73c62d1e25 550 terminated-scalars/aligned
+  ok 530, ArgumentOutOfRangeException 2, CStructReadLimitException 18
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("text")
 @hash 8c777ba0b5535712f470cc97cb2727bd372f9e3dbfadb06f76ab9303928e9e51 816 text/packed
@@ -266,10 +266,10 @@
   ok 598, ArgumentOutOfRangeException 2, CStructReadLimitException 26
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("write-text")
-@hash 3217cf561bfeb59f900c0a34ae86091664efe0e96e9fdb257e1a04a390e12a7c 1120 write-text/packed
-  ok 1043, ArgumentOutOfRangeException 2, CStructReadLimitException 75
-@hash b3c676e33e36019378fc02b59c80b8b8fa74a1817467a90ce23099fa06e8daf7 1158 write-text/aligned
-  ok 1078, ArgumentOutOfRangeException 2, CStructReadLimitException 78
+@hash ce97a754b35d54fae31f40e4831aabed4dd008f09233b1a2dee2fa7f02573be1 1120 write-text/packed
+  ok 1054, ArgumentOutOfRangeException 2, CStructReadLimitException 64
+@hash 21aef58e6f1c373100bdb5e67d6784d5d2b288bb2bbf2e263197e0da8ec88193 1158 write-text/aligned
+  ok 1092, ArgumentOutOfRangeException 2, CStructReadLimitException 64
 
 @test Truncations_CaptureTheLayoutFromEveryStream("bitfields")
 @hash e748ad930fb5c6dcf9a9bd95f7117b96fe6e8b8392638d337c7eb4a8461305c2 30 bitfields/packed

@@ -126,7 +126,8 @@ internal static partial class TargetResolver
 
     /// <summary>
     ///     Counts a data-sized array from its first byte - whole elements to the end of the input, or elements before the
-    ///     first all-zero one (read and charged) - and restores the position the walk was at, whatever happens.
+    ///     first all-zero one (scanned, then the elements and terminator charged once, since the walk consumes them through
+    ///     the scan alone) - and restores the position the walk was at, whatever happens.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -143,7 +144,7 @@ internal static partial class TargetResolver
         {
             return field.Array.Kind == CompiledArrayKind.ToEnd
                        ? DynamicArrayExtent.CountToEnd(ref cursor, start, elementSize, state.MaxArrayElements, field.Name)
-                       : DynamicArrayExtent.CountTerminated(ref cursor, start, elementSize, state.MaxArrayElements, field.Name);
+                       : DynamicArrayExtent.CountTerminated(ref cursor, start, elementSize, state.MaxArrayElements, field.Name, chargeScan: true);
         }
         finally
         {

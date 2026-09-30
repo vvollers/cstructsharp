@@ -43,7 +43,7 @@ that says the *input was rejected for size*, not that it was malformed:
 | --- | --- | --- |
 | `MaxPointerDepth` | 64 | A chain of pointers nested deeper than the format should ever need (or a stack overflow from a hostile file). |
 | `MaxPointerTargetBytes` | none | A pointer to a huge target; a fixed-size target larger than the limit is refused before it is read. |
-| `MaxTotalBytesRead` | 64 MiB | The total the whole operation may consume, pointer targets included. |
+| `MaxTotalBytesRead` | 64 MiB | The total the whole operation may consume, each byte once per read, pointer targets included. |
 | `MaxNestingDepth` | 256 | Structs inside structs beyond what a format needs. |
 
 A pointer that leads back to a target already being read is a **cycle**; the reader detects it by remembering the

@@ -16,11 +16,12 @@ using CStructSharp.Streams;
 internal static partial class PrimitiveCodecs
 {
     /// <summary>
-    ///     The bytes one read of a terminated string takes (and charges to the read budget) while it searches for the
-    ///     terminator: every reader of terminated text - the stream and memory sources, the engine's memory cursor and the
-    ///     generated <see cref="ReadCursor"/> - reads, charges and reports failures in chunks of this size. Bytes read past
-    ///     the terminator, or past the string limit, are given back, so the position after a string is the same as reading
-    ///     one byte at a time. An even number, so no UTF-16 code unit spans two chunks.
+    ///     The most bytes one read of a terminated string takes while it searches for the terminator: every reader of
+    ///     terminated text - the stream and memory sources, the engine's memory cursor and the generated
+    ///     <see cref="ReadCursor"/> - reads and reports failures in chunks of this size, or of the whole code units the
+    ///     remaining read budget covers when that is less. Bytes read past the terminator, or past the string limit, are
+    ///     given back together with their charge, so the position after a string and the budget it used are the same as
+    ///     reading one byte at a time. An even number, so no UTF-16 code unit spans two chunks.
     /// </summary>
     internal const int TerminatedStringReadChunkSize = 256;
 
@@ -65,21 +66,19 @@ internal static partial class PrimitiveCodecs
 
     /// <summary>
     ///     Reads a terminated string from contiguous bytes in one step when the chunked read would succeed, with the chunked
-    ///     read's result: the text, the bytes consumed (through the terminator), and the bytes the chunks charge (every
-    ///     chunk up to the one holding the terminator's first byte, in full, or up to the end of the input). That holds when
-    ///     the terminator is present, the string and its terminator fit <paramref name="maxStringBytes"/> (every earlier
-    ///     chunk then fits too), the charge fits <paramref name="maxCharge"/>, and the bytes decode. Otherwise it returns
-    ///     <see langword="false"/> and the caller runs the chunked read, which reports the failure where it always has.
+    ///     read's result: the text and the bytes consumed through the terminator, which are also the bytes it charges. That
+    ///     holds when the terminator is present, the string and its terminator fit <paramref name="maxStringBytes"/> and
+    ///     <paramref name="budget"/>, and the bytes decode. Otherwise it returns <see langword="false"/> and the caller runs
+    ///     the chunked read, which reports the failure where it always has.
     /// </summary>
     /// <param name="remaining">The input from the string's first byte to the end of the readable input.</param>
     /// <param name="strict">The string's strict encoding.</param>
     /// <param name="unitSize">The encoding's code unit size in bytes (1 or 2); the terminator is searched unit-aligned.</param>
     /// <param name="terminator">The encoded terminator.</param>
     /// <param name="maxStringBytes">The per-string limit on the encoded bytes, terminator included.</param>
-    /// <param name="maxCharge">The read budget still available, or <see cref="long.MaxValue"/> when the caller checks it itself.</param>
+    /// <param name="budget">The bytes the operation may still consume.</param>
     /// <param name="text">The text without its terminator, when the method returns <see langword="true"/>.</param>
     /// <param name="consumed">The bytes the string and its terminator occupy.</param>
-    /// <param name="charged">The bytes the chunked read would charge.</param>
     /// <returns>Whether the string was read.</returns>
     public static bool TryReadWholeTerminated(
         ReadOnlySpan<byte> remaining,
@@ -87,25 +86,19 @@ internal static partial class PrimitiveCodecs
         int unitSize,
         scoped ReadOnlySpan<byte> terminator,
         long maxStringBytes,
-        long maxCharge,
+        long budget,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string? text,
-        out int consumed,
-        out long charged)
+        out int consumed)
     {
         text = null;
         consumed = 0;
-        charged = 0;
 
         // Every chunk starts on a code unit boundary, so the first aligned terminator of the whole input is the one the
-        // chunks find.
-        int index = Codec.FindTerminator(remaining, terminator, unitSize, 0);
-        if (index < 0 || (long)index + terminator.Length > maxStringBytes)
-        {
-            return false;
-        }
-
-        long charge = Math.Min(((long)(index / TerminatedStringReadChunkSize) + 1) * TerminatedStringReadChunkSize, remaining.Length);
-        if (charge > maxCharge)
+        // chunks find. Only a terminator that ends within both limits can succeed, so the search stops there: an
+        // unterminated string is not searched to the end of a large input.
+        long window = Math.Min(Math.Min(maxStringBytes, budget), remaining.Length);
+        int index = Codec.FindTerminator(remaining[..(int)Math.Max(window, 0)], terminator, unitSize, 0);
+        if (index < 0)
         {
             return false;
         }
@@ -122,7 +115,6 @@ internal static partial class PrimitiveCodecs
         }
 
         consumed = index + terminator.Length;
-        charged = charge;
         return true;
     }
 
@@ -242,7 +234,8 @@ internal static partial class PrimitiveCodecs
             while (true)
             {
                 cancellation.ThrowIfCancellationRequested();
-                int bytesRead = source.Read(chunk, 0, TerminatedStringReadChunkSize);
+                int request = ChunkRequest(source.RemainingReadBudget, unitSize);
+                int bytesRead = source.Read(chunk, 0, request);
                 if (bytesRead == 0)
                 {
                     throw new CStructReadException(ReadFailures.TerminatedStringUnterminated);
@@ -251,10 +244,11 @@ internal static partial class PrimitiveCodecs
                 // A source may return fewer bytes than asked, splitting a UTF-16 code unit - and so a terminator -
                 // between two reads. Complete the unit, so every chunk holds whole units from the string's start and
                 // the terminator search sees it as a span's single read does; only the end of the input leaves a
-                // partial unit, which then fails as unterminated there too. The chunk size is a whole number of units.
+                // partial unit, which then fails as unterminated there too. The request is a whole number of units
+                // unless the budget is below one unit, when the completion's byte is the one that exceeds it.
                 while ((encodedByteCount + bytesRead) % unitSize != 0)
                 {
-                    int completion = source.Read(chunk, bytesRead, TerminatedStringReadChunkSize - bytesRead);
+                    int completion = source.Read(chunk, bytesRead, Math.Max(request - bytesRead, 1));
                     if (completion == 0)
                     {
                         break;
@@ -378,8 +372,29 @@ internal static partial class PrimitiveCodecs
     }
 
     /// <summary>
-    ///     Moves a source back by the tail of the most recent chunk read that was not actually consumed, so a
-    ///     chunked read leaves the source at the same position a byte-by-byte reader would have stopped at.
+    ///     The number of bytes the next chunk of a terminated string asks for: a whole chunk, or - when the read budget
+    ///     is smaller - the whole code units the budget still covers, so the chunk never charges a byte the string may not
+    ///     consume. With less than one unit left it asks for one byte, whose read fails with the read-limit exception
+    ///     unless the input has ended.
+    /// </summary>
+    /// <param name="budget">The bytes the operation may still consume.</param>
+    /// <param name="unitSize">The encoding's code unit size in bytes (1 or 2).</param>
+    /// <returns>The positive number of bytes to request.</returns>
+    public static int ChunkRequest(long budget, int unitSize)
+    {
+        if (budget >= TerminatedStringReadChunkSize)
+        {
+            return TerminatedStringReadChunkSize;
+        }
+
+        int covered = (int)Math.Max(budget, 0);
+        return Math.Max(covered - (covered % unitSize), 1);
+    }
+
+    /// <summary>
+    ///     Moves a source back by the tail of the most recent chunk read that was not actually consumed, giving back its
+    ///     charge, so a chunked read leaves the source at the same position, and the budget at the same total, as a
+    ///     byte-by-byte reader would.
     /// </summary>
     /// <typeparam name="TSource">The source type.</typeparam>
     /// <param name="source">The source positioned immediately after the chunk read supplying <paramref name="bytesRead"/>.</param>

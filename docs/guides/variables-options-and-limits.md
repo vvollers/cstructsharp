@@ -82,13 +82,22 @@ The memory-analysis API budgets its operations with `MemoryAccessContext` instea
 the same defaults for total bytes (64 MiB), pointer depth (64), and nesting depth (256); see
 [memory budgets](memory-reliability.md#budget-an-operation-not-each-individual-read).
 
-`MaxTotalBytesRead` counts every byte read from the stream, including rereads. It is not a limit on the input's
-file size. A terminated string (`cstring`, `char name[]`, `unicode_string_zero`) reads ahead in chunks of up to 256
-bytes while it searches for its terminator, and those bytes count too; a stream that returns fewer bytes per read
-therefore reaches the limit later than a span or a memory stream does. Debug parsing spends the same budget as a
-plain parse: a packed header with a `uint16` and a `uint32` needs a budget of 6 either way, because debug records
-carry byte ranges rather than copies. Layouts with unions, pointers, or selected reads may reread bytes for traversal
-or overlapping fields, so the input size is a lower bound, not the exact cost.
+`MaxTotalBytesRead` counts the bytes an operation consumes, each byte once per read of it. It is not a limit on the
+input's file size. Two kinds of field look at bytes before they know how long they are, and neither look is charged:
+
+- A terminated array (`uint8 a[]`) is scanned for its all-zero terminator element before its elements are read. The
+  elements and the terminator count once, when they are consumed. The scan stops where the budget ends, so an array
+  that does not fit the budget fails with `CStructReadLimitException` before any element is read.
+- A terminated string (`cstring`, `char name[]`, `unicode_string_zero`) reads ahead in chunks of up to 256 bytes while
+  it searches for its terminator. Only the bytes through the terminator count; a stream source may still read the rest
+  of the chunk physically, and the reader moves back over it.
+
+For example, `struct one { uint8 a[]; }` over `01 02 00 09` consumes three bytes (two elements and the terminator),
+so a parse succeeds with a budget of 3 and fails at 2, on every input form and in the generated reader too. Debug
+parsing spends the same budget as a plain parse: a packed header with a `uint16` and a `uint32` needs a budget of 6
+either way, because debug records carry byte ranges rather than copies. Layouts with unions, pointers, or selected
+reads may reread bytes for traversal or overlapping fields, and each reread counts, so the input size is a lower bound,
+not the exact cost.
 
 `UpdateOptions` has separate `MaxTraversal*` values for bytes read while finding the destination. After the target is
 found, its inherited write limits apply to the replacement.

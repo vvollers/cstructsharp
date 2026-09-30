@@ -37,10 +37,10 @@
   },
   {
    "pattern": "Streams/ReadBudgetStream.cs",
-   "sourceSha256": "3c0ba6cd8218a7f182171ce3754e4c9eb29755b9caa2b2be3d471d668066f4b5",
+   "sourceSha256": "a78eadafdba47533f51d9cd498dfda697274bd82782a0351e2ce9b61ee265622",
    "mutants": [
     { "mutatorName": "Block removal mutation", "replacement": "{}",
-     "location": {"start":{"line":454,"column":9},"end":{"line":457,"column":10}},
+     "location": {"start":{"line":484,"column":9},"end":{"line":487,"column":10}},
      "reason": "TryGetPosition returns nullable Int64. If querying the source position throws, the original catch returns null. Stryker 5.0.0 makes this block-removal mutant compilable with its default-return fallback; default(long?) is also null. Both paths preserve the original physical-stream exception with no available offset and perform the same single failed position query. Tool implementation: EndingReturnEngine.InjectReturn, https://github.com/stryker-mutator/stryker-net/blob/6e77a3451bac4793e9c839c3ff4055c1b30ca3af/src/Stryker.Core/Stryker.Core/Instrumentation/EndingReturnEngine.cs." }
    ]
   },
@@ -838,13 +838,13 @@
   },
   {
    "pattern": "Streams/MemoryReadCore.cs",
-   "sourceSha256": "13b36446fef1e5467266f9602de28dd862ceed08e7ac3ffd53b3017822f21cc7",
+   "sourceSha256": "132c7ecef378dff3c6856c61580f044e66151739dd5338f62983858e7ec39263",
    "mutants": [
     { "mutatorName": "Logical mutation", "replacement": "this.memoryBacked || count <= this.knownLength - this.position",
-     "location": {"start":{"line":227,"column":13},"end":{"line":227,"column":75}},
+     "location": {"start":{"line":233,"column":13},"end":{"line":233,"column":75}},
      "reason": "This changes only the availability subexpression of the outer preflight; its byte-budget condition remains required. A newly admitted case still calls TryReadSpan, which repeats the original memoryBacked and remaining-length checks before touching bytes or accounting. It returns false with a default span on every unavailable/non-memory case. Cases admitted by the original outer check remain admitted, with identical reads and budget charges." },
     { "mutatorName": "Arithmetic mutation", "replacement": "this.knownLength + this.position",
-     "location": {"start":{"line":227,"column":43},"end":{"line":227,"column":75}},
+     "location": {"start":{"line":233,"column":43},"end":{"line":233,"column":75}},
      "reason": "TryReadSpan repeats the original subtraction-based availability check. If a nonnegative requested count is available, the memoryBacked conjunct has already excluded a stream-mode core, and every memory core reads an Int32-sized input (a FixedBufferStream region, an exposed MemoryStream array, or the span, array or memory the engine pins), so length + position cannot overflow Int64 and is at least length - position. Thus every originally successful preflight still reaches the same read. Extra candidates are rejected by the unchanged inner check without consuming or charging bytes." }
    ]
   },
@@ -919,14 +919,11 @@
   },
   {
    "pattern": "Generated/ReadCursor.Arrays.cs",
-   "sourceSha256": "95a46d265bc5ace570520724e6f1199cdea917d74e7e309c1ef58cfb469ed240",
+   "sourceSha256": "7b4bcbe2bcb28d1552afffae6139abd9bda308abf47feb2333cf657b74c0f1e4",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": "count < 0",
      "location": {"start":{"line":88,"column":13},"end":{"line":88,"column":23}},
-     "reason": "Only count zero with a positive element size newly reaches the body. The total is zero, remaining bytes and affordable bytes are nonnegative, both failure conditions stay false, and Take(0) returns an empty view without charging or moving. Cancellation is checked before either branch. Empty-span backing identity is unspecified; the supported result is the same empty element sequence and unchanged cursor/budget." },
-    { "mutatorName": "Block removal mutation", "replacement": "{}",
-     "location": {"start":{"line":158,"column":9},"end":{"line":160,"column":10}},
-     "reason": "For elementSize zero, count starts at zero and the valid cursor offset does not exceed source.Length. Slice(offset, 0) is empty and IndexOfAnyExcept returns -1, immediately returning the same zero count before any limit, increment or position change. Nonzero element sizes already bypass the removed block." }
+     "reason": "Only count zero with a positive element size newly reaches the body. The total is zero, remaining bytes and affordable bytes are nonnegative, both failure conditions stay false, and Take(0) returns an empty view without charging or moving. Cancellation is checked before either branch. Empty-span backing identity is unspecified; the supported result is the same empty element sequence and unchanged cursor/budget." }
    ]
   },
   {
@@ -949,7 +946,7 @@
   },
   {
    "pattern": "Generated/ReadCursor.Text.cs",
-   "sourceSha256": "c69b78dff9e5818ff62834dc194a1c72006f6c68351c069c46996d71995c5ffc",
+   "sourceSha256": "02b59cf4d2bd71163c54fbc5d9905a3c311214ed457725bbf68810dd87580034",
    "mutants": [
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?Codecs.PrimitiveCodecs.StrictUtf16LittleEndianEncoding :Codecs.PrimitiveCodecs.StrictUtf16BigEndianEncoding)",
      "location": {"start":{"line":60,"column":18},"end":{"line":60,"column":141}},
@@ -958,22 +955,22 @@
      "location": {"start":{"line":60,"column":18},"end":{"line":60,"column":141}},
      "reason": "ReadChar has already applied the requested input byte order before constructing text. GetByteCount only validates that string and its result is ignored. The two strict UnicodeEncoding instances differ only in encoded byte order, not accepted surrogate sequences, counts or fallback exceptions; no encoded bytes are exposed by this call." },
     { "mutatorName": "Arithmetic mutation", "replacement": "unitSize + (encodedByteCount % unitSize)",
-     "location": {"start":{"line":148,"column":42},"end":{"line":148,"column":82}},
-     "reason": "unitSize is one or two. Every continuing chunk has 256 bytes; a shorter unterminated last chunk is followed by the zero-byte failure before alignment is computed again. Thus encodedByteCount is a multiple of 256 whenever this expression is reached, its remainder is zero, and adding or subtracting that zero gives the same alignment." },
+     "location": {"start":{"line":166,"column":42},"end":{"line":166,"column":82}},
+     "reason": "unitSize is one or two. Every continuing chunk holds whole code units: a request is 256 bytes or the budget rounded down to whole units, a one-byte request is completed to a unit (or fails over budget), and a partial unit only occurs at the end of the input, which the zero-byte failure ends before alignment is computed again. Thus encodedByteCount is a multiple of unitSize whenever this expression is reached, its remainder is zero, and adding or subtracting that zero gives the same alignment." },
     { "mutatorName": "Arithmetic mutation", "replacement": "encodedByteCount * unitSize",
-     "location": {"start":{"line":148,"column":54},"end":{"line":148,"column":81}},
-     "reason": "At each reached alignment calculation encodedByteCount is a multiple of the 256-byte chunk size and unitSize is one or two. The original inner remainder is zero; the replacement product is a multiple of unitSize, so the outer remainder remains zero. The count is bounded by an Int32-sized source, so its long product cannot overflow." },
+     "location": {"start":{"line":166,"column":54},"end":{"line":166,"column":81}},
+     "reason": "At each reached alignment calculation encodedByteCount is a multiple of unitSize (every continuing chunk holds whole code units) and unitSize is one or two. The original inner remainder is zero; the replacement product is a multiple of unitSize, so the outer remainder remains zero. The count is bounded by an Int32-sized source, so its long product cannot overflow." },
     { "mutatorName": "CoalesceAssignmentExpression to SimpleAssignmentExpression mutation", "replacement": "decoded = new char[Chunk + 2]",
-     "location": {"start":{"line":159,"column":13},"end":{"line":159,"column":44}},
+     "location": {"start":{"line":177,"column":13},"end":{"line":177,"column":44}},
      "reason": "decoded is a private output-only scratch buffer passed to Decoder.Convert; its contents and output counts are never consumed. Decoder state is held by the separate decoder object, and the returned string is decoded independently from the original byte slice. Replacing the buffer adds allocations but changes no decoded result, consumption or failure." }
    ]
   },
   {
    "pattern": "Codecs/PrimitiveCodecs.IO.cs",
-   "sourceSha256": "c8fc60cf5d6e8613de7ab49fe82d3bbe8fe52b588ab7db1dfcc093f81ede9cf1",
+   "sourceSha256": "f437cf8f7c176c8be07fe5db2580d09f4bd4608d425b5fe90a4cb80c8eee573a",
    "mutants": [
     { "mutatorName": "Remove checked expression", "replacement": "(long)valueBytes + terminatorBytes",
-     "location": {"start":{"line":341,"column":37},"end":{"line":341,"column":80}},
+     "location": {"start":{"line":335,"column":37},"end":{"line":335,"column":80}},
      "reason": "Both Encoding.GetByteCount results are nonnegative Int32 values. The left operand is widened to Int64 before addition, so their sum is at most 2 * Int32.MaxValue, far below Int64.MaxValue. Removing checked from this sum cannot change overflow behavior, budget validation or the later allocation." }
    ]
   },

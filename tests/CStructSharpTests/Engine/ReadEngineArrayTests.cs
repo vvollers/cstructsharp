@@ -10,14 +10,14 @@ namespace CStructSharp.Tests;
 public class ReadEngineArrayTests
 {
     /// <summary>
-    ///     A terminated array is scanned for its all-zero element from its start, then read: the scan's bytes are charged
-    ///     and the elements again when they are read, so the whole read of three elements costs
-    ///     tag 1 + scan 8 + re-read 6 + tail 1 = 16 bytes of budget. Input that ends before the terminator, and more
-    ///     elements than the limit allows, fail at the array's start. Arrays of scalars and of structs (through the element
-    ///     struct's block path) agree at every budget, truncation and source.
+    ///     A terminated array is scanned for its all-zero element from its start, then read: the scan charges nothing, the
+    ///     read charges the elements and the terminator once, so the whole read of three elements costs
+    ///     tag 1 + elements 6 + terminator 2 + tail 1 = 10 bytes of budget. A scan that would pass the budget, input that
+    ///     ends before the terminator, and more elements than the limit allows fail at the array's start. Arrays of scalars
+    ///     and of structs (through the element struct's block path) agree at every budget, truncation and source.
     /// </summary>
     [TestMethod]
-    public void TerminatedArrays_ChargeTheScanAndTheReread()
+    public void TerminatedArrays_ChargeEachByteOnce()
     {
         var layout = new CStruct("struct rec { uint8 tag; uint16 values[]; uint8 tail; };");
         var structs = new CStruct("struct e { uint8 a; uint8 b; }; struct rec { e items[]; uint8 tail; };");
@@ -31,7 +31,7 @@ public class ReadEngineArrayTests
                 foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1, EngineInput.ChunkedStream3])
                 {
                     string outcome = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, input, "rec", options: read), path: path);
-                    string expected = budget < 16 ? "failure = failure CStructSharp.Diagnostics.CStructReadLimitException\n" : "result.tail = Byte 9\n";
+                    string expected = budget < 10 ? "failure = failure CStructSharp.Diagnostics.CStructReadLimitException\n" : "result.tail = Byte 9\n";
                     StringAssert.Contains(outcome, expected, "budget " + budget + " from " + input);
                     EngineDifferential.AssertGolden(EngineOperations.Parse(structs, entries, input, "rec", options: read), path: path);
                 }
@@ -175,7 +175,7 @@ public class ReadEngineArrayTests
     /// <summary>
     ///     Large data-sized and multidimensional arrays read in blocks of 64 KiB: a byte budget or
     ///     an input that ends inside the first or the second block fails at that block, cancellation is observed only
-    ///     before a block, and a terminated array charges its whole scan before its blocks.
+    ///     before a block, and a terminated array whose scan would pass the budget fails before its blocks are read.
     /// </summary>
     [TestMethod]
     public void LargeArrays_ReadAndFailIn64KiBBlocks()
@@ -184,7 +184,7 @@ public class ReadEngineArrayTests
         var terminated = new CStruct("struct rec { uint8 tag; uint8 values[]; uint8 tail; };");
         byte[] big = [7, .. Enumerable.Range(0, 90000).Select(index => (byte)((index % 251) + 1)), 9];
         byte[] list = [7, .. Enumerable.Range(0, 70000).Select(index => (byte)((index % 251) + 1)), 0, 9];
-        const long Scanned = 1 + 70001;
+        const long Consumed = 1 + 70000 + 1 + 1;
         foreach (ExecutionPath path in ExecutionPaths.Both)
         {
             foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream])
@@ -199,12 +199,13 @@ public class ReadEngineArrayTests
                     EngineDifferential.AssertGolden(EngineOperations.Parse(table, big[..length], input, "rec"), path: path);
                 }
 
-                foreach (long budget in (long[])[Scanned, Scanned + 1, Scanned + 65536, Scanned + 65537, Scanned + 70000, Scanned + 70001, Scanned + 70002])
+                // The scan fails below the tag, elements and terminator (Consumed - 1), the tail's read one byte later.
+                foreach (long budget in (long[])[65536, 65537, Consumed - 3, Consumed - 2, Consumed - 1, Consumed, Consumed + 1])
                 {
                     string outcome = EngineDifferential.AssertGolden(
                         EngineOperations.Parse(terminated, list, input, "rec", options: new ReadOptions { MaxTotalBytesRead = budget, }),
                         path: path);
-                    StringAssert.Contains(outcome, budget < Scanned + 70001 ? "CStructReadLimitException" : "result.tail = Byte 9\n", "budget " + budget);
+                    StringAssert.Contains(outcome, budget < Consumed ? "CStructReadLimitException" : "result.tail = Byte 9\n", "budget " + budget);
                 }
             }
 
