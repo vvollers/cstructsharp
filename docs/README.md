@@ -139,7 +139,7 @@ These commands restore local tools, rebuild `_site`, and serve the result. Prefe
 `build-documentation.mjs` for ordinary work because it also checks for stale core output and enforces the site time
 and size limits.
 
-## Check external links and the Pages archive
+## Check external links
 
 External sites can fail temporarily, so their check runs separately from the ordinary pull-request gate:
 
@@ -150,25 +150,7 @@ node tools/documentation/test-documentation-external-links.mjs
 A successful run reports no unexpected broken link. Review a failure before changing the allowlist; a typo and a
 temporary third-party outage need different fixes.
 
-After a successful site build, create and validate the archive expected by GitHub Pages:
-
-```sh
-node tools/documentation/new-documentation-pages-artifact.mjs
-```
-
-The command writes the ignored file `artifacts/documentation/cstructsharp-pages.tar.gz`. It prepares a local
-artifact only; it does not publish or deploy the site. See the site's **Project > Documentation deployment** page
-for the separately authorized deployment procedure.
-
-Before there is a commit to check out, you can test the files Git would actually keep:
-
-```sh
-node tools/documentation/test-documentation-source-snapshot.mjs
-```
-
-The script creates a temporary copy from the current committed base, overlays only Git-visible prospective source,
-runs the complete documentation gate, creates the Pages archive, and removes a successful temporary copy. This is
-slower than the normal check, but it catches accidental dependencies on ignored local files.
+The site is deployed only by an authorized workflow; see the site's **Project > Documentation deployment** page.
 
 ## Files produced by a build
 

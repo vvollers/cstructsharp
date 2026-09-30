@@ -9,23 +9,17 @@ The `Documentation` workflow in `.github/workflows/docs.yml` builds the same sit
 requests and relevant `main` pushes validate the content and retain a review artifact for 14 days. They do not
 deploy.
 
-## Build the artifact locally
+## Build the site locally
 
 From the repository root:
 
 ```sh
 node tools/documentation/validate-documentation.mjs
-node tools/documentation/new-documentation-pages-artifact.mjs
 ```
 
-The first command runs the complete site check. The second packages the already validated static output and checks
-its required files, links, repository-subpath behavior, source links, and size. Success creates:
-
-```text
-artifacts/documentation/cstructsharp-pages.tar.gz
-```
-
-This archive is ignored local output. It must stay below 50 MiB uncompressed and 16 MiB compressed.
+The command builds the site into the ignored `docs/_site/` directory and checks it: required files, links,
+repository-subpath behavior, source links, and a total size below 50 MiB. The `Documentation` workflow uploads
+the same directory as its review artifact.
 
 ## Configure the repository once
 

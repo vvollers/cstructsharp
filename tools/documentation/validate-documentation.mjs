@@ -28,7 +28,6 @@ const scripts = {
   externalLinks: path.join(here, "test-documentation-external-links.mjs"),
   workflow: path.join(here, "validate-documentation-workflow.mjs"),
   pages: path.join(here, "validate-pages-artifact.mjs"),
-  pagesArtifact: path.join(here, "new-documentation-pages-artifact.mjs"),
   canonical: path.join(here, "validate-canonical-reference.mjs"),
   generatorDiagnostics: path.join(here, "validate-generator-diagnostics.mjs"),
   featureMatrix: path.join(repositoryRoot, "tools/quality/feature-operation-matrix.mjs"),
