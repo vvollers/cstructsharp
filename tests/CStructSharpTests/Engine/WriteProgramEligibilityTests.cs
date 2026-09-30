@@ -30,7 +30,7 @@ public class WriteProgramEligibilityTests
             ExpectedPath,
             "write-program",
             nameof(WriteProgramEligibilityTests),
-            (layout, root) => layout.Compilation.GetRootWriteProgram(root) is { IsEligible: false, } outcome ? outcome.Reason : null);
+            (layout, root) => layout.Compilation.GetRootWriteProgram(root) is { Program: null, } outcome ? outcome.Reason : null);
     }
 
     /// <summary>The checked-in list is exactly what the report renders, header included, so a regeneration changes only report lines.</summary>

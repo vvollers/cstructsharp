@@ -20,7 +20,7 @@ public class ReadProgramCompilerTests
         Assert.IsFalse(layout.Compilation.HasSlotTable, "construction builds no slot table and no program");
 
         ReadProgramOutcome root = layout.Compilation.GetRootReadProgram("root");
-        Assert.IsTrue(root.IsEligible);
+        Assert.IsNotNull(root.Program);
         Assert.AreSame(root, layout.Compilation.GetRootReadProgram("root"));
         ReadProgramOutcome composite = layout.Compilation.GetReadProgram(Composite(layout, "root"));
         Assert.AreSame(composite.Program, root.Program!.Nested[0]);
@@ -39,7 +39,7 @@ public class ReadProgramCompilerTests
         var outcomes = new ReadProgramOutcome[16];
         Parallel.For(0, outcomes.Length, index => outcomes[index] = layout.Compilation.GetRootReadProgram("root"));
         Assert.IsTrue(outcomes.All(outcome => ReferenceEquals(outcome, outcomes[0])));
-        Assert.IsTrue(outcomes[0].IsEligible);
+        Assert.IsNotNull(outcomes[0].Program);
     }
 
     /// <summary>A packed layout never pads, so no member gets a placement step and the tail is empty.</summary>
@@ -569,7 +569,7 @@ public class ReadProgramCompilerTests
     private static void AssertReason(string definition, string root, string reason)
     {
         ReadProgramOutcome outcome = new CStruct(definition).Compilation.GetRootReadProgram(root);
-        Assert.IsFalse(outcome.IsEligible, definition);
+        Assert.IsNull(outcome.Program, definition);
         Assert.AreEqual(reason, outcome.Reason, definition);
     }
 

@@ -36,7 +36,7 @@ public class ReadProgramEligibilityTests
             ExpectedPath,
             "read-program",
             nameof(ReadProgramEligibilityTests),
-            (layout, root) => layout.Compilation.GetRootReadProgram(root) is { IsEligible: false, } outcome ? outcome.Reason : null);
+            (layout, root) => layout.Compilation.GetRootReadProgram(root) is { Program: null, } outcome ? outcome.Reason : null);
     }
 
     /// <summary>
@@ -50,7 +50,7 @@ public class ReadProgramEligibilityTests
             ExpectedPath,
             "read-program",
             nameof(ReadProgramEligibilityTests),
-            (layout, root) => layout.Compilation.GetRootDebugReadProgram(root) is { IsEligible: false, } outcome ? outcome.Reason : null);
+            (layout, root) => layout.Compilation.GetRootDebugReadProgram(root) is { Program: null, } outcome ? outcome.Reason : null);
     }
 
     /// <summary>The list parses what it renders, so an update round-trips.</summary>

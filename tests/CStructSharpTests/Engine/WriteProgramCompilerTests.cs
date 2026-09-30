@@ -20,7 +20,7 @@ public class WriteProgramCompilerTests
         Assert.IsFalse(layout.Compilation.HasSlotTable, "construction builds no slot table and no program");
 
         WriteProgramOutcome root = layout.Compilation.GetRootWriteProgram("root");
-        Assert.IsTrue(root.IsEligible);
+        Assert.IsNotNull(root.Program);
         Assert.AreSame(root, layout.Compilation.GetRootWriteProgram("root"));
         WriteProgram composite = root.Program!.Nested[0];
         Assert.AreSame(composite, layout.Compilation.GetWriteProgram(Composite(layout, "root")).Program);
@@ -109,7 +109,7 @@ public class WriteProgramCompilerTests
             Assert.IsNull(outcome.Reason, definition);
         }
 
-        Assert.IsTrue(new CStruct("struct root { vlq v; word4 _; };", compilationOptions: new CStructCompilationOptions { Codecs = [VlqCodec.Instance, FixedWordCodec.Instance,], }).Compilation.GetRootWriteProgram("root").IsEligible);
+        Assert.IsTrue(new CStruct("struct root { vlq v; word4 _; };", compilationOptions: new CStructCompilationOptions { Codecs = [VlqCodec.Instance, FixedWordCodec.Instance,], }).Compilation.GetRootWriteProgram("root").Program is not null);
     }
 
     /// <summary>

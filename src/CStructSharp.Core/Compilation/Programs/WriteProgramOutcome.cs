@@ -26,9 +26,6 @@ internal sealed class WriteProgramOutcome
     /// </summary>
     public string? Reason { get; }
 
-    /// <summary>Gets a value indicating whether the engine can write the composite or root.</summary>
-    public bool IsEligible => this.Program is not null;
-
     /// <summary>Wraps a compiled program.</summary>
     /// <param name="program">The program.</param>
     /// <returns>An eligible outcome.</returns>

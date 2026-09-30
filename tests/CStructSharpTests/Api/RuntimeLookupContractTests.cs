@@ -28,24 +28,21 @@ public class RuntimeLookupContractTests
         Assert.AreNotSame(table, field.GetValue(opposite));
     }
 
-    /// <summary>Codec tables reject incomplete directions and distinguish unknown names from registered delegates.</summary>
+    /// <summary>A codec table rejects a writer array that does not cover its catalog, and returns the registered delegate by id.</summary>
     [TestMethod]
-    public void CodecTable_RequiresCompleteDirectionsAndPreservesDelegateIdentity()
+    public void CodecTable_RequiresACompleteWriterArrayAndPreservesDelegateIdentity()
     {
         PrimitiveCatalog catalog = PrimitiveCatalog.For(true, 32);
-        var readers = new Func<Stream, object>?[catalog.CodecCount];
         var writers = new Action<Stream, object>?[catalog.CodecCount];
 
-        // Reject either missing direction before a later lookup can index beyond the supplied array.
-        Assert.ThrowsExactly<InvalidOperationException>(() => new CodecTable(catalog, [], writers));
-        Assert.ThrowsExactly<InvalidOperationException>(() => new CodecTable(catalog, readers, []));
-        readers[catalog.CodecIdOf("uint16")] = ReadByte;
-        writers[catalog.CodecIdOf("uint16")] = WriteByte;
-        var table = new CodecTable(catalog, readers, writers);
-        Assert.AreSame(readers[catalog.CodecIdOf("uint16")], table.ReaderOf("uint16<"));
-        Assert.AreSame(writers[catalog.CodecIdOf("uint16")], table.WriterOf("uint16<"));
-        Assert.IsNull(table.ReaderOf("not_registered"));
-        Assert.IsNull(table.WriterOf("not_registered"));
+        // Reject a short array before a later lookup can index beyond it.
+        Assert.ThrowsExactly<InvalidOperationException>(() => new CodecTable(catalog, []));
+        int id = catalog.CodecIdOf("uint16<");
+        writers[id] = WriteByte;
+        var table = new CodecTable(catalog, writers);
+        Assert.AreSame(writers[id], table.WriterOfCodec(id));
+        Assert.IsNull(table.WriterOfCodec(catalog.CodecIdOf("uint32<")));
+        Assert.IsNull(table.WriterOfCodec(PrimitiveCatalog.NoCodec));
     }
 
     /// <summary>Captured integers beyond the signed 128-bit domain retain exact identity and reject evaluation instead of wrapping.</summary>
@@ -69,11 +66,6 @@ public class RuntimeLookupContractTests
         // A 64-bit value is an ordinary exact variable.
         Assert.AreEqual((Int128)ulong.MaxValue, new Identifier("w").Evaluate(new Dictionary<string, Expr> { ["w"] = new Literal(ulong.MaxValue), }));
     }
-
-    /// <summary>Reads one byte for delegate-identity checks; this is not a uint16 implementation.</summary>
-    /// <param name="stream">The source stream.</param>
-    /// <returns>The byte or end-of-stream marker.</returns>
-    private static object ReadByte(Stream stream) => stream.ReadByte();
 
     /// <summary>Writes one byte for delegate-identity checks; this is not a uint16 implementation.</summary>
     /// <param name="stream">The destination stream.</param>

@@ -37,11 +37,6 @@ public class FeatureOperationMatrixTests
         var cstruct = new CStruct("struct root { byte value; };");
         string[] readable = cstruct.Codecs.Catalog.CodecIds.Keys.OrderBy(item => item, StringComparer.Ordinal).ToArray();
         CollectionAssert.AreEquivalent(readable, catalog.OrderBy(item => item, StringComparer.Ordinal).ToArray());
-        foreach (string name in readable)
-        {
-            Assert.IsNotNull(cstruct.Codecs.ReaderOf(name), name);
-            Assert.IsNotNull(cstruct.Codecs.WriterOf(name), name);
-        }
     }
 
     /// <summary>

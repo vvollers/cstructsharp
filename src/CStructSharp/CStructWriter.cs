@@ -240,7 +240,7 @@ public sealed partial class CStruct
         Stream stream,
         object value)
     {
-        Action<Stream, object> writer = this.codecs.WriterOf(field) ??
+        Action<Stream, object> writer = this.codecs.WriterOfCodec(field.CodecId) ??
                                         throw new InvalidOperationException(
                                             "Compiled field has no writer: " + field.CodecName);
         try
@@ -248,7 +248,7 @@ public sealed partial class CStruct
             if (stream is WriteBudgetStream { IsSparseUpdate: true } && (field.Codec.IsLeb128 || (field.Codec.IsCustom && !field.FixedElementSize.HasValue)))
             {
                 long start = stream.Position;
-                _ = this.codecs.ReaderOf(field)!(stream);
+                this.SkipVariableLengthValue(field, stream);
                 long available = stream.Position - start;
                 stream.Position = start;
                 using var encoded = new MemoryStream();
@@ -269,6 +269,28 @@ public sealed partial class CStruct
         {
             throw new CStructWriteException(DescribeUnwritableValue(value, field), exception);
         }
+    }
+
+    /// <summary>
+    ///     Reads past the existing variable-length value at the stream position, so the caller learns its encoded length:
+    ///     a LEB128 integer through the shared LEB128 decoder, an unsized custom value through its codec's reader.
+    /// </summary>
+    /// <param name="field">The LEB128 or unsized custom field.</param>
+    /// <param name="stream">The source, positioned at the value; left after it.</param>
+    /// <exception cref="CStructReadException">The existing value is truncated or malformed.</exception>
+    private void SkipVariableLengthValue(CompiledField field, Stream stream)
+    {
+        if (field.Codec.IsCustom)
+        {
+            _ = CustomCodecAdapter.Read(this.codecs.CustomCodecOf(field.CodecId), stream);
+            return;
+        }
+
+        PrimitiveCodecKind kind = field.Codec.Kind;
+        _ = Leb128Codec.Read(
+            stream,
+            kind is PrimitiveCodecKind.ULeb128_32 or PrimitiveCodecKind.SLeb128_32 ? 32 : 64,
+            kind is PrimitiveCodecKind.SLeb128_32 or PrimitiveCodecKind.SLeb128_64);
     }
 
     /// <summary>The shared unwritable-value text (<see cref="WriteFailures.UnwritableValue"/>) for one compiled field.</summary>

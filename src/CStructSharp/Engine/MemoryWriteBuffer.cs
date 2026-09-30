@@ -10,7 +10,7 @@ using CStructSharp.Streams;
 ///     The compiled engine's destination for <c>Serialize</c>: the caller's pinned span, a growable pooled buffer for a new
 ///     array, or a union's staged storage, together with the operation's output budget. It behaves exactly as a
 ///     <see cref="WriteBudgetStream"/> over a <see cref="FixedBufferStream"/> (a span), an
-///     <see cref="OwnedMemoryStream"/> (a new array) or a fixed <see cref="MemoryStream"/> over the staging array (a union
+///     growable <see cref="MemoryStream"/> (a new array) or a fixed <see cref="MemoryStream"/> over the staging array (a union
 ///     member) would, byte for byte and failure for failure, so a write reports the same outcome into memory as into a
 ///     stream, without the two wrapper calls per write.
 /// </summary>

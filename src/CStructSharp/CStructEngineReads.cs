@@ -162,31 +162,4 @@ public sealed partial class CStruct
             slots.Dispose();
         }
     }
-
-    /// <summary>
-    ///     Captures a root's layout as an update captures it before and after its change, from the caller's variables: the
-    ///     root is read with its debug program (<c>ReadEngine.CaptureLayout</c>), which gives every value's path and byte
-    ///     range, then the conditional-layout trace. An update accepts or rejects its change by comparing two captures.
-    /// </summary>
-    /// <param name="stream">The data, the original or a staged copy.</param>
-    /// <param name="origin">The root's position.</param>
-    /// <param name="rootName">The root's name.</param>
-    /// <param name="variables">The operation's layout variables.</param>
-    /// <param name="options">The read settings.</param>
-    /// <returns>Each value's path and byte range, then each conditional member's name, position and selection (1 or 0).</returns>
-    /// <exception cref="Diagnostics.CStructException">A definition cannot be resolved, the root is unknown, or the data cannot be read.</exception>
-    internal (string Path, long Start, long End)[] CaptureUpdateLayout(
-        Stream stream, long origin, string rootName, in LayoutVariableInput variables, in ReadOperationSettings options)
-    {
-        VariableSlots slots = VariableSlots.Create(this.compilation.SlotTable, variables);
-        try
-        {
-            ReadProgram program = this.compilation.GetRootDebugReadProgram(rootName).Program ?? throw this.compiledModelQueries.UnknownRoot(rootName);
-            return ReadEngine.CaptureLayout(this, stream, origin, program, slots, options);
-        }
-        finally
-        {
-            slots.Dispose();
-        }
-    }
 }

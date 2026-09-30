@@ -179,6 +179,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   `node tools/quality/engine-golden.mjs record` only for an intended, explained change (see `CONTRIBUTING.md`).
 - `CONTRIBUTING.md` is the one contributing guide; API baselines live in `contracts/api/managed` and
   `contracts/api/browser`. Tools reject unknown options.
+- The library no longer carries code the compiled engine replaced: the stream codec reader table and the stream
+  readers behind it, the writers for numbers the engine encodes itself, and test-only types and members.
 
 ## 0.10.0 — 2026-09-26
 

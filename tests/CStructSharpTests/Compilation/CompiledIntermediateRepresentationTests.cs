@@ -53,8 +53,6 @@ public class CompiledIntermediateRepresentationTests
         Assert.AreEqual(2, count.FixedStorageSize);
         Assert.AreEqual(0, count.FixedOffset);
         Assert.AreNotEqual(PrimitiveCatalog.NoCodec, count.CodecId);
-        Assert.IsNotNull(cstruct.Codecs.ReaderOf(count));
-        Assert.IsNotNull(cstruct.Codecs.WriterOf(count));
 
         CompiledField values = compiledRoot.Fields[1];
         Assert.AreEqual(2, values.Array.FixedCount);
@@ -232,7 +230,7 @@ public class CompiledIntermediateRepresentationTests
         Assert.IsNull(name.FixedStorageSize);
         Assert.IsTrue(name.IsUnsizedCharacterArray);
         Assert.IsTrue(name.HasTerminatedCodec);
-        Assert.IsNotNull(cstruct.Codecs.ReaderOf(PrimitiveCatalog.CanonicalNames[name.TerminatedCodecId]));
+        Assert.AreNotEqual(PrimitiveCatalog.NoCodec, name.TerminatedCodecId);
         Assert.IsNull(payload.Symbol.FixedSize);
 
         var textPointerLayout = new CStruct("struct text_root { char *text; };", pointerSize: 2);
@@ -246,7 +244,7 @@ public class CompiledIntermediateRepresentationTests
         Assert.AreEqual(1, terminatedTarget.Alignment);
         Assert.IsNull(terminatedTarget.FixedElementSize);
         Assert.AreEqual(textPointer.TerminatedCodecId, terminatedTarget.CodecId);
-        Assert.AreSame(textPointerLayout.Codecs.ReaderOf(terminatedTarget), textPointerLayout.Codecs.ReaderOf(terminatedTarget.TypeSpelling));
+        Assert.AreEqual(textPointerLayout.Codecs.Catalog.CodecIdOf(terminatedTarget.TypeSpelling), terminatedTarget.CodecId);
 
         var choice = (CompiledCompositeType)model.Composites[cstruct.GetStruct("choice")].Definition!;
         Assert.AreEqual(CompiledTypeKind.Union, choice.Symbol.Kind);

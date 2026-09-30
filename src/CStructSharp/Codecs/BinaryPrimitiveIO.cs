@@ -9,76 +9,6 @@ using CStructSharp.Streams;
 /// <summary>Reads and writes fixed-width unsigned integers in a caller-chosen byte order.</summary>
 internal static class BinaryPrimitiveIO
 {
-    /// <summary>Reads an unsigned three-byte integer.</summary>
-    /// <param name="stream">The source, at the value's first byte; it advances past the bytes read.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    /// <returns>The decoded value, 0 to 16,777,215.</returns>
-    /// <exception cref="CStructReadException">The stream ends before all bytes of the value are read.</exception>
-    public static uint ReadUInt24(Stream stream, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[3];
-        ReadExactlyOrThrow(stream, buffer);
-        return Codec.ReadUInt24(buffer, isLittleEndian);
-    }
-
-    /// <summary>Reads a three-byte integer and sign-extends bit 23.</summary>
-    /// <param name="stream">The source, at the value's first byte; it advances past the bytes read.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    /// <returns>The sign-extended value, -8,388,608 to 8,388,607.</returns>
-    /// <exception cref="CStructReadException">The stream ends before all bytes of the value are read.</exception>
-    public static int ReadInt24(Stream stream, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[3];
-        ReadExactlyOrThrow(stream, buffer);
-        return Codec.ReadInt24(buffer, isLittleEndian);
-    }
-
-    /// <summary>Writes an unsigned three-byte integer after checking its range.</summary>
-    /// <param name="stream">The destination, at the value's first byte; it advances past the bytes written.</param>
-    /// <param name="value">The value to encode; it must fit in 24 bits.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    public static void WriteUInt24(Stream stream, uint value, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[3];
-        Codec.WriteUInt24(buffer, value, isLittleEndian);
-        stream.Write(buffer);
-    }
-
-    /// <summary>Writes a signed three-byte integer after checking its range.</summary>
-    /// <param name="stream">The destination, at the value's first byte; it advances past the bytes written.</param>
-    /// <param name="value">The value to encode; it must fit in a signed 24-bit range.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    public static void WriteInt24(Stream stream, int value, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[3];
-        Codec.WriteInt24(buffer, value, isLittleEndian);
-        stream.Write(buffer);
-    }
-
-    /// <summary>Reads an unsigned six-byte integer in the requested byte order.</summary>
-    /// <param name="stream">The source, at the value's first byte; it advances past the bytes read.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    /// <returns>The decoded value, 0 to 2^48 - 1.</returns>
-    /// <exception cref="CStructReadException">The stream ends before all bytes of the value are read.</exception>
-    public static ulong ReadUInt48(Stream stream, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[6];
-        ReadExactlyOrThrow(stream, buffer);
-        return Codec.ReadUInt48(buffer, isLittleEndian);
-    }
-
-    /// <summary>Reads a six-byte integer and sign-extends bit 47.</summary>
-    /// <param name="stream">The source, at the value's first byte; it advances past the bytes read.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    /// <returns>The sign-extended value, -2^47 to 2^47 - 1.</returns>
-    /// <exception cref="CStructReadException">The stream ends before all bytes of the value are read.</exception>
-    public static long ReadInt48(Stream stream, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[6];
-        ReadExactlyOrThrow(stream, buffer);
-        return Codec.ReadInt48(buffer, isLittleEndian);
-    }
-
     /// <summary>Writes an unsigned six-byte integer after checking its range.</summary>
     /// <param name="stream">The destination, at the value's first byte; it advances past the bytes written.</param>
     /// <param name="value">The value to encode; it must fit in 48 bits.</param>
@@ -99,30 +29,6 @@ internal static class BinaryPrimitiveIO
         Span<byte> buffer = stackalloc byte[6];
         Codec.WriteInt48(buffer, value, isLittleEndian);
         stream.Write(buffer);
-    }
-
-    /// <summary>Reads a sixteen-byte signed integer in the requested byte order.</summary>
-    /// <param name="stream">The source, at the value's first byte; it advances past the bytes read.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    /// <returns>The decoded signed 128-bit value.</returns>
-    /// <exception cref="CStructReadException">The stream ends before all bytes of the value are read.</exception>
-    public static Int128 ReadInt128(Stream stream, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[16];
-        ReadExactlyOrThrow(stream, buffer);
-        return Codec.ReadInt128(buffer, isLittleEndian);
-    }
-
-    /// <summary>Reads a sixteen-byte unsigned integer in the requested byte order.</summary>
-    /// <param name="stream">The source, at the value's first byte; it advances past the bytes read.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    /// <returns>The decoded unsigned 128-bit value.</returns>
-    /// <exception cref="CStructReadException">The stream ends before all bytes of the value are read.</exception>
-    public static UInt128 ReadUInt128(Stream stream, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[16];
-        ReadExactlyOrThrow(stream, buffer);
-        return Codec.ReadUInt128(buffer, isLittleEndian);
     }
 
     /// <summary>Writes a sixteen-byte signed integer in the requested byte order.</summary>
@@ -147,18 +53,6 @@ internal static class BinaryPrimitiveIO
         Codec.WriteUInt128(buffer, value, isLittleEndian);
 
         stream.Write(buffer);
-    }
-
-    /// <summary>Reads an IEEE-754 binary16 value bit for bit.</summary>
-    /// <param name="stream">The source, at the value's first byte; it advances past the bytes read.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    /// <returns>The half-precision value with the stored bit pattern, including NaN payloads.</returns>
-    /// <exception cref="CStructReadException">The stream ends before all bytes of the value are read.</exception>
-    public static Half ReadHalf(Stream stream, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[2];
-        ReadExactlyOrThrow(stream, buffer);
-        return Codec.ReadHalf(buffer, isLittleEndian);
     }
 
     /// <summary>Writes an IEEE-754 binary16 value bit for bit.</summary>
@@ -215,114 +109,6 @@ internal static class BinaryPrimitiveIO
                    : ReadFailures.ShortRead(needed);
     }
 
-    /// <summary>Reads a two-byte UTF-16 code unit in the requested byte order.</summary>
-    /// <param name="stream">The source, at the value's first byte; it advances past the bytes read.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    /// <returns>The UTF-16 code unit, which may be half of a surrogate pair.</returns>
-    /// <exception cref="CStructReadException">The stream ends before all bytes of the value are read.</exception>
-    public static char ReadChar(Stream stream, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[2];
-        ReadExactlyOrThrow(stream, buffer);
-        return Codec.ReadChar(buffer, isLittleEndian);
-    }
-
-    /// <summary>Reads a two-byte signed integer in the requested byte order.</summary>
-    /// <param name="stream">The source, at the value's first byte; it advances past the bytes read.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    /// <returns>The decoded signed 16-bit value.</returns>
-    /// <exception cref="CStructReadException">The stream ends before all bytes of the value are read.</exception>
-    public static short ReadInt16(Stream stream, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[2];
-        ReadExactlyOrThrow(stream, buffer);
-        return Codec.ReadInt16(buffer, isLittleEndian);
-    }
-
-    /// <summary>Reads a two-byte unsigned integer in the requested byte order.</summary>
-    /// <param name="stream">The source, at the value's first byte; it advances past the bytes read.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    /// <returns>The decoded unsigned 16-bit value.</returns>
-    /// <exception cref="CStructReadException">The stream ends before all bytes of the value are read.</exception>
-    public static ushort ReadUInt16(Stream stream, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[2];
-        ReadExactlyOrThrow(stream, buffer);
-        return Codec.ReadUInt16(buffer, isLittleEndian);
-    }
-
-    /// <summary>Reads a four-byte signed integer in the requested byte order.</summary>
-    /// <param name="stream">The source, at the value's first byte; it advances past the bytes read.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    /// <returns>The decoded signed 32-bit value.</returns>
-    /// <exception cref="CStructReadException">The stream ends before all bytes of the value are read.</exception>
-    public static int ReadInt32(Stream stream, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[4];
-        ReadExactlyOrThrow(stream, buffer);
-        return Codec.ReadInt32(buffer, isLittleEndian);
-    }
-
-    /// <summary>Reads a four-byte unsigned integer in the requested byte order.</summary>
-    /// <param name="stream">The source, at the value's first byte; it advances past the bytes read.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    /// <returns>The decoded unsigned 32-bit value.</returns>
-    /// <exception cref="CStructReadException">The stream ends before all bytes of the value are read.</exception>
-    public static uint ReadUInt32(Stream stream, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[4];
-        ReadExactlyOrThrow(stream, buffer);
-        return Codec.ReadUInt32(buffer, isLittleEndian);
-    }
-
-    /// <summary>Reads an eight-byte signed integer in the requested byte order.</summary>
-    /// <param name="stream">The source, at the value's first byte; it advances past the bytes read.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    /// <returns>The decoded signed 64-bit value.</returns>
-    /// <exception cref="CStructReadException">The stream ends before all bytes of the value are read.</exception>
-    public static long ReadInt64(Stream stream, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[8];
-        ReadExactlyOrThrow(stream, buffer);
-        return Codec.ReadInt64(buffer, isLittleEndian);
-    }
-
-    /// <summary>Reads an eight-byte unsigned integer in the requested byte order.</summary>
-    /// <param name="stream">The source, at the value's first byte; it advances past the bytes read.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    /// <returns>The decoded unsigned 64-bit value.</returns>
-    /// <exception cref="CStructReadException">The stream ends before all bytes of the value are read.</exception>
-    public static ulong ReadUInt64(Stream stream, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[8];
-        ReadExactlyOrThrow(stream, buffer);
-        return Codec.ReadUInt64(buffer, isLittleEndian);
-    }
-
-    /// <summary>Reads a four-byte IEEE 754 value in the requested byte order.</summary>
-    /// <param name="stream">The source, at the value's first byte; it advances past the bytes read.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    /// <returns>The single-precision value with the stored bit pattern.</returns>
-    /// <exception cref="CStructReadException">The stream ends before all bytes of the value are read.</exception>
-    public static float ReadSingle(Stream stream, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[4];
-        ReadExactlyOrThrow(stream, buffer);
-        return Codec.ReadSingle(buffer, isLittleEndian);
-    }
-
-    /// <summary>Reads an eight-byte IEEE 754 value in the requested byte order.</summary>
-    /// <param name="stream">The source, at the value's first byte; it advances past the bytes read.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    /// <returns>The double-precision value with the stored bit pattern.</returns>
-    /// <exception cref="CStructReadException">The stream ends before all bytes of the value are read.</exception>
-    public static double ReadDouble(Stream stream, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[8];
-        ReadExactlyOrThrow(stream, buffer);
-        return Codec.ReadDouble(buffer, isLittleEndian);
-    }
-
     /// <summary>Converts one to eight bytes into an unsigned number in the layout's byte order.</summary>
     /// <param name="buffer">The one to eight bytes of the value.</param>
     /// <param name="littleEndian">Whether the least significant byte comes first (little-endian).</param>
@@ -338,18 +124,6 @@ internal static class BinaryPrimitiveIO
     {
         Span<byte> buffer = stackalloc byte[2];
         Codec.WriteUInt16(buffer, value, isLittleEndian);
-
-        stream.Write(buffer);
-    }
-
-    /// <summary>Writes a two-byte signed integer in the requested byte order.</summary>
-    /// <param name="stream">The destination, at the value's first byte; it advances past the bytes written.</param>
-    /// <param name="value">The signed 16-bit value to encode.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    public static void WriteInt16(Stream stream, short value, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[2];
-        Codec.WriteInt16(buffer, value, isLittleEndian);
 
         stream.Write(buffer);
     }
@@ -386,54 +160,6 @@ internal static class BinaryPrimitiveIO
     {
         Span<byte> buffer = stackalloc byte[4];
         Codec.WriteUInt32(buffer, value, isLittleEndian);
-
-        stream.Write(buffer);
-    }
-
-    /// <summary>Writes an eight-byte signed integer in the requested byte order.</summary>
-    /// <param name="stream">The destination, at the value's first byte; it advances past the bytes written.</param>
-    /// <param name="value">The signed 64-bit value to encode.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    public static void WriteInt64(Stream stream, long value, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[8];
-        Codec.WriteInt64(buffer, value, isLittleEndian);
-
-        stream.Write(buffer);
-    }
-
-    /// <summary>Writes an eight-byte unsigned integer in the requested byte order.</summary>
-    /// <param name="stream">The destination, at the value's first byte; it advances past the bytes written.</param>
-    /// <param name="value">The unsigned 64-bit value to encode.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    public static void WriteUInt64(Stream stream, ulong value, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[8];
-        Codec.WriteUInt64(buffer, value, isLittleEndian);
-
-        stream.Write(buffer);
-    }
-
-    /// <summary>Writes a four-byte IEEE 754 value in the requested byte order.</summary>
-    /// <param name="stream">The destination, at the value's first byte; it advances past the bytes written.</param>
-    /// <param name="value">The single-precision value whose bit pattern is written.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    public static void WriteSingle(Stream stream, float value, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[4];
-        Codec.WriteSingle(buffer, value, isLittleEndian);
-
-        stream.Write(buffer);
-    }
-
-    /// <summary>Writes an eight-byte IEEE 754 value in the requested byte order.</summary>
-    /// <param name="stream">The destination, at the value's first byte; it advances past the bytes written.</param>
-    /// <param name="value">The double-precision value whose bit pattern is written.</param>
-    /// <param name="isLittleEndian">Whether the least significant byte comes first (little-endian).</param>
-    public static void WriteDouble(Stream stream, double value, bool isLittleEndian)
-    {
-        Span<byte> buffer = stackalloc byte[8];
-        Codec.WriteDouble(buffer, value, isLittleEndian);
 
         stream.Write(buffer);
     }

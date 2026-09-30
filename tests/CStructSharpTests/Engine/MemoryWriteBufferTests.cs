@@ -9,7 +9,7 @@ using CStructSharp.Streams;
 ///     The compiled engine's memory write destination (<see cref="MemoryWriteBuffer"/>) against a reference stream: scripts
 ///     of position moves, writes, zero fills, blocks, budget checks and read-backs run on both a buffer and a
 ///     <see cref="WriteBudgetStream"/> over the same destination (a <see cref="FixedBufferStream"/> for a span, an
-///     <see cref="OwnedMemoryStream"/> for a new array), and every result, exception, position, length and byte must agree.
+///     a growable <see cref="MemoryStream"/> for a new array), and every result, exception, position, length and byte must agree.
 /// </summary>
 [TestClass]
 public class MemoryWriteBufferTests
@@ -63,7 +63,7 @@ public class MemoryWriteBufferTests
             fixed (byte* referenceRegion = referenceStorage)
             {
                 using MemoryWriteBuffer buffer = capacity < 0 ? MemoryWriteBuffer.ForNewArray(options) : MemoryWriteBuffer.ForSpan(engineRegion, capacity, options);
-                using Stream inner = capacity < 0 ? new OwnedMemoryStream() : new FixedBufferStream(referenceRegion, capacity, writable: true);
+                using Stream inner = capacity < 0 ? new MemoryStream() : new FixedBufferStream(referenceRegion, capacity, writable: true);
                 using var stream = new WriteBudgetStream(inner, options);
                 string expected = Run(script, new Target(stream, stream.WriteZeroes, stream.EnsureStringBytes, (size, charged) => stream.CanAffordBlock(size, charged) && (inner is not FixedBufferStream region || stream.Position + size <= region.Capacity), stream.WriteBlock));
                 string actual = Run(script, new Target(buffer, buffer.WriteZeroes, buffer.EnsureStringBytes, buffer.CanAffordBlock, buffer.WriteBlock));

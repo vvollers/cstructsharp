@@ -35,15 +35,12 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 public sealed partial class CStruct
 {
     private readonly LayoutCompilation compilation;
-    private readonly BitfieldCodecTable bitfieldCodecs;
     private readonly PrimitiveCatalog catalog;
     private readonly CodecTable codecs;
     private readonly bool highBitFirst;
     private readonly CompiledModelQueries compiledModelQueries;
     private readonly CompiledSizeQueries compiledSizeQueries;
-    private readonly EnumIntegerCodecTable enumIntegerCodecs;
     private readonly ExpressionEvaluator expressionEvaluator;
-    private readonly LayoutExpressionEvaluator layoutExpressionEvaluator;
     private readonly LayoutVariableResolver layoutVariableResolver;
     private readonly IReadOnlyDictionary<string, Expr> staticLayoutVariables;
 
@@ -81,13 +78,10 @@ public sealed partial class CStruct
         // cached on this instance so the operation partials read them as their own.
         this.compilation = LayoutCompilation.Create(layout, pointerSize, aligned, isLittleEndian, effectiveCompilationOptions, this.codecs.Catalog);
         this.catalog = this.compilation.Catalog;
-        this.bitfieldCodecs = this.compilation.BitfieldCodecs;
         this.highBitFirst = this.compilation.HighBitFirst;
         this.compiledModelQueries = this.compilation.ModelQueries;
         this.compiledSizeQueries = this.compilation.SizeQueries;
-        this.enumIntegerCodecs = this.compilation.EnumIntegerCodecs;
         this.expressionEvaluator = this.compilation.ExpressionEvaluator;
-        this.layoutExpressionEvaluator = this.compilation.LayoutExpressionEvaluator;
         this.layoutVariableResolver = this.compilation.LayoutVariableResolver;
         this.staticLayoutVariables = this.compilation.StaticLayoutVariables;
     }

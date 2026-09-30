@@ -110,8 +110,8 @@ public class EngineLayoutCaptureTests
         var settings = Reading.ReadOperationSettings.SnapshotReadOptions(null);
         Expressions.LayoutVariableInput variables = Expressions.LayoutVariableInput.FromIntegers(null);
         using var stream = new MemoryStream([1]);
-        Diagnostics.CStructPathException failure = Assert.Throws<Diagnostics.CStructPathException>(() => layout.CaptureUpdateLayout(stream, 0, "missing", variables, settings));
+        Diagnostics.CStructPathException failure = Assert.Throws<Diagnostics.CStructPathException>(() => EngineLayoutCapture.Capture(layout, stream, 0, "missing", variables, settings));
         StringAssert.Contains(failure.Message, "missing");
-        Assert.IsFalse(layout.Compilation.GetRootDebugReadProgram("missing").IsEligible);
+        Assert.IsNull(layout.Compilation.GetRootDebugReadProgram("missing").Program);
     }
 }

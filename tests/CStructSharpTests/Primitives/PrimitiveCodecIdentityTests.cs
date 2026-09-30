@@ -30,30 +30,6 @@ public class PrimitiveCodecIdentityTests
         }
     }
 
-    /// <summary>
-    ///     The catalog's static sizes agree with what the runtime delegates actually consume: every fixed-width
-    ///     reader advances a stream by exactly the symbol's fixed size. This keeps the compile-time table (which the
-    ///     source generator also uses) coupled to the real reader logic.
-    /// </summary>
-    [TestMethod]
-    public void CatalogSizes_MatchWhatTheReadersConsume()
-    {
-        var layout = new CStruct("struct root { uint8 v; };");
-        PrimitiveCatalog catalog = layout.Codecs.Catalog;
-        foreach (string name in PrimitiveCatalog.CanonicalNames)
-        {
-            int? size = catalog.Symbols[name].Symbol.FixedSize;
-            if (size is null)
-            {
-                continue;
-            }
-
-            var stream = new MemoryStream(new byte[32]);
-            layout.Codecs.ReaderOf(name)!(stream);
-            Assert.AreEqual(size.Value, (int)stream.Position, name);
-        }
-    }
-
     /// <summary>Neutral spellings follow the layout byte order; explicit suffixes override it.</summary>
     [TestMethod]
     public void NeutralSpellings_FollowTheLayoutByteOrder()
@@ -87,34 +63,21 @@ public class PrimitiveCodecIdentityTests
     }
 
     /// <summary>
-    ///     Every canonical delegate pair round-trips: a sample value written by the writer reads back through the reader,
-    ///     and writing the value read produces the same bytes. The pairs are the catalog's runtime half, so every canonical
-    ///     name keeps a working reader and writer.
+    ///     The layout's writer table has a delegate for exactly the canonical codecs the compiled write engine writes
+    ///     through one - every codec except the one- to eight-byte numbers (<see cref="PrimitiveCodec.IsFixedWidthNumeric"/>),
+    ///     which the engine encodes itself; a negative id has no writer.
     /// </summary>
     [TestMethod]
-    public void CanonicalDelegatePairs_RoundTrip()
+    public void DelegateWriters_CoverTheCodecsTheEngineDoesNotEncodeItself()
     {
         var layout = new CStruct("struct root { uint8 v; };");
+        PrimitiveCatalog catalog = layout.Codecs.Catalog;
         foreach (string name in PrimitiveCatalog.CanonicalNames)
         {
             PrimitiveCodec codec = PrimitiveCodec.Resolve(name, true);
-            object sample = codec.Kind switch
-            {
-                PrimitiveCodecKind.Uuid or PrimitiveCodecKind.Guid => new Guid("00112233-4455-6677-8899-aabbccddeeff"),
-                PrimitiveCodecKind.Bool => true,
-                PrimitiveCodecKind.Char or PrimitiveCodecKind.WChar => 'a',
-                _ when codec.IsTerminatedText => "ab",
-                _ => 1,
-            };
-            using var first = new MemoryStream();
-            layout.Codecs.WriterOf(name)!(first, sample);
-            first.Position = 0;
-            object read = layout.Codecs.ReaderOf(name)!(first);
-            Assert.AreEqual(first.Length, first.Position, name + ": the reader consumes what the writer wrote");
-
-            using var second = new MemoryStream();
-            layout.Codecs.WriterOf(name)!(second, read);
-            CollectionAssert.AreEqual(first.ToArray(), second.ToArray(), name);
+            Assert.AreEqual(codec.IsFixedWidthNumeric, layout.Codecs.WriterOfCodec(catalog.CodecIdOf(name)) is null, name);
         }
+
+        Assert.IsNull(layout.Codecs.WriterOfCodec(PrimitiveCatalog.NoCodec));
     }
 }
