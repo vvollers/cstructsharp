@@ -19,9 +19,17 @@ public class TypeEmissionTests
 
         """;
 
-    /// <summary>Every accepted declaration shape of the language contract generates, compiles, and has a snapshot.</summary>
+    /// <summary>
+    ///     Every accepted declaration shape of the language contract generates without a generator diagnostic, and
+    ///     the generated source compiles without errors.
+    /// </summary>
+    /// <remarks>
+    ///     The generated text of these fixtures is not pinned by a snapshot: <c>CStructSharp.Generated.Parity</c>
+    ///     compiles the same fixtures and compares their behavior with the runtime, and the <c>Types.*</c> and
+    ///     per-feature snapshots pin the emitted shape.
+    /// </remarks>
     [TestMethod]
-    public void ManualFixtures_GenerateCompileAndMatchSnapshots()
+    public void ManualFixtures_GenerateAndCompileWithoutDiagnostics()
     {
         var failures = new List<string>();
         foreach (ManualFixture fixture in ManualFixtures.Load())
@@ -32,7 +40,6 @@ public class TypeEmissionTests
             try
             {
                 result.AssertClean();
-                Snapshot.Match("Fixture." + fixture.Id, result.Source);
             }
             catch (Exception exception) when (exception is AssertFailedException or InvalidOperationException)
             {

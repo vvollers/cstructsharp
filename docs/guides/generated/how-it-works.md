@@ -76,8 +76,10 @@ the fixed reader assigns newly read values instead.
 
 ## How parity is tested
 
-- **Snapshots** (`tests/CStructSharp.Generators.Tests/Snapshots/*.g.cs`): the generated file for a fixture,
-  compared byte for byte; `UPDATE_SNAPSHOTS=1` rewrites them, and a rewrite is reviewed as a diff.
+- **Snapshots** (`tests/CStructSharp.Generators.Tests/Snapshots/*.g.cs`): the generated file for a small, hand-picked
+  set of sources (the emitted types and one source per feature), compared byte for byte; `UPDATE_SNAPSHOTS=1` rewrites
+  them, and a rewrite is reviewed as a diff. Every language-contract fixture must also generate without a diagnostic
+  and compile; its behavior is checked by the parity tests below.
 - **Parity tests** (`tests/CStructSharp.Generated.Parity/`): every layout fixture the runtime is tested with is
   generated into one project by `tools/quality/generate-parity-layouts.mjs`, and for each one the generated
   `Parse` is compared with `Layout.Parse` on the same bytes, member by member, including pointers, unions, and

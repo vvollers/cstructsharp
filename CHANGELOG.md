@@ -200,6 +200,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   and the API index are complete.
 - The mutation testing guide moved to `docs/project/mutation-testing.md` and is published with the site; the
   inspector's detection, coverage and icon notes are part of its README.
+- Generator snapshots cover the emitted types and one source per feature; the 48 language-fixture snapshots (4.4 MB)
+  are gone. Every fixture must still generate without diagnostics and compile, and `CStructSharp.Generated.Parity`
+  checks its behavior against the runtime.
 
 ## 0.10.0 — 2026-09-26
 
