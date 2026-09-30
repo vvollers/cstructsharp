@@ -22,7 +22,7 @@ public class UnsizedTextPlacementTests
 
     /// <summary>Gets the execution paths every case runs under, as data rows.</summary>
     public static IEnumerable<object[]> Paths
-        => from ExecutionPath path in (ExecutionPath[])[ExecutionPath.Fastest, ExecutionPath.NoDirectAccess, ExecutionPath.GeneralOnly]
+        => from ExecutionPath path in (ExecutionPath[])[ExecutionPath.Fastest, ExecutionPath.NoDirectAccess, ExecutionPath.NoFastPaths]
            select new object[] { (int)path, };
 
     /// <summary>Gets the value <see cref="Encoded"/> holds.</summary>

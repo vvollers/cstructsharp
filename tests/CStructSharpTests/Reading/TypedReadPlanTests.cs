@@ -137,7 +137,7 @@ public class TypedReadPlanTests
         using var withPlan = new MemoryStream(Bytes, writable: false);
         RootExact fast = layout.ReadValue<RootExact>(withPlan, "root");
         using var withoutPlan = new MemoryStream(Bytes, writable: false);
-        RootExact general = layout.ReadValue<RootExact>(withoutPlan, "root", options: ExecutionPaths.GeneralOnly());
+        RootExact general = layout.ReadValue<RootExact>(withoutPlan, "root", options: ExecutionPaths.NoFastPaths());
         Assert.AreEqual(OperationOutcome.Render(general), OperationOutcome.Render(fast));
         Assert.AreEqual(withoutPlan.Position, withPlan.Position);
 
@@ -150,7 +150,7 @@ public class TypedReadPlanTests
             string fastText = OperationOutcome.Render(aligned.ReadValue<Small>(fastStream, "root"));
             using var generalStream = new MemoryStream(bytes, writable: false);
             generalStream.Position = start;
-            string generalText = OperationOutcome.Render(aligned.ReadValue<Small>(generalStream, "root", options: ExecutionPaths.GeneralOnly()));
+            string generalText = OperationOutcome.Render(aligned.ReadValue<Small>(generalStream, "root", options: ExecutionPaths.NoFastPaths()));
             Assert.AreEqual(generalText, fastText, $"start {start}");
             Assert.AreEqual(generalStream.Position, fastStream.Position, $"start {start}: position");
         }
@@ -160,7 +160,7 @@ public class TypedReadPlanTests
     private static void AssertSameOutcome<T>(CStruct layout, byte[] bytes, string path, ReadOptions? options, string label)
     {
         OperationOutcome fast = OperationOutcome.Of(() => layout.ReadValue<T>(bytes, path, options: options));
-        OperationOutcome general = OperationOutcome.Of(() => layout.ReadValue<T>(bytes, path, options: ExecutionPaths.GeneralOnly(options)));
+        OperationOutcome general = OperationOutcome.Of(() => layout.ReadValue<T>(bytes, path, options: ExecutionPaths.NoFastPaths(options)));
         OperationOutcome.AssertSame(general, fast, label);
     }
 

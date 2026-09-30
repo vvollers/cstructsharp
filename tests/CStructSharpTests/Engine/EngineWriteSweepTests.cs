@@ -10,7 +10,7 @@ using Variant = EngineSweepLayouts.Variant;
 ///     member missing, and every top-level member replaced by values of the wrong kind, range or shape - through
 ///     <c>Serialize</c> to an array and into spans of every capacity and <c>Write</c> into a stream that already holds
 ///     bytes - and every member a nested path can select, written on its own to every destination with plain and update
-///     options, and updated in place, under <see cref="ExecutionPath.Fastest"/> and <see cref="ExecutionPath.GeneralOnly"/>,
+///     options, and updated in place, under <see cref="ExecutionPath.Fastest"/> and <see cref="ExecutionPath.NoFastPaths"/>,
 ///     with the engine required wherever the root or the selected member is eligible.
 /// </summary>
 /// <remarks>
@@ -22,7 +22,7 @@ using Variant = EngineSweepLayouts.Variant;
 public class EngineWriteSweepTests
 {
     /// <summary>The execution paths every sweep runs under.</summary>
-    private static readonly ExecutionPath[] SweepPaths = [ExecutionPath.Fastest, ExecutionPath.GeneralOnly];
+    private static readonly ExecutionPath[] SweepPaths = [ExecutionPath.Fastest, ExecutionPath.NoFastPaths];
 
     /// <summary>Gets the sweep layout names as data rows.</summary>
     public static IEnumerable<object[]> Layouts => EngineSweepLayouts.Names;

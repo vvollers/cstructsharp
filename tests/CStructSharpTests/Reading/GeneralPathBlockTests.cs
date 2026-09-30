@@ -12,7 +12,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 /// <summary>
 ///     Pins the block reads and writes inside the general path - a <c>char[n]</c> read and written as one
 ///     block, and a typed numeric array written as one block - against the element-by-element paths they replace
-///     (the internal <see cref="ExecutionPath.GeneralOnly"/> option): the same values, bytes, destination contents, exception types,
+///     (the internal <see cref="ExecutionPath.NoFastPaths"/> option): the same values, bytes, destination contents, exception types,
 ///     messages, paths and offsets for every truncation, budget, capacity and invalid value.
 /// </summary>
 [TestClass]
@@ -149,7 +149,7 @@ public class GeneralPathBlockTests
             ["value"] = 21.5,
             ["note"] = "calibrated",
         };
-        return layout.Serialize("packet", value, options: new WriteOptions { ExecutionPath = ExecutionPath.GeneralOnly });
+        return layout.Serialize("packet", value, options: new WriteOptions { ExecutionPath = ExecutionPath.NoFastPaths });
     }
 
     /// <summary>A copy of <paramref name="source"/> with one member replaced.</summary>
@@ -168,7 +168,7 @@ public class GeneralPathBlockTests
     private static void AssertSameRead(Func<ReadOptions?, string> operation, ReadOptions? options, string label)
     {
         OperationOutcome block = OperationOutcome.Of(() => operation(options));
-        OperationOutcome element = OperationOutcome.Of(() => operation((options ?? new ReadOptions()) with { ExecutionPath = ExecutionPath.GeneralOnly }));
+        OperationOutcome element = OperationOutcome.Of(() => operation((options ?? new ReadOptions()) with { ExecutionPath = ExecutionPath.NoFastPaths }));
         OperationOutcome.AssertSame(element, block, label);
     }
 
@@ -176,7 +176,7 @@ public class GeneralPathBlockTests
     private static void AssertSameWrite(Func<WriteOptions?, string> operation, WriteOptions? options, string label)
     {
         OperationOutcome block = OperationOutcome.Of(() => operation(options));
-        OperationOutcome element = OperationOutcome.Of(() => operation((options ?? new WriteOptions()) with { ExecutionPath = ExecutionPath.GeneralOnly }));
+        OperationOutcome element = OperationOutcome.Of(() => operation((options ?? new WriteOptions()) with { ExecutionPath = ExecutionPath.NoFastPaths }));
         OperationOutcome.AssertSame(element, block, label);
     }
 

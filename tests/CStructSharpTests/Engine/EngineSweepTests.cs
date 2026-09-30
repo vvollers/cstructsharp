@@ -7,7 +7,7 @@ using Variant = EngineSweepLayouts.Variant;
 
 /// <summary>
 ///     Sweeps the differential harness over the representative layouts of <see cref="EngineSweepLayouts"/>, packed and
-///     aligned, under <see cref="ExecutionPath.Fastest"/> and <see cref="ExecutionPath.GeneralOnly"/> (the path the
+///     aligned, under <see cref="ExecutionPath.Fastest"/> and <see cref="ExecutionPath.NoFastPaths"/> (the path the
 ///     compiled engine replaces): every truncation of the input, every byte budget up to the operation's natural total,
 ///     every other limit around the value the input needs, the read options that change decoding, caller variables,
 ///     every input source, and every destination. Each comparison checks automatic engine selection against the golden
@@ -23,7 +23,7 @@ using Variant = EngineSweepLayouts.Variant;
 public class EngineSweepTests
 {
     /// <summary>The execution paths every sweep runs under.</summary>
-    private static readonly ExecutionPath[] SweepPaths = [ExecutionPath.Fastest, ExecutionPath.GeneralOnly];
+    private static readonly ExecutionPath[] SweepPaths = [ExecutionPath.Fastest, ExecutionPath.NoFastPaths];
 
     /// <summary>The memory forms a read sweep runs over, before the stream forms.</summary>
     private static readonly EngineInput[] MemoryInputs = [EngineInput.Span, EngineInput.ByteArray, EngineInput.Memory, EngineInput.Sequence];
@@ -279,7 +279,7 @@ public class EngineSweepTests
             };
             foreach (DifferentialOperation operation in operations)
             {
-                string general = Same(operation, ExecutionPath.GeneralOnly);
+                string general = Same(operation, ExecutionPath.NoFastPaths);
                 string fastest = Same(operation, ExecutionPath.Fastest);
                 if (!string.Equals(general, fastest, StringComparison.Ordinal))
                 {
@@ -325,7 +325,7 @@ public class EngineSweepTests
 
                 foreach (DifferentialOperation operation in operations)
                 {
-                    string general = Same(operation, ExecutionPath.GeneralOnly);
+                    string general = Same(operation, ExecutionPath.NoFastPaths);
                     string fastest = Same(operation, ExecutionPath.Fastest);
                     if (!string.Equals(general, fastest, StringComparison.Ordinal))
                     {

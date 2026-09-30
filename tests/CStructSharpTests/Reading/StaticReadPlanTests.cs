@@ -137,7 +137,7 @@ public class StaticReadPlanTests
             string fast = OperationOutcome.Render(layout.Parse(withPlan, "root"));
             using var withoutPlan = new MemoryStream(bytes, writable: false);
             withoutPlan.Position = start;
-            string general = OperationOutcome.Render(layout.Parse(withoutPlan, "root", options: ExecutionPaths.GeneralOnly()));
+            string general = OperationOutcome.Render(layout.Parse(withoutPlan, "root", options: ExecutionPaths.NoFastPaths()));
             Assert.AreEqual(general, fast, $"start {start}");
             Assert.AreEqual(withoutPlan.Position, withPlan.Position, $"start {start}: position");
         }
@@ -262,7 +262,7 @@ public class StaticReadPlanTests
             using Stream? withPlan = create();
             using Stream? withoutPlan = create();
             OperationOutcome fast = OperationOutcome.Of(() => withPlan is null ? layout.Parse(bytes, "root", options: options) : layout.Parse(withPlan, "root", options: options));
-            OperationOutcome general = OperationOutcome.Of(() => withoutPlan is null ? layout.Parse(bytes, "root", options: ExecutionPaths.GeneralOnly(options)) : layout.Parse(withoutPlan, "root", options: ExecutionPaths.GeneralOnly(options)));
+            OperationOutcome general = OperationOutcome.Of(() => withoutPlan is null ? layout.Parse(bytes, "root", options: ExecutionPaths.NoFastPaths(options)) : layout.Parse(withoutPlan, "root", options: ExecutionPaths.NoFastPaths(options)));
             string caseLabel = label + " / " + source;
             OperationOutcome.AssertSame(general, fast, caseLabel);
             Assert.AreEqual(withoutPlan?.Position, withPlan?.Position, caseLabel + ": final position");

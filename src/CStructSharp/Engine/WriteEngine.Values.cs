@@ -330,7 +330,7 @@ internal static partial class WriteEngine
 
     /// <summary>
     ///     Whether <paramref name="length"/> bytes can be written as one block with the outcome of writing them one by one:
-    ///     the block path is allowed (not <see cref="ExecutionPath.GeneralOnly"/>, no update semantics, and neither a stream
+    ///     the block path is allowed (not <see cref="ExecutionPath.NoFastPaths"/>, no update semantics, and neither a stream
     ///     nor a union's staging, which are written element by element), and the budget and the
     ///     destination's room hold them all.
     /// </summary>
@@ -341,7 +341,7 @@ internal static partial class WriteEngine
     /// <returns>Whether the block path applies.</returns>
     private static bool CanWriteBlock<TDestination>(ref TDestination destination, ref WriteEngineState state, int length)
         where TDestination : struct, IWriteDestination
-        => !state.GeneralPathOnly && !state.UpdateSemantics && destination.AllowsBlocks && destination.CanAffordBlock(length, length);
+        => !state.NoFastPaths && !state.UpdateSemantics && destination.AllowsBlocks && destination.CanAffordBlock(length, length);
 
     /// <summary>
     ///     Writes fixed-width numbers: as one block from typed storage (a parsed <see cref="PrimitiveArray{T}"/> or an exact

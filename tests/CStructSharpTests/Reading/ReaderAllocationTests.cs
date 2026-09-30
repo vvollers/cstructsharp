@@ -182,7 +182,7 @@ public class ReaderAllocationTests
     {
         var nested = new CStruct("struct child { uint8 value; }; struct hdr { uint8 n; child nested; }; struct root { hdr h; uint8 items[h.n]; };");
         var flat = new CStruct("struct hdr { uint8 n; uint8 value; }; struct root { hdr h; uint8 items[h.n]; };");
-        ReadOptions options = ExecutionPaths.GeneralOnly();
+        ReadOptions options = ExecutionPaths.NoFastPaths();
         using var nestedInput = new MemoryStream(new byte[] { 0, 7, });
         using var flatInput = new MemoryStream(new byte[] { 0, 7, });
         var childShape = new StructShape(["value"]);

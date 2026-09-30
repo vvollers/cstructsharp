@@ -228,7 +228,7 @@ public class CustomCodecBoundaryTests
             compilationOptions: new CStructCompilationOptions { Codecs = [new HalfWordCodec(),], });
         byte[] data = [0x34, 0x12, 0xAA, 0xBB, 1, 0, 0xCC, 0xCC, 2, 0, 0xDD, 0xDD, 2, 7, 8, 9];
         byte[] canonical = [0x34, 0x12, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 2, 7, 8, 9];
-        foreach (ExecutionPath path in (ExecutionPath[])[ExecutionPath.Fastest, ExecutionPath.NoDirectAccess, ExecutionPath.GeneralOnly])
+        foreach (ExecutionPath path in (ExecutionPath[])[ExecutionPath.Fastest, ExecutionPath.NoDirectAccess, ExecutionPath.NoFastPaths])
         {
             {
                 string context = path.ToString();

@@ -19,7 +19,7 @@ public class PromotedMemberNestingTests
     private static readonly byte[] Data = [0x01, 0x02, 0x03, 0x04, 0x05];
 
     /// <summary>The execution paths that must agree.</summary>
-    private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.NoDirectAccess, ExecutionPath.GeneralOnly];
+    private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.NoDirectAccess, ExecutionPath.NoFastPaths];
 
     /// <summary>
     ///     Gets the layouts: a case name, the definition, the path prefix that reaches <c>inner</c> and <c>items</c>, and
@@ -212,7 +212,7 @@ public class PromotedMemberNestingTests
         OperationOutcome general = outcomes[^1];
         for (int index = 0; index < outcomes.Length - 1; index++)
         {
-            OperationOutcome.AssertSame(general, outcomes[index], label + " (" + Paths[index] + " vs " + ExecutionPath.GeneralOnly + ")");
+            OperationOutcome.AssertSame(general, outcomes[index], label + " (" + Paths[index] + " vs " + ExecutionPath.NoFastPaths + ")");
         }
     }
 

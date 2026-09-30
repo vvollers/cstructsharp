@@ -32,7 +32,7 @@ public class WriteEngineTests
         """;
 
     /// <summary>The execution paths each case runs under.</summary>
-    private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.GeneralOnly];
+    private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.NoFastPaths];
 
     /// <summary>Gets valid input for <see cref="CodecLayout"/>, field by field.</summary>
     private static byte[] CodecData =>

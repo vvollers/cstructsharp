@@ -31,7 +31,7 @@ internal struct WriteEngineState
         this.MaxArrayElements = options.MaxArrayElements;
         this.MaxNestingDepth = options.MaxNestingDepth;
         this.RejectUnknownMembers = options.UnknownMembers == UnknownMemberPolicy.Reject;
-        this.GeneralPathOnly = options.ExecutionPath == ExecutionPath.GeneralOnly;
+        this.NoFastPaths = options.ExecutionPath == ExecutionPath.NoFastPaths;
         this.UpdateSemantics = options is UpdateOptions;
         this.PreservesUnionStorage = options is UpdateOptions { ClearUnionStorage: false, };
         this.CancellationToken = options.CancellationToken;
@@ -59,10 +59,10 @@ internal struct WriteEngineState
     public bool RejectUnknownMembers { get; }
 
     /// <summary>
-    ///     Gets whether the write must avoid the static write plans and block writes (<see cref="ExecutionPath.GeneralOnly"/>)
+    ///     Gets whether the write must avoid the static write plans and block writes (<see cref="ExecutionPath.NoFastPaths"/>)
     ///     and write member by member and element by element.
     /// </summary>
-    public bool GeneralPathOnly { get; }
+    public bool NoFastPaths { get; }
 
     /// <summary>
     ///     Gets a value indicating whether the write has update semantics - its options are <see cref="UpdateOptions"/> - so

@@ -14,7 +14,7 @@ using CStructSharp.Values;
 public class AlignedPaddingAtEndTests
 {
     /// <summary>The execution paths that must agree.</summary>
-    private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.GeneralOnly];
+    private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.NoFastPaths];
 
     /// <summary>The stream forms compared with the span.</summary>
     private static readonly EngineInput[] Streams = EngineStreams.All.Where(input => input != EngineInput.ExposedStream).ToArray();

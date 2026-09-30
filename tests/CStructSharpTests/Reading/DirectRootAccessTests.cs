@@ -280,7 +280,7 @@ public class DirectRootAccessTests
                 ["samples"] = new uint[] { 1, 2, 3 },
                 ["ok"] = true,
             };
-        return layout.Serialize(root, value, options: new WriteOptions { ExecutionPath = ExecutionPath.GeneralOnly });
+        return layout.Serialize(root, value, options: new WriteOptions { ExecutionPath = ExecutionPath.NoFastPaths });
     }
 
     /// <summary>Runs <see cref="ReadCursor.TryTakeFixed"/> from <paramref name="start"/> and reports how far the cursor moved.</summary>

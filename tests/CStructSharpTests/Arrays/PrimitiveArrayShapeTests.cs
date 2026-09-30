@@ -11,7 +11,7 @@ using CStructSharp.Values;
 public class PrimitiveArrayShapeTests
 {
     /// <summary>The execution paths that must agree.</summary>
-    private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.NoDirectAccess, ExecutionPath.GeneralOnly];
+    private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.NoDirectAccess, ExecutionPath.NoFastPaths];
 
     /// <summary>
     ///     Gets the cases: a name, the definition, the root, the input, the path of the array inside the parsed value

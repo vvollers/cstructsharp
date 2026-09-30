@@ -48,7 +48,7 @@ public class SpanStreamParityTests
 
             // The same memory-backed source through the general path only (static read plans disabled).
             using var unplanned = new MemoryStream(bytes, writable: false);
-            OperationOutcome unplannedOutcome = OperationOutcome.Of(() => layout.Parse(unplanned, rootName, options: readOptions with { ExecutionPath = ExecutionPath.GeneralOnly }));
+            OperationOutcome unplannedOutcome = OperationOutcome.Of(() => layout.Parse(unplanned, rootName, options: readOptions with { ExecutionPath = ExecutionPath.NoFastPaths }));
 
             OperationOutcome.AssertSame(span, memory, id + ": span vs MemoryStream");
             OperationOutcome.AssertSame(span, chunkedOutcome, id + ": span vs chunked stream");

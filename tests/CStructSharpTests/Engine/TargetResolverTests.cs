@@ -11,7 +11,7 @@ namespace CStructSharp.Tests;
 public class TargetResolverTests
 {
     /// <summary>The execution paths every case runs under.</summary>
-    private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.GeneralOnly];
+    private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.NoFastPaths];
 
     /// <summary>
     ///     Members the walk measures by reading them - terminated text (read to capture and again to measure), LEB128, an

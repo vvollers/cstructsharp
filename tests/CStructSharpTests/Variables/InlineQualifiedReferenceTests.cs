@@ -13,7 +13,7 @@ using CStructSharp.Values;
 public class InlineQualifiedReferenceTests
 {
     /// <summary>The execution paths that must agree.</summary>
-    private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.NoDirectAccess, ExecutionPath.GeneralOnly];
+    private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.NoDirectAccess, ExecutionPath.NoFastPaths];
 
     /// <summary>
     ///     Gets the layouts: a case name, the definition, its input, the value of <c>root.tail</c>, and the path of a
@@ -88,7 +88,7 @@ public class InlineQualifiedReferenceTests
             {
                 for (int index = 0; index < outcomes.Length - 1; index++)
                 {
-                    OperationOutcome.AssertSame(outcomes[^1], outcomes[index], name + ", " + operation + " (" + Paths[index] + " vs " + ExecutionPath.GeneralOnly + ")");
+                    OperationOutcome.AssertSame(outcomes[^1], outcomes[index], name + ", " + operation + " (" + Paths[index] + " vs " + ExecutionPath.NoFastPaths + ")");
                 }
             }
         }

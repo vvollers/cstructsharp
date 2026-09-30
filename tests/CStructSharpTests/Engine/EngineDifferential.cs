@@ -77,13 +77,13 @@ internal static class EngineDifferential
 
     /// <summary>
     ///     Appends the number of operations that reached the compiled engine to a rendering, which the golden outcome stores
-    ///     with it under its established <c>decisions</c> label.
+    ///     with it as <c>engine runs = N</c>.
     /// </summary>
     /// <param name="rendering">The rendering.</param>
     /// <param name="operations">The number of operations the run sent to the engine.</param>
     /// <returns>The golden outcome.</returns>
     private static string WithOperations(string rendering, long operations)
-        => rendering + "decisions = " + operations.ToString(CultureInfo.InvariantCulture) + "\n";
+        => rendering + "engine runs = " + operations.ToString(CultureInfo.InvariantCulture) + "\n";
 
     /// <summary>
     ///     A line diff of two renderings: unchanged lines start with two spaces, lines only in

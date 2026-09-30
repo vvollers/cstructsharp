@@ -46,7 +46,7 @@ internal struct ReadEngineState
         this.TrimFixedText = options.TrimFixedText;
 
         // A debug parse takes no static read plan: every value is read, and recorded, alone.
-        this.GeneralPathOnly = options.ExecutionPath == ExecutionPath.GeneralOnly || debug is not null;
+        this.NoFastPaths = options.ExecutionPath == ExecutionPath.NoFastPaths || debug is not null;
         this.DereferencePointers = options.DereferencePointers;
         this.AddressingMode = options.AddressingMode;
         this.PointerOrigin = options.Origin;
@@ -83,9 +83,9 @@ internal struct ReadEngineState
 
     /// <summary>
     ///     Gets whether the read must avoid the static read plans and block reads
-    ///     (<see cref="ExecutionPath.GeneralOnly"/>, and every debug parse).
+    ///     (<see cref="ExecutionPath.NoFastPaths"/>, and every debug parse).
     /// </summary>
-    public bool GeneralPathOnly { get; }
+    public bool NoFastPaths { get; }
 
     /// <summary>Gets a value indicating whether pointer targets are followed (<see cref="ReadOptions.DereferencePointers"/>).</summary>
     public bool DereferencePointers { get; }

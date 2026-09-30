@@ -5,10 +5,10 @@
 @test AddressResolution_NeedsNoDataForFixedPlacement
 @case ResolveAddress(Stream.Null) view.f0.value (Fastest)
   result = Int64 3
-  decisions = 1
+  engine runs = 1
 @case ResolveAddress(Stream.Null) view.raw (Fastest)
   result = Int64 0
-  decisions = 1
+  engine runs = 1
 @case ResolveAddress(Stream.Null) rec.items (Fastest)
   failure = failure CStructSharp.Diagnostics.CStructReadException
   failure.message = "Not enough bytes: needed 1, available 0 (path 'rec.items', offset 0)."
@@ -17,7 +17,7 @@
   failure.memberType = null
   failure.path = "rec.items"
   failure.offset = 0
-  decisions = 1
+  engine runs = 1
 @case ResolveAddress(Stream.Null) rec.tail (Fastest)
   failure = failure CStructSharp.Diagnostics.CStructReadException
   failure.message = "Not enough bytes: needed 1, available 0 (path 'rec.tail', offset 0)."
@@ -26,28 +26,28 @@
   failure.memberType = null
   failure.path = "rec.tail"
   failure.offset = 0
-  decisions = 1
+  engine runs = 1
 
 @test ConditionalMembers_PlaceLaterPathsIdentically
-@hash b9487d5f0b2482200aac26c366e884a0270e1580bf774f8ec3418ed484b915b5 3276
+@hash d2142290788e540ab2d35c82f12dbe467a5e2750d137d7471b902c96731c484f 3276
 
 @test MeasuredMembers_PlaceLaterPathsIdentically
-@hash 07b72f86eb281a4225f2905f7396bc30009f43734269c18bf52b978131c9f791 20596
+@hash 3afff92a1303c508220fa9aee246b9452e824d724f74f1ba28cb2f6025c320b4 20596
 
 @test MemberShapes_ResolveIdentically
-@hash 5027f3ebe70ddb6548c2470a8163e0ff181a0fcf658e8a271e7eff702cfc9bdc 6338
+@hash 2dce6cbbecc1d55cec313346610877fdd46a2c6bedc156b54c973673c940b2cd 6338
 
 @test NestedParses_ReadTheSelectedComposite
-@hash 2d57e6e1c2ffd621223682679ef48970a1cda579a37db5e7dff16c3203ca9624 594
+@hash 9a15e188ddcea93a3e53da83b7f07594ebc84f2cffb848eccc3a50bf172f0074 594
 
 @test PathFailures_AreReportedIdentically
-@hash a4cb96e8fa443ffd678b846504c5e08a1a5f3fa8a4ef16857b9746f5ddf61ee4 2132
+@hash 8d3302d7e2ece6cc2c246e76b21c2c19259df2e515d0397ecc7c1d28fa0c8880 2132
 
 @test PointerPaths_FollowOnlyTheNamedPointers
-@hash a16f99f060d189ca18c53810642f94cb373ce75a3e9877f49d4ee1a86309ab8e 18188
+@hash 76158f71df5a0c7fd6d8d1d33863058a7dcd3c79a489e1840db500a15dcf34fe 18188
 
 @test SelectedBitfields_ReadTheirPlacedUnit
-@hash 0ed181f7cabea4e0623f6b17a0d27a5e9462209cb03bacfb809827151e461e3f 6104
+@hash 782d23d74d7b163de692815b92f2332f52c4b79189adfa7371d699af439ca57e 6104
 
 @test UnionMeasures_CheckTheirCountsAgainstTheLimits
 @case ReadValue rec.tail (Span) (Fastest)
@@ -58,7 +58,7 @@
   failure.memberType = null
   failure.path = "rec.tail"
   failure.offset = 1
-  decisions = 1
+  engine runs = 1
 @case ResolveAddress rec.tail (Stream) (Fastest)
   failure = failure CStructSharp.Diagnostics.CStructReadLimitException
   failure.message = "Array length 3 exceeds MaxArrayElements (0) (path 'rec.tail', offset 1)."
@@ -68,11 +68,11 @@
   failure.path = "rec.tail"
   failure.offset = 1
   position = 0
-  decisions = 1
+  engine runs = 1
 @case ResolveAddress rec.tail (Stream) (Fastest) #2
   result = Int64 3
   position = 0
-  decisions = 1
+  engine runs = 1
 @case ReadValue rec.tail (Span) (Fastest) #2
   failure = failure CStructSharp.Diagnostics.CStructReadLimitException
   failure.message = "Array length 3 exceeds MaxArrayElements (1) (path 'rec.tail', offset 1)."
@@ -81,7 +81,7 @@
   failure.memberType = null
   failure.path = "rec.tail"
   failure.offset = 1
-  decisions = 1
+  engine runs = 1
 @case ResolveAddress rec.tail (Stream) (Fastest) #3
   failure = failure CStructSharp.Diagnostics.CStructReadLimitException
   failure.message = "Array length 3 exceeds MaxArrayElements (1) (path 'rec.tail', offset 1)."
@@ -91,11 +91,11 @@
   failure.path = "rec.tail"
   failure.offset = 1
   position = 0
-  decisions = 1
+  engine runs = 1
 @case ResolveAddress rec.tail (Stream) (Fastest) #4
   result = Int64 3
   position = 0
-  decisions = 1
+  engine runs = 1
 @case ResolveAddress rec.tail (Span) (Fastest)
   failure = failure CStructSharp.Diagnostics.CStructReadLimitException
   failure.message = "Maximum nested struct depth exceeded (path 'rec.tail', offset 1)."
@@ -104,7 +104,7 @@
   failure.memberType = null
   failure.path = "rec.tail"
   failure.offset = 1
-  decisions = 1
+  engine runs = 1
 @case ReadValue rec.tail (Span) (Fastest) #3
   failure = failure CStructSharp.Diagnostics.CStructReadLimitException
   failure.message = "Array length 3 exceeds MaxArrayElements (2) (path 'rec.tail', offset 1)."
@@ -113,7 +113,7 @@
   failure.memberType = null
   failure.path = "rec.tail"
   failure.offset = 1
-  decisions = 1
+  engine runs = 1
 @case ResolveAddress rec.tail (Stream) (Fastest) #5
   failure = failure CStructSharp.Diagnostics.CStructReadLimitException
   failure.message = "Array length 3 exceeds MaxArrayElements (2) (path 'rec.tail', offset 1)."
@@ -123,11 +123,11 @@
   failure.path = "rec.tail"
   failure.offset = 1
   position = 0
-  decisions = 1
+  engine runs = 1
 @case ResolveAddress rec.tail (Stream) (Fastest) #6
   result = Int64 3
   position = 0
-  decisions = 1
+  engine runs = 1
 @case ResolveAddress rec.tail (Span) (Fastest) #2
   failure = failure CStructSharp.Diagnostics.CStructReadLimitException
   failure.message = "Maximum nested struct depth exceeded (path 'rec.tail', offset 1)."
@@ -136,36 +136,36 @@
   failure.memberType = null
   failure.path = "rec.tail"
   failure.offset = 1
-  decisions = 1
+  engine runs = 1
 @case ReadValue rec.tail (Span) (Fastest) #4
   result = Byte 9
-  decisions = 1
+  engine runs = 1
 @case ResolveAddress rec.tail (Stream) (Fastest) #7
   result = Int64 4
   position = 0
-  decisions = 1
+  engine runs = 1
 @case ResolveAddress rec.tail (Stream) (Fastest) #8
   result = Int64 4
   position = 0
-  decisions = 1
+  engine runs = 1
 @case ResolveAddress rec.tail (Span) (Fastest) #3
   result = Int64 4
-  decisions = 1
+  engine runs = 1
 @case ReadValue rec.tail (Span) (Fastest) #5
   result = Byte 9
-  decisions = 1
+  engine runs = 1
 @case ResolveAddress rec.tail (Stream) (Fastest) #9
   result = Int64 4
   position = 0
-  decisions = 1
+  engine runs = 1
 @case ResolveAddress rec.tail (Stream) (Fastest) #10
   result = Int64 5
   position = 0
-  decisions = 1
+  engine runs = 1
 @case ResolveAddress rec.tail (Span) (Fastest) #4
   result = Int64 4
-  decisions = 1
-@case ReadValue rec.tail (Span) (GeneralOnly)
+  engine runs = 1
+@case ReadValue rec.tail (Span) (NoFastPaths)
   failure = failure CStructSharp.Diagnostics.CStructReadLimitException
   failure.message = "Array length 3 exceeds MaxArrayElements (0) (path 'rec.tail', offset 1)."
   failure.code = ReadLimitExceeded
@@ -173,8 +173,8 @@
   failure.memberType = null
   failure.path = "rec.tail"
   failure.offset = 1
-  decisions = 1
-@case ResolveAddress rec.tail (Stream) (GeneralOnly)
+  engine runs = 1
+@case ResolveAddress rec.tail (Stream) (NoFastPaths)
   failure = failure CStructSharp.Diagnostics.CStructReadLimitException
   failure.message = "Array length 3 exceeds MaxArrayElements (0) (path 'rec.tail', offset 1)."
   failure.code = ReadLimitExceeded
@@ -183,12 +183,12 @@
   failure.path = "rec.tail"
   failure.offset = 1
   position = 0
-  decisions = 1
-@case ResolveAddress rec.tail (Stream) (GeneralOnly) #2
+  engine runs = 1
+@case ResolveAddress rec.tail (Stream) (NoFastPaths) #2
   result = Int64 3
   position = 0
-  decisions = 1
-@case ReadValue rec.tail (Span) (GeneralOnly) #2
+  engine runs = 1
+@case ReadValue rec.tail (Span) (NoFastPaths) #2
   failure = failure CStructSharp.Diagnostics.CStructReadLimitException
   failure.message = "Array length 3 exceeds MaxArrayElements (1) (path 'rec.tail', offset 1)."
   failure.code = ReadLimitExceeded
@@ -196,8 +196,8 @@
   failure.memberType = null
   failure.path = "rec.tail"
   failure.offset = 1
-  decisions = 1
-@case ResolveAddress rec.tail (Stream) (GeneralOnly) #3
+  engine runs = 1
+@case ResolveAddress rec.tail (Stream) (NoFastPaths) #3
   failure = failure CStructSharp.Diagnostics.CStructReadLimitException
   failure.message = "Array length 3 exceeds MaxArrayElements (1) (path 'rec.tail', offset 1)."
   failure.code = ReadLimitExceeded
@@ -206,12 +206,12 @@
   failure.path = "rec.tail"
   failure.offset = 1
   position = 0
-  decisions = 1
-@case ResolveAddress rec.tail (Stream) (GeneralOnly) #4
+  engine runs = 1
+@case ResolveAddress rec.tail (Stream) (NoFastPaths) #4
   result = Int64 3
   position = 0
-  decisions = 1
-@case ResolveAddress rec.tail (Span) (GeneralOnly)
+  engine runs = 1
+@case ResolveAddress rec.tail (Span) (NoFastPaths)
   failure = failure CStructSharp.Diagnostics.CStructReadLimitException
   failure.message = "Maximum nested struct depth exceeded (path 'rec.tail', offset 1)."
   failure.code = ReadLimitExceeded
@@ -219,8 +219,8 @@
   failure.memberType = null
   failure.path = "rec.tail"
   failure.offset = 1
-  decisions = 1
-@case ReadValue rec.tail (Span) (GeneralOnly) #3
+  engine runs = 1
+@case ReadValue rec.tail (Span) (NoFastPaths) #3
   failure = failure CStructSharp.Diagnostics.CStructReadLimitException
   failure.message = "Array length 3 exceeds MaxArrayElements (2) (path 'rec.tail', offset 1)."
   failure.code = ReadLimitExceeded
@@ -228,8 +228,8 @@
   failure.memberType = null
   failure.path = "rec.tail"
   failure.offset = 1
-  decisions = 1
-@case ResolveAddress rec.tail (Stream) (GeneralOnly) #5
+  engine runs = 1
+@case ResolveAddress rec.tail (Stream) (NoFastPaths) #5
   failure = failure CStructSharp.Diagnostics.CStructReadLimitException
   failure.message = "Array length 3 exceeds MaxArrayElements (2) (path 'rec.tail', offset 1)."
   failure.code = ReadLimitExceeded
@@ -238,12 +238,12 @@
   failure.path = "rec.tail"
   failure.offset = 1
   position = 0
-  decisions = 1
-@case ResolveAddress rec.tail (Stream) (GeneralOnly) #6
+  engine runs = 1
+@case ResolveAddress rec.tail (Stream) (NoFastPaths) #6
   result = Int64 3
   position = 0
-  decisions = 1
-@case ResolveAddress rec.tail (Span) (GeneralOnly) #2
+  engine runs = 1
+@case ResolveAddress rec.tail (Span) (NoFastPaths) #2
   failure = failure CStructSharp.Diagnostics.CStructReadLimitException
   failure.message = "Maximum nested struct depth exceeded (path 'rec.tail', offset 1)."
   failure.code = ReadLimitExceeded
@@ -251,32 +251,32 @@
   failure.memberType = null
   failure.path = "rec.tail"
   failure.offset = 1
-  decisions = 1
-@case ReadValue rec.tail (Span) (GeneralOnly) #4
+  engine runs = 1
+@case ReadValue rec.tail (Span) (NoFastPaths) #4
   result = Byte 9
-  decisions = 1
-@case ResolveAddress rec.tail (Stream) (GeneralOnly) #7
+  engine runs = 1
+@case ResolveAddress rec.tail (Stream) (NoFastPaths) #7
   result = Int64 4
   position = 0
-  decisions = 1
-@case ResolveAddress rec.tail (Stream) (GeneralOnly) #8
+  engine runs = 1
+@case ResolveAddress rec.tail (Stream) (NoFastPaths) #8
   result = Int64 4
   position = 0
-  decisions = 1
-@case ResolveAddress rec.tail (Span) (GeneralOnly) #3
+  engine runs = 1
+@case ResolveAddress rec.tail (Span) (NoFastPaths) #3
   result = Int64 4
-  decisions = 1
-@case ReadValue rec.tail (Span) (GeneralOnly) #5
+  engine runs = 1
+@case ReadValue rec.tail (Span) (NoFastPaths) #5
   result = Byte 9
-  decisions = 1
-@case ResolveAddress rec.tail (Stream) (GeneralOnly) #9
+  engine runs = 1
+@case ResolveAddress rec.tail (Stream) (NoFastPaths) #9
   result = Int64 4
   position = 0
-  decisions = 1
-@case ResolveAddress rec.tail (Stream) (GeneralOnly) #10
+  engine runs = 1
+@case ResolveAddress rec.tail (Stream) (NoFastPaths) #10
   result = Int64 5
   position = 0
-  decisions = 1
-@case ResolveAddress rec.tail (Span) (GeneralOnly) #4
+  engine runs = 1
+@case ResolveAddress rec.tail (Span) (NoFastPaths) #4
   result = Int64 4
-  decisions = 1
+  engine runs = 1

@@ -174,7 +174,7 @@ public class StaticWritePlanTests
             using var withoutPlan = new MemoryStream();
             withoutPlan.Write(existing);
             withoutPlan.Position = start;
-            layout.Write(withoutPlan, "root", data, options: ExecutionPaths.GeneralWrite());
+            layout.Write(withoutPlan, "root", data, options: ExecutionPaths.NoFastPathsWrite());
 
             CollectionAssert.AreEqual(withoutPlan.ToArray(), withPlan.ToArray(), $"start {start}");
             Assert.AreEqual(withoutPlan.Position, withPlan.Position, $"start {start}: position");
@@ -260,7 +260,7 @@ public class StaticWritePlanTests
             }
 
             OperationOutcome planned = OperationOutcome.Of(() => layout.Serialize(rootName, parsed));
-            OperationOutcome general = OperationOutcome.Of(() => layout.Serialize(rootName, parsed, options: ExecutionPaths.GeneralWrite()));
+            OperationOutcome general = OperationOutcome.Of(() => layout.Serialize(rootName, parsed, options: ExecutionPaths.NoFastPathsWrite()));
             OperationOutcome.AssertSame(general, planned, id, compareOffsets: false);
 
             compared++;
@@ -296,7 +296,7 @@ public class StaticWritePlanTests
         })
         {
             OperationOutcome planned = OperationOutcome.Of(() => write(data, options));
-            OperationOutcome general = OperationOutcome.Of(() => write(data, ExecutionPaths.GeneralOnly(options)));
+            OperationOutcome general = OperationOutcome.Of(() => write(data, ExecutionPaths.NoFastPaths(options)));
             OperationOutcome.AssertSame(general, planned, label + " / " + destination, compareOffsets: false);
         }
     }

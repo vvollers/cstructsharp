@@ -93,7 +93,7 @@ public class CompositeArrayTests
     {
         var layout = new CStruct("struct item { uint8 first; uint16 second; }; struct root { uint8 count; uint8 prefix[count]; item values[2] @align(1); uint8 tail; };", aligned: true, isLittleEndian: true);
         byte[] bytes = [0, 0xA1, 0xEE, 0xB2, 0xC3, 0xD4, 0xEE, 0x16, 0x27, 99, 0,];
-        foreach (ExecutionPath path in (ExecutionPath[])[ExecutionPath.Fastest, ExecutionPath.GeneralOnly])
+        foreach (ExecutionPath path in (ExecutionPath[])[ExecutionPath.Fastest, ExecutionPath.NoFastPaths])
         {
             dynamic parsed = layout.Parse(bytes.AsSpan(), "root", null, new ReadOptions { ExecutionPath = path, });
             var values = ((IEnumerable<object?>)parsed.values).Cast<StructValue>().ToArray();

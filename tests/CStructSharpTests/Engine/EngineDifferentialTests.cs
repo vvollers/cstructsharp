@@ -90,7 +90,7 @@ public class EngineDifferentialTests
             EngineDifferential.AssertSame(EngineOperations.GetArrayLength(layout, data, input, "rec.items"));
         }
 
-        EngineComparison comparison = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: ExecutionPath.GeneralOnly);
+        EngineComparison comparison = EngineDifferential.AssertSame(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: ExecutionPath.NoFastPaths);
         StringAssert.Contains(comparison.Rendering, "result.items = PrimitiveArray<UInt16> [2]\n");
         Assert.AreEqual(1, comparison.Diagnostics.Runs);
 
@@ -306,6 +306,18 @@ public class EngineDifferentialTests
     {
         var layout = new CStruct("struct rec { uint8 n; uint16 items[n]; uint8 tail; };");
         DifferentialOperation operation = EngineOperations.Parse(layout, [2, 1, 0, 2, 0, 9], EngineInput.Span, "rec");
+
+        // A recording run accepts every outcome as the new reference, so nothing planted can be reported: it records the
+        // unaltered outcome of each of the three comparisons below instead.
+        if (EngineGolden.Recording)
+        {
+            for (int comparison = 0; comparison < 3; comparison++)
+            {
+                EngineDifferential.AssertSame(operation);
+            }
+
+            return;
+        }
 
         AssertFailedException failure = Assert.Throws<AssertFailedException>(
             () => EngineDifferential.AssertSame(operation, alter: rendering => rendering.Replace("result.items[1] = UInt16 2", "result.items[1] = UInt16 3", StringComparison.Ordinal)));

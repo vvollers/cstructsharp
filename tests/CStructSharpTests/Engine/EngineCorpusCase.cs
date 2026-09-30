@@ -30,11 +30,11 @@ internal sealed record EngineCorpusCase(
     private const int DetailedInputLimit = 16 * 1024;
 
     /// <summary>The execution paths every corpus case runs under.</summary>
-    private static readonly ExecutionPath[] CorpusPaths = [ExecutionPath.Fastest, ExecutionPath.GeneralOnly];
+    private static readonly ExecutionPath[] CorpusPaths = [ExecutionPath.Fastest, ExecutionPath.NoFastPaths];
 
     /// <summary>
     ///     Runs the case through the harness under <see cref="ExecutionPath.Fastest"/> and
-    ///     <see cref="ExecutionPath.GeneralOnly"/>: the root is read from memory, a multi-segment sequence, and streams
+    ///     <see cref="ExecutionPath.NoFastPaths"/>: the root is read from memory, a multi-segment sequence, and streams
     ///     (the sources must agree with each other), read as a value, debug-parsed, its update layout captured, and a few of
     ///     its paths resolved; when a read gives a value, that value is written back to a new array, a span of
     ///     the input's length, a stream and a buffer writer with small windows, and each selected member's value is written

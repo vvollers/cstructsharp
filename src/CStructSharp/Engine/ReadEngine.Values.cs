@@ -204,7 +204,7 @@ internal static partial class ReadEngine
 
     /// <summary>
     ///     Reads a <c>char[N]</c> as one Latin-1 string: as one block when the block path applies (a member its
-    ///     composite placed, with characters, not captured, not restricted to the general path, and the whole extent
+    ///     composite placed, with characters, not captured, not restricted to member-by-member reads, and the whole extent
     ///     present within the byte budget), otherwise character by character; then trimmed as the options say.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
@@ -219,7 +219,7 @@ internal static partial class ReadEngine
     private static string ReadCharArray<TCursor>(ref TCursor cursor, ref ReadEngineState state, ReadProgram program, int field, int codec, int count, Span<byte> scratch)
         where TCursor : struct, IReadCursor
     {
-        if (program.PlacesMembers && count > 0 && !program.Fields[field].CapturesLayoutVariable && !state.GeneralPathOnly)
+        if (program.PlacesMembers && count > 0 && !program.Fields[field].CapturesLayoutVariable && !state.NoFastPaths)
         {
             byte[]? rented = null;
             try
@@ -493,7 +493,7 @@ internal static partial class ReadEngine
         where TCursor : struct, IReadCursor
     {
         CompiledCompositeType composite = element.Composite!;
-        if (program.PlacesMembers && count > 0 && !state.GeneralPathOnly && composite.StaticPlan is { Size: > 0, } plan &&
+        if (program.PlacesMembers && count > 0 && !state.NoFastPaths && composite.StaticPlan is { Size: > 0, } plan &&
             program.Fields[field].FixedElementSize == plan.Size && state.CoversPlan(plan) && (long)count * plan.Size <= int.MaxValue &&
             cursor.TryReadSpanWithinBudget(count * plan.Size, out ReadOnlySpan<byte> bytes))
         {

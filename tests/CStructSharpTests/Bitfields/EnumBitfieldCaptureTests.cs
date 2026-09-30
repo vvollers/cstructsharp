@@ -11,7 +11,7 @@ using CStructSharp.Values;
 public class EnumBitfieldCaptureTests
 {
     /// <summary>The execution paths that must agree.</summary>
-    private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.NoDirectAccess, ExecutionPath.GeneralOnly];
+    private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.NoDirectAccess, ExecutionPath.NoFastPaths];
 
     /// <summary>
     ///     Gets the cases: a name, the definition, the bitfield packing, the bit allocation, and the input. Each layout

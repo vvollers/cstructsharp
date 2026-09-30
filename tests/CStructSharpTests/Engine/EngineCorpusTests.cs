@@ -6,7 +6,7 @@ using System.Text;
 ///     Runs the differential harness over the repository's layout corpora (<see cref="EngineCorpora"/>): every case is
 ///     parsed from several sources (which must agree), read as a value, debug-parsed, has paths resolved, and has the
 ///     value it reads written back, under <see cref="ExecutionPath.Fastest"/> and
-///     <see cref="ExecutionPath.GeneralOnly"/>, checking automatic engine selection against the golden outcomes
+///     <see cref="ExecutionPath.NoFastPaths"/>, checking automatic engine selection against the golden outcomes
 ///     (<see cref="EngineCorpusCase.Run"/>, <see cref="EngineGolden"/>).
 /// </summary>
 [TestClass]

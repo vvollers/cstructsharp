@@ -81,7 +81,7 @@ public class WriterTailAndInputTests
     {
         var layout = new CStruct("struct root {};", aligned: aligned);
         using var compiled = new PositionCountingStream();
-        layout.Write(compiled, "root", new Dictionary<string, object?>(), options: ExecutionPaths.GeneralWrite());
+        layout.Write(compiled, "root", new Dictionary<string, object?>(), options: ExecutionPaths.NoFastPathsWrite());
         Assert.IsLessThanOrEqualTo(expectedReads, compiled.PositionReads);
         Assert.AreEqual(0L, compiled.Length);
     }

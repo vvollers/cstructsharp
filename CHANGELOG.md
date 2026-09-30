@@ -187,7 +187,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   covers more terms.
 - The library no longer carries code the compiled engine replaced: the stream codec reader table and the stream
   readers behind it, the writers for numbers the engine encodes itself, test-only types and members, and the
-  read-program eligibility reports (every layout compiles; a read compile that cannot finish is an internal error).
+  read-program eligibility reports (every layout compiles; a read compile that cannot finish is an internal error),
+  and the interpreter-era names in code, tests and golden outcomes.
 
 ## 0.10.0 — 2026-09-26
 

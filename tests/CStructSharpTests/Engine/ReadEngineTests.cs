@@ -30,7 +30,7 @@ public class ReadEngineTests
         """;
 
     /// <summary>The execution paths each case runs under: the fast paths in front of the engine, and the general path only.</summary>
-    private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.GeneralOnly];
+    private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.NoFastPaths];
 
     /// <summary>Gets valid input for <see cref="CodecLayout"/>, field by field.</summary>
     private static byte[] CodecData =>
@@ -202,7 +202,7 @@ public class ReadEngineTests
                 // The next struct entry observes the token: the entry of the element after the one being read, or - on
                 // the fast path, which stages each element's bytes before entering it - the entry of the element whose
                 // bytes were just staged.
-                if (trigger <= (path == ExecutionPath.GeneralOnly ? 4 : 6))
+                if (trigger <= (path == ExecutionPath.NoFastPaths ? 4 : 6))
                 {
                     StringAssert.Contains(comparison.Rendering, "failure = failure System.OperationCanceledException\n", "trigger " + trigger);
                 }
@@ -217,7 +217,7 @@ public class ReadEngineTests
         var primitives = new CStruct("struct rec { uint8 a; uint16 b; uint8 c; };");
         for (int trigger = 0; trigger < 4; trigger++)
         {
-            EngineComparison comparison = EngineDifferential.AssertSame(CancelledParse(primitives, [1, 2, 0, 3], trigger), path: ExecutionPath.GeneralOnly);
+            EngineComparison comparison = EngineDifferential.AssertSame(CancelledParse(primitives, [1, 2, 0, 3], trigger), path: ExecutionPath.NoFastPaths);
             StringAssert.Contains(comparison.Rendering, "result.c = Byte 3\n", "trigger " + trigger);
         }
     }

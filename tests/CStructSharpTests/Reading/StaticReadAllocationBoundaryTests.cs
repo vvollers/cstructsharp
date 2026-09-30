@@ -130,7 +130,7 @@ public class StaticReadAllocationBoundaryTests
     {
         if (disabled)
         {
-            options = (options ?? new ReadOptions()) with { ExecutionPath = ExecutionPath.GeneralOnly };
+            options = (options ?? new ReadOptions()) with { ExecutionPath = ExecutionPath.NoFastPaths };
         }
 
         for (int repeat = 0; repeat < 4; repeat++)

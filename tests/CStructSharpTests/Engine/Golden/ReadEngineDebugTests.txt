@@ -3,7 +3,7 @@
 # @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes.
 
 @test DebugParse_FailsLikeTheInterpreter
-@hash 561c7edd4166cc86930e6a4f8ce8fffb87d721fbcdd3d1c116ee0a0ce95f695d 36
+@hash 016336942c7fec63484b26c0d9b8cf1cba99ec63dde1c51d9811ac3a0bd7ad23 36
 
 @test DebugParse_RecordsEveryValueInReadOrder
-@hash 5e5706d1db00f340052345fbac15ada9be8d3480d91b6dc3fb72b51167668f97 8
+@hash af1ec578864e4dca32b6bca4190a5d553f827e164dcc02ad6533229adc0b5170 8

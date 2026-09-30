@@ -100,7 +100,7 @@ public class WriterStateBoundaryTests
         var flat = new CStruct("struct root { uint8 value; uint8 n; uint8 items[n]; };");
         var member = new Dictionary<string, object?> { ["value"] = (byte)7, ["n"] = (byte)0, ["items"] = Array.Empty<byte>(), };
         var nestedValue = new Dictionary<string, object?> { ["nested"] = member, };
-        WriteOptions options = ExecutionPaths.GeneralWrite();
+        WriteOptions options = ExecutionPaths.NoFastPathsWrite();
         byte[] nestedBytes = nested.Serialize("root", nestedValue, options: options);
         CollectionAssert.AreEqual(flat.Serialize("root", member, options: options), nestedBytes);
 

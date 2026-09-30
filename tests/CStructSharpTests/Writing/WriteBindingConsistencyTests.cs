@@ -14,7 +14,7 @@ using CStructSharp.Values;
 public class WriteBindingConsistencyTests
 {
     /// <summary>The execution paths that must agree.</summary>
-    private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.NoDirectAccess, ExecutionPath.GeneralOnly];
+    private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.NoDirectAccess, ExecutionPath.NoFastPaths];
 
     /// <summary>
     ///     Gets the promoted-member layouts: a case name, the definition, and the input a parse turns into the value to
@@ -83,7 +83,7 @@ public class WriteBindingConsistencyTests
             {
                 Assert.IsInstanceOfType<CStructWriteException>(outcomes[index].Failure, name + ", " + operation + " (" + Paths[index] + ")");
                 StringAssert.Contains(outcomes[index].Failure!.Message, "'zz' is not a member of 'root'", name + ", " + operation + " (" + Paths[index] + ")");
-                OperationOutcome.AssertSame(outcomes[^1], outcomes[index], name + ", " + operation + " (" + Paths[index] + " vs " + ExecutionPath.GeneralOnly + ")");
+                OperationOutcome.AssertSame(outcomes[^1], outcomes[index], name + ", " + operation + " (" + Paths[index] + " vs " + ExecutionPath.NoFastPaths + ")");
             }
         }
     }
@@ -111,7 +111,7 @@ public class WriteBindingConsistencyTests
                 Assert.IsInstanceOfType<CStructWriteException>(outcomes[index].Failure, operation + " (" + Paths[index] + ")");
                 StringAssert.Contains(outcomes[index].Failure!.Message, "'zz' is not a member of 'inner'", operation + " (" + Paths[index] + ")");
                 StringAssert.Contains(outcomes[index].Failure!.Message, "field 'i'", operation + " (" + Paths[index] + ")");
-                OperationOutcome.AssertSame(outcomes[^1], outcomes[index], operation + " (" + Paths[index] + " vs " + ExecutionPath.GeneralOnly + ")");
+                OperationOutcome.AssertSame(outcomes[^1], outcomes[index], operation + " (" + Paths[index] + " vs " + ExecutionPath.NoFastPaths + ")");
             }
         }
     }

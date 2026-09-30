@@ -198,7 +198,7 @@ internal static partial class ReadEngine
 
     /// <summary>
     ///     Reads a struct into a value of its own: through the composite's static read plan when that plan applies (not
-    ///     restricted to the general path, the plan within the nesting and array limits, and its whole extent present
+    ///     restricted to member-by-member reads (<see cref="ExecutionPath.NoFastPaths"/>), the plan within the nesting and array limits, and its whole extent present
     ///     within the byte budget), otherwise member by member inside one claimed nesting level.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
@@ -209,7 +209,7 @@ internal static partial class ReadEngine
     private static void ReadComposite<TCursor>(ref TCursor cursor, ref ReadEngineState state, ReadProgram program, StructValue value)
         where TCursor : struct, IReadCursor
     {
-        if (!state.GeneralPathOnly && program.Composite!.StaticPlan is { } plan && state.CoversPlan(plan))
+        if (!state.NoFastPaths && program.Composite!.StaticPlan is { } plan && state.CoversPlan(plan))
         {
             byte[]? rented = null;
             try

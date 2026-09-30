@@ -13,6 +13,6 @@ internal enum ExecutionPath
     /// <summary>No direct span access for whole fixed roots; the engine still uses the static plans and block paths.</summary>
     NoDirectAccess = 1,
 
-    /// <summary>The engine member by member only: no direct access, static plans, or block paths.</summary>
-    GeneralOnly = 2,
+    /// <summary>The engine member by member only: no direct access, static plans, or block paths (no fast paths).</summary>
+    NoFastPaths = 2,
 }

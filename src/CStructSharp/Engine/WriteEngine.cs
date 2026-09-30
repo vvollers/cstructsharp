@@ -264,7 +264,7 @@ internal static partial class WriteEngine
 
     /// <summary>
     ///     Writes a fixed struct through its static write plan when that cannot change the outcome: no update
-    ///     semantics, not restricted to the general path, the plan within one block and the nesting and array limits, the
+    ///     semantics, not restricted to member-by-member writes (<see cref="ExecutionPath.NoFastPaths"/>), the plan within one block and the nesting and array limits, the
     ///     bytes under the block readable, and its whole block within the budget and the destination's room. The bytes
     ///     already under the block are read back first, so padding keeps what it held (in a new destination: zeroes), the
     ///     members are encoded before any byte is written, and the block is written once with the plan's charge (field bytes, or in an aligned layout the aligned bytes).
@@ -279,7 +279,7 @@ internal static partial class WriteEngine
     private static bool TryWriteStaticPlan<TDestination>(ref TDestination destination, ref WriteEngineState state, CompiledCompositeType composite, object data, bool promoted)
         where TDestination : struct, IWriteDestination
     {
-        if (state.UpdateSemantics || state.GeneralPathOnly || composite.StaticPlan is not { SupportsWrite: true } plan || plan.Size > ReadBlock.Size ||
+        if (state.UpdateSemantics || state.NoFastPaths || composite.StaticPlan is not { SupportsWrite: true } plan || plan.Size > ReadBlock.Size ||
             state.StructureDepth + plan.NestingDepth - (promoted ? 1 : 0) > state.MaxNestingDepth || plan.MaximumArrayCount > state.MaxArrayElements)
         {
             return false;

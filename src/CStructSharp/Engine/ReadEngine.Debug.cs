@@ -20,7 +20,7 @@ using CStructSharp.Values;
 ///     <para>
 ///         A debug program reads exactly what the ordinary program reads, with the same checks, but every array one
 ///         element at a time and every struct member by member (the recorder turns the static read plans off,
-///         <see cref="ReadEngineState.GeneralPathOnly"/>), because a block path would read many values without a record
+///         <see cref="ReadEngineState.NoFastPaths"/>), because a block path would read many values without a record
 ///         for each. Its read steps are the ordinary ones, surrounded by <see cref="ReadOpCode.DebugMark"/> and
 ///         <see cref="ReadOpCode.DebugRecord"/>; its array, composite and pointer steps are the debug codes handled
 ///         here.

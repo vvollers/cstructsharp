@@ -5,7 +5,7 @@ using System.Threading;
 /// <summary>
 ///     Counts, inside one test recording, the operations that entered the compiled engine (<see cref="EnginePrograms"/>),
 ///     and the kind of the latest one. A direct fixed-root read, a fast path taken before the engine, or a call that fails
-///     before it reaches the engine is not counted, so a test can tell which calls took the general path. Only tests create
+///     before it reaches the engine is not counted, so a test can tell which calls reached the engine. Only tests create
 ///     recordings and read the counts.
 /// </summary>
 /// <remarks>

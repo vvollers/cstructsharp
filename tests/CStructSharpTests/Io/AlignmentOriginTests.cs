@@ -16,7 +16,7 @@ public class AlignmentOriginTests
     private static readonly int[] Starts = [1, 2, 3, 5];
 
     /// <summary>The execution paths that must agree.</summary>
-    private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.GeneralOnly];
+    private static readonly ExecutionPath[] Paths = [ExecutionPath.Fastest, ExecutionPath.NoFastPaths];
 
     /// <summary>Gets the aligned layouts: a name, the definition (root <c>rec</c>), a field path, and a value to write.</summary>
     public static IEnumerable<object[]> Layouts =>
