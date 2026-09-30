@@ -1,12 +1,11 @@
 # Performance measurement
 
 `CStructSharp.Benchmarks/` contains BenchmarkDotNet timing/allocation cases that reference core. Baselines live under
-`contracts/performance/`; benchmark output is ignored. Performance checks are maintained manual measurements plus a
-non-failing drift report in CI (`.github/workflows/benchmark-drift.yml`), not an automatic timing gate on every push.
-
-Pull requests changing the runtime, shared compiler, source generator, benchmark inputs or shared build/toolchain
-configuration schedule that report. Weekly and manual runs remain available. Timing comparisons stay advisory:
-retain instability and canary warnings, and do not refresh baselines merely to make a report look better.
+`contracts/performance/`; benchmark output is ignored. Performance checks are manual measurements on a quiet
+machine, not a timing gate in CI: shared runners are too noisy to compare with a recorded baseline. A change is
+judged by a before/after comparison of the same cases on the same machine
+([Check a change quickly](#check-a-change-quickly-the-impact-category)). Retain instability and canary warnings, and do
+not refresh baselines merely to make a result look better.
 
 ## Layout
 
@@ -43,12 +42,10 @@ Normalize and compare:
 
 ```sh
 node tools/quality/convert-benchmark-baseline.mjs <results dir or report-full.json> artifacts/summary.json
-node tools/quality/compare-benchmark-baseline.mjs --baseline contracts/performance/drift-scenarios.json --summary artifacts/summary.json
 node tools/quality/non-web-release-budgets.mjs --benchmark-summary-path artifacts/summary.json   # release gate
 ```
 
-`convert-benchmark-baseline.mjs` is the only converter. Add `--matching-only` to the comparison when the summary
-holds a subset of the baseline (for example the `Impact` cases against the scenario baseline).
+`convert-benchmark-baseline.mjs` is the only converter.
 
 The release gate (`contracts/performance/release-gate.json`) is a manual pre-release check: run the `Gate` cases
 with the Gate job on a quiet machine, convert the report, and pass it to `non-web-release-budgets.mjs`. CI runs only

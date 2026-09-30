@@ -211,6 +211,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   covers only the versioned artifacts. The npm package is tested on the minimum Node version on every operating system
   and on the newest Node on Linux.
 - The complete mutation run is monthly (and on demand) instead of weekly.
+- The advisory benchmark drift workflow and its machine-specific baselines are removed; performance changes are judged
+  by same-machine before/after runs (`tools/quality/quick-perf-check.mjs`).
 
 ## 0.10.0 — 2026-09-26
 

@@ -28,7 +28,6 @@ Fixtures come from `benchmarks/fixtures/` (run `node benchmarks/fixtures/generat
 | `npm run bench:node` | boundary micro-cases, retained-layout core parse / JSON projection, public API (`parse`, `parseWithDebug`, `serialize`, `update`), compiled handle, stream sources, hand-written `DataView` comparators | `artifacts/js-bench/results/node-<stamp>.json`, `node-latest.json` |
 | `npm run bench:cold` | fresh Node process per sample: runtime create, exports, first compile, first core parse, first public parse | `cold-<stamp>.json`, `cold-latest.json` |
 | `npm run bench:browser` | the same case groups in headless Chromium (Playwright) plus cold start from fresh contexts | `browser-<stamp>.json`, `browser-latest.json` |
-| `npm run check` | soft drift report of `*-latest.json` against `contracts/performance/web-drift.json` | markdown on stdout |
 
 Environment variables: `BENCH_FILTER=<regex>` selects cases, `BENCH_QUICK=1` shortens warm-up/batches for smoke
 runs (never for baselines), `BENCH_COLD_LAUNCHES`, `BENCH_COLD_FIXTURES`, and `BENCH_BUNDLE=<name>` selects an
@@ -72,5 +71,5 @@ These counts are derived from the fixture manifest and the harness's shared sele
   outside the timed phase. It is `0` for cases whose work happens in a worker (the public API), by design.
 - The copy counter reports page reads and bytes copied through the JS-backed source for calls made on the
   harness thread (`direct.*`, `boundary.pageRead.*`); worker-internal copies are not visible to it.
-- A dead-code sink consumes every result; RSD > 0.35 flags a case `UNSTABLE` and the check script treats it as
-  non-gating.
+- A dead-code sink consumes every result; RSD > 0.35 flags a case `UNSTABLE`, and a comparison should not rely
+  on it.

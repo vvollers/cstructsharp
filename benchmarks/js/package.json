@@ -13,8 +13,6 @@
     "bench:cold": "node bench/cold.mjs",
     "bench:browser": "node bench/browser.mjs",
     "bench": "node bench/node.mjs && node bench/cold.mjs && node bench/browser.mjs",
-    "check": "node bench/check.mjs",
-    "record": "node bench/record.mjs",
     "profile:browser": "node bench/profile-browser.mjs"
   },
   "devDependencies": {
