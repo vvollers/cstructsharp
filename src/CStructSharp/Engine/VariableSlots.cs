@@ -123,6 +123,14 @@ internal struct VariableSlots : IDisposable
     public readonly int EvaluateInt32(ProgramExpression program, string context, ExpressionFailureDomain domain)
         => program.EvaluateInt32(this.values, this.unslotted, context, domain);
 
+    /// <summary>
+    ///     The names the slots stand for as a read-only dictionary view (<see cref="SlotDictionaryView"/>), for the
+    ///     dictionary-based size queries of runtime-sized structs and unions: a lookup reads one slot, and no dictionary of
+    ///     every name is built. The view reads the live slots and is valid until they are disposed.
+    /// </summary>
+    /// <returns>A view over these slots.</returns>
+    public readonly IReadOnlyDictionary<string, Expr> AsDictionary() => new SlotDictionaryView(this.table, this.values, this.unslotted);
+
     /// <summary>Builds the name dictionary the slots stand for, for comparison with the dictionary model.</summary>
     /// <returns>A new dictionary.</returns>
     public readonly Dictionary<string, Expr> ToDictionary() => this.table.CreateDictionary(this.values, this.unslotted);

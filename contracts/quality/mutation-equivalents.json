@@ -373,7 +373,7 @@
   },
   {
    "pattern": "CStructWriter.cs",
-   "sourceSha256": "c333bb121e8f205689d273db6800fa2608727fd3c8b3951713d9efbad2f816a9",
+   "sourceSha256": "0aa21d838c55104a46e3f2f73d840b0132b93ba9693687637de1193e20ba7bd1",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":86,"column":13},"end":{"line":86,"column":20}},
@@ -382,7 +382,7 @@
      "location": {"start":{"line":141,"column":17},"end":{"line":141,"column":23}},
      "reason": "This rethrow is inside catch (CStructException exception) when (exception.NoteMember(...)). The nonvirtual CStructException.NoteMember method attaches the innermost member context and unconditionally returns false. The exception therefore continues unwinding without entering this catch body. Removing its unreachable throw preserves the filter call, context attachment and original exception propagation. This qualification does not apply to the following conditional-scope CompleteField call or any cancellation checkpoint." },
     { "mutatorName": "Logical mutation", "replacement": "rootData is not null || !WriteDataBinding.IsMemberSource(rootData)",
-     "location": {"start":{"line":516,"column":13},"end":{"line":516,"column":79}},
+     "location": {"start":{"line":518,"column":13},"end":{"line":518,"column":79}},
      "reason": "This changes only the preliminary eligibility check for selected-path root materialization. Non-null non-member sources already take the same branch. The additional cases are null and member-source dictionaries: WriteDataBinding.Materialize returns those exact inputs immediately, before allocating a StructValue or invoking a mapper. IsMemberSource uses only interface type tests, so checking null has no callback. TryGetRootComposite examines the immutable root declaration and, for a compiled Struct or inline-struct typedef, reads its already-bound descriptor from the private symbol table; other roots return false. Neither extra lookup nor the early-return materialization changes caller data, state or failure behavior. The later path lookup and field writer therefore receive the same object (including null). This does not qualify removal of the distinct whole-composite null rejection in the write engine." },
     { "mutatorName": "Boolean mutation", "replacement": "true",
      "location": {"start":{"line":47,"column":20},"end":{"line":47,"column":25}},

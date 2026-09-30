@@ -500,17 +500,19 @@ public sealed partial class CStruct
     ///     Selects what a write of a nested path writes, in this order, before anything is written: a
     ///     mapped-class root becomes a struct value, the value at the path is taken from a complete root value (the data is
     ///     the value itself when it lacks the path's first member), and the layout member the path selects is resolved, its
-    ///     indexes checked against the counts the variables give.
+    ///     indexes checked against the counts the variables give. The write's program already resolved the path's shape;
+    ///     a path whose shape resolved is walked again only when it has indexes to check, and a path whose shape did not
+    ///     resolve is walked again here, where its resolution reports the failure.
     /// </summary>
     /// <param name="rootElement">The path's root declaration.</param>
     /// <param name="childSegments">The segments after the root; at least one.</param>
     /// <param name="rootData">The normalized root data, or <see langword="null"/>.</param>
     /// <param name="variables">The operation's resolved variables, before anything is written.</param>
-    /// <param name="target">The member the path selects, narrowed by its indexes.</param>
-    /// <returns>The value to write as <paramref name="target"/>.</returns>
+    /// <param name="shapeResolved">Whether the write's program resolved the path's shape (it has a program).</param>
+    /// <returns>The value to write as the member the path selects.</returns>
     /// <exception cref="CStructPathException">The path selects no writable member, or an index is out of range.</exception>
     /// <exception cref="CStructWriteException">The root value lacks a member or element the path names.</exception>
-    internal object SelectWrittenPathValue(CStructElement rootElement, IReadOnlyList<PathSegment> childSegments, object rootData, Dictionary<string, Expr> variables, out CompiledField target)
+    internal object SelectWrittenPathValue(CStructElement rootElement, IReadOnlyList<PathSegment> childSegments, object rootData, Dictionary<string, Expr> variables, bool shapeResolved)
     {
         // A mapped-class root becomes a StructValue first so its members can be walked like any other root object.
         if (rootData is not null && !WriteDataBinding.IsMemberSource(rootData) && this.TryGetRootComposite(rootElement, out CompiledCompositeType? rootComposite))
@@ -525,8 +527,28 @@ public sealed partial class CStruct
             subData = WriteDataBinding.ResolveDataPath(rootData!, childSegments);
         }
 
-        // Separately resolve the layout shape so the writer knows whether the selected target is a field, struct, or typedef.
-        target = this.compilation.ResolveElementPath(rootElement, childSegments, variables);
+        // Resolving the path with the variables adds only the index range checks to the shape the program resolved.
+        if (!shapeResolved || HasIndexes(childSegments))
+        {
+            _ = this.compilation.ResolveElementPath(rootElement, childSegments, variables);
+        }
+
         return subData;
+    }
+
+    /// <summary>Whether any segment of a path indexes an array.</summary>
+    /// <param name="segments">The path segments.</param>
+    /// <returns><see langword="true"/> when a segment has at least one index.</returns>
+    private static bool HasIndexes(IReadOnlyList<PathSegment> segments)
+    {
+        for (int index = 0; index < segments.Count; index++)
+        {
+            if (segments[index].Indexes.Count > 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -944,7 +944,7 @@ internal static class TargetResolver
         if (composite.IsUnion)
         {
             ValidateTraversalLimits(ref cursor, ref state, walk, program);
-            int size = composite.Symbol.FixedSize ?? state.Layout.Compilation.SizeQueries.GetCompiledStructSizeInBytes(composite, state.Slots.ToDictionary(), false);
+            int size = composite.Symbol.FixedSize ?? state.Layout.Compilation.SizeQueries.GetCompiledStructSizeInBytes(composite, state.Slots.AsDictionary(), false);
             return checked(start + size);
         }
 
@@ -1235,7 +1235,7 @@ internal static class TargetResolver
     /// <returns>The element size in bytes.</returns>
     /// <exception cref="CStructLayoutException">The element type has no storage size.</exception>
     private static int ElementSize(ref ReadEngineState state, CompiledField field)
-        => field.FixedElementSize ?? state.Layout.Compilation.SizeQueries.GetCompiledFieldElementSize(field, state.Slots.ToDictionary(), false);
+        => field.FixedElementSize ?? state.Layout.Compilation.SizeQueries.GetCompiledFieldElementSize(field, state.Slots.AsDictionary(), false);
 
     /// <summary>Rejects a nesting depth the options do not allow.</summary>
     /// <param name="state">The operation's state.</param>

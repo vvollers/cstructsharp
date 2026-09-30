@@ -586,7 +586,7 @@ internal static partial class ReadEngine
     {
         CompiledCompositeType union = program.Composite!;
         long start = cursor.Position;
-        int size = union.Symbol.FixedSize ?? state.Layout.Compilation.SizeQueries.GetCompiledStructSizeInBytes(union, state.Slots.ToDictionary(), false);
+        int size = union.Symbol.FixedSize ?? state.Layout.Compilation.SizeQueries.GetCompiledStructSizeInBytes(union, state.Slots.AsDictionary(), false);
         long end = checked(start + size);
         byte[] raw = new byte[size];
         cursor.ReadExactly(raw);

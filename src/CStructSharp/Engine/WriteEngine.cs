@@ -176,7 +176,7 @@ internal static partial class WriteEngine
             {
                 // The member the path selects is written on its own from the value at the path, so only the selected value
                 // and the index checks remain; a path that selects no writable member fails its resolution here.
-                object value = layout.SelectWrittenPathValue(request.RootElement, childSegments, rootData, request.Variables!, out _);
+                object value = layout.SelectWrittenPathValue(request.RootElement, childSegments, rootData, request.Variables!, program is not null);
                 RunFrame(ref destination, ref state, program ?? throw new InvalidOperationException(request.Unwritable), value, 0);
             }
             else if (program is null)

@@ -208,7 +208,7 @@ internal static partial class WriteEngine
     /// <param name="composite">The union.</param>
     /// <returns>The size.</returns>
     private static int UnionSize(ref WriteEngineState state, CompiledCompositeType composite)
-        => composite.Symbol.FixedSize ?? state.Layout.Compilation.SizeQueries.GetCompiledStructSizeInBytes(composite, state.Slots.ToDictionary(), false);
+        => composite.Symbol.FixedSize ?? state.Layout.Compilation.SizeQueries.GetCompiledStructSizeInBytes(composite, state.Slots.AsDictionary(), false);
 
     /// <summary>
     ///     Ends a struct with bitfields: the position moves to where the runtime cursor ended (past a
