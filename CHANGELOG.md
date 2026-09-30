@@ -203,6 +203,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - Generator snapshots cover the emitted types and one source per feature; the 48 language-fixture snapshots (4.4 MB)
   are gone. Every fixture must still generate without diagnostics and compile, and `CStructSharp.Generated.Parity`
   checks its behavior against the runtime.
+- `tests/README.md` lists the four recorded-expectation mechanisms (engine golden outcomes, generator snapshots, the
+  managed API baseline, benchmark fixture expectations) with their update commands and when updating is allowed.
 
 ## 0.10.0 — 2026-09-26
 

@@ -1,13 +1,12 @@
 # Managed test projects
 
-This folder holds the .NET test projects. Run the commands from the repository root after
-`dotnet build CStructSharp.NonWeb.slnf -c Release`. Tests consume reviewed inputs from `contracts/`; do not
-regenerate expectations to hide a regression. Reports and build outputs are ignored. The
-[testing guide](../docs/project/testing.md) explains the test layers and which checks a change needs.
+Run the commands from the repository root after `dotnet build CStructSharp.NonWeb.slnf -c Release`. Tests consume
+reviewed inputs from `contracts/`; do not regenerate expectations to hide a regression. Reports and build outputs are
+ignored.
 
 | Project | What it checks | How to run it |
 | --- | --- | --- |
-| `CStructSharpTests/` | The runtime library: unit, regression, property, concurrency and fixture tests (every benchmark fixture against its recorded expectation, through the fixture tool), one folder per area (`Parsing`, `Compilation`, `Reading`, `Writing`, `Unions`, `Memory`, ...), with shared helpers in `Support/` and `TestStreams/`. Its tests are also the explorer's demonstrations. `Engine/` checks the compiled engine against reviewed golden outcomes (the manifests in `Engine/Golden/`): a harness that renders each operation's outcome as text and compares it with its golden outcome, sweeps over inputs, limits, options, sources and destinations, and the repository corpora (parity layouts, benchmark fixtures, language contracts, well-known formats, the inspector catalog read from `apps/inspector/src/schema-catalog.ts`, and the fuzz corpus's replayed inputs). | `dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release --no-build` (net8.0 and net10.0); `node tools/quality/engine-golden.mjs record` records the golden manifests again, only for an intended change whose diff is reviewed and explained in the commit ([CONTRIBUTING.md](../CONTRIBUTING.md#engine-golden-outcomes)) |
+| `CStructSharpTests/` | The runtime library: unit, regression, property, concurrency and fixture tests (every benchmark fixture against its recorded expectation, through the fixture tool), one folder per area (`Parsing`, `Compilation`, `Reading`, `Writing`, `Unions`, `Memory`, ...), with shared helpers in `Support/` and `TestStreams/`. Its tests are also the explorer's demonstrations. `Engine/` checks the compiled engine against reviewed golden outcomes (the manifests in `Engine/Golden/`): a differential harness, sweeps over inputs, limits, options, sources and destinations, and the repository corpora (parity layouts, benchmark fixtures, language contracts, well-known formats, the inspector catalog read from `apps/inspector/src/schema-catalog.ts`, and the fuzz corpus's replayed inputs). | `dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release --no-build` (net8.0 and net10.0); `node tools/quality/engine-golden.mjs record` records the golden manifests again, only for an intended change whose diff is reviewed and explained in the commit ([CONTRIBUTING.md](../CONTRIBUTING.md#engine-golden-outcomes)) |
 | `CStructSharp.Generators.Tests/` | The source generator, run in memory: golden `Snapshots/*.g.cs` compared byte for byte, reader, writer and conditional parity with the runtime, the analyzer, options, mapped classes and record sequences. | `dotnet test tests/CStructSharp.Generators.Tests -c Release --no-build`; `UPDATE_SNAPSHOTS=1` rewrites the snapshots, and the diff is reviewed in the commit |
 | `CStructSharp.Generators.Modern.Tests/` | The generator under the newest Roslyn: the compiler-compatibility tests, shared with the project above, against the current compiler while the shipped generator keeps its Roslyn 4.8 floor. | `dotnet test tests/CStructSharp.Generators.Modern.Tests -c Release --no-build` |
 | `CStructSharp.Generated.Parity/` | Every repository layout fixture compiled by the generator (`Layouts.g.cs` and `layouts.json` from `node tools/quality/generate-parity-layouts.mjs`, `--check` in CI), compared with the runtime: values (strictly: member order, CLR types and array kinds, apart from the differences `ParityComparer` names), bytes, addresses (the runtime's `ResolveAddress` against the reader's placement and the generated `Offsets` constants), truncation failures (`TryParse` at every cut), the awaitable forms and record sequences. | `dotnet test tests/CStructSharp.Generated.Parity -c Release --no-build` |
@@ -18,9 +17,16 @@ regenerate expectations to hide a regression. Reports and build outputs are igno
 
 ## Recorded expectations
 
-Several tests compare what the code produces with a reviewed file stored in the repository: a golden manifest, a
-snapshot, a baseline, or a recorded digest. Such a file changes only for an intended behavior change, recorded with
-its tool and explained in the commit, never to make a failing test pass.
+Four kinds of test compare the current output with a reviewed file in the repository. Each has its own update
+command. Update a file only for an intended change, and review and explain the diff in the same commit; never
+update one to make a failing check pass.
+
+| Mechanism | What it records | Checked by | Update command | When updating is allowed |
+| --- | --- | --- | --- | --- |
+| Engine golden outcomes | `tests/CStructSharpTests/Engine/Golden/*`: each engine operation's value or failure, stream positions, written bytes and debug records (readable text, or one SHA-256 per group for sweeps) | The managed tests in `CStructSharpTests/Engine/` | `node tools/quality/engine-golden.mjs record` (sets `CSTRUCTSHARP_ENGINE_GOLDEN_RECORD=1`; `--filter` limits the tests) | An intended read, write or update behavior change, or a new or renamed test; explain every changed entry in the commit ([CONTRIBUTING.md](../CONTRIBUTING.md#engine-golden-outcomes)) |
+| Generator snapshots | `tests/CStructSharp.Generators.Tests/Snapshots/*.g.cs`: the generated source of the hand-picked type and feature tests | `CStructSharp.Generators.Tests` (`Snapshot.Match`) | `UPDATE_SNAPSHOTS=1 dotnet test tests/CStructSharp.Generators.Tests -c Release` | An intended change to the generated text; review the diff in the commit ([testing](../docs/project/testing.md)) |
+| Managed API baseline | `contracts/api/managed/`: the public surface of `src/CStructSharp`, its hashes and the review history | `node tools/quality/managed-api-baseline.mjs compare` (CI) | `node tools/quality/managed-api-baseline.mjs update --kind additive\|breaking\|correction --rationale "..." --impact "..."` | An intended public API change, with a CHANGELOG entry and migration notes for a breaking change ([CONTRIBUTING.md](../CONTRIBUTING.md#public-net-api)) |
+| Benchmark fixture expectations | `benchmarks/fixtures/cases/*.json`: each case's expected canonical JSON (SHA-256, length and, when small, the value) or expected exception type | `BenchmarkFixtureExpectationTests` and `CStructSharp.FixtureTool verify` | `dotnet run --project benchmarks/CStructSharp.FixtureTool -c Release -f net10.0 -- fill` (after `node benchmarks/fixtures/generate-fixtures.mjs` for new or changed cases) | A new or changed fixture case, or an intended behavior change that alters a recorded value ([benchmarks/fixtures](../benchmarks/fixtures/README.md)) |
 
 ## Opt-in tests
 
@@ -38,15 +44,3 @@ CSTRUCTSHARP_DISSECT_CORPUS=corpus.json dotnet test tests/CStructSharpTests/CStr
 Without `CSTRUCTSHARP_DISSECT_CORPUS` the test is inconclusive. The status file defaults to `corpus-status.json`
 beside the corpus (`CSTRUCTSHARP_DISSECT_CORPUS_STATUS` overrides it), and every run writes
 `corpus-status.latest.json`; `CSTRUCTSHARP_DISSECT_CORPUS_RATCHET=1` also replaces the recorded status with the latest.
-
-## Tests outside this folder
-
-Other parts of the repository keep their tests next to the code they check:
-
-| Location | What it checks | How to run it |
-| --- | --- | --- |
-| `docs/examples/` | Every documentation recipe and snippet, run with assertions | `node tools/documentation/validate-documentation.mjs` ([docs/README.md](../docs/README.md)) |
-| `benchmarks/CStructSharp.FixtureTool/` | The recorded expectation of every benchmark fixture | See [benchmarks/README.md](../benchmarks/README.md) |
-| `packages/cstructsharp/` | The npm package: the WASM bootstrap and the package installed in Node.js and browsers | `npm run test:bootstrap` and `npm run test:npm` from the root |
-| `apps/explorer/`, `apps/inspector/` | The browser apps: unit tests and Playwright end-to-end tests | `npm run test:unit` and `npm run test:e2e` in the app folder (see its README) |
-| `tools/**/*.test.mjs` | The repository scripts | `node --test "tools/**/*.test.mjs"` |
