@@ -26,6 +26,15 @@ using CStructSharp.Values;
 /// </summary>
 public sealed partial class CStruct
 {
+    /// <summary>A synchronous read over borrowed bytes that the async forms run once the input is buffered.</summary>
+    /// <typeparam name="TResult">The decoded result type.</typeparam>
+    /// <param name="region">The first borrowed byte, the operation's coordinate 0; pinned for the call.</param>
+    /// <param name="length">The borrowed byte count.</param>
+    /// <param name="options">The read settings with the linked cancellation token.</param>
+    /// <param name="consumed">Where the read ended, in bytes from <paramref name="region"/>.</param>
+    /// <returns>The result in buffer coordinates.</returns>
+    private unsafe delegate TResult RegionOperation<TResult>(byte* region, int length, ReadOptions? options, out long consumed);
+
     /// <summary>Reads a struct (a root or a nested struct selected by path) into a <see cref="StructValue"/>; see the class remarks for the stream rules.</summary>
     /// <param name="stream">The readable stream whose current position is the operation origin.</param>
     /// <param name="path">The case-sensitive root name or nested path; <see langword="null"/> selects the first declared struct.</param>
@@ -36,7 +45,7 @@ public sealed partial class CStruct
     /// <exception cref="CStructPathException">The path is invalid, or selects a union or scalar rather than a struct.</exception>
     /// <exception cref="CStructReadException">The stream cannot provide or decode the required bytes.</exception>
     /// <exception cref="OperationCanceledException">The token was cancelled.</exception>
-    public ValueTask<StructValue> ParseAsync(
+    public unsafe ValueTask<StructValue> ParseAsync(
         Stream stream,
         string? path = null,
         IReadOnlyDictionary<string, int>? variables = null,
@@ -49,13 +58,13 @@ public sealed partial class CStruct
             stream,
             options,
             cancellationToken,
-            (buffered, effective) => (StructValue)this.ParseStreamCoreImpl(buffered, root, input, effective, debug: false).Result,
+            (byte* region, int length, ReadOptions? effective, out long consumed) => (StructValue)this.ParseRegionCore(region, length, root, input, effective, debug: false, out consumed).Result,
             static (value, _) => value);
     }
 
     /// <summary>Reads a struct and records the byte range of every value; the ranges are stream coordinates (the origin is added) for a seekable stream and buffer offsets for a non-seekable one.</summary>
     /// <inheritdoc cref="ParseAsync(Stream, string?, IReadOnlyDictionary{string, int}?, ReadOptions?, CancellationToken)"/>
-    public ValueTask<ParseResult> ParseWithDebugAsync(
+    public unsafe ValueTask<ParseResult> ParseWithDebugAsync(
         Stream stream,
         string? path = null,
         IReadOnlyDictionary<string, int>? variables = null,
@@ -68,9 +77,9 @@ public sealed partial class CStruct
             stream,
             options,
             cancellationToken,
-            (buffered, effective) =>
+            (byte* region, int length, ReadOptions? effective, out long consumed) =>
             {
-                (List<DebugData> debug, object value) = this.ParseStreamCoreImpl(buffered, root, input, effective, debug: true);
+                (List<DebugData> debug, object value) = this.ParseRegionCore(region, length, root, input, effective, debug: true, out consumed);
                 return new ParseResult((StructValue)value, debug);
             },
             static (result, origin) => origin == 0 ? result : new ParseResult(result.Value, Shift(result.Debug, origin)));
@@ -78,7 +87,7 @@ public sealed partial class CStruct
 
     /// <summary>Reads the natural value of any selection (a struct, union, array, scalar, enum, or pointer part); see the class remarks for the stream rules.</summary>
     /// <inheritdoc cref="ParseAsync(Stream, string?, IReadOnlyDictionary{string, int}?, ReadOptions?, CancellationToken)"/>
-    public ValueTask<object?> ReadValueAsync(
+    public unsafe ValueTask<object?> ReadValueAsync(
         Stream stream,
         string? path = null,
         IReadOnlyDictionary<string, int>? variables = null,
@@ -91,14 +100,14 @@ public sealed partial class CStruct
             stream,
             options,
             cancellationToken,
-            (buffered, effective) => this.ReadValueCore(buffered, root, input, effective),
+            (byte* region, int length, ReadOptions? effective, out long consumed) => this.ReadValueCore(region, length, root, input, effective, out consumed),
             static (value, _) => value);
     }
 
     /// <summary>Reads a selection and maps it to <typeparamref name="T"/> with the conversions of <c>Get&lt;T&gt;</c>; see the class remarks for the stream rules.</summary>
     /// <typeparam name="T">The requested value type.</typeparam>
     /// <inheritdoc cref="ParseAsync(Stream, string?, IReadOnlyDictionary{string, int}?, ReadOptions?, CancellationToken)"/>
-    public ValueTask<T> ReadValueAsync<T>(
+    public unsafe ValueTask<T> ReadValueAsync<T>(
         Stream stream,
         string? path = null,
         IReadOnlyDictionary<string, int>? variables = null,
@@ -110,13 +119,13 @@ public sealed partial class CStruct
             stream,
             options,
             cancellationToken,
-            (buffered, effective) => this.ReadTypedValueCore<T>(buffered, root, variables, effective),
+            (byte* region, int length, ReadOptions? effective, out long consumed) => this.ReadTypedValueCore<T>(region, length, root, variables, effective, out consumed),
             static (value, _) => value);
     }
 
     /// <summary>Reads the natural value of any selection and records the byte range of every value read; see <see cref="ParseWithDebugAsync"/> for the coordinates.</summary>
     /// <inheritdoc cref="ParseAsync(Stream, string?, IReadOnlyDictionary{string, int}?, ReadOptions?, CancellationToken)"/>
-    public ValueTask<ReadResult> ReadValueWithDebugAsync(
+    public unsafe ValueTask<ReadResult> ReadValueWithDebugAsync(
         Stream stream,
         string? path = null,
         IReadOnlyDictionary<string, int>? variables = null,
@@ -129,9 +138,9 @@ public sealed partial class CStruct
             stream,
             options,
             cancellationToken,
-            (buffered, effective) =>
+            (byte* region, int length, ReadOptions? effective, out long consumed) =>
             {
-                (List<DebugData> debug, object value) = this.ParseStreamCoreImpl(buffered, root, input, effective, debug: true);
+                (List<DebugData> debug, object value) = this.ParseRegionCore(region, length, root, input, effective, debug: true, out consumed);
                 return new ReadResult(value, debug);
             },
             static (result, origin) => origin == 0 ? result : new ReadResult(result.Value, Shift(result.Debug, origin)));
@@ -169,7 +178,7 @@ public sealed partial class CStruct
     /// <param name="options">Optional read limits and pointer settings.</param>
     /// <param name="cancellationToken">Ends the read while it waits for bytes or at the next boundary the reader checks.</param>
     /// <returns>The position.</returns>
-    public ValueTask<long> ResolveAddressAsync(
+    public unsafe ValueTask<long> ResolveAddressAsync(
         Stream stream,
         string path,
         IReadOnlyDictionary<string, int>? variables = null,
@@ -182,7 +191,11 @@ public sealed partial class CStruct
             stream,
             options,
             cancellationToken,
-            (buffered, effective) => this.ResolveAddressCore(buffered, path, input, effective),
+            (byte* region, int length, ReadOptions? effective, out long consumed) =>
+            {
+                consumed = 0;
+                return this.ResolveAddressCore(region, length, path, input, effective);
+            },
             static (address, origin) => address + origin,
             restoreOrigin: true);
     }
@@ -190,7 +203,7 @@ public sealed partial class CStruct
     /// <summary>Counts a fixed or runtime array's elements (or a terminated string's characters) without reading them; the stream ends at its origin.</summary>
     /// <inheritdoc cref="ResolveAddressAsync"/>
     /// <returns>The count.</returns>
-    public ValueTask<int> GetArrayLengthAsync(
+    public unsafe ValueTask<int> GetArrayLengthAsync(
         Stream stream,
         string path,
         IReadOnlyDictionary<string, int>? variables = null,
@@ -203,7 +216,11 @@ public sealed partial class CStruct
             stream,
             options,
             cancellationToken,
-            (buffered, effective) => this.GetDynamicArrayLengthCore(buffered, path, input, effective),
+            (byte* region, int length, ReadOptions? effective, out long consumed) =>
+            {
+                consumed = 0;
+                return this.GetDynamicArrayLengthCore(region, length, path, input, effective);
+            },
             static (count, _) => count,
             restoreOrigin: true);
     }
@@ -231,7 +248,7 @@ public sealed partial class CStruct
     /// <param name="stream">Caller-owned input; its current position is the origin when seekable.</param>
     /// <param name="options">Read budgets and cancellation settings.</param>
     /// <param name="cancellationToken">Additional cancellation signal, linked for this operation.</param>
-    /// <param name="operation">Synchronous decoder over a borrowed buffered stream.</param>
+    /// <param name="operation">Synchronous decoder over the borrowed bytes, which reports where it ended.</param>
     /// <param name="finish">Maps buffer-relative results to caller-visible coordinates.</param>
     /// <param name="restoreOrigin">Whether success consumes no bytes in a seekable source.</param>
     /// <returns>The decoded and coordinate-adjusted result.</returns>
@@ -240,7 +257,7 @@ public sealed partial class CStruct
         Stream stream,
         ReadOptions? options,
         CancellationToken cancellationToken,
-        Func<Stream, ReadOptions?, TResult> operation,
+        RegionOperation<TResult> operation,
         Func<TResult, long, TResult> finish,
         bool restoreOrigin = false)
     {
@@ -304,7 +321,7 @@ public sealed partial class CStruct
     /// <param name="offset">First input byte within the array.</param>
     /// <param name="length">Available input byte count.</param>
     /// <param name="effective">Read settings with the linked cancellation token.</param>
-    /// <param name="operation">Synchronous decoder over the borrowed bytes.</param>
+    /// <param name="operation">Synchronous decoder over the borrowed bytes, which reports where it ended.</param>
     /// <param name="finish">Adjusts result coordinates using the origin.</param>
     /// <param name="restoreOrigin">Whether successful queries restore rather than consume.</param>
     /// <returns>The result with caller-visible coordinates.</returns>
@@ -316,7 +333,7 @@ public sealed partial class CStruct
         int offset,
         int length,
         ReadOptions? effective,
-        Func<Stream, ReadOptions?, TResult> operation,
+        RegionOperation<TResult> operation,
         Func<TResult, long, TResult> finish,
         bool restoreOrigin)
     {
@@ -326,9 +343,7 @@ public sealed partial class CStruct
             long consumed;
             fixed (byte* pointer = &System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(buffer))
             {
-                using var buffered = new FixedBufferStream(pointer + offset, length, writable: false);
-                result = operation(buffered, effective);
-                consumed = buffered.Position;
+                result = operation(pointer + offset, length, effective, out consumed);
             }
 
             if (stream.CanSeek)

@@ -127,6 +127,44 @@ internal static partial class ReadEngine
     }
 
     /// <summary>
+    ///     Reads the struct or union a nested path selects from a pinned memory region, the input's byte 0 at
+    ///     <paramref name="region"/>: what <see cref="ReadComposite(CStruct, Stream, IReadOnlyList{PathSegment}, VariableSlots, in ReadOperationSettings, DebugRecorder)"/>
+    ///     does over a stream of the same bytes, without the stream.
+    /// </summary>
+    /// <param name="layout">The layout.</param>
+    /// <param name="region">The input's byte 0; the caller keeps it pinned until the method returns.</param>
+    /// <param name="length">The input length in bytes.</param>
+    /// <param name="segments">The parsed path, more than one segment.</param>
+    /// <param name="slots">The operation's initialized variable slots; the caller disposes them.</param>
+    /// <param name="options">The operation's snapshotted settings.</param>
+    /// <param name="debug">The recorder of a debug parse; <see langword="null"/> for an ordinary parse.</param>
+    /// <param name="position">The position the read ended at, in bytes from the region's start.</param>
+    /// <returns>The struct or union value.</returns>
+    /// <exception cref="CStructPathException">The path does not select a struct or union.</exception>
+    /// <exception cref="CStructException">The path cannot be resolved or the input cannot be read; the path and offset are attached.</exception>
+    public static unsafe object ReadComposite(CStruct layout, byte* region, int length, IReadOnlyList<PathSegment> segments, VariableSlots slots, in ReadOperationSettings options, DebugRecorder? debug, out long position)
+    {
+        ReadOperationSettings.ValidateSettings(options);
+        var state = new ReadEngineState(layout, slots, options, debug);
+        try
+        {
+            var cursor = new MemoryReadCursor(region, length, 0, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken);
+            try
+            {
+                return RunComposite(ref cursor, ref state, segments, null);
+            }
+            finally
+            {
+                position = cursor.Position;
+            }
+        }
+        finally
+        {
+            state.Release();
+        }
+    }
+
+    /// <summary>
     ///     Returns the absolute position a path selects in a caller's stream (<c>ResolveAddress</c>), reading only what the
     ///     path's placement depends on. The stream's position is restored afterwards; a failure carries the path and the
     ///     offset the walk reached.
@@ -151,6 +189,34 @@ internal static partial class ReadEngine
             }
 
             var cursor = new StreamReadCursor(new ReadBudgetStream(stream, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken));
+            return RunAddress(ref cursor, ref state, segments);
+        }
+        finally
+        {
+            state.Release();
+        }
+    }
+
+    /// <summary>
+    ///     Returns the position a path selects in a pinned memory region, the input's byte 0 at <paramref name="region"/>:
+    ///     what <see cref="ResolveAddress(CStruct, Stream, IReadOnlyList{PathSegment}, VariableSlots, in ReadOperationSettings)"/>
+    ///     does over a stream of the same bytes, without the stream.
+    /// </summary>
+    /// <param name="layout">The layout.</param>
+    /// <param name="region">The input's byte 0; the caller keeps it pinned until the method returns.</param>
+    /// <param name="length">The input length in bytes.</param>
+    /// <param name="segments">The parsed path.</param>
+    /// <param name="slots">The operation's initialized variable slots; the caller disposes them.</param>
+    /// <param name="options">The operation's snapshotted settings.</param>
+    /// <returns>The selected storage's position in bytes from the region's start (the pointed-to storage for a <c>.value</c> path).</returns>
+    /// <exception cref="CStructException">The path cannot be resolved; the path and offset are attached.</exception>
+    public static unsafe long ResolveAddress(CStruct layout, byte* region, int length, IReadOnlyList<PathSegment> segments, VariableSlots slots, in ReadOperationSettings options)
+    {
+        ReadOperationSettings.ValidateSettings(options);
+        var state = new ReadEngineState(layout, slots, options, null);
+        try
+        {
+            var cursor = new MemoryReadCursor(region, length, 0, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken);
             return RunAddress(ref cursor, ref state, segments);
         }
         finally
@@ -185,6 +251,36 @@ internal static partial class ReadEngine
             }
 
             var cursor = new StreamReadCursor(new ReadBudgetStream(stream, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken));
+            return RunLength(ref cursor, ref state, segments, path);
+        }
+        finally
+        {
+            state.Release();
+        }
+    }
+
+    /// <summary>
+    ///     Returns the element or character count a path selects in a pinned memory region, the input's byte 0 at
+    ///     <paramref name="region"/>: what <see cref="GetArrayLength(CStruct, Stream, IReadOnlyList{PathSegment}, string, VariableSlots, in ReadOperationSettings)"/>
+    ///     does over a stream of the same bytes, without the stream.
+    /// </summary>
+    /// <param name="layout">The layout.</param>
+    /// <param name="region">The input's byte 0; the caller keeps it pinned until the method returns.</param>
+    /// <param name="length">The input length in bytes.</param>
+    /// <param name="segments">The parsed path.</param>
+    /// <param name="path">The path as the caller spelled it, for the failure that it selects no array or string.</param>
+    /// <param name="slots">The operation's initialized variable slots; the caller disposes them.</param>
+    /// <param name="options">The operation's snapshotted settings.</param>
+    /// <returns>The count.</returns>
+    /// <exception cref="CStructPathException">The path does not select an array or string.</exception>
+    /// <exception cref="CStructException">The path cannot be resolved or the string read; the path and offset are attached.</exception>
+    public static unsafe int GetArrayLength(CStruct layout, byte* region, int length, IReadOnlyList<PathSegment> segments, string path, VariableSlots slots, in ReadOperationSettings options)
+    {
+        ReadOperationSettings.ValidateSettings(options);
+        var state = new ReadEngineState(layout, slots, options, null);
+        try
+        {
+            var cursor = new MemoryReadCursor(region, length, 0, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken);
             return RunLength(ref cursor, ref state, segments, path);
         }
         finally
@@ -245,9 +341,9 @@ internal static partial class ReadEngine
     /// <param name="cursor">The operation's cursor.</param>
     /// <param name="state">The operation's state, which holds the recorder of a debug parse.</param>
     /// <param name="segments">The parsed path.</param>
-    /// <param name="stream">The caller's stream, whose position a failure reports.</param>
+    /// <param name="stream">The caller's stream, whose position a failure reports; <see langword="null"/> for a memory region.</param>
     /// <returns>The struct or union value.</returns>
-    private static object RunComposite<TCursor>(ref TCursor cursor, ref ReadEngineState state, IReadOnlyList<PathSegment> segments, Stream stream)
+    private static object RunComposite<TCursor>(ref TCursor cursor, ref ReadEngineState state, IReadOnlyList<PathSegment> segments, Stream? stream)
         where TCursor : struct, IReadCursor
     {
         try

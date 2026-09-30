@@ -200,7 +200,7 @@ public sealed partial class CStruct
 
     /// <summary>
     ///     Reads a whole fixed root directly and maps it to <typeparamref name="T"/>, with the conversion and failure
-    ///     context of <see cref="ReadTypedValueCore{T}"/>. A layout-bound mapped class generated for this very struct
+    ///     context of <see cref="ReadTypedValueCore{T}(Stream, string, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>. A layout-bound mapped class generated for this very struct
     ///     (the same layout fingerprint) is read by its direct reader, without a <see cref="StructValue"/> in between.
     /// </summary>
     /// <typeparam name="T">The requested type.</typeparam>

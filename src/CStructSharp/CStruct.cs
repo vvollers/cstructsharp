@@ -263,6 +263,39 @@ public sealed partial class CStruct
     }
 
     /// <summary>
+    ///     Reads the requested array/string count from a pinned memory region, as
+    ///     <see cref="GetDynamicArrayLengthCore(Stream, string, LayoutVariableInput, ReadOptions?)"/> does over a stream of
+    ///     the same bytes.
+    /// </summary>
+    /// <param name="region">The input's byte 0; the caller keeps it pinned until the method returns.</param>
+    /// <param name="length">The input length in bytes.</param>
+    /// <param name="elementNameOrPath">The case-sensitive path of an array or string field.</param>
+    /// <param name="variables">The caller's layout variables, snapshotted before traversal.</param>
+    /// <param name="options">Optional read limits and pointer settings; <see langword="null"/> uses the defaults.</param>
+    /// <returns>The array's element count, or the string's length in characters.</returns>
+    /// <exception cref="CStructPathException">The path does not resolve to an array or string field.</exception>
+    internal unsafe int GetDynamicArrayLengthCore(
+        byte* region,
+        int length,
+        string elementNameOrPath,
+        LayoutVariableInput variables,
+        ReadOptions? options = null)
+    {
+        ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
+        IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
+        EnginePrograms.PathOperation(EngineOperation.LengthQuery);
+        VariableSlots slots = VariableSlots.Create(this.compilation.SlotTable, variables);
+        try
+        {
+            return ReadEngine.GetArrayLength(this, region, length, segments, elementNameOrPath, slots, effectiveOptions);
+        }
+        finally
+        {
+            slots.Dispose();
+        }
+    }
+
+    /// <summary>
     ///     Reads a selected object using a read-only variable view. The operation snapshots the supplied entries before
     ///     resolving layout definitions or reading the stream.
     /// </summary>
@@ -381,6 +414,38 @@ public sealed partial class CStruct
         try
         {
             return ReadEngine.ResolveAddress(this, stream, segments, slots, effectiveOptions);
+        }
+        finally
+        {
+            slots.Dispose();
+        }
+    }
+
+    /// <summary>
+    ///     Resolves a path in a pinned memory region, as
+    ///     <see cref="ResolveAddressCore(Stream, string, LayoutVariableInput, ReadOptions?)"/> does over a stream of the same
+    ///     bytes.
+    /// </summary>
+    /// <param name="region">The input's byte 0; the caller keeps it pinned until the method returns.</param>
+    /// <param name="length">The input length in bytes.</param>
+    /// <param name="elementNameOrPath">The case-sensitive root name or nested path to locate.</param>
+    /// <param name="variables">The caller's layout variables, snapshotted before traversal.</param>
+    /// <param name="options">Optional traversal limits and pointer settings; <see langword="null"/> uses the defaults.</param>
+    /// <returns>The position of the selected field or pointer target, in bytes from the region's start.</returns>
+    internal unsafe long ResolveAddressCore(
+        byte* region,
+        int length,
+        string elementNameOrPath,
+        LayoutVariableInput variables,
+        ReadOptions? options = null)
+    {
+        ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
+        IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
+        EnginePrograms.PathOperation(EngineOperation.AddressResolution);
+        VariableSlots slots = VariableSlots.Create(this.compilation.SlotTable, variables);
+        try
+        {
+            return ReadEngine.ResolveAddress(this, region, length, segments, slots, effectiveOptions);
         }
         finally
         {

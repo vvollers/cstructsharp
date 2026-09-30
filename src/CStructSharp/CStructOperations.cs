@@ -477,8 +477,7 @@ public sealed partial class CStruct
     {
         fixed (byte* buffer = source)
         {
-            using var stream = new FixedBufferStream(buffer, source.Length, writable: false);
-            return this.ResolveAddressCore(stream, path, LayoutVariableInput.FromIntegers(variables), options);
+            return this.ResolveAddressCore(buffer, source.Length, path, LayoutVariableInput.FromIntegers(variables), options);
         }
     }
 
@@ -542,8 +541,7 @@ public sealed partial class CStruct
     {
         fixed (byte* buffer = source)
         {
-            using var stream = new FixedBufferStream(buffer, source.Length, writable: false);
-            return this.GetDynamicArrayLengthCore(stream, path, LayoutVariableInput.FromIntegers(variables), options);
+            return this.GetDynamicArrayLengthCore(buffer, source.Length, path, LayoutVariableInput.FromIntegers(variables), options);
         }
     }
 

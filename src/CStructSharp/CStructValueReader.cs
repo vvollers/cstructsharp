@@ -163,4 +163,52 @@ public sealed partial class CStruct
             slots.Dispose();
         }
     }
+
+    /// <summary>
+    ///     Reads the natural value a path selects from a pinned memory region, as
+    ///     <see cref="ReadValueCore(Stream, string, LayoutVariableInput, ReadOptions?)"/> does over a stream of the same bytes.
+    /// </summary>
+    /// <param name="region">The input's byte 0; the caller keeps it pinned until the method returns.</param>
+    /// <param name="length">The input length in bytes.</param>
+    /// <param name="elementNameOrPath">The path of the value.</param>
+    /// <param name="variables">The caller's layout variables.</param>
+    /// <param name="options">The read options, or the defaults.</param>
+    /// <param name="position">The position the read ended at, in bytes from the region's start.</param>
+    /// <returns>The value.</returns>
+    internal unsafe object? ReadValueCore(byte* region, int length, string elementNameOrPath, LayoutVariableInput variables, ReadOptions? options, out long position)
+    {
+        IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
+        ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
+        return this.ReadValueWithEngine(region, length, segments, this.SelectValueRead(segments), variables, effectiveOptions, out position);
+    }
+
+    /// <summary>
+    ///     Reads the value a path selects from a pinned memory region and maps it to <typeparamref name="T"/>, as
+    ///     <see cref="ReadTypedValueCore{T}(Stream, string, IReadOnlyDictionary{string, int}?, ReadOptions?)"/> does over a
+    ///     stream of the same bytes; a failure of the read or the conversion carries the path and the position reached.
+    /// </summary>
+    /// <typeparam name="T">The CLR type the value is converted to.</typeparam>
+    /// <param name="region">The input's byte 0; the caller keeps it pinned until the method returns.</param>
+    /// <param name="length">The input length in bytes.</param>
+    /// <param name="elementNameOrPath">The path of the value.</param>
+    /// <param name="variables">The caller's integer layout variables, or <see langword="null"/>.</param>
+    /// <param name="options">The read options, or the defaults.</param>
+    /// <param name="position">The position the read ended at, in bytes from the region's start.</param>
+    /// <returns>The converted value.</returns>
+    internal unsafe T ReadTypedValueCore<T>(byte* region, int length, string elementNameOrPath, IReadOnlyDictionary<string, int>? variables, ReadOptions? options, out long position)
+    {
+        IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
+        position = 0;
+        try
+        {
+            ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
+            object? naturalValue = this.ReadValueWithEngine(region, length, segments, this.SelectValueRead(segments), LayoutVariableInput.FromIntegers(variables), effectiveOptions, out position);
+            return (T)TypedValueConverter.Convert(naturalValue, typeof(T), ExceptionContext.FormatPath(segments))!;
+        }
+        catch (CStructException exception)
+        {
+            ExceptionContext.Attach(exception, segments, position);
+            throw;
+        }
+    }
 }

@@ -22,8 +22,8 @@ public sealed partial class CStruct
 {
     /// <summary>
     ///     Parses the composite a path selects from one synchronously pinned read-only region: a whole fixed root directly,
-    ///     anything else with the compiled engine - a whole root straight over the region, a nested path through a
-    ///     read-only stream over it, on which the path is resolved.
+    ///     anything else with the compiled engine straight over the region - a whole root, or the composite a nested path
+    ///     selects once the path is resolved.
     /// </summary>
     /// <param name="source">The input; coordinate zero is its first byte.</param>
     /// <param name="elementNameOrPath">The root name or nested path; <see langword="null"/> selects the first declared struct.</param>
@@ -50,12 +50,10 @@ public sealed partial class CStruct
         ReadProgram? engineRoot = this.SelectParse(segments, debug);
         fixed (byte* buffer = source)
         {
-            // A whole root is read straight from the pinned region; a nested path is resolved on a read-only stream over
-            // it, so its failures report the stream's positions.
+            // A nested path is resolved on the region, then its composite is read there.
             if (segments.Count > 1)
             {
-                using var region = new FixedBufferStream(buffer, source.Length, writable: false);
-                (List<DebugData> nestedRecords, object nested) = this.ParseNestedWithEngine(region, segments, input, settings, debug);
+                (List<DebugData> nestedRecords, object nested) = this.ParseNestedWithEngine(buffer, source.Length, segments, input, settings, debug, out _);
                 return (nested, nestedRecords);
             }
 
@@ -99,7 +97,7 @@ public sealed partial class CStruct
     /// <summary>
     ///     Reads the value a path selects from one synchronously pinned read-only region and maps it to
     ///     <typeparamref name="T"/>: a whole fixed root directly, anything else with the compiled engine straight over the
-    ///     region, converted as <see cref="ReadTypedValueCore{T}"/> converts it.
+    ///     region, converted as <see cref="ReadTypedValueCore{T}(Stream, string, IReadOnlyDictionary{string, int}?, ReadOptions?)"/> converts it.
     /// </summary>
     /// <typeparam name="T">The CLR type the value is converted to.</typeparam>
     /// <param name="source">The input; coordinate zero is its first byte.</param>

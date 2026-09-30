@@ -71,6 +71,64 @@ public sealed partial class CStruct
     }
 
     /// <summary>
+    ///     Reads the struct or union a nested path selects from a pinned memory region with the compiled engine, as the
+    ///     stream form does over a stream of the same bytes: the path is resolved, then the composite is read at its
+    ///     address, recorded under the path's names in a debug parse.
+    /// </summary>
+    /// <param name="region">The input's byte 0; the caller keeps it pinned until the method returns.</param>
+    /// <param name="length">The input length in bytes.</param>
+    /// <param name="segments">The parsed path, more than one segment.</param>
+    /// <param name="variables">The caller's layout variables, integers.</param>
+    /// <param name="options">The operation's snapshotted settings.</param>
+    /// <param name="debug">Whether the parse records debug byte ranges.</param>
+    /// <param name="position">The position the read ended at, in bytes from the region's start.</param>
+    /// <returns>The debug records (an empty shared list outside a debug parse) and the struct or union value.</returns>
+    /// <exception cref="CStructException">A definition cannot be resolved, the path cannot be resolved, or the input cannot be read.</exception>
+    private unsafe (List<DebugData> DebugData, object Result) ParseNestedWithEngine(byte* region, int length, IReadOnlyList<PathSegment> segments, in LayoutVariableInput variables, in ReadOperationSettings options, bool debug, out long position)
+    {
+        DebugRecorder? recorder = debug ? new DebugRecorder(trace: false) : null;
+        VariableSlots slots = VariableSlots.Create(this.compilation.SlotTable, variables);
+        try
+        {
+            object value = ReadEngine.ReadComposite(this, region, length, segments, slots, options, recorder, out position);
+            return (recorder?.Records ?? NoDebugData, value);
+        }
+        finally
+        {
+            slots.Dispose();
+        }
+    }
+
+    /// <summary>
+    ///     Reads the composite a path selects from a pinned memory region, optionally recording debug byte ranges, as
+    ///     <c>ParseStreamCoreImpl</c> does over a stream of the same bytes: a nested path's composite, or a whole root's
+    ///     value under its name.
+    /// </summary>
+    /// <param name="region">The input's byte 0; the caller keeps it pinned until the method returns.</param>
+    /// <param name="length">The input length in bytes.</param>
+    /// <param name="elementNameOrPath">The case-sensitive root name or nested path of a composite to read.</param>
+    /// <param name="variables">The caller's layout variables, snapshotted before traversal.</param>
+    /// <param name="options">The read options, or <see langword="null"/> for the defaults.</param>
+    /// <param name="debug">Whether the parse records debug byte ranges.</param>
+    /// <param name="position">The position the read ended at, in bytes from the region's start.</param>
+    /// <returns>The debug records (an empty shared list outside a debug parse) and the selected composite's value.</returns>
+    /// <exception cref="CStructException">A definition cannot be resolved, the path cannot be resolved, or the input cannot be read.</exception>
+    private unsafe (List<DebugData> DebugData, object Result) ParseRegionCore(byte* region, int length, string elementNameOrPath, in LayoutVariableInput variables, ReadOptions? options, bool debug, out long position)
+    {
+        ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
+        IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
+        ReadProgram? root = this.SelectParse(segments, debug);
+        if (segments.Count > 1)
+        {
+            return this.ParseNestedWithEngine(region, length, segments, variables, effectiveOptions, debug, out position);
+        }
+
+        DebugRecorder? recorder = debug ? new DebugRecorder(trace: false) : null;
+        StructValue value = this.ReadRootWithEngine(region, length, segments, root, variables, effectiveOptions, recorder, out bool selected, out position);
+        return (recorder?.Records ?? NoDebugData, selected ? value : this.SelectParsedRoot(value, segments));
+    }
+
+    /// <summary>
     ///     Runs the debug parse of a whole root from a stream with the compiled engine: the root's debug program records
     ///     every value read, and the records are returned with the value the root's name selects.
     /// </summary>

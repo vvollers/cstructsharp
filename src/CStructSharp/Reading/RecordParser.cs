@@ -81,9 +81,8 @@ internal static class RecordParser
         {
             fixed (byte* pointer = &MemoryMarshal.GetReference(source.Span))
             {
-                using var region = new FixedBufferStream(pointer + offset, source.Length - offset, writable: false);
-                StructValue record = layout.ParseRecordCore(region, root.Name, variables, options);
-                consumed = (int)region.Position;
+                StructValue record = layout.ParseRecordCore(pointer + offset, source.Length - offset, root.Name, variables, options, out long position);
+                consumed = (int)position;
                 return record;
             }
         }

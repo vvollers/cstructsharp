@@ -14,7 +14,9 @@ using CStructSharp.Diagnostics;
 /// <remarks>
 ///     The budget and the memory mode live in a <see cref="MemoryReadCore"/>, which the engine's memory cursor also
 ///     reads through, so both charge, bound and word their failures identically. This class adds the stream mode:
-///     delegation to the inner stream with its failures translated into <see cref="CStructReadException"/>.
+///     delegation to the inner stream with its failures translated into <see cref="CStructReadException"/>. The reads
+///     over caller memory go straight to the engine's memory cursor; the memory mode here serves <c>Update</c>, whose path
+///     walk, layout captures and sparse staging read a span or an exposable memory stream through this stream.
 /// </remarks>
 internal sealed class ReadBudgetStream : Stream
 {

@@ -162,6 +162,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   instead of 26.3 ns; the `packet` record parses in 46.2 ns instead of 66 ns with 200 B instead of 800 B; 256 nested
   records parse in 3.8 µs instead of 8.9 µs. A fixed reader decodes a nested struct into the instance the property
   initializer created, unless your partial class declares a constructor.
+- The async reads, `ResolveAddress` and `GetArrayLength` over a span, a nested memory parse and each record of a
+  memory sequence run the engine straight over the bytes instead of a stream wrapped around them: `ParseAsync` of a
+  small record from a `MemoryStream` is about 4 % faster and allocates 13 % less.
 
 ### Documentation and tooling
 

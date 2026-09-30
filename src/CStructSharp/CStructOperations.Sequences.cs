@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Threading;
+using CStructSharp.Addressing;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
@@ -328,6 +329,27 @@ public sealed partial class CStruct
     internal StructValue ParseRecordCore(Stream stream, string root, LayoutVariableInput variables, ReadOptions? options)
     {
         return RequireStruct(this.ParseStreamCore(stream, root, variables, options), root);
+    }
+
+    /// <summary>
+    ///     Parses one record of a memory sequence straight from its pinned region, as
+    ///     <see cref="ParseRecordCore(Stream, string, LayoutVariableInput, ReadOptions?)"/> does over a read-only stream of
+    ///     the same bytes, and reports how many bytes the record took.
+    /// </summary>
+    /// <param name="region">The record's first byte; the caller keeps it pinned until the method returns.</param>
+    /// <param name="length">The bytes from the record's start to the end of the input.</param>
+    /// <param name="root">The record struct's name.</param>
+    /// <param name="variables">The caller's layout variables, snapshotted before traversal.</param>
+    /// <param name="options">The read options, or <see langword="null"/> for the defaults.</param>
+    /// <param name="consumed">The bytes the record took, from its first byte to where its read ended.</param>
+    /// <returns>The record.</returns>
+    /// <exception cref="CStructException">The record cannot be read; the path and the offset within the region are attached.</exception>
+    internal unsafe StructValue ParseRecordCore(byte* region, int length, string root, LayoutVariableInput variables, ReadOptions? options, out long consumed)
+    {
+        ReadOperationSettings settings = ReadOperationSettings.SnapshotReadOptions(options);
+        IReadOnlyList<PathSegment> segments = this.ParsePath(root);
+        StructValue value = this.ReadRootWithEngine(region, length, segments, this.SelectParse(segments, false), variables, settings, null, out bool selected, out consumed);
+        return RequireStruct(selected ? value : this.SelectParsedRoot(value, segments), root);
     }
 
     /// <summary>
