@@ -1,46 +1,4 @@
-import js from "@eslint/js";
-import globals from "globals";
-import jsdoc from "eslint-plugin-jsdoc";
-import pluginVue from "eslint-plugin-vue";
-import tseslint from "typescript-eslint";
+// The shared source is linted with the same configuration it provides to the apps.
+import { appEslintConfig } from "./eslint.base.config.js";
 
-export default [
-  { ignores: ["node_modules/**"] },
-  js.configs.recommended,
-  ...tseslint.configs.recommended,
-  ...pluginVue.configs["flat/essential"],
-  { languageOptions: { globals: globals.browser } },
-  { files: ["scripts/**/*.mjs"], languageOptions: { globals: globals.node } },
-  {
-    files: ["**/*.{ts,vue}"],
-    languageOptions: {
-      parserOptions: {
-        parser: tseslint.parser,
-        extraFileExtensions: [".vue"],
-      },
-    },
-  },
-  {
-    // Every function, method and class is documented (AGENTS.md), including nested named functions.
-    plugins: { jsdoc },
-    rules: {
-      "jsdoc/require-jsdoc": [
-        "error",
-        {
-          publicOnly: false,
-          require: {
-            FunctionDeclaration: true,
-            MethodDefinition: true,
-            ClassDeclaration: true,
-            ArrowFunctionExpression: false,
-            FunctionExpression: false,
-          },
-          contexts: [
-            "VariableDeclarator > ArrowFunctionExpression",
-            "VariableDeclarator > FunctionExpression",
-          ],
-        },
-      ],
-    },
-  },
-];
+export default appEslintConfig();

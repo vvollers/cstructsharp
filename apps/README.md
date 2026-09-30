@@ -16,6 +16,9 @@ apps compile, imported as `@cstructsharp/app-shared/...`:
 
 The three are members of the repository's npm workspace, with the npm package in `packages/cstructsharp`: one
 lockfile (`package-lock.json` at the repository root), so both apps use the same versions of Vue, Vite and their tools.
+The build, lint, format and test tools are devDependencies of the root `package.json`; Prettier reads the root
+`.prettierrc.json`. Each package's `eslint.config.js` and each app's `playwright.config.ts` call the base
+configurations in `shared/` (`@cstructsharp/app-shared/eslint-config` and `.../playwright-config`).
 
 Install everything once with `npm ci` at the repository root. From the root, `npm run lint`, `npm run format:check`
 and `npm run test:unit` check every workspace. Publish the WASM runtime once with `npm run build:wasm` at the root,

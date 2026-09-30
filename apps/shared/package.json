@@ -5,6 +5,8 @@
   "type": "module",
   "description": "Source shared by the explorer and the inspector: components and modules both applications compile from source.",
   "exports": {
+    "./eslint-config": "./eslint.base.config.js",
+    "./playwright-config": "./playwright.base.config.js",
     "./*.vue": "./src/*.vue",
     "./*": "./src/*.ts"
   },
@@ -18,8 +20,5 @@
   "peerDependencies": {
     "monaco-editor": "^0.56.0",
     "vue": "^3.5.43"
-  },
-  "devDependencies": {
-    "eslint-plugin-jsdoc": "^64.5.4"
   }
 }

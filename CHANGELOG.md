@@ -250,6 +250,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   package loaders, `copyRuntime` and the Vite plugin are documented.
 - The documentation examples project is in `CStructSharp.sln` under a `docs` folder, and `.claude/worktrees/` is
   ignored.
+- The apps' build, lint, format and test tools are root workspace devDependencies with one Prettier config, and
+  `apps/shared` provides the base ESLint and Playwright configs; the tools ESLint config no longer depends on
+  `apps/explorer`.
 
 ## 0.10.0 — 2026-09-26
 
