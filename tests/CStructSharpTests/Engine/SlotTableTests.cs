@@ -271,6 +271,34 @@ public class SlotTableTests
         }
     }
 
+    /// <summary>
+    ///     The dictionary view of the slots (<see cref="VariableSlots.AsDictionary"/>) holds exactly the entries the
+    ///     materialized dictionary holds: a defined slot's value, no entry for an undefined slot, a caller variable without a
+    ///     slot, and nothing else; a missing name fails the indexer, and an enumeration lists the same entries.
+    /// </summary>
+    [TestMethod]
+    public void DictionaryView_HoldsTheMaterializedEntries()
+    {
+        var layout = new CStruct("struct root { uint8 n; uint8 m; uint8 v[n + m]; };");
+        using VariableSlots slots = VariableSlots.Create(layout.Compilation.SlotTable, new Dictionary<string, int> { ["m"] = 5, ["unrelated"] = 1, });
+        IReadOnlyDictionary<string, Syntax.Expr> view = slots.AsDictionary();
+        Dictionary<string, Syntax.Expr> materialized = slots.ToDictionary();
+
+        Assert.IsTrue(view.TryGetValue("m", out Syntax.Expr? m));
+        Assert.AreEqual<Syntax.Expr>(new Syntax.Literal(5), m);
+        Assert.IsFalse(view.TryGetValue("n", out _), "an undefined slot has no entry");
+        Assert.AreEqual<Syntax.Expr>(new Syntax.Literal(1), view["unrelated"], "a caller variable without a slot is an entry");
+        Assert.IsFalse(view.ContainsKey("missing"));
+        Assert.IsTrue(view.ContainsKey("m"));
+        Assert.Throws<KeyNotFoundException>(() => view["n"]);
+
+        Assert.AreEqual(materialized.Count, view.Count);
+        CollectionAssert.AreEquivalent(materialized.Keys.ToArray(), view.Keys.ToArray());
+        CollectionAssert.AreEquivalent(materialized.Values.ToArray(), view.Values.ToArray());
+        CollectionAssert.AreEquivalent(materialized.ToArray(), view.ToArray());
+        Assert.AreEqual(materialized.Count, ((System.Collections.IEnumerable)view).Cast<object>().Count());
+    }
+
     /// <summary>The layout of the bounded-allocation test: a tag and <paramref name="count"/> fields in one conditional group.</summary>
     /// <param name="count">The number of fields.</param>
     /// <returns>The layout text.</returns>
