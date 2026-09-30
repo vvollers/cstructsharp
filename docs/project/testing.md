@@ -296,13 +296,14 @@ accepted change, with the `--merge` mode of `tools/quality/record-benchmark-base
 runtimes, profiling, browser harness, AOT variant) is in `benchmarks/README.md` and `benchmarks/js/README.md` in the repository.
 
 The browser adapter's source can be compared with its recorded wire format without compiling Web/WASM. Run relevant
-frontend and browser checks locally when changing that application. Release automation builds the production
+frontend and browser checks locally when changing that application. The web workflow builds the production
 WASM explorer and runs frontend unit tests, explorer end-to-end tests, and the npm package's browser tests
 (`packages/cstructsharp/tests/browser`: the extracted starter pages and the bridge contract through the public API).
-It also runs the starter and recipe programs against the candidate NuGet package.
+The managed workflow runs the starter and recipe programs against a freshly packed NuGet package. A release reruns
+both workflows on its source commit, then checks the versioned artifacts themselves.
 
-The web and release workflows test the installed tarball in Node.js 22.14, 24.0, and 26.5 on Windows,
-Linux, and macOS, plus TypeScript and browser consumers. The browser checks cover Vite development and production,
+The web workflow tests the installed tarball at the edges of the supported Node range: Node.js 22.14 (the
+package's minimum) on Windows, Linux, and macOS, and Node.js 26.5 on Linux, plus TypeScript and browser consumers. The browser checks cover Vite development and production,
 nested deployment paths, server rendering, and static assets. See [npm package checks](release-process.md#build-and-test-npm-locally)
 for the local commands.
 
@@ -313,7 +314,7 @@ Three workflows run on pull requests and on pushes to `main`, each only when a f
 | Workflow | Area | Runs |
 | --- | --- | --- |
 | `ci.yml` | Library, generator, tests, benchmarks, tools, contracts | Build, format, both-framework tests, coverage, contracts, packages, Native AOT, Windows/macOS tests |
-| `web.yml` | WASM bridge, npm package, explorer, inspector | Lint and unit tests without .NET; one WASM build shared by the package, explorer, inspector and onboarding browser tests; the npm package on every supported Node version and platform |
+| `web.yml` | WASM bridge, npm package, explorer, inspector | Lint and unit tests without .NET; one WASM build shared by the package, explorer, inspector and onboarding browser tests; the npm package on the minimum Node on every platform and the newest Node on Linux |
 | `docs.yml` | Documentation sources, the API reference's source, contracts | The complete documentation gate |
 
 Each also runs weekly on a schedule and on demand, so an effect that a path filter did not anticipate still shows up.

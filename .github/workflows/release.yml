@@ -48,6 +48,8 @@ jobs:
 
   # Local reusable workflows are resolved from this exact workflow commit. Their ordinary CI triggers and
   # fast frontend jobs remain independent; release never relies on a possibly stale external green badge.
+  # These three jobs are the release's source tests (including the npm consumer matrix in web.yml); `verify`
+  # below does not repeat them. It builds the versioned artifacts and checks only what is specific to them.
   managed:
     name: Managed verification
     needs: validate
@@ -170,15 +172,12 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: dotnet pack ./src/CStructSharp/CStructSharp.csproj -c Release -o ./artifacts/package -p:Version=${VERSION}
 
+      # The package consumers already ran against the same source in Managed verification; this checks the
+      # versioned package's own metadata, symbols and framework assets.
       - name: Verify NuGet metadata, symbols, and framework selection
         env:
           VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          node tools/packaging/validate-package.mjs --package-path "artifacts/package/CStructSharp.${VERSION}.nupkg" --symbol-package-path "artifacts/package/CStructSharp.${VERSION}.snupkg"
-          node tools/packaging/test-package-consumer.mjs --package-directory artifacts/package
-
-      - name: Verify onboarding against the NuGet artifact
-        run: node tools/packaging/test-onboarding-package.mjs --package-directory ./artifacts/package
+        run: node tools/packaging/validate-package.mjs --package-path "artifacts/package/CStructSharp.${VERSION}.nupkg" --symbol-package-path "artifacts/package/CStructSharp.${VERSION}.snupkg"
 
       - name: Publish the WASM runtime once for both apps
         run: npm run build:wasm
@@ -203,25 +202,13 @@ jobs:
         working-directory: apps/explorer
         run: npx playwright install --with-deps chromium
 
-      - name: Pack and verify the npm consumer artifact
+      # The tarball's consumer, browser and Node-matrix tests ran against the same source in Web verification.
+      - name: Pack the npm artifact and confirm its version is not yet published
         run: |
           npm run pack:npm
-          npm run test:npm
-          npm run test:npm-release
           node tools/release/npm-release.mjs --require-missing
 
-      - name: Verify explorer lessons
-        working-directory: apps/explorer
-        run: |
-          npm run test:demos
-          npm run test:generated-csharp
-          npm run test:e2e
-          npm run --prefix ../.. test:wasm-reproducibility
-
-      - name: Verify binary inspector
-        working-directory: apps/inspector
-        run: npm run test:e2e
-
+      # This also stages the extracted starter host that the cross-engine smoke below reuses.
       - name: Verify onboarding against the WASM archive
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -256,10 +243,11 @@ jobs:
       - name: Record release artifact hashes and source identity
         run: node tools/release/release-artifacts.mjs create
 
+      # Web verification uploads its own `npm-package` in this same run; artifact names are unique per run.
       - name: Upload npm package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: npm-package
+          name: release-npm-package
           path: |
             artifacts/npm/*.tgz
             artifacts/npm/package-info.json
@@ -315,35 +303,12 @@ jobs:
           retention-days: 90
           if-no-files-found: error
 
-  npm-node:
-    name: npm on ${{ matrix.os }} / Node ${{ matrix.node }}
-    needs: verify
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        node: [22.14.0, 24.0.0, 26.5.0]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.sha }}
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: ${{ matrix.node }}
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: npm-package
-          path: artifacts/npm
-      - name: Test the installed tarball without the SDK or browser
-        run: npm run test:npm:node
-
   publish:
     name: Publish or recover the verified release
-    needs: [validate, verify, npm-node]
+    needs: [validate, verify]
     if: >-
       always() && !cancelled() && needs.validate.result == 'success' && github.ref == 'refs/heads/main' &&
-      ((inputs.mode == 'release' && needs.verify.result == 'success' && needs.npm-node.result == 'success') ||
+      ((inputs.mode == 'release' && needs.verify.result == 'success') ||
        (inputs.mode == 'recover' && inputs.recovery_run_id != ''))
     runs-on: ubuntu-latest
     permissions:
@@ -405,7 +370,7 @@ jobs:
       - name: Download npm package
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: npm-package
+          name: release-npm-package
           path: artifacts/npm
           run-id: ${{ env.ARTIFACT_RUN_ID }}
           github-token: ${{ github.token }}

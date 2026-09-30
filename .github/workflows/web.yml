@@ -2,7 +2,8 @@ name: Web
 
 # The browser side of the repository: the WASM bridge, the npm package, and the explorer and inspector apps.
 # `checks` runs the fast lint and unit checks without .NET; `browser` builds the WASM publication once and runs every
-# check that needs it; `node` installs the packed npm package on each supported Node version and platform.
+# check that needs it; `node` installs the packed npm package at the edges of the supported range: the package's
+# minimum Node on every platform and the newest Node on Linux.
 on:
   workflow_call:
   push:
@@ -148,9 +149,14 @@ jobs:
     needs: browser
     strategy:
       fail-fast: false
+      # The minimum is packages/cstructsharp's `engines` floor and the newest is .node-version; the release test
+      # (tools/quality/release-verification.test.mjs) checks both edges and every platform.
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        node: [22.14.0, 24.0.0, 26.5.0]
+        node: [22.14.0]
+        include:
+          - os: ubuntu-latest
+            node: 26.5.0
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

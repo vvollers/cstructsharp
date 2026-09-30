@@ -207,6 +207,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   managed API baseline, benchmark fixture expectations) with their update commands and when updating is allowed.
 - One package-consumer project checks the core, generator and memory-analysis APIs through the built NuGet package;
   the separate memory consumer and its runner are removed.
+- A release reruns no check that the CI, web and documentation workflows it reuses already ran; its own verification
+  covers only the versioned artifacts. The npm package is tested on the minimum Node version on every operating system
+  and on the newest Node on Linux.
 
 ## 0.10.0 — 2026-09-26
 

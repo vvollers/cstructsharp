@@ -19,18 +19,20 @@ workflows used by ordinary CI, whatever their path filters would select. These j
 source SHA. Managed verification includes whole-library coverage, generator/parity tests, API and quality contracts,
 formatting, package consumers, Native AOT, and the Windows/macOS managed tests. Web verification lints and unit-tests
 the apps, builds the WASM publication once, and runs the package, explorer, inspector and onboarding browser tests.
+It also installs the packed npm tarball, without installation scripts or the .NET SDK, at the edges of the supported
+Node range: the package's minimum Node (22.14) on Windows, Linux and macOS, and the newest Node (26.5) on Linux.
 Missing, failed or skipped shared jobs prevent the artifact-verification job from running.
 
-`verify` then checks out that exact main-branch source SHA, updates version files, builds the managed and
-WASM artifacts, and tests the installed npm tarball in Node, TypeScript, Vite development/production, SSR, and
-static hosting. Nine additional jobs execute that tarball on Windows, Linux, and macOS with Node 22.14, 24.0, and 26.5.
-No installation scripts or .NET SDK are required by those consumers. npm preflight failures stop verification;
-only an explicit 404 is treated as a missing registry version.
+`verify` does not repeat those tests. It checks out that exact main-branch source SHA, updates the version files,
+and builds the versioned NuGet package, npm tarball, WASM archive and Pages site. It then checks only what differs
+from the tested source: the NuGet package's metadata, symbols and framework assets; that the npm version is not yet
+published; the onboarding pages from the WASM archive; a Firefox and WebKit smoke of the starter page and the
+inspector (ordinary CI uses Chromium only); and the landing-page example against the release tarball. npm preflight
+failures stop verification; only an explicit 404 is treated as a missing registry version.
 
 The publish job runs after those gates pass, or resumes a verified original run. It verifies downloaded artifact
-hashes and the original workflow, source SHA, and completed test jobs, including every shared source gate. The
-release-specific browser, onboarding and installed-package checks still run against the versioned artifacts;
-passing source tests alone is not publication eligibility. The version commit may only change the
+hashes and the original workflow, source SHA, and completed jobs: every shared source gate and `verify` itself.
+The version commit may only change the
 six version files on top of the verified source; unexpected advances on main stop publication. The job publishes
 the exact npm tarball using OIDC and attaches it to the GitHub Release. Existing npm versions are skipped only
 after integrity comparison. NuGet pushes handle duplicates; Pages can be deployed again, and GitHub Release
@@ -50,10 +52,9 @@ job or changing a matrix therefore changes the expected list automatically;
 Recovery verifies the original run and reuses its artifacts; it does not rerun the shared jobs or rebuild packages.
 Repository protection settings are not changed by this workflow design.
 
-Reuse reduces duplicate gate definitions, not necessarily runner time: release now executes the complete shared
-source checks before artifact checks. Compare elapsed run time and the sum of job durations for equivalent source
-and toolchains; parallel jobs reduce waiting but can increase runner usage. GitHub's billed minutes can differ
-from that sum because of platform multipliers and billing rules. Do not infer a speedup from job count alone.
+Each check runs once per release: the shared workflows test the source, and `verify` tests only the versioned
+artifacts. When comparing release cost, compare elapsed run time and the sum of job durations; parallel jobs reduce
+waiting but not runner usage, and GitHub's billed minutes can differ from that sum because of platform multipliers.
 
 ## Normal release and local synchronization
 
