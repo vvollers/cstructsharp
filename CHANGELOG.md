@@ -157,6 +157,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   contract's new `vocabulary` table; the explorer also completes the names a layout declares.
 - A `[CStructMapped]` class nested in a partial interface compiles: the mapped generator no longer re-declares the
   interface as a class.
+- The standalone ZIP entry (`cstructsharp-wasm.js`) rejects with the runtime's own startup error and tries again on the
+  next call, instead of a generic message and a failure it kept.
 
 ### Performance
 

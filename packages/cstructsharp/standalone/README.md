@@ -82,6 +82,7 @@ lines, and inline unions whose members appear directly on the parent object. See
 Read the [browser API guide](https://vvollers.github.io/cstructsharp/docs/guides/browser/api.html) for options,
 large integers, union values, and the differences from C#. Read the
 [deployment guide](https://vvollers.github.io/cstructsharp/docs/guides/browser/deployment.html) if loading fails.
+A failed load rejects with the runtime's own error, and the next call tries again.
 
 ## TypeScript
 

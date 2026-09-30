@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
-import { WORKER_EXPORTS, createCStructSharpWasm } from "./bootstrap.js";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { MAIN_THREAD_EXPORTS, WORKER_EXPORTS, createCStructSharpWasm } from "./bootstrap.js";
 import { serialize, update, parseWithDebug, getVersion } from "./cstructsharp-wasm.js";
 
 /** The member order of every envelope, as the managed writer produces it. */
@@ -160,4 +164,60 @@ test("parse takes the synchronous path for small byte inputs and the worker path
   } finally {
     globalThis.CStructSharpWasm = previous;
   }
+});
+
+test("the standalone loader reports the runtime's own startup error and retries after a failure", async (t) => {
+  // A copy of the bundle's modules beside a fake .NET runtime whose first start fails, as a failed download would.
+  const bundle = fs.mkdtempSync(path.join(os.tmpdir(), "cstructsharp-loader-"));
+  t.after(() => fs.rmSync(bundle, { recursive: true, force: true }));
+  const sources = path.dirname(fileURLToPath(import.meta.url));
+  for (const name of fs.readdirSync(sources).filter((entry) => entry.endsWith(".js") && !entry.endsWith(".test.js"))) {
+    fs.copyFileSync(path.join(sources, name), path.join(bundle, name));
+  }
+  fs.mkdirSync(path.join(bundle, "_framework"));
+  fs.writeFileSync(
+    path.join(bundle, "_framework", "dotnet.js"),
+    `export const dotnet = {
+  async create() {
+    globalThis.fakeRuntimeStarts = (globalThis.fakeRuntimeStarts ?? 0) + 1;
+    if (globalThis.fakeRuntimeStarts === 1) throw new Error("Failed to fetch dotnet.native.wasm (503)");
+    return { getAssemblyExports: async () => ({ CStructExports: globalThis.fakeManagedExports }) };
+  },
+};
+`,
+  );
+
+  const managed = {};
+  for (const name of [...MAIN_THREAD_EXPORTS, ...WORKER_EXPORTS]) {
+    managed[name] = () => {
+      throw new Error(`${name} is not used by this test.`);
+    };
+  }
+  /** Returns the version envelope of the fake runtime. */
+  managed.GetVersion = () =>
+    JSON.stringify({ contractVersion: 9, operation: "version", success: true, root: null, data: { version: "fake" }, debug: [], error: null });
+
+  // main.js publishes on window and announces the outcome with an event; Node has neither, so the test lends both.
+  const saved = { window: globalThis.window, dispatchEvent: globalThis.dispatchEvent, adapter: globalThis.CStructSharpWasm };
+  t.after(() => {
+    globalThis.window = saved.window;
+    globalThis.dispatchEvent = saved.dispatchEvent;
+    globalThis.CStructSharpWasm = saved.adapter;
+    delete globalThis.fakeRuntimeStarts;
+    delete globalThis.fakeManagedExports;
+  });
+  globalThis.window = globalThis;
+  globalThis.dispatchEvent = () => true;
+  globalThis.fakeManagedExports = managed;
+  delete globalThis.CStructSharpWasm;
+  t.mock.method(console, "error", () => {});
+
+  const { loadCStructSharpWasm, getVersion } = await import(pathToFileURL(path.join(bundle, "cstructsharp-wasm.js")).href);
+
+  await assert.rejects(loadCStructSharpWasm(), /^Error: CStructSharp WASM failed to load: Failed to fetch dotnet\.native\.wasm \(503\)$/);
+  const adapter = await loadCStructSharpWasm();
+  assert.equal(adapter.ready, true);
+  assert.equal(globalThis.fakeRuntimeStarts, 2);
+  assert.equal(await getVersion(), "fake");
+  assert.equal(await loadCStructSharpWasm(), adapter);
 });

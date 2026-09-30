@@ -13,8 +13,10 @@ managed exports are implementation details; their signatures differ from this pu
 The npm browser loader additionally accepts `loadCStructSharpWasm({ runtimeUrl: "/cstructsharp/" })` for
 custom static hosting. Configure it before operations; the URL must end in `/` and cannot change after startup.
 Vite users register `cstructsharp/vite` instead. Node requires no runtime URL. Imports do not start WASM, and
-concurrent calls share initialization. Failed startup remains failed until the process/page restarts. The runtime
-lives for the process/page lifetime; no explicit disposal is needed for normal Node process exit.
+concurrent calls share initialization. With the npm entry points, a failed startup remains failed until the
+process/page restarts. The standalone ZIP entry rejects with the runtime's own startup error and starts a new attempt
+on the next call, which can succeed after a transient download failure. The runtime lives for the process/page
+lifetime; no explicit disposal is needed for normal Node process exit.
 
 | Function | Input | Successful result |
 | --- | --- | --- |
