@@ -215,6 +215,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   by same-machine before/after runs (`tools/quality/quick-perf-check.mjs`).
 - The release budget file and tools that no release enforced (`release-gate.json`, `non-web-release-budgets.mjs`,
   `artifact-baseline.mjs`) are removed; the web size budget, which the explorer tests enforce, stays.
+- CI keeps one documentation-workflow validator, runs each workflow only for the files it reads, starts the weekly runs
+  from one `scheduled.yml` with a monthly external-link check, groups Dependabot updates for `docs/` and
+  `benchmarks/js`, and drops a duplicate memory coverage run and two unused documentation tools.
 
 ## 0.10.0 — 2026-09-26
 

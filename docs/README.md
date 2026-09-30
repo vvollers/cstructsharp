@@ -141,7 +141,9 @@ and size limits.
 
 ## Check external links
 
-External sites can fail temporarily, so their check runs separately from the ordinary pull-request gate:
+External sites can fail temporarily, so their check runs separately from the ordinary pull-request gate. The
+`Scheduled checks` workflow (`.github/workflows/scheduled.yml`) runs it on the first day of each month, and it can be
+started there by hand (set `checks` to `external-links`). To run it locally:
 
 ```sh
 node tools/documentation/test-documentation-external-links.mjs
