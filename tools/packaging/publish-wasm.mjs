@@ -2,6 +2,7 @@
  * Publishes the WASM bridge to artifacts/wasm. It runs `dotnet publish` for src/CStructSharp.Wasm in Release, stages
  * the boot-referenced framework files, the JavaScript adapter modules from packages/cstructsharp/src and the runtime
  * configuration, validates the result, and replaces artifacts/wasm so that a failure restores the previous publication.
+ * The build is deterministic and path-independent: the same commit publishes the same bytes from any directory.
  * The publication manifest is written to artifacts/baseline/wasm-publication.json.
  *
  *   node tools/packaging/publish-wasm.mjs    (npm run build:wasm)
@@ -79,7 +80,8 @@ function resolveSafeDestination() {
 }
 
 /**
- * Runs `dotnet publish` for the WASM project in Release without debug symbols or source maps.
+ * Runs `dotnet publish` for the WASM project in Release without debug symbols or source maps, as a deterministic
+ * continuous-integration build so that the output bytes do not depend on the checkout directory.
  * @param {string} temporaryPublishDirectory Output directory for the publish.
  * @throws {Error} When dotnet cannot start or exits with a failure code.
  */
@@ -97,6 +99,11 @@ function runPublish(temporaryPublishDirectory) {
       temporaryPublishDirectory,
       "-p:WasmDebugLevel=0",
       "-p:WasmEmitSourceMap=false",
+      // Global properties reach the referenced library build too. Without them the compiler derives each
+      // assembly's MVID from inputs that include the checkout path, so the same commit built in two directories
+      // gives different .wasm bytes and boot integrity hashes. ContinuousIntegrationBuild maps source paths to /_/.
+      "-p:Deterministic=true",
+      "-p:ContinuousIntegrationBuild=true",
     ],
     {
       cwd: repositoryRoot,

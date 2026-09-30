@@ -127,7 +127,9 @@ npm run test:npm-release
 Install Chromium with `npx playwright install chromium` if needed. Outputs at the repository root are
 `artifacts/npm/cstructsharp-VERSION.tgz` and `artifacts/npm/package-info.json`. The pack step requires npm metadata
 to match the managed version and rejects stale WASM. It includes the selected .NET runtime pack's notices.
-Package size is recorded; the existing 6 MiB runtime budget remains enforced.
+Package size is recorded; the existing 6 MiB runtime budget remains enforced. The WASM publication is reproducible:
+the same commit publishes the same bytes from any checkout directory, and `npm run test:wasm-reproducibility` checks
+that (see [Reproducible publication](web-development.md#reproducible-publication)).
 `npm run test:npm:node` runs the host-only consumer checks.
 
 ## Validate the other consumer artifacts

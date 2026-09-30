@@ -242,6 +242,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - The solution filter `CStructSharp.NonWeb.slnf` replaces `CStructSharp.NonWeb.sln`; the build command is unchanged.
 - CI builds the WASM publication once in `web.yml`, runs workflows only for their area (plus weekly), reads Node from
   `.node-version`, and the documentation gate runs on Windows.
+- `npm run build:wasm` publishes the same bytes from any checkout directory: it builds with `Deterministic` and
+  `ContinuousIntegrationBuild`, so assembly module version IDs and boot integrity hashes no longer depend on the path.
+  `npm run test:wasm-reproducibility` republishes from a copy at another path and compares every file hash.
 - Benchmarks are one suite; `quick-perf-check.mjs --job Quick` compares the `Impact` cases in about 90 seconds.
 - Every C# member and every JavaScript or TypeScript function and class needs a documentation comment; the build or
   the lint fails without one.

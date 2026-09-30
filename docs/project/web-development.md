@@ -36,6 +36,21 @@ npm --prefix ./apps/explorer run dev
 Open the address printed by Vite. Changes to Vue update during development; changes to C# require
 `npm run build:wasm` and `npm --prefix ./apps/explorer run copy:wasm`. Run the complete production build before browser tests.
 
+## Reproducible publication
+
+A build is *reproducible* when the same source gives the same output bytes. `npm run build:wasm` passes
+`-p:Deterministic=true -p:ContinuousIntegrationBuild=true` to `dotnet publish`, and these global properties also apply
+to the referenced library. Without them the compiler derives each assembly's module version ID from inputs that
+include the checkout path, so two clones of one commit would publish different `.wasm` files and boot integrity
+hashes. With them the compiler maps source paths to `/_/`. A plain `dotnet build` of the library, including the
+Debug build you step through locally, keeps real paths in its symbols.
+
+`npm run test:wasm-reproducibility` checks this after `npm run build:wasm`. It copies the working tree (tracked and
+untracked, non-ignored files) to a temporary directory at a different path, seeds that copy's `artifacts/wasm` with
+the current publication plus stale files, and publishes there. The check passes when every published file has the
+same size and SHA-256 hash and the stale files are gone. The copy's `.git` file points at the original repository, so
+both builds read the same commit metadata.
+
 ## Managed bridge trimming
 
 `src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj` builds with `PublishTrimmed` and `TrimMode=full`, declares the
