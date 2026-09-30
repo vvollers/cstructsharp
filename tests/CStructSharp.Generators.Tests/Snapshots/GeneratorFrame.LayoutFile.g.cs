@@ -1108,6 +1108,12 @@ namespace Demo
                 WritechunkFixed(fixedBytes, value);
                 return;
             }
+            EncodechunkMembers(ref cursor, value, variables, member, memberType);
+        }
+
+        /// <summary>Writes one <c>chunk</c> member by member at the cursor's position, when <see cref="Encodechunk"/> cannot use the fixed writer.</summary>
+        private static void EncodechunkMembers(ref global::CStructSharp.Generated.WriteCursor cursor, chunk value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "chunk", memberType);
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint32 length
@@ -1133,6 +1139,12 @@ namespace Demo
                 WriterootFixed(fixedBytes, value);
                 return;
             }
+            EncoderootMembers(ref cursor, value, variables, member, memberType);
+        }
+
+        /// <summary>Writes one <c>root</c> member by member at the cursor's position, when <see cref="Encoderoot"/> cannot use the fixed writer.</summary>
+        private static void EncoderootMembers(ref global::CStructSharp.Generated.WriteCursor cursor, root value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "root", memberType);
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // chunk first

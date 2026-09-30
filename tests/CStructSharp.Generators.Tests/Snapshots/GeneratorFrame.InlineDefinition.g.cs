@@ -632,6 +632,12 @@ namespace Demo
                 WriteHeaderFixed(fixedBytes, value);
                 return;
             }
+            EncodeHeaderMembers(ref cursor, value, variables, member, memberType);
+        }
+
+        /// <summary>Writes one <c>header</c> member by member at the cursor's position, when <see cref="EncodeHeader"/> cannot use the fixed writer.</summary>
+        private static void EncodeHeaderMembers(ref global::CStructSharp.Generated.WriteCursor cursor, Header value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "header", memberType);
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint16 kind

@@ -1641,6 +1641,12 @@ namespace Demo
                 WriteXFixed(fixedBytes, value);
                 return;
             }
+            EncodeXMembers(ref cursor, value, variables, member, memberType);
+        }
+
+        /// <summary>Writes one <c>X</c> member by member at the cursor's position, when <see cref="EncodeX"/> cannot use the fixed writer.</summary>
+        private static void EncodeXMembers(ref global::CStructSharp.Generated.WriteCursor cursor, X value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "X", memberType);
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 a
@@ -1666,6 +1672,12 @@ namespace Demo
                 WriteAnonFixed(fixedBytes, value);
                 return;
             }
+            EncodeAnonMembers(ref cursor, value, variables, member, memberType);
+        }
+
+        /// <summary>Writes one <c>Anon</c> member by member at the cursor's position, when <see cref="EncodeAnon"/> cannot use the fixed writer.</summary>
+        private static void EncodeAnonMembers(ref global::CStructSharp.Generated.WriteCursor cursor, Anon value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "Anon", memberType);
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint16 v

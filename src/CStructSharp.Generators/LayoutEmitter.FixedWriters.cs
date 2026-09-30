@@ -10,9 +10,9 @@ using static CStructSharp.Generators.Emit;
 ///     The fixed writers: for a struct with a fixed reader whose members also encode without a possible failure
 ///     (numbers, enums, nested fixed structs, and fixed arrays of them - not text, whose characters are validated), an
 ///     <c>Is&lt;Type&gt;FixedWritable(value)</c> check and a <c>Write&lt;Type&gt;Fixed(target, value)</c> that stores
-///     each member at its constant offset. The member-by-member writer tries them first: the check confirms that no
+///     each member at its constant offset. The composite's <c>Encode&lt;Type&gt;</c> tries them first: the check confirms that no
 ///     nested value is null and every array has its declared length, and <c>WriteCursor.TryReserveFixed</c> hands over
-///     cleared bytes only where that writer would write exactly them. Anything else is written member by member.
+///     cleared bytes only where the member-by-member writer would write exactly them. Anything else is written member by member.
 /// </summary>
 internal sealed partial class LayoutEmitter
 {
@@ -35,20 +35,22 @@ internal sealed partial class LayoutEmitter
         }
     }
 
-    /// <summary>Emits the fast-path test at the top of a composite's member-by-member writer, when it has a fixed writer.</summary>
+    /// <summary>Emits the fast-path test at the top of a composite's <c>Encode&lt;Type&gt;</c>, when it has a fixed writer.</summary>
     /// <param name="writer">The generated source destination, after the null check and before the composite is entered.</param>
     /// <param name="composite">The composite being written.</param>
-    private void EmitFixedWriterShortcut(SourceWriter writer, GeneratedComposite composite)
+    /// <returns>Whether the composite has a fixed writer, so that the test was emitted.</returns>
+    private bool EmitFixedWriterShortcut(SourceWriter writer, GeneratedComposite composite)
     {
         if (!this.IsFixedWritable(composite, 0) || this.FixedPlanOf(composite, 0) is not { } plan)
         {
-            return;
+            return false;
         }
 
         writer.Open("if (Is" + composite.Name + "FixedWritable(value) && cursor.TryReserveFixed(" + Int(plan.Size) + ", " + Int(this.request.Settings.Aligned ? plan.Alignment : 1) + ", " + Int(plan.NestingLevels) + ", " + Int(plan.MaximumArrayCount) + ", out global::System.Span<byte> fixedBytes))");
         writer.Line("Write" + composite.Name + "Fixed(fixedBytes, value);");
         writer.Line("return;");
         writer.Close();
+        return true;
     }
 
     /// <summary>Emits the check that a value has every nested value and every array length the fixed writer relies on.</summary>

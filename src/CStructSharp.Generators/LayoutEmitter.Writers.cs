@@ -148,16 +148,36 @@ internal sealed partial class LayoutEmitter
         }
     }
 
-    /// <summary>One composite's writer, entered with the cursor at the composite's first byte.</summary>
+    /// <summary>
+    ///     One composite's writer, entered with the cursor at the composite's first byte. A composite with a fixed writer
+    ///     gets a small <c>Encode&lt;Type&gt;</c> that tries the fixed writer and otherwise calls a separate
+    ///     <c>Encode&lt;Type&gt;Members</c> with the member-by-member steps.
+    /// </summary>
+    /// <remarks>
+    ///     The split keeps the fixed path cheap: the JIT inlines a hot <c>Encode&lt;Type&gt;</c> into its caller, and a
+    ///     member-by-member body in the same method would be inlined with it and use up the inlining budget, so the
+    ///     span and codec helpers of the fixed writer would stay calls.
+    /// </remarks>
+    /// <param name="writer">The generated source destination.</param>
+    /// <param name="composite">The composite whose writer is emitted.</param>
     private void EmitCompositeWriter(SourceWriter writer, GeneratedComposite composite)
     {
         string name = composite.Name;
+        string parameters = "(ref " + WriteCursorType + " cursor, " + name + "? value, " + VariablesType + " variables, string? member, string? memberType)";
         writer.Line("/// <summary>Writes one <c>" + composite.LayoutName + "</c> at the cursor's position.</summary>");
-        writer.Open("private static void Encode" + name + "(ref " + WriteCursorType + " cursor, " + name + "? value, " + VariablesType + " variables, string? member, string? memberType)");
+        writer.Open("private static void Encode" + name + parameters);
         writer.Open("if (value is null)");
         writer.Line("throw cursor.Fail(" + SourceWriter.Literal(WriteFailures.NullComposite(composite.LayoutName)) + ", member, memberType);");
         writer.Close();
-        this.EmitFixedWriterShortcut(writer, composite);
+        if (this.EmitFixedWriterShortcut(writer, composite))
+        {
+            writer.Line("Encode" + name + "Members(ref cursor, value, variables, member, memberType);");
+            writer.Close();
+            writer.Line();
+            writer.Line("/// <summary>Writes one <c>" + composite.LayoutName + "</c> member by member at the cursor's position, when " + Cref("Encode" + name) + " cannot use the fixed writer.</summary>");
+            writer.Open("private static void Encode" + name + "Members(ref " + WriteCursorType + " cursor, " + name + " value, " + VariablesType + " variables, string? member, string? memberType)");
+        }
+
         writer.Line("cursor.EnterComposite(member ?? " + SourceWriter.Literal(composite.LayoutName) + ", memberType);");
         var scope = new ReaderScope(this, composite);
         this.decidedGroups.Clear();

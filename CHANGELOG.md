@@ -231,6 +231,10 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Performance
 
+- Generated writers of fixed-size structs keep their fixed path in a small method and the member-by-member steps in
+  a separate `Encode<Type>Members` method, so the JIT inlines the fixed path completely. The comparison benchmark's
+  79-byte `sensor` record serializes from its generated class in 8.6 ns instead of 26.3 ns (the hand-written writer
+  takes 7.6 ns). The bytes and failures are unchanged.
 - `Serialize` (to an array or a span) and `WriteAsync` of layouts with runtime-sized members run on the compiled engine:
   the comparison benchmark's `packet` record serializes in 248 ns instead of 496 ns and allocates only its 88-byte
   result. Bitfields, unions (including promoted ones), pointers, custom codecs and to-end, terminated and

@@ -1885,6 +1885,12 @@ namespace Demo
                 WriteInnerFixed(fixedBytes, value);
                 return;
             }
+            EncodeInnerMembers(ref cursor, value, variables, member, memberType);
+        }
+
+        /// <summary>Writes one <c>inner</c> member by member at the cursor's position, when <see cref="EncodeInner"/> cannot use the fixed writer.</summary>
+        private static void EncodeInnerMembers(ref global::CStructSharp.Generated.WriteCursor cursor, Inner value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "inner", memberType);
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 z

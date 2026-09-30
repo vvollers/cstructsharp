@@ -1124,6 +1124,12 @@ namespace Demo
                 WriteEntryFixed(fixedBytes, value);
                 return;
             }
+            EncodeEntryMembers(ref cursor, value, variables, member, memberType);
+        }
+
+        /// <summary>Writes one <c>entry</c> member by member at the cursor's position, when <see cref="EncodeEntry"/> cannot use the fixed writer.</summary>
+        private static void EncodeEntryMembers(ref global::CStructSharp.Generated.WriteCursor cursor, Entry value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "entry", memberType);
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 kind

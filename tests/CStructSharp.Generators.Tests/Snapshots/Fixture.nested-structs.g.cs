@@ -1107,6 +1107,12 @@ namespace Demo
                 WriteChildFixed(fixedBytes, value);
                 return;
             }
+            EncodeChildMembers(ref cursor, value, variables, member, memberType);
+        }
+
+        /// <summary>Writes one <c>child</c> member by member at the cursor's position, when <see cref="EncodeChild"/> cannot use the fixed writer.</summary>
+        private static void EncodeChildMembers(ref global::CStructSharp.Generated.WriteCursor cursor, Child value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "child", memberType);
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 value
@@ -1132,6 +1138,12 @@ namespace Demo
                 WriteRootFixed(fixedBytes, value);
                 return;
             }
+            EncodeRootMembers(ref cursor, value, variables, member, memberType);
+        }
+
+        /// <summary>Writes one <c>root</c> member by member at the cursor's position, when <see cref="EncodeRoot"/> cannot use the fixed writer.</summary>
+        private static void EncodeRootMembers(ref global::CStructSharp.Generated.WriteCursor cursor, Root value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "root", memberType);
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // child item

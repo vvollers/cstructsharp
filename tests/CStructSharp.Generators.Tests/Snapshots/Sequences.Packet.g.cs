@@ -1190,6 +1190,12 @@ namespace Demo
                 WriteHdrFixed(fixedBytes, value);
                 return;
             }
+            EncodeHdrMembers(ref cursor, value, variables, member, memberType);
+        }
+
+        /// <summary>Writes one <c>hdr</c> member by member at the cursor's position, when <see cref="EncodeHdr"/> cannot use the fixed writer.</summary>
+        private static void EncodeHdrMembers(ref global::CStructSharp.Generated.WriteCursor cursor, Hdr value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "hdr", memberType);
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint16 length

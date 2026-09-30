@@ -1080,6 +1080,12 @@ namespace Demo
                 WriteRootPosFixed(fixedBytes, value);
                 return;
             }
+            EncodeRootPosMembers(ref cursor, value, variables, member, memberType);
+        }
+
+        /// <summary>Writes one <c>pos</c> member by member at the cursor's position, when <see cref="EncodeRootPos"/> cannot use the fixed writer.</summary>
+        private static void EncodeRootPosMembers(ref global::CStructSharp.Generated.WriteCursor cursor, RootPos value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "pos", memberType);
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 x
