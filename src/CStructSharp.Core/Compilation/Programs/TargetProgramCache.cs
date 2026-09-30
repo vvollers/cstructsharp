@@ -24,6 +24,11 @@ internal sealed class TargetProgramCache
     private readonly ConcurrentDictionary<SelectionKey, ReadPointerTarget> pointers = new();
     private readonly ConcurrentDictionary<SelectionKey, CompiledField> views = new();
 
+    // The debug twins of the selected reads and pointer targets, compiled against the debug programs on first request, so
+    // a layout that is never read with debug records compiles none and the ordinary reads never meet a debug step.
+    private readonly ConcurrentDictionary<SelectionKey, ReadProgram> debugSelections = new();
+    private readonly ConcurrentDictionary<SelectionKey, ReadPointerTarget> debugPointers = new();
+
     /// <summary>Creates the cache of one slot table.</summary>
     /// <param name="table">The layout's slot table.</param>
     public TargetProgramCache(SlotTable table)
@@ -84,6 +89,27 @@ internal sealed class TargetProgramCache
     }
 
     /// <summary>
+    ///     Returns the debug read of a selected member: what <see cref="GetSelection"/> compiles, from the debug programs
+    ///     (<see cref="SlotTable.DebugReadPrograms"/>), so the read records every value it reads.
+    /// </summary>
+    /// <param name="compilation">The layout.</param>
+    /// <param name="declared">The member's declared field, which identifies the selection with <paramref name="indexes"/>.</param>
+    /// <param name="indexes">The number of indexes the path applied to the member.</param>
+    /// <param name="view">The selected field: <paramref name="declared"/> peeled once per index.</param>
+    /// <returns>The debug program.</returns>
+    /// <exception cref="InvalidOperationException">The member cannot be read, although the struct that holds it could.</exception>
+    public ReadProgram GetDebugSelection(LayoutCompilation compilation, CompiledField declared, int indexes, CompiledField view)
+    {
+        var key = new SelectionKey(declared, indexes, -1);
+        if (this.debugSelections.TryGetValue(key, out ReadProgram? program))
+        {
+            return program;
+        }
+
+        return this.debugSelections.GetOrAdd(key, new ReadProgramCompiler(compilation, this.Table.DebugReadPrograms).CompileSelection(view));
+    }
+
+    /// <summary>
     ///     Returns how a pointer a path follows reads its target from the level <paramref name="view"/> describes
     ///     (<see cref="ReadProgramCompiler.DescribeSelectedPointer"/>), compiling it on first request.
     /// </summary>
@@ -103,6 +129,29 @@ internal sealed class TargetProgramCache
 
         ReadPointerTarget described = new ReadProgramCompiler(compilation, this.Table.ReadPrograms).DescribeSelectedPointer(view);
         return this.pointers.GetOrAdd(key, described);
+    }
+
+    /// <summary>
+    ///     Returns the debug twin of <see cref="GetPointerTarget"/>: the same description, kept apart because a description
+    ///     caches its struct or union target's program (<see cref="ReadPointerTarget.Program"/>), which a debug read takes
+    ///     from the debug programs.
+    /// </summary>
+    /// <param name="compilation">The layout.</param>
+    /// <param name="declared">The pointer member's declared field.</param>
+    /// <param name="indexes">The number of indexes the path applied to the member.</param>
+    /// <param name="view">The pointer at the level being read; its <see cref="CompiledField.PointerDepth"/> identifies the level.</param>
+    /// <returns>The target description.</returns>
+    /// <exception cref="InvalidOperationException">The target cannot be described, although the struct that holds the pointer could be read.</exception>
+    public ReadPointerTarget GetDebugPointerTarget(LayoutCompilation compilation, CompiledField declared, int indexes, CompiledField view)
+    {
+        var key = new SelectionKey(declared, indexes, view.PointerDepth);
+        if (this.debugPointers.TryGetValue(key, out ReadPointerTarget? target))
+        {
+            return target;
+        }
+
+        ReadPointerTarget described = new ReadProgramCompiler(compilation, this.Table.DebugReadPrograms).DescribeSelectedPointer(view);
+        return this.debugPointers.GetOrAdd(key, described);
     }
 
     /// <summary>

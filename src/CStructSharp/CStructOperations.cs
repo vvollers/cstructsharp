@@ -28,7 +28,7 @@ public sealed partial class CStruct
     /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
     /// <param name="options">Optional read limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
     /// <returns>The struct's values, readable as <c>dynamic</c>, by name, or through <c>StructValue.Get&lt;T&gt;</c>.</returns>
-    /// <exception cref="CStructPathException">The path is invalid, or selects a union or scalar rather than a struct (use <see cref="ReadValue(Stream, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/> for those).</exception>
+    /// <exception cref="CStructPathException">The path is invalid, or selects a union, an array or a scalar rather than one struct (use <see cref="ReadValue(Stream, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/> for those).</exception>
     /// <exception cref="CStructReadException">The stream cannot provide or decode the required bytes.</exception>
     public StructValue Parse(
         Stream stream,
@@ -45,7 +45,7 @@ public sealed partial class CStruct
     /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
     /// <param name="options">Optional read limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
     /// <returns>The struct's values.</returns>
-    /// <exception cref="CStructPathException">The path is invalid, or selects a union or scalar rather than a struct.</exception>
+    /// <exception cref="CStructPathException">The path is invalid, or selects a union, an array or a scalar rather than one struct.</exception>
     /// <exception cref="CStructReadException">The region cannot provide or decode the required bytes.</exception>
     public StructValue Parse(
         ReadOnlySpan<byte> source,
@@ -91,7 +91,7 @@ public sealed partial class CStruct
     /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
     /// <param name="options">Optional read limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
     /// <returns>The struct's values and the debug records.</returns>
-    /// <exception cref="CStructPathException">The path is invalid, or selects a union or scalar rather than a struct.</exception>
+    /// <exception cref="CStructPathException">The path is invalid, or selects a union, an array or a scalar rather than one struct.</exception>
     /// <exception cref="CStructReadException">The region cannot provide or decode the required bytes.</exception>
     public ParseResult ParseWithDebug(
         Stream stream,
@@ -109,7 +109,7 @@ public sealed partial class CStruct
     /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
     /// <param name="options">Optional read limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
     /// <returns>The struct's values and the debug records.</returns>
-    /// <exception cref="CStructPathException">The path is invalid, or selects a union or scalar rather than a struct.</exception>
+    /// <exception cref="CStructPathException">The path is invalid, or selects a union, an array or a scalar rather than one struct.</exception>
     /// <exception cref="CStructReadException">The region cannot provide or decode the required bytes.</exception>
     public ParseResult ParseWithDebug(
         ReadOnlySpan<byte> source,
@@ -227,8 +227,7 @@ public sealed partial class CStruct
         IReadOnlyDictionary<string, int>? variables = null,
         ReadOptions? options = null)
     {
-        (List<DebugData> debug, object value) = this.ParseStreamWithDebugCore(stream, this.RootOrDefault(path), LayoutVariableInput.FromIntegers(variables), options);
-        return new ReadResult(value, debug);
+        return this.ReadValueWithDebugCore(stream, this.RootOrDefault(path), LayoutVariableInput.FromIntegers(variables), options);
     }
 
     /// <summary>Reads one value from a byte span and records the byte range of every value read.</summary>
@@ -239,14 +238,17 @@ public sealed partial class CStruct
     /// <returns>The value at the path and the debug records.</returns>
     /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
     /// <exception cref="CStructReadException">The region cannot provide or decode the required bytes.</exception>
-    public ReadResult ReadValueWithDebug(
+    public unsafe ReadResult ReadValueWithDebug(
         ReadOnlySpan<byte> source,
         string? path = null,
         IReadOnlyDictionary<string, int>? variables = null,
         ReadOptions? options = null)
     {
-        (object value, List<DebugData> debug) = this.ParseMemoryCore(source, path, variables, options, debug: true);
-        return new ReadResult(value, debug);
+        string root = this.RootOrDefault(path);
+        fixed (byte* region = source)
+        {
+            return this.ReadValueWithDebugCore(region, source.Length, root, LayoutVariableInput.FromIntegers(variables), options, out _);
+        }
     }
 
     /// <summary>Reads one value from read-only memory and records the byte range of every value read.</summary>

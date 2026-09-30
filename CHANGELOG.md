@@ -122,6 +122,11 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   `TerminatedTextEncoding`) are hidden from IntelliSense, and the WASM bridge's `CStructJsonContext` is internal.
   Generated code is unaffected. Migration: code that called one of these members directly uses the `CStruct`
   operations or the generated members instead.
+- **Breaking (paths):** `Parse`, `ParseWithDebug` and their async and sequence forms reject a path that selects a whole
+  struct array or a row of one (`root.items`), with the error that points to `ReadValue`; they returned the first
+  element. A nested debug parse names an element's records with its index (`root.items[1].a`, as a whole-root debug
+  parse does), where it gave `root.items.a`. Migration: select one element (`root.items[1]`), or read the array with
+  `ReadValue` or `ReadValueWithDebug`; look element records up by their indexed path.
 
 ### Added
 
@@ -155,6 +160,11 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   their envelope as UTF-8 bytes, decoded with a UTF-8 `TextDecoder` on the calling thread and transferred as bytes
   from the worker. A result longer than 536,870,888 characters, the JavaScript string limit of V8, is a `read-budget`
   failure with an explanatory message instead of a runtime error.
+- `ReadValueWithDebug` (span, memory, array, stream, sequence and async forms) reads every selection `ReadValue`
+  reads: a scalar, an array, an element, a bitfield, a pointer, `.address`, a scalar `.value`, an enum, a string and a
+  scalar or enum root, which failed with "does not resolve to a struct object". Each value read gets one record
+  (`root.value [1,3)`, one per array element, a bitfield over its storage unit), named as a whole-root debug parse
+  names it. The npm package's `parseWithDebug` with such a path as `root` works for the same reason.
 - Browser package: a number `origin` option (`origin: 10`, as `index.d.ts` allows) failed as `invalid-json`; it is
   now read as its decimal text, so `10` and `"10"` give the same result, and a fraction or an out-of-range number is
   `invalid-input` with the origin message.

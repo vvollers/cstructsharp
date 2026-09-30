@@ -57,6 +57,13 @@ internal sealed class DebugRecorder
     /// </summary>
     public DebugPath? Target { get; set; }
 
+    /// <summary>
+    ///     Gets or sets the path the next member entered is recorded under instead of its own segment, used once: a selected
+    ///     read (<c>ReadValueWithDebug</c> of a nested path) names its one member by the path the caller selected, whose
+    ///     last segment can carry indexes (<c>grid[1]</c>) the member's name does not.
+    /// </summary>
+    public DebugPath? Selected { get; set; }
+
     /// <summary>Gets or sets the position the next record starts at, remembered before its value is read.</summary>
     public long Start { get; set; }
 
@@ -70,11 +77,12 @@ internal sealed class DebugRecorder
         => field.Name.Length == 0 && field.BitSize == 0 && !field.IsInlineComposite ? "_" : field.Name;
 
     /// <summary>
-    ///     The path of one element of a composite array (or of a pointer array whose targets are composites): the
-    ///     member's name with the element's coordinates, beside the member's own path under the same parent, such as
-    ///     <c>items[2]</c> or <c>grid[1][0]</c>.
+    ///     The path of one element of a composite array (or of a pointer array whose targets are composites): the last
+    ///     segment of the member's path with the element's coordinates, beside the member's own path under the same parent,
+    ///     such as <c>items[2]</c> or <c>grid[1][0]</c>. A selected row keeps the index that selected it, so element 0 of
+    ///     <c>grid[1]</c> is <c>grid[1][0]</c>.
     /// </summary>
-    /// <param name="field">The array member.</param>
+    /// <param name="field">The array member (or the row a path selected), whose dimensions give the coordinates.</param>
     /// <param name="member">The member's path.</param>
     /// <param name="index">The element's flat row-major index.</param>
     /// <param name="count">The member's element count, the size of a dimension without a fixed count.</param>
@@ -90,7 +98,7 @@ internal sealed class DebugRecorder
             remaining /= size;
         }
 
-        return new DebugPath(member!.Parent, field.Name + indices);
+        return new DebugPath(member!.Parent, member.Name + indices);
     }
 
     /// <summary>
@@ -103,9 +111,22 @@ internal sealed class DebugRecorder
     public static DebugPath? CountedElementPath(DebugPath? pointer, int index)
         => pointer is null ? null : new DebugPath(pointer.Parent, pointer.Name + "[" + index + "]");
 
-    /// <summary>Names the member about to be read: its path is the composite's path extended by its segment.</summary>
+    /// <summary>
+    ///     Names the member about to be read: its path is the composite's path extended by its segment, or the
+    ///     <see cref="Selected"/> path, which is then cleared.
+    /// </summary>
     /// <param name="field">The member.</param>
-    public void EnterMember(CompiledField field) => this.Member = new DebugPath(this.Path, Segment(field));
+    public void EnterMember(CompiledField field)
+    {
+        if (this.Selected is { } selected)
+        {
+            this.Member = selected;
+            this.Selected = null;
+            return;
+        }
+
+        this.Member = new DebugPath(this.Path, Segment(field));
+    }
 
     /// <summary>Adds one record.</summary>
     /// <param name="start">The value's first byte.</param>

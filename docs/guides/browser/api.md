@@ -116,7 +116,8 @@ need an equivalent source field or constant when adapting a recipe to JavaScript
 ## Convert values deliberately
 
 - Parse `data` is the selected value: the root struct's members by name (`result.data.kind`), exactly as C# `Parse`
-  returns the selected struct. A path that selects a union, array, or scalar returns that value.
+  returns the selected struct. A path that selects a union, array, or scalar returns that value, and
+  `parseWithDebug` lists the byte ranges of that value alone.
 - For serialize, pass the selected struct's fields, such as `{ kind: 3, length: 6 }`; a parse result's `data` works
   as is.
 - Write/update `data` is already a `Uint8Array`. Use it directly for reading, saving, or sending bytes.

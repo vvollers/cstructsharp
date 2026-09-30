@@ -34,6 +34,13 @@ test("parse, serialize and update return the contract's envelopes and value shap
         api.parseWithDebug(`${union} struct root { choice *target; };`, bytes("01 34 12"), { root: "root", pointerSize: 1 }),
       ),
       unionParse: await run(api.parseWithDebug(union, bytes("34 12"), { root: "choice", pointerSize: 1 })),
+      scalarPathParse: await run(
+        api.parseWithDebug("struct root { byte head; uint16 value; };", bytes("00 34 12"), {
+          root: "root.value",
+          aligned: false,
+          pointerSize: 1,
+        }),
+      ),
       selectedUnionSerialize: await run(api.serialize(union, selectedSmall, narrow)),
       rawUnionSerialize: await run(
         api.serialize(union, { kind: "union", union: "choice", rawStorage: "NBI=", members: {}, selectedMember: null }, narrow),
@@ -82,6 +89,9 @@ test("parse, serialize and update return the contract's envelopes and value shap
     target: { kind: "pointer", address: 1, depth: 1, dereferenced: true, value: unionValue },
   });
   expect(results.unionParse).toMatchObject(success("parse", unionValue));
+  // A scalar path as the root reads that value alone, with one range record for it.
+  expect(results.scalarPathParse).toMatchObject(success("parse", 4660));
+  expect(results.scalarPathParse.debug).toEqual([expect.objectContaining({ path: "root.value", start: 1, end: 3 })]);
   expect(results.selectedUnionSerialize).toMatchObject(success("serialize", "a5 00"));
   expect(results.rawUnionSerialize).toMatchObject(success("serialize", "34 12"));
   // A plain member object does not say which member to write, so a union needs the union shape.

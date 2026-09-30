@@ -118,6 +118,75 @@ public sealed partial class CStruct
     }
 
     /// <summary>
+    ///     Reads the natural value any path selects from a stream with the compiled engine and records the byte range of
+    ///     every value read (<c>ReadValueWithDebug</c>): a bare root through its debug program, a nested path's struct,
+    ///     union, array, element, scalar, bitfield, pointer, <c>.address</c> or <c>.value</c> target under the path a
+    ///     whole-root debug parse gives it. The stream must be seekable, as for every debug read.
+    /// </summary>
+    /// <param name="stream">The caller's source, positioned at the root.</param>
+    /// <param name="elementNameOrPath">The root name or nested path.</param>
+    /// <param name="variables">The caller's layout variables.</param>
+    /// <param name="options">The read options, or <see langword="null"/> for the defaults.</param>
+    /// <returns>The value (<see langword="null"/> for a null pointer's <c>.value</c>) and its debug records.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="stream"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="stream"/> cannot read or seek.</exception>
+    /// <exception cref="CStructException">A definition cannot be resolved, the path cannot be resolved, or the input cannot be read.</exception>
+    internal ReadResult ReadValueWithDebugCore(Stream stream, string elementNameOrPath, LayoutVariableInput variables, ReadOptions? options)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        if (!stream.CanSeek)
+        {
+            throw new ArgumentException("Debug mapping and address resolution require a seekable stream.", nameof(stream));
+        }
+
+        ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
+        IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
+        ReadProgram? program = this.SelectParse(segments, debug: true);
+        var recorder = new DebugRecorder(trace: false);
+        VariableSlots slots = VariableSlots.Create(this.compilation.SlotTable, variables);
+        try
+        {
+            object? value = ReadEngine.ReadValueWithDebug(this, stream, segments, program, slots, effectiveOptions, recorder);
+            return new ReadResult(value, recorder.Records);
+        }
+        finally
+        {
+            slots.Dispose();
+        }
+    }
+
+    /// <summary>
+    ///     Reads the natural value any path selects from a pinned memory region and records the byte range of every value
+    ///     read, as <see cref="ReadValueWithDebugCore(Stream, string, LayoutVariableInput, ReadOptions?)"/> does over a
+    ///     stream of the same bytes.
+    /// </summary>
+    /// <param name="region">The input's byte 0; the caller keeps it pinned until the method returns.</param>
+    /// <param name="length">The input length in bytes.</param>
+    /// <param name="elementNameOrPath">The root name or nested path.</param>
+    /// <param name="variables">The caller's layout variables.</param>
+    /// <param name="options">The read options, or <see langword="null"/> for the defaults.</param>
+    /// <param name="position">The position the read ended at, in bytes from the region's start.</param>
+    /// <returns>The value (<see langword="null"/> for a null pointer's <c>.value</c>) and its debug records.</returns>
+    /// <exception cref="CStructException">A definition cannot be resolved, the path cannot be resolved, or the input cannot be read.</exception>
+    internal unsafe ReadResult ReadValueWithDebugCore(byte* region, int length, string elementNameOrPath, in LayoutVariableInput variables, ReadOptions? options, out long position)
+    {
+        ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
+        IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
+        ReadProgram? program = this.SelectParse(segments, debug: true);
+        var recorder = new DebugRecorder(trace: false);
+        VariableSlots slots = VariableSlots.Create(this.compilation.SlotTable, variables);
+        try
+        {
+            object? value = ReadEngine.ReadValueWithDebug(this, region, length, segments, program, slots, effectiveOptions, recorder, out position);
+            return new ReadResult(value, recorder.Records);
+        }
+        finally
+        {
+            slots.Dispose();
+        }
+    }
+
+    /// <summary>
     ///     Looks up the program of a selected read once: a bare root is read by the root's program, a nested path by the
     ///     programs the path resolver finds as it walks.
     /// </summary>

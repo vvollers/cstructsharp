@@ -13,7 +13,8 @@ using CStructSharp.Streams;
 using CStructSharp.Values;
 
 /// <summary>
-///     The path operations of the compiled engine: a selected read (<c>ReadValue</c> of a path), a parse of a nested
+///     The path operations of the compiled engine: a selected read (<c>ReadValue</c> of a path, and
+///     <c>ReadValueWithDebug</c>, which records what it reads), a parse of a nested
 ///     struct (<c>Parse</c> and the debug parses of a path), <c>ResolveAddress</c> and <c>GetArrayLength</c>. Each
 ///     resolves its path with the <see cref="TargetResolver"/> on the operation's cursor and slots, then reads what the
 ///     path selects: from its exact address, standalone, at the nesting and pointer depth the path reached.
@@ -92,9 +93,83 @@ internal static partial class ReadEngine
     }
 
     /// <summary>
-    ///     Reads the struct or union a nested path selects from a caller's stream (<c>Parse</c>, <c>ParseWithDebug</c> and
-    ///     <c>ReadValueWithDebug</c> of a path): the path is resolved, then the composite is read at its address, recorded
-    ///     under the path's names in a debug parse.
+    ///     Reads the natural value a path selects from a caller's stream as
+    ///     <see cref="ReadValue(CStruct, Stream, IReadOnlyList{PathSegment}, ReadProgram, VariableSlots, in ReadOperationSettings)"/>
+    ///     does, recording every value read (<c>ReadValueWithDebug</c>): a bare root through its debug program, and a longer
+    ///     path's target under the path a whole-root debug parse gives it.
+    /// </summary>
+    /// <param name="layout">The layout.</param>
+    /// <param name="stream">The caller's source, positioned at the root's first byte.</param>
+    /// <param name="segments">The parsed path.</param>
+    /// <param name="root">The root's debug program for a bare root; <see langword="null"/> for a nested path or an undeclared root.</param>
+    /// <param name="slots">The operation's initialized variable slots; the caller disposes them.</param>
+    /// <param name="options">The operation's snapshotted settings.</param>
+    /// <param name="debug">The recorder that receives the records.</param>
+    /// <returns>The value, or <see langword="null"/> for a null pointer's <c>.value</c>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="stream"/> cannot read or seek.</exception>
+    /// <exception cref="CStructException">The path cannot be resolved or the input cannot be read; the path and offset are attached.</exception>
+    public static object? ReadValueWithDebug(CStruct layout, Stream stream, IReadOnlyList<PathSegment> segments, ReadProgram? root, VariableSlots slots, in ReadOperationSettings options, DebugRecorder debug)
+    {
+        ReadOperationSettings.Validate(stream, options);
+        var state = new ReadEngineState(layout, slots, options, debug);
+        try
+        {
+            if (MemoryReadCursor.TryCreate(stream, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken, out MemoryReadCursor memory))
+            {
+                return RunValue(ref memory, ref state, segments, root, stream);
+            }
+
+            var cursor = new StreamReadCursor(new ReadBudgetStream(stream, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken));
+            return RunValue(ref cursor, ref state, segments, root, stream);
+        }
+        finally
+        {
+            state.Release();
+        }
+    }
+
+    /// <summary>
+    ///     Reads the natural value a path selects from a pinned memory region with every value recorded: what
+    ///     <see cref="ReadValueWithDebug(CStruct, Stream, IReadOnlyList{PathSegment}, ReadProgram, VariableSlots, in ReadOperationSettings, DebugRecorder)"/>
+    ///     does over a stream of the same bytes, without the stream.
+    /// </summary>
+    /// <param name="layout">The layout.</param>
+    /// <param name="region">The input's byte 0; the caller keeps it pinned until the method returns.</param>
+    /// <param name="length">The input length in bytes.</param>
+    /// <param name="segments">The parsed path.</param>
+    /// <param name="root">The root's debug program for a bare root; <see langword="null"/> for a nested path or an undeclared root.</param>
+    /// <param name="slots">The operation's initialized variable slots; the caller disposes them.</param>
+    /// <param name="options">The operation's snapshotted settings.</param>
+    /// <param name="debug">The recorder that receives the records.</param>
+    /// <param name="position">The position the read ended at, in bytes from the region's start.</param>
+    /// <returns>The value, or <see langword="null"/> for a null pointer's <c>.value</c>.</returns>
+    /// <exception cref="CStructException">The path cannot be resolved or the input cannot be read; the path and offset are attached.</exception>
+    public static unsafe object? ReadValueWithDebug(CStruct layout, byte* region, int length, IReadOnlyList<PathSegment> segments, ReadProgram? root, VariableSlots slots, in ReadOperationSettings options, DebugRecorder debug, out long position)
+    {
+        ReadOperationSettings.ValidateSettings(options);
+        var state = new ReadEngineState(layout, slots, options, debug);
+        try
+        {
+            var cursor = new MemoryReadCursor(region, length, 0, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken);
+            try
+            {
+                return RunValue(ref cursor, ref state, segments, root, null);
+            }
+            finally
+            {
+                position = cursor.Position;
+            }
+        }
+        finally
+        {
+            state.Release();
+        }
+    }
+
+    /// <summary>
+    ///     Reads the struct or union a nested path selects from a caller's stream (<c>Parse</c> and <c>ParseWithDebug</c>
+    ///     of a path): the path is resolved, then the composite is read at its address, recorded under the path's names in
+    ///     a debug parse.
     /// </summary>
     /// <param name="layout">The layout.</param>
     /// <param name="stream">The caller's source, positioned at the root's first byte.</param>
@@ -291,13 +366,17 @@ internal static partial class ReadEngine
 
     /// <summary>
     ///     Runs a selected read and writes the final position back, then attaches the path and offset to a failure: a
-    ///     failure of the resolution carries the position the walk reached, one of the read the position after it.
+    ///     failure of the resolution carries the position the walk reached, one of the read the position after it. With a
+    ///     recorder on the state (a debug value read) the target is read with its records.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
-    /// <param name="state">The operation's state.</param>
+    /// <param name="state">The operation's state, which holds the recorder of a debug value read.</param>
     /// <param name="segments">The parsed path.</param>
-    /// <param name="root">The root's read program, which reads a bare root; <see langword="null"/> for a nested path or an undeclared root.</param>
+    /// <param name="root">
+    ///     The root's read program (its debug program in a debug value read), which reads a bare root; <see langword="null"/>
+    ///     for a nested path or an undeclared root.
+    /// </param>
     /// <param name="stream">The caller's stream, whose position a failure reports; <see langword="null"/> for a memory region.</param>
     /// <returns>The value.</returns>
     private static object? RunValue<TCursor>(ref TCursor cursor, ref ReadEngineState state, IReadOnlyList<PathSegment> segments, ReadProgram? root, Stream? stream)
@@ -322,8 +401,10 @@ internal static partial class ReadEngine
                     return selected ? value : CStruct.ExtractOnlyValue(value, segments[0].Name);
                 }
 
-                ResolvedPath target = Resolve(ref cursor, ref state, segments, null, readsTarget: true);
-                return ReadTarget(ref cursor, ref state, target);
+                // A debug read collects the names the target's records carry while the path is resolved.
+                List<string>? prefix = state.Debug is not null ? [] : null;
+                ResolvedPath target = Resolve(ref cursor, ref state, segments, prefix, readsTarget: true);
+                return ReadTarget(ref cursor, ref state, target, prefix);
             }
             finally
             {
@@ -353,7 +434,7 @@ internal static partial class ReadEngine
             {
                 List<string>? prefix = state.Debug is not null ? [] : null;
                 ResolvedPath target = Resolve(ref cursor, ref state, segments, prefix);
-                return ReadTargetComposite(ref cursor, ref state, target, prefix);
+                return ReadTargetComposite(ref cursor, ref state, target, segments, prefix);
             }
             finally
             {
@@ -520,10 +601,16 @@ internal static partial class ReadEngine
     /// <param name="cursor">The operation's cursor.</param>
     /// <param name="state">The operation's state.</param>
     /// <param name="target">The resolved target (not a root).</param>
+    /// <param name="debugPrefix">The names a debug read records the target under; <see langword="null"/> outside a debug read.</param>
     /// <returns>The value.</returns>
-    private static object? ReadTarget<TCursor>(ref TCursor cursor, ref ReadEngineState state, in ResolvedPath target)
+    private static object? ReadTarget<TCursor>(ref TCursor cursor, ref ReadEngineState state, in ResolvedPath target, List<string>? debugPrefix)
         where TCursor : struct, IReadCursor
     {
+        if (debugPrefix is not null)
+        {
+            return ReadRecordedTarget(ref cursor, ref state, target, DebugPath.FromNames(debugPrefix));
+        }
+
         LayoutCompilation compilation = state.Layout.Compilation;
         TargetProgramCache programs = compilation.SlotTable.TargetPrograms;
         Span<byte> scratch = stackalloc byte[ScratchSize];
@@ -584,24 +671,131 @@ internal static partial class ReadEngine
     }
 
     /// <summary>
+    ///     Reads what a resolved path selects as <see cref="ReadTarget{TCursor}"/> does, recording every value read under
+    ///     the path a whole-root debug parse gives it (<c>ReadValueWithDebug</c>): a pointer's stored address as one
+    ///     record over its storage; a pointer's target under the pointer's path - a struct's members and a union's own
+    ///     record as a debug parse records them, any other target (or a pointer left to follow) as one record over what
+    ///     was read, and nothing for a null pointer; a struct or union through its debug program; and a selected field,
+    ///     element or row through its debug read - a scalar as one record, an array as one record per element (a struct
+    ///     element's members under the element's path), a bitfield as one record over its storage unit.
+    /// </summary>
+    /// <typeparam name="TCursor">The cursor type.</typeparam>
+    /// <param name="cursor">The operation's cursor.</param>
+    /// <param name="state">The operation's state, which holds the recorder.</param>
+    /// <param name="target">The resolved target (not a root).</param>
+    /// <param name="path">The target's debug path, as the resolver named it.</param>
+    /// <returns>The value.</returns>
+    private static object? ReadRecordedTarget<TCursor>(ref TCursor cursor, ref ReadEngineState state, in ResolvedPath target, DebugPath? path)
+        where TCursor : struct, IReadCursor
+    {
+        DebugRecorder debug = state.Debug!;
+        LayoutCompilation compilation = state.Layout.Compilation;
+        TargetProgramCache programs = compilation.SlotTable.TargetPrograms;
+        Span<byte> scratch = stackalloc byte[ScratchSize];
+        if (target.Kind == ResolvedTargetKind.PointerAddress)
+        {
+            cursor.Position = target.Address;
+            long address = ReadPointerAddress(ref cursor, ref state, scratch);
+            debug.Record(target.Address, cursor.Position, path, address, target.Effective!.DisplayTypeSpelling);
+            return address;
+        }
+
+        if (target.Kind == ResolvedTargetKind.PointerValue)
+        {
+            if (target.PointerTargetAddress == 0)
+            {
+                return null;
+            }
+
+            cursor.Position = target.Address;
+            state.StructureDepth = target.ContainingStructureDepth;
+            state.PointerDepth = target.PointerAccessorsConsumed;
+            CompiledField pointer = target.Effective!;
+
+            // A struct or union the target reaches records its members under the pointer's path, as a debug parse does.
+            debug.Target = path;
+            object value;
+            if (target.RemainingPointerDepth > 0)
+            {
+                CompiledField levels = programs.GetPointerView(target.Declared!, target.Indexes, pointer, target.RemainingPointerDepth, state.Layout.PointerSize);
+                ReadPointerTarget remaining = programs.GetDebugPointerTarget(compilation, target.Declared!, target.Indexes, levels);
+                value = ReadPointerValue(ref cursor, ref state, remaining, target.RemainingPointerDepth, -1, scratch);
+            }
+            else
+            {
+                ReadPointerTarget reached = programs.GetDebugPointerTarget(compilation, target.Declared!, target.Indexes, pointer);
+                value = ReadPointerTargetValue(ref cursor, ref state, reached, 1, scratch);
+                if (reached.Kind == ReadPointerTargetKind.Composite)
+                {
+                    return value;
+                }
+            }
+
+            debug.Record(target.Address, cursor.Position, path, value is EnumValueResult number ? number.Value : value, pointer.TypeSpelling);
+            return value;
+        }
+
+        bool composite = (!target.IsArray || target.SelectsArrayElement) &&
+                         target.RemainingPointerDepth == 0 &&
+                         target.TargetComposite is not null &&
+                         target.Effective?.PointerDepth == 0;
+        cursor.Position = target.Address;
+        state.StructureDepth = target.ContainingStructureDepth;
+        state.PointerDepth = target.PointerAccessorsConsumed;
+        if (composite)
+        {
+            return ReadCompositeAt(ref cursor, ref state, target.TargetComposite!, path);
+        }
+
+        CompiledField selected = target.Effective!;
+        if (target.BitStorageSize > 0)
+        {
+            // As in ReadTarget: the unit must end at a representable position before anything of it is read.
+            _ = checked(target.Address + target.BitStorageSize);
+            state.SeededBitOffset = target.BitOffset;
+            state.SeededUnitSize = target.BitStorageSize;
+        }
+
+        // The one member of the selection's debug read takes the selected path, indexes included, for its records.
+        ReadProgram program = programs.GetDebugSelection(compilation, target.Declared!, target.Indexes, selected);
+        var container = new StructValue(program.Shape);
+        debug.Selected = path;
+        try
+        {
+            RunFrame(ref cursor, ref state, program, container);
+        }
+        finally
+        {
+            debug.Selected = null;
+        }
+
+        return CStruct.ExtractOnlyValue(container, selected.Name);
+    }
+
+    /// <summary>
     ///     Reads the struct or union a nested parse selects at its address, after checking that the path selects one:
-    ///     not a pointer's storage, no pointer level left, and a composite type.
+    ///     not a pointer's storage, no pointer level left, not a whole array or row of them, and a composite type.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
     /// <param name="state">The operation's state.</param>
     /// <param name="target">The resolved target.</param>
+    /// <param name="segments">The parsed path, which the failure names.</param>
     /// <param name="debugPrefix">The names a debug parse records the composite under, or <see langword="null"/>.</param>
     /// <returns>The struct or union value.</returns>
-    /// <exception cref="CStructPathException">The path does not select a struct or union.</exception>
-    private static object ReadTargetComposite<TCursor>(ref TCursor cursor, ref ReadEngineState state, in ResolvedPath target, List<string>? debugPrefix)
+    /// <exception cref="CStructPathException">The path does not select one struct or union.</exception>
+    private static object ReadTargetComposite<TCursor>(ref TCursor cursor, ref ReadEngineState state, in ResolvedPath target, IReadOnlyList<PathSegment> segments, List<string>? debugPrefix)
         where TCursor : struct, IReadCursor
     {
         bool stopsAtPointerStorage = target.Kind == ResolvedTargetKind.PointerAddress ||
                                      (target.Kind is ResolvedTargetKind.Field or ResolvedTargetKind.ArrayElement && target.Effective?.PointerDepth > 0);
-        if (stopsAtPointerStorage || target.RemainingPointerDepth > 0 || target.TargetComposite is not { } composite)
+
+        // A whole array (or a row of one) of structs is a list, which only a value read returns.
+        bool wholeArray = target.IsArray && !target.SelectsArrayElement;
+        if (stopsAtPointerStorage || wholeArray || target.RemainingPointerDepth > 0 || target.TargetComposite is not { } composite)
         {
-            throw new CStructPathException("The selected path does not resolve to a struct object.");
+            throw new CStructPathException(
+                $"'{ExceptionContext.FormatPath(segments)}' does not select a struct or union; use ReadValue or ReadValueWithDebug for a scalar, array, or pointer value.");
         }
 
         cursor.Position = target.Address;

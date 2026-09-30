@@ -26,32 +26,32 @@
   failure.offset = 0
 
 @test ConditionalMembers_PlaceLaterPathsWhereTheParseDoes
-@hash 3087d56fec71c86dfff7f7795196a6689c41ca7abb95f8ec1698f487fec4a576 3276
-  ok 1498, CStructPathException 842, CStructReadException 578, CStructReadLimitException 358
+@hash 25ce3e91dff4c20db6d7c93a6deb082d0c383ea9f44fe7892b67425ad73d7f65 3276
+  ok 1522, CStructPathException 818, CStructReadException 578, CStructReadLimitException 358
 
 @test MeasuredMembers_PlaceLaterPathsWhereTheParseDoes
-@hash fd73b4a32332853fda9ddb1c524217fb4dcf37ab0f1bc09ebd2644cb3d11bd0c 20596
-  ok 6766, CStructPathException 904, CStructReadException 4012, CStructReadLimitException 8914
+@hash e39fc887caa2388dacd36182601b009bab0343209c3497e9866460c58bded7f5 20596
+  ok 6812, CStructPathException 854, CStructReadException 4016, CStructReadLimitException 8914
 
 @test MemberShapes_ResolveEveryPath
-@hash 0bdd58e683ca41a06f2d58ad34f56ec5cba0679e7b64e4e06b9f88b4b47fc230 6338
-  ok 4554, CStructPathException 600, CStructReadException 766, CStructReadLimitException 418
+@hash 0b9e2de385d620cedb38b53dae64a97945c8c25363e89308500bbaf1abd927e4 6338
+  ok 4632, CStructPathException 522, CStructReadException 766, CStructReadLimitException 418
 
 @test NestedParses_ReadTheSelectedComposite
-@hash ace42973cddb5d6f12d9bb39cbca81ff48459c82c84e2f08c32fb8b112096ae6 594
-  ok 224, CStructPathException 178, CStructReadException 188, InvalidCastException 4
+@hash f19fb0bb600346b8d00f25d72b0787adafcb5349aacb2a4122135e338a1cbc75 594
+  ok 198, CStructPathException 210, CStructReadException 182, InvalidCastException 4
 
 @test PathFailures_AreReportedForEveryUnselectablePath
-@hash 893518c860df32f9de703bfb2496dfa9a9038597c9881f13d7a92eb5a8629433 2132
-  ok 390, CStructPathException 1508, CStructReadException 164, CStructReadLimitException 70
+@hash 45b07b328fc244d8b22b3f7a3161500b3861a5bb9ab3705c7a43d6d3f593046d 2132
+  ok 394, CStructPathException 1504, CStructReadException 164, CStructReadLimitException 70
 
 @test PointerPaths_FollowOnlyTheNamedPointers
-@hash c8360fd4a5a3b19d3f25095bc63857b429c1319cd88909bdb9a672ca708e0478 18188
-  ok 7250, CStructPathException 5097, CStructReadException 4067, CStructReadLimitException 1774
+@hash 22ef048968fd4ae1378dafccb1dd0207ce0c4fa0d8b7ff981530138f227724bd 18188
+  ok 7270, CStructPathException 5077, CStructReadException 4067, CStructReadLimitException 1774
 
 @test SelectedBitfields_ReadTheirPlacedUnit
-@hash 8e6de6063879e89925738d3a523bcf963a314382e5e17d0ce5ef4526c5604dd2 6104
-  ok 4346, CStructPathException 658, CStructReadException 702, CStructReadLimitException 398
+@hash ceffb0ed2ea37775ed0b5963452a44c370a9975800f20ce4e9510addf80eded6 6104
+  ok 4398, CStructPathException 604, CStructReadException 704, CStructReadLimitException 398
 
 @test UnionMeasures_CheckTheirCountsAgainstTheLimits
 @case ReadValue rec.tail (Span) (Fastest)

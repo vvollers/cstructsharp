@@ -1174,100 +1174,100 @@
   ok 64, ArgumentOutOfRangeException 16
 
 @test ReadOptions_DecodeFromMemoryAndStreams("bitfields")
-@hash ff3b7b530287912f45ee9032a1c5c79266a8d0a0819d4bda99925618c0e4615a 528 bitfields/packed
-  ok 432, CStructPathException 48, CStructReadException 48
-@hash 39d5f864250b4b03100246fa3253fd14693526c21910affa3bc3fda4a34f883f 528 bitfields/aligned
-  ok 432, CStructPathException 48, CStructReadException 48
+@hash bd3f99a356bb0b85519f537b3f26568c6d97cc8ab1bbc21a3ef5ceb494b6bead 528 bitfields/packed
+  ok 480, CStructReadException 48
+@hash 1a9a7e34aa3d7ef224c269088639ddcb3bea586f14171905696a58a09e8ea441 528 bitfields/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("bitfields-enum-counts")
-@hash e40141dca054ba463ba6696e500019f76667d5234a92bc2221471a6c231e42df 528 bitfields-enum-counts/packed
-  ok 432, CStructPathException 48, CStructReadException 48
-@hash ffe6f6adb73351c39e65bde3932e6111c052c5ea1a5f72cc6a9b19bf24da6c92 528 bitfields-enum-counts/aligned
-  ok 432, CStructPathException 48, CStructReadException 48
+@hash 6575743fde470161e5e7e27a4705c2871d25e4d68d22965bf55a9a63cf9c5ea2 528 bitfields-enum-counts/packed
+  ok 480, CStructReadException 48
+@hash 55285ad4894fbf8dbc9c741bc5216f15226b2897214a31e51e7dc3ee46fa6a05 528 bitfields-enum-counts/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("bitfields-high")
-@hash 273047be49dabb2e3e4b68689bef23acaf02fca4959f6ffcbacaaa643244a1e6 528 bitfields-high/packed
-  ok 432, CStructPathException 48, CStructReadException 48
-@hash 273047be49dabb2e3e4b68689bef23acaf02fca4959f6ffcbacaaa643244a1e6 528 bitfields-high/aligned
-  ok 432, CStructPathException 48, CStructReadException 48
+@hash 21948ae6172d4aaf1e3335a8612afd62e91a1417ad40e6ed3fb2a8c8daced7d6 528 bitfields-high/packed
+  ok 480, CStructReadException 48
+@hash 21948ae6172d4aaf1e3335a8612afd62e91a1417ad40e6ed3fb2a8c8daced7d6 528 bitfields-high/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("bitfields-msvc")
-@hash 093a0a60a6142c1c49b514166379b97482df65baa5c7a1d5093520b0c7b6e625 528 bitfields-msvc/packed
-  ok 432, CStructPathException 48, CStructReadException 48
-@hash 45ee5cdc9b8f92ee26737d13d7941c4e9df98ceeba56076100638af4a9eafbf4 528 bitfields-msvc/aligned
-  ok 432, CStructPathException 48, CStructReadException 48
+@hash 76d30adaf73b3340b02f8ecda2734d6ca23f5eae4ed7db9fd6673c0a508ef9c8 528 bitfields-msvc/packed
+  ok 480, CStructReadException 48
+@hash fb0ad850d5c8125a86e1405efbeff8c5737712a4e65035d2576f582fc4674e24 528 bitfields-msvc/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("conditional")
-@hash a6776e0d552395312d7d589e262c934871a9a93ccdf40fd39a6bc0dee15929ee 528 conditional/packed
-  ok 384, CStructPathException 144
-@hash 0f7347fe59aedeb0fabbc996f9007bea4d8d035cd246ab73a50f53038b34fca9 528 conditional/aligned
-  ok 384, CStructPathException 144
+@hash c157135891fc5d28ac12b3f40af3096579b206ba374819d2e953831a9b36b2b2 528 conditional/packed
+  ok 432, CStructPathException 96
+@hash 1e883ca6ea2be1fcd0c236fe59bb2af4fc60157dab3c59d8870301f3f9204313 528 conditional/aligned
+  ok 432, CStructPathException 96
 
 @test ReadOptions_DecodeFromMemoryAndStreams("count")
-@hash e3819c8faf6d703c70f75c102b15d4c977c1bbd4438070be661476924ea3042a 528 count/packed
-  ok 432, CStructPathException 48, CStructReadException 48
-@hash 08e481e0a0759af5b8ffb327e2931968abca67cc3de876ac24790e4f52482153 528 count/aligned
-  ok 432, CStructPathException 48, CStructReadException 48
+@hash 494adac7dd36ae0121260dd0b66f388dc3780deb8ae27cd0ee379687bd8598b6 528 count/packed
+  ok 480, CStructReadException 48
+@hash 1e36f5aad6e424a5f6d3ee0f6725d909ea3b2e8793fee6403547f9f6c1611a1e 528 count/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("custom-codec")
-@hash c6ce2780be31f4d62ef5eb79619acb000cfc08422662ce5b129e5899746611f2 480 custom-codec/packed
-  ok 384, CStructPathException 48, CStructReadException 48
-@hash c6ce2780be31f4d62ef5eb79619acb000cfc08422662ce5b129e5899746611f2 480 custom-codec/aligned
-  ok 384, CStructPathException 48, CStructReadException 48
+@hash 95c9a7754c86c9768be19391fa56529f9d9438a41c2f60b806dc502d5a988072 480 custom-codec/packed
+  ok 432, CStructReadException 48
+@hash 95c9a7754c86c9768be19391fa56529f9d9438a41c2f60b806dc502d5a988072 480 custom-codec/aligned
+  ok 432, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("custom-fixed")
-@hash bef3f2ee2a5e83160df2543c0ec819c0d3ebc48c46da4c8b94d575fa0daa311a 528 custom-fixed/packed
-  ok 432, CStructPathException 48, CStructReadException 48
-@hash 4f454d7a3d45cd4b99c5453769025dee8c04d78c3f8fbd43c822f2b30a13df29 528 custom-fixed/aligned
-  ok 432, CStructPathException 48, CStructReadException 48
+@hash 947981202be3f9873902ac8f81387a21bc87ab102eaeab21c8ec72ee6ac12a65 528 custom-fixed/packed
+  ok 480, CStructReadException 48
+@hash 978f4ef75437b265a3fda74d1eb569aec749580d86793e00ca693e0bfb77e207 528 custom-fixed/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("enum-bitfield")
-@hash 563c85505afa8843106057b2f1c02b73e22552a2904630839f10c3641300ea70 528 enum-bitfield/packed
-  ok 432, CStructPathException 48, CStructReadException 48
-@hash 0a16928020b6fe8be54b0a544f294a1d91dfa25359b6d0a67dcf8ce969a5a984 528 enum-bitfield/aligned
-  ok 432, CStructPathException 48, CStructReadException 48
+@hash 6fc192fb0776ba67329e5bf563225c2ec29f158c5dc57a0ae0350ee24f17eee5 528 enum-bitfield/packed
+  ok 480, CStructReadException 48
+@hash e5155a0a7bffa3a3cb3af334008b6d63d76caa4fb785e20e6d55da6ffc1a3de3 528 enum-bitfield/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("fixed")
-@hash a63dff30de2211d08e0b7509aec73ec066b58093842e1e367a0ebc0765aa9934 528 fixed/packed
-  ok 480, CStructPathException 48
-@hash d16dab66412d23d0342f79008e958576ee71be6b25fa76a98c39ac0d65215121 528 fixed/aligned
-  ok 480, CStructPathException 48
+@hash 0cb302bd2720691c12b434bfd64d66c94fe9b27e602d86051723ea51cd581e87 528 fixed/packed
+  ok 528
+@hash 797f07ec562c0ccf9170fb389087d19b2ab0554a52841506ba27d3a80f633e89 528 fixed/aligned
+  ok 528
 
 @test ReadOptions_DecodeFromMemoryAndStreams("inline-qualified")
-@hash 6bb4cb4998600c48a20e95255282c146adfc96ab927a8a8303c7ff970e2a9618 528 inline-qualified/packed
-  ok 432, CStructPathException 48, CStructReadException 48
-@hash 63ef294c439c6f1d6af4cca9c07a9c86110831bcf327b8c6cce6ee9dc4022622 528 inline-qualified/aligned
-  ok 432, CStructPathException 48, CStructReadException 48
+@hash 4067b541647a4aad9874e316b4cb59509a9e667f85fb2932ed45aa506d61e755 528 inline-qualified/packed
+  ok 480, CStructReadException 48
+@hash 0e0c467d70a921b8f7deec42507879254610ad8ded9c30c7ddd8081e3f58c7bb 528 inline-qualified/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("leb128")
-@hash 55ea676bb4f49b5cd67c5ab673df94198e1254f39f1f6d7abcbba3544d906d7b 528 leb128/packed
-  ok 432, CStructPathException 48, CStructReadException 48
-@hash 55ea676bb4f49b5cd67c5ab673df94198e1254f39f1f6d7abcbba3544d906d7b 528 leb128/aligned
-  ok 432, CStructPathException 48, CStructReadException 48
+@hash 9fa45382664f7919fd7def70c63b57705c6044058b4c4c4a77fb642534a8e1ec 528 leb128/packed
+  ok 480, CStructReadException 48
+@hash 9fa45382664f7919fd7def70c63b57705c6044058b4c4c4a77fb642534a8e1ec 528 leb128/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("multidim")
-@hash 698bc2c8256975eea606a9c1722a868d970af86d1dc2185af72bc87b494ccca3 624 multidim/packed
-  ok 528, CStructPathException 48, CStructReadException 48
-@hash 5d28d7baa823c6c5a8396dca45078f3f4971c4961dd27af8718ad525907d7b02 624 multidim/aligned
-  ok 528, CStructPathException 48, CStructReadException 48
+@hash 40b82994abf749bbe14884abe228a72a10c72a2d7c7170834a08a53a97575f6d 624 multidim/packed
+  ok 576, CStructReadException 48
+@hash 88fe7ef4d1be78198db3542c33db7513caeed7c7d6cf948fa77c44d19b0c93f8 624 multidim/aligned
+  ok 576, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("multidim-structs")
-@hash e3d1ef05de13db0a72533c492a18ca2221ed7d8b1fb1d2ba25f11580a4597a29 576 multidim-structs/packed
+@hash 299c68fd0843a85694cfbebff9065af7bca2963f94a8360a1f4a12cd5f7e61a3 576 multidim-structs/packed
   ok 528, CStructReadException 48
-@hash bf1c644d00d52194664d3ef4afa802d4022c5a496e7f2439cce1f21e2e728d0d 576 multidim-structs/aligned
+@hash f06ab78cf1418f4be05feb795462c3e591e7e7f468bdd18894287ba71688d50a 576 multidim-structs/aligned
   ok 528, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("nested")
-@hash c32b0b60ae5bdd168de96994040fda7f86cf7096af7fc5873d7cbf8e9ea91027 528 nested/packed
-  ok 432, CStructPathException 48, CStructReadException 48
-@hash f32dff8d73b32603f7f85b1f9cd203a1fb121f6a6cd36b8ace307de32b755d4a 528 nested/aligned
-  ok 432, CStructPathException 48, CStructReadException 48
+@hash d9e15ce6482f3121342f5f65dd60ca4e1607af66bc4bd3040a2f314e6367c056 528 nested/packed
+  ok 480, CStructReadException 48
+@hash 18beddb249ed889946de5eb1039e9b2bc5d289714236ebcffb395fccf6d2e5f8 528 nested/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("pointer-arrays")
-@hash 37ff74c2baa08738c7e73da971a5a64bcc893bf59229d767b7f08ee71a0f7aef 528 pointer-arrays/packed
-  ok 364, CStructPathException 48, CStructReadException 116
-@hash 37ff74c2baa08738c7e73da971a5a64bcc893bf59229d767b7f08ee71a0f7aef 528 pointer-arrays/aligned
-  ok 364, CStructPathException 48, CStructReadException 116
+@hash b01532679a01f5d393980840eb1996440bec9dec029dd9313b5c6b23727ffc96 528 pointer-arrays/packed
+  ok 404, CStructReadException 124
+@hash b01532679a01f5d393980840eb1996440bec9dec029dd9313b5c6b23727ffc96 528 pointer-arrays/aligned
+  ok 404, CStructReadException 124
 
 @test ReadOptions_DecodeFromMemoryAndStreams("pointer-counted")
 @hash 1219929bda1462b3f799b271b68a828e7363b896bbf47650a91b3418a4dc2291 528 pointer-counted/packed
@@ -1282,10 +1282,10 @@
   ok 324, CStructPathException 56, CStructReadException 148
 
 @test ReadOptions_DecodeFromMemoryAndStreams("pointer-views")
-@hash a62da9133058657d078bbcda3d896600137d985b33531ab7cefb917c3bebc24f 528 pointer-views/packed
-  ok 360, CStructPathException 48, CStructReadException 120
-@hash a62da9133058657d078bbcda3d896600137d985b33531ab7cefb917c3bebc24f 528 pointer-views/aligned
-  ok 360, CStructPathException 48, CStructReadException 120
+@hash 14648596a8f33b38438376a009e33794de36ba20898e46b37cca49f2b36a2c57 528 pointer-views/packed
+  ok 396, CStructReadException 132
+@hash 14648596a8f33b38438376a009e33794de36ba20898e46b37cca49f2b36a2c57 528 pointer-views/aligned
+  ok 396, CStructReadException 132
 
 @test ReadOptions_DecodeFromMemoryAndStreams("pointers")
 @hash b7892f925f194705d4ec8d904e186487365548b209b10a9e6f7d1e44e6728b31 576 pointers/packed
@@ -1294,46 +1294,46 @@
   ok 348, CStructPathException 152, CStructReadException 76
 
 @test ReadOptions_DecodeFromMemoryAndStreams("promoted")
-@hash a76244fb0faf7cbab08801968f571143942719af08e0e4808a5641b7e67510ce 528 promoted/packed
-  ok 432, CStructPathException 48, CStructReadException 48
-@hash ebfe953165205bc56570e6271e05c1ff8f78402bfb07f032cefcf33cd01b3027 528 promoted/aligned
-  ok 432, CStructPathException 48, CStructReadException 48
+@hash 7f8dae225ba0f29be86a61381f3941c5dd24928294e16dd6528450b0b5be16da 528 promoted/packed
+  ok 480, CStructReadException 48
+@hash dc3aa57d9d96f5b2430d2a4d830d930706d860a09b9215b19be32ee8f36c382e 528 promoted/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("promoted-union")
-@hash 0beeb3f0d18ec44e5fa7307a3e3cde6bcd02d1bf3d0124a85f09a0ff5d571541 528 promoted-union/packed
-  ok 432, CStructPathException 48, CStructReadException 48
-@hash bef98e9419ebea09a5fc090fbd91819ca5f515eeb9c486663f4a7742b1a52adb 528 promoted-union/aligned
-  ok 432, CStructPathException 48, CStructReadException 48
+@hash 49763fb9fba5279dbd3448d18a836fe9d86358cea10ed1923ddc2dd94096a53d 528 promoted-union/packed
+  ok 480, CStructReadException 48
+@hash df9bb515d93417a42f4c90397a541b1a4e4ff1543964aefe3d646eb8e5856f6f 528 promoted-union/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("terminated")
-@hash a4456093c5f68f893e67a27a9956bb707af0f59da41bda545d898ad4a5896a4b 528 terminated/packed
-  ok 480, CStructPathException 48
-@hash a4456093c5f68f893e67a27a9956bb707af0f59da41bda545d898ad4a5896a4b 528 terminated/aligned
-  ok 480, CStructPathException 48
+@hash 7e456655a358eec80d457124852e46e173007bdf425f4bb374d34c44bf763354 528 terminated/packed
+  ok 528
+@hash 7e456655a358eec80d457124852e46e173007bdf425f4bb374d34c44bf763354 528 terminated/aligned
+  ok 528
 
 @test ReadOptions_DecodeFromMemoryAndStreams("terminated-scalars")
-@hash f23b53936786983680b8f1ce8e039b6bf992e0191e02935074712593d4a1fcc2 528 terminated-scalars/packed
-  ok 432, CStructPathException 48, CStructReadException 48
-@hash 688ce8770b595734ef04fa6b9eef1c590189680e6daa4a28cde36d4be0b464d1 528 terminated-scalars/aligned
-  ok 432, CStructPathException 48, CStructReadException 48
+@hash 777b38924fcea80e18ff10c456e702f2f8b86af01c8862a7df30fd525cf15927 528 terminated-scalars/packed
+  ok 480, CStructReadException 48
+@hash f58f16d8b586934bbcdf97254ea116aac43304d803ddfb86436031a0812a49e0 528 terminated-scalars/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("text")
-@hash 086a5b999291a9bc40accb7e7167c7341396bf089bbe366de41c43b581a92638 528 text/packed
-  ok 480, CStructPathException 48
-@hash c9858c6808e9f43c309b996a3218b5f6372852f957d699e127b49816157baf69 528 text/aligned
-  ok 480, CStructPathException 48
+@hash 21b192ae3c1ae510130a66053626f151e39cc55e1fc5546b93dc49affa9c331e 528 text/packed
+  ok 528
+@hash ae3edab51f5d15e014ff57905c56b1204c79d6a59e1329813b247bf89a360953 528 text/aligned
+  ok 528
 
 @test ReadOptions_DecodeFromMemoryAndStreams("to-end")
-@hash e50b9b79c87a98645d0ec9e61834af2f77d966c9e87f027ba8ae0bd5b860de4a 480 to-end/packed
-  ok 384, CStructPathException 48, CStructReadException 48
-@hash e50b9b79c87a98645d0ec9e61834af2f77d966c9e87f027ba8ae0bd5b860de4a 480 to-end/aligned
-  ok 384, CStructPathException 48, CStructReadException 48
+@hash da16a41c760d6b9fca7706142fbfdbfb9a136d441a7aa2469256f904fa08de9f 480 to-end/packed
+  ok 432, CStructReadException 48
+@hash da16a41c760d6b9fca7706142fbfdbfb9a136d441a7aa2469256f904fa08de9f 480 to-end/aligned
+  ok 432, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("to-end-structs")
-@hash e43f58796b66d51d37c26cc0f7471e04003dd240168718ea6fd38d81aded8c3e 528 to-end-structs/packed
-  ok 432, CStructPathException 48, CStructReadException 48
-@hash 7dec54920b75f1ee791bbf7fdbfe43f5abd1dce06c014da2702a00dde5e6f572 528 to-end-structs/aligned
-  ok 432, CStructPathException 48, CStructReadException 48
+@hash 264de7da17f5e13bd4ba1a6d0642897e5365ea094048a4f6c80e8ff3d3305f9f 528 to-end-structs/packed
+  ok 480, CStructReadException 48
+@hash 051245dbe7c74893378d9a9f813111bbf0fce835fa9c8bcdb1d767669a56e612 528 to-end-structs/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("union")
 @hash af372f471483a90250183bae75b805dc56125019880875da642720c4d58956e8 528 union/packed
@@ -1342,10 +1342,10 @@
   ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("union-arrays")
-@hash 80db59dd110ff0ecdfbd19334d315beb2c110953ae6eb503fd07fb37c3b0104f 528 union-arrays/packed
-  ok 432, CStructPathException 48, CStructReadException 48
-@hash d2b34ae99196a766368fbb5479e7e6e6e0b734d1c594d3681110c53a3c3cff6e 528 union-arrays/aligned
-  ok 432, CStructPathException 48, CStructReadException 48
+@hash 22e908ab5837c0b8e7b7a009af53e5c0871c7bd98b06b25adbc09ee3f1fcb2c1 528 union-arrays/packed
+  ok 480, CStructReadException 48
+@hash 6709eb4e6386b55341c86653245bfa53c85b4b0fc80ebe2191512dd42377680d 528 union-arrays/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("union-bitfields")
 @hash 98e41c158e43610a6566638ad82b4108e4509f4fde451dab2a0fd586f51e35e8 528 union-bitfields/packed
@@ -1360,52 +1360,52 @@
   ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("union-nested")
-@hash 72480995d11672c629412545f6fd2463cfd3fb5b16e4f907b67851b8dbd4dab5 576 union-nested/packed
-  ok 480, CStructPathException 48, CStructReadException 48
-@hash 25d1cbcabdbe1bdcab04634627136c5c463964e8f0281d51529d646549711d84 576 union-nested/aligned
-  ok 480, CStructPathException 48, CStructReadException 48
+@hash 60f6951102081769bcfaee7c8d4909874b312f62813d288d4719ecb8047f513f 576 union-nested/packed
+  ok 528, CStructReadException 48
+@hash 2cd885fd72ebcd0e6cae1fe72af92f9dd08e6388a4cb90c39230af189028572e 576 union-nested/aligned
+  ok 528, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("variables")
-@hash 908aaad9052b8fddba9c5e7175eae494855f90670a50c933590f8a3582a24d0e 480 variables/packed
-  ok 384, CStructPathException 48, CStructReadException 48
-@hash 908aaad9052b8fddba9c5e7175eae494855f90670a50c933590f8a3582a24d0e 480 variables/aligned
-  ok 384, CStructPathException 48, CStructReadException 48
+@hash 7b47510dd3859e776458fa62c6d7654ebdaaa3a1fbb2b10c3d245a52abba2fe6 480 variables/packed
+  ok 432, CStructReadException 48
+@hash 7b47510dd3859e776458fa62c6d7654ebdaaa3a1fbb2b10c3d245a52abba2fe6 480 variables/aligned
+  ok 432, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("write-codecs")
-@hash b3e18bb89a1dbb20dbba6b3897d6314c109a9a10e222082b0dfe208ec0b052b6 528 write-codecs/packed
-  ok 432, CStructPathException 48, CStructReadException 48
-@hash 6a24f148dce7c71101f6bd8ca54f60b9a463bae6b06c8b05699a2b17039189ba 528 write-codecs/aligned
-  ok 432, CStructPathException 48, CStructReadException 48
+@hash 7219bb31b180fb39361c3528e1b7a21a46c4776125f04c4b15522b9eaf5ad8ce 528 write-codecs/packed
+  ok 480, CStructReadException 48
+@hash b5dcf3a2e1e7737b599e1e612039b40644e59a7e991dd5f030ea08d2bdbe6219 528 write-codecs/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("write-enums")
-@hash 5175542e0f69d71c794ad1908dcad5d3b22cf63ed1b9aac482e06988dbe303d3 528 write-enums/packed
-  ok 432, CStructPathException 48, CStructReadException 48
-@hash a106e7adbf84914063a1cbbea53e86c478002da059b31656c34d4e2a4ca0759e 528 write-enums/aligned
-  ok 432, CStructPathException 48, CStructReadException 48
+@hash 04ceab524c26508771f0371cecc608701549f3c606281446e105f0467571e1d0 528 write-enums/packed
+  ok 480, CStructReadException 48
+@hash a090de31ff504350a451b70982d0772d61d3988e742b86064f4fc524864ff75e 528 write-enums/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("write-padding")
-@hash f3060e89c7fd90ef7cf908ea4c44f95d4286434ab37f92195b02490cadc5bb1b 528 write-padding/packed
-  ok 432, CStructPathException 48, CStructReadException 48
-@hash cba107273d88b552ec9b8d4f9bf6045f613094ae82446bc396a93a3d167f569c 528 write-padding/aligned
-  ok 432, CStructPathException 48, CStructReadException 48
+@hash e0def9e48f3b11e395d37e689c195d6da57ad88258a8a23ae446103aaac32dd1 528 write-padding/packed
+  ok 480, CStructReadException 48
+@hash 41225d45a552c1716c35e23aae6b1fc0653e57b8e9ec56ea6b07bd7a21863e73 528 write-padding/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("write-qualified")
-@hash 8ee5ad452161c97e35c0532e895cc0a166966bed0e4fdd60674fb89963f775f8 528 write-qualified/packed
-  ok 432, CStructPathException 48, CStructReadException 48
-@hash 67e07d7f0ecb884b0b00000bcfa7102df96c44aa3e2d785b88973d978e088380 528 write-qualified/aligned
-  ok 432, CStructPathException 48, CStructReadException 48
+@hash c6736c5e220ed02a9f4e84e70a88d0f890c7393752d578b1004a866d383c6da7 528 write-qualified/packed
+  ok 480, CStructReadException 48
+@hash 364d17232646c579e4a166e9d530112488ea1a9ca9c729d4c1a1daca736f8671 528 write-qualified/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("write-scope")
-@hash b77da1fd7f273e14bc1bda0ae2f1d8ccb0bb05137d2503e6daf53712c21413be 528 write-scope/packed
-  ok 432, CStructPathException 48, CStructReadException 48
-@hash bede0510235538de2b4a30f1188006e0fa6475a777c6244f88a7093dbc9e44f1 528 write-scope/aligned
-  ok 432, CStructPathException 48, CStructReadException 48
+@hash dc41468481d0dbff618b95b1004dc5c8bdda038df365fd79401e18805f48560d 528 write-scope/packed
+  ok 480, CStructReadException 48
+@hash 7d3c89d396bfd24a19eb08ab88456e2211ae08132ee1d2894675d052518be266 528 write-scope/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("write-text")
-@hash 64f797330327e2e6dba5c9f600767c01a363216a02f1076b8ec1dbbba245e7c1 528 write-text/packed
-  ok 480, CStructPathException 48
-@hash e344486ebf6fdbd8a616a05a75180068bbe1ce07e130ef7ac47daa3e9b27ea64 528 write-text/aligned
-  ok 480, CStructPathException 48
+@hash a766734f8c3b69451270d5c9e1a6683d3b9dac326e764acaf99f85d0418ae274 528 write-text/packed
+  ok 528
+@hash 7a6136dbe9ec801b2d7f9c24e92ec9c5715f8d25e0dd2e719484e3dd1435829b 528 write-text/aligned
+  ok 528
 
 @test RecordSequences_ReadFromEverySource("bitfields")
 @hash e51b8137b7a43ab7be2d08f71bd4dfbbf51e2d1fbaf272da89ac28eb1257562f 48 bitfields/packed

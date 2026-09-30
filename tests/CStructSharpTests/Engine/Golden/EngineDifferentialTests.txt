@@ -288,7 +288,7 @@
   data = [5] 0280010509
 
 @test DebugParses_RecordValuesAndByteRanges
-@hash a5d0643a670a5c878028cd18a7de8d26bcaeb404c9a4b4affeeb44b5090b144c 26
+@hash e1a9389b4f2884cc3241d0459338bdbb0407611a10db2e78f7d6718b34c66004 26
   ok 21, CStructReadException 5
 
 @test FixedRecord_ReadsThroughEveryOperationInputAndPath

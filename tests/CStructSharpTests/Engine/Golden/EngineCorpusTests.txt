@@ -44,7 +44,7 @@
   ok 37, CStructWriteException 2
 
 @test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("compile-k100")
-@hash 7d8b4fe320b05ec0bd4ed4c3ccd85a2cf57338a06722e142cea93b726887d06e 16
+@hash 198f457364543580341d8a2702e5e5267380a7bee70965611f403b9f0563b042 16
   CStructPathException 16
 
 @test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("compile-large-512")

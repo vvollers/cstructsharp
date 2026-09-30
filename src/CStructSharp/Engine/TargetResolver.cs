@@ -402,7 +402,7 @@ internal static partial class TargetResolver
         bool readScansTarget = walk.ReadsTarget && pathIndex == walk.Segments.Count - 1 && resolved.Array.Kind == CompiledArrayKind.Terminated;
         int? arrayLength = remainingIsArray && !readScansTarget ? Count(ref cursor, ref state, resolved, member, elementStart, allDimensions: false) : null;
         int? selectedIndex = segment.Indexes.Count > 0 && !remainingIsArray ? segment.Indexes[^1] : null;
-        walk.DebugPrefix?.Add(declared.Name);
+        walk.DebugPrefix?.Add(DebugSegment(declared, segment));
         if (remainingIsArray && pathIndex + 1 < walk.Segments.Count)
         {
             throw new CStructPathException("An array index is required before traversing: " + segment.Name);
@@ -809,6 +809,31 @@ internal static partial class TargetResolver
     /// <returns>Whether it is such an array.</returns>
     private static bool IsArray(CompiledField field)
         => field.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime or CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated;
+
+    /// <summary>
+    ///     The debug path segment a debug read of the target records a member under, as a whole-root debug parse names it:
+    ///     an element or row of a struct, union or composite-pointer array keeps the path's indexes (<c>items[1]</c>,
+    ///     <c>grid[1][2]</c>), because every element of such an array has a path of its own; any other member is its name
+    ///     alone, as the elements of a scalar array share their member's path.
+    /// </summary>
+    /// <param name="declared">The member's declared field.</param>
+    /// <param name="segment">The path segment that names it, with the indexes it applies.</param>
+    /// <returns>The segment.</returns>
+    private static string DebugSegment(CompiledField declared, PathSegment segment)
+    {
+        if (segment.Indexes.Count == 0 || declared.TargetComposite is null)
+        {
+            return declared.Name;
+        }
+
+        var text = new System.Text.StringBuilder(declared.Name);
+        foreach (int index in segment.Indexes)
+        {
+            text.Append('[').Append(index).Append(']');
+        }
+
+        return text.ToString();
+    }
 
     /// <summary>Returns the walk of a member's struct or union, cached on the member.</summary>
     /// <param name="state">The operation's state.</param>

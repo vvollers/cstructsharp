@@ -10,7 +10,9 @@ This is useful for hex viewers, format inspectors, and error reports.
 
 Use `ParseWithDebug` when you need a struct's values and ranges together; it returns a `ParseResult` whose `Value`
 is the same `StructValue` that `Parse` returns and whose `Debug` list holds one `DebugData` record per value read.
-`ReadValueWithDebug` does the same for any selection (a union, an array, a scalar) and returns a `ReadResult`. Use
+`ParseWithDebug`, like `Parse`, accepts only a path that selects one struct or union. `ReadValueWithDebug` does the
+same for any selection (a struct, a union, an array, one element, a scalar, a bitfield, a pointer, an enum or a
+string) and returns a `ReadResult` whose `Value` is what `ReadValue` returns. Use
 `ResolveAddress` when you need only the absolute stream position of one path. `DebugData` lives in the
 `CStructSharp.Diagnostics` namespace.
 
@@ -38,6 +40,41 @@ Each `DebugData` record is an immutable value with the item's `Path` (`sample.va
 positions, `TypeName`, and decoded `Value`. Select the bytes from your own input with `Start..End`; only a union
 captured as raw storage carries its bytes in `Bytes`. Treat records as diagnostic output. They expose exact input
 values, so filter them before sending them outside your application's trusted logs or diagnostic tools.
+
+## Ranges of one selection
+
+`ReadValueWithDebug` records only what the selected value needs, and it names each record exactly as a debug parse
+of the whole root would. This packed layout uses one-byte pointers:
+
+```c
+struct pair { uint8 a; uint8 b; };
+struct root {
+    uint8 head;       /* byte 0 */
+    uint16 value;     /* bytes 1-2 */
+    pair items[2];    /* bytes 3-6 */
+    uint8 codes[2];   /* bytes 7-8 */
+    uint8 low:3;      /* byte 9, bits 0-2 */
+    uint8 high:5;     /* byte 9, bits 3-7 */
+    pair *link;       /* byte 10: the address of the target */
+};
+```
+
+With input `00 34 12 01 02 03 04 07 08 AB 0B 11 22`, the target of `link` is the `pair` at bytes 11-12:
+
+| Path | Value | Records |
+| --- | --- | --- |
+| `root.value` | `4660` | `root.value [1, 3)` |
+| `root.items[1]` | a `StructValue` | `root.items[1].a [5, 6)`, `root.items[1].b [6, 7)` |
+| `root.items` | a list of two structs | one record per member of each element, under `root.items[0]` and `root.items[1]` |
+| `root.codes` | an array of the bytes 7 and 8 | `root.codes [7, 8)`, `root.codes [8, 9)`: one record per element |
+| `root.codes[1]` | `8` | `root.codes [8, 9)` |
+| `root.high` | `21` | `root.high [9, 10)`: a bitfield covers its whole storage unit |
+| `root.link.address` | `11` | `root.link [10, 11)`: the stored address |
+| `root.link.value` | a `StructValue` | `root.link.a [11, 12)`, `root.link.b [12, 13)` |
+
+The elements of a struct array keep their index in the path because each element has members of its own. The
+elements of a scalar array share their member's path, as they do in a whole-root parse. A pointer target's records
+use the pointer's path, and a null pointer's `.value` returns `null` with no records.
 
 ## Resolve a position without returning the value
 

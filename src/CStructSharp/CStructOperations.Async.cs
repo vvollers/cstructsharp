@@ -42,7 +42,7 @@ public sealed partial class CStruct
     /// <param name="options">Optional read limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
     /// <param name="cancellationToken">Ends the read while it waits for bytes or at the next boundary the reader checks.</param>
     /// <returns>The struct's values.</returns>
-    /// <exception cref="CStructPathException">The path is invalid, or selects a union or scalar rather than a struct.</exception>
+    /// <exception cref="CStructPathException">The path is invalid, or selects a union, an array or a scalar rather than one struct.</exception>
     /// <exception cref="CStructReadException">The stream cannot provide or decode the required bytes.</exception>
     /// <exception cref="OperationCanceledException">The token was cancelled.</exception>
     public unsafe ValueTask<StructValue> ParseAsync(
@@ -138,11 +138,7 @@ public sealed partial class CStruct
             stream,
             options,
             cancellationToken,
-            (byte* region, int length, ReadOptions? effective, out long consumed) =>
-            {
-                (List<DebugData> debug, object value) = this.ParseRegionCore(region, length, root, input, effective, debug: true, out consumed);
-                return new ReadResult(value, debug);
-            },
+            (byte* region, int length, ReadOptions? effective, out long consumed) => this.ReadValueWithDebugCore(region, length, root, input, effective, out consumed),
             static (result, origin) => origin == 0 ? result : new ReadResult(result.Value, Shift(result.Debug, origin)));
     }
 

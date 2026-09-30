@@ -55,7 +55,7 @@ public class ResolvedTargetOperationTests
         stream.Position = 0;
         (dynamic _, IReadOnlyList<DebugData> debug) = cstruct.ParseWithDebug(stream, "root.items[1]");
         Assert.IsTrue(
-            debug.Any(item => item.Start == 8 && item.End == 10 && item.Path == "root.items.value"));
+            debug.Any(item => item.Start == 8 && item.End == 10 && item.Path == "root.items[1].value"));
 
         stream.Position = 0;
         cstruct.Update(stream, "root.items[1].value", (ushort)0xABCD);

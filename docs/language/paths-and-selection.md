@@ -101,9 +101,10 @@ either name normally.
 
 | Operation | What a path selects |
 | --- | --- |
-| `Parse` | A root or nested struct |
-| `ReadValue` / `ReadValue<T>` | A root, nested object, union, scalar, or array item |
-| `ParseWithDebug` / `ReadValueWithDebug` | A value plus ranges visited while reading it |
+| `Parse` | A root or nested struct, or one element of a struct array |
+| `ReadValue` / `ReadValue<T>` | A root, nested object, union, scalar, bitfield, enum, string, pointer, whole array, or array item |
+| `ParseWithDebug` | What `Parse` selects, plus the range of every value read |
+| `ReadValueWithDebug` | What `ReadValue` selects, plus the range of every value read |
 | `ResolveAddress` | The absolute stream position of the selected storage/target |
 | `GetArrayLength` | A fixed/runtime array or terminated string |
 | `Serialize` / `Write` | The value shape to encode |
