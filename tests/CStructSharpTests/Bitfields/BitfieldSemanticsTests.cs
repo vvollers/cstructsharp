@@ -393,6 +393,7 @@ public class BitfieldSemanticsTests
     /// </summary>
     [TestMethod]
     [DoNotParallelize]
+    [TestCategory(TestCategories.Allocation)]
     public void BitfieldUpdate_AllocatesNoStorageBuffers()
     {
         var layout = new CStruct("struct root { uint8 plain; uint8 bits:3; uint8 more:5; };");

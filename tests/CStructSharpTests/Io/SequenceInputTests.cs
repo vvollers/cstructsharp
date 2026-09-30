@@ -46,6 +46,7 @@ public class SequenceInputTests
     /// <remarks>Run alone and compare repeated steady-state minima so one-time runtime or coverage-instrumentation allocations do not affect the equality check.</remarks>
     [TestMethod]
     [DoNotParallelize]
+    [TestCategory(TestCategories.Allocation)]
     public void SingleSegment_ReadsInPlace()
     {
         var layout = new CStruct(Layout, pointerSize: 8);

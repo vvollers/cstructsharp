@@ -17,6 +17,7 @@ public class DefinitionResolutionBoundaryTests
     /// <summary>Fresh literal overrides need no expression compilation compared with previously supplied literals.</summary>
     [TestMethod]
     [DoNotParallelize]
+    [TestCategory(TestCategories.Allocation)]
     public void LiteralOverrides_DoNotCompileDependencyPrograms()
     {
         var resolver = new LayoutVariableResolver([], new ExpressionEvaluator(new ExpressionEvaluationLimits(256, 100_000)));
@@ -50,6 +51,8 @@ public class DefinitionResolutionBoundaryTests
     [TestMethod]
     [DataRow(false)]
     [DataRow(true)]
+    [DoNotParallelize]
+    [TestCategory(TestCategories.Allocation)]
     public void UnchangedDefinitions_AllocateOnlyTheOperationCopy(bool emptyOverrides)
     {
         var definitions = new Definition[32];

@@ -13,6 +13,7 @@ public class TypedConversionBoundaryTests
     /// <remarks>Independent steady-state minima remove one-time runtime overhead without allowing extra per-element allocation.</remarks>
     [TestMethod]
     [DoNotParallelize]
+    [TestCategory(TestCategories.Allocation)]
     public void PrimitiveArrayConversion_AvoidsPerElementBoxing()
     {
         int[] values = Enumerable.Range(0, 256).ToArray();

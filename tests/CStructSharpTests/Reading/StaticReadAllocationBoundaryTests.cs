@@ -13,6 +13,8 @@ public class StaticReadAllocationBoundaryTests
 {
     /// <summary>Small character scratch buffers stay on the stack; larger ones move to the heap to bound stack growth.</summary>
     [TestMethod]
+    [DoNotParallelize]
+    [TestCategory(TestCategories.Allocation)]
     public void CharacterScratch_ChangesStorageAbove256CodeUnits()
     {
         int[] lengths = [255, 256, 257,];
@@ -48,6 +50,8 @@ public class StaticReadAllocationBoundaryTests
     [TestMethod]
     [DataRow(false)]
     [DataRow(true)]
+    [DoNotParallelize]
+    [TestCategory(TestCategories.Allocation)]
     public void FixedRecords_AllocateLessThanGeneralDecoding(bool runtimeCount)
     {
         string root = runtimeCount
@@ -84,6 +88,7 @@ public class StaticReadAllocationBoundaryTests
     [DataRow(65536, false)]
     [DataRow(65536, true)]
     [DataRow(65537, false)]
+    [TestCategory(TestCategories.Allocation)]
     public void FixedBlock_RespectsItsSizeAndOwnership(int size, bool fail)
     {
         var layout = new CStruct("struct root { char payload[" + size + "]; };", aligned: true);

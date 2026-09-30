@@ -47,6 +47,8 @@ public class ArrayLimitTests
 
     /// <summary>A memory-backed read with a huge count allocates almost nothing before failing.</summary>
     [TestMethod]
+    [DoNotParallelize]
+    [TestCategory(TestCategories.Allocation)]
     public void HugeCountOnShortMemory_FailsBeforeAllocating()
     {
         var layout = new CStruct(Layout);

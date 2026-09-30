@@ -202,6 +202,8 @@ public class StructValueTests
     ///     each struct costs one slot array and one object header, not a growing dictionary and DLR class chain.
     /// </summary>
     [TestMethod]
+    [DoNotParallelize]
+    [TestCategory(TestCategories.Allocation)]
     public void NestedParse_AllocatesOneSlotArrayPerStruct()
     {
         var cstruct = new CStruct(NestedLayout);

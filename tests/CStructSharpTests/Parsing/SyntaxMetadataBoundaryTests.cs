@@ -39,6 +39,7 @@ public class SyntaxMetadataBoundaryTests
     [DoNotParallelize]
     [DataRow(false)]
     [DataRow(true)]
+    [TestCategory(TestCategories.Allocation)]
     public void KnownBitWidth_ReadsWithoutRepeatedEvaluationAllocation(bool resolved)
     {
         var type = new Identifier("uint8");

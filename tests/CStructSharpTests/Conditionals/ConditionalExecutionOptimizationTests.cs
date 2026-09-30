@@ -65,6 +65,8 @@ public class ConditionalExecutionOptimizationTests
 
     /// <summary>Common scalar selectors must not silently regress to allocating a full evaluation session.</summary>
     [TestMethod]
+    [DoNotParallelize]
+    [TestCategory(TestCategories.Allocation)]
     public void SimpleSelectors_AllocateLessThanFullSessions()
     {
         foreach (string source in new[] { "42", "a", "-a", "~a", "!a", "a+b", "a==b" })
@@ -153,6 +155,8 @@ public class ConditionalExecutionOptimizationTests
     [TestMethod]
     [DataRow(128, true)]
     [DataRow(1024, false)]
+    [DoNotParallelize]
+    [TestCategory(TestCategories.Allocation)]
     public void PrimitiveScopeMetadata_HasBoundedAllocation(int count, bool grouped)
     {
         var source = new StringBuilder("struct root { uint8 tag; ");

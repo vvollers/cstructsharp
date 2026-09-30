@@ -93,6 +93,7 @@ public class WriterStateBoundaryTests
     /// </summary>
     [TestMethod]
     [DoNotParallelize]
+    [TestCategory(TestCategories.Allocation)]
     public void UnqualifiedNestedField_AllocatesNoMoreThanTheFlatWrite()
     {
         var nested = new CStruct("struct child { uint8 value; uint8 n; uint8 items[n]; }; struct root { child nested; };");

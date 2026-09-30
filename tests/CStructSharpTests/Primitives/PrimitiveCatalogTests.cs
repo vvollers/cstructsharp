@@ -63,6 +63,7 @@ public class PrimitiveCatalogTests
     /// <summary>Layouts without custom codecs do not allocate replacement catalog dictionaries.</summary>
     [TestMethod]
     [DoNotParallelize]
+    [TestCategory(TestCategories.Allocation)]
     public void EmptyRegistration_DoesNotAllocateCatalogCopies()
     {
         PrimitiveCatalog catalog = PrimitiveCatalog.For(true, 64);

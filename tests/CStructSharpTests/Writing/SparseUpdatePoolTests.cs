@@ -64,6 +64,7 @@ public class SparseUpdatePoolTests
     /// <summary>Two distant edits allocate only their sparse pages and compact metadata, not the untouched input extent.</summary>
     [TestMethod]
     [DoNotParallelize]
+    [TestCategory(TestCategories.Allocation)]
     public void DistantWrites_KeepPageMetadataSmall()
     {
         using var baseline = new MemoryStream(new byte[1024 * 1024]);

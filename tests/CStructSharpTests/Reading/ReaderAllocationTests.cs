@@ -12,6 +12,7 @@ using CStructSharp.Values;
 /// </summary>
 [TestClass]
 [DoNotParallelize]
+[TestCategory(TestCategories.Allocation)]
 public class ReaderAllocationTests
 {
     /// <summary>

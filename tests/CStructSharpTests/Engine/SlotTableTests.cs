@@ -21,6 +21,8 @@ public class SlotTableTests
     ///     without it.
     /// </summary>
     [TestMethod]
+    [DoNotParallelize]
+    [TestCategory(TestCategories.Allocation)]
     public void SlotTable_IsBuiltLazily_AndNotByConstruction()
     {
         string definition = PrimitiveScopeDefinition(200);
@@ -199,6 +201,8 @@ public class SlotTableTests
     ///     array), capturing literals, and evaluating leaf-safe programs, including their failures' absence.
     /// </summary>
     [TestMethod]
+    [DoNotParallelize]
+    [TestCategory(TestCategories.Allocation)]
     public void LeafPath_AndSlotCreation_AllocateNothing()
     {
         var layout = new CStruct("struct root { uint8 kind; uint16 count; if (kind == 1) { uint8 a[count * 4 + 1]; } else { uint8 b[count ? count - 1 : 0]; } };");

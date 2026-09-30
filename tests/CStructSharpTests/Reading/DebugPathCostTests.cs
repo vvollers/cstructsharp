@@ -9,6 +9,8 @@ public class DebugPathCostTests
 {
     /// <summary>Consumers may revisit a debug path many times without formatting it again.</summary>
     [TestMethod]
+    [DoNotParallelize]
+    [TestCategory(TestCategories.Allocation)]
     public void RepeatedDebugPathAccess_DoesNotAllocate()
     {
         var layout = new CStruct("struct cell { uint8 value; }; struct root { cell cells[2]; };");
