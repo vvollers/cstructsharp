@@ -150,6 +150,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Fixed
 
+- Browser package: a number `origin` option (`origin: 10`, as `index.d.ts` allows) failed as `invalid-json`; it is
+  now read as its decimal text, so `10` and `"10"` give the same result, and a fraction or an out-of-range number is
+  `invalid-input` with the origin message.
 - On .NET 8, a layout expression that divides a value of 64 bits or more by zero fails with `DivideByZeroException`
   (reported as the usual expression failure), as on .NET 10; it threw an index or argument exception.
 - In aligned layouts, `Serialize`, `Write` and `WriteAsync` place an unsized wide-character array (`wchar name[]`) at its

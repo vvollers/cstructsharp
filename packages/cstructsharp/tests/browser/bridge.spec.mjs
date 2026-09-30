@@ -333,6 +333,37 @@ test("invalid addressing modes and origins are invalid-input with the accepted v
   expect(results.largestOrigin).toMatchObject({ success: true, data: { value: 0 } });
 });
 
+test("a number origin gives what its decimal text gives, and a non-integer number is invalid-input", async ({ page }) => {
+  const results = await page.evaluate(async () => {
+    const { api, bytes, plain } = window.bridge;
+    // The stored offset 2 plus the origin -1 addresses byte 1, the 0x2a target.
+    const definition = "struct root { uint8 *ptr; };";
+    /** Options for a one-byte relative pointer with the given origin. */
+    const relative = (origin) => ({ root: "root", pointerSize: 1, addressingMode: "Relative", origin });
+    // A write takes the same options; a null pointer keeps the value itself independent of the origin.
+    const value = { ptr: null };
+    return {
+      parseNumber: plain(await api.parseWithDebug(definition, bytes("02 2a"), relative(-1))),
+      parseText: plain(await api.parseWithDebug(definition, bytes("02 2a"), relative("-1"))),
+      serializeNumber: plain(await api.serialize(definition, value, relative(-1))),
+      serializeText: plain(await api.serialize(definition, value, relative("-1"))),
+      updateNumber: plain(await api.update(definition, bytes("02 2a"), "root.ptr.value", 7, relative(-1))),
+      updateText: plain(await api.update(definition, bytes("02 2a"), "root.ptr.value", 7, relative("-1"))),
+      fraction: await api.parseWithDebug(definition, bytes("02 2a"), relative(1.5)),
+      beyondInt64: await api.parseWithDebug(definition, bytes("02 2a"), relative(1e30)),
+    };
+  });
+
+  for (const operation of ["parse", "serialize", "update"]) {
+    expect(results[`${operation}Number`].success, operation).toBe(true);
+    expect(results[`${operation}Number`], operation).toEqual(results[`${operation}Text`]);
+  }
+  const originMessage = "Option origin must be a decimal integer from -9223372036854775808 through 9223372036854775807.";
+  for (const name of ["fraction", "beyondInt64"]) {
+    expect(results[name], name).toMatchObject({ success: false, error: { code: "invalid-input", message: originMessage } });
+  }
+});
+
 test("every managed export returns the envelope, and TakeOutput hands over write output once", async ({ page }) => {
   const results = await page.evaluate(async () => {
     const { api } = window.bridge;

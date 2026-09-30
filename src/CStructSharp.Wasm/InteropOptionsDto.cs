@@ -171,9 +171,12 @@ public sealed class InteropOptionsDto
 
     /// <summary>
     ///     The signed base position for relative pointers, as decimal text so large values stay exact (the adapter
-    ///     converts a number or bigint); 0 when omitted. A parse adds it to relative offsets, a write subtracts it.
+    ///     sends a bigint as its decimal text); 0 when omitted. A JSON number is accepted as its literal text, so
+    ///     <c>origin: 10</c> and <c>origin: "10"</c> are the same option. A parse adds it to relative offsets, a
+    ///     write subtracts it.
     /// </summary>
     [JsonPropertyName("origin")]
+    [JsonConverter(typeof(DecimalTextConverter))]
     public string? Origin { get; set; }
 
     /// <summary>The stored pointer width in bytes: 1, 2, 4, or 8; 8 when omitted. Other values are rejected.</summary>
