@@ -100,6 +100,12 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   `MemorySchema.GetCompiledName` are internal; `PointerRequest.TargetTypeId` is non-nullable. Migration: decode LEB128
   with `ReadCursor.TakeLeb128`; for alignment, move `Position` to the padded offset (writers: `Pad` the gap); use
   `MemorySchema.Types` and `GetType` for metadata; drop null checks on `TargetTypeId`.
+- **Breaking (npm raw adapter):** `RawWasmAdapter` in `index.d.ts` declares what the adapter from
+  `loadCStructSharpWasm()` really has (`resolveAddressSource`, `collectBytes`, `getStaticPlan` and the `writers`
+  argument of `compile`) and no longer has `exports`, which also left the runtime object because calling the managed
+  exports directly bypassed the output handshake. The adapter checks at load that every managed export the page and the
+  source worker call is present. Migration: call `serialize`, `updateStream`, `parseBytes` or `getStaticPlan` on the
+  adapter instead of `exports.CStructSharpWeb.Wasm.CStructExports`, or use the public `parse`/`parseWithDebug`.
 
 ### Added
 

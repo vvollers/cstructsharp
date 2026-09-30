@@ -51,7 +51,9 @@ function writeResult(
 function installAdapter(overrides: Partial<RawWasmAdapter> = {}): RawWasmAdapter {
   const adapter: RawWasmAdapter = {
     compile: vi.fn() as unknown as RawWasmAdapter["compile"],
-    exports: {},
+    resolveAddressSource: vi.fn() as unknown as RawWasmAdapter["resolveAddressSource"],
+    collectBytes: vi.fn() as unknown as RawWasmAdapter["collectBytes"],
+    getStaticPlan: vi.fn() as unknown as RawWasmAdapter["getStaticPlan"],
     ready: true,
     error: null,
     parseWithDebug: vi.fn(() => JSON.stringify(validParseResult)),

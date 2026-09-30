@@ -20,7 +20,6 @@ import {
 
 /** The global the bootstrap publishes when the runtime failed to load. */
 interface CStructSharpWasmFailed {
-  exports: null;
   ready: false;
   error: string;
 }

@@ -9,7 +9,6 @@ try {
 } catch (cause) {
   const error = cause instanceof Error ? cause : new Error(String(cause));
   window.CStructSharpWasm = {
-    exports: null,
     ready: false,
     error: error.message,
   };

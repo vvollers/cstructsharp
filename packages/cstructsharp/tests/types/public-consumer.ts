@@ -69,6 +69,14 @@ const rawResult = raw.serialize(definition, '{"value":"42"}');
 const rawBytes: Uint8Array | null = rawResult.success ? rawResult.data : null;
 const rawVersion: 9 = rawResult.contractVersion;
 console.log(version, rawBytes, rawVersion);
+const rawPlan = raw.getStaticPlan(definition, { root: "root" });
+const planRoot: string | null = rawPlan.success && rawPlan.data !== null ? rawPlan.data.root : null;
+const collected: Uint8Array = await raw.collectBytes(new Blob([new Uint8Array(2)]), { maxSpoolBytes: 16 });
+const rawAddress = await raw.resolveAddressSource(definition, collected, "root.value");
+const rawLayout = await raw.compile(definition, null, { serialize, update });
+console.log(planRoot, rawAddress.operation, rawLayout.root);
+// @ts-expect-error The raw adapter does not expose the managed exports; writes go through serialize/updateStream.
+void raw.exports;
 
 await parse(definition, new Blob([new Uint8Array(8)]), { bitfieldPacking: "Msvc", cLongWidth: 32 });
 await parse(definition, new DataView(new ArrayBuffer(8)), { signal: AbortSignal.abort() });

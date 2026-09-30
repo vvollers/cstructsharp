@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import test from "node:test";
 
-import { createCStructSharpWasm } from "./bootstrap.js";
+import { MAIN_THREAD_EXPORTS, WORKER_EXPORTS, createCStructSharpWasm } from "./bootstrap.js";
 
 /**
  * The JSON text of an envelope as the managed exports write it.
@@ -50,11 +51,6 @@ function createExports(calls) {
       pending = null;
       return output;
     },
-    /** Records an address request and returns a marker. */
-    ResolveAddress(...args) {
-      calls.push(["ResolveAddress", args]);
-      return "resolve-address";
-    },
     /** Returns the version envelope. */
     GetVersion() {
       calls.push(["GetVersion", []]);
@@ -66,6 +62,13 @@ function createExports(calls) {
       return managedEnvelope("staticPlan", null, null, "root");
     },
   };
+
+  // The source worker calls these in its own runtime; the page's adapter only checks that they exist.
+  for (const name of WORKER_EXPORTS) {
+    managed[name] = () => {
+      throw new Error(`${name} runs in the source worker, not on the page.`);
+    };
+  }
 
   return {
     CStructSharpWeb: {
@@ -142,6 +145,19 @@ test("adapter binds every managed export and normalizes boundary values", () => 
     ["GetStaticPlan", ["layout", '{"root":"root"}']],
     ["GetVersion", []],
   ]);
+  // The main-thread list names exactly the exports the adapter's synchronous operations call.
+  assert.deepEqual(new Set(calls.map(([name]) => name)), new Set(MAIN_THREAD_EXPORTS));
+});
+
+test("the worker list names exactly the managed exports the source worker calls", () => {
+  const worker = fs.readFileSync(new URL("./source-worker.js", import.meta.url), "utf8");
+  const called = new Set([...worker.matchAll(/managed\.(\w+)\(/g)].map((match) => match[1]));
+
+  assert.deepEqual(called, new Set(WORKER_EXPORTS));
+  assert.deepEqual(
+    MAIN_THREAD_EXPORTS.filter((name) => WORKER_EXPORTS.includes(name)),
+    [],
+  );
 });
 
 test("a failed write returns the managed error envelope without taking output", () => {
@@ -181,8 +197,8 @@ test("a write whose handed-over bytes do not match the envelope is rejected", ()
   assert.throws(() => adapter.serialize("layout", "{}"), /invalid serialize output/);
 });
 
-test("adapter rejects a missing managed export at initialization", () => {
-  for (const name of ["UpdateStream", "TakeOutput"]) {
+test("adapter rejects a missing main-thread or worker export at initialization", () => {
+  for (const name of [...MAIN_THREAD_EXPORTS, ...WORKER_EXPORTS]) {
     const exports = createExports([]);
     delete exports.CStructSharpWeb.Wasm.CStructExports[name];
 

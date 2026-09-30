@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createCStructSharpWasm } from "./bootstrap.js";
+import { WORKER_EXPORTS, createCStructSharpWasm } from "./bootstrap.js";
 import { serialize, update, parseWithDebug, getVersion } from "./cstructsharp-wasm.js";
 
 /** The member order of every envelope, as the managed writer produces it. */
@@ -51,8 +51,6 @@ test("public wrapper returns byte arrays for writes, preserves errors and parse 
       pending = null;
       return output;
     },
-    /** Unused by this test. */
-    ResolveAddress: () => "",
     /** Returns the version envelope. */
     GetVersion: () =>
       JSON.stringify({
@@ -67,6 +65,12 @@ test("public wrapper returns byte arrays for writes, preserves errors and parse 
     /** Unused: the adapter is only asked for plans by parse, which this test does not call. */
     GetStaticPlan: () => "",
   };
+  // The source worker's exports run in their own runtime; the adapter only checks that they exist.
+  for (const name of WORKER_EXPORTS) {
+    managed[name] = () => {
+      throw new Error(`${name} runs in the source worker, not on the page.`);
+    };
+  }
   // The real adapter over those exports, so the public functions run the whole JavaScript side of the transport.
   globalThis.CStructSharpWasm = {
     ...createCStructSharpWasm({ CStructExports: managed }),

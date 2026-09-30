@@ -1,9 +1,9 @@
 /**
  * The browser contract of the npm package, exercised through its public API (`parse`, `parseWithDebug`,
  * `serialize`, `update`) on the real WebAssembly runtime: value shapes, byte results, exact 64-bit values, option
- * handling, and one release-safe error shape per failure category; and the managed exports' own transport (one
- * envelope per export, write output handed over by TakeOutput). Byte results are compared as hex text because a
- * Uint8Array cannot leave the page unchanged.
+ * handling, and one release-safe error shape per failure category; the raw adapter's envelopes; and the managed
+ * exports' own transport (one envelope per export, write output handed over by TakeOutput). Byte results are
+ * compared as hex text because a Uint8Array cannot leave the page unchanged.
  */
 import { expect, test } from "@playwright/test";
 
@@ -364,10 +364,14 @@ test("a number origin gives what its decimal text gives, and a non-integer numbe
   }
 });
 
-test("every managed export returns the envelope, and TakeOutput hands over write output once", async ({ page }) => {
+test("the raw adapter returns each managed envelope, and TakeOutput hands over write output once", async ({ page }) => {
   const results = await page.evaluate(async () => {
-    const { api } = window.bridge;
-    const managed = window.CStructSharpWasm.exports.CStructSharpWeb.Wasm.CStructExports;
+    const { api, plain } = window.bridge;
+    const adapter = window.CStructSharpWasm;
+    // The adapter does not expose the managed exports; .NET's own runtime registry reaches them, so the transport
+    // rules the adapter relies on (TakeOutput once, a later envelope drops unclaimed output) stay tested.
+    const runtime = globalThis.getDotnetRuntime(0);
+    const managed = (await runtime.getAssemblyExports("CStructSharpWeb.Wasm")).CStructSharpWeb.Wasm.CStructExports;
     const definition = "struct root { uint8 value; };";
     /** Calls TakeOutput and reports either the bytes or the thrown message. */
     const take = () => {
@@ -398,11 +402,16 @@ test("every managed export returns the envelope, and TakeOutput hands over write
       takeAfterOtherExport,
       version,
       publicVersion: await api.getVersion(),
-      plan: JSON.parse(managed.GetStaticPlan(definition, "{}")),
-      noPlan: JSON.parse(managed.GetStaticPlan("union root { uint8 small; uint16 large; };", "{}")),
-      badPlanOptions: JSON.parse(managed.GetStaticPlan(definition, '{"maxDefinitionLength":0}')),
+      adapterVersion: adapter.getVersion(),
+      adapterSerialized: plain(adapter.serialize(definition, '{"value":42}', { root: "root" })),
+      adapterFailed: adapter.serialize(definition, '{"value":256}', { root: "root" }),
+      adapterUpdated: plain(adapter.updateStream(definition, new Uint8Array([0]), "root.value", "7")),
+      plan: adapter.getStaticPlan(definition),
+      noPlan: adapter.getStaticPlan("union root { uint8 small; uint16 large; };"),
+      badPlanOptions: adapter.getStaticPlan(definition, { maxDefinitionLength: 0 }),
+      // Malformed options JSON cannot come from the adapter, which always writes valid JSON.
       malformedPlanOptions: JSON.parse(managed.GetStaticPlan(definition, "{")),
-      emptyPlanDefinition: JSON.parse(managed.GetStaticPlan("", "{}")),
+      emptyPlanDefinition: adapter.getStaticPlan(""),
     };
   });
 
@@ -429,6 +438,11 @@ test("every managed export returns the envelope, and TakeOutput hands over write
   expect(results.version).toMatchObject({ contractVersion: 9, operation: "version", success: true, root: null, debug: [], error: null });
   expect(results.version.data.version).toMatch(/^CStructSharp WASM \d/);
   expect(results.publicVersion).toBe(results.version.data.version);
+  expect(results.adapterVersion).toBe(results.version.data.version);
+
+  expect(results.adapterSerialized).toEqual({ ...results.serialized, data: "2a" });
+  expect(results.adapterFailed).toEqual(results.failed);
+  expect(results.adapterUpdated).toMatchObject({ operation: "update", success: true, data: "07", error: null });
 
   expect(results.plan).toMatchObject({
     contractVersion: 9,

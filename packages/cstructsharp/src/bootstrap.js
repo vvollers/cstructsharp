@@ -5,6 +5,18 @@
 import { parseEnvelope, stringifyInteropJson } from "./cstructsharp-shared.js";
 import { collectBytes, compileLargeSource, parseLargeSource, resolveAddressLargeSource } from "./large-source.js";
 
+/** The managed exports the adapter calls on the page's own thread. */
+export const MAIN_THREAD_EXPORTS = Object.freeze(["ParseBytes", "Serialize", "UpdateStream", "TakeOutput", "GetVersion", "GetStaticPlan"]);
+
+/** The managed exports the source worker (source-worker.js) calls for staged, compiled and address reads. */
+export const WORKER_EXPORTS = Object.freeze([
+  "ParseSource",
+  "InitializeCompiledLayout",
+  "ParseCompiledSource",
+  "ResolveAddress",
+  "ResolveAddressCompiled",
+]);
+
 /**
  * Binds the managed exports to the synchronous adapter the public API and the apps call.
  * @param {object} assemblyExports The runtime's assembly exports, nested (`CStructSharpWeb.Wasm.CStructExports`) or flat.
@@ -18,22 +30,11 @@ export function createCStructSharpWasm(assemblyExports) {
     throw new Error("Managed CStructExports object was not found.");
   }
 
-  const required = [
-    "ParseBytes",
-    "Serialize",
-    "UpdateStream",
-    "TakeOutput",
-    "ResolveAddress",
-    "GetVersion",
-    "GetStaticPlan",
-  ];
-  const missing = required.filter(
-    (name) => typeof managed[name] !== "function",
-  );
+  // The worker loads the same assembly, so its exports are checked here too: a bundle that lacks one fails at load,
+  // not at the first large or compiled read.
+  const missing = [...MAIN_THREAD_EXPORTS, ...WORKER_EXPORTS].filter((name) => typeof managed[name] !== "function");
   if (missing.length > 0) {
-    throw new Error(
-      `Managed CStruct exports are missing: ${missing.join(", ")}`,
-    );
+    throw new Error(`Managed CStruct exports are missing: ${missing.join(", ")}`);
   }
 
   /**
@@ -59,7 +60,6 @@ export function createCStructSharpWasm(assemblyExports) {
   }
 
   return {
-    exports: assemblyExports,
     parseSource: parseLargeSource,
     /**
      * A dedicated worker runtime that retains one compiled layout. The public API supplies its serialize/update

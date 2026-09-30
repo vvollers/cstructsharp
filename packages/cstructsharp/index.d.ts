@@ -204,22 +204,62 @@ export type BinarySource =
   | { getFile(): Promise<File> };
 
 /**
- * Advanced raw transport API. Binary data crosses the boundary as a native Uint8Array, never Base64 text.
- * The byte parses return the envelope's JSON text; serialize/updateStream return the envelope itself, with the
- * produced bytes as `data` on success and the structured error on failure, exactly like the public operations.
+ * The envelope of the static read plan a fully fixed root has. `data` is null when the root has no static plan
+ * (a variable-length or union root); a failure reports invalid options or input. The plan's shape is an internal
+ * detail of the public parse's fast path, not a stable format.
+ */
+export type StaticPlanResult = {
+  contractVersion: 9;
+  operation: "staticPlan";
+  root: string | null;
+  debug: DebugItem[];
+} & (
+  | { success: true; data: { root: string; plan: unknown } | null; error: null }
+  | { success: false; data: null; error: ErrorDetails }
+);
+
+/**
+ * Advanced raw transport API: the object the runtime publishes once it is ready. Binary data crosses the boundary
+ * as a native Uint8Array, never Base64 text. The byte parses return the envelope's JSON text; serialize/updateStream
+ * return the envelope itself, with the produced bytes as `data` on success and the structured error on failure,
+ * exactly like the public operations. Prefer the public operations below.
  */
 export interface RawWasmAdapter {
-  compile(definition: string, options?: (CompileOptions & OperationOptions) | null): Promise<CompiledLayout>;
+  /**
+   * Compile a layout into a dedicated worker runtime. `writers` supplies the functions the compiled layout's
+   * serialize/update call on the calling thread (the public API passes its own `serialize` and `update`); a
+   * layout compiled without them rejects its writes.
+   */
+  compile(
+    definition: string,
+    options?: (CompileOptions & OperationOptions) | null,
+    writers?: { serialize?: typeof serialize; update?: typeof update },
+  ): Promise<CompiledLayout>;
   ready: true;
   error: null;
-  exports: unknown;
-  /** Asynchronous staged-source API. Prefer the public parse/parseWithDebug. */
+  /** Parse any binary source in the shared worker; `debug` (default true) records every value's byte range. */
   parseSource(
     definition: string,
     source: BinarySource,
     options?: (CompileOptions & ParseOptions) | null,
     debug?: boolean,
   ): Promise<ParseResult>;
+  /** Resolve the absolute byte position of a path in the shared worker; the source is staged like a parse. */
+  resolveAddressSource(
+    definition: string,
+    source: BinarySource,
+    path: string,
+    options?: (CompileOptions & ParseOptions) | null,
+  ): Promise<Result<number | string, "resolveAddress">>;
+  /**
+   * Read a whole binary source into one Uint8Array. A buffer or view is returned as a view without copying; any
+   * other source is read completely, bounded by `maxSpoolBytes`.
+   */
+  collectBytes(
+    source: BinarySource,
+    options?: Pick<ParseOptions, "signal" | "maxSpoolBytes"> | null,
+  ): Promise<Uint8Array>;
+  /** Synchronous byte-array parse that records every value's byte range; the JSON text of a ParseResult envelope. */
   parseWithDebug(definition: string, bytes: Uint8Array, options?: (CompileOptions & ParseOptions) | null): string;
   /** Synchronous byte-array parse; the JSON text of a ParseResult envelope. */
   parseBytes(
@@ -240,6 +280,8 @@ export interface RawWasmAdapter {
     json: string,
     options?: (CompileOptions & UpdateOptions) | null,
   ): Result<Uint8Array, "update">;
+  /** The static read plan of a root, which the public parse uses to read small fixed inputs directly. */
+  getStaticPlan(definition: string, options?: (CompileOptions & OperationOptions) | null): StaticPlanResult;
   getVersion(): string;
 }
 /** Load the runtime, or reject if it cannot load. Prefer the public operations below. */
