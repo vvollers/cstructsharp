@@ -507,6 +507,7 @@ namespace Demo
         }
 
         /// <summary>Reads one <c>root</c> at the cursor's position.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static Root ReadRoot(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             cursor.EnterComposite(member ?? "root", memberType);
@@ -588,6 +589,7 @@ namespace Demo
         }
 
         /// <summary>Reads one <c>choice</c> at the cursor's position.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static RootChoice ReadRootChoice(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             cursor.EnterComposite(member ?? "choice", memberType);
@@ -622,6 +624,7 @@ namespace Demo
         }
 
         /// <summary>Reads one <c>pos</c> member by member at the cursor's position, when <see cref="ReadRootPos"/> cannot use the fixed reader.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static RootPos ReadRootPosMembers(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             cursor.EnterComposite(member ?? "pos", memberType);
@@ -942,6 +945,7 @@ namespace Demo
         }
 
         /// <summary>Writes one <c>root</c> at the cursor's position.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static void EncodeRoot(ref global::CStructSharp.Generated.WriteCursor cursor, Root? value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             if (value is null)
@@ -1029,6 +1033,7 @@ namespace Demo
         }
 
         /// <summary>Writes one <c>choice</c> at the cursor's position.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static void EncodeRootChoice(ref global::CStructSharp.Generated.WriteCursor cursor, RootChoice? value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             if (value is null)
@@ -1090,6 +1095,7 @@ namespace Demo
         }
 
         /// <summary>Writes one <c>pos</c> member by member at the cursor's position, when <see cref="EncodeRootPos"/> cannot use the fixed writer.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static void EncodeRootPosMembers(ref global::CStructSharp.Generated.WriteCursor cursor, RootPos value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             cursor.EnterComposite(member ?? "pos", memberType);

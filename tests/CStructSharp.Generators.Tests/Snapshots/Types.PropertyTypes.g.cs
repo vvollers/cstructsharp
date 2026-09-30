@@ -1010,6 +1010,7 @@ namespace Demo
         }
 
         /// <summary>Reads one <c>inner</c> member by member at the cursor's position, when <see cref="ReadInner"/> cannot use the fixed reader.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static Inner ReadInnerMembers(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             cursor.EnterComposite(member ?? "inner", memberType);
@@ -1027,6 +1028,7 @@ namespace Demo
         }
 
         /// <summary>Reads one <c>root</c> at the cursor's position.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static Root ReadRoot(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             cursor.EnterComposite(member ?? "root", memberType);
@@ -1895,6 +1897,7 @@ namespace Demo
         }
 
         /// <summary>Writes one <c>inner</c> member by member at the cursor's position, when <see cref="EncodeInner"/> cannot use the fixed writer.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static void EncodeInnerMembers(ref global::CStructSharp.Generated.WriteCursor cursor, Inner value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             cursor.EnterComposite(member ?? "inner", memberType);
@@ -1911,6 +1914,7 @@ namespace Demo
         }
 
         /// <summary>Writes one <c>root</c> at the cursor's position.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static void EncodeRoot(ref global::CStructSharp.Generated.WriteCursor cursor, Root? value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             if (value is null)

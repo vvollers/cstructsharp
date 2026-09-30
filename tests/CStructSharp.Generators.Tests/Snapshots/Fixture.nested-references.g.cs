@@ -846,6 +846,7 @@ namespace Demo
         }
 
         /// <summary>Reads one <c>h</c> member by member at the cursor's position, when <see cref="ReadH"/> cannot use the fixed reader.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static H ReadHMembers(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             cursor.EnterComposite(member ?? "h", memberType);
@@ -869,6 +870,7 @@ namespace Demo
         }
 
         /// <summary>Reads one <c>root</c> at the cursor's position.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static Root ReadRoot(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             cursor.EnterComposite(member ?? "root", memberType);
@@ -1148,6 +1150,7 @@ namespace Demo
         }
 
         /// <summary>Writes one <c>h</c> member by member at the cursor's position, when <see cref="EncodeH"/> cannot use the fixed writer.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static void EncodeHMembers(ref global::CStructSharp.Generated.WriteCursor cursor, H value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             cursor.EnterComposite(member ?? "h", memberType);
@@ -1170,6 +1173,7 @@ namespace Demo
         }
 
         /// <summary>Writes one <c>root</c> at the cursor's position.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static void EncodeRoot(ref global::CStructSharp.Generated.WriteCursor cursor, Root? value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             if (value is null)

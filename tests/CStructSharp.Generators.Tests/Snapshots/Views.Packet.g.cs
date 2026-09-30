@@ -864,6 +864,7 @@ namespace Demo
         }
 
         /// <summary>Reads one <c>hdr</c> at the cursor's position.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static Hdr ReadHdr(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             cursor.EnterComposite(member ?? "hdr", memberType);
@@ -957,6 +958,7 @@ namespace Demo
         }
 
         /// <summary>Reads one <c>root</c> at the cursor's position.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static Root ReadRoot(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             cursor.EnterComposite(member ?? "root", memberType);
@@ -1244,6 +1246,7 @@ namespace Demo
         public static global::System.Threading.Tasks.ValueTask WriteAsync(global::System.IO.Stream stream, Root value, global::CStructSharp.WriteOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default) => WriteRootAsync(stream, value, null, options, cancellationToken);
 
         /// <summary>Writes one <c>hdr</c> at the cursor's position.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static void EncodeHdr(ref global::CStructSharp.Generated.WriteCursor cursor, Hdr? value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             if (value is null)
@@ -1324,6 +1327,7 @@ namespace Demo
         }
 
         /// <summary>Writes one <c>root</c> at the cursor's position.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static void EncodeRoot(ref global::CStructSharp.Generated.WriteCursor cursor, Root? value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             if (value is null)

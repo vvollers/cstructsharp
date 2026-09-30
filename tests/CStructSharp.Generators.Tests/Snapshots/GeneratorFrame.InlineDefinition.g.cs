@@ -473,6 +473,7 @@ namespace Demo
         }
 
         /// <summary>Reads one <c>header</c> member by member at the cursor's position, when <see cref="ReadHeader"/> cannot use the fixed reader.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static Header ReadHeaderMembers(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             cursor.EnterComposite(member ?? "header", memberType);
@@ -642,6 +643,7 @@ namespace Demo
         }
 
         /// <summary>Writes one <c>header</c> member by member at the cursor's position, when <see cref="EncodeHeader"/> cannot use the fixed writer.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static void EncodeHeaderMembers(ref global::CStructSharp.Generated.WriteCursor cursor, Header value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             cursor.EnterComposite(member ?? "header", memberType);

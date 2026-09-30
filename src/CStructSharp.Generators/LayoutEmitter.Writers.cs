@@ -156,7 +156,8 @@ internal sealed partial class LayoutEmitter
     /// <remarks>
     ///     The split keeps the fixed path cheap: the JIT inlines a hot <c>Encode&lt;Type&gt;</c> into its caller, and a
     ///     member-by-member body in the same method would be inlined with it and use up the inlining budget, so the
-    ///     span and codec helpers of the fixed writer would stay calls.
+    ///     span and codec helpers of the fixed writer would stay calls. For the same reason the method that holds the
+    ///     member-by-member steps is never inlined (<see cref="Emit.NoInlining"/>).
     /// </remarks>
     /// <param name="writer">The generated source destination.</param>
     /// <param name="composite">The composite whose writer is emitted.</param>
@@ -164,17 +165,25 @@ internal sealed partial class LayoutEmitter
     {
         string name = composite.Name;
         string parameters = "(ref " + WriteCursorType + " cursor, " + name + "? value, " + VariablesType + " variables, string? member, string? memberType)";
+        FixedPlan? plan = this.IsFixedWritable(composite, 0) ? this.FixedPlanOf(composite, 0) : null;
         writer.Line("/// <summary>Writes one <c>" + composite.LayoutName + "</c> at the cursor's position.</summary>");
+        if (plan is null)
+        {
+            writer.Line(NoInlining);
+        }
+
         writer.Open("private static void Encode" + name + parameters);
         writer.Open("if (value is null)");
         writer.Line("throw cursor.Fail(" + SourceWriter.Literal(WriteFailures.NullComposite(composite.LayoutName)) + ", member, memberType);");
         writer.Close();
-        if (this.EmitFixedWriterShortcut(writer, composite))
+        if (plan is not null)
         {
+            this.EmitFixedWriterShortcut(writer, composite, plan);
             writer.Line("Encode" + name + "Members(ref cursor, value, variables, member, memberType);");
             writer.Close();
             writer.Line();
             writer.Line("/// <summary>Writes one <c>" + composite.LayoutName + "</c> member by member at the cursor's position, when " + Cref("Encode" + name) + " cannot use the fixed writer.</summary>");
+            writer.Line(NoInlining);
             writer.Open("private static void Encode" + name + "Members(ref " + WriteCursorType + " cursor, " + name + " value, " + VariablesType + " variables, string? member, string? memberType)");
         }
 

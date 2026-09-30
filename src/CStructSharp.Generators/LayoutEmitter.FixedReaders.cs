@@ -37,19 +37,13 @@ internal sealed partial class LayoutEmitter
     /// <summary>Emits the fast-path test at the top of a composite's <c>Read&lt;Type&gt;</c>, when it has a fixed reader.</summary>
     /// <param name="writer">The generated source destination, inside the reader before the composite is entered.</param>
     /// <param name="composite">The composite being read.</param>
-    /// <returns>Whether the composite has a fixed reader, so that the test was emitted.</returns>
-    private bool EmitFixedReaderShortcut(SourceWriter writer, GeneratedComposite composite)
+    /// <param name="plan">The fixed plan of the composite.</param>
+    private void EmitFixedReaderShortcut(SourceWriter writer, GeneratedComposite composite, FixedPlan plan)
     {
-        if (this.FixedPlanOf(composite, 0) is not { } plan)
-        {
-            return false;
-        }
-
         // Alignment only constrains the start in an aligned layout; a packed layout places members by size alone.
         writer.Open("if (cursor.TryTakeFixed(" + Int(plan.Size) + ", " + Int(this.request.Settings.Aligned ? plan.Alignment : 1) + ", " + plan.ChargedBytes.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", " + Int(plan.NestingLevels) + ", " + Int(plan.MaximumArrayCount) + ", out global::System.ReadOnlySpan<byte> fixedBytes))");
         writer.Line("return Read" + composite.Name + "Fixed(fixedBytes, cursor.TrimFixedText);");
         writer.Close();
-        return true;
     }
 
     /// <summary>Emits one composite's fixed reader.</summary>

@@ -833,6 +833,7 @@ namespace Demo
         }
 
         /// <summary>Reads one <c>chunk</c> member by member at the cursor's position, when <see cref="Readchunk"/> cannot use the fixed reader.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static chunk ReadchunkMembers(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             cursor.EnterComposite(member ?? "chunk", memberType);
@@ -860,6 +861,7 @@ namespace Demo
         }
 
         /// <summary>Reads one <c>root</c> member by member at the cursor's position, when <see cref="Readroot"/> cannot use the fixed reader.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static root ReadrootMembers(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             cursor.EnterComposite(member ?? "root", memberType);
@@ -1124,6 +1126,7 @@ namespace Demo
         }
 
         /// <summary>Writes one <c>chunk</c> member by member at the cursor's position, when <see cref="Encodechunk"/> cannot use the fixed writer.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static void EncodechunkMembers(ref global::CStructSharp.Generated.WriteCursor cursor, chunk value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             cursor.EnterComposite(member ?? "chunk", memberType);
@@ -1155,6 +1158,7 @@ namespace Demo
         }
 
         /// <summary>Writes one <c>root</c> member by member at the cursor's position, when <see cref="Encoderoot"/> cannot use the fixed writer.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static void EncoderootMembers(ref global::CStructSharp.Generated.WriteCursor cursor, root value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             cursor.EnterComposite(member ?? "root", memberType);

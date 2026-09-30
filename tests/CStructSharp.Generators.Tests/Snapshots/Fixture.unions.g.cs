@@ -469,6 +469,7 @@ namespace Demo
         }
 
         /// <summary>Reads one <c>choice</c> at the cursor's position.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static Choice ReadChoice(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             cursor.EnterComposite(member ?? "choice", memberType);
@@ -610,6 +611,7 @@ namespace Demo
         public static global::System.Threading.Tasks.ValueTask WriteAsync(global::System.IO.Stream stream, Choice value, global::CStructSharp.WriteOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default) => WriteChoiceAsync(stream, value, null, options, cancellationToken);
 
         /// <summary>Writes one <c>choice</c> at the cursor's position.</summary>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static void EncodeChoice(ref global::CStructSharp.Generated.WriteCursor cursor, Choice? value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
             if (value is null)

@@ -14,6 +14,13 @@ internal static class Emit
     /// <summary>The generated-support class whose static methods decode and encode primitives.</summary>
     public const string CodecClass = "global::CStructSharp.Generated.Codec";
 
+    /// <summary>
+    ///     The attribute that keeps a member-by-member reader or writer out of its caller. Such a method is large, and
+    ///     when the JIT inlines it into a hot caller it uses up that caller's inlining budget, so the small cursor and
+    ///     codec helpers inside it stay calls; called, it keeps them inlined.
+    /// </summary>
+    public const string NoInlining = "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]";
+
     /// <summary>An integer as a C# literal.</summary>
     /// <param name="value">The value.</param>
     /// <returns>The literal, formatted invariantly.</returns>

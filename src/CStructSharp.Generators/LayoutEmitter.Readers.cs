@@ -297,7 +297,8 @@ internal sealed partial class LayoutEmitter
     /// <remarks>
     ///     The split keeps the fixed path cheap: the JIT inlines a hot <c>Read&lt;Type&gt;</c> into its caller, and a
     ///     member-by-member body in the same method would be inlined with it and use up the inlining budget, so the
-    ///     span and codec helpers of the fixed reader would stay calls.
+    ///     span and codec helpers of the fixed reader would stay calls. For the same reason the method that holds the
+    ///     member-by-member steps is never inlined (<see cref="Emit.NoInlining"/>).
     /// </remarks>
     /// <param name="writer">The generated source destination.</param>
     /// <param name="composite">The composite whose reader is emitted.</param>
@@ -305,14 +306,22 @@ internal sealed partial class LayoutEmitter
     {
         string name = composite.Name;
         string parameters = "(ref " + Cursor + " cursor, " + VariablesType + " variables, string? member, string? memberType)";
+        FixedPlan? plan = this.FixedPlanOf(composite, 0);
         writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> at the cursor's position.</summary>");
-        writer.Open("private static " + name + " Read" + name + parameters);
-        if (this.EmitFixedReaderShortcut(writer, composite))
+        if (plan is null)
         {
+            writer.Line(NoInlining);
+        }
+
+        writer.Open("private static " + name + " Read" + name + parameters);
+        if (plan is not null)
+        {
+            this.EmitFixedReaderShortcut(writer, composite, plan);
             writer.Line("return Read" + name + "Members(ref cursor, variables, member, memberType);");
             writer.Close();
             writer.Line();
             writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> member by member at the cursor's position, when " + Cref("Read" + name) + " cannot use the fixed reader.</summary>");
+            writer.Line(NoInlining);
             writer.Open("private static " + name + " Read" + name + "Members" + parameters);
         }
 

@@ -38,19 +38,13 @@ internal sealed partial class LayoutEmitter
     /// <summary>Emits the fast-path test at the top of a composite's <c>Encode&lt;Type&gt;</c>, when it has a fixed writer.</summary>
     /// <param name="writer">The generated source destination, after the null check and before the composite is entered.</param>
     /// <param name="composite">The composite being written.</param>
-    /// <returns>Whether the composite has a fixed writer, so that the test was emitted.</returns>
-    private bool EmitFixedWriterShortcut(SourceWriter writer, GeneratedComposite composite)
+    /// <param name="plan">The fixed plan of the composite, which has a fixed writer.</param>
+    private void EmitFixedWriterShortcut(SourceWriter writer, GeneratedComposite composite, FixedPlan plan)
     {
-        if (!this.IsFixedWritable(composite, 0) || this.FixedPlanOf(composite, 0) is not { } plan)
-        {
-            return false;
-        }
-
         writer.Open("if (Is" + composite.Name + "FixedWritable(value) && cursor.TryReserveFixed(" + Int(plan.Size) + ", " + Int(this.request.Settings.Aligned ? plan.Alignment : 1) + ", " + Int(plan.NestingLevels) + ", " + Int(plan.MaximumArrayCount) + ", out global::System.Span<byte> fixedBytes))");
         writer.Line("Write" + composite.Name + "Fixed(fixedBytes, value);");
         writer.Line("return;");
         writer.Close();
-        return true;
     }
 
     /// <summary>Emits the check that a value has every nested value and every array length the fixed writer relies on.</summary>
