@@ -14,9 +14,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 /// <summary>
 ///     Pins the direct paths for whole fixed roots in memory - <c>Parse</c>, <c>ReadValue</c>, <c>ReadValue&lt;T&gt;</c>
 ///     and both <c>Serialize</c> forms run the static plan straight over the caller's span - together with the typed
-///     conversions and the allocation-free path walk they rely on. Each must be indistinguishable from the general
-///     reader and writer: the same values, bytes, exception types, messages, paths and offsets, for every truncation,
-///     budget and limit. The internal <see cref="ExecutionPath.NoDirectAccess"/> option routes a call through the general path.
+///     conversions and the allocation-free path walk they rely on. Each must be indistinguishable from the compiled
+///     engine: the same values, bytes, exception types, messages, paths and offsets, for every truncation, budget and
+///     limit. The internal <see cref="ExecutionPath.NoDirectAccess"/> option routes a call through the engine instead.
 /// </summary>
 [TestClass]
 public class DirectRootAccessTests
@@ -30,9 +30,9 @@ public class DirectRootAccessTests
 
     private static readonly string[] Roots = ["plain", "rec", "_rec"];
 
-    /// <summary>Parse, ReadValue and ReadValue&lt;T&gt; of a whole fixed root agree with the general path on every input and limit.</summary>
+    /// <summary>Parse, ReadValue and ReadValue&lt;T&gt; of a whole fixed root agree with the engine on every input and limit.</summary>
     [TestMethod]
-    public void DirectRead_MatchesGeneralReader_OnValuesFailuresAndContext()
+    public void DirectRead_MatchesTheEngine_OnValuesFailuresAndContext()
     {
         foreach (bool aligned in new[] { false, true })
         {
@@ -81,9 +81,9 @@ public class DirectRootAccessTests
         }
     }
 
-    /// <summary>Serialize into a span and into a new array agree with the general path on bytes, counts and failures, and a failed write leaves the destination untouched.</summary>
+    /// <summary>Serialize into a span and into a new array agree with the engine on bytes, counts and failures, and a failed write leaves the destination untouched.</summary>
     [TestMethod]
-    public void DirectWrite_MatchesGeneralWriter_OnBytesFailuresAndContext()
+    public void DirectWrite_MatchesTheEngine_OnBytesFailuresAndContext()
     {
         foreach (bool aligned in new[] { false, true })
         {
@@ -131,9 +131,9 @@ public class DirectRootAccessTests
         }
     }
 
-    /// <summary>The typed conversion takes its shortcuts only where the general conversion would give the same value or failure.</summary>
+    /// <summary>The typed conversion takes its shortcuts only where the untyped conversion would give the same value or failure.</summary>
     [TestMethod]
-    public void TypedConversion_MatchesGeneralConversion()
+    public void TypedConversion_MatchesTheUntypedConversion()
     {
         var layout = new CStruct(Layout);
         StructValue plain = layout.Parse(SampleBytes(layout, "plain"), "plain");
@@ -161,7 +161,7 @@ public class DirectRootAccessTests
         var layout = new CStruct(Layout);
         StructValue record = layout.Parse(SampleBytes(layout, "rec"), "rec");
         Assert.AreEqual(2u, record.Get<uint>("samples[1]"));
-        Assert.AreEqual(2L, record.Get<long>("samples[01]"), "a converted element takes the general path");
+        Assert.AreEqual(2L, record.Get<long>("samples[01]"), "a converted element takes the converting walk");
         Assert.AreEqual(1.5f, record.Get<float>("pos.x"));
         Assert.AreEqual('R', record.Get<char>("tag[1]"));
 
@@ -266,7 +266,7 @@ public class DirectRootAccessTests
         Assert.AreEqual(1000, growable.ToArray().Length);
     }
 
-    /// <summary>Encodes a sample value of <paramref name="root"/> with the general path.</summary>
+    /// <summary>Encodes a sample value of <paramref name="root"/> member by member (<see cref="ExecutionPath.NoFastPaths"/>).</summary>
     private static byte[] SampleBytes(CStruct layout, string root)
     {
         StructValue value = root == "plain"
@@ -301,39 +301,39 @@ public class DirectRootAccessTests
         Assert.AreEqual(message, unthrown!.Message, path + ": TryGet");
     }
 
-    /// <summary>Asserts that the typed conversion and the general conversion (as its callers cast it) agree for one input.</summary>
+    /// <summary>Asserts that the typed conversion and the untyped conversion (as its callers cast it) agree for one input.</summary>
     private static void AssertSameConversion<T>(object? input)
     {
         OperationOutcome fast = OperationOutcome.Of(() => TypedValueConverter.Convert<T>(input, "root.value"), typeof(ArgumentException), typeof(OperationCanceledException), typeof(InvalidCastException));
-        OperationOutcome general = OperationOutcome.Of(() => (T)TypedValueConverter.Convert(input, typeof(T), "root.value")!, typeof(ArgumentException), typeof(OperationCanceledException), typeof(InvalidCastException));
-        OperationOutcome.AssertSame(general, fast, typeof(T).Name + " from " + (input?.GetType().Name ?? "null"));
+        OperationOutcome untyped = OperationOutcome.Of(() => (T)TypedValueConverter.Convert(input, typeof(T), "root.value")!, typeof(ArgumentException), typeof(OperationCanceledException), typeof(InvalidCastException));
+        OperationOutcome.AssertSame(untyped, fast, typeof(T).Name + " from " + (input?.GetType().Name ?? "null"));
     }
 
     /// <summary>Asserts that a read behaves the same with the caller's options and with the direct path excluded from them.</summary>
     private static void AssertSame(Func<ReadOptions?, object?> operation, ReadOptions? options, string label)
     {
         OperationOutcome fast = OperationOutcome.Of(() => operation(options), typeof(ArgumentException), typeof(OperationCanceledException), typeof(InvalidCastException));
-        OperationOutcome general = OperationOutcome.Of(() => operation((options ?? new ReadOptions()) with { ExecutionPath = ExecutionPath.NoDirectAccess }), typeof(ArgumentException), typeof(OperationCanceledException), typeof(InvalidCastException));
-        OperationOutcome.AssertSame(general, fast, label);
+        OperationOutcome engine = OperationOutcome.Of(() => operation((options ?? new ReadOptions()) with { ExecutionPath = ExecutionPath.NoDirectAccess }), typeof(ArgumentException), typeof(OperationCanceledException), typeof(InvalidCastException));
+        OperationOutcome.AssertSame(engine, fast, label);
     }
 
     /// <summary>Asserts that a write to a new array behaves the same with the caller's options and with the direct path excluded from them.</summary>
     private static void AssertSameWrite(Func<WriteOptions?, object?> operation, WriteOptions? options, string label)
     {
         OperationOutcome fast = OperationOutcome.Of(() => operation(options), typeof(ArgumentException), typeof(OperationCanceledException), typeof(InvalidCastException));
-        OperationOutcome general = OperationOutcome.Of(() => operation(WithoutDirectAccess(options)), typeof(ArgumentException), typeof(OperationCanceledException), typeof(InvalidCastException));
-        OperationOutcome.AssertSame(general, fast, label);
+        OperationOutcome engine = OperationOutcome.Of(() => operation(WithoutDirectAccess(options)), typeof(ArgumentException), typeof(OperationCanceledException), typeof(InvalidCastException));
+        OperationOutcome.AssertSame(engine, fast, label);
     }
 
     /// <summary>Asserts that a span write behaves the same with the caller's options and with the direct path excluded, destination bytes included.</summary>
     private static void AssertSameWrite(Func<byte[], WriteOptions?, int> write, WriteOptions? options, int capacity, string label)
     {
         byte[] fastDestination = Enumerable.Repeat((byte)0xCC, capacity).ToArray();
-        byte[] generalDestination = Enumerable.Repeat((byte)0xCC, capacity).ToArray();
+        byte[] engineDestination = Enumerable.Repeat((byte)0xCC, capacity).ToArray();
         OperationOutcome fast = OperationOutcome.Of(() => write(fastDestination, options), typeof(ArgumentException), typeof(OperationCanceledException), typeof(InvalidCastException));
-        OperationOutcome general = OperationOutcome.Of(() => write(generalDestination, WithoutDirectAccess(options)), typeof(ArgumentException), typeof(OperationCanceledException), typeof(InvalidCastException));
-        OperationOutcome.AssertSame(general, fast, label);
-        CollectionAssert.AreEqual(generalDestination, fastDestination, label + ": destination");
+        OperationOutcome engine = OperationOutcome.Of(() => write(engineDestination, WithoutDirectAccess(options)), typeof(ArgumentException), typeof(OperationCanceledException), typeof(InvalidCastException));
+        OperationOutcome.AssertSame(engine, fast, label);
+        CollectionAssert.AreEqual(engineDestination, fastDestination, label + ": destination");
     }
 
     /// <summary>Returns the write options with direct span access excluded.</summary>

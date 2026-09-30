@@ -3,7 +3,7 @@ namespace CStructSharp.Tests;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
-/// <summary>Checks consistent unnamed-array limits and padding-free results across optimized and general reads.</summary>
+/// <summary>Checks consistent unnamed-array limits and padding-free results across fast-path and member-by-member reads.</summary>
 [TestClass]
 public class ReaderPaddingLimitTests
 {

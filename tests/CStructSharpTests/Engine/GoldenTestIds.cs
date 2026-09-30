@@ -7,7 +7,7 @@ using System.Text;
 
 /// <summary>
 ///     The stable ids that key a test's golden section: the test method's name, followed for a data-driven test by its
-///     row's arguments in parentheses, such as <c>Truncations_ReadIdenticallyFromEverySource("count")</c>. The same id is
+///     row's arguments in parentheses, such as <c>Truncations_ReadFromEverySource("count")</c>. The same id is
 ///     computed from the running test's context and from the test class by reflection, so stale sections can be found
 ///     without running the tests.
 /// </summary>

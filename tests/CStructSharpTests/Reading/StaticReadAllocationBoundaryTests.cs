@@ -5,7 +5,7 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Reading;
 
 /// <summary>
-///     Checks that fixed record plans allocate no more than the general path, and the bounded stream
+///     Checks that fixed record plans allocate no more than member-by-member reads, and the bounded stream
 ///     block and exact buffer return they read through.
 /// </summary>
 [TestClass]
@@ -42,7 +42,7 @@ public class StaticReadAllocationBoundaryTests
 
     /// <summary>
     ///     Both a fixed root and a runtime-count array of fixed records allocate no more through their static plans than
-    ///     through the general path. The general path is the compiled engine, which stores each record's members straight
+    ///     member by member. Member by member, the compiled engine stores each record's members straight
     ///     into its value just as the plan does, so for the array of fixed records the two allocate the same; the fixed
     ///     root allocates less through its plan.
     /// </summary>
@@ -52,7 +52,7 @@ public class StaticReadAllocationBoundaryTests
     [DataRow(true)]
     [DoNotParallelize]
     [TestCategory(TestCategories.Allocation)]
-    public void FixedRecords_AllocateLessThanGeneralDecoding(bool runtimeCount)
+    public void FixedRecords_AllocateNoMoreThanMemberByMemberReads(bool runtimeCount)
     {
         string root = runtimeCount
             ? "struct root { uint16 count; record items[count]; uint8 tail; };"
@@ -71,8 +71,8 @@ public class StaticReadAllocationBoundaryTests
         CollectionAssert.AreEqual(bytes, layout.Serialize("root", parsed));
 
         long planned = Measure(layout, bytes, false);
-        long general = Measure(layout, bytes, true);
-        Assert.IsTrue(planned <= general, $"Fixed record plans allocated {planned} bytes; general decoding allocated {general} bytes.");
+        long memberByMember = Measure(layout, bytes, true);
+        Assert.IsTrue(planned <= memberByMember, $"Fixed record plans allocated {planned} bytes; member-by-member reads allocated {memberByMember} bytes.");
 
         // A valid count or depth exactly at its limit should retain the same fixed-record allocation savings.
         var generous = new ReadOptions { MaxNestingDepth = 3, MaxArrayElements = 257, };
@@ -123,7 +123,7 @@ public class StaticReadAllocationBoundaryTests
     /// <summary>Warms one decoding mode, then measures steady-state allocation.</summary>
     /// <param name="layout">The prepared record layout, excluded from the measured allocation.</param>
     /// <param name="bytes">The complete input, shared unchanged by both decoding modes.</param>
-    /// <param name="disabled">Whether to route fixed composites through the general path.</param>
+    /// <param name="disabled">Whether to read fixed composites member by member (<see cref="ExecutionPath.NoFastPaths"/>).</param>
     /// <param name="options">Optional read limits; construction is outside the measurement.</param>
     /// <returns>The smallest current-thread allocation across three batches of eight completed parses.</returns>
     private static long Measure(CStruct layout, byte[] bytes, bool disabled, ReadOptions? options = null)

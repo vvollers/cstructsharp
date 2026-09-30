@@ -9,7 +9,7 @@ using CStructSharp.Values;
 /// <summary>
 ///     Checks arrays of structs: debug paths identify the exact element behind each byte range, records sit at their
 ///     absolute aligned offsets (root arrays and field alignment overrides included), a large extent does not wrap its
-///     span length, and a nested limit keeps the general path's failure position.
+///     span length, and a nested limit fails right after the member before it.
 /// </summary>
 [TestClass]
 public class CompositeArrayTests
@@ -86,7 +86,7 @@ public class CompositeArrayTests
 
     /// <summary>
     ///     A smaller field alignment moves where an array of structs starts, not how each element is laid out: an
-    ///     element at an odd offset keeps its four-byte layout, on the fast and the general path.
+    ///     element at an odd offset keeps its four-byte layout, on the fast paths and member by member.
     /// </summary>
     [TestMethod]
     public void FieldAlignmentOverride_KeepsTheElementLayout()
@@ -107,7 +107,7 @@ public class CompositeArrayTests
 
     /// <summary>An inner array limit fails after the preceding scalar, without consuming the remaining record block.</summary>
     [TestMethod]
-    public void NestedArrayLimit_PreservesTheGeneralReadPosition()
+    public void NestedArrayLimit_StopsAfterThePrecedingScalar()
     {
         var layout = new CStruct("struct item { uint8 prefix; uint8 values[2]; }; struct root { uint8 count; item items[count]; };");
         byte[] bytes = [1, 0x42, 0xAA, 0xBB,];

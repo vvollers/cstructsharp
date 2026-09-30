@@ -2,627 +2,627 @@
 # Regenerate only for an intended, explained behaviour change: node tools/quality/engine-golden.mjs record (CONTRIBUTING.md).
 # @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes.
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("bitfields")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("bitfields")
 @hash d86a46d4fcb11a6c4a1f0940a989b2f7cb87a1a805374198b98f6cef5617482d 266 bitfields/packed
 @hash d3ad94a04f66360b2b2e26a8656513179436b3c61952e3b62172ebb09b90f633 312 bitfields/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("bitfields-enum-counts")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("bitfields-enum-counts")
 @hash f98fbb3e277a029f22ace6c4c593cecd6b99802a039af2aaeee06e5e8ca6888c 418 bitfields-enum-counts/packed
 @hash b55498d1b0abac610213efdb9f4b50ce664659157d21ed2135b46da7c7e1b35d 434 bitfields-enum-counts/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("bitfields-high")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("bitfields-high")
 @hash 49fe9a7e127566dc3422b647af9e5551ae16423939b6eeecadea718cc906ab47 380 bitfields-high/packed
 @hash 49fe9a7e127566dc3422b647af9e5551ae16423939b6eeecadea718cc906ab47 380 bitfields-high/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("bitfields-msvc")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("bitfields-msvc")
 @hash 1511a83289b65d2917615da204a215a06743276922d44cb9b9f34512cce01a95 418 bitfields-msvc/packed
 @hash ff97a58eb772faced0f09aa378d10a621b2e170d8d35b7bdee17102cc6816171 442 bitfields-msvc/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("conditional")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("conditional")
 @hash 971c272ecf751ec705fefdd2c5812e665b2e195531dc38ac7b38b0bf19ebb754 190 conditional/packed
 @hash 4e3d42d73788af9194ecc7a12eefb1bfb4424fe187017a636ec78fdff70f3a1e 206 conditional/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("count")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("count")
 @hash fcb0cd090e747a731f3893f8dfe20dea517e12631a718f4cf3f4a472df8d68b1 342 count/packed
 @hash 17f94f1dbe270deae2372f8e0aef1aa1ff21b99fdc18d0074c8fd8a405042034 358 count/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("custom-codec")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("custom-codec")
 @hash 51b40e82c798a2f950d4258911b4bfb65e4b4919209c0af72a7f97932d331491 228 custom-codec/packed
 @hash 51b40e82c798a2f950d4258911b4bfb65e4b4919209c0af72a7f97932d331491 228 custom-codec/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("custom-fixed")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("custom-fixed")
 @hash 85e310d7cf78d5ab2825820ee6dec6dff4c96fdc688404ba1152dadefedeacff 722 custom-fixed/packed
 @hash cbf08f893f2c4d19881d12d0062d64a0cfb4a8cbcf558cb60579cf83bb29a33e 834 custom-fixed/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("enum-bitfield")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("enum-bitfield")
 @hash 7ba729c4f24b22748d57cdc9191fede88c29c6d8f23b838713e8825ee9d463fe 304 enum-bitfield/packed
 @hash a7bdd9616ba888f34c7a49e6a92aa3039928388abb28f01d064fecbb64b73d55 312 enum-bitfield/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("fixed")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("fixed")
 @hash 233589d1fe4b50e29f3e458848b5d44056491f6f06828df0cbd18a4f26ee2fc8 608 fixed/packed
 @hash 3e6176d34a1c45a39d6dff67544a1455449ebfc6d0e8bc75594459e68fd86966 648 fixed/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("inline-qualified")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("inline-qualified")
 @hash 62e80cfffb457f946bc0649c826fc4ee0d05105819d05060e1339daadae20d9a 342 inline-qualified/packed
 @hash 4ac7bd11d7aff6ad1129615195951ffc673c12617e986d16ef5c363d712b99d2 388 inline-qualified/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("leb128")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("leb128")
 @hash dbecbcc0631f20ed6fa191576de271cf202b172b3c725a5ef5d396481d2ef675 342 leb128/packed
 @hash dbecbcc0631f20ed6fa191576de271cf202b172b3c725a5ef5d396481d2ef675 342 leb128/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("multidim")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("multidim")
 @hash b5f0700b11f81b34868613671fcdd0945ad2151ecc46970336a11364ce152397 1482 multidim/packed
 @hash 1213cfdc5eac0d12851a80348d2f35c183512c3061e86d94230ba431f3f91ac3 1498 multidim/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("multidim-structs")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("multidim-structs")
 @hash de8b5b7ba8c13c1394651427bff4a5fff1fb372c3d7c9c58991641a8a978da44 1178 multidim-structs/packed
 @hash 5510b5d7e562ee8c27825ea9b732ad733194b38d990ace6e0998695a578d7aa8 1346 multidim-structs/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("nested")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("nested")
 @hash bf5031ec4868a57d771a92606d08f06c6a2051f702ea817695df53ac90da027c 418 nested/packed
 @hash 81138d47f2dface04a62baeb0728dcce3f683c4341a0874d9ec49fa0d6e1b6de 510 nested/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("pointer-arrays")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("pointer-arrays")
 @hash 442368ab65e934592d11c376cd118bd4c2839fa03c6a70c8ae96b8ad44b5e11a 276 pointer-arrays/packed
 @hash 442368ab65e934592d11c376cd118bd4c2839fa03c6a70c8ae96b8ad44b5e11a 276 pointer-arrays/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("pointer-counted")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("pointer-counted")
 @hash c39480df0155888d92e32ce748a4ed733d9150bb57d250f0bf8e28fb50a4ddba 312 pointer-counted/packed
 @hash c39480df0155888d92e32ce748a4ed733d9150bb57d250f0bf8e28fb50a4ddba 312 pointer-counted/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("pointer-list")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("pointer-list")
 @hash 3b7f3c0e26af9536c8219fb973bd4c2e3511c8338e2db17daff0d4e7d28e40b7 372 pointer-list/packed
 @hash 3b7f3c0e26af9536c8219fb973bd4c2e3511c8338e2db17daff0d4e7d28e40b7 372 pointer-list/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("pointer-views")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("pointer-views")
 @hash c35c3a8220ab761c2bd40d3d8326047b10e3e18f5931ba340c755d44068a015c 268 pointer-views/packed
 @hash c35c3a8220ab761c2bd40d3d8326047b10e3e18f5931ba340c755d44068a015c 268 pointer-views/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("pointers")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("pointers")
 @hash 5aec8516e730755af39190fdbcae732f5a959e0babefa98de22dffd4acae74d5 378 pointers/packed
 @hash 5aec8516e730755af39190fdbcae732f5a959e0babefa98de22dffd4acae74d5 378 pointers/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("promoted")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("promoted")
 @hash 359824284127967e1a81c3ea217aaf9ab2959a78d9c1f563854da86715b33216 304 promoted/packed
 @hash 2f0184a71f4ae3f9de38fe7c0304fa6445118ccc7b851fda5e7b8cd794c7239e 358 promoted/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("promoted-union")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("promoted-union")
 @hash b5ef2bca381bb5eff42af32caf5dce17705472eeb3f2a70ede1e77c4ce682f48 378 promoted-union/packed
 @hash e387e7f6d61989c4a80395b9a3969284346fed37bb70278db9cb34fc208ca64c 462 promoted-union/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("terminated")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("terminated")
 @hash bf381dd31c0b5865741a94cc9ec40aff49f4e17bcc9a039481eb8ad56cb1e1ea 748 terminated/packed
 @hash bf381dd31c0b5865741a94cc9ec40aff49f4e17bcc9a039481eb8ad56cb1e1ea 748 terminated/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("terminated-scalars")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("terminated-scalars")
 @hash 8b3762db6a8364d369446398f05095e12c7cbd8e23e071dacc84dc2cf9231bd2 462 terminated-scalars/packed
 @hash 50b4ef8f1248831b25a0e5dd3ea06d9093a35a81e6805ec1de1def3d46f8e373 478 terminated-scalars/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("text")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("text")
 @hash 25603e56f60b2337d296f5287e459c2fba27649e288bd7b5550b46b07d7942ed 684 text/packed
 @hash 840637ba0de397579b70cd161efbad527f5349deb2b5faca959df4fadb3827c4 692 text/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("to-end")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("to-end")
 @hash e8e12471042f2e44888d4433b0e569bcfe29a9a0a728b00e79542d42af4b53b6 270 to-end/packed
 @hash e8e12471042f2e44888d4433b0e569bcfe29a9a0a728b00e79542d42af4b53b6 270 to-end/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("to-end-structs")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("to-end-structs")
 @hash 172acf8ae0b6a23727016ed498a80292a94ca38390fc8ac7217538926424c63f 304 to-end-structs/packed
 @hash 4be88deb59d44ecc0a8a68448891c5e945d5f1a5f41a1653fa2ae76bbbe57fce 358 to-end-structs/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("union")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("union")
 @hash b82dafa1eff0ecb82806e0f37b062421a332792e3e55247601f2b7e13e94487d 476 union/packed
 @hash 8c780863304d1dc985be5883910bedc8d1c21b8a2c5762547f713df661751439 524 union/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("union-arrays")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("union-arrays")
 @hash be525ece36683ddc797f3a2ca56cb43fac347b166dd3b8bf9aa50f65c9e13fed 386 union-arrays/packed
 @hash 60813e5d384d6683ce115e40cc98c5da114104cca9114157fe1f937416ad12ea 402 union-arrays/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("union-bitfields")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("union-bitfields")
 @hash 6f4c827749d95b0796385074941529d67939598ba7e2e0bbc81274aa1c942065 340 union-bitfields/packed
 @hash b78e753d69fb50332f8c11bb838d7b67b0d8f50e529f00edd8f46d0c081537dc 356 union-bitfields/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("union-conditional")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("union-conditional")
 @hash 44feb2bdc0ad8ac64d0df240e14ab4d7fd1265968215a2aa48207d148d35d0a7 552 union-conditional/packed
 @hash 7223ceba671babca9fe77afd52145234e2a7880fe907408aea547b0bd36e8e12 568 union-conditional/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("union-nested")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("union-nested")
 @hash 53b0e38cb9118127eaa4b6491fb631eae75a88f73c231b579393ceb4c7ce8fd2 898 union-nested/packed
 @hash f064e5e39fdc3fdfcdba4a3e9e5ce5215b768ee95f3bb16444f5642ac264b631 946 union-nested/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("variables")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("variables")
 @hash 27a83f833d4d39b8a94b01acf35ebe6552bef9b755c89f198cbb763a2a9645c3 180 variables/packed
 @hash 27a83f833d4d39b8a94b01acf35ebe6552bef9b755c89f198cbb763a2a9645c3 180 variables/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("write-codecs")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("write-codecs")
 @hash a29bfc94c9eb4f2d4c51b1d869b8027c44e6a4b07083d05eaf9acd4f4e5fb2a0 3914 write-codecs/packed
 @hash 2c717e05c1fae0ae8c882ab6a6b1499b8daaf92e820ab43f2929645121379b94 4122 write-codecs/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("write-enums")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("write-enums")
 @hash 4eb07b29de5c95aa44f314d8b97b24e070863ee05053811790aa73fece3fa7b8 532 write-enums/packed
 @hash c07680b17bd6e1db2d9b7b2aad085a167bcaccdb649947b1bb910c0374eb0d2d 556 write-enums/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("write-padding")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("write-padding")
 @hash b71bcbdd42231cd7a95cfc2e11465ff6c0cd3c3ff14a43482d6d722d534be3da 532 write-padding/packed
 @hash 7278f3a7478f27d6f8b6393a6c1aa2eed55b9038f188dee02691165cd5837dbe 556 write-padding/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("write-qualified")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("write-qualified")
 @hash c46ddf74fb11e521aaec649b7c603313e62eb741e4e491b1fbffe8a93abbf172 180 write-qualified/packed
 @hash 2643f88f1ccf4be6e50f1d9f035d57007b2894a287fe0c7249cdbe1cb1ec2c14 188 write-qualified/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("write-scope")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("write-scope")
 @hash 0e330dd9aacf6f63d74073560cf9ca8e1e91f4301394fed806e7977628c9dd85 456 write-scope/packed
 @hash 12a73e03319673cc6b4d72201f4c179a1ab9942feb3d360ef82834c5bf3cbb4e 464 write-scope/aligned
 
-@test ByteBudgets_FailIdenticallyAtEveryLimit("write-text")
+@test ByteBudgets_FailOrSucceedAtEveryLimit("write-text")
 @hash 254b54e413fe5c1f4c78539498f57ffaff7fad241e740980bfc44231281506dc 1318 write-text/packed
 @hash 6ef66b06c7c5f6a915e8445034c4b170a718094c07a1cea6d5f1775f2714af24 1416 write-text/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("bitfields")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("bitfields")
 @hash 2caa6527893471636a539c5c968a17869c347f434aa95e5eaace3a6911c33efd 36 bitfields/packed
 @hash 2d26edf7a0d1c96894567f3520b1f6e650029a3547324a66a0321bdd5ee7d3aa 36 bitfields/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("bitfields-enum-counts")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("bitfields-enum-counts")
 @hash 689d81ea155de7b32167fc91ffb523331fca96865247c5b5a74b5a3385fb44c5 294 bitfields-enum-counts/packed
 @hash c531ebed504f167ec07ea1cb88c996efbe1e55ecb3f8b460b29770ebb7325adc 294 bitfields-enum-counts/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("bitfields-high")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("bitfields-high")
 @hash 6d86662b0adf03878b3ed73b5c59b0ccb41a0510c3fb413e6616a22639c86dee 36 bitfields-high/packed
 @hash 6d86662b0adf03878b3ed73b5c59b0ccb41a0510c3fb413e6616a22639c86dee 36 bitfields-high/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("bitfields-msvc")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("bitfields-msvc")
 @hash b23321ae9fe9d5134b7c0c9a46d1e96b5279204af5559ce4d743ab7ebba7f4d3 36 bitfields-msvc/packed
 @hash b020bc6ad49fd9cdb24fa581cd862315ad68693b2c21e4ebe1260b5c0cb752c5 36 bitfields-msvc/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("conditional")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("conditional")
 @hash 7324ed535f360a3d8f914e703dcdd5e26c27245c4c7942e4152186dcb618b744 144 conditional/packed
 @hash 3960409b3265de700e15bab38af8d531958d9a15e7583c073fcccb2a698b0590 144 conditional/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("count")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("count")
 @hash 6ba32087e27ee9e428333cc3cf973c98e799ac2e2e11d25c1f2ed8a13092394d 168 count/packed
 @hash 65345f150d18eb738429823ff2d50f60d42014ab6a13142455e47097a665d79a 168 count/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("custom-codec")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("custom-codec")
 @hash 4950673458f9d6d593938040519fa56a5da25d34983975cacf1c530573f6ab2b 168 custom-codec/packed
 @hash 4950673458f9d6d593938040519fa56a5da25d34983975cacf1c530573f6ab2b 168 custom-codec/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("custom-fixed")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("custom-fixed")
 @hash 3ea683e4cee204b9594cb788ebb6b6d99b4ed5d04dde7621a9f78aeae8ab5b3b 42 custom-fixed/packed
 @hash 26df6212805d90a490269ee1d2086d3e532e3ea870edbdd7a441d5077fd93d20 42 custom-fixed/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("enum-bitfield")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("enum-bitfield")
 @hash 3b3785a04594b42e0324a3a461c87f3e8d5b2d405a3ad4a8a6c0f7b28239c665 42 enum-bitfield/packed
 @hash 0a3cacd5745b254bbe2c03c4e7e01fa4f0a574050c7b164b9ea95c14c233876b 42 enum-bitfield/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("fixed")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("fixed")
 @hash daf95c69bb75a3b1fa4f804673ee7205163957a783ec93d1a3d32265162e3c03 42 fixed/packed
 @hash ce603c41caff504edc383bc09787d0a7a088f3dcf54f52800335b7aee0da0b44 42 fixed/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("inline-qualified")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("inline-qualified")
 @hash 1c804810363dcbc501c9861d1c9fb38e9f4d59e3dd1e8c64a7f307a78aeedc9e 42 inline-qualified/packed
 @hash aeaeb8bd66c9796b2ba100e5699d7bdb5ce999078f653eca481e8f82b08febcb 42 inline-qualified/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("leb128")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("leb128")
 @hash 8b73aeba78b7272757c4331c4c66d95258470259a1ec95e45d66fd37c27a5344 168 leb128/packed
 @hash 8b73aeba78b7272757c4331c4c66d95258470259a1ec95e45d66fd37c27a5344 168 leb128/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("multidim")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("multidim")
 @hash 38b69cae5d608a6bcaeb53fb36dea6550476e6726844de50eee89e1941c33a52 42 multidim/packed
 @hash 1a11a34e94360bbd1265c30ef6692bac1a13d70bff1fc66e82fabb077740f526 42 multidim/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("multidim-structs")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("multidim-structs")
 @hash 0b21a06fcb2127f4327cb8e9667ac7c2b4df912e2125226b52a1c1aaa1269a3d 42 multidim-structs/packed
 @hash 5d23b47cac49046a62c91497016258442a406f82040ce4e0ed437ca809ef2184 42 multidim-structs/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("nested")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("nested")
 @hash 3b3e91bd0d2b8b6bbe0c2a537702454b0721518393d743228715a68eff8a0d6f 168 nested/packed
 @hash 1cc532ace4fcaa92508e6deb9c2822436bc77245f76eceb1ecdb3bc47c0b1573 168 nested/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("pointer-arrays")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("pointer-arrays")
 @hash 1e5a0fb1bbe0ab66561e2db3f7438ca265f72c50e339e3a20b16d4b6b9b3e852 168 pointer-arrays/packed
 @hash 1e5a0fb1bbe0ab66561e2db3f7438ca265f72c50e339e3a20b16d4b6b9b3e852 168 pointer-arrays/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("pointer-counted")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("pointer-counted")
 @hash a6ffa9a609940c862b94e5d463a508efa0e78455aa6f6afb6ffaee6f6db0ad82 252 pointer-counted/packed
 @hash a6ffa9a609940c862b94e5d463a508efa0e78455aa6f6afb6ffaee6f6db0ad82 252 pointer-counted/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("pointer-list")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("pointer-list")
 @hash 89c93b7827eab1817c2cbfbba27baddd5338cbd674a39799120009871e0f4532 36 pointer-list/packed
 @hash 89c93b7827eab1817c2cbfbba27baddd5338cbd674a39799120009871e0f4532 36 pointer-list/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("pointer-views")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("pointer-views")
 @hash 7c8ba8d7063fb8cee1a83fb707e574bbe33f024650f935eff9635b5d7261f03a 36 pointer-views/packed
 @hash 7c8ba8d7063fb8cee1a83fb707e574bbe33f024650f935eff9635b5d7261f03a 36 pointer-views/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("pointers")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("pointers")
 @hash 6b06976729048f66a87587cceeb82fe555897fd8ad15a97fc8283d94b1d18cb7 144 pointers/packed
 @hash 6b06976729048f66a87587cceeb82fe555897fd8ad15a97fc8283d94b1d18cb7 144 pointers/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("promoted")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("promoted")
 @hash ce3d56bebd0d4d9ff068ab5b85c717e981241ca734a5cb8980f7e61fc1b92688 42 promoted/packed
 @hash 6a6d082e28aad55495078673b0277e50d8d3d4fafe2d00100ccb0678b35ed62f 42 promoted/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("promoted-union")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("promoted-union")
 @hash 1e60e474c97732a878878ed4584a9dca9d0b72074239f60c4d95ef843c78037d 36 promoted-union/packed
 @hash 9776860869893d2497b920c45512732cfe66e6a77345f4fa0eef069ae9dcd0c0 36 promoted-union/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("terminated")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("terminated")
 @hash b533cec4c027f5b13ae46e0f50aee30d19030d4f3c4cf505de85b599d868a900 42 terminated/packed
 @hash b533cec4c027f5b13ae46e0f50aee30d19030d4f3c4cf505de85b599d868a900 42 terminated/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("terminated-scalars")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("terminated-scalars")
 @hash 5c6863590012e4cb7cec348c7706687c5742b51cfef3c00415a9db11a30a7fd0 42 terminated-scalars/packed
 @hash 0ee5bdd9e688168a4db30a28e603dd5334418b0129ee65f4add53088a7d368c8 42 terminated-scalars/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("text")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("text")
 @hash bae82387e02c1925d913c8e95aa9f1bb375df1ebc858b69c4014145f03120686 42 text/packed
 @hash 5f38d4631de2c4486cf4511b90ad68efbd06a5ac6354ce284b3a15d14be7cf31 42 text/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("to-end")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("to-end")
 @hash a77d47adf9926aa612c9bee5c358fe270d7265cc0dce410f493d3734e4e5b8b0 42 to-end/packed
 @hash a77d47adf9926aa612c9bee5c358fe270d7265cc0dce410f493d3734e4e5b8b0 42 to-end/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("to-end-structs")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("to-end-structs")
 @hash 09ee40f56ae5761852720c5b36f58afc87112acd427aa41ad154c9f8a0c36dd5 42 to-end-structs/packed
 @hash 3df33ecc4a1cd79df0dd6c2596891d36fb20e736f3d8fef3f749385892b10d7b 42 to-end-structs/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("union")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("union")
 @hash 14939f93f7b589dc0c827e9638c6666471e7db663e97cae903970c19638ee723 36 union/packed
 @hash d1a0e411e906a3e59bd444ed814e749f3731aac2f5d9bc773817e9dfbc709fae 36 union/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("union-arrays")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("union-arrays")
 @hash 61a2fd5b55867f9e2c89ad6ee461c425c67d7ed2d73ddacc1bba0d1037685276 168 union-arrays/packed
 @hash 25c0c321132e4870d827aa51c34a66107130d3008884ab18b81f40b83df20d4c 168 union-arrays/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("union-bitfields")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("union-bitfields")
 @hash b334a23fa90683054ee0840bb82b8e444710323e404518f9ee1ff6cb6ac7801c 36 union-bitfields/packed
 @hash 2045210b3d9c7cf00badbbef52f3141f786da65920d75d2056050d7a70c72cea 36 union-bitfields/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("union-conditional")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("union-conditional")
 @hash 7edb40f3a4d483a2b3268258e2ed50704525d5359e26fb58e743efd2269ee690 168 union-conditional/packed
 @hash 55382dd6fb8d80571409f370e891e3542713012bd11812dc6677f41db7e9eeb5 168 union-conditional/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("union-nested")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("union-nested")
 @hash 5dddc5ceb61de80c6997e075599ee5a7673e8e09f34f15f14563d481a5e3bf9d 168 union-nested/packed
 @hash 5a85fab4d3e7c64404fa21b8aa47cd4ef9a279079b0e218b64f4d8456644f89c 168 union-nested/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("variables")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("variables")
 @hash 43cd1fbc0f6ec5f2f73bc4bd804870363df211d1f60518fcfcd315e5269b0d94 448 variables/packed
 @hash 43cd1fbc0f6ec5f2f73bc4bd804870363df211d1f60518fcfcd315e5269b0d94 448 variables/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("write-codecs")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("write-codecs")
 @hash 2984e9adb7de8fd450269cd69e9425608357ff8f013cf56ea21f6e6cd0363203 36 write-codecs/packed
 @hash d3149fd387a9e908ef2df76baa473afaed08cf82a5e95914caca8ed5e8f735ea 36 write-codecs/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("write-enums")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("write-enums")
 @hash b4b93097c8da20412b5189b76776eec4924a2b8c08eb94582f74b4199a66f5c1 168 write-enums/packed
 @hash 0dba1985a27add84fbe7eb26c8857c8fe36fb5cee8c540bbbc3c431359d24bdd 168 write-enums/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("write-padding")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("write-padding")
 @hash 36a9180b02be0e1f6c5e6556f124fdabff7a2ecb6d896655f62f5d844645cd48 168 write-padding/packed
 @hash 20dbc071025ebb4813b622bc6fd6a5e50ae340a97601b7f450074a171d239383 168 write-padding/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("write-qualified")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("write-qualified")
 @hash 6d7aa7b5e6911f8e5b2fa97fc5ccb368aea98f1ff47ffa6720d8584a8c5cce29 168 write-qualified/packed
 @hash 95745bd7b8c6501d5c40ec1effef54891199c32976a403c20ada355c1f90e312 168 write-qualified/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("write-scope")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("write-scope")
 @hash 5ee888f4bbe099862e65f4f4d2eea51fc82891f05a921a6b8d4603471d41cb56 168 write-scope/packed
 @hash eeeb9a23c4402cb7238a659a99f57381cb92ba08f843770ca8193cab95a33ad1 168 write-scope/aligned
 
-@test CallerVariables_ReadAndWriteIdentically("write-text")
+@test CallerVariables_ReadAndWriteUpToTheIntegerBounds("write-text")
 @hash 26e495b827c7d447e73cdd3fa9fbd58cb80fe46b475f2b1c2fc2a88f289312b8 42 write-text/packed
 @hash cc69cf06a0db0d92bde5139ca09a269545ea1e4c9d5e8b4a684e267b186e51ff 42 write-text/aligned
 
-@test Destinations_WriteIdentically("bitfields")
+@test Destinations_ReceiveEveryWriteAndUpdate("bitfields")
 @hash 5b8af0d04792f1ad1d4b5b74bebc5e3b64fa5aff890408a761b5d1fecb244d62 60 bitfields/packed
 @hash 69436f829428893e29319335b587bb05003f3af7f636a4a12049e79096730fcd 60 bitfields/aligned
 
-@test Destinations_WriteIdentically("bitfields-enum-counts")
+@test Destinations_ReceiveEveryWriteAndUpdate("bitfields-enum-counts")
 @hash fc816749cff43593ba32da3772031e4c5414ae73602775bc5bdbef6fc7115d59 60 bitfields-enum-counts/packed
 @hash be01396e4543701b1116119d83ed167d5a0cd804bcf65808303b2733ae03cfb4 60 bitfields-enum-counts/aligned
 
-@test Destinations_WriteIdentically("bitfields-high")
+@test Destinations_ReceiveEveryWriteAndUpdate("bitfields-high")
 @hash 6cac56e88bc34d78ee4962c2eb87e2149c580124ebaf9b6d8c472388e946e67a 60 bitfields-high/packed
 @hash 6cac56e88bc34d78ee4962c2eb87e2149c580124ebaf9b6d8c472388e946e67a 60 bitfields-high/aligned
 
-@test Destinations_WriteIdentically("bitfields-msvc")
+@test Destinations_ReceiveEveryWriteAndUpdate("bitfields-msvc")
 @hash 8f3944fa672a77db4920763b77e192c80854b0f056dd23bbf6c67b0ad6f2c8e3 60 bitfields-msvc/packed
 @hash 71bc2feb5a338583b8382c6d9d41976ba1bbf08efca09221f6391dc583c39418 60 bitfields-msvc/aligned
 
-@test Destinations_WriteIdentically("conditional")
+@test Destinations_ReceiveEveryWriteAndUpdate("conditional")
 @hash 152b8696647e6548861f40baf1f3f4fe1bf4b5b24e59fe1d93239fff785715ac 60 conditional/packed
 @hash f13a9ddc0522f852d8a1ce4eb1105d2d7edaa7412117b7db67340b4cb1c854ad 60 conditional/aligned
 
-@test Destinations_WriteIdentically("count")
+@test Destinations_ReceiveEveryWriteAndUpdate("count")
 @hash 269a9ea991c2809f22b90133496a05f1475a51d336d49aa95db8c7795f43778b 60 count/packed
 @hash 9cea571b0b5472f1ca732bbdd902637fbcbde32495ca7a552455c61e68999b69 60 count/aligned
 
-@test Destinations_WriteIdentically("custom-codec")
+@test Destinations_ReceiveEveryWriteAndUpdate("custom-codec")
 @hash 9622efc28bade579c4ec1a6709b77e7b156456b01781fa534ac392e71828b9e0 60 custom-codec/packed
 @hash 9622efc28bade579c4ec1a6709b77e7b156456b01781fa534ac392e71828b9e0 60 custom-codec/aligned
 
-@test Destinations_WriteIdentically("custom-fixed")
+@test Destinations_ReceiveEveryWriteAndUpdate("custom-fixed")
 @hash ea1c91816c7df628116c9da49ef76cca2aa16523cc7dc697f754e0120d98714f 60 custom-fixed/packed
 @hash 39c4590cd64c7489924a4f691f7b683a89712d565211b49a03d99ffca33fcf61 60 custom-fixed/aligned
 
-@test Destinations_WriteIdentically("enum-bitfield")
+@test Destinations_ReceiveEveryWriteAndUpdate("enum-bitfield")
 @hash d09c796fad00667249c2a850e5ba5c96c2df9fee335181a6f20b9bc52130a6f1 60 enum-bitfield/packed
 @hash c0969eea10f524d7632ba06738f215988f41e6f766cb90423ebedbf8750c0bc3 60 enum-bitfield/aligned
 
-@test Destinations_WriteIdentically("fixed")
+@test Destinations_ReceiveEveryWriteAndUpdate("fixed")
 @hash ea42e7eb6d54b9d6757dda3fadae229eee099bf4d8450688dfb00ede8ded8364 60 fixed/packed
 @hash be81c5041d90e50c0d864660d6b975d9c97291b9a9a4a624ea28c293d984fe77 60 fixed/aligned
 
-@test Destinations_WriteIdentically("inline-qualified")
+@test Destinations_ReceiveEveryWriteAndUpdate("inline-qualified")
 @hash 323a630e3a2f6688b5c4faf1e507fa2f5e76044a509fd942a6504baf60774de8 60 inline-qualified/packed
 @hash 3a40c1a9a1159f528033b4da948a9dfc0eddfc74345bd5ad40b62b9d0157c2e1 60 inline-qualified/aligned
 
-@test Destinations_WriteIdentically("leb128")
+@test Destinations_ReceiveEveryWriteAndUpdate("leb128")
 @hash ce1938f52c2887b22617cabfb23fff398afc7cc44ab8d046112a06146829eebc 60 leb128/packed
 @hash ce1938f52c2887b22617cabfb23fff398afc7cc44ab8d046112a06146829eebc 60 leb128/aligned
 
-@test Destinations_WriteIdentically("multidim")
+@test Destinations_ReceiveEveryWriteAndUpdate("multidim")
 @hash 92fc651f3d7e3425b85c89223c142edd791823684b5f6af6b531a74c58e6ec1f 60 multidim/packed
 @hash a17f38c561171d3c3f28b7e6262ee8a5d5f43ea411b60cd16db67896dbc8aedf 60 multidim/aligned
 
-@test Destinations_WriteIdentically("multidim-structs")
+@test Destinations_ReceiveEveryWriteAndUpdate("multidim-structs")
 @hash b1a1359d2cec0097d2e82dc7ef863ed03b8d2ee7e621b272232fae7a308f81d0 60 multidim-structs/packed
 @hash 197994fbb8e492aedf38083fc8c7a12d1e63e3aa22cc4a2fb33e5845fbac8427 60 multidim-structs/aligned
 
-@test Destinations_WriteIdentically("nested")
+@test Destinations_ReceiveEveryWriteAndUpdate("nested")
 @hash 84df124d63c31973ad04ac8097d69befc7bc5017c250c62266b650a3a1103afc 60 nested/packed
 @hash def20aab3408743e8e49ad903286f92d8c6e8dcb63881df10ce8af1e512b9628 60 nested/aligned
 
-@test Destinations_WriteIdentically("pointer-arrays")
+@test Destinations_ReceiveEveryWriteAndUpdate("pointer-arrays")
 @hash 40b7d0959e2722571694d0a52d611c173d4f72320ef843999af8829b0ded3d30 50 pointer-arrays/packed
 @hash 40b7d0959e2722571694d0a52d611c173d4f72320ef843999af8829b0ded3d30 50 pointer-arrays/aligned
 
-@test Destinations_WriteIdentically("pointer-counted")
+@test Destinations_ReceiveEveryWriteAndUpdate("pointer-counted")
 @hash 99491d1a913e314ff8ca91bf6d9b8aa1df7606b98bffc5f8c26ad90ed45f3abf 50 pointer-counted/packed
 @hash 99491d1a913e314ff8ca91bf6d9b8aa1df7606b98bffc5f8c26ad90ed45f3abf 50 pointer-counted/aligned
 
-@test Destinations_WriteIdentically("pointer-list")
+@test Destinations_ReceiveEveryWriteAndUpdate("pointer-list")
 @hash ef010db2b17d0b62396daa12d525c4a773335849711aaaef74630089da7dd75a 50 pointer-list/packed
 @hash ef010db2b17d0b62396daa12d525c4a773335849711aaaef74630089da7dd75a 50 pointer-list/aligned
 
-@test Destinations_WriteIdentically("pointer-views")
+@test Destinations_ReceiveEveryWriteAndUpdate("pointer-views")
 @hash b09c205b5cac28f5a43727310e4c2420dacfc2002002b71d9f940e5f69f1ad8f 50 pointer-views/packed
 @hash b09c205b5cac28f5a43727310e4c2420dacfc2002002b71d9f940e5f69f1ad8f 50 pointer-views/aligned
 
-@test Destinations_WriteIdentically("pointers")
+@test Destinations_ReceiveEveryWriteAndUpdate("pointers")
 @hash 390641fcdf48f8e45b973c438d0fe39636bd45c66c0bdd688841076825a3fa04 60 pointers/packed
 @hash 390641fcdf48f8e45b973c438d0fe39636bd45c66c0bdd688841076825a3fa04 60 pointers/aligned
 
-@test Destinations_WriteIdentically("promoted")
+@test Destinations_ReceiveEveryWriteAndUpdate("promoted")
 @hash 4b5cc83d76f74764cd47e7bf366ed5ce432714da0014737cd2811375c4b9cd15 60 promoted/packed
 @hash 44dc43d243dea6efc8d830bfbca6b26f4d0cc603a5d6cab7b09e06c9a8e0caad 60 promoted/aligned
 
-@test Destinations_WriteIdentically("promoted-union")
+@test Destinations_ReceiveEveryWriteAndUpdate("promoted-union")
 @hash 9bd30c127cfa67f13f67c64a83a14247647a9c28ae1a5c84ec786f4aaaf7e9c8 60 promoted-union/packed
 @hash 3784ca95a017d907e13a0a0cca343e2642b49cf68639a3979ea380e4d46ea4fc 60 promoted-union/aligned
 
-@test Destinations_WriteIdentically("terminated")
+@test Destinations_ReceiveEveryWriteAndUpdate("terminated")
 @hash f30dbdf3dcc9b0a4011608a71396f3f8fc8b41b3e08b62fcf3c933a361409262 60 terminated/packed
 @hash f30dbdf3dcc9b0a4011608a71396f3f8fc8b41b3e08b62fcf3c933a361409262 60 terminated/aligned
 
-@test Destinations_WriteIdentically("terminated-scalars")
+@test Destinations_ReceiveEveryWriteAndUpdate("terminated-scalars")
 @hash 8c397313d23c4f1cce3420bfbe40dfc3cfa9713e6d7cb1b7fd8b70de90a2484a 60 terminated-scalars/packed
 @hash 0bdfcaae28463fed3a932ebd2b3cc172f5888067ac052f18e051aab1a4f8789f 60 terminated-scalars/aligned
 
-@test Destinations_WriteIdentically("text")
+@test Destinations_ReceiveEveryWriteAndUpdate("text")
 @hash 2fe73883d983f3e505fbd71612ed65bc957fbf456666566a98daf3271fdb71c3 60 text/packed
 @hash 4d9d68510737abef77b74737f7f1bf76b5337104d8f65130e1fca47f2a9d195c 60 text/aligned
 
-@test Destinations_WriteIdentically("to-end")
+@test Destinations_ReceiveEveryWriteAndUpdate("to-end")
 @hash 5cbf59fc855f73ab41d9974b8d262f9b7f95510630eb8b5e4f196508ab7c1b1a 50 to-end/packed
 @hash 5cbf59fc855f73ab41d9974b8d262f9b7f95510630eb8b5e4f196508ab7c1b1a 50 to-end/aligned
 
-@test Destinations_WriteIdentically("to-end-structs")
+@test Destinations_ReceiveEveryWriteAndUpdate("to-end-structs")
 @hash df8a00165934478009271b669092ba1c1f02bdb2cf017bb1026157ba2c4dfcaa 60 to-end-structs/packed
 @hash ae10cd0e0d5b0ce1cb6de5fa3e0913f45586919a9e77ccc479305b681962093a 60 to-end-structs/aligned
 
-@test Destinations_WriteIdentically("union")
+@test Destinations_ReceiveEveryWriteAndUpdate("union")
 @hash 5f725f364aaeb0a63c70fd12823d5142f62977de772457da120774be677ce9b0 60 union/packed
 @hash 8a844b53c81221a5b5495df7da1d8d1c0a5396f427ebe353b9c7f0cee4be654b 60 union/aligned
 
-@test Destinations_WriteIdentically("union-arrays")
+@test Destinations_ReceiveEveryWriteAndUpdate("union-arrays")
 @hash 238abea3e2aa5adba4d87d89798277d131acb857c913a52ece59b9a98569ddab 50 union-arrays/packed
 @hash 2b3e0307e42ece923fa920c4828755e08549de0a334b76d5bea57044bb67777a 50 union-arrays/aligned
 
-@test Destinations_WriteIdentically("union-bitfields")
+@test Destinations_ReceiveEveryWriteAndUpdate("union-bitfields")
 @hash 473acec36626c5a9f1c7966717172e6d24bb4ca52f0498aa68635aca17f3ca8c 60 union-bitfields/packed
 @hash 497c10508a2a2f49528e25b70ad7476e74f42601af077a3eb3ab423189c164bc 60 union-bitfields/aligned
 
-@test Destinations_WriteIdentically("union-conditional")
+@test Destinations_ReceiveEveryWriteAndUpdate("union-conditional")
 @hash 368e4fd2ca927579cb5790dd7c463330af0b774bd567908f2eeb8a5e6b672f21 60 union-conditional/packed
 @hash 1a234627ce69e880eaa8eb1fadd333bcf5e96b1bb0c2a631914d77446a8e811d 60 union-conditional/aligned
 
-@test Destinations_WriteIdentically("union-nested")
+@test Destinations_ReceiveEveryWriteAndUpdate("union-nested")
 @hash ef379b1b40267379a3e33451fe05ee31c22b64743143d88f15bc6715a44a7757 60 union-nested/packed
 @hash 4cc55d270059ae69007be1bcdd56e6c5d2d216bd9565185e4b20a34f209ea099 60 union-nested/aligned
 
-@test Destinations_WriteIdentically("variables")
+@test Destinations_ReceiveEveryWriteAndUpdate("variables")
 @hash a0abc2019a9c8c711471d25091f65ceee72c0512a7e4eae4b69b8c40c496d5fa 50 variables/packed
 @hash a0abc2019a9c8c711471d25091f65ceee72c0512a7e4eae4b69b8c40c496d5fa 50 variables/aligned
 
-@test Destinations_WriteIdentically("write-codecs")
+@test Destinations_ReceiveEveryWriteAndUpdate("write-codecs")
 @hash 21056455c8f6ea4fa82f8bb6800174676486ba0b565f7a520449b8edef13314d 60 write-codecs/packed
 @hash ef64247bda1a831e45d2c3ea5cc0d0dfd7a4036fdfc51a57a9910b9a3664d5cd 60 write-codecs/aligned
 
-@test Destinations_WriteIdentically("write-enums")
+@test Destinations_ReceiveEveryWriteAndUpdate("write-enums")
 @hash 36d16e1bfba5849182b24fcab97b75575f72de8ceeeeace23f4fc6595e2294d9 60 write-enums/packed
 @hash 464cf27555cebc1b7e26156e2d8c05a25e995a18a437a7799075bedd66815fd9 60 write-enums/aligned
 
-@test Destinations_WriteIdentically("write-padding")
+@test Destinations_ReceiveEveryWriteAndUpdate("write-padding")
 @hash 80b46ea6f3dd8b107afb99963e8cd097107053cd554be19532307aaddffbb1f4 60 write-padding/packed
 @hash 5c45c3fcdb2ac20299f53c26b06abda55c40d7864df831dd73222e73ae27487f 60 write-padding/aligned
 
-@test Destinations_WriteIdentically("write-qualified")
+@test Destinations_ReceiveEveryWriteAndUpdate("write-qualified")
 @hash ab5f04032e8f53cd85b077bf49666843e389d42b496a04861f27f986a893f49d 50 write-qualified/packed
 @hash 3b9e699a9e82ad3a496084aacb919541a870421f767174099539c22a35b8535c 50 write-qualified/aligned
 
-@test Destinations_WriteIdentically("write-scope")
+@test Destinations_ReceiveEveryWriteAndUpdate("write-scope")
 @hash 2a97e4d7c511485d2dcfbdd1cf906e322bd2cd7bdfbd066a61ba6c732dc84235 60 write-scope/packed
 @hash cbe83616bc69500f781bda438675053e860945a0ad7a1192f1d0cf9eeaf3ffe2 60 write-scope/aligned
 
-@test Destinations_WriteIdentically("write-text")
+@test Destinations_ReceiveEveryWriteAndUpdate("write-text")
 @hash 6ef5ab47a48ecee7699c4cbf1f21f4023695d90cbb1dff851a2c2a453ff3d110 60 write-text/packed
 @hash d337ecdd7261f93647a3a1e691c02d5b527fe6bb76c53b9d33b093a307e45482 60 write-text/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("bitfields")
+@test Limits_FailOrSucceedAroundTheNeededValue("bitfields")
 @hash 68a8fcdcebc1da0fa728fc5d270f2ca86941de4c019b7f208040191066f23718 482 bitfields/packed
 @hash d721d9d5d9a4d19a6b1e66ee3808c01ff6bd498c2968374085d6fd9f1c7f6463 574 bitfields/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("bitfields-enum-counts")
+@test Limits_FailOrSucceedAroundTheNeededValue("bitfields-enum-counts")
 @hash c5789074259879411f5bb15a3b2f9b4f3ac82416f8d0f1b35152a0d713781527 758 bitfields-enum-counts/packed
 @hash 3740830c6879c82ff3b347947a19b4b2f3da33a19160f807d803400de24280b9 850 bitfields-enum-counts/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("bitfields-high")
+@test Limits_FailOrSucceedAroundTheNeededValue("bitfields-high")
 @hash 62f8fd3c9343f6325d5cceb6de1be5027680ebac80b9cad058e96ac09df7f114 482 bitfields-high/packed
 @hash 62f8fd3c9343f6325d5cceb6de1be5027680ebac80b9cad058e96ac09df7f114 482 bitfields-high/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("bitfields-msvc")
+@test Limits_FailOrSucceedAroundTheNeededValue("bitfields-msvc")
 @hash d582f19ab0409599c288736d752caf6272559cb9e7c3de83c025e3f352c22f6f 666 bitfields-msvc/packed
 @hash da345d92caf1bea9fb252da93c057eb4632d17e760d88ea5314960e0facb00cc 850 bitfields-msvc/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("conditional")
+@test Limits_FailOrSucceedAroundTheNeededValue("conditional")
 @hash 727e2c3a3962a462fea8d604d3cdd627d7b5d7f058078bce9ab909692fd4f9b6 482 conditional/packed
 @hash 5d80195a9533656e445838492958cf087594e6a2cd6cf24e385d538d1ce1e589 574 conditional/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("count")
+@test Limits_FailOrSucceedAroundTheNeededValue("count")
 @hash f4e5cbb60b60b69a2903f0523607897a1a93778ddd28b6cad679e42c931d6513 666 count/packed
 @hash ae5ac1c1a0ac754bb8e0fd3a4c473ebaed3e6080cf9052334c7b4fe6cf99ea07 758 count/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("custom-codec")
+@test Limits_FailOrSucceedAroundTheNeededValue("custom-codec")
 @hash ad30edeed7f4eddfe1d969beface917283b4eadf03163a6f8e3ea7d2a06171f6 528 custom-codec/packed
 @hash ad30edeed7f4eddfe1d969beface917283b4eadf03163a6f8e3ea7d2a06171f6 528 custom-codec/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("custom-fixed")
+@test Limits_FailOrSucceedAroundTheNeededValue("custom-fixed")
 @hash 15ff9c739f677ca4dfd7177732fff569f47f17a1679acc23354bea428fd44702 1126 custom-fixed/packed
 @hash 5db791aaa7b38da81024f6499233cffbcdec5c8e3664f4de5dc3d72f83d2b685 1770 custom-fixed/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("enum-bitfield")
+@test Limits_FailOrSucceedAroundTheNeededValue("enum-bitfield")
 @hash d6b383feaaaf74e50e8b8f4030209a1e895c36ce1c38e7c02983f63979b3f8e7 574 enum-bitfield/packed
 @hash 50b3b58b7d8fdee09822bfaae7c9e635b3f2c3593985e00b1077df4daf83fcdd 666 enum-bitfield/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("fixed")
+@test Limits_FailOrSucceedAroundTheNeededValue("fixed")
 @hash ac42cdd22e361c80d492bc1beb0a4e4d6eb284ca0eea1160f00680101decc719 988 fixed/packed
 @hash cc679cf4d0b7465a03c0f25fd0209a4a5ce73c044c840f4d3f34997ae9c6e017 1218 fixed/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("inline-qualified")
+@test Limits_FailOrSucceedAroundTheNeededValue("inline-qualified")
 @hash 4c63afe2e916193669a572b0a88f783cae37acedc34eadb315beb142f0a2a7f9 666 inline-qualified/packed
 @hash 9bd892d5d1115752e24482f2d7b05edba825ed3544bf849e802d0dd4b5c9d145 758 inline-qualified/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("leb128")
+@test Limits_FailOrSucceedAroundTheNeededValue("leb128")
 @hash 135e916d1a03667618d3095716394c776fe8665d457e7f7fa0fad545238a749b 666 leb128/packed
 @hash 135e916d1a03667618d3095716394c776fe8665d457e7f7fa0fad545238a749b 666 leb128/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("multidim")
+@test Limits_FailOrSucceedAroundTheNeededValue("multidim")
 @hash d7219b9fa2f2ac747cf1c91de0f4cc972b9872a31abe81a7d4ef27bb107a540e 2046 multidim/packed
 @hash f1999cc38056e712dc13f18f776fc2529be98c7c792a1304926cc3f9ac511341 2138 multidim/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("multidim-structs")
+@test Limits_FailOrSucceedAroundTheNeededValue("multidim-structs")
 @hash 66c1fab221b0be79d131ee3d8b1352879943e68b509aa60273527739585cd8cf 1678 multidim-structs/packed
 @hash c2b5e59a87e4b8dfede305dcbbbae456535a3e4a7fd415a0022d15a89b9fe94b 1954 multidim-structs/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("nested")
+@test Limits_FailOrSucceedAroundTheNeededValue("nested")
 @hash 874a41ea5b400e2455dae7e13657fc81cc98ec8bae0eeeca3d19a78179bd8580 758 nested/packed
 @hash f81a7ea1dcd0aa1c0f9f73772db2961b20632a517570c22c83e532d358a337ff 942 nested/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("pointer-arrays")
+@test Limits_FailOrSucceedAroundTheNeededValue("pointer-arrays")
 @hash 7b8c75bb47d445049dae6f903d8bcbf32097ae6c9981afe108f25c59ead3ec9c 712 pointer-arrays/packed
 @hash 7b8c75bb47d445049dae6f903d8bcbf32097ae6c9981afe108f25c59ead3ec9c 712 pointer-arrays/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("pointer-counted")
+@test Limits_FailOrSucceedAroundTheNeededValue("pointer-counted")
 @hash 219bd45b2f7a0f42ba8ddd311a1d1e10e5b6ba9b7b16a55cee2a5aeb98b1b4ac 804 pointer-counted/packed
 @hash 219bd45b2f7a0f42ba8ddd311a1d1e10e5b6ba9b7b16a55cee2a5aeb98b1b4ac 804 pointer-counted/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("pointer-list")
+@test Limits_FailOrSucceedAroundTheNeededValue("pointer-list")
 @hash dfe8332c7d8fc0ed37b065797055b558806e6b5b1c36a368f38060d342e6c1b2 620 pointer-list/packed
 @hash dfe8332c7d8fc0ed37b065797055b558806e6b5b1c36a368f38060d342e6c1b2 620 pointer-list/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("pointer-views")
+@test Limits_FailOrSucceedAroundTheNeededValue("pointer-views")
 @hash 24b811668a3ff2518e852033ebbc2aa90cacf879d9b3aa43098aeff5716c944b 620 pointer-views/packed
 @hash 24b811668a3ff2518e852033ebbc2aa90cacf879d9b3aa43098aeff5716c944b 620 pointer-views/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("pointers")
+@test Limits_FailOrSucceedAroundTheNeededValue("pointers")
 @hash 55be14a26f413d48b16d2116148fde296cde77e51ab59e658baae5a35377af12 804 pointers/packed
 @hash 55be14a26f413d48b16d2116148fde296cde77e51ab59e658baae5a35377af12 804 pointers/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("promoted")
+@test Limits_FailOrSucceedAroundTheNeededValue("promoted")
 @hash d0f70863d3bb7d9f1513112b644ccc222d44ddf17413ab751257ed0b8da42e00 620 promoted/packed
 @hash b50db9553632f571af434679d7de39aa295d6279ff59adf69521dd216f03de90 758 promoted/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("promoted-union")
+@test Limits_FailOrSucceedAroundTheNeededValue("promoted-union")
 @hash 644dd82810a6e94a50f54a5385d9bdc0ddcee03bda75baea131efc67e1fa8c1a 528 promoted-union/packed
 @hash 2f3ae1ee678aaed1c261b7dc1d5076aefd3758b90a08c48780433c437f1e7c06 666 promoted-union/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("terminated")
+@test Limits_FailOrSucceedAroundTheNeededValue("terminated")
 @hash 57bc0256ee20e8802095d1d428c2c3b3a5910323450ec83915fb884ad64b48f3 758 terminated/packed
 @hash 57bc0256ee20e8802095d1d428c2c3b3a5910323450ec83915fb884ad64b48f3 758 terminated/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("terminated-scalars")
+@test Limits_FailOrSucceedAroundTheNeededValue("terminated-scalars")
 @hash 56717cf10923c3c048969dd7992d860f8306c623b639e4decd023b1d4e0004ab 666 terminated-scalars/packed
 @hash 44ae7100424a42ea8813f870d107f2037f671c3fd8934c0bc1f0404fd6818ddb 758 terminated-scalars/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("text")
+@test Limits_FailOrSucceedAroundTheNeededValue("text")
 @hash ae3a4a8d3b1171eb11097114cd7499902c08515141202772d84bf35efb19a4c5 1080 text/packed
 @hash 9df074c791085688ea226d906dfc9715ca250231799737419dd4aeafe5fdd51e 1126 text/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("to-end")
+@test Limits_FailOrSucceedAroundTheNeededValue("to-end")
 @hash b4dcaab68ab5de957a2a138e5325d91db5231735c14fcac92a861ee6027f557a 666 to-end/packed
 @hash b4dcaab68ab5de957a2a138e5325d91db5231735c14fcac92a861ee6027f557a 666 to-end/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("to-end-structs")
+@test Limits_FailOrSucceedAroundTheNeededValue("to-end-structs")
 @hash 80aea3ab97e049e55b3304c7f393a936504a399ea9472d97006450311c15149e 620 to-end-structs/packed
 @hash 4565ef96101f8959cb5d16e6d062d9221a699ae8d49998581e039e62469c0eb9 758 to-end-structs/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("union")
+@test Limits_FailOrSucceedAroundTheNeededValue("union")
 @hash 26c2a218769c58bbec13620a374415e9cf7f439002cc5e4b0aa295dc58051b44 574 union/packed
 @hash 18082fc8e47b2c057aead6a59876c98d256ccb6a74ce988bb8ca8aad8469634e 850 union/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("union-arrays")
+@test Limits_FailOrSucceedAroundTheNeededValue("union-arrays")
 @hash f296ca6007210f314757ed5b5f9c0e9f9d4df3c671dcccba11a0b9219a5ef44e 574 union-arrays/packed
 @hash f8d129e33f5c64f274c3e2aefa14165d9954efdeca03439dceebbf4792357c09 666 union-arrays/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("union-bitfields")
+@test Limits_FailOrSucceedAroundTheNeededValue("union-bitfields")
 @hash 81cb461b89f50dea4d18bceeaef73dd585369d0e50ee51ef73ea7fc851f7d202 482 union-bitfields/packed
 @hash c1ba08f14019e3948c46fec7900a7786a493cda100d238aee8608fe4a2b37950 574 union-bitfields/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("union-conditional")
+@test Limits_FailOrSucceedAroundTheNeededValue("union-conditional")
 @hash 3dd4e30b966a702aca3737ee7143e8a7d42cdbe25ed134f2f347dbfd62209f2c 666 union-conditional/packed
 @hash 8135d019ead74823abceff0b0f48b74d5504c54a60cf6f16fb48f003aba4c481 758 union-conditional/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("union-nested")
+@test Limits_FailOrSucceedAroundTheNeededValue("union-nested")
 @hash 04950953b618fd0a11eb051de5c25ea33d2bd5d16ee100133b229c0e002521ff 758 union-nested/packed
 @hash 740d274862b4ad3e9a68da98d57e4d63c60a65aed931c0aa436fd7118c46fefe 1034 union-nested/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("variables")
+@test Limits_FailOrSucceedAroundTheNeededValue("variables")
 @hash 61c45cd62c923231289ac80f933ed9437f8905c5fed93559924b9d7352db8712 528 variables/packed
 @hash 61c45cd62c923231289ac80f933ed9437f8905c5fed93559924b9d7352db8712 528 variables/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("write-codecs")
+@test Limits_FailOrSucceedAroundTheNeededValue("write-codecs")
 @hash 7b9512aa7fad6f28460634ce4aa5636ecf99dba8040e263c4d17f3c37c07c570 4990 write-codecs/packed
 @hash 841fe5b1fcaf2575dbc666a421a78a58af38dfd25a81ce1467ca4df01ef30432 6186 write-codecs/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("write-enums")
+@test Limits_FailOrSucceedAroundTheNeededValue("write-enums")
 @hash 5d30d82298cf25f19934cee23503d9e1598626a3dce8718e42b7d674ed61268b 896 write-enums/packed
 @hash b94673f82374b01623f00c3a3dd22ed16ad309e8b19d2b3f6b818a7afb072400 1034 write-enums/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("write-padding")
+@test Limits_FailOrSucceedAroundTheNeededValue("write-padding")
 @hash 9ea85b6f27a9ae80b54729b9a9fe14c3c43fffc76b869c9844b97ccf41fae7b5 896 write-padding/packed
 @hash 2bac4ca19a565851188a12755890773c6ba36fcad54f39af2481eef9e24efd5c 1034 write-padding/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("write-qualified")
+@test Limits_FailOrSucceedAroundTheNeededValue("write-qualified")
 @hash 31d030a4ae40962ec90eea9facdb4168c0dd3f77c4b5df6f7776fd2f72f65887 528 write-qualified/packed
 @hash 707d2da7178bc08cd21912814e37f5a7f1d5ddf9ec0c090a85222e26dee0b330 574 write-qualified/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("write-scope")
+@test Limits_FailOrSucceedAroundTheNeededValue("write-scope")
 @hash e11015ccfb969c18a79d8f8bd13a82a4963a7ba4d04d55220a300b078f1a8e57 804 write-scope/packed
 @hash 241ad34ad8075db36b13f0aba90aad907f67efa0dc86002cf18b2830cff25c04 850 write-scope/aligned
 
-@test Limits_FailIdenticallyAroundTheNeededValue("write-text")
+@test Limits_FailOrSucceedAroundTheNeededValue("write-text")
 @hash b0d8c560ac56608d34f443334174aa9fdf1d61fe41ffe23d3a8f4a4b929fe9b7 1448 write-text/packed
 @hash 0ab0ee3598ae18bfefd04f3ad23868c265fe174b2d9eba6fa426ae6c26eda836 1494 write-text/aligned
 
@@ -782,471 +782,471 @@
 @hash 39c811dddae3368e8aa1445a63e6a71213f33a5d51f382a88a5ffc1732ea93ef 80 write-text/packed
 @hash 342d20db20d7a3f1ce874c29551b3d3b3de978f33acb7976fd8cf6671b559027 80 write-text/aligned
 
-@test ReadOptions_DecodeIdentically("bitfields")
+@test ReadOptions_DecodeFromMemoryAndStreams("bitfields")
 @hash 4862a8b9a77501f8fe32bce0f462b0ff63c359e4572fcbfa3fb60f3c0b8294af 528 bitfields/packed
 @hash e69f589a443685bc134d2e3d7d067409c95029532596ffb4a5e7041d8d2898c6 528 bitfields/aligned
 
-@test ReadOptions_DecodeIdentically("bitfields-enum-counts")
+@test ReadOptions_DecodeFromMemoryAndStreams("bitfields-enum-counts")
 @hash b72322d7261862f13a14cf9729b8949efc74cc52fd1cd75df51b93f1079c975a 528 bitfields-enum-counts/packed
 @hash 446385692618151ea5d0dc02f6ba0291c0422b8caba822a0b3795e17cd0a3281 528 bitfields-enum-counts/aligned
 
-@test ReadOptions_DecodeIdentically("bitfields-high")
+@test ReadOptions_DecodeFromMemoryAndStreams("bitfields-high")
 @hash 7a6b220f6dacfb787140d7e1870d172c7a3e3f7e8765b802970a5a1c3ed42c64 528 bitfields-high/packed
 @hash 7a6b220f6dacfb787140d7e1870d172c7a3e3f7e8765b802970a5a1c3ed42c64 528 bitfields-high/aligned
 
-@test ReadOptions_DecodeIdentically("bitfields-msvc")
+@test ReadOptions_DecodeFromMemoryAndStreams("bitfields-msvc")
 @hash 76db3250f27b04e40264169d0b20c7e97ab905ddc04d74df309acd734ee66421 528 bitfields-msvc/packed
 @hash ceca2c0750e9ec2e8a988afa47137c1c16fa5efb5735d183489ce6804199d62e 528 bitfields-msvc/aligned
 
-@test ReadOptions_DecodeIdentically("conditional")
+@test ReadOptions_DecodeFromMemoryAndStreams("conditional")
 @hash 45f3c874c0e76c0f90805d8e957dbee481c848bdca5599d890942c472d846720 528 conditional/packed
 @hash 3973da52c03cad6c42d4ecf1e016b8aa500d64bcc579b61b53992457eab6545b 528 conditional/aligned
 
-@test ReadOptions_DecodeIdentically("count")
+@test ReadOptions_DecodeFromMemoryAndStreams("count")
 @hash 58987813196040385dcece15c92da894afea0e4875bb4cf105a6d5505e9ca2c1 528 count/packed
 @hash 82b383fecdef01b5f8cfb65ea103172a94c9a24b503f499ff518a87fd8f82108 528 count/aligned
 
-@test ReadOptions_DecodeIdentically("custom-codec")
+@test ReadOptions_DecodeFromMemoryAndStreams("custom-codec")
 @hash 6e2037db92b9aa00920a6e3f23d005b765bdc8b74bd222bfd05d910d74e5d202 480 custom-codec/packed
 @hash 6e2037db92b9aa00920a6e3f23d005b765bdc8b74bd222bfd05d910d74e5d202 480 custom-codec/aligned
 
-@test ReadOptions_DecodeIdentically("custom-fixed")
+@test ReadOptions_DecodeFromMemoryAndStreams("custom-fixed")
 @hash cb13123e35c99c75b7e5900e53983364f43dc8f6c87c23151a1a19bdc72e2025 528 custom-fixed/packed
 @hash 1d1a45c070e1ec8ceadc4096ad6f65ea1c91da2df7223639a380be55343364fd 528 custom-fixed/aligned
 
-@test ReadOptions_DecodeIdentically("enum-bitfield")
+@test ReadOptions_DecodeFromMemoryAndStreams("enum-bitfield")
 @hash ac58508629cae07270707f477f1b33cb7969ed99b312ba41caba6b4b33e0c16c 528 enum-bitfield/packed
 @hash 4c97ee9f56af894bfedb79c5c005c967a30c7d5a17e127914080a11af27c98f3 528 enum-bitfield/aligned
 
-@test ReadOptions_DecodeIdentically("fixed")
+@test ReadOptions_DecodeFromMemoryAndStreams("fixed")
 @hash d8a3a8988b988373a776c2409f5fe71d28ebf88d2983eb9eec54baac54a113fc 528 fixed/packed
 @hash 4ef15f95a0ae7d3723f9e684832f4ee7a3372feb961d6b85aca0c1f20ac7a791 528 fixed/aligned
 
-@test ReadOptions_DecodeIdentically("inline-qualified")
+@test ReadOptions_DecodeFromMemoryAndStreams("inline-qualified")
 @hash fc57a531512e3443234a77a2b881c6376cd72522abda515be433c639ca11f996 528 inline-qualified/packed
 @hash 8cc97a3cc84e30c6f2b609b22defe0bfc88584591f97ca3801e1622699c686db 528 inline-qualified/aligned
 
-@test ReadOptions_DecodeIdentically("leb128")
+@test ReadOptions_DecodeFromMemoryAndStreams("leb128")
 @hash be1b79a6ac654e4003b45fe674cbcb1fb9b69ece793a13c856b15654ebe8bd51 528 leb128/packed
 @hash be1b79a6ac654e4003b45fe674cbcb1fb9b69ece793a13c856b15654ebe8bd51 528 leb128/aligned
 
-@test ReadOptions_DecodeIdentically("multidim")
+@test ReadOptions_DecodeFromMemoryAndStreams("multidim")
 @hash 4623e7cfc133331e6848d43083e6293338857aada6edfd0b30c9f87dc0ec0fa5 624 multidim/packed
 @hash 003611de0e2792f3e52333d8f2c0bf4b87507a91fe732b4bd4cf0a2241479ce9 624 multidim/aligned
 
-@test ReadOptions_DecodeIdentically("multidim-structs")
+@test ReadOptions_DecodeFromMemoryAndStreams("multidim-structs")
 @hash c2347ca5aa12d0bdae21331435800b78313b02c13795585fd019e943bfc2efc6 576 multidim-structs/packed
 @hash be2c9941bfa7a67e08ccd6c7d3329f70de5a8ec3707b60ea85add802d717a568 576 multidim-structs/aligned
 
-@test ReadOptions_DecodeIdentically("nested")
+@test ReadOptions_DecodeFromMemoryAndStreams("nested")
 @hash e3b71fe8be4f094ca72252683ae64cd71680918238f8e5240c0b63889a2c7f71 528 nested/packed
 @hash 275cde2e9541ecb30dbe6219ff83d9fb3838ec66a01dc8a2fbac152e1c867630 528 nested/aligned
 
-@test ReadOptions_DecodeIdentically("pointer-arrays")
+@test ReadOptions_DecodeFromMemoryAndStreams("pointer-arrays")
 @hash 079f4eef11e2d6889e71813b4449167f377cf140c27fc926fa1f70c54847741f 528 pointer-arrays/packed
 @hash 079f4eef11e2d6889e71813b4449167f377cf140c27fc926fa1f70c54847741f 528 pointer-arrays/aligned
 
-@test ReadOptions_DecodeIdentically("pointer-counted")
+@test ReadOptions_DecodeFromMemoryAndStreams("pointer-counted")
 @hash 8ca6e6da32c506c74b10b13922457e741e12dd8182bd35f12ac5761bfeb9ca3d 528 pointer-counted/packed
 @hash 8ca6e6da32c506c74b10b13922457e741e12dd8182bd35f12ac5761bfeb9ca3d 528 pointer-counted/aligned
 
-@test ReadOptions_DecodeIdentically("pointer-list")
+@test ReadOptions_DecodeFromMemoryAndStreams("pointer-list")
 @hash 51cf69569a9e750d45f870077f96089a9cb8852cbdc38f10a3732ee7b7c46a3b 528 pointer-list/packed
 @hash 51cf69569a9e750d45f870077f96089a9cb8852cbdc38f10a3732ee7b7c46a3b 528 pointer-list/aligned
 
-@test ReadOptions_DecodeIdentically("pointer-views")
+@test ReadOptions_DecodeFromMemoryAndStreams("pointer-views")
 @hash aa587c4f5ace03f31c559b859690dc0018abeab4ef616f7aa7aefb9575321bfb 528 pointer-views/packed
 @hash aa587c4f5ace03f31c559b859690dc0018abeab4ef616f7aa7aefb9575321bfb 528 pointer-views/aligned
 
-@test ReadOptions_DecodeIdentically("pointers")
+@test ReadOptions_DecodeFromMemoryAndStreams("pointers")
 @hash 01b3967e94c0189300af26d6cecfd55b6d7c0fdc2452200b08ac5d787a1dbd73 576 pointers/packed
 @hash 01b3967e94c0189300af26d6cecfd55b6d7c0fdc2452200b08ac5d787a1dbd73 576 pointers/aligned
 
-@test ReadOptions_DecodeIdentically("promoted")
+@test ReadOptions_DecodeFromMemoryAndStreams("promoted")
 @hash 4f7bee833461bc8ef30eed874b499a3d18bd0f130ce7382b4adf6329d11e16ed 528 promoted/packed
 @hash 59ff5390cccfe3c2f428d885b2478a04f042498a3c7ffc49dbe4dbae1aef6cd7 528 promoted/aligned
 
-@test ReadOptions_DecodeIdentically("promoted-union")
+@test ReadOptions_DecodeFromMemoryAndStreams("promoted-union")
 @hash 17fab0731f9e81a2ba5f68b0e2a839be5a649b65aea5d27ad789163444d7dec0 528 promoted-union/packed
 @hash 90020c1e08ad5d3ae05df85f7376b3f3551f263ec2d042369d43892cd9ced2e7 528 promoted-union/aligned
 
-@test ReadOptions_DecodeIdentically("terminated")
+@test ReadOptions_DecodeFromMemoryAndStreams("terminated")
 @hash ced99f1d923603bad145f9bd8d73889b2f7f4fcd8f18a4fc50d9b1f226dbd4a8 528 terminated/packed
 @hash ced99f1d923603bad145f9bd8d73889b2f7f4fcd8f18a4fc50d9b1f226dbd4a8 528 terminated/aligned
 
-@test ReadOptions_DecodeIdentically("terminated-scalars")
+@test ReadOptions_DecodeFromMemoryAndStreams("terminated-scalars")
 @hash 88d95aa47244097537913d0a4772da42275efa746050d5268c86ebeba8712215 528 terminated-scalars/packed
 @hash 1ee8a04f379b27bc8b7435170445c9156443e9bdefc6e534e3245b75825d2ccb 528 terminated-scalars/aligned
 
-@test ReadOptions_DecodeIdentically("text")
+@test ReadOptions_DecodeFromMemoryAndStreams("text")
 @hash 3939393b1ba40bb52a22b2cd88fbe3c8d963ae54db75f00a04bffc39368fca58 528 text/packed
 @hash 6c2e702f5b4e475612afafd730ba79ce2bbfc96f2cf8e3f8167fc252951b0bee 528 text/aligned
 
-@test ReadOptions_DecodeIdentically("to-end")
+@test ReadOptions_DecodeFromMemoryAndStreams("to-end")
 @hash e9dfc9bfc5c9ed2f3a7dea5b1ef6d3f15022d290eb977c1fa878c34520d682c6 480 to-end/packed
 @hash e9dfc9bfc5c9ed2f3a7dea5b1ef6d3f15022d290eb977c1fa878c34520d682c6 480 to-end/aligned
 
-@test ReadOptions_DecodeIdentically("to-end-structs")
+@test ReadOptions_DecodeFromMemoryAndStreams("to-end-structs")
 @hash 2447b98cc88349e8aa870b07cb53938a4adaba0dfb955fe13124fb33d0d1fc9c 528 to-end-structs/packed
 @hash c11f2d9bc21006d49657ed58ef1f601d0bee6eb4a5b242aebae86a23f4ea5e94 528 to-end-structs/aligned
 
-@test ReadOptions_DecodeIdentically("union")
+@test ReadOptions_DecodeFromMemoryAndStreams("union")
 @hash 2ad98ebccaf667767234cbc54bb696fb950e8401b1e508dea528c7c8827bcb23 528 union/packed
 @hash 9d5495c89ea7f3b66b34ab5398d34e04e40723033e5587a11243c0ca04e9e127 528 union/aligned
 
-@test ReadOptions_DecodeIdentically("union-arrays")
+@test ReadOptions_DecodeFromMemoryAndStreams("union-arrays")
 @hash 08cc3a2d28fc00d7fef654103f182af5c3eb00abde8d6fd9f72bd3fb3e5be123 528 union-arrays/packed
 @hash 66b4fd372ac1b14ccd2e519afd725c75b9e0e67e115c1e317b9d4c710b2ae477 528 union-arrays/aligned
 
-@test ReadOptions_DecodeIdentically("union-bitfields")
+@test ReadOptions_DecodeFromMemoryAndStreams("union-bitfields")
 @hash 7dc8b0c647a12aadc558c9a2929a4a0966cd58e671b83fdec3ddaaef7cbdca5f 528 union-bitfields/packed
 @hash 3f02e9477bb156712b012519ee1a44e1ceb342dfd063cc47c70db95372f8c13c 528 union-bitfields/aligned
 
-@test ReadOptions_DecodeIdentically("union-conditional")
+@test ReadOptions_DecodeFromMemoryAndStreams("union-conditional")
 @hash e4175c8ea8062c3f74e5067819383036d18385e730a0a6a70fd4679d517324c8 528 union-conditional/packed
 @hash 2327029051148a5ab0e23ddff5a5d4806d9181d9029ae70fb9553d45bc95c5e5 528 union-conditional/aligned
 
-@test ReadOptions_DecodeIdentically("union-nested")
+@test ReadOptions_DecodeFromMemoryAndStreams("union-nested")
 @hash 5229db76860edcb98aa674cda3449a9c5a2883600101650865f4a749c7fe6012 576 union-nested/packed
 @hash b5d178db8e794618c65a78fc6c11a412c60423598d9a87dcea2b7ea1d7104487 576 union-nested/aligned
 
-@test ReadOptions_DecodeIdentically("variables")
+@test ReadOptions_DecodeFromMemoryAndStreams("variables")
 @hash a29113dda336d212eb1d8d0228acb0f7e7fc16917c4c1931d0a20b0527847a2f 480 variables/packed
 @hash a29113dda336d212eb1d8d0228acb0f7e7fc16917c4c1931d0a20b0527847a2f 480 variables/aligned
 
-@test ReadOptions_DecodeIdentically("write-codecs")
+@test ReadOptions_DecodeFromMemoryAndStreams("write-codecs")
 @hash 7580643ff6559161a60a4be409ae1a88dfd33fe78d74716746d184c64467998e 528 write-codecs/packed
 @hash 0da7a5d9af822806c53d132e77eeb0e480a1b99066cc68904c46ad81e512d54b 528 write-codecs/aligned
 
-@test ReadOptions_DecodeIdentically("write-enums")
+@test ReadOptions_DecodeFromMemoryAndStreams("write-enums")
 @hash e95ca0772c054b009d58f46ab4c443ca9674cb876f58274df583eb46c083bb26 528 write-enums/packed
 @hash 051e6219ed7fc8a04c30aa324accb38551d6ca331cdbcadcc04d93691b80db9f 528 write-enums/aligned
 
-@test ReadOptions_DecodeIdentically("write-padding")
+@test ReadOptions_DecodeFromMemoryAndStreams("write-padding")
 @hash afed0193d527af25fb858f4c3ab70f464c25c53469c1b6ded69a0ed7644afae2 528 write-padding/packed
 @hash 898644c4a333f4ec7b6d8d9bc05e6df0bba8df20dd796f6ae94efb8409cdfa91 528 write-padding/aligned
 
-@test ReadOptions_DecodeIdentically("write-qualified")
+@test ReadOptions_DecodeFromMemoryAndStreams("write-qualified")
 @hash 0c84309c3419907b52ca214ac70a452fc96c066719bd7f21ce3154a5599857e2 528 write-qualified/packed
 @hash 6f1fed8acd054f3a131face89d1a7a801507210b691b9d89196f377ce72c78f4 528 write-qualified/aligned
 
-@test ReadOptions_DecodeIdentically("write-scope")
+@test ReadOptions_DecodeFromMemoryAndStreams("write-scope")
 @hash 8e5c8bd8dc442128b651b625360770cc0ba18cbc08ff09f67139d610a598717a 528 write-scope/packed
 @hash 443fdf2c9ae87f556af6e579a7263ea984a1d4914ea8fceb167c21c190515cfb 528 write-scope/aligned
 
-@test ReadOptions_DecodeIdentically("write-text")
+@test ReadOptions_DecodeFromMemoryAndStreams("write-text")
 @hash 222139e8ee8ed2e22494c2d3821fa0281c7c2247fdbf9ba34035abf6863c36b8 528 write-text/packed
 @hash cf018bfaea5e6e9fc079fc7a33c15dd6bd00775b41644007256bc37d6d0d0b83 528 write-text/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("bitfields")
+@test RecordSequences_ReadFromEverySource("bitfields")
 @hash 94e9cd6094b9803aeae73fae06bf74162435f9c6ba2de4f160362eff4ba0e2a1 48 bitfields/packed
 @hash a3e1affb5971cc20639cbedc5a85578480e6914e5a9fed3f55f3af39ac21c549 48 bitfields/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("bitfields-enum-counts")
+@test RecordSequences_ReadFromEverySource("bitfields-enum-counts")
 @hash a906c24ad96415ebddd77942ab8073e9eed1d623dd39d9f6891ed2c969bdfa48 48 bitfields-enum-counts/packed
 @hash 86d9044f3b564c8e456e7e4f402e3fb93dd98b0a0384e7e7a96b45a516ea0be6 48 bitfields-enum-counts/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("bitfields-high")
+@test RecordSequences_ReadFromEverySource("bitfields-high")
 @hash 6d22f8af6de8c378a937aac81de87ff049a3d36549eabe2b38a483418a0a0ef1 48 bitfields-high/packed
 @hash 6d22f8af6de8c378a937aac81de87ff049a3d36549eabe2b38a483418a0a0ef1 48 bitfields-high/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("bitfields-msvc")
+@test RecordSequences_ReadFromEverySource("bitfields-msvc")
 @hash 8cc3cbf3eba88a840539f5860f4466c7bb750d4e07c6b03f59891c45c504ce08 48 bitfields-msvc/packed
 @hash 62b0f9b2f714a05ace52f22d994c58115d290c334083db05837eb87a38296076 48 bitfields-msvc/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("conditional")
+@test RecordSequences_ReadFromEverySource("conditional")
 @hash 2aa5fc90495d0cd96658d4e078c623cbd2cf4043f12893ffb278bc672e5c05a5 48 conditional/packed
 @hash d80e774ca1d72c6234586b5ffccdb2e056f45f8f6adad72a0adad111291b2c3a 48 conditional/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("count")
+@test RecordSequences_ReadFromEverySource("count")
 @hash fd6dd3923fa83efcc85a1db65c8a287cc2409be5a9db8d7f287619955185e3f7 48 count/packed
 @hash 2488bb5bda25d231b6b6a76f522338c20e795b9ea7c4f7212575a65a44b06ea4 48 count/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("custom-codec")
+@test RecordSequences_ReadFromEverySource("custom-codec")
 @hash 7b0e9e7a4cbd24013bd6bd0f98a68ee382c07fbcce432bc8c459a80c117d8a7c 48 custom-codec/packed
 @hash 7b0e9e7a4cbd24013bd6bd0f98a68ee382c07fbcce432bc8c459a80c117d8a7c 48 custom-codec/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("custom-fixed")
+@test RecordSequences_ReadFromEverySource("custom-fixed")
 @hash c484c66912839a3ebd75b808cfa49440c2fd045b0322857b91ee74e5ad2e2c29 48 custom-fixed/packed
 @hash 3178ff7d2cc5fdc1ee1cfada7a7e27e1f3b50c8d716b116a56223ea7f6b1499f 48 custom-fixed/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("enum-bitfield")
+@test RecordSequences_ReadFromEverySource("enum-bitfield")
 @hash e9beaec02f1c980cf89fe3602db88ddf32f90d5b5bd0ceb5ea016c77ab1f650c 48 enum-bitfield/packed
 @hash d00749ca72ed96c14f85cb27035bc534284bb356be5ca7c96dd0d62320373d7a 48 enum-bitfield/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("fixed")
+@test RecordSequences_ReadFromEverySource("fixed")
 @hash 61367ee9b2d8e899cc143abfac462510ddbcff06174aad9129ef40e4e42bc5ee 48 fixed/packed
 @hash e0fcce805fc808968674a94b4b31ce311db5b54f5e8eecee9f59249f54fcb625 48 fixed/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("inline-qualified")
+@test RecordSequences_ReadFromEverySource("inline-qualified")
 @hash 6539edb516aa738134613ae6e16aaa32c6ffa2f69e30d95853f58d31e9d4eb46 48 inline-qualified/packed
 @hash b1785bb9edc85e265af9e361a8d849655aa15b8c92775471a0c3b4a8e7c74404 48 inline-qualified/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("leb128")
+@test RecordSequences_ReadFromEverySource("leb128")
 @hash 4b5f5d3c575e51906c7488eb91187722083806810a385bcac58d0f4fa15a539d 48 leb128/packed
 @hash 4b5f5d3c575e51906c7488eb91187722083806810a385bcac58d0f4fa15a539d 48 leb128/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("multidim")
+@test RecordSequences_ReadFromEverySource("multidim")
 @hash 01c4efbd35e6140453caeb1a9c1afc8e611e09888dbc300003e2cd7917604f2b 48 multidim/packed
 @hash 9a5fd437b948e33ca47f8e58404c08d10e198b30d865943954554610954f9813 48 multidim/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("multidim-structs")
+@test RecordSequences_ReadFromEverySource("multidim-structs")
 @hash a854113b0931ed121060b5491b3358721ebd30bf21ba20e2435756e6657b7e14 48 multidim-structs/packed
 @hash b61b4b362b5324cbf5e4390f5b5b1a409995c0e0d35055aac5239aff9cf7c18a 48 multidim-structs/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("nested")
+@test RecordSequences_ReadFromEverySource("nested")
 @hash 43c492cc015597c18f569b04638d8c28629916bd121875dc6b5198a95d5b6e1f 48 nested/packed
 @hash 7fb7bc707419cf901ab840d1edcb639f5a1e39fbdbf688aa411e259a1ff98f72 48 nested/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("pointer-arrays")
+@test RecordSequences_ReadFromEverySource("pointer-arrays")
 @hash 8e77d926bb78e40c227b2aca2caba5d3b3cafdb68a3a00f526f21850f74cd391 48 pointer-arrays/packed
 @hash 8e77d926bb78e40c227b2aca2caba5d3b3cafdb68a3a00f526f21850f74cd391 48 pointer-arrays/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("pointer-counted")
+@test RecordSequences_ReadFromEverySource("pointer-counted")
 @hash 9dde923826185b490a3d827a072687e41285ce1d010bd3027dc29291962c9ecf 48 pointer-counted/packed
 @hash 9dde923826185b490a3d827a072687e41285ce1d010bd3027dc29291962c9ecf 48 pointer-counted/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("pointer-list")
+@test RecordSequences_ReadFromEverySource("pointer-list")
 @hash b66e8259f6d9491d88864f438c2aee18d82a08ce1fe89bc88da72cab4511cded 48 pointer-list/packed
 @hash b66e8259f6d9491d88864f438c2aee18d82a08ce1fe89bc88da72cab4511cded 48 pointer-list/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("pointer-views")
+@test RecordSequences_ReadFromEverySource("pointer-views")
 @hash 8dc44417bd47e0db3807c74885046b1fa92e8ee846b81d72840198a106565cde 48 pointer-views/packed
 @hash 8dc44417bd47e0db3807c74885046b1fa92e8ee846b81d72840198a106565cde 48 pointer-views/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("pointers")
+@test RecordSequences_ReadFromEverySource("pointers")
 @hash b1d7b411a55e37ce4480f7149b6990093a71aadeeed7747293c650e6181b0e6c 48 pointers/packed
 @hash b1d7b411a55e37ce4480f7149b6990093a71aadeeed7747293c650e6181b0e6c 48 pointers/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("promoted")
+@test RecordSequences_ReadFromEverySource("promoted")
 @hash 32f6980e14b657b8a074c145a4135c8e7921628f6e9f3fd0d4dbb61384245f36 48 promoted/packed
 @hash 67effb311d41b0cafeb943a9cfbad5582c6881d98d5c7dee54803c9ec3e1faf5 48 promoted/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("promoted-union")
+@test RecordSequences_ReadFromEverySource("promoted-union")
 @hash 42aac405b4580e1112022400a4a2dfdabef3f9ae1c7fe8a1e7245eef71474ce9 48 promoted-union/packed
 @hash 9f8480ba813999c45f75d94dbcf0d64593bdd9836d41ca863ce1b2c4fdfa79ab 48 promoted-union/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("terminated")
+@test RecordSequences_ReadFromEverySource("terminated")
 @hash 9edc453a3dc77b08cf71ec44839d855c0c3df6ac448aeb3046bcd309dc0c808b 48 terminated/packed
 @hash 9edc453a3dc77b08cf71ec44839d855c0c3df6ac448aeb3046bcd309dc0c808b 48 terminated/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("terminated-scalars")
+@test RecordSequences_ReadFromEverySource("terminated-scalars")
 @hash a923feebcb65ce2e2ad4fba64e723230086a52fde2dcb3b3abb7207c5f6b6c27 48 terminated-scalars/packed
 @hash 04f4330aa2ae273c8704b37a1660bb05e43c6a52e3e3fdcc344e8294ae1901f5 48 terminated-scalars/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("text")
+@test RecordSequences_ReadFromEverySource("text")
 @hash b6adf30dea4fd2845fcc2f3ae426f6d2d70c77680d4919f39c61511371323e4d 48 text/packed
 @hash 0092b9004ec4d7f4e60c4b3c98ae8ddde72134d76b50a2e0265949a1c30cd7c5 48 text/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("to-end")
+@test RecordSequences_ReadFromEverySource("to-end")
 @hash fa25daf570631dcb33e112df6574a1083250e9e223e04601dff3cbf56ae92e86 48 to-end/packed
 @hash fa25daf570631dcb33e112df6574a1083250e9e223e04601dff3cbf56ae92e86 48 to-end/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("to-end-structs")
+@test RecordSequences_ReadFromEverySource("to-end-structs")
 @hash 7c8ac925bb1c39faf7c710cec4b97b5a4d8769ad86ae1aa4116a9288522fe4d6 48 to-end-structs/packed
 @hash f4d576291a96c1c27d1feb8c34fccd6546de81696039131bdfa6fdd6a67827be 48 to-end-structs/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("union")
+@test RecordSequences_ReadFromEverySource("union")
 @hash 10c77ca6ec8414839f425c70fb0e6555ab82126624ee87e05e35ba64699a0029 48 union/packed
 @hash 76d1840d942f9ce4eb94fe796f687a4748954a4a9085a3d2bd6ae7638c125527 48 union/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("union-arrays")
+@test RecordSequences_ReadFromEverySource("union-arrays")
 @hash 91ae442e754531a59d1458690ff9030f1520de60a2012f2356a76ceda61c29cf 48 union-arrays/packed
 @hash 15bb7a5b9d470dfb078767010d2fa9a69eca4b1f1c58e02dfd2bac954473cfa0 48 union-arrays/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("union-bitfields")
+@test RecordSequences_ReadFromEverySource("union-bitfields")
 @hash 774acb48d19caeff5ea86a6bf7703800c270afe31772dddbfcbb8ef731f05df2 48 union-bitfields/packed
 @hash 5fbfbcd6f9a7501517c12bf5a01c40926959254d806c8bdc7cfdd380969d98d8 48 union-bitfields/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("union-conditional")
+@test RecordSequences_ReadFromEverySource("union-conditional")
 @hash d8415c26449d304a77f425d7630a4440f128db4fad3337ebe67593d725837ffe 48 union-conditional/packed
 @hash 556bfab9ec198c1299bfe653e05b298a1b9baf19febdd9d4a5fac907b134ec9b 48 union-conditional/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("union-nested")
+@test RecordSequences_ReadFromEverySource("union-nested")
 @hash bfa0341184c8131a256ce5b6276d89a51f5a542553338314607edd33cfb9787b 48 union-nested/packed
 @hash 7919056e4c668223b89130d653e94de074431504c3003d3074bfae4755135dd6 48 union-nested/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("variables")
+@test RecordSequences_ReadFromEverySource("variables")
 @hash 2b3e78dc9805e4a3b1321107534e10f6ec048fcc98837c20c8f733cac2294925 48 variables/packed
 @hash 2b3e78dc9805e4a3b1321107534e10f6ec048fcc98837c20c8f733cac2294925 48 variables/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("write-codecs")
+@test RecordSequences_ReadFromEverySource("write-codecs")
 @hash b1ffef596374284c71b8335be4bf8bdd95efedfa7e6a5a50ce01c0d0a748d80f 48 write-codecs/packed
 @hash 736eb43d1ccd9fbfb55821cb113fb81e8642fc39426ad43599f9b364c7bc3138 48 write-codecs/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("write-enums")
+@test RecordSequences_ReadFromEverySource("write-enums")
 @hash 623cc1bcc58e0b48d922c2140d0d65be5982a875a1d7c09ac970231a55cd5eca 48 write-enums/packed
 @hash 7afe420adcaafac1ffc51e15beeea74e8f26187a6133d4c1446274556dd10c47 48 write-enums/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("write-padding")
+@test RecordSequences_ReadFromEverySource("write-padding")
 @hash d64416890e7f6029e88ff9464816573e6981cad57baab6c17c5f3740f5ac2e5f 48 write-padding/packed
 @hash ea15e6cf3cb93d75d234e92a4ba8785e70890eaa0eb20f3a7bc579f6bac934c2 48 write-padding/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("write-qualified")
+@test RecordSequences_ReadFromEverySource("write-qualified")
 @hash ce8487dc9ea64789d9308cd287e2f82dcaa53002f14cb60b4bc0b0eb2bc0e889 48 write-qualified/packed
 @hash 095e93f0836e7486be13d2bb425adda45da8891168755566a0df0115c7677191 48 write-qualified/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("write-scope")
+@test RecordSequences_ReadFromEverySource("write-scope")
 @hash c3acde35f2c7d8fbba1c9e376f6733e2148c87539d8cc259e9561eda9c3df975 48 write-scope/packed
 @hash a6ef43efc3372565f0cad03e87fc898e90da672e0c04fb30fe1208d7873a8b92 48 write-scope/aligned
 
-@test RecordSequences_ReadIdenticallyFromEverySource("write-text")
+@test RecordSequences_ReadFromEverySource("write-text")
 @hash ce0c023a48f6a7e83f104b19a1fd0e2a00be4c7a3818a085805118941583b10d 48 write-text/packed
 @hash 4a63b45b90fa88e6efc680b376c47dc33aef0fb1a440a984ec61f29b08f94e5f 48 write-text/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("bitfields")
+@test Truncations_ReadFromEverySource("bitfields")
 @hash 54217314028604587accb3c905b94abd0d7e6bdaafffbe0b8cc60f6a7244d9cf 220 bitfields/packed
 @hash 57354ce0f69d8690474529d5673901266b39f96c5bcc13a5be9061d796b647e1 308 bitfields/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("bitfields-enum-counts")
+@test Truncations_ReadFromEverySource("bitfields-enum-counts")
 @hash e568e51cbee6c40196069d7ddf7f3b0cb2a921c57296df3847fe9c6b4fb169d1 506 bitfields-enum-counts/packed
 @hash ca431dfaf7de31d6a3f3aa429c2368ccf3237e25a9cd6256d25c682b90a02559 598 bitfields-enum-counts/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("bitfields-high")
+@test Truncations_ReadFromEverySource("bitfields-high")
 @hash 423b29a1056baab7ff85b3e205196e0c0b892365493472387e92adc1bbc17d49 220 bitfields-high/packed
 @hash 423b29a1056baab7ff85b3e205196e0c0b892365493472387e92adc1bbc17d49 220 bitfields-high/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("bitfields-msvc")
+@test Truncations_ReadFromEverySource("bitfields-msvc")
 @hash cdf175777f8db7456a08e6607acc7134a8af6a88cbea335439c722bcc5565535 396 bitfields-msvc/packed
 @hash c25cb9c769cdb372f9e728b7a24651b12090781b6d08d4a2c2f5e9cca4834f11 572 bitfields-msvc/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("conditional")
+@test Truncations_ReadFromEverySource("conditional")
 @hash f30354f3afe78779d7120ff1827f1d69a05a34f4c757cb030196660b6feea0fb 220 conditional/packed
 @hash 019b87859237c43e994a3c3d2701c6ca199d3384685d19655c15e1a7f7b2f1a8 308 conditional/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("count")
+@test Truncations_ReadFromEverySource("count")
 @hash 47d15dfecb11c683a0ee68ac5bbe95f065b9d784b4694b8acce8e3c300479249 414 count/packed
 @hash dd3cfbe1fcdfe819e00bde31fe358545805f7f63b1756d6221391ec25fab9084 506 count/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("custom-codec")
+@test Truncations_ReadFromEverySource("custom-codec")
 @hash f33734391e79f684f995bbc2e59cc21d881dd87a98369a6c65c95d1102bd41b6 276 custom-codec/packed
 @hash f33734391e79f684f995bbc2e59cc21d881dd87a98369a6c65c95d1102bd41b6 276 custom-codec/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("custom-fixed")
+@test Truncations_ReadFromEverySource("custom-fixed")
 @hash 591bdb29d9f55fe837189f134d30143cc190f5322ac26d629b05bf0782173786 874 custom-fixed/packed
 @hash 2653450c5a722bebe1d129a985f80ffdcd951ef85c75185a6fa70e22e17798c3 1518 custom-fixed/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("enum-bitfield")
+@test Truncations_ReadFromEverySource("enum-bitfield")
 @hash c5918fe34e6fb4871a0c766f5b2f6c0496bb671fe87e4e068efcd6831e3e4a8a 322 enum-bitfield/packed
 @hash 9184d6527c6c39d74168aaa678bce05d7575c0f5d021c3c2fc9f47391150d3e7 414 enum-bitfield/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("fixed")
+@test Truncations_ReadFromEverySource("fixed")
 @hash ac50f08a477f2fc61190a24685723ab6ab4aa98d45a36ac87d7099ccc4bf20be 736 fixed/packed
 @hash a8435298df3b00aff39d9f036f77b82e39606be3a18298340c1bc8e15db37123 966 fixed/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("inline-qualified")
+@test Truncations_ReadFromEverySource("inline-qualified")
 @hash 31c4f6162f6d2d611de02f2dc2bb70cb131f50ac071d622454093590a80b198a 414 inline-qualified/packed
 @hash 17cb0a948c7f26d2a611994b4e1cdc0fa83e9c0e8331cdcc486617fc6f05526d 506 inline-qualified/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("leb128")
+@test Truncations_ReadFromEverySource("leb128")
 @hash 9de9dd883bd6199d97db900a7040f3bc73502d076f99c8dabaf11d26068d925e 414 leb128/packed
 @hash 9de9dd883bd6199d97db900a7040f3bc73502d076f99c8dabaf11d26068d925e 414 leb128/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("multidim")
+@test Truncations_ReadFromEverySource("multidim")
 @hash 4fcd9e5a5e40cbfef953d11801d88f333448154ea7ff2467007082429220ee99 1794 multidim/packed
 @hash 73c1ea76764299932bee5b83ad21c84892834da8422f9d0fd9437a34535f46bd 1886 multidim/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("multidim-structs")
+@test Truncations_ReadFromEverySource("multidim-structs")
 @hash a6d7b6fcb258facb108ff1ece363cfd387bf751e7e7ee2e0728fb0ad39cee5c2 1426 multidim-structs/packed
 @hash 7f0ae018da6233806fdcb60e8359d7df17740aa5089171ac9a50897f6459d60e 1702 multidim-structs/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("nested")
+@test Truncations_ReadFromEverySource("nested")
 @hash ce014981d3ada890a9f7f57f4e943c021cdcecb92c2b1052c583f82128fe9c9e 506 nested/packed
 @hash 31445997d04605ee5f304fbd6de5942c3cddaddc3549122781cbfb5ef26f725b 690 nested/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("pointer-arrays")
+@test Truncations_ReadFromEverySource("pointer-arrays")
 @hash 89f73dd681ea11e61cef811343193c699a06056fbdddc89f130e5ef9d316e6fb 460 pointer-arrays/packed
 @hash 89f73dd681ea11e61cef811343193c699a06056fbdddc89f130e5ef9d316e6fb 460 pointer-arrays/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("pointer-counted")
+@test Truncations_ReadFromEverySource("pointer-counted")
 @hash 6849ceaf7bebfecaaf2ea790d4b23fbb08420e8b822e2b3f1aa397aaa74230a7 528 pointer-counted/packed
 @hash 6849ceaf7bebfecaaf2ea790d4b23fbb08420e8b822e2b3f1aa397aaa74230a7 528 pointer-counted/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("pointer-list")
+@test Truncations_ReadFromEverySource("pointer-list")
 @hash 8095e27b6a156155838d643d887bb20b25b80c42bb5723def492a31a7fb03e19 352 pointer-list/packed
 @hash 8095e27b6a156155838d643d887bb20b25b80c42bb5723def492a31a7fb03e19 352 pointer-list/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("pointer-views")
+@test Truncations_ReadFromEverySource("pointer-views")
 @hash 8ed648b50b9936feac8a0843bcdbf80c12c552581ea6369cde2b91e22337e48f 352 pointer-views/packed
 @hash 8ed648b50b9936feac8a0843bcdbf80c12c552581ea6369cde2b91e22337e48f 352 pointer-views/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("pointers")
+@test Truncations_ReadFromEverySource("pointers")
 @hash 40ccc22a2c8a66accaae84d52128d4e433f02fc822aad790b4c0fc33140a902b 528 pointers/packed
 @hash 40ccc22a2c8a66accaae84d52128d4e433f02fc822aad790b4c0fc33140a902b 528 pointers/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("promoted")
+@test Truncations_ReadFromEverySource("promoted")
 @hash b62df0146323e797de4165af76a0a4ec49dd4716cab4ff39f47b8df6e6d9a418 368 promoted/packed
 @hash 2fffdbae4668367779f63d3395af2861a7ee493de6736bfd339b00440ef982ae 506 promoted/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("promoted-union")
+@test Truncations_ReadFromEverySource("promoted-union")
 @hash 9fee718c2fd9c01da3eead1180e9d44781fb611169949b34881078aad9afe850 264 promoted-union/packed
 @hash 9ffc032c4edf562081986ff37ff043dcaeb87d0ae3fe9637c5c9845df55fb6b2 396 promoted-union/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("terminated")
+@test Truncations_ReadFromEverySource("terminated")
 @hash a15c508d967283abed73c86c2c8a8e2a79489e368371a5b31714c5537c188bae 506 terminated/packed
 @hash a15c508d967283abed73c86c2c8a8e2a79489e368371a5b31714c5537c188bae 506 terminated/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("terminated-scalars")
+@test Truncations_ReadFromEverySource("terminated-scalars")
 @hash 7d93eb931fb753b7aac516a28739021e3e53532a333014e8c932e7cc71658d12 414 terminated-scalars/packed
 @hash aa1fcfbb812e5bd3af3a595bfdfbbeee33405677aa1f483c6be445d9c3274921 506 terminated-scalars/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("text")
+@test Truncations_ReadFromEverySource("text")
 @hash f46274946daff23d995a5ce97ff69a0cefeec27a1316b6c97ebddecfc13fee4e 828 text/packed
 @hash d2514220dd2a9f214c63d87ec21734d08d7b26267cb676e5ed5bd1d8d44f0a04 874 text/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("to-end")
+@test Truncations_ReadFromEverySource("to-end")
 @hash 0b5f2981ad24aade9cc96310c6b97b4c6a38277e9e86c4b6fbcd28440f63d679 414 to-end/packed
 @hash 0b5f2981ad24aade9cc96310c6b97b4c6a38277e9e86c4b6fbcd28440f63d679 414 to-end/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("to-end-structs")
+@test Truncations_ReadFromEverySource("to-end-structs")
 @hash e776a56ecd4b81e3be1274fbdebd1a16c7509d4c94188e3659c0087abeedc46d 368 to-end-structs/packed
 @hash e0f085ceba6111ccb6be6e7a36ba102132eeb480ee3008c7e44dc225feee3eba 506 to-end-structs/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("union")
+@test Truncations_ReadFromEverySource("union")
 @hash b824f801adc3c30ab5bfb79af9e5981932ec94b3a12e4cd7414fbf38566afc2f 308 union/packed
 @hash b0e91bf38e4e368888d8e42831c7a7e5102d751d437b7e08ad78aacdf7960ad4 572 union/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("union-arrays")
+@test Truncations_ReadFromEverySource("union-arrays")
 @hash 9529910ee1d452b3be59db0fb46635e68433058eb7023d163a1bb6e017f9746f 322 union-arrays/packed
 @hash 981e5c5e502f45093bf5d18f3a69c32effd3721a66d5fa2ae9a42bc228b8a84d 414 union-arrays/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("union-bitfields")
+@test Truncations_ReadFromEverySource("union-bitfields")
 @hash e383968fbf9e080076f34e6fe6745d119ae1566f926d69e913bef3af7eeb40d6 220 union-bitfields/packed
 @hash fd2c3eaa082cd72f5f7fc16c03746382a5165a69cf9c92785c790a12eea55751 308 union-bitfields/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("union-conditional")
+@test Truncations_ReadFromEverySource("union-conditional")
 @hash e810c770da4fe88027f269a1483a459e8b64a2cfafda24459c86d616d0651b86 414 union-conditional/packed
 @hash 2eaaed2692456288c7b8bd5159be39256157eb87922e9bc138677265b6aefe98 506 union-conditional/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("union-nested")
+@test Truncations_ReadFromEverySource("union-nested")
 @hash b9c9c39852c7de73db746c99856f9ffe53e3dac33b37f09d629b0dda0c173da2 506 union-nested/packed
 @hash db499d97804416f68947297221f36a0af7e715b3ece6db6992f25b11b8f857a4 782 union-nested/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("variables")
+@test Truncations_ReadFromEverySource("variables")
 @hash b286b2bfa002246c7e5596cb889477f884d1786c98c3c1507027b47eaef0e296 276 variables/packed
 @hash b286b2bfa002246c7e5596cb889477f884d1786c98c3c1507027b47eaef0e296 276 variables/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("write-codecs")
+@test Truncations_ReadFromEverySource("write-codecs")
 @hash cd1772cf15343d88c7a9fa368b94ede7c345bff45e0a8cc37189b73d2e2ba732 4532 write-codecs/packed
 @hash e222862d09d76595e7afa08fee8703186d3525366a32b81f2bcbaa1251a1e619 5676 write-codecs/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("write-enums")
+@test Truncations_ReadFromEverySource("write-enums")
 @hash 7b365270b58ed975e154dcf9b6e6d75c78caba62d694fea6f16d26e85b38ab6f 644 write-enums/packed
 @hash c17f38a2004bcaaf66d7f8ef12922d961f2aaaa05ecfa6d822a983a696cc6816 782 write-enums/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("write-padding")
+@test Truncations_ReadFromEverySource("write-padding")
 @hash a306893983d3456af408465f4a4b72865c329c94f0af725f7b755ebe36c3dc05 644 write-padding/packed
 @hash 710e3029afa060570f237718dd7ebd5eac3702bd02516413bae5b3f926780c6b 782 write-padding/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("write-qualified")
+@test Truncations_ReadFromEverySource("write-qualified")
 @hash 16f34aee636fabfb0411814410f54e8d790f8f3eec46259677b3700d77d700f2 276 write-qualified/packed
 @hash ceccabf75259062cb42c29cb8b92ca9a8ccecaa3f3bcd4812ecbc7871736fe91 322 write-qualified/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("write-scope")
+@test Truncations_ReadFromEverySource("write-scope")
 @hash 8660c43380b6f48beb846da884f23c85641728bcc2461fb6c523ba3b41a61d74 552 write-scope/packed
 @hash d89c6b5aad040f20e74fb5c5b5b16433a72d0bb2a5d14d92b63e534e884f3cab 598 write-scope/aligned
 
-@test Truncations_ReadIdenticallyFromEverySource("write-text")
+@test Truncations_ReadFromEverySource("write-text")
 @hash 673a9d8fe80511a7941df5089682695df5f7580280a7e8e35f0f8677ec518989 1196 write-text/packed
 @hash 682e57f33ce34a45eaccbab425aefa328a9d66718021f3aa6b652fcb653ee0b6 1242 write-text/aligned
 

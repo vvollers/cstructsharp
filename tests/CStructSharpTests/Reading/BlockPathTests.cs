@@ -10,13 +10,13 @@ using CStructSharp.Values;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 /// <summary>
-///     Pins the block reads and writes inside the general path - a <c>char[n]</c> read and written as one
-///     block, and a typed numeric array written as one block - against the element-by-element paths they replace
-///     (the internal <see cref="ExecutionPath.NoFastPaths"/> option): the same values, bytes, destination contents, exception types,
+///     Pins the engine's block reads and writes - a <c>char[n]</c> read and written as one block, and a typed numeric
+///     array written as one block - against the element-by-element work they replace (the internal
+///     <see cref="ExecutionPath.NoFastPaths"/> option): the same values, bytes, destination contents, exception types,
 ///     messages, paths and offsets for every truncation, budget, capacity and invalid value.
 /// </summary>
 [TestClass]
-public class GeneralPathBlockTests
+public class BlockPathTests
 {
     private const string Layout = """
         struct packet {
@@ -164,7 +164,10 @@ public class GeneralPathBlockTests
         return copy;
     }
 
-    /// <summary>Runs a read with the caller's options and with only the general path, and asserts the same outcome.</summary>
+    /// <summary>Runs a read with the caller's options and member by member, and asserts the same outcome.</summary>
+    /// <param name="operation">Runs the read with the given options and renders its result.</param>
+    /// <param name="options">The caller's read options, or <see langword="null"/> for the defaults.</param>
+    /// <param name="label">The case, for the failure message.</param>
     private static void AssertSameRead(Func<ReadOptions?, string> operation, ReadOptions? options, string label)
     {
         OperationOutcome block = OperationOutcome.Of(() => operation(options));
@@ -172,7 +175,10 @@ public class GeneralPathBlockTests
         OperationOutcome.AssertSame(element, block, label);
     }
 
-    /// <summary>Runs a write with the caller's options and with only the general path, and asserts the same outcome.</summary>
+    /// <summary>Runs a write with the caller's options and member by member, and asserts the same outcome.</summary>
+    /// <param name="operation">Runs the write with the given options and renders its bytes or failure.</param>
+    /// <param name="options">The caller's write options, or <see langword="null"/> for the defaults.</param>
+    /// <param name="label">The case, for the failure message.</param>
     private static void AssertSameWrite(Func<WriteOptions?, string> operation, WriteOptions? options, string label)
     {
         OperationOutcome block = OperationOutcome.Of(() => operation(options));

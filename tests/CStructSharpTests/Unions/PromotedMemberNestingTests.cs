@@ -204,15 +204,15 @@ public class PromotedMemberNestingTests
         }
     }
 
-    /// <summary>Asserts that every path's outcome equals the general path's.</summary>
+    /// <summary>Asserts that every path's outcome equals the member-by-member one (<see cref="ExecutionPath.NoFastPaths"/>).</summary>
     /// <param name="label">The case and operation, for the failure message.</param>
     /// <param name="outcomes">The outcomes in <see cref="Paths"/> order.</param>
     private static void AssertPathsAgree(string label, OperationOutcome[] outcomes)
     {
-        OperationOutcome general = outcomes[^1];
+        OperationOutcome memberByMember = outcomes[^1];
         for (int index = 0; index < outcomes.Length - 1; index++)
         {
-            OperationOutcome.AssertSame(general, outcomes[index], label + " (" + Paths[index] + " vs " + ExecutionPath.NoFastPaths + ")");
+            OperationOutcome.AssertSame(memberByMember, outcomes[index], label + " (" + Paths[index] + " vs " + ExecutionPath.NoFastPaths + ")");
         }
     }
 

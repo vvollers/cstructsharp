@@ -3,11 +3,11 @@ namespace CStructSharp.Tests;
 using System.Text;
 
 /// <summary>
-///     Runs the differential harness over the repository's layout corpora (<see cref="EngineCorpora"/>): every case is
+///     Runs the golden harness over the repository's layout corpora (<see cref="EngineCorpora"/>): every case is
 ///     parsed from several sources (which must agree), read as a value, debug-parsed, has paths resolved, and has the
 ///     value it reads written back, under <see cref="ExecutionPath.Fastest"/> and
-///     <see cref="ExecutionPath.NoFastPaths"/>, checking automatic engine selection against the golden outcomes
-///     (<see cref="EngineCorpusCase.Run"/>, <see cref="EngineGolden"/>).
+///     <see cref="ExecutionPath.NoFastPaths"/>, checking every outcome and how many operations reached the engine
+///     against the golden outcomes (<see cref="EngineCorpusCase.Run"/>, <see cref="EngineGolden"/>).
 /// </summary>
 [TestClass]
 public class EngineCorpusTests
@@ -88,68 +88,68 @@ public class EngineCorpusTests
         Assert.IsGreaterThan(5000, ran);
     }
 
-    /// <summary>A layout of the generated-parity index, over the input that suite uses, reads and writes identically.</summary>
+    /// <summary>A layout of the generated-parity index, over the input that suite uses, reads and writes its golden outcomes from every source and on both execution paths.</summary>
     /// <param name="id">The layout's source and id.</param>
     [TestMethod]
     [DynamicData(nameof(ParityLayouts))]
-    public void ParityLayout_ReadsAndWritesIdentically(string id)
+    public void ParityLayout_ReadsAndWritesOnEverySourceAndPath(string id)
     {
         Assert.IsTrue(EngineCorpora.Parity[id].Run(), id + " has nothing to read");
     }
 
-    /// <summary>A benchmark fixture, over its bytes and read options, reads and writes identically.</summary>
+    /// <summary>A benchmark fixture, over its bytes and read options, reads and writes its golden outcomes from every source and on both execution paths.</summary>
     /// <param name="id">The fixture id.</param>
     [TestMethod]
     [DynamicData(nameof(BenchmarkFixtures))]
-    public void BenchmarkFixture_ReadsAndWritesIdentically(string id)
+    public void BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath(string id)
     {
         Assert.IsTrue(EngineCorpora.Benchmarks[id].Run(), id + " has nothing to read");
     }
 
-    /// <summary>A manual feature example, or its read-stage invalid form, reads and writes identically, including its offset paths.</summary>
+    /// <summary>A manual feature example, or its read-stage invalid form, reads and writes its golden outcomes, including its offset paths.</summary>
     /// <param name="id">The fixture kind and feature id.</param>
     [TestMethod]
     [DynamicData(nameof(ManualFixtures))]
-    public void ManualFixture_ReadsAndWritesIdentically(string id)
+    public void ManualFixture_ReadsAndWritesOnEverySourceAndPath(string id)
     {
         Assert.IsTrue(EngineCorpora.Manual[id].Run(), id + " has nothing to read");
     }
 
-    /// <summary>A Portable layout example or primitive reads and writes identically.</summary>
+    /// <summary>A Portable layout example or primitive reads and writes its golden outcomes from every source and on both execution paths.</summary>
     /// <param name="id">The example or primitive.</param>
     [TestMethod]
     [DynamicData(nameof(PortableCases))]
-    public void PortableCase_ReadsAndWritesIdentically(string id)
+    public void PortableCase_ReadsAndWritesOnEverySourceAndPath(string id)
     {
         Assert.IsTrue(EngineCorpora.Portable[id].Run(), id + " has nothing to read");
     }
 
-    /// <summary>A well-known-format layout, over the bytes its test verifies, reads and writes identically.</summary>
+    /// <summary>A well-known-format layout, over the bytes its test verifies, reads and writes its golden outcomes from every source and on both execution paths.</summary>
     /// <param name="id">The test and input.</param>
     [TestMethod]
     [DynamicData(nameof(WellKnownFormats))]
-    public void WellKnownFormat_ReadsAndWritesIdentically(string id)
+    public void WellKnownFormat_ReadsAndWritesOnEverySourceAndPath(string id)
     {
         Assert.IsTrue(EngineCorpora.WellKnown[id].Run(), id + " has nothing to read");
     }
 
-    /// <summary>An inspector detection schema or sample reads and writes identically.</summary>
+    /// <summary>An inspector detection schema or sample reads and writes its golden outcomes from every source and on both execution paths.</summary>
     /// <param name="id">The schema.</param>
     [TestMethod]
     [DynamicData(nameof(InspectorSchemas))]
-    public void InspectorSchema_ReadsAndWritesIdentically(string id)
+    public void InspectorSchema_ReadsAndWritesOnEverySourceAndPath(string id)
     {
         Assert.IsTrue(EngineCorpora.Inspector[id].Run(), id + " has nothing to read");
     }
 
     /// <summary>
-    ///     Every seed and mutation of a fuzz target reads and writes identically; a definition that does not compile is
+    ///     Every seed and mutation of a fuzz target reads and writes its golden outcomes; a definition that does not compile is
     ///     skipped, since there is nothing to read. The failures of all inputs are reported together.
     /// </summary>
     /// <param name="target">The fuzz target.</param>
     [TestMethod]
     [DynamicData(nameof(FuzzTargets))]
-    public void FuzzTarget_ReadsAndWritesIdentically(string target)
+    public void FuzzTarget_ReadsAndWritesEverySeedAndMutation(string target)
     {
         var failures = new StringBuilder();
         int ran = 0;

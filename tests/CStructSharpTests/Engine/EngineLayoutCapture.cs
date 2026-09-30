@@ -30,8 +30,8 @@ internal static class EngineLayoutCapture
     /// <param name="variables">The caller variables, or <see langword="null"/>.</param>
     /// <param name="read">The read settings.</param>
     /// <returns>The rendering of the capture, or <c>no layout</c> for a root the layout does not declare.</returns>
-    /// <exception cref="AssertFailedException">The capture differs, or an undeclared root is not reported as unknown.</exception>
-    public static string AssertSame(string name, CStruct layout, byte[] data, EngineInput input, string root, IReadOnlyDictionary<string, int>? variables, ReadOptions read)
+    /// <exception cref="AssertFailedException">The capture differs from its golden one, or an undeclared root is not reported as unknown.</exception>
+    public static string AssertGolden(string name, CStruct layout, byte[] data, EngineInput input, string root, IReadOnlyDictionary<string, int>? variables, ReadOptions read)
     {
         ReadOperationSettings settings = ReadOperationSettings.SnapshotReadOptions(read);
         LayoutVariableInput integers = LayoutVariableInput.FromIntegers(variables);

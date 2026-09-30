@@ -2,7 +2,7 @@
 # Regenerate only for an intended, explained behaviour change: node tools/quality/engine-golden.mjs record (CONTRIBUTING.md).
 # @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes.
 
-@test Bitfields_ReadAndUpdateIdentically
+@test Bitfields_ReadResolveAndUpdate
 @case Parse rec (Span) (Fastest)
   result = StructValue {3}
   result.low = Int32 1
@@ -81,7 +81,7 @@
   stream = [3] 213412
   engine runs = 1
 
-@test Conditional_ReadsIdentically
+@test Conditional_ReadsBothBranches
 @case Parse rec (Span) (Fastest)
   result = StructValue {3}
   result.flag = Byte 1
@@ -207,10 +207,10 @@
   result = Int64 3
   engine runs = 1
 
-@test CountSizedArray_ReadsIdentically
+@test CountSizedArray_ReadsResolvesAndMeasures
 @hash 8348e57eee2387d4b34b20857f39237413209ccb4f0528c271e9bdc1593dc425 47
 
-@test CustomCodec_RoundTripsIdentically
+@test CustomCodec_ReadsWritesAndUpdates
 @case Parse rec (Span) (Fastest)
   result = StructValue {3}
   result.count = UInt32 2
@@ -341,13 +341,13 @@
   data = [5] 0280010509
   engine runs = 1
 
-@test DebugParses_RecordIdentically
+@test DebugParses_RecordValuesAndByteRanges
 @hash abd6f402894efd9a829c1f1c72df65da44305124671d3d16c0dd4e658902ad44 26
 
-@test FixedRecord_ReadsIdentically
+@test FixedRecord_ReadsThroughEveryOperationInputAndPath
 @hash 078f0b256f7f22e545c9a54706d728df63395e39b8b8aab2558a62a77d74718e 112
 
-@test NestedStructs_ReadIdentically
+@test NestedStructs_ReadWholeByPathAndByElement
 @case Parse rec (Span) (Fastest)
   result = StructValue {3}
   result.n = Byte 2
@@ -569,7 +569,7 @@
   result.tail = Byte 9
   engine runs = 1
 
-@test Pointer_ReadsIdentically
+@test Pointer_ReadsAndResolvesItsTarget
 @case Parse rec (Span) (Fastest)
   result = StructValue {2}
   result.p = Pointer address=8 depth=1 dereferenced=True null=False
@@ -754,7 +754,7 @@
   result.tail = Byte 9
   engine runs = 1
 
-@test RecordSequences_ReadIdentically
+@test RecordSequences_ReadFromMemorySequencesAndStreams
 @case ParseMany rec (Memory) (Fastest)
   record[0] = StructValue {4}
   record[0].id = UInt16 7
@@ -891,7 +891,7 @@
   position = 6
   engine runs = 3
 
-@test TerminatedString_ReadsIdentically
+@test TerminatedString_ReadsAndReportsItsLength
 @case Parse rec (Span) (Fastest)
   result = StructValue {2}
   result.name = String "hi"
@@ -1043,7 +1043,7 @@
   result = Int64 3
   engine runs = 1
 
-@test Union_ReadsIdentically
+@test Union_KeepsRawStorageAndMemberViews
 @case Parse rec (Span) (Fastest)
   result = StructValue {2}
   result.value = UnionValue "u" {2} selected=none raw=[2] 3412
@@ -1138,8 +1138,8 @@
   result.b = UInt16 4660
   engine runs = 1
 
-@test Updates_ChangeIdenticalBytes
+@test Updates_ChangeSpansAndStreams
 @hash 0c35dbb7353bd8c009b0fefea950abe740db03e687c904c87e3b3cbcbc92263b 39
 
-@test Writes_ProduceIdenticalBytes
+@test Writes_FillEveryDestination
 @hash de91d79b7dc7e01f93624a6a8fab251451a9ec132733af7ba5a605f91df0c58e 94

@@ -2,782 +2,782 @@
 # Regenerate only for an intended, explained behaviour change: node tools/quality/engine-golden.mjs record (CONTRIBUTING.md).
 # @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes.
 
-@test PathUpdates_UpdateEveryMemberIdentically("bitfields")
+@test PathUpdates_UpdateEveryMember("bitfields")
 @hash 48f75dd21892dae817a7e9000c5c3a737bb315cd2ea8a036db2e574e35b3dc9f 520 bitfields/packed
 @hash b372ad49ced7aa534142a6df131b12f1a2a771a0217372740554926ba13d7b5d 520 bitfields/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("bitfields-enum-counts")
+@test PathUpdates_UpdateEveryMember("bitfields-enum-counts")
 @hash 3b303a1d1b72fbc48989b5c721de2b4dbaa0263ed0f78c6a52fbd9f182ce1d3e 940 bitfields-enum-counts/packed
 @hash 50ff3243af61667b0ae118fcf8b353b99308e51e9e98299f5787317aac6bda97 940 bitfields-enum-counts/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("bitfields-high")
+@test PathUpdates_UpdateEveryMember("bitfields-high")
 @hash 64f53e474ea558d6c98aa567209328c691c941a2f21cee5583e8dd8ac4368c86 600 bitfields-high/packed
 @hash 64f53e474ea558d6c98aa567209328c691c941a2f21cee5583e8dd8ac4368c86 600 bitfields-high/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("bitfields-msvc")
+@test PathUpdates_UpdateEveryMember("bitfields-msvc")
 @hash 3459c30484ddf4916d13a669a70875b3359a08fad4049346d91cf5603071246c 520 bitfields-msvc/packed
 @hash e22c524788a3a09cfe42bc08d7cc8aee2680e2dc3f8792a53a3c3428bf9f5636 520 bitfields-msvc/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("conditional")
+@test PathUpdates_UpdateEveryMember("conditional")
 @hash 0f7dbf8f85dc28dcd68770ce382f0e72ad30c1d1fb4ec702b78b9c4d6ccde675 360 conditional/packed
 @hash c59098d9135523afc5e75817462358676a519c8f20e52f5a2319ef5e586f0cf8 360 conditional/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("count")
+@test PathUpdates_UpdateEveryMember("count")
 @hash a8eb88d62846e636f1402f36570495b5b6ef23f5bd15ceeb58b1a4a1da9fb042 600 count/packed
 @hash 045acb39f5191570948de569d8b9ecd5de3b7f3208268f2423e288c5305c4ea5 600 count/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("custom-codec")
+@test PathUpdates_UpdateEveryMember("custom-codec")
 @hash ec3677a2146722f015317101bf48e556b59c5d050020d3047aecd8a505b30a88 600 custom-codec/packed
 @hash ec3677a2146722f015317101bf48e556b59c5d050020d3047aecd8a505b30a88 600 custom-codec/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("custom-fixed")
+@test PathUpdates_UpdateEveryMember("custom-fixed")
 @hash 2c04c3d5853e9dccc27e6877a94716336d1240283e6967be7965defaf7ae5f40 1020 custom-fixed/packed
 @hash 8b9290787004cd4768a58cec9e7faeae924562f7065c74ae46da4b62b5863ad6 1020 custom-fixed/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("enum-bitfield")
+@test PathUpdates_UpdateEveryMember("enum-bitfield")
 @hash 099029496de9e98c68e4122e5262d7b049d76185b648ef8b2896df737c42cf5b 660 enum-bitfield/packed
 @hash e5125e9e0bab71d6b2cd13c1d8ce7f16938a6b68a0b422ade1fe526889d2aae4 660 enum-bitfield/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("fixed")
+@test PathUpdates_UpdateEveryMember("fixed")
 @hash 699b65f26f471dcc32d9b72d69223c7d331ed593f31b9ac277d8d0f872867e1a 600 fixed/packed
 @hash c520d6eb8a37cecccbe129785febb8b04e9e4ae27227cadca64842a6d56f8cae 600 fixed/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("inline-qualified")
+@test PathUpdates_UpdateEveryMember("inline-qualified")
 @hash 0c44f7c702b8f1c60d76c0167cc02224ab24571493decf7b72b816c2bda8f99e 740 inline-qualified/packed
 @hash a3e731e8c7de93299d7dbc1488147441d3aa4903fcb04b713d59c48a8ead3ec4 740 inline-qualified/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("leb128")
+@test PathUpdates_UpdateEveryMember("leb128")
 @hash e23630de26489dabd7d695f1ed87d9defdcde03719396510c9133b58cd2bfd45 680 leb128/packed
 @hash e23630de26489dabd7d695f1ed87d9defdcde03719396510c9133b58cd2bfd45 680 leb128/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("multidim")
+@test PathUpdates_UpdateEveryMember("multidim")
 @hash 0a72bccdc100d413110180edb3a18fdf554a427d9d673ce9272e16ee7c95cdfd 3960 multidim/packed
 @hash 963dd2cc7c5dcf55a56cb70d7bf363b9b8d8d86ad4d5320bc8e87b39ec4f4aa9 3960 multidim/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("multidim-structs")
+@test PathUpdates_UpdateEveryMember("multidim-structs")
 @hash c88e429c8b71bf49ea4ef3fd1e22795dedf91527183aef05dfb1ff192db023ab 2920 multidim-structs/packed
 @hash e83650bc341d4ba1d5ace9cff643f9d9f5deb7421100205dec69026d6bb52e31 2920 multidim-structs/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("nested")
+@test PathUpdates_UpdateEveryMember("nested")
 @hash e01f9ebe696fee484690de04c402c6c3f0ce1726427b7aa90ede52bb48199316 1000 nested/packed
 @hash 795f94ef2cc4d892b3b4779ee3fa5e1db4dfb0b901a82387c44779bf21ac8cb9 1000 nested/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("pointer-arrays")
+@test PathUpdates_UpdateEveryMember("pointer-arrays")
 @hash 11181cce0830f060ba954c1483f8d48aae855e9ee8b1e5bd53ab499cb5a63531 1540 pointer-arrays/packed
 @hash 11181cce0830f060ba954c1483f8d48aae855e9ee8b1e5bd53ab499cb5a63531 1540 pointer-arrays/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("pointer-counted")
+@test PathUpdates_UpdateEveryMember("pointer-counted")
 @hash 5bd50b0d2b5e80eea93d21dd05bae8d9ee8604bb340cdecd04fefc6abbf6f306 1420 pointer-counted/packed
 @hash 5bd50b0d2b5e80eea93d21dd05bae8d9ee8604bb340cdecd04fefc6abbf6f306 1420 pointer-counted/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("pointer-list")
+@test PathUpdates_UpdateEveryMember("pointer-list")
 @hash d19cf990810331272c13362fd9e649deb4647fda59bdef5dede423262ee54626 2200 pointer-list/packed
 @hash d19cf990810331272c13362fd9e649deb4647fda59bdef5dede423262ee54626 2200 pointer-list/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("pointer-views")
+@test PathUpdates_UpdateEveryMember("pointer-views")
 @hash a9db2ebd7b2cedd58c44b89106b2320e51504f6efdc8cb7a80a022448a7e82df 1200 pointer-views/packed
 @hash a9db2ebd7b2cedd58c44b89106b2320e51504f6efdc8cb7a80a022448a7e82df 1200 pointer-views/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("pointers")
+@test PathUpdates_UpdateEveryMember("pointers")
 @hash 1a67ff7de7b8ff995d8937fac47331b719b3526108a1bfe264e48c4c52352529 1180 pointers/packed
 @hash 1a67ff7de7b8ff995d8937fac47331b719b3526108a1bfe264e48c4c52352529 1180 pointers/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("promoted")
+@test PathUpdates_UpdateEveryMember("promoted")
 @hash 5555e58fe634d0f8698a1ec48c4a0377a980cddea338c320852303d28588cd46 820 promoted/packed
 @hash c4680faf07ed3eab064d19213e53b1c755f21ca767a0c2d8f02f7cd0a83cacce 820 promoted/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("promoted-union")
+@test PathUpdates_UpdateEveryMember("promoted-union")
 @hash 9ef54834f41d57c7ec88a6d2defb4cbfd8a4f9a5a1dee497e6b7b8f3f994b67b 580 promoted-union/packed
 @hash 40adfe55f3f15ef427ebd261bf3d27c61a37695880d79184c7d556f2aeaeaabb 580 promoted-union/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("terminated")
+@test PathUpdates_UpdateEveryMember("terminated")
 @hash f8f279b101aca4011fb395c7f4061636f5af467612b622a4ec8d869e075fbde2 980 terminated/packed
 @hash f8f279b101aca4011fb395c7f4061636f5af467612b622a4ec8d869e075fbde2 980 terminated/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("terminated-scalars")
+@test PathUpdates_UpdateEveryMember("terminated-scalars")
 @hash 35febbef31487a0b181f40f24263804121d0005a39ef0ef3b88b51ecc930344c 600 terminated-scalars/packed
 @hash cce8f4ac1398371ae8e82a91919282611c0999bbe165a6d6d0e4643ea74b0f43 600 terminated-scalars/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("text")
+@test PathUpdates_UpdateEveryMember("text")
 @hash 4245947fd90e23512f8b3a922cce6578e52846adb83143bb44c2469fd21d98d8 800 text/packed
 @hash 82852c3a57062a946c85443a76859e17bf251ee6264c97b420463619513f74a4 800 text/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("to-end")
+@test PathUpdates_UpdateEveryMember("to-end")
 @hash dd90e55cee3f8888766c87626d0415a9b8990959fc34c111c3ba1f802cd8f294 520 to-end/packed
 @hash dd90e55cee3f8888766c87626d0415a9b8990959fc34c111c3ba1f802cd8f294 520 to-end/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("to-end-structs")
+@test PathUpdates_UpdateEveryMember("to-end-structs")
 @hash 93266dbff2832765c27db441d104d8efaae2673f05e864a8cb5e9f349ffcba6d 780 to-end-structs/packed
 @hash 96bba270a207d487aaa03be6d58f7665f1b91f8d8ef63b015a38c3548a45974d 780 to-end-structs/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("union")
+@test PathUpdates_UpdateEveryMember("union")
 @hash 9d32b38285c23bd20a58f860574a66d64eeb353b243bcfe14cf71334070ef304 610 union/packed
 @hash 9017bc4b9db19996970cfb690e8f9ed326f9172976be40a3734225cf09d623ed 610 union/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("union-arrays")
+@test PathUpdates_UpdateEveryMember("union-arrays")
 @hash bcfcd39109e2c9916017de0d063154f587673e5777a0eeee11e978dfb642f9f5 1060 union-arrays/packed
 @hash f9eefd531132f736e09a69d04faae950c8f269eeed98ae84284c09fc612ff6a9 1060 union-arrays/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("union-bitfields")
+@test PathUpdates_UpdateEveryMember("union-bitfields")
 @hash 4b9676b161627fb77d3e18fe3b6fd13bf844f8836b1673a02837203493f1f1a7 750 union-bitfields/packed
 @hash bbac7cb7c6d044d092c3cd68fbf4bd9704007f1424166b83039180c6676284e8 750 union-bitfields/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("union-conditional")
+@test PathUpdates_UpdateEveryMember("union-conditional")
 @hash 19a6e11375313e9255f62fb1e463e42aee241a7f7721cb4cbe0d79537ab5b6fc 1220 union-conditional/packed
 @hash af10bbbf17fb2606fedf9209b57892d3a874b34f7fb2f535d7efff8eae82c7bc 1220 union-conditional/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("union-nested")
+@test PathUpdates_UpdateEveryMember("union-nested")
 @hash 5dbb00f1192b3a7105f80e7d482318910eaa3d0c27fee3e2f2bc751b231a1fd0 1870 union-nested/packed
 @hash 251a3e9ea8feeb4907c0987d8358cf10f7461e41cd0a31cf98be4ca5f9e6491e 1870 union-nested/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("variables")
+@test PathUpdates_UpdateEveryMember("variables")
 @hash 4582b2a3b6de46d97496fd32087fa910d2a2683128d4680c57399433f272477e 600 variables/packed
 @hash 4582b2a3b6de46d97496fd32087fa910d2a2683128d4680c57399433f272477e 600 variables/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("write-codecs")
+@test PathUpdates_UpdateEveryMember("write-codecs")
 @hash b1e64277e46d6e4d07637d616258d151d62116e9597cb908601883ead8720e75 1240 write-codecs/packed
 @hash 0338399ffcd9ede71339e9d0ba074c754c0357b69385d92f99e3f9b380460f0d 1240 write-codecs/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("write-enums")
+@test PathUpdates_UpdateEveryMember("write-enums")
 @hash 1d0674aa4dec66bec82aa0458bffe13171b2a4002f59d411616ebda10ccf3801 1180 write-enums/packed
 @hash b61b53d33a607864fef9037bf78a17f2a3dfca8797e5229ec4b14745f222e270 1180 write-enums/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("write-padding")
+@test PathUpdates_UpdateEveryMember("write-padding")
 @hash abc9a466b53caa2d6272343d8c18eb46d68585e2e4db9b13920c1391e98b3064 600 write-padding/packed
 @hash d41163c40c0509ee45f997a07d536ec57ed7a5fd192320e3a8ad31629c54a00c 600 write-padding/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("write-qualified")
+@test PathUpdates_UpdateEveryMember("write-qualified")
 @hash 7c18aa9e013bb54f4bf5b4af239ddedf5f974b3a63dad2594bb4c77a5aa67f6a 720 write-qualified/packed
 @hash 0444908992d4069f776fb4debb2128b9babdac9eb7a3d8721ef79a9b028587da 720 write-qualified/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("write-scope")
+@test PathUpdates_UpdateEveryMember("write-scope")
 @hash 42f2bf27be2b4155807e844ce5ca330224d0e936aa841fcf7fd971b7b2824225 1400 write-scope/packed
 @hash 6ba1eae233a5c3b2afe6a67457504f9034f373ad99ea53869304e5af266d5822 1400 write-scope/aligned
 
-@test PathUpdates_UpdateEveryMemberIdentically("write-text")
+@test PathUpdates_UpdateEveryMember("write-text")
 @hash 3842032c216de02d057f99cb7654a02d0a8729ebb032449a6183d8bdcad08484 1600 write-text/packed
 @hash 49d8d7e0a351f2341e3b686498408ff57c197d98105d24a93fdde7fb9a32c292 1600 write-text/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("bitfields")
+@test PathWrites_WriteEveryMember("bitfields")
 @hash 6dc6014ddc9949e65e3fff96fb38543214abdda406cc1537f590ba3bf5e9ff33 490 bitfields/packed
 @hash 4e186eef5265f8f542d7a41f61b4990b346dc1e3fee4358c979b17645a6e0eb9 490 bitfields/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("bitfields-enum-counts")
+@test PathWrites_WriteEveryMember("bitfields-enum-counts")
 @hash 5bf0bdbc211121319f979ef24e84763b711040de6040480793bfcd8b0c130487 910 bitfields-enum-counts/packed
 @hash db49c750edb2e1b242872b8d4051bb1fecb0a2a3048eaf12f4ab6e316c32c175 910 bitfields-enum-counts/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("bitfields-high")
+@test PathWrites_WriteEveryMember("bitfields-high")
 @hash 3114500c19c1017303621f1551eb772acd66a152e66c2cdaa2d7f1798673720b 560 bitfields-high/packed
 @hash 3114500c19c1017303621f1551eb772acd66a152e66c2cdaa2d7f1798673720b 560 bitfields-high/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("bitfields-msvc")
+@test PathWrites_WriteEveryMember("bitfields-msvc")
 @hash e3ec42fcb3ed560e5b324e369ad9425042d307fdebf7e8718593b82d9b6c2a30 490 bitfields-msvc/packed
 @hash 87f1cf9bbd1811d0dd75aff0e3da3d86d3279c4c0e29fc118269104bfa6d3855 490 bitfields-msvc/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("conditional")
+@test PathWrites_WriteEveryMember("conditional")
 @hash d9d8253243a1a6ca839c956b09db258b5a6e9f03dc4cf3b42346303e7c459783 350 conditional/packed
 @hash 23601d7e70bae3904258e5b219e5dfd40696a403ef1b67bd8d1441b35d935728 350 conditional/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("count")
+@test PathWrites_WriteEveryMember("count")
 @hash 0535beb9c7a69e3c4dd78e5313dc3bcb41b1c68da0cd26aec5f18e6f02ce392e 560 count/packed
 @hash 2eb2d2ec65fa1d403f9bd6365d124d13a7021288be5f38da09eeb4a238e2e402 560 count/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("custom-codec")
+@test PathWrites_WriteEveryMember("custom-codec")
 @hash 9715bc10223b5fc657941ef56b651184e31b107372310f09fe981fc6dad000bb 560 custom-codec/packed
 @hash 9715bc10223b5fc657941ef56b651184e31b107372310f09fe981fc6dad000bb 560 custom-codec/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("custom-fixed")
+@test PathWrites_WriteEveryMember("custom-fixed")
 @hash f5f73a6a2b4a3b9c316af8a0b69b23f95a7f5e6e9e9b900947949bb603243b20 980 custom-fixed/packed
 @hash 9d05a436a79e7deb6267c95a087a1b5c513067a0e1e72ddea61a2755c684c965 980 custom-fixed/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("enum-bitfield")
+@test PathWrites_WriteEveryMember("enum-bitfield")
 @hash 363eb565cfe8037d768bd14acf9f6e8b90a200ba677abc71fed216e35939f410 630 enum-bitfield/packed
 @hash be800aee268c92c0aa23a4b258258ea2e2aaf1b97d2b00575d36b735fc430453 630 enum-bitfield/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("fixed")
+@test PathWrites_WriteEveryMember("fixed")
 @hash aae66755db7bd555a114a4c94f7bac3ab7885ad69f103d751644d0f2ba55fe01 630 fixed/packed
 @hash 15265b9d97425db227aefb749f3efd06c08d1774360e9cf2dc77e709e18d768b 630 fixed/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("inline-qualified")
+@test PathWrites_WriteEveryMember("inline-qualified")
 @hash 6de8d165174523c25868b53ebb0f6afd5331bf7451c2eec8fbb5c993e2435d67 700 inline-qualified/packed
 @hash 1e667faa8ce732ef90a288944443deb92a37ebd813d57cd51fe56f3e3d74c0af 700 inline-qualified/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("leb128")
+@test PathWrites_WriteEveryMember("leb128")
 @hash 9936c9cd5070f6deb447e9a6d372f881e2a782a6514bf0ef10a90101dbbb2ea9 630 leb128/packed
 @hash 9936c9cd5070f6deb447e9a6d372f881e2a782a6514bf0ef10a90101dbbb2ea9 630 leb128/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("multidim")
+@test PathWrites_WriteEveryMember("multidim")
 @hash 86de7431e8a87b1296083d987fb1709ec04de33a2e3b158d37a9185c1e616439 3640 multidim/packed
 @hash 9b79fea86a44c641bf41ff1496d20094fde1bde810db0647838afd6783220092 3640 multidim/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("multidim-structs")
+@test PathWrites_WriteEveryMember("multidim-structs")
 @hash 08e0b72b082b13d57b277b2de65d18bf988fff195c28670c191643ab4a7a5f96 2800 multidim-structs/packed
 @hash 60b563dd369c001512858f1f4d907c6676de49b565f13fc5128c122689831a72 2800 multidim-structs/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("nested")
+@test PathWrites_WriteEveryMember("nested")
 @hash 316d0d513c15d6e3da64f989eeda2d2c1a139f03bce3ba71a1c20101e30a5b07 980 nested/packed
 @hash c64512391adb4a0d8dd44262ab6040cb54b514cafed0e906e8a5f7d86d8dfeb8 980 nested/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("pointer-arrays")
+@test PathWrites_WriteEveryMember("pointer-arrays")
 @hash 459242354ce95c6f828b81b666ab26dfa6be4eb94e597b76642bb3151fdabd71 1540 pointer-arrays/packed
 @hash 459242354ce95c6f828b81b666ab26dfa6be4eb94e597b76642bb3151fdabd71 1540 pointer-arrays/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("pointer-counted")
+@test PathWrites_WriteEveryMember("pointer-counted")
 @hash bc7eebc9e7b92488126e4f8b80493f1452cabf97fe749ad1abbb44a2d3183b55 1400 pointer-counted/packed
 @hash bc7eebc9e7b92488126e4f8b80493f1452cabf97fe749ad1abbb44a2d3183b55 1400 pointer-counted/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("pointer-list")
+@test PathWrites_WriteEveryMember("pointer-list")
 @hash c02b166daec96b74521847e2c01b3e4762a7feaaf2ffd8d78d376fdddc5c3fe3 2240 pointer-list/packed
 @hash c02b166daec96b74521847e2c01b3e4762a7feaaf2ffd8d78d376fdddc5c3fe3 2240 pointer-list/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("pointer-views")
+@test PathWrites_WriteEveryMember("pointer-views")
 @hash e74424368fef2b5d848a857d2890f417df45c631ba55101fca276f3dbd9f13d8 1190 pointer-views/packed
 @hash e74424368fef2b5d848a857d2890f417df45c631ba55101fca276f3dbd9f13d8 1190 pointer-views/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("pointers")
+@test PathWrites_WriteEveryMember("pointers")
 @hash 7839ee656855ba63086763e5391625168c6ab32cb230f91fa4902a4383f4a23e 1120 pointers/packed
 @hash 7839ee656855ba63086763e5391625168c6ab32cb230f91fa4902a4383f4a23e 1120 pointers/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("promoted")
+@test PathWrites_WriteEveryMember("promoted")
 @hash fb42222f61169a1ff7c76b81ebdf136aa138c5744b3e75a9a7f7fe22cba9d7cb 770 promoted/packed
 @hash 3944c01a7953811fe520b36268d0f11c80572c264f8d0e91a8f0f0a2aa9bcae1 770 promoted/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("promoted-union")
+@test PathWrites_WriteEveryMember("promoted-union")
 @hash 1998b380618b4a65ac94d660b284b9a987ae5ed8cf55be5ff6b841f4db74401e 560 promoted-union/packed
 @hash 8d36fd55089975b754ccb337aeb4709937cf55365ceac56fd30d58d0f2c189f4 560 promoted-union/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("terminated")
+@test PathWrites_WriteEveryMember("terminated")
 @hash cbb5c954a357bccc190c2fe68957edfc4b82084611a3836ea64a1b20943ab756 980 terminated/packed
 @hash cbb5c954a357bccc190c2fe68957edfc4b82084611a3836ea64a1b20943ab756 980 terminated/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("terminated-scalars")
+@test PathWrites_WriteEveryMember("terminated-scalars")
 @hash 94d5bd21bbf98847c6a16fe1e030be670e6a745d95a5a2bd054fbd0e49435920 560 terminated-scalars/packed
 @hash 93c86fa013accfbdd199d9b3a907a01954abb4aebe77cd7f6ad0afb51913c1fc 560 terminated-scalars/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("text")
+@test PathWrites_WriteEveryMember("text")
 @hash 116cca5bae9d229e7a6ce5cc4cae8ea8834f09a058d66a84501cc27a9acd4f57 840 text/packed
 @hash e382050429c1101af6a80b36345301cd6d317c7a005f33b421606e298d7043b9 840 text/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("to-end")
+@test PathWrites_WriteEveryMember("to-end")
 @hash 7460774c9c9d798c9fc9f6bc570c4d9e7b732cee3727a48c031db27afd01626c 490 to-end/packed
 @hash 7460774c9c9d798c9fc9f6bc570c4d9e7b732cee3727a48c031db27afd01626c 490 to-end/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("to-end-structs")
+@test PathWrites_WriteEveryMember("to-end-structs")
 @hash 4169fc8b37f42d8168663648de5ca8bdaa5f1b069ab2d9261a943f39a15a0160 770 to-end-structs/packed
 @hash d8f117d2bedcde0f2fc7d602370caa241a2f9c313dff8df33f15b4918ab4dfdf 770 to-end-structs/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("union")
+@test PathWrites_WriteEveryMember("union")
 @hash 62743aa4bdd1a00702c1b6569795e251df9e02041bc4ae3f1848b86a9fc26d04 560 union/packed
 @hash 9a9d728ae690c2149035dacfbb039b92fbd0c4164322e56dd48bed7ec5e24510 560 union/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("union-arrays")
+@test PathWrites_WriteEveryMember("union-arrays")
 @hash 47861668b8a8b2d9fc6152e91aba415a36722c25775936066a49900b14f7cd8d 980 union-arrays/packed
 @hash 6c418c9fd5a8d440c45d726c39b2643445223dd5c9434d0506b6f19362b38c35 980 union-arrays/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("union-bitfields")
+@test PathWrites_WriteEveryMember("union-bitfields")
 @hash 26c348749dfae3a0c5ef1f06856142b1621f450b3d68f9d378515ab89b1df702 700 union-bitfields/packed
 @hash 02b441610d1bff0da1c14c9c6f38844195504871f86264a465d66e8c2a642640 700 union-bitfields/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("union-conditional")
+@test PathWrites_WriteEveryMember("union-conditional")
 @hash ff882037edd9e7e22a0d8ab09fdf0870825fbd3797b4f90c4a597fb205c1c831 1120 union-conditional/packed
 @hash 396d414529f9027b2764b58a9ffdeae5b7a2dd6bcca2f00e3990388400b20ebb 1120 union-conditional/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("union-nested")
+@test PathWrites_WriteEveryMember("union-nested")
 @hash 1b2b92a3956243d3e823d62cefb69fbfc9eb37c417ba3a4f23cde67f8f4f9739 1680 union-nested/packed
 @hash 1f15670ef74d9da38172c820279f379a5ad28cd3aa1b99b66dcf5d406593efa8 1680 union-nested/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("variables")
+@test PathWrites_WriteEveryMember("variables")
 @hash fa3f1be59b1f70ba951ded74244d46b85650d3c055c5a62e5afd367ca8982ff9 560 variables/packed
 @hash fa3f1be59b1f70ba951ded74244d46b85650d3c055c5a62e5afd367ca8982ff9 560 variables/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("write-codecs")
+@test PathWrites_WriteEveryMember("write-codecs")
 @hash 309ae78f021d7dc22651d7a2f4a54ec407e709655d099f58eb3f18dfd4e5c02b 1260 write-codecs/packed
 @hash 695aa91d6cc9187741c54e3ab6f0117b81584f5a0bf3bcff6eba242944e4b301 1260 write-codecs/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("write-enums")
+@test PathWrites_WriteEveryMember("write-enums")
 @hash acc559a1c58c6a02f58e7f01afbbb20ca97e1d14241351f3aae46745e1d26239 1260 write-enums/packed
 @hash a46d8ccc21a31b913c223eef183249b80020feb3f0e1bceaf8d49552ba9c7884 1260 write-enums/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("write-padding")
+@test PathWrites_WriteEveryMember("write-padding")
 @hash 88790828f28e2aee2a7b79f777fe7728affb07cfc33e344b528d4da2095c7352 560 write-padding/packed
 @hash e6444beb98e4ef2ccd14ae81c3a62c07b7086b07d1beccaf3eabb5a4b8efad3f 560 write-padding/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("write-qualified")
+@test PathWrites_WriteEveryMember("write-qualified")
 @hash bd7c9f92c073f47d0826347235359439a97e8ffe4f40a5a2e119569b93afad10 700 write-qualified/packed
 @hash 649dadd3f9128131c62d45d3383c20781d712a8f60b488d6372fe2e43a134a0b 700 write-qualified/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("write-scope")
+@test PathWrites_WriteEveryMember("write-scope")
 @hash d475a87a3c7cf49c4380ac4ee03b6320a822525d19ade7368f8e2a5c088f78dd 1330 write-scope/packed
 @hash 692c63ac110c10807ddaeac5dbe8e41b78943839e680da724fb4754482a68ba8 1330 write-scope/aligned
 
-@test PathWrites_WriteEveryMemberIdentically("write-text")
+@test PathWrites_WriteEveryMember("write-text")
 @hash 04b9d6e4d2283064b975fabb2d8a177bb3e062c8787295a080a7c33a03890340 1680 write-text/packed
 @hash 3f092a4e9ac975d58bfdb7a71d457c3f392874b25e4a4abff71478715470166b 1680 write-text/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("bitfields")
+@test SpanCapacities_ReceiveTheOutputPrefix("bitfields")
 @hash efb38c9d06b5fde6cb9b5ab86e9bd6062f88a0624e018b1452522613b5144b1f 24 bitfields/packed
 @hash d7ff3b6b5c1096b91104e4d2673d6ee4d0f821af258318a3143505c499aa8561 32 bitfields/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("bitfields-enum-counts")
+@test SpanCapacities_ReceiveTheOutputPrefix("bitfields-enum-counts")
 @hash 51cecd5ac4fb8aec7ab590bba52e5cb36d2d688557a57c4b02ef5e5dc3856583 48 bitfields-enum-counts/packed
 @hash 411674e64908704850cd533898bbffa9f8819cbe762e2b24d608c6278b4ea0ef 56 bitfields-enum-counts/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("bitfields-high")
+@test SpanCapacities_ReceiveTheOutputPrefix("bitfields-high")
 @hash 537621bbbf0a515336606857ccf58cd1178ea04d9b599510a8f6fef4fd0e8a98 24 bitfields-high/packed
 @hash 537621bbbf0a515336606857ccf58cd1178ea04d9b599510a8f6fef4fd0e8a98 24 bitfields-high/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("bitfields-msvc")
+@test SpanCapacities_ReceiveTheOutputPrefix("bitfields-msvc")
 @hash e6baf0b9ceeb1eb2a3e431e92bb623331feeab625db2d8da30c2db9062970d42 40 bitfields-msvc/packed
 @hash 155fd36479a81dd9740902355526aa659edbc2c01873fd7bcd2324a6a4e158a7 56 bitfields-msvc/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("conditional")
+@test SpanCapacities_ReceiveTheOutputPrefix("conditional")
 @hash 7edb1145c71fefe0a33f588fc14713a609f7b84ebe217bc2b6aa99160134a904 24 conditional/packed
 @hash 3ac9d7739a35ded472a1d1888c913b9e22cd4b27248463ec5d3cf6b4b17a00ea 32 conditional/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("count")
+@test SpanCapacities_ReceiveTheOutputPrefix("count")
 @hash 4accb41e6c721d04938cbc6cd85718b3b461ee0867c30924b5c5a8d84d7a1463 40 count/packed
 @hash ec76359436b39543fb563576a0495d0759657aacabc38084458e93d1afbc1944 48 count/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("custom-codec")
+@test SpanCapacities_ReceiveTheOutputPrefix("custom-codec")
 @hash f5539da81a99cc49164fbbceacbf96ae14cb5478544ecdcda6bcb76c37fec73f 28 custom-codec/packed
 @hash f5539da81a99cc49164fbbceacbf96ae14cb5478544ecdcda6bcb76c37fec73f 28 custom-codec/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("custom-fixed")
+@test SpanCapacities_ReceiveTheOutputPrefix("custom-fixed")
 @hash 2eaa702fc0725de874f11b57b39dbbf393379f3d80ace025b01bf0a6a29a7ebc 80 custom-fixed/packed
 @hash 59bcc2f988b9934d5315791bcce3823dc62cf73bcec38dfa0d817d4151f88ad5 136 custom-fixed/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("enum-bitfield")
+@test SpanCapacities_ReceiveTheOutputPrefix("enum-bitfield")
 @hash 485246ec66a453e09ef61f4018af0515d08f8142f08c6ffffc798a82c26c56e2 32 enum-bitfield/packed
 @hash c9dfb5c982efc7e91af8d36d312e04eaae6d9f66d4e10846261280b1adef735d 40 enum-bitfield/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("fixed")
+@test SpanCapacities_ReceiveTheOutputPrefix("fixed")
 @hash 008278209d13fa34d33f1e04ab13a6afa9b1d7dd314841ea55adbdc00f22345f 68 fixed/packed
 @hash 283c70da8ddb70691a8c825fd200fe4146680e8a0ca83c9b530e1fc81226fca8 88 fixed/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("inline-qualified")
+@test SpanCapacities_ReceiveTheOutputPrefix("inline-qualified")
 @hash 6d8d57a1f0815f5345b0bc52bb940b3112d62f3fb35697186f64b1f7539fe231 40 inline-qualified/packed
 @hash ebdeff781a49e81a3414f6fe1ab772b8cde61bcd3f233f9d6090c9eedcb9d70a 48 inline-qualified/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("leb128")
+@test SpanCapacities_ReceiveTheOutputPrefix("leb128")
 @hash ba9d83b96f2723ef06b966fa6f20c62774ef020986c38c8612265f3fabd28cff 40 leb128/packed
 @hash ba9d83b96f2723ef06b966fa6f20c62774ef020986c38c8612265f3fabd28cff 40 leb128/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("multidim")
+@test SpanCapacities_ReceiveTheOutputPrefix("multidim")
 @hash 17366aa8130c860edc776947554ac0d41518f4209f508cf7be709d0a765b7f8e 160 multidim/packed
 @hash 5c5561ba3c6b333c59c0ef2aeb149dc07fdb2a88f9b19144d81c18bf98d302fb 168 multidim/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("multidim-structs")
+@test SpanCapacities_ReceiveTheOutputPrefix("multidim-structs")
 @hash 7514f6eecd0e2175dda6fcdd53d0381ce0361fbd42ff1307a7b700cb3f2a4ef3 128 multidim-structs/packed
 @hash 689cc8d110e1d91d4200d162b2b9f775cb2f6aab71abfec32f8935c868121c42 152 multidim-structs/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("nested")
+@test SpanCapacities_ReceiveTheOutputPrefix("nested")
 @hash d7aff85d27166722669380820128e522db9173566196795945c057f94b13fe2f 48 nested/packed
 @hash cb153517f965cadedaea98288802bc7f83eb0d6ce95a1000547276136c255edc 64 nested/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("pointer-arrays")
+@test SpanCapacities_ReceiveTheOutputPrefix("pointer-arrays")
 @hash 7dfdee576b86f9fcf9fb2574f9677bc75de218bf0564c71a008d17e48223b4b4 44 pointer-arrays/packed
 @hash 7dfdee576b86f9fcf9fb2574f9677bc75de218bf0564c71a008d17e48223b4b4 44 pointer-arrays/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("pointer-counted")
+@test SpanCapacities_ReceiveTheOutputPrefix("pointer-counted")
 @hash ef91238da8311d4fec84549f0858fcf6c8037f45fca1bd355c5525c9ca8af31f 52 pointer-counted/packed
 @hash ef91238da8311d4fec84549f0858fcf6c8037f45fca1bd355c5525c9ca8af31f 52 pointer-counted/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("pointer-list")
+@test SpanCapacities_ReceiveTheOutputPrefix("pointer-list")
 @hash c32aa5ae78ed4666ba2406533e5fe89730c7898d87ddfc87722b6867bebcca2f 36 pointer-list/packed
 @hash c32aa5ae78ed4666ba2406533e5fe89730c7898d87ddfc87722b6867bebcca2f 36 pointer-list/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("pointer-views")
+@test SpanCapacities_ReceiveTheOutputPrefix("pointer-views")
 @hash 5423bf592da544c65373a8577acbf857f05687b1e11ee5c87ae4a68683672759 36 pointer-views/packed
 @hash 5423bf592da544c65373a8577acbf857f05687b1e11ee5c87ae4a68683672759 36 pointer-views/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("pointers")
+@test SpanCapacities_ReceiveTheOutputPrefix("pointers")
 @hash 3387886b8b4c6903597ae00ee41c58876ce164de3b6f421c116128126afa9aa5 52 pointers/packed
 @hash 3387886b8b4c6903597ae00ee41c58876ce164de3b6f421c116128126afa9aa5 52 pointers/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("promoted")
+@test SpanCapacities_ReceiveTheOutputPrefix("promoted")
 @hash 04e47ae23e470ff6ee2654d29f6a30fd1361ab2b7b99d19300d2dc56d436290b 36 promoted/packed
 @hash 5fb3f7b39560b1a2a830a28ed2f8815cf56a605188e044862010d5a5220b4e11 48 promoted/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("promoted-union")
+@test SpanCapacities_ReceiveTheOutputPrefix("promoted-union")
 @hash d557378f9c77afdb7bfabaae0afbfa158f44eb053f874cf92f5810d2c6b76719 28 promoted-union/packed
 @hash 256ab296eabe4d577617d383d1fd97b30ed2f188802c9647962acc34b8d84523 40 promoted-union/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("terminated")
+@test SpanCapacities_ReceiveTheOutputPrefix("terminated")
 @hash 10bcb193156e1b276f9551d48d66cfa89859fde9d18c69dc1ff9d7e70b902829 48 terminated/packed
 @hash 10bcb193156e1b276f9551d48d66cfa89859fde9d18c69dc1ff9d7e70b902829 48 terminated/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("terminated-scalars")
+@test SpanCapacities_ReceiveTheOutputPrefix("terminated-scalars")
 @hash 0077058972ce290b20faf59817dc80186a9a4f827493ec2619daf28c15dbfd51 40 terminated-scalars/packed
 @hash ff62fe9c1bd45c771ed91b0154dfda1f13c1d95b615e562edc5bf45aaa77b215 48 terminated-scalars/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("text")
+@test SpanCapacities_ReceiveTheOutputPrefix("text")
 @hash 1d6e48d61059a685838a44cbc4994b201c600b8a7aebd82402367721283b3993 76 text/packed
 @hash 8352fe56794cf59cda21c7ef8abf0333ca8017c92d9449ab339c39024086ee9f 80 text/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("to-end")
+@test SpanCapacities_ReceiveTheOutputPrefix("to-end")
 @hash 1c60f57829be57d8074d28b7ecaf5e0b92b7d684ec596fce5ee1c1c612c9250e 40 to-end/packed
 @hash 1c60f57829be57d8074d28b7ecaf5e0b92b7d684ec596fce5ee1c1c612c9250e 40 to-end/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("to-end-structs")
+@test SpanCapacities_ReceiveTheOutputPrefix("to-end-structs")
 @hash 2a32d833b0001bffcab39d0ce98939df19d1dfc5fd3ada7080a7767b9b7716a3 36 to-end-structs/packed
 @hash d68a8922e38de38d200f496b83837e8e4df1a67fa6e8e75aadbc2100e9bf4da3 48 to-end-structs/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("union")
+@test SpanCapacities_ReceiveTheOutputPrefix("union")
 @hash 1538c39500a0af4c6628773ec9ed0ab141ceb74acf21c503752cf25683949adc 32 union/packed
 @hash 8497d9aace86b223877aace9168e4076647c91e53ed31b522b557b08eb82c12c 56 union/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("union-arrays")
+@test SpanCapacities_ReceiveTheOutputPrefix("union-arrays")
 @hash 8996fa858748a03bfe7c806e62095e2d496e6cdf4f74219754ddbe204e03075c 32 union-arrays/packed
 @hash f81d8ffec810065d7676ece0bdde56856090bf52200fc2a44984ae808a8cd742 40 union-arrays/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("union-bitfields")
+@test SpanCapacities_ReceiveTheOutputPrefix("union-bitfields")
 @hash 80713ae4372eec58be21cb9ea9f51eb4f431b49874368c693ccf2a8995c6b537 24 union-bitfields/packed
 @hash 092657725f01a35d4efa3680df4f9badda5e6e03c3780ed5cd2b6eff3ef32b1b 32 union-bitfields/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("union-conditional")
+@test SpanCapacities_ReceiveTheOutputPrefix("union-conditional")
 @hash d9f18e714357a240997c4c175fa332a21c4d41b86081b19c1f6a0a55717e4c72 40 union-conditional/packed
 @hash 5bd9155f6d89d91e8017e987b885cd3e174b023be79d6b1c128527849e9a8df8 48 union-conditional/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("union-nested")
+@test SpanCapacities_ReceiveTheOutputPrefix("union-nested")
 @hash 54a035b42a1d64e2060d76bcd4d413ac20d957808f64f49c97a5ece64da97fac 48 union-nested/packed
 @hash 1a7904a32189a4547392fb06a38d76fab45ddba2cd7cf4c87232dfa4ead99c12 72 union-nested/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("variables")
+@test SpanCapacities_ReceiveTheOutputPrefix("variables")
 @hash c3cbbfbd31c1fb6b27d257a4c04639f2f6fc1b847d7a3cd424977bf214cc2135 28 variables/packed
 @hash c3cbbfbd31c1fb6b27d257a4c04639f2f6fc1b847d7a3cd424977bf214cc2135 28 variables/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("write-codecs")
+@test SpanCapacities_ReceiveTheOutputPrefix("write-codecs")
 @hash a61d1ff2a14e81d53d49d474afe6e320eab909f2706e76af4acaef41117ecd4a 416 write-codecs/packed
 @hash 17cf891a9bc4b6d2e46d02fb0a8d2a40a12c15f4fa490bc26f3c0208e0a27c63 520 write-codecs/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("write-enums")
+@test SpanCapacities_ReceiveTheOutputPrefix("write-enums")
 @hash 21cc4665e0206205fb995e62c9a72d8f3fe427e536994a108c9e2506648135af 60 write-enums/packed
 @hash f26d96b4f1ae52708a2709395122c61a850077b51278b94ebd835e26d1e0fe66 72 write-enums/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("write-padding")
+@test SpanCapacities_ReceiveTheOutputPrefix("write-padding")
 @hash 838346b2b70333392976bc3c82e7d505dc391aaca9d1ae392ccc8dc436216720 60 write-padding/packed
 @hash 17325c564d08be55c61f44d1ebe41ba4b241773c36767639b80450946351f7b1 72 write-padding/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("write-qualified")
+@test SpanCapacities_ReceiveTheOutputPrefix("write-qualified")
 @hash 047421f63c5f67045af75844e1e15d16e75d016192f28e40df40947bbfbd1f64 28 write-qualified/packed
 @hash 4adaa9010134cb124576253035b369bfd721468d4382f418798ad306400b9d8b 32 write-qualified/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("write-scope")
+@test SpanCapacities_ReceiveTheOutputPrefix("write-scope")
 @hash 37a0a13531f0a0f2caf52788f1dad490de1e5ba2a9b8803bd0a8d8242c362b0e 52 write-scope/packed
 @hash 2824ed025e33a60b3d1eb0c456620be0a9a98ca9c7a845c12fc93f2348ce6687 56 write-scope/aligned
 
-@test SpanCapacities_LeaveIdenticalPrefixes("write-text")
+@test SpanCapacities_ReceiveTheOutputPrefix("write-text")
 @hash 0e7580acacec5855fbc79004c4cfab05d9d45135f1fc3ebf760a78a09d2558a3 108 write-text/packed
 @hash 62ba92c1df553c62cd0acacaa7a0c45eeaba2050eb9aa31dfcc9df3d26216ba8 112 write-text/aligned
 
-@test SuppliedValues_WriteIdentically("bitfields")
+@test SuppliedValues_WriteToArraysAndSpans("bitfields")
 @hash c958be943f04c762cf78815cd29f4f7544bda3185b5d6a6ff6e6a29c4667c720 840 bitfields/packed
 @hash f6ea24ef7e619283d3b5acbf2d026182b680c0de9a5d83a638fc47b0c53693e1 840 bitfields/aligned
 
-@test SuppliedValues_WriteIdentically("bitfields-enum-counts")
+@test SuppliedValues_WriteToArraysAndSpans("bitfields-enum-counts")
 @hash 898fcd893b8ea02cbce64a65b15bb116ad61064289ddbfee031929da6f04623e 1040 bitfields-enum-counts/packed
 @hash 2e4304e6d9adb18ac0f247d19eacfe15a5cacec0c67307cf28a0a16b376fe429 1040 bitfields-enum-counts/aligned
 
-@test SuppliedValues_WriteIdentically("bitfields-high")
+@test SuppliedValues_WriteToArraysAndSpans("bitfields-high")
 @hash e96ef0d9f937afc66e11f86599e9f1dcfb2dd8d2b276888d1852d8853fc7acb6 1000 bitfields-high/packed
 @hash e96ef0d9f937afc66e11f86599e9f1dcfb2dd8d2b276888d1852d8853fc7acb6 1000 bitfields-high/aligned
 
-@test SuppliedValues_WriteIdentically("bitfields-msvc")
+@test SuppliedValues_WriteToArraysAndSpans("bitfields-msvc")
 @hash 26c462b735e5b4934e2aa15a21a485894b7fc425d466907dbed9db5905af3ee6 840 bitfields-msvc/packed
 @hash 2c8e565aafeb4f9a201c0d1daee29d27bc0a23a2b0ce90b3ceeb1723811c3303 840 bitfields-msvc/aligned
 
-@test SuppliedValues_WriteIdentically("conditional")
+@test SuppliedValues_WriteToArraysAndSpans("conditional")
 @hash 13e44b7605921530f4763ad75c774e46a6decc912b644b6e56a62b8b340ee8c4 520 conditional/packed
 @hash a2c09e41a65d79faa2235678a8b4c64e27ca0d6f7c414f3ff232733284504e45 520 conditional/aligned
 
-@test SuppliedValues_WriteIdentically("count")
+@test SuppliedValues_WriteToArraysAndSpans("count")
 @hash daa187a917a25e5a09ca36fad30c50fdc59983d76136060e40fd749e22472305 540 count/packed
 @hash e77620954f744359179b5c275c2f98341621bf02b033c17fb4be0705bd745109 540 count/aligned
 
-@test SuppliedValues_WriteIdentically("custom-codec")
+@test SuppliedValues_WriteToArraysAndSpans("custom-codec")
 @hash 36fa5235ea0c93e9bf4153a6d3a1f3ef8aa92fcfc1e026e74942ea8b4062496a 540 custom-codec/packed
 @hash 36fa5235ea0c93e9bf4153a6d3a1f3ef8aa92fcfc1e026e74942ea8b4062496a 540 custom-codec/aligned
 
-@test SuppliedValues_WriteIdentically("custom-fixed")
+@test SuppliedValues_WriteToArraysAndSpans("custom-fixed")
 @hash b8958927fb9903f11afb02acb33dfedf72e6504a72500190e3369713d1dd469b 860 custom-fixed/packed
 @hash 20ecac8e8f5cb6cc925c9922e5f5189a173db758f4db6446b5af757a47931ae9 860 custom-fixed/aligned
 
-@test SuppliedValues_WriteIdentically("enum-bitfield")
+@test SuppliedValues_WriteToArraysAndSpans("enum-bitfield")
 @hash 534bd3228755fe07390f2c1682dd49c8cd681158372551f94a7a1753c003c60f 700 enum-bitfield/packed
 @hash 60d037eb73207a4fcb3703f242c6e8598260c768b8f4a977c03ca805c3cd6665 700 enum-bitfield/aligned
 
-@test SuppliedValues_WriteIdentically("fixed")
+@test SuppliedValues_WriteToArraysAndSpans("fixed")
 @hash a6161f066537fe749b55325507e1d966452ac4c1f53beffa35e222b5c84fdc52 860 fixed/packed
 @hash 0baef579ae0b784434e39d99214198dba7f6a83e53bc070942d8e8c7e9449928 860 fixed/aligned
 
-@test SuppliedValues_WriteIdentically("inline-qualified")
+@test SuppliedValues_WriteToArraysAndSpans("inline-qualified")
 @hash 4bf62b4839f684006a3624182c7262d8b4b3894c6355772c8b9a90f66cbbe33d 560 inline-qualified/packed
 @hash d04f6301ef987815b1effc5eef975f2c3b6ab2967f2852945ef23c55fac6a593 560 inline-qualified/aligned
 
-@test SuppliedValues_WriteIdentically("leb128")
+@test SuppliedValues_WriteToArraysAndSpans("leb128")
 @hash 48a8cd677fc76ef624729fd10fe741f3fe331f5a8b5b159bda36e1db554a43ea 700 leb128/packed
 @hash 48a8cd677fc76ef624729fd10fe741f3fe331f5a8b5b159bda36e1db554a43ea 700 leb128/aligned
 
-@test SuppliedValues_WriteIdentically("multidim")
+@test SuppliedValues_WriteToArraysAndSpans("multidim")
 @hash 1b0776743d135df5b917e4b82bb009567cc3599731bf47b1a3ddb98dc23e8d7d 1080 multidim/packed
 @hash 77985ef3f73441c39022a6d4008ea0e93878a802e22c54a992a761c310901894 1080 multidim/aligned
 
-@test SuppliedValues_WriteIdentically("multidim-structs")
+@test SuppliedValues_WriteToArraysAndSpans("multidim-structs")
 @hash 8014a601e1070785b5c460cc980aa951dc9dceb64a966ba4ab51630f30e698ae 900 multidim-structs/packed
 @hash 532c0e8232f9697daa58e49c6f9d8565ed7d7c1fcae0008f3228f31cce2a6f78 900 multidim-structs/aligned
 
-@test SuppliedValues_WriteIdentically("nested")
+@test SuppliedValues_WriteToArraysAndSpans("nested")
 @hash 76d02f789c4ebcd4a3265b154ed11f6de55415d0afb3ebf88461c71cd3fbcc3a 560 nested/packed
 @hash 38ddaedce693295c2d2ff157e93cd4cccc2b5d26cdef7dc5208e063cc212dd3c 560 nested/aligned
 
-@test SuppliedValues_WriteIdentically("pointer-arrays")
+@test SuppliedValues_WriteToArraysAndSpans("pointer-arrays")
 @hash 705f0c9e7e21bb2e45b03bb2e5f6507575f4c67ad63bea1c5d448a44e0551986 720 pointer-arrays/packed
 @hash 705f0c9e7e21bb2e45b03bb2e5f6507575f4c67ad63bea1c5d448a44e0551986 720 pointer-arrays/aligned
 
-@test SuppliedValues_WriteIdentically("pointer-counted")
+@test SuppliedValues_WriteToArraysAndSpans("pointer-counted")
 @hash 64e87d9e61338e8ba43ef70cfb2bd737887054044fac371c13399d2580e71c64 840 pointer-counted/packed
 @hash 64e87d9e61338e8ba43ef70cfb2bd737887054044fac371c13399d2580e71c64 840 pointer-counted/aligned
 
-@test SuppliedValues_WriteIdentically("pointer-list")
+@test SuppliedValues_WriteToArraysAndSpans("pointer-list")
 @hash 0c894649f05a28451425da5d4a3f3157b788c55779a4a6da327043992a1a5347 560 pointer-list/packed
 @hash 0c894649f05a28451425da5d4a3f3157b788c55779a4a6da327043992a1a5347 560 pointer-list/aligned
 
-@test SuppliedValues_WriteIdentically("pointer-views")
+@test SuppliedValues_WriteToArraysAndSpans("pointer-views")
 @hash 2f86512bb8741e99289207e394d1d40a0f2adb31ede49b492e8e15250cffcfeb 840 pointer-views/packed
 @hash 2f86512bb8741e99289207e394d1d40a0f2adb31ede49b492e8e15250cffcfeb 840 pointer-views/aligned
 
-@test SuppliedValues_WriteIdentically("pointers")
+@test SuppliedValues_WriteToArraysAndSpans("pointers")
 @hash 0630e4ff6064b02b860d80bc35bbd51e0173bf2203432a78caa9175d4537aeb7 840 pointers/packed
 @hash 0630e4ff6064b02b860d80bc35bbd51e0173bf2203432a78caa9175d4537aeb7 840 pointers/aligned
 
-@test SuppliedValues_WriteIdentically("promoted")
+@test SuppliedValues_WriteToArraysAndSpans("promoted")
 @hash ec20fcc2cdbacb9f22753c2e9c509b923ef7babebe4d16c00d38942a8168a07a 720 promoted/packed
 @hash 350721ec557f3448e74dd0c9cf21735555ebca5862e998cf9380745e7e4fd601 720 promoted/aligned
 
-@test SuppliedValues_WriteIdentically("promoted-union")
+@test SuppliedValues_WriteToArraysAndSpans("promoted-union")
 @hash bcdccfcea575d24282496e7657e0ced01d80a4692f8077541fde325c019dfa51 700 promoted-union/packed
 @hash b20e62d3879cccdb00f4c9da4ad76a9fa7ebaaa7e81362cdd36a1cf282684954 700 promoted-union/aligned
 
-@test SuppliedValues_WriteIdentically("terminated")
+@test SuppliedValues_WriteToArraysAndSpans("terminated")
 @hash f2d7447bcc85fb71421a03c681691fa61247b715dd4f8e48a772ab3fc34005d2 560 terminated/packed
 @hash f2d7447bcc85fb71421a03c681691fa61247b715dd4f8e48a772ab3fc34005d2 560 terminated/aligned
 
-@test SuppliedValues_WriteIdentically("terminated-scalars")
+@test SuppliedValues_WriteToArraysAndSpans("terminated-scalars")
 @hash 47cd1aaa3d8da41e152f525d3f869409e1c5ccbe1870b339d357ea191a0578de 540 terminated-scalars/packed
 @hash eb9ea9d82e070bbb69689b4a5bb135a4e4a4eafd4e592111fdbb841915862478 540 terminated-scalars/aligned
 
-@test SuppliedValues_WriteIdentically("text")
+@test SuppliedValues_WriteToArraysAndSpans("text")
 @hash 4de4c4f109ab6f2428bd471886fdef79933644b7c4676f65e3eca160d10b45e4 740 text/packed
 @hash d2451a881fbd4d1ae80dce5a2ffa359461983b85a4153831b25d275e5aeda2c7 740 text/aligned
 
-@test SuppliedValues_WriteIdentically("to-end")
+@test SuppliedValues_WriteToArraysAndSpans("to-end")
 @hash fe53af5fc7ad14f50b73a2d4eedc6b0998951fcd75e597ecb9af138e0d38035f 380 to-end/packed
 @hash fe53af5fc7ad14f50b73a2d4eedc6b0998951fcd75e597ecb9af138e0d38035f 380 to-end/aligned
 
-@test SuppliedValues_WriteIdentically("to-end-structs")
+@test SuppliedValues_WriteToArraysAndSpans("to-end-structs")
 @hash d27c0d5cc83c7dfe396d0f0d2963f5546550313e575ea19c941711e16bf4471d 380 to-end-structs/packed
 @hash d2ebe0a9248e07cf0f030584396468d99ee7b6e876ca2fa2cc214e7470925f83 380 to-end-structs/aligned
 
-@test SuppliedValues_WriteIdentically("union")
+@test SuppliedValues_WriteToArraysAndSpans("union")
 @hash bc9058f3dfd6f419c73ab1326bfbc85f542d4701f8219968f5cfeced2895cf13 520 union/packed
 @hash d6ff7271ba98258bcf5a4dae402be409b3dad4cf9a03659bd7d66dc4e77b09a3 520 union/aligned
 
-@test SuppliedValues_WriteIdentically("union-arrays")
+@test SuppliedValues_WriteToArraysAndSpans("union-arrays")
 @hash 81daadd5dcf8c8adc6807d3cd1af80a6974aa913dc8a012c135cc8b99a261d4c 690 union-arrays/packed
 @hash 2370e74cc417101cfbc72c99a84b9446f99b9ac4f16b27428cb32667c6508395 690 union-arrays/aligned
 
-@test SuppliedValues_WriteIdentically("union-bitfields")
+@test SuppliedValues_WriteToArraysAndSpans("union-bitfields")
 @hash 59c57e4733556428b915616c2a3941df3b33ffd342bb9504a711a9b4e93dd891 520 union-bitfields/packed
 @hash 5a6c7383d92ac04c93794ffb8f04115f9bce70ea916619e0b1cec47e8308f047 520 union-bitfields/aligned
 
-@test SuppliedValues_WriteIdentically("union-conditional")
+@test SuppliedValues_WriteToArraysAndSpans("union-conditional")
 @hash e085bca0d9a115a448ed2fa47f655728908f1d2100b3ac7f46388e6f4c5b4668 700 union-conditional/packed
 @hash 7e295ce3ca9a8f07e5cd5c62ebeb279ea08f9381425e7db23ddd32252f92c3d8 700 union-conditional/aligned
 
-@test SuppliedValues_WriteIdentically("union-nested")
+@test SuppliedValues_WriteToArraysAndSpans("union-nested")
 @hash 1c066425412fcedad766d1f569552cb7425956543c875b3f74a94b64ec963d0d 1040 union-nested/packed
 @hash 4a71b92cfb01432f4336261c2e77cbfebb7247e28b0f7f1f85de324bf40c40c6 1040 union-nested/aligned
 
-@test SuppliedValues_WriteIdentically("variables")
+@test SuppliedValues_WriteToArraysAndSpans("variables")
 @hash e31a0e0ac65d7b15a9936a706d69f34bff7fb842148ea11577eb86ee4d55a5c7 540 variables/packed
 @hash e31a0e0ac65d7b15a9936a706d69f34bff7fb842148ea11577eb86ee4d55a5c7 540 variables/aligned
 
-@test SuppliedValues_WriteIdentically("write-codecs")
+@test SuppliedValues_WriteToArraysAndSpans("write-codecs")
 @hash f27adde9671aab4f9d6d12f020b163af597641c32a3d6c3cbcb8cfeef82ca038 2600 write-codecs/packed
 @hash 61e8240ab8ebaf95e9b478746957ae4e51ee3d4df170922a65e397f2c9cc15cf 2600 write-codecs/aligned
 
-@test SuppliedValues_WriteIdentically("write-enums")
+@test SuppliedValues_WriteToArraysAndSpans("write-enums")
 @hash c099064ff15905eab76ff48f498cc7284fef7c306fb7a6aa19e1dd70cecc9b7b 1220 write-enums/packed
 @hash 90fe63329bc5c80294fa237ebaa399e049e5dd1c261fe73c31374975a35801f3 1220 write-enums/aligned
 
-@test SuppliedValues_WriteIdentically("write-padding")
+@test SuppliedValues_WriteToArraysAndSpans("write-padding")
 @hash a842255980efe2c80d4b2e4c6a971b2323c5d2b58a5f7c53927d453486e4b2cd 700 write-padding/packed
 @hash 1bdc59a0e03044b8fad05a708a8e25d0aa019b245755b0423ea2ec5317f14723 700 write-padding/aligned
 
-@test SuppliedValues_WriteIdentically("write-qualified")
+@test SuppliedValues_WriteToArraysAndSpans("write-qualified")
 @hash 0b09005bcc79f231172e984575224bb1a28494f4d8c8b2510bd9aae44ef18ce9 560 write-qualified/packed
 @hash 29ce59f5aca08a5688bcb2de37062791c66a70160559b17f816bc861ed44e10f 560 write-qualified/aligned
 
-@test SuppliedValues_WriteIdentically("write-scope")
+@test SuppliedValues_WriteToArraysAndSpans("write-scope")
 @hash c783d2b221e81bb331b536e5ef4d8a672d33adbc913d33603eada4982ef9e126 1060 write-scope/packed
 @hash e1922a16417a55d122dc9725b262b3a8856bb44aac87ae7808fb0565a3f7dc23 1060 write-scope/aligned
 
-@test SuppliedValues_WriteIdentically("write-text")
+@test SuppliedValues_WriteToArraysAndSpans("write-text")
 @hash a0e9c059b449ad2ed2225430cce89f8b81031a2f91d224ffa091a7f3c686c567 1460 write-text/packed
 @hash 830e8a928fc0ef34a3cb5f7f72db47eb928bf00b2cbc58f4aad45d844d545b0d 1460 write-text/aligned
 
-@test UpdateOptionWrites_WriteIdentically("bitfields")
+@test UpdateOptionWrites_UseUpdateSemantics("bitfields")
 @hash 22309baa8d3f97ed3de5b0e2a1b63ffb9de01ef4338f3fd37dbd0ffa0cf28672 56 bitfields/packed
 @hash e9f753ea4b3624d1ade97c13028d6a6910c2e73976413e6e3748d7b722ac3d47 56 bitfields/aligned
 
-@test UpdateOptionWrites_WriteIdentically("bitfields-enum-counts")
+@test UpdateOptionWrites_UseUpdateSemantics("bitfields-enum-counts")
 @hash bf42b3edf000c36d675aa9ccaf4218b5f619f43ceb64f77c646ef0a73cbeeaa2 56 bitfields-enum-counts/packed
 @hash 282a2f99d9d6c1f3ea46f9706bc5614436ca8610f2456c733d964711a5ad9851 56 bitfields-enum-counts/aligned
 
-@test UpdateOptionWrites_WriteIdentically("bitfields-high")
+@test UpdateOptionWrites_UseUpdateSemantics("bitfields-high")
 @hash 823c327cf2fa2cca5c03afb5557b965bbf2cb97b406914e1c2c6b90a7c4c366d 56 bitfields-high/packed
 @hash 823c327cf2fa2cca5c03afb5557b965bbf2cb97b406914e1c2c6b90a7c4c366d 56 bitfields-high/aligned
 
-@test UpdateOptionWrites_WriteIdentically("bitfields-msvc")
+@test UpdateOptionWrites_UseUpdateSemantics("bitfields-msvc")
 @hash 2b1a465f3d3a7b4ad41ebd9d47c509a8705824974174ffbdd8758b0702203d03 56 bitfields-msvc/packed
 @hash 52497328a55e27a3f26a622c2c7eca1921fa6a833ef35c39c1618f157d33e545 56 bitfields-msvc/aligned
 
-@test UpdateOptionWrites_WriteIdentically("conditional")
+@test UpdateOptionWrites_UseUpdateSemantics("conditional")
 @hash bf1b00ccbe6027c90b84e13aae2adbd4afd39cc5aab995f1fd10486ba6cff65f 56 conditional/packed
 @hash ef6734a444286b815bf3b16f7f240a009e131ca87b0fab4d50381725c2bdfb3b 56 conditional/aligned
 
-@test UpdateOptionWrites_WriteIdentically("count")
+@test UpdateOptionWrites_UseUpdateSemantics("count")
 @hash abe6853570c3e2f0fea25023554ef068c3c2278e63ca44b5624853444811c8a9 56 count/packed
 @hash 5c0e2caedea357c15304b4fce4f262ef5f4ae2c75c732cbcfcd8360245b421ba 56 count/aligned
 
-@test UpdateOptionWrites_WriteIdentically("custom-codec")
+@test UpdateOptionWrites_UseUpdateSemantics("custom-codec")
 @hash 061f1319cfe9d9e37801f95045075c9cb097002bd1ab23ce0d6ea3f4e2c93d30 56 custom-codec/packed
 @hash 061f1319cfe9d9e37801f95045075c9cb097002bd1ab23ce0d6ea3f4e2c93d30 56 custom-codec/aligned
 
-@test UpdateOptionWrites_WriteIdentically("custom-fixed")
+@test UpdateOptionWrites_UseUpdateSemantics("custom-fixed")
 @hash 8b7bd4da5d570a231a0798a250b7bd829fc67ae6fab7a604b0fb327c5033f335 56 custom-fixed/packed
 @hash 3884e11952073398628c869fb19631b2a43cdd88089cb9fdda8911b43d4adbd9 56 custom-fixed/aligned
 
-@test UpdateOptionWrites_WriteIdentically("enum-bitfield")
+@test UpdateOptionWrites_UseUpdateSemantics("enum-bitfield")
 @hash ff60a938e643102fe48a21247b41ad5ee10b94e4a7fedb7cbe82a8a295e2dedb 56 enum-bitfield/packed
 @hash d3c13c889831a7e6de2172f0a5f8454d6a501f8eddc5e3cd1592b0793353b028 56 enum-bitfield/aligned
 
-@test UpdateOptionWrites_WriteIdentically("fixed")
+@test UpdateOptionWrites_UseUpdateSemantics("fixed")
 @hash 6fa81a56b427c5d165355395ceef44476d4f7016d9d0645ed2855b2abdfef7f9 56 fixed/packed
 @hash 5b8ca996d30500e62d8aaf82fb338a67d298012966417c7eef6f6f74cd9f6caa 56 fixed/aligned
 
-@test UpdateOptionWrites_WriteIdentically("inline-qualified")
+@test UpdateOptionWrites_UseUpdateSemantics("inline-qualified")
 @hash 6f9712d21104b9fe03be1cad88320d2a79d0eba84493b248d225c43bc6eb2ff9 56 inline-qualified/packed
 @hash 85a5ea8acffacc55caf70ca040be8f6674948ee30e33c73a3d39346c8d3fb276 56 inline-qualified/aligned
 
-@test UpdateOptionWrites_WriteIdentically("leb128")
+@test UpdateOptionWrites_UseUpdateSemantics("leb128")
 @hash 8f06f46de64759ae6b346c76df082e48e7d72139fb497b5da39b109ea9bb20d8 56 leb128/packed
 @hash 8f06f46de64759ae6b346c76df082e48e7d72139fb497b5da39b109ea9bb20d8 56 leb128/aligned
 
-@test UpdateOptionWrites_WriteIdentically("multidim")
+@test UpdateOptionWrites_UseUpdateSemantics("multidim")
 @hash 3069c3df5cc22c803a28450de079739379d14542382472a057e870ffd183db7c 56 multidim/packed
 @hash e7412c82a3d896989fd2a18ae488506535a3809d2a66eb94f8848a30ba5a5246 56 multidim/aligned
 
-@test UpdateOptionWrites_WriteIdentically("multidim-structs")
+@test UpdateOptionWrites_UseUpdateSemantics("multidim-structs")
 @hash 7640a5816d11af137fef06b3be85b8f0909b1cf4f2ab74ffe7eecb211760fa4d 56 multidim-structs/packed
 @hash fa904542dc0a68bbb3eb2a51a87d24197d18ea6ac33c8690246a46501f0aca0e 56 multidim-structs/aligned
 
-@test UpdateOptionWrites_WriteIdentically("nested")
+@test UpdateOptionWrites_UseUpdateSemantics("nested")
 @hash 7056ce6d9f42600d14b04b1556a01887098a1ab81e407a0554377ae27856c0bf 56 nested/packed
 @hash 5b94da39e717443f4e7bb667e8c65f1c5ac847c3cf8362bdd80374d637af9860 56 nested/aligned
 
-@test UpdateOptionWrites_WriteIdentically("pointer-arrays")
+@test UpdateOptionWrites_UseUpdateSemantics("pointer-arrays")
 @hash 64559027bc1889938de8b1514a36431b6ede1832842c72b99f23f68b122bdcb6 56 pointer-arrays/packed
 @hash 64559027bc1889938de8b1514a36431b6ede1832842c72b99f23f68b122bdcb6 56 pointer-arrays/aligned
 
-@test UpdateOptionWrites_WriteIdentically("pointer-counted")
+@test UpdateOptionWrites_UseUpdateSemantics("pointer-counted")
 @hash 44973992684f2406ada15089289c08c3744f254a2eb1d39d5783e0886846e6b0 56 pointer-counted/packed
 @hash 44973992684f2406ada15089289c08c3744f254a2eb1d39d5783e0886846e6b0 56 pointer-counted/aligned
 
-@test UpdateOptionWrites_WriteIdentically("pointer-list")
+@test UpdateOptionWrites_UseUpdateSemantics("pointer-list")
 @hash 680b07c38e2d1499003281cb49d0ee2f85b120266cd7a76e92d151f326c2417f 56 pointer-list/packed
 @hash 680b07c38e2d1499003281cb49d0ee2f85b120266cd7a76e92d151f326c2417f 56 pointer-list/aligned
 
-@test UpdateOptionWrites_WriteIdentically("pointer-views")
+@test UpdateOptionWrites_UseUpdateSemantics("pointer-views")
 @hash 9ba9da2fd4823afea3610e6218210c43ab371f1fbd412bc2cbf71de838427192 56 pointer-views/packed
 @hash 9ba9da2fd4823afea3610e6218210c43ab371f1fbd412bc2cbf71de838427192 56 pointer-views/aligned
 
-@test UpdateOptionWrites_WriteIdentically("pointers")
+@test UpdateOptionWrites_UseUpdateSemantics("pointers")
 @hash fcff3ad96d4db335a7bf5dd5dd51d32ce4c47f14029885fe29935f3f6e0a369d 56 pointers/packed
 @hash fcff3ad96d4db335a7bf5dd5dd51d32ce4c47f14029885fe29935f3f6e0a369d 56 pointers/aligned
 
-@test UpdateOptionWrites_WriteIdentically("promoted")
+@test UpdateOptionWrites_UseUpdateSemantics("promoted")
 @hash 00e86c09840646f0fc34f988291db9c6b80b3b8a62adcb9edaa4a06d7bd7ce4d 56 promoted/packed
 @hash aeccbf00bbbf278866caed245425c2b6c22589189f486c660fcd82cd34106c02 56 promoted/aligned
 
-@test UpdateOptionWrites_WriteIdentically("promoted-union")
+@test UpdateOptionWrites_UseUpdateSemantics("promoted-union")
 @hash bcfd858b04ece6a4fe2d21ef246e90196c61d8a6248825c170ccb82f7d7f40b9 56 promoted-union/packed
 @hash 8b6c1ff4f69ce2fcc80eb0132d70c97b6c21bd5c51e9a236883a6113ca75c9be 56 promoted-union/aligned
 
-@test UpdateOptionWrites_WriteIdentically("terminated")
+@test UpdateOptionWrites_UseUpdateSemantics("terminated")
 @hash 64dd0c32a2ea2e032c05df42a85a8903770a7374e7db32d6835e2dcfe4ef2381 56 terminated/packed
 @hash 64dd0c32a2ea2e032c05df42a85a8903770a7374e7db32d6835e2dcfe4ef2381 56 terminated/aligned
 
-@test UpdateOptionWrites_WriteIdentically("terminated-scalars")
+@test UpdateOptionWrites_UseUpdateSemantics("terminated-scalars")
 @hash d90fd167fff5618a66822a6886620a91c97fceba42df4bb98ad432da44ace7c9 56 terminated-scalars/packed
 @hash eb2e3fbb3b2a2f6f64a2b883e8a92e34ee27d5678bb3d02b207355d286189563 56 terminated-scalars/aligned
 
-@test UpdateOptionWrites_WriteIdentically("text")
+@test UpdateOptionWrites_UseUpdateSemantics("text")
 @hash 45c88dc31d5e0d42554e7a8323fd978095be4c7c37f4778d0eb1ad4856df8d73 56 text/packed
 @hash c8e96eddeace3d2c20e83aca5f8944b86aada6c9d669d12827ef11989077e63e 56 text/aligned
 
-@test UpdateOptionWrites_WriteIdentically("to-end")
+@test UpdateOptionWrites_UseUpdateSemantics("to-end")
 @hash 58255a6727dff1d09d21e93f0e1e84097a6f5f66eae5cfcaf3a8051fa6e1c8fc 56 to-end/packed
 @hash 58255a6727dff1d09d21e93f0e1e84097a6f5f66eae5cfcaf3a8051fa6e1c8fc 56 to-end/aligned
 
-@test UpdateOptionWrites_WriteIdentically("to-end-structs")
+@test UpdateOptionWrites_UseUpdateSemantics("to-end-structs")
 @hash bb5bc85252b537f23aef493d68951977986104eda32aed5628267427242bb2cc 56 to-end-structs/packed
 @hash 90ef58dfd05faaf9c47737a356739fa6fe7d28cb312e2017b1f463a6fde2e821 56 to-end-structs/aligned
 
-@test UpdateOptionWrites_WriteIdentically("union")
+@test UpdateOptionWrites_UseUpdateSemantics("union")
 @hash c554e139bf0eb6c7b3625babd0ed99ecd359c6f8a7eb31163dab7d7086db93c9 56 union/packed
 @hash 5324055fe1119d495bb5d87d837354cf8f376f35ef7d260d676676d8d655dda8 56 union/aligned
 
-@test UpdateOptionWrites_WriteIdentically("union-arrays")
+@test UpdateOptionWrites_UseUpdateSemantics("union-arrays")
 @hash 3d2327a6c995c8311a077c5fe947ac01d1cad5c0a4acac54a06cba2aaf8097eb 56 union-arrays/packed
 @hash 653e4ed641ed4a7aa1e83ae2e5193fd1f82a02c197e7abefd3693a13944257c9 56 union-arrays/aligned
 
-@test UpdateOptionWrites_WriteIdentically("union-bitfields")
+@test UpdateOptionWrites_UseUpdateSemantics("union-bitfields")
 @hash e79871923034555b790cb0662fd9c26af7e43f3ca4d978e66bdcd65795f47009 56 union-bitfields/packed
 @hash 8bc5b103eac03e57dfbbcf4099dc77476daa488478f2b2de7cc1beb4f2225b7e 56 union-bitfields/aligned
 
-@test UpdateOptionWrites_WriteIdentically("union-conditional")
+@test UpdateOptionWrites_UseUpdateSemantics("union-conditional")
 @hash b79b80b7f322afc894b19ba43291d755f59f1e51ba99a9c17a997ff9b0604f91 56 union-conditional/packed
 @hash 5c8ce3b86cef5c628e3588e6995977105421d84f38a05f01b080a69912792796 56 union-conditional/aligned
 
-@test UpdateOptionWrites_WriteIdentically("union-nested")
+@test UpdateOptionWrites_UseUpdateSemantics("union-nested")
 @hash bbdaf868dacf9643eab5df93b7c8de4c315e322e6d220498690db0c5bdce31f8 56 union-nested/packed
 @hash d9afbd96e3fa27a46b8c071dc6adbebc75f763b3a4bf99809776a4dcf0b48263 56 union-nested/aligned
 
-@test UpdateOptionWrites_WriteIdentically("variables")
+@test UpdateOptionWrites_UseUpdateSemantics("variables")
 @hash ffcf440ab42444653185a316ec0a24dc8be8678ac9a8eb9855fe71abac928722 56 variables/packed
 @hash ffcf440ab42444653185a316ec0a24dc8be8678ac9a8eb9855fe71abac928722 56 variables/aligned
 
-@test UpdateOptionWrites_WriteIdentically("write-codecs")
+@test UpdateOptionWrites_UseUpdateSemantics("write-codecs")
 @hash 2696c9a48ae5f782eabf6274b05f81dd29a399cada379d04a2be5d2ffbb5e818 56 write-codecs/packed
 @hash 494f2a3b715b9b8a526cec978274eb7abed774f62be872c59f7ddd1f4151e2cb 56 write-codecs/aligned
 
-@test UpdateOptionWrites_WriteIdentically("write-enums")
+@test UpdateOptionWrites_UseUpdateSemantics("write-enums")
 @hash f6329b448cb7ece5eb9505f4aaaef6d5c5a6070092c6177e166e6f52905ef9da 56 write-enums/packed
 @hash eb0e43024329898255551bf67fa0ee9350d677dc95e0b19c016fda615cb671a2 56 write-enums/aligned
 
-@test UpdateOptionWrites_WriteIdentically("write-padding")
+@test UpdateOptionWrites_UseUpdateSemantics("write-padding")
 @hash 67f420932f399365b8cb9f6d9a5f724d3eabd8d29a9fa841b6c75838d4026000 56 write-padding/packed
 @hash 51b199881d5eaadb649b7d11bbf71120a712f12a11e5bbb5c277c4acba5edb70 56 write-padding/aligned
 
-@test UpdateOptionWrites_WriteIdentically("write-qualified")
+@test UpdateOptionWrites_UseUpdateSemantics("write-qualified")
 @hash 9085d915bde392a2adbb19a98b1f382325e341cde63bb21a39dff94a49fa28d2 56 write-qualified/packed
 @hash 4989d6128b73403a20d09ac5145a8d388a3c3ef2aa51e9c91d1219ee5fbcba5c 56 write-qualified/aligned
 
-@test UpdateOptionWrites_WriteIdentically("write-scope")
+@test UpdateOptionWrites_UseUpdateSemantics("write-scope")
 @hash a43ef347897f682d988542a82fa1a3a74046d14207a90d320d677be61735474c 56 write-scope/packed
 @hash a28ead75762f23d1244d03478f8e4337070e9bfecfe9bf4c39b035e6a40fc018 56 write-scope/aligned
 
-@test UpdateOptionWrites_WriteIdentically("write-text")
+@test UpdateOptionWrites_UseUpdateSemantics("write-text")
 @hash c54ab2d776574b944f2788e5dcd04c8bc770cbe870d1d4dfdb402e17a357eba9 56 write-text/packed
 @hash 5b568601393a2a8876dc96ab0cc9003e71a13dd7a2fcbe3ffdbdfd5e38dc6585 56 write-text/aligned

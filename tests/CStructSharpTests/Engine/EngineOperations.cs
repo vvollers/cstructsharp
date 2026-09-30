@@ -6,9 +6,9 @@ using CStructSharp.Fuzzing;
 using CStructSharp.Values;
 
 /// <summary>
-///     Builds the <see cref="DifferentialOperation"/>s the differential harness compares: every public read, debug
-///     read, address and length query, write, and update, over each input form. Each run gets its own copy of the
-///     input and a fresh destination, so the two sides cannot influence each other; a failure is rendered under
+///     Builds the <see cref="GoldenOperation"/>s the golden harness runs: every public read, debug read, address and
+///     length query, write, and update, over each input form. Each run gets its own copy of the input and a fresh
+///     destination, so runs under different execution paths cannot influence each other; a failure is rendered under
 ///     <c>failure</c>, and stream positions, returned counts and destination contents are rendered after it.
 /// </summary>
 internal static class EngineOperations
@@ -18,7 +18,7 @@ internal static class EngineOperations
 
     /// <summary>Reads through a span; a lambda cannot capture a span, so the span arrives as a parameter.</summary>
     /// <param name="source">The input bytes.</param>
-    /// <param name="options">The side's read options.</param>
+    /// <param name="options">The run's read options.</param>
     /// <returns>The operation's result.</returns>
     private delegate object? SpanRead(ReadOnlySpan<byte> source, ReadOptions options);
 
@@ -28,9 +28,9 @@ internal static class EngineOperations
     /// <param name="input">The input form.</param>
     /// <param name="path">The root name or path, or <see langword="null"/> for the first struct.</param>
     /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="options">The case's read options, which each side adjusts.</param>
+    /// <param name="options">The case's read options, which each run sets to its execution path.</param>
     /// <returns>The operation.</returns>
-    public static DifferentialOperation Parse(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
+    public static GoldenOperation Parse(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
         => Read(
             "Parse " + path,
             data,
@@ -48,9 +48,9 @@ internal static class EngineOperations
     /// <param name="data">The input bytes.</param>
     /// <param name="path">The root name or path, or <see langword="null"/> for the first struct.</param>
     /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="options">The case's read options, which each side adjusts.</param>
+    /// <param name="options">The case's read options, which each run sets to its execution path.</param>
     /// <returns>The operation.</returns>
-    public static DifferentialOperation ParseAsync(CStruct layout, byte[] data, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
+    public static GoldenOperation ParseAsync(CStruct layout, byte[] data, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
         => ParseAsync(layout, data, EngineInput.Stream, path, variables, options);
 
     /// <summary><c>ParseAsync</c> over one of the stream forms.</summary>
@@ -59,9 +59,9 @@ internal static class EngineOperations
     /// <param name="input">The stream form (<see cref="EngineStreams.IsStream"/>).</param>
     /// <param name="path">The root name or path, or <see langword="null"/> for the first struct.</param>
     /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="options">The case's read options, which each side adjusts.</param>
+    /// <param name="options">The case's read options, which each run sets to its execution path.</param>
     /// <returns>The operation.</returns>
-    public static DifferentialOperation ParseAsync(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
+    public static GoldenOperation ParseAsync(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
         => StreamRead("ParseAsync " + path, data, input, options, (source, read) => layout.ParseAsync(source, path, variables, read).AsTask().GetAwaiter().GetResult(), RenderValue);
 
     /// <summary><c>ParseMany</c>: every record until the input ends, then the record count.</summary>
@@ -70,15 +70,15 @@ internal static class EngineOperations
     /// <param name="input">The input form: <see cref="EngineInput.Memory"/>, <see cref="EngineInput.Sequence"/>, or a stream form.</param>
     /// <param name="path">The record struct's name, or <see langword="null"/> for the first struct.</param>
     /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="options">The case's read options, which each side adjusts.</param>
+    /// <param name="options">The case's read options, which each run sets to its execution path.</param>
     /// <returns>The operation.</returns>
-    public static DifferentialOperation ParseMany(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
+    public static GoldenOperation ParseMany(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
     {
-        return new DifferentialOperation(
+        return new GoldenOperation(
             "ParseMany " + path + " (" + input + ")",
-            (side, output) =>
+            (execution, output) =>
             {
-                ReadOptions read = side.Read(options);
+                ReadOptions read = ExecutionPaths.Read(execution, options);
                 byte[] copy = (byte[])data.Clone();
                 using Stream? stream = EngineStreams.IsStream(input) ? EngineStreams.Open(input, copy) : null;
                 int count = 0;
@@ -110,9 +110,9 @@ internal static class EngineOperations
     /// <param name="input">The input form.</param>
     /// <param name="path">The root name or path, or <see langword="null"/> for the first struct or union.</param>
     /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="options">The case's read options, which each side adjusts.</param>
+    /// <param name="options">The case's read options, which each run sets to its execution path.</param>
     /// <returns>The operation.</returns>
-    public static DifferentialOperation ReadValue(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
+    public static GoldenOperation ReadValue(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
         => Read(
             "ReadValue " + path,
             data,
@@ -132,9 +132,9 @@ internal static class EngineOperations
     /// <param name="input">The input form.</param>
     /// <param name="path">The root name or path, or <see langword="null"/> for the first struct or union.</param>
     /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="options">The case's read options, which each side adjusts.</param>
+    /// <param name="options">The case's read options, which each run sets to its execution path.</param>
     /// <returns>The operation.</returns>
-    public static DifferentialOperation ReadValue<T>(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
+    public static GoldenOperation ReadValue<T>(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
         => Read(
             "ReadValue<" + CanonicalText.TypeName(typeof(T)) + "> " + path,
             data,
@@ -153,9 +153,9 @@ internal static class EngineOperations
     /// <param name="input">The input form.</param>
     /// <param name="path">The root name or path, or <see langword="null"/> for the first struct.</param>
     /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="options">The case's read options, which each side adjusts.</param>
+    /// <param name="options">The case's read options, which each run sets to its execution path.</param>
     /// <returns>The operation.</returns>
-    public static DifferentialOperation ParseWithDebug(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
+    public static GoldenOperation ParseWithDebug(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
         => Read(
             "ParseWithDebug " + path,
             data,
@@ -174,9 +174,9 @@ internal static class EngineOperations
     /// <param name="input">The stream form (<see cref="EngineStreams.IsStream"/>).</param>
     /// <param name="path">The root name or path, or <see langword="null"/> for the first struct.</param>
     /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="options">The case's read options, which each side adjusts.</param>
+    /// <param name="options">The case's read options, which each run sets to its execution path.</param>
     /// <returns>The operation.</returns>
-    public static DifferentialOperation ParseWithDebugAsync(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
+    public static GoldenOperation ParseWithDebugAsync(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
         => StreamRead(
             "ParseWithDebugAsync " + path,
             data,
@@ -191,9 +191,9 @@ internal static class EngineOperations
     /// <param name="input">The stream form (<see cref="EngineStreams.IsStream"/>).</param>
     /// <param name="path">The root name or path, or <see langword="null"/> for the first struct or union.</param>
     /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="options">The case's read options, which each side adjusts.</param>
+    /// <param name="options">The case's read options, which each run sets to its execution path.</param>
     /// <returns>The operation.</returns>
-    public static DifferentialOperation ReadValueWithDebugAsync(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
+    public static GoldenOperation ReadValueWithDebugAsync(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
         => StreamRead(
             "ReadValueWithDebugAsync " + path,
             data,
@@ -208,9 +208,9 @@ internal static class EngineOperations
     /// <param name="input">The input form.</param>
     /// <param name="path">The root name or path, or <see langword="null"/> for the first struct or union.</param>
     /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="options">The case's read options, which each side adjusts.</param>
+    /// <param name="options">The case's read options, which each run sets to its execution path.</param>
     /// <returns>The operation.</returns>
-    public static DifferentialOperation ReadValueWithDebug(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
+    public static GoldenOperation ReadValueWithDebug(CStruct layout, byte[] data, EngineInput input, string? path = null, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
         => Read(
             "ReadValueWithDebug " + path,
             data,
@@ -229,9 +229,9 @@ internal static class EngineOperations
     /// <param name="input">The input form.</param>
     /// <param name="path">The path to locate.</param>
     /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="options">The case's read options, which each side adjusts.</param>
+    /// <param name="options">The case's read options, which each run sets to its execution path.</param>
     /// <returns>The operation.</returns>
-    public static DifferentialOperation ResolveAddress(CStruct layout, byte[] data, EngineInput input, string path, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
+    public static GoldenOperation ResolveAddress(CStruct layout, byte[] data, EngineInput input, string path, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
         => Read(
             "ResolveAddress " + path,
             data,
@@ -250,9 +250,9 @@ internal static class EngineOperations
     /// <param name="input">The input form.</param>
     /// <param name="path">The path of an array or string.</param>
     /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="options">The case's read options, which each side adjusts.</param>
+    /// <param name="options">The case's read options, which each run sets to its execution path.</param>
     /// <returns>The operation.</returns>
-    public static DifferentialOperation GetArrayLength(CStruct layout, byte[] data, EngineInput input, string path, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
+    public static GoldenOperation GetArrayLength(CStruct layout, byte[] data, EngineInput input, string path, IReadOnlyDictionary<string, int>? variables = null, ReadOptions? options = null)
         => Read(
             "GetArrayLength " + path,
             data,
@@ -268,15 +268,15 @@ internal static class EngineOperations
     /// <summary><c>Serialize</c> to a new byte array.</summary>
     /// <param name="layout">The compiled layout.</param>
     /// <param name="path">The root name or path to write.</param>
-    /// <param name="value">The value to encode; it is shared by both sides and must not be changed by a write.</param>
+    /// <param name="value">The value to encode; it is shared by every run and must not be changed by a write.</param>
     /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="options">The case's write options, which each side adjusts.</param>
+    /// <param name="options">The case's write options, which each run sets to its execution path.</param>
     /// <returns>The operation.</returns>
-    public static DifferentialOperation Serialize(CStruct layout, string path, object value, IReadOnlyDictionary<string, int>? variables = null, WriteOptions? options = null)
+    public static GoldenOperation Serialize(CStruct layout, string path, object value, IReadOnlyDictionary<string, int>? variables = null, WriteOptions? options = null)
     {
-        return new DifferentialOperation(
+        return new GoldenOperation(
             "Serialize " + path,
-            (side, output) => output.Capture("failure", () => output.Bytes("result", layout.Serialize(path, value, variables, side.Write(options)))));
+            (execution, output) => output.Capture("failure", () => output.Bytes("result", layout.Serialize(path, value, variables, ExecutionPaths.Write(execution, options)))));
     }
 
     /// <summary><c>Serialize</c> into a span of <paramref name="capacity"/> bytes filled with <see cref="Unwritten"/>: the returned count, then the whole span.</summary>
@@ -285,17 +285,17 @@ internal static class EngineOperations
     /// <param name="path">The root name or path to write.</param>
     /// <param name="value">The value to encode.</param>
     /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="options">The case's write options, which each side adjusts.</param>
+    /// <param name="options">The case's write options, which each run sets to its execution path.</param>
     /// <returns>The operation.</returns>
-    public static DifferentialOperation SerializeToSpan(CStruct layout, int capacity, string path, object value, IReadOnlyDictionary<string, int>? variables = null, WriteOptions? options = null)
+    public static GoldenOperation SerializeToSpan(CStruct layout, int capacity, string path, object value, IReadOnlyDictionary<string, int>? variables = null, WriteOptions? options = null)
     {
-        return new DifferentialOperation(
+        return new GoldenOperation(
             "Serialize(Span[" + capacity + "]) " + path,
-            (side, output) =>
+            (execution, output) =>
             {
                 byte[] destination = new byte[capacity];
                 destination.AsSpan().Fill(Unwritten);
-                output.Capture("failure", () => output.Value("result", layout.Serialize(destination.AsSpan(), path, value, variables, side.Write(options))));
+                output.Capture("failure", () => output.Value("result", layout.Serialize(destination.AsSpan(), path, value, variables, ExecutionPaths.Write(execution, options))));
                 output.Bytes("destination", destination);
             });
     }
@@ -305,17 +305,17 @@ internal static class EngineOperations
     /// <param name="path">The root name or path to write.</param>
     /// <param name="value">The value to encode.</param>
     /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="options">The case's write options, which each side adjusts.</param>
+    /// <param name="options">The case's write options, which each run sets to its execution path.</param>
     /// <param name="initialCapacity">The buffer writer's initial capacity; a small one makes the write ask for more.</param>
     /// <returns>The operation.</returns>
-    public static DifferentialOperation SerializeToBufferWriter(CStruct layout, string path, object value, IReadOnlyDictionary<string, int>? variables = null, WriteOptions? options = null, int initialCapacity = 1)
+    public static GoldenOperation SerializeToBufferWriter(CStruct layout, string path, object value, IReadOnlyDictionary<string, int>? variables = null, WriteOptions? options = null, int initialCapacity = 1)
     {
-        return new DifferentialOperation(
+        return new GoldenOperation(
             "Serialize(IBufferWriter) " + path,
-            (side, output) =>
+            (execution, output) =>
             {
                 var destination = new ArrayBufferWriter<byte>(initialCapacity);
-                output.Capture("failure", () => output.Value("result", layout.Serialize(destination, path, value, variables, side.Write(options))));
+                output.Capture("failure", () => output.Value("result", layout.Serialize(destination, path, value, variables, ExecutionPaths.Write(execution, options))));
                 output.Bytes("destination", destination.WrittenSpan);
             });
     }
@@ -329,16 +329,16 @@ internal static class EngineOperations
     /// <param name="path">The root name or path to write.</param>
     /// <param name="value">The value to encode.</param>
     /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="options">The case's write options, which each side adjusts.</param>
+    /// <param name="options">The case's write options, which each run sets to its execution path.</param>
     /// <returns>The operation.</returns>
-    public static DifferentialOperation SerializeToWindows(CStruct layout, int window, string path, object value, IReadOnlyDictionary<string, int>? variables = null, WriteOptions? options = null)
+    public static GoldenOperation SerializeToWindows(CStruct layout, int window, string path, object value, IReadOnlyDictionary<string, int>? variables = null, WriteOptions? options = null)
     {
-        return new DifferentialOperation(
+        return new GoldenOperation(
             "Serialize(IBufferWriter windows of " + window + ") " + path,
-            (side, output) =>
+            (execution, output) =>
             {
                 var destination = new WindowedBufferWriter(window);
-                output.Capture("failure", () => output.Value("result", layout.Serialize(destination, path, value, variables, side.Write(options))));
+                output.Capture("failure", () => output.Value("result", layout.Serialize(destination, path, value, variables, ExecutionPaths.Write(execution, options))));
                 output.Bytes("destination", destination.Written);
             });
     }
@@ -350,10 +350,10 @@ internal static class EngineOperations
     /// <param name="path">The root name or path to write.</param>
     /// <param name="value">The value to encode.</param>
     /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="options">The case's write options, which each side adjusts.</param>
+    /// <param name="options">The case's write options, which each run sets to its execution path.</param>
     /// <returns>The operation.</returns>
-    public static DifferentialOperation Write(CStruct layout, byte[] prefill, long start, string path, object value, IReadOnlyDictionary<string, int>? variables = null, WriteOptions? options = null)
-        => StreamWrite("Write " + path, prefill, start, (stream, side) => layout.Write(stream, path, value, variables, side.Write(options)));
+    public static GoldenOperation Write(CStruct layout, byte[] prefill, long start, string path, object value, IReadOnlyDictionary<string, int>? variables = null, WriteOptions? options = null)
+        => StreamWrite("Write " + path, prefill, start, (stream, execution) => layout.Write(stream, path, value, variables, ExecutionPaths.Write(execution, options)));
 
     /// <summary>
     ///     <c>Write</c> into a stream of another kind (<paramref name="open"/>) that holds <paramref name="prefill"/>, starting
@@ -361,23 +361,23 @@ internal static class EngineOperations
     /// </summary>
     /// <param name="layout">The compiled layout.</param>
     /// <param name="kind">The stream kind, named in the operation.</param>
-    /// <param name="open">Opens a writable, seekable stream holding the given bytes; each side opens its own.</param>
+    /// <param name="open">Opens a writable, seekable stream holding the given bytes; each run opens its own.</param>
     /// <param name="prefill">The stream's bytes before the write.</param>
     /// <param name="start">The position the write starts at.</param>
     /// <param name="path">The root name or path to write.</param>
     /// <param name="value">The value to encode.</param>
     /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="options">The case's write options, which each side adjusts.</param>
+    /// <param name="options">The case's write options, which each run sets to its execution path.</param>
     /// <returns>The operation.</returns>
-    public static DifferentialOperation WriteTo(CStruct layout, string kind, Func<byte[], Stream> open, byte[] prefill, long start, string path, object value, IReadOnlyDictionary<string, int>? variables = null, WriteOptions? options = null)
+    public static GoldenOperation WriteTo(CStruct layout, string kind, Func<byte[], Stream> open, byte[] prefill, long start, string path, object value, IReadOnlyDictionary<string, int>? variables = null, WriteOptions? options = null)
     {
-        return new DifferentialOperation(
+        return new GoldenOperation(
             "Write " + path + " (" + kind + ")",
-            (side, output) =>
+            (execution, output) =>
             {
                 using Stream stream = open((byte[])prefill.Clone());
                 stream.Position = start;
-                output.Capture("failure", () => layout.Write(stream, path, value, variables, side.Write(options)));
+                output.Capture("failure", () => layout.Write(stream, path, value, variables, ExecutionPaths.Write(execution, options)));
                 RenderPosition(output, stream);
 
                 // The contents are read back through the stream itself, which every kind here can do (one reporting that it
@@ -401,25 +401,25 @@ internal static class EngineOperations
     /// <param name="path">The root name or path to write.</param>
     /// <param name="value">The value to encode.</param>
     /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="options">The case's write options, which each side adjusts.</param>
+    /// <param name="options">The case's write options, which each run sets to its execution path.</param>
     /// <returns>The operation.</returns>
-    public static DifferentialOperation WriteAsync(CStruct layout, byte[] prefill, long start, string path, object value, IReadOnlyDictionary<string, int>? variables = null, WriteOptions? options = null)
-        => StreamWrite("WriteAsync " + path, prefill, start, (stream, side) => layout.WriteAsync(stream, path, value, variables, side.Write(options)).AsTask().GetAwaiter().GetResult());
+    public static GoldenOperation WriteAsync(CStruct layout, byte[] prefill, long start, string path, object value, IReadOnlyDictionary<string, int>? variables = null, WriteOptions? options = null)
+        => StreamWrite("WriteAsync " + path, prefill, start, (stream, execution) => layout.WriteAsync(stream, path, value, variables, ExecutionPaths.Write(execution, options)).AsTask().GetAwaiter().GetResult());
 
     /// <summary><c>Update</c> of a span or a stream holding <paramref name="data"/>: the data afterwards, and a stream's final position.</summary>
     /// <param name="layout">The compiled layout.</param>
-    /// <param name="data">The bytes to update; each side updates its own copy.</param>
+    /// <param name="data">The bytes to update; each run updates its own copy.</param>
     /// <param name="input">The destination form: <see cref="EngineInput.Span"/> or <see cref="EngineInput.Stream"/>.</param>
     /// <param name="path">The path of the value to replace.</param>
     /// <param name="value">The replacement value.</param>
     /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="options">The case's update options, which each side adjusts.</param>
+    /// <param name="options">The case's update options, which each run sets to its execution path.</param>
     /// <returns>The operation.</returns>
-    public static DifferentialOperation Update(CStruct layout, byte[] data, EngineInput input, string path, object value, IReadOnlyDictionary<string, int>? variables = null, UpdateOptions? options = null)
+    public static GoldenOperation Update(CStruct layout, byte[] data, EngineInput input, string path, object value, IReadOnlyDictionary<string, int>? variables = null, UpdateOptions? options = null)
     {
         if (input == EngineInput.Stream)
         {
-            return StreamWrite("Update " + path, data, 0, (stream, side) => layout.Update(stream, path, value, variables, side.Update(options)));
+            return StreamWrite("Update " + path, data, 0, (stream, execution) => layout.Update(stream, path, value, variables, ExecutionPaths.Update(execution, options)));
         }
 
         if (input != EngineInput.Span)
@@ -427,26 +427,26 @@ internal static class EngineOperations
             throw new ArgumentOutOfRangeException(nameof(input), input, "Update changes a span or a stream.");
         }
 
-        return new DifferentialOperation(
+        return new GoldenOperation(
             "Update(Span) " + path,
-            (side, output) =>
+            (execution, output) =>
             {
                 byte[] copy = (byte[])data.Clone();
-                output.Capture("failure", () => layout.Update(copy.AsSpan(), path, value, variables, side.Update(options)));
+                output.Capture("failure", () => layout.Update(copy.AsSpan(), path, value, variables, ExecutionPaths.Update(execution, options)));
                 output.Bytes("data", copy);
             });
     }
 
     /// <summary><c>UpdateAsync</c> of a stream holding <paramref name="data"/>.</summary>
     /// <param name="layout">The compiled layout.</param>
-    /// <param name="data">The bytes to update; each side updates its own copy.</param>
+    /// <param name="data">The bytes to update; each run updates its own copy.</param>
     /// <param name="path">The path of the value to replace.</param>
     /// <param name="value">The replacement value.</param>
     /// <param name="variables">The caller's layout variables.</param>
-    /// <param name="options">The case's update options, which each side adjusts.</param>
+    /// <param name="options">The case's update options, which each run sets to its execution path.</param>
     /// <returns>The operation.</returns>
-    public static DifferentialOperation UpdateAsync(CStruct layout, byte[] data, string path, object value, IReadOnlyDictionary<string, int>? variables = null, UpdateOptions? options = null)
-        => StreamWrite("UpdateAsync " + path, data, 0, (stream, side) => layout.UpdateAsync(stream, path, value, variables, side.Update(options)).AsTask().GetAwaiter().GetResult());
+    public static GoldenOperation UpdateAsync(CStruct layout, byte[] data, string path, object value, IReadOnlyDictionary<string, int>? variables = null, UpdateOptions? options = null)
+        => StreamWrite("UpdateAsync " + path, data, 0, (stream, execution) => layout.UpdateAsync(stream, path, value, variables, ExecutionPaths.Update(execution, options)).AsTask().GetAwaiter().GetResult());
 
     /// <summary>Renders a result as a value under <c>result</c>.</summary>
     /// <param name="output">The rendering.</param>
@@ -487,7 +487,7 @@ internal static class EngineOperations
     /// <param name="name">The operation's name.</param>
     /// <param name="data">The input bytes; each run reads its own copy.</param>
     /// <param name="input">The input form.</param>
-    /// <param name="options">The case's read options, which each side adjusts.</param>
+    /// <param name="options">The case's read options, which each run sets to its execution path.</param>
     /// <param name="span">The call over a span.</param>
     /// <param name="array">The call over a byte array.</param>
     /// <param name="memory">The call over read-only memory.</param>
@@ -495,7 +495,7 @@ internal static class EngineOperations
     /// <param name="sequence">The call over a multi-segment sequence.</param>
     /// <param name="render">Renders the call's result.</param>
     /// <returns>The operation.</returns>
-    private static DifferentialOperation Read(
+    private static GoldenOperation Read(
         string name,
         byte[] data,
         EngineInput input,
@@ -512,11 +512,11 @@ internal static class EngineOperations
             return StreamRead(name, data, input, options, stream, render);
         }
 
-        return new DifferentialOperation(
+        return new GoldenOperation(
             name + " (" + input + ")",
-            (side, output) =>
+            (execution, output) =>
             {
-                ReadOptions read = side.Read(options);
+                ReadOptions read = ExecutionPaths.Read(execution, options);
                 byte[] copy = (byte[])data.Clone();
 
                 // Runs the call over the chosen input form; the rendering happens inside so a failure replaces it.
@@ -541,18 +541,18 @@ internal static class EngineOperations
     /// <param name="name">The operation's name.</param>
     /// <param name="data">The input bytes; each run reads its own copy.</param>
     /// <param name="input">The stream form.</param>
-    /// <param name="options">The case's read options, which each side adjusts.</param>
+    /// <param name="options">The case's read options, which each run sets to its execution path.</param>
     /// <param name="call">The call over the stream.</param>
     /// <param name="render">Renders the call's result.</param>
     /// <returns>The operation.</returns>
-    private static DifferentialOperation StreamRead(string name, byte[] data, EngineInput input, ReadOptions? options, Func<Stream, ReadOptions, object?> call, Action<CanonicalText, object?> render)
+    private static GoldenOperation StreamRead(string name, byte[] data, EngineInput input, ReadOptions? options, Func<Stream, ReadOptions, object?> call, Action<CanonicalText, object?> render)
     {
-        return new DifferentialOperation(
+        return new GoldenOperation(
             name + " (" + input + ")",
-            (side, output) =>
+            (execution, output) =>
             {
                 using Stream source = EngineStreams.Open(input, data);
-                ReadOptions read = side.Read(options);
+                ReadOptions read = ExecutionPaths.Read(execution, options);
                 output.Capture("failure", () => render(output, call(source, read)));
                 RenderPosition(output, source, EngineStreams.StartOf(input));
             });
@@ -564,16 +564,16 @@ internal static class EngineOperations
     /// <param name="start">The stream position the call starts at.</param>
     /// <param name="call">The call, given the stream and the side.</param>
     /// <returns>The operation.</returns>
-    private static DifferentialOperation StreamWrite(string name, byte[] prefill, long start, Action<Stream, EngineSide> call)
+    private static GoldenOperation StreamWrite(string name, byte[] prefill, long start, Action<Stream, ExecutionPath> call)
     {
-        return new DifferentialOperation(
+        return new GoldenOperation(
             name + " (Stream)",
-            (side, output) =>
+            (execution, output) =>
             {
                 using var stream = new MemoryStream();
                 stream.Write(prefill);
                 stream.Position = start;
-                output.Capture("failure", () => call(stream, side));
+                output.Capture("failure", () => call(stream, execution));
                 RenderPosition(output, stream);
                 output.Bytes("stream", stream.ToArray());
             });

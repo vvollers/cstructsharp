@@ -2,7 +2,7 @@
 # Regenerate only for an intended, explained behaviour change: node tools/quality/engine-golden.mjs record (CONTRIBUTING.md).
 # @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes.
 
-@test DebugParse_FailsLikeTheInterpreter
+@test DebugParse_FailsWithoutRecordsAtEveryTruncation
 @hash 016336942c7fec63484b26c0d9b8cf1cba99ec63dde1c51d9811ac3a0bd7ad23 36
 
 @test DebugParse_RecordsEveryValueInReadOrder

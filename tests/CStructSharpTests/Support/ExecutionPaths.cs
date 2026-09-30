@@ -1,8 +1,8 @@
 namespace CStructSharp.Tests;
 
 /// <summary>
-///     Builds options that restrict one operation to the compiled engine's member-by-member work (no direct access,
-///     static plans or block paths), to compare it with the fast paths.
+///     Builds options that run one operation under a chosen execution path: most often restricted to the compiled engine's
+///     member-by-member work (no direct access, static plans or block paths), to compare it with the fast paths.
 /// </summary>
 internal static class ExecutionPaths
 {
@@ -19,4 +19,22 @@ internal static class ExecutionPaths
     /// <summary>Returns default write options restricted to member-by-member writes.</summary>
     /// <returns>Default options with <see cref="ExecutionPath.NoFastPaths"/>.</returns>
     public static WriteOptions NoFastPathsWrite() => NoFastPaths((WriteOptions?)null);
+
+    /// <summary>Returns <paramref name="options"/> (or the defaults) set to <paramref name="path"/>.</summary>
+    /// <param name="path">The execution path the read uses.</param>
+    /// <param name="options">The case's read options, or <see langword="null"/> for the defaults.</param>
+    /// <returns>A copy with <paramref name="path"/>.</returns>
+    public static ReadOptions Read(ExecutionPath path, ReadOptions? options) => (options ?? new ReadOptions()) with { ExecutionPath = path };
+
+    /// <summary>Returns <paramref name="options"/> (or the defaults) set to <paramref name="path"/>.</summary>
+    /// <param name="path">The execution path the write uses.</param>
+    /// <param name="options">The case's write options, or <see langword="null"/> for the defaults.</param>
+    /// <returns>A copy with <paramref name="path"/>.</returns>
+    public static WriteOptions Write(ExecutionPath path, WriteOptions? options) => (options ?? new WriteOptions()) with { ExecutionPath = path };
+
+    /// <summary>Returns <paramref name="options"/> (or the defaults) set to <paramref name="path"/>.</summary>
+    /// <param name="path">The execution path the update uses.</param>
+    /// <param name="options">The case's update options, or <see langword="null"/> for the defaults.</param>
+    /// <returns>A copy with <paramref name="path"/>.</returns>
+    public static UpdateOptions Update(ExecutionPath path, UpdateOptions? options) => (options ?? new UpdateOptions()) with { ExecutionPath = path };
 }

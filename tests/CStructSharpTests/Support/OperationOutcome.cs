@@ -8,7 +8,7 @@ using CStructSharp.Values;
 
 /// <summary>
 ///     The outcome of one operation - its result, or the failure it reported - so two ways of doing the same thing (a
-///     fast path and the general path, two input forms) can be asserted to behave identically.
+///     fast paths and member-by-member work, two input forms) can be asserted to behave identically.
 /// </summary>
 /// <param name="Result">The result, or <see langword="null"/> after a failure.</param>
 /// <param name="Failure">The failure, or <see langword="null"/> after success.</param>
@@ -34,7 +34,7 @@ internal readonly record struct OperationOutcome(object? Result, Exception? Fail
     ///     Asserts two outcomes are the same: the failure's type, message, path, offset and inner exception type, or the
     ///     rendered result.
     /// </summary>
-    /// <param name="expected">The reference outcome, usually the general path's.</param>
+    /// <param name="expected">The reference outcome, usually the member-by-member one (<see cref="ExecutionPath.NoFastPaths"/>).</param>
     /// <param name="actual">The outcome to check.</param>
     /// <param name="label">The case, for the failure message.</param>
     /// <param name="compareOffsets">

@@ -2470,7 +2470,7 @@
           "operations": ["parse", "debug"]
         },
         {
-          "test": "tests/CStructSharpTests/Writing/StaticWritePlanTests.cs#UnnamedPadding_UsesGeneralWritesAndRetainsStaticReads",
+          "test": "tests/CStructSharpTests/Writing/StaticWritePlanTests.cs#UnnamedPadding_WritesMemberByMemberAndKeepsStaticReads",
           "operations": ["serialize", "write"]
         },
         {

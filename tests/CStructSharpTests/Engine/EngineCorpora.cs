@@ -8,7 +8,7 @@ using CStructSharp.Introspection;
 using CStructSharp.Values;
 
 /// <summary>
-///     Loads the repository's layout corpora as <see cref="EngineCorpusCase"/>s for the differential harness: the
+///     Loads the repository's layout corpora as <see cref="EngineCorpusCase"/>s for the golden harness: the
 ///     generated-parity layout index, the benchmark fixtures, the manual's feature fixtures, the Portable contract's
 ///     examples and primitives, the well-known-format tests, the inspector's schema catalog, and the managed fuzz corpus.
 ///     Each corpus is loaded once.

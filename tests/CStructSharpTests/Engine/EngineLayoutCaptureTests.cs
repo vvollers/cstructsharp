@@ -17,14 +17,14 @@ public class EngineLayoutCaptureTests
     public static IEnumerable<object[]> Layouts => EngineSweepLayouts.Names;
 
     /// <summary>
-    ///     Every prefix of the input, from empty to complete, captures the same layout, or fails the same way, through every
+    ///     Every prefix of the input, from empty to complete, captures its golden layout, or fails as the golden outcomes record, through every
     ///     stream an update may read: memory streams with a hidden and an exposed buffer (starting past their beginning),
     ///     chunked streams and a file.
     /// </summary>
     /// <param name="name">The sweep layout.</param>
     [TestMethod]
     [DynamicData(nameof(Layouts))]
-    public void Truncations_CaptureTheSameLayout(string name)
+    public void Truncations_CaptureTheLayoutFromEveryStream(string name)
     {
         foreach (Variant variant in EngineSweepLayouts.Both(name))
         {
@@ -33,7 +33,7 @@ public class EngineLayoutCaptureTests
             {
                 foreach (EngineInput input in EngineStreams.All)
                 {
-                    EngineLayoutCapture.AssertSame(variant.Name + " length " + length, variant.Layout, variant.Data[..length], input, "rec", source.Variables, variant.BaseRead(input));
+                    EngineLayoutCapture.AssertGolden(variant.Name + " length " + length, variant.Layout, variant.Data[..length], input, "rec", source.Variables, variant.BaseRead(input));
                 }
             }
         }
@@ -41,13 +41,13 @@ public class EngineLayoutCaptureTests
 
     /// <summary>
     ///     Every <see cref="ReadOptions.MaxTotalBytesRead"/> from 1 to one past the capture's natural total, and every element,
-    ///     string, nesting, pointer-depth and pointer-target limit from 0 to the input length plus two, captures the same
-    ///     layout or fails at the same place.
+    ///     string, nesting, pointer-depth and pointer-target limit from 0 to the input length plus two, captures its golden
+    ///     layout or fails where the golden outcomes record.
     /// </summary>
     /// <param name="name">The sweep layout.</param>
     [TestMethod]
     [DynamicData(nameof(Layouts))]
-    public void Limits_CaptureTheSameLayout(string name)
+    public void Limits_CaptureTheLayoutOrFailAtTheLimit(string name)
     {
         foreach (Variant variant in EngineSweepLayouts.Both(name))
         {
@@ -58,8 +58,8 @@ public class EngineLayoutCaptureTests
             // Captures one set of options from a whole memory stream and a three-byte chunked stream.
             void Compare(string limit, ReadOptions read)
             {
-                EngineLayoutCapture.AssertSame(variant.Name + " " + limit, variant.Layout, data, EngineInput.Stream, "rec", source.Variables, read);
-                EngineLayoutCapture.AssertSame(variant.Name + " " + limit, variant.Layout, data, EngineInput.ChunkedStream3, "rec", source.Variables, read);
+                EngineLayoutCapture.AssertGolden(variant.Name + " " + limit, variant.Layout, data, EngineInput.Stream, "rec", source.Variables, read);
+                EngineLayoutCapture.AssertGolden(variant.Name + " " + limit, variant.Layout, data, EngineInput.ChunkedStream3, "rec", source.Variables, read);
             }
 
             for (int budget = 1; budget <= (16 * data.Length) + 64; budget++)
@@ -94,9 +94,9 @@ public class EngineLayoutCaptureTests
     public void ConditionalTrace_RecordsEveryDecision()
     {
         var layout = new CStruct("struct inner { uint8 kind; if (kind == 1) { uint8 x; } }; struct rec { uint8 flag; if (flag == 1) { uint16 yes; } else { uint8 no; } inner pair[2]; switch (flag) { case 2: { uint16 two; } default: { uint8 other; } } uint8 tail; };");
-        string rendering = EngineLayoutCapture.AssertSame("both arms", layout, [1, 0x34, 0x12, 1, 7, 0, 5, 9], EngineInput.Stream, "rec", null, new ReadOptions());
+        string rendering = EngineLayoutCapture.AssertGolden("both arms", layout, [1, 0x34, 0x12, 1, 7, 0, 5, 9], EngineInput.Stream, "rec", null, new ReadOptions());
         StringAssert.Contains(rendering, "entry = \"yes\" 1 1\nentry = \"no\" 3 0\nentry = \"x\" 4 1\nentry = \"x\" 6 0\nentry = \"two\" 6 0\nentry = \"other\" 6 1\n");
-        EngineLayoutCapture.AssertSame("else arm", layout, [0, 3, 1, 7, 0, 2, 5, 9], EngineInput.ExposedStream, "rec", null, new ReadOptions());
+        EngineLayoutCapture.AssertGolden("else arm", layout, [0, 3, 1, 7, 0, 2, 5, 9], EngineInput.ExposedStream, "rec", null, new ReadOptions());
     }
 
     /// <summary>

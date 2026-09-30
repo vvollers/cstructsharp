@@ -2,175 +2,175 @@
 # Regenerate only for an intended, explained behaviour change: node tools/quality/engine-golden.mjs record (CONTRIBUTING.md).
 # @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes.
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("aligned-x256")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("aligned-x256")
 @hash 46dace0a44f953e2642e35dcb4e2f8e3ee7ecb74072f5aa56e097b10c82a9b3a 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("array-struct-100")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("array-struct-100")
 @hash 581678a38392bb3f0f179a5d76677ed36e6a4ec56ee66f853ce278d6f61100e9 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("array-struct-10000")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("array-struct-10000")
 @hash 66ec18fa8a84f9ea4f5a67249f6a3440128b20dc70d05768ffe9127cfa6c7de2 18
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("array-u32-be-16384")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("array-u32-be-16384")
 @hash 42e24abef9e176977d24e62c69ca55586a835decb2c0a94f7086b0b4936020c7 18
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("array-u32-be-256")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("array-u32-be-256")
 @hash 7b1dfa1bf1ed26ee9f7ffce620fd79a86be43f248a25ada5e3282c61852572d1 31
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("array-u32-le-16384")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("array-u32-le-16384")
 @hash 4366981746daf874cc930a560e2008271f107d76a92c8d0cdf14cd8e2092cc4b 18
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("array-u32-le-256")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("array-u32-le-256")
 @hash b0c0af90e39c91dc67cf40bd937a3a8c8ad9944c4e15d9fd1d10b8f6bbf83b2c 31
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("array-u8-1024")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("array-u8-1024")
 @hash cbb3d7e0faa57fc8135f6d0350acda968498aba698763974bfe16f8ab42c8b01 31
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("array-u8-65536")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("array-u8-65536")
 @hash 97bd32264a4df0b63222ad3511939c7dc09d090b4b36dcec1706e46fda5718d6 18
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("bitfield-x1k")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("bitfield-x1k")
 @hash 95a415a86c64a2daf40b8e8403f2ddfc1ecf24b6e1cb0e94d939e6da2399cbd5 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("compile-k100")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("compile-k100")
 @hash 90fd1d13a5d66f1e7da20042ee39303647256e171101674ec6ba552821f29cc7 16
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("compile-large-512")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("compile-large-512")
 @hash 1a61ae93464b8fe946028d3b4bc00c520c602f2fb81b6b9521c6638355a47899 17
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("compile-medium-128")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("compile-medium-128")
 @hash b5786af072b2ad7dd9530d0fa119a9d5411715cb01cb58e317818d9e267fc8c3 17
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("compile-nested")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("compile-nested")
 @hash d610bda5a6bef0bce2c56e45a0038f7e6133fb792b599043cec2a8d605fa0e05 17
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("compile-small")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("compile-small")
 @hash 86c945f53a28d5875a7bda3ea40161d12d9d883fefc3bd8ebcf16ffa9e90d3a5 35
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("compile-windows-header")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("compile-windows-header")
 @hash 523a29e0001f18cf4caa79521791618abed815330424d917337e3049eda3093d 17
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("cond-if128")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("cond-if128")
 @hash da12c078c89dbe72cce138de5fb706d854b13c3a7cf8e0850aa1c9e763379fa0 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("cond-plain128")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("cond-plain128")
 @hash 73c16a6fcb0d9da366a6136fb2aadcc0230ee651bad929700f2f42e11f3fef02 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("cond-switch128")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("cond-switch128")
 @hash da12c078c89dbe72cce138de5fb706d854b13c3a7cf8e0850aa1c9e763379fa0 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("dynamic-1")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("dynamic-1")
 @hash 73caf86de0b49db60f586a66669e2332df2bed86636f18f0de5e14e3fccf4b6f 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("dynamic-1024")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("dynamic-1024")
 @hash a0a8111588af58c384ce0527d4cecb0a93ea7d282c378a5e9ee509546e74640d 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("dynamic-64")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("dynamic-64")
 @hash 1ca879d160b087f64efc3ab9124a28a4fb21410a83cc3592044962623d7cb2d6 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("enum-x1k")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("enum-x1k")
 @hash e70cd5f9c7cb8110319532b288346e06e318f219da08ce4d6622ef753093a871 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("malformed-budget-exceeded")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("malformed-budget-exceeded")
 @hash f200785fc0e05790e45e1ce8868b19e234178ed7951a85ecec8dacb47b07ae01 10
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("malformed-dangling-pointer")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("malformed-dangling-pointer")
 @hash 88058c1ccbb8f54812ce98a2846461f0a76c248af9910f7fc4124f8f87333f78 17
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("malformed-negative-count")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("malformed-negative-count")
 @hash d68f238d34a68974bb6c6c4b0124a3cb751c213ad0a19eed3cdc41d338bce90b 17
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("malformed-truncated")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("malformed-truncated")
 @hash 2a859f5724830fb193d36817419be36e4a7d890fe46b1740f23b62c1a82e1446 17
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("mixed-endian-record")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("mixed-endian-record")
 @hash f23257b3ef1c48807593b85e253b230e9a9ffe02151abe9b5863cf24b4b62875 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("multidim-16x16")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("multidim-16x16")
 @hash 60d6797eb9cf243d7524a9476d640cf122efa5183141540e3a068efae30d1abe 31
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("nested-x1")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("nested-x1")
 @hash 371f2ec0bf3c9b03e1d8e4d2211256039ed0e58f39216df3b4438a1788fa59ed 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("nested-x256")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("nested-x256")
 @hash 4d63a46b6a4cbab5d431f647435173716bdad2bd0f95fce6375c9ece2a27b260 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("parity-alias-x1k")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("parity-alias-x1k")
 @hash df07900838a300752a070a6ece3543a8d8d93f5c74022db4b08658156f1be137 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("parity-flag-x1k")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("parity-flag-x1k")
 @hash 3730c85fd4ea1ed303d39b5d8275f4f67706562e16f9691a246dc6bd05a10158 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("parity-inline-union-x1k")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("parity-inline-union-x1k")
 @hash 59bf941d3a66f40a57e2e1d3c1d3d5d91ecdf6f726a151ad505a30ccea8fffb6 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("parity-primitive-root-256")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("parity-primitive-root-256")
 @hash 87da2b81d67e4b6463947a1774325b57d46162b220d614171055c1bc32a24843 31
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("parity-terminated-struct-1k")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("parity-terminated-struct-1k")
 @hash 65af59420b1ea8537110c73676d97f2fd4b6874f6d9fef0a1305955455983cd3 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("parity-toend-u32-64k")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("parity-toend-u32-64k")
 @hash 1d6ab0cbefec9a034fa5846008d1f87422c063efddf82c6af6938b3a1a708659 18
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("pointer-depth-1")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("pointer-depth-1")
 @hash b3735ad9ddeab15933d530ed91a5a6b26ff1a414bd16a5e27bec909de69de512 37
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("pointer-depth-64")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("pointer-depth-64")
 @hash 3e1b07390b5dbed0e4aca34e6ad72acc8a5b9828429fa0ad14077b73ddc73334 35
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("pointer-depth-8")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("pointer-depth-8")
 @hash ce17ccfa7025a9d36faf33160437e207e1adb3cb3ec2768614c6956fe9e12f2f 35
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("prim-be-record")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("prim-be-record")
 @hash 753ae43b4f87cac273ddcb15d3748a54430a7fa47950a5057a7bc46da957a923 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("prim-be-x1k")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("prim-be-x1k")
 @hash 95fa337eec5243351da870dbdcaab83f0ecf5d4958a62af4593134eccb50a852 18
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("prim-le-record")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("prim-le-record")
 @hash bcee18552b7b05cdeaf3cf022c0d2090bc4604cf98ee5e9d16c30f62a5dd5525 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("prim-le-x1k")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("prim-le-x1k")
 @hash 147c1baf77cef00dd8638101aa49bf4c9db3d29678036963c85dfedf64e6db60 18
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("real-bmp")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("real-bmp")
 @hash 2503da624373802848c84ddf8118b19f5450206f210cb1897975d16cbd96ab66 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("real-ico")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("real-ico")
 @hash 064754386dc32dd8f2d7fead5f67622e4756593f16e59a8b699b15b23a40a531 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("real-jpg")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("real-jpg")
 @hash e988d39b7332d878f8b93ca1f1ec941ec9f1674c067d9c51cb0683a1544c91c0 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("real-pe-dll")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("real-pe-dll")
 @hash 010f8f375f174a1c46e2d9460f190f98105e2720975fca1d3f917eb45fe82e8c 37
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("real-pe-exe")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("real-pe-exe")
 @hash 9900a79aa0c61d2c83aaef6183952d8098ec6360d0530fe7aaf200fcec25552b 37
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("real-png")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("real-png")
 @hash 183359e0067922868de5d9dc13e43b3e2ad8fe428a3ac6260039722eda8c3456 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("real-tar")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("real-tar")
 @hash 0be01c7e217a44c436fad725e5f06cb0825663b30d80a0311e7491abbbe8b6fc 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("real-wav")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("real-wav")
 @hash 46684e07637eb1a3de0cb02de537cea6bf679bdeadbf688cb6cb482a638cb83e 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("real-zip")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("real-zip")
 @hash 274a3517cca35ee10477fd4763b6cf1ac834ed832895a652f47340281c95b301 39
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("strings-1024")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("strings-1024")
 @hash be1bd3b09170e291c6996051710b09528b0d958e56384c9e40cb391deab02049 35
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("strings-8")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("strings-8")
 @hash 54070a35eb37ea18c4f7a88a5e3382b3c5dc370403893aa0c45254f251527996 35
 
-@test BenchmarkFixture_ReadsAndWritesIdentically("union-x1k")
+@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("union-x1k")
 @hash 2affbe7172e59d4edb5cb09dabd1656c0b876ad3e08330506a06f2c6770e9698 39
 
-@test FuzzTarget_ReadsAndWritesIdentically("binary-roundtrip")
+@test FuzzTarget_ReadsAndWritesEverySeedAndMutation("binary-roundtrip")
 @hash 6ef15419d15ff4caa6d36236e2af28fd3d9deb2933077cfa7e8fc681713540bf 39 binary-roundtrip/complete-two-values#0
 @hash 8f3fa679e0e42d70476a18d65cd516846ed9744b8f25deafcbc435f6ef7e9657 35 binary-roundtrip/complete-empty-values#1
 @hash 6350999294a8ef383e8e9cf7fe7e6be49aeab8a5dcad7e326e19b7a5d6207ab3 17 binary-roundtrip/array-limit#2
@@ -304,13 +304,13 @@
 @hash 9b1a281fc9a51cce543dc5559dfa4f3e6da2945249177c77efdf14a1e50a53f3 17 binary-roundtrip/mutation#126
 @hash 5eba149ed8f730b7d85406b41418fcbdf5e5c5c054a4e104f813cbd3ddd151d2 39 binary-roundtrip/mutation#127
 
-@test FuzzTarget_ReadsAndWritesIdentically("definition")
+@test FuzzTarget_ReadsAndWritesEverySeedAndMutation("definition")
 @hash 5c607a20eeb328a005e25e0b657952203aacc2ab584d3fb18629efe4c00e797b 35 definition/fixed-struct#0
 @hash 2b5da303b086fd57bab7761edba0625b6a6d62ccfe8309847cad27ae1d4ca91b 39 definition/nested-union#1
 @hash 1a5b21c77005dc7e4edd960bbb15ba532fb07076cdd5c18869fd5f0b5ea8e330 35 definition/mutation#16
 @hash eadb7f0a6d3fb7b03979451ba3b7a9c47767bd27122f9bf2dfc06445b8c64101 35 definition/mutation#53
 
-@test FuzzTarget_ReadsAndWritesIdentically("expression")
+@test FuzzTarget_ReadsAndWritesEverySeedAndMutation("expression")
 @hash 23f75fed740a43b8b304959c2601b787530c5f841c8efe54503e9bfca0c7d525 31 expression/precedence#0
 @hash 1231c1623ca9c8b9599ca79f6eaa6ca2ca798bcab0edc793a50a78b2af20224f 17 expression/unknown-identifier#1
 @hash 8f735d88e9606103c6bf4e11b861fc9bb1b1b57c4f814ee881d26e462eff9e13 31 expression/nested-bitwise#3
@@ -323,7 +323,7 @@
 @hash e000df246439063b80d96796bcaaeed8400cb7697f64949207a272d2c09a09f1 17 expression/mutation#86
 @hash ffa51da0b7ebce29ccb7bee30cd5bbf4d38aa83e7712decf0457df2afaa7b878 27 expression/mutation#94
 
-@test FuzzTarget_ReadsAndWritesIdentically("generated-differential")
+@test FuzzTarget_ReadsAndWritesEverySeedAndMutation("generated-differential")
 @hash 6ef15419d15ff4caa6d36236e2af28fd3d9deb2933077cfa7e8fc681713540bf 39 generated-differential/binary-complete#0/binary
 @hash bcb200eb985e25c446eae872b12c218cae2d903660104d85db1ea80dd4247463 17 generated-differential/binary-complete#0/path
 @hash 86b11903cb6c5cad8b8cc725f494ff85fd69d1dc8f15820e518810a3b87bb027 17 generated-differential/binary-complete#0/pointer-union
@@ -721,7 +721,7 @@
 @hash 0e9b08b10add124fe1c0d89d70e7e5ad9d9c1ed1e35172b0c6c14e4b4341334a 17 generated-differential/mutation#127/path
 @hash 6b0e844f10ca931a9977611c48f8fbcc672070687e892223e504c78fc93d7d61 17 generated-differential/mutation#127/pointer-union
 
-@test FuzzTarget_ReadsAndWritesIdentically("path")
+@test FuzzTarget_ReadsAndWritesEverySeedAndMutation("path")
 @hash d412d433ae62d1cdd25293a95f48f2c225d49b8cb78cb28e96bd3387fe497306 53 path/array-element#0
 @hash b748fa58604d7cdff31b38509ada69df1524997ec636b48183274542f208a8da 53 path/nested-value#1
 @hash c830e2d8097530347975ebd7075cc053ee42f410efcf4f55942e59180df586ac 53 path/pointer-accessor#2
@@ -855,7 +855,7 @@
 @hash a48377c48005da0c0dad50fb73e5723ad7490c9eb068c3638426a10e04d126c1 45 path/mutation#126
 @hash cac86b414f438ad46d782a0215478991d8cb8eab976c3851a07acd2f8a4cfe6c 45 path/mutation#127
 
-@test FuzzTarget_ReadsAndWritesIdentically("pointer-union")
+@test FuzzTarget_ReadsAndWritesEverySeedAndMutation("pointer-union")
 @hash 0ca37d210ce99714dc031b769e1901ef76be7f22411ef866094d49ee9b29e96d 39 pointer-union/null-pointer#0
 @hash 6b0e844f10ca931a9977611c48f8fbcc672070687e892223e504c78fc93d7d61 17 pointer-union/self-cycle-at-seven#1
 @hash fdfdc87db8ad5405375ef69ba5746bfa039219d6a60f0e9168426b99810daa13 17 pointer-union/out-of-range-pointer#2
@@ -989,1691 +989,1691 @@
 @hash 0d7187f03e98fa537d77fe7ea06bb5469b61a182b76ec52262acdb20784f94b8 39 pointer-union/mutation#126
 @hash 2d168141555e2596a6c7db05ab8c34af27eb2be26943f6d2f0ba660b2650da9a 39 pointer-union/mutation#127
 
-@test InspectorSchema_ReadsAndWritesIdentically("bmp")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("bmp")
 @hash 2503da624373802848c84ddf8118b19f5450206f210cb1897975d16cbd96ab66 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-3g2")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-3g2")
 @hash 94302961af66645753db6ea633647893ef56f6a9d30bbbb3251416b0f9f7b407 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-3gp")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-3gp")
 @hash c4d421cfded0a7fdf2c7eeb293818e364f43e42370b3d7fbc2a6e0716a67b564 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-3mf")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-3mf")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-7z")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-7z")
 @hash 5f5a0f4f85653d8271141b192f0ad544dc2f6dea0e79661252964a61b5deed93 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-Z")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-Z")
 @hash 165f3da421e00d03a6038f3a5030c472081eb9def99c2224c95845fac431120a 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-aac")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-aac")
 @hash 5cc232f06038e7025630fb651430e1a3ccee320951db4a3482f132f25d277229 31
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-ac3")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-ac3")
 @hash 773c8b7d5ab2d41a859e05735a42d64f88ea7b163110a056cea5aaae71e74355 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-ace")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-ace")
 @hash eb06ae7536fd0782a5464ed1b81ffc7e634bccbf8863577281e6591c8358e54f 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-aif")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-aif")
 @hash d799a1297592dd7fd2f032ba7b5ed213eb3307776722fd3cfd331efeaa1b680d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-alias")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-alias")
 @hash 3de2032391bbdd01f9dda47b3dcd8a81cf31380f08f9b7439981624454a321f7 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-amr")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-amr")
 @hash 3681de4df0e8c9fbd50dcf6d13a6841070f947150a4e2df8a1d20db2c3edbd04 31
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-ape")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-ape")
 @hash 157c9c5901ca91d759afaaa1af4eabc9ee967e4fa12ec46f20e30936267a8cd0 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-apk")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-apk")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-apng")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-apng")
 @hash 08d6f8e4f0616dcc8c5a377fd2be8044c71c4f4a3518f4b37672f885ee2428b0 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-ar")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-ar")
 @hash 94703d9a6b3fab33494323aee0ef8b429f958361a03943a3c35cf31354cb20df 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-arj")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-arj")
 @hash a2126fef861ae734c6276eed507c44a56e8fedbf3eafce37385902ea8f2cc5dd 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-arrow")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-arrow")
 @hash 8e25f902bf1015c2e74e529e42f1611eae29b708e237cbad968d17ae1a959eed 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-arw")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-arw")
 @hash 3282575856679c77871a81021bed9137e0073b5d213162125955fb578a3b730d 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-asar")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-asar")
 @hash 616c19b2e088571fcff82bd85b92c3f2a046f8f0c90c295ea9caccbb403078f0 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-asf")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-asf")
 @hash 581e2e422ae6991b612657d2e5478516335b44a550d56a96969f8079e42ba7e1 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-avi")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-avi")
 @hash cf1de0d060c9097c9896243e8249b58963e41955a00f596f80b1f8e621b567fd 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-avif")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-avif")
 @hash e22efbe7ff0ba5c963d00e788c417b64abfacc239779013a8825f2119cdbd12c 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-avro")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-avro")
 @hash 1a5e95ca6808d06e63713c7d362858e2bfd1a24e246302e69021d5b85df162f1 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-blend")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-blend")
 @hash ae440424c2b2e5f326cb562f8fa76798f7ef14af44be740489189bfa6f1c513d 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-bmp")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-bmp")
 @hash 960a54b63e8519226ead4665633400941c2b2ecd00de7d04c464baa73013eab7 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-bpg")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-bpg")
 @hash 27e6bdcbbe67f0858b009590f830b0cfb7312635e49e1e74f051377b9f0a7549 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-bz2")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-bz2")
 @hash dc5a401f08a6238c0ca159578da512cd569eafef642182036bd0c8aacd1dd29e 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-cab")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-cab")
 @hash c4b578b51a0308b4a37416f721e175194c9d4cd946ab1bc32ee5f382b6180c09 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-cfb")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-cfb")
 @hash 9025c7fd8c1b3a2459e3a0b1a716c1246f4a7d2209a943b5dd6367476016d294 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-chm")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-chm")
 @hash 77d34765d0abb104a3039f88f7f083934be23a1ef7b6c8cf734008bdb456f46d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-class")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-class")
 @hash e18851a37e636a986ac6cbc151a23f86b9dc0db343ba6f8d604661035e912cd7 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-cpio")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-cpio")
 @hash d9a099a8b38b8244629f238b4596fe337637cfc62b7f6b9b978687f8925081a5 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-cr2")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-cr2")
 @hash b466321e776db799c6bc0030b71114d01c2df78a68ae71a41c73e5ed44a9b6f9 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-cr3")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-cr3")
 @hash cc77a23fed1d9e0e5fffebde056cd872e4aa2576f518d028725ac7efbb115234 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-crx")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-crx")
 @hash 559d46dd6295e473fb2efd3cfe55af30330a5ba4c36bfeb894092938562deba2 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-cur")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-cur")
 @hash 5f98c0578d0650eb7faa9cbd3bc9d3e41469d89571ec937bc668522d0b0a43a5 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-dat")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-dat")
 @hash 11ff422754cd1bdfbeb3f9dd444cd450a3b18e681efb7c6573a7e01abf830cb7 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-dcm")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-dcm")
 @hash bf7e60bbe9976426e16bbf0d19b4d267a5d65a37b5246a66fd11e0445c6bb9da 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-deb")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-deb")
 @hash b0aa3b9c3752550cb42a6f8da35d3b9abce12a2aecb1df6ac20206eb89836108 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-dmg")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-dmg")
 @hash 2c86c1f96dd11b2b7eac74c7f9b76eced21e4499e1aec075fd25214eeed99a8f 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-dng")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-dng")
 @hash 1d1ea5a2e5f5961d5364eaada9d97c3ace92f5748b4e4c789a0f0938ffdc4bf0 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-docm")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-docm")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-docx")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-docx")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-dotm")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-dotm")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-dotx")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-dotx")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-drc")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-drc")
 @hash cde0dd4473133f353430e47e36773952ee36546f95556a476dbd82f3a77d1d35 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-dsf")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-dsf")
 @hash ba1f550c509f42d17cee5f80dc63710468e941ebf77cd3b94f1bdd2f0989e511 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-dwg")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-dwg")
 @hash 279402bc5e75ef8a2a23b3a7902ff0861fe646dcb93d48573a27349fe38488bf 31
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-elf")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-elf")
 @hash 26f949e4230e64e7168f3bbe9e9f192dc085245d249730d76b70d5b89682832a 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-eot")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-eot")
 @hash 8d3a927b9b220a76b2ed7352373ddeddbfcda46638434e64046d54f97bc608a5 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-eps")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-eps")
 @hash 30d27c7a8e00dae5d51adb2abe05bd12391daa892a7e59245edac6fe035a8697 31
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-epub")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-epub")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-exe")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-exe")
 @hash 07b3de9c41ffdd253b32dbc5991ec439781c2164855090f7ce8f18d6944c276d 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-f4a")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-f4a")
 @hash 2f184a950269a50fc3d4fb5bebf678e37fb5f36c31f1b464f87abfcaf355e0ef 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-f4b")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-f4b")
 @hash 906594ab6de76bcef6ef4d93036c8b8d83db3e92d1b9ab759101b4869fc166b6 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-f4p")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-f4p")
 @hash 498af953dbd772d37206225906220a083c01e8055e8a031e2a1ec7238ff1860f 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-f4v")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-f4v")
 @hash f5db4ce49f5c78b139331364753e0418656fdd637412af0965add0a26463c9c8 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-fbx")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-fbx")
 @hash 175e900ee6fb96ae6635e7623f6373a0540809f4d6b250647be9904563fa1c65 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-flac")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-flac")
 @hash 34392cefd984c398468294ad0da8fc2bc8bf07134d899c83cca144f1d9cad9c1 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-flif")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-flif")
 @hash 5dcda1059bd2c24dd7a80f254d1944d278e73e1bb1867f0c6ed8d243fcf6497f 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-flv")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-flv")
 @hash 884d8276610a7c83c79f312bdce5722a0a4f78ccbff5b14da186fd4dc7666139 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-gif")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-gif")
 @hash 90ba19183f343950ee3d91c661655f65d575b4f530020491450a15ffcbf52ec6 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-glb")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-glb")
 @hash 61f37082ac22fb1b68276fe2fae58927e03d8b92df9735e0607c26b96f6cf9a1 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-gz")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-gz")
 @hash 55ac5ed1da09d262fce6346fae264823dccb7d619f3e447d84a8e00ebaa4cfb6 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-heic")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-heic")
 @hash 1c0a33c07a3407de1b5d012ae95e59825c33bc3cc349ed7887f4561a3380fe66 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-icc")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-icc")
 @hash 36d6d2de0680698dc3284b6a5fe554baa11eb7939fbd6ff4e92c90b52ccd4b3b 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-icns")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-icns")
 @hash fe510bc547231c9a19eb91052e2e72192ba7ee70983d194cf24f58b86444d3ad 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-ico")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-ico")
 @hash 5f98c0578d0650eb7faa9cbd3bc9d3e41469d89571ec937bc668522d0b0a43a5 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-ics")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-ics")
 @hash 5d4fab2f68e886318f6ad23784794d115111a7f328c6b4a4a12a14be07e8feae 31
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-indd")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-indd")
 @hash af1fdb50f5f826599b4cc3535c6e08c916d23c4a904ec0706cdc53e12b00ae8f 31
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-iso")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-iso")
 @hash debf54b065596694c1576a10f2f18ed42d4b4d2e9c88c0cc6da4561344148c79 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-it")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-it")
 @hash ea1c14ce7cb2f6de73b92bc35fbdae401bbd287ad468d4ecb905923f9e24e638 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-j2c")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-j2c")
 @hash 0dfaf207638fd702267bd68461c5dddfea9827a45eb48ed7e02a36bc89b4b0c9 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-jar")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-jar")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-jls")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-jls")
 @hash 3737f61a3be42f417418236d6d83e2f1a290323def39e09fd5ce6ccedd350f03 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-jmp")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-jmp")
 @hash aca09fbf7d4cb87557d22b816c130c15c0713517e868e024aab2bb9f25837b55 31
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-jp2")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-jp2")
 @hash f4b7f105dd29ca65db925ad101c3816fa3b54962c0d36924dd967e2af4890bf9 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-jpg")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-jpg")
 @hash 3f23447d923114db0a6130cc174ffec357e7f6a00da7d9295785fab8071d87e2 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-jpm")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-jpm")
 @hash 3b5f3a5b718e5bd61d0efeb00eb8a416b49ea0c99fc430c962e042d16111765f 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-jpx")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-jpx")
 @hash 8def0ba3288e6ab3243205b3123f206bb217257737df52dbeb91831acad9431c 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-jxl")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-jxl")
 @hash 2e355d79bbcad2cfcbc0abc8c101d7cdb77d38252c62bd51b9bd35972a1fb77f 31
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-jxr")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-jxr")
 @hash 5e9d7d307c761c16fe6d7af0c3a47de397a621330e6f69fb478fb86b476bdee2 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-key")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-key")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-ktx")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-ktx")
 @hash 513acc9e4347219c190d36fa0b4b83bf75827b54e1666dc042afba9b3bf7d787 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-lnk")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-lnk")
 @hash b20b77f6f5072aeec7a80e9893eeadf6879d954245916e790fd4ccc1863b0a96 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-lz")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-lz")
 @hash 1825be794798226fe3efa191dc113e0e0cab81bc242b3f1748bd7897571b92de 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-lz4")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-lz4")
 @hash 5421dd11840ecddf38989754e86feec9767bf552581ca7cc5ac30beb2a63edee 31
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-lzh")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-lzh")
 @hash 998550daeaeed6545802930816d060ea12e469e92add1843bd35fca3b32a8b80 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-m4a")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-m4a")
 @hash 43da7213414ec7207143ece66723eab8368f5cf1e5e1eab96918ee2efba7ad3c 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-m4b")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-m4b")
 @hash fdcadc21a1fb8b4b672833620ee693475fa83b30a16cd51b848673371258e4fd 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-m4p")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-m4p")
 @hash 94deb4d82c216d4ceb8ed2ccddc6e0b06278e19650fd26b5693cf5c32dbd41bc 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-m4v")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-m4v")
 @hash 576448376afdeeaa1184790b25763958c065f2fa8313f4bbe26789a31963d300 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-macho")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-macho")
 @hash 1d23442c981bc83cd4d40dce6633daf013569be16b0b6ea938785a6d75966964 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-mid")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-mid")
 @hash f72ceda0d8a0737d241d07134ea9b2245fb2de5aa9195ebd7a93563bce0f9b6e 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-mie")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-mie")
 @hash 631dc49e73024a8f863c827ae88fb15b236e53ff814e368c1620cfe110a1db0c 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-mj2")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-mj2")
 @hash 59e6fb69ce4869464124668a71848056ffe17c193889a9c0b38babefe6fa53b2 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-mkv")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-mkv")
 @hash a03c497766eac9c05c68b0796c0f0e42c260a375e34f035a42e4fcf962ed5430 31
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-mobi")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-mobi")
 @hash 7f25e5893eae6b58f88042273af531320b77ebb0805bc67e43a6ef3e9adf52b9 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-mov")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-mov")
 @hash 3f289631713fe8b90008d448113f95bfa114e1d5b38343059cde3f13caac65b2 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-mp1")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-mp1")
 @hash e89b8c25552cf7823a9477a94f06916cae38319a5da92929785d1e271b1ee3b9 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-mp2")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-mp2")
 @hash 62766b63ee8c3d98bc7cfca05337a658bbb6901aefdd8b737e0e7400865b876e 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-mp3")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-mp3")
 @hash a12114d70eeef3821a7b4d5975eaf3d488e20dda62c926546b9cf3f720089fa8 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-mp4")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-mp4")
 @hash e608be689da53f08f0a492da1454f5077e4f46bcfe68f3b06f6f8cbab024f2d3 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-mpc")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-mpc")
 @hash 87212725614629084d5cc22723bc0ff193d0866f95972acded7cf0f9bb39869a 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-mpg")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-mpg")
 @hash 108dfd2a0f116f24645967cb86dc3afb73f34495fe192a60405bd9b3dc074db1 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-mts")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-mts")
 @hash 145f51913cf2b5079f980573edac6ecbdb96f72aea4a3ce6bf82b31dea93db71 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-mxf")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-mxf")
 @hash cc06137445759ab48ab0b5fc4c47cbebe0b91b734d78c006e108f40d9d4b8917 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-nef")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-nef")
 @hash 282a2a703dd0f622a299af4ee304d5ff993c48175cc8fd5b31a07243a3d15cf9 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-nes")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-nes")
 @hash 3a3c39e878637a38faeb34db954ac8590d9b21300e159563480224207e8db342 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-numbers")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-numbers")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-odg")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-odg")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-odp")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-odp")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-ods")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-ods")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-odt")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-odt")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-oga")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-oga")
 @hash 439691760a3864bcf89fa38c32d6283468095175fba222aac027f8d7b7a4a9af 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-ogg")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-ogg")
 @hash acdb7a52443ed7801423001e5548ef6d5607d87a92cb356ce34d687a4b5997fd 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-ogm")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-ogm")
 @hash c7249fe35a2e975040af8fcc1817c20e82696d1e55163e5ef2202de2ef8d17d9 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-ogv")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-ogv")
 @hash f6aec7467818c5f6ba6a2ce2fae8b6197174b249281a463c36aa4874a124fe76 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-ogx")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-ogx")
 @hash 5c828802c2c32df2784676eb6de394b8a0abd7513b0e17d7ad4bb244ed669feb 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-opus")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-opus")
 @hash 53fb3b4964f00023373719b1d302613bf16b6af3780025feda9f3a17a2b999b0 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-orf")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-orf")
 @hash 76d9c77fbc4a228ab2888e34450c7f3885a96e54c25d88254f3a27100b05520e 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-otf")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-otf")
 @hash 3df8a158b3e2a9aad0d289744a250dbed135592f23c9a632fc0df6a2279862ba 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-otg")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-otg")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-otp")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-otp")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-ots")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-ots")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-ott")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-ott")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-pages")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-pages")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-parquet")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-parquet")
 @hash 889065c589fedfd6124c335cab3af5ed62ba5130f0bec72dda51f59387b04704 31
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-pcap")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-pcap")
 @hash c0277184e1462cc73dbf6379f9b97c4449c432bd98b7eb2ee22b0f6480d1aabd 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-pdf")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-pdf")
 @hash 3c163fa85779c01d41166c0b83c817d66f847402c45fd6171069f66c72d4892b 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-pgp")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-pgp")
 @hash 9d1967ec05b5b7f6dacde5a8377689ec476f22da6acaac46e45114a89774558d 31
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-png")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-png")
 @hash 08d6f8e4f0616dcc8c5a377fd2be8044c71c4f4a3518f4b37672f885ee2428b0 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-potm")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-potm")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-potx")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-potx")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-ppsm")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-ppsm")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-ppsx")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-ppsx")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-pptm")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-pptm")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-pptx")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-pptx")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-ps")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-ps")
 @hash d00b46a4a429182d64befbb1815cf27b257fe16efc32748ce17fd19cb6a3b90c 31
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-psd")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-psd")
 @hash 2435f9383b1ecf383112d495a404522deaa99fef853edd90446511385de42f54 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-pst")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-pst")
 @hash f404286f082b40a0d66c4fc2b8220c7127c9d08035c44e696807c15a6a52a235 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-qcp")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-qcp")
 @hash cf1de0d060c9097c9896243e8249b58963e41955a00f596f80b1f8e621b567fd 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-raf")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-raf")
 @hash d7f00960fb5c6eb43fc545066cae896583a5f66decbac9a7280ca3e1685fdfa0 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-rar")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-rar")
 @hash 4b8e4a789787c6a9eac7c2e3c9acb0675bf8f4debf36de3a17279e77bc643f8c 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-reg")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-reg")
 @hash bc974c2759b8265dcca3a5c57e0c3d0b68ca02a8be5fc736da3f2690857e3a1d 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-rm")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-rm")
 @hash 53452d7b419c0448a0b9496c137accef12562f1e86197489d9115ad554c88cca 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-rpm")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-rpm")
 @hash e4003053029759bc6d788acbdf731a6dfd53be33da52aea854bb8db285c3c154 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-rtf")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-rtf")
 @hash c7371f7418e0b4e759c2886b1107ad204af22e473615dfbe8e578a42027bf1e3 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-rw2")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-rw2")
 @hash 65a31a8ac8ac3303eea144f07fe15d05a24b655278048d66c70bc54370d684fd 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-s3m")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-s3m")
 @hash 3fe6ff4cae57b58a8f0a8cc910907431efd5b7e010be6b77c320e14c43fafe01 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-sav")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-sav")
 @hash dd6d867c74628b04368cb3112d083841c5aec963e8310379cd0d44016e1c56be 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-shp")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-shp")
 @hash 81d792551a4996c65b8efe90cb86f87ce3f63d38967c6ddcd1d5b842688fed06 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-skp")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-skp")
 @hash 0cc4127958f0908411f979480bbaf355f7a867c4d1ffd329ee81daaf5721c6ee 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-spx")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-spx")
 @hash d1078903a9e63d57d5639da6afc597f6be964c6a7961227db68896a668d439a3 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-sqlite")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-sqlite")
 @hash a86a87d1c94b587fa2c50f538ace9975ed6886ccd8fe113d9f232925ae6a9dcb 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-stl")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-stl")
 @hash bde22ac0020da1b25ee718df07f45e08b8b12cafbc319d599c3ead7a631b5815 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-swf")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-swf")
 @hash 98d1077d0c827d07674f23979af29adb290096d4ee494c7f9bdefb50deaf8645 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-tar")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-tar")
 @hash c3d4ea8b096a54cadcf02cfce959a0eeb247073cd58a0eff68043fb95f276d39 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-tar.gz")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-tar.gz")
 @hash a881cbb8094df983fbcbb3f42a88601544ce1f7511e30488476560421d22948a 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-tif")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-tif")
 @hash d377b02f5093614e751474f47f0b74431a0de0dbd9e9f621d2537aecd27f29a2 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-ttc")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-ttc")
 @hash 97dc187aa7017c97f664f0a283ef12db1a4a0fb804388769a9b1166125b49862 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-ttf")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-ttf")
 @hash 3df8a158b3e2a9aad0d289744a250dbed135592f23c9a632fc0df6a2279862ba 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-vcf")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-vcf")
 @hash 71bd2980e06df2fc1f9394a8e0873190e219d79b72b93c887ffd24503a3cc85b 31
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-voc")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-voc")
 @hash 3c1a7e960b2d99829570910c97b8d89f834f685a7beebe56b1d14cc65707b1bf 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-vsdx")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-vsdx")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-vtt")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-vtt")
 @hash 7b93cd0683bea35682daed38594fce8581f956327a06ee03711abd3bc36172aa 31
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-wasm")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-wasm")
 @hash 91d4aa3a915c94cf5588c57f2034201da3e948f9fb15e3a141386c8eb51c4255 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-wav")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-wav")
 @hash cf1de0d060c9097c9896243e8249b58963e41955a00f596f80b1f8e621b567fd 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-webm")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-webm")
 @hash a87c63225985a84a9fbd3910a2ebbfa2504bf2a96be7ec977f6a01f71a763ed3 31
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-webp")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-webp")
 @hash cf1de0d060c9097c9896243e8249b58963e41955a00f596f80b1f8e621b567fd 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-woff")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-woff")
 @hash a3cff7d02f6ed57ddf4cb6227786ba5b2fe6101cd5f9ce3a32049797fbe7b891 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-woff2")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-woff2")
 @hash 85a09043cbb41d5bea321b9abdf5623ae76124234e979e4e4b931260b015edc7 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-wv")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-wv")
 @hash 6e0fb2b0424e20d5b7c8a4d18425469aa5b12fb0b23d5e48b6477d522ccd5a22 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-xcf")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-xcf")
 @hash b4598d9f76bdaf80ab3d75cb06761e2658ecb09f3f6b2d5ab650ba48557d29e8 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-xlsm")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-xlsm")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-xlsx")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-xlsx")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-xltm")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-xltm")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-xltx")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-xltx")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-xm")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-xm")
 @hash d87b7ca4488a58d156937933ec4922f6692005e5b045bdb309b3e7fc271f0074 17
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-xml")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-xml")
 @hash 427b413dff9a72939c59682019d4094d20be612c8ad0814e431a667272b4f908 31
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-xpi")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-xpi")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-xz")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-xz")
 @hash 937abf3ef39f162cdd7ea5f6b0141f945f4d6b790d9f98dfe634b90500ccacb4 35
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-zip")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-zip")
 @hash 5a61f6a7eb396287ba17bb34b9745fda03ddc7c48bcc8b404464395ae900070d 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("detected-zst")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-zst")
 @hash 23d3f58de40588e2639d4fef102073a843730eb95af81dd712641169c02bd8e2 31
 
-@test InspectorSchema_ReadsAndWritesIdentically("ico")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("ico")
 @hash 064754386dc32dd8f2d7fead5f67622e4756593f16e59a8b699b15b23a40a531 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("jpg")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("jpg")
 @hash e988d39b7332d878f8b93ca1f1ec941ec9f1674c067d9c51cb0683a1544c91c0 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("pe-dll")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("pe-dll")
 @hash 010f8f375f174a1c46e2d9460f190f98105e2720975fca1d3f917eb45fe82e8c 37
 
-@test InspectorSchema_ReadsAndWritesIdentically("pe-exe")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("pe-exe")
 @hash 9900a79aa0c61d2c83aaef6183952d8098ec6360d0530fe7aaf200fcec25552b 37
 
-@test InspectorSchema_ReadsAndWritesIdentically("png")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("png")
 @hash 183359e0067922868de5d9dc13e43b3e2ad8fe428a3ac6260039722eda8c3456 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("tar")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("tar")
 @hash 0be01c7e217a44c436fad725e5f06cb0825663b30d80a0311e7491abbbe8b6fc 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("wav")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("wav")
 @hash 46684e07637eb1a3de0cb02de537cea6bf679bdeadbf688cb6cb482a638cb83e 39
 
-@test InspectorSchema_ReadsAndWritesIdentically("zip")
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("zip")
 @hash 274a3517cca35ee10477fd4763b6cf1ac834ed832895a652f47340281c95b301 39
 
-@test ManualFixture_ReadsAndWritesIdentically("invalid/bounded-encodings")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("invalid/bounded-encodings")
 @hash 80c095dfe3395382920e7491ca0881bee08aea20e71690933b8e70328fb3bba4 17
 
-@test ManualFixture_ReadsAndWritesIdentically("invalid/bounded-failures")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("invalid/bounded-failures")
 @hash fb894ca15a11125935eec1509d6b201a48bd71bb88e5241f7d6b42169f86a457 17
 
-@test ManualFixture_ReadsAndWritesIdentically("invalid/conditional-fields")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("invalid/conditional-fields")
 @hash fcb4780f57abceccf69646fb4ca9081fa9c2761afc9d8273779731b069b1aab4 17
 
-@test ManualFixture_ReadsAndWritesIdentically("invalid/fixed-point-values")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("invalid/fixed-point-values")
 @hash 1904df65bf8f4ac21d282e44783b88636780762298edbf0b5ec5b8229af308df 17
 
-@test ManualFixture_ReadsAndWritesIdentically("invalid/identifier-values")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("invalid/identifier-values")
 @hash b72ff6b49ac9904f08ad4579abad627fe3223593be091570e62f964c5a6c2867 17
 
-@test ManualFixture_ReadsAndWritesIdentically("invalid/integers-24")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("invalid/integers-24")
 @hash c645e4724c2caf83a1fc7162e26fe4f4e0c9cc2ec6cb9704bb96a2ed703df3df 17
 
-@test ManualFixture_ReadsAndWritesIdentically("invalid/leb128-integers")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("invalid/leb128-integers")
 @hash fde83ffec9f12b4f75b5fc8cf8d90f5cb1e5ddbcf0d64d24b7536debaa30959c 17
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/alias-spellings")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/alias-spellings")
 @hash 4a440ff5b76c3c19786110913d43e59554d1dfb634b8fbbebebde2f5a56b038f 81
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/alignment-and-endian-overrides")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/alignment-and-endian-overrides")
 @hash 1f157d5e1395ccb3b51332c49458c7500532beaf283e77c96945d10697fd74d2 81
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/anonymous-bitfield-padding")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/anonymous-bitfield-padding")
 @hash faf168f7437cd8630dc2195f6992402c1218e068415e1fda0132bc086635f562 65
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/anonymous-promoted-member")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/anonymous-promoted-member")
 @hash ee7bb0a7fae87a3731b33d95567713d849c5567efb541591458194e278ee80aa 95
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/bitfield-allocation")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/bitfield-allocation")
 @hash 6869703e9fb2864c37b6801e888a67e2bd0ed391115356152fe56f5c7af4cdc3 95
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/boolean-primitive")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/boolean-primitive")
 @hash f589893854cf3bf323e82f02742bfac2fde52bf33ce9083dc8d99f963dba87d8 63
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/bounded-encodings")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/bounded-encodings")
 @hash 5e50eb9b54d5d13b0fdc686ecee3685205ff292d178eae8b22cbe9871f8816cc 63
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/bounded-failures")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/bounded-failures")
 @hash b46076c7b201e2a19b73d254fb7bf3ac1f54780f308f1989fdde31c7f5e3d085 45
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/c-long-width")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/c-long-width")
 @hash 0bed7d0f19a02b5b39258ffc9d40d6fd4ae4a82672689847644098566062fe1e 81
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/character-buffers")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/character-buffers")
 @hash 568a4745cd0f5d6df726d0322622415e5a3aaf207d58158d810850ab0c1e3c0b 77
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/composite-alignment-override")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/composite-alignment-override")
 @hash facf89b2ab5304ef1a230e6d712e42a9962f4b589d98497c9e7315f5a5bcf2af 63
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/conditional-fields")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/conditional-fields")
 @hash 2ff72226ea9f8b423d9bcb44fb2fe4d64bd541f32514493ab35cf3e230e7f1d5 67
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/counted-pointers")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/counted-pointers")
 @hash 347e531e2a9c9905bf0d984f3c84417ac23ad253e2f4ec4bd849a5b99a9b1fd9 75
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/data-sized-arrays")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/data-sized-arrays")
 @hash 476d571a236d409c83a1979e392c9dd15f1f006ae12bfb9ed4fcb057f928354b 67
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/default-enum-storage")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/default-enum-storage")
 @hash 6508e0c657981467f6c9a67d1aee83483f441a861d4f37ab68bb2f125457e011 63
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/enum-bitfields")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/enum-bitfields")
 @hash 1b5f627bd9852229c53677fade6bbd90043b96671a25caa78da4c1b4ebac6df3 81
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/enums")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/enums")
 @hash da1f4cd1522e1043aac2ab768520f36f170063376e8342313c4d57dd029f4da5 63
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/expression-extensions")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/expression-extensions")
 @hash 3ac8b738a7cefc5c35996f2ac5951989bf539b533e24890a2482e682748abf42 63
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/field-alignment-override")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/field-alignment-override")
 @hash bdf28a0f8f9c30f111b6d2c4107d89038a4d55ec9926f4fe97937a1e1a8859be 63
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/fixed-arrays")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/fixed-arrays")
 @hash 0aa5ab571e3394e52131898870ce1015c31ef26206e4ec8c119cb2823fe6422c 77
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/fixed-point-values")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/fixed-point-values")
 @hash 9263e6b91d0a2bf68e129b4da4034b4463dfe241a1f954105224c41418f23350 45
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/fixed-primitives")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/fixed-primitives")
 @hash e76a1354d1b3f031b9c92247a646248c5fe50f1432eb0f8d24de22d11e8b9e41 45
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/flags")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/flags")
 @hash 3174c10e1a3a6355206c9570f37236a2d420e9213603889f82a2ea000c6820f0 63
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/floating-point-primitives")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/floating-point-primitives")
 @hash d98b2de21c5077784b13c1dfcdb3c387f8c0df6b16bda70f0aa38aedc6234a75 63
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/identifier-values")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/identifier-values")
 @hash 7c7bd258a69d5cc35c77531a47ac456212432297527de4f58d6c8da6d7e2afbd 63
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/inline-structs")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/inline-structs")
 @hash d83e62df3b9d599562b17c08ec2b98f00f58091628fb1693553390dc1d7fa8b0 77
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/inline-unions")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/inline-unions")
 @hash a058799f8cc960d02fd7ba352cad280ed7f285bc769d4d26d36e5481c3937d79 109
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/integers-24")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/integers-24")
 @hash 02aab0596e6efd9802d0e7b099eb3dc4e83f19db3c69f04efbb8712c9562e1dd 63
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/invalid-layouts")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/invalid-layouts")
 @hash 391eaed859cfb336ec12bfaa53a66c0937f66265514d94424bc8a22f7e304225 45
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/leb128-integers")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/leb128-integers")
 @hash f013445525811d479380e5b9fe7621c4e7896c1996b7a54c535d84582212b57c 63
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/multi-pointers")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/multi-pointers")
 @hash 25bd38fbc6a0bff067fda642eba60e04aab4008282cb0cf7b7852a55d7a4080f 63
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/multiple-declarators")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/multiple-declarators")
 @hash 87d35e0ff20d63087be82508789da2aba6b64e7f44c2ea1e575e83998ba0bc11 63
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/nested-references")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/nested-references")
 @hash 5150ff6c7466493d450260af6b54bd43112efc215b4f419e76aa9ce511a5e9c0 81
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/nested-structs")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/nested-structs")
 @hash d83e62df3b9d599562b17c08ec2b98f00f58091628fb1693553390dc1d7fa8b0 77
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/offset-assertion")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/offset-assertion")
 @hash 7cfb5436ce37a36ce8df53ecead0e5e229e5bfc461dca3e7e567f89ddced9aea 81
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/pointers")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/pointers")
 @hash 5d1791c3cbe811cedda18372629e90aac0eddd231d9c9a12d62766015e530df2 63
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/portable-bitfields")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/portable-bitfields")
 @hash ad329c9917547bb191bde7342231593763ddd26785b74025a399b7f4d352acf2 81
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/portable-c-integer-spellings")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/portable-c-integer-spellings")
 @hash c331fc3ddf137bf59cf2ea1355e286674de7dc126563e782711baa3a26331447 45
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/preprocessor-lines")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/preprocessor-lines")
 @hash fab4b1596184f92e63b5184bb2a0ef459e2c425ca124edb5ad7d80f657c39d3a 77
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/qualifiers")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/qualifiers")
 @hash 391eaed859cfb336ec12bfaa53a66c0937f66265514d94424bc8a22f7e304225 45
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/runtime-expression-arrays")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/runtime-expression-arrays")
 @hash 734d5d88dd258b16710c33a7d68a2619eb9d0bf419a94a3c2b34b90768555560 77
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/tag-keywords")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/tag-keywords")
 @hash 8dc4ef0d473b5ae2c62d3581e5395311c9ca223c10baeaeebd9164f1fde40450 45
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/terminated-strings")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/terminated-strings")
 @hash 7b7800c8af61d75d8f9da476c5a597e6afd62073ac06c0bb8e92f809489f0533 63
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/top-level-declarations")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/top-level-declarations")
 @hash 791fb86eb8468e773eafe05010c6feafb310a3ef6a3be1fa8cb3812d213dad88 95
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/typedef-forms")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/typedef-forms")
 @hash 621b42b9211175df4d4480097032f8cee8f45791038e0382d47b25d56cd8f352 109
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/typedefs")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/typedefs")
 @hash 1662d023c99c1a91465434710db2118a00336c0e5e4d24bf42c3a084ac53e073 63
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/unions")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/unions")
 @hash 21b62ed3c5bbf078fb2a9990a85d01deaded35cd971dc2e3396b6d5653522c2b 67
 
-@test ManualFixture_ReadsAndWritesIdentically("valid/wide-primitives")
+@test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/wide-primitives")
 @hash c0ab28f4388421a384422d8fef43e8dc35ac455cf5966c3fb1d573b8cde7f5a8 81
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/aligned-x256")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/aligned-x256")
 @hash 46dace0a44f953e2642e35dcb4e2f8e3ee7ecb74072f5aa56e097b10c82a9b3a 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/array-struct-100")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/array-struct-100")
 @hash 581678a38392bb3f0f179a5d76677ed36e6a4ec56ee66f853ce278d6f61100e9 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/array-struct-10000")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/array-struct-10000")
 @hash 66ec18fa8a84f9ea4f5a67249f6a3440128b20dc70d05768ffe9127cfa6c7de2 18
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/array-u32-be-16384")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/array-u32-be-16384")
 @hash 42e24abef9e176977d24e62c69ca55586a835decb2c0a94f7086b0b4936020c7 18
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/array-u32-be-256")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/array-u32-be-256")
 @hash 7b1dfa1bf1ed26ee9f7ffce620fd79a86be43f248a25ada5e3282c61852572d1 31
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/array-u32-le-16384")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/array-u32-le-16384")
 @hash 4366981746daf874cc930a560e2008271f107d76a92c8d0cdf14cd8e2092cc4b 18
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/array-u32-le-256")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/array-u32-le-256")
 @hash b0c0af90e39c91dc67cf40bd937a3a8c8ad9944c4e15d9fd1d10b8f6bbf83b2c 31
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/array-u8-1024")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/array-u8-1024")
 @hash cbb3d7e0faa57fc8135f6d0350acda968498aba698763974bfe16f8ab42c8b01 31
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/array-u8-65536")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/array-u8-65536")
 @hash 97bd32264a4df0b63222ad3511939c7dc09d090b4b36dcec1706e46fda5718d6 18
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/bitfield-x1k")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/bitfield-x1k")
 @hash 95a415a86c64a2daf40b8e8403f2ddfc1ecf24b6e1cb0e94d939e6da2399cbd5 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/compile-k100")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/compile-k100")
 @hash 517a369ef451082065faa501d5b6ae6dece9f73bb48ddc751b9fd599e8add679 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/compile-large-512")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/compile-large-512")
 @hash 1a61ae93464b8fe946028d3b4bc00c520c602f2fb81b6b9521c6638355a47899 17
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/compile-medium-128")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/compile-medium-128")
 @hash b5786af072b2ad7dd9530d0fa119a9d5411715cb01cb58e317818d9e267fc8c3 17
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/compile-nested")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/compile-nested")
 @hash d610bda5a6bef0bce2c56e45a0038f7e6133fb792b599043cec2a8d605fa0e05 17
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/compile-small")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/compile-small")
 @hash b2e4dd11f4b135355e6310b69d61d647b70e3c4fd0aca0ff9515c0bd5bef9714 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/compile-windows-header")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/compile-windows-header")
 @hash 523a29e0001f18cf4caa79521791618abed815330424d917337e3049eda3093d 17
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/cond-if128")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/cond-if128")
 @hash da12c078c89dbe72cce138de5fb706d854b13c3a7cf8e0850aa1c9e763379fa0 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/cond-plain128")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/cond-plain128")
 @hash 73c16a6fcb0d9da366a6136fb2aadcc0230ee651bad929700f2f42e11f3fef02 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/cond-switch128")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/cond-switch128")
 @hash da12c078c89dbe72cce138de5fb706d854b13c3a7cf8e0850aa1c9e763379fa0 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/dynamic-1")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/dynamic-1")
 @hash 73caf86de0b49db60f586a66669e2332df2bed86636f18f0de5e14e3fccf4b6f 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/dynamic-1024")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/dynamic-1024")
 @hash a0a8111588af58c384ce0527d4cecb0a93ea7d282c378a5e9ee509546e74640d 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/dynamic-64")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/dynamic-64")
 @hash 1ca879d160b087f64efc3ab9124a28a4fb21410a83cc3592044962623d7cb2d6 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/enum-x1k")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/enum-x1k")
 @hash e70cd5f9c7cb8110319532b288346e06e318f219da08ce4d6622ef753093a871 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/malformed-budget-exceeded")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/malformed-budget-exceeded")
 @hash f200785fc0e05790e45e1ce8868b19e234178ed7951a85ecec8dacb47b07ae01 10
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/malformed-dangling-pointer")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/malformed-dangling-pointer")
 @hash 88058c1ccbb8f54812ce98a2846461f0a76c248af9910f7fc4124f8f87333f78 17
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/malformed-negative-count")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/malformed-negative-count")
 @hash d68f238d34a68974bb6c6c4b0124a3cb751c213ad0a19eed3cdc41d338bce90b 17
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/malformed-truncated")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/malformed-truncated")
 @hash 2a859f5724830fb193d36817419be36e4a7d890fe46b1740f23b62c1a82e1446 17
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/mixed-endian-record")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/mixed-endian-record")
 @hash f23257b3ef1c48807593b85e253b230e9a9ffe02151abe9b5863cf24b4b62875 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/multidim-16x16")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/multidim-16x16")
 @hash 60d6797eb9cf243d7524a9476d640cf122efa5183141540e3a068efae30d1abe 31
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/nested-x1")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/nested-x1")
 @hash 371f2ec0bf3c9b03e1d8e4d2211256039ed0e58f39216df3b4438a1788fa59ed 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/nested-x256")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/nested-x256")
 @hash 4d63a46b6a4cbab5d431f647435173716bdad2bd0f95fce6375c9ece2a27b260 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/parity-alias-x1k")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/parity-alias-x1k")
 @hash df07900838a300752a070a6ece3543a8d8d93f5c74022db4b08658156f1be137 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/parity-flag-x1k")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/parity-flag-x1k")
 @hash 3730c85fd4ea1ed303d39b5d8275f4f67706562e16f9691a246dc6bd05a10158 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/parity-inline-union-x1k")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/parity-inline-union-x1k")
 @hash 59bf941d3a66f40a57e2e1d3c1d3d5d91ecdf6f726a151ad505a30ccea8fffb6 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/parity-terminated-struct-1k")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/parity-terminated-struct-1k")
 @hash 65af59420b1ea8537110c73676d97f2fd4b6874f6d9fef0a1305955455983cd3 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/parity-toend-u32-64k")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/parity-toend-u32-64k")
 @hash 1d6ab0cbefec9a034fa5846008d1f87422c063efddf82c6af6938b3a1a708659 18
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/pointer-depth-1")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/pointer-depth-1")
 @hash b3735ad9ddeab15933d530ed91a5a6b26ff1a414bd16a5e27bec909de69de512 37
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/pointer-depth-64")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/pointer-depth-64")
 @hash 3e1b07390b5dbed0e4aca34e6ad72acc8a5b9828429fa0ad14077b73ddc73334 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/pointer-depth-8")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/pointer-depth-8")
 @hash ce17ccfa7025a9d36faf33160437e207e1adb3cb3ec2768614c6956fe9e12f2f 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/prim-be-record")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/prim-be-record")
 @hash 753ae43b4f87cac273ddcb15d3748a54430a7fa47950a5057a7bc46da957a923 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/prim-be-x1k")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/prim-be-x1k")
 @hash 95fa337eec5243351da870dbdcaab83f0ecf5d4958a62af4593134eccb50a852 18
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/prim-le-record")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/prim-le-record")
 @hash bcee18552b7b05cdeaf3cf022c0d2090bc4604cf98ee5e9d16c30f62a5dd5525 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/prim-le-x1k")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/prim-le-x1k")
 @hash 147c1baf77cef00dd8638101aa49bf4c9db3d29678036963c85dfedf64e6db60 18
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/real-bmp")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/real-bmp")
 @hash 2503da624373802848c84ddf8118b19f5450206f210cb1897975d16cbd96ab66 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/real-ico")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/real-ico")
 @hash 064754386dc32dd8f2d7fead5f67622e4756593f16e59a8b699b15b23a40a531 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/real-jpg")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/real-jpg")
 @hash e988d39b7332d878f8b93ca1f1ec941ec9f1674c067d9c51cb0683a1544c91c0 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/real-pe-dll")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/real-pe-dll")
 @hash 010f8f375f174a1c46e2d9460f190f98105e2720975fca1d3f917eb45fe82e8c 37
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/real-pe-exe")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/real-pe-exe")
 @hash 9900a79aa0c61d2c83aaef6183952d8098ec6360d0530fe7aaf200fcec25552b 37
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/real-png")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/real-png")
 @hash 183359e0067922868de5d9dc13e43b3e2ad8fe428a3ac6260039722eda8c3456 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/real-tar")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/real-tar")
 @hash 0be01c7e217a44c436fad725e5f06cb0825663b30d80a0311e7491abbbe8b6fc 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/real-wav")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/real-wav")
 @hash 46684e07637eb1a3de0cb02de537cea6bf679bdeadbf688cb6cb482a638cb83e 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/real-zip")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/real-zip")
 @hash 274a3517cca35ee10477fd4763b6cf1ac834ed832895a652f47340281c95b301 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/strings-1024")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/strings-1024")
 @hash be1bd3b09170e291c6996051710b09528b0d958e56384c9e40cb391deab02049 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/strings-8")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/strings-8")
 @hash 54070a35eb37ea18c4f7a88a5e3382b3c5dc370403893aa0c45254f251527996 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Benchmarks/union-x1k")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/union-x1k")
 @hash 2affbe7172e59d4edb5cb09dabd1656c0b876ad3e08330506a06f2c6770e9698 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Conditional/bytes1024")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Conditional/bytes1024")
 @hash 4a9d311a3e209963c3a571a8161bbc5b3801725242b49867b35f81ae5923aa1f 31
 
-@test ParityLayout_ReadsAndWritesIdentically("Conditional/dynamic32")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Conditional/dynamic32")
 @hash b6707560fc754295a4b6de004904aade212012b603b785863dcdaa9a0fd04585 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Conditional/fields128")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Conditional/fields128")
 @hash 3309531ae3f235725ea8c10a9961484e664fce2629dca22d0b61797188bd119d 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Conditional/header")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Conditional/header")
 @hash f1892b4a5934e55f56b14d46e10cb0c6e7ababe6a4c88a7795c103a998e4f681 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Conditional/if1")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Conditional/if1")
 @hash f13048ea277d04c845dfe01f4efcbbdfd847c15c66aaf6ed1da435473d41dc08 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Conditional/if128")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Conditional/if128")
 @hash a90f65df6d337c4b0d0a62c1b3d2727cbc7a910b723ca3011b8b31dbd463f41d 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Conditional/nested16")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Conditional/nested16")
 @hash 2c9d1faa774dde99bb5debb6996dfdac45523a3dd16708a71cbcfd2ce2160e78 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Conditional/plain1")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Conditional/plain1")
 @hash ae252a78ee4b10f93ed9382a7a807f024169921ec597cb157c7b310603e4aa54 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Conditional/plain128")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Conditional/plain128")
 @hash 5347060ad8127d77984d2074846b45b97efcdd807edd09db3acc38b8562cd28a 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Conditional/switch1")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Conditional/switch1")
 @hash f13048ea277d04c845dfe01f4efcbbdfd847c15c66aaf6ed1da435473d41dc08 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Conditional/switch128")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Conditional/switch128")
 @hash a90f65df6d337c4b0d0a62c1b3d2727cbc7a910b723ca3011b8b31dbd463f41d 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Conditional/text64")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Conditional/text64")
 @hash 166b12101223aad296b6bf2eff66c649ca2b39e648adfa0bf8f2b3cb43d41878 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/alias-spellings")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/alias-spellings")
 @hash e3d62befb8e82f90615a771a37bf4a87c995bdd319e8e4eb3d324c57d42900ec 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/alignment-and-endian-overrides")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/alignment-and-endian-overrides")
 @hash 38614d02ce6ff3c957b5aa5c0bd00de50145af1be53d39a3e2dcee83feb360d4 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/anonymous-bitfield-padding")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/anonymous-bitfield-padding")
 @hash 6e2717ea4ca7c237969f246a58be9410a2f0de77e8aef7cca5c041a0423f8a03 37
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/anonymous-promoted-member")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/anonymous-promoted-member")
 @hash 34dd56167c87a6bc85cb70371bd84ecde36e48efc701bfdb6ce797f0500d43c2 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/bitfield-allocation")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/bitfield-allocation")
 @hash c1e1a4385694d5f95b026d92739b6028466bd5597cff28892d698a33be974439 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/boolean-primitive")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/boolean-primitive")
 @hash 230750ed27396c8cd340849dd36019d0cfd4a908aa624077574c11ccfac4f1e7 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/bounded-encodings")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/bounded-encodings")
 @hash a9a99a900b19402149ea63ddec68e52e32e061fd8681bae5225bb0dfcc56f4b9 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/bounded-failures")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/bounded-failures")
 @hash d52794f0773d957abe9b5118cefebb2cebecf6863ca8eed7922bf9026b2199f4 31
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/c-long-width")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/c-long-width")
 @hash 5d859fe3585980d7e2f54f3a1271c21055eddeca42d1962a8f4683ae81886cbe 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/character-buffers")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/character-buffers")
 @hash 55131d252d694a8f1e4bd5061d09ca77c000342fa62cc9b1e7248a1e2e165678 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/composite-alignment-override")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/composite-alignment-override")
 @hash 83e9b0971da7cc7cf29be5582ede89ca453365f8480d3c2b61a330a77ce58106 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/conditional-fields")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/conditional-fields")
 @hash 2cda6e493f67ad9bcc1f0b264d42e4160f2f91397c523ea435d4eab539c7ae34 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/counted-pointers")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/counted-pointers")
 @hash 6901665bf753b4680bbaf408b40df51fa324410d1355c1f39f4109b37f86bb92 33
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/data-sized-arrays")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/data-sized-arrays")
 @hash 42e197e9c6240ea672692bf80c9b3c4fe61209d79cba03467e8b98564570af2d 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/default-enum-storage")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/default-enum-storage")
 @hash 63de7152885e9537cce977c0104980c7d0d3d0503148e602e252d644ce4a186a 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/enum-bitfields")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/enum-bitfields")
 @hash 9108288d29a292f21e57de323043275e44029bda21437b2ca9fc56986c333e46 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/enums")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/enums")
 @hash 53dfbc2a7457bc0a301c7fbb0b18c95a22184e1d0dfd1ed60823b06eb1f2a083 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/expression-extensions")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/expression-extensions")
 @hash 10323bfd1fd7826a4f9c206b0256dd5007e57820908736942f32605735e0631e 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/field-alignment-override")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/field-alignment-override")
 @hash 1ce08aeb78efe0de4f636ef0d534e5c6af2837414cbde903ae7bbfba90223ee0 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/fixed-arrays")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/fixed-arrays")
 @hash 461912af6b562035d826167e553acd86b68a844b97897164bffd8b501ce684cc 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/fixed-point-values")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/fixed-point-values")
 @hash 4871295f149b552bcc99e00f69a05216396f5b9dc6153fce44eaa120c42a05ad 31
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/fixed-primitives")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/fixed-primitives")
 @hash 12507d96db522daa2a1f6d771a93ffc2224b56974fe24600df863600f041939b 31
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/flags")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/flags")
 @hash 776c2819d41893eb5f43d5059e4667731c829df37515469e928c2f978a071a7c 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/floating-point-primitives")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/floating-point-primitives")
 @hash 817096c9b73349e6c4aedaf047b68e316036e16cb873f716165cd0635025f786 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/identifier-values")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/identifier-values")
 @hash eefbc6d5265bca8f384614c0a5310b02b1bcfd4c01089127a4c5fa50463a53f5 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/inline-structs")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/inline-structs")
 @hash 93feefd9dc443a2d9d82cea056503041132972f1373a1f19e3b1fae66bf16458 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/inline-unions")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/inline-unions")
 @hash a35d6f58a448f74511f494384640cc1b2ddbc41abd2132675b3581af636f645e 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/integers-24")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/integers-24")
 @hash 4a45e784c71548b466c342342d7a62f8eed4a6cf0a16aa86b298e8b50991d868 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/invalid-layouts")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/invalid-layouts")
 @hash 1cd35dcd213cd7a6d0839ebc6e76c2831c3ca9cd3fcea7a6a8d2761ba85ad742 31
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/leb128-integers")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/leb128-integers")
 @hash 6f0d2eb4825ac328ee93ddb0dac406b668f3a8a2c43e164f9b7f61eb70707ced 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/multi-pointers")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/multi-pointers")
 @hash 714c41439612a6a4085fe2ac173db04138684dbf74b81937aa9ef893df72f782 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/multiple-declarators")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/multiple-declarators")
 @hash eac3989e453b3e5a5c1cd477258145fb6071a5b2ead29c87e9f7f7ff6b0eb8d7 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/nested-references")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/nested-references")
 @hash d7a7c31415b4192d2f0b4e6c12c3d9dbb330758bba3dddee00f7de97865d66f9 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/nested-structs")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/nested-structs")
 @hash 93feefd9dc443a2d9d82cea056503041132972f1373a1f19e3b1fae66bf16458 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/offset-assertion")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/offset-assertion")
 @hash c22a5ca031eaf4f27a9568ede4647bb06af7e9524f92c66da69aba84dd691f73 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/pointers")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/pointers")
 @hash d574d6ebbaa15873ae5ec9e7a3623c7ca02507665069b18d923580a3898dfc86 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/portable-bitfields")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/portable-bitfields")
 @hash 92fbf2d8bb345d18f5e82c9ab932d1a5f7fa70a8581710f05132b426a239726a 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/portable-c-integer-spellings")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/portable-c-integer-spellings")
 @hash 026ae6e22127a5575dfb1134371ecd4ffe9f5a73a02c2aec1030d8b805ac2582 31
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/preprocessor-lines")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/preprocessor-lines")
 @hash 7475b278268a785c657ebdd2efe879b4d0825999b1c5c422dab1c0f3988cd230 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/qualifiers")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/qualifiers")
 @hash 1cd35dcd213cd7a6d0839ebc6e76c2831c3ca9cd3fcea7a6a8d2761ba85ad742 31
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/runtime-expression-arrays")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/runtime-expression-arrays")
 @hash 700919a80f8a55ac18b1bc1a12f2caeb71a3981e4cf8f35de559dd5846b070d1 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/tag-keywords")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/tag-keywords")
 @hash 9914ab830ddf315227996840d6b717527ee95023f4c9dd16a3edd67db12f6528 31
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/terminated-strings")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/terminated-strings")
 @hash a18a74d535ce4460bd32ed0937606374d52150b7bb1ccaeebee14270e98e127d 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/top-level-declarations")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/top-level-declarations")
 @hash 32b58c5fa57c77a0bc9b992cb0b8f21794179cdf5cdfd90dd7eaa51e8f479418 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/typedef-forms")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/typedef-forms")
 @hash 790f5355b327d5eb2615aee624a42ab71f35c10e4718bd40f81549d09d2cdc5b 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/typedefs")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/typedefs")
 @hash f902e67a53c5dd85e806c8075c9d02c72f08cb459117e4078b51831d9980b9c4 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/unions")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/unions")
 @hash d1261b727166c9a6529be5e6f64b394f01b807a7022da211b796c77770b86f83 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Manual/wide-primitives")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/wide-primitives")
 @hash a6cfa281ed3da7ffb2c75cba0c46b0b337e67b2d5a625a1ca93a2fdd30bda1cd 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/aligned-header")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/aligned-header")
 @hash c96a2eef017c541022d13aea3692280c96a08ff7e589d79f60c477cfd605927e 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/async-stream")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/async-stream")
 @hash e9ebcab01dc3d2988462c449a4b54cf1a0811e45ab8b19896f2a91bda5d7476e 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/bit-flags")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/bit-flags")
 @hash 22307fc520ea097f8b9fecc905d394d39164f1c8a240890f2546d7a046b56ba2 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/bounded-encodings")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/bounded-encodings")
 @hash 06b6db4f1126b960bf690aa481ec36238b5b2438cd50175a229b5061cf72b1ac 17
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/bounded-read")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/bounded-read")
 @hash 62ca4e2e496e14a7e1951b4f5a6afcd8cc996a66f2109ae3fd84d0ce9383d7f4 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/byte-order")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/byte-order")
 @hash cba275a6a0277fd2c1f32cb2b1763d6e83e3dbd95f283e3af8510d4ba7808f53 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/byte-order-2")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/byte-order-2")
 @hash 3bee0c4d7cab125c4b38ef57f7e56a20e8abb82f585ec5715d5a5f859af37e18 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/composite-record")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/composite-record")
 @hash 77d98db839320f380c61add9e0366ac953bba2f6da82d97b328b72c6c4c6558c 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/conditional-records")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/conditional-records")
 @hash 1f6e5c38a1e0bf44af9f0e1f6991da7f59e49257f6433d06fc768341f0994ed1 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/conditional-records-2")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/conditional-records-2")
 @hash 7e4ceedf2f62a6040ad6abd3b2ed35e22577a20fbc7377086c26366ff47c2507 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/conditional-records-3")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/conditional-records-3")
 @hash 42f03dd4e7ef076c13a5d7466e76831148b1a0826bf48dc5fc14dc0964ebfe42 17
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/conditional-records-4")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/conditional-records-4")
 @hash 25ced1aa7b04285b8776465e8ec3515414ed95289c553b2fe7cc9a49c572eacb 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/conditional-records-5")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/conditional-records-5")
 @hash e471bf4d61a2974f17832c0b70090fe8885217850ab882be95dfbda90592e352 17
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/decode-header")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/decode-header")
 @hash 7e3315817420a22e071b1bc593148cba3248b5f14007b6a3ef7b8a3014d8b7c4 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/edit-file")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/edit-file")
 @hash d30c9e2ec972362915cc621874e1b4e0fab785ac6f6cb387bce0cb7d26d797e6 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/edit-file-2")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/edit-file-2")
 @hash e2da771a8a8a194a097cbc9e789c3b4aecb00f8aaecc3f96effe04cad416f8b3 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/fixed-point")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/fixed-point")
 @hash 0caa101abef5e31c6a5ee7886e88f2618f4e94979f5e439867e04a1d250bc290 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/fixed-text")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/fixed-text")
 @hash 434a38002d97b9f37f20d62df0efe6128410f77390bf3e95d319c1d098db51cc 31
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/flags-and-data-sized-arrays")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/flags-and-data-sized-arrays")
 @hash fd71902081359042b099a4615ec77f6f5b63fd8ff0254735272c3b2b64c56666 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/follow-pointer")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/follow-pointer")
 @hash c8ee2cead4bd58d89b984abf69d29ded365aadc8509e171785f31f094b77bb8e 17
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/header-preprocessor")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/header-preprocessor")
 @hash be4ebcd327c318e9e2faac4c59d1256d96e1dd93e1c12046ed5d4d23b089a773 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/header-round-trip")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/header-round-trip")
 @hash 948fb349981f212135b6c24f2dcfaa869e15931ebdc9cd9f59a1e45f35707893 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/identifier-order")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/identifier-order")
 @hash 8598c8ba640cf03081dc50ce1e2ae5b0d7b0ffe8def8a4a51b3cac051f3b5463 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/inspect-ranges")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/inspect-ranges")
 @hash 43ebdc4e2ac5ca7d670dcee6d4d3d070618a0434726dbfec63b3e8ddfa7f6f85 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/integers-24")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/integers-24")
 @hash 99f87dc77e3015eeccc6768b65b6d95a6a8cb5dbe22d05c71daf59ae81f063cf 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/invalid-path")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/invalid-path")
 @hash 255555f55384df4099da460ebd51b0735f8de141385b118df9ad5b244b7bf96f 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/layout-introspection")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/layout-introspection")
 @hash 489627cf4fe685e0f16b6844f08e854cc517fdff363fe19ccad4a728a77b35f7 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/map-poco")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/map-poco")
 @hash f3609185a9ce61b8fb5b7104b1cac121b4c8b24963c5dfbef990d3d7812dc157 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/nested-array")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/nested-array")
 @hash fc77adbd71ea047ab3d96698379e6991609d3f8b4b77a1571403ace32502e500 31
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/patch-field")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/patch-field")
 @hash 7c92d68bb7fe7bf935767d9f9de86a3362cf6abe3ff0e5a4de32c8bc5c3ab397 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/pipe-reader")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/pipe-reader")
 @hash 1788f77e25b437e3e44c1b81baed84e1c59de3c632c01355e04edf21fa5656b0 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/pipe-reader-2")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/pipe-reader-2")
 @hash cb8f8b829ca336b9d4333629834fe35475dd3293d9ef3ff012dd7799d7881063 17
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/positioned-stream")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/positioned-stream")
 @hash f3cebcdd64cc034d8d042311c93fb35a9cd478e56ae8d5debd9063492c8412d9 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/preserve-enum")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/preserve-enum")
 @hash a492e0ebd68ef0270c07f12950faf4a9ccd2b2f0b86b3d31c513e100c5be77e5 31
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/preserve-union")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/preserve-union")
 @hash 0666adf2949c0cc8fa6a0de192eb5a3bea8618794445a52b324ee398ad3a7c3a 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/relative-pointer")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/relative-pointer")
 @hash 4ab2e452cb36d84e48e91f3375af2dabd45354272e1291fbbc8ec9035ebb5a09 31
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/round-trip")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/round-trip")
 @hash 4c6ec4b5d5ec64c81977989e4ec40e48f90b2b2bfbe46080567864c4c32a8703 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/runtime-payload")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/runtime-payload")
 @hash 899221650591b8b82842f9208186ca3f9e6b97e1f35744e1c35f166dc3ef4593 17
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/terminated-text")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/terminated-text")
 @hash e2c015f996d837943684f2045fe2f6f227c4f04579e2e477ff6476b1d641df7d 17
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/variable-integers")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/variable-integers")
 @hash 1efa3756de2dd00a1323819ca47f29eec5046c3babe3c9295ecf338ccc90e2c3 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Recipes/windows-header")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/windows-header")
 @hash 29d9d29c78a9f69f95ab753d44f2b6ea264d2cdc6aa86fd791c3e772ed5400d8 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bits-after-byte-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bits-after-byte-msvc")
 @hash 1026198480bec933c4832a79873fb2f356ff4653482961702c09956362949eff 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bits-after-byte-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bits-after-byte-sysv")
 @hash 15a77557e679ca64709cfca7376ead984b66696733cb9f780406bde66128c596 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bits-signed-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bits-signed-msvc")
 @hash 8e840d193cceee32f7a0734ee1947adf3ba7071a10f37fa89c473076f41d9a24 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bits-signed-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bits-signed-sysv")
 @hash 8e840d193cceee32f7a0734ee1947adf3ba7071a10f37fa89c473076f41d9a24 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bits-u16-15-u8-2-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bits-u16-15-u8-2-msvc")
 @hash 561412db3c8d30ccc3ad74c210f2c7859c815551494d2fdb99740e227e112b2c 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bits-u16-15-u8-2-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bits-u16-15-u8-2-sysv")
 @hash 561412db3c8d30ccc3ad74c210f2c7859c815551494d2fdb99740e227e112b2c 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bits-u32-3-29-1-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bits-u32-3-29-1-msvc")
 @hash 263c9026a2d95fd1a2eb2a97359a7fba036280d0088ecc600a0fb3d31c850d67 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bits-u32-3-29-1-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bits-u32-3-29-1-sysv")
 @hash 263c9026a2d95fd1a2eb2a97359a7fba036280d0088ecc600a0fb3d31c850d67 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bits-u64-u8-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bits-u64-u8-msvc")
 @hash 21c7b2aadb7a3d2ae018f306adfbc1125d7aaf35a03739d276a228594f207494 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bits-u64-u8-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bits-u64-u8-sysv")
 @hash 8b310ef86edf668a5c48eb39c146d809528b0a029b188f2d4c813bb3a80d2f2a 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bits-u8-6-6-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bits-u8-6-6-msvc")
 @hash 0eed5a0d4efd6324c311e1a3997d7ffab94e43b39f139479878c09969206a222 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bits-u8-6-6-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bits-u8-6-6-sysv")
 @hash 0eed5a0d4efd6324c311e1a3997d7ffab94e43b39f139479878c09969206a222 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bits-u8-u16-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bits-u8-u16-msvc")
 @hash c30dbcf81fab327aa20e75dd6e614d3ece7a3b0f6f0d773f23c655bc6ea2d30f 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bits-u8-u16-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bits-u8-u16-sysv")
 @hash 9c0b932c9bb9bb5c226c7c93d639d07b825aacc5c5a8816838bc8fe4a927b2e3 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bits-u8-u8-u16-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bits-u8-u8-u16-msvc")
 @hash 1efadf74d6e52661d1f824e90b7f4568f6b7626cd6d72076de153ad25033b249 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bits-u8-u8-u16-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bits-u8-u8-u16-sysv")
 @hash 1efadf74d6e52661d1f824e90b7f4568f6b7626cd6d72076de153ad25033b249 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bits-zero-width-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bits-zero-width-msvc")
 @hash 3e7dc2247d8afe2a0cbf2acaed127ac01c75a7cf68ab1e06e42690852f1d648a 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bits-zero-width-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bits-zero-width-sysv")
 @hash 3e7dc2247d8afe2a0cbf2acaed127ac01c75a7cf68ab1e06e42690852f1d648a 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bits-zero-width-u32-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bits-zero-width-u32-msvc")
 @hash e2ea36273af36b4119af5bd5a36375b575e2b45b64429fd8310902d8e54befb3 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bits-zero-width-u32-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bits-zero-width-u32-sysv")
 @hash 229edbdcfeb38a0c72ebe45c99df258d6e81e266d6ada14b150f1849c3f75ff6 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bool-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bool-msvc")
 @hash 1d894f04e3e8599a0500e8ae57fd9bcf91805983b94b0775bc3bf78402d3832c 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/bool-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/bool-sysv")
 @hash 1d894f04e3e8599a0500e8ae57fd9bcf91805983b94b0775bc3bf78402d3832c 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/double-after-u8-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/double-after-u8-msvc")
 @hash 6e03b9ff554e94765e2174c9d86b56343a2d14d2ddffcf7b9f0ab9da1a0fb181 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/double-after-u8-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/double-after-u8-sysv")
 @hash 6e03b9ff554e94765e2174c9d86b56343a2d14d2ddffcf7b9f0ab9da1a0fb181 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/enum-large-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/enum-large-msvc")
 @hash 97e378bb0296f9e9c6863cbf83f42c535cfa9844627d7b6bf1c20fca18dd54c7 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/enum-large-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/enum-large-sysv")
 @hash 97e378bb0296f9e9c6863cbf83f42c535cfa9844627d7b6bf1c20fca18dd54c7 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/long-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/long-msvc")
 @hash 60eef8247356b6d71832b35007a3c06058aac48a9744e291b221702ef9589153 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/long-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/long-sysv")
 @hash 60eef8247356b6d71832b35007a3c06058aac48a9744e291b221702ef9589153 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/nested-align-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/nested-align-msvc")
 @hash ce8cbae0d64a596e552f9888c548fc87b6780f35891908523eb7239ef639e5cf 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/nested-align-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/nested-align-sysv")
 @hash ce8cbae0d64a596e552f9888c548fc87b6780f35891908523eb7239ef639e5cf 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/pack2-array-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/pack2-array-msvc")
 @hash d90a4ded6abaa6c85b874361ef3abbc96eac85e0cf7388eca01889d690bb2ec1 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/pack2-array-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/pack2-array-sysv")
 @hash d90a4ded6abaa6c85b874361ef3abbc96eac85e0cf7388eca01889d690bb2ec1 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/packed-bits-after-byte-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/packed-bits-after-byte-msvc")
 @hash caddb79dcdc218bfc0b8e625107edaf66f3ccb09930103634ceb2bb90ac99c39 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/packed-bits-after-byte-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/packed-bits-after-byte-sysv")
 @hash 3e9bac09c79d63e93ffdeabeec276d2526c34fb66ec3ca758e5f5f0ef5772c9d 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/packed-bits-u16-15-u8-2-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/packed-bits-u16-15-u8-2-msvc")
 @hash 3b267ea24d525021bc35b2a7abe229beb09ec3a0cc18a04f7a220a8573d5d05c 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/packed-bits-u16-15-u8-2-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/packed-bits-u16-15-u8-2-sysv")
 @hash 9f2539f8777ccdb8d565c5bd92e64b9df4e888fd9ac7a2e22237b24963d4374f 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/packed-bits-u8-6-6-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/packed-bits-u8-6-6-msvc")
 @hash 0eed5a0d4efd6324c311e1a3997d7ffab94e43b39f139479878c09969206a222 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/packed-bits-u8-6-6-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/packed-bits-u8-6-6-sysv")
 @hash ba8ac030d499415738c92db669f5b6a60c3b5cf93ecffc390d08bc5774b78829 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/packed-bits-u8-u16-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/packed-bits-u8-u16-msvc")
 @hash e52573feebfe358f04d7577250e70eb9ffa70ead6dd87be2e12bcf8e986d515d 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/packed-bits-u8-u16-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/packed-bits-u8-u16-sysv")
 @hash 09df5bb4d2492f44ee4d88169cac7323a2f9fa4b88769d7f65d9b0e4d3bd7130 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/u64-after-u8-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/u64-after-u8-msvc")
 @hash f73b128118aafbd3767eee04cdba73ddd93ebb5924ba362783d63d8aced55ae3 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/u64-after-u8-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/u64-after-u8-sysv")
 @hash f73b128118aafbd3767eee04cdba73ddd93ebb5924ba362783d63d8aced55ae3 35
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/union-size-msvc")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/union-size-msvc")
 @hash 224774e8a3b7b745b855d10f243f8faa9c201f57f739526686672af744166fd0 39
 
-@test ParityLayout_ReadsAndWritesIdentically("Shapes/union-size-sysv")
+@test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Shapes/union-size-sysv")
 @hash 224774e8a3b7b745b855d10f243f8faa9c201f57f739526686672af744166fd0 39
 
-@test PortableCase_ReadsAndWritesIdentically("example/aligned-mixed")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("example/aligned-mixed")
 @hash b4c7cb61667adf9ef90b41ca395b3e3b00952ff507a81d860e127b43784729fe 81
 
-@test PortableCase_ReadsAndWritesIdentically("example/aligned-nested-array")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("example/aligned-nested-array")
 @hash 082c994e69bcf64561d5d65778bb9828d9be483b9adb5d467ea14b38d3678cff 123
 
-@test PortableCase_ReadsAndWritesIdentically("example/aligned-null-pointer")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("example/aligned-null-pointer")
 @hash 0a0abfb69d76ffade0ae627b18064b8ad42e7ec47c919075d832acae9b1be1d1 63
 
-@test PortableCase_ReadsAndWritesIdentically("example/aligned-union")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("example/aligned-union")
 @hash 648fe0a1bda2a9dd900d6bde45779e86a3900cdec2ae20b3b519b43c8babac96 67
 
-@test PortableCase_ReadsAndWritesIdentically("example/alignment-override")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("example/alignment-override")
 @hash 061185e5fd4fa5b9d9b4afb80d5512469ef59c2b20f25ffb629c9fd9e69169db 63
 
-@test PortableCase_ReadsAndWritesIdentically("example/anonymous-bitfield-padding")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("example/anonymous-bitfield-padding")
 @hash c9bc095a6cd480063e27c65c246dc401df18594fcb6bebeead50eb59d4710a8d 65
 
-@test PortableCase_ReadsAndWritesIdentically("example/anonymous-promoted-member")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("example/anonymous-promoted-member")
 @hash 3574183b3141802575e71f9723a6a5d9400e98a070a6ca00791367dc2c17d243 95
 
-@test PortableCase_ReadsAndWritesIdentically("example/boolean-round-trip")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("example/boolean-round-trip")
 @hash b194ce1b8c12be4dc7a66a662a6e28cefca78084df096e9008b397862acadbfa 63
 
-@test PortableCase_ReadsAndWritesIdentically("example/composite-alignment-override")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("example/composite-alignment-override")
 @hash 7cfcd8ad07867d8977dbb57e6e3761f023a9d3ad33740d31f20a6de46b6070ed 63
 
-@test PortableCase_ReadsAndWritesIdentically("example/explicit-endian")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("example/explicit-endian")
 @hash cde7d5b427ac9d6202cb079b1acd24bb84ed24dde74fda709dbf922e36973cd9 81
 
-@test PortableCase_ReadsAndWritesIdentically("example/floating-point-primitives")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("example/floating-point-primitives")
 @hash 5176c266613818bc12a843f0089159a398e2ee3e95a9802d204ed8c02fa28479 63
 
-@test PortableCase_ReadsAndWritesIdentically("example/offset-assertion")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("example/offset-assertion")
 @hash c947c6281d39fd6aa1ed28d8fbe58db3d7a3a2500ff0216d96ddcf65bf73c1d0 81
 
-@test PortableCase_ReadsAndWritesIdentically("example/packed-mixed")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("example/packed-mixed")
 @hash 2972c8bab5e78f2dfef9afc974659e24bf1cd5cf553d1e039c14475a13ba22aa 81
 
-@test PortableCase_ReadsAndWritesIdentically("example/packed-null-pointer")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("example/packed-null-pointer")
 @hash 36ab883d530631c00591862b109359f558fb13cc71ed45d85452b859bc83d7a8 63
 
-@test PortableCase_ReadsAndWritesIdentically("example/portable-bitfields")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("example/portable-bitfields")
 @hash 231d5d1703fe6b8fcaf7aa97c24df19671167debb7dd976f48db9e85d242a8ab 81
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/ascii_string_newline")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/ascii_string_newline")
 @hash 8883c582b7529795514f67ea1e78eb8bb02f4ed0301e00e83166432928804a1b 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/ascii_string_zero")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/ascii_string_zero")
 @hash 67e43271fd2a03c91fac0308f8f3032d48300c1ab30f9d1e0b5413eec9bc7ac6 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/bool")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/bool")
 @hash 066697d4a8bc138eba9f1dd9548e98169b6704ee8080801f56d951470d5853e3 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/byte")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/byte")
 @hash 0ce62d2b9e709adfcb6523fc6c5c49fb82d7cd29ebec32ec4bbb6f181ce7f6f6 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/char")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/char")
 @hash dd75e01daae0280f65ae1fd5d1bbf3f68b09170e4e10550e8bfca8e889adfaec 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/cp437")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/cp437")
 @hash 9d32f5992c6da13f0ef193b0e70700651e3e9d3e710b80cfd2e689936ff5eab3 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/cstring")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/cstring")
 @hash 67e43271fd2a03c91fac0308f8f3032d48300c1ab30f9d1e0b5413eec9bc7ac6 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/fixed16_16")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/fixed16_16")
 @hash de60d95848df0ac528403a8a80113449b4c41a2a9a87d75ddc96e7f1d4e04e58 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/fixed16_16<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/fixed16_16<")
 @hash 654ec0c3fd0c9500c5386a7081a57444fff2df715f97bc27df364fc0a0641c4a 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/fixed16_16>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/fixed16_16>")
 @hash 5def926c7789e6b31e6d66e74f1b8c3541a654d013bb291bb8a2838290705d52 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/fixed2_30")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/fixed2_30")
 @hash 6ebb83148863212288470c9aae5d576a80beb6d909fe2478076249c9297a7769 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/fixed2_30<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/fixed2_30<")
 @hash 191a205b7e315520c6868aeff604a30d24bdb2e7ec1737368542b144ad4c9496 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/fixed2_30>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/fixed2_30>")
 @hash 637cfe20f454c68cb11df9a785a03bb4ad2ed2ed20873466ace894b7c79404f0 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/float16")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/float16")
 @hash 8e20df76e9d682a7b35669bc415f864f7b95a114ee6dff2363f34b80064e4ffc 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/float16<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/float16<")
 @hash f66f9ad39cd04a4a841b746326a32104e21be5eadd81d693b396010cbab3262c 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/float16>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/float16>")
 @hash 31781ccb71ee6db254e735fe8b577e66b735ec3fdf6c79b29583e525e761127e 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/float32")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/float32")
 @hash 67d80d6397d37aed81353e15a36a75cb9d5f358f549368d0531e2e243ce39d22 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/float32<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/float32<")
 @hash 5ad4e56bd563c3d3e035646c9b8ad675e2675c2d35686f19f819f082c997ff9c 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/float32>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/float32>")
 @hash 77c5264d52dbda2887ba751113443e0e9fc051fc0dcd1e460363b7a0358d7086 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/float64")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/float64")
 @hash acbd435c2fddc6eda86825b692d98152ced09bc02eac9d09b25e1f224036fe04 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/float64<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/float64<")
 @hash aa618d21ff1d0a20dc0b52624d094425072b1c339689c9e9753f340dc25c6835 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/float64>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/float64>")
 @hash 2e68e77c4b5179b1b5cf3484f09317afd969326a4f3312c12ea4c4cbef12bd6e 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/guid")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/guid")
 @hash 8ec3124529e9459b4e09841be55079235112d17aaa03c59aebd00d34c1e50e5f 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/int128")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/int128")
 @hash 6e5d8ac31071d95c02007908d8ccd9ccec75fb042f12d5b8b3345538f82e5938 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/int128<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/int128<")
 @hash 306eb81aa096cee4de8b7724e4159e62286e48f2d989e0903d4cc2f2831f0234 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/int128>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/int128>")
 @hash 2c2e070f1dd7b7243e481b9f21848967016181b413c726f98a157936a77021af 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/int16")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/int16")
 @hash bf83276ea646e91bc28d641241e4ae83b0b1da9e89f82a98cfe0eb2c26644ef5 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/int16<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/int16<")
 @hash 6bbdc0101473834f1f199106920edd99240fd402d72ea2aab6b23ff64e75d646 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/int16>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/int16>")
 @hash 76c202c1dafef141b1676732f450e86fe5141e518157c3246e372a83e0ef0b0d 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/int24")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/int24")
 @hash 8b118a8c66ce384eccfcbfa081f2860a5c743c48f148b7f5f4b1b1733a59fb47 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/int24<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/int24<")
 @hash d56999ad3a78ec5f2c423992d38bdd0f1ee1e927cba2aa30847c6832d24c597b 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/int24>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/int24>")
 @hash fe9fea31452850bac331602153dc9319d0e735bfd21013ea0b4a7e2770c8a1b4 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/int32")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/int32")
 @hash f96ea89f070633d3743c22c083db8604ed80151aacee9acae3d4a25bd6151978 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/int32<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/int32<")
 @hash fef37b1fcaad752daeb86b83e09f26ca2459c662bdb257a7dcdf0dc09ca075e0 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/int32>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/int32>")
 @hash f366a0c3ca2214d5139c65cda9873e30b2aa1d01fe54f4d45d5d89becdb82e71 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/int48")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/int48")
 @hash f3c96c5ac55f3eb4cda965a0c0e1f3c8b9bebf641668cb85e2b659a6900f095d 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/int48<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/int48<")
 @hash cb96abb3d496642ae654b06fcbe98d2ef087b36b72b8b975a398988b9e4a8c44 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/int48>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/int48>")
 @hash 3d4c6b00abae9a91d7bcffb9027d3c8de9078e9670ee773bee725a0e02a557e0 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/int64")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/int64")
 @hash 1bde6349bae7a5f171709264ef542a16a9091e8e10049de4b06af71dffbd8819 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/int64<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/int64<")
 @hash e0567db5cce42be627eff26e95dc7b7e7404dd7fa52fd6ada6989b2390028ea6 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/int64>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/int64>")
 @hash 838faddcbe78b25aa392117ad85a15bf4f3245a3bb6aab69c315a407de226c48 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/int8")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/int8")
 @hash ba205c465cdf939303b1af5b9e387f5161795c99ad9832c1bc6548eacd15542b 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/latin1")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/latin1")
 @hash 4820bab26821b238dae8b61329160675ef3bd20813d04f1fab9913b05207cca7 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/sleb128_32")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/sleb128_32")
 @hash 2cb21f922705ea0f268b57b51443ebafbe2f56759df9ff09c11ea99d1b207d14 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/sleb128_64")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/sleb128_64")
 @hash 72db76d106e294f0526f4147afa5f60061e07233afe8e68dd5c69eb8e23504f4 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/string")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/string")
 @hash 9b684d766a455d5f1f74f1829bf7f3c69d82dd06ad38c5d764a3ee6155c088a9 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/string<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/string<")
 @hash b4626a20503995b040d1e923cdadb7c0fab4c561f99edd865f7ecc368e828ac0 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/string>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/string>")
 @hash 6e60bc10ce2107d9889bb69c98734fcd9e4f1c484c1a3cd82d0ff6ed6f705cfc 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/ufixed16_16")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/ufixed16_16")
 @hash 538091e36aef4168a1887fd7a04137b2399eb31888b6c74e58b9bbbf2ca105e3 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/ufixed16_16<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/ufixed16_16<")
 @hash 887bb5e49be3b8094f008bb06c524f4502aa08f631597d35842a20bd37af04b6 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/ufixed16_16>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/ufixed16_16>")
 @hash c15d205d904b78c907b3763e58079d8145a837e0ef2830443b077b2f793ade42 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/ufixed8_8")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/ufixed8_8")
 @hash 4a04c93102559251bb8a62ed903388b8f65d540b2674d688814a771b3a654c9b 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/ufixed8_8<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/ufixed8_8<")
 @hash 1825e37295b51caad48ca6f1ae7cc24eb893b50b8b48b5a894a7520c426b7fc5 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/ufixed8_8>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/ufixed8_8>")
 @hash d5014c0cdabdf2224d300d16e2467d0257452fa81b770bc10294fcad54540b12 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uint128")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uint128")
 @hash c9e84a26d87e0a9da57984b61dac3e3c029910c5a5ff3b8057411004c30126d1 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uint128<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uint128<")
 @hash 65b972c313a7dc1ca0ecf2cdcecdc2b71b61483df49df65537566e2c37d4652d 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uint128>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uint128>")
 @hash cc1db7343727174e7b511fa215e331aa5dd493ffa6ccb8250b52052f9268cc34 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uint16")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uint16")
 @hash 2adaee1bb0a466363cdc3aa0c85928b16bdee13c8d1d89478a8e8bd59be03b35 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uint16<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uint16<")
 @hash 63135d6a40b8f3f03bd917f61856a2925eda0e58aa3b1f5eb193d6ddfb7e6ffe 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uint16>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uint16>")
 @hash 95dcb3d883c89dd06943f4701cd18c3d12fc287cf810331cf4ee87fd90d30b2f 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uint24")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uint24")
 @hash b54d805333fcaf610b2975b09d1987d031700b7f371bfa2a476454f22f2128d2 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uint24<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uint24<")
 @hash e5ca5bcbec02dce5931ef25d6cfb7a98132ef1396a11ceac86ab5b1dc84a8b09 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uint24>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uint24>")
 @hash d69bbffbcf2f6ec437b0700f09eff065894e59b88686090d7765699460bdc361 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uint32")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uint32")
 @hash d96270a0e653fcca91d37771b26ba853975a9c69c0406ac3afa9915c5abe3dd0 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uint32<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uint32<")
 @hash ad40afe8089a032191d7d54061ff781df320e08c5d3306be18702c7af8d60c17 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uint32>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uint32>")
 @hash c21e71cc37f9548aad1fe9fd08e1efef4938a681c93c8c9bcb9f98aa86834c2d 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uint48")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uint48")
 @hash ce1ceca09b14d14f95ead1e77b3dd0e50f836142fbed718b23b040b1b53015d9 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uint48<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uint48<")
 @hash d458bb1735831446ece6c78b3fbc5ef45a3fbd05a18fb837cba6af35b4e6c011 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uint48>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uint48>")
 @hash 3a3f629aff7baf07c9c4412c3af47ffe41c98501b29c6d5d676c83596cb845cf 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uint64")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uint64")
 @hash b7cfbb7cd6c42b4d8960ed4cb7395b0518a9c0f7252592cbed60185dac8db6d0 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uint64<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uint64<")
 @hash 8143b0d6a6af65db806572b6b2301326e67479e65b313f5eb259bfb884ea024f 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uint64>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uint64>")
 @hash 54279c6957237358fb07a4ce6944f294a03c3b7525dc2775637453fcc02defbf 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uint8")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uint8")
 @hash 32482ee56a4a286c53841f5fc646d293fdec8e90e0bab37d425aa46ac61a1cb6 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uleb128_32")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uleb128_32")
 @hash 55cffa67003e5a22adf597c3dcdf19aead190eccc974b728989eeafd26f71a72 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uleb128_64")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uleb128_64")
 @hash 6a68fcabf1c1be1f42acb60ee93e6a9f7bc773cf59dda3c99b920fe4ac521b79 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/unicode_string_newline")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/unicode_string_newline")
 @hash 036da8a385f86815fb13e999781afff5f646c75c12b142a064bec2d682888e42 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/unicode_string_newline<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/unicode_string_newline<")
 @hash d13d8a02b5e161fbfbddda04368cdab89bb5ecccc87e964be9f54a06d58b8987 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/unicode_string_newline>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/unicode_string_newline>")
 @hash 2f2c2c7b31ea775f5ca1664c1bfafeb402f5c6cdef2f052a15c7048d767e295e 17
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/unicode_string_zero")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/unicode_string_zero")
 @hash 9b684d766a455d5f1f74f1829bf7f3c69d82dd06ad38c5d764a3ee6155c088a9 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/unicode_string_zero<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/unicode_string_zero<")
 @hash b4626a20503995b040d1e923cdadb7c0fab4c561f99edd865f7ecc368e828ac0 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/unicode_string_zero>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/unicode_string_zero>")
 @hash 6e60bc10ce2107d9889bb69c98734fcd9e4f1c484c1a3cd82d0ff6ed6f705cfc 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/utf16be")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/utf16be")
 @hash 293cc431ee85159eb73a2e9d17707cf0d26ca338f06debfedfe6b888db7adadd 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/utf16le")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/utf16le")
 @hash 3861efd8b8e86d953fb09a34eb8ac592cff2d3f73d810e3b43f919f5630c7d77 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/utf8")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/utf8")
 @hash 23ee803e49b9dcf3135b31649e4e6c8bda39d8ff02707bea8ae68cffe19d0887 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/utf8_string_newline")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/utf8_string_newline")
 @hash e3c593aa4daf0cbdcc7925171b6949847c41bcb59b5737367a46c18335b7ec84 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/utf8_string_zero")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/utf8_string_zero")
 @hash b4942cfb58410dbed9e714806fd82ff1daf0231b65e5286662a20143c6d8448b 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/uuid")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/uuid")
 @hash 03a6dedeba563a20e66acf2387cdb5a82d7fba15428eff05718c20cd84e9a383 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/wchar")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/wchar")
 @hash bef36ed6684521be922ff4d7134ebed526981a83c23cc1e6a6c74fa1ac36605e 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/wchar<")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/wchar<")
 @hash e21b2e3ae12b214b47f98422ae37f9625604d0c2555130780891df6712792f13 35
 
-@test PortableCase_ReadsAndWritesIdentically("primitive/wchar>")
+@test PortableCase_ReadsAndWritesOnEverySourceAndPath("primitive/wchar>")
 @hash 1cfc0f32f161477f38242cd7964b28a5a79ec599c8f2004a04f1122c08cfd6e5 35
 
-@test WellKnownFormat_ReadsAndWritesIdentically("Bmp_FileAndInfoHeaders_DecodeExpectedFields#0")
+@test WellKnownFormat_ReadsAndWritesOnEverySourceAndPath("Bmp_FileAndInfoHeaders_DecodeExpectedFields#0")
 @hash 2503da624373802848c84ddf8118b19f5450206f210cb1897975d16cbd96ab66 39
 
-@test WellKnownFormat_ReadsAndWritesIdentically("Ico_IconDirectory_DecodesCountDrivenEntryArray#0")
+@test WellKnownFormat_ReadsAndWritesOnEverySourceAndPath("Ico_IconDirectory_DecodesCountDrivenEntryArray#0")
 @hash 064754386dc32dd8f2d7fead5f67622e4756593f16e59a8b699b15b23a40a531 39
 
-@test WellKnownFormat_ReadsAndWritesIdentically("Jpg_SoiAndJfifApp0Segment_DecodeExpectedFields#0")
+@test WellKnownFormat_ReadsAndWritesOnEverySourceAndPath("Jpg_SoiAndJfifApp0Segment_DecodeExpectedFields#0")
 @hash e988d39b7332d878f8b93ca1f1ec941ec9f1674c067d9c51cb0683a1544c91c0 39
 
-@test WellKnownFormat_ReadsAndWritesIdentically("Pe_DosHeaderPointerToCoffHeader_DecodesAcrossExeAndDll#0")
+@test WellKnownFormat_ReadsAndWritesOnEverySourceAndPath("Pe_DosHeaderPointerToCoffHeader_DecodesAcrossExeAndDll#0")
 @hash 9900a79aa0c61d2c83aaef6183952d8098ec6360d0530fe7aaf200fcec25552b 37
 
-@test WellKnownFormat_ReadsAndWritesIdentically("Png_SignatureAndIhdrChunk_DecodeBigEndianFields#0")
+@test WellKnownFormat_ReadsAndWritesOnEverySourceAndPath("Png_SignatureAndIhdrChunk_DecodeBigEndianFields#0")
 @hash 183359e0067922868de5d9dc13e43b3e2ad8fe428a3ac6260039722eda8c3456 39
 
-@test WellKnownFormat_ReadsAndWritesIdentically("Tar_UstarHeader_DecodesFixedWidthTextFields#0")
+@test WellKnownFormat_ReadsAndWritesOnEverySourceAndPath("Tar_UstarHeader_DecodesFixedWidthTextFields#0")
 @hash 0be01c7e217a44c436fad725e5f06cb0825663b30d80a0311e7491abbbe8b6fc 39
 
-@test WellKnownFormat_ReadsAndWritesIdentically("Wav_RiffFmtAndDataChunks_DecodeExpectedFields#0")
+@test WellKnownFormat_ReadsAndWritesOnEverySourceAndPath("Wav_RiffFmtAndDataChunks_DecodeExpectedFields#0")
 @hash 46684e07637eb1a3de0cb02de537cea6bf679bdeadbf688cb6cb482a638cb83e 39
 
-@test WellKnownFormat_ReadsAndWritesIdentically("Zip_LocalFileHeader_DecodesBitflagsAndRuntimeLengthName#0")
+@test WellKnownFormat_ReadsAndWritesOnEverySourceAndPath("Zip_LocalFileHeader_DecodesBitflagsAndRuntimeLengthName#0")
 @hash 274a3517cca35ee10477fd4763b6cf1ac834ed832895a652f47340281c95b301 39
 
-@test WellKnownFormat_ReadsAndWritesIdentically("Zstandard_FrameMagic_SelectsTheFrameBranch#0")
+@test WellKnownFormat_ReadsAndWritesOnEverySourceAndPath("Zstandard_FrameMagic_SelectsTheFrameBranch#0")
 @hash db868472ebc6d36810ff18ebe3f1a32a7007d98c9d3ef3ee7e526152b10690cd 39
 
-@test WellKnownFormat_ReadsAndWritesIdentically("Zstandard_FrameMagic_SelectsTheFrameBranch#1")
+@test WellKnownFormat_ReadsAndWritesOnEverySourceAndPath("Zstandard_FrameMagic_SelectsTheFrameBranch#1")
 @hash 0de366a2149b6241eedac995938f5bbea8ee85d210d7af207b7ddbba1aa6efbf 35

@@ -194,7 +194,7 @@
   failure.inner.message = "Value was either too large or too small for an unsigned byte."
   engine runs = 1
 
-@test Codecs_WriteIdenticallyAtEveryBudgetAndCapacity
+@test Codecs_WriteAtEveryBudgetAndCapacity
 @hash a209862de7e24d4a365bdd7941fa046096aeee7445443afd81b18e789240a048 858
 
 @test FailedWrite_LeavesTheEarlierMembersInTheSpan

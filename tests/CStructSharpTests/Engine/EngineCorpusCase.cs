@@ -5,7 +5,7 @@ using CStructSharp.Introspection;
 using CStructSharp.Values;
 
 /// <summary>
-///     One layout and input of a corpus the differential harness runs over (<see cref="EngineCorpora"/>): how to
+///     One layout and input of a corpus the golden harness runs over (<see cref="EngineCorpora"/>): how to
 ///     compile the layout, which composite to read, the input, and the options the corpus prescribes.
 /// </summary>
 /// <param name="Id">The case's identifier within its corpus.</param>
@@ -75,7 +75,7 @@ internal sealed record EngineCorpusCase(
         if (detailed)
         {
             // The layout an update compares reads with every fast path off, so one capture covers both execution paths.
-            EngineLayoutCapture.AssertSame(this.Id, layout, this.Data, EngineInput.ChunkedStream3, root, this.Variables, read);
+            EngineLayoutCapture.AssertGolden(this.Id, layout, this.Data, EngineInput.ChunkedStream3, root, this.Variables, read);
         }
 
         foreach (ExecutionPath path in CorpusPaths)
@@ -83,58 +83,58 @@ internal sealed record EngineCorpusCase(
             var renderings = new List<(EngineInput Input, string Rendering)>();
             foreach (EngineInput input in sources)
             {
-                DifferentialOperation operation = union
+                GoldenOperation operation = union
                                                       ? EngineOperations.ReadValue(layout, this.Data, input, root, this.Variables, read)
                                                       : EngineOperations.Parse(layout, this.Data, input, root, this.Variables, read);
-                renderings.Add((input, Same(operation, path)));
+                renderings.Add((input, Golden(operation, path)));
             }
 
             EngineAgreement.AssertSourcesAgree(this.Id + " (" + path + ")", renderings);
-            Same(EngineOperations.ReadValue(layout, this.Data, EngineInput.Memory, root, this.Variables, read), path);
+            Golden(EngineOperations.ReadValue(layout, this.Data, EngineInput.Memory, root, this.Variables, read), path);
             if (detailed)
             {
-                Same(EngineOperations.ParseWithDebug(layout, this.Data, EngineInput.Span, root, this.Variables, read), path);
-                Same(EngineOperations.ReadValueWithDebug(layout, this.Data, EngineInput.ChunkedStream3, root, this.Variables, read), path);
+                Golden(EngineOperations.ParseWithDebug(layout, this.Data, EngineInput.Span, root, this.Variables, read), path);
+                Golden(EngineOperations.ReadValueWithDebug(layout, this.Data, EngineInput.ChunkedStream3, root, this.Variables, read), path);
             }
 
             foreach (string address in addresses)
             {
-                Same(EngineOperations.ResolveAddress(layout, this.Data, EngineInput.Span, address, this.Variables, read), path);
+                Golden(EngineOperations.ResolveAddress(layout, this.Data, EngineInput.Span, address, this.Variables, read), path);
             }
 
             foreach (string selected in this.Paths ?? [])
             {
-                Same(EngineOperations.ReadValue(layout, this.Data, EngineInput.Stream, selected, this.Variables, read), path);
-                Same(EngineOperations.GetArrayLength(layout, this.Data, EngineInput.Span, selected, this.Variables, read), path);
+                Golden(EngineOperations.ReadValue(layout, this.Data, EngineInput.Stream, selected, this.Variables, read), path);
+                Golden(EngineOperations.GetArrayLength(layout, this.Data, EngineInput.Span, selected, this.Variables, read), path);
             }
 
             if (value is not null)
             {
-                Same(EngineOperations.Serialize(layout, root, value, this.Variables, this.Write), path);
-                Same(EngineOperations.SerializeToSpan(layout, this.Data.Length, root, value, this.Variables, this.Write), path);
-                Same(EngineOperations.Write(layout, [0xAA, 0xAA], 1, root, value, this.Variables, this.Write), path);
-                Same(EngineOperations.SerializeToWindows(layout, 3, root, value, this.Variables, this.Write), path);
+                Golden(EngineOperations.Serialize(layout, root, value, this.Variables, this.Write), path);
+                Golden(EngineOperations.SerializeToSpan(layout, this.Data.Length, root, value, this.Variables, this.Write), path);
+                Golden(EngineOperations.Write(layout, [0xAA, 0xAA], 1, root, value, this.Variables, this.Write), path);
+                Golden(EngineOperations.SerializeToWindows(layout, 3, root, value, this.Variables, this.Write), path);
 
                 // Each selected member written on its own from the value the read selects there.
                 foreach (string selected in this.Paths ?? [])
                 {
                     if (Attempt(() => layout.ReadValue(this.Data, selected, this.Variables, read)) is { } member)
                     {
-                        Same(EngineOperations.Write(layout, [0xAA, 0xAA], 1, selected, member, this.Variables, this.Write), path);
-                        Same(EngineOperations.Serialize(layout, selected, member, this.Variables, this.Write), path);
-                        Same(EngineOperations.Update(layout, this.Data, EngineInput.Stream, selected, member, this.Variables), path);
+                        Golden(EngineOperations.Write(layout, [0xAA, 0xAA], 1, selected, member, this.Variables, this.Write), path);
+                        Golden(EngineOperations.Serialize(layout, selected, member, this.Variables, this.Write), path);
+                        Golden(EngineOperations.Update(layout, this.Data, EngineInput.Stream, selected, member, this.Variables), path);
                     }
                 }
 
                 // Updates in place, with the value each target holds: the root, and every member a debug record names.
                 if (detailed)
                 {
-                    Same(EngineOperations.Update(layout, this.Data, EngineInput.Span, root, value, this.Variables), path);
+                    Golden(EngineOperations.Update(layout, this.Data, EngineInput.Span, root, value, this.Variables), path);
                     foreach (string address in addresses)
                     {
                         if (Attempt(() => layout.ReadValue(this.Data, address, this.Variables, read)) is { } member)
                         {
-                            Same(EngineOperations.Update(layout, this.Data, EngineInput.Span, address, member, this.Variables), path);
+                            Golden(EngineOperations.Update(layout, this.Data, EngineInput.Span, address, member, this.Variables), path);
                         }
                     }
                 }
@@ -205,7 +205,7 @@ internal sealed record EngineCorpusCase(
             }
             catch (Exception exception) when (exception is not UnitTestAssertException)
             {
-                // The operation fails as the golden outcomes of the differential runs record; only a missing program matters here.
+                // The operation fails as the golden outcomes of Run record; only a missing program matters here.
             }
         }
 
@@ -276,11 +276,11 @@ internal sealed record EngineCorpusCase(
     /// <returns>The identifier.</returns>
     public override string ToString() => this.Id;
 
-    /// <summary>Compares one operation's outcome with its golden outcome through the harness.</summary>
+    /// <summary>Checks one operation's outcome against its golden outcome through the harness.</summary>
     /// <param name="operation">The operation.</param>
     /// <param name="path">The execution path the run uses.</param>
-    /// <returns>The shared rendering.</returns>
-    private static string Same(DifferentialOperation operation, ExecutionPath path) => EngineDifferential.AssertSame(operation, path: path).Rendering;
+    /// <returns>The rendering, for the source-agreement check.</returns>
+    private static string Golden(GoldenOperation operation, ExecutionPath path) => EngineDifferential.AssertGolden(operation, path: path).Rendering;
 
     /// <summary>Returns the result of <paramref name="call"/>, or <see langword="null"/> when it throws.</summary>
     /// <param name="call">The call.</param>

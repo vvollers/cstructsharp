@@ -11,7 +11,7 @@ using Variant = EngineSweepLayouts.Variant;
 ///     <c>Serialize</c> to an array and into spans of every capacity and <c>Write</c> into a stream that already holds
 ///     bytes - and every member a nested path can select, written on its own to every destination with plain and update
 ///     options, and updated in place, under <see cref="ExecutionPath.Fastest"/> and <see cref="ExecutionPath.NoFastPaths"/>,
-///     with the engine required wherever the root or the selected member is eligible.
+///     each outcome checked against its golden one.
 /// </summary>
 /// <remarks>
 ///     The replacements cover the conversions the codecs apply (numeric text, fractions, out-of-range numbers, booleans,
@@ -29,13 +29,13 @@ public class EngineWriteSweepTests
 
     /// <summary>
     ///     Every value variant - dictionaries, lists, a member missing, a member of the wrong kind, an undeclared member
-    ///     under both unknown-member policies - writes identically to a new array and to spans of the output's length
+    ///     under both unknown-member policies - writes its golden outcome to a new array and to spans of the output's length
     ///     and of half of it.
     /// </summary>
     /// <param name="name">The sweep layout.</param>
     [TestMethod]
     [DynamicData(nameof(Layouts))]
-    public void SuppliedValues_WriteIdentically(string name)
+    public void SuppliedValues_WriteToArraysAndSpans(string name)
     {
         var reject = new WriteOptions { UnknownMembers = UnknownMemberPolicy.Reject, };
         foreach (Variant variant in EngineSweepLayouts.Both(name))
@@ -46,24 +46,24 @@ public class EngineWriteSweepTests
             {
                 foreach (ExecutionPath path in SweepPaths)
                 {
-                    Same(variant.Name + " " + label, EngineOperations.Serialize(variant.Layout, "rec", value, variables), path);
-                    Same(variant.Name + " " + label, EngineOperations.SerializeToSpan(variant.Layout, length, "rec", value, variables), path);
-                    Same(variant.Name + " " + label, EngineOperations.SerializeToSpan(variant.Layout, length / 2, "rec", value, variables), path);
-                    Same(variant.Name + " " + label, EngineOperations.Serialize(variant.Layout, "rec", value, variables, reject), path);
-                    Same(variant.Name + " " + label, EngineOperations.Write(variant.Layout, Prefill(length), 3, "rec", value, variables), path);
+                    Golden(variant.Name + " " + label, EngineOperations.Serialize(variant.Layout, "rec", value, variables), path);
+                    Golden(variant.Name + " " + label, EngineOperations.SerializeToSpan(variant.Layout, length, "rec", value, variables), path);
+                    Golden(variant.Name + " " + label, EngineOperations.SerializeToSpan(variant.Layout, length / 2, "rec", value, variables), path);
+                    Golden(variant.Name + " " + label, EngineOperations.Serialize(variant.Layout, "rec", value, variables, reject), path);
+                    Golden(variant.Name + " " + label, EngineOperations.Write(variant.Layout, Prefill(length), 3, "rec", value, variables), path);
                 }
             }
         }
     }
 
     /// <summary>
-    ///     A span of every capacity from 0 to one past the output's length receives the same prefix, count and failure, for
+    ///     A span of every capacity from 0 to one past the output's length receives its golden prefix, count and failure, for
     ///     the parsed value and its dictionary form.
     /// </summary>
     /// <param name="name">The sweep layout.</param>
     [TestMethod]
     [DynamicData(nameof(Layouts))]
-    public void SpanCapacities_LeaveIdenticalPrefixes(string name)
+    public void SpanCapacities_ReceiveTheOutputPrefix(string name)
     {
         foreach (Variant variant in EngineSweepLayouts.Both(name))
         {
@@ -75,7 +75,7 @@ public class EngineWriteSweepTests
                 {
                     for (int capacity = 0; capacity <= variant.Data.Length + 1; capacity++)
                     {
-                        Same(variant.Name + " capacity " + capacity, EngineOperations.SerializeToSpan(variant.Layout, capacity, "rec", value, variables), path);
+                        Golden(variant.Name + " capacity " + capacity, EngineOperations.SerializeToSpan(variant.Layout, capacity, "rec", value, variables), path);
                     }
                 }
             }
@@ -93,7 +93,7 @@ public class EngineWriteSweepTests
     /// <param name="name">The sweep layout.</param>
     [TestMethod]
     [DynamicData(nameof(Layouts))]
-    public void PathWrites_WriteEveryMemberIdentically(string name)
+    public void PathWrites_WriteEveryMember(string name)
     {
         var keep = new UpdateOptions { ClearUnionStorage = false, };
         foreach (Variant variant in EngineSweepLayouts.Both(name))
@@ -111,13 +111,13 @@ public class EngineWriteSweepTests
                     string label = variant.Name + " " + path + " = " + Describe(value);
                     foreach (ExecutionPath execution in SweepPaths)
                     {
-                        Same(label, EngineOperations.Serialize(variant.Layout, path, value!, variables), execution);
-                        Same(label, EngineOperations.SerializeToSpan(variant.Layout, 3, path, value!, variables), execution);
-                        Same(label, EngineOperations.Write(variant.Layout, prefill, 0, path, value!, variables), execution);
-                        Same(label, EngineOperations.Write(variant.Layout, prefill, 3, path, value!, variables), execution);
-                        Same(label, EngineOperations.SerializeToWindows(variant.Layout, 1, path, value!, variables), execution);
-                        Same(label, EngineOperations.Write(variant.Layout, prefill, 3, path, value!, variables, new UpdateOptions()), execution);
-                        Same(label, EngineOperations.Write(variant.Layout, prefill, prefill.Length - 2, path, value!, variables, keep), execution);
+                        Golden(label, EngineOperations.Serialize(variant.Layout, path, value!, variables), execution);
+                        Golden(label, EngineOperations.SerializeToSpan(variant.Layout, 3, path, value!, variables), execution);
+                        Golden(label, EngineOperations.Write(variant.Layout, prefill, 0, path, value!, variables), execution);
+                        Golden(label, EngineOperations.Write(variant.Layout, prefill, 3, path, value!, variables), execution);
+                        Golden(label, EngineOperations.SerializeToWindows(variant.Layout, 1, path, value!, variables), execution);
+                        Golden(label, EngineOperations.Write(variant.Layout, prefill, 3, path, value!, variables, new UpdateOptions()), execution);
+                        Golden(label, EngineOperations.Write(variant.Layout, prefill, prefill.Length - 2, path, value!, variables, keep), execution);
                     }
                 }
             }
@@ -134,7 +134,7 @@ public class EngineWriteSweepTests
     /// <param name="name">The sweep layout.</param>
     [TestMethod]
     [DynamicData(nameof(Layouts))]
-    public void PathUpdates_UpdateEveryMemberIdentically(string name)
+    public void PathUpdates_UpdateEveryMember(string name)
     {
         var keep = new UpdateOptions { ClearUnionStorage = false, };
         foreach (Variant variant in EngineSweepLayouts.Both(name))
@@ -151,11 +151,11 @@ public class EngineWriteSweepTests
                     string label = variant.Name + " " + path + " = " + Describe(value);
                     foreach (ExecutionPath execution in SweepPaths)
                     {
-                        Same(label, EngineOperations.Update(variant.Layout, data, EngineInput.Span, path, value!, variables), execution);
-                        Same(label, EngineOperations.Update(variant.Layout, data, EngineInput.Stream, path, value!, variables), execution);
-                        Same(label, EngineOperations.Update(variant.Layout, data[..^1], EngineInput.Span, path, value!, variables), execution);
-                        Same(label, EngineOperations.Update(variant.Layout, data, EngineInput.Span, path, value!, variables, keep), execution);
-                        Same(label, EngineOperations.UpdateAsync(variant.Layout, data, path, value!, variables), execution);
+                        Golden(label, EngineOperations.Update(variant.Layout, data, EngineInput.Span, path, value!, variables), execution);
+                        Golden(label, EngineOperations.Update(variant.Layout, data, EngineInput.Stream, path, value!, variables), execution);
+                        Golden(label, EngineOperations.Update(variant.Layout, data[..^1], EngineInput.Span, path, value!, variables), execution);
+                        Golden(label, EngineOperations.Update(variant.Layout, data, EngineInput.Span, path, value!, variables, keep), execution);
+                        Golden(label, EngineOperations.UpdateAsync(variant.Layout, data, path, value!, variables), execution);
                     }
                 }
             }
@@ -205,7 +205,7 @@ public class EngineWriteSweepTests
     }
 
     /// <summary>
-    ///     Whole roots written with update options switch on update semantics in both implementations - tail padding keeps
+    ///     Whole roots written with update options switch on update semantics - tail padding keeps
     ///     the stream's bytes, a bitfield unit must already be present, no static plan or block write is used, and a union
     ///     kept by <see cref="UpdateOptions.ClearUnionStorage"/> is staged over the existing bytes - into streams holding
     ///     bytes from several starts (including their end, where nothing exists yet), new arrays, spans and buffer writers.
@@ -213,7 +213,7 @@ public class EngineWriteSweepTests
     /// <param name="name">The sweep layout.</param>
     [TestMethod]
     [DynamicData(nameof(Layouts))]
-    public void UpdateOptionWrites_WriteIdentically(string name)
+    public void UpdateOptionWrites_UseUpdateSemantics(string name)
     {
         UpdateOptions[] updates = [new UpdateOptions(), new UpdateOptions { ClearUnionStorage = false, }];
         foreach (Variant variant in EngineSweepLayouts.Both(name))
@@ -230,12 +230,12 @@ public class EngineWriteSweepTests
                     {
                         foreach (long start in (long[])[0, 3, n, n + 4])
                         {
-                            Same(variant.Name + " start " + start, EngineOperations.Write(variant.Layout, prefill, start, "rec", value, variables, update), path);
+                            Golden(variant.Name + " start " + start, EngineOperations.Write(variant.Layout, prefill, start, "rec", value, variables, update), path);
                         }
 
-                        Same(variant.Name, EngineOperations.Serialize(variant.Layout, "rec", value, variables, update), path);
-                        Same(variant.Name, EngineOperations.SerializeToSpan(variant.Layout, n, "rec", value, variables, update), path);
-                        Same(variant.Name, EngineOperations.SerializeToWindows(variant.Layout, 3, "rec", value, variables, update), path);
+                        Golden(variant.Name, EngineOperations.Serialize(variant.Layout, "rec", value, variables, update), path);
+                        Golden(variant.Name, EngineOperations.SerializeToSpan(variant.Layout, n, "rec", value, variables, update), path);
+                        Golden(variant.Name, EngineOperations.SerializeToWindows(variant.Layout, 3, "rec", value, variables, update), path);
                     }
                 }
             }
@@ -435,15 +435,15 @@ public class EngineWriteSweepTests
         }
     }
 
-    /// <summary>Compares one operation through the harness, naming the value variant in a failure.</summary>
+    /// <summary>Checks one operation against its golden outcome, naming the value variant in a failure.</summary>
     /// <param name="label">The variant and value the operation writes.</param>
     /// <param name="operation">The operation.</param>
-    /// <param name="path">The execution path both sides use.</param>
-    private static void Same(string label, DifferentialOperation operation, ExecutionPath path)
+    /// <param name="path">The execution path the run uses.</param>
+    private static void Golden(string label, GoldenOperation operation, ExecutionPath path)
     {
         try
         {
-            _ = EngineDifferential.AssertSame(operation, path: path);
+            _ = EngineDifferential.AssertGolden(operation, path: path);
         }
         catch (AssertFailedException failure)
         {

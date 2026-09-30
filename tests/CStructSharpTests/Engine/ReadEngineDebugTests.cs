@@ -8,7 +8,7 @@ using CStructSharp.Values;
 ///     range, never the bytes (except a union's), unnamed padding under <c>_</c>, an anonymous bitfield under an empty
 ///     segment, bitfields over their whole storage unit, an enum's number, a record per character of a <c>char[N]</c>, one
 ///     record for byte-counted text, element paths of a struct array, a union's own record after its views, and a deferred
-///     pointer's target after its struct's last member. Each case also runs through the differential harness, so the
+///     pointer's target after its struct's last member. Each case also runs through the golden harness, so the
 ///     golden outcomes (<see cref="EngineGolden"/>) pin exactly these records.
 /// </summary>
 [TestClass]
@@ -70,8 +70,8 @@ public class ReadEngineDebugTests
         foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Sequence, EngineInput.ExposedStream, EngineInput.ChunkedStream1])
         {
             ReadOptions read = input == EngineInput.ExposedStream ? new ReadOptions { AddressingMode = PointerAddressingMode.Relative, Origin = EngineStreams.ExposedStart, } : new ReadOptions();
-            EngineDifferential.AssertSame(EngineOperations.ParseWithDebug(layout, Data, input, "rec", options: read));
-            EngineDifferential.AssertSame(EngineOperations.ReadValueWithDebug(layout, Data, input, "rec", options: read));
+            EngineDifferential.AssertGolden(EngineOperations.ParseWithDebug(layout, Data, input, "rec", options: read));
+            EngineDifferential.AssertGolden(EngineOperations.ReadValueWithDebug(layout, Data, input, "rec", options: read));
         }
     }
 
@@ -80,13 +80,13 @@ public class ReadEngineDebugTests
     ///     golden outcomes record, from every truncation of the input.
     /// </summary>
     [TestMethod]
-    public void DebugParse_FailsLikeTheInterpreter()
+    public void DebugParse_FailsWithoutRecordsAtEveryTruncation()
     {
         var layout = new CStruct(Layout, 1);
         for (int length = 0; length < Data.Length; length++)
         {
-            EngineDifferential.AssertSame(EngineOperations.ParseWithDebug(layout, Data[..length], EngineInput.Span, "rec"));
-            EngineDifferential.AssertSame(EngineOperations.ReadValueWithDebug(layout, Data[..length], EngineInput.ChunkedStream3, "rec"));
+            EngineDifferential.AssertGolden(EngineOperations.ParseWithDebug(layout, Data[..length], EngineInput.Span, "rec"));
+            EngineDifferential.AssertGolden(EngineOperations.ReadValueWithDebug(layout, Data[..length], EngineInput.ChunkedStream3, "rec"));
         }
 
         Assert.Throws<CStructReadException>(() => layout.ParseWithDebug(Data[..16], "rec", options: new ReadOptions()));

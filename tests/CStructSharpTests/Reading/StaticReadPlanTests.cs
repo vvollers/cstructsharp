@@ -13,8 +13,8 @@ using CStructSharp.Values;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 /// <summary>
-///     Pins the static read plan: a fully fixed composite read from one span must be indistinguishable from the general
-///     reader - values, captured variables, limits, truncation failures and final positions. The plan must exist
+///     Pins the static read plan: a fully fixed composite read from one span must be indistinguishable from the engine's
+///     member-by-member reads - values, captured variables, limits, truncation failures and final positions. The plan must exist
 ///     exactly for the composites its conditions describe - every fixed benchmark fixture root among them, since a
 ///     composite that looks dynamic to the planner loses the plan speed-up - and a completed plan keeps the nesting
 ///     depth of the runtime-sized records that follow.
@@ -52,7 +52,7 @@ public class StaticReadPlanTests
         "prim-le-x1k", "real-bmp", "real-jpg", "real-png", "real-tar", "real-wav",
     ];
 
-    /// <summary>The parity fixtures whose roots are fixed and must be planned too (aliases resolve at construction; a promoted union keeps the general path).</summary>
+    /// <summary>The parity fixtures whose roots are fixed and must be planned too (aliases resolve at construction; a promoted union is read member by member).</summary>
     private static readonly string[] EligibleParityFixtures = ["parity-alias-x1k",];
 
     /// <summary>Composites get a plan exactly when every member is statically placed and decodable.</summary>
@@ -90,9 +90,9 @@ public class StaticReadPlanTests
         Assert.IsFalse(HasPlan(NestedChain(FixedLayoutRule.MaximumNestingDepth + 1), "s0"), "level 65");
     }
 
-    /// <summary>Full parses, every truncation, every read budget and small limits behave identically through the span (plan) and chunked-stream (general) paths.</summary>
+    /// <summary>Full parses, every truncation, every read budget and small limits behave identically with the plan and member by member, from a span and from streams.</summary>
     [TestMethod]
-    public void StaticPlan_MatchesGeneralReader_OnValuesFailuresAndPositions()
+    public void StaticPlan_MatchesMemberByMemberReads_OnValuesFailuresAndPositions()
     {
         var layout = new CStruct(Layout);
         byte[] bytes = [0x34, 0x12, (byte)'I', (byte)'H', (byte)'D', (byte)'R', 2, 9, 1, 0, 0, 0, 8, 2, 0, 0, 0, 0xEE, 0xFF, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 0xAA, 0xBB, 2, 0x51, 0x52, 0x99];
@@ -126,7 +126,7 @@ public class StaticReadPlanTests
 
     /// <summary>A stream positioned off the struct's alignment boundary reads identically with and without the plan (members align to absolute positions).</summary>
     [TestMethod]
-    public void StaticPlan_MatchesGeneralReader_FromUnalignedStreamPositions()
+    public void StaticPlan_MatchesMemberByMemberReads_FromUnalignedStreamPositions()
     {
         var layout = new CStruct("struct root { uint8 a; uint32 b; uint8 c; };", aligned: true);
         byte[] bytes = Enumerable.Range(0, 32).Select(index => (byte)index).ToArray();
@@ -137,15 +137,15 @@ public class StaticReadPlanTests
             string fast = OperationOutcome.Render(layout.Parse(withPlan, "root"));
             using var withoutPlan = new MemoryStream(bytes, writable: false);
             withoutPlan.Position = start;
-            string general = OperationOutcome.Render(layout.Parse(withoutPlan, "root", options: ExecutionPaths.NoFastPaths()));
-            Assert.AreEqual(general, fast, $"start {start}");
+            string memberByMember = OperationOutcome.Render(layout.Parse(withoutPlan, "root", options: ExecutionPaths.NoFastPaths()));
+            Assert.AreEqual(memberByMember, fast, $"start {start}");
             Assert.AreEqual(withoutPlan.Position, withPlan.Position, $"start {start}: position");
         }
     }
 
-    /// <summary>A dynamic array of a fully fixed struct (the element plan looped over one span) matches the general path on values, captured counts, truncation, budgets and limits.</summary>
+    /// <summary>A dynamic array of a fully fixed struct (the element plan looped over one span) matches member-by-member reads on values, captured counts, truncation, budgets and limits.</summary>
     [TestMethod]
-    public void DynamicArray_OfStaticStructs_MatchesGeneralReader()
+    public void DynamicArray_OfStaticStructs_MatchesMemberByMemberReads()
     {
         const string definition = "enum e : uint8 { a = 1 }; struct child { uint8 k; e w; uint16 v; }; struct root { uint8 count; child items[count]; uint8 last; uint8 tail[last]; };";
         byte[] packed = [3, 1, 1, 0x34, 0x12, 2, 9, 0x78, 0x56, 3, 1, 0xFF, 0xFF, 2, 0xAA, 0xBB];
@@ -222,7 +222,7 @@ public class StaticReadPlanTests
         Assert.IsEmpty(lost, "fixture roots that lost their static read plan: " + string.Join(", ", lost));
         string[] missingParity = EligibleParityFixtures.Where(id => !eligible.Contains(id)).ToArray();
         Assert.IsEmpty(missingParity, "parity fixture roots without a static read plan: " + string.Join(", ", missingParity));
-        Console.WriteLine($"{eligible.Count} planned, {unplanned.Count} general-reader fixtures");
+        Console.WriteLine($"{eligible.Count} planned, {unplanned.Count} member-by-member fixtures");
     }
 
     /// <summary>Returns a compiled struct of a layout by name.</summary>
@@ -249,7 +249,7 @@ public class StaticReadPlanTests
         return composite.StaticPlan is not null;
     }
 
-    /// <summary>The same input with and without the plan (the general-only execution path) for a span, a MemoryStream without an exposed buffer (block path) and a 5-byte chunked stream.</summary>
+    /// <summary>The same input with and without the plan (<see cref="ExecutionPath.NoFastPaths"/>) for a span, a MemoryStream without an exposed buffer (block path) and a 5-byte chunked stream.</summary>
     private static void AssertSameOutcome(CStruct layout, byte[] bytes, ReadOptions? options, string label)
     {
         foreach ((string source, Func<Stream?> create) in new (string, Func<Stream?>)[]
@@ -262,9 +262,9 @@ public class StaticReadPlanTests
             using Stream? withPlan = create();
             using Stream? withoutPlan = create();
             OperationOutcome fast = OperationOutcome.Of(() => withPlan is null ? layout.Parse(bytes, "root", options: options) : layout.Parse(withPlan, "root", options: options));
-            OperationOutcome general = OperationOutcome.Of(() => withoutPlan is null ? layout.Parse(bytes, "root", options: ExecutionPaths.NoFastPaths(options)) : layout.Parse(withoutPlan, "root", options: ExecutionPaths.NoFastPaths(options)));
+            OperationOutcome memberByMember = OperationOutcome.Of(() => withoutPlan is null ? layout.Parse(bytes, "root", options: ExecutionPaths.NoFastPaths(options)) : layout.Parse(withoutPlan, "root", options: ExecutionPaths.NoFastPaths(options)));
             string caseLabel = label + " / " + source;
-            OperationOutcome.AssertSame(general, fast, caseLabel);
+            OperationOutcome.AssertSame(memberByMember, fast, caseLabel);
             Assert.AreEqual(withoutPlan?.Position, withPlan?.Position, caseLabel + ": final position");
         }
     }

@@ -50,7 +50,7 @@ public class DynamicPrimitiveByteOrderTests
         CollectionAssert.AreEqual(expectedBytes, layout.Serialize("root", data));
     }
 
-    /// <summary>Neutral wide-character arrays use the layout byte order through the general path.</summary>
+    /// <summary>Neutral wide-character arrays in a runtime-sized record use the layout byte order.</summary>
     /// <param name="littleEndian">Whether low-order bytes precede high-order bytes in each UTF-16 unit.</param>
     [TestMethod]
     [DataRow(false)]

@@ -46,9 +46,9 @@ public class TypedReadPlanTests
         0xFE, 0xFF, 0x10, 0x00, 0xAA, 0xBB, 5, 6, 0, 0, 0, 7, 8, 0, 0, 0, 0x99,
     ];
 
-    /// <summary>Every member shape - exact types, converted types, nested mapped classes, mapped-class arrays, typed and converted numeric arrays, untyped members - matches the general path.</summary>
+    /// <summary>Every member shape - exact types, converted types, nested mapped classes, mapped-class arrays, typed and converted numeric arrays, untyped members - matches member-by-member reads.</summary>
     [TestMethod]
-    public void TypedPlan_MatchesGeneralPath_ForEveryMemberShape()
+    public void TypedPlan_MatchesMemberByMemberReads_ForEveryMemberShape()
     {
         var layout = new CStruct(Layout);
         AssertSameOutcome<RootExact>(layout, Bytes, "root", null, "exact");
@@ -86,9 +86,9 @@ public class TypedReadPlanTests
         AssertSameOutcome<RootConverted>(aligned, alignedBytes, "root", null, "aligned converted");
     }
 
-    /// <summary>Every failure the general path raises - a missing member, an overflowing or unconvertible member, a failure inside a nested element, a throwing mapper, an unmapped target - is raised with the same type, message and path.</summary>
+    /// <summary>Every failure a member-by-member read raises - a missing member, an overflowing or unconvertible member, a failure inside a nested element, a throwing mapper, an unmapped target - is raised with the same type, message and path.</summary>
     [TestMethod]
-    public void TypedPlan_MatchesGeneralPath_OnFailures()
+    public void TypedPlan_MatchesMemberByMemberReads_OnFailures()
     {
         var layout = new CStruct(Layout);
         AssertSameOutcome<RootMissingMember>(layout, Bytes, "root", null, "missing member");
@@ -131,14 +131,14 @@ public class TypedReadPlanTests
 
     /// <summary>The stream overload ends at the same position with and without the plan, and a stream positioned off the alignment boundary still matches.</summary>
     [TestMethod]
-    public void TypedPlan_MatchesGeneralPath_OnStreams()
+    public void TypedPlan_MatchesMemberByMemberReads_OnStreams()
     {
         var layout = new CStruct(Layout);
         using var withPlan = new MemoryStream(Bytes, writable: false);
         RootExact fast = layout.ReadValue<RootExact>(withPlan, "root");
         using var withoutPlan = new MemoryStream(Bytes, writable: false);
-        RootExact general = layout.ReadValue<RootExact>(withoutPlan, "root", options: ExecutionPaths.NoFastPaths());
-        Assert.AreEqual(OperationOutcome.Render(general), OperationOutcome.Render(fast));
+        RootExact memberByMember = layout.ReadValue<RootExact>(withoutPlan, "root", options: ExecutionPaths.NoFastPaths());
+        Assert.AreEqual(OperationOutcome.Render(memberByMember), OperationOutcome.Render(fast));
         Assert.AreEqual(withoutPlan.Position, withPlan.Position);
 
         var aligned = new CStruct("struct root { uint8 a; uint32 b; uint8 c; };", aligned: true);
@@ -148,20 +148,20 @@ public class TypedReadPlanTests
             using var fastStream = new MemoryStream(bytes, writable: false);
             fastStream.Position = start;
             string fastText = OperationOutcome.Render(aligned.ReadValue<Small>(fastStream, "root"));
-            using var generalStream = new MemoryStream(bytes, writable: false);
-            generalStream.Position = start;
-            string generalText = OperationOutcome.Render(aligned.ReadValue<Small>(generalStream, "root", options: ExecutionPaths.NoFastPaths()));
-            Assert.AreEqual(generalText, fastText, $"start {start}");
-            Assert.AreEqual(generalStream.Position, fastStream.Position, $"start {start}: position");
+            using var memberStream = new MemoryStream(bytes, writable: false);
+            memberStream.Position = start;
+            string memberText = OperationOutcome.Render(aligned.ReadValue<Small>(memberStream, "root", options: ExecutionPaths.NoFastPaths()));
+            Assert.AreEqual(memberText, fastText, $"start {start}");
+            Assert.AreEqual(memberStream.Position, fastStream.Position, $"start {start}: position");
         }
     }
 
-    /// <summary>Asserts that a typed read gives the same value or failure with the static plan and with only the general path.</summary>
+    /// <summary>Asserts that a typed read gives the same value or failure with the static plan and member by member.</summary>
     private static void AssertSameOutcome<T>(CStruct layout, byte[] bytes, string path, ReadOptions? options, string label)
     {
         OperationOutcome fast = OperationOutcome.Of(() => layout.ReadValue<T>(bytes, path, options: options));
-        OperationOutcome general = OperationOutcome.Of(() => layout.ReadValue<T>(bytes, path, options: ExecutionPaths.NoFastPaths(options)));
-        OperationOutcome.AssertSame(general, fast, label);
+        OperationOutcome memberByMember = OperationOutcome.Of(() => layout.ReadValue<T>(bytes, path, options: ExecutionPaths.NoFastPaths(options)));
+        OperationOutcome.AssertSame(memberByMember, fast, label);
     }
 
     /// <summary>A mapped class for the tests' <c>Leaf</c> record, read and written through the runtime.</summary>

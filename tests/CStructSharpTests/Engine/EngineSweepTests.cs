@@ -6,12 +6,13 @@ using SweepLayout = EngineSweepLayouts.SweepLayout;
 using Variant = EngineSweepLayouts.Variant;
 
 /// <summary>
-///     Sweeps the differential harness over the representative layouts of <see cref="EngineSweepLayouts"/>, packed and
-///     aligned, under <see cref="ExecutionPath.Fastest"/> and <see cref="ExecutionPath.NoFastPaths"/> (the path the
-///     compiled engine replaces): every truncation of the input, every byte budget up to the operation's natural total,
+///     Sweeps the golden harness over the representative layouts of <see cref="EngineSweepLayouts"/>, packed and
+///     aligned, under <see cref="ExecutionPath.Fastest"/> and <see cref="ExecutionPath.NoFastPaths"/> (the engine's
+///     member-by-member work): every truncation of the input, every byte budget up to the operation's natural total,
 ///     every other limit around the value the input needs, the read options that change decoding, caller variables,
-///     every input source, and every destination. Each comparison checks automatic engine selection against the golden
-///     outcomes (<see cref="EngineGolden"/>), hashed per layout variant; the sources must also agree with each other.
+///     every input source, and every destination. Each run checks its outcome, including how many operations reached the
+///     engine, against the golden outcomes (<see cref="EngineGolden"/>), hashed per layout variant; the sources must also
+///     agree with each other.
 /// </summary>
 /// <remarks>
 ///     Every sweep is exhaustive over its range (no sampling). The ranges are small because the inputs are: an element,
@@ -32,15 +33,15 @@ public class EngineSweepTests
     public static IEnumerable<object[]> Layouts => EngineSweepLayouts.Names;
 
     /// <summary>
-    ///     Every prefix of the input, from empty to complete, reads identically through every source: span, array,
+    ///     Every prefix of the input, from empty to complete, reads its golden outcome through every source - span, array,
     ///     memory, multi-segment sequence, hidden and exposed memory streams, 1-, 3- and 7-byte chunked streams, a file,
-    ///     and asynchronously; the debug parse and debug value read (from memory, streams and asynchronously), a selected
-    ///     value, an address, and an array length agree too.
+    ///     and asynchronously - and the sources agree with each other; the debug parse and debug value read (from memory,
+    ///     streams and asynchronously), a selected value, an address, and an array length match their golden outcomes too.
     /// </summary>
     /// <param name="name">The sweep layout.</param>
     [TestMethod]
     [DynamicData(nameof(Layouts))]
-    public void Truncations_ReadIdenticallyFromEverySource(string name)
+    public void Truncations_ReadFromEverySource(string name)
     {
         foreach (Variant variant in EngineSweepLayouts.Both(name))
         {
@@ -53,26 +54,26 @@ public class EngineSweepTests
                     var renderings = new List<(EngineInput Input, string Rendering)>();
                     foreach (EngineInput input in MemoryInputs.Concat(EngineStreams.All))
                     {
-                        renderings.Add((input, Same(EngineOperations.Parse(variant.Layout, prefix, input, "rec", source.Variables, variant.BaseRead(input)), path)));
+                        renderings.Add((input, Golden(EngineOperations.Parse(variant.Layout, prefix, input, "rec", source.Variables, variant.BaseRead(input)), path)));
                     }
 
                     EngineAgreement.AssertSourcesAgree(variant.Name + " length " + length + " (" + path + ")", renderings);
 
-                    Same(EngineOperations.ParseAsync(variant.Layout, prefix, EngineInput.Stream, "rec", source.Variables, variant.BaseRead()), path);
-                    Same(EngineOperations.ParseAsync(variant.Layout, prefix, EngineInput.ChunkedStream3, "rec", source.Variables, variant.BaseRead()), path);
-                    Same(EngineOperations.ParseWithDebug(variant.Layout, prefix, EngineInput.Span, "rec", source.Variables, variant.BaseRead()), path);
-                    Same(EngineOperations.ParseWithDebug(variant.Layout, prefix, EngineInput.ChunkedStream1, "rec", source.Variables, variant.BaseRead()), path);
-                    Same(EngineOperations.ParseWithDebug(variant.Layout, prefix, EngineInput.Sequence, "rec", source.Variables, variant.BaseRead()), path);
-                    Same(EngineOperations.ParseWithDebugAsync(variant.Layout, prefix, EngineInput.ExposedStream, "rec", source.Variables, variant.BaseRead(EngineInput.ExposedStream)), path);
-                    Same(EngineOperations.ReadValueWithDebug(variant.Layout, prefix, EngineInput.FileStream, "rec", source.Variables, variant.BaseRead()), path);
-                    Same(EngineOperations.ReadValueWithDebugAsync(variant.Layout, prefix, EngineInput.ChunkedStream7, "rec", source.Variables, variant.BaseRead()), path);
-                    Same(EngineOperations.ReadValue(variant.Layout, prefix, EngineInput.Span, source.Paths[0], source.Variables, variant.BaseRead()), path);
-                    Same(EngineOperations.ReadValue(variant.Layout, prefix, EngineInput.Stream, source.Paths[0], source.Variables, variant.BaseRead()), path);
-                    Same(EngineOperations.ResolveAddress(variant.Layout, prefix, EngineInput.Span, source.Paths[^1], source.Variables, variant.BaseRead()), path);
-                    Same(EngineOperations.ResolveAddress(variant.Layout, prefix, EngineInput.ChunkedStream3, source.Paths[^1], source.Variables, variant.BaseRead()), path);
+                    Golden(EngineOperations.ParseAsync(variant.Layout, prefix, EngineInput.Stream, "rec", source.Variables, variant.BaseRead()), path);
+                    Golden(EngineOperations.ParseAsync(variant.Layout, prefix, EngineInput.ChunkedStream3, "rec", source.Variables, variant.BaseRead()), path);
+                    Golden(EngineOperations.ParseWithDebug(variant.Layout, prefix, EngineInput.Span, "rec", source.Variables, variant.BaseRead()), path);
+                    Golden(EngineOperations.ParseWithDebug(variant.Layout, prefix, EngineInput.ChunkedStream1, "rec", source.Variables, variant.BaseRead()), path);
+                    Golden(EngineOperations.ParseWithDebug(variant.Layout, prefix, EngineInput.Sequence, "rec", source.Variables, variant.BaseRead()), path);
+                    Golden(EngineOperations.ParseWithDebugAsync(variant.Layout, prefix, EngineInput.ExposedStream, "rec", source.Variables, variant.BaseRead(EngineInput.ExposedStream)), path);
+                    Golden(EngineOperations.ReadValueWithDebug(variant.Layout, prefix, EngineInput.FileStream, "rec", source.Variables, variant.BaseRead()), path);
+                    Golden(EngineOperations.ReadValueWithDebugAsync(variant.Layout, prefix, EngineInput.ChunkedStream7, "rec", source.Variables, variant.BaseRead()), path);
+                    Golden(EngineOperations.ReadValue(variant.Layout, prefix, EngineInput.Span, source.Paths[0], source.Variables, variant.BaseRead()), path);
+                    Golden(EngineOperations.ReadValue(variant.Layout, prefix, EngineInput.Stream, source.Paths[0], source.Variables, variant.BaseRead()), path);
+                    Golden(EngineOperations.ResolveAddress(variant.Layout, prefix, EngineInput.Span, source.Paths[^1], source.Variables, variant.BaseRead()), path);
+                    Golden(EngineOperations.ResolveAddress(variant.Layout, prefix, EngineInput.ChunkedStream3, source.Paths[^1], source.Variables, variant.BaseRead()), path);
                     if (source.ArrayPath is not null)
                     {
-                        Same(EngineOperations.GetArrayLength(variant.Layout, prefix, EngineInput.Span, source.ArrayPath, source.Variables, variant.BaseRead()), path);
+                        Golden(EngineOperations.GetArrayLength(variant.Layout, prefix, EngineInput.Span, source.ArrayPath, source.Variables, variant.BaseRead()), path);
                     }
                 }
             }
@@ -82,12 +83,12 @@ public class EngineSweepTests
     /// <summary>
     ///     Every <see cref="ReadOptions.MaxTotalBytesRead"/> from 1 to one past the parse's natural total,
     ///     <see cref="WriteOptions.MaxTotalBytesWritten"/> from 1 to one past the write's, and every update's write
-    ///     budget and <see cref="UpdateOptions.MaxTraversalBytesRead"/> fail or succeed identically.
+    ///     budget and <see cref="UpdateOptions.MaxTraversalBytesRead"/> fail or succeed as the golden outcomes record.
     /// </summary>
     /// <param name="name">The sweep layout.</param>
     [TestMethod]
     [DynamicData(nameof(Layouts))]
-    public void ByteBudgets_FailIdenticallyAtEveryLimit(string name)
+    public void ByteBudgets_FailOrSucceedAtEveryLimit(string name)
     {
         foreach (Variant variant in EngineSweepLayouts.Both(name))
         {
@@ -101,22 +102,22 @@ public class EngineSweepTests
                 for (long budget = 1; budget <= readTotal + 1; budget++)
                 {
                     ReadOptions read = variant.BaseRead() with { MaxTotalBytesRead = budget, };
-                    Same(EngineOperations.Parse(variant.Layout, data, EngineInput.Span, "rec", variables, read), path);
-                    Same(EngineOperations.Parse(variant.Layout, data, EngineInput.Stream, "rec", variables, read), path);
-                    Same(EngineOperations.Parse(variant.Layout, data, EngineInput.ChunkedStream3, "rec", variables, read), path);
-                    Same(EngineOperations.Parse(variant.Layout, data, EngineInput.Sequence, "rec", variables, read), path);
-                    Same(EngineOperations.ParseWithDebug(variant.Layout, data, EngineInput.Span, "rec", variables, read), path);
-                    Same(EngineOperations.ReadValue(variant.Layout, data, EngineInput.Span, source.Paths[0], variables, read), path);
-                    Same(EngineOperations.ResolveAddress(variant.Layout, data, EngineInput.Span, source.Paths[^1], variables, read), path);
+                    Golden(EngineOperations.Parse(variant.Layout, data, EngineInput.Span, "rec", variables, read), path);
+                    Golden(EngineOperations.Parse(variant.Layout, data, EngineInput.Stream, "rec", variables, read), path);
+                    Golden(EngineOperations.Parse(variant.Layout, data, EngineInput.ChunkedStream3, "rec", variables, read), path);
+                    Golden(EngineOperations.Parse(variant.Layout, data, EngineInput.Sequence, "rec", variables, read), path);
+                    Golden(EngineOperations.ParseWithDebug(variant.Layout, data, EngineInput.Span, "rec", variables, read), path);
+                    Golden(EngineOperations.ReadValue(variant.Layout, data, EngineInput.Span, source.Paths[0], variables, read), path);
+                    Golden(EngineOperations.ResolveAddress(variant.Layout, data, EngineInput.Span, source.Paths[^1], variables, read), path);
                 }
 
                 for (long budget = 1; budget <= writeTotal + 1; budget++)
                 {
                     var write = new WriteOptions { MaxTotalBytesWritten = budget, };
-                    Same(EngineOperations.Serialize(variant.Layout, "rec", variant.Value, variables, write), path);
-                    Same(EngineOperations.SerializeToSpan(variant.Layout, data.Length, "rec", variant.Value, variables, write), path);
-                    Same(EngineOperations.Write(variant.Layout, new byte[4], 1, "rec", variant.Value, variables, write), path);
-                    Same(EngineOperations.SerializeToWindows(variant.Layout, 3, "rec", variant.Value, variables, write), path);
+                    Golden(EngineOperations.Serialize(variant.Layout, "rec", variant.Value, variables, write), path);
+                    Golden(EngineOperations.SerializeToSpan(variant.Layout, data.Length, "rec", variant.Value, variables, write), path);
+                    Golden(EngineOperations.Write(variant.Layout, new byte[4], 1, "rec", variant.Value, variables, write), path);
+                    Golden(EngineOperations.SerializeToWindows(variant.Layout, 3, "rec", variant.Value, variables, write), path);
                 }
 
                 foreach ((string target, object value) in source.Updates)
@@ -124,10 +125,10 @@ public class EngineSweepTests
                     for (long budget = 1; budget <= readTotal + 1; budget++)
                     {
                         var update = new UpdateOptions { MaxTotalBytesWritten = budget, MaxTraversalBytesRead = budget, };
-                        Same(EngineOperations.Update(variant.Layout, data, EngineInput.Span, target, value, variables, update), path);
-                        Same(EngineOperations.Update(variant.Layout, data, EngineInput.Stream, target, value, variables, update), path);
-                        Same(EngineOperations.Update(variant.Layout, data, EngineInput.Span, target, value, variables, new UpdateOptions { MaxTotalBytesWritten = budget, }), path);
-                        Same(EngineOperations.Update(variant.Layout, data, EngineInput.Span, target, value, variables, new UpdateOptions { MaxTraversalBytesRead = budget, }), path);
+                        Golden(EngineOperations.Update(variant.Layout, data, EngineInput.Span, target, value, variables, update), path);
+                        Golden(EngineOperations.Update(variant.Layout, data, EngineInput.Stream, target, value, variables, update), path);
+                        Golden(EngineOperations.Update(variant.Layout, data, EngineInput.Span, target, value, variables, new UpdateOptions { MaxTotalBytesWritten = budget, }), path);
+                        Golden(EngineOperations.Update(variant.Layout, data, EngineInput.Span, target, value, variables, new UpdateOptions { MaxTraversalBytesRead = budget, }), path);
                     }
                 }
             }
@@ -136,12 +137,12 @@ public class EngineSweepTests
 
     /// <summary>
     ///     Every element, string, nesting, pointer-depth and pointer-target limit - read, write, and update traversal -
-    ///     from 0 (an invalid limit) to the input length plus two fails or succeeds identically.
+    ///     from 0 (an invalid limit) to the input length plus two fails or succeeds as the golden outcomes record.
     /// </summary>
     /// <param name="name">The sweep layout.</param>
     [TestMethod]
     [DynamicData(nameof(Layouts))]
-    public void Limits_FailIdenticallyAroundTheNeededValue(string name)
+    public void Limits_FailOrSucceedAroundTheNeededValue(string name)
     {
         foreach (Variant variant in EngineSweepLayouts.Both(name))
         {
@@ -155,18 +156,18 @@ public class EngineSweepTests
                 // Runs the reads, the write, and the update of one set of limits.
                 void Compare(ReadOptions read, WriteOptions? write, UpdateOptions? update)
                 {
-                    Same(EngineOperations.Parse(variant.Layout, data, EngineInput.Span, "rec", variables, read), path);
-                    Same(EngineOperations.Parse(variant.Layout, data, EngineInput.ChunkedStream3, "rec", variables, read), path);
-                    Same(EngineOperations.ReadValue(variant.Layout, data, EngineInput.Span, source.Paths[0], variables, read), path);
-                    Same(EngineOperations.ResolveAddress(variant.Layout, data, EngineInput.Span, source.Paths[^1], variables, read), path);
+                    Golden(EngineOperations.Parse(variant.Layout, data, EngineInput.Span, "rec", variables, read), path);
+                    Golden(EngineOperations.Parse(variant.Layout, data, EngineInput.ChunkedStream3, "rec", variables, read), path);
+                    Golden(EngineOperations.ReadValue(variant.Layout, data, EngineInput.Span, source.Paths[0], variables, read), path);
+                    Golden(EngineOperations.ResolveAddress(variant.Layout, data, EngineInput.Span, source.Paths[^1], variables, read), path);
                     if (write is not null)
                     {
-                        Same(EngineOperations.Serialize(variant.Layout, "rec", variant.Value, variables, write), path);
+                        Golden(EngineOperations.Serialize(variant.Layout, "rec", variant.Value, variables, write), path);
                     }
 
                     if (update is not null)
                     {
-                        Same(EngineOperations.Update(variant.Layout, data, EngineInput.Span, target, replacement, variables, update), path);
+                        Golden(EngineOperations.Update(variant.Layout, data, EngineInput.Span, target, replacement, variables, update), path);
                     }
                 }
 
@@ -191,9 +192,9 @@ public class EngineSweepTests
 
     /// <summary>
     ///     A selected read of every sweep path returns the value the parse holds at that path, and the length of the
-    ///     sweep's array is the element count the parse read, on the fast and general paths. The selected operations
-    ///     measure the fields before their target through the address resolver, so this checks the resolver's captures
-    ///     against the reader's, which the implementation comparisons cannot: both sides share the resolver. A path the
+    ///     sweep's array is the element count the parse read, on the fast paths and member by member. The selected
+    ///     operations measure the fields before their target through the address resolver, so this checks the resolver's
+    ///     captures against the reader's, which a golden outcome alone cannot: it records whatever the resolver found. A path the
     ///     parse has no value at (an inactive branch) and a path no selected read accepts (the target of an
     ///     <c>@count</c> pointer) are skipped.
     /// </summary>
@@ -236,7 +237,8 @@ public class EngineSweepTests
     }
 
     /// <summary>
-    ///     The writers bind the caller's data identically on the fast and general paths, in every destination: the
+    ///     The writers bind the caller's data to the same outcome on the fast paths and member by member
+    ///     (<see cref="EngineDifferential.AssertPathsAgree"/>), in every destination: the
     ///     promoted-member layouts under <see cref="UnknownMemberPolicy.Reject"/> (the parsed value, the same members in a
     ///     dictionary, and a dictionary with an undeclared key), and a dictionary root whose nested struct and array
     ///     elements are mapped instances, packed and aligned.
@@ -270,29 +272,24 @@ public class EngineSweepTests
         foreach ((string name, CStruct layout, object value, int length) in cases)
         {
             using IDisposable part = EngineGolden.Part(name);
-            var operations = new List<DifferentialOperation>
+            var operations = new List<GoldenOperation>
             {
                 EngineOperations.Serialize(layout, "rec", value, null, reject),
                 EngineOperations.SerializeToSpan(layout, length + 3, "rec", value, null, reject),
                 EngineOperations.SerializeToWindows(layout, 3, "rec", value, null, reject),
                 EngineOperations.Write(layout, new byte[length + 4], 2, "rec", value, null, reject),
             };
-            foreach (DifferentialOperation operation in operations)
+            foreach (GoldenOperation operation in operations)
             {
-                string general = Same(operation, ExecutionPath.NoFastPaths);
-                string fastest = Same(operation, ExecutionPath.Fastest);
-                if (!string.Equals(general, fastest, StringComparison.Ordinal))
-                {
-                    Assert.Fail(name + ", " + operation.Name + ": the general path (-) and the fast paths (+) differ:\n" + EngineDifferential.Diff(general, fastest));
-                }
+                EngineDifferential.AssertPathsAgree(operation, name);
             }
         }
     }
 
     /// <summary>
     ///     Every nesting limit from 0 to 4 - read, write, and update traversal - gives the same outcome on the fast paths
-    ///     as on the general path, so a layout exactly at the limit (with anonymous promoted members, which add no level)
-    ///     is accepted or rejected by both.
+    ///     as member by member (<see cref="EngineDifferential.AssertPathsAgree"/>), so a layout exactly at the limit (with
+    ///     anonymous promoted members, which add no level) is accepted or rejected by both.
     /// </summary>
     /// <param name="name">The sweep layout.</param>
     [TestMethod]
@@ -308,7 +305,7 @@ public class EngineSweepTests
             for (int depth = 0; depth <= 4; depth++)
             {
                 ReadOptions read = variant.BaseRead() with { MaxNestingDepth = depth, };
-                var operations = new List<DifferentialOperation>
+                var operations = new List<GoldenOperation>
                 {
                     EngineOperations.Parse(variant.Layout, data, EngineInput.Span, "rec", variables, read),
                     EngineOperations.Parse(variant.Layout, data, EngineInput.Stream, "rec", variables, read),
@@ -323,14 +320,9 @@ public class EngineSweepTests
                     operations.Add(EngineOperations.GetArrayLength(variant.Layout, data, EngineInput.Span, source.ArrayPath, variables, read));
                 }
 
-                foreach (DifferentialOperation operation in operations)
+                foreach (GoldenOperation operation in operations)
                 {
-                    string general = Same(operation, ExecutionPath.NoFastPaths);
-                    string fastest = Same(operation, ExecutionPath.Fastest);
-                    if (!string.Equals(general, fastest, StringComparison.Ordinal))
-                    {
-                        Assert.Fail(variant.Name + " depth " + depth + ", " + operation.Name + ": the general path (-) and the fast paths (+) differ:\n" + EngineDifferential.Diff(general, fastest));
-                    }
+                    EngineDifferential.AssertPathsAgree(operation, variant.Name + " depth " + depth);
                 }
             }
         }
@@ -338,13 +330,13 @@ public class EngineSweepTests
 
     /// <summary>
     ///     Fixed text trimming, pointer dereferencing, and absolute and relative addressing from several origins -
-    ///     including one past the input and one that overflows - read identically from memory and from streams that
-    ///     start at their beginning or past it.
+    ///     including one past the input and one that overflows - decode as the golden outcomes record, from memory and from
+    ///     streams that start at their beginning or past it.
     /// </summary>
     /// <param name="name">The sweep layout.</param>
     [TestMethod]
     [DynamicData(nameof(Layouts))]
-    public void ReadOptions_DecodeIdentically(string name)
+    public void ReadOptions_DecodeFromMemoryAndStreams(string name)
     {
         (PointerAddressingMode Mode, long Origin)[] addressing =
         [
@@ -365,15 +357,15 @@ public class EngineSweepTests
                             var read = new ReadOptions { TrimFixedText = trim, DereferencePointers = dereference, AddressingMode = mode, Origin = origin, };
                             foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Sequence, EngineInput.Stream, EngineInput.ExposedStream, EngineInput.ChunkedStream7])
                             {
-                                Same(EngineOperations.Parse(variant.Layout, variant.Data, input, "rec", source.Variables, read), path);
+                                Golden(EngineOperations.Parse(variant.Layout, variant.Data, input, "rec", source.Variables, read), path);
                             }
 
-                            Same(EngineOperations.ParseWithDebug(variant.Layout, variant.Data, EngineInput.Span, "rec", source.Variables, read), path);
-                            Same(EngineOperations.ReadValueWithDebug(variant.Layout, variant.Data, EngineInput.ExposedStream, source.Paths[0], source.Variables, read), path);
-                            Same(EngineOperations.ReadValue<string>(variant.Layout, variant.Data, EngineInput.Span, source.Paths[1 % source.Paths.Length], source.Variables, read), path);
+                            Golden(EngineOperations.ParseWithDebug(variant.Layout, variant.Data, EngineInput.Span, "rec", source.Variables, read), path);
+                            Golden(EngineOperations.ReadValueWithDebug(variant.Layout, variant.Data, EngineInput.ExposedStream, source.Paths[0], source.Variables, read), path);
+                            Golden(EngineOperations.ReadValue<string>(variant.Layout, variant.Data, EngineInput.Span, source.Paths[1 % source.Paths.Length], source.Variables, read), path);
                             foreach (string selected in source.Paths)
                             {
-                                Same(EngineOperations.ResolveAddress(variant.Layout, variant.Data, EngineInput.ExposedStream, selected, source.Variables, read), path);
+                                Golden(EngineOperations.ResolveAddress(variant.Layout, variant.Data, EngineInput.ExposedStream, selected, source.Variables, read), path);
                             }
                         }
                     }
@@ -383,14 +375,14 @@ public class EngineSweepTests
     }
 
     /// <summary>
-    ///     Caller variables read and write identically when absent, when they supply the names the layout's expressions
+    ///     Caller variables read and write as the golden outcomes record when absent, when they supply the names the layout's expressions
     ///     use, when they only add unrelated names, and when a used name takes values at and near the <see cref="int"/>
     ///     bounds, which 128-bit expression arithmetic must carry without overflow.
     /// </summary>
     /// <param name="name">The sweep layout.</param>
     [TestMethod]
     [DynamicData(nameof(Layouts))]
-    public void CallerVariables_ReadAndWriteIdentically(string name)
+    public void CallerVariables_ReadAndWriteUpToTheIntegerBounds(string name)
     {
         int[] extremes = [int.MinValue, int.MinValue + 1, -2, -1, 0, 1, 2, int.MaxValue - 1, int.MaxValue];
         foreach (Variant variant in EngineSweepLayouts.Both(name))
@@ -421,30 +413,30 @@ public class EngineSweepTests
             {
                 foreach (IReadOnlyDictionary<string, int>? variables in sets)
                 {
-                    Same(EngineOperations.Parse(variant.Layout, variant.Data, EngineInput.Span, "rec", variables, variant.BaseRead()), path);
-                    Same(EngineOperations.Parse(variant.Layout, variant.Data, EngineInput.ChunkedStream7, "rec", variables, variant.BaseRead()), path);
-                    Same(EngineOperations.ParseWithDebug(variant.Layout, variant.Data, EngineInput.Span, "rec", variables, variant.BaseRead()), path);
-                    Same(EngineOperations.ResolveAddress(variant.Layout, variant.Data, EngineInput.Span, source.Paths[^1], variables, variant.BaseRead()), path);
+                    Golden(EngineOperations.Parse(variant.Layout, variant.Data, EngineInput.Span, "rec", variables, variant.BaseRead()), path);
+                    Golden(EngineOperations.Parse(variant.Layout, variant.Data, EngineInput.ChunkedStream7, "rec", variables, variant.BaseRead()), path);
+                    Golden(EngineOperations.ParseWithDebug(variant.Layout, variant.Data, EngineInput.Span, "rec", variables, variant.BaseRead()), path);
+                    Golden(EngineOperations.ResolveAddress(variant.Layout, variant.Data, EngineInput.Span, source.Paths[^1], variables, variant.BaseRead()), path);
                     if (source.ArrayPath is not null)
                     {
-                        Same(EngineOperations.GetArrayLength(variant.Layout, variant.Data, EngineInput.Span, source.ArrayPath, variables, variant.BaseRead()), path);
+                        Golden(EngineOperations.GetArrayLength(variant.Layout, variant.Data, EngineInput.Span, source.ArrayPath, variables, variant.BaseRead()), path);
                     }
 
-                    Same(EngineOperations.Serialize(variant.Layout, "rec", variant.Value, variables), path);
-                    Same(EngineOperations.Update(variant.Layout, variant.Data, EngineInput.Span, target, replacement, variables), path);
+                    Golden(EngineOperations.Serialize(variant.Layout, "rec", variant.Value, variables), path);
+                    Golden(EngineOperations.Update(variant.Layout, variant.Data, EngineInput.Span, target, replacement, variables), path);
                 }
             }
         }
     }
 
     /// <summary>
-    ///     Record sequences of one record, three records, and three records followed by a truncated fourth read
-    ///     identically from memory, a multi-segment sequence, and every stream form, and the sources agree.
+    ///     Record sequences of one record, three records, and three records followed by a truncated fourth read their
+    ///     golden outcomes from memory, a multi-segment sequence, and every stream form, and the sources agree.
     /// </summary>
     /// <param name="name">The sweep layout.</param>
     [TestMethod]
     [DynamicData(nameof(Layouts))]
-    public void RecordSequences_ReadIdenticallyFromEverySource(string name)
+    public void RecordSequences_ReadFromEverySource(string name)
     {
         foreach (Variant variant in EngineSweepLayouts.Both(name))
         {
@@ -457,7 +449,7 @@ public class EngineSweepTests
                     var renderings = new List<(EngineInput Input, string Rendering)>();
                     foreach (EngineInput input in ((EngineInput[])[EngineInput.Memory, EngineInput.Sequence]).Concat(EngineStreams.All))
                     {
-                        renderings.Add((input, Same(EngineOperations.ParseMany(variant.Layout, sequences[index], input, "rec", variant.Source.Variables, variant.BaseRead(input)), path)));
+                        renderings.Add((input, Golden(EngineOperations.ParseMany(variant.Layout, sequences[index], input, "rec", variant.Source.Variables, variant.BaseRead(input)), path)));
                     }
 
                     // Memory and sequence records are each their own region for stored addresses, while the stream form
@@ -469,7 +461,7 @@ public class EngineSweepTests
     }
 
     /// <summary>
-    ///     Writes and updates produce identical bytes and failures in every destination: a new array; spans of 0, 5,
+    ///     Writes and updates produce their golden bytes and failures in every destination: a new array; spans of 0, 5,
     ///     n-1, n and n+3 bytes filled with 0xCC; streams that already hold bytes, written from their start, from inside
     ///     them and from their end, synchronously and asynchronously - growing memory streams, one that reports it cannot
     ///     be read, and a fixed-capacity one that returns one byte per read; a growing buffer writer and buffer writers
@@ -478,7 +470,7 @@ public class EngineSweepTests
     /// <param name="name">The sweep layout.</param>
     [TestMethod]
     [DynamicData(nameof(Layouts))]
-    public void Destinations_WriteIdentically(string name)
+    public void Destinations_ReceiveEveryWriteAndUpdate(string name)
     {
         foreach (Variant variant in EngineSweepLayouts.Both(name))
         {
@@ -488,33 +480,33 @@ public class EngineSweepTests
             byte[] prefill = Enumerable.Repeat((byte)0xAA, n + 4).ToArray();
             foreach (ExecutionPath path in SweepPaths)
             {
-                Same(EngineOperations.Serialize(variant.Layout, "rec", variant.Value, variables), path);
+                Golden(EngineOperations.Serialize(variant.Layout, "rec", variant.Value, variables), path);
                 foreach (int capacity in (int[])[0, 5, n - 1, n, n + 3])
                 {
-                    Same(EngineOperations.SerializeToSpan(variant.Layout, capacity, "rec", variant.Value, variables), path);
+                    Golden(EngineOperations.SerializeToSpan(variant.Layout, capacity, "rec", variant.Value, variables), path);
                 }
 
-                Same(EngineOperations.SerializeToBufferWriter(variant.Layout, "rec", variant.Value, variables), path);
+                Golden(EngineOperations.SerializeToBufferWriter(variant.Layout, "rec", variant.Value, variables), path);
                 foreach (int window in (int[])[1, 3, 7])
                 {
-                    Same(EngineOperations.SerializeToWindows(variant.Layout, window, "rec", variant.Value, variables), path);
+                    Golden(EngineOperations.SerializeToWindows(variant.Layout, window, "rec", variant.Value, variables), path);
                 }
 
                 foreach (long start in (long[])[0, 3, n + 4])
                 {
-                    Same(EngineOperations.Write(variant.Layout, prefill, start, "rec", variant.Value, variables), path);
-                    Same(EngineOperations.WriteTo(variant.Layout, "unreadable", OpenUnreadable, prefill, start, "rec", variant.Value, variables), path);
-                    Same(EngineOperations.WriteTo(variant.Layout, "fixed, 1-byte reads", bytes => new ChunkedMemoryStream(bytes, 1, writable: true), prefill, start, "rec", variant.Value, variables), path);
+                    Golden(EngineOperations.Write(variant.Layout, prefill, start, "rec", variant.Value, variables), path);
+                    Golden(EngineOperations.WriteTo(variant.Layout, "unreadable", OpenUnreadable, prefill, start, "rec", variant.Value, variables), path);
+                    Golden(EngineOperations.WriteTo(variant.Layout, "fixed, 1-byte reads", bytes => new ChunkedMemoryStream(bytes, 1, writable: true), prefill, start, "rec", variant.Value, variables), path);
                 }
 
-                Same(EngineOperations.WriteAsync(variant.Layout, prefill, 3, "rec", variant.Value, variables), path);
+                Golden(EngineOperations.WriteAsync(variant.Layout, prefill, 3, "rec", variant.Value, variables), path);
                 foreach ((string target, object value) in source.Updates)
                 {
-                    Same(EngineOperations.Update(variant.Layout, variant.Data, EngineInput.Span, target, value, variables), path);
-                    Same(EngineOperations.Update(variant.Layout, variant.Data, EngineInput.Stream, target, value, variables), path);
-                    Same(EngineOperations.UpdateAsync(variant.Layout, variant.Data, target, value, variables), path);
-                    Same(EngineOperations.Update(variant.Layout, variant.Data[..(variant.Data.Length - 1)], EngineInput.Span, target, value, variables), path);
-                    Same(EngineOperations.Update(variant.Layout, variant.Data, EngineInput.Span, target, value, variables, new UpdateOptions { ClearUnionStorage = false, }), path);
+                    Golden(EngineOperations.Update(variant.Layout, variant.Data, EngineInput.Span, target, value, variables), path);
+                    Golden(EngineOperations.Update(variant.Layout, variant.Data, EngineInput.Stream, target, value, variables), path);
+                    Golden(EngineOperations.UpdateAsync(variant.Layout, variant.Data, target, value, variables), path);
+                    Golden(EngineOperations.Update(variant.Layout, variant.Data[..(variant.Data.Length - 1)], EngineInput.Span, target, value, variables), path);
+                    Golden(EngineOperations.Update(variant.Layout, variant.Data, EngineInput.Span, target, value, variables, new UpdateOptions { ClearUnionStorage = false, }), path);
                 }
             }
         }
@@ -530,11 +522,11 @@ public class EngineSweepTests
         return stream;
     }
 
-    /// <summary>Compares one operation's outcome with its golden outcome through the harness.</summary>
+    /// <summary>Checks one operation's outcome against its golden outcome through the harness.</summary>
     /// <param name="operation">The operation.</param>
     /// <param name="path">The execution path the run uses.</param>
-    /// <returns>The rendering.</returns>
-    private static string Same(DifferentialOperation operation, ExecutionPath path) => EngineDifferential.AssertSame(operation, path: path).Rendering;
+    /// <returns>The rendering, for the source-agreement check.</returns>
+    private static string Golden(GoldenOperation operation, ExecutionPath path) => EngineDifferential.AssertGolden(operation, path: path).Rendering;
 
     /// <summary>
     ///     Finds the value at a sweep path (<c>rec.items[1].b</c>, <c>rec.p.value</c>) in a parsed value: struct and union

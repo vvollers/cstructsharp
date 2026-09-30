@@ -45,13 +45,16 @@ public class StaticWritePlanTests
         0xAA, 0xBB, 5, 6, 0, 0, 0, 7, 8, 0, 0, 0, 0x99,
     ];
 
-    /// <summary>Explicit padding is zeroed in existing storage, including nested and promoted fixed layouts.</summary>
+    /// <summary>
+    ///     Explicit padding is zeroed in existing storage, including nested and promoted fixed layouts; its composite is
+    ///     written member by member (its static plan does not write) and counts toward the byte budget and array limit.
+    /// </summary>
     /// <param name="placement">Whether the padding lives directly in the root, in a named child or in a promoted child.</param>
     [TestMethod]
     [DataRow("root")]
     [DataRow("nested")]
     [DataRow("promoted")]
-    public void UnnamedPadding_UsesGeneralWritesAndRetainsStaticReads(string placement)
+    public void UnnamedPadding_WritesMemberByMemberAndKeepsStaticReads(string placement)
     {
         const string members = "uint8 prefix; uint8 _[3]; uint8 tail;";
         string definition = placement switch
@@ -79,9 +82,9 @@ public class StaticWritePlanTests
         Assert.Throws<CStructWriteLimitException>(() => layout.Serialize("root", data, options: new WriteOptions { MaxArrayElements = 2 }));
     }
 
-    /// <summary>The plan and the general path produce identical bytes for a parsed value, a dictionary, and a mapped class, into every destination.</summary>
+    /// <summary>The plan and member-by-member writes produce identical bytes for a parsed value, a dictionary, and a mapped class, into every destination.</summary>
     [TestMethod]
-    public void WritePlan_MatchesGeneralWriter_ForEveryInputAndDestination()
+    public void WritePlan_MatchesMemberByMemberWrites_ForEveryInputAndDestination()
     {
         foreach (bool aligned in new[] { false, true })
         {
@@ -98,9 +101,9 @@ public class StaticWritePlanTests
         }
     }
 
-    /// <summary>Every failure the general path raises inside a planned composite is raised by the plan with the same type and message.</summary>
+    /// <summary>Every failure a member-by-member write raises inside a planned composite is raised by the plan with the same type and message.</summary>
     [TestMethod]
-    public void WritePlan_MatchesGeneralWriter_OnFailures()
+    public void WritePlan_MatchesMemberByMemberWrites_OnFailures()
     {
         var layout = new CStruct(Layout);
         foreach ((string label, Action<Dictionary<string, object?>> mutate) in new (string, Action<Dictionary<string, object?>>)[]
@@ -157,7 +160,7 @@ public class StaticWritePlanTests
         Assert.AreEqual(0, destination.Length);
     }
 
-    /// <summary>Writing into a stream that already has bytes keeps whatever padding bytes held and appends beyond the end like the general path.</summary>
+    /// <summary>Writing into a stream that already has bytes keeps whatever padding bytes held and appends beyond the end like member-by-member writes.</summary>
     [TestMethod]
     public void WritePlan_PreservesExistingPaddingBytes()
     {
@@ -260,8 +263,8 @@ public class StaticWritePlanTests
             }
 
             OperationOutcome planned = OperationOutcome.Of(() => layout.Serialize(rootName, parsed));
-            OperationOutcome general = OperationOutcome.Of(() => layout.Serialize(rootName, parsed, options: ExecutionPaths.NoFastPathsWrite()));
-            OperationOutcome.AssertSame(general, planned, id, compareOffsets: false);
+            OperationOutcome memberByMember = OperationOutcome.Of(() => layout.Serialize(rootName, parsed, options: ExecutionPaths.NoFastPathsWrite()));
+            OperationOutcome.AssertSame(memberByMember, planned, id, compareOffsets: false);
 
             compared++;
         }
@@ -269,7 +272,7 @@ public class StaticWritePlanTests
         Assert.IsGreaterThan(30, compared);
     }
 
-    /// <summary>Asserts that every write destination gives the same bytes and failure with the static write plan and with only the general path.</summary>
+    /// <summary>Asserts that every write destination gives the same bytes and failure with the static write plan and member by member.</summary>
     private static void AssertSameOutcome(CStruct layout, object data, WriteOptions? options, string label)
     {
         foreach ((string destination, Func<object, WriteOptions?, byte[]> write) in new (string, Func<object, WriteOptions?, byte[]>)[]
@@ -296,8 +299,8 @@ public class StaticWritePlanTests
         })
         {
             OperationOutcome planned = OperationOutcome.Of(() => write(data, options));
-            OperationOutcome general = OperationOutcome.Of(() => write(data, ExecutionPaths.NoFastPaths(options)));
-            OperationOutcome.AssertSame(general, planned, label + " / " + destination, compareOffsets: false);
+            OperationOutcome memberByMember = OperationOutcome.Of(() => write(data, ExecutionPaths.NoFastPaths(options)));
+            OperationOutcome.AssertSame(memberByMember, planned, label + " / " + destination, compareOffsets: false);
         }
     }
 

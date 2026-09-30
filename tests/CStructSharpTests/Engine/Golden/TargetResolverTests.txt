@@ -28,19 +28,19 @@
   failure.offset = 0
   engine runs = 1
 
-@test ConditionalMembers_PlaceLaterPathsIdentically
+@test ConditionalMembers_PlaceLaterPathsWhereTheParseDoes
 @hash d2142290788e540ab2d35c82f12dbe467a5e2750d137d7471b902c96731c484f 3276
 
-@test MeasuredMembers_PlaceLaterPathsIdentically
+@test MeasuredMembers_PlaceLaterPathsWhereTheParseDoes
 @hash 3afff92a1303c508220fa9aee246b9452e824d724f74f1ba28cb2f6025c320b4 20596
 
-@test MemberShapes_ResolveIdentically
+@test MemberShapes_ResolveEveryPath
 @hash 2dce6cbbecc1d55cec313346610877fdd46a2c6bedc156b54c973673c940b2cd 6338
 
 @test NestedParses_ReadTheSelectedComposite
 @hash 9a15e188ddcea93a3e53da83b7f07594ebc84f2cffb848eccc3a50bf172f0074 594
 
-@test PathFailures_AreReportedIdentically
+@test PathFailures_AreReportedForEveryUnselectablePath
 @hash 8d3302d7e2ece6cc2c246e76b21c2c19259df2e515d0397ecc7c1d28fa0c8880 2132
 
 @test PointerPaths_FollowOnlyTheNamedPointers

@@ -227,7 +227,7 @@
 @test DefinitionRoot_EvaluatesAndReadsNothing
 @hash 4b23c27eedaf8f7c86d21faea0e25ec0944cb9b1d6cfcb69b7a33e8f6f00e252 19
 
-@test EveryCodec_ReadsIdenticallyAtEveryTruncationAndBudget
+@test EveryCodec_ReadsAtEveryTruncationAndBudget
 @hash 418c7c8d64e37375f4d390bf6330e48ef98aea62cb93a654336afdb6d0fb5cb3 1687
 
 @test Failure_NamesTheInnermostMember_WithPathAndOffset
@@ -305,7 +305,7 @@
 @test FixedSizeCustomCodec_OccupiesItsDeclaredSize
 @hash 877e73e7be32a4374a766854965d51aab9f6d6bbded700d0b1ca0e158f903ae7 724
 
-@test LargeArrays_FailAtTheSame64KiBBlocks
+@test LargeArrays_ReadAndFailIn64KiBBlocks
 @hash 5828d454afb7da0b92b835f3a6566afc42bf4b2aaa9653fec9cb3b143d07adee 76
 
 @test MultidimensionalArrays_ReadFlatThenNest
@@ -604,7 +604,7 @@
 @test SpelledRootWithCallerOnlyVariable_RunsOnTheEngine
 @hash be1aafde25f33bf44eaa9c1f8f2330b94e9363a1b17fcc5eec1957abb31a325c 42
 
-@test StandaloneRoots_ReadIdentically
+@test StandaloneRoots_ReadIntoTheirTypedShapes
 @hash ae3b778616afa36dc1f902bc9556e4d1166df4447bcaae32059ad99f4ed2e90a 150
 
 @test TerminatedArrays_ChargeTheScanAndTheReread

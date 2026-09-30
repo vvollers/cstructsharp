@@ -6,9 +6,9 @@ using CStructSharp.Engine;
 using CStructSharp.Fuzzing;
 
 /// <summary>
-///     The differential harness: runs one operation, renders its outcome canonically (<see cref="CanonicalText"/>), and
-///     checks the rendering against the golden reference (<see cref="EngineGolden"/>), which fails with a line diff when
-///     they differ.
+///     The golden harness of the engine tests: runs one operation, renders its outcome canonically
+///     (<see cref="CanonicalText"/>), and checks the rendering against its golden outcome (<see cref="EngineGolden"/>),
+///     which fails with a line diff when they differ.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -27,48 +27,67 @@ internal static class EngineDifferential
     /// <summary>The number of unchanged lines shown around each changed line of a diff.</summary>
     private const int DiffContext = 3;
 
-    /// <summary>Asserts that the operation reproduces its golden rendering under the execution path.</summary>
+    /// <summary>Asserts that the operation reproduces its golden outcome under the execution path.</summary>
     /// <param name="operation">The operation.</param>
     /// <param name="path">The execution path of the run.</param>
     /// <param name="alter">
-    ///     A test-only change applied to the run's rendering before the comparison, used to prove that the harness detects
-    ///     a planted difference; <see langword="null"/> in real cases.
+    ///     A test-only change applied to the run's rendering before the check, used to prove that the harness detects a
+    ///     planted difference; <see langword="null"/> in real cases.
     /// </param>
-    /// <returns>The comparison: the rendering and the run's recorder.</returns>
-    /// <exception cref="AssertFailedException">The rendering differs from the golden one.</exception>
-    public static EngineComparison AssertSame(
-        DifferentialOperation operation,
+    /// <returns>The run's rendering and the number of operations that reached the engine.</returns>
+    /// <exception cref="AssertFailedException">The outcome differs from the golden one.</exception>
+    public static EngineOutcome AssertGolden(
+        GoldenOperation operation,
         ExecutionPath path = ExecutionPath.Fastest,
         Func<string, string>? alter = null)
     {
         string key = operation.Name + " (" + path + ")";
-        var side = new EngineSide(path);
-        string actual = Render(operation, side);
+        var recorder = new EngineDiagnostics();
+        string actual = Render(operation, path, recorder);
         if (alter is not null)
         {
             actual = alter(actual);
         }
 
-        EngineGolden.Check(key, WithOperations(actual, side.Diagnostics.Runs));
-        return new EngineComparison(actual, side.Diagnostics);
+        EngineGolden.Check(key, WithOperations(actual, recorder.Runs));
+        return new EngineOutcome(actual, recorder.Runs);
     }
 
     /// <summary>
-    ///     Runs the operation for one side inside a recording into the side's recorder, under the invariant culture, and
-    ///     returns its rendering.
+    ///     Asserts that the operation reproduces its golden outcome under <see cref="ExecutionPath.NoFastPaths"/> (the
+    ///     engine's member-by-member work) and then under <see cref="ExecutionPath.Fastest"/>, and that both runs render
+    ///     the same outcome: the fast paths must not change what an operation returns, writes or reports.
     /// </summary>
     /// <param name="operation">The operation.</param>
-    /// <param name="side">The side.</param>
+    /// <param name="label">The case, for the failure message.</param>
+    /// <exception cref="AssertFailedException">An outcome differs from its golden one, or the two paths disagree.</exception>
+    public static void AssertPathsAgree(GoldenOperation operation, string label)
+    {
+        string memberByMember = AssertGolden(operation, ExecutionPath.NoFastPaths).Rendering;
+        string fastest = AssertGolden(operation, ExecutionPath.Fastest).Rendering;
+        if (!string.Equals(memberByMember, fastest, StringComparison.Ordinal))
+        {
+            Assert.Fail(label + ", " + operation.Name + ": the member-by-member path (-) and the fast paths (+) differ:\n" + Diff(memberByMember, fastest));
+        }
+    }
+
+    /// <summary>
+    ///     Runs the operation under the execution path inside a recording into <paramref name="recorder"/>, under the
+    ///     invariant culture, and returns its rendering.
+    /// </summary>
+    /// <param name="operation">The operation.</param>
+    /// <param name="path">The execution path of the run.</param>
+    /// <param name="recorder">Counts the operations that reach the compiled engine during the run.</param>
     /// <returns>The canonical rendering.</returns>
-    public static string Render(DifferentialOperation operation, EngineSide side)
+    private static string Render(GoldenOperation operation, ExecutionPath path, EngineDiagnostics recorder)
     {
         return EngineGolden.Invariant(
             () =>
             {
                 var output = new CanonicalText();
-                using (EngineDiagnostics.Record(side.Diagnostics))
+                using (EngineDiagnostics.Record(recorder))
                 {
-                    operation.Run(side, output);
+                    operation.Run(path, output);
                 }
 
                 return output.ToString();

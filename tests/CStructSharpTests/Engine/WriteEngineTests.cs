@@ -6,7 +6,7 @@ using CStructSharp.Values;
 
 /// <summary>
 ///     The compiled write engine's step semantics where the sweeps and corpora do not reach, each compared with the
-///     golden outcomes (<see cref="EngineGolden"/>) through the differential harness and pinned to its expected outcome: every codec at
+///     golden outcomes (<see cref="EngineGolden"/>) through the golden harness and pinned to its expected outcome: every codec at
 ///     every write budget and span capacity, every terminated text type, the prefix a failed write leaves in a span, the
 ///     narrow text path that fails after writing earlier characters, tail padding written and charged, the inactive conditional member check,
 ///     captures of converted supplied values, bitfield units, staged unions, pointers, the memory destination's own
@@ -70,7 +70,7 @@ public class WriteEngineTests
     ///     to one past the output's length and every span capacity fail or succeed exactly as the golden outcomes record.
     /// </summary>
     [TestMethod]
-    public void Codecs_WriteIdenticallyAtEveryBudgetAndCapacity()
+    public void Codecs_WriteAtEveryBudgetAndCapacity()
     {
         var layout = new CStruct(CodecLayout);
         byte[] data = CodecData;
@@ -80,9 +80,9 @@ public class WriteEngineTests
         {
             for (int limit = 1; limit <= data.Length + 1; limit++)
             {
-                EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", value, options: new WriteOptions { MaxTotalBytesWritten = limit, }), path);
-                EngineDifferential.AssertSame(EngineOperations.SerializeToSpan(layout, limit - 1, "rec", value), path);
-                EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", value, options: new WriteOptions { MaxStringBytes = limit - 1, }), path);
+                EngineDifferential.AssertGolden(EngineOperations.Serialize(layout, "rec", value, options: new WriteOptions { MaxTotalBytesWritten = limit, }), path);
+                EngineDifferential.AssertGolden(EngineOperations.SerializeToSpan(layout, limit - 1, "rec", value), path);
+                EngineDifferential.AssertGolden(EngineOperations.Serialize(layout, "rec", value, options: new WriteOptions { MaxStringBytes = limit - 1, }), path);
             }
         }
     }
@@ -105,8 +105,8 @@ public class WriteEngineTests
         Assert.Throws<CStructWriteException>(() => layout.Serialize("rec", value, options: new WriteOptions()));
         foreach (ExecutionPath path in Paths)
         {
-            EngineDifferential.AssertSame(EngineOperations.SerializeToSpan(layout, 8, "rec", value), path);
-            EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", value), path);
+            EngineDifferential.AssertGolden(EngineOperations.SerializeToSpan(layout, 8, "rec", value), path);
+            EngineDifferential.AssertGolden(EngineOperations.Serialize(layout, "rec", value), path);
         }
     }
 
@@ -133,10 +133,10 @@ public class WriteEngineTests
                 var value = new Dictionary<string, object?> { ["n"] = (byte)0, ["items"] = Array.Empty<byte>(), ["s"] = text, ["tail"] = (byte)9, };
                 foreach (ExecutionPath path in Paths)
                 {
-                    EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", value), path);
+                    EngineDifferential.AssertGolden(EngineOperations.Serialize(layout, "rec", value), path);
                     for (int limit = 0; limit <= 8; limit++)
                     {
-                        EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", value, options: new WriteOptions { MaxStringBytes = limit, }), path);
+                        EngineDifferential.AssertGolden(EngineOperations.Serialize(layout, "rec", value, options: new WriteOptions { MaxStringBytes = limit, }), path);
                     }
                 }
             }
@@ -162,7 +162,7 @@ public class WriteEngineTests
         CollectionAssert.AreEqual(new byte[] { 0, (byte)'a', (byte)'b', 0xCC, 0xCC, 0xCC, }, destination);
         foreach (ExecutionPath path in Paths)
         {
-            EngineDifferential.AssertSame(EngineOperations.SerializeToSpan(layout, 6, "rec", value), path);
+            EngineDifferential.AssertGolden(EngineOperations.SerializeToSpan(layout, 6, "rec", value), path);
         }
     }
 
@@ -183,8 +183,8 @@ public class WriteEngineTests
         {
             for (int limit = 1; limit <= 13; limit++)
             {
-                EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", value, options: new WriteOptions { MaxTotalBytesWritten = limit, }), path);
-                EngineDifferential.AssertSame(EngineOperations.SerializeToSpan(layout, limit, "rec", value), path);
+                EngineDifferential.AssertGolden(EngineOperations.Serialize(layout, "rec", value, options: new WriteOptions { MaxTotalBytesWritten = limit, }), path);
+                EngineDifferential.AssertGolden(EngineOperations.SerializeToSpan(layout, limit, "rec", value), path);
             }
         }
     }
@@ -202,8 +202,8 @@ public class WriteEngineTests
         CollectionAssert.AreEqual(new byte[] { 0, 6, 0, 1, }, layout.Serialize("rec", value, options: new WriteOptions()));
         foreach (ExecutionPath path in Paths)
         {
-            EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", value), path);
-            EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", new Dictionary<string, object?>(value) { ["x"] = (byte)5, }), path);
+            EngineDifferential.AssertGolden(EngineOperations.Serialize(layout, "rec", value), path);
+            EngineDifferential.AssertGolden(EngineOperations.Serialize(layout, "rec", new Dictionary<string, object?>(value) { ["x"] = (byte)5, }), path);
         }
     }
 
@@ -222,7 +222,7 @@ public class WriteEngineTests
         {
             foreach (ExecutionPath path in Paths)
             {
-                EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", new Dictionary<string, object?> { ["n"] = count, ["items"] = new byte[] { 7, 8, }, }), path);
+                EngineDifferential.AssertGolden(EngineOperations.Serialize(layout, "rec", new Dictionary<string, object?> { ["n"] = count, ["items"] = new byte[] { 7, 8, }, }), path);
             }
         }
     }
@@ -248,10 +248,10 @@ public class WriteEngineTests
         {
             foreach (WriteOptions options in new[] { new WriteOptions(), new WriteOptions { UnknownMembers = UnknownMemberPolicy.Reject, }, })
             {
-                EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", mapped, options: options), path);
-                EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", unknownInside, options: options), path);
-                EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", new SharpEdgeOptionTests.InnerPoco { A = 1, }, options: options), path);
-                EngineDifferential.AssertSame(EngineOperations.SerializeToSpan(layout, 3, "rec", mapped, options: options), path);
+                EngineDifferential.AssertGolden(EngineOperations.Serialize(layout, "rec", mapped, options: options), path);
+                EngineDifferential.AssertGolden(EngineOperations.Serialize(layout, "rec", unknownInside, options: options), path);
+                EngineDifferential.AssertGolden(EngineOperations.Serialize(layout, "rec", new SharpEdgeOptionTests.InnerPoco { A = 1, }, options: options), path);
+                EngineDifferential.AssertGolden(EngineOperations.SerializeToSpan(layout, 3, "rec", mapped, options: options), path);
             }
         }
     }
@@ -276,8 +276,8 @@ public class WriteEngineTests
         {
             for (int limit = 1; limit <= 4; limit++)
             {
-                EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", value, options: new WriteOptions { MaxTotalBytesWritten = limit, }), path);
-                EngineDifferential.AssertSame(EngineOperations.SerializeToSpan(layout, limit - 1, "rec", value), path);
+                EngineDifferential.AssertGolden(EngineOperations.Serialize(layout, "rec", value, options: new WriteOptions { MaxTotalBytesWritten = limit, }), path);
+                EngineDifferential.AssertGolden(EngineOperations.SerializeToSpan(layout, limit - 1, "rec", value), path);
             }
         }
     }
@@ -321,11 +321,11 @@ public class WriteEngineTests
             {
                 for (long start = 0; start <= prefill.Length; start++)
                 {
-                    EngineDifferential.AssertSame(EngineOperations.Write(layout, prefill, start, "rec", value), path);
-                    EngineDifferential.AssertSame(EngineOperations.Write(layout, prefill, start, "rec.b", (byte)3), path);
-                    EngineDifferential.AssertSame(EngineOperations.Write(layout, prefill, start, "rec.a", (byte)9), path);
-                    EngineDifferential.AssertSame(EngineOperations.Write(layout, prefill, start, "rec", value, options: new UpdateOptions()), path);
-                    EngineDifferential.AssertSame(EngineOperations.Write(layout, prefill, start, "rec.b", (byte)1, options: new UpdateOptions()), path);
+                    EngineDifferential.AssertGolden(EngineOperations.Write(layout, prefill, start, "rec", value), path);
+                    EngineDifferential.AssertGolden(EngineOperations.Write(layout, prefill, start, "rec.b", (byte)3), path);
+                    EngineDifferential.AssertGolden(EngineOperations.Write(layout, prefill, start, "rec.a", (byte)9), path);
+                    EngineDifferential.AssertGolden(EngineOperations.Write(layout, prefill, start, "rec", value, options: new UpdateOptions()), path);
+                    EngineDifferential.AssertGolden(EngineOperations.Write(layout, prefill, start, "rec.b", (byte)1, options: new UpdateOptions()), path);
                 }
             }
         }
@@ -368,13 +368,13 @@ public class WriteEngineTests
             {
                 foreach (int length in (int[])[0, 6, 8, 11, 14])
                 {
-                    EngineDifferential.AssertSame(EngineOperations.Write(layout, prefill[..length], 0, "rec", value, options: options), path);
-                    EngineDifferential.AssertSame(EngineOperations.Write(layout, prefill[..length], 0, "rec.x", value["x"]!, options: options), path);
+                    EngineDifferential.AssertGolden(EngineOperations.Write(layout, prefill[..length], 0, "rec", value, options: options), path);
+                    EngineDifferential.AssertGolden(EngineOperations.Write(layout, prefill[..length], 0, "rec.x", value["x"]!, options: options), path);
                 }
 
-                EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", value, options: options), path);
-                EngineDifferential.AssertSame(EngineOperations.SerializeToSpan(layout, 12, "rec", value, options: options), path);
-                EngineDifferential.AssertSame(EngineOperations.SerializeToWindows(layout, 1, "rec", value, options: options), path);
+                EngineDifferential.AssertGolden(EngineOperations.Serialize(layout, "rec", value, options: options), path);
+                EngineDifferential.AssertGolden(EngineOperations.SerializeToSpan(layout, 12, "rec", value, options: options), path);
+                EngineDifferential.AssertGolden(EngineOperations.SerializeToWindows(layout, 1, "rec", value, options: options), path);
             }
         }
     }
@@ -406,8 +406,8 @@ public class WriteEngineTests
             {
                 for (int limit = 4; limit <= 7; limit++)
                 {
-                    EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", Value(union), options: new WriteOptions { MaxTotalBytesWritten = limit, }), path);
-                    EngineDifferential.AssertSame(EngineOperations.SerializeToSpan(layout, limit, "rec", Value(union)), path);
+                    EngineDifferential.AssertGolden(EngineOperations.Serialize(layout, "rec", Value(union), options: new WriteOptions { MaxTotalBytesWritten = limit, }), path);
+                    EngineDifferential.AssertGolden(EngineOperations.SerializeToSpan(layout, limit, "rec", Value(union)), path);
                 }
             }
         }
@@ -431,8 +431,8 @@ public class WriteEngineTests
         {
             foreach (Dictionary<string, object?> value in new[] { both, parts, none, })
             {
-                EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", value), path);
-                EngineDifferential.AssertSame(EngineOperations.SerializeToSpan(layout, 2, "rec", value), path);
+                EngineDifferential.AssertGolden(EngineOperations.Serialize(layout, "rec", value), path);
+                EngineDifferential.AssertGolden(EngineOperations.SerializeToSpan(layout, 2, "rec", value), path);
             }
         }
     }
@@ -454,8 +454,8 @@ public class WriteEngineTests
             {
                 foreach (WriteOptions options in new[] { new WriteOptions(), new WriteOptions { AddressingMode = PointerAddressingMode.Relative, Origin = 11, }, })
                 {
-                    EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", new Dictionary<string, object?>(value) { ["p"] = pointer, }, options: options), path);
-                    EngineDifferential.AssertSame(EngineOperations.Serialize(layout, "rec", new Dictionary<string, object?>(value) { ["q"] = pointer, }, options: options), path);
+                    EngineDifferential.AssertGolden(EngineOperations.Serialize(layout, "rec", new Dictionary<string, object?>(value) { ["p"] = pointer, }, options: options), path);
+                    EngineDifferential.AssertGolden(EngineOperations.Serialize(layout, "rec", new Dictionary<string, object?>(value) { ["q"] = pointer, }, options: options), path);
                 }
             }
         }
@@ -479,10 +479,10 @@ public class WriteEngineTests
         CollectionAssert.AreEqual(new byte[] { 1, 0, 0x78, 0, 0, 0, }, asserted.Serialize("rec", new Dictionary<string, object?> { ["tag"] = (byte)1, ["wide"] = "x", }, options: new WriteOptions()));
         foreach (ExecutionPath path in Paths)
         {
-            EngineDifferential.AssertSame(EngineOperations.Serialize(asserted, "rec", new Dictionary<string, object?> { ["tag"] = (byte)1, ["wide"] = "x", }), path);
-            EngineDifferential.AssertSame(EngineOperations.Serialize(known, "rec", knownValue), path);
-            EngineDifferential.AssertSame(EngineOperations.Serialize(dynamic, "rec", dynamicValue), path);
-            EngineDifferential.AssertSame(EngineOperations.SerializeToSpan(dynamic, 9, "rec", dynamicValue), path);
+            EngineDifferential.AssertGolden(EngineOperations.Serialize(asserted, "rec", new Dictionary<string, object?> { ["tag"] = (byte)1, ["wide"] = "x", }), path);
+            EngineDifferential.AssertGolden(EngineOperations.Serialize(known, "rec", knownValue), path);
+            EngineDifferential.AssertGolden(EngineOperations.Serialize(dynamic, "rec", dynamicValue), path);
+            EngineDifferential.AssertGolden(EngineOperations.SerializeToSpan(dynamic, 9, "rec", dynamicValue), path);
         }
     }
 

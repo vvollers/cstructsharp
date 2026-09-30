@@ -2,7 +2,7 @@ namespace CStructSharp.Tests;
 
 /// <summary>
 ///     Holds the compiled engine's path resolution (<c>TargetResolver</c>) to the golden outcomes (<see cref="EngineGolden"/>) through
-///     the differential harness, path by path: every member kind the resolver walks past (read to measure it, or skipped by its size),
+///     the golden harness, path by path: every member kind the resolver walks past (read to measure it, or skipped by its size),
 ///     pointer accessors with their checks and limits, selected bitfields in their placed units, conditional members,
 ///     nested parses and their debug records, and the failures of paths that select nothing. Each case must run on the
 ///     engine, and each is also truncated at every length and read under every byte budget.
@@ -19,7 +19,7 @@ public class TargetResolverTests
     ///     a union, fixed arrays - place every later path where the parse places it, packed and aligned.
     /// </summary>
     [TestMethod]
-    public void MeasuredMembers_PlaceLaterPathsIdentically()
+    public void MeasuredMembers_PlaceLaterPathsWhereTheParseDoes()
     {
         const string Definition = "struct inner { uint8 n; uint8 d[n]; }; " +
                                   "struct rec { uint8 k; cstring name; uleb128 v; char flex[]; inner in; inner arr[2]; uint16 term[]; " +
@@ -63,10 +63,10 @@ public class TargetResolverTests
 
         // The second follow of the self-referencing node is the first one's target again; a relative address past the
         // position range is a path failure, not a read failure.
-        EngineComparison cycle = EngineDifferential.AssertSame(EngineOperations.ResolveAddress(layout, data, EngineInput.Span, "rec.u.list.value.next.value.v"));
+        EngineOutcome cycle = EngineDifferential.AssertGolden(EngineOperations.ResolveAddress(layout, data, EngineInput.Span, "rec.u.list.value.next.value.v"));
         StringAssert.Contains(cycle.Rendering, "Cyclic pointer target detected at stream address 32 (path");
         var overflow = new ReadOptions { AddressingMode = PointerAddressingMode.Relative, Origin = long.MaxValue, };
-        EngineComparison relative = EngineDifferential.AssertSame(EngineOperations.ReadValue(layout, data, EngineInput.Span, "rec.p.value", options: overflow));
+        EngineOutcome relative = EngineDifferential.AssertGolden(EngineOperations.ReadValue(layout, data, EngineInput.Span, "rec.p.value", options: overflow));
         StringAssert.Contains(relative.Rendering, "failure = failure CStructSharp.Diagnostics.CStructPathException\n");
         StringAssert.Contains(relative.Rendering, "Relative pointer target overflowed the stream address range (path");
 
@@ -86,9 +86,9 @@ public class TargetResolverTests
             {
                 foreach (string selected in paths)
                 {
-                    Same(EngineOperations.ReadValue(layout, data, EngineInput.Span, selected, options: read), path);
-                    Same(EngineOperations.ResolveAddress(layout, data, EngineInput.ChunkedStream3, selected, options: read), path);
-                    Same(EngineOperations.Parse(layout, data, EngineInput.Stream, selected, options: read), path);
+                    Golden(EngineOperations.ReadValue(layout, data, EngineInput.Span, selected, options: read), path);
+                    Golden(EngineOperations.ResolveAddress(layout, data, EngineInput.ChunkedStream3, selected, options: read), path);
+                    Golden(EngineOperations.Parse(layout, data, EngineInput.Stream, selected, options: read), path);
                 }
             }
         }
@@ -120,7 +120,7 @@ public class TargetResolverTests
     ///     parse scopes them, and a later count names the member that selects the arms.
     /// </summary>
     [TestMethod]
-    public void ConditionalMembers_PlaceLaterPathsIdentically()
+    public void ConditionalMembers_PlaceLaterPathsWhereTheParseDoes()
     {
         var layout = new CStruct(
             "struct rec { uint8 kind; if (kind == 1) { uint8 n; uint8 d[n]; } else { uint16 w; } " +
@@ -143,7 +143,7 @@ public class TargetResolverTests
             "struct rec { uint8 n; inner items[n]; both u; inner* p; inner* nul; struct { uint8 x; } hdr; uint8 tail; };",
             pointerSize: 2);
         byte[] data = [2, 1, 2, 0, 3, 4, 0, 0x34, 0x12, 16, 0, 0, 0, 7, 9, 0, 5, 6, 0];
-        AssertEligible(layout, "rec");
+        AssertHasReadProgram(layout, "rec");
         string[] paths = ["rec.items[1]", "rec.items", "rec.u", "rec.p.value", "rec.nul.value", "rec.hdr", "rec.tail", "rec.p", "rec.p.address"];
         foreach (ExecutionPath path in Paths)
         {
@@ -151,28 +151,28 @@ public class TargetResolverTests
             {
                 foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Memory, EngineInput.Stream, EngineInput.ChunkedStream1])
                 {
-                    Same(EngineOperations.Parse(layout, data, input, selected), path);
-                    Same(EngineOperations.ParseWithDebug(layout, data, input, selected), path);
-                    Same(EngineOperations.ReadValueWithDebug(layout, data, input, selected), path);
+                    Golden(EngineOperations.Parse(layout, data, input, selected), path);
+                    Golden(EngineOperations.ParseWithDebug(layout, data, input, selected), path);
+                    Golden(EngineOperations.ReadValueWithDebug(layout, data, input, selected), path);
                 }
 
-                Same(EngineOperations.ParseAsync(layout, data, EngineInput.ChunkedStream3, selected), path);
-                Same(EngineOperations.ParseWithDebugAsync(layout, data, EngineInput.ExposedStream, selected), path);
+                Golden(EngineOperations.ParseAsync(layout, data, EngineInput.ChunkedStream3, selected), path);
+                Golden(EngineOperations.ParseWithDebugAsync(layout, data, EngineInput.ExposedStream, selected), path);
                 for (int length = 0; length < data.Length; length++)
                 {
-                    Same(EngineOperations.ParseWithDebug(layout, data[..length], EngineInput.Span, selected), path);
+                    Golden(EngineOperations.ParseWithDebug(layout, data[..length], EngineInput.Span, selected), path);
                 }
             }
         }
     }
 
     /// <summary>
-    ///     A path that selects nothing fails identically: an unknown member or root, an index on a scalar, too many
+    ///     A path that selects nothing fails as the golden outcomes record: an unknown member or root, an index on a scalar, too many
     ///     indexes, an index out of range, traversal through a scalar or an unindexed array, and a child of a root that is
     ///     not a struct.
     /// </summary>
     [TestMethod]
-    public void PathFailures_AreReportedIdentically()
+    public void PathFailures_AreReportedForEveryUnselectablePath()
     {
         var layout = new CStruct("typedef uint8 bytes[2]; struct inner { uint8 a; }; struct rec { uint8 n; inner items[n]; uint8 grid[2][2]; uint8 tail; };");
         byte[] data = [1, 5, 1, 2, 3, 4, 9];
@@ -186,7 +186,7 @@ public class TargetResolverTests
 
     /// <summary>
     ///     A union ahead of the target is skipped by its size after the counts inside it are checked, whatever arm or view
-    ///     they sit in: every element and nesting limit around the needed value fails or succeeds identically.
+    ///     they sit in: every element and nesting limit around the needed value fails or succeeds as the golden outcomes record.
     /// </summary>
     [TestMethod]
     public void UnionMeasures_CheckTheirCountsAgainstTheLimits()
@@ -195,18 +195,18 @@ public class TargetResolverTests
             "#define N 3\nstruct pair { uint8 v[2]; }; " +
             "struct rec { uint8 k; union { uint8 raw[N]; pair twins; struct { uint8 z[1]; }; } u; uint8 tail; };");
         byte[] data = [1, 2, 3, 4, 9];
-        AssertEligible(layout, "rec");
+        AssertHasReadProgram(layout, "rec");
         foreach (ExecutionPath path in Paths)
         {
             for (int limit = 0; limit <= 4; limit++)
             {
                 var elements = new ReadOptions { MaxArrayElements = limit, };
-                Same(EngineOperations.ReadValue(layout, data, EngineInput.Span, "rec.tail", options: elements), path);
-                Same(EngineOperations.ResolveAddress(layout, data, EngineInput.Stream, "rec.tail", options: elements), path);
-                Same(EngineOperations.ResolveAddress(layout, data, EngineInput.Stream, "rec.tail", new Dictionary<string, int> { ["N"] = limit, }), path);
+                Golden(EngineOperations.ReadValue(layout, data, EngineInput.Span, "rec.tail", options: elements), path);
+                Golden(EngineOperations.ResolveAddress(layout, data, EngineInput.Stream, "rec.tail", options: elements), path);
+                Golden(EngineOperations.ResolveAddress(layout, data, EngineInput.Stream, "rec.tail", new Dictionary<string, int> { ["N"] = limit, }), path);
                 if (limit > 0)
                 {
-                    Same(EngineOperations.ResolveAddress(layout, data, EngineInput.Span, "rec.tail", options: new ReadOptions { MaxNestingDepth = limit, }), path);
+                    Golden(EngineOperations.ResolveAddress(layout, data, EngineInput.Span, "rec.tail", options: new ReadOptions { MaxNestingDepth = limit, }), path);
                 }
             }
         }
@@ -220,13 +220,13 @@ public class TargetResolverTests
     public void AddressResolution_NeedsNoDataForFixedPlacement()
     {
         var layout = new CStruct("union view { uint8 raw[8]; struct { uint8 _[3]; uint8 value[2]; } f0; }; struct rec { uint8 n; uint8 items[n]; uint8 tail; };");
-        AssertEligible(layout, "view", "rec");
+        AssertHasReadProgram(layout, "view", "rec");
         foreach (string path in (string[])["view.f0.value", "view.raw", "rec.items", "rec.tail"])
         {
-            var operation = new DifferentialOperation(
+            var operation = new GoldenOperation(
                 "ResolveAddress(Stream.Null) " + path,
-                (side, output) => output.Capture("failure", () => output.Value("result", layout.ResolveAddress(Stream.Null, path, options: side.Read(null)))));
-            EngineDifferential.AssertSame(operation);
+                (execution, output) => output.Capture("failure", () => output.Value("result", layout.ResolveAddress(Stream.Null, path, options: ExecutionPaths.Read(execution, null)))));
+            EngineDifferential.AssertGolden(operation);
         }
 
         Assert.AreEqual(3L, layout.ResolveAddress(Stream.Null, "view.f0.value"));
@@ -234,14 +234,14 @@ public class TargetResolverTests
     }
 
     /// <summary>
-    ///     Further member shapes resolve identically: anonymous unions and structs whose members are addressed as their
+    ///     Further member shapes resolve as the golden outcomes record: anonymous unions and structs whose members are addressed as their
     ///     parent's (in a struct and in a union), enum and enum-bitfield counts, offset assertions, arrays of pointers,
     ///     unions and multidimensional arrays of structs (whose elements are stepped over or measured), read-to-end and
     ///     terminated arrays of structs, a count named through a nested struct (<c>hdr.n</c>), a typedef root, and pointers to
     ///     pointers to <c>void</c>.
     /// </summary>
     [TestMethod]
-    public void MemberShapes_ResolveIdentically()
+    public void MemberShapes_ResolveEveryPath()
     {
         (string Definition, byte[] Data, string[] Paths)[] cases =
         [
@@ -280,7 +280,7 @@ public class TargetResolverTests
             string root = selected.Split('.')[0];
             if (root != "nothing")
             {
-                AssertEligible(layout, root);
+                AssertHasReadProgram(layout, root);
             }
         }
 
@@ -290,46 +290,46 @@ public class TargetResolverTests
             {
                 foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream3, EngineInput.Sequence])
                 {
-                    Same(EngineOperations.ReadValue(layout, data, input, selected), path);
-                    Same(EngineOperations.ResolveAddress(layout, data, input, selected), path);
+                    Golden(EngineOperations.ReadValue(layout, data, input, selected), path);
+                    Golden(EngineOperations.ResolveAddress(layout, data, input, selected), path);
                 }
 
-                Same(EngineOperations.ReadValue<string>(layout, data, EngineInput.Memory, selected), path);
-                Same(EngineOperations.GetArrayLength(layout, data, EngineInput.Span, selected), path);
-                Same(EngineOperations.GetArrayLength(layout, data, EngineInput.ChunkedStream1, selected), path);
-                Same(EngineOperations.Parse(layout, data, EngineInput.Span, selected), path);
-                Same(EngineOperations.ReadValueWithDebug(layout, data, EngineInput.Stream, selected), path);
+                Golden(EngineOperations.ReadValue<string>(layout, data, EngineInput.Memory, selected), path);
+                Golden(EngineOperations.GetArrayLength(layout, data, EngineInput.Span, selected), path);
+                Golden(EngineOperations.GetArrayLength(layout, data, EngineInput.ChunkedStream1, selected), path);
+                Golden(EngineOperations.Parse(layout, data, EngineInput.Span, selected), path);
+                Golden(EngineOperations.ReadValueWithDebug(layout, data, EngineInput.Stream, selected), path);
                 for (int length = 0; length < data.Length; length++)
                 {
-                    Same(EngineOperations.ReadValue(layout, data[..length], EngineInput.Span, selected), path);
-                    Same(EngineOperations.ResolveAddress(layout, data[..length], EngineInput.ChunkedStream1, selected), path);
-                    Same(EngineOperations.GetArrayLength(layout, data[..length], EngineInput.Stream, selected), path);
+                    Golden(EngineOperations.ReadValue(layout, data[..length], EngineInput.Span, selected), path);
+                    Golden(EngineOperations.ResolveAddress(layout, data[..length], EngineInput.ChunkedStream1, selected), path);
+                    Golden(EngineOperations.GetArrayLength(layout, data[..length], EngineInput.Stream, selected), path);
                 }
 
                 for (long budget = 1; budget <= (2 * data.Length) + 2; budget++)
                 {
                     var read = new ReadOptions { MaxTotalBytesRead = budget, };
-                    Same(EngineOperations.ReadValue(layout, data, EngineInput.Span, selected, options: read), path);
-                    Same(EngineOperations.ReadValue(layout, data, EngineInput.ChunkedStream3, selected, options: read), path);
-                    Same(EngineOperations.ResolveAddress(layout, data, EngineInput.Span, selected, options: read), path);
+                    Golden(EngineOperations.ReadValue(layout, data, EngineInput.Span, selected, options: read), path);
+                    Golden(EngineOperations.ReadValue(layout, data, EngineInput.ChunkedStream3, selected, options: read), path);
+                    Golden(EngineOperations.ResolveAddress(layout, data, EngineInput.Span, selected, options: read), path);
                 }
             }
         }
     }
 
     /// <summary>
-    ///     Compares one operation, requiring the engine to run it exactly when the operation expects it: a path whose root's
-    ///     program is eligible (every root here but an unknown one, <see cref="AssertEligible"/>).
+    ///     Checks one operation against its golden outcome, which also records how many operations reached the engine
+    ///     (every root here but an unknown one has a read program, <see cref="AssertHasReadProgram"/>).
     /// </summary>
     /// <param name="operation">The operation.</param>
-    /// <param name="path">The execution path both sides use.</param>
-    private static void Same(DifferentialOperation operation, ExecutionPath path)
-        => EngineDifferential.AssertSame(operation, path: path);
+    /// <param name="path">The execution path the run uses.</param>
+    private static void Golden(GoldenOperation operation, ExecutionPath path)
+        => EngineDifferential.AssertGolden(operation, path: path);
 
-    /// <summary>Asserts that a root's program is eligible, so the comparisons of its paths hold the engine to the golden outcomes.</summary>
+    /// <summary>Asserts that each root compiles into a read program, so the golden outcomes of its paths come from the engine.</summary>
     /// <param name="layout">The layout.</param>
     /// <param name="roots">The roots.</param>
-    private static void AssertEligible(CStruct layout, params string[] roots)
+    private static void AssertHasReadProgram(CStruct layout, params string[] roots)
     {
         foreach (string root in roots)
         {

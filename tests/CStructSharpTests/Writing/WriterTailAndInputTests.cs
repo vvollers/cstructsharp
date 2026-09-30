@@ -4,7 +4,7 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Reading;
 
 /// <summary>
-///     Checks runtime-sized struct tails, early writer input diagnostics, and a general write with no tail that avoids
+///     Checks runtime-sized struct tails, early writer input diagnostics, and a member-by-member write with no tail that avoids
 ///     redundant position queries.
 /// </summary>
 [TestClass]
@@ -77,7 +77,7 @@ public class WriterTailAndInputTests
     [TestMethod]
     [DataRow(false, 1)]
     [DataRow(true, 2)]
-    public void EmptyGeneralWrite_AvoidsRedundantPositionQueries(bool aligned, int expectedReads)
+    public void EmptyMemberByMemberWrite_AvoidsRedundantPositionQueries(bool aligned, int expectedReads)
     {
         var layout = new CStruct("struct root {};", aligned: aligned);
         using var compiled = new PositionCountingStream();
