@@ -20,7 +20,7 @@ const STRING_MARSHAL_LIMIT = 2 ** 27;
 /** The bridge's maximum result length in bytes (InteropLimits.MaximumResultLength, V8's string limit). */
 const MAXIMUM_RESULT_LENGTH = 536_870_888;
 
-// A debug parse of one-byte records writes about 91 characters per input byte, so 1.5 MiB exceeds 2^27 characters
+// A debug parse of one-byte records writes about 98 characters per input byte, so 1.5 MiB exceeds 2^27 characters
 // while staying within the 4 MiB the calling thread's ParseBytes accepts.
 const recordCount = 1.5 * 1024 * 1024;
 const records = "struct rec { uint8 a; }; struct file { rec items[EOF]; };";

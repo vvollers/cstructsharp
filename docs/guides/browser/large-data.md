@@ -279,8 +279,10 @@ characters. A result whose JSON text would be longer fails with the `read-budget
 runtime; raising the read budgets does not change this ceiling.
 
 The input size that reaches the ceiling depends on how much text each value produces. Consider
-`struct rec { uint8 a; }; struct file { rec items[EOF]; };`. `parse` writes `{"a":0},` for each input byte, about 8
-characters per byte, so a 64 MiB input stays within the ceiling. `parseWithDebug` adds a record with the byte range,
-path, type, and value text of every struct and field, about 90 characters per input byte here, so it reaches the
-ceiling near 5.6 MiB of input. When a result is too large, select a smaller root, read fewer elements, or use `parse`
-instead of `parseWithDebug`.
+`struct rec { uint8 a; }; struct file { rec items[EOF]; };` over input whose bytes take every value from 0 to 255
+equally often. `parse` writes one element such as `{"a":7},` or `{"a":255},` per input byte, about 9.6 characters per
+byte, so it reaches the ceiling near 53 MiB of input. `parseWithDebug` also writes a record with the byte range, path,
+type, and value text of every struct and field, about 98 characters per input byte in total, so it reaches the ceiling
+near 5.2 MiB of input. Inputs this large also need `maxArrayElements` raised past its default of 1,000,000 elements,
+because each input byte here is one array element. When a result is too large, select a smaller root, read fewer
+elements, or use `parse` instead of `parseWithDebug`.
