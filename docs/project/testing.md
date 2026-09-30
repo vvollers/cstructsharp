@@ -36,10 +36,11 @@ The library reads, writes, and updates most layouts with its compiled engine (se
 [Architecture](architecture.md#what-happens-during-an-operation)). The tests in `tests/CStructSharpTests/Engine/`
 check the engine by comparing each operation's *outcome* with a *golden outcome*: a reviewed copy of the outcome,
 stored in the repository. An outcome is everything a caller can observe, written as text: the value or the failure
-(exception type, message, path, and offset), the final stream position, the written bytes, the debug records, and
-how many operations reached the engine instead of a faster path in front of it.
+(exception type, message, path, and offset), the final stream position, the written bytes, and the debug records.
+It does not record how an operation ran, such as how many operations reached the engine instead of a faster path in
+front of it; `EngineDiagnosticsTests` checks that routing directly.
 
-For example, `EngineDifferentialTests.Bitfields_ReadAndUpdateIdentically` parses this layout from the three bytes
+For example, `EngineDifferentialTests.Bitfields_ReadResolveAndUpdate` parses this layout from the three bytes
 `21 34 12`:
 
 ```c
@@ -54,22 +55,33 @@ Byte `21` holds `low = 1` and `high = 2`, and bytes `34 12` hold `rest = 0x1234 
 parse from a span is recorded in `Engine/Golden/EngineDifferentialTests.txt`:
 
 ```text
-@test Bitfields_ReadAndUpdateIdentically
+@test Bitfields_ReadResolveAndUpdate
 @case Parse rec (Span) (Fastest)
   result = StructValue {3}
   result.low = Int32 1
   result.high = Int32 2
   result.rest = UInt16 4660
-  decisions = 1
 ```
 
-`decisions = 1` means one operation reached the engine. If a change made `high` read as `3`, or moved the stream
-position, or sent the parse down a different path, the test would fail with a line-by-line difference.
+If a change made `high` read as `3`, or moved the stream position, the test would fail with a line-by-line
+difference.
 
 Each test class has one manifest file in `Engine/Golden/`, with one `@test` section per test. A small test stores its
-outcomes as readable `@case` blocks. A sweep over many layouts or corpus inputs stores one SHA-256 hash per group of
-outcomes (`@hash`), which keeps the files small but does not show which outcome changed. A test fails when an
-outcome differs from its golden one, when it has no golden outcome, or when a golden outcome is no longer produced.
+outcomes as readable `@case` blocks. A sweep over many layouts or corpus inputs, or a test whose outcomes are larger
+than 8 KB, stores each group of outcomes as a SHA-256 hash with a summary line that counts the outcomes by kind: `ok`
+for an outcome without a failure, or the failure's exception type. For example, the writes of
+`EngineSweepTests.Destinations_ReceiveEveryWriteAndUpdate("bitfields")` to the packed layout variant are 60 outcomes,
+6 of which fail:
+
+```text
+@hash 813769462f54a5a532834cdde606badf95ebd86324992e6d224b9d2e67db4619 60 bitfields/packed
+  ok 54, CStructWriteException 6
+```
+
+The hash keeps the files small. When a group differs, the failure shows the golden and the current summary and the
+current first outcome of each kind whose count changed, so a read that now fails, or fails differently, is visible at
+once. A test fails when an outcome differs from its golden one, when it has no golden outcome, or when a golden outcome
+is no longer produced.
 
 The same outcomes are checked on .NET 8 and .NET 10. Record the manifests again only for an intended, explained
 behavior change; [CONTRIBUTING.md](https://github.com/vvollers/cstructsharp/blob/main/CONTRIBUTING.md#engine-golden-outcomes)

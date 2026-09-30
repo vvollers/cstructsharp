@@ -1,6 +1,7 @@
 # Golden outcomes of WriteEngineTests: the reference each differential comparison checks the engine against.
 # Regenerate only for an intended, explained behaviour change: node tools/quality/engine-golden.mjs record (CONTRIBUTING.md).
-# @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes.
+# @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes,
+# counted by kind on the indented line below it.
 
 @test Bitfields_ReadTheUnitBackAsWritten_AndChargeEveryRewrite
 @case Serialize rec (Fastest)
@@ -11,7 +12,6 @@
   failure.memberType = "uint8"
   failure.path = "rec"
   failure.offset = 1
-  engine runs = 1
 @case Serialize(Span[0]) rec (Fastest)
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "The serialized value exceeds the supplied destination capacity (field 'n' (uint8), in 'rec', offset 0)."
@@ -21,7 +21,6 @@
   failure.path = "rec"
   failure.offset = 0
   destination = [0]
-  engine runs = 1
 @case Serialize rec (Fastest) #2
   failure = failure CStructSharp.Diagnostics.CStructWriteLimitException
   failure.message = "Write operation exceeded the configured total byte limit (field 'b' (uint8), in 'rec', offset 1)."
@@ -30,7 +29,6 @@
   failure.memberType = "uint8"
   failure.path = "rec"
   failure.offset = 1
-  engine runs = 1
 @case Serialize(Span[1]) rec (Fastest)
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "The serialized value exceeds the supplied destination capacity (field 'a' (uint8), in 'rec', offset 1)."
@@ -40,21 +38,16 @@
   failure.path = "rec"
   failure.offset = 1
   destination = [1] 00
-  engine runs = 1
 @case Serialize rec (Fastest) #3
   result = [2] 001D
-  engine runs = 1
 @case Serialize(Span[2]) rec (Fastest)
   result = Int32 2
   destination = [2] 001D
-  engine runs = 1
 @case Serialize rec (Fastest) #4
   result = [2] 001D
-  engine runs = 1
 @case Serialize(Span[3]) rec (Fastest)
   result = Int32 2
   destination = [3] 001DCC
-  engine runs = 1
 @case Serialize rec (NoFastPaths)
   failure = failure CStructSharp.Diagnostics.CStructWriteLimitException
   failure.message = "Write operation exceeded the configured total byte limit (field 'a' (uint8), in 'rec', offset 1)."
@@ -63,7 +56,6 @@
   failure.memberType = "uint8"
   failure.path = "rec"
   failure.offset = 1
-  engine runs = 1
 @case Serialize(Span[0]) rec (NoFastPaths)
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "The serialized value exceeds the supplied destination capacity (field 'n' (uint8), in 'rec', offset 0)."
@@ -73,7 +65,6 @@
   failure.path = "rec"
   failure.offset = 0
   destination = [0]
-  engine runs = 1
 @case Serialize rec (NoFastPaths) #2
   failure = failure CStructSharp.Diagnostics.CStructWriteLimitException
   failure.message = "Write operation exceeded the configured total byte limit (field 'b' (uint8), in 'rec', offset 1)."
@@ -82,7 +73,6 @@
   failure.memberType = "uint8"
   failure.path = "rec"
   failure.offset = 1
-  engine runs = 1
 @case Serialize(Span[1]) rec (NoFastPaths)
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "The serialized value exceeds the supplied destination capacity (field 'a' (uint8), in 'rec', offset 1)."
@@ -92,41 +82,30 @@
   failure.path = "rec"
   failure.offset = 1
   destination = [1] 00
-  engine runs = 1
 @case Serialize rec (NoFastPaths) #3
   result = [2] 001D
-  engine runs = 1
 @case Serialize(Span[2]) rec (NoFastPaths)
   result = Int32 2
   destination = [2] 001D
-  engine runs = 1
 @case Serialize rec (NoFastPaths) #4
   result = [2] 001D
-  engine runs = 1
 @case Serialize(Span[3]) rec (NoFastPaths)
   result = Int32 2
   destination = [3] 001DCC
-  engine runs = 1
 
 @test Captures_ConvertTheSuppliedValue
 @case Serialize rec (Fastest)
   result = [3] 020708
-  engine runs = 1
 @case Serialize rec (NoFastPaths)
   result = [3] 020708
-  engine runs = 1
 @case Serialize rec (Fastest) #2
   result = [3] 020708
-  engine runs = 1
 @case Serialize rec (NoFastPaths) #2
   result = [3] 020708
-  engine runs = 1
 @case Serialize rec (Fastest) #3
   result = [3] 020708
-  engine runs = 1
 @case Serialize rec (NoFastPaths) #3
   result = [3] 020708
-  engine runs = 1
 @case Serialize rec (Fastest) #4
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "Value \"x\" cannot be written as uint8 (field 'n' (uint8), in 'rec', offset 0)."
@@ -137,7 +116,6 @@
   failure.offset = 0
   failure.inner = failure System.FormatException
   failure.inner.message = "The input string 'x' was not in a correct format."
-  engine runs = 1
 @case Serialize rec (NoFastPaths) #4
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "Value \"x\" cannot be written as uint8 (field 'n' (uint8), in 'rec', offset 0)."
@@ -148,7 +126,6 @@
   failure.offset = 0
   failure.inner = failure System.FormatException
   failure.inner.message = "The input string 'x' was not in a correct format."
-  engine runs = 1
 @case Serialize rec (Fastest) #5
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "Value -1 does not fit: uint8 accepts 0 to 255 (field 'n' (uint8), in 'rec', offset 0)."
@@ -159,7 +136,6 @@
   failure.offset = 0
   failure.inner = failure System.OverflowException
   failure.inner.message = "Value was either too large or too small for an unsigned byte."
-  engine runs = 1
 @case Serialize rec (NoFastPaths) #5
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "Value -1 does not fit: uint8 accepts 0 to 255 (field 'n' (uint8), in 'rec', offset 0)."
@@ -170,7 +146,6 @@
   failure.offset = 0
   failure.inner = failure System.OverflowException
   failure.inner.message = "Value was either too large or too small for an unsigned byte."
-  engine runs = 1
 @case Serialize rec (Fastest) #6
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "Value 256 does not fit: uint8 accepts 0 to 255 (field 'n' (uint8), in 'rec', offset 0)."
@@ -181,7 +156,6 @@
   failure.offset = 0
   failure.inner = failure System.OverflowException
   failure.inner.message = "Value was either too large or too small for an unsigned byte."
-  engine runs = 1
 @case Serialize rec (NoFastPaths) #6
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "Value 256 does not fit: uint8 accepts 0 to 255 (field 'n' (uint8), in 'rec', offset 0)."
@@ -192,10 +166,10 @@
   failure.offset = 0
   failure.inner = failure System.OverflowException
   failure.inner.message = "Value was either too large or too small for an unsigned byte."
-  engine runs = 1
 
 @test Codecs_WriteAtEveryBudgetAndCapacity
-@hash a209862de7e24d4a365bdd7941fa046096aeee7445443afd81b18e789240a048 858
+@hash bb43e6f14803b0f8826416b44edbd46ca4fe4554a264757308640a93a6660090 858
+  ok 284, CStructWriteException 284, CStructWriteLimitException 290
 
 @test FailedWrite_LeavesTheEarlierMembersInTheSpan
 @case Serialize(Span[8]) rec (Fastest)
@@ -209,7 +183,6 @@
   failure.inner = failure System.OverflowException
   failure.inner.message = "Value was either too large or too small for an unsigned byte."
   destination = [8] 0102030104CCCCCC
-  engine runs = 1
 @case Serialize rec (Fastest)
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "Value 300 does not fit: uint8 accepts 0 to 255 (field 'c' (uint8), in 'rec', offset 5)."
@@ -220,7 +193,6 @@
   failure.offset = 5
   failure.inner = failure System.OverflowException
   failure.inner.message = "Value was either too large or too small for an unsigned byte."
-  engine runs = 1
 @case Serialize(Span[8]) rec (NoFastPaths)
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "Value 300 does not fit: uint8 accepts 0 to 255 (field 'c' (uint8), in 'rec', offset 5)."
@@ -232,7 +204,6 @@
   failure.inner = failure System.OverflowException
   failure.inner.message = "Value was either too large or too small for an unsigned byte."
   destination = [8] 0102030104CCCCCC
-  engine runs = 1
 @case Serialize rec (NoFastPaths)
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "Value 300 does not fit: uint8 accepts 0 to 255 (field 'c' (uint8), in 'rec', offset 5)."
@@ -243,12 +214,10 @@
   failure.offset = 5
   failure.inner = failure System.OverflowException
   failure.inner.message = "Value was either too large or too small for an unsigned byte."
-  engine runs = 1
 
 @test InactiveConditionalMember_IsRejected
 @case Serialize rec (Fastest)
   result = [4] 00060001
-  engine runs = 1
 @case Serialize rec (Fastest) #2
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "Inactive conditional field supplied: x (path 'rec', offset 1)."
@@ -257,10 +226,8 @@
   failure.memberType = null
   failure.path = "rec"
   failure.offset = 1
-  engine runs = 1
 @case Serialize rec (NoFastPaths)
   result = [4] 00060001
-  engine runs = 1
 @case Serialize rec (NoFastPaths) #2
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "Inactive conditional field supplied: x (path 'rec', offset 1)."
@@ -269,15 +236,12 @@
   failure.memberType = null
   failure.path = "rec"
   failure.offset = 1
-  engine runs = 1
 
 @test MappedInstances_AreBoundAtEveryStruct
 @case Serialize rec (Fastest)
   result = [4] 02060705
-  engine runs = 1
 @case Serialize rec (Fastest) #2
   result = [4] 02060705
-  engine runs = 1
 @case Serialize rec (Fastest) #3
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "No value was supplied for 'n' (field 'n' (uint8), in 'rec', offset 0)."
@@ -286,7 +250,6 @@
   failure.memberType = "uint8"
   failure.path = "rec"
   failure.offset = 0
-  engine runs = 1
 @case Serialize(Span[3]) rec (Fastest)
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "The serialized value exceeds the supplied destination capacity (field 'a' (uint8), in 'rec', offset 3)."
@@ -296,10 +259,8 @@
   failure.path = "rec"
   failure.offset = 3
   destination = [3] 020607
-  engine runs = 1
 @case Serialize rec (Fastest) #4
   result = [4] 02060705
-  engine runs = 1
 @case Serialize rec (Fastest) #5
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "'zz' is not a member of 'inner' (WriteOptions.UnknownMembers is Reject). The layout declares: a (field 'items' (inner), in 'rec', offset 0)."
@@ -308,7 +269,6 @@
   failure.memberType = "inner"
   failure.path = "rec"
   failure.offset = 0
-  engine runs = 1
 @case Serialize rec (Fastest) #6
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "'a' is not a member of 'rec' (WriteOptions.UnknownMembers is Reject). The layout declares: n, items, nested (path 'rec', offset 0)."
@@ -317,7 +277,6 @@
   failure.memberType = null
   failure.path = "rec"
   failure.offset = 0
-  engine runs = 1
 @case Serialize(Span[3]) rec (Fastest) #2
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "The serialized value exceeds the supplied destination capacity (field 'a' (uint8), in 'rec', offset 3)."
@@ -327,13 +286,10 @@
   failure.path = "rec"
   failure.offset = 3
   destination = [3] 020607
-  engine runs = 1
 @case Serialize rec (NoFastPaths)
   result = [4] 02060705
-  engine runs = 1
 @case Serialize rec (NoFastPaths) #2
   result = [4] 02060705
-  engine runs = 1
 @case Serialize rec (NoFastPaths) #3
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "No value was supplied for 'n' (field 'n' (uint8), in 'rec', offset 0)."
@@ -342,7 +298,6 @@
   failure.memberType = "uint8"
   failure.path = "rec"
   failure.offset = 0
-  engine runs = 1
 @case Serialize(Span[3]) rec (NoFastPaths)
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "The serialized value exceeds the supplied destination capacity (field 'a' (uint8), in 'rec', offset 3)."
@@ -352,10 +307,8 @@
   failure.path = "rec"
   failure.offset = 3
   destination = [3] 020607
-  engine runs = 1
 @case Serialize rec (NoFastPaths) #4
   result = [4] 02060705
-  engine runs = 1
 @case Serialize rec (NoFastPaths) #5
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "'zz' is not a member of 'inner' (WriteOptions.UnknownMembers is Reject). The layout declares: a (field 'items' (inner), in 'rec', offset 0)."
@@ -364,7 +317,6 @@
   failure.memberType = "inner"
   failure.path = "rec"
   failure.offset = 0
-  engine runs = 1
 @case Serialize rec (NoFastPaths) #6
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "'a' is not a member of 'rec' (WriteOptions.UnknownMembers is Reject). The layout declares: n, items, nested (path 'rec', offset 0)."
@@ -373,7 +325,6 @@
   failure.memberType = null
   failure.path = "rec"
   failure.offset = 0
-  engine runs = 1
 @case Serialize(Span[3]) rec (NoFastPaths) #2
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "The serialized value exceeds the supplied destination capacity (field 'a' (uint8), in 'rec', offset 3)."
@@ -383,7 +334,6 @@
   failure.path = "rec"
   failure.offset = 3
   destination = [3] 020607
-  engine runs = 1
 
 @test NarrowText_FailsAfterTheEarlierCharacters
 @case Serialize(Span[6]) rec (Fastest)
@@ -395,7 +345,6 @@
   failure.path = "rec"
   failure.offset = 3
   destination = [6] 006162CCCCCC
-  engine runs = 1
 @case Serialize(Span[6]) rec (NoFastPaths)
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "Character value U+0100 does not fit the one-byte char type (field 'name' (char), in 'rec', offset 3)."
@@ -405,15 +354,14 @@
   failure.path = "rec"
   failure.offset = 3
   destination = [6] 006162CCCCCC
-  engine runs = 1
 
 @test Pointers_WriteTheirEncodedAddress
-@hash 6565bbe23cc8699dbe4865cec57cbd42ed71c641ba306ced4af23def87625e6e 40
+@hash 28b42d92709c313b4eede9a60bfaeb295d8f856bc921a70a37c2bf756a947d9d 40
+  ok 6, CStructWriteException 34
 
 @test PromotedUnion_WritesTheWidestSuppliedMember
 @case Serialize rec (Fastest)
   result = [3] 000203
-  engine runs = 1
 @case Serialize(Span[2]) rec (Fastest)
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "The serialized value exceeds the supplied destination capacity (path 'rec', offset 1)."
@@ -423,7 +371,6 @@
   failure.path = "rec"
   failure.offset = 1
   destination = [2] 00CC
-  engine runs = 1
 @case Serialize rec (Fastest) #2
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "No value was supplied for 'lo' (field 'lo' (uint8), in 'rec', offset 1)."
@@ -432,7 +379,6 @@
   failure.memberType = "uint8"
   failure.path = "rec"
   failure.offset = 1
-  engine runs = 1
 @case Serialize(Span[2]) rec (Fastest) #2
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "No value was supplied for 'lo' (field 'lo' (uint8), in 'rec', offset 1)."
@@ -442,7 +388,6 @@
   failure.path = "rec"
   failure.offset = 1
   destination = [2] 00CC
-  engine runs = 1
 @case Serialize rec (Fastest) #3
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "No member of the anonymous union was supplied; provide one of: small, wide, lo, hi (path 'rec', offset 1)."
@@ -451,7 +396,6 @@
   failure.memberType = null
   failure.path = "rec"
   failure.offset = 1
-  engine runs = 1
 @case Serialize(Span[2]) rec (Fastest) #3
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "No member of the anonymous union was supplied; provide one of: small, wide, lo, hi (path 'rec', offset 1)."
@@ -461,10 +405,8 @@
   failure.path = "rec"
   failure.offset = 1
   destination = [2] 00CC
-  engine runs = 1
 @case Serialize rec (NoFastPaths)
   result = [3] 000203
-  engine runs = 1
 @case Serialize(Span[2]) rec (NoFastPaths)
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "The serialized value exceeds the supplied destination capacity (path 'rec', offset 1)."
@@ -474,7 +416,6 @@
   failure.path = "rec"
   failure.offset = 1
   destination = [2] 00CC
-  engine runs = 1
 @case Serialize rec (NoFastPaths) #2
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "No value was supplied for 'lo' (field 'lo' (uint8), in 'rec', offset 1)."
@@ -483,7 +424,6 @@
   failure.memberType = "uint8"
   failure.path = "rec"
   failure.offset = 1
-  engine runs = 1
 @case Serialize(Span[2]) rec (NoFastPaths) #2
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "No value was supplied for 'lo' (field 'lo' (uint8), in 'rec', offset 1)."
@@ -493,7 +433,6 @@
   failure.path = "rec"
   failure.offset = 1
   destination = [2] 00CC
-  engine runs = 1
 @case Serialize rec (NoFastPaths) #3
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "No member of the anonymous union was supplied; provide one of: small, wide, lo, hi (path 'rec', offset 1)."
@@ -502,7 +441,6 @@
   failure.memberType = null
   failure.path = "rec"
   failure.offset = 1
-  engine runs = 1
 @case Serialize(Span[2]) rec (NoFastPaths) #3
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "No member of the anonymous union was supplied; provide one of: small, wide, lo, hi (path 'rec', offset 1)."
@@ -512,30 +450,30 @@
   failure.path = "rec"
   failure.offset = 1
   destination = [2] 00CC
-  engine runs = 1
 
 @test StreamBitfields_MergeIntoTheStreamsBytes
-@hash 5711ee1e49939e19d805b0c72ef4ff0120e461817f91d89228d3c7d9a025ee97 120
+@hash 7e29e1aea15190e2648b9f638d5268f8e0c872899f85e4ecf808b3b33974c1fd 120
+  ok 74, CStructReadException 22, CStructWriteException 24
 
 @test TailPadding_IsWrittenAndCharged
-@hash 522eeb8197180951c0c7c03726db94fb782bcd1867c2a11ea5bc5e95b0aed2b0 52
+@hash 07912ff775ed998e34d3cad75fc754b3ec576e8e448f7eb9910a8a9116e26f44 52
+  ok 8, CStructWriteException 22, CStructWriteLimitException 22
 
 @test TerminatedText_EncodesAsTheCatalogWriter
-@hash 0e9046fd2e48435de2c752b90c874e14c9377f61c6198af25bfca7581e39cc92 1440
+@hash f7040484d63cca6bca7cfdb5e7478a448a25ee040e3c9d6743bb190549122696 1440
+  ok 560, CStructWriteException 420, CStructWriteLimitException 460
 
 @test Unions_AreStagedAndChargedOnce
-@hash 3ec5064566f92f28fd2f90eee852401da020d2ce23de12d5e7b70c496dee0731 112
+@hash 841bb5dd9db80f213c10cc984ef63b0d69e8e47b6cd9f1e53562942028f8339b 112
+  ok 24, CStructWriteException 76, CStructWriteLimitException 12
 
 @test UnsizedWideText_IsPlacedAsTheReaderPlacesIt
 @case Serialize rec (Fastest)
   result = [6] 010078000000
-  engine runs = 1
 @case Serialize rec (Fastest) #2
   result = [10] 01007800790000000700
-  engine runs = 1
 @case Serialize rec (Fastest) #3
   result = [12] 016100007800790000000700
-  engine runs = 1
 @case Serialize(Span[9]) rec (Fastest)
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "The serialized value exceeds the supplied destination capacity (field 'wide' (string<), in 'rec', offset 4)."
@@ -545,16 +483,12 @@
   failure.path = "rec"
   failure.offset = 4
   destination = [9] 016100CCCCCCCCCCCC
-  engine runs = 1
 @case Serialize rec (NoFastPaths)
   result = [6] 010078000000
-  engine runs = 1
 @case Serialize rec (NoFastPaths) #2
   result = [10] 01007800790000000700
-  engine runs = 1
 @case Serialize rec (NoFastPaths) #3
   result = [12] 016100007800790000000700
-  engine runs = 1
 @case Serialize(Span[9]) rec (NoFastPaths)
   failure = failure CStructSharp.Diagnostics.CStructWriteException
   failure.message = "The serialized value exceeds the supplied destination capacity (field 'wide' (string<), in 'rec', offset 4)."
@@ -564,7 +498,7 @@
   failure.path = "rec"
   failure.offset = 4
   destination = [9] 016100CCCCCCCCCCCC
-  engine runs = 1
 
 @test UpdateOptions_KeepPaddingAndUnionStorage
-@hash a9936b8b49e6cfdd4913f6b03540d3470a126238d2dfb2af36a1e06ef806e3e2 52
+@hash 82acbcbbf85840e3b3ae80df41e3553643ce923c20825a8e54302ad2bb7185d7 52
+  ok 40, CStructReadException 12

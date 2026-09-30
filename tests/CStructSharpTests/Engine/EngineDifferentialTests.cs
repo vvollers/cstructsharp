@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
 using System.Collections.Generic;
+using CStructSharp.Engine;
 using CStructSharp.Values;
 
 /// <summary>
@@ -46,13 +47,18 @@ public class EngineDifferentialTests
             EngineDifferential.AssertGolden(EngineOperations.ParseAsync(layout, one[..4], "rec"), path: path);
         }
 
-        EngineOutcome outcome = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, one, EngineInput.Stream, "rec"));
-        Assert.AreEqual(1, outcome.EngineRuns);
-        StringAssert.Contains(outcome.Rendering, "result.id = UInt16 7\n");
-        StringAssert.Contains(outcome.Rendering, "result.value = Int32 -2\n");
-        StringAssert.Contains(outcome.Rendering, "result.which = EnumValueResult kind name=large value=2");
-        StringAssert.Contains(outcome.Rendering, "result.tag = String \"ab\\u0000\\u0000\"\n");
-        StringAssert.Contains(outcome.Rendering, "position = 11\n");
+        string outcome;
+        using (EngineRecording recording = EngineDiagnostics.Record())
+        {
+            outcome = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, one, EngineInput.Stream, "rec"));
+            Assert.AreEqual(1, recording.Diagnostics.Runs, "a stream parse runs once on the engine");
+        }
+
+        StringAssert.Contains(outcome, "result.id = UInt16 7\n");
+        StringAssert.Contains(outcome, "result.value = Int32 -2\n");
+        StringAssert.Contains(outcome, "result.which = EnumValueResult kind name=large value=2");
+        StringAssert.Contains(outcome, "result.tag = String \"ab\\u0000\\u0000\"\n");
+        StringAssert.Contains(outcome, "position = 11\n");
     }
 
     /// <summary>Record sequences read their golden outcomes over memory, a multi-segment sequence, and a stream, including a truncated last record.</summary>
@@ -65,9 +71,9 @@ public class EngineDifferentialTests
         {
             EngineDifferential.AssertGolden(EngineOperations.ParseMany(fixedLayout, FixedRecords[..22], input, "rec"));
             EngineDifferential.AssertGolden(EngineOperations.ParseMany(fixedLayout, FixedRecords, input, "rec"));
-            EngineOutcome outcome = EngineDifferential.AssertGolden(EngineOperations.ParseMany(sizedLayout, [2, 1, 2, 0, 3, 9], input, "rec"));
-            StringAssert.Contains(outcome.Rendering, "count = 2\n");
-            StringAssert.Contains(outcome.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
+            string outcome = EngineDifferential.AssertGolden(EngineOperations.ParseMany(sizedLayout, [2, 1, 2, 0, 3, 9], input, "rec"));
+            StringAssert.Contains(outcome, "count = 2\n");
+            StringAssert.Contains(outcome, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
         }
     }
 
@@ -90,13 +96,19 @@ public class EngineDifferentialTests
             EngineDifferential.AssertGolden(EngineOperations.GetArrayLength(layout, data, input, "rec.items"));
         }
 
-        EngineOutcome outcome = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: ExecutionPath.NoFastPaths);
-        StringAssert.Contains(outcome.Rendering, "result.items = PrimitiveArray<UInt16> [2]\n");
-        Assert.AreEqual(1, outcome.EngineRuns);
+        using (EngineRecording recording = EngineDiagnostics.Record())
+        {
+            string outcome = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: ExecutionPath.NoFastPaths);
+            StringAssert.Contains(outcome, "result.items = PrimitiveArray<UInt16> [2]\n");
+            Assert.AreEqual(1, recording.Diagnostics.Runs, "the parse runs once on the engine");
+        }
 
         // A selected read of a member is a path read the engine runs.
-        outcome = EngineDifferential.AssertGolden(EngineOperations.ReadValue(layout, data, EngineInput.Span, "rec.items"));
-        Assert.AreEqual(1, outcome.EngineRuns);
+        using (EngineRecording recording = EngineDiagnostics.Record())
+        {
+            EngineDifferential.AssertGolden(EngineOperations.ReadValue(layout, data, EngineInput.Span, "rec.items"));
+            Assert.AreEqual(1, recording.Diagnostics.Runs, "the member read runs once on the engine");
+        }
     }
 
     /// <summary>Both branches of a conditional group read their golden outcomes.</summary>
@@ -128,8 +140,8 @@ public class EngineDifferentialTests
             EngineDifferential.AssertGolden(EngineOperations.ReadValue(layout, data, input, "rec.last.b"));
         }
 
-        EngineOutcome outcome = EngineDifferential.AssertGolden(EngineOperations.ReadValue(layout, data, EngineInput.Span, "rec.items"));
-        StringAssert.Contains(outcome.Rendering, "result = List<Object> [2]\n");
+        string outcome = EngineDifferential.AssertGolden(EngineOperations.ReadValue(layout, data, EngineInput.Span, "rec.items"));
+        StringAssert.Contains(outcome, "result = List<Object> [2]\n");
     }
 
     /// <summary>A union keeps its raw storage and every member view, as the golden outcomes record.</summary>
@@ -144,8 +156,8 @@ public class EngineDifferentialTests
             EngineDifferential.AssertGolden(EngineOperations.ReadValue(layout, [0x34, 0x12, 9], input, "u"));
         }
 
-        EngineOutcome outcome = EngineDifferential.AssertGolden(EngineOperations.ReadValue(layout, [0x34, 0x12, 9], EngineInput.Span, "rec.value"));
-        StringAssert.Contains(outcome.Rendering, "result = UnionValue \"u\" {2} selected=none raw=[2] 3412\n");
+        string outcome = EngineDifferential.AssertGolden(EngineOperations.ReadValue(layout, [0x34, 0x12, 9], EngineInput.Span, "rec.value"));
+        StringAssert.Contains(outcome, "result = UnionValue \"u\" {2} selected=none raw=[2] 3412\n");
     }
 
     /// <summary>Bitfields read, resolve, and update as the golden outcomes record.</summary>
@@ -183,8 +195,8 @@ public class EngineDifferentialTests
             EngineDifferential.AssertGolden(EngineOperations.ResolveAddress(layout, data, input, "rec.p.address"));
         }
 
-        EngineOutcome outcome = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"));
-        StringAssert.Contains(outcome.Rendering, "result.p = Pointer address=8 depth=1 dereferenced=True null=False\nresult.p-> = UInt16 4660\n");
+        string outcome = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"));
+        StringAssert.Contains(outcome, "result.p = Pointer address=8 depth=1 dereferenced=True null=False\nresult.p-> = UInt16 4660\n");
     }
 
     /// <summary>A terminated string reads and reports its length as the golden outcomes record, and a missing terminator fails as they record.</summary>
@@ -238,8 +250,8 @@ public class EngineDifferentialTests
             EngineDifferential.AssertGolden(EngineOperations.ReadValueWithDebug(layout, data, input, "rec.items"));
         }
 
-        EngineOutcome outcome = EngineDifferential.AssertGolden(EngineOperations.ParseWithDebug(layout, data, EngineInput.Span, "rec"));
-        StringAssert.Contains(outcome.Rendering, "debug = List<DebugData> [6]\ndebug[0] = path=\"rec.n\" start=0 end=1 length=1 type=\"uint8\" bytes=[0]\ndebug[0].value = Byte 2\n");
+        string outcome = EngineDifferential.AssertGolden(EngineOperations.ParseWithDebug(layout, data, EngineInput.Span, "rec"));
+        StringAssert.Contains(outcome, "debug = List<DebugData> [6]\ndebug[0] = path=\"rec.n\" start=0 end=1 length=1 type=\"uint8\" bytes=[0]\ndebug[0].value = Byte 2\n");
     }
 
     /// <summary>Writes to a new array, a span of several capacities, a pre-filled stream, and a buffer writer produce their golden bytes and failures.</summary>
@@ -271,8 +283,8 @@ public class EngineDifferentialTests
             EngineDifferential.AssertGolden(EngineOperations.Serialize(sizedLayout, "rec.items", new ushort[] { 5, 6, }, new Dictionary<string, int> { ["n"] = 2 }), path: path);
         }
 
-        EngineOutcome outcome = EngineDifferential.AssertGolden(EngineOperations.SerializeToSpan(sizedLayout, 8, "rec", sizedValue));
-        StringAssert.Contains(outcome.Rendering, "result = Int32 6\ndestination = [8] 020100020009CCCC\n");
+        string outcome = EngineDifferential.AssertGolden(EngineOperations.SerializeToSpan(sizedLayout, 8, "rec", sizedValue));
+        StringAssert.Contains(outcome, "result = Int32 6\ndestination = [8] 020100020009CCCC\n");
     }
 
     /// <summary>Updates of a span and a stream, synchronous and asynchronous, change their golden bytes or fail as the golden outcomes record.</summary>

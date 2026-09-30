@@ -218,6 +218,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - CI keeps one documentation-workflow validator, runs each workflow only for the files it reads, starts the weekly runs
   from one `scheduled.yml` with a monthly external-link check, groups Dependabot updates for `docs/` and
   `benchmarks/js`, and drops a duplicate memory coverage run and two unused documentation tools.
+- Engine golden manifests no longer record how many operations reached the engine, so a performance-only change no
+  longer forces a re-record; each hashed group carries a summary that counts its outcomes by kind, and a failing
+  group shows which kinds changed with an example of each.
 
 ## 0.10.0 — 2026-09-26
 

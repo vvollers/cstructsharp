@@ -72,13 +72,18 @@ public class ReadEngineTests
     {
         var layout = new CStruct(CodecLayout);
         byte[] data = CodecData;
-        EngineOutcome complete = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"));
-        Assert.AreEqual(1, complete.EngineRuns);
-        StringAssert.Contains(complete.Rendering, "result.a = Int64 -5\n");
-        StringAssert.Contains(complete.Rendering, "result.l4 = Int64 -300\n");
-        StringAssert.Contains(complete.Rendering, "result.w = Char");
-        StringAssert.Contains(complete.Rendering, "result.s = String \"ok\"\n");
-        StringAssert.Contains(complete.Rendering, "result.tail = Byte 9\n");
+        string complete;
+        using (EngineRecording recording = EngineDiagnostics.Record())
+        {
+            complete = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"));
+            Assert.AreEqual(1, recording.Diagnostics.Runs, "the parse runs once on the engine");
+        }
+
+        StringAssert.Contains(complete, "result.a = Int64 -5\n");
+        StringAssert.Contains(complete, "result.l4 = Int64 -300\n");
+        StringAssert.Contains(complete, "result.w = Char");
+        StringAssert.Contains(complete, "result.s = String \"ok\"\n");
+        StringAssert.Contains(complete, "result.tail = Byte 9\n");
 
         foreach (ExecutionPath path in Paths)
         {
@@ -126,9 +131,9 @@ public class ReadEngineTests
         byte[] data = [7, .. Enumerable.Repeat((byte)'x', 300), 0, (byte)'h', 0, (byte)'i', 0, 0, 0, 9];
         foreach (ExecutionPath path in Paths)
         {
-            EngineOutcome complete = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
-            StringAssert.Contains(complete.Rendering, "result.w = String \"hi\"\n");
-            StringAssert.Contains(complete.Rendering, "result.tail = Byte 9\n");
+            string complete = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
+            StringAssert.Contains(complete, "result.w = String \"hi\"\n");
+            StringAssert.Contains(complete, "result.tail = Byte 9\n");
             for (long budget = 1; budget <= data.Length + 260; budget++)
             {
                 var read = new ReadOptions { MaxTotalBytesRead = budget, };
@@ -168,18 +173,18 @@ public class ReadEngineTests
         foreach (ExecutionPath path in Paths)
         {
             // n = 5 ends the array at 6, so x is aligned to 8 as asserted.
-            EngineOutcome valid = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, [5, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0], EngineInput.Stream, "rec"), path: path);
-            StringAssert.Contains(valid.Rendering, "result.x = UInt32 7\n");
+            string valid = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, [5, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0], EngineInput.Stream, "rec"), path: path);
+            StringAssert.Contains(valid, "result.x = UInt32 7\n");
 
             // n = 1 aligns x to 4, not 8: the stream stays after the array, before the padding.
-            EngineOutcome misplaced = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, [1, 0, 0, 0, 7, 0, 0, 0], EngineInput.Stream, "rec"), path: path);
-            StringAssert.Contains(misplaced.Rendering, "failure = failure CStructSharp.Diagnostics.CStructLayoutException\n");
-            StringAssert.Contains(misplaced.Rendering, "failure.member = \"x\"\n");
-            StringAssert.Contains(misplaced.Rendering, "position = 2\n");
+            string misplaced = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, [1, 0, 0, 0, 7, 0, 0, 0], EngineInput.Stream, "rec"), path: path);
+            StringAssert.Contains(misplaced, "failure = failure CStructSharp.Diagnostics.CStructLayoutException\n");
+            StringAssert.Contains(misplaced, "failure.member = \"x\"\n");
+            StringAssert.Contains(misplaced, "position = 2\n");
 
             // The same misplaced start past the end of the input still reports the assertion.
-            EngineOutcome past = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, [1, 0], EngineInput.Span, "rec"), path: path);
-            StringAssert.Contains(past.Rendering, "failure = failure CStructSharp.Diagnostics.CStructLayoutException\n");
+            string past = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, [1, 0], EngineInput.Span, "rec"), path: path);
+            StringAssert.Contains(past, "failure = failure CStructSharp.Diagnostics.CStructLayoutException\n");
         }
     }
 
@@ -197,18 +202,18 @@ public class ReadEngineTests
         {
             for (int trigger = 0; trigger < data.Length; trigger++)
             {
-                EngineOutcome outcome = EngineDifferential.AssertGolden(CancelledParse(elements, data, trigger), path: path);
+                string outcome = EngineDifferential.AssertGolden(CancelledParse(elements, data, trigger), path: path);
 
                 // The next struct entry observes the token: the entry of the element after the one being read, or - on
                 // the fast path, which stages each element's bytes before entering it - the entry of the element whose
                 // bytes were just staged.
                 if (trigger <= (path == ExecutionPath.NoFastPaths ? 4 : 6))
                 {
-                    StringAssert.Contains(outcome.Rendering, "failure = failure System.OperationCanceledException\n", "trigger " + trigger);
+                    StringAssert.Contains(outcome, "failure = failure System.OperationCanceledException\n", "trigger " + trigger);
                 }
                 else
                 {
-                    StringAssert.Contains(outcome.Rendering, "result.tail = Byte 9\n", "trigger " + trigger);
+                    StringAssert.Contains(outcome, "result.tail = Byte 9\n", "trigger " + trigger);
                 }
             }
         }
@@ -217,8 +222,8 @@ public class ReadEngineTests
         var primitives = new CStruct("struct rec { uint8 a; uint16 b; uint8 c; };");
         for (int trigger = 0; trigger < 4; trigger++)
         {
-            EngineOutcome outcome = EngineDifferential.AssertGolden(CancelledParse(primitives, [1, 2, 0, 3], trigger), path: ExecutionPath.NoFastPaths);
-            StringAssert.Contains(outcome.Rendering, "result.c = Byte 3\n", "trigger " + trigger);
+            string outcome = EngineDifferential.AssertGolden(CancelledParse(primitives, [1, 2, 0, 3], trigger), path: ExecutionPath.NoFastPaths);
+            StringAssert.Contains(outcome, "result.c = Byte 3\n", "trigger " + trigger);
         }
     }
 
@@ -238,18 +243,18 @@ public class ReadEngineTests
             {
                 foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.ChunkedStream3])
                 {
-                    EngineOutcome outcome = EngineDifferential.AssertGolden(
+                    string outcome = EngineDifferential.AssertGolden(
                         EngineOperations.Parse(layout, data, input, "rec", options: new ReadOptions { MaxNestingDepth = depth, }),
                         path: path);
                     if (depth < 3)
                     {
                         // Depth 1 cannot enter the elements of items; depth 2 enters them but not their member x.
                         string member = depth == 1 ? "'items' (b)" : "'x' (a)";
-                        StringAssert.Contains(outcome.Rendering, "failure.message = \"" + ReadFailures.NestingLimit.TrimEnd('.') + " (field " + member, "depth " + depth);
+                        StringAssert.Contains(outcome, "failure.message = \"" + ReadFailures.NestingLimit.TrimEnd('.') + " (field " + member, "depth " + depth);
                     }
                     else
                     {
-                        StringAssert.Contains(outcome.Rendering, "result.tail = Byte 9\n", "depth " + depth);
+                        StringAssert.Contains(outcome, "result.tail = Byte 9\n", "depth " + depth);
                     }
                 }
             }
@@ -270,16 +275,16 @@ public class ReadEngineTests
         foreach (ExecutionPath path in Paths)
         {
             // inner.n = 3 leaks as n while i is read; the scope restores rec's n = 1 for d and e.
-            EngineOutcome restored = EngineDifferential.AssertGolden(EngineOperations.Parse(restoring, [1, 3, 7, 8, 9], EngineInput.Span, "rec"), path: path);
-            StringAssert.Contains(restored.Rendering, "result.d = PrimitiveArray<Byte> [1]\n");
-            StringAssert.Contains(restored.Rendering, "result.e = PrimitiveArray<Byte> [1]\n");
+            string restored = EngineDifferential.AssertGolden(EngineOperations.Parse(restoring, [1, 3, 7, 8, 9], EngineInput.Span, "rec"), path: path);
+            StringAssert.Contains(restored, "result.d = PrimitiveArray<Byte> [1]\n");
+            StringAssert.Contains(restored, "result.e = PrimitiveArray<Byte> [1]\n");
 
             // The caller's n is removed on entry, so with the branch not taken d's count is undefined.
-            EngineOutcome removed = EngineDifferential.AssertGolden(EngineOperations.Parse(removing, [0, 5, 5], EngineInput.Span, "rec", caller), path: path);
-            StringAssert.Contains(removed.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
-            StringAssert.Contains(removed.Rendering, "Undefined expression identifier: n");
-            EngineOutcome taken = EngineDifferential.AssertGolden(EngineOperations.Parse(removing, [1, 2, 5, 6], EngineInput.Stream, "rec", caller), path: path);
-            StringAssert.Contains(taken.Rendering, "result.d = PrimitiveArray<Byte> [2]\n");
+            string removed = EngineDifferential.AssertGolden(EngineOperations.Parse(removing, [0, 5, 5], EngineInput.Span, "rec", caller), path: path);
+            StringAssert.Contains(removed, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
+            StringAssert.Contains(removed, "Undefined expression identifier: n");
+            string taken = EngineDifferential.AssertGolden(EngineOperations.Parse(removing, [1, 2, 5, 6], EngineInput.Stream, "rec", caller), path: path);
+            StringAssert.Contains(taken, "result.d = PrimitiveArray<Byte> [2]\n");
         }
     }
 
@@ -295,10 +300,10 @@ public class ReadEngineTests
         byte[] data = [2, 1, 7, 8, 9, 4, 6];
         foreach (ExecutionPath path in Paths)
         {
-            EngineOutcome complete = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
-            StringAssert.Contains(complete.Rendering, "result.m.v = PrimitiveArray<Byte> [2]\n");
-            StringAssert.Contains(complete.Rendering, "result.w = PrimitiveArray<Byte> [1]\n");
-            StringAssert.Contains(complete.Rendering, "result.tail = Byte 4\n");
+            string complete = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
+            StringAssert.Contains(complete, "result.m.v = PrimitiveArray<Byte> [2]\n");
+            StringAssert.Contains(complete, "result.w = PrimitiveArray<Byte> [1]\n");
+            StringAssert.Contains(complete, "result.tail = Byte 4\n");
 
             foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.ChunkedStream1])
             {
@@ -353,8 +358,8 @@ public class ReadEngineTests
             }
         }
 
-        EngineOutcome live = EngineDifferential.AssertGolden(EngineOperations.ReadValue(layout, [1], EngineInput.Span, "LIVE"));
-        StringAssert.Contains(live.Rendering, "Undefined expression identifier: v");
+        string live = EngineDifferential.AssertGolden(EngineOperations.ReadValue(layout, [1], EngineInput.Span, "LIVE"));
+        StringAssert.Contains(live, "Undefined expression identifier: v");
     }
 
     /// <summary>
@@ -381,9 +386,9 @@ public class ReadEngineTests
                 }
             }
 
-            EngineOutcome limited = EngineDifferential.AssertGolden(EngineOperations.ReadValue(layout, data, EngineInput.Stream, "words", options: new ReadOptions { MaxArrayElements = 2, }), path: path);
-            StringAssert.Contains(limited.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadLimitException\n");
-            StringAssert.Contains(limited.Rendering, "position = 0\n");
+            string limited = EngineDifferential.AssertGolden(EngineOperations.ReadValue(layout, data, EngineInput.Stream, "words", options: new ReadOptions { MaxArrayElements = 2, }), path: path);
+            StringAssert.Contains(limited, "failure = failure CStructSharp.Diagnostics.CStructReadLimitException\n");
+            StringAssert.Contains(limited, "position = 0\n");
             EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "points"), path: path);
             EngineDifferential.AssertGolden(EngineOperations.ReadValue(layout, data, EngineInput.Span, "uint16[2]"), path: path);
 
@@ -427,9 +432,9 @@ public class ReadEngineTests
                 var read = new ReadOptions { MaxTotalBytesRead = budget, };
                 foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1, EngineInput.ChunkedStream3])
                 {
-                    EngineOutcome outcome = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, input, "rec", options: read), path: path);
+                    string outcome = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, input, "rec", options: read), path: path);
                     string expected = budget < 16 ? "failure = failure CStructSharp.Diagnostics.CStructReadLimitException\n" : "result.tail = Byte 9\n";
-                    StringAssert.Contains(outcome.Rendering, expected, "budget " + budget + " from " + input);
+                    StringAssert.Contains(outcome, expected, "budget " + budget + " from " + input);
                     EngineDifferential.AssertGolden(EngineOperations.Parse(structs, entries, input, "rec", options: read), path: path);
                 }
             }
@@ -443,14 +448,14 @@ public class ReadEngineTests
                 }
             }
 
-            EngineOutcome unterminated = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data[..5], EngineInput.Stream, "rec"), path: path);
-            StringAssert.Contains(unterminated.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
-            StringAssert.Contains(unterminated.Rendering, "position = 1\n");
-            EngineOutcome limited = EngineDifferential.AssertGolden(
+            string unterminated = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data[..5], EngineInput.Stream, "rec"), path: path);
+            StringAssert.Contains(unterminated, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
+            StringAssert.Contains(unterminated, "position = 1\n");
+            string limited = EngineDifferential.AssertGolden(
                 EngineOperations.Parse(layout, data, EngineInput.Stream, "rec", options: new ReadOptions { MaxArrayElements = 2, }),
                 path: path);
-            StringAssert.Contains(limited.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadLimitException\n");
-            StringAssert.Contains(limited.Rendering, "position = 1\n");
+            StringAssert.Contains(limited, "failure = failure CStructSharp.Diagnostics.CStructReadLimitException\n");
+            StringAssert.Contains(limited, "position = 1\n");
         }
     }
 
@@ -484,21 +489,21 @@ public class ReadEngineTests
                 }
             }
 
-            EngineOutcome remainder = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data[..6], EngineInput.Stream, "rec"), path: path);
-            StringAssert.Contains(remainder.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
-            StringAssert.Contains(remainder.Rendering, "position = 1\n");
-            EngineOutcome past = EngineDifferential.AssertGolden(EngineOperations.Parse(aligned, words[..1], EngineInput.Stream, "rec"), path: path);
-            StringAssert.Contains(past.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
-            EngineOutcome empty = EngineDifferential.AssertGolden(EngineOperations.Parse(aligned, words[..4], EngineInput.Span, "rec"), path: path);
-            StringAssert.Contains(empty.Rendering, "result.values = PrimitiveArray<UInt32> [0]\n");
-            EngineOutcome limited = EngineDifferential.AssertGolden(
+            string remainder = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data[..6], EngineInput.Stream, "rec"), path: path);
+            StringAssert.Contains(remainder, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
+            StringAssert.Contains(remainder, "position = 1\n");
+            string past = EngineDifferential.AssertGolden(EngineOperations.Parse(aligned, words[..1], EngineInput.Stream, "rec"), path: path);
+            StringAssert.Contains(past, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
+            string empty = EngineDifferential.AssertGolden(EngineOperations.Parse(aligned, words[..4], EngineInput.Span, "rec"), path: path);
+            StringAssert.Contains(empty, "result.values = PrimitiveArray<UInt32> [0]\n");
+            string limited = EngineDifferential.AssertGolden(
                 EngineOperations.Parse(layout, data, EngineInput.Span, "rec", options: new ReadOptions { MaxArrayElements = 2, }),
                 path: path);
-            StringAssert.Contains(limited.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadLimitException\n");
-            EngineOutcome trimmed = EngineDifferential.AssertGolden(
+            StringAssert.Contains(limited, "failure = failure CStructSharp.Diagnostics.CStructReadLimitException\n");
+            string trimmed = EngineDifferential.AssertGolden(
                 EngineOperations.Parse(text, letters, EngineInput.Stream, "rec", options: new ReadOptions { TrimFixedText = true, }),
                 path: path);
-            StringAssert.Contains(trimmed.Rendering, "result.text = String \"hi\"\n");
+            StringAssert.Contains(trimmed, "result.text = String \"hi\"\n");
         }
     }
 
@@ -517,10 +522,10 @@ public class ReadEngineTests
         byte[] data = [7, 0x80, 0x01, .. Blob(600), 5, 6, 9];
         foreach (ExecutionPath path in Paths)
         {
-            EngineOutcome complete = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
-            StringAssert.Contains(complete.Rendering, "result.v = UInt32 128\n");
-            StringAssert.Contains(complete.Rendering, "result.b = Int32 600\n");
-            StringAssert.Contains(complete.Rendering, "result.tail = Byte 9\n");
+            string complete = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
+            StringAssert.Contains(complete, "result.v = UInt32 128\n");
+            StringAssert.Contains(complete, "result.b = Int32 600\n");
+            StringAssert.Contains(complete, "result.tail = Byte 9\n");
             foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream7])
             {
                 for (int length = 0; length <= data.Length; length++)
@@ -542,22 +547,22 @@ public class ReadEngineTests
             }
 
             // A value that continues past the input: memory charges the whole remainder, so a small budget fails first.
-            EngineOutcome needsMore = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, [7, 0x80, 0x80, 0x80], EngineInput.Span, "rec"), path: path);
-            StringAssert.Contains(needsMore.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
-            EngineOutcome charged = EngineDifferential.AssertGolden(
+            string needsMore = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, [7, 0x80, 0x80, 0x80], EngineInput.Span, "rec"), path: path);
+            StringAssert.Contains(needsMore, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
+            string charged = EngineDifferential.AssertGolden(
                 EngineOperations.Parse(layout, [7, 0x80, 0x80, 0x80], EngineInput.Span, "rec", options: new ReadOptions { MaxTotalBytesRead = 3, }),
                 path: path);
-            StringAssert.Contains(charged.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadLimitException\n");
+            StringAssert.Contains(charged, "failure = failure CStructSharp.Diagnostics.CStructReadLimitException\n");
 
             // odd: 0 decodes to no value, 1 throws inside the codec, 2 claims more bytes than it was given.
             foreach (byte quirk in (byte[])[0, 1, 2])
             {
                 foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1])
                 {
-                    EngineOutcome outcome = EngineDifferential.AssertGolden(
+                    string outcome = EngineDifferential.AssertGolden(
                         EngineOperations.Parse(layout, [7, 0x05, 0x00, 0x00, quirk, 6, 9], input, "rec"),
                         path: path);
-                    StringAssert.Contains(outcome.Rendering, quirk == 0 ? "failure = failure System.InvalidOperationException\n" : "failure = failure CStructSharp.Diagnostics.CStructReadException\n", "quirk " + quirk);
+                    StringAssert.Contains(outcome, quirk == 0 ? "failure = failure System.InvalidOperationException\n" : "failure = failure CStructSharp.Diagnostics.CStructReadException\n", "quirk " + quirk);
                 }
             }
         }
@@ -586,9 +591,9 @@ public class ReadEngineTests
         {
             foreach ((CStruct layout, byte[] data) in cases)
             {
-                EngineOutcome complete = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
-                StringAssert.Contains(complete.Rendering, "result.x = UInt16 4660\n");
-                StringAssert.Contains(complete.Rendering, "result.y = UInt16 22136\n");
+                string complete = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
+                StringAssert.Contains(complete, "result.x = UInt16 4660\n");
+                StringAssert.Contains(complete, "result.y = UInt16 22136\n");
                 for (int length = 0; length <= data.Length; length++)
                 {
                     foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1])
@@ -626,11 +631,11 @@ public class ReadEngineTests
         var roots = new CStruct("typedef uint8 table[2][3]; typedef char rows[2][3];");
         foreach (ExecutionPath path in Paths)
         {
-            EngineOutcome complete = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
-            StringAssert.Contains(complete.Rendering, "result.grid = List<Object> [2]\n");
-            StringAssert.Contains(complete.Rendering, "result.grid[1] = List<Object> [3]\n");
-            StringAssert.Contains(complete.Rendering, "result.names[1] = String \"bc\"\n");
-            StringAssert.Contains(complete.Rendering, "result.cube[1][0] = List<Object> [2]\n");
+            string complete = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
+            StringAssert.Contains(complete, "result.grid = List<Object> [2]\n");
+            StringAssert.Contains(complete, "result.grid[1] = List<Object> [3]\n");
+            StringAssert.Contains(complete, "result.names[1] = String \"bc\"\n");
+            StringAssert.Contains(complete, "result.cube[1][0] = List<Object> [2]\n");
             for (int length = 0; length <= data.Length; length++)
             {
                 foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1])
@@ -656,9 +661,9 @@ public class ReadEngineTests
             byte[] invalid = (byte[])data.Clone();
             invalid[17] = 0x00;
             invalid[18] = 0xD8;
-            EngineOutcome surrogate = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, invalid, EngineInput.Stream, "rec"), path: path);
-            StringAssert.Contains(surrogate.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
-            StringAssert.Contains(surrogate.Rendering, "position = 21\n");
+            string surrogate = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, invalid, EngineInput.Stream, "rec"), path: path);
+            StringAssert.Contains(surrogate, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
+            StringAssert.Contains(surrogate, "position = 21\n");
 
             foreach (string root in (string[])["table", "rows"])
             {
@@ -708,19 +713,19 @@ public class ReadEngineTests
 
                 foreach (long budget in (long[])[Scanned, Scanned + 1, Scanned + 65536, Scanned + 65537, Scanned + 70000, Scanned + 70001, Scanned + 70002])
                 {
-                    EngineOutcome outcome = EngineDifferential.AssertGolden(
+                    string outcome = EngineDifferential.AssertGolden(
                         EngineOperations.Parse(terminated, list, input, "rec", options: new ReadOptions { MaxTotalBytesRead = budget, }),
                         path: path);
-                    StringAssert.Contains(outcome.Rendering, budget < Scanned + 70001 ? "CStructReadLimitException" : "result.tail = Byte 9\n", "budget " + budget);
+                    StringAssert.Contains(outcome, budget < Scanned + 70001 ? "CStructReadLimitException" : "result.tail = Byte 9\n", "budget " + budget);
                 }
             }
 
             // Cancelled inside the first block, the check before the second block ends the read; inside the second, the
             // read completes, because no block, struct entry or string chunk follows.
-            EngineOutcome first = EngineDifferential.AssertGolden(CancelledParse(table, big, 10), path: path);
-            StringAssert.Contains(first.Rendering, "failure = failure System.OperationCanceledException\n");
-            EngineOutcome second = EngineDifferential.AssertGolden(CancelledParse(table, big, 70000), path: path);
-            StringAssert.Contains(second.Rendering, "result.tail = Byte 9\n");
+            string first = EngineDifferential.AssertGolden(CancelledParse(table, big, 10), path: path);
+            StringAssert.Contains(first, "failure = failure System.OperationCanceledException\n");
+            string second = EngineDifferential.AssertGolden(CancelledParse(table, big, 70000), path: path);
+            StringAssert.Contains(second, "result.tail = Byte 9\n");
         }
     }
 
@@ -739,8 +744,8 @@ public class ReadEngineTests
         {
             foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1])
             {
-                EngineOutcome valid = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, input, "rec"), path: path);
-                StringAssert.Contains(valid.Rendering, "result.tail = Byte 9\n");
+                string valid = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, input, "rec"), path: path);
+                StringAssert.Contains(valid, "result.tail = Byte 9\n");
                 EngineDifferential.AssertGolden(EngineOperations.Parse(layout, invalid, input, "rec"), path: path);
                 for (int length = 0; length <= data.Length; length++)
                 {
@@ -748,10 +753,10 @@ public class ReadEngineTests
                 }
             }
 
-            EngineOutcome failed = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, invalid, EngineInput.Stream, "rec"), path: path);
-            StringAssert.Contains(failed.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
-            StringAssert.Contains(failed.Rendering, "failure.member = \"text\"\n");
-            StringAssert.Contains(failed.Rendering, "position = 7\n");
+            string failed = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, invalid, EngineInput.Stream, "rec"), path: path);
+            StringAssert.Contains(failed, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
+            StringAssert.Contains(failed, "failure.member = \"text\"\n");
+            StringAssert.Contains(failed, "position = 7\n");
         }
     }
 
@@ -778,25 +783,25 @@ public class ReadEngineTests
             {
                 foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1])
                 {
-                    EngineOutcome outcome = EngineDifferential.AssertGolden(
+                    string outcome = EngineDifferential.AssertGolden(
                         EngineOperations.Parse(layout, data, input, "rec", options: new ReadOptions { MaxTotalBytesRead = budget, }),
                         path: path);
-                    StringAssert.Contains(outcome.Rendering, budget < 7 ? "CStructReadLimitException" : "result.tail = Byte 9\n", "budget " + budget);
+                    StringAssert.Contains(outcome, budget < 7 ? "CStructReadLimitException" : "result.tail = Byte 9\n", "budget " + budget);
                 }
             }
 
-            EngineOutcome complete = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
-            StringAssert.Contains(complete.Rendering, "result.b = Int32 2\n");
-            StringAssert.Contains(complete.Rendering, "result.c = Int32 67\n");
+            string complete = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
+            StringAssert.Contains(complete, "result.b = Int32 2\n");
+            StringAssert.Contains(complete, "result.c = Int32 67\n");
 
             // a leaves bits of its unit, so the position is back at 0 when b's aligned start (4) lies past the input.
-            EngineOutcome rewound = EngineDifferential.AssertGolden(EngineOperations.Parse(aligned, [0x05], EngineInput.Stream, "rec"), path: path);
-            StringAssert.Contains(rewound.Rendering, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
-            StringAssert.Contains(rewound.Rendering, "position = 0\n");
+            string rewound = EngineDifferential.AssertGolden(EngineOperations.Parse(aligned, [0x05], EngineInput.Stream, "rec"), path: path);
+            StringAssert.Contains(rewound, "failure = failure CStructSharp.Diagnostics.CStructReadException\n");
+            StringAssert.Contains(rewound, "position = 0\n");
 
-            EngineOutcome unsigned = EngineDifferential.AssertGolden(EngineOperations.Parse(signs, [0xFF, 0x01, 0x02, 0x03, 0x04, 0xFF, 0, 0, 0], EngineInput.Span, "rec"), path: path);
-            StringAssert.Contains(unsigned.Rendering, "result.s = Int32 15\n");
-            StringAssert.Contains(unsigned.Rendering, "result.big = UInt64 ");
+            string unsigned = EngineDifferential.AssertGolden(EngineOperations.Parse(signs, [0xFF, 0x01, 0x02, 0x03, 0x04, 0xFF, 0, 0, 0], EngineInput.Span, "rec"), path: path);
+            StringAssert.Contains(unsigned, "result.s = Int32 15\n");
+            StringAssert.Contains(unsigned, "result.big = UInt64 ");
             foreach ((CStruct subject, byte[] bytes) in ((CStruct, byte[])[])[(layout, data), (window, [0xFF, 0x81, 0x02, 0x09]), (msvc, [0x05, 0x34, 0x12, 0x09]), (signs, [0xFF, 0x01, 0x02, 0x03, 0x04, 0xFF, 0, 0, 0])])
             {
                 for (int length = 0; length <= bytes.Length; length++)
@@ -831,17 +836,17 @@ public class ReadEngineTests
         var hidden = new CStruct("union w { uint8 m; }; struct rec { w value; uint8 items[m]; };");
         foreach (ExecutionPath path in Paths)
         {
-            EngineOutcome complete = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
-            StringAssert.Contains(complete.Rendering, "result.items = PrimitiveArray<Byte> [2]\n");
-            StringAssert.Contains(complete.Rendering, "PrimitiveArray<Byte> [3]\n");
+            string complete = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
+            StringAssert.Contains(complete, "result.items = PrimitiveArray<Byte> [2]\n");
+            StringAssert.Contains(complete, "PrimitiveArray<Byte> [3]\n");
             for (long budget = 1; budget <= 14; budget++)
             {
                 foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1])
                 {
-                    EngineOutcome outcome = EngineDifferential.AssertGolden(
+                    string outcome = EngineDifferential.AssertGolden(
                         EngineOperations.Parse(layout, data, input, "rec", options: new ReadOptions { MaxTotalBytesRead = budget, }),
                         path: path);
-                    StringAssert.Contains(outcome.Rendering, budget < 13 ? "CStructReadLimitException" : "result.tail = Byte 9\n", "budget " + budget);
+                    StringAssert.Contains(outcome, budget < 13 ? "CStructReadLimitException" : "result.tail = Byte 9\n", "budget " + budget);
                 }
             }
 
@@ -853,21 +858,21 @@ public class ReadEngineTests
                 }
             }
 
-            EngineOutcome failed = EngineDifferential.AssertGolden(EngineOperations.Parse(invalid, [1, 0x00, 0xD8, 0x41, 0x00, 9], EngineInput.Stream, "rec"), path: path);
-            StringAssert.Contains(failed.Rendering, "failure.member = \"s\"\n");
-            StringAssert.Contains(failed.Rendering, "position = 5\n");
+            string failed = EngineDifferential.AssertGolden(EngineOperations.Parse(invalid, [1, 0x00, 0xD8, 0x41, 0x00, 9], EngineInput.Stream, "rec"), path: path);
+            StringAssert.Contains(failed, "failure.member = \"s\"\n");
+            StringAssert.Contains(failed, "position = 5\n");
 
-            EngineOutcome nested = EngineDifferential.AssertGolden(
+            string nested = EngineDifferential.AssertGolden(
                 EngineOperations.Parse(layout, data, EngineInput.Stream, "rec", options: new ReadOptions { MaxNestingDepth = 1, }),
                 path: path);
-            StringAssert.Contains(nested.Rendering, "CStructReadLimitException");
-            StringAssert.Contains(nested.Rendering, "position = 1\n");
-            EngineOutcome flat = EngineDifferential.AssertGolden(
+            StringAssert.Contains(nested, "CStructReadLimitException");
+            StringAssert.Contains(nested, "position = 1\n");
+            string flat = EngineDifferential.AssertGolden(
                 EngineOperations.Parse(promoted, [1, 2, 3, 9], EngineInput.Span, "rec", options: new ReadOptions { MaxNestingDepth = 1, }),
                 path: path);
-            StringAssert.Contains(flat.Rendering, "result.tail = Byte 9\n");
-            EngineOutcome invisible = EngineDifferential.AssertGolden(EngineOperations.Parse(hidden, [1, 5], EngineInput.Span, "rec"), path: path);
-            StringAssert.Contains(invisible.Rendering, "Undefined expression identifier: m");
+            StringAssert.Contains(flat, "result.tail = Byte 9\n");
+            string invisible = EngineDifferential.AssertGolden(EngineOperations.Parse(hidden, [1, 5], EngineInput.Span, "rec"), path: path);
+            StringAssert.Contains(invisible, "Undefined expression identifier: m");
         }
     }
 
@@ -887,16 +892,16 @@ public class ReadEngineTests
         var countFirst = new CStruct("struct rec { uint8 *c @count(n); uint8 n; };", 1);
         foreach (ExecutionPath path in Paths)
         {
-            EngineOutcome complete = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
-            StringAssert.Contains(complete.Rendering, "result.tail = Byte 9\n");
+            string complete = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
+            StringAssert.Contains(complete, "result.tail = Byte 9\n");
             for (long budget = 1; budget <= 10; budget++)
             {
                 foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.Stream, EngineInput.ChunkedStream1])
                 {
-                    EngineOutcome outcome = EngineDifferential.AssertGolden(
+                    string outcome = EngineDifferential.AssertGolden(
                         EngineOperations.Parse(layout, data, input, "rec", options: new ReadOptions { MaxTotalBytesRead = budget, }),
                         path: path);
-                    StringAssert.Contains(outcome.Rendering, budget < 9 ? "CStructReadLimitException" : "result.tail = Byte 9\n", "budget " + budget);
+                    StringAssert.Contains(outcome, budget < 9 ? "CStructReadLimitException" : "result.tail = Byte 9\n", "budget " + budget);
                 }
             }
 
@@ -909,21 +914,21 @@ public class ReadEngineTests
             }
 
             // a and b both point outside the input: a, declared first, fails first, after its own address.
-            EngineOutcome outside = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, [0x20, 0x21, 0x05, 0x00, 0x09, 0xA1], EngineInput.Stream, "rec"), path: path);
-            StringAssert.Contains(outside.Rendering, "failure.member = \"a\"\n");
-            StringAssert.Contains(outside.Rendering, "position = 1\n");
+            string outside = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, [0x20, 0x21, 0x05, 0x00, 0x09, 0xA1], EngineInput.Stream, "rec"), path: path);
+            StringAssert.Contains(outside, "failure.member = \"a\"\n");
+            StringAssert.Contains(outside, "position = 1\n");
 
             // w's two-byte target starts at the last byte: the read fails, and the position is back after w's address.
-            EngineOutcome truncated = EngineDifferential.AssertGolden(EngineOperations.Parse(wide, [0x03, 0x03, 0x09, 0x07], EngineInput.Stream, "rec"), path: path);
-            StringAssert.Contains(truncated.Rendering, "failure.member = \"w\"\n");
-            StringAssert.Contains(truncated.Rendering, "position = 2\n");
+            string truncated = EngineDifferential.AssertGolden(EngineOperations.Parse(wide, [0x03, 0x03, 0x09, 0x07], EngineInput.Stream, "rec"), path: path);
+            StringAssert.Contains(truncated, "failure.member = \"w\"\n");
+            StringAssert.Contains(truncated, "position = 2\n");
 
             // The deferred count is evaluated before the depth limit is checked.
-            EngineOutcome counted = EngineDifferential.AssertGolden(
+            string counted = EngineDifferential.AssertGolden(
                 EngineOperations.Parse(countFirst, [0x02, 0x02, 0xA1, 0xA2], EngineInput.Span, "rec", options: new ReadOptions { MaxArrayElements = 1, MaxPointerDepth = 0, }),
                 path: path);
-            StringAssert.Contains(counted.Rendering, "failure.member = \"c\"\n");
-            StringAssert.Contains(counted.Rendering, ReadFailures.ArrayLengthLimit(2, 1).TrimEnd('.'));
+            StringAssert.Contains(counted, "failure.member = \"c\"\n");
+            StringAssert.Contains(counted, ReadFailures.ArrayLengthLimit(2, 1).TrimEnd('.'));
 
             foreach (bool dereference in (bool[])[true, false])
             {
@@ -952,13 +957,13 @@ public class ReadEngineTests
         byte[] rootData = [0x01, 0x02, 0x07];
         foreach (ExecutionPath path in Paths)
         {
-            EngineOutcome fine = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
-            StringAssert.Contains(fine.Rendering, "result.again.next");
+            string fine = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
+            StringAssert.Contains(fine, "result.again.next");
 
-            EngineOutcome cycle = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, [0x01, 0x04, 0x02, 0x00, 0x03, 0x04], EngineInput.Stream, "rec"), path: path);
-            StringAssert.Contains(cycle.Rendering, "Cyclic pointer target");
-            StringAssert.Contains(cycle.Rendering, "failure.member = \"next\"\n");
-            StringAssert.Contains(cycle.Rendering, "position = 2\n");
+            string cycle = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, [0x01, 0x04, 0x02, 0x00, 0x03, 0x04], EngineInput.Stream, "rec"), path: path);
+            StringAssert.Contains(cycle, "Cyclic pointer target");
+            StringAssert.Contains(cycle, "failure.member = \"next\"\n");
+            StringAssert.Contains(cycle, "position = 2\n");
 
             for (int depth = 0; depth <= 3; depth++)
             {
@@ -988,8 +993,8 @@ public class ReadEngineTests
         byte[] data = [0x05, 0x07, 0x07, 0x07, 0x02, (byte)'o', 0x00, 0xA1, 0xA2];
         foreach (ExecutionPath path in Paths)
         {
-            EngineOutcome complete = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
-            StringAssert.Contains(complete.Rendering, "\"o\"");
+            string complete = EngineDifferential.AssertGolden(EngineOperations.Parse(layout, data, EngineInput.Span, "rec"), path: path);
+            StringAssert.Contains(complete, "\"o\"");
             foreach (long? limit in (long?[])[null, 0, 1, 2, 3])
             {
                 foreach (EngineInput input in (EngineInput[])[EngineInput.Span, EngineInput.ChunkedStream1])

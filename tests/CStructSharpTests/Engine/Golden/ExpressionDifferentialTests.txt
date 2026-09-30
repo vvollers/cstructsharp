@@ -1,6 +1,7 @@
 # Golden outcomes of ExpressionDifferentialTests: the reference each differential comparison checks the engine against.
 # Regenerate only for an intended, explained behaviour change: node tools/quality/engine-golden.mjs record (CONTRIBUTING.md).
-# @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes.
+# @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes,
+# counted by kind on the indented line below it.
 
 @test CallerNames_WithoutASlot_AreNotObservable
 @case n + 1
@@ -22,344 +23,671 @@
 
 @test CorpusExpressions_EvaluateLikeTheDictionaryModel("Benchmarks")
 @hash 4acf7f5a64e184589c1af38de55f85814d6ecfdf230a9f0ae211ca0fe08aebe4 3 aligned-x256
+  ok 3
 @hash 6bbde338abf3973f5d180d11cc2c143c99fa10daaeed836f035e560cb88cea73 3 array-struct-100
+  ok 3
 @hash 40195eab5dedfd617daf094175681101dc354894e5abb974270a7ae7f3ead60b 3 array-struct-10000
+  ok 3
 @hash f4abac0c39a47fd18b9e8100b8b671e8fa9fa8233e96d41389c06d7097942796 3 array-u32-be-16384
+  ok 3
 @hash 4acf7f5a64e184589c1af38de55f85814d6ecfdf230a9f0ae211ca0fe08aebe4 3 array-u32-be-256
+  ok 3
 @hash f4abac0c39a47fd18b9e8100b8b671e8fa9fa8233e96d41389c06d7097942796 3 array-u32-le-16384
+  ok 3
 @hash 4acf7f5a64e184589c1af38de55f85814d6ecfdf230a9f0ae211ca0fe08aebe4 3 array-u32-le-256
+  ok 3
 @hash 8bf2e89b880fb09ed1fcad6a0279836e4307fcfcc5536d1915fc97b624a9baba 3 array-u8-1024
+  ok 3
 @hash 359cb9726d49fb5b8f719c03dbd7c571c9eb1ac1df3696b3ac450106b712932b 3 array-u8-65536
+  ok 3
 @hash 8bf2e89b880fb09ed1fcad6a0279836e4307fcfcc5536d1915fc97b624a9baba 3 bitfield-x1k
+  ok 3
 @hash 43d37b0a7ecc05307804304804a6ea405dede87f358fef36e32d3bd9723f83bc 3 compile-nested
+  ok 3
 @hash c1ef8366336f79f6765b3f7af794a9ef90133fa36effe7aba68fdff42f1539b4 247 compile-windows-header
+  ok 147, CStructLayoutException 4, CStructReadException 96
 @hash 4b3959720fd66ffcb295defcb9d894b85b359998c808a1a8503227b6b187615c 229 cond-if128
+  ok 149, CStructLayoutException 4, CStructReadException 76
 @hash 53d711aef5ba5b97f6da3cae32b4e8e54d1a6dcc713d12707853eba4d76c084c 3 cond-plain128
+  ok 3
 @hash 5ca1774c45ef5ec39fef8302beeee92e01d01e40a23f5c2c8ecc3f8fe84b6c29 229 cond-switch128
+  ok 125, CStructLayoutException 4, CStructReadException 100
 @hash 7effee8b3ac9222f24f038fecdcddf4543762e9bc574c91ff24e22148bd8089b 455 dynamic-1
+  ok 251, CStructLayoutException 8, CStructReadException 196
 @hash 8bf2e89b880fb09ed1fcad6a0279836e4307fcfcc5536d1915fc97b624a9baba 3 enum-x1k
+  ok 3
 @hash 8e609984eaafda702f51a52558b36820b7a1bb0272f84a11253242852f840c47 3 malformed-budget-exceeded
+  ok 3
 @hash 73f104fe96087b1620511c4c6ac59c414c45ebdd3612d7634fb5d2953e9b38e0 226 malformed-negative-count
+  ok 122, CStructLayoutException 4, CStructReadException 100
 @hash 7cdf7ef2ca5e961ec1b33ca7106b221a7bc596c02eb4cffa6d3839e454af01b1 6 multidim-16x16
+  ok 6
 @hash 7070c6c040c17132616c782d06d9024fbfd3f0e4c59ff9eb5efd07b9e2fafff4 3 nested-x1
+  ok 3
 @hash 8bf2e89b880fb09ed1fcad6a0279836e4307fcfcc5536d1915fc97b624a9baba 3 parity-alias-x1k
+  ok 3
 @hash 8bf2e89b880fb09ed1fcad6a0279836e4307fcfcc5536d1915fc97b624a9baba 3 parity-flag-x1k
+  ok 3
 @hash 8bf2e89b880fb09ed1fcad6a0279836e4307fcfcc5536d1915fc97b624a9baba 3 parity-inline-union-x1k
+  ok 3
 @hash 7740188b68cd529c4a6bc859183bc9b734c44e3fd8f7f4c213dba4288c2ba3d1 3 parity-terminated-struct-1k
+  ok 3
 @hash 0664d203debf54aa64e9e8499efb688f948232e115730bdf3b0b0c397224feec 226 parity-toend-u32-64k
+  ok 122, CStructLayoutException 4, CStructReadException 100
 @hash 8bf2e89b880fb09ed1fcad6a0279836e4307fcfcc5536d1915fc97b624a9baba 3 prim-be-x1k
+  ok 3
 @hash 8bf2e89b880fb09ed1fcad6a0279836e4307fcfcc5536d1915fc97b624a9baba 3 prim-le-x1k
+  ok 3
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 real-bmp
+  ok 3
 @hash 1c98c9b65845da6dd527d20218415701396a024a48b1399c12cdffa2bd6f04d1 226 real-ico
+  ok 122, CStructLayoutException 4, CStructReadException 100
 @hash 294d4493bfcc36642d50dbfbe250f2fe8ccb51ed801d59ef29868bc6401bd92f 3 real-jpg
+  ok 3
 @hash 1977b6657a406f70e749cf333e8e09686ef7ee97a297330e9c05ecda111f1d39 9 real-pe-dll
+  ok 9
 @hash 6b66c8674a4767c0dcc0465cba89bd2d65a4e37c007cba10e25ee746d82cd849 6 real-png
+  ok 6
 @hash 34fe608e2eaba0ab614d08df70dcdcf46aa2dcacf30c08dd93622dcfc3d462f9 51 real-tar
+  ok 51
 @hash 20c4f83f39799d588da24c45315e0263f73c3805438efb072a7bac8eea94d490 12 real-wav
+  ok 12
 @hash f49834d40fdbbeb0bf93f4d4585efdd01e77b8c7147dbc2a12e09a8b19c59d7b 452 real-zip
+  ok 244, CStructLayoutException 8, CStructReadException 200
 @hash 2825804aac2c9edffeee54258be2a9e57f368d66ddcc35f9cbfbaa59ff419c47 6 strings-1024
+  ok 6
 @hash 8bf2e89b880fb09ed1fcad6a0279836e4307fcfcc5536d1915fc97b624a9baba 3 union-x1k
+  ok 3
 
 @test CorpusExpressions_EvaluateLikeTheDictionaryModel("Fuzz")
 @hash 26550c39c482a10f881ccf399370c0ba0846181d09f9a22b06704a6d8e9d614b 229 binary-roundtrip/array-limit#2
+  ok 125, CStructLayoutException 4, CStructReadException 100
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 definition/nested-union#1
+  ok 3
 @hash 7070c6c040c17132616c782d06d9024fbfd3f0e4c59ff9eb5efd07b9e2fafff4 3 expression/mutation#14
+  ok 3
 @hash 71da93471fcc8a17a43baf61b73e8051e4055842a8b3b4ee57ac863b009900e7 226 expression/mutation#15
+  ok 143, CStructLayoutException 4, CStructReadException 79
 @hash 82e7013d0149a5d5cd836687d3f6e769df04d701b2b65f7efa13f8eebf675248 226 expression/mutation#32
+  ok 143, CStructLayoutException 4, CStructReadException 79
 @hash ca796947efa59bc169fd535ea71ece39210adf36cef2514860b18b8a81aba5c3 3 expression/mutation#74
+  ok 3
 @hash 04522c1ca8d695d0003e9f92d43dc6d7ce220286c3e25a2801fe0ee0b4cd5716 226 expression/mutation#76
+  ok 143, CStructLayoutException 4, CStructReadException 79
 @hash f75a7ca0d45835c6de7d28b17d648c4290add9210a0b4e23e943ec4f35c1300e 378 expression/mutation#77
+  ok 221, CStructLayoutException 6, CStructReadException 151
 @hash f687a46094e249cc8de9c426c21f3596932bd4ab786cb718ac9744843137497e 226 expression/mutation#86
+  ok 146, CStructLayoutException 4, CStructReadException 76
 @hash 260afd2fe20bb70e747488beb585990b411d886217d0faec7363c4e176f066a1 3 expression/mutation#94
+  ok 3
 @hash 3980b754fdf5287618456f14e293d51f4d7e06db944de611f12d9c74b2c59e79 3 expression/nested-bitwise#3
+  ok 3
 @hash ca796947efa59bc169fd535ea71ece39210adf36cef2514860b18b8a81aba5c3 3 expression/precedence#0
+  ok 3
 @hash 7fc36d2fddbf8b82eb3a6226fc0948de609e419b49b9957c052fbcdffc80a01b 226 expression/unknown-identifier#1
+  ok 143, CStructLayoutException 4, CStructReadException 79
 @hash b01b21fb84cb57bb6e4ecc4bcbfc73b3b946f24d8f056e991e4ba8a6fefd3539 9 generated-differential/binary-complete#0/path
+  ok 9
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 generated-differential/binary-complete#0/pointer-union
+  ok 3
 
 @test CorpusExpressions_EvaluateLikeTheDictionaryModel("Inspector")
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 bmp
+  ok 3
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-3g2
+  ok 3
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-3gp
+  ok 3
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-3mf
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 20b13b9009bf1ecc438090858f1c956ed9f29e26e5ab571aeeab1d9ef8026093 3 detected-7z
+  ok 3
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 detected-Z
+  ok 3
 @hash ca796947efa59bc169fd535ea71ece39210adf36cef2514860b18b8a81aba5c3 3 detected-aac
+  ok 3
 @hash ca796947efa59bc169fd535ea71ece39210adf36cef2514860b18b8a81aba5c3 3 detected-ace
+  ok 3
 @hash 7edcf9da16b06cfd779507a66556bf8704eaf0ad3330be25c72e3c4a74332ab2 9 detected-aif
+  ok 9
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-alias
+  ok 3
 @hash 20b13b9009bf1ecc438090858f1c956ed9f29e26e5ab571aeeab1d9ef8026093 3 detected-amr
+  ok 3
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-ape
+  ok 3
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-apk
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 51d61257bd6852f4d3ca7e6d735539f92c08959bf42f7dc64021a497fea25de6 3845 detected-apng
+  ok 2489, CStructLayoutException 68, CStructReadException 1288
 @hash 4ed76cf62f1d4f787e3db91675953e42db05a43b13dcb7ddbbe7c09209da0d48 24 detected-ar
+  ok 24
 @hash fcce7a37f148c6b863e5153ea90b094af8ceebf78389454f9a5a8b272b69ca51 226 detected-arj
+  ok 122, CStructLayoutException 4, CStructReadException 100
 @hash 74aa6cabbdba8989cd855618599702ce846e8eddcb2146a3a08124c5bfc33c87 6 detected-arrow
+  ok 6
 @hash de1f838a2886c4f19c74bde7ced3ccbf4bed9e41f1794644e1628966bf961f94 568 detected-arw
+  ok 356, CStructLayoutException 10, CStructReadException 202
 @hash e3e38c0625910de9b9bb544f69aa92a9721eb9360f5e0c68ae3232c76b9093ca 226 detected-asar
+  ok 122, CStructLayoutException 4, CStructReadException 100
 @hash 1dcfa8e31ceb8dfbea0aec901ae2f55c28400107aa356d852c4b7260e2321693 455 detected-asf
+  ok 245, CStructLayoutException 8, CStructReadException 202
 @hash 7edcf9da16b06cfd779507a66556bf8704eaf0ad3330be25c72e3c4a74332ab2 9 detected-avi
+  ok 9
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-avif
+  ok 3
 @hash 69fd78c8dce1894ee3351889c1d23af87b03cc4916f45960c3b97956976a14bb 3 detected-avro
+  ok 3
 @hash f21727847c5f7d6892dd4c7585f72388db79ea1431087f006ff0dce4b1c6f717 12 detected-blend
+  ok 12
 @hash eb8f987098182d47392c33d7f1cdce35146310d121a504d76d4fa8c50a7c94b4 1029 detected-bmp
+  ok 729, CStructLayoutException 18, CStructReadException 282
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-bpg
+  ok 3
 @hash d3f0cc8e471e7b900196f717720c1147c110658e6487baf2a0cf47936ea24bc6 12 detected-bz2
+  ok 12
 @hash 5c5fa412739787556f82d8185444110c97dc5eca05ed73fc3e3f064a04fa962b 833 detected-cab
+  ok 496, CStructLayoutException 14, CStructReadException 323
 @hash 66269ebda564e0dbc49503079dc706ec26504be7022c2a72c82388dce71233cf 9 detected-cfb
+  ok 9
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-chm
+  ok 3
 @hash 09f61e43d7bd8d9d18dc701e6897aab5a6dd6e0cc08c054b7bcf8eebbd8c0c47 461 detected-cpio
+  ok 277, CStructLayoutException 8, CStructReadException 176
 @hash de1f838a2886c4f19c74bde7ced3ccbf4bed9e41f1794644e1628966bf961f94 568 detected-cr2
+  ok 356, CStructLayoutException 10, CStructReadException 202
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-cr3
+  ok 3
 @hash 853527050641a877c907bbb60470cab4a90c4054e39b4b4671bfbec5be2a8d8b 907 detected-crx
+  ok 491, CStructLayoutException 16, CStructReadException 400
 @hash 1c98c9b65845da6dd527d20218415701396a024a48b1399c12cdffa2bd6f04d1 226 detected-cur
+  ok 122, CStructLayoutException 4, CStructReadException 100
 @hash 83f51437f252a76bf5d7c031f3871bc6c792eae779fc1cf2555aa29546d5f67d 6 detected-dat
+  ok 6
 @hash cc41a88870e65f6cdd6f226470fbf9cdabc44b3f136a449f7099f9040d59a143 13680 detected-dcm
+  ok 8132, CStructLayoutException 234, CStructReadException 5314
 @hash 4ed76cf62f1d4f787e3db91675953e42db05a43b13dcb7ddbbe7c09209da0d48 24 detected-deb
+  ok 24
 @hash de1f838a2886c4f19c74bde7ced3ccbf4bed9e41f1794644e1628966bf961f94 568 detected-dng
+  ok 356, CStructLayoutException 10, CStructReadException 202
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-docm
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-docx
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-dotm
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-dotx
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 294d4493bfcc36642d50dbfbe250f2fe8ccb51ed801d59ef29868bc6401bd92f 3 detected-drc
+  ok 3
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-dsf
+  ok 3
 @hash 20b13b9009bf1ecc438090858f1c956ed9f29e26e5ab571aeeab1d9ef8026093 3 detected-dwg
+  ok 3
 @hash 6a4f78ae8e77676283a82f56a101dcb90d0175aa18c4e03dc03a40f83d0c9ea4 910 detected-elf
+  ok 638, CStructLayoutException 16, CStructReadException 256
 @hash ba0ae9b3d6f77cfce4723631c65fcdd8b5ea8c76c667d0fa8bbf4a92101c360c 12 detected-eot
+  ok 12
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 detected-eps
+  ok 3
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-epub
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash acd532c3057457fce2d2cc901de6d1a1e5608e6eea067ca5403912185d911b49 2842 detected-exe
+  ok 1688, CStructLayoutException 44, CStructReadException 1110
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-f4a
+  ok 3
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-f4b
+  ok 3
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-f4p
+  ok 3
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-f4v
+  ok 3
 @hash e46ae63eb5a26af78cf03e48fa8d7767231dbc01c5de163d1febac2cf92d06bf 455 detected-fbx
+  ok 271, CStructLayoutException 8, CStructReadException 176
 @hash 9234d4abcffd4b41e75e8ec15829140c7292c26fd995a081a2470e4e6a8de71c 6 detected-flac
+  ok 6
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-flif
+  ok 3
 @hash 69fd78c8dce1894ee3351889c1d23af87b03cc4916f45960c3b97956976a14bb 3 detected-flv
+  ok 3
 @hash 63cae5e98bb10fb8a388265cb0e5c1a1e8969668a08d51b47de3ee07c5b9fd23 458 detected-gif
+  ok 220, CStructLayoutException 8, CStructReadException 230
 @hash 3a68630e355977d71a7ec560c27b473e85c226a5a222000115a3074f51c68c00 1330 detected-glb
+  ok 797, CStructLayoutException 21, CStructReadException 512
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 detected-gz
+  ok 3
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-heic
+  ok 3
 @hash 0798e3df5825fcbbfc29e4cabc7a46362c459772f05727fc9e912932d9f4b6ab 268 detected-icc
+  ok 164, CStructLayoutException 4, CStructReadException 100
 @hash 8c54a381bc2085e4fef6b14c8596520dd9adfa0431ea059f9521587b642d5420 6 detected-icns
+  ok 6
 @hash 1c98c9b65845da6dd527d20218415701396a024a48b1399c12cdffa2bd6f04d1 226 detected-ico
+  ok 122, CStructLayoutException 4, CStructReadException 100
 @hash d0198dd7a7c85a28e67dac89a3edb7f95aade2f454c7d3fdc1ba7ee4b3b5466f 3 detected-ics
+  ok 3
 @hash 43d37b0a7ecc05307804304804a6ea405dede87f358fef36e32d3bd9723f83bc 3 detected-indd
+  ok 3
 @hash 04594610258d55974427ce9ccea159b89409e6c3611b9c7c69d0584f6a94f5c3 390 detected-iso
+  ok 282, CStructLayoutException 6, CStructReadException 102
 @hash 3ca578aff58b2b3fc2c8a8da4b6d9a75e44ca6e7c6bac104f7dac293a1e3ab8d 916 detected-it
+  ok 500, CStructLayoutException 16, CStructReadException 400
 @hash cf538a0da3c33d640d70f3af982e2bcb7f5e8b2edbc1ccf58016fc19bf6a6c32 226 detected-j2c
+  ok 122, CStructLayoutException 4, CStructReadException 100
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-jar
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 43d37b0a7ecc05307804304804a6ea405dede87f358fef36e32d3bd9723f83bc 3 detected-jmp
+  ok 3
 @hash 8c54a381bc2085e4fef6b14c8596520dd9adfa0431ea059f9521587b642d5420 6 detected-jp2
+  ok 6
 @hash 79d7b1fc9b3a39578c52de3f74f554653c25c5a5ef8f8f19d12ccd38767bb84c 4346 detected-jpg
+  ok 2754, CStructLayoutException 74, CStructReadException 1518
 @hash 8c54a381bc2085e4fef6b14c8596520dd9adfa0431ea059f9521587b642d5420 6 detected-jpm
+  ok 6
 @hash 8c54a381bc2085e4fef6b14c8596520dd9adfa0431ea059f9521587b642d5420 6 detected-jpx
+  ok 6
 @hash 14e8969b576504e8681ee566b309871520a6acff8cc11850b6468807f4506825 229 detected-jxr
+  ok 125, CStructLayoutException 4, CStructReadException 100
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-key
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 34059e858c673bc578b0df67514f4e09936943cf3614deee017d6c102e251cba 3 detected-ktx
+  ok 3
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-lz
+  ok 3
 @hash 57027d87dfd79176de1639896808eb7abb9a2f3db3813cf63e929bae66afb333 1017 detected-lz4
+  ok 597, CStructLayoutException 18, CStructReadException 402
 @hash 46fa83fe8996a331957d6451f4137b359637cb126f90cd72046eb6216a089549 681 detected-lzh
+  ok 441, CStructLayoutException 12, CStructReadException 228
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-m4a
+  ok 3
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-m4b
+  ok 3
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-m4p
+  ok 3
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-m4v
+  ok 3
 @hash 3bb1228657db7eec6a27594a705f6e5f2801a23116ee4efc065272e3bedc86d7 797 detected-mid
+  ok 455, CStructLayoutException 14, CStructReadException 328
 @hash 8c54a381bc2085e4fef6b14c8596520dd9adfa0431ea059f9521587b642d5420 6 detected-mie
+  ok 6
 @hash 8c54a381bc2085e4fef6b14c8596520dd9adfa0431ea059f9521587b642d5420 6 detected-mj2
+  ok 6
 @hash 784bceee756d60777ce9fea0bec47e4787730ed6430915bd13ea417693fe6f0f 235 detected-mobi
+  ok 131, CStructLayoutException 4, CStructReadException 100
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-mov
+  ok 3
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-mp4
+  ok 3
 @hash 69fd78c8dce1894ee3351889c1d23af87b03cc4916f45960c3b97956976a14bb 3 detected-mpc
+  ok 3
 @hash 4884268eed2ddc6eefd76804c788cd0f560b54880479f78a7ed8c04abbf56c03 3 detected-mpg
+  ok 3
 @hash 43d37b0a7ecc05307804304804a6ea405dede87f358fef36e32d3bd9723f83bc 3 detected-mxf
+  ok 3
 @hash de1f838a2886c4f19c74bde7ced3ccbf4bed9e41f1794644e1628966bf961f94 568 detected-nef
+  ok 356, CStructLayoutException 10, CStructReadException 202
 @hash 7ae3ba9ffe4f88386a08e8b53c3d1af02251ab01955f8e9d7422f98eded253e1 6 detected-nes
+  ok 6
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-numbers
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-odg
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-odp
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-ods
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-odt
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 56a9194d97eacc87098a24909ea52e87070a2477b900e9855ad3a201cdb4914a 229 detected-oga
+  ok 125, CStructLayoutException 4, CStructReadException 100
 @hash 56a9194d97eacc87098a24909ea52e87070a2477b900e9855ad3a201cdb4914a 229 detected-ogg
+  ok 125, CStructLayoutException 4, CStructReadException 100
 @hash 56a9194d97eacc87098a24909ea52e87070a2477b900e9855ad3a201cdb4914a 229 detected-ogm
+  ok 125, CStructLayoutException 4, CStructReadException 100
 @hash 56a9194d97eacc87098a24909ea52e87070a2477b900e9855ad3a201cdb4914a 229 detected-ogv
+  ok 125, CStructLayoutException 4, CStructReadException 100
 @hash 56a9194d97eacc87098a24909ea52e87070a2477b900e9855ad3a201cdb4914a 229 detected-ogx
+  ok 125, CStructLayoutException 4, CStructReadException 100
 @hash 56a9194d97eacc87098a24909ea52e87070a2477b900e9855ad3a201cdb4914a 229 detected-opus
+  ok 125, CStructLayoutException 4, CStructReadException 100
 @hash de1f838a2886c4f19c74bde7ced3ccbf4bed9e41f1794644e1628966bf961f94 568 detected-orf
+  ok 356, CStructLayoutException 10, CStructReadException 202
 @hash 78491ece9f804d7b4e46611cdb0b0936eff2dcbb57b22794513696f3d8ac545c 229 detected-otf
+  ok 125, CStructLayoutException 4, CStructReadException 100
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-otg
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-otp
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-ots
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-ott
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-pages
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-parquet
+  ok 3
 @hash 911c5d5bbc0588886cd6605f6f498ec2411c27e4d707c6875cfede111ef8028f 6 detected-pdf
+  ok 6
 @hash 51d61257bd6852f4d3ca7e6d735539f92c08959bf42f7dc64021a497fea25de6 3845 detected-png
+  ok 2489, CStructLayoutException 68, CStructReadException 1288
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-potm
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-potx
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-ppsm
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-ppsx
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-pptm
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-pptx
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 detected-ps
+  ok 3
 @hash 2b6f7885e6834441c879de728b726a266876f29aafb1932deecd624b92e5465b 6 detected-psd
+  ok 6
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-pst
+  ok 3
 @hash 7edcf9da16b06cfd779507a66556bf8704eaf0ad3330be25c72e3c4a74332ab2 9 detected-qcp
+  ok 9
 @hash f1c72906f7f50380df32f34eb77572f7a5b9c8362ee90d59185c842082f6368e 18 detected-raf
+  ok 18
 @hash fd72b6778437e9eb6feb1cbe77cdbf44858af44e5f10e68e80ffe1adeed837e7 1817 detected-rar
+  ok 1177, CStructLayoutException 32, CStructReadException 608
 @hash abcb2a903b32e37ee2c77e6c1aef38c02913fff0accc31fe60dce0dde6595ea5 3 detected-reg
+  ok 3
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-rm
+  ok 3
 @hash 6f362940134720799918628ebc295c0d01697b54f3d6175b4ea9146363ee9e50 6 detected-rpm
+  ok 6
 @hash e015ff39533e96a27f747d319cabed5d31bb6828d7d4bf6f5968ad134975317e 6 detected-rtf
+  ok 6
 @hash de1f838a2886c4f19c74bde7ced3ccbf4bed9e41f1794644e1628966bf961f94 568 detected-rw2
+  ok 356, CStructLayoutException 10, CStructReadException 202
 @hash 57212eabd6b7d393aa6240dedb78b0121d4ea4e15687b57a5091da2bba244304 690 detected-s3m
+  ok 378, CStructLayoutException 12, CStructReadException 300
 @hash 06a035333e622ccae46cda9eb2d57dbcd4a8b411f50791e5c305b30088ccc174 18 detected-sav
+  ok 18
 @hash 294d4493bfcc36642d50dbfbe250f2fe8ccb51ed801d59ef29868bc6401bd92f 3 detected-shp
+  ok 3
 @hash 3980b754fdf5287618456f14e293d51f4d7e06db944de611f12d9c74b2c59e79 3 detected-skp
+  ok 3
 @hash 56a9194d97eacc87098a24909ea52e87070a2477b900e9855ad3a201cdb4914a 229 detected-spx
+  ok 125, CStructLayoutException 4, CStructReadException 100
 @hash 31c15bea21bfb8e7e55f1cf9ce5ebbff338457deeafda492a793c4a41d2d6b97 6 detected-sqlite
+  ok 6
 @hash 1ce3216bce0ad43c6797f3c2548442cc45a764c167afb5972ccbbbf75f89035a 238 detected-stl
+  ok 134, CStructLayoutException 4, CStructReadException 100
 @hash 69fd78c8dce1894ee3351889c1d23af87b03cc4916f45960c3b97956976a14bb 3 detected-swf
+  ok 3
 @hash 34fe608e2eaba0ab614d08df70dcdcf46aa2dcacf30c08dd93622dcfc3d462f9 51 detected-tar
+  ok 51
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 detected-tar.gz
+  ok 3
 @hash de1f838a2886c4f19c74bde7ced3ccbf4bed9e41f1794644e1628966bf961f94 568 detected-tif
+  ok 356, CStructLayoutException 10, CStructReadException 202
 @hash cfa8ff3b8536c0f918be8cb76f4d159620e4f7ec8cab32ba9e746f47bcd32303 229 detected-ttc
+  ok 125, CStructLayoutException 4, CStructReadException 100
 @hash 78491ece9f804d7b4e46611cdb0b0936eff2dcbb57b22794513696f3d8ac545c 229 detected-ttf
+  ok 125, CStructLayoutException 4, CStructReadException 100
 @hash 68671898786849a5d9281756f52336e8067ce7d8898dd15c3abcc1b47694f883 3 detected-vcf
+  ok 3
 @hash d4c3c72a9a426faafb3ace20bb26e0268f911e887dd041bdd846ca40da02a0d3 3 detected-voc
+  ok 3
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-vsdx
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 20b13b9009bf1ecc438090858f1c956ed9f29e26e5ab571aeeab1d9ef8026093 3 detected-vtt
+  ok 3
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-wasm
+  ok 3
 @hash 7edcf9da16b06cfd779507a66556bf8704eaf0ad3330be25c72e3c4a74332ab2 9 detected-wav
+  ok 9
 @hash 7edcf9da16b06cfd779507a66556bf8704eaf0ad3330be25c72e3c4a74332ab2 9 detected-webp
+  ok 9
 @hash c774a07115651e4617a591e1dcb76eeea9808a60418ec3d2c2be32ff869eda51 232 detected-woff
+  ok 128, CStructLayoutException 4, CStructReadException 100
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-woff2
+  ok 3
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-wv
+  ok 3
 @hash c1f232822cd34560ea9e8151291ab45db953d672be4f285cd286d9567c13b051 6 detected-xcf
+  ok 6
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-xlsm
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-xlsx
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-xltm
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-xltx
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 7a3c4b9a38d879576b8c23e6847002214efe7f84049a31b68dee6ca43afbe600 12 detected-xm
+  ok 12
 @hash 43d37b0a7ecc05307804304804a6ea405dede87f358fef36e32d3bd9723f83bc 3 detected-xml
+  ok 3
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-xpi
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 20b13b9009bf1ecc438090858f1c956ed9f29e26e5ab571aeeab1d9ef8026093 3 detected-xz
+  ok 3
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-zip
+  ok 1552, CStructLayoutException 47, CStructReadException 1152
 @hash 6d9668fccb063c3ede0622cb6974ae8f28d71f8c54b2cd79db2c92a6e636b974 1356 detected-zst
+  ok 804, CStructLayoutException 24, CStructReadException 528
 @hash 1c98c9b65845da6dd527d20218415701396a024a48b1399c12cdffa2bd6f04d1 226 ico
+  ok 122, CStructLayoutException 4, CStructReadException 100
 @hash 294d4493bfcc36642d50dbfbe250f2fe8ccb51ed801d59ef29868bc6401bd92f 3 jpg
+  ok 3
 @hash 1977b6657a406f70e749cf333e8e09686ef7ee97a297330e9c05ecda111f1d39 9 pe-dll
+  ok 9
 @hash 6b66c8674a4767c0dcc0465cba89bd2d65a4e37c007cba10e25ee746d82cd849 6 png
+  ok 6
 @hash 34fe608e2eaba0ab614d08df70dcdcf46aa2dcacf30c08dd93622dcfc3d462f9 51 tar
+  ok 51
 @hash 20c4f83f39799d588da24c45315e0263f73c3805438efb072a7bac8eea94d490 12 wav
+  ok 12
 @hash f49834d40fdbbeb0bf93f4d4585efdd01e77b8c7147dbc2a12e09a8b19c59d7b 452 zip
+  ok 244, CStructLayoutException 8, CStructReadException 200
 
 @test CorpusExpressions_EvaluateLikeTheDictionaryModel("Manual")
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 invalid/bounded-encodings
+  ok 3
 @hash 916194f4c20cd95cc41a09caecf09ec7607977be06dcd9e7e229402e69312ef4 229 invalid/conditional-fields
+  ok 149, CStructLayoutException 4, CStructReadException 76
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 invalid/integers-24
+  ok 3
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 valid/character-buffers
+  ok 3
 @hash 85f96737a2ad70712e012b164ae0d5649290786cae033738f2a393b18199f218 229 valid/counted-pointers
+  ok 125, CStructLayoutException 4, CStructReadException 100
 @hash 153ac84ac389b40fb43d1a18bc44ee4a9660389319618061c0e58aa7464eb359 229 valid/data-sized-arrays
+  ok 125, CStructLayoutException 4, CStructReadException 100
 @hash 161effb4ca6e4a1dfa4f26f0b592c6585457a2056f669aea66b8117bb0bcafc2 913 valid/expression-extensions
+  ok 527, CStructLayoutException 16, CStructReadException 370
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 valid/fixed-arrays
+  ok 3
 @hash e071f49e2b06ebd315638aab7cd9ce83a00298924915fba883029012dd43a9c7 339 valid/nested-references
+  ok 183, CStructLayoutException 6, CStructReadException 150
 @hash aa22e0742025e602997b9b196466aa913af2cc7a0e78026092b17c81c4c6946e 229 valid/preprocessor-lines
+  ok 129, CStructLayoutException 4, CStructReadException 96
 @hash 831add8a65b4d2d3f86b5b73b327a76a593fe5cba6b778d2db438f48b9a59f40 228 valid/runtime-expression-arrays
+  ok 124, CStructLayoutException 4, CStructReadException 100
 @hash 3e02bbeb00fe1dc6309c628053aab251ba9b64487e822c155900bd7ce332d6b6 6 valid/typedef-forms
+  ok 6
 
 @test CorpusExpressions_EvaluateLikeTheDictionaryModel("Parity")
 @hash 4acf7f5a64e184589c1af38de55f85814d6ecfdf230a9f0ae211ca0fe08aebe4 3 Benchmarks/aligned-x256
+  ok 3
 @hash 6bbde338abf3973f5d180d11cc2c143c99fa10daaeed836f035e560cb88cea73 3 Benchmarks/array-struct-100
+  ok 3
 @hash 40195eab5dedfd617daf094175681101dc354894e5abb974270a7ae7f3ead60b 3 Benchmarks/array-struct-10000
+  ok 3
 @hash f4abac0c39a47fd18b9e8100b8b671e8fa9fa8233e96d41389c06d7097942796 3 Benchmarks/array-u32-be-16384
+  ok 3
 @hash 4acf7f5a64e184589c1af38de55f85814d6ecfdf230a9f0ae211ca0fe08aebe4 3 Benchmarks/array-u32-be-256
+  ok 3
 @hash f4abac0c39a47fd18b9e8100b8b671e8fa9fa8233e96d41389c06d7097942796 3 Benchmarks/array-u32-le-16384
+  ok 3
 @hash 4acf7f5a64e184589c1af38de55f85814d6ecfdf230a9f0ae211ca0fe08aebe4 3 Benchmarks/array-u32-le-256
+  ok 3
 @hash 8bf2e89b880fb09ed1fcad6a0279836e4307fcfcc5536d1915fc97b624a9baba 3 Benchmarks/array-u8-1024
+  ok 3
 @hash 359cb9726d49fb5b8f719c03dbd7c571c9eb1ac1df3696b3ac450106b712932b 3 Benchmarks/array-u8-65536
+  ok 3
 @hash 8bf2e89b880fb09ed1fcad6a0279836e4307fcfcc5536d1915fc97b624a9baba 3 Benchmarks/bitfield-x1k
+  ok 3
 @hash 43d37b0a7ecc05307804304804a6ea405dede87f358fef36e32d3bd9723f83bc 3 Benchmarks/compile-nested
+  ok 3
 @hash c1ef8366336f79f6765b3f7af794a9ef90133fa36effe7aba68fdff42f1539b4 247 Benchmarks/compile-windows-header
+  ok 147, CStructLayoutException 4, CStructReadException 96
 @hash 4b3959720fd66ffcb295defcb9d894b85b359998c808a1a8503227b6b187615c 229 Benchmarks/cond-if128
+  ok 149, CStructLayoutException 4, CStructReadException 76
 @hash 53d711aef5ba5b97f6da3cae32b4e8e54d1a6dcc713d12707853eba4d76c084c 3 Benchmarks/cond-plain128
+  ok 3
 @hash 5ca1774c45ef5ec39fef8302beeee92e01d01e40a23f5c2c8ecc3f8fe84b6c29 229 Benchmarks/cond-switch128
+  ok 125, CStructLayoutException 4, CStructReadException 100
 @hash 7effee8b3ac9222f24f038fecdcddf4543762e9bc574c91ff24e22148bd8089b 455 Benchmarks/dynamic-1
+  ok 251, CStructLayoutException 8, CStructReadException 196
 @hash 8bf2e89b880fb09ed1fcad6a0279836e4307fcfcc5536d1915fc97b624a9baba 3 Benchmarks/enum-x1k
+  ok 3
 @hash 8e609984eaafda702f51a52558b36820b7a1bb0272f84a11253242852f840c47 3 Benchmarks/malformed-budget-exceeded
+  ok 3
 @hash 73f104fe96087b1620511c4c6ac59c414c45ebdd3612d7634fb5d2953e9b38e0 226 Benchmarks/malformed-negative-count
+  ok 122, CStructLayoutException 4, CStructReadException 100
 @hash 7cdf7ef2ca5e961ec1b33ca7106b221a7bc596c02eb4cffa6d3839e454af01b1 6 Benchmarks/multidim-16x16
+  ok 6
 @hash 7070c6c040c17132616c782d06d9024fbfd3f0e4c59ff9eb5efd07b9e2fafff4 3 Benchmarks/nested-x1
+  ok 3
 @hash 8bf2e89b880fb09ed1fcad6a0279836e4307fcfcc5536d1915fc97b624a9baba 3 Benchmarks/parity-alias-x1k
+  ok 3
 @hash 8bf2e89b880fb09ed1fcad6a0279836e4307fcfcc5536d1915fc97b624a9baba 3 Benchmarks/parity-flag-x1k
+  ok 3
 @hash 8bf2e89b880fb09ed1fcad6a0279836e4307fcfcc5536d1915fc97b624a9baba 3 Benchmarks/parity-inline-union-x1k
+  ok 3
 @hash 7740188b68cd529c4a6bc859183bc9b734c44e3fd8f7f4c213dba4288c2ba3d1 3 Benchmarks/parity-terminated-struct-1k
+  ok 3
 @hash 0664d203debf54aa64e9e8499efb688f948232e115730bdf3b0b0c397224feec 226 Benchmarks/parity-toend-u32-64k
+  ok 122, CStructLayoutException 4, CStructReadException 100
 @hash 8bf2e89b880fb09ed1fcad6a0279836e4307fcfcc5536d1915fc97b624a9baba 3 Benchmarks/prim-be-x1k
+  ok 3
 @hash 8bf2e89b880fb09ed1fcad6a0279836e4307fcfcc5536d1915fc97b624a9baba 3 Benchmarks/prim-le-x1k
+  ok 3
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 Benchmarks/real-bmp
+  ok 3
 @hash 1c98c9b65845da6dd527d20218415701396a024a48b1399c12cdffa2bd6f04d1 226 Benchmarks/real-ico
+  ok 122, CStructLayoutException 4, CStructReadException 100
 @hash 294d4493bfcc36642d50dbfbe250f2fe8ccb51ed801d59ef29868bc6401bd92f 3 Benchmarks/real-jpg
+  ok 3
 @hash 1977b6657a406f70e749cf333e8e09686ef7ee97a297330e9c05ecda111f1d39 9 Benchmarks/real-pe-dll
+  ok 9
 @hash 6b66c8674a4767c0dcc0465cba89bd2d65a4e37c007cba10e25ee746d82cd849 6 Benchmarks/real-png
+  ok 6
 @hash 34fe608e2eaba0ab614d08df70dcdcf46aa2dcacf30c08dd93622dcfc3d462f9 51 Benchmarks/real-tar
+  ok 51
 @hash 20c4f83f39799d588da24c45315e0263f73c3805438efb072a7bac8eea94d490 12 Benchmarks/real-wav
+  ok 12
 @hash f49834d40fdbbeb0bf93f4d4585efdd01e77b8c7147dbc2a12e09a8b19c59d7b 452 Benchmarks/real-zip
+  ok 244, CStructLayoutException 8, CStructReadException 200
 @hash 2825804aac2c9edffeee54258be2a9e57f368d66ddcc35f9cbfbaa59ff419c47 6 Benchmarks/strings-1024
+  ok 6
 @hash 8bf2e89b880fb09ed1fcad6a0279836e4307fcfcc5536d1915fc97b624a9baba 3 Benchmarks/union-x1k
+  ok 3
 @hash 73f104fe96087b1620511c4c6ac59c414c45ebdd3612d7634fb5d2953e9b38e0 226 Conditional/dynamic32
+  ok 122, CStructLayoutException 4, CStructReadException 100
 @hash 0ed511976cad02776bd7d53fe43245fe3fee3d1f0e0cebe9686a0c5add9c14df 229 Conditional/if1
+  ok 149, CStructLayoutException 4, CStructReadException 76
 @hash 43d37b0a7ecc05307804304804a6ea405dede87f358fef36e32d3bd9723f83bc 3 Conditional/nested16
+  ok 3
 @hash 7070c6c040c17132616c782d06d9024fbfd3f0e4c59ff9eb5efd07b9e2fafff4 3 Conditional/plain1
+  ok 3
 @hash 5a0f5c8af05276886bac9c8363203dc5bdf20b6a8c71908e7597d01be0e55e09 229 Conditional/switch1
+  ok 125, CStructLayoutException 4, CStructReadException 100
 @hash 5bbbae436c96d2708feec11b2dfdc30b8167d157c97e098a0f7fe740d762148c 3 Conditional/text64
+  ok 3
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 Manual/bounded-encodings
+  ok 3
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 Manual/character-buffers
+  ok 3
 @hash 916194f4c20cd95cc41a09caecf09ec7607977be06dcd9e7e229402e69312ef4 229 Manual/conditional-fields
+  ok 149, CStructLayoutException 4, CStructReadException 76
 @hash 85f96737a2ad70712e012b164ae0d5649290786cae033738f2a393b18199f218 229 Manual/counted-pointers
+  ok 125, CStructLayoutException 4, CStructReadException 100
 @hash 153ac84ac389b40fb43d1a18bc44ee4a9660389319618061c0e58aa7464eb359 229 Manual/data-sized-arrays
+  ok 125, CStructLayoutException 4, CStructReadException 100
 @hash 161effb4ca6e4a1dfa4f26f0b592c6585457a2056f669aea66b8117bb0bcafc2 913 Manual/expression-extensions
+  ok 527, CStructLayoutException 16, CStructReadException 370
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 Manual/fixed-arrays
+  ok 3
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 Manual/integers-24
+  ok 3
 @hash e071f49e2b06ebd315638aab7cd9ce83a00298924915fba883029012dd43a9c7 339 Manual/nested-references
+  ok 183, CStructLayoutException 6, CStructReadException 150
 @hash aa22e0742025e602997b9b196466aa913af2cc7a0e78026092b17c81c4c6946e 229 Manual/preprocessor-lines
+  ok 129, CStructLayoutException 4, CStructReadException 96
 @hash 831add8a65b4d2d3f86b5b73b327a76a593fe5cba6b778d2db438f48b9a59f40 228 Manual/runtime-expression-arrays
+  ok 124, CStructLayoutException 4, CStructReadException 100
 @hash 3e02bbeb00fe1dc6309c628053aab251ba9b64487e822c155900bd7ce332d6b6 6 Manual/typedef-forms
+  ok 6
 @hash 7ff7abbb3c165dd28709e9c6747fa3635c297b4cb4d34c6b422d9b905171d2f1 15 Recipes/bounded-encodings
+  ok 15
 @hash 69fd78c8dce1894ee3351889c1d23af87b03cc4916f45960c3b97956976a14bb 3 Recipes/composite-record
+  ok 3
 @hash c2cccffef306206582dd6a04627576860d6c1f6c775797ff8685ac111295d50c 568 Recipes/conditional-records
+  ok 332, CStructLayoutException 10, CStructReadException 226
 @hash 01ee59a5239d3f41c3e160ae7d5164a97b380d5b6acac652cb061deaf9ac162f 455 Recipes/conditional-records-2
+  ok 265, CStructLayoutException 8, CStructReadException 182
 @hash 107b074653ff96fb2e6f62522c2f0798664dbabdf6b25a092266b7a9e3a96b45 571 Recipes/conditional-records-3
+  ok 341, CStructLayoutException 10, CStructReadException 220
 @hash 4015424c933af9fa9c7e2be9add3b32e923edf64da47a017e9d1b9492949a1c8 452 Recipes/conditional-records-5
+  ok 268, CStructLayoutException 8, CStructReadException 176
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 Recipes/edit-file
+  ok 3
 @hash 1fe7d8a60b2ff3be4d93a278e359c59ef8994db6485e55e85c56ade1f6f2556a 226 Recipes/edit-file-2
+  ok 122, CStructLayoutException 4, CStructReadException 100
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 Recipes/fixed-text
+  ok 3
 @hash 153ac84ac389b40fb43d1a18bc44ee4a9660389319618061c0e58aa7464eb359 229 Recipes/flags-and-data-sized-arrays
+  ok 125, CStructLayoutException 4, CStructReadException 100
 @hash 2d96b28c99c57fbedbe34e71aec1e9ee3a33684e0091019846f9446a1ce9c102 910 Recipes/header-preprocessor
+  ok 517, CStructLayoutException 16, CStructReadException 377
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 Recipes/layout-introspection
+  ok 3
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 Recipes/nested-array
+  ok 3
 @hash 73f104fe96087b1620511c4c6ac59c414c45ebdd3612d7634fb5d2953e9b38e0 226 Recipes/pipe-reader-2
+  ok 122, CStructLayoutException 4, CStructReadException 100
 @hash 1fe7d8a60b2ff3be4d93a278e359c59ef8994db6485e55e85c56ade1f6f2556a 226 Recipes/runtime-payload
+  ok 122, CStructLayoutException 4, CStructReadException 100
 @hash 7740188b68cd529c4a6bc859183bc9b734c44e3fd8f7f4c213dba4288c2ba3d1 3 Recipes/terminated-text
+  ok 3
 @hash 73f104fe96087b1620511c4c6ac59c414c45ebdd3612d7634fb5d2953e9b38e0 226 Recipes/variable-integers
+  ok 122, CStructLayoutException 4, CStructReadException 100
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 Shapes/pack2-array-msvc
+  ok 3
 @hash 69fd78c8dce1894ee3351889c1d23af87b03cc4916f45960c3b97956976a14bb 3 Shapes/union-size-msvc
+  ok 3
 
 @test CorpusExpressions_EvaluateLikeTheDictionaryModel("Portable")
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 example/aligned-nested-array
+  ok 3
 
 @test CorpusExpressions_EvaluateLikeTheDictionaryModel("WellKnown")
 @hash 5622c92d89ae0ccc975cc6ef67956647df160ede3be49d4fde8bf179a0ee8c31 3 Bmp_FileAndInfoHeaders_DecodeExpectedFields#0
+  ok 3
 @hash 1c98c9b65845da6dd527d20218415701396a024a48b1399c12cdffa2bd6f04d1 226 Ico_IconDirectory_DecodesCountDrivenEntryArray#0
+  ok 122, CStructLayoutException 4, CStructReadException 100
 @hash 294d4493bfcc36642d50dbfbe250f2fe8ccb51ed801d59ef29868bc6401bd92f 3 Jpg_SoiAndJfifApp0Segment_DecodeExpectedFields#0
+  ok 3
 @hash 1977b6657a406f70e749cf333e8e09686ef7ee97a297330e9c05ecda111f1d39 9 Pe_DosHeaderPointerToCoffHeader_DecodesAcrossExeAndDll#0
+  ok 9
 @hash 6b66c8674a4767c0dcc0465cba89bd2d65a4e37c007cba10e25ee746d82cd849 6 Png_SignatureAndIhdrChunk_DecodeBigEndianFields#0
+  ok 6
 @hash 34fe608e2eaba0ab614d08df70dcdcf46aa2dcacf30c08dd93622dcfc3d462f9 51 Tar_UstarHeader_DecodesFixedWidthTextFields#0
+  ok 51
 @hash 20c4f83f39799d588da24c45315e0263f73c3805438efb072a7bac8eea94d490 12 Wav_RiffFmtAndDataChunks_DecodeExpectedFields#0
+  ok 12
 @hash f49834d40fdbbeb0bf93f4d4585efdd01e77b8c7147dbc2a12e09a8b19c59d7b 452 Zip_LocalFileHeader_DecodesBitflagsAndRuntimeLengthName#0
+  ok 244, CStructLayoutException 8, CStructReadException 200
 @hash 6d9668fccb063c3ede0622cb6974ae8f28d71f8c54b2cd79db2c92a6e636b974 1356 Zstandard_FrameMagic_SelectsTheFrameBranch#0
+  ok 804, CStructLayoutException 24, CStructReadException 528
 
 @test Cycles_AreReportedAtTheRepeatedName("a", "Circular expression dependency detected at: a")
 @case a
@@ -413,18 +741,23 @@
 
 @test LiveChainsNearTheLimits_FailAtTheSameLink(12, 1000)
 @hash d68d4c8b92209a28182a16050a39b1a613b0bbfd612df4c1792ce42f48360a06 120
+  ok 46, CStructLayoutException 74
 
 @test LiveChainsNearTheLimits_FailAtTheSameLink(16, 40)
 @hash 7ba42248875f3dcc178cb52412aa8d064ade3ea658c6bb8ce2af41aa025c4bab 120
+  ok 48, CStructLayoutException 72
 
 @test LiveChainsNearTheLimits_FailAtTheSameLink(64, 12)
 @hash 966a1af67fb046740e74ffb796d8e260296135e782944cbac55a3bdba87c57ae 120
+  ok 9, CStructLayoutException 111
 
 @test LiveChainsNearTheLimits_FailAtTheSameLink(64, 25)
 @hash 8e981adf76b36037581ea76bc49371836343e90be4e6e5724d92469110186a2c 120
+  ok 36, CStructLayoutException 84
 
 @test LiveChainsNearTheLimits_FailAtTheSameLink(8, 1000)
 @hash 4ebfcb5f6aac35217a910dcdb32cc9e2c275a419c9282578118c38a404762d04 120
+  ok 22, CStructLayoutException 98
 
 @test LiveDefinitions_AndCallerOverrides_UnfoldLikeTheResolver
 @case E
@@ -710,18 +1043,23 @@
 
 @test RandomExpressions_EvaluateLikeTheDictionaryModel(1, 8, 13)
 @hash 33661a2c523dea5f6b555abd973c4d985c678b7cde28909809ec3deb40c8fad5 2000
+  ok 120, CStructLayoutException 1809, CStructReadException 71
 
 @test RandomExpressions_EvaluateLikeTheDictionaryModel(2, 10, 20)
 @hash aae429dbc1eab78348cb8f2a0c1a6afec402cc7fcc6e09ed93546e0d46972359 2000
+  ok 131, CStructLayoutException 1716, CStructReadException 153
 
 @test RandomExpressions_EvaluateLikeTheDictionaryModel(3, 16, 40)
 @hash 97233e0ab3e82bc6ad46c0761a4df99a5b5514ef2892a62af21bc74101849a1b 2000
+  ok 212, CStructLayoutException 1237, CStructReadException 551
 
 @test RandomExpressions_EvaluateLikeTheDictionaryModel(4, 64, 1000)
 @hash abeaf0779caf9b2be6ca7a89ddad294d2fb3cf2c7ea83e375b37183c56c30960 2000
+  ok 307, CStructLayoutException 117, CStructReadException 1576
 
 @test RandomExpressions_EvaluateLikeTheDictionaryModel(5, 256, 100000)
 @hash b6bde1e9f1bd060472c279b71af835f9e9756b1515d2f8844ceb021414093604 2000
+  ok 285, CStructLayoutException 135, CStructReadException 1580
 
 @test ShiftsAndOverflow_AtTheBounds("!n", "0", "value 1")
 @case !n

@@ -280,7 +280,7 @@ internal sealed record EngineCorpusCase(
     /// <param name="operation">The operation.</param>
     /// <param name="path">The execution path the run uses.</param>
     /// <returns>The rendering, for the source-agreement check.</returns>
-    private static string Golden(GoldenOperation operation, ExecutionPath path) => EngineDifferential.AssertGolden(operation, path: path).Rendering;
+    private static string Golden(GoldenOperation operation, ExecutionPath path) => EngineDifferential.AssertGolden(operation, path: path);
 
     /// <summary>Returns the result of <paramref name="call"/>, or <see langword="null"/> when it throws.</summary>
     /// <param name="call">The call.</param>

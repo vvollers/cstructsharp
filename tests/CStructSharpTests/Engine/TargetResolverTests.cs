@@ -63,12 +63,12 @@ public class TargetResolverTests
 
         // The second follow of the self-referencing node is the first one's target again; a relative address past the
         // position range is a path failure, not a read failure.
-        EngineOutcome cycle = EngineDifferential.AssertGolden(EngineOperations.ResolveAddress(layout, data, EngineInput.Span, "rec.u.list.value.next.value.v"));
-        StringAssert.Contains(cycle.Rendering, "Cyclic pointer target detected at stream address 32 (path");
+        string cycle = EngineDifferential.AssertGolden(EngineOperations.ResolveAddress(layout, data, EngineInput.Span, "rec.u.list.value.next.value.v"));
+        StringAssert.Contains(cycle, "Cyclic pointer target detected at stream address 32 (path");
         var overflow = new ReadOptions { AddressingMode = PointerAddressingMode.Relative, Origin = long.MaxValue, };
-        EngineOutcome relative = EngineDifferential.AssertGolden(EngineOperations.ReadValue(layout, data, EngineInput.Span, "rec.p.value", options: overflow));
-        StringAssert.Contains(relative.Rendering, "failure = failure CStructSharp.Diagnostics.CStructPathException\n");
-        StringAssert.Contains(relative.Rendering, "Relative pointer target overflowed the stream address range (path");
+        string relative = EngineDifferential.AssertGolden(EngineOperations.ReadValue(layout, data, EngineInput.Span, "rec.p.value", options: overflow));
+        StringAssert.Contains(relative, "failure = failure CStructSharp.Diagnostics.CStructPathException\n");
+        StringAssert.Contains(relative, "Relative pointer target overflowed the stream address range (path");
 
         ReadOptions[] options =
         [
@@ -318,8 +318,8 @@ public class TargetResolverTests
     }
 
     /// <summary>
-    ///     Checks one operation against its golden outcome, which also records how many operations reached the engine
-    ///     (every root here but an unknown one has a read program, <see cref="AssertHasReadProgram"/>).
+    ///     Checks one operation against its golden outcome (every root here but an unknown one has a read program,
+    ///     <see cref="AssertHasReadProgram"/>).
     /// </summary>
     /// <param name="operation">The operation.</param>
     /// <param name="path">The execution path the run uses.</param>

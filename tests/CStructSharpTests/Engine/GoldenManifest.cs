@@ -6,16 +6,19 @@ using System.Text;
 
 /// <summary>
 ///     The golden outcomes of one test class, stored in <c>Engine/Golden/&lt;class&gt;.txt</c>: one section per test (a
-///     test method, or one data row of it), each holding either readable outcomes keyed by case, or the SHA-256 of each
-///     group of outcomes. The differential tests compare the engine with these outcomes (<see cref="EngineGolden"/>).
+///     test method, or one data row of it), each holding either readable outcomes keyed by case, or the SHA-256 and a
+///     readable summary of each group of outcomes. The differential tests compare the engine with these outcomes
+///     (<see cref="EngineGolden"/>).
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         The file is plain text with line feeds only. After a fixed comment header, <c>@test &lt;id&gt;</c> starts a
 ///         section; <c>@case &lt;key&gt;</c> starts a readable outcome, whose lines follow, each indented by two spaces
 ///         (an empty line stays empty); <c>@hash &lt;sha256&gt; &lt;count&gt; &lt;group&gt;</c> records the hash of a
-///         group's <c>count</c> outcomes. Sections are sorted by test id and entries keep the order the test produced
-///         them, so a regeneration diff shows exactly the outcomes that changed. A blank line separates sections.
+///         group's <c>count</c> outcomes, followed by one indented line that counts them by kind, such as
+///         <c>ok 12, CStructReadException 3</c> (<see cref="GoldenScope.KindOf"/>). Sections are sorted by test id and
+///         entries keep the order the test produced them, so a regeneration diff shows exactly the outcomes that
+///         changed. A blank line separates sections.
 ///     </para>
 ///     <para>
 ///         A group's hash covers each outcome, in order, as its length in UTF-16 code units, a colon, the outcome and a
@@ -94,11 +97,13 @@ internal sealed class GoldenManifest
         bool? hashed = null;
         var entries = new List<GoldenEntry>();
         string? caseKey = null;
+        GoldenEntry? caseHash = null;
         var caseLines = new List<string>();
         string[] lines = text.Split('\n');
         int number = 0;
 
-        // Ends the readable outcome being read: blank lines at its end separate sections and belong to no outcome.
+        // Ends the entry being read: blank lines at its end separate sections and belong to no entry, and a hashed
+        // group's indented lines are its one-line summary.
         void EndCase()
         {
             if (caseKey is null)
@@ -112,8 +117,23 @@ internal sealed class GoldenManifest
                 count--;
             }
 
-            entries.Add(GoldenEntry.Readable(caseKey, string.Join("\n", caseLines.Take(count))));
+            string body = string.Join("\n", caseLines.Take(count));
+            if (caseHash is not null)
+            {
+                if (count != 1 || body.Length == 0)
+                {
+                    throw new FormatException(className + " line " + number + ": a hashed group is followed by one summary line.");
+                }
+
+                entries.Add(caseHash with { Summary = body, });
+            }
+            else
+            {
+                entries.Add(GoldenEntry.Readable(caseKey, body));
+            }
+
             caseKey = null;
+            caseHash = null;
             caseLines.Clear();
         }
 
@@ -155,7 +175,8 @@ internal sealed class GoldenManifest
                 hashed = hash;
                 if (hash)
                 {
-                    entries.Add(ParseHash(className, number, line[HashDirective.Length..]));
+                    caseHash = ParseHash(className, number, line[HashDirective.Length..]);
+                    caseKey = caseHash.Key;
                 }
                 else
                 {
@@ -186,7 +207,8 @@ internal sealed class GoldenManifest
         var text = new StringBuilder();
         text.Append("# Golden outcomes of ").Append(this.ClassName).Append(": the reference each differential comparison checks the engine against.\n");
         text.Append("# Regenerate only for an intended, explained behaviour change: node tools/quality/engine-golden.mjs record (CONTRIBUTING.md).\n");
-        text.Append("# @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes.\n");
+        text.Append("# @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes,\n");
+        text.Append("# counted by kind on the indented line below it.\n");
         foreach (GoldenSection section in this.Sections.Values)
         {
             text.Append('\n').Append(TestDirective).Append(section.TestId).Append('\n');
@@ -196,6 +218,7 @@ internal sealed class GoldenManifest
                 {
                     text.Append(HashDirective).Append(entry.Hash).Append(' ').Append(entry.Count.ToString(CultureInfo.InvariantCulture));
                     text.Append(entry.Key.Length == 0 ? string.Empty : " " + entry.Key).Append('\n');
+                    text.Append(Indent).Append(entry.Summary).Append('\n');
                     continue;
                 }
 
@@ -219,7 +242,7 @@ internal sealed class GoldenManifest
     /// <param name="className">The class, for error messages.</param>
     /// <param name="number">The line number, for error messages.</param>
     /// <param name="operands">The text after the directive.</param>
-    /// <returns>The hashed entry.</returns>
+    /// <returns>The hashed entry, whose summary the next line supplies.</returns>
     /// <exception cref="FormatException">The hash is not 64 lowercase hexadecimal digits or the count is not a positive number.</exception>
     private static GoldenEntry ParseHash(string className, int number, string operands)
     {
@@ -230,6 +253,6 @@ internal sealed class GoldenManifest
             throw new FormatException(className + " line " + number + ": expected '@hash <sha256> <count> <group>'.");
         }
 
-        return GoldenEntry.Hashed(parts.Length == 3 ? parts[2] : string.Empty, parts[0], count);
+        return GoldenEntry.Hashed(parts.Length == 3 ? parts[2] : string.Empty, parts[0], count, string.Empty);
     }
 }

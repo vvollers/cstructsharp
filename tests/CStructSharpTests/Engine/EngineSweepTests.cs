@@ -10,9 +10,8 @@ using Variant = EngineSweepLayouts.Variant;
 ///     aligned, under <see cref="ExecutionPath.Fastest"/> and <see cref="ExecutionPath.NoFastPaths"/> (the engine's
 ///     member-by-member work): every truncation of the input, every byte budget up to the operation's natural total,
 ///     every other limit around the value the input needs, the read options that change decoding, caller variables,
-///     every input source, and every destination. Each run checks its outcome, including how many operations reached the
-///     engine, against the golden outcomes (<see cref="EngineGolden"/>), hashed per layout variant; the sources must also
-///     agree with each other.
+///     every input source, and every destination. Each run checks its outcome against the golden outcomes
+///     (<see cref="EngineGolden"/>), hashed per layout variant; the sources must also agree with each other.
 /// </summary>
 /// <remarks>
 ///     Every sweep is exhaustive over its range (no sampling). The ranges are small because the inputs are: an element,
@@ -526,7 +525,7 @@ public class EngineSweepTests
     /// <param name="operation">The operation.</param>
     /// <param name="path">The execution path the run uses.</param>
     /// <returns>The rendering, for the source-agreement check.</returns>
-    private static string Golden(GoldenOperation operation, ExecutionPath path) => EngineDifferential.AssertGolden(operation, path: path).Rendering;
+    private static string Golden(GoldenOperation operation, ExecutionPath path) => EngineDifferential.AssertGolden(operation, path: path);
 
     /// <summary>
     ///     Finds the value at a sweep path (<c>rec.items[1].b</c>, <c>rec.p.value</c>) in a parsed value: struct and union

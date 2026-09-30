@@ -1,8 +1,6 @@
 namespace CStructSharp.Tests;
 
-using System.Globalization;
 using System.Text;
-using CStructSharp.Engine;
 using CStructSharp.Fuzzing;
 
 /// <summary>
@@ -11,16 +9,9 @@ using CStructSharp.Fuzzing;
 ///     which fails with a line diff when they differ.
 /// </summary>
 /// <remarks>
-///     <para>
-///         The stored outcome ends with the number of operations that reached the compiled engine
-///         (<see cref="EngineDiagnostics"/>), so a run also notices an operation that takes a fast path it did not take
-///         before, or the other way round.
-///     </para>
-///     <para>
-///         The case's key is the operation's name and execution path, so a case can be checked under every fast-path
-///         restriction. Each run happens inside its own recording (<see cref="EngineDiagnostics.Record"/>), which is local
-///         to the test's flow, so the assertions hold when MSTest runs tests in parallel.
-///     </para>
+///     The case's key is the operation's name and execution path, so a case can be checked under every fast-path
+///     restriction. The outcome records what an operation returns, writes and reports, not how many operations reached
+///     the compiled engine: a test about that routing counts them itself with <c>EngineDiagnostics.Record</c>.
 /// </remarks>
 internal static class EngineDifferential
 {
@@ -34,23 +25,21 @@ internal static class EngineDifferential
     ///     A test-only change applied to the run's rendering before the check, used to prove that the harness detects a
     ///     planted difference; <see langword="null"/> in real cases.
     /// </param>
-    /// <returns>The run's rendering and the number of operations that reached the engine.</returns>
+    /// <returns>The run's rendering.</returns>
     /// <exception cref="AssertFailedException">The outcome differs from the golden one.</exception>
-    public static EngineOutcome AssertGolden(
+    public static string AssertGolden(
         GoldenOperation operation,
         ExecutionPath path = ExecutionPath.Fastest,
         Func<string, string>? alter = null)
     {
-        string key = operation.Name + " (" + path + ")";
-        var recorder = new EngineDiagnostics();
-        string actual = Render(operation, path, recorder);
+        string actual = Render(operation, path);
         if (alter is not null)
         {
             actual = alter(actual);
         }
 
-        EngineGolden.Check(key, WithOperations(actual, recorder.Runs));
-        return new EngineOutcome(actual, recorder.Runs);
+        EngineGolden.Check(operation.Name + " (" + path + ")", actual);
+        return actual;
     }
 
     /// <summary>
@@ -63,46 +52,28 @@ internal static class EngineDifferential
     /// <exception cref="AssertFailedException">An outcome differs from its golden one, or the two paths disagree.</exception>
     public static void AssertPathsAgree(GoldenOperation operation, string label)
     {
-        string memberByMember = AssertGolden(operation, ExecutionPath.NoFastPaths).Rendering;
-        string fastest = AssertGolden(operation, ExecutionPath.Fastest).Rendering;
+        string memberByMember = AssertGolden(operation, ExecutionPath.NoFastPaths);
+        string fastest = AssertGolden(operation, ExecutionPath.Fastest);
         if (!string.Equals(memberByMember, fastest, StringComparison.Ordinal))
         {
             Assert.Fail(label + ", " + operation.Name + ": the member-by-member path (-) and the fast paths (+) differ:\n" + Diff(memberByMember, fastest));
         }
     }
 
-    /// <summary>
-    ///     Runs the operation under the execution path inside a recording into <paramref name="recorder"/>, under the
-    ///     invariant culture, and returns its rendering.
-    /// </summary>
+    /// <summary>Runs the operation under the execution path and the invariant culture, and returns its rendering.</summary>
     /// <param name="operation">The operation.</param>
     /// <param name="path">The execution path of the run.</param>
-    /// <param name="recorder">Counts the operations that reach the compiled engine during the run.</param>
     /// <returns>The canonical rendering.</returns>
-    private static string Render(GoldenOperation operation, ExecutionPath path, EngineDiagnostics recorder)
+    private static string Render(GoldenOperation operation, ExecutionPath path)
     {
         return EngineGolden.Invariant(
             () =>
             {
                 var output = new CanonicalText();
-                using (EngineDiagnostics.Record(recorder))
-                {
-                    operation.Run(path, output);
-                }
-
+                operation.Run(path, output);
                 return output.ToString();
             });
     }
-
-    /// <summary>
-    ///     Appends the number of operations that reached the compiled engine to a rendering, which the golden outcome stores
-    ///     with it as <c>engine runs = N</c>.
-    /// </summary>
-    /// <param name="rendering">The rendering.</param>
-    /// <param name="operations">The number of operations the run sent to the engine.</param>
-    /// <returns>The golden outcome.</returns>
-    private static string WithOperations(string rendering, long operations)
-        => rendering + "engine runs = " + operations.ToString(CultureInfo.InvariantCulture) + "\n";
 
     /// <summary>
     ///     A line diff of two renderings: unchanged lines start with two spaces, lines only in

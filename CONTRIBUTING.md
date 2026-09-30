@@ -147,9 +147,10 @@ The library reads, writes and updates general layouts with a compiled engine. It
 bytes and debug records, rendered as text - with a *golden outcome*: the reviewed outcome recorded for the same case.
 The golden outcomes are stored as manifests in
 `tests/CStructSharpTests/Engine/Golden/`, one file per test class and one section per test. A small test keeps its
-outcomes readable; a sweep over many layouts or corpus cases keeps one SHA-256 hash per group of outcomes. A test fails
-when an outcome differs from its golden one, when it has no golden outcome, or when a golden outcome is no longer
-produced.
+outcomes readable; a sweep over many layouts or corpus cases, or a test whose outcomes exceed 8 KB, keeps one SHA-256
+hash per group of outcomes, with a summary line that counts them by kind (`ok` or the failure's exception type). A
+test fails when an outcome differs from its golden one, when it has no golden outcome, or when a golden outcome is no
+longer produced.
 
 Record the manifests again only for an intended, explained behaviour change, never to make a difference go away:
 
@@ -161,9 +162,9 @@ The command runs the managed tests on .NET 10 with `CSTRUCTSHARP_ENGINE_GOLDEN_R
 current outcome, then checks the new manifests on .NET 8 and .NET 10 and lists the tests whose sections changed;
 `--filter` limits it to some tests. A new or renamed test needs a
 recording as well. Review `git diff -- tests/CStructSharpTests/Engine/Golden` and explain every changed entry in the
-commit message: which behaviour changed, and why the new outcome is correct. A changed hash does not show which outcome
-changed; run the test with `CSTRUCTSHARP_ENGINE_GOLDEN_DUMP=<directory>` before and after the change and compare the
-files it writes.
+commit message: which behaviour changed, and why the new outcome is correct. A failing group shows its golden and
+current summary and an example outcome of each kind whose count changed, but not every changed outcome; run the test
+with `CSTRUCTSHARP_ENGINE_GOLDEN_DUMP=<directory>` before and after the change and compare the files it writes.
 
 ### Mutation testing
 

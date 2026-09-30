@@ -1,6 +1,7 @@
 # Golden outcomes of EngineLayoutCaptureTests: the reference each differential comparison checks the engine against.
 # Regenerate only for an intended, explained behaviour change: node tools/quality/engine-golden.mjs record (CONTRIBUTING.md).
-# @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes.
+# @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes,
+# counted by kind on the indented line below it.
 
 @test ConditionalTrace_RecordsEveryDecision
 @case both arms (Stream)
@@ -38,312 +39,468 @@
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("bitfields")
 @hash 729eb8b310129a2d83d05363941cb13cb5cf6895dca181f516c992ee2e25f1a0 322 bitfields/packed
+  ok 310, ArgumentOutOfRangeException 2, CStructReadLimitException 10
 @hash b935289019bcffcddc11234a4901567932ca2fa23c31019e5eb951988d105e70 398 bitfields/aligned
+  ok 384, ArgumentOutOfRangeException 2, CStructReadLimitException 12
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("bitfields-enum-counts")
 @hash 0a42c21d325016c25b45d9e25685fbf58cbb0ea871b33a383419188f17a87fdd 550 bitfields-enum-counts/packed
+  ok 526, ArgumentOutOfRangeException 2, CStructReadLimitException 22
 @hash bce84acc8d7d1381343c74ab9195e53f2b41b177e3d426e4c3f61ada4927f499 626 bitfields-enum-counts/aligned
+  ok 602, ArgumentOutOfRangeException 2, CStructReadLimitException 22
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("bitfields-high")
 @hash 3d3b8afba83e7ba16b9a5cdb2ccb2e1deedb7e20da5e82a1309e393beaea098a 322 bitfields-high/packed
+  ok 304, ArgumentOutOfRangeException 2, CStructReadLimitException 16
 @hash 3d3b8afba83e7ba16b9a5cdb2ccb2e1deedb7e20da5e82a1309e393beaea098a 322 bitfields-high/aligned
+  ok 304, ArgumentOutOfRangeException 2, CStructReadLimitException 16
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("bitfields-msvc")
 @hash a3b613bb29972ad6c1230ad072984c492e1d4707231710105c037c2b44293372 474 bitfields-msvc/packed
+  ok 454, ArgumentOutOfRangeException 2, CStructReadLimitException 18
 @hash 1e6d8e5b40b6d4a4e4e0ecad557f449f4ba50164828b5cbec75b46f69fb0d06b 626 bitfields-msvc/aligned
+  ok 606, ArgumentOutOfRangeException 2, CStructReadLimitException 18
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("conditional")
 @hash b9e6f98f62e9c65298db54344af7fc28c9889c471f77b35479702b1524aeff72 322 conditional/packed
+  ok 314, ArgumentOutOfRangeException 2, CStructReadLimitException 6
 @hash b8b51b6ab1408ed90c71006f7393aa6efbe08c4b181faa6c08f025efb1c230e6 398 conditional/aligned
+  ok 390, ArgumentOutOfRangeException 2, CStructReadLimitException 6
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("count")
 @hash c311d5ffb2491413c37194a37939312ac8a9f94ea75818f0e858f78380d42379 474 count/packed
+  ok 452, ArgumentOutOfRangeException 2, CStructReadLimitException 20
 @hash e35e23222d0322bc7c27fca5cd2cfa18c8691aa4ab72e917ba59a5fe0f5bd9bd 550 count/aligned
+  ok 528, ArgumentOutOfRangeException 2, CStructReadLimitException 20
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("custom-codec")
 @hash aae3aedd30f02f554232a4e7702ed0f3feefa4ed140fd300885f0d10d3b483d1 360 custom-codec/packed
+  ok 332, ArgumentOutOfRangeException 2, CStructReadLimitException 26
 @hash aae3aedd30f02f554232a4e7702ed0f3feefa4ed140fd300885f0d10d3b483d1 360 custom-codec/aligned
+  ok 332, ArgumentOutOfRangeException 2, CStructReadLimitException 26
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("custom-fixed")
 @hash 0ddc5773a19529bf58ec9cb58e1aab71fca8eb26f7d3a24dd6d8d3a147c78740 854 custom-fixed/packed
+  ok 812, ArgumentOutOfRangeException 2, CStructReadLimitException 40
 @hash f85b84819dceb799a15cdf95d487536e531c26e57d29e753556b6f86263c709b 1386 custom-fixed/aligned
+  ok 1344, ArgumentOutOfRangeException 2, CStructReadLimitException 40
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("enum-bitfield")
 @hash 3c9321292217eb0a7bb1e834516c6cf4e47831bf5c19bd64618c458b00129708 398 enum-bitfield/packed
+  ok 380, ArgumentOutOfRangeException 2, CStructReadLimitException 16
 @hash 7e08f48bded922ee473775d427744610f6d88ce08a89605c240412acbccea695 474 enum-bitfield/aligned
+  ok 456, ArgumentOutOfRangeException 2, CStructReadLimitException 16
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("fixed")
 @hash 973d9a1a47dd47d1cdda4d38d5f697f61b7e5202478448a4ee9b7865d58ebfdc 740 fixed/packed
+  ok 702, ArgumentOutOfRangeException 2, CStructReadLimitException 36
 @hash e50e7738dfeef90ebfae7bf876157f72d5689bfe5186ac19a0b21acb8ccb5140 930 fixed/aligned
+  ok 892, ArgumentOutOfRangeException 2, CStructReadLimitException 36
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("inline-qualified")
 @hash 1a499105aa8c4d3668361f515c63edf480a85a8cc5b09d2d752450e19ded8243 474 inline-qualified/packed
+  ok 452, ArgumentOutOfRangeException 2, CStructReadLimitException 20
 @hash fa2bdbdf50cffdf0fa7be4c5d307d3f5e9ab9a32f37dc8bab90fa146b9be0dde 550 inline-qualified/aligned
+  ok 528, ArgumentOutOfRangeException 2, CStructReadLimitException 20
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("leb128")
 @hash 42e02398d82d7e41e6d9fd2ad5637d49631f04872c14cc0caf5055296e78e3e6 474 leb128/packed
+  ok 452, ArgumentOutOfRangeException 2, CStructReadLimitException 20
 @hash 42e02398d82d7e41e6d9fd2ad5637d49631f04872c14cc0caf5055296e78e3e6 474 leb128/aligned
+  ok 452, ArgumentOutOfRangeException 2, CStructReadLimitException 20
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("multidim")
 @hash ebdbcad498f9106d154565d3615c9d4f53ceff1f2a7f5c178a67653dba1c6cc3 1614 multidim/packed
+  ok 1522, ArgumentOutOfRangeException 2, CStructReadLimitException 90
 @hash 022da5e705b4036f6fe41fed4175a0c6946134d55e2a98c262842d4fdb90079e 1690 multidim/aligned
+  ok 1598, ArgumentOutOfRangeException 2, CStructReadLimitException 90
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("multidim-structs")
 @hash d2e32d1fa7b7b6a7469e057dc00450276fef0c50b4c7b48ac205d331164ed9e2 1310 multidim-structs/packed
+  ok 1240, ArgumentOutOfRangeException 2, CStructReadLimitException 68
 @hash e774a473beff783f0eed02a25f64c366c99b353700d44cab36614f1bb5970c0e 1538 multidim-structs/aligned
+  ok 1468, ArgumentOutOfRangeException 2, CStructReadLimitException 68
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("nested")
 @hash dd9c86378fe4600595260fdd99e01c0fb7f1000f5ffdaa2bf413ba204a4a09a4 550 nested/packed
+  ok 524, ArgumentOutOfRangeException 2, CStructReadLimitException 24
 @hash 69d0e83395111127a0379c419000f916d9efed541f53cd81b985950bbf53bd37 702 nested/aligned
+  ok 676, ArgumentOutOfRangeException 2, CStructReadLimitException 24
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("pointer-arrays")
 @hash 712a0750ea0aab8798d7d13d15456cbbaa93a9cb211c3e6a8d5559e0a8260dba 512 pointer-arrays/packed
+  ok 484, ArgumentOutOfRangeException 2, CStructReadLimitException 26
 @hash 712a0750ea0aab8798d7d13d15456cbbaa93a9cb211c3e6a8d5559e0a8260dba 512 pointer-arrays/aligned
+  ok 484, ArgumentOutOfRangeException 2, CStructReadLimitException 26
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("pointer-counted")
 @hash 48562be9b1a96ea30acfabb0860e2af3e1e6caff337ff5f1bd981dc2ac320ca5 588 pointer-counted/packed
+  ok 550, ArgumentOutOfRangeException 2, CStructReadLimitException 36
 @hash 48562be9b1a96ea30acfabb0860e2af3e1e6caff337ff5f1bd981dc2ac320ca5 588 pointer-counted/aligned
+  ok 550, ArgumentOutOfRangeException 2, CStructReadLimitException 36
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("pointer-list")
 @hash 13e62a42c7775533fbb3cb842fe18cc64aa883e020b33e8fd2ed822cad739fd6 436 pointer-list/packed
+  ok 392, ArgumentOutOfRangeException 2, CStructReadLimitException 42
 @hash 13e62a42c7775533fbb3cb842fe18cc64aa883e020b33e8fd2ed822cad739fd6 436 pointer-list/aligned
+  ok 392, ArgumentOutOfRangeException 2, CStructReadLimitException 42
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("pointer-views")
 @hash 001ce441217414550ca2d153504686acfd1f52ad613c6d32ef3898fb4877e6a3 436 pointer-views/packed
+  ok 410, ArgumentOutOfRangeException 2, CStructReadLimitException 24
 @hash 001ce441217414550ca2d153504686acfd1f52ad613c6d32ef3898fb4877e6a3 436 pointer-views/aligned
+  ok 410, ArgumentOutOfRangeException 2, CStructReadLimitException 24
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("pointers")
 @hash 9773dc56d6f7b6e6156d8ae929822ded24d9e12371e57edf0829595e7f95dd0f 588 pointers/packed
+  ok 552, ArgumentOutOfRangeException 2, CStructReadLimitException 34
 @hash 9773dc56d6f7b6e6156d8ae929822ded24d9e12371e57edf0829595e7f95dd0f 588 pointers/aligned
+  ok 552, ArgumentOutOfRangeException 2, CStructReadLimitException 34
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("promoted")
 @hash 785a634b05c12a236ee92dbe61ac978ec47acd634161f7126fa5134c199ecc66 436 promoted/packed
+  ok 416, ArgumentOutOfRangeException 2, CStructReadLimitException 18
 @hash b73bc4ca50b0ffb533540c23da3d190c2a30fd3e2022a68eae9ed9ae08d72e9e 550 promoted/aligned
+  ok 530, ArgumentOutOfRangeException 2, CStructReadLimitException 18
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("promoted-union")
 @hash caf63bbf4ece7bf5798a3704ede7b8f3f586cfbe1cea7beb10442c66253b8e51 360 promoted-union/packed
+  ok 338, ArgumentOutOfRangeException 2, CStructReadLimitException 20
 @hash f54bce04320a16355a713a9a7dd952f3bd48f6a893120a9c662e31fc7b59fc59 474 promoted-union/aligned
+  ok 450, ArgumentOutOfRangeException 2, CStructReadLimitException 22
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("terminated")
 @hash eaee768d1bf734e8ba51f7057ae35ae4ad2603721689a0fa8181fd05ebe77942 550 terminated/packed
+  ok 503, ArgumentOutOfRangeException 2, CStructReadLimitException 45
 @hash eaee768d1bf734e8ba51f7057ae35ae4ad2603721689a0fa8181fd05ebe77942 550 terminated/aligned
+  ok 503, ArgumentOutOfRangeException 2, CStructReadLimitException 45
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("terminated-scalars")
 @hash 58e0197b6aadec44f8778c4617e9fb77ae4afd85c4b68233098c2054bca63acb 474 terminated-scalars/packed
+  ok 446, ArgumentOutOfRangeException 2, CStructReadLimitException 26
 @hash 390bc1c2ef18ab827c156fa4b847bd3717273d83b8c6aa80268d1ccca38635b7 550 terminated-scalars/aligned
+  ok 522, ArgumentOutOfRangeException 2, CStructReadLimitException 26
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("text")
 @hash 8c777ba0b5535712f470cc97cb2727bd372f9e3dbfadb06f76ab9303928e9e51 816 text/packed
+  ok 762, ArgumentOutOfRangeException 2, CStructReadLimitException 52
 @hash c96a10b8e0998a632a5a65dbfd005ba61dbacf0902090be5dd5d1365063d6ae0 854 text/aligned
+  ok 800, ArgumentOutOfRangeException 2, CStructReadLimitException 52
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("to-end")
 @hash 17475449a0830a2c3a094b0efbeb097efd87facd7523d9ebd8666b93f0c3ca9d 474 to-end/packed
+  ok 452, ArgumentOutOfRangeException 2, CStructReadLimitException 20
 @hash 17475449a0830a2c3a094b0efbeb097efd87facd7523d9ebd8666b93f0c3ca9d 474 to-end/aligned
+  ok 452, ArgumentOutOfRangeException 2, CStructReadLimitException 20
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("to-end-structs")
 @hash 772ea310a40a689184e126574de4d05c38e2da391ab76a8562cda38cf420f873 436 to-end-structs/packed
+  ok 416, ArgumentOutOfRangeException 2, CStructReadLimitException 18
 @hash a5e8b50fcb2085fc1c9e0ccd70a9e2337318703475a295654546d3749577fc0c 550 to-end-structs/aligned
+  ok 530, ArgumentOutOfRangeException 2, CStructReadLimitException 18
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("union")
 @hash eb2b2fccf00598d7233c3723c75011c38e5c594bef009c46cabf8a42132b44b2 398 union/packed
+  ok 370, ArgumentOutOfRangeException 2, CStructReadLimitException 26
 @hash e267332e28257e8f410b95c3aaf7231c8a1aa4fdd2c739fbe0e19497d759e1be 626 union/aligned
+  ok 598, ArgumentOutOfRangeException 2, CStructReadLimitException 26
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("union-arrays")
 @hash 94c029c8921ec91d009392f404fb50cd05df242fbc34c2243b13fc358e433e00 398 union-arrays/packed
+  ok 360, ArgumentOutOfRangeException 2, CStructReadLimitException 36
 @hash e3b122b4c37b7199aea3a7b8cb2c0c9df4a164912bebebdbe8a6b67c759f3e65 474 union-arrays/aligned
+  ok 436, ArgumentOutOfRangeException 2, CStructReadLimitException 36
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("union-bitfields")
 @hash a961da78d7e707c6591261a50bcacdacd4b278737c1bcaddbb4f75c10740b371 322 union-bitfields/packed
+  ok 300, ArgumentOutOfRangeException 2, CStructReadLimitException 20
 @hash 491811c1f9cc055e36703e19d19251e875a0005059429826cc26cc03a55c6b1a 398 union-bitfields/aligned
+  ok 376, ArgumentOutOfRangeException 2, CStructReadLimitException 20
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("union-conditional")
 @hash 67d5e58a2eb92d73b84ce9498252e86d24ed93c8ec1a7cc84d618514370609f5 474 union-conditional/packed
+  ok 432, ArgumentOutOfRangeException 2, CStructReadLimitException 40
 @hash 11b5b9543690a2f1e62ec206d2c6e6fbbc970b4678c24364fc99dce3e03ac200 550 union-conditional/aligned
+  ok 508, ArgumentOutOfRangeException 2, CStructReadLimitException 40
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("union-nested")
 @hash 9bb3993196205d74ffc7f8bbe512ccf030638ef330570221d21d98076e2df4d5 550 union-nested/packed
+  ok 490, ArgumentOutOfRangeException 2, CStructReadLimitException 58
 @hash 1db158ffc77055a2c284b57ebf525183c10b356c6b1f592b0a8e69719b6a73db 778 union-nested/aligned
+  ok 718, ArgumentOutOfRangeException 2, CStructReadLimitException 58
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("variables")
 @hash 6c2bc6e61dabfa63bf7cb99b12af9a40dcf4285552f9241d3a901dda4a4e45c0 360 variables/packed
+  ok 344, ArgumentOutOfRangeException 2, CStructReadLimitException 14
 @hash 6c2bc6e61dabfa63bf7cb99b12af9a40dcf4285552f9241d3a901dda4a4e45c0 360 variables/aligned
+  ok 344, ArgumentOutOfRangeException 2, CStructReadLimitException 14
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("write-codecs")
 @hash cdcf0dcb43fdf1682cda665cbe04f3d6c41bab1eed2fdac6142ad95357f18a01 4046 write-codecs/packed
+  ok 3842, ArgumentOutOfRangeException 2, CStructReadLimitException 202
 @hash d0e07ced9ccbfcce3ddd299c2f7e30854fecf5ee4b083c73524a0a3a82577152 5034 write-codecs/aligned
+  ok 4830, ArgumentOutOfRangeException 2, CStructReadLimitException 202
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("write-enums")
 @hash 1bb9389e4e161d163951f1102499938b96a27c0ffa8555a2fd62939450ac1647 664 write-enums/packed
+  ok 634, ArgumentOutOfRangeException 2, CStructReadLimitException 28
 @hash c1ac3cd68f224e2f6ff71dfca6d55ca26b0faacda157611f8cc93e74a25a019c 778 write-enums/aligned
+  ok 748, ArgumentOutOfRangeException 2, CStructReadLimitException 28
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("write-padding")
 @hash 32b22c2ca8ea6a214b888886943db9cd86f8caf3e74dbd85817bc45245d11746 664 write-padding/packed
+  ok 634, ArgumentOutOfRangeException 2, CStructReadLimitException 28
 @hash 65d2af8420523b7f2ea74937715d7289a39375e9f9bb1ff5eb4b8834b2cf7343 778 write-padding/aligned
+  ok 748, ArgumentOutOfRangeException 2, CStructReadLimitException 28
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("write-qualified")
 @hash c1b7e3f203c5bcbe846ebcf6059e505607c55cd14293f42cac85b81a484e2d82 360 write-qualified/packed
+  ok 344, ArgumentOutOfRangeException 2, CStructReadLimitException 14
 @hash ddad7b1e7a44cae5d39b9b12739370854680f680e36691974721ec1708030d70 398 write-qualified/aligned
+  ok 382, ArgumentOutOfRangeException 2, CStructReadLimitException 14
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("write-scope")
 @hash cdc1cd37e4edd5b146005e94b079e21a9ba5b4525b22905e28b40e4ecf72e66e 588 write-scope/packed
+  ok 560, ArgumentOutOfRangeException 2, CStructReadLimitException 26
 @hash 8e1d3ac2aec6925706de7d81f03c3cb70764d0ac130fe10fd7b402e1108ab097 626 write-scope/aligned
+  ok 598, ArgumentOutOfRangeException 2, CStructReadLimitException 26
 
 @test Limits_CaptureTheLayoutOrFailAtTheLimit("write-text")
 @hash 3217cf561bfeb59f900c0a34ae86091664efe0e96e9fdb257e1a04a390e12a7c 1120 write-text/packed
+  ok 1043, ArgumentOutOfRangeException 2, CStructReadLimitException 75
 @hash b3c676e33e36019378fc02b59c80b8b8fa74a1817467a90ce23099fa06e8daf7 1158 write-text/aligned
+  ok 1078, ArgumentOutOfRangeException 2, CStructReadLimitException 78
 
 @test Truncations_CaptureTheLayoutFromEveryStream("bitfields")
 @hash e748ad930fb5c6dcf9a9bd95f7117b96fe6e8b8392638d337c7eb4a8461305c2 30 bitfields/packed
+  ok 6, CStructReadException 24
 @hash ba398d99aa785e8ae137ac73d3ea7f0eaa13d97b0906320bd870b73ff2806b77 42 bitfields/aligned
+  ok 6, CStructReadException 36
 
 @test Truncations_CaptureTheLayoutFromEveryStream("bitfields-enum-counts")
 @hash 4258487849364379ff59d9430766578002176f02b1b05213a36b68624f35d76f 66 bitfields-enum-counts/packed
+  ok 6, CStructReadException 60
 @hash a92018838afbd1a0b9c349d4d3991b23a16f3a1e39d0db3c880e347614f29c2d 78 bitfields-enum-counts/aligned
+  ok 6, CStructReadException 72
 
 @test Truncations_CaptureTheLayoutFromEveryStream("bitfields-high")
 @hash f75e41b85e5898f93f95c4bf7dd4fdef403cdde7ec5a49615209fbd35bf82e69 30 bitfields-high/packed
+  ok 6, CStructReadException 24
 @hash f75e41b85e5898f93f95c4bf7dd4fdef403cdde7ec5a49615209fbd35bf82e69 30 bitfields-high/aligned
+  ok 6, CStructReadException 24
 
 @test Truncations_CaptureTheLayoutFromEveryStream("bitfields-msvc")
 @hash 2429a84dd56eae7f88eb9f2d40fa4d9ff68a0a5d42e376811e5ba7d1e957b4aa 54 bitfields-msvc/packed
+  ok 6, CStructReadException 48
 @hash 1b472c4fe7e64b425f9ef98541d4506a825cdfee715bef8a47127fbf2c80347d 78 bitfields-msvc/aligned
+  ok 6, CStructReadException 72
 
 @test Truncations_CaptureTheLayoutFromEveryStream("conditional")
 @hash ec71daf64fc1b2da7d4f31c784126d3d1dad20b3de84057ee533da747812c6bd 30 conditional/packed
+  ok 6, CStructReadException 24
 @hash 4db7d1001496753e28eb7d7a12acf88fa816675201448b678749fc34cf660453 42 conditional/aligned
+  ok 6, CStructReadException 36
 
 @test Truncations_CaptureTheLayoutFromEveryStream("count")
 @hash d8a11979c16e5613aa089cf8d6cb10af9a6b9fd1d1937ea0f893dcd9145cf846 54 count/packed
+  ok 6, CStructReadException 48
 @hash 89ff9850f50e326abb4d5041efab1ca71463bfe481208604e4e84af49296367c 66 count/aligned
+  ok 6, CStructReadException 60
 
 @test Truncations_CaptureTheLayoutFromEveryStream("custom-codec")
 @hash c8c974a15ac413655b6bec93108def2e7e34e0674069ea67012c76bcff81f785 36 custom-codec/packed
+  ok 6, CStructReadException 30
 @hash c8c974a15ac413655b6bec93108def2e7e34e0674069ea67012c76bcff81f785 36 custom-codec/aligned
+  ok 6, CStructReadException 30
 
 @test Truncations_CaptureTheLayoutFromEveryStream("custom-fixed")
 @hash 89490a2228776a80dd114ed71a038272be4b8ce03dd48c1fd3cd1b0d1fb1acbc 114 custom-fixed/packed
+  ok 6, CStructReadException 108
 @hash 6ac9f11f90aafa07ff40636a18fcda4c1d3caef36f649cb828fdf6ea3254a135 198 custom-fixed/aligned
+  ok 6, CStructReadException 192
 
 @test Truncations_CaptureTheLayoutFromEveryStream("enum-bitfield")
 @hash 91063f9c0fcbd237f228dd4b9c86e2784cd5f39afcc40871b82335be101c814a 42 enum-bitfield/packed
+  ok 6, CStructReadException 36
 @hash c0366312f1fd5697246322deff56a1c64720da12000df99440c6219f5bb7c673 54 enum-bitfield/aligned
+  ok 6, CStructReadException 48
 
 @test Truncations_CaptureTheLayoutFromEveryStream("fixed")
 @hash 1f0010e9077987814078f5c3d5faa35c60db26a9ee3043ee4d29214e323cbce6 96 fixed/packed
+  ok 6, CStructReadException 90
 @hash e23bec696de9fbf262605209e722eba906bfd84ddf4805663b767bf36d821c86 126 fixed/aligned
+  ok 6, CStructReadException 120
 
 @test Truncations_CaptureTheLayoutFromEveryStream("inline-qualified")
 @hash 662ee773f9b9271f7c667d4d0e93548038695204ac9a61b21ebc16d09f6bdbfc 54 inline-qualified/packed
+  ok 6, CStructReadException 48
 @hash 8edecb81adbe476124300ee3224dacc35e7325134c2d1b4e1810cacd31301fc3 66 inline-qualified/aligned
+  ok 6, CStructReadException 60
 
 @test Truncations_CaptureTheLayoutFromEveryStream("leb128")
 @hash 6b7c2e1a28c3678a39be65e45936325fae06e71455964be1f51f6ceeda52dd27 54 leb128/packed
+  ok 6, CStructReadException 48
 @hash 6b7c2e1a28c3678a39be65e45936325fae06e71455964be1f51f6ceeda52dd27 54 leb128/aligned
+  ok 6, CStructReadException 48
 
 @test Truncations_CaptureTheLayoutFromEveryStream("multidim")
 @hash 5929c4ffc9ee54125cdb1df444025890f4186405cc52a768ea84240b890f98c7 234 multidim/packed
+  ok 6, CStructReadException 228
 @hash b242e52161e4803d884677493b1e8e552c28fc484a18f6dbfb372cb72796c05c 246 multidim/aligned
+  ok 6, CStructReadException 240
 
 @test Truncations_CaptureTheLayoutFromEveryStream("multidim-structs")
 @hash 34cd52411a34f6a84b5982c788e39c98ec7844d4a1bcda205a2313e9ee961293 186 multidim-structs/packed
+  ok 6, CStructReadException 180
 @hash 10a8ad19a1dfef781988fae97ae417bbd27bfb29da0e9d51b3d71f04a67606b8 222 multidim-structs/aligned
+  ok 6, CStructReadException 216
 
 @test Truncations_CaptureTheLayoutFromEveryStream("nested")
 @hash 013e7682bd6aa5978ae6223a8a1ffc31199e2d7ce43426d8d016be898a79f75f 66 nested/packed
+  ok 6, CStructReadException 60
 @hash 1468d94e41be4b8258814b61b98ec8b08a50394820ce9f0b61afc3ebb3d6881d 90 nested/aligned
+  ok 6, CStructReadException 84
 
 @test Truncations_CaptureTheLayoutFromEveryStream("pointer-arrays")
 @hash 16cf6c3ac5256b9992b22309abe823af406a8a76cb38a4f2e7ea0765a427c97c 60 pointer-arrays/packed
+  ok 6, CStructReadException 54
 @hash 16cf6c3ac5256b9992b22309abe823af406a8a76cb38a4f2e7ea0765a427c97c 60 pointer-arrays/aligned
+  ok 6, CStructReadException 54
 
 @test Truncations_CaptureTheLayoutFromEveryStream("pointer-counted")
 @hash 1bba24185e9ca7a00495139abaebeb0db439b5312b8f7c01deec271fe8397d0a 72 pointer-counted/packed
+  ok 6, CStructReadException 66
 @hash 1bba24185e9ca7a00495139abaebeb0db439b5312b8f7c01deec271fe8397d0a 72 pointer-counted/aligned
+  ok 6, CStructReadException 66
 
 @test Truncations_CaptureTheLayoutFromEveryStream("pointer-list")
 @hash c8b5b716a47372d31713a4a3cfdbf5dd270030614601c3e8dc5d14ac467914b2 48 pointer-list/packed
+  ok 6, CStructReadException 42
 @hash c8b5b716a47372d31713a4a3cfdbf5dd270030614601c3e8dc5d14ac467914b2 48 pointer-list/aligned
+  ok 6, CStructReadException 42
 
 @test Truncations_CaptureTheLayoutFromEveryStream("pointer-views")
 @hash 07e976325bae93fdd5f547d74829f63608e2332777430ced9804af8f1d05a6e9 48 pointer-views/packed
+  ok 6, CStructReadException 42
 @hash 07e976325bae93fdd5f547d74829f63608e2332777430ced9804af8f1d05a6e9 48 pointer-views/aligned
+  ok 6, CStructReadException 42
 
 @test Truncations_CaptureTheLayoutFromEveryStream("pointers")
 @hash 3c3af6ba8875a2df8320fdb9459d216637a249b557d4ea65db9d23cbba22840f 72 pointers/packed
+  ok 6, CStructReadException 66
 @hash 3c3af6ba8875a2df8320fdb9459d216637a249b557d4ea65db9d23cbba22840f 72 pointers/aligned
+  ok 6, CStructReadException 66
 
 @test Truncations_CaptureTheLayoutFromEveryStream("promoted")
 @hash f561520e5507db65c30b1ea69aa6c4b7c88782ca45a7f433da76d23d75c30617 48 promoted/packed
+  ok 6, CStructReadException 42
 @hash 96e64e04d52a99c6622ea58962d112bd37d22ba8049d7078c62fb12119c1f3b2 66 promoted/aligned
+  ok 6, CStructReadException 60
 
 @test Truncations_CaptureTheLayoutFromEveryStream("promoted-union")
 @hash 0a53e787e94ec016c89da92e8105a66538ee772be47d1ab3f47958e19eee44f5 36 promoted-union/packed
+  ok 6, CStructReadException 30
 @hash 9dfdbfbbcfe17f450970344e784ae373869a87b9cf69d7253d6beef7b8628c63 54 promoted-union/aligned
+  ok 6, CStructReadException 48
 
 @test Truncations_CaptureTheLayoutFromEveryStream("terminated")
 @hash 3d7fa7909843c52ff19de3dc26c82154fabfb3ccc04577db9901f340ca721e3b 66 terminated/packed
+  ok 6, CStructReadException 60
 @hash 3d7fa7909843c52ff19de3dc26c82154fabfb3ccc04577db9901f340ca721e3b 66 terminated/aligned
+  ok 6, CStructReadException 60
 
 @test Truncations_CaptureTheLayoutFromEveryStream("terminated-scalars")
 @hash 83eb661731402c4d050b8c24e412cc07c095bcd542ab03a9485cd3a1e0d309d0 54 terminated-scalars/packed
+  ok 6, CStructReadException 48
 @hash 7bc8f9815ca8be5b856b4709f76eebda60b850adff87a39c9adcadbe3ea4ccb6 66 terminated-scalars/aligned
+  ok 6, CStructReadException 60
 
 @test Truncations_CaptureTheLayoutFromEveryStream("text")
 @hash 5e10816f7e817cd7b931c4684f36ede8f6a93f381f44bfcb1a2c8e368e37ab56 108 text/packed
+  ok 6, CStructReadException 102
 @hash b8427ed7c333b7858a044f951df56a768db4c39da0f629b40bee8b1fa7614e36 114 text/aligned
+  ok 6, CStructReadException 108
 
 @test Truncations_CaptureTheLayoutFromEveryStream("to-end")
 @hash 5eb90e625a3da9bb24a48a92d4ff37ffb54c3c58ca80ddf77aa53e2ed0573667 54 to-end/packed
+  ok 24, CStructReadException 30
 @hash 5eb90e625a3da9bb24a48a92d4ff37ffb54c3c58ca80ddf77aa53e2ed0573667 54 to-end/aligned
+  ok 24, CStructReadException 30
 
 @test Truncations_CaptureTheLayoutFromEveryStream("to-end-structs")
 @hash 801b4f7a99e3a3be068bd4f5131292137aa10a281c3a93a73019fdb24c9000b2 48 to-end-structs/packed
+  ok 18, CStructReadException 30
 @hash 5e4cab9f8ec26278992eba0382841e9fee6ba11de367367f94588433b4d4c210 66 to-end-structs/aligned
+  ok 18, CStructReadException 48
 
 @test Truncations_CaptureTheLayoutFromEveryStream("union")
 @hash 3d5cdc092437c7eb792715b3866e1deca05545b03db63833581a16ff0166a700 42 union/packed
+  ok 6, CStructReadException 36
 @hash e0d15cda68e65df9f46222269f844412eb990671f1a89027c21cec32526b6c76 78 union/aligned
+  ok 6, CStructReadException 72
 
 @test Truncations_CaptureTheLayoutFromEveryStream("union-arrays")
 @hash f2c69f13f9712e89fb6a83bc58e5bd2b972c2cf1934050ea40d39bb3e1ba49d3 42 union-arrays/packed
+  ok 6, CStructReadException 36
 @hash 544f12c7f6405654925265744aa304583e4b6a761b23e3b9725ba4a09279afc0 54 union-arrays/aligned
+  ok 6, CStructReadException 48
 
 @test Truncations_CaptureTheLayoutFromEveryStream("union-bitfields")
 @hash dc71b42cf4dbd2914ec788122af3254973aed57a03e1bf732d4c16d6eefd3d45 30 union-bitfields/packed
+  ok 6, CStructReadException 24
 @hash e7cf290a9882473b1306eb7d535ebc94f9a8e825fe2c1969ef67e17302693922 42 union-bitfields/aligned
+  ok 6, CStructReadException 36
 
 @test Truncations_CaptureTheLayoutFromEveryStream("union-conditional")
 @hash efc50d81865c8d6810519b0d2926c998f7fa574947297c0554fb1cdef6e731e0 54 union-conditional/packed
+  ok 6, CStructReadException 48
 @hash 02f2b5a97a3632ebe0fcc3a2c464062fc90539c98a78229e4fdcd8daf4a6d85d 66 union-conditional/aligned
+  ok 6, CStructReadException 60
 
 @test Truncations_CaptureTheLayoutFromEveryStream("union-nested")
 @hash 126d75ad4e03e8a65409b16e6494b667c531d68df6d9d4c2da1e30e723b388c5 66 union-nested/packed
+  ok 6, CStructReadException 60
 @hash eb6850826d978c1024d150b4073f5099bc4aea74406067d34e6ab082daf495be 102 union-nested/aligned
+  ok 6, CStructReadException 96
 
 @test Truncations_CaptureTheLayoutFromEveryStream("variables")
 @hash 8d6c264f3394665adc87ab1e1be07f677a5aa121fc29f4c4c2d048e467fe89ef 36 variables/packed
+  ok 6, CStructReadException 30
 @hash 8d6c264f3394665adc87ab1e1be07f677a5aa121fc29f4c4c2d048e467fe89ef 36 variables/aligned
+  ok 6, CStructReadException 30
 
 @test Truncations_CaptureTheLayoutFromEveryStream("write-codecs")
 @hash 9f04cfe93b7a45db060e8d855224d66de90620b54d16ac9ede9322ff216c39d8 618 write-codecs/packed
+  ok 6, CStructReadException 612
 @hash 7b221c4b0fa587d82f1846a60051fada3f0427cd05c8503ad5754e29fb7759aa 774 write-codecs/aligned
+  ok 6, CStructReadException 768
 
 @test Truncations_CaptureTheLayoutFromEveryStream("write-enums")
 @hash a830838d158e6605908e93d9ecc1f3f60a0a7ef9a5b3d010e05b0834c5c26eaf 84 write-enums/packed
+  ok 6, CStructReadException 78
 @hash ae1c5d0e5b85a24548ee5c28f05f7d2c1cbc240e7e8554b335a8815e4f511126 102 write-enums/aligned
+  ok 6, CStructReadException 96
 
 @test Truncations_CaptureTheLayoutFromEveryStream("write-padding")
 @hash 0a1ac45574a1effe5dff5c1ef1295660d406f37721576fa92c211983914860a4 84 write-padding/packed
+  ok 6, CStructReadException 78
 @hash 767765bbbec547ab4ab19f4b5d8889f64cc586149ae8c12e8ee2f9022cd830fa 102 write-padding/aligned
+  ok 6, CStructReadException 96
 
 @test Truncations_CaptureTheLayoutFromEveryStream("write-qualified")
 @hash 859f6a1065412f6607d3a457a96e67616b7aba6274143cc46c9ae8df3b6e84f8 36 write-qualified/packed
+  ok 6, CStructReadException 30
 @hash e6e3439954f5d603e9a1250667d919d8babcbb141b0f8d258ba65602e69e1254 42 write-qualified/aligned
+  ok 6, CStructReadException 36
 
 @test Truncations_CaptureTheLayoutFromEveryStream("write-scope")
 @hash bfc2b7b8b2633e1ff43ecd11d98243c957100b2cce1889c9c42fd17bb1932387 72 write-scope/packed
+  ok 6, CStructReadException 66
 @hash 399171fc0b631edb82f9facbc11e9066cf0659adbcf7d4e82390df2c3a6d910d 78 write-scope/aligned
+  ok 6, CStructReadException 72
 
 @test Truncations_CaptureTheLayoutFromEveryStream("write-text")
 @hash e33618b5f0c9b5f015ad81bc1698e890b8bbb6385e7f934dc1518b2bd93d6489 156 write-text/packed
+  ok 6, CStructReadException 150
 @hash 9e5523436aec0c4a05819a12e24bda3d727fe197aca8d38c9f332888700d026f 162 write-text/aligned
+  ok 6, CStructReadException 156

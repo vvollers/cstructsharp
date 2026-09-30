@@ -1,9 +1,12 @@
 # Golden outcomes of ReadEngineDebugTests: the reference each differential comparison checks the engine against.
 # Regenerate only for an intended, explained behaviour change: node tools/quality/engine-golden.mjs record (CONTRIBUTING.md).
-# @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes.
+# @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes,
+# counted by kind on the indented line below it.
 
 @test DebugParse_FailsWithoutRecordsAtEveryTruncation
-@hash 016336942c7fec63484b26c0d9b8cf1cba99ec63dde1c51d9811ac3a0bd7ad23 36
+@hash 72abbf156f17568d03f2862e09dcdb0da937f7a5705096787e848e25729e57c7 36
+  CStructReadException 36
 
 @test DebugParse_RecordsEveryValueInReadOrder
-@hash af1ec578864e4dca32b6bca4190a5d553f827e164dcc02ad6533229adc0b5170 8
+@hash 21206c72a140897422b6b882aaa32bdafe0bd2ecbb079b293708ca04a8faa29f 8
+  ok 8

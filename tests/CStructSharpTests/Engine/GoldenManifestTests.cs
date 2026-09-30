@@ -82,26 +82,34 @@ public class GoldenManifestTests
         }
     }
 
-    /// <summary>A manifest renders and parses back unchanged: readable outcomes with empty lines, empty outcomes, and hashed groups.</summary>
+    /// <summary>
+    ///     A manifest renders and parses back unchanged: readable outcomes with empty lines, empty outcomes, and hashed
+    ///     groups with their summary lines; a hashed group without its summary line is malformed.
+    /// </summary>
     [TestMethod]
     public void Manifest_RoundTripsItsFormat()
     {
         var manifest = new GoldenManifest(
             "Sample",
             [
-                new GoldenSection("B(\"x\", 2)", true, [GoldenEntry.Hashed(string.Empty, new string('a', 64), 3), GoldenEntry.Hashed("count/packed", new string('0', 64), 1)]),
+                new GoldenSection(
+                    "B(\"x\", 2)",
+                    true,
+                    [GoldenEntry.Hashed(string.Empty, new string('a', 64), 3, "ok 2, CStructReadException 1"), GoldenEntry.Hashed("count/packed", new string('0', 64), 1, "ok 1")]),
                 new GoldenSection("A", false, [GoldenEntry.Readable("Parse rec (Span) (Fastest)", Outcome), GoldenEntry.Readable("empty", string.Empty)]),
             ]);
         string text = manifest.Render();
         StringAssert.Contains(text, "\n@test A\n@case Parse rec (Span) (Fastest)\n  result = StructValue {1}\n\n  result.a = Byte 1\n@case empty\n\n@test B(\"x\", 2)\n@hash ");
-        StringAssert.Contains(text, "@hash " + new string('a', 64) + " 3\n@hash " + new string('0', 64) + " 1 count/packed\n");
+        StringAssert.Contains(text, "@hash " + new string('a', 64) + " 3\n  ok 2, CStructReadException 1\n@hash " + new string('0', 64) + " 1 count/packed\n  ok 1\n");
 
         GoldenManifest parsed = GoldenManifest.Parse("Sample", text);
         Assert.AreEqual(text, parsed.Render());
         Assert.AreEqual(Outcome, parsed.Sections["A"].ByKey["Parse rec (Span) (Fastest)"].Text);
         Assert.AreEqual(3, parsed.Sections["B(\"x\", 2)"].ByKey[string.Empty].Count);
+        Assert.AreEqual("ok 1", parsed.Sections["B(\"x\", 2)"].ByKey["count/packed"].Summary);
         Assert.Throws<FormatException>(() => GoldenManifest.Parse("Sample", "@case outside\n"));
         Assert.Throws<FormatException>(() => GoldenManifest.Parse("Sample", "@test A\n@hash 12 1\n"));
+        Assert.Throws<FormatException>(() => GoldenManifest.Parse("Sample", "@test A\n@hash " + new string('a', 64) + " 1\n\n@test B\n"));
         Assert.Throws<FormatException>(() => GoldenManifest.Parse("Sample", "@test A\n@case x\n  a\r\n"));
     }
 
@@ -132,8 +140,9 @@ public class GoldenManifestTests
     }
 
     /// <summary>
-    ///     A recording keeps a small test readable and hashes a sweep or a large test per part; the recorded hashes verify
-    ///     the same outcomes and report a changed outcome, and a group the test no longer reaches, when the test ends.
+    ///     A recording keeps a small test readable and hashes a sweep or a large test per part, with each part's outcomes
+    ///     counted by kind; the recorded hashes verify the same outcomes and report a changed outcome (with the changed
+    ///     kinds and an example of each), and a group the test no longer reaches, when the test ends.
     /// </summary>
     [TestMethod]
     public void RecordedSections_VerifyTheOutcomesTheyRecorded()
@@ -149,8 +158,9 @@ public class GoldenManifestTests
         sweep.Check("op", Outcome);
         Assert.IsTrue(sweep.Recorded()!.Hashed, "a sweep is hashed however small it is");
 
-        // Records the large outcomes of two parts, or compares them with a recorded section.
-        void Large(GoldenScope scope, int changed = -1, int parts = 2)
+        // Records the large outcomes of two parts, or compares them with a recorded section; every tenth outcome is a
+        // failure, and a changed outcome turns into a different failure (or, with same kind, keeps its kind).
+        void Large(GoldenScope scope, int changed = -1, int parts = 2, bool sameKind = false)
         {
             for (int part = 0; part < parts; part++)
             {
@@ -158,7 +168,13 @@ public class GoldenManifestTests
                 {
                     for (int index = 0; index < 40; index++)
                     {
-                        scope.Check("op", new string('x', 1000) + (part == 0 && index == changed ? "!" : string.Empty));
+                        string outcome = new string('x', 1000) + (index % 10 == 0 ? "\nfailure = failure CStructSharp.Diagnostics.CStructReadException" : string.Empty);
+                        if (part == 0 && index == changed)
+                        {
+                            outcome = sameKind ? outcome + "!" : "failure = failure System.ArgumentException";
+                        }
+
+                        scope.Check("op", outcome);
                     }
                 }
             }
@@ -170,6 +186,7 @@ public class GoldenManifestTests
         Assert.IsTrue(hashed.Hashed);
         CollectionAssert.AreEqual(new[] { "part 0", "part 1", }, hashed.Entries.Select(entry => entry.Key).ToArray());
         Assert.AreEqual(40, hashed.ByKey["part 1"].Count);
+        Assert.AreEqual("ok 36, CStructReadException 4", hashed.ByKey["part 1"].Summary);
 
         using GoldenScope same = Compare(hashed);
         Large(same);
@@ -178,8 +195,19 @@ public class GoldenManifestTests
         using GoldenScope different = Compare(hashed);
         Large(different, changed: 7);
         string message = Assert.Throws<AssertFailedException>(different.Verify).Message;
-        StringAssert.Contains(message, "the group 'part 0' differs from its golden outcomes: 40 outcomes hash to ");
+        StringAssert.Contains(message, "the group 'part 0' differs from its golden outcomes:\n  golden: 40 outcomes (ok 36, CStructReadException 4), hash ");
+        StringAssert.Contains(message, "  engine: 40 outcomes (ok 35, ArgumentException 1, CStructReadException 4), hash ");
+        StringAssert.Contains(message, "the engine's first outcome of each kind whose count changed:\n  [ok]\n");
+        StringAssert.Contains(message, "  [ArgumentException]\nfailure = failure System.ArgumentException\n");
+        Assert.DoesNotContain("[CStructReadException]", message);
         Assert.DoesNotContain("'part 1' differs", message);
+
+        using GoldenScope sameKinds = Compare(hashed);
+        Large(sameKinds, changed: 0, sameKind: true);
+        message = Assert.Throws<AssertFailedException>(sameKinds.Verify).Message;
+        StringAssert.Contains(message, "  engine: 40 outcomes (ok 36, CStructReadException 4), hash ");
+        StringAssert.Contains(message, "the engine's first outcome of each kind:\n  [ok]\n");
+        StringAssert.Contains(message, "CStructReadException!\n");
 
         using GoldenScope fewer = Compare(hashed);
         Large(fewer, parts: 1);

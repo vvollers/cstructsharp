@@ -1,1267 +1,1906 @@
 # Golden outcomes of EngineSweepTests: the reference each differential comparison checks the engine against.
 # Regenerate only for an intended, explained behaviour change: node tools/quality/engine-golden.mjs record (CONTRIBUTING.md).
-# @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes.
+# @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes,
+# counted by kind on the indented line below it.
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("bitfields")
-@hash d86a46d4fcb11a6c4a1f0940a989b2f7cb87a1a805374198b98f6cef5617482d 266 bitfields/packed
-@hash d3ad94a04f66360b2b2e26a8656513179436b3c61952e3b62172ebb09b90f633 312 bitfields/aligned
+@hash 5dd670cb32ee91585980160894a24b92897ff7aef36d237260debbe108274e8f 266 bitfields/packed
+  ok 140, CStructReadLimitException 84, CStructWriteLimitException 42
+@hash 7ef1d061af101ef69e79442af778f16b3e4eb1cb013cc8e3ce54f2ff4527d709 312 bitfields/aligned
+  ok 158, CStructReadLimitException 96, CStructWriteLimitException 58
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("bitfields-enum-counts")
-@hash f98fbb3e277a029f22ace6c4c593cecd6b99802a039af2aaeee06e5e8ca6888c 418 bitfields-enum-counts/packed
-@hash b55498d1b0abac610213efdb9f4b50ce664659157d21ed2135b46da7c7e1b35d 434 bitfields-enum-counts/aligned
+@hash d7d00b2d5989c65ffa490f6f8026bb8ee6147a027f2d545cfb70239f09619991 418 bitfields-enum-counts/packed
+  ok 202, CStructReadException 6, CStructReadLimitException 136, CStructWriteLimitException 74
+@hash eba66bd6bf488571ee2f585695ca8966ffb9297e4ff386f9decf8aa2f1aac84b 434 bitfields-enum-counts/aligned
+  ok 204, CStructReadException 20, CStructReadLimitException 124, CStructWriteLimitException 86
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("bitfields-high")
-@hash 49fe9a7e127566dc3422b647af9e5551ae16423939b6eeecadea718cc906ab47 380 bitfields-high/packed
-@hash 49fe9a7e127566dc3422b647af9e5551ae16423939b6eeecadea718cc906ab47 380 bitfields-high/aligned
+@hash 7fff138ab6dd3886aec61ee6483323045fbe7faca7dbb195829c78fe022859c9 380 bitfields-high/packed
+  ok 154, CStructReadLimitException 160, CStructWriteLimitException 66
+@hash 7fff138ab6dd3886aec61ee6483323045fbe7faca7dbb195829c78fe022859c9 380 bitfields-high/aligned
+  ok 154, CStructReadLimitException 160, CStructWriteLimitException 66
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("bitfields-msvc")
-@hash 1511a83289b65d2917615da204a215a06743276922d44cb9b9f34512cce01a95 418 bitfields-msvc/packed
-@hash ff97a58eb772faced0f09aa378d10a621b2e170d8d35b7bdee17102cc6816171 442 bitfields-msvc/aligned
+@hash bfd4aa26a317a4dd16a787da4e68ff2bfcc850dbea3955e8e075b254442e30eb 418 bitfields-msvc/packed
+  ok 158, CStructReadLimitException 186, CStructWriteLimitException 74
+@hash 51ae05247230b962e81e1edfc9a04b6c4f701598275eaae8610d465993601f97 442 bitfields-msvc/aligned
+  ok 156, CStructReadException 6, CStructReadLimitException 182, CStructWriteLimitException 98
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("conditional")
-@hash 971c272ecf751ec705fefdd2c5812e665b2e195531dc38ac7b38b0bf19ebb754 190 conditional/packed
-@hash 4e3d42d73788af9194ecc7a12eefb1bfb4424fe187017a636ec78fdff70f3a1e 206 conditional/aligned
+@hash 9260df331f4d6811e523be3717218c1b804b976147624b31987144733138cff2 190 conditional/packed
+  ok 66, CStructReadLimitException 98, CStructWriteLimitException 26
+@hash 50561d24a7319bf73112363135ca82b693b0375667551f299543726b171be473 206 conditional/aligned
+  ok 66, CStructReadException 8, CStructReadLimitException 92, CStructWriteLimitException 40
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("count")
-@hash fcb0cd090e747a731f3893f8dfe20dea517e12631a718f4cf3f4a472df8d68b1 342 count/packed
-@hash 17f94f1dbe270deae2372f8e0aef1aa1ff21b99fdc18d0074c8fd8a405042034 358 count/aligned
+@hash bde8ac08fc8deb3de0367ec9bfd6cd56fb4635b550defa401c7d8e3c13fa0436 342 count/packed
+  ok 206, CStructReadException 10, CStructReadLimitException 64, CStructWriteLimitException 62
+@hash bbac05063050c0b1e5aad33938c3ee4e2c8afbc7cd0e36d902a83950954f612b 358 count/aligned
+  ok 206, CStructReadException 16, CStructReadLimitException 60, CStructWriteLimitException 76
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("custom-codec")
-@hash 51b40e82c798a2f950d4258911b4bfb65e4b4919209c0af72a7f97932d331491 228 custom-codec/packed
-@hash 51b40e82c798a2f950d4258911b4bfb65e4b4919209c0af72a7f97932d331491 228 custom-codec/aligned
+@hash c25772644eef29345990594b97df1d0fb5c8b7cc5907b3bee65a3504e15ae5fb 228 custom-codec/packed
+  ok 50, CStructReadLimitException 132, CStructWriteException 14, CStructWriteLimitException 32
+@hash c25772644eef29345990594b97df1d0fb5c8b7cc5907b3bee65a3504e15ae5fb 228 custom-codec/aligned
+  ok 50, CStructReadLimitException 132, CStructWriteException 14, CStructWriteLimitException 32
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("custom-fixed")
-@hash 85e310d7cf78d5ab2825820ee6dec6dff4c96fdc688404ba1152dadefedeacff 722 custom-fixed/packed
-@hash cbf08f893f2c4d19881d12d0062d64a0cfb4a8cbcf558cb60579cf83bb29a33e 834 custom-fixed/aligned
+@hash 3ff79ecbfb0cc22b1e080b1f494717430993c38c70a1fec7d9157d9d56be8533 722 custom-fixed/packed
+  ok 250, CStructReadLimitException 334, CStructWriteLimitException 138
+@hash 565f017f51a0b9a6332af3b96fc09b003f88c46d91ad948775eaf306aa0547ec 834 custom-fixed/aligned
+  ok 252, CStructReadException 38, CStructReadLimitException 300, CStructWriteLimitException 244
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("enum-bitfield")
-@hash 7ba729c4f24b22748d57cdc9191fede88c29c6d8f23b838713e8825ee9d463fe 304 enum-bitfield/packed
-@hash a7bdd9616ba888f34c7a49e6a92aa3039928388abb28f01d064fecbb64b73d55 312 enum-bitfield/aligned
+@hash 013dca83b1c93dec4e09d3742a44cb3c78ecbe8903e7c4a99ae720addae1f800 304 enum-bitfield/packed
+  ok 174, CStructReadException 4, CStructReadLimitException 76, CStructWriteLimitException 50
+@hash e14f0385740b0e9218dcd34dac67cbc5069d470a8f4e91ac3bcad6f1dde09741 312 enum-bitfield/aligned
+  ok 174, CStructReadException 6, CStructReadLimitException 74, CStructWriteLimitException 58
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("fixed")
-@hash 233589d1fe4b50e29f3e458848b5d44056491f6f06828df0cbd18a4f26ee2fc8 608 fixed/packed
-@hash 3e6176d34a1c45a39d6dff67544a1455449ebfc6d0e8bc75594459e68fd86966 648 fixed/aligned
+@hash de7f8b7f641b0c1703e08cbd0df8f5750a9b6d127f58a6208e11b818b471a2b5 608 fixed/packed
+  ok 272, CStructReadLimitException 204, CStructWriteLimitException 132
+@hash f94e38e1772a7837b9778b838f8704c42a48825dd2e5a48aef5da07157787bec 648 fixed/aligned
+  ok 274, CStructReadException 30, CStructReadLimitException 178, CStructWriteLimitException 166
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("inline-qualified")
-@hash 62e80cfffb457f946bc0649c826fc4ee0d05105819d05060e1339daadae20d9a 342 inline-qualified/packed
-@hash 4ac7bd11d7aff6ad1129615195951ffc673c12617e986d16ef5c363d712b99d2 388 inline-qualified/aligned
+@hash e21378a80e5179094714e422f48a8b3da1a4be3433b89b68a893ce01c690d544 342 inline-qualified/packed
+  ok 184, CStructReadException 6, CStructReadLimitException 88, CStructWriteLimitException 64
+@hash fd0dff2ac64a9309055eebcf0dcdf58acaf7fe1d217913c1cd5976622cdc7de5 388 inline-qualified/aligned
+  ok 211, CStructReadException 14, CStructReadLimitException 85, CStructWriteLimitException 78
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("leb128")
-@hash dbecbcc0631f20ed6fa191576de271cf202b172b3c725a5ef5d396481d2ef675 342 leb128/packed
-@hash dbecbcc0631f20ed6fa191576de271cf202b172b3c725a5ef5d396481d2ef675 342 leb128/aligned
+@hash 832701107a0c68e8d45db8412cff895f891f4df376a7a18f959012c6a8d66b9a 342 leb128/packed
+  ok 94, CStructReadException 4, CStructReadLimitException 136, CStructWriteException 48, CStructWriteLimitException 60
+@hash 832701107a0c68e8d45db8412cff895f891f4df376a7a18f959012c6a8d66b9a 342 leb128/aligned
+  ok 94, CStructReadException 4, CStructReadLimitException 136, CStructWriteException 48, CStructWriteLimitException 60
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("multidim")
-@hash b5f0700b11f81b34868613671fcdd0945ad2151ecc46970336a11364ce152397 1482 multidim/packed
-@hash 1213cfdc5eac0d12851a80348d2f35c183512c3061e86d94230ba431f3f91ac3 1498 multidim/aligned
+@hash ed4d42af96cda2574a2123b49852ab49e4061f6b3ba829aa069db24fd159a3d2 1482 multidim/packed
+  ok 804, CStructReadLimitException 382, CStructWriteLimitException 296
+@hash 5d47900ed5f3d729608df83e121d120caa576d4376ec462d2f136da1da8847ee 1498 multidim/aligned
+  ok 804, CStructReadException 76, CStructReadLimitException 308, CStructWriteLimitException 310
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("multidim-structs")
-@hash de8b5b7ba8c13c1394651427bff4a5fff1fb372c3d7c9c58991641a8a978da44 1178 multidim-structs/packed
-@hash 5510b5d7e562ee8c27825ea9b732ad733194b38d990ace6e0998695a578d7aa8 1346 multidim-structs/aligned
+@hash de94d762c38b90b1678976f892c9e7c841b1ba43bcff707c36dcfadf9cda25f7 1178 multidim-structs/packed
+  ok 548, CStructReadLimitException 398, CStructWriteLimitException 232
+@hash 3486e67ceb761dbeda6dcb39688a4984c2b367fccf1a8848c2b015af22c59a55 1346 multidim-structs/aligned
+  ok 651, CStructReadException 68, CStructReadLimitException 353, CStructWriteLimitException 274
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("nested")
-@hash bf5031ec4868a57d771a92606d08f06c6a2051f702ea817695df53ac90da027c 418 nested/packed
-@hash 81138d47f2dface04a62baeb0728dcce3f683c4341a0874d9ec49fa0d6e1b6de 510 nested/aligned
+@hash 335a3a7394102164fa859939d8f3dc818e71ea757ab87358d757fdbf40e630b3 418 nested/packed
+  ok 192, CStructReadLimitException 152, CStructWriteLimitException 74
+@hash 4642e39174d4bdcb928b501c6003b279bc1fda9ab2900282727c5221003c722a 510 nested/aligned
+  ok 246, CStructReadException 24, CStructReadLimitException 140, CStructWriteLimitException 100
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("pointer-arrays")
-@hash 442368ab65e934592d11c376cd118bd4c2839fa03c6a70c8ae96b8ad44b5e11a 276 pointer-arrays/packed
-@hash 442368ab65e934592d11c376cd118bd4c2839fa03c6a70c8ae96b8ad44b5e11a 276 pointer-arrays/aligned
+@hash 34088756e3e3b9c267ae8eb08fec1a44aa38c4d2ff1960f4748a5027214d700d 276 pointer-arrays/packed
+  ok 148, CStructReadLimitException 88, CStructWriteLimitException 40
+@hash 34088756e3e3b9c267ae8eb08fec1a44aa38c4d2ff1960f4748a5027214d700d 276 pointer-arrays/aligned
+  ok 148, CStructReadLimitException 88, CStructWriteLimitException 40
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("pointer-counted")
-@hash c39480df0155888d92e32ce748a4ed733d9150bb57d250f0bf8e28fb50a4ddba 312 pointer-counted/packed
-@hash c39480df0155888d92e32ce748a4ed733d9150bb57d250f0bf8e28fb50a4ddba 312 pointer-counted/aligned
+@hash ba5255ffa2086f34e56d8297e495412a373db16562a32bcd7bcf78c5415033b9 312 pointer-counted/packed
+  ok 132, CStructPathException 24, CStructReadLimitException 124, CStructWriteLimitException 32
+@hash ba5255ffa2086f34e56d8297e495412a373db16562a32bcd7bcf78c5415033b9 312 pointer-counted/aligned
+  ok 132, CStructPathException 24, CStructReadLimitException 124, CStructWriteLimitException 32
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("pointer-list")
-@hash 3b7f3c0e26af9536c8219fb973bd4c2e3511c8338e2db17daff0d4e7d28e40b7 372 pointer-list/packed
-@hash 3b7f3c0e26af9536c8219fb973bd4c2e3511c8338e2db17daff0d4e7d28e40b7 372 pointer-list/aligned
+@hash 9bc9998af10cdbf7514503a6ce381d1aaefd140fa3f6883b7b92976cb57b8124 372 pointer-list/packed
+  ok 154, CStructReadLimitException 170, CStructWriteLimitException 48
+@hash 9bc9998af10cdbf7514503a6ce381d1aaefd140fa3f6883b7b92976cb57b8124 372 pointer-list/aligned
+  ok 154, CStructReadLimitException 170, CStructWriteLimitException 48
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("pointer-views")
-@hash c35c3a8220ab761c2bd40d3d8326047b10e3e18f5931ba340c755d44068a015c 268 pointer-views/packed
-@hash c35c3a8220ab761c2bd40d3d8326047b10e3e18f5931ba340c755d44068a015c 268 pointer-views/aligned
+@hash 0233af4f96f4f20036e792b20c990d316c7c943dc147fb5211b2dfefd5d375a2 268 pointer-views/packed
+  ok 132, CStructReadLimitException 104, CStructWriteLimitException 32
+@hash 0233af4f96f4f20036e792b20c990d316c7c943dc147fb5211b2dfefd5d375a2 268 pointer-views/aligned
+  ok 132, CStructReadLimitException 104, CStructWriteLimitException 32
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("pointers")
-@hash 5aec8516e730755af39190fdbcae732f5a959e0babefa98de22dffd4acae74d5 378 pointers/packed
-@hash 5aec8516e730755af39190fdbcae732f5a959e0babefa98de22dffd4acae74d5 378 pointers/aligned
+@hash 3c1b0179c5d2513a5402293f6d32729df84384d7b89378c2a298fe932ef09a47 378 pointers/packed
+  ok 214, CStructReadException 10, CStructReadLimitException 122, CStructWriteLimitException 32
+@hash 3c1b0179c5d2513a5402293f6d32729df84384d7b89378c2a298fe932ef09a47 378 pointers/aligned
+  ok 214, CStructReadException 10, CStructReadLimitException 122, CStructWriteLimitException 32
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("promoted")
-@hash 359824284127967e1a81c3ea217aaf9ab2959a78d9c1f563854da86715b33216 304 promoted/packed
-@hash 2f0184a71f4ae3f9de38fe7c0304fa6445118ccc7b851fda5e7b8cd794c7239e 358 promoted/aligned
+@hash 812383a2338670c93f13f67e221b4d47486fe923a17177d9cca89dc58aa82d1d 304 promoted/packed
+  ok 164, CStructReadException 2, CStructReadLimitException 88, CStructWriteLimitException 50
+@hash 0885b572971119026fc6d2f8f3a59c4454e30dcc8ebd4dd013171f0806c980e8 358 promoted/aligned
+  ok 191, CStructReadException 16, CStructReadLimitException 81, CStructWriteLimitException 70
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("promoted-union")
-@hash b5ef2bca381bb5eff42af32caf5dce17705472eeb3f2a70ede1e77c4ce682f48 378 promoted-union/packed
-@hash e387e7f6d61989c4a80395b9a3969284346fed37bb70278db9cb34fc208ca64c 462 promoted-union/aligned
+@hash 2379905929d4d7803a47a734e8c55791c342faedff6e6c4e3797374164786b9d 378 promoted-union/packed
+  ok 242, CStructReadLimitException 102, CStructWriteLimitException 34
+@hash 49c671705dc50419b3a5cc32ef4f733e8e4218fedc0fcbb2b4e60a5c51f07dce 462 promoted-union/aligned
+  ok 290, CStructReadException 8, CStructReadLimitException 108, CStructWriteLimitException 56
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("terminated")
-@hash bf381dd31c0b5865741a94cc9ec40aff49f4e17bcc9a039481eb8ad56cb1e1ea 748 terminated/packed
-@hash bf381dd31c0b5865741a94cc9ec40aff49f4e17bcc9a039481eb8ad56cb1e1ea 748 terminated/aligned
+@hash b0555c871a00b869c31607d6d1b7b3133531a9482c0167d2e4187fe3e7c1e13e 748 terminated/packed
+  ok 192, CStructReadLimitException 468, CStructWriteException 12, CStructWriteLimitException 76
+@hash b0555c871a00b869c31607d6d1b7b3133531a9482c0167d2e4187fe3e7c1e13e 748 terminated/aligned
+  ok 192, CStructReadLimitException 468, CStructWriteException 12, CStructWriteLimitException 76
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("terminated-scalars")
-@hash 8b3762db6a8364d369446398f05095e12c7cbd8e23e071dacc84dc2cf9231bd2 462 terminated-scalars/packed
-@hash 50b4ef8f1248831b25a0e5dd3ea06d9093a35a81e6805ec1de1def3d46f8e373 478 terminated-scalars/aligned
+@hash efa7c5aee6838fbb94c8cfaaa2a557f5e2be76c357e4bf3770799622b1116f72 462 terminated-scalars/packed
+  ok 194, CStructReadLimitException 210, CStructWriteLimitException 58
+@hash 9845a7336448605270e6bbb2d889a632fd3eb392be151dee6d36e7c488979427 478 terminated-scalars/aligned
+  ok 196, CStructReadException 12, CStructReadLimitException 198, CStructWriteLimitException 72
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("text")
-@hash 25603e56f60b2337d296f5287e459c2fba27649e288bd7b5550b46b07d7942ed 684 text/packed
-@hash 840637ba0de397579b70cd161efbad527f5349deb2b5faca959df4fadb3827c4 692 text/aligned
+@hash 9a3a2d26582df8860636c000d50d8e656d55c1dfd3aa9b811fc973a4c362217f 684 text/packed
+  ok 338, CStructReadLimitException 170, CStructWriteLimitException 176
+@hash 4196c0c19b297109f767ad1df423089122cdb78f8cdb26ba3bbb6ee74a9bd661 692 text/aligned
+  ok 338, CStructReadLimitException 170, CStructWriteLimitException 184
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("to-end")
-@hash e8e12471042f2e44888d4433b0e569bcfe29a9a0a728b00e79542d42af4b53b6 270 to-end/packed
-@hash e8e12471042f2e44888d4433b0e569bcfe29a9a0a728b00e79542d42af4b53b6 270 to-end/aligned
+@hash bc39b7b57c431bf9961c5366c063eb53a9e997e4bc3f73036bc0b0d7b4e0a55c 270 to-end/packed
+  ok 128, CStructReadException 6, CStructReadLimitException 78, CStructWriteLimitException 58
+@hash bc39b7b57c431bf9961c5366c063eb53a9e997e4bc3f73036bc0b0d7b4e0a55c 270 to-end/aligned
+  ok 128, CStructReadException 6, CStructReadLimitException 78, CStructWriteLimitException 58
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("to-end-structs")
-@hash 172acf8ae0b6a23727016ed498a80292a94ca38390fc8ac7217538926424c63f 304 to-end-structs/packed
-@hash 4be88deb59d44ecc0a8a68448891c5e945d5f1a5f41a1653fa2ae76bbbe57fce 358 to-end-structs/aligned
+@hash f37547f5a037d07caf997e2fe7a792a71a0091cf191e75c0462f28c4d89281a1 304 to-end-structs/packed
+  ok 182, CStructReadException 8, CStructReadLimitException 64, CStructWriteLimitException 50
+@hash 1338dbc762a5bce8274fe9ee91ac03815d6dddda7e659839b6a19c2a65e49a09 358 to-end-structs/aligned
+  ok 215, CStructReadException 12, CStructReadLimitException 63, CStructWriteLimitException 68
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("union")
-@hash b82dafa1eff0ecb82806e0f37b062421a332792e3e55247601f2b7e13e94487d 476 union/packed
-@hash 8c780863304d1dc985be5883910bedc8d1c21b8a2c5762547f713df661751439 524 union/aligned
+@hash b9a23614501e0aaba1591a7994f49a3dfc8dca45e29b2f7ab465e8686b9e618a 476 union/packed
+  ok 288, CStructReadLimitException 142, CStructWriteLimitException 46
+@hash 0e9b00731dbeee7b19014483ab44689585e2fec80d897b9fe71ee09491b33cfc 524 union/aligned
+  ok 294, CStructReadException 12, CStructReadLimitException 130, CStructWriteLimitException 88
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("union-arrays")
-@hash be525ece36683ddc797f3a2ca56cb43fac347b166dd3b8bf9aa50f65c9e13fed 386 union-arrays/packed
-@hash 60813e5d384d6683ce115e40cc98c5da114104cca9114157fe1f937416ad12ea 402 union-arrays/aligned
+@hash 2a7d735f3d34e6ebd6439a6a6426fc3a9c2272ee47a91dd81c0c6eb790c3691d 386 union-arrays/packed
+  ok 208, CStructReadLimitException 138, CStructWriteLimitException 40
+@hash 27376f36f5d9be0fad4868eb26a48fece5184f16fe9345a7497f61dae8a7505e 402 union-arrays/aligned
+  ok 210, CStructReadException 8, CStructReadLimitException 130, CStructWriteLimitException 54
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("union-bitfields")
-@hash 6f4c827749d95b0796385074941529d67939598ba7e2e0bbc81274aa1c942065 340 union-bitfields/packed
-@hash b78e753d69fb50332f8c11bb838d7b67b0d8f50e529f00edd8f46d0c081537dc 356 union-bitfields/aligned
+@hash 86a7e064ac90cd0639fc193bf02a976f060befe139b7c7a92d3b816fbe4dca40 340 union-bitfields/packed
+  ok 232, CStructReadLimitException 84, CStructWriteLimitException 24
+@hash ef6154d79a77276a0a1bd539b1cb73f2930c24d5a03e06ab790b7fffffe34ad8 356 union-bitfields/aligned
+  ok 234, CStructReadException 4, CStructReadLimitException 80, CStructWriteLimitException 38
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("union-conditional")
-@hash 44feb2bdc0ad8ac64d0df240e14ab4d7fd1265968215a2aa48207d148d35d0a7 552 union-conditional/packed
-@hash 7223ceba671babca9fe77afd52145234e2a7880fe907408aea547b0bd36e8e12 568 union-conditional/aligned
+@hash dadccf21ac21162917d3bb11e9994441fc7f99b98b8ebc95408a4bfb37491f80 552 union-conditional/packed
+  ok 158, CStructReadLimitException 338, CStructWriteLimitException 56
+@hash 2d70c1101d8182dbc9202aaface6bf10e38427b37115e5c867eb64f85a3bd06f 568 union-conditional/aligned
+  ok 160, CStructReadException 8, CStructReadLimitException 330, CStructWriteLimitException 70
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("union-nested")
-@hash 53b0e38cb9118127eaa4b6491fb631eae75a88f73c231b579393ceb4c7ce8fd2 898 union-nested/packed
-@hash f064e5e39fdc3fdfcdba4a3e9e5ce5215b768ee95f3bb16444f5642ac264b631 946 union-nested/aligned
+@hash 73783e074ec56500df5a30829ac892c41666f93f1dcf9f61ddb1099bb420d72d 898 union-nested/packed
+  ok 562, CStructReadLimitException 258, CStructWriteLimitException 78
+@hash c7e88a107b1db7f92a8ba694fdda31135a929664fc2aa057dfb25a1697245803 946 union-nested/aligned
+  ok 568, CStructReadException 12, CStructReadLimitException 246, CStructWriteLimitException 120
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("variables")
-@hash 27a83f833d4d39b8a94b01acf35ebe6552bef9b755c89f198cbb763a2a9645c3 180 variables/packed
-@hash 27a83f833d4d39b8a94b01acf35ebe6552bef9b755c89f198cbb763a2a9645c3 180 variables/aligned
+@hash 954c8b4d38b487e444a4bae6551ad7d799fa40f2f34630e9cbb8c58003a9b6ca 180 variables/packed
+  ok 106, CStructReadException 4, CStructReadLimitException 38, CStructWriteLimitException 32
+@hash 954c8b4d38b487e444a4bae6551ad7d799fa40f2f34630e9cbb8c58003a9b6ca 180 variables/aligned
+  ok 106, CStructReadException 4, CStructReadLimitException 38, CStructWriteLimitException 32
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("write-codecs")
-@hash a29bfc94c9eb4f2d4c51b1d869b8027c44e6a4b07083d05eaf9acd4f4e5fb2a0 3914 write-codecs/packed
-@hash 2c717e05c1fae0ae8c882ab6a6b1499b8daaf92e820ab43f2929645121379b94 4122 write-codecs/aligned
+@hash f1d91ac7fb9bcbcbf1f1e122cef276d098d6b18f237d2b1e8998f939edcebf6a 3914 write-codecs/packed
+  ok 1476, CStructReadLimitException 1626, CStructWriteLimitException 812
+@hash 4a5caeba3699145b67c8fb27a7936f641b6def721514a1ba95dc09e75987b249 4122 write-codecs/aligned
+  ok 1478, CStructReadException 172, CStructReadLimitException 1458, CStructWriteLimitException 1014
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("write-enums")
-@hash 4eb07b29de5c95aa44f314d8b97b24e070863ee05053811790aa73fece3fa7b8 532 write-enums/packed
-@hash c07680b17bd6e1db2d9b7b2aad085a167bcaccdb649947b1bb910c0374eb0d2d 556 write-enums/aligned
+@hash 83893487511a5783b6f1f8086fa215d71dbf42aceeae02b99d6217b12c4c25d9 532 write-enums/packed
+  ok 288, CStructReadLimitException 148, CStructWriteLimitException 96
+@hash f03c82a05dc8aab1682f49acd4fa4a92ddec46b168b1461994fb17887b1c9232 556 write-enums/aligned
+  ok 288, CStructReadException 28, CStructReadLimitException 124, CStructWriteLimitException 116
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("write-padding")
-@hash b71bcbdd42231cd7a95cfc2e11465ff6c0cd3c3ff14a43482d6d722d534be3da 532 write-padding/packed
-@hash 7278f3a7478f27d6f8b6393a6c1aa2eed55b9038f188dee02691165cd5837dbe 556 write-padding/aligned
+@hash d7b2c2597878092236b0f68be4b06016a7c7c74ceb3cc69ea390807c6f633af7 532 write-padding/packed
+  ok 258, CStructReadLimitException 172, CStructWriteLimitException 102
+@hash e0286f881ff211fc0d3c7a68b91bab83c1b55097bf319f7bb008cd1c36c0dd61 556 write-padding/aligned
+  ok 256, CStructReadException 20, CStructReadLimitException 156, CStructWriteLimitException 124
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("write-qualified")
-@hash c46ddf74fb11e521aaec649b7c603313e62eb741e4e491b1fbffe8a93abbf172 180 write-qualified/packed
-@hash 2643f88f1ccf4be6e50f1d9f035d57007b2894a287fe0c7249cdbe1cb1ec2c14 188 write-qualified/aligned
+@hash 32ac19937428d418d8208e5dcfbcd99956ab00a826b329255e5c3de7c03d4b59 180 write-qualified/packed
+  ok 96, CStructReadException 2, CStructReadLimitException 50, CStructWriteLimitException 32
+@hash 803c4cc939b793fc93ad8b78844e4b7122ed9f271904db8be2c9efc9c35f9b5f 188 write-qualified/aligned
+  ok 96, CStructReadException 2, CStructReadLimitException 50, CStructWriteLimitException 40
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("write-scope")
-@hash 0e330dd9aacf6f63d74073560cf9ca8e1e91f4301394fed806e7977628c9dd85 456 write-scope/packed
-@hash 12a73e03319673cc6b4d72201f4c179a1ab9942feb3d360ef82834c5bf3cbb4e 464 write-scope/aligned
+@hash cce39bdb928771f386da6dc1070b8784e135d9af220986b0578b2576078508e5 456 write-scope/packed
+  ok 112, CStructReadException 2, CStructReadLimitException 262, CStructWriteLimitException 80
+@hash ece3a45ce3b531496c7fc12c5f3d7a66ea4699f6c37d8c6fbcad26ca1c598d47 464 write-scope/aligned
+  ok 112, CStructReadException 2, CStructReadLimitException 262, CStructWriteLimitException 88
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("write-text")
-@hash 254b54e413fe5c1f4c78539498f57ffaff7fad241e740980bfc44231281506dc 1318 write-text/packed
-@hash 6ef66b06c7c5f6a915e8445034c4b170a718094c07a1cea6d5f1775f2714af24 1416 write-text/aligned
+@hash f13b19dda76bc3fae857151a31b19859325171ae2421ca01824f3e07c4b47b23 1318 write-text/packed
+  ok 510, CStructReadLimitException 598, CStructWriteLimitException 210
+@hash 5a36a7faf5a9eff339aac9687c391b2eb18ddd4cc412cd8175244c4596d86a56 1416 write-text/aligned
+  ok 544, CStructReadLimitException 654, CStructWriteLimitException 218
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("bitfields")
-@hash 2caa6527893471636a539c5c968a17869c347f434aa95e5eaace3a6911c33efd 36 bitfields/packed
-@hash 2d26edf7a0d1c96894567f3520b1f6e650029a3547324a66a0321bdd5ee7d3aa 36 bitfields/aligned
+@hash 27d930f12b5b8493a79da099c8039227eaedc5ef2025a55ba2593d3135d01e33 36 bitfields/packed
+  ok 36
+@hash deced6f0856a0580661c79317dc308cb4a36e39b2daf8238e218eb4dc43bea6d 36 bitfields/aligned
+  ok 36
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("bitfields-enum-counts")
-@hash 689d81ea155de7b32167fc91ffb523331fca96865247c5b5a74b5a3385fb44c5 294 bitfields-enum-counts/packed
-@hash c531ebed504f167ec07ea1cb88c996efbe1e55ecb3f8b460b29770ebb7325adc 294 bitfields-enum-counts/aligned
+@hash d0b4240fa24b296151c43fcbd23e3d36357fad3fe85c17b67aeb1534a172d839 294 bitfields-enum-counts/packed
+  ok 294
+@hash c724d71524862cdaf5b7c37fc79969b2ca0e55445e5d4e8f007c85b53735c4ca 294 bitfields-enum-counts/aligned
+  ok 294
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("bitfields-high")
-@hash 6d86662b0adf03878b3ed73b5c59b0ccb41a0510c3fb413e6616a22639c86dee 36 bitfields-high/packed
-@hash 6d86662b0adf03878b3ed73b5c59b0ccb41a0510c3fb413e6616a22639c86dee 36 bitfields-high/aligned
+@hash 4c09ee76d9857e0400b0c094568aa7189ddb243bfde6b4e9e99daccf1a49fd97 36 bitfields-high/packed
+  ok 36
+@hash 4c09ee76d9857e0400b0c094568aa7189ddb243bfde6b4e9e99daccf1a49fd97 36 bitfields-high/aligned
+  ok 36
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("bitfields-msvc")
-@hash b23321ae9fe9d5134b7c0c9a46d1e96b5279204af5559ce4d743ab7ebba7f4d3 36 bitfields-msvc/packed
-@hash b020bc6ad49fd9cdb24fa581cd862315ad68693b2c21e4ebe1260b5c0cb752c5 36 bitfields-msvc/aligned
+@hash 22418f7313fae672eb6bd760d4322a14fe8f08786d7ab31ca66f2d85a3381275 36 bitfields-msvc/packed
+  ok 36
+@hash 00a121652b029165a9387f1bfb912ee4da9e8c257fa5c4f28e0761e2eb1c3a5c 36 bitfields-msvc/aligned
+  ok 36
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("conditional")
-@hash 7324ed535f360a3d8f914e703dcdd5e26c27245c4c7942e4152186dcb618b744 144 conditional/packed
-@hash 3960409b3265de700e15bab38af8d531958d9a15e7583c073fcccb2a698b0590 144 conditional/aligned
+@hash ef22f5ea0bc79590b72c8a9901b5de2779972c77c7eefee0409a00606c57459c 144 conditional/packed
+  ok 144
+@hash 1f181b002c64ec340652ddc62bd1c23c28ef78aa2af97bfc4b5986353102c40d 144 conditional/aligned
+  ok 144
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("count")
-@hash 6ba32087e27ee9e428333cc3cf973c98e799ac2e2e11d25c1f2ed8a13092394d 168 count/packed
-@hash 65345f150d18eb738429823ff2d50f60d42014ab6a13142455e47097a665d79a 168 count/aligned
+@hash c248869e65b1c50b0225729676f780f1b14cf26a1d2280d791a3d100b4dc658a 168 count/packed
+  ok 168
+@hash cfb09d22159a16d9d056adc46663983194711d8b388a2054ce02d347f08028fc 168 count/aligned
+  ok 168
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("custom-codec")
-@hash 4950673458f9d6d593938040519fa56a5da25d34983975cacf1c530573f6ab2b 168 custom-codec/packed
-@hash 4950673458f9d6d593938040519fa56a5da25d34983975cacf1c530573f6ab2b 168 custom-codec/aligned
+@hash 476328d1dc2293dabdb3a1f18aca3a67dcf98f61e1dc1713751c6a39943db74b 168 custom-codec/packed
+  ok 168
+@hash 476328d1dc2293dabdb3a1f18aca3a67dcf98f61e1dc1713751c6a39943db74b 168 custom-codec/aligned
+  ok 168
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("custom-fixed")
-@hash 3ea683e4cee204b9594cb788ebb6b6d99b4ed5d04dde7621a9f78aeae8ab5b3b 42 custom-fixed/packed
-@hash 26df6212805d90a490269ee1d2086d3e532e3ea870edbdd7a441d5077fd93d20 42 custom-fixed/aligned
+@hash d1bc429114bb2faaef6a6df27b38c2e83707e1752dc237b21ac8be49d56b7464 42 custom-fixed/packed
+  ok 42
+@hash 68755625cd2ca925000e135778e9aa563f6b527e5e0ffcf23adaca99d844a756 42 custom-fixed/aligned
+  ok 42
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("enum-bitfield")
-@hash 3b3785a04594b42e0324a3a461c87f3e8d5b2d405a3ad4a8a6c0f7b28239c665 42 enum-bitfield/packed
-@hash 0a3cacd5745b254bbe2c03c4e7e01fa4f0a574050c7b164b9ea95c14c233876b 42 enum-bitfield/aligned
+@hash ac8709397ade47edf1cede045e108168d7aacfb62f0a5f653217d94c2c6e4d0d 42 enum-bitfield/packed
+  ok 42
+@hash f50e1626b9655679d8f029ad60c65a3ce12ed0925ad51c6343e7387618a9cb1b 42 enum-bitfield/aligned
+  ok 42
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("fixed")
-@hash daf95c69bb75a3b1fa4f804673ee7205163957a783ec93d1a3d32265162e3c03 42 fixed/packed
-@hash ce603c41caff504edc383bc09787d0a7a088f3dcf54f52800335b7aee0da0b44 42 fixed/aligned
+@hash 29ee99bb64b9e49689379d1f79486966ce008e8e626f825b5fb16f3aa41036ca 42 fixed/packed
+  ok 42
+@hash 108604adf4c9c008b0ea54673481959d7c74841ee5b133b70e25998df876902f 42 fixed/aligned
+  ok 42
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("inline-qualified")
-@hash 1c804810363dcbc501c9861d1c9fb38e9f4d59e3dd1e8c64a7f307a78aeedc9e 42 inline-qualified/packed
-@hash aeaeb8bd66c9796b2ba100e5699d7bdb5ce999078f653eca481e8f82b08febcb 42 inline-qualified/aligned
+@hash 0109fb4c3126f1d901f5256b1599569cce706ce19cb9e3251553ae73a3d5223c 42 inline-qualified/packed
+  ok 42
+@hash 442b6de773a73d9e6d1b85264c93fe0c8e22a78707a3d997e1f4a085dea354ab 42 inline-qualified/aligned
+  ok 42
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("leb128")
-@hash 8b73aeba78b7272757c4331c4c66d95258470259a1ec95e45d66fd37c27a5344 168 leb128/packed
-@hash 8b73aeba78b7272757c4331c4c66d95258470259a1ec95e45d66fd37c27a5344 168 leb128/aligned
+@hash b0be5b8309409d11a125c6aebf109d2a039c8df379f62ffe8c6c89991d3ff979 168 leb128/packed
+  ok 168
+@hash b0be5b8309409d11a125c6aebf109d2a039c8df379f62ffe8c6c89991d3ff979 168 leb128/aligned
+  ok 168
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("multidim")
-@hash 38b69cae5d608a6bcaeb53fb36dea6550476e6726844de50eee89e1941c33a52 42 multidim/packed
-@hash 1a11a34e94360bbd1265c30ef6692bac1a13d70bff1fc66e82fabb077740f526 42 multidim/aligned
+@hash 2cb96207320b5c609c85f2e7761b956744ca5b32b684a55f927ec661e9d25a65 42 multidim/packed
+  ok 42
+@hash 5ca30524da15e308329aa67bbace8d61c33176e8978767f4ce397088736b0171 42 multidim/aligned
+  ok 42
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("multidim-structs")
-@hash 0b21a06fcb2127f4327cb8e9667ac7c2b4df912e2125226b52a1c1aaa1269a3d 42 multidim-structs/packed
-@hash 5d23b47cac49046a62c91497016258442a406f82040ce4e0ed437ca809ef2184 42 multidim-structs/aligned
+@hash 916478751a23c504dabbc4791aeae256984e011273eb57af6e58b0f55de72b7d 42 multidim-structs/packed
+  ok 42
+@hash 35995656a487592bf811f2ce28650f0c20ab333860b5416e882d13b75ac68af8 42 multidim-structs/aligned
+  ok 42
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("nested")
-@hash 3b3e91bd0d2b8b6bbe0c2a537702454b0721518393d743228715a68eff8a0d6f 168 nested/packed
-@hash 1cc532ace4fcaa92508e6deb9c2822436bc77245f76eceb1ecdb3bc47c0b1573 168 nested/aligned
+@hash f4aba71e3df9b960633063146a83428c8e6c44ac04e9e77ed25ee347525a4e5b 168 nested/packed
+  ok 168
+@hash 505cda909269b806c7c2aff1a14bdc64e846bc584547530878b7d0ec39b1c813 168 nested/aligned
+  ok 168
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("pointer-arrays")
-@hash 1e5a0fb1bbe0ab66561e2db3f7438ca265f72c50e339e3a20b16d4b6b9b3e852 168 pointer-arrays/packed
-@hash 1e5a0fb1bbe0ab66561e2db3f7438ca265f72c50e339e3a20b16d4b6b9b3e852 168 pointer-arrays/aligned
+@hash e3966d4599b05904181fadc1dd63bb216be5c80ca4b0a14bd16e6477258a657d 168 pointer-arrays/packed
+  ok 168
+@hash e3966d4599b05904181fadc1dd63bb216be5c80ca4b0a14bd16e6477258a657d 168 pointer-arrays/aligned
+  ok 168
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("pointer-counted")
-@hash a6ffa9a609940c862b94e5d463a508efa0e78455aa6f6afb6ffaee6f6db0ad82 252 pointer-counted/packed
-@hash a6ffa9a609940c862b94e5d463a508efa0e78455aa6f6afb6ffaee6f6db0ad82 252 pointer-counted/aligned
+@hash 691bba39ba03f446a0a1f0b5da393bd90b7e63fe485c6974c03385fda53d22e2 252 pointer-counted/packed
+  ok 252
+@hash 691bba39ba03f446a0a1f0b5da393bd90b7e63fe485c6974c03385fda53d22e2 252 pointer-counted/aligned
+  ok 252
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("pointer-list")
-@hash 89c93b7827eab1817c2cbfbba27baddd5338cbd674a39799120009871e0f4532 36 pointer-list/packed
-@hash 89c93b7827eab1817c2cbfbba27baddd5338cbd674a39799120009871e0f4532 36 pointer-list/aligned
+@hash bfa5468b697ba997ce1bf5c49cb9502e8f063707a8b3d138c34ac178ff5f953c 36 pointer-list/packed
+  ok 36
+@hash bfa5468b697ba997ce1bf5c49cb9502e8f063707a8b3d138c34ac178ff5f953c 36 pointer-list/aligned
+  ok 36
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("pointer-views")
-@hash 7c8ba8d7063fb8cee1a83fb707e574bbe33f024650f935eff9635b5d7261f03a 36 pointer-views/packed
-@hash 7c8ba8d7063fb8cee1a83fb707e574bbe33f024650f935eff9635b5d7261f03a 36 pointer-views/aligned
+@hash 54ff355012e720ce9f6eccd36536ea03f16402c5c693881fa8c9490e59c47f66 36 pointer-views/packed
+  ok 36
+@hash 54ff355012e720ce9f6eccd36536ea03f16402c5c693881fa8c9490e59c47f66 36 pointer-views/aligned
+  ok 36
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("pointers")
-@hash 6b06976729048f66a87587cceeb82fe555897fd8ad15a97fc8283d94b1d18cb7 144 pointers/packed
-@hash 6b06976729048f66a87587cceeb82fe555897fd8ad15a97fc8283d94b1d18cb7 144 pointers/aligned
+@hash df421b49f5aa1b426e75b27977c192831aa22ddc929310deece3886cd06081a4 144 pointers/packed
+  ok 144
+@hash df421b49f5aa1b426e75b27977c192831aa22ddc929310deece3886cd06081a4 144 pointers/aligned
+  ok 144
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("promoted")
-@hash ce3d56bebd0d4d9ff068ab5b85c717e981241ca734a5cb8980f7e61fc1b92688 42 promoted/packed
-@hash 6a6d082e28aad55495078673b0277e50d8d3d4fafe2d00100ccb0678b35ed62f 42 promoted/aligned
+@hash f3f53e01edb09f6727b0b1fbc1482f412966167225c183f179199f9748764e41 42 promoted/packed
+  ok 42
+@hash aa6acef8c4823984247d804263afedad05a36afc51ca74dcb7e4464994379958 42 promoted/aligned
+  ok 42
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("promoted-union")
-@hash 1e60e474c97732a878878ed4584a9dca9d0b72074239f60c4d95ef843c78037d 36 promoted-union/packed
-@hash 9776860869893d2497b920c45512732cfe66e6a77345f4fa0eef069ae9dcd0c0 36 promoted-union/aligned
+@hash 872186c237f4e0d53f256f5df02d6d685395e09e2c921d442e3d1546bf230f5c 36 promoted-union/packed
+  ok 36
+@hash 4d3580e0a65d51e5af4a35b86fdc91dfa68ab374408165e794b6231d5a628fba 36 promoted-union/aligned
+  ok 36
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("terminated")
-@hash b533cec4c027f5b13ae46e0f50aee30d19030d4f3c4cf505de85b599d868a900 42 terminated/packed
-@hash b533cec4c027f5b13ae46e0f50aee30d19030d4f3c4cf505de85b599d868a900 42 terminated/aligned
+@hash 0c817bb6e27a20d05839cfa33f7233bf9564997083621b9abacb4c33bf639d53 42 terminated/packed
+  ok 42
+@hash 0c817bb6e27a20d05839cfa33f7233bf9564997083621b9abacb4c33bf639d53 42 terminated/aligned
+  ok 42
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("terminated-scalars")
-@hash 5c6863590012e4cb7cec348c7706687c5742b51cfef3c00415a9db11a30a7fd0 42 terminated-scalars/packed
-@hash 0ee5bdd9e688168a4db30a28e603dd5334418b0129ee65f4add53088a7d368c8 42 terminated-scalars/aligned
+@hash 9877fa3c5523f3f677af383acd7b0e1bcce23091559c7983a68a072bbc96e9d1 42 terminated-scalars/packed
+  ok 42
+@hash 7fa423074a3a7a3bb19c4835df2e22ac30b2e7c06bebb3609b9a5dc6d8f51cfc 42 terminated-scalars/aligned
+  ok 42
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("text")
-@hash bae82387e02c1925d913c8e95aa9f1bb375df1ebc858b69c4014145f03120686 42 text/packed
-@hash 5f38d4631de2c4486cf4511b90ad68efbd06a5ac6354ce284b3a15d14be7cf31 42 text/aligned
+@hash 2ed3ceda70e3662d3aedf351857f78f84c9185d392b6ab36372619bfc3f8ba0f 42 text/packed
+  ok 42
+@hash a2ea999afb5f9fcfbd46697c6353f57f89793d26cc0c8df7cecb85eb1ec67a58 42 text/aligned
+  ok 42
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("to-end")
-@hash a77d47adf9926aa612c9bee5c358fe270d7265cc0dce410f493d3734e4e5b8b0 42 to-end/packed
-@hash a77d47adf9926aa612c9bee5c358fe270d7265cc0dce410f493d3734e4e5b8b0 42 to-end/aligned
+@hash d0a1b23114b1a66e52128e8724a7686c69e8af313f3e3757cd3d8e4cbfbcf9b4 42 to-end/packed
+  ok 42
+@hash d0a1b23114b1a66e52128e8724a7686c69e8af313f3e3757cd3d8e4cbfbcf9b4 42 to-end/aligned
+  ok 42
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("to-end-structs")
-@hash 09ee40f56ae5761852720c5b36f58afc87112acd427aa41ad154c9f8a0c36dd5 42 to-end-structs/packed
-@hash 3df33ecc4a1cd79df0dd6c2596891d36fb20e736f3d8fef3f749385892b10d7b 42 to-end-structs/aligned
+@hash 0484904e882a54736bd40111a8c258f88e159b1a2e38563cdca0d4495a178dd2 42 to-end-structs/packed
+  ok 42
+@hash 24549d74a5e4c0cc13e87171e9ab311124d362661493220f58b502de6e53a6c0 42 to-end-structs/aligned
+  ok 42
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("union")
-@hash 14939f93f7b589dc0c827e9638c6666471e7db663e97cae903970c19638ee723 36 union/packed
-@hash d1a0e411e906a3e59bd444ed814e749f3731aac2f5d9bc773817e9dfbc709fae 36 union/aligned
+@hash 99d41d9b9527722bac2d4c5aa5fb40bf1a05f9f0863a7bee148857bc1b142e71 36 union/packed
+  ok 36
+@hash 1ccf861154ceb0bc21f30eec237775f69193f8ba0fd5fa52dd60dc0fe486fba3 36 union/aligned
+  ok 36
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("union-arrays")
-@hash 61a2fd5b55867f9e2c89ad6ee461c425c67d7ed2d73ddacc1bba0d1037685276 168 union-arrays/packed
-@hash 25c0c321132e4870d827aa51c34a66107130d3008884ab18b81f40b83df20d4c 168 union-arrays/aligned
+@hash c0cb3560aa7f489d382300cca3a2d89450a145c5278451a1ec2548b77b98fd4a 168 union-arrays/packed
+  ok 168
+@hash 4ce070a01c1c82655e694398ccb34fc5e46b2d0395a415b56db10b6cec565574 168 union-arrays/aligned
+  ok 168
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("union-bitfields")
-@hash b334a23fa90683054ee0840bb82b8e444710323e404518f9ee1ff6cb6ac7801c 36 union-bitfields/packed
-@hash 2045210b3d9c7cf00badbbef52f3141f786da65920d75d2056050d7a70c72cea 36 union-bitfields/aligned
+@hash fba486953153b59ea6b0a448df3a1a1892d542bc22a6dbff7c7e7970f9715a8b 36 union-bitfields/packed
+  ok 36
+@hash b4cbb5309c83159344821c3420270a9220a81eb40781719d45a110f743a5c524 36 union-bitfields/aligned
+  ok 36
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("union-conditional")
-@hash 7edb40f3a4d483a2b3268258e2ed50704525d5359e26fb58e743efd2269ee690 168 union-conditional/packed
-@hash 55382dd6fb8d80571409f370e891e3542713012bd11812dc6677f41db7e9eeb5 168 union-conditional/aligned
+@hash 88e8009ba021a112f78ef5e2102110b9516567669c427be607a6f5b2c3465879 168 union-conditional/packed
+  ok 168
+@hash 041225e2d703cff5122ae63461995875faf0cebb1fb77e1a5a85088a1cdc964d 168 union-conditional/aligned
+  ok 168
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("union-nested")
-@hash 5dddc5ceb61de80c6997e075599ee5a7673e8e09f34f15f14563d481a5e3bf9d 168 union-nested/packed
-@hash 5a85fab4d3e7c64404fa21b8aa47cd4ef9a279079b0e218b64f4d8456644f89c 168 union-nested/aligned
+@hash d0d149cf7c12f768d17ac7c8746175e7c0daecb6e961b038acea17fee3ffc0b2 168 union-nested/packed
+  ok 168
+@hash d3dbc48217ae2129245d2f47da2a2ec03e4210dfab9f1b89f12820793a8c00bd 168 union-nested/aligned
+  ok 168
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("variables")
-@hash 43cd1fbc0f6ec5f2f73bc4bd804870363df211d1f60518fcfcd315e5269b0d94 448 variables/packed
-@hash 43cd1fbc0f6ec5f2f73bc4bd804870363df211d1f60518fcfcd315e5269b0d94 448 variables/aligned
+@hash f41f1caadcd59e3f0c5040eb4749f8762729f8b753bb43dfc6ae87775c92ef48 448 variables/packed
+  ok 320, CStructPathException 2, CStructReadException 78, CStructReadLimitException 24, CStructWriteException 20, CStructWriteLimitException 4
+@hash f41f1caadcd59e3f0c5040eb4749f8762729f8b753bb43dfc6ae87775c92ef48 448 variables/aligned
+  ok 320, CStructPathException 2, CStructReadException 78, CStructReadLimitException 24, CStructWriteException 20, CStructWriteLimitException 4
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("write-codecs")
-@hash 2984e9adb7de8fd450269cd69e9425608357ff8f013cf56ea21f6e6cd0363203 36 write-codecs/packed
-@hash d3149fd387a9e908ef2df76baa473afaed08cf82a5e95914caca8ed5e8f735ea 36 write-codecs/aligned
+@hash fec18b1c1eb6b8aa01515d363d69d4602fbccf495e4e0b5f67610e6ad4da1500 36 write-codecs/packed
+  ok 36
+@hash 48fcd3de99c8ae79cf1b0343332a29d474e0066861c7a2ba0131cf5cccc6756d 36 write-codecs/aligned
+  ok 36
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("write-enums")
-@hash b4b93097c8da20412b5189b76776eec4924a2b8c08eb94582f74b4199a66f5c1 168 write-enums/packed
-@hash 0dba1985a27add84fbe7eb26c8857c8fe36fb5cee8c540bbbc3c431359d24bdd 168 write-enums/aligned
+@hash 3d5caafbd5856d1f1b69fb8abbcb9f7f0f4bb6b1f7887959c23145723f4eaa65 168 write-enums/packed
+  ok 168
+@hash c930fc6dff2655ad0d54f07d48cd7a27d4a51f10bb6399f806fb13b5a73450e3 168 write-enums/aligned
+  ok 168
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("write-padding")
-@hash 36a9180b02be0e1f6c5e6556f124fdabff7a2ecb6d896655f62f5d844645cd48 168 write-padding/packed
-@hash 20dbc071025ebb4813b622bc6fd6a5e50ae340a97601b7f450074a171d239383 168 write-padding/aligned
+@hash 9606223c1f14b58533b7a0c564f04c1568faa1def74cef885fa02373a0fd0956 168 write-padding/packed
+  ok 168
+@hash 11f80bdfe4050b0596df95f69c0f0638ac7ddf2ba089a3e0c8ff67d0217228f2 168 write-padding/aligned
+  ok 168
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("write-qualified")
-@hash 6d7aa7b5e6911f8e5b2fa97fc5ccb368aea98f1ff47ffa6720d8584a8c5cce29 168 write-qualified/packed
-@hash 95745bd7b8c6501d5c40ec1effef54891199c32976a403c20ada355c1f90e312 168 write-qualified/aligned
+@hash 59eaa6f65164bdf2dc3af7a451b4607b3bddd2d5c5315a2f6d22a24b3ddf283f 168 write-qualified/packed
+  ok 74, CStructLayoutException 8, CStructReadException 50, CStructReadLimitException 20, CStructWriteException 12, CStructWriteLimitException 4
+@hash ce0e4828d777a238b4e10b0bd3ac720afe5d883678caa09061074cf8539e65e1 168 write-qualified/aligned
+  ok 74, CStructLayoutException 8, CStructReadException 50, CStructReadLimitException 20, CStructWriteException 12, CStructWriteLimitException 4
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("write-scope")
-@hash 5ee888f4bbe099862e65f4f4d2eea51fc82891f05a921a6b8d4603471d41cb56 168 write-scope/packed
-@hash eeeb9a23c4402cb7238a659a99f57381cb92ba08f843770ca8193cab95a33ad1 168 write-scope/aligned
+@hash 3b9b1e49d0ac2daa2b37301aa3b45ea02e1b139221fa8482d5270b8a75750331 168 write-scope/packed
+  ok 168
+@hash 5712584a72facd62c60b66c19a3736b9546458462d157704b316988d22edb96c 168 write-scope/aligned
+  ok 168
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("write-text")
-@hash 26e495b827c7d447e73cdd3fa9fbd58cb80fe46b475f2b1c2fc2a88f289312b8 42 write-text/packed
-@hash cc69cf06a0db0d92bde5139ca09a269545ea1e4c9d5e8b4a684e267b186e51ff 42 write-text/aligned
+@hash b6032c46ed8ef393a05a7630432a20ed9e1a6817f4b339ae6fbc802c496335ba 42 write-text/packed
+  ok 42
+@hash 1bfc339d9c1beb0f04dbaa767457a0f87fdf6706e0f37447a48096370646b9b6 42 write-text/aligned
+  ok 42
 
 @test Destinations_ReceiveEveryWriteAndUpdate("bitfields")
-@hash 5b8af0d04792f1ad1d4b5b74bebc5e3b64fa5aff890408a761b5d1fecb244d62 60 bitfields/packed
-@hash 69436f829428893e29319335b587bb05003f3af7f636a4a12049e79096730fcd 60 bitfields/aligned
+@hash 813769462f54a5a532834cdde606badf95ebd86324992e6d224b9d2e67db4619 60 bitfields/packed
+  ok 54, CStructWriteException 6
+@hash a965f4e861388a3e5e45fd59c713e8ee709bef6e75fe33e7a3570a5dadd70db6 60 bitfields/aligned
+  ok 52, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("bitfields-enum-counts")
-@hash fc816749cff43593ba32da3772031e4c5414ae73602775bc5bdbef6fc7115d59 60 bitfields-enum-counts/packed
-@hash be01396e4543701b1116119d83ed167d5a0cd804bcf65808303b2733ae03cfb4 60 bitfields-enum-counts/aligned
+@hash 0a5550068409b21ee77da70fb83c4a42635079794bff24dee728615bca7251b7 60 bitfields-enum-counts/packed
+  ok 50, CStructWriteException 10
+@hash bd4c4f9b08c86320a614bf4712419937557bb47681bb2b4100da3102477cd0ed 60 bitfields-enum-counts/aligned
+  ok 50, CStructWriteException 10
 
 @test Destinations_ReceiveEveryWriteAndUpdate("bitfields-high")
-@hash 6cac56e88bc34d78ee4962c2eb87e2149c580124ebaf9b6d8c472388e946e67a 60 bitfields-high/packed
-@hash 6cac56e88bc34d78ee4962c2eb87e2149c580124ebaf9b6d8c472388e946e67a 60 bitfields-high/aligned
+@hash 14429d8a2cea2d3115c78ce3d6142734bc7d8046a79a231dd8c40ea09f9d9eb0 60 bitfields-high/packed
+  ok 52, CStructWriteException 8
+@hash 14429d8a2cea2d3115c78ce3d6142734bc7d8046a79a231dd8c40ea09f9d9eb0 60 bitfields-high/aligned
+  ok 52, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("bitfields-msvc")
-@hash 8f3944fa672a77db4920763b77e192c80854b0f056dd23bbf6c67b0ad6f2c8e3 60 bitfields-msvc/packed
-@hash 71bc2feb5a338583b8382c6d9d41976ba1bbf08efca09221f6391dc583c39418 60 bitfields-msvc/aligned
+@hash 96bc24db9e6608494d5d18276d61f7dc11a0681ab69f2d744c44d1bd6bb2069f 60 bitfields-msvc/packed
+  ok 50, CStructWriteException 10
+@hash 10ac528a527c5d2a8dcffdbacf9f099f2b230e5bc0fcf27c680b375a03faa106 60 bitfields-msvc/aligned
+  ok 52, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("conditional")
-@hash 152b8696647e6548861f40baf1f3f4fe1bf4b5b24e59fe1d93239fff785715ac 60 conditional/packed
-@hash f13a9ddc0522f852d8a1ce4eb1105d2d7edaa7412117b7db67340b4cb1c854ad 60 conditional/aligned
+@hash 89ce7c24f7842765ac2d0742cf9bc8f2b9cd90ed451bf87a968ac179ede8f1a7 60 conditional/packed
+  ok 50, CStructReadException 4, CStructWriteException 6
+@hash 804f125bfc59628dfeaa8abf1267d8fb834455ff9c91191aa245f937a80116c2 60 conditional/aligned
+  ok 48, CStructReadException 4, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("count")
-@hash 269a9ea991c2809f22b90133496a05f1475a51d336d49aa95db8c7795f43778b 60 count/packed
-@hash 9cea571b0b5472f1ca732bbdd902637fbcbde32495ca7a552455c61e68999b69 60 count/aligned
+@hash 04868eda12b03e3a126dcd0eb9f38d9b704b374a48418e2cdff2400caf8c6c6e 60 count/packed
+  ok 50, CStructWriteException 10
+@hash cdf553f580c293b624880054fceb6df06a3fecc5a961f1828750e0ff32996b19 60 count/aligned
+  ok 52, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("custom-codec")
-@hash 9622efc28bade579c4ec1a6709b77e7b156456b01781fa534ac392e71828b9e0 60 custom-codec/packed
-@hash 9622efc28bade579c4ec1a6709b77e7b156456b01781fa534ac392e71828b9e0 60 custom-codec/aligned
+@hash 222074927aa25d993a33a98721fa4686db5dada5d7e1abf6a4ab9fba8a52257d 60 custom-codec/packed
+  ok 44, CStructWriteException 16
+@hash 222074927aa25d993a33a98721fa4686db5dada5d7e1abf6a4ab9fba8a52257d 60 custom-codec/aligned
+  ok 44, CStructWriteException 16
 
 @test Destinations_ReceiveEveryWriteAndUpdate("custom-fixed")
-@hash ea1c91816c7df628116c9da49ef76cca2aa16523cc7dc697f754e0120d98714f 60 custom-fixed/packed
-@hash 39c4590cd64c7489924a4f691f7b683a89712d565211b49a03d99ffca33fcf61 60 custom-fixed/aligned
+@hash 0b4140ec630fc4ca9d2cce9d3a6797009b459ab5f0d1505d996eb5b7535b5578 60 custom-fixed/packed
+  ok 50, CStructWriteException 10
+@hash 9a36a4bce9a549286eb7ac5cabb1f523d089f746d24f9f0ab4e9ba2596c4810f 60 custom-fixed/aligned
+  ok 52, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("enum-bitfield")
-@hash d09c796fad00667249c2a850e5ba5c96c2df9fee335181a6f20b9bc52130a6f1 60 enum-bitfield/packed
-@hash c0969eea10f524d7632ba06738f215988f41e6f766cb90423ebedbf8750c0bc3 60 enum-bitfield/aligned
+@hash 0bb3d342435f04ae3617d9856582ab322257e684257b394cccf65b95fedbcb63 60 enum-bitfield/packed
+  ok 50, CStructWriteException 10
+@hash 43d637fe0fb26e5e83630dadcd21df878b24b1aabb6f0c5581c1a2294eefd59b 60 enum-bitfield/aligned
+  ok 52, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("fixed")
-@hash ea42e7eb6d54b9d6757dda3fadae229eee099bf4d8450688dfb00ede8ded8364 60 fixed/packed
-@hash be81c5041d90e50c0d864660d6b975d9c97291b9a9a4a624ea28c293d984fe77 60 fixed/aligned
+@hash 91fd36371004b3969228c387e8ce1e4eb25741e8129813950417214720afb76e 60 fixed/packed
+  ok 52, CStructWriteException 8
+@hash d8b7db543786b250cc9baa6232139024f7f9811d89e08a0cdb493942f3689bba 60 fixed/aligned
+  ok 52, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("inline-qualified")
-@hash 323a630e3a2f6688b5c4faf1e507fa2f5e76044a509fd942a6504baf60774de8 60 inline-qualified/packed
-@hash 3a40c1a9a1159f528033b4da948a9dfc0eddfc74345bd5ad40b62b9d0157c2e1 60 inline-qualified/aligned
+@hash 613b9007e97441a35b4964ab127b0a5059ffd9cc642ae7c8d2c5b9f8051005a0 60 inline-qualified/packed
+  ok 52, CStructWriteException 8
+@hash ca90b95cf7bbcf40798f6ab3a5835a40afd58e85195ee3f4165112245e1e0d5b 60 inline-qualified/aligned
+  ok 52, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("leb128")
-@hash ce1938f52c2887b22617cabfb23fff398afc7cc44ab8d046112a06146829eebc 60 leb128/packed
-@hash ce1938f52c2887b22617cabfb23fff398afc7cc44ab8d046112a06146829eebc 60 leb128/aligned
+@hash b6b0a85fd844822913dd1abdd2ac895522733b11d86330d122ccf4d10f433fa8 60 leb128/packed
+  ok 42, CStructWriteException 18
+@hash b6b0a85fd844822913dd1abdd2ac895522733b11d86330d122ccf4d10f433fa8 60 leb128/aligned
+  ok 42, CStructWriteException 18
 
 @test Destinations_ReceiveEveryWriteAndUpdate("multidim")
-@hash 92fc651f3d7e3425b85c89223c142edd791823684b5f6af6b531a74c58e6ec1f 60 multidim/packed
-@hash a17f38c561171d3c3f28b7e6262ee8a5d5f43ea411b60cd16db67896dbc8aedf 60 multidim/aligned
+@hash 3e0391a38f6b96c344a91e740be7ec70fe2f409c641eb83e3cecce472daaf1a5 60 multidim/packed
+  ok 50, CStructWriteException 10
+@hash 6d0f9f0d5b26d5d95608ea99c62e9ed76bf78803d17f708233a5d75129928bed 60 multidim/aligned
+  ok 52, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("multidim-structs")
-@hash b1a1359d2cec0097d2e82dc7ef863ed03b8d2ee7e621b272232fae7a308f81d0 60 multidim-structs/packed
-@hash 197994fbb8e492aedf38083fc8c7a12d1e63e3aa22cc4a2fb33e5845fbac8427 60 multidim-structs/aligned
+@hash 686cc1f1704d077b0ecb468f3fff6fcaba71154240bc9aac646e5756b70865cb 60 multidim-structs/packed
+  ok 50, CStructWriteException 10
+@hash 15bdd7a0d2b65f4c7b70b50c38e60b3adb9c214b9672bdb87709e8428132c8c4 60 multidim-structs/aligned
+  ok 52, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("nested")
-@hash 84df124d63c31973ad04ac8097d69befc7bc5017c250c62266b650a3a1103afc 60 nested/packed
-@hash def20aab3408743e8e49ad903286f92d8c6e8dcb63881df10ce8af1e512b9628 60 nested/aligned
+@hash 572046269e1a9af2b68581bcb2a05b644406b9ef7bbd64c0f501c19e6b9f4511 60 nested/packed
+  ok 52, CStructWriteException 8
+@hash 2c210aa457fda055cd5614d32ae0ccc1613f2420537d6d33711ac4b37419d97f 60 nested/aligned
+  ok 52, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("pointer-arrays")
-@hash 40b7d0959e2722571694d0a52d611c173d4f72320ef843999af8829b0ded3d30 50 pointer-arrays/packed
-@hash 40b7d0959e2722571694d0a52d611c173d4f72320ef843999af8829b0ded3d30 50 pointer-arrays/aligned
+@hash 18771550619b5d5c779b6841af4925bbe3872ed1650b58affee7f4db3214dc9e 50 pointer-arrays/packed
+  ok 42, CStructWriteException 8
+@hash 18771550619b5d5c779b6841af4925bbe3872ed1650b58affee7f4db3214dc9e 50 pointer-arrays/aligned
+  ok 42, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("pointer-counted")
-@hash 99491d1a913e314ff8ca91bf6d9b8aa1df7606b98bffc5f8c26ad90ed45f3abf 50 pointer-counted/packed
-@hash 99491d1a913e314ff8ca91bf6d9b8aa1df7606b98bffc5f8c26ad90ed45f3abf 50 pointer-counted/aligned
+@hash 627a7ff775aa647f270c72077ef86d8bde1983c63633444cc68533c89ed7fb78 50 pointer-counted/packed
+  ok 44, CStructWriteException 6
+@hash 627a7ff775aa647f270c72077ef86d8bde1983c63633444cc68533c89ed7fb78 50 pointer-counted/aligned
+  ok 44, CStructWriteException 6
 
 @test Destinations_ReceiveEveryWriteAndUpdate("pointer-list")
-@hash ef010db2b17d0b62396daa12d525c4a773335849711aaaef74630089da7dd75a 50 pointer-list/packed
-@hash ef010db2b17d0b62396daa12d525c4a773335849711aaaef74630089da7dd75a 50 pointer-list/aligned
+@hash f54c9b66dc742a20acbec97550e3daa8a4ead5270418e022fac8db217f9adfc8 50 pointer-list/packed
+  ok 40, CStructWriteException 10
+@hash f54c9b66dc742a20acbec97550e3daa8a4ead5270418e022fac8db217f9adfc8 50 pointer-list/aligned
+  ok 40, CStructWriteException 10
 
 @test Destinations_ReceiveEveryWriteAndUpdate("pointer-views")
-@hash b09c205b5cac28f5a43727310e4c2420dacfc2002002b71d9f940e5f69f1ad8f 50 pointer-views/packed
-@hash b09c205b5cac28f5a43727310e4c2420dacfc2002002b71d9f940e5f69f1ad8f 50 pointer-views/aligned
+@hash c60133ff5d40f806ceb3e24fac9f66ef5f44623a8ab21c356491f97dad708d3b 50 pointer-views/packed
+  ok 44, CStructWriteException 6
+@hash c60133ff5d40f806ceb3e24fac9f66ef5f44623a8ab21c356491f97dad708d3b 50 pointer-views/aligned
+  ok 44, CStructWriteException 6
 
 @test Destinations_ReceiveEveryWriteAndUpdate("pointers")
-@hash 390641fcdf48f8e45b973c438d0fe39636bd45c66c0bdd688841076825a3fa04 60 pointers/packed
-@hash 390641fcdf48f8e45b973c438d0fe39636bd45c66c0bdd688841076825a3fa04 60 pointers/aligned
+@hash 3e80b7758dc527be674602a8a574dde3ed6034d00f60e75541aed811fe0a047f 60 pointers/packed
+  ok 54, CStructWriteException 6
+@hash 3e80b7758dc527be674602a8a574dde3ed6034d00f60e75541aed811fe0a047f 60 pointers/aligned
+  ok 54, CStructWriteException 6
 
 @test Destinations_ReceiveEveryWriteAndUpdate("promoted")
-@hash 4b5cc83d76f74764cd47e7bf366ed5ce432714da0014737cd2811375c4b9cd15 60 promoted/packed
-@hash 44dc43d243dea6efc8d830bfbca6b26f4d0cc603a5d6cab7b09e06c9a8e0caad 60 promoted/aligned
+@hash 498266607f9a32a123d8a36adbbaa83439c830ed93336c164d0fc6e25f2f30d8 60 promoted/packed
+  ok 52, CStructWriteException 8
+@hash 2684cea6a8aa9faf2fcbb58fce8aab678bbd5b0c67c213fb31b30ea13e2a128d 60 promoted/aligned
+  ok 52, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("promoted-union")
-@hash 9bd30c127cfa67f13f67c64a83a14247647a9c28ae1a5c84ec786f4aaaf7e9c8 60 promoted-union/packed
-@hash 3784ca95a017d907e13a0a0cca343e2642b49cf68639a3979ea380e4d46ea4fc 60 promoted-union/aligned
+@hash dd580daa77828abcdc36ea399b8ae4a526a5f5532ecde16ded9e83b30e5f237b 60 promoted-union/packed
+  ok 52, CStructWriteException 8
+@hash 16b662de0413adc899efaa9b037bef30a62d66418b72b3e67fabfefdea31062c 60 promoted-union/aligned
+  ok 52, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("terminated")
-@hash f30dbdf3dcc9b0a4011608a71396f3f8fc8b41b3e08b62fcf3c933a361409262 60 terminated/packed
-@hash f30dbdf3dcc9b0a4011608a71396f3f8fc8b41b3e08b62fcf3c933a361409262 60 terminated/aligned
+@hash 7a50563b14bb766fae66df0e3eb3750acf0cd42f11c3d0f9ae7c3855bdece935 60 terminated/packed
+  ok 50, CStructReadException 2, CStructWriteException 8
+@hash 7a50563b14bb766fae66df0e3eb3750acf0cd42f11c3d0f9ae7c3855bdece935 60 terminated/aligned
+  ok 50, CStructReadException 2, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("terminated-scalars")
-@hash 8c397313d23c4f1cce3420bfbe40dfc3cfa9713e6d7cb1b7fd8b70de90a2484a 60 terminated-scalars/packed
-@hash 0bdfcaae28463fed3a932ebd2b3cc172f5888067ac052f18e051aab1a4f8789f 60 terminated-scalars/aligned
+@hash 4b79fff653d38f7f3193eddb39bd5a17a5ad1171fec0bc1068ecc55557b69aae 60 terminated-scalars/packed
+  ok 50, CStructWriteException 10
+@hash 52592e5ced74a7d5a5b61f05a4bf6c5d69938e2d198e96ea37c61a06206511b6 60 terminated-scalars/aligned
+  ok 52, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("text")
-@hash 2fe73883d983f3e505fbd71612ed65bc957fbf456666566a98daf3271fdb71c3 60 text/packed
-@hash 4d9d68510737abef77b74737f7f1bf76b5337104d8f65130e1fca47f2a9d195c 60 text/aligned
+@hash db450c5ecd6fd49dd81caf7ffc24634a687068984629c33a7b5f11c7e29c3065 60 text/packed
+  ok 52, CStructWriteException 8
+@hash 20a4b46603f389c669ad76624b9d43122f40d722a1fad6208b0474302a3a9ae8 60 text/aligned
+  ok 52, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("to-end")
-@hash 5cbf59fc855f73ab41d9974b8d262f9b7f95510630eb8b5e4f196508ab7c1b1a 50 to-end/packed
-@hash 5cbf59fc855f73ab41d9974b8d262f9b7f95510630eb8b5e4f196508ab7c1b1a 50 to-end/aligned
+@hash 4c8d3bbf8604d1866ac5fbc434d360e834d87cbe061696e0203525f148f9527a 50 to-end/packed
+  ok 40, CStructReadException 2, CStructWriteException 8
+@hash 4c8d3bbf8604d1866ac5fbc434d360e834d87cbe061696e0203525f148f9527a 50 to-end/aligned
+  ok 40, CStructReadException 2, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("to-end-structs")
-@hash df8a00165934478009271b669092ba1c1f02bdb2cf017bb1026157ba2c4dfcaa 60 to-end-structs/packed
-@hash ae10cd0e0d5b0ce1cb6de5fa3e0913f45586919a9e77ccc479305b681962093a 60 to-end-structs/aligned
+@hash cf587f71b8c56ded6f12a30d84f06a6a3237cffcf88748ddf5a9dba7b44be037 60 to-end-structs/packed
+  ok 50, CStructReadException 2, CStructWriteException 8
+@hash 0fb493db451760df83c3aacb98185a417f6ee2edf6f89fd0c17b90db68f970c0 60 to-end-structs/aligned
+  ok 50, CStructReadException 2, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("union")
-@hash 5f725f364aaeb0a63c70fd12823d5142f62977de772457da120774be677ce9b0 60 union/packed
-@hash 8a844b53c81221a5b5495df7da1d8d1c0a5396f427ebe353b9c7f0cee4be654b 60 union/aligned
+@hash 9d00f0398ef968417685419538b93327e51ccf6c30386ad84490dc57d0c50b04 60 union/packed
+  ok 50, CStructWriteException 10
+@hash de0edb6d752181ff966175213b8c06c64c067899f96dce5497e9c05a082cfdee 60 union/aligned
+  ok 52, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("union-arrays")
-@hash 238abea3e2aa5adba4d87d89798277d131acb857c913a52ece59b9a98569ddab 50 union-arrays/packed
-@hash 2b3e0307e42ece923fa920c4828755e08549de0a334b76d5bea57044bb67777a 50 union-arrays/aligned
+@hash 687d56bb28dcd798fb640f822e0c68e15e2dfeb834569232adfd12925f34bbca 50 union-arrays/packed
+  ok 40, CStructWriteException 10
+@hash c29ca8f11236d2afaa1d4dfe32ef424026612f1ddae07d2b9d19cc5a4bb9861b 50 union-arrays/aligned
+  ok 42, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("union-bitfields")
-@hash 473acec36626c5a9f1c7966717172e6d24bb4ca52f0498aa68635aca17f3ca8c 60 union-bitfields/packed
-@hash 497c10508a2a2f49528e25b70ad7476e74f42601af077a3eb3ab423189c164bc 60 union-bitfields/aligned
+@hash b35c79109b5956ac2f1d124dd46317f79dafa7e49d077da7719bc2699b832b40 60 union-bitfields/packed
+  ok 52, CStructWriteException 8
+@hash f344f54da7014f96f6d96fde9c3dfe72efb835407bef85bca823c8c89c0049ae 60 union-bitfields/aligned
+  ok 52, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("union-conditional")
-@hash 368e4fd2ca927579cb5790dd7c463330af0b774bd567908f2eeb8a5e6b672f21 60 union-conditional/packed
-@hash 1a234627ce69e880eaa8eb1fadd333bcf5e96b1bb0c2a631914d77446a8e811d 60 union-conditional/aligned
+@hash 4d2c9657f3c2889fe9ddbed686bdea005e04ec39576c1976099341887c114b0e 60 union-conditional/packed
+  ok 48, CStructReadException 4, CStructWriteException 8
+@hash 038cb79f3818c128c09e739dc1447d0bf98670620409c3786b7b4ea6bc44c1af 60 union-conditional/aligned
+  ok 48, CStructReadException 4, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("union-nested")
-@hash ef379b1b40267379a3e33451fe05ee31c22b64743143d88f15bc6715a44a7757 60 union-nested/packed
-@hash 4cc55d270059ae69007be1bcdd56e6c5d2d216bd9565185e4b20a34f209ea099 60 union-nested/aligned
+@hash 7d6fea3e46ccc32d0ca266ea36f561b2b9fcc240f9a2b641cbf4b86ca3a39a83 60 union-nested/packed
+  ok 50, CStructWriteException 10
+@hash 81d8bdaf8a4b4db36d571bba1f972d7a267f3da7682f650cdd3306e779818934 60 union-nested/aligned
+  ok 52, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("variables")
-@hash a0abc2019a9c8c711471d25091f65ceee72c0512a7e4eae4b69b8c40c496d5fa 50 variables/packed
-@hash a0abc2019a9c8c711471d25091f65ceee72c0512a7e4eae4b69b8c40c496d5fa 50 variables/aligned
+@hash 9cf3c5d61c85c73854800385c46d264aaa42d1b6ba0417043762716069ace5a3 50 variables/packed
+  ok 44, CStructWriteException 6
+@hash 9cf3c5d61c85c73854800385c46d264aaa42d1b6ba0417043762716069ace5a3 50 variables/aligned
+  ok 44, CStructWriteException 6
 
 @test Destinations_ReceiveEveryWriteAndUpdate("write-codecs")
-@hash 21056455c8f6ea4fa82f8bb6800174676486ba0b565f7a520449b8edef13314d 60 write-codecs/packed
-@hash ef64247bda1a831e45d2c3ea5cc0d0dfd7a4036fdfc51a57a9910b9a3664d5cd 60 write-codecs/aligned
+@hash b00cb88e3e39044ed73837b73b05f50eeb2f02d999d46df9ad1dc9892f2e1718 60 write-codecs/packed
+  ok 52, CStructWriteException 8
+@hash 6031614a699cf85e43b32be6d74901e68d108382cf504faea5442f210b0d315d 60 write-codecs/aligned
+  ok 52, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("write-enums")
-@hash 36d16e1bfba5849182b24fcab97b75575f72de8ceeeeace23f4fc6595e2294d9 60 write-enums/packed
-@hash 464cf27555cebc1b7e26156e2d8c05a25e995a18a437a7799075bedd66815fd9 60 write-enums/aligned
+@hash 7906e7a5a1484739d502add2d024e9c6504b9b6ef05a73cc9d7f56a3a6419e40 60 write-enums/packed
+  ok 52, CStructWriteException 8
+@hash 664f393b4383729924c178edc7a37bb9bbe692b65914e09a11d8d7fc72489270 60 write-enums/aligned
+  ok 52, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("write-padding")
-@hash 80b46ea6f3dd8b107afb99963e8cd097107053cd554be19532307aaddffbb1f4 60 write-padding/packed
-@hash 5c45c3fcdb2ac20299f53c26b06abda55c40d7864df831dd73222e73ae27487f 60 write-padding/aligned
+@hash 4c35418de5b030692684deec401e7699fe7eb167aca2f83fe1e7bababed31585 60 write-padding/packed
+  ok 50, CStructWriteException 10
+@hash 35c7e11e0a6391bf66c74dcacc5a10986ccd090119323f7baa26d8a09b5d20a3 60 write-padding/aligned
+  ok 52, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("write-qualified")
-@hash ab5f04032e8f53cd85b077bf49666843e389d42b496a04861f27f986a893f49d 50 write-qualified/packed
-@hash 3b9e699a9e82ad3a496084aacb919541a870421f767174099539c22a35b8535c 50 write-qualified/aligned
+@hash 9ea7ee4fec24c9dab8195771bd11c6e728dec31c5efe9fc97abce89c9e89ead8 50 write-qualified/packed
+  ok 42, CStructWriteException 8
+@hash a689bacf9fbd05482541be64c247f34e45d4c3c232ee1fffb09cbea061f6d6e2 50 write-qualified/aligned
+  ok 42, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("write-scope")
-@hash 2a97e4d7c511485d2dcfbdd1cf906e322bd2cd7bdfbd066a61ba6c732dc84235 60 write-scope/packed
-@hash cbe83616bc69500f781bda438675053e860945a0ad7a1192f1d0cf9eeaf3ffe2 60 write-scope/aligned
+@hash a633453a4396b172fbffa6221baf9764fb012ac5edb3c13369563c37fe0fb7d6 60 write-scope/packed
+  ok 48, CStructReadException 4, CStructWriteException 8
+@hash 762e80a01b03dbe0d92341d05dade69d5eba31a6fbf5102e346e8f643667e1e7 60 write-scope/aligned
+  ok 48, CStructReadException 4, CStructWriteException 8
 
 @test Destinations_ReceiveEveryWriteAndUpdate("write-text")
-@hash 6ef5ab47a48ecee7699c4cbf1f21f4023695d90cbb1dff851a2c2a453ff3d110 60 write-text/packed
-@hash d337ecdd7261f93647a3a1e691c02d5b527fe6bb76c53b9d33b093a307e45482 60 write-text/aligned
+@hash fc98e04c007a6a0e6715b59408bc851ad581e5f47a5e74c808778a87f13e0839 60 write-text/packed
+  ok 52, CStructWriteException 8
+@hash ecffc0ba23c04cf0cc0e0d24f95bd8a9c38e3cbd22bc0fd0780722b42ff8112a 60 write-text/aligned
+  ok 52, CStructWriteException 8
 
 @test Limits_FailOrSucceedAroundTheNeededValue("bitfields")
-@hash 68a8fcdcebc1da0fa728fc5d270f2ca86941de4c019b7f208040191066f23718 482 bitfields/packed
-@hash d721d9d5d9a4d19a6b1e66ee3808c01ff6bd498c2968374085d6fd9f1c7f6463 574 bitfields/aligned
+@hash fa4a4f424f2240e3c3cca11200de770d6070ea2f6f7bd43ffdf9bb3ab2d8ef46 482 bitfields/packed
+  ok 468, ArgumentOutOfRangeException 14
+@hash bf5285996f27d94087899313e20aa0fc0fb4c8b22b1c0553e326112af2ce9789 574 bitfields/aligned
+  ok 560, ArgumentOutOfRangeException 14
 
 @test Limits_FailOrSucceedAroundTheNeededValue("bitfields-enum-counts")
-@hash c5789074259879411f5bb15a3b2f9b4f3ac82416f8d0f1b35152a0d713781527 758 bitfields-enum-counts/packed
-@hash 3740830c6879c82ff3b347947a19b4b2f3da33a19160f807d803400de24280b9 850 bitfields-enum-counts/aligned
+@hash dc5a545b94d7de161af9e42285fc5d410d86d1c34c6fada98c037c9c890e4044 758 bitfields-enum-counts/packed
+  ok 716, ArgumentOutOfRangeException 14, CStructReadLimitException 20, CStructWriteLimitException 8
+@hash 6bb4536fb4b41a9efa2329b78eb9e7cd436aa3e57ca2b04a70e7fae7b91730ec 850 bitfields-enum-counts/aligned
+  ok 808, ArgumentOutOfRangeException 14, CStructReadLimitException 20, CStructWriteLimitException 8
 
 @test Limits_FailOrSucceedAroundTheNeededValue("bitfields-high")
-@hash 62f8fd3c9343f6325d5cceb6de1be5027680ebac80b9cad058e96ac09df7f114 482 bitfields-high/packed
-@hash 62f8fd3c9343f6325d5cceb6de1be5027680ebac80b9cad058e96ac09df7f114 482 bitfields-high/aligned
+@hash a67f3c187ba5316efc2271b2b81ed98ebcc4a5d9f58cb9017773708b2e6b1380 482 bitfields-high/packed
+  ok 468, ArgumentOutOfRangeException 14
+@hash a67f3c187ba5316efc2271b2b81ed98ebcc4a5d9f58cb9017773708b2e6b1380 482 bitfields-high/aligned
+  ok 468, ArgumentOutOfRangeException 14
 
 @test Limits_FailOrSucceedAroundTheNeededValue("bitfields-msvc")
-@hash d582f19ab0409599c288736d752caf6272559cb9e7c3de83c025e3f352c22f6f 666 bitfields-msvc/packed
-@hash da345d92caf1bea9fb252da93c057eb4632d17e760d88ea5314960e0facb00cc 850 bitfields-msvc/aligned
+@hash f1cba985189df5e6697f9dfabcb9d376512d9da84ea0a917a32d76b65bede1e4 666 bitfields-msvc/packed
+  ok 652, ArgumentOutOfRangeException 14
+@hash 08d63afb58b38c75330010c2f7a65a3f8021ea30ea8858c3d69b791d3fa7c539 850 bitfields-msvc/aligned
+  ok 836, ArgumentOutOfRangeException 14
 
 @test Limits_FailOrSucceedAroundTheNeededValue("conditional")
-@hash 727e2c3a3962a462fea8d604d3cdd627d7b5d7f058078bce9ab909692fd4f9b6 482 conditional/packed
-@hash 5d80195a9533656e445838492958cf087594e6a2cd6cf24e385d538d1ce1e589 574 conditional/aligned
+@hash a4074e336dcd1e7052c0367aa2c695748e1e6ef69c365a1f2899c115526183ae 482 conditional/packed
+  ok 468, ArgumentOutOfRangeException 14
+@hash 1451bbc15e6742854e7e9434885e9c23d59e183cae64221a4f2ba458f55e594b 574 conditional/aligned
+  ok 560, ArgumentOutOfRangeException 14
 
 @test Limits_FailOrSucceedAroundTheNeededValue("count")
-@hash f4e5cbb60b60b69a2903f0523607897a1a93778ddd28b6cad679e42c931d6513 666 count/packed
-@hash ae5ac1c1a0ac754bb8e0fd3a4c473ebaed3e6080cf9052334c7b4fe6cf99ea07 758 count/aligned
+@hash 87a120bec26a98a3e6fe670e7dac4ee63d1bb9221efe8f96a16377e9510aa59c 666 count/packed
+  ok 610, ArgumentOutOfRangeException 14, CStructReadLimitException 30, CStructWriteLimitException 12
+@hash df50c7b62d69cd06655bb4fb513b3d99884209a668d6a5f6f63ad0a885b86bee 758 count/aligned
+  ok 702, ArgumentOutOfRangeException 14, CStructReadLimitException 30, CStructWriteLimitException 12
 
 @test Limits_FailOrSucceedAroundTheNeededValue("custom-codec")
-@hash ad30edeed7f4eddfe1d969beface917283b4eadf03163a6f8e3ea7d2a06171f6 528 custom-codec/packed
-@hash ad30edeed7f4eddfe1d969beface917283b4eadf03163a6f8e3ea7d2a06171f6 528 custom-codec/aligned
+@hash 01c40cef9af9ed61decd6758c1fd21233395af787a6ea4a67355e2ceb07b40e4 528 custom-codec/packed
+  ok 486, ArgumentOutOfRangeException 14, CStructReadLimitException 20, CStructWriteLimitException 8
+@hash 01c40cef9af9ed61decd6758c1fd21233395af787a6ea4a67355e2ceb07b40e4 528 custom-codec/aligned
+  ok 486, ArgumentOutOfRangeException 14, CStructReadLimitException 20, CStructWriteLimitException 8
 
 @test Limits_FailOrSucceedAroundTheNeededValue("custom-fixed")
-@hash 15ff9c739f677ca4dfd7177732fff569f47f17a1679acc23354bea428fd44702 1126 custom-fixed/packed
-@hash 5db791aaa7b38da81024f6499233cffbcdec5c8e3664f4de5dc3d72f83d2b685 1770 custom-fixed/aligned
+@hash 7f5ab8b3239d73e8ce22c5a2df0a21cdad06a3fd605b693530d1d7355322712b 1126 custom-fixed/packed
+  ok 1084, ArgumentOutOfRangeException 14, CStructReadLimitException 18, CStructWriteLimitException 10
+@hash cdba75e2ad1e2411297425b06fd2d04d56e11384dbe10ec84b35ff726cd52131 1770 custom-fixed/aligned
+  ok 1728, ArgumentOutOfRangeException 14, CStructReadLimitException 18, CStructWriteLimitException 10
 
 @test Limits_FailOrSucceedAroundTheNeededValue("enum-bitfield")
-@hash d6b383feaaaf74e50e8b8f4030209a1e895c36ce1c38e7c02983f63979b3f8e7 574 enum-bitfield/packed
-@hash 50b3b58b7d8fdee09822bfaae7c9e635b3f2c3593985e00b1077df4daf83fcdd 666 enum-bitfield/aligned
+@hash 01c5ef885fc95ac0f15dba06b239a7ed3c14bce6a8d13f7a967b5c612f84bd65 574 enum-bitfield/packed
+  ok 532, ArgumentOutOfRangeException 14, CStructReadLimitException 20, CStructWriteLimitException 8
+@hash 4cdbeed1104fc70e155b22857c489c058775dde130c2c43be4e5a367fdfe7760 666 enum-bitfield/aligned
+  ok 624, ArgumentOutOfRangeException 14, CStructReadLimitException 20, CStructWriteLimitException 8
 
 @test Limits_FailOrSucceedAroundTheNeededValue("fixed")
-@hash ac42cdd22e361c80d492bc1beb0a4e4d6eb284ca0eea1160f00680101decc719 988 fixed/packed
-@hash cc679cf4d0b7465a03c0f25fd0209a4a5ce73c044c840f4d3f34997ae9c6e017 1218 fixed/aligned
+@hash d2eef7e39c2c457b3e8ebc9459f88a0d2b156779ce4eb2cea6c53c67ff69182a 988 fixed/packed
+  ok 926, ArgumentOutOfRangeException 14, CStructReadLimitException 24, CStructWriteLimitException 24
+@hash ce00d05c94e893e398fda14140075954849052beb907ed3a12c042afaba5deae 1218 fixed/aligned
+  ok 1156, ArgumentOutOfRangeException 14, CStructReadLimitException 24, CStructWriteLimitException 24
 
 @test Limits_FailOrSucceedAroundTheNeededValue("inline-qualified")
-@hash 4c63afe2e916193669a572b0a88f783cae37acedc34eadb315beb142f0a2a7f9 666 inline-qualified/packed
-@hash 9bd892d5d1115752e24482f2d7b05edba825ed3544bf849e802d0dd4b5c9d145 758 inline-qualified/aligned
+@hash 99a85e2c7a650196e40751f7e65343e75170d77f80ed4b3926464a502d6c653a 666 inline-qualified/packed
+  ok 612, ArgumentOutOfRangeException 14, CStructReadLimitException 30, CStructWriteLimitException 10
+@hash deb1c076b82f30aac28fc1416b3bad8804ea52cdbd7f0f46599995979cb6c4ce 758 inline-qualified/aligned
+  ok 704, ArgumentOutOfRangeException 14, CStructReadLimitException 30, CStructWriteLimitException 10
 
 @test Limits_FailOrSucceedAroundTheNeededValue("leb128")
-@hash 135e916d1a03667618d3095716394c776fe8665d457e7f7fa0fad545238a749b 666 leb128/packed
-@hash 135e916d1a03667618d3095716394c776fe8665d457e7f7fa0fad545238a749b 666 leb128/aligned
+@hash f05253c821d40fe8e92966bc8a6df83e544835ae64696009f0dadb1c2e510c12 666 leb128/packed
+  ok 610, ArgumentOutOfRangeException 14, CStructReadLimitException 30, CStructWriteLimitException 12
+@hash f05253c821d40fe8e92966bc8a6df83e544835ae64696009f0dadb1c2e510c12 666 leb128/aligned
+  ok 610, ArgumentOutOfRangeException 14, CStructReadLimitException 30, CStructWriteLimitException 12
 
 @test Limits_FailOrSucceedAroundTheNeededValue("multidim")
-@hash d7219b9fa2f2ac747cf1c91de0f4cc972b9872a31abe81a7d4ef27bb107a540e 2046 multidim/packed
-@hash f1999cc38056e712dc13f18f776fc2529be98c7c792a1304926cc3f9ac511341 2138 multidim/aligned
+@hash aa483b10b8c785084ff7f4d59000eb08240c34454d3ebb7af3fda1cd91150fb2 2046 multidim/packed
+  ok 1922, ArgumentOutOfRangeException 14, CStructReadLimitException 70, CStructWriteLimitException 40
+@hash cc4958bfbf5e933e598c98f58bf5cc144edb2316876291c28f4a2d61e9df8559 2138 multidim/aligned
+  ok 2014, ArgumentOutOfRangeException 14, CStructReadLimitException 70, CStructWriteLimitException 40
 
 @test Limits_FailOrSucceedAroundTheNeededValue("multidim-structs")
-@hash 66c1fab221b0be79d131ee3d8b1352879943e68b509aa60273527739585cd8cf 1678 multidim-structs/packed
-@hash c2b5e59a87e4b8dfede305dcbbbae456535a3e4a7fd415a0022d15a89b9fe94b 1954 multidim-structs/aligned
+@hash 1da923938a23c0c51da5e231527e5ea58884e7b695c97bdf1fc2713ea20b1eea 1678 multidim-structs/packed
+  ok 1600, ArgumentOutOfRangeException 14, CStructReadLimitException 46, CStructWriteLimitException 18
+@hash 1045e2ad18c39f34727adf505be5d6306eb56ad29fb4aaa8d5b0ab263ffb5622 1954 multidim-structs/aligned
+  ok 1876, ArgumentOutOfRangeException 14, CStructReadLimitException 46, CStructWriteLimitException 18
 
 @test Limits_FailOrSucceedAroundTheNeededValue("nested")
-@hash 874a41ea5b400e2455dae7e13657fc81cc98ec8bae0eeeca3d19a78179bd8580 758 nested/packed
-@hash f81a7ea1dcd0aa1c0f9f73772db2961b20632a517570c22c83e532d358a337ff 942 nested/aligned
+@hash e4d7549a969296e62c434d325c7d07733cf3bdd4a26b878cc73af4f2e0512f2f 758 nested/packed
+  ok 704, ArgumentOutOfRangeException 14, CStructReadLimitException 30, CStructWriteLimitException 10
+@hash 249d103ebf0cd2043e6c92523326722ba2b79a6c7b832151f5c6c1dd00df8779 942 nested/aligned
+  ok 888, ArgumentOutOfRangeException 14, CStructReadLimitException 30, CStructWriteLimitException 10
 
 @test Limits_FailOrSucceedAroundTheNeededValue("pointer-arrays")
-@hash 7b8c75bb47d445049dae6f903d8bcbf32097ae6c9981afe108f25c59ead3ec9c 712 pointer-arrays/packed
-@hash 7b8c75bb47d445049dae6f903d8bcbf32097ae6c9981afe108f25c59ead3ec9c 712 pointer-arrays/aligned
+@hash 9c746ea1e91cfb37e07772a42fd779a8514377b98abfc2c9e8d43d1f8f8d86c2 712 pointer-arrays/packed
+  ok 652, ArgumentOutOfRangeException 14, CStructReadLimitException 38, CStructWriteLimitException 8
+@hash 9c746ea1e91cfb37e07772a42fd779a8514377b98abfc2c9e8d43d1f8f8d86c2 712 pointer-arrays/aligned
+  ok 652, ArgumentOutOfRangeException 14, CStructReadLimitException 38, CStructWriteLimitException 8
 
 @test Limits_FailOrSucceedAroundTheNeededValue("pointer-counted")
-@hash 219bd45b2f7a0f42ba8ddd311a1d1e10e5b6ba9b7b16a55cee2a5aeb98b1b4ac 804 pointer-counted/packed
-@hash 219bd45b2f7a0f42ba8ddd311a1d1e10e5b6ba9b7b16a55cee2a5aeb98b1b4ac 804 pointer-counted/aligned
+@hash c51c92e79492a7f74052c8a368eae8c90cc19bfbdcc93ba44b71490ab6cbfc78 804 pointer-counted/packed
+  ok 618, ArgumentOutOfRangeException 14, CStructPathException 138, CStructReadLimitException 34
+@hash c51c92e79492a7f74052c8a368eae8c90cc19bfbdcc93ba44b71490ab6cbfc78 804 pointer-counted/aligned
+  ok 618, ArgumentOutOfRangeException 14, CStructPathException 138, CStructReadLimitException 34
 
 @test Limits_FailOrSucceedAroundTheNeededValue("pointer-list")
-@hash dfe8332c7d8fc0ed37b065797055b558806e6b5b1c36a368f38060d342e6c1b2 620 pointer-list/packed
-@hash dfe8332c7d8fc0ed37b065797055b558806e6b5b1c36a368f38060d342e6c1b2 620 pointer-list/aligned
+@hash 2cfe8dcec74d88735d65a43e5f4a6d7825e7f0161491693852084df96f073012 620 pointer-list/packed
+  ok 534, ArgumentOutOfRangeException 14, CStructReadLimitException 62, CStructWriteLimitException 10
+@hash 2cfe8dcec74d88735d65a43e5f4a6d7825e7f0161491693852084df96f073012 620 pointer-list/aligned
+  ok 534, ArgumentOutOfRangeException 14, CStructReadLimitException 62, CStructWriteLimitException 10
 
 @test Limits_FailOrSucceedAroundTheNeededValue("pointer-views")
-@hash 24b811668a3ff2518e852033ebbc2aa90cacf879d9b3aa43098aeff5716c944b 620 pointer-views/packed
-@hash 24b811668a3ff2518e852033ebbc2aa90cacf879d9b3aa43098aeff5716c944b 620 pointer-views/aligned
+@hash 09d99ee66d936f770fede27d9b6212426c0f7dcc4ca5d1870b15bb9badd18851 620 pointer-views/packed
+  ok 576, ArgumentOutOfRangeException 14, CStructReadLimitException 28, CStructWriteLimitException 2
+@hash 09d99ee66d936f770fede27d9b6212426c0f7dcc4ca5d1870b15bb9badd18851 620 pointer-views/aligned
+  ok 576, ArgumentOutOfRangeException 14, CStructReadLimitException 28, CStructWriteLimitException 2
 
 @test Limits_FailOrSucceedAroundTheNeededValue("pointers")
-@hash 55be14a26f413d48b16d2116148fde296cde77e51ab59e658baae5a35377af12 804 pointers/packed
-@hash 55be14a26f413d48b16d2116148fde296cde77e51ab59e658baae5a35377af12 804 pointers/aligned
+@hash 6f63e6664a729f7c1a1d828b5e31d6e2f3c1d639fd12ae378a9196f4fd7aca72 804 pointers/packed
+  ok 742, ArgumentOutOfRangeException 14, CStructReadLimitException 48
+@hash 6f63e6664a729f7c1a1d828b5e31d6e2f3c1d639fd12ae378a9196f4fd7aca72 804 pointers/aligned
+  ok 742, ArgumentOutOfRangeException 14, CStructReadLimitException 48
 
 @test Limits_FailOrSucceedAroundTheNeededValue("promoted")
-@hash d0f70863d3bb7d9f1513112b644ccc222d44ddf17413ab751257ed0b8da42e00 620 promoted/packed
-@hash b50db9553632f571af434679d7de39aa295d6279ff59adf69521dd216f03de90 758 promoted/aligned
+@hash 79255195a971b6f85f116c7bd40d84773facee4512249317395d4a9b3eada818 620 promoted/packed
+  ok 578, ArgumentOutOfRangeException 14, CStructReadLimitException 18, CStructWriteLimitException 10
+@hash 1291632b1c3aef04f83d1b83ee4e9c391c59b084d42163a107c1be7d5f85226e 758 promoted/aligned
+  ok 716, ArgumentOutOfRangeException 14, CStructReadLimitException 18, CStructWriteLimitException 10
 
 @test Limits_FailOrSucceedAroundTheNeededValue("promoted-union")
-@hash 644dd82810a6e94a50f54a5385d9bdc0ddcee03bda75baea131efc67e1fa8c1a 528 promoted-union/packed
-@hash 2f3ae1ee678aaed1c261b7dc1d5076aefd3758b90a08c48780433c437f1e7c06 666 promoted-union/aligned
+@hash b6e35ee1cc0bce39ad25ecd74517261191404d1a7a26d84f2b47430622c31ef0 528 promoted-union/packed
+  ok 502, ArgumentOutOfRangeException 14, CStructReadLimitException 10, CStructWriteLimitException 2
+@hash 0dcec42ea098e5aca6368c059c2fbf8b97f0ea25ae7013f72a8afdc170d97ba4 666 promoted-union/aligned
+  ok 640, ArgumentOutOfRangeException 14, CStructReadLimitException 10, CStructWriteLimitException 2
 
 @test Limits_FailOrSucceedAroundTheNeededValue("terminated")
-@hash 57bc0256ee20e8802095d1d428c2c3b3a5910323450ec83915fb884ad64b48f3 758 terminated/packed
-@hash 57bc0256ee20e8802095d1d428c2c3b3a5910323450ec83915fb884ad64b48f3 758 terminated/aligned
+@hash 3490f32b2a25376bf5919cdaf042a883fb3b32edfccbe2d9f4263d0fe7fac097 758 terminated/packed
+  ok 660, ArgumentOutOfRangeException 14, CStructReadLimitException 60, CStructWriteException 4, CStructWriteLimitException 20
+@hash 3490f32b2a25376bf5919cdaf042a883fb3b32edfccbe2d9f4263d0fe7fac097 758 terminated/aligned
+  ok 660, ArgumentOutOfRangeException 14, CStructReadLimitException 60, CStructWriteException 4, CStructWriteLimitException 20
 
 @test Limits_FailOrSucceedAroundTheNeededValue("terminated-scalars")
-@hash 56717cf10923c3c048969dd7992d860f8306c623b639e4decd023b1d4e0004ab 666 terminated-scalars/packed
-@hash 44ae7100424a42ea8813f870d107f2037f671c3fd8934c0bc1f0404fd6818ddb 758 terminated-scalars/aligned
+@hash 495072535bad9a068387e3ce89fb86fbce3f8ef635b8057f7c09c31b34dd9182 666 terminated-scalars/packed
+  ok 624, ArgumentOutOfRangeException 14, CStructReadLimitException 20, CStructWriteException 8
+@hash f1ff427981e47ae6b2cf474c6fc8192c439221212d1cf4e5dc8a6d38ef0577f8 758 terminated-scalars/aligned
+  ok 716, ArgumentOutOfRangeException 14, CStructReadLimitException 20, CStructWriteException 8
 
 @test Limits_FailOrSucceedAroundTheNeededValue("text")
-@hash ae3a4a8d3b1171eb11097114cd7499902c08515141202772d84bf35efb19a4c5 1080 text/packed
-@hash 9df074c791085688ea226d906dfc9715ca250231799737419dd4aeafe5fdd51e 1126 text/aligned
+@hash adddf43c20bb0934d96ee8eafba7bc2e37374912f9acbf38c7b797f1537721e6 1080 text/packed
+  ok 942, ArgumentOutOfRangeException 14, CStructReadLimitException 76, CStructWriteLimitException 48
+@hash 05ba7df3d40a3ed1ee6a2d03ec6402c2c9dcc75503da14b96138e8600e6d93b6 1126 text/aligned
+  ok 988, ArgumentOutOfRangeException 14, CStructReadLimitException 76, CStructWriteLimitException 48
 
 @test Limits_FailOrSucceedAroundTheNeededValue("to-end")
-@hash b4dcaab68ab5de957a2a138e5325d91db5231735c14fcac92a861ee6027f557a 666 to-end/packed
-@hash b4dcaab68ab5de957a2a138e5325d91db5231735c14fcac92a861ee6027f557a 666 to-end/aligned
+@hash 729d6cae97693fbf3644362fb9ed333f5f02e33992865cb1767162a965ab94ca 666 to-end/packed
+  ok 610, ArgumentOutOfRangeException 14, CStructReadLimitException 30, CStructWriteException 12
+@hash 729d6cae97693fbf3644362fb9ed333f5f02e33992865cb1767162a965ab94ca 666 to-end/aligned
+  ok 610, ArgumentOutOfRangeException 14, CStructReadLimitException 30, CStructWriteException 12
 
 @test Limits_FailOrSucceedAroundTheNeededValue("to-end-structs")
-@hash 80aea3ab97e049e55b3304c7f393a936504a399ea9472d97006450311c15149e 620 to-end-structs/packed
-@hash 4565ef96101f8959cb5d16e6d062d9221a699ae8d49998581e039e62469c0eb9 758 to-end-structs/aligned
+@hash 5388796a92e8900b84fff5d0f4b14af898a5aedd3cf4f6ed1f4193f247d0744e 620 to-end-structs/packed
+  ok 572, ArgumentOutOfRangeException 14, CStructReadLimitException 24, CStructWriteException 8, CStructWriteLimitException 2
+@hash a42171d4c1d06fe8e136c62457fd3706c1ed8a8435d60bcf471278aa407334f3 758 to-end-structs/aligned
+  ok 710, ArgumentOutOfRangeException 14, CStructReadLimitException 24, CStructWriteException 8, CStructWriteLimitException 2
 
 @test Limits_FailOrSucceedAroundTheNeededValue("union")
-@hash 26c2a218769c58bbec13620a374415e9cf7f439002cc5e4b0aa295dc58051b44 574 union/packed
-@hash 18082fc8e47b2c057aead6a59876c98d256ccb6a74ce988bb8ca8aad8469634e 850 union/aligned
+@hash b724fe8b8071e7386d6a540a9ca17114e3e422ec1bad1c1c3678c40fc159abc8 574 union/packed
+  ok 548, ArgumentOutOfRangeException 14, CStructReadLimitException 10, CStructWriteLimitException 2
+@hash ce079c2aeb2cd0b5ea0f609b6eaa51b7ee84d43f80f99108aa4d3665d68d006b 850 union/aligned
+  ok 824, ArgumentOutOfRangeException 14, CStructReadLimitException 10, CStructWriteLimitException 2
 
 @test Limits_FailOrSucceedAroundTheNeededValue("union-arrays")
-@hash f296ca6007210f314757ed5b5f9c0e9f9d4df3c671dcccba11a0b9219a5ef44e 574 union-arrays/packed
-@hash f8d129e33f5c64f274c3e2aefa14165d9954efdeca03439dceebbf4792357c09 666 union-arrays/aligned
+@hash 32c94d5eaff4a1362bf7b7f79aa38c7985504ecf71b67ea57a451617df0d4e5f 574 union-arrays/packed
+  ok 512, ArgumentOutOfRangeException 14, CStructReadLimitException 46, CStructWriteLimitException 2
+@hash 53c3da7325d64da22e1a9d7b718516fa2a838a213eb2ddd7a7067aadef4987a1 666 union-arrays/aligned
+  ok 604, ArgumentOutOfRangeException 14, CStructReadLimitException 46, CStructWriteLimitException 2
 
 @test Limits_FailOrSucceedAroundTheNeededValue("union-bitfields")
-@hash 81cb461b89f50dea4d18bceeaef73dd585369d0e50ee51ef73ea7fc851f7d202 482 union-bitfields/packed
-@hash c1ba08f14019e3948c46fec7900a7786a493cda100d238aee8608fe4a2b37950 574 union-bitfields/aligned
+@hash e8c3552e2041ed1405f8b3eea1f7b87383a8dc4ee334e12ec8d9e411e27b7bec 482 union-bitfields/packed
+  ok 446, ArgumentOutOfRangeException 14, CStructReadLimitException 20, CStructWriteLimitException 2
+@hash dd8e5e311dcf1d9f92d94d24d37dc24adc6a291e35292d44645dad92b5d9c5ab 574 union-bitfields/aligned
+  ok 538, ArgumentOutOfRangeException 14, CStructReadLimitException 20, CStructWriteLimitException 2
 
 @test Limits_FailOrSucceedAroundTheNeededValue("union-conditional")
-@hash 3dd4e30b966a702aca3737ee7143e8a7d42cdbe25ed134f2f347dbfd62209f2c 666 union-conditional/packed
-@hash 8135d019ead74823abceff0b0f48b74d5504c54a60cf6f16fb48f003aba4c481 758 union-conditional/aligned
+@hash d3d341a93a2fd4667ccb780d92de1303aa571111c6b8f3d20829c123d23cd7cb 666 union-conditional/packed
+  ok 590, ArgumentOutOfRangeException 14, CStructReadLimitException 52, CStructWriteLimitException 10
+@hash e4d9c178d89c385c89e4de8f1e70d7d78c503fe07a25ba2eb0b8d5fe2913471d 758 union-conditional/aligned
+  ok 682, ArgumentOutOfRangeException 14, CStructReadLimitException 52, CStructWriteLimitException 10
 
 @test Limits_FailOrSucceedAroundTheNeededValue("union-nested")
-@hash 04950953b618fd0a11eb051de5c25ea33d2bd5d16ee100133b229c0e002521ff 758 union-nested/packed
-@hash 740d274862b4ad3e9a68da98d57e4d63c60a65aed931c0aa436fd7118c46fefe 1034 union-nested/aligned
+@hash 6fc4ff831a8804d9b31be0894ee2a07f0e4b7e180e9af88bb53ea0956a30576e 758 union-nested/packed
+  ok 700, ArgumentOutOfRangeException 14, CStructReadLimitException 34, CStructWriteLimitException 10
+@hash 2eda021cfeafa615e8994d765582e2d3a0202dae40356ab9f04acab99b24e186 1034 union-nested/aligned
+  ok 976, ArgumentOutOfRangeException 14, CStructReadLimitException 34, CStructWriteLimitException 10
 
 @test Limits_FailOrSucceedAroundTheNeededValue("variables")
-@hash 61c45cd62c923231289ac80f933ed9437f8905c5fed93559924b9d7352db8712 528 variables/packed
-@hash 61c45cd62c923231289ac80f933ed9437f8905c5fed93559924b9d7352db8712 528 variables/aligned
+@hash d7b5bb18e1e140f601f6182231a6dc1d94eb83b28bf92cde17be478d71c485e9 528 variables/packed
+  ok 472, ArgumentOutOfRangeException 14, CStructReadLimitException 30, CStructWriteLimitException 12
+@hash d7b5bb18e1e140f601f6182231a6dc1d94eb83b28bf92cde17be478d71c485e9 528 variables/aligned
+  ok 472, ArgumentOutOfRangeException 14, CStructReadLimitException 30, CStructWriteLimitException 12
 
 @test Limits_FailOrSucceedAroundTheNeededValue("write-codecs")
-@hash 7b9512aa7fad6f28460634ce4aa5636ecf99dba8040e263c4d17f3c37c07c570 4990 write-codecs/packed
-@hash 841fe5b1fcaf2575dbc666a421a78a58af38dfd25a81ce1467ca4df01ef30432 6186 write-codecs/aligned
+@hash 2919243da37df51f13ffc2ee26097f740ae84947a74e213f02f5b33ddf35c957 4990 write-codecs/packed
+  ok 4976, ArgumentOutOfRangeException 14
+@hash 7de3b4bc48b45327e16fd970b5e73535e26ae4e536a20c7059ec9921521728ff 6186 write-codecs/aligned
+  ok 6172, ArgumentOutOfRangeException 14
 
 @test Limits_FailOrSucceedAroundTheNeededValue("write-enums")
-@hash 5d30d82298cf25f19934cee23503d9e1598626a3dce8718e42b7d674ed61268b 896 write-enums/packed
-@hash b94673f82374b01623f00c3a3dd22ed16ad309e8b19d2b3f6b818a7afb072400 1034 write-enums/aligned
+@hash 0d26acde12eddc4c46bf82a3fc88f3f85771f9c38a3eba0246185546622933ad 896 write-enums/packed
+  ok 862, ArgumentOutOfRangeException 14, CStructReadLimitException 12, CStructWriteLimitException 8
+@hash e266f63721cf16fa0afcc8b13c5a888987930524a897c2f184d4cdfd2d6f1342 1034 write-enums/aligned
+  ok 1000, ArgumentOutOfRangeException 14, CStructReadLimitException 12, CStructWriteLimitException 8
 
 @test Limits_FailOrSucceedAroundTheNeededValue("write-padding")
-@hash 9ea85b6f27a9ae80b54729b9a9fe14c3c43fffc76b869c9844b97ccf41fae7b5 896 write-padding/packed
-@hash 2bac4ca19a565851188a12755890773c6ba36fcad54f39af2481eef9e24efd5c 1034 write-padding/aligned
+@hash 0a36626d2511e09e84dfa22303ea09cd0bd0ca0887ffb3dd251b32431dbf2d55 896 write-padding/packed
+  ok 850, ArgumentOutOfRangeException 14, CStructReadLimitException 20, CStructWriteLimitException 12
+@hash e6d776eecb344c502caf1eadf6ce2bd613e236bf5c4117049237c51deaf15e4a 1034 write-padding/aligned
+  ok 988, ArgumentOutOfRangeException 14, CStructReadLimitException 20, CStructWriteLimitException 12
 
 @test Limits_FailOrSucceedAroundTheNeededValue("write-qualified")
-@hash 31d030a4ae40962ec90eea9facdb4168c0dd3f77c4b5df6f7776fd2f72f65887 528 write-qualified/packed
-@hash 707d2da7178bc08cd21912814e37f5a7f1d5ddf9ec0c090a85222e26dee0b330 574 write-qualified/aligned
+@hash c21021daeaf21541b01c893a082e981add4da00ea2cfd79fe25c3b10205470aa 528 write-qualified/packed
+  ok 480, ArgumentOutOfRangeException 14, CStructReadLimitException 28, CStructWriteLimitException 6
+@hash a9fe915c952d4f457af407a9a0d5e9918ff02ee42ef3036a66637765cc9acb33 574 write-qualified/aligned
+  ok 526, ArgumentOutOfRangeException 14, CStructReadLimitException 28, CStructWriteLimitException 6
 
 @test Limits_FailOrSucceedAroundTheNeededValue("write-scope")
-@hash e11015ccfb969c18a79d8f8bd13a82a4963a7ba4d04d55220a300b078f1a8e57 804 write-scope/packed
-@hash 241ad34ad8075db36b13f0aba90aad907f67efa0dc86002cf18b2830cff25c04 850 write-scope/aligned
+@hash f668328bf9e4d454db9b198995c03f2d71b132441c7fb425d2c966fff28aa5cd 804 write-scope/packed
+  ok 750, ArgumentOutOfRangeException 14, CStructReadLimitException 30, CStructWriteLimitException 10
+@hash 863659fe27bcac39c590ed73e996edbdf0491e528fe112889bf3709d066637ea 850 write-scope/aligned
+  ok 796, ArgumentOutOfRangeException 14, CStructReadLimitException 30, CStructWriteLimitException 10
 
 @test Limits_FailOrSucceedAroundTheNeededValue("write-text")
-@hash b0d8c560ac56608d34f443334174aa9fdf1d61fe41ffe23d3a8f4a4b929fe9b7 1448 write-text/packed
-@hash 0ab0ee3598ae18bfefd04f3ad23868c265fe174b2d9eba6fa426ae6c26eda836 1494 write-text/aligned
+@hash 3c489b32d241ec3adb4b158123aa98b2587b1537aea2151215db283851e58189 1448 write-text/packed
+  ok 1342, ArgumentOutOfRangeException 14, CStructReadLimitException 68, CStructWriteLimitException 24
+@hash 7a1ecfbe519be2909d11348597a7f93a2aaa2cad95656f7877e2d371b8404d7f 1494 write-text/aligned
+  ok 1388, ArgumentOutOfRangeException 14, CStructReadLimitException 68, CStructWriteLimitException 24
 
 @test NestingLimits_AgreeAcrossExecutionPaths("bitfields")
-@hash c550c31f7f676a7fbd9ba1b894dfcd252d08a2e2de340ec0e284ffb03a486199 70 bitfields/packed
-@hash dabccc772fccd5b8c46141491fed118f41769d03066944d79c8533b94b04f8b5 70 bitfields/aligned
+@hash 47555fb8fb84c4907136bf8acf56e89dfbdde0805ba88580dc183c91e16f198e 70 bitfields/packed
+  ok 56, ArgumentOutOfRangeException 14
+@hash fc45d09fa9d215f3f9c9018b09e3a31bc21369878558fe4d7a89a55ae45ffeeb 70 bitfields/aligned
+  ok 56, ArgumentOutOfRangeException 14
 
 @test NestingLimits_AgreeAcrossExecutionPaths("bitfields-enum-counts")
-@hash 7776a3dcd911b86f5e717174bf5f265b42ad6095ca54ecb25b0bf5892fc583d0 80 bitfields-enum-counts/packed
-@hash 7a8c7b48417ba9860f2ce50b380d1c69199af7ce26934f4a6b496713ae03e37a 80 bitfields-enum-counts/aligned
+@hash 19ff9c4f0a060cb03366a6841ed822e4f21d19c2db35eacb38ba0cfe167b0701 80 bitfields-enum-counts/packed
+  ok 64, ArgumentOutOfRangeException 16
+@hash fa36bd044241bb6ae9ca2527623c64c28bc7ac9c4d9e43cf4e8e9f8c7707bd35 80 bitfields-enum-counts/aligned
+  ok 64, ArgumentOutOfRangeException 16
 
 @test NestingLimits_AgreeAcrossExecutionPaths("bitfields-high")
-@hash 4bd941820024b36b308f17e767ddce54357b65ed2565f0a1a90afe141f5d2e28 70 bitfields-high/packed
-@hash 4bd941820024b36b308f17e767ddce54357b65ed2565f0a1a90afe141f5d2e28 70 bitfields-high/aligned
+@hash f24f8c9eb66c30caf2210378dd0a8430c4d8decbc410e912221a2741ac7e2e02 70 bitfields-high/packed
+  ok 56, ArgumentOutOfRangeException 14
+@hash f24f8c9eb66c30caf2210378dd0a8430c4d8decbc410e912221a2741ac7e2e02 70 bitfields-high/aligned
+  ok 56, ArgumentOutOfRangeException 14
 
 @test NestingLimits_AgreeAcrossExecutionPaths("bitfields-msvc")
-@hash 3b0da9b565c444320c7d0f6b634cd3841502f0d65e243818cb93ccaf2345811c 70 bitfields-msvc/packed
-@hash 6448c72cdf0d098e0ccf8fd45016cb986100d02ce117aa77b338e6077c701584 70 bitfields-msvc/aligned
+@hash aedcdd6ec2449fed217b026f4ef467bcaa813ab2bcac24af879b84372d50cf1d 70 bitfields-msvc/packed
+  ok 56, ArgumentOutOfRangeException 14
+@hash 7f553ea3564d97100b3754c258619cf080c06c38e74cae46daafaa5ac9c6a021 70 bitfields-msvc/aligned
+  ok 56, ArgumentOutOfRangeException 14
 
 @test NestingLimits_AgreeAcrossExecutionPaths("conditional")
-@hash 12266fec4fc6ce7bd7add681766658c9a2de051ca87dbfde04e7ec54ea27e294 70 conditional/packed
-@hash b8a48cc3542a50a0b5865c14f583fc6f395f759cba209969308bc403d4a56519 70 conditional/aligned
+@hash 7328d7ffae04bdadb342c08bc920647755711b1532e03c741c75b80fb4ba586a 70 conditional/packed
+  ok 56, ArgumentOutOfRangeException 14
+@hash 0b9f3ca19ff4747e1cfedc0aa9b6f14801b7f99477a1dbd47d095bb0adc9e730 70 conditional/aligned
+  ok 56, ArgumentOutOfRangeException 14
 
 @test NestingLimits_AgreeAcrossExecutionPaths("count")
-@hash 1ac1e81c90712c62544b29a97793dc7e3aa8943a493cbbbfd554c5100f8d9d66 80 count/packed
-@hash a576672ad2e1de9b200378adbe0ae10481857f9db652defa71ad25cfa5a6991b 80 count/aligned
+@hash 91e33295fe38b70e12ff54d2d36409e5df0fe00145b39c53b7ebc8e985cd1093 80 count/packed
+  ok 64, ArgumentOutOfRangeException 16
+@hash 3286a0abbddb7e5771ad1ccf9795a790bcf172cefa3dd4d9b288d63341b911aa 80 count/aligned
+  ok 64, ArgumentOutOfRangeException 16
 
 @test NestingLimits_AgreeAcrossExecutionPaths("custom-codec")
-@hash 2b47ea15d8e28b30091ccefb880403009bd75319aa75078f4258aebe082255ab 80 custom-codec/packed
-@hash 2b47ea15d8e28b30091ccefb880403009bd75319aa75078f4258aebe082255ab 80 custom-codec/aligned
+@hash a1b3547943e8dbe5c0270e624bf87f70058cd3f62d3de2a099e309e428561502 80 custom-codec/packed
+  ok 64, ArgumentOutOfRangeException 16
+@hash a1b3547943e8dbe5c0270e624bf87f70058cd3f62d3de2a099e309e428561502 80 custom-codec/aligned
+  ok 64, ArgumentOutOfRangeException 16
 
 @test NestingLimits_AgreeAcrossExecutionPaths("custom-fixed")
-@hash d6f3289fb347e2fe39e4a4583def9755aae263185c0cbb3dc303e68c50be7758 80 custom-fixed/packed
-@hash 3d6a457673e42d59700a1a412091e9dc7c213eeedf735eb5fd7144c09efe1720 80 custom-fixed/aligned
+@hash b9d5c2ff4b70b2188c985a02554c5b999961330ce5926af6df742894460833e1 80 custom-fixed/packed
+  ok 52, ArgumentOutOfRangeException 16, CStructReadLimitException 10, CStructWriteLimitException 2
+@hash 285422de25caebd9bed7ced8c496b494519917ec7e075cfa6ee96f2bedbfc583 80 custom-fixed/aligned
+  ok 52, ArgumentOutOfRangeException 16, CStructReadLimitException 10, CStructWriteLimitException 2
 
 @test NestingLimits_AgreeAcrossExecutionPaths("enum-bitfield")
-@hash f527153fd0129bbedeeeabbffb767f4228f243ca0599300a2259d3d7da971432 80 enum-bitfield/packed
-@hash 1bc926c1978cb810873e119e0ceb3024b406a7911ae62fe6ed6e08e173f9f9ce 80 enum-bitfield/aligned
+@hash 142d53a292e7afe3bf75e3218a4b3ab793034265a8dd1c30fae7f9e24d10bba3 80 enum-bitfield/packed
+  ok 64, ArgumentOutOfRangeException 16
+@hash c8cb85700514a5232767af2dd86d8277801fa39a8b3eb39946438a151cd01817 80 enum-bitfield/aligned
+  ok 64, ArgumentOutOfRangeException 16
 
 @test NestingLimits_AgreeAcrossExecutionPaths("fixed")
-@hash 904cf203bca2f604c62974b39546e5de8aaa1968ab941094dda71679f169187d 80 fixed/packed
-@hash 463e08b4e8a0aca63a786eee94d82b3f2ea9d45752da654db91eb6f50e975513 80 fixed/aligned
+@hash 222d86b12626b071bf96f05fcdfdfa7ebbb667b76e1fb4d475348e8547300ed9 80 fixed/packed
+  ok 64, ArgumentOutOfRangeException 16
+@hash f5b6a496a0aa2f400d4424084f74ed379210351c01dbc1193ab6b5d983b5c7c7 80 fixed/aligned
+  ok 64, ArgumentOutOfRangeException 16
 
 @test NestingLimits_AgreeAcrossExecutionPaths("inline-qualified")
-@hash edc4be0d3fd7816e3343d1d57963c9978fb035ac6cab284e40021d1ec7add9ea 80 inline-qualified/packed
-@hash 5f833f95fde16073870c6b76bdea573c5d2d12463cee4fd61c51944040934aee 80 inline-qualified/aligned
+@hash 025f2879bacc798a018b7a669ee359a9faf6978e194cc4a648c60645ad05c22b 80 inline-qualified/packed
+  ok 48, ArgumentOutOfRangeException 16, CStructReadLimitException 14, CStructWriteLimitException 2
+@hash 3f2d3e0bff71c9dc60aa638c86d36d78c65ca01d43892b802ad668a219762afe 80 inline-qualified/aligned
+  ok 48, ArgumentOutOfRangeException 16, CStructReadLimitException 14, CStructWriteLimitException 2
 
 @test NestingLimits_AgreeAcrossExecutionPaths("leb128")
-@hash cb4d4a47265633849fd21ed0624d5c23a08b4b0eebb807d0035156d7dfdb85ee 80 leb128/packed
-@hash cb4d4a47265633849fd21ed0624d5c23a08b4b0eebb807d0035156d7dfdb85ee 80 leb128/aligned
+@hash 05ad60d758fb40efdbd3749e51a7a557cb7b72a49d3d32e32324d84d736e3235 80 leb128/packed
+  ok 64, ArgumentOutOfRangeException 16
+@hash 05ad60d758fb40efdbd3749e51a7a557cb7b72a49d3d32e32324d84d736e3235 80 leb128/aligned
+  ok 64, ArgumentOutOfRangeException 16
 
 @test NestingLimits_AgreeAcrossExecutionPaths("multidim")
-@hash c7e13d2adae71cb1dc518faa8625602eabdded6c47bc7d6fc8532e8bdbdf3e43 80 multidim/packed
-@hash fc2ee7f7a447a258c4e2db7e0d7efae571b25748f08f8dc4c8a7c5d43b1c3916 80 multidim/aligned
+@hash 6613c633c5c3868dad145a35de66ccc89014687ae23240d1df9351b772f90c4e 80 multidim/packed
+  ok 64, ArgumentOutOfRangeException 16
+@hash 83f6b3e2eab6168611b7fecb11913d844c0169265e1cad487fcf4024ac46a979 80 multidim/aligned
+  ok 64, ArgumentOutOfRangeException 16
 
 @test NestingLimits_AgreeAcrossExecutionPaths("multidim-structs")
-@hash f3c39158170cf27adab06714dd5105c483d30d63b0edbf49d4df9aa26f334d1a 80 multidim-structs/packed
-@hash 72ae38b5ec82d41ec1f0807974e65af5c5b6b37fe46c5a6cc3d8986618a318fd 80 multidim-structs/aligned
+@hash a71418bc73a98b6e069720dadabd8f29e226bcbf41c03cdba5dce6ce5876befd 80 multidim-structs/packed
+  ok 48, ArgumentOutOfRangeException 16, CStructReadLimitException 14, CStructWriteLimitException 2
+@hash b3ff98afb4c77f1383b3a9f7224387280290009d2cba8e344bdc9772eea4e67d 80 multidim-structs/aligned
+  ok 48, ArgumentOutOfRangeException 16, CStructReadLimitException 14, CStructWriteLimitException 2
 
 @test NestingLimits_AgreeAcrossExecutionPaths("nested")
-@hash d054849d54137292ee51959975e622ff487654c24cc7c998dd37e25ac56a33e0 80 nested/packed
-@hash 8fbc32d60127b12374fed37eff2a1197f012c85599d7ed006d8e4f83f5ba8b42 80 nested/aligned
+@hash 56f78addf8a9e4751727c100557f53f887c203829b418aab36d654ab02bca0eb 80 nested/packed
+  ok 48, ArgumentOutOfRangeException 16, CStructReadLimitException 14, CStructWriteLimitException 2
+@hash c7c9f6d0986ba665f7f09c6fc7c5fb02ae11ab68357a6cdef748812441b066d4 80 nested/aligned
+  ok 48, ArgumentOutOfRangeException 16, CStructReadLimitException 14, CStructWriteLimitException 2
 
 @test NestingLimits_AgreeAcrossExecutionPaths("pointer-arrays")
-@hash eda224f60463aedd79875886e908fe17c1851710168086d5f7e39d205847e0ff 80 pointer-arrays/packed
-@hash eda224f60463aedd79875886e908fe17c1851710168086d5f7e39d205847e0ff 80 pointer-arrays/aligned
+@hash d3843151cfd092e86ad9509936641860f97711be10a79e2c4101b2ffacaccb8c 80 pointer-arrays/packed
+  ok 56, ArgumentOutOfRangeException 16, CStructReadLimitException 8
+@hash d3843151cfd092e86ad9509936641860f97711be10a79e2c4101b2ffacaccb8c 80 pointer-arrays/aligned
+  ok 56, ArgumentOutOfRangeException 16, CStructReadLimitException 8
 
 @test NestingLimits_AgreeAcrossExecutionPaths("pointer-counted")
-@hash 5df1fbeec86e2e84eb910dd594850353bf7ce75f04d61551dbedcabb186f5663 70 pointer-counted/packed
-@hash 5df1fbeec86e2e84eb910dd594850353bf7ce75f04d61551dbedcabb186f5663 70 pointer-counted/aligned
+@hash 5b0225c4cfe48cffb8e71f6501416d385a4588e3fba5d93c99e866cf2b7c35d0 70 pointer-counted/packed
+  ok 42, ArgumentOutOfRangeException 14, CStructPathException 8, CStructReadLimitException 6
+@hash 5b0225c4cfe48cffb8e71f6501416d385a4588e3fba5d93c99e866cf2b7c35d0 70 pointer-counted/aligned
+  ok 42, ArgumentOutOfRangeException 14, CStructPathException 8, CStructReadLimitException 6
 
 @test NestingLimits_AgreeAcrossExecutionPaths("pointer-list")
-@hash 8559611affcd9793014a492f27a6ef386fd05a0bafec91fa1cb1c09fddbd8bd6 70 pointer-list/packed
-@hash 8559611affcd9793014a492f27a6ef386fd05a0bafec91fa1cb1c09fddbd8bd6 70 pointer-list/aligned
+@hash fb404362499754392265dbaf59bc7ba7f1463af6c568e5fe58fb6c509c3685e1 70 pointer-list/packed
+  ok 26, ArgumentOutOfRangeException 14, CStructReadLimitException 28, CStructWriteLimitException 2
+@hash fb404362499754392265dbaf59bc7ba7f1463af6c568e5fe58fb6c509c3685e1 70 pointer-list/aligned
+  ok 26, ArgumentOutOfRangeException 14, CStructReadLimitException 28, CStructWriteLimitException 2
 
 @test NestingLimits_AgreeAcrossExecutionPaths("pointer-views")
-@hash 5811a619bf15088e6b9819c8e489d13b946e2b34a033a6ee18860ab812d510ab 70 pointer-views/packed
-@hash 5811a619bf15088e6b9819c8e489d13b946e2b34a033a6ee18860ab812d510ab 70 pointer-views/aligned
+@hash 25cbc2a113bb03a1f9229d773dba0add55735cf7b22cb354f607bc909e44a05c 70 pointer-views/packed
+  ok 42, ArgumentOutOfRangeException 14, CStructReadLimitException 12, CStructWriteLimitException 2
+@hash 25cbc2a113bb03a1f9229d773dba0add55735cf7b22cb354f607bc909e44a05c 70 pointer-views/aligned
+  ok 42, ArgumentOutOfRangeException 14, CStructReadLimitException 12, CStructWriteLimitException 2
 
 @test NestingLimits_AgreeAcrossExecutionPaths("pointers")
-@hash fd0018904816de5dc6f0d8b95357a8009bf4ea77187f0dfab9d1bc12c6c97631 70 pointers/packed
-@hash fd0018904816de5dc6f0d8b95357a8009bf4ea77187f0dfab9d1bc12c6c97631 70 pointers/aligned
+@hash 9fd934b1afc6b5b6b1f5eb1c18c4786e4e6b02291ec42592ea97796e5981e6a5 70 pointers/packed
+  ok 46, ArgumentOutOfRangeException 14, CStructReadLimitException 10
+@hash 9fd934b1afc6b5b6b1f5eb1c18c4786e4e6b02291ec42592ea97796e5981e6a5 70 pointers/aligned
+  ok 46, ArgumentOutOfRangeException 14, CStructReadLimitException 10
 
 @test NestingLimits_AgreeAcrossExecutionPaths("promoted")
-@hash 930ce178282264d542973c0d066462c1c943f3082e030858cfb7c4c953385f6e 80 promoted/packed
-@hash b7c2137428fc8b021e23054c92137ad9fac90ec2a947c7a8bb0362e2cb10398f 80 promoted/aligned
+@hash b1bc783ee24eaf9016cbba9c94a82ea0ab2f8db11bf547915afe4564b3ef12c7 80 promoted/packed
+  ok 48, ArgumentOutOfRangeException 16, CStructReadLimitException 14, CStructWriteLimitException 2
+@hash 6955fd604a47593ad69d61ca491bbcde69c67ab03a5894411e785c366cb66840 80 promoted/aligned
+  ok 48, ArgumentOutOfRangeException 16, CStructReadLimitException 14, CStructWriteLimitException 2
 
 @test NestingLimits_AgreeAcrossExecutionPaths("promoted-union")
-@hash b105575dabe31a2a0f0d4e0b1f838dee0402742138a36111f6f21e0d49ba0b58 70 promoted-union/packed
-@hash 2ee22865a429d1794b018214a718a738de7732870a4f8632ed66d3bc20ad4917 70 promoted-union/aligned
+@hash c3fe407ecfe8cf801ec824662d27167b6bcd0c8f8cd10935e1a55b5494b5d0ac 70 promoted-union/packed
+  ok 42, ArgumentOutOfRangeException 14, CStructReadLimitException 12, CStructWriteLimitException 2
+@hash 2cb1d856543f9eaafbbe64a63d75308f8aa37824a5f3c27a2ca5bb04f9e2438b 70 promoted-union/aligned
+  ok 42, ArgumentOutOfRangeException 14, CStructReadLimitException 12, CStructWriteLimitException 2
 
 @test NestingLimits_AgreeAcrossExecutionPaths("terminated")
-@hash 17487464ab7e9cd1724675fd241233ab3584fcd3b2417f7056e8b8cbba1e1900 80 terminated/packed
-@hash 17487464ab7e9cd1724675fd241233ab3584fcd3b2417f7056e8b8cbba1e1900 80 terminated/aligned
+@hash 704b5b926fe791df07de36c9cbac1522d34d1c5bf56cfb1136bd48e75581c837 80 terminated/packed
+  ok 48, ArgumentOutOfRangeException 16, CStructReadLimitException 14, CStructWriteLimitException 2
+@hash 704b5b926fe791df07de36c9cbac1522d34d1c5bf56cfb1136bd48e75581c837 80 terminated/aligned
+  ok 48, ArgumentOutOfRangeException 16, CStructReadLimitException 14, CStructWriteLimitException 2
 
 @test NestingLimits_AgreeAcrossExecutionPaths("terminated-scalars")
-@hash 728f315365da3442f11953f58332a192b32667d362d22444981cca74459f0af8 80 terminated-scalars/packed
-@hash 5c1be7d6e064b0961f322885df4b4bd289c656772c077e6a9e5f4841382e3a1b 80 terminated-scalars/aligned
+@hash 8c2bb77a35499476d2f1243f3a17a9c0d444bb7c15e3423ab12ff721f6be8262 80 terminated-scalars/packed
+  ok 64, ArgumentOutOfRangeException 16
+@hash e2f6b0fdf7802c37df80bb2fc5c4241585c4a3e60fbc17200f53d35f28fa1467 80 terminated-scalars/aligned
+  ok 64, ArgumentOutOfRangeException 16
 
 @test NestingLimits_AgreeAcrossExecutionPaths("text")
-@hash 38bfce5c84799e005d298f620a6c01e0ae497c4a1c623319f24490ff1711d19b 80 text/packed
-@hash c4b58c51ea5acdf1dec140fbe5fcd56e275cc06ddb4e43dc3b12c8d8d04594c7 80 text/aligned
+@hash b4061885f85b734eb014c39224273b20c750c49c534dcfdfdd9eb2192596f5ae 80 text/packed
+  ok 64, ArgumentOutOfRangeException 16
+@hash 3652e636bcfc407f6ebccbeb10fa2cb274aaccacaed255617ee8823fb94ac383 80 text/aligned
+  ok 64, ArgumentOutOfRangeException 16
 
 @test NestingLimits_AgreeAcrossExecutionPaths("to-end")
-@hash 4834c69ba3da5fee83eb21a785b0d958746a9ff079ab7cbf64cb1644bd013d06 80 to-end/packed
-@hash 4834c69ba3da5fee83eb21a785b0d958746a9ff079ab7cbf64cb1644bd013d06 80 to-end/aligned
+@hash 1624e6cbb9198b98a852da3f2df7d4f6dd8e0e6ac560764a45e67a0a3055e8ba 80 to-end/packed
+  ok 64, ArgumentOutOfRangeException 16
+@hash 1624e6cbb9198b98a852da3f2df7d4f6dd8e0e6ac560764a45e67a0a3055e8ba 80 to-end/aligned
+  ok 64, ArgumentOutOfRangeException 16
 
 @test NestingLimits_AgreeAcrossExecutionPaths("to-end-structs")
-@hash 1d3c55a3f8d6c545bd0679c9e3432ac5bb21dd46e074538abda7bcafc5c8163b 80 to-end-structs/packed
-@hash fd17865900b44d48fa059c8fdfe6d5a4ca1bf2c05f7408fc975a7ef6f63832f8 80 to-end-structs/aligned
+@hash cabba17dc438fc13b7b28318aea0f253363363a32c758bc64d470afa4949a72d 80 to-end-structs/packed
+  ok 50, ArgumentOutOfRangeException 16, CStructReadLimitException 12, CStructWriteLimitException 2
+@hash a6452389f4f0d3f7656e33ca79e133116d1e7b1583a108b89758e3feb65c45df 80 to-end-structs/aligned
+  ok 50, ArgumentOutOfRangeException 16, CStructReadLimitException 12, CStructWriteLimitException 2
 
 @test NestingLimits_AgreeAcrossExecutionPaths("union")
-@hash ee120ec86f9d046ac97f9dc40de9053ea4ac1b7f8eaadcf7b01f6a963a1aac67 70 union/packed
-@hash aecca8ac2f4e53a6f69b3ac261f356980dc029bc3ddc24adde798a3db9fcff9b 70 union/aligned
+@hash f9fe76a7546e564a520dd08a881ce7fc62fe53e1442b262deeb07884a75d507e 70 union/packed
+  ok 42, ArgumentOutOfRangeException 14, CStructReadLimitException 12, CStructWriteLimitException 2
+@hash ce5b1e09d31ff99989e22c7f2b927a0b7461b45eaa71f84961afb95fcce288ec 70 union/aligned
+  ok 42, ArgumentOutOfRangeException 14, CStructReadLimitException 12, CStructWriteLimitException 2
 
 @test NestingLimits_AgreeAcrossExecutionPaths("union-arrays")
-@hash ba51582a8e060490ff2e191a93e41a55b7af410250c310eb8ed06bfca0efbf3c 80 union-arrays/packed
-@hash 52e97223ac3d5e3427f38e3caaf8564fdf4a4d07e4ced285f9202362843433d1 80 union-arrays/aligned
+@hash e6d2f8be9e53d2fda5895eb1dfb136a10204101a6a1f28ede16d3c4b3543029c 80 union-arrays/packed
+  ok 48, ArgumentOutOfRangeException 16, CStructReadLimitException 14, CStructWriteLimitException 2
+@hash 71414d9252de2a6fcca74ea0b460b44ce42b79fdd46b7babbfa1b4c56e4db0b6 80 union-arrays/aligned
+  ok 48, ArgumentOutOfRangeException 16, CStructReadLimitException 14, CStructWriteLimitException 2
 
 @test NestingLimits_AgreeAcrossExecutionPaths("union-bitfields")
-@hash ec2799bc30e763a57a55f752eb4593f424e8e70c65b600c36f32e2edee6b0792 70 union-bitfields/packed
-@hash c007d719b9d7683dc527243989e48d965eb9490f7ed07a2960a2c36a4027c1cd 70 union-bitfields/aligned
+@hash 308008878c147895faf915871e7c4589a183f62f64a8761b48cd64382e4d7b05 70 union-bitfields/packed
+  ok 30, ArgumentOutOfRangeException 14, CStructReadLimitException 24, CStructWriteLimitException 2
+@hash 7476bacf534a20774c30c7de25077b7a69302e39d7327df2c76cea11fb98b148 70 union-bitfields/aligned
+  ok 30, ArgumentOutOfRangeException 14, CStructReadLimitException 24, CStructWriteLimitException 2
 
 @test NestingLimits_AgreeAcrossExecutionPaths("union-conditional")
-@hash cf66cdca91fdf2dc30ff4d25f21aa1a0fd71a981ed586bf29a41f86822e797de 80 union-conditional/packed
-@hash bf08a3c18d057d4672d32b0b62f3d8e063ee51b5857340065f6a77da99e4b56a 80 union-conditional/aligned
+@hash a93c454cabf13b112a71919409179c6e00951a2dba6b8a5742b9c4a38ffee3ff 80 union-conditional/packed
+  ok 34, ArgumentOutOfRangeException 16, CStructReadLimitException 28, CStructWriteLimitException 2
+@hash 9747c2b57e792e449a89ee46519b5eef0604954325721bd47b6759ffa9faf813 80 union-conditional/aligned
+  ok 34, ArgumentOutOfRangeException 16, CStructReadLimitException 28, CStructWriteLimitException 2
 
 @test NestingLimits_AgreeAcrossExecutionPaths("union-nested")
-@hash 3ea903e451a59f20a7e9d64b92c47029086b3d506b1ce8e3695cb47608eb8aa7 80 union-nested/packed
-@hash bfc03990bcd38c672aeddc250d9126ba376dc420f92489b668ef4f237189ecec 80 union-nested/aligned
+@hash 8b9efe1bf1caf8b15a66f6fd72f0cb35f859a763c008f9268778ac63f3c50b8a 80 union-nested/packed
+  ok 36, ArgumentOutOfRangeException 16, CStructReadLimitException 26, CStructWriteLimitException 2
+@hash d2971a874ad0f498825891fdad38c202e8543e84a00ee9e582abbad51723fae8 80 union-nested/aligned
+  ok 36, ArgumentOutOfRangeException 16, CStructReadLimitException 26, CStructWriteLimitException 2
 
 @test NestingLimits_AgreeAcrossExecutionPaths("variables")
-@hash 029c18539ac176882e42b135a0a622de86556a5d83d7f8ef2d743fcfe8456cd8 80 variables/packed
-@hash 029c18539ac176882e42b135a0a622de86556a5d83d7f8ef2d743fcfe8456cd8 80 variables/aligned
+@hash a4eb020d75720986e6cb315e18968202f6717cfe8c325add625f708b33d69a9b 80 variables/packed
+  ok 64, ArgumentOutOfRangeException 16
+@hash a4eb020d75720986e6cb315e18968202f6717cfe8c325add625f708b33d69a9b 80 variables/aligned
+  ok 64, ArgumentOutOfRangeException 16
 
 @test NestingLimits_AgreeAcrossExecutionPaths("write-codecs")
-@hash ab9599e5f5b7235245b8792305488f545ef319ee49a4b7dac57b1769973e8586 70 write-codecs/packed
-@hash bbfa91a37896f26e23825af4a81b8e81d96d81f202521682055487713ca9f2d9 70 write-codecs/aligned
+@hash 20cdcb7f95d77016eba001e2dec658ae4637116e001f2681e4b08fb4a0426bfc 70 write-codecs/packed
+  ok 56, ArgumentOutOfRangeException 14
+@hash 0a4404a5cb68a47e61aa1b2b3e16424399503b8f98aa557e3e81fdebab95ba8c 70 write-codecs/aligned
+  ok 56, ArgumentOutOfRangeException 14
 
 @test NestingLimits_AgreeAcrossExecutionPaths("write-enums")
-@hash f09039a4370a8d8778d0cade17a1776d11f1f8b0222df9fce929aa6b1b514367 80 write-enums/packed
-@hash d70020cee1603ab0fbd7ef3f7a2b8395317d5dec8e64fb8c3c36d3d303f9f708 80 write-enums/aligned
+@hash b4d31d3f83a5860ca63ac7fa1ca425ee0dfad26ea6e611236e282a040b61adbd 80 write-enums/packed
+  ok 64, ArgumentOutOfRangeException 16
+@hash 7c6d343e871dd4d0a446f2d67caf6eb72695bc375c3523c8831eb322badb1c0e 80 write-enums/aligned
+  ok 64, ArgumentOutOfRangeException 16
 
 @test NestingLimits_AgreeAcrossExecutionPaths("write-padding")
-@hash 4088703a9a71f7c9025d7c6b49eaffcc473a127a6cf4fd51c0ca827baf51d720 80 write-padding/packed
-@hash 6f8da1c07c3425f9bc3130ba7f68106d09e514a7e72aa94ca720d1d2f4df2da5 80 write-padding/aligned
+@hash 8ffb5e9221a21055a4e4d2d714fec781d25fa18b9106c0e1c28c6fb6153b1b6b 80 write-padding/packed
+  ok 64, ArgumentOutOfRangeException 16
+@hash 4d3b43eca7810ed502600c20fa2dbbf39ab78cfb68218ee164d12b7d6d7fe47e 80 write-padding/aligned
+  ok 64, ArgumentOutOfRangeException 16
 
 @test NestingLimits_AgreeAcrossExecutionPaths("write-qualified")
-@hash a8c4cd979bb92c81121391f4173a36ab58248e6aaaa008806bdc03e40e646333 80 write-qualified/packed
-@hash f247d3a508f304859fb1ec2bacc725d0dfd816b63f637bd38c9006944c23d471 80 write-qualified/aligned
+@hash e203485542c10fdcc03b4d93eb88f9f73b3c256d56276f105f3891590097a9eb 80 write-qualified/packed
+  ok 32, ArgumentOutOfRangeException 16, CStructReadLimitException 28, CStructWriteLimitException 4
+@hash f4d551c79f0b4c92c8a700eace47ca4002dba6e09221b8b26f8edb1b3c347888 80 write-qualified/aligned
+  ok 32, ArgumentOutOfRangeException 16, CStructReadLimitException 28, CStructWriteLimitException 4
 
 @test NestingLimits_AgreeAcrossExecutionPaths("write-scope")
-@hash 36760179b792aee3a4350ec1ccb6637ef5db6bf7e371b1270afd5697621ebed9 80 write-scope/packed
-@hash 47fdf0245758bb3c2818e2e83f5d1123a6f2edcb7aff9073bf633a082d4f929a 80 write-scope/aligned
+@hash 1067430d0c9ec12d56340546346451595182a7321d986eb623dea5de87d19956 80 write-scope/packed
+  ok 48, ArgumentOutOfRangeException 16, CStructReadLimitException 14, CStructWriteLimitException 2
+@hash 32c43cf8e0e156044a2be4fc7297844761d23f4da4017bb6dd15ae54afa7832b 80 write-scope/aligned
+  ok 48, ArgumentOutOfRangeException 16, CStructReadLimitException 14, CStructWriteLimitException 2
 
 @test NestingLimits_AgreeAcrossExecutionPaths("write-text")
-@hash 39c811dddae3368e8aa1445a63e6a71213f33a5d51f382a88a5ffc1732ea93ef 80 write-text/packed
-@hash 342d20db20d7a3f1ce874c29551b3d3b3de978f33acb7976fd8cf6671b559027 80 write-text/aligned
+@hash 935c5b9e84a13bba127b4145573ab8057f1eb5e6eb8a625bcd792b836f0874d2 80 write-text/packed
+  ok 64, ArgumentOutOfRangeException 16
+@hash 470a7ec0b1e0f541fcbde943dbbad38aaccf61a9e852a0cb22d801ef6c06df26 80 write-text/aligned
+  ok 64, ArgumentOutOfRangeException 16
 
 @test ReadOptions_DecodeFromMemoryAndStreams("bitfields")
-@hash 4862a8b9a77501f8fe32bce0f462b0ff63c359e4572fcbfa3fb60f3c0b8294af 528 bitfields/packed
-@hash e69f589a443685bc134d2e3d7d067409c95029532596ffb4a5e7041d8d2898c6 528 bitfields/aligned
+@hash ff3b7b530287912f45ee9032a1c5c79266a8d0a0819d4bda99925618c0e4615a 528 bitfields/packed
+  ok 432, CStructPathException 48, CStructReadException 48
+@hash 39d5f864250b4b03100246fa3253fd14693526c21910affa3bc3fda4a34f883f 528 bitfields/aligned
+  ok 432, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("bitfields-enum-counts")
-@hash b72322d7261862f13a14cf9729b8949efc74cc52fd1cd75df51b93f1079c975a 528 bitfields-enum-counts/packed
-@hash 446385692618151ea5d0dc02f6ba0291c0422b8caba822a0b3795e17cd0a3281 528 bitfields-enum-counts/aligned
+@hash e40141dca054ba463ba6696e500019f76667d5234a92bc2221471a6c231e42df 528 bitfields-enum-counts/packed
+  ok 432, CStructPathException 48, CStructReadException 48
+@hash ffe6f6adb73351c39e65bde3932e6111c052c5ea1a5f72cc6a9b19bf24da6c92 528 bitfields-enum-counts/aligned
+  ok 432, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("bitfields-high")
-@hash 7a6b220f6dacfb787140d7e1870d172c7a3e3f7e8765b802970a5a1c3ed42c64 528 bitfields-high/packed
-@hash 7a6b220f6dacfb787140d7e1870d172c7a3e3f7e8765b802970a5a1c3ed42c64 528 bitfields-high/aligned
+@hash 273047be49dabb2e3e4b68689bef23acaf02fca4959f6ffcbacaaa643244a1e6 528 bitfields-high/packed
+  ok 432, CStructPathException 48, CStructReadException 48
+@hash 273047be49dabb2e3e4b68689bef23acaf02fca4959f6ffcbacaaa643244a1e6 528 bitfields-high/aligned
+  ok 432, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("bitfields-msvc")
-@hash 76db3250f27b04e40264169d0b20c7e97ab905ddc04d74df309acd734ee66421 528 bitfields-msvc/packed
-@hash ceca2c0750e9ec2e8a988afa47137c1c16fa5efb5735d183489ce6804199d62e 528 bitfields-msvc/aligned
+@hash 093a0a60a6142c1c49b514166379b97482df65baa5c7a1d5093520b0c7b6e625 528 bitfields-msvc/packed
+  ok 432, CStructPathException 48, CStructReadException 48
+@hash 45ee5cdc9b8f92ee26737d13d7941c4e9df98ceeba56076100638af4a9eafbf4 528 bitfields-msvc/aligned
+  ok 432, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("conditional")
-@hash 45f3c874c0e76c0f90805d8e957dbee481c848bdca5599d890942c472d846720 528 conditional/packed
-@hash 3973da52c03cad6c42d4ecf1e016b8aa500d64bcc579b61b53992457eab6545b 528 conditional/aligned
+@hash a6776e0d552395312d7d589e262c934871a9a93ccdf40fd39a6bc0dee15929ee 528 conditional/packed
+  ok 384, CStructPathException 144
+@hash 0f7347fe59aedeb0fabbc996f9007bea4d8d035cd246ab73a50f53038b34fca9 528 conditional/aligned
+  ok 384, CStructPathException 144
 
 @test ReadOptions_DecodeFromMemoryAndStreams("count")
-@hash 58987813196040385dcece15c92da894afea0e4875bb4cf105a6d5505e9ca2c1 528 count/packed
-@hash 82b383fecdef01b5f8cfb65ea103172a94c9a24b503f499ff518a87fd8f82108 528 count/aligned
+@hash e3819c8faf6d703c70f75c102b15d4c977c1bbd4438070be661476924ea3042a 528 count/packed
+  ok 432, CStructPathException 48, CStructReadException 48
+@hash 08e481e0a0759af5b8ffb327e2931968abca67cc3de876ac24790e4f52482153 528 count/aligned
+  ok 432, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("custom-codec")
-@hash 6e2037db92b9aa00920a6e3f23d005b765bdc8b74bd222bfd05d910d74e5d202 480 custom-codec/packed
-@hash 6e2037db92b9aa00920a6e3f23d005b765bdc8b74bd222bfd05d910d74e5d202 480 custom-codec/aligned
+@hash c6ce2780be31f4d62ef5eb79619acb000cfc08422662ce5b129e5899746611f2 480 custom-codec/packed
+  ok 384, CStructPathException 48, CStructReadException 48
+@hash c6ce2780be31f4d62ef5eb79619acb000cfc08422662ce5b129e5899746611f2 480 custom-codec/aligned
+  ok 384, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("custom-fixed")
-@hash cb13123e35c99c75b7e5900e53983364f43dc8f6c87c23151a1a19bdc72e2025 528 custom-fixed/packed
-@hash 1d1a45c070e1ec8ceadc4096ad6f65ea1c91da2df7223639a380be55343364fd 528 custom-fixed/aligned
+@hash bef3f2ee2a5e83160df2543c0ec819c0d3ebc48c46da4c8b94d575fa0daa311a 528 custom-fixed/packed
+  ok 432, CStructPathException 48, CStructReadException 48
+@hash 4f454d7a3d45cd4b99c5453769025dee8c04d78c3f8fbd43c822f2b30a13df29 528 custom-fixed/aligned
+  ok 432, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("enum-bitfield")
-@hash ac58508629cae07270707f477f1b33cb7969ed99b312ba41caba6b4b33e0c16c 528 enum-bitfield/packed
-@hash 4c97ee9f56af894bfedb79c5c005c967a30c7d5a17e127914080a11af27c98f3 528 enum-bitfield/aligned
+@hash 563c85505afa8843106057b2f1c02b73e22552a2904630839f10c3641300ea70 528 enum-bitfield/packed
+  ok 432, CStructPathException 48, CStructReadException 48
+@hash 0a16928020b6fe8be54b0a544f294a1d91dfa25359b6d0a67dcf8ce969a5a984 528 enum-bitfield/aligned
+  ok 432, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("fixed")
-@hash d8a3a8988b988373a776c2409f5fe71d28ebf88d2983eb9eec54baac54a113fc 528 fixed/packed
-@hash 4ef15f95a0ae7d3723f9e684832f4ee7a3372feb961d6b85aca0c1f20ac7a791 528 fixed/aligned
+@hash a63dff30de2211d08e0b7509aec73ec066b58093842e1e367a0ebc0765aa9934 528 fixed/packed
+  ok 480, CStructPathException 48
+@hash d16dab66412d23d0342f79008e958576ee71be6b25fa76a98c39ac0d65215121 528 fixed/aligned
+  ok 480, CStructPathException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("inline-qualified")
-@hash fc57a531512e3443234a77a2b881c6376cd72522abda515be433c639ca11f996 528 inline-qualified/packed
-@hash 8cc97a3cc84e30c6f2b609b22defe0bfc88584591f97ca3801e1622699c686db 528 inline-qualified/aligned
+@hash 6bb4cb4998600c48a20e95255282c146adfc96ab927a8a8303c7ff970e2a9618 528 inline-qualified/packed
+  ok 432, CStructPathException 48, CStructReadException 48
+@hash 63ef294c439c6f1d6af4cca9c07a9c86110831bcf327b8c6cce6ee9dc4022622 528 inline-qualified/aligned
+  ok 432, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("leb128")
-@hash be1b79a6ac654e4003b45fe674cbcb1fb9b69ece793a13c856b15654ebe8bd51 528 leb128/packed
-@hash be1b79a6ac654e4003b45fe674cbcb1fb9b69ece793a13c856b15654ebe8bd51 528 leb128/aligned
+@hash 55ea676bb4f49b5cd67c5ab673df94198e1254f39f1f6d7abcbba3544d906d7b 528 leb128/packed
+  ok 432, CStructPathException 48, CStructReadException 48
+@hash 55ea676bb4f49b5cd67c5ab673df94198e1254f39f1f6d7abcbba3544d906d7b 528 leb128/aligned
+  ok 432, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("multidim")
-@hash 4623e7cfc133331e6848d43083e6293338857aada6edfd0b30c9f87dc0ec0fa5 624 multidim/packed
-@hash 003611de0e2792f3e52333d8f2c0bf4b87507a91fe732b4bd4cf0a2241479ce9 624 multidim/aligned
+@hash 698bc2c8256975eea606a9c1722a868d970af86d1dc2185af72bc87b494ccca3 624 multidim/packed
+  ok 528, CStructPathException 48, CStructReadException 48
+@hash 5d28d7baa823c6c5a8396dca45078f3f4971c4961dd27af8718ad525907d7b02 624 multidim/aligned
+  ok 528, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("multidim-structs")
-@hash c2347ca5aa12d0bdae21331435800b78313b02c13795585fd019e943bfc2efc6 576 multidim-structs/packed
-@hash be2c9941bfa7a67e08ccd6c7d3329f70de5a8ec3707b60ea85add802d717a568 576 multidim-structs/aligned
+@hash e3d1ef05de13db0a72533c492a18ca2221ed7d8b1fb1d2ba25f11580a4597a29 576 multidim-structs/packed
+  ok 528, CStructReadException 48
+@hash bf1c644d00d52194664d3ef4afa802d4022c5a496e7f2439cce1f21e2e728d0d 576 multidim-structs/aligned
+  ok 528, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("nested")
-@hash e3b71fe8be4f094ca72252683ae64cd71680918238f8e5240c0b63889a2c7f71 528 nested/packed
-@hash 275cde2e9541ecb30dbe6219ff83d9fb3838ec66a01dc8a2fbac152e1c867630 528 nested/aligned
+@hash c32b0b60ae5bdd168de96994040fda7f86cf7096af7fc5873d7cbf8e9ea91027 528 nested/packed
+  ok 432, CStructPathException 48, CStructReadException 48
+@hash f32dff8d73b32603f7f85b1f9cd203a1fb121f6a6cd36b8ace307de32b755d4a 528 nested/aligned
+  ok 432, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("pointer-arrays")
-@hash 079f4eef11e2d6889e71813b4449167f377cf140c27fc926fa1f70c54847741f 528 pointer-arrays/packed
-@hash 079f4eef11e2d6889e71813b4449167f377cf140c27fc926fa1f70c54847741f 528 pointer-arrays/aligned
+@hash 37ff74c2baa08738c7e73da971a5a64bcc893bf59229d767b7f08ee71a0f7aef 528 pointer-arrays/packed
+  ok 364, CStructPathException 48, CStructReadException 116
+@hash 37ff74c2baa08738c7e73da971a5a64bcc893bf59229d767b7f08ee71a0f7aef 528 pointer-arrays/aligned
+  ok 364, CStructPathException 48, CStructReadException 116
 
 @test ReadOptions_DecodeFromMemoryAndStreams("pointer-counted")
-@hash 8ca6e6da32c506c74b10b13922457e741e12dd8182bd35f12ac5761bfeb9ca3d 528 pointer-counted/packed
-@hash 8ca6e6da32c506c74b10b13922457e741e12dd8182bd35f12ac5761bfeb9ca3d 528 pointer-counted/aligned
+@hash 1219929bda1462b3f799b271b68a828e7363b896bbf47650a91b3418a4dc2291 528 pointer-counted/packed
+  ok 268, CStructPathException 192, CStructReadException 68
+@hash 1219929bda1462b3f799b271b68a828e7363b896bbf47650a91b3418a4dc2291 528 pointer-counted/aligned
+  ok 268, CStructPathException 192, CStructReadException 68
 
 @test ReadOptions_DecodeFromMemoryAndStreams("pointer-list")
-@hash 51cf69569a9e750d45f870077f96089a9cb8852cbdc38f10a3732ee7b7c46a3b 528 pointer-list/packed
-@hash 51cf69569a9e750d45f870077f96089a9cb8852cbdc38f10a3732ee7b7c46a3b 528 pointer-list/aligned
+@hash 35795f61147be9347eacc0441e6bf7008010e64e6375788315a24e6017c85e49 528 pointer-list/packed
+  ok 324, CStructPathException 56, CStructReadException 148
+@hash 35795f61147be9347eacc0441e6bf7008010e64e6375788315a24e6017c85e49 528 pointer-list/aligned
+  ok 324, CStructPathException 56, CStructReadException 148
 
 @test ReadOptions_DecodeFromMemoryAndStreams("pointer-views")
-@hash aa587c4f5ace03f31c559b859690dc0018abeab4ef616f7aa7aefb9575321bfb 528 pointer-views/packed
-@hash aa587c4f5ace03f31c559b859690dc0018abeab4ef616f7aa7aefb9575321bfb 528 pointer-views/aligned
+@hash a62da9133058657d078bbcda3d896600137d985b33531ab7cefb917c3bebc24f 528 pointer-views/packed
+  ok 360, CStructPathException 48, CStructReadException 120
+@hash a62da9133058657d078bbcda3d896600137d985b33531ab7cefb917c3bebc24f 528 pointer-views/aligned
+  ok 360, CStructPathException 48, CStructReadException 120
 
 @test ReadOptions_DecodeFromMemoryAndStreams("pointers")
-@hash 01b3967e94c0189300af26d6cecfd55b6d7c0fdc2452200b08ac5d787a1dbd73 576 pointers/packed
-@hash 01b3967e94c0189300af26d6cecfd55b6d7c0fdc2452200b08ac5d787a1dbd73 576 pointers/aligned
+@hash b7892f925f194705d4ec8d904e186487365548b209b10a9e6f7d1e44e6728b31 576 pointers/packed
+  ok 348, CStructPathException 152, CStructReadException 76
+@hash b7892f925f194705d4ec8d904e186487365548b209b10a9e6f7d1e44e6728b31 576 pointers/aligned
+  ok 348, CStructPathException 152, CStructReadException 76
 
 @test ReadOptions_DecodeFromMemoryAndStreams("promoted")
-@hash 4f7bee833461bc8ef30eed874b499a3d18bd0f130ce7382b4adf6329d11e16ed 528 promoted/packed
-@hash 59ff5390cccfe3c2f428d885b2478a04f042498a3c7ffc49dbe4dbae1aef6cd7 528 promoted/aligned
+@hash a76244fb0faf7cbab08801968f571143942719af08e0e4808a5641b7e67510ce 528 promoted/packed
+  ok 432, CStructPathException 48, CStructReadException 48
+@hash ebfe953165205bc56570e6271e05c1ff8f78402bfb07f032cefcf33cd01b3027 528 promoted/aligned
+  ok 432, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("promoted-union")
-@hash 17fab0731f9e81a2ba5f68b0e2a839be5a649b65aea5d27ad789163444d7dec0 528 promoted-union/packed
-@hash 90020c1e08ad5d3ae05df85f7376b3f3551f263ec2d042369d43892cd9ced2e7 528 promoted-union/aligned
+@hash 0beeb3f0d18ec44e5fa7307a3e3cde6bcd02d1bf3d0124a85f09a0ff5d571541 528 promoted-union/packed
+  ok 432, CStructPathException 48, CStructReadException 48
+@hash bef98e9419ebea09a5fc090fbd91819ca5f515eeb9c486663f4a7742b1a52adb 528 promoted-union/aligned
+  ok 432, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("terminated")
-@hash ced99f1d923603bad145f9bd8d73889b2f7f4fcd8f18a4fc50d9b1f226dbd4a8 528 terminated/packed
-@hash ced99f1d923603bad145f9bd8d73889b2f7f4fcd8f18a4fc50d9b1f226dbd4a8 528 terminated/aligned
+@hash a4456093c5f68f893e67a27a9956bb707af0f59da41bda545d898ad4a5896a4b 528 terminated/packed
+  ok 480, CStructPathException 48
+@hash a4456093c5f68f893e67a27a9956bb707af0f59da41bda545d898ad4a5896a4b 528 terminated/aligned
+  ok 480, CStructPathException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("terminated-scalars")
-@hash 88d95aa47244097537913d0a4772da42275efa746050d5268c86ebeba8712215 528 terminated-scalars/packed
-@hash 1ee8a04f379b27bc8b7435170445c9156443e9bdefc6e534e3245b75825d2ccb 528 terminated-scalars/aligned
+@hash f23b53936786983680b8f1ce8e039b6bf992e0191e02935074712593d4a1fcc2 528 terminated-scalars/packed
+  ok 432, CStructPathException 48, CStructReadException 48
+@hash 688ce8770b595734ef04fa6b9eef1c590189680e6daa4a28cde36d4be0b464d1 528 terminated-scalars/aligned
+  ok 432, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("text")
-@hash 3939393b1ba40bb52a22b2cd88fbe3c8d963ae54db75f00a04bffc39368fca58 528 text/packed
-@hash 6c2e702f5b4e475612afafd730ba79ce2bbfc96f2cf8e3f8167fc252951b0bee 528 text/aligned
+@hash 086a5b999291a9bc40accb7e7167c7341396bf089bbe366de41c43b581a92638 528 text/packed
+  ok 480, CStructPathException 48
+@hash c9858c6808e9f43c309b996a3218b5f6372852f957d699e127b49816157baf69 528 text/aligned
+  ok 480, CStructPathException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("to-end")
-@hash e9dfc9bfc5c9ed2f3a7dea5b1ef6d3f15022d290eb977c1fa878c34520d682c6 480 to-end/packed
-@hash e9dfc9bfc5c9ed2f3a7dea5b1ef6d3f15022d290eb977c1fa878c34520d682c6 480 to-end/aligned
+@hash e50b9b79c87a98645d0ec9e61834af2f77d966c9e87f027ba8ae0bd5b860de4a 480 to-end/packed
+  ok 384, CStructPathException 48, CStructReadException 48
+@hash e50b9b79c87a98645d0ec9e61834af2f77d966c9e87f027ba8ae0bd5b860de4a 480 to-end/aligned
+  ok 384, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("to-end-structs")
-@hash 2447b98cc88349e8aa870b07cb53938a4adaba0dfb955fe13124fb33d0d1fc9c 528 to-end-structs/packed
-@hash c11f2d9bc21006d49657ed58ef1f601d0bee6eb4a5b242aebae86a23f4ea5e94 528 to-end-structs/aligned
+@hash e43f58796b66d51d37c26cc0f7471e04003dd240168718ea6fd38d81aded8c3e 528 to-end-structs/packed
+  ok 432, CStructPathException 48, CStructReadException 48
+@hash 7dec54920b75f1ee791bbf7fdbfe43f5abd1dce06c014da2702a00dde5e6f572 528 to-end-structs/aligned
+  ok 432, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("union")
-@hash 2ad98ebccaf667767234cbc54bb696fb950e8401b1e508dea528c7c8827bcb23 528 union/packed
-@hash 9d5495c89ea7f3b66b34ab5398d34e04e40723033e5587a11243c0ca04e9e127 528 union/aligned
+@hash af372f471483a90250183bae75b805dc56125019880875da642720c4d58956e8 528 union/packed
+  ok 480, CStructReadException 48
+@hash 8eece1ca7b63b9a51749eefd74608ce849f711b6befda3b85d21236906d6e3bd 528 union/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("union-arrays")
-@hash 08cc3a2d28fc00d7fef654103f182af5c3eb00abde8d6fd9f72bd3fb3e5be123 528 union-arrays/packed
-@hash 66b4fd372ac1b14ccd2e519afd725c75b9e0e67e115c1e317b9d4c710b2ae477 528 union-arrays/aligned
+@hash 80db59dd110ff0ecdfbd19334d315beb2c110953ae6eb503fd07fb37c3b0104f 528 union-arrays/packed
+  ok 432, CStructPathException 48, CStructReadException 48
+@hash d2b34ae99196a766368fbb5479e7e6e6e0b734d1c594d3681110c53a3c3cff6e 528 union-arrays/aligned
+  ok 432, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("union-bitfields")
-@hash 7dc8b0c647a12aadc558c9a2929a4a0966cd58e671b83fdec3ddaaef7cbdca5f 528 union-bitfields/packed
-@hash 3f02e9477bb156712b012519ee1a44e1ceb342dfd063cc47c70db95372f8c13c 528 union-bitfields/aligned
+@hash 98e41c158e43610a6566638ad82b4108e4509f4fde451dab2a0fd586f51e35e8 528 union-bitfields/packed
+  ok 480, CStructReadException 48
+@hash a53ea2ad17ab5379bb11481d1cf7b3b9279fe343e173b485d3c8f8b1207f61cd 528 union-bitfields/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("union-conditional")
-@hash e4175c8ea8062c3f74e5067819383036d18385e730a0a6a70fd4679d517324c8 528 union-conditional/packed
-@hash 2327029051148a5ab0e23ddff5a5d4806d9181d9029ae70fb9553d45bc95c5e5 528 union-conditional/aligned
+@hash fe366130025ba3d47b5c57a09db51a88e60c01ff0c52aaa5a19c774a2c0ca8c1 528 union-conditional/packed
+  ok 480, CStructReadException 48
+@hash b5a90fbd183a0a396f04594b3b182655f74ef0ebefffb9178683bd0a5161dbd3 528 union-conditional/aligned
+  ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("union-nested")
-@hash 5229db76860edcb98aa674cda3449a9c5a2883600101650865f4a749c7fe6012 576 union-nested/packed
-@hash b5d178db8e794618c65a78fc6c11a412c60423598d9a87dcea2b7ea1d7104487 576 union-nested/aligned
+@hash 72480995d11672c629412545f6fd2463cfd3fb5b16e4f907b67851b8dbd4dab5 576 union-nested/packed
+  ok 480, CStructPathException 48, CStructReadException 48
+@hash 25d1cbcabdbe1bdcab04634627136c5c463964e8f0281d51529d646549711d84 576 union-nested/aligned
+  ok 480, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("variables")
-@hash a29113dda336d212eb1d8d0228acb0f7e7fc16917c4c1931d0a20b0527847a2f 480 variables/packed
-@hash a29113dda336d212eb1d8d0228acb0f7e7fc16917c4c1931d0a20b0527847a2f 480 variables/aligned
+@hash 908aaad9052b8fddba9c5e7175eae494855f90670a50c933590f8a3582a24d0e 480 variables/packed
+  ok 384, CStructPathException 48, CStructReadException 48
+@hash 908aaad9052b8fddba9c5e7175eae494855f90670a50c933590f8a3582a24d0e 480 variables/aligned
+  ok 384, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("write-codecs")
-@hash 7580643ff6559161a60a4be409ae1a88dfd33fe78d74716746d184c64467998e 528 write-codecs/packed
-@hash 0da7a5d9af822806c53d132e77eeb0e480a1b99066cc68904c46ad81e512d54b 528 write-codecs/aligned
+@hash b3e18bb89a1dbb20dbba6b3897d6314c109a9a10e222082b0dfe208ec0b052b6 528 write-codecs/packed
+  ok 432, CStructPathException 48, CStructReadException 48
+@hash 6a24f148dce7c71101f6bd8ca54f60b9a463bae6b06c8b05699a2b17039189ba 528 write-codecs/aligned
+  ok 432, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("write-enums")
-@hash e95ca0772c054b009d58f46ab4c443ca9674cb876f58274df583eb46c083bb26 528 write-enums/packed
-@hash 051e6219ed7fc8a04c30aa324accb38551d6ca331cdbcadcc04d93691b80db9f 528 write-enums/aligned
+@hash 5175542e0f69d71c794ad1908dcad5d3b22cf63ed1b9aac482e06988dbe303d3 528 write-enums/packed
+  ok 432, CStructPathException 48, CStructReadException 48
+@hash a106e7adbf84914063a1cbbea53e86c478002da059b31656c34d4e2a4ca0759e 528 write-enums/aligned
+  ok 432, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("write-padding")
-@hash afed0193d527af25fb858f4c3ab70f464c25c53469c1b6ded69a0ed7644afae2 528 write-padding/packed
-@hash 898644c4a333f4ec7b6d8d9bc05e6df0bba8df20dd796f6ae94efb8409cdfa91 528 write-padding/aligned
+@hash f3060e89c7fd90ef7cf908ea4c44f95d4286434ab37f92195b02490cadc5bb1b 528 write-padding/packed
+  ok 432, CStructPathException 48, CStructReadException 48
+@hash cba107273d88b552ec9b8d4f9bf6045f613094ae82446bc396a93a3d167f569c 528 write-padding/aligned
+  ok 432, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("write-qualified")
-@hash 0c84309c3419907b52ca214ac70a452fc96c066719bd7f21ce3154a5599857e2 528 write-qualified/packed
-@hash 6f1fed8acd054f3a131face89d1a7a801507210b691b9d89196f377ce72c78f4 528 write-qualified/aligned
+@hash 8ee5ad452161c97e35c0532e895cc0a166966bed0e4fdd60674fb89963f775f8 528 write-qualified/packed
+  ok 432, CStructPathException 48, CStructReadException 48
+@hash 67e07d7f0ecb884b0b00000bcfa7102df96c44aa3e2d785b88973d978e088380 528 write-qualified/aligned
+  ok 432, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("write-scope")
-@hash 8e5c8bd8dc442128b651b625360770cc0ba18cbc08ff09f67139d610a598717a 528 write-scope/packed
-@hash 443fdf2c9ae87f556af6e579a7263ea984a1d4914ea8fceb167c21c190515cfb 528 write-scope/aligned
+@hash b77da1fd7f273e14bc1bda0ae2f1d8ccb0bb05137d2503e6daf53712c21413be 528 write-scope/packed
+  ok 432, CStructPathException 48, CStructReadException 48
+@hash bede0510235538de2b4a30f1188006e0fa6475a777c6244f88a7093dbc9e44f1 528 write-scope/aligned
+  ok 432, CStructPathException 48, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("write-text")
-@hash 222139e8ee8ed2e22494c2d3821fa0281c7c2247fdbf9ba34035abf6863c36b8 528 write-text/packed
-@hash cf018bfaea5e6e9fc079fc7a33c15dd6bd00775b41644007256bc37d6d0d0b83 528 write-text/aligned
+@hash 64f797330327e2e6dba5c9f600767c01a363216a02f1076b8ec1dbbba245e7c1 528 write-text/packed
+  ok 480, CStructPathException 48
+@hash e344486ebf6fdbd8a616a05a75180068bbe1ce07e130ef7ac47daa3e9b27ea64 528 write-text/aligned
+  ok 480, CStructPathException 48
 
 @test RecordSequences_ReadFromEverySource("bitfields")
-@hash 94e9cd6094b9803aeae73fae06bf74162435f9c6ba2de4f160362eff4ba0e2a1 48 bitfields/packed
-@hash a3e1affb5971cc20639cbedc5a85578480e6914e5a9fed3f55f3af39ac21c549 48 bitfields/aligned
+@hash e51b8137b7a43ab7be2d08f71bd4dfbbf51e2d1fbaf272da89ac28eb1257562f 48 bitfields/packed
+  ok 32, CStructReadException 16
+@hash 2278f26828ec2ed9c0918cf1e9ac3c810ccb753bff7d16123d843ec009759020 48 bitfields/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("bitfields-enum-counts")
-@hash a906c24ad96415ebddd77942ab8073e9eed1d623dd39d9f6891ed2c969bdfa48 48 bitfields-enum-counts/packed
-@hash 86d9044f3b564c8e456e7e4f402e3fb93dd98b0a0384e7e7a96b45a516ea0be6 48 bitfields-enum-counts/aligned
+@hash 964d51cf264d852eaedeb52c1a73217978b8ce0b2494fd30695e086eb0a93202 48 bitfields-enum-counts/packed
+  ok 32, CStructReadException 16
+@hash 2357e181d6fa0aba15b0ce9f9376cea7e9134775c1c2b6125277d9be39a74c72 48 bitfields-enum-counts/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("bitfields-high")
-@hash 6d22f8af6de8c378a937aac81de87ff049a3d36549eabe2b38a483418a0a0ef1 48 bitfields-high/packed
-@hash 6d22f8af6de8c378a937aac81de87ff049a3d36549eabe2b38a483418a0a0ef1 48 bitfields-high/aligned
+@hash 44b5c101b1183bf1ccedcc5141b212f3cf76382ab56c58fe34c88b8125f773c2 48 bitfields-high/packed
+  ok 32, CStructReadException 16
+@hash 44b5c101b1183bf1ccedcc5141b212f3cf76382ab56c58fe34c88b8125f773c2 48 bitfields-high/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("bitfields-msvc")
-@hash 8cc3cbf3eba88a840539f5860f4466c7bb750d4e07c6b03f59891c45c504ce08 48 bitfields-msvc/packed
-@hash 62b0f9b2f714a05ace52f22d994c58115d290c334083db05837eb87a38296076 48 bitfields-msvc/aligned
+@hash 645427633c7736eeb52bf8a876bede76f87d940693531aa3f088546062430cda 48 bitfields-msvc/packed
+  ok 32, CStructReadException 16
+@hash 54322ceae500be2f8039d0a6b233fd71f2fde6b31630846a18fa5ea23bc30c76 48 bitfields-msvc/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("conditional")
-@hash 2aa5fc90495d0cd96658d4e078c623cbd2cf4043f12893ffb278bc672e5c05a5 48 conditional/packed
-@hash d80e774ca1d72c6234586b5ffccdb2e056f45f8f6adad72a0adad111291b2c3a 48 conditional/aligned
+@hash 9df7a2d38c317c37830d4a1ef0569dda220a1c1a2b6f0bc3e61708830b1e8a97 48 conditional/packed
+  ok 32, CStructReadException 16
+@hash 726603bf98eb359d4f7d52474b210715c8ee0a49dc825a4ec91f5d9c501c86dc 48 conditional/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("count")
-@hash fd6dd3923fa83efcc85a1db65c8a287cc2409be5a9db8d7f287619955185e3f7 48 count/packed
-@hash 2488bb5bda25d231b6b6a76f522338c20e795b9ea7c4f7212575a65a44b06ea4 48 count/aligned
+@hash 32ceba075aa08fccb3a421c7ecdc1c34ef38341150581ee0f6a2c873aab76e46 48 count/packed
+  ok 32, CStructReadException 16
+@hash b2282abb1014997cb1cf44f555c7961db7f73a9bbd9b779ca55f9926303bc67f 48 count/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("custom-codec")
-@hash 7b0e9e7a4cbd24013bd6bd0f98a68ee382c07fbcce432bc8c459a80c117d8a7c 48 custom-codec/packed
-@hash 7b0e9e7a4cbd24013bd6bd0f98a68ee382c07fbcce432bc8c459a80c117d8a7c 48 custom-codec/aligned
+@hash 2ee96554e6053c22811f557e3d1009f769675c17f57781e54897f41b564acea3 48 custom-codec/packed
+  ok 32, CStructReadException 16
+@hash 2ee96554e6053c22811f557e3d1009f769675c17f57781e54897f41b564acea3 48 custom-codec/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("custom-fixed")
-@hash c484c66912839a3ebd75b808cfa49440c2fd045b0322857b91ee74e5ad2e2c29 48 custom-fixed/packed
-@hash 3178ff7d2cc5fdc1ee1cfada7a7e27e1f3b50c8d716b116a56223ea7f6b1499f 48 custom-fixed/aligned
+@hash d23f1fb2984fd2e99b428ed33577189714767150d188c98b5539c7fb7133c60e 48 custom-fixed/packed
+  ok 32, CStructReadException 16
+@hash 3e87b483afc870c21e67280b4277609ba4d3103c6bc120e7a9c58186cc7a645f 48 custom-fixed/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("enum-bitfield")
-@hash e9beaec02f1c980cf89fe3602db88ddf32f90d5b5bd0ceb5ea016c77ab1f650c 48 enum-bitfield/packed
-@hash d00749ca72ed96c14f85cb27035bc534284bb356be5ca7c96dd0d62320373d7a 48 enum-bitfield/aligned
+@hash 925942105e611115ca0288c00614fdaf728b222ed383bc629109110cb611effc 48 enum-bitfield/packed
+  ok 32, CStructReadException 16
+@hash 12e04b73404b5e84fd2b09899d144e3e906c88020f272f490f371168882aa8ed 48 enum-bitfield/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("fixed")
-@hash 61367ee9b2d8e899cc143abfac462510ddbcff06174aad9129ef40e4e42bc5ee 48 fixed/packed
-@hash e0fcce805fc808968674a94b4b31ce311db5b54f5e8eecee9f59249f54fcb625 48 fixed/aligned
+@hash ac74752ce7bcec7c81fec519eafa3c0e4daf7813e0f87aa386c52845f33b0c75 48 fixed/packed
+  ok 32, CStructReadException 16
+@hash 9215c775fb036dc3411a61767025c3f4bec9940fbfe811db0ce70db01fa7a4b6 48 fixed/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("inline-qualified")
-@hash 6539edb516aa738134613ae6e16aaa32c6ffa2f69e30d95853f58d31e9d4eb46 48 inline-qualified/packed
-@hash b1785bb9edc85e265af9e361a8d849655aa15b8c92775471a0c3b4a8e7c74404 48 inline-qualified/aligned
+@hash 3158288f253778f48ebe1b0a044e46378f015a3bad4f8c04b07474d63084198b 48 inline-qualified/packed
+  ok 32, CStructReadException 16
+@hash 5581aadbe7554b44bd740108798c54b4bdc58070d510e929b99509e6e4f9a4f8 48 inline-qualified/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("leb128")
-@hash 4b5f5d3c575e51906c7488eb91187722083806810a385bcac58d0f4fa15a539d 48 leb128/packed
-@hash 4b5f5d3c575e51906c7488eb91187722083806810a385bcac58d0f4fa15a539d 48 leb128/aligned
+@hash c0f3d1d5f1d1c6f0f64b74d346c4a5fab8b066f07b90d27909e21b38f384ecbd 48 leb128/packed
+  ok 32, CStructReadException 16
+@hash c0f3d1d5f1d1c6f0f64b74d346c4a5fab8b066f07b90d27909e21b38f384ecbd 48 leb128/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("multidim")
-@hash 01c4efbd35e6140453caeb1a9c1afc8e611e09888dbc300003e2cd7917604f2b 48 multidim/packed
-@hash 9a5fd437b948e33ca47f8e58404c08d10e198b30d865943954554610954f9813 48 multidim/aligned
+@hash cb74086db3acf51a45578abbbfe998c927e5679e829b99fab5e9a4c8b8d14f48 48 multidim/packed
+  ok 32, CStructReadException 16
+@hash 6252cf42a2b03c6fd99a4423d6ce2483ef6a51a656aae0b0e4ad8fdd2c84db28 48 multidim/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("multidim-structs")
-@hash a854113b0931ed121060b5491b3358721ebd30bf21ba20e2435756e6657b7e14 48 multidim-structs/packed
-@hash b61b4b362b5324cbf5e4390f5b5b1a409995c0e0d35055aac5239aff9cf7c18a 48 multidim-structs/aligned
+@hash 283836487d297db498374ad08a7d6bb92ed380a821e05a6e861fac2e51325dbd 48 multidim-structs/packed
+  ok 32, CStructReadException 16
+@hash bc62b9937bfae8624f980499672d7fc399158ae53ee31d0429d652dc16b53547 48 multidim-structs/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("nested")
-@hash 43c492cc015597c18f569b04638d8c28629916bd121875dc6b5198a95d5b6e1f 48 nested/packed
-@hash 7fb7bc707419cf901ab840d1edcb639f5a1e39fbdbf688aa411e259a1ff98f72 48 nested/aligned
+@hash 363b529bac491eae5d74348335e335e15876c9e2477e078b0392c371f50b448f 48 nested/packed
+  ok 32, CStructReadException 16
+@hash 55f700f914584ad81d92e6c92985d6d146d2900128153905bfd8c1184a3f731f 48 nested/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("pointer-arrays")
-@hash 8e77d926bb78e40c227b2aca2caba5d3b3cafdb68a3a00f526f21850f74cd391 48 pointer-arrays/packed
-@hash 8e77d926bb78e40c227b2aca2caba5d3b3cafdb68a3a00f526f21850f74cd391 48 pointer-arrays/aligned
+@hash ac634360c1d604b3666b6267efd041f2188270eeadec8daf5bb5402408d9a91b 48 pointer-arrays/packed
+  CStructReadException 48
+@hash ac634360c1d604b3666b6267efd041f2188270eeadec8daf5bb5402408d9a91b 48 pointer-arrays/aligned
+  CStructReadException 48
 
 @test RecordSequences_ReadFromEverySource("pointer-counted")
-@hash 9dde923826185b490a3d827a072687e41285ce1d010bd3027dc29291962c9ecf 48 pointer-counted/packed
-@hash 9dde923826185b490a3d827a072687e41285ce1d010bd3027dc29291962c9ecf 48 pointer-counted/aligned
+@hash abb410dac1cd3e10320b95b92c572e76427d2d83fe7cd6fe4c781ae722566ce7 48 pointer-counted/packed
+  CStructReadException 48
+@hash abb410dac1cd3e10320b95b92c572e76427d2d83fe7cd6fe4c781ae722566ce7 48 pointer-counted/aligned
+  CStructReadException 48
 
 @test RecordSequences_ReadFromEverySource("pointer-list")
-@hash b66e8259f6d9491d88864f438c2aee18d82a08ce1fe89bc88da72cab4511cded 48 pointer-list/packed
-@hash b66e8259f6d9491d88864f438c2aee18d82a08ce1fe89bc88da72cab4511cded 48 pointer-list/aligned
+@hash 225dae742977eeb76c042b7b11b488276b66b25393f36d6f05ebd67d0a850a2a 48 pointer-list/packed
+  ok 32, CStructReadException 16
+@hash 225dae742977eeb76c042b7b11b488276b66b25393f36d6f05ebd67d0a850a2a 48 pointer-list/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("pointer-views")
-@hash 8dc44417bd47e0db3807c74885046b1fa92e8ee846b81d72840198a106565cde 48 pointer-views/packed
-@hash 8dc44417bd47e0db3807c74885046b1fa92e8ee846b81d72840198a106565cde 48 pointer-views/aligned
+@hash a975079992cd6d4b6740e78d51b6257f44b5b5bad62e9a1877f557ed767acabd 48 pointer-views/packed
+  CStructReadException 48
+@hash a975079992cd6d4b6740e78d51b6257f44b5b5bad62e9a1877f557ed767acabd 48 pointer-views/aligned
+  CStructReadException 48
 
 @test RecordSequences_ReadFromEverySource("pointers")
-@hash b1d7b411a55e37ce4480f7149b6990093a71aadeeed7747293c650e6181b0e6c 48 pointers/packed
-@hash b1d7b411a55e37ce4480f7149b6990093a71aadeeed7747293c650e6181b0e6c 48 pointers/aligned
+@hash 34ac00f940e39caba828162e7ec9ca5772abb7ea7a2dcf3d2d97e95edcdb8311 48 pointers/packed
+  CStructReadException 48
+@hash 34ac00f940e39caba828162e7ec9ca5772abb7ea7a2dcf3d2d97e95edcdb8311 48 pointers/aligned
+  CStructReadException 48
 
 @test RecordSequences_ReadFromEverySource("promoted")
-@hash 32f6980e14b657b8a074c145a4135c8e7921628f6e9f3fd0d4dbb61384245f36 48 promoted/packed
-@hash 67effb311d41b0cafeb943a9cfbad5582c6881d98d5c7dee54803c9ec3e1faf5 48 promoted/aligned
+@hash c7510c6a0f5e9b8e1a9f3487d1826986a82b1af25144459359cde9fafd83ac5e 48 promoted/packed
+  ok 32, CStructReadException 16
+@hash 1444eb4a3fa21f8540ed8fdd8e9ce7b4c701345ecff1764a641b674dfae0b6c6 48 promoted/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("promoted-union")
-@hash 42aac405b4580e1112022400a4a2dfdabef3f9ae1c7fe8a1e7245eef71474ce9 48 promoted-union/packed
-@hash 9f8480ba813999c45f75d94dbcf0d64593bdd9836d41ca863ce1b2c4fdfa79ab 48 promoted-union/aligned
+@hash 74d912eb460a13067c29a802190989418196e10ea5a91b20efaba93444053fe4 48 promoted-union/packed
+  ok 32, CStructReadException 16
+@hash 5617d3d2a41dab482d43190caa16a14462fd0898b843871aee93b7338678ffd9 48 promoted-union/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("terminated")
-@hash 9edc453a3dc77b08cf71ec44839d855c0c3df6ac448aeb3046bcd309dc0c808b 48 terminated/packed
-@hash 9edc453a3dc77b08cf71ec44839d855c0c3df6ac448aeb3046bcd309dc0c808b 48 terminated/aligned
+@hash f421d0975fb73484c91af06eff440943e1477678ce645dcfa50b762811e875ac 48 terminated/packed
+  ok 32, CStructReadException 16
+@hash f421d0975fb73484c91af06eff440943e1477678ce645dcfa50b762811e875ac 48 terminated/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("terminated-scalars")
-@hash a923feebcb65ce2e2ad4fba64e723230086a52fde2dcb3b3abb7207c5f6b6c27 48 terminated-scalars/packed
-@hash 04f4330aa2ae273c8704b37a1660bb05e43c6a52e3e3fdcc344e8294ae1901f5 48 terminated-scalars/aligned
+@hash ec70e6a8fecf6b47d05398e37ff603e58206660dacd2866895c886bebd3cc57e 48 terminated-scalars/packed
+  ok 32, CStructReadException 16
+@hash a1604e571a3932ea9847b37523aca0d9aff62502e67ee413372c65459e4eb134 48 terminated-scalars/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("text")
-@hash b6adf30dea4fd2845fcc2f3ae426f6d2d70c77680d4919f39c61511371323e4d 48 text/packed
-@hash 0092b9004ec4d7f4e60c4b3c98ae8ddde72134d76b50a2e0265949a1c30cd7c5 48 text/aligned
+@hash 322b86c6967bfbc7b8c304649ce89874786249868d71ebd3a57e4c7e3e27687f 48 text/packed
+  ok 32, CStructReadException 16
+@hash 7d666ff510e4ad7a0c12c154473f5aad521b1d52fc1a64264e966669b2e097dd 48 text/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("to-end")
-@hash fa25daf570631dcb33e112df6574a1083250e9e223e04601dff3cbf56ae92e86 48 to-end/packed
-@hash fa25daf570631dcb33e112df6574a1083250e9e223e04601dff3cbf56ae92e86 48 to-end/aligned
+@hash 2386f765d08bd414a2f04cd9612fd329a752de0b0e3d238aec3489c06b41fdf0 48 to-end/packed
+  ok 48
+@hash 2386f765d08bd414a2f04cd9612fd329a752de0b0e3d238aec3489c06b41fdf0 48 to-end/aligned
+  ok 48
 
 @test RecordSequences_ReadFromEverySource("to-end-structs")
-@hash 7c8ac925bb1c39faf7c710cec4b97b5a4d8769ad86ae1aa4116a9288522fe4d6 48 to-end-structs/packed
-@hash f4d576291a96c1c27d1feb8c34fccd6546de81696039131bdfa6fdd6a67827be 48 to-end-structs/aligned
+@hash e5915ba2bc5b42d7127162d2e0f78c44b990de3ea71a26771e15e3bd7c67d12d 48 to-end-structs/packed
+  ok 16, CStructReadException 32
+@hash 524b0b1d7f24e3c0c5ee7b3e40233b17ede46befd729fce9905ced29f7ea2192 48 to-end-structs/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("union")
-@hash 10c77ca6ec8414839f425c70fb0e6555ab82126624ee87e05e35ba64699a0029 48 union/packed
-@hash 76d1840d942f9ce4eb94fe796f687a4748954a4a9085a3d2bd6ae7638c125527 48 union/aligned
+@hash 5b3157f5fa1ab9fe8d7cdf3bbb1868bf04e1de683d802f018b0eacc8a78364f2 48 union/packed
+  ok 32, CStructReadException 16
+@hash 68770115caa85c6a6ad44e26128aad07a88936c3ed9b5dbb4da97fa5d09d0ed3 48 union/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("union-arrays")
-@hash 91ae442e754531a59d1458690ff9030f1520de60a2012f2356a76ceda61c29cf 48 union-arrays/packed
-@hash 15bb7a5b9d470dfb078767010d2fa9a69eca4b1f1c58e02dfd2bac954473cfa0 48 union-arrays/aligned
+@hash 08620f8660ad769051a00c92defdb958ace627638701049732e42063bbe25e1a 48 union-arrays/packed
+  ok 32, CStructReadException 16
+@hash 48e61f793789248e3e57fc4834356467376c94b0deba07146dae92fc0a6c844a 48 union-arrays/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("union-bitfields")
-@hash 774acb48d19caeff5ea86a6bf7703800c270afe31772dddbfcbb8ef731f05df2 48 union-bitfields/packed
-@hash 5fbfbcd6f9a7501517c12bf5a01c40926959254d806c8bdc7cfdd380969d98d8 48 union-bitfields/aligned
+@hash 4ec914baecda9f3ae73dddbc5a4a5ce1cedbbdc1cea92453acb8748ccae59dfd 48 union-bitfields/packed
+  ok 32, CStructReadException 16
+@hash 6012a6af8f5187beb72bf8341be58810948f6a039f61ced8caf1509a1d9b55fb 48 union-bitfields/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("union-conditional")
-@hash d8415c26449d304a77f425d7630a4440f128db4fad3337ebe67593d725837ffe 48 union-conditional/packed
-@hash 556bfab9ec198c1299bfe653e05b298a1b9baf19febdd9d4a5fac907b134ec9b 48 union-conditional/aligned
+@hash fd35f511102307d2997ae191db947d0ab83f516c1e5071e78f3f1dcc3f3e8736 48 union-conditional/packed
+  ok 32, CStructReadException 16
+@hash 662bf2c1e2a3ba517f10069e6c483a5650a275e891b057c300352e905168ffc8 48 union-conditional/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("union-nested")
-@hash bfa0341184c8131a256ce5b6276d89a51f5a542553338314607edd33cfb9787b 48 union-nested/packed
-@hash 7919056e4c668223b89130d653e94de074431504c3003d3074bfae4755135dd6 48 union-nested/aligned
+@hash 92f961611d371ae0735653f3b682a5d64ee3e18d745d062422221c4d375cb6f8 48 union-nested/packed
+  ok 32, CStructReadException 16
+@hash d71cb0dd4b1365962588b4cf3a841575b8e84a88df7be39307514f7e3de3ab7f 48 union-nested/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("variables")
-@hash 2b3e78dc9805e4a3b1321107534e10f6ec048fcc98837c20c8f733cac2294925 48 variables/packed
-@hash 2b3e78dc9805e4a3b1321107534e10f6ec048fcc98837c20c8f733cac2294925 48 variables/aligned
+@hash 89dedaeb4afbfa8ff1c4e5b0d3d8baea6d4f9f384f630cddb41f6c4299a0458d 48 variables/packed
+  ok 32, CStructReadException 16
+@hash 89dedaeb4afbfa8ff1c4e5b0d3d8baea6d4f9f384f630cddb41f6c4299a0458d 48 variables/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("write-codecs")
-@hash b1ffef596374284c71b8335be4bf8bdd95efedfa7e6a5a50ce01c0d0a748d80f 48 write-codecs/packed
-@hash 736eb43d1ccd9fbfb55821cb113fb81e8642fc39426ad43599f9b364c7bc3138 48 write-codecs/aligned
+@hash 6b4a6fae4f1596a2b89eb8fca907c54a1c29a4b52b7cfb821addd4560fed95b3 48 write-codecs/packed
+  ok 32, CStructReadException 16
+@hash 7216d3c2825b7602900986362b5dbd6acc8efa4121d05a01b9d6fda7fdf9341a 48 write-codecs/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("write-enums")
-@hash 623cc1bcc58e0b48d922c2140d0d65be5982a875a1d7c09ac970231a55cd5eca 48 write-enums/packed
-@hash 7afe420adcaafac1ffc51e15beeea74e8f26187a6133d4c1446274556dd10c47 48 write-enums/aligned
+@hash 392dcdc6ddb2c408c8bb4b010d3b68f02454c6c8ee32af9069b89f247cd5260f 48 write-enums/packed
+  ok 32, CStructReadException 16
+@hash 52fa480435fda3a1f42e34818592e93e2e70d2e642c7f9bdd132e2dcfd02143b 48 write-enums/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("write-padding")
-@hash d64416890e7f6029e88ff9464816573e6981cad57baab6c17c5f3740f5ac2e5f 48 write-padding/packed
-@hash ea15e6cf3cb93d75d234e92a4ba8785e70890eaa0eb20f3a7bc579f6bac934c2 48 write-padding/aligned
+@hash 39cfa4299fafc33cb8941d0d6fb71a0b322ade536e5a875d1df45d9aa6682557 48 write-padding/packed
+  ok 32, CStructReadException 16
+@hash 47b03f53ca9b65bdff918249c56109f04d930a40abbbd5bdae3f7e95c6fc65eb 48 write-padding/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("write-qualified")
-@hash ce8487dc9ea64789d9308cd287e2f82dcaa53002f14cb60b4bc0b0eb2bc0e889 48 write-qualified/packed
-@hash 095e93f0836e7486be13d2bb425adda45da8891168755566a0df0115c7677191 48 write-qualified/aligned
+@hash 0e21c16db361f88fecf2b62bda2f12fd97462a64045d02c02ce1f7eaf43dfc31 48 write-qualified/packed
+  ok 32, CStructReadException 16
+@hash 095b3931d12eaab6375232f7d380013cb3de96ca41c2c5b4b61871a87dc39643 48 write-qualified/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("write-scope")
-@hash c3acde35f2c7d8fbba1c9e376f6733e2148c87539d8cc259e9561eda9c3df975 48 write-scope/packed
-@hash a6ef43efc3372565f0cad03e87fc898e90da672e0c04fb30fe1208d7873a8b92 48 write-scope/aligned
+@hash 9676e376363cca021ae466fba2ecba3b4d1abb44cce491afef5faf02778bae31 48 write-scope/packed
+  ok 32, CStructReadException 16
+@hash 19dd8b247c04f03ab1bef03f09b434852f09137c97c0d60dc7a9f6822cddd913 48 write-scope/aligned
+  ok 32, CStructReadException 16
 
 @test RecordSequences_ReadFromEverySource("write-text")
-@hash ce0c023a48f6a7e83f104b19a1fd0e2a00be4c7a3818a085805118941583b10d 48 write-text/packed
-@hash 4a63b45b90fa88e6efc680b376c47dc33aef0fb1a440a984ec61f29b08f94e5f 48 write-text/aligned
+@hash 6c6b7d47cca0fddb6002d682c3295d461c0532089d416f7aafe156d892bacc6d 48 write-text/packed
+  ok 32, CStructReadException 16
+@hash 953e9f2677e791ec0193b6b9cdbfe0b990136c1141325dfe366e03659e0f68f0 48 write-text/aligned
+  ok 32, CStructReadException 16
 
 @test Truncations_ReadFromEverySource("bitfields")
-@hash 54217314028604587accb3c905b94abd0d7e6bdaafffbe0b8cc60f6a7244d9cf 220 bitfields/packed
-@hash 57354ce0f69d8690474529d5673901266b39f96c5bcc13a5be9061d796b647e1 308 bitfields/aligned
+@hash 677e6b1180d326c3e9daff96ea6b0a9fe55070e27ed55ccb747f89fac18c64da 220 bitfields/packed
+  ok 60, CStructReadException 160
+@hash be6bcbfd6f6052a21bfa51debcf046fe70387a906543294da130d3d026d23366 308 bitfields/aligned
+  ok 72, CStructReadException 236
 
 @test Truncations_ReadFromEverySource("bitfields-enum-counts")
-@hash e568e51cbee6c40196069d7ddf7f3b0cb2a921c57296df3847fe9c6b4fb169d1 506 bitfields-enum-counts/packed
-@hash ca431dfaf7de31d6a3f3aa429c2368ccf3237e25a9cd6256d25c682b90a02559 598 bitfields-enum-counts/aligned
+@hash 810dc0b6f690fd21aa54aaee35c8a54915771c4af268b99040fb4a9b3aee8998 506 bitfields-enum-counts/packed
+  ok 90, CStructReadException 416
+@hash 6822628d9ce15fa00b0d44de6da9980fcf233898d7afb98af470c0d634058aa4 598 bitfields-enum-counts/aligned
+  ok 96, CStructReadException 502
 
 @test Truncations_ReadFromEverySource("bitfields-high")
-@hash 423b29a1056baab7ff85b3e205196e0c0b892365493472387e92adc1bbc17d49 220 bitfields-high/packed
-@hash 423b29a1056baab7ff85b3e205196e0c0b892365493472387e92adc1bbc17d49 220 bitfields-high/aligned
+@hash 8ddbf781f5744540cf9c11245b7678c4bf0607ed81f289acd8b87a1a236842e9 220 bitfields-high/packed
+  ok 56, CStructReadException 164
+@hash 8ddbf781f5744540cf9c11245b7678c4bf0607ed81f289acd8b87a1a236842e9 220 bitfields-high/aligned
+  ok 56, CStructReadException 164
 
 @test Truncations_ReadFromEverySource("bitfields-msvc")
-@hash cdf175777f8db7456a08e6607acc7134a8af6a88cbea335439c722bcc5565535 396 bitfields-msvc/packed
-@hash c25cb9c769cdb372f9e728b7a24651b12090781b6d08d4a2c2f5e9cca4834f11 572 bitfields-msvc/aligned
+@hash bc5462c717696435c1f78fc92b276577c4ec7b017559be8a4d5e63a5553049cb 396 bitfields-msvc/packed
+  ok 68, CStructReadException 328
+@hash 6f3ecae2b1e6f4b99418525e29586bb96736c5d1eda47e51c51f017f50863b6f 572 bitfields-msvc/aligned
+  ok 92, CStructReadException 480
 
 @test Truncations_ReadFromEverySource("conditional")
-@hash f30354f3afe78779d7120ff1827f1d69a05a34f4c757cb030196660b6feea0fb 220 conditional/packed
-@hash 019b87859237c43e994a3c3d2701c6ca199d3384685d19655c15e1a7f7b2f1a8 308 conditional/aligned
+@hash 4d94fd63eee10608a93f4e1b53ab1278f845be7e8310b3f90d78b11ac11ee7cd 220 conditional/packed
+  ok 52, CStructReadException 168
+@hash a6104ceb805da5379e1457ddfb956043a392ff3d63fa626243b21db752b278cc 308 conditional/aligned
+  ok 60, CStructReadException 248
 
 @test Truncations_ReadFromEverySource("count")
-@hash 47d15dfecb11c683a0ee68ac5bbe95f065b9d784b4694b8acce8e3c300479249 414 count/packed
-@hash dd3cfbe1fcdfe819e00bde31fe358545805f7f63b1756d6221391ec25fab9084 506 count/aligned
+@hash c63f9c8bed49ac8ecd5861346907ecda903e4dfbf20eea218d5167b76a23f068 414 count/packed
+  ok 92, CStructReadException 322
+@hash 71e5c10d0ea00f7374912d801a7587ebd72a99c3a411016f7d871e2c8c707016 506 count/aligned
+  ok 108, CStructReadException 398
 
 @test Truncations_ReadFromEverySource("custom-codec")
-@hash f33734391e79f684f995bbc2e59cc21d881dd87a98369a6c65c95d1102bd41b6 276 custom-codec/packed
-@hash f33734391e79f684f995bbc2e59cc21d881dd87a98369a6c65c95d1102bd41b6 276 custom-codec/aligned
+@hash f5f55704b22a2951cb917060a6e452ec8453cf4120ad32b7a16682e4ad09007d 276 custom-codec/packed
+  ok 62, CStructReadException 214
+@hash f5f55704b22a2951cb917060a6e452ec8453cf4120ad32b7a16682e4ad09007d 276 custom-codec/aligned
+  ok 62, CStructReadException 214
 
 @test Truncations_ReadFromEverySource("custom-fixed")
-@hash 591bdb29d9f55fe837189f134d30143cc190f5322ac26d629b05bf0782173786 874 custom-fixed/packed
-@hash 2653450c5a722bebe1d129a985f80ffdcd951ef85c75185a6fa70e22e17798c3 1518 custom-fixed/aligned
+@hash 4a1cc4fcbf42ee2ef75664625e44a15507e3063f2d8d16c72eccb19247679525 874 custom-fixed/packed
+  ok 116, CStructReadException 758
+@hash baa4ac7ed1401a305dbf94b38fe0a3424cb9eb671fa0ab42c2a2f618f5f8df1c 1518 custom-fixed/aligned
+  ok 206, CStructReadException 1312
 
 @test Truncations_ReadFromEverySource("enum-bitfield")
-@hash c5918fe34e6fb4871a0c766f5b2f6c0496bb671fe87e4e068efcd6831e3e4a8a 322 enum-bitfield/packed
-@hash 9184d6527c6c39d74168aaa678bce05d7575c0f5d021c3c2fc9f47391150d3e7 414 enum-bitfield/aligned
+@hash c856ba9467700fe35c0abdcbe6159c4da8ba2776aaccd6a99667a8ab9517dd55 322 enum-bitfield/packed
+  ok 80, CStructReadException 242
+@hash 6094ba6932fdc3176e62dff38b2795738522a551adf28cd36b8319072183f067 414 enum-bitfield/aligned
+  ok 96, CStructReadException 318
 
 @test Truncations_ReadFromEverySource("fixed")
-@hash ac50f08a477f2fc61190a24685723ab6ab4aa98d45a36ac87d7099ccc4bf20be 736 fixed/packed
-@hash a8435298df3b00aff39d9f036f77b82e39606be3a18298340c1bc8e15db37123 966 fixed/aligned
+@hash 590d1883c1ba85b33490308b2bd94e006f017bbe68b8a6e1ac87ba60b4ce6d71 736 fixed/packed
+  ok 130, CStructReadException 606
+@hash b96df5a450bb46165238c44bdb765761c4954501ad35e24c755e2670544cf700 966 fixed/aligned
+  ok 160, CStructReadException 806
 
 @test Truncations_ReadFromEverySource("inline-qualified")
-@hash 31c4f6162f6d2d611de02f2dc2bb70cb131f50ac071d622454093590a80b198a 414 inline-qualified/packed
-@hash 17cb0a948c7f26d2a611994b4e1cdc0fa83e9c0e8331cdcc486617fc6f05526d 506 inline-qualified/aligned
+@hash 27e086ccd9429c1fc823b4f79f86ac2908d9e026bb24617353f3271c0e9dbefe 414 inline-qualified/packed
+  ok 80, CStructReadException 334
+@hash 79bbc61ab65f64f17a461740cf3167b238ff9dc4d23be269882198d9625d58e5 506 inline-qualified/aligned
+  ok 90, CStructReadException 416
 
 @test Truncations_ReadFromEverySource("leb128")
-@hash 9de9dd883bd6199d97db900a7040f3bc73502d076f99c8dabaf11d26068d925e 414 leb128/packed
-@hash 9de9dd883bd6199d97db900a7040f3bc73502d076f99c8dabaf11d26068d925e 414 leb128/aligned
+@hash 85e27efe4382fb982e405f4888e6da6ffd30ff2a66df9eccef43ac5aac5af3d0 414 leb128/packed
+  ok 68, CStructReadException 346
+@hash 85e27efe4382fb982e405f4888e6da6ffd30ff2a66df9eccef43ac5aac5af3d0 414 leb128/aligned
+  ok 68, CStructReadException 346
 
 @test Truncations_ReadFromEverySource("multidim")
-@hash 4fcd9e5a5e40cbfef953d11801d88f333448154ea7ff2467007082429220ee99 1794 multidim/packed
-@hash 73c1ea76764299932bee5b83ad21c84892834da8422f9d0fd9437a34535f46bd 1886 multidim/aligned
+@hash 6c6dcbb6bf94dd0a33999219007c0e8aafbafdb34a0152305ff7e22ce3882a07 1794 multidim/packed
+  ok 368, CStructReadException 1426
+@hash 310d861886af80f17ae9b976ca59f4da9e89479ab178aa0d5cc34df1feab0a64 1886 multidim/aligned
+  ok 384, CStructReadException 1502
 
 @test Truncations_ReadFromEverySource("multidim-structs")
-@hash a6d7b6fcb258facb108ff1ece363cfd387bf751e7e7ee2e0728fb0ad39cee5c2 1426 multidim-structs/packed
-@hash 7f0ae018da6233806fdcb60e8359d7df17740aa5089171ac9a50897f6459d60e 1702 multidim-structs/aligned
+@hash 9ef48ca4c8cebe65d0923f9d1f40ad42e7ecde96e7099ab4f9cd639f953b731d 1426 multidim-structs/packed
+  ok 240, CStructReadException 1186
+@hash 64c08d8bc07f3f514ec653639cdbeadff06e752b070de616e3c7bfbe03c9aa27 1702 multidim-structs/aligned
+  ok 260, CStructReadException 1442
 
 @test Truncations_ReadFromEverySource("nested")
-@hash ce014981d3ada890a9f7f57f4e943c021cdcecb92c2b1052c583f82128fe9c9e 506 nested/packed
-@hash 31445997d04605ee5f304fbd6de5942c3cddaddc3549122781cbfb5ef26f725b 690 nested/aligned
+@hash 1ab1bf59ca6d2d8312fa2cb694abd6bfd9d04f1affcd326ce5955b0912ae0145 506 nested/packed
+  ok 84, CStructReadException 422
+@hash e04cd355334902b7c7a64aab69dc3be03e1c867bac5ffa75f071aeb55cc17c9e 690 nested/aligned
+  ok 100, CStructReadException 590
 
 @test Truncations_ReadFromEverySource("pointer-arrays")
-@hash 89f73dd681ea11e61cef811343193c699a06056fbdddc89f130e5ef9d316e6fb 460 pointer-arrays/packed
-@hash 89f73dd681ea11e61cef811343193c699a06056fbdddc89f130e5ef9d316e6fb 460 pointer-arrays/aligned
+@hash f44a0dbac80aa24be7350a46da358497e625024a45b4bb31edda7974af387f2a 460 pointer-arrays/packed
+  ok 96, CStructReadException 364
+@hash f44a0dbac80aa24be7350a46da358497e625024a45b4bb31edda7974af387f2a 460 pointer-arrays/aligned
+  ok 96, CStructReadException 364
 
 @test Truncations_ReadFromEverySource("pointer-counted")
-@hash 6849ceaf7bebfecaaf2ea790d4b23fbb08420e8b822e2b3f1aa397aaa74230a7 528 pointer-counted/packed
-@hash 6849ceaf7bebfecaaf2ea790d4b23fbb08420e8b822e2b3f1aa397aaa74230a7 528 pointer-counted/aligned
+@hash e20e2cdd5ab31fc5f8f2580837cab53fff995e7b407b58025161ced5057e64b9 528 pointer-counted/packed
+  ok 66, CStructPathException 48, CStructReadException 414
+@hash e20e2cdd5ab31fc5f8f2580837cab53fff995e7b407b58025161ced5057e64b9 528 pointer-counted/aligned
+  ok 66, CStructPathException 48, CStructReadException 414
 
 @test Truncations_ReadFromEverySource("pointer-list")
-@hash 8095e27b6a156155838d643d887bb20b25b80c42bb5723def492a31a7fb03e19 352 pointer-list/packed
-@hash 8095e27b6a156155838d643d887bb20b25b80c42bb5723def492a31a7fb03e19 352 pointer-list/aligned
+@hash 4ef2b20ece13c46413491589aceb74c3100ddc6f9a1b1cbf2508bcf457aa875e 352 pointer-list/packed
+  ok 50, CStructReadException 302
+@hash 4ef2b20ece13c46413491589aceb74c3100ddc6f9a1b1cbf2508bcf457aa875e 352 pointer-list/aligned
+  ok 50, CStructReadException 302
 
 @test Truncations_ReadFromEverySource("pointer-views")
-@hash 8ed648b50b9936feac8a0843bcdbf80c12c552581ea6369cde2b91e22337e48f 352 pointer-views/packed
-@hash 8ed648b50b9936feac8a0843bcdbf80c12c552581ea6369cde2b91e22337e48f 352 pointer-views/aligned
+@hash 1d013dd504cef9775d222fdc7f6793380867f5b8addad35e2254fbf2dfb44a79 352 pointer-views/packed
+  ok 54, CStructReadException 298
+@hash 1d013dd504cef9775d222fdc7f6793380867f5b8addad35e2254fbf2dfb44a79 352 pointer-views/aligned
+  ok 54, CStructReadException 298
 
 @test Truncations_ReadFromEverySource("pointers")
-@hash 40ccc22a2c8a66accaae84d52128d4e433f02fc822aad790b4c0fc33140a902b 528 pointers/packed
-@hash 40ccc22a2c8a66accaae84d52128d4e433f02fc822aad790b4c0fc33140a902b 528 pointers/aligned
+@hash 8415439c9ad9769133592687392b8e62a599204f6a087539e14e7864b230b51b 528 pointers/packed
+  ok 82, CStructReadException 446
+@hash 8415439c9ad9769133592687392b8e62a599204f6a087539e14e7864b230b51b 528 pointers/aligned
+  ok 82, CStructReadException 446
 
 @test Truncations_ReadFromEverySource("promoted")
-@hash b62df0146323e797de4165af76a0a4ec49dd4716cab4ff39f47b8df6e6d9a418 368 promoted/packed
-@hash 2fffdbae4668367779f63d3395af2861a7ee493de6736bfd339b00440ef982ae 506 promoted/aligned
+@hash 70641f0e673f5fcc582d24fddea8a20430dec7e6183d4fdba2779ae48ae58b78 368 promoted/packed
+  ok 88, CStructReadException 280
+@hash 17a4957fd462ca6e1bb40b4e5bfbfa04f44126dd3b1a726efd35439e01757686 506 promoted/aligned
+  ok 106, CStructReadException 400
 
 @test Truncations_ReadFromEverySource("promoted-union")
-@hash 9fee718c2fd9c01da3eead1180e9d44781fb611169949b34881078aad9afe850 264 promoted-union/packed
-@hash 9ffc032c4edf562081986ff37ff043dcaeb87d0ae3fe9637c5c9845df55fb6b2 396 promoted-union/aligned
+@hash 86bef246675adb479282730108c1a86b2f575f1748f50f57d76e92034e38daab 264 promoted-union/packed
+  ok 64, CStructReadException 200
+@hash 717c3fd833bc4dc0eb533ac7236db31486aef7c48c6c11ed03948139c8c6255f 396 promoted-union/aligned
+  ok 80, CStructReadException 316
 
 @test Truncations_ReadFromEverySource("terminated")
-@hash a15c508d967283abed73c86c2c8a8e2a79489e368371a5b31714c5537c188bae 506 terminated/packed
-@hash a15c508d967283abed73c86c2c8a8e2a79489e368371a5b31714c5537c188bae 506 terminated/aligned
+@hash 6ff0fdfc7e0e9cc7a4af947743d3e89346852f29093267f7c0343a6f3f6fd10e 506 terminated/packed
+  ok 56, CStructReadException 450
+@hash 6ff0fdfc7e0e9cc7a4af947743d3e89346852f29093267f7c0343a6f3f6fd10e 506 terminated/aligned
+  ok 56, CStructReadException 450
 
 @test Truncations_ReadFromEverySource("terminated-scalars")
-@hash 7d93eb931fb753b7aac516a28739021e3e53532a333014e8c932e7cc71658d12 414 terminated-scalars/packed
-@hash aa1fcfbb812e5bd3af3a595bfdfbbeee33405677aa1f483c6be445d9c3274921 506 terminated-scalars/aligned
+@hash 07f810b69ee453fae0d18d870764f95fccd87a81c78122ad91bff060ac001c41 414 terminated-scalars/packed
+  ok 56, CStructReadException 358
+@hash c1d714baec22a12d469a7b1b39bfc22a7de6dd184e752b02b5fd5427fadc0cf0 506 terminated-scalars/aligned
+  ok 66, CStructReadException 440
 
 @test Truncations_ReadFromEverySource("text")
-@hash f46274946daff23d995a5ce97ff69a0cefeec27a1316b6c97ebddecfc13fee4e 828 text/packed
-@hash d2514220dd2a9f214c63d87ec21734d08d7b26267cb676e5ed5bd1d8d44f0a04 874 text/aligned
+@hash 9f74c9f6dc66dc5c72da797e7e5fe4aa523eb5ce5d7b13ee7f3ca59856d1ba56 828 text/packed
+  ok 168, CStructReadException 660
+@hash 76f50c82070041bfb3f5c90a0b2ba6cc269b9d9eb1d87098f7e2733815bb1cbd 874 text/aligned
+  ok 178, CStructReadException 696
 
 @test Truncations_ReadFromEverySource("to-end")
-@hash 0b5f2981ad24aade9cc96310c6b97b4c6a38277e9e86c4b6fbcd28440f63d679 414 to-end/packed
-@hash 0b5f2981ad24aade9cc96310c6b97b4c6a38277e9e86c4b6fbcd28440f63d679 414 to-end/aligned
+@hash a44690f550273a8054a8974f23fc3a890c9be7cb1e8fad7e3fd96aca6e02d772 414 to-end/packed
+  ok 172, CStructPathException 12, CStructReadException 230
+@hash a44690f550273a8054a8974f23fc3a890c9be7cb1e8fad7e3fd96aca6e02d772 414 to-end/aligned
+  ok 172, CStructPathException 12, CStructReadException 230
 
 @test Truncations_ReadFromEverySource("to-end-structs")
-@hash e776a56ecd4b81e3be1274fbdebd1a16c7509d4c94188e3659c0087abeedc46d 368 to-end-structs/packed
-@hash e0f085ceba6111ccb6be6e7a36ba102132eeb480ee3008c7e44dc225feee3eba 506 to-end-structs/aligned
+@hash 74f7985b7067c36acf9053f72a3e4e3b754cfa28d459ce65abdcc93d3326e32d 368 to-end-structs/packed
+  ok 150, CStructPathException 8, CStructReadException 210
+@hash ae52b34297894efe3fcefb2afcf2c736b17afad7a1b03f42feb84455613ab844 506 to-end-structs/aligned
+  ok 162, CStructPathException 8, CStructReadException 336
 
 @test Truncations_ReadFromEverySource("union")
-@hash b824f801adc3c30ab5bfb79af9e5981932ec94b3a12e4cd7414fbf38566afc2f 308 union/packed
-@hash b0e91bf38e4e368888d8e42831c7a7e5102d751d437b7e08ad78aacdf7960ad4 572 union/aligned
+@hash 40305779da391eac9b6c7b366b64d6d39cacf125f6ae6b3f71e6f64bd5159d40 308 union/packed
+  ok 68, CStructReadException 240
+@hash cf64079491373329f581aab6ccd0f9bc96f61d724dce792deb85c533d4edb47a 572 union/aligned
+  ok 92, CStructReadException 480
 
 @test Truncations_ReadFromEverySource("union-arrays")
-@hash 9529910ee1d452b3be59db0fb46635e68433058eb7023d163a1bb6e017f9746f 322 union-arrays/packed
-@hash 981e5c5e502f45093bf5d18f3a69c32effd3721a66d5fa2ae9a42bc228b8a84d 414 union-arrays/aligned
+@hash a75fc9a88fc477599a10f22519f0e258c41580c7a3e058ffe3a5535322fc1b95 322 union-arrays/packed
+  ok 80, CStructReadException 242
+@hash 0bd7dd1e925ddb396b9bb3624c8a71b49333069ba3a9b43c99004c0ec9f30419 414 union-arrays/aligned
+  ok 90, CStructReadException 324
 
 @test Truncations_ReadFromEverySource("union-bitfields")
-@hash e383968fbf9e080076f34e6fe6745d119ae1566f926d69e913bef3af7eeb40d6 220 union-bitfields/packed
-@hash fd2c3eaa082cd72f5f7fc16c03746382a5165a69cf9c92785c790a12eea55751 308 union-bitfields/aligned
+@hash faa4b623cc9f521a352cad324921f4eb74358842cd62920fe6b172a4afb94640 220 union-bitfields/packed
+  ok 64, CStructReadException 156
+@hash eeff596bb581675e63daabc88487cc87d702e61f9df1c248de45547ea3e17f08 308 union-bitfields/aligned
+  ok 72, CStructReadException 236
 
 @test Truncations_ReadFromEverySource("union-conditional")
-@hash e810c770da4fe88027f269a1483a459e8b64a2cfafda24459c86d616d0651b86 414 union-conditional/packed
-@hash 2eaaed2692456288c7b8bd5159be39256157eb87922e9bc138677265b6aefe98 506 union-conditional/aligned
+@hash b1d8d1c703334045b2f8ff910521bcd27f01c45eb8ce75517259d74559cad937 414 union-conditional/packed
+  ok 104, CStructReadException 310
+@hash 50d3ebc5187564bb5aa06cf290b5f3d201d28a16948c331787a58c1978c3b14d 506 union-conditional/aligned
+  ok 110, CStructReadException 396
 
 @test Truncations_ReadFromEverySource("union-nested")
-@hash b9c9c39852c7de73db746c99856f9ffe53e3dac33b37f09d629b0dda0c173da2 506 union-nested/packed
-@hash db499d97804416f68947297221f36a0af7e715b3ece6db6992f25b11b8f857a4 782 union-nested/aligned
+@hash eb70dd34bbe72214c98849a89403d2efbe496eb2c70b89e4ca17be1553085833 506 union-nested/packed
+  ok 96, CStructReadException 410
+@hash ac29f27a120d805e8c1c96e730969aad60bb4b3a9a969897075b50436ebc05a5 782 union-nested/aligned
+  ok 126, CStructReadException 656
 
 @test Truncations_ReadFromEverySource("variables")
-@hash b286b2bfa002246c7e5596cb889477f884d1786c98c3c1507027b47eaef0e296 276 variables/packed
-@hash b286b2bfa002246c7e5596cb889477f884d1786c98c3c1507027b47eaef0e296 276 variables/aligned
+@hash 652352c6c64b86cca296cba613556109e220f038297023f8db38c927b1c5c85b 276 variables/packed
+  ok 74, CStructReadException 202
+@hash 652352c6c64b86cca296cba613556109e220f038297023f8db38c927b1c5c85b 276 variables/aligned
+  ok 74, CStructReadException 202
 
 @test Truncations_ReadFromEverySource("write-codecs")
-@hash cd1772cf15343d88c7a9fa368b94ede7c345bff45e0a8cc37189b73d2e2ba732 4532 write-codecs/packed
-@hash e222862d09d76595e7afa08fee8703186d3525366a32b81f2bcbaa1251a1e619 5676 write-codecs/aligned
+@hash 9077d577a1200cf36e8f2a8797bc2762705e7e2df307f7d306df129b51bde60d 4532 write-codecs/packed
+  ok 436, CStructReadException 4096
+@hash a1d958f287805db9d8ef15cc3ae202b9e2fa85419436588ce545a4b2066c77ea 5676 write-codecs/aligned
+  ok 572, CStructReadException 5104
 
 @test Truncations_ReadFromEverySource("write-enums")
-@hash 7b365270b58ed975e154dcf9b6e6d75c78caba62d694fea6f16d26e85b38ab6f 644 write-enums/packed
-@hash c17f38a2004bcaaf66d7f8ef12922d961f2aaaa05ecfa6d822a983a696cc6816 782 write-enums/aligned
+@hash 713184e8f21e17f55aa5e42df73d97cc96f0b84846d3c6d8b9cd15c9f101050b 644 write-enums/packed
+  ok 128, CStructReadException 516
+@hash dbf6cfbd8399069de558e31dc9b07d3dd1ad0eb14c6e6c9cd0a7b0ac6ea928bf 782 write-enums/aligned
+  ok 148, CStructReadException 634
 
 @test Truncations_ReadFromEverySource("write-padding")
-@hash a306893983d3456af408465f4a4b72865c329c94f0af725f7b755ebe36c3dc05 644 write-padding/packed
-@hash 710e3029afa060570f237718dd7ebd5eac3702bd02516413bae5b3f926780c6b 782 write-padding/aligned
+@hash 74915fb5501fa3b8058a7d0ce78a8427afae41be0db1cb31c9462b932cc93ebf 644 write-padding/packed
+  ok 82, CStructReadException 562
+@hash b02dfcf58dfa0aab2258c5c70c51549269b437f952a8df99799c55862b2c1b0f 782 write-padding/aligned
+  ok 102, CStructReadException 680
 
 @test Truncations_ReadFromEverySource("write-qualified")
-@hash 16f34aee636fabfb0411814410f54e8d790f8f3eec46259677b3700d77d700f2 276 write-qualified/packed
-@hash ceccabf75259062cb42c29cb8b92ca9a8ccecaa3f3bcd4812ecbc7871736fe91 322 write-qualified/aligned
+@hash c8457e884970ca73cd8e43577ad3acdcb963c721e0fbfe7702ad50742149ea00 276 write-qualified/packed
+  ok 72, CStructReadException 204
+@hash 6b41cf02eddb3ab148ba03bdf9f95aaf24d493ae46874f963fb1529ea3acacde 322 write-qualified/aligned
+  ok 82, CStructReadException 240
 
 @test Truncations_ReadFromEverySource("write-scope")
-@hash 8660c43380b6f48beb846da884f23c85641728bcc2461fb6c523ba3b41a61d74 552 write-scope/packed
-@hash d89c6b5aad040f20e74fb5c5b5b16433a72d0bb2a5d14d92b63e534e884f3cab 598 write-scope/aligned
+@hash 56ea3503b3c161b29e01f0f8820f98e6f3d6387c8fc3a601471f4b7910cab759 552 write-scope/packed
+  ok 90, CStructReadException 462
+@hash 5233a2dd112277d3c9db4994a0ccf234d73ebed5d1e9e38d7abf395e09d14ba2 598 write-scope/aligned
+  ok 100, CStructReadException 498
 
 @test Truncations_ReadFromEverySource("write-text")
-@hash 673a9d8fe80511a7941df5089682695df5f7580280a7e8e35f0f8677ec518989 1196 write-text/packed
-@hash 682e57f33ce34a45eaccbab425aefa328a9d66718021f3aa6b652fcb653ee0b6 1242 write-text/aligned
+@hash 5d1e53cd5cefd027a8181b496b0f6a088ae6eff35f157b493bf15bc2edde133f 1196 write-text/packed
+  ok 180, CStructReadException 1016
+@hash 059f34a858514b93c6be4844a8aa925a8fd75ff585549dff4c7be720997157bf 1242 write-text/aligned
+  ok 190, CStructReadException 1052
 
 @test WriteBinding_AgreesAcrossExecutionPaths
-@hash 70f564f8223a6fe9aa34f74b6035c7aecda1bb76db09f1c936c20eb7fabd13bf 8 promoted/packed parsed
-@hash 70f564f8223a6fe9aa34f74b6035c7aecda1bb76db09f1c936c20eb7fabd13bf 8 promoted/packed dictionary
-@hash ceacdcdf780fda9e626674d6b64b1364c5165e1283eaf6c5f2cd6349449670f4 8 promoted/packed unknown key
-@hash ef932dac5f2f5c2376b7e1b812116a2d6625dc895b65270b46e1911f065a2472 8 promoted/aligned parsed
-@hash ef932dac5f2f5c2376b7e1b812116a2d6625dc895b65270b46e1911f065a2472 8 promoted/aligned dictionary
-@hash 0a6d00650ca34b9b91e350791f2e454c62fdad10c77006fee4cfc6dd3d407cb2 8 promoted/aligned unknown key
-@hash 228ef10818bed0a17edb18a149ee76f7ed33b82bc7f57e7d47cdc896e130d338 8 promoted-union/packed parsed
-@hash 228ef10818bed0a17edb18a149ee76f7ed33b82bc7f57e7d47cdc896e130d338 8 promoted-union/packed dictionary
-@hash 0cb46a8616a19ecb8d4e22ffa30fcb2fbb9e7e9b79db452db9be6055b00cc30e 8 promoted-union/packed unknown key
-@hash c7aa61066fe5c5cd2aba178b5c742d0ef6988f8314e5eaa44556508dedd39219 8 promoted-union/aligned parsed
-@hash c7aa61066fe5c5cd2aba178b5c742d0ef6988f8314e5eaa44556508dedd39219 8 promoted-union/aligned dictionary
-@hash 5eb0710ce7f3503c864b74448ebdfc7b41cf4227085aec17fe6438cf4b911fbd 8 promoted-union/aligned unknown key
-@hash f28bc8051ec6096d7056a0a0c643f8eece74d3e0acd45c1f27650b9421c5af1c 8 nested mapped/packed
-@hash f574d0186cf633563f4433012907292d0c8ba8421f3b801f46bc5c93e1afdb76 8 nested mapped/aligned
+@hash 37f078ef75b1a89c5a85c8f712a45078e6be0bddbfebc32bd9d0d9ebdac6abea 8 promoted/packed parsed
+  ok 8
+@hash 37f078ef75b1a89c5a85c8f712a45078e6be0bddbfebc32bd9d0d9ebdac6abea 8 promoted/packed dictionary
+  ok 8
+@hash 39bb58fb326db716b787a6c09ab6053736999cbc47c15a12bab43f3d1f6e96df 8 promoted/packed unknown key
+  CStructWriteException 8
+@hash a52cf2eed61d26674cae9b0f8547feeb52207260f33224e52a6e1b08a73ef793 8 promoted/aligned parsed
+  ok 8
+@hash a52cf2eed61d26674cae9b0f8547feeb52207260f33224e52a6e1b08a73ef793 8 promoted/aligned dictionary
+  ok 8
+@hash b268ead0466b18c9ddfee463c874213a4008534514e8c0f185e53fbc8f870ec4 8 promoted/aligned unknown key
+  CStructWriteException 8
+@hash f19f9550d84853553e8d8f48ae84365fc651b78dbe2815d81ae05ca29f21f332 8 promoted-union/packed parsed
+  ok 8
+@hash f19f9550d84853553e8d8f48ae84365fc651b78dbe2815d81ae05ca29f21f332 8 promoted-union/packed dictionary
+  ok 8
+@hash 0954e83f6ba8c18f6c69acfe6c56e47701b5ae1ba65cbce6aa2e7c3933563898 8 promoted-union/packed unknown key
+  CStructWriteException 8
+@hash 9253e7c90ed135313a5c5fe6e070bdda7ca31f132e9adc91fbdbebc388783023 8 promoted-union/aligned parsed
+  ok 8
+@hash 9253e7c90ed135313a5c5fe6e070bdda7ca31f132e9adc91fbdbebc388783023 8 promoted-union/aligned dictionary
+  ok 8
+@hash f1702c8794852c004c3f32ede2dc3d1399741e9d927c05c582080a3423ac2c61 8 promoted-union/aligned unknown key
+  CStructWriteException 8
+@hash 8c12404a4014fa9f9ff5c98ba471b56acdbb1bab6d0b9bcd556188dfaeeb59f1 8 nested mapped/packed
+  ok 8
+@hash a4e82961220317c4a5d0d39f227fb6e195fab2893fa721b195a90b23cb5e86d6 8 nested mapped/aligned
+  ok 8

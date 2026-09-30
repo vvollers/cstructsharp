@@ -6,8 +6,8 @@ using System.Text;
 ///     Runs the golden harness over the repository's layout corpora (<see cref="EngineCorpora"/>): every case is
 ///     parsed from several sources (which must agree), read as a value, debug-parsed, has paths resolved, and has the
 ///     value it reads written back, under <see cref="ExecutionPath.Fastest"/> and
-///     <see cref="ExecutionPath.NoFastPaths"/>, checking every outcome and how many operations reached the engine
-///     against the golden outcomes (<see cref="EngineCorpusCase.Run"/>, <see cref="EngineGolden"/>).
+///     <see cref="ExecutionPath.NoFastPaths"/>, checking every outcome against the golden outcomes
+///     (<see cref="EngineCorpusCase.Run"/>, <see cref="EngineGolden"/>).
 /// </summary>
 [TestClass]
 public class EngineCorpusTests
