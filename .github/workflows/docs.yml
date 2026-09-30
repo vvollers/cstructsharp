@@ -1,5 +1,10 @@
 name: Documentation
 
+# The path filters list what the gate reads: the documentation, the projects it builds (the core library for the API
+# reference, the test project for the language fixtures, and their references), the benchmark fixtures and README
+# whose facts it checks, the contracts it publishes or validates, its tools, every Markdown file (local links are
+# checked repository-wide), every workflow (their project paths and working directories are checked), and the
+# build settings. The WebAssembly browser project is deliberately not built or read.
 on:
   workflow_call:
   push:
@@ -7,33 +12,49 @@ on:
       - main
     paths:
       - "docs/**"
-      - "src/**"
+      - "src/CStructSharp/**"
+      - "src/CStructSharp.Core/**"
+      - "src/CStructSharp.Generators/**"
       - "tests/CStructSharpTests/**"
+      - "tests/CStructSharp.Fuzz/**"
+      - "benchmarks/CStructSharp.FixtureTool/**"
+      - "benchmarks/fixtures/**"
+      - "benchmarks/js/README.md"
+      - "benchmarks/js/bench/fixture-eligibility.mjs"
       - "contracts/**"
       - "tools/documentation/**"
       - "tools/lib/**"
-      - "README.md"
-      - "CHANGELOG.md"
-      - "CONTRIBUTING.md"
+      - "tools/quality/feature-operation-matrix.mjs"
+      - "**/*.md"
+      - ".github/workflows/**"
+      - ".github/pull_request_template.md"
       - "global.json"
+      - "Directory.Build.props"
       - ".config/**"
       - ".node-version"
-      - ".github/workflows/docs.yml"
   pull_request:
     paths:
       - "docs/**"
-      - "src/**"
+      - "src/CStructSharp/**"
+      - "src/CStructSharp.Core/**"
+      - "src/CStructSharp.Generators/**"
       - "tests/CStructSharpTests/**"
+      - "tests/CStructSharp.Fuzz/**"
+      - "benchmarks/CStructSharp.FixtureTool/**"
+      - "benchmarks/fixtures/**"
+      - "benchmarks/js/README.md"
+      - "benchmarks/js/bench/fixture-eligibility.mjs"
       - "contracts/**"
       - "tools/documentation/**"
       - "tools/lib/**"
-      - "README.md"
-      - "CHANGELOG.md"
-      - "CONTRIBUTING.md"
+      - "tools/quality/feature-operation-matrix.mjs"
+      - "**/*.md"
+      - ".github/workflows/**"
+      - ".github/pull_request_template.md"
       - "global.json"
+      - "Directory.Build.props"
       - ".config/**"
       - ".node-version"
-      - ".github/workflows/docs.yml"
   schedule:
     # A weekly full run catches an effect on the site that the path filter did not anticipate.
     - cron: "11 5 * * 0"

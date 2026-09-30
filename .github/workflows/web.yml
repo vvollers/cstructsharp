@@ -4,6 +4,10 @@ name: Web
 # `checks` runs the fast lint and unit checks without .NET; `browser` builds the WASM publication once and runs every
 # check that needs it; `node` installs the packed npm package at the edges of the supported range: the package's
 # minimum Node on every platform and the newest Node on Linux.
+# The path filters list what the jobs read: the managed projects the WASM build compiles, the workspace (apps,
+# package, lockfile), every tool (the checks job lints and documents all of tools/), the two contracts the apps
+# import, the tests the explorer turns into demos, the docs example the lesson test reads, the landing page and the
+# fixtures that `test:npm` checks, and the build settings.
 on:
   workflow_call:
   push:
@@ -16,10 +20,17 @@ on:
       - "packages/**"
       - "apps/**"
       - "tools/**"
-      - "contracts/**"
+      - "contracts/language/portable-v1.json"
+      - "contracts/performance/web-size-budget.json"
       - "tests/CStructSharpTests/**"
+      - "docs/examples/Program.cs"
+      - "docs/landing/**"
+      - "benchmarks/fixtures/**"
+      - "benchmarks/js/bench/fixtures.mjs"
       - "package.json"
+      - "package-lock.json"
       - "global.json"
+      - "Directory.Build.props"
       - ".node-version"
       - ".github/workflows/web.yml"
   pull_request:
@@ -31,10 +42,17 @@ on:
       - "packages/**"
       - "apps/**"
       - "tools/**"
-      - "contracts/**"
+      - "contracts/language/portable-v1.json"
+      - "contracts/performance/web-size-budget.json"
       - "tests/CStructSharpTests/**"
+      - "docs/examples/Program.cs"
+      - "docs/landing/**"
+      - "benchmarks/fixtures/**"
+      - "benchmarks/js/bench/fixtures.mjs"
       - "package.json"
+      - "package-lock.json"
       - "global.json"
+      - "Directory.Build.props"
       - ".node-version"
       - ".github/workflows/web.yml"
   schedule:
