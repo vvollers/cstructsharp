@@ -3,7 +3,13 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import { manifest, runtimeDirectory } from "./assets.js";
 
-/** Serve/emit the complete .NET runtime as opaque files, outside Vite's module graph. */
+/**
+ * The Vite plugin that hosts the runtime for the browser entry point. It serves (dev server) and emits (build) the
+ * complete .NET runtime as opaque files under one content-hashed directory, outside Vite's module graph, and compiles
+ * that directory's URL into the application, so `loadCStructSharpWasm` needs no `runtimeUrl`.
+ * @returns {{ name: string, config: Function, configureServer: Function, generateBundle: Function }} The plugin.
+ * @throws {Error} From `config`, when the application's `base` is relative (`""` or `"./"`).
+ */
 export function cstructsharp() {
   const hash = createHash("sha256")
     .update(JSON.stringify(manifest))
@@ -14,6 +20,12 @@ export function cstructsharp() {
   let base = "/";
   return {
     name: "cstructsharp-runtime",
+    /**
+     * Records the application's base path and defines the runtime URL; keeps the package out of dependency
+     * pre-bundling and SSR bundling.
+     * @param {object} config The user's Vite configuration.
+     * @returns {object} The configuration Vite merges in.
+     */
     config(config) {
       base = config.base ?? "/";
       if (base === "" || base === "./")
@@ -27,8 +39,14 @@ export function cstructsharp() {
         ssr: { external: ["cstructsharp"] },
       };
     },
+    /**
+     * Serves the runtime files listed in the manifest from the package on the dev server; any other name under the
+     * runtime directory is a 404.
+     * @param {object} server The Vite dev server.
+     */
     configureServer(server) {
       const prefix = `${new URL(base, "http://localhost").pathname.replace(/\/$/, "")}/${directory}/`;
+      // Answers requests under the runtime directory and passes every other request on.
       server.middlewares.use((req, res, next) => {
         const pathname = new URL(req.url, "http://localhost").pathname;
         if (!pathname.startsWith(prefix)) return next();
@@ -48,6 +66,7 @@ export function cstructsharp() {
         );
         res.setHeader("Cache-Control", "no-cache");
         fs.createReadStream(path.join(runtimeDirectory, name))
+          // A file that cannot be read ends the response as a server error.
           .on("error", () => {
             res.statusCode = 500;
             res.end();
@@ -55,6 +74,7 @@ export function cstructsharp() {
           .pipe(res);
       });
     },
+    /** Emits every runtime file of the manifest into the build output's runtime directory. */
     generateBundle() {
       for (const name of files)
         this.emitFile({

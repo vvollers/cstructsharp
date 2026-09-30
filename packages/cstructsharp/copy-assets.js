@@ -1,4 +1,9 @@
 #!/usr/bin/env node
+/**
+ * Copies the package's runtime into a new directory for static hosting; the directory must not exist yet.
+ *
+ *   cstructsharp-copy --out <new-runtime-directory>
+ */
 import { copyRuntime } from "./assets.js";
 
 const args = process.argv.slice(2);
