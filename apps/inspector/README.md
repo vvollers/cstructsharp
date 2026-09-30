@@ -18,7 +18,7 @@ files, and the original file stays unchanged. Replacing the file or closing the 
 The inspector supports desktop browser windows at least **1200 CSS pixels wide**. Narrower windows show guidance
 instead of clipped panels; enlarge the window to return to the same session. Mobile inspection is not supported.
 
-The settings dialog controls decoded array, string and total-read budgets. These are independent of file size
+The Safety limits in Operation settings control decoded array, string and total-read budgets. These are independent of file size
 and pointer distance. Larger payload budgets can be selected explicitly; results still have to fit available memory.
 See the [large-file API guide](../../docs/guides/browser/large-data.md).
 
@@ -86,18 +86,18 @@ and do not change schema coverage or parsing.
 The session belongs to that app instance; there is no global UI store.
 The header keeps its ready status short; hover over it to inspect the full runtime version/build identity.
 
-| Module                                               | Responsibility                                                                                              |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `composables/useInspector.ts`                        | Current schema/source, runtime readiness, file loading and detection; actions that invalidate outdated work |
-| `composables/useParseSession.ts`                     | Parse cancellation, success/error results, and JSON/hex selection                                           |
-| `composables/useBinarySource.ts`                     | Blob windows, undo/redo, byte editing and search                                                            |
-| `components/InspectorDockPanel.vue`                  | Typed adapter for Dockview's nested params; connects session refs/actions to ordinary panel props/events    |
-| `components/SchemaPanel.vue`, `SchemaSettings.vue`   | Editor and run action; parser settings and their dialog                                                     |
-| `components/BinaryPanel.vue`, `ResultPanel.vue`      | Hex navigation/highlighting and JSON results; neither owns the document                                     |
-| `components/InspectorHeader.vue`, `ExampleList.vue`  | Runtime/source status and searchable schema catalog                                                         |
-| `components/LayoutEditor.vue`, `cstruct-language.ts` | Editor component lifecycle; lazy Monaco setup, worker, highlighting and language help                       |
-| `schema-catalog.ts`                                  | One registry for file extensions, detection layouts, sample definitions/bytes, and sidebar descriptions     |
-| `@cstructsharp/app-shared/wasm/adapter`              | Runtime loading and validation of the browser bridge's result envelope (shared with the explorer)           |
+| Module                                              | Responsibility                                                                                              |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `composables/useInspector.ts`                       | Current schema/source, runtime readiness, file loading and detection; actions that invalidate outdated work |
+| `composables/useParseSession.ts`                    | Parse cancellation, success/error results, and JSON/hex selection                                           |
+| `composables/useBinarySource.ts`                    | Blob windows, undo/redo, byte editing and search                                                            |
+| `components/InspectorDockPanel.vue`                 | Typed adapter for Dockview's nested params; connects session refs/actions to ordinary panel props/events    |
+| `components/SchemaPanel.vue`, `SchemaSettings.vue`  | Editor and run action; settings summary around the shared settings dialog                                   |
+| `components/BinaryPanel.vue`, `ResultPanel.vue`     | Hex navigation/highlighting and JSON results; neither owns the document                                     |
+| `components/InspectorHeader.vue`, `ExampleList.vue` | Runtime/source status and searchable schema catalog                                                         |
+| `load-monaco.ts`, `cstruct-language.ts`             | Lazy Monaco setup for the shared `LayoutEditor`: worker, highlighting and language help                     |
+| `schema-catalog.ts`                                 | One registry for file extensions, detection layouts, sample definitions/bytes, and sidebar descriptions     |
+| `@cstructsharp/app-shared/wasm/adapter`             | Runtime loading and validation of the browser bridge's result envelope (shared with the explorer)           |
 
 The flow is **panel event → session action → refs → panels**. Document changes cancel pending reads/parses
 and clear result selection. File loads publish the preview, full Blob and optional detected schema together;

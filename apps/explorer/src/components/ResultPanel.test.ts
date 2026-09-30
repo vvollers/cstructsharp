@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import { VueHex } from "vuehex";
 import ResultPanel from "./ResultPanel.vue";
-import LayoutEditor from "./LayoutEditor.vue";
-vi.mock("./LayoutEditor.vue", () => ({
+import LayoutEditor from "@cstructsharp/app-shared/components/LayoutEditor.vue";
+vi.mock("@cstructsharp/app-shared/components/LayoutEditor.vue", () => ({
   default: { props: ["modelValue", "language", "readOnly"], template: "<div />" },
 }));
 

@@ -100,6 +100,43 @@ pre {
   transform: none;
 }
 
+/* Square buttons that show only an icon or a short code; the shared settings dialog uses them too */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  padding: 6px;
+  border: 1px solid var(--color-text-muted);
+  border-radius: 6px;
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  background: var(--color-bg-primary);
+  border-color: var(--color-accent);
+}
+
+.icon-button svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The muted hint text below a control; .field comes with the shared settings dialog */
+.field-hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
 /* Card styles */
 .card {
   min-width: 0;

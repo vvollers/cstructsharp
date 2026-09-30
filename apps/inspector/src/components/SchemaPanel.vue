@@ -1,7 +1,13 @@
 <script setup lang="ts">
+/**
+ * The inspector's schema panel: the settings bar, the schema editor bound to `definition`, and the Run button,
+ * which emits `run` with a copy of the settings. Changing a setting emits `settings-change`.
+ */
 import { ref, watch } from "vue";
-import LayoutEditor from "./LayoutEditor.vue";
-import SchemaSettings, { type SchemaSettingsValues } from "./SchemaSettings.vue";
+import LayoutEditor from "@cstructsharp/app-shared/components/LayoutEditor.vue";
+import { loadMonaco } from "../load-monaco";
+import type { LayoutSettingsValues } from "@cstructsharp/app-shared/components/LayoutSettingsDialog.vue";
+import SchemaSettings from "./SchemaSettings.vue";
 import type { InspectorExample } from "../schema-catalog";
 import type { ParseWithDebugOptions } from "@cstructsharp/app-shared/wasm/contract";
 import { OPTION_DEFAULTS } from "@cstructsharp/app-shared/options";
@@ -19,7 +25,7 @@ const emit = defineEmits<{
 }>();
 const definition = defineModel<string>("definition", { required: true });
 const settingsOpen = ref(false);
-const options = ref<SchemaSettingsValues>(initialOptions());
+const options = ref<LayoutSettingsValues>(initialOptions());
 
 // A result describes both the schema and the settings used to parse it. Clear that result when
 // a setting changes. `deep` also detects edits to individual properties inside the options object.
@@ -30,7 +36,7 @@ watch(options, () => emit("settings-change"), { deep: true });
  * read limits.
  * @returns The initial settings.
  */
-function initialOptions(): SchemaSettingsValues {
+function initialOptions(): LayoutSettingsValues {
   const defaults = props.example?.parserOptions;
 
   return {
@@ -73,7 +79,12 @@ function submit(): void {
   <section class="schema-panel">
     <SchemaSettings v-model="options" v-model:open="settingsOpen" />
     <div class="editor-body" data-testid="definition-editor">
-      <LayoutEditor v-model="definition" fill label="Binary layout (CStruct definition)" />
+      <LayoutEditor
+        v-model="definition"
+        :loadMonaco
+        fill
+        label="Binary layout (CStruct definition)"
+      />
     </div>
 
     <div class="panel-bottombar">

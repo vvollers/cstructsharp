@@ -1,6 +1,11 @@
 <script setup lang="ts">
+/**
+ * A modal dialog with C# and JavaScript example code for an operation request, shown in read-write editors with
+ * copy and download buttons. `open` generates the code and shows the dialog.
+ */
 import { nextTick, ref } from "vue";
-import LayoutEditor from "./LayoutEditor.vue";
+import LayoutEditor from "@cstructsharp/app-shared/components/LayoutEditor.vue";
+import { loadMonaco } from "../load-monaco";
 import type { OperationRequest } from "./OperationPanel.vue";
 import { generateExample } from "../generate-example";
 import { runOperation } from "../run-operation";
@@ -132,6 +137,7 @@ defineExpose({ open });
           v-if="opened"
           :key="`${revision}-${language}`"
           v-model="sources[language]"
+          :loadMonaco
           :language="language"
           :label="`${language} generated example`"
           fill

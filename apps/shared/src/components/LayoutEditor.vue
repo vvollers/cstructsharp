@@ -1,30 +1,45 @@
 <script setup lang="ts">
+/**
+ * A Monaco code editor bound with `v-model` to its text. Both apps use it for layout source, and the explorer also
+ * for JSON and generated code. Monaco is large, so the component does not import it: each app passes `loadMonaco`,
+ * which lazily imports that app's Monaco setup (its languages and workers). The editor grows with its content
+ * between 130 and 440 pixels, unless `fill` makes it take its container's height.
+ */
 import { onMounted, onBeforeUnmount, ref, watch } from "vue";
-import type { editor } from "monaco-editor/editor";
-import { formatLayout } from "@cstructsharp/app-shared/format-layout";
+import type * as Monaco from "monaco-editor/editor";
+import { formatLayout } from "../format-layout";
+import { CSTRUCT_LANGUAGE_ID } from "../language/id";
 
 const props = defineProps<{
+  /** The editor text. */
   modelValue: string;
+  /** Lazily loads the app's Monaco setup module, whose `monaco` is the configured namespace; called once on mount. */
+  loadMonaco: () => Promise<{ monaco: typeof Monaco }>;
+  /** The Monaco language id; defaults to the CStruct layout language. */
   language?: string;
+  /** Fills the container's height instead of fitting the content. */
   fill?: boolean;
+  /** The editor's accessible name. */
   label?: string;
+  /** Shows the text without allowing edits. */
   readOnly?: boolean;
 }>();
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 const host = ref<HTMLElement | null>(null);
 const height = ref(160);
-let instance: editor.IStandaloneCodeEditor | undefined;
-let model: editor.ITextModel | undefined;
+let instance: Monaco.editor.IStandaloneCodeEditor | undefined;
+let model: Monaco.editor.ITextModel | undefined;
 let disposed = false;
 
 // Load Monaco when this editor first appears. The import is asynchronous, so check that the
 // component still exists before creating the editor: the user might have closed the panel meanwhile.
 onMounted(async () => {
-  const { monaco, CSTRUCT_LANGUAGE_ID } = await import("../cstruct-language");
+  const { monaco } = await props.loadMonaco();
   if (disposed || !host.value) return;
 
   // The model holds the text; the editor instance provides the visible controls for editing it.
-  model = monaco.editor.createModel(props.modelValue, props.language ?? CSTRUCT_LANGUAGE_ID);
+  const language = props.language ?? CSTRUCT_LANGUAGE_ID;
+  model = monaco.editor.createModel(props.modelValue, language);
   model.updateOptions({ tabSize: 4, insertSpaces: true });
   instance = monaco.editor.create(host.value, {
     model,
@@ -41,7 +56,7 @@ onMounted(async () => {
     folding: true,
     tabSize: 4,
     insertSpaces: true,
-    ariaLabel: props.label ?? "Binary layout (CStruct definition)",
+    ariaLabel: props.label ?? "Binary layout (C-like definition)",
     stickyScroll: { enabled: false },
   });
 
@@ -52,13 +67,15 @@ onMounted(async () => {
   instance.onDidContentSizeChange(resize);
   instance.onDidChangeModelContent(() => emit("update:modelValue", instance!.getValue()));
 
-  // Register our formatter only for CStruct text, not for any other language shown in this editor.
-  if (!props.language || props.language === CSTRUCT_LANGUAGE_ID)
+  // Register the layout formatter only for CStruct text, whether the language is defaulted or passed explicitly;
+  // JSON and generated code shown in this editor keep Monaco's own actions.
+  if (language === CSTRUCT_LANGUAGE_ID)
     instance.addAction({
       id: "format-binary-layout",
       label: "Format binary layout",
       contextMenuGroupId: "1_modification",
       keybindings: [monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyF],
+      /** Replaces the whole text with its formatted layout as one undoable edit. */
       run: (ed) => {
         ed.executeEdits("format-layout", [
           { range: model!.getFullModelRange(), text: formatLayout(ed.getValue()) },
@@ -77,6 +94,8 @@ watch(
     if (instance && instance.getValue() !== value) instance.setValue(value);
   },
 );
+
+// Release the editor and its model; a still-pending load sees `disposed` and creates nothing.
 onBeforeUnmount(() => {
   disposed = true;
   instance?.dispose();

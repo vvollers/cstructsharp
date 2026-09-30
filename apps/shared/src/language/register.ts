@@ -6,6 +6,7 @@
  */
 import type * as Monaco from "monaco-editor/editor";
 
+import { CSTRUCT_LANGUAGE_ID } from "./id";
 import { collectSymbols, type CStructSymbolKind } from "./symbols";
 import {
   annotations,
@@ -15,9 +16,6 @@ import {
   types,
   type VocabularyWord,
 } from "./vocabulary";
-
-/** The Monaco language id both editors use for layout source. */
-export const CSTRUCT_LANGUAGE_ID = "cstruct";
 
 /**
  * Escapes a word for use inside a regular expression.

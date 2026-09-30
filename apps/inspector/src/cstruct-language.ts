@@ -1,12 +1,9 @@
-// Loaded lazily by LayoutEditor: sets up Monaco with the shared CStruct language (highlighting, completion and
+// Loaded lazily through load-monaco.ts by the shared LayoutEditor: sets up Monaco with the shared CStruct language (highlighting, completion and
 // hover) and the editor worker. Schema validation still happens in WASM when the user runs it.
 import * as monaco from "monaco-editor/editor";
 import "monaco-editor/features/register.all";
 import EditorWorker from "monaco-editor/editor/editor.worker?worker";
-import {
-  CSTRUCT_LANGUAGE_ID,
-  registerCStructLanguage,
-} from "@cstructsharp/app-shared/language/register";
+import { registerCStructLanguage } from "@cstructsharp/app-shared/language/register";
 
 registerCStructLanguage(monaco);
 
@@ -16,4 +13,4 @@ globalThis.MonacoEnvironment = {
   getWorker: () => new EditorWorker(),
 };
 
-export { CSTRUCT_LANGUAGE_ID, monaco };
+export { monaco };

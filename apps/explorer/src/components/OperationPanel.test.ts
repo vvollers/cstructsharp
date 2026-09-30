@@ -3,8 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 import { VueHex } from "vuehex";
 
 import OperationPanel from "./OperationPanel.vue";
-import LayoutEditor from "./LayoutEditor.vue";
-vi.mock("./LayoutEditor.vue", () => ({ default: { props: ["modelValue"], template: "<div />" } }));
+import LayoutEditor from "@cstructsharp/app-shared/components/LayoutEditor.vue";
+vi.mock("@cstructsharp/app-shared/components/LayoutEditor.vue", () => ({
+  default: { props: ["modelValue"], template: "<div />" },
+}));
 
 describe("OperationPanel", () => {
   it.each(["parse", "serialize", "update"] as const)(
@@ -48,7 +50,7 @@ describe("OperationPanel", () => {
       },
     });
 
-    expect(wrapper.get('[data-testid="endian-select"]').element).toHaveProperty("value", "big");
+    expect(wrapper.get("#endian").element).toHaveProperty("value", "false");
     await wrapper.get("form").trigger("submit");
     expect(wrapper.emitted("run")?.[0]?.[0]).toMatchObject({
       options: { littleEndian: false },
@@ -75,7 +77,7 @@ describe("OperationPanel", () => {
     expect(wrapper.get('[data-testid="json-input"]').isVisible()).toBe(true);
     expect(wrapper.get('[data-testid="path-input"]').isVisible()).toBe(true);
 
-    await wrapper.get('[data-testid="endian-select"]').setValue("big");
+    await wrapper.get("#endian").setValue("false");
     await wrapper.get("form").trigger("submit");
     expect(wrapper.emitted("run")?.[0]?.[0]).toMatchObject({
       operation: "update",
@@ -83,6 +85,32 @@ describe("OperationPanel", () => {
       binaryHex: "2a",
       options: { littleEndian: false },
     });
+  });
+
+  // The generated C# and JavaScript examples list the options in this key order.
+  it("sends the options in the order the generated examples list them", async () => {
+    const wrapper = mount(OperationPanel, {
+      props: { definition: "struct root { byte value; };", binaryHex: "2a", disabled: false },
+    });
+
+    await wrapper.get("form").trigger("submit");
+    const request = wrapper.emitted("run")?.[0]?.[0] as { options: object };
+    expect(Object.keys(request.options)).toEqual([
+      "root",
+      "aligned",
+      "pointerSize",
+      "littleEndian",
+      "addressingMode",
+      "origin",
+      "dereferencePointers",
+      "maxArrayElements",
+      "maxStringBytes",
+      "maxTotalBytesRead",
+      "maxTotalBytesWritten",
+      "maxTraversalBytesRead",
+      "maxNestingDepth",
+      "maxTraversalNestingDepth",
+    ]);
   });
 
   it("accepts binary data updates from the result editor", async () => {

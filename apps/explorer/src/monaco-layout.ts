@@ -1,3 +1,5 @@
+// Loaded lazily through load-monaco.ts by the shared LayoutEditor: sets up Monaco with the shared CStruct language,
+// C++, C# and JavaScript highlighting for generated code, JSON (with comments) for parsed results, and the workers.
 import * as monaco from "monaco-editor/editor";
 import "monaco-editor/features/register.all";
 import "monaco-editor/languages/definitions/cpp/register";

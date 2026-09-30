@@ -127,6 +127,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - Inspector schemas name enum members in conditions (`dicom_vr.AE`, `glb_chunk_kind.Json`) instead of magic numbers,
   and the Zstandard schema reads its magic as `uint32`.
 - Explorer lessons show what to know first, an exercise, the answer behind a disclosure, and a link to the guide.
+- The explorer and the inspector share one layout editor and one "Operation settings" dialog from `apps/shared`, with
+  the same wording in both apps (the inspector's "Schema settings" button is now "Operation settings"); both apps'
+  production bundles are slightly smaller.
 
 ### Fixed
 
@@ -161,6 +164,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   interface as a class.
 - The standalone ZIP entry (`cstructsharp-wasm.js`) rejects with the runtime's own startup error and tries again on the
   next call, instead of a generic message and a failure it kept.
+- The explorer's editor offers "Format binary layout" when the CStruct language is passed explicitly, not only when it
+  is left out.
 
 ### Performance
 

@@ -38,7 +38,7 @@ const parsedJson = computed<unknown>(() => {
 
 const recovery = computed(() =>
   errorRecoveryHint(props.result?.error?.code, {
-    limits: "the decoded-data budgets in the schema settings",
+    limits: "the safety limits in the operation settings",
     fallback: "Review the code, path, and offset below and compare with the schema.",
   }),
 );

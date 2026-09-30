@@ -1,11 +1,20 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+/**
+ * The explorer's operation form: the layout editor, the input bytes or JSON value, the update path, and the shared
+ * settings button and dialog with a summary of the current settings. Submitting emits `run` with a request that
+ * applies one byte budget to reading and writing; any edit emits `changed`, and the reset button emits `reset`.
+ */
+import { computed, reactive, ref, watch } from "vue";
 
 import { VueHex } from "vuehex";
 import SettingStatusItem from "@cstructsharp/app-shared/components/SettingStatusItem.vue";
-import LayoutEditor from "./LayoutEditor.vue";
+import LayoutEditor from "@cstructsharp/app-shared/components/LayoutEditor.vue";
+import LayoutSettingsDialog, {
+  type LayoutSettingsValues,
+} from "@cstructsharp/app-shared/components/LayoutSettingsDialog.vue";
 import GeneratedCodeDialog from "./GeneratedCodeDialog.vue";
 import { formatLayout } from "@cstructsharp/app-shared/format-layout";
+import { loadMonaco } from "../load-monaco";
 
 import type {
   ParseWithDebugOptions,
@@ -56,100 +65,116 @@ const path = ref(
   props.presets?.update?.path ??
     (props.initialRootType ? `${props.initialRootType}.value` : "root.value"),
 );
-const rootTypeName = ref(props.initialRootType ?? "");
-const aligned = ref(props.initialAligned ?? false);
-const pointerSize = ref<number>(props.initialPointerSize ?? OPTION_DEFAULTS.pointerSize);
-const endian = ref<"little" | "big">(props.initialLittleEndian === false ? "big" : "little");
-const addressingMode = ref<"Absolute" | "Relative">("Absolute");
-const origin = ref("0");
-const dereferencePointers = ref<boolean>(OPTION_DEFAULTS.dereferencePointers);
-const maxArrayElements = ref<number>(OPTION_DEFAULTS.maxArrayElements);
-const maxStringBytes = ref<number>(OPTION_DEFAULTS.maxStringBytes);
-const maxTotalBytes = ref<number>(
-  props.initialOptions?.maxTotalBytesRead ?? OPTION_DEFAULTS.maxTotalBytesRead,
-);
-const maxNestingDepth = ref<number>(OPTION_DEFAULTS.maxNestingDepth);
+// The settings dialog edits this object in place. One byte budget (maxTotalBytesRead) limits both reading and
+// writing in the explorer.
+const settings = reactive<LayoutSettingsValues>({
+  root: props.initialRootType ?? "",
+  aligned: props.initialAligned ?? false,
+  pointerSize: props.initialPointerSize ?? OPTION_DEFAULTS.pointerSize,
+  littleEndian: props.initialLittleEndian !== false,
+  addressingMode: "Absolute",
+  origin: "0",
+  dereferencePointers: OPTION_DEFAULTS.dereferencePointers,
+  maxArrayElements: OPTION_DEFAULTS.maxArrayElements,
+  maxStringBytes: OPTION_DEFAULTS.maxStringBytes,
+  maxTotalBytesRead: props.initialOptions?.maxTotalBytesRead ?? OPTION_DEFAULTS.maxTotalBytesRead,
+  maxNestingDepth: OPTION_DEFAULTS.maxNestingDepth,
+});
+const settingsOpen = ref(false);
 
-const settingsDialog = ref<HTMLDialogElement | null>(null);
 const generatedCode = ref<InstanceType<typeof GeneratedCodeDialog> | null>(null);
-const settingsButton = ref<HTMLButtonElement | null>(null);
 const settingsSummary = computed(() => [
-  { label: "Root", value: rootTypeName.value.trim() || "first declaration", color: "#67e8f9" },
+  {
+    label: "Root",
+    value: settings.root.trim() || "first declaration",
+    color: "#67e8f9",
+    explanation: settings.root.trim()
+      ? "This name selects the layout type or path where the operation starts. It must match the declaration's spelling and capitalization."
+      : "No root name is supplied, so the first declaration in the layout is used.",
+  },
   {
     label: "Order",
-    value: `${endian.value === "little" ? "Little" : "Big"} endian`,
+    value: `${settings.littleEndian ? "Little" : "Big"} endian`,
     color: "#93c5fd",
-  },
-  { label: "Aligned", value: aligned.value, color: "#c4b5fd" },
-  { label: "Pointers", value: `${pointerSize.value} B`, color: "#f9a8d4" },
-  { label: "Address", value: addressingMode.value, color: "#fda4af" },
-  { label: "Origin", value: origin.value, color: "#fdba74" },
-  { label: "Follow pointers", value: dereferencePointers.value, color: "#86efac" },
-  { label: "Total", value: formatBytes(maxTotalBytes.value), color: "#fde68a" },
-  { label: "Elements", value: maxArrayElements.value.toLocaleString(), color: "#bef264" },
-  { label: "Text", value: formatBytes(maxStringBytes.value), color: "#5eead4" },
-  { label: "Depth", value: maxNestingDepth.value.toLocaleString(), color: "#d8b4fe" },
-]);
-/** Closes the settings dialog and returns focus to the button that opened it. */
-function closeSettings(): void {
-  settingsDialog.value?.close();
-  settingsButton.value?.focus();
-}
-
-const settingExplanations = computed<Record<string, string>>(() => ({
-  Root: rootTypeName.value.trim()
-    ? "This name selects the layout type or path where the operation starts. It must match the declaration's spelling and capitalization."
-    : "No root name is supplied, so the first declaration in the layout is used.",
-  Order:
-    endian.value === "little"
+    explanation: settings.littleEndian
       ? "The least significant byte comes first. For example, 01 00 represents 1 in a two-byte integer. A field's explicit byte order can override this default."
       : "The most significant byte comes first. For example, 00 01 represents 1 in a two-byte integer. A field's explicit byte order can override this default.",
-  Aligned: aligned.value
-    ? "Fields may have padding bytes before them to meet alignment rules. This can increase the total size of a record."
-    : "Fields are packed together without automatic alignment padding. The next field starts immediately after the previous field.",
-  Pointers:
-    "Each stored pointer address occupies this many bytes. This is the address width, not the size of the data it points to.",
-  Address:
-    addressingMode.value === "Relative"
-      ? "Stored pointer addresses are offsets from the configured origin. Add the origin to the stored address to locate the target."
-      : "Stored pointer addresses are positions from the start of the input. The origin is not added to them.",
-  Origin:
-    addressingMode.value === "Relative"
-      ? "This byte position is added to a stored relative pointer address to find its target. It does not move the start of the root record."
-      : "This byte position would be added to relative pointer addresses. It is currently unused because addressing is Absolute.",
-  "Follow pointers": dereferencePointers.value
-    ? "Reads can visit the data at a pointer's target. Updates may also traverse a pointer when the selected path requires it."
-    : "Reads keep the pointer address without reading its target. Updates cannot follow a pointer to change its target.",
-  Total:
-    "This budget limits bytes read or written, including rereads during traversal. Debug parsing also rereads field bytes for its debug view, so the budget can need to be larger than the input. Exceeding the applicable budget stops the operation.",
-  Elements:
-    "An array may contain at most this many elements. This limits work on large or untrusted inputs; it does not set the array's declared length.",
-  Text: "A string may use at most this many encoded bytes. Bytes and characters are not always the same count, especially with multi-byte encodings.",
-  Depth:
-    "This limits how deeply an operation can nest or traverse values. Deeper structures fail instead of continuing without a bound.",
-}));
+  },
+  {
+    label: "Aligned",
+    value: settings.aligned,
+    color: "#c4b5fd",
+    explanation: settings.aligned
+      ? "Fields may have padding bytes before them to meet alignment rules. This can increase the total size of a record."
+      : "Fields are packed together without automatic alignment padding. The next field starts immediately after the previous field.",
+  },
+  {
+    label: "Pointers",
+    value: `${settings.pointerSize} B`,
+    color: "#f9a8d4",
+    explanation:
+      "Each stored pointer address occupies this many bytes. This is the address width, not the size of the data it points to.",
+  },
+  {
+    label: "Address",
+    value: settings.addressingMode,
+    color: "#fda4af",
+    explanation:
+      settings.addressingMode === "Relative"
+        ? "Stored pointer addresses are offsets from the configured origin. Add the origin to the stored address to locate the target."
+        : "Stored pointer addresses are positions from the start of the input. The origin is not added to them.",
+  },
+  {
+    label: "Origin",
+    value: settings.origin,
+    color: "#fdba74",
+    explanation:
+      settings.addressingMode === "Relative"
+        ? "This byte position is added to a stored relative pointer address to find its target. It does not move the start of the root record."
+        : "This byte position would be added to relative pointer addresses. It is currently unused because addressing is Absolute.",
+  },
+  {
+    label: "Follow pointers",
+    value: settings.dereferencePointers,
+    color: "#86efac",
+    explanation: settings.dereferencePointers
+      ? "Reads can visit the data at a pointer's target. Updates may also traverse a pointer when the selected path requires it."
+      : "Reads keep the pointer address without reading its target. Updates cannot follow a pointer to change its target.",
+  },
+  {
+    label: "Total",
+    value: formatBytes(settings.maxTotalBytesRead),
+    color: "#fde68a",
+    explanation:
+      "This budget limits bytes read or written, including rereads during traversal. Debug parsing also rereads field bytes for its debug view, so the budget can need to be larger than the input. Exceeding the applicable budget stops the operation.",
+  },
+  {
+    label: "Elements",
+    value: settings.maxArrayElements.toLocaleString(),
+    color: "#bef264",
+    explanation:
+      "An array may contain at most this many elements. This limits work on large or untrusted inputs; it does not set the array's declared length.",
+  },
+  {
+    label: "Text",
+    value: formatBytes(settings.maxStringBytes),
+    color: "#5eead4",
+    explanation:
+      "A string may use at most this many encoded bytes. Bytes and characters are not always the same count, especially with multi-byte encodings.",
+  },
+  {
+    label: "Depth",
+    value: settings.maxNestingDepth.toLocaleString(),
+    color: "#d8b4fe",
+    explanation:
+      "This limits how deeply an operation can nest or traverse values. Deeper structures fail instead of continuing without a bound.",
+  },
+]);
 
-watch(
-  [
-    operation,
-    definition,
-    binaryHex,
-    jsonValue,
-    path,
-    rootTypeName,
-    aligned,
-    pointerSize,
-    endian,
-    addressingMode,
-    origin,
-    dereferencePointers,
-    maxArrayElements,
-    maxStringBytes,
-    maxTotalBytes,
-    maxNestingDepth,
-  ],
-  () => emit("changed"),
-);
+// Any edit, including a single setting inside the settings object (hence `deep`), makes the last result stale.
+watch([operation, definition, binaryHex, jsonValue, path, settings], () => emit("changed"), {
+  deep: true,
+});
 
 watch(
   () => props.binaryHex,
@@ -183,7 +208,7 @@ function handleBinaryEdited(bytes: Uint8Array): void {
 
 /** Emits `run` with the current request, unless the settings dialog is open. */
 function submit(): void {
-  if (settingsDialog.value?.open) return;
+  if (settingsOpen.value) return;
   emit("run", currentRequest());
 }
 /**
@@ -191,6 +216,10 @@ function submit(): void {
  * @returns The request; one byte budget applies to both reading and writing.
  */
 function currentRequest(): OperationRequest {
+  // The generated examples list the options in key order: the settings in their declared order up to
+  // maxTotalBytesRead, then the written and traversal byte budgets, then the two depth limits. Taking
+  // maxNestingDepth out first lets it follow the byte budgets.
+  const { maxNestingDepth, ...rest } = settings;
   return {
     operation: operation.value,
     definition: definition.value,
@@ -198,20 +227,12 @@ function currentRequest(): OperationRequest {
     jsonValue: jsonValue.value,
     path: path.value,
     options: {
-      root: rootTypeName.value.trim() || null,
-      aligned: aligned.value,
-      pointerSize: pointerSize.value,
-      littleEndian: endian.value === "little",
-      addressingMode: addressingMode.value,
-      origin: origin.value,
-      dereferencePointers: dereferencePointers.value,
-      maxArrayElements: maxArrayElements.value,
-      maxStringBytes: maxStringBytes.value,
-      maxTotalBytesRead: maxTotalBytes.value,
-      maxTotalBytesWritten: maxTotalBytes.value,
-      maxTraversalBytesRead: maxTotalBytes.value,
-      maxNestingDepth: maxNestingDepth.value,
-      maxTraversalNestingDepth: maxNestingDepth.value,
+      ...rest,
+      root: rest.root.trim() || null,
+      maxTotalBytesWritten: rest.maxTotalBytesRead,
+      maxTraversalBytesRead: rest.maxTotalBytesRead,
+      maxNestingDepth,
+      maxTraversalNestingDepth: maxNestingDepth,
     },
   };
 }
@@ -220,16 +241,7 @@ function currentRequest(): OperationRequest {
 <template>
   <form class="operation-panel" @submit.prevent="submit">
     <div class="operation-heading">
-      <button
-        ref="settingsButton"
-        class="icon-button"
-        type="button"
-        aria-label="Operation settings"
-        title="Operation settings"
-        @click="settingsDialog?.showModal()"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16M8 4v6M16 14v6" /></svg>
-      </button>
+      <LayoutSettingsDialog v-model:open="settingsOpen" :model-value="settings" />
       <button
         class="icon-button"
         type="button"
@@ -262,112 +274,12 @@ function currentRequest(): OperationRequest {
       </button>
     </div>
     <p class="settings-summary" aria-label="Current operation settings">
-      <SettingStatusItem
-        v-for="setting in settingsSummary"
-        :key="setting.label"
-        v-bind="setting"
-        :explanation="settingExplanations[setting.label]!"
-      />
+      <SettingStatusItem v-for="setting in settingsSummary" :key="setting.label" v-bind="setting" />
     </p>
-    <dialog
-      ref="settingsDialog"
-      class="settings-dialog"
-      aria-labelledby="settings-title"
-      @cancel.prevent="closeSettings"
-      @click="$event.target === settingsDialog && closeSettings()"
-    >
-      <div class="dialog-content">
-        <div class="dialog-heading">
-          <h2 id="settings-title">Operation settings</h2>
-          <button
-            class="icon-button"
-            type="button"
-            aria-label="Close settings"
-            title="Close settings"
-            @click="closeSettings"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
-          </button>
-        </div>
-        <p class="field-hint">
-          Changes apply immediately. Reset example restores the lesson's settings.
-        </p>
-        <div class="option-grid">
-          <div class="field">
-            <label for="root-type">Root type/path</label>
-            <input id="root-type" v-model="rootTypeName" placeholder="First declaration" />
-          </div>
-          <div class="field">
-            <label for="endian">Default byte order</label>
-            <select id="endian" v-model="endian" data-testid="endian-select">
-              <option value="little">Little endian</option>
-              <option value="big">Big endian</option>
-            </select>
-          </div>
-          <label class="check-field">
-            <input v-model="aligned" type="checkbox" />
-            Align fields (insert padding)
-          </label>
-        </div>
-        <section class="settings-group" aria-labelledby="pointer-settings-title">
-          <h3 id="pointer-settings-title">Pointer settings</h3>
-          <div class="option-grid">
-            <div class="field">
-              <label for="pointer-size">Pointer bytes</label>
-              <select id="pointer-size" v-model.number="pointerSize">
-                <option :value="1">1</option>
-                <option :value="2">2</option>
-                <option :value="4">4</option>
-                <option :value="8">8</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="addressing">Pointer addressing</label>
-              <select id="addressing" v-model="addressingMode">
-                <option value="Absolute">Absolute</option>
-                <option value="Relative">Relative to origin</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="origin">Pointer origin</label>
-              <input id="origin" v-model="origin" inputmode="numeric" />
-            </div>
-            <label class="check-field">
-              <input v-model="dereferencePointers" type="checkbox" />
-              Follow pointers
-            </label>
-          </div>
-        </section>
-
-        <section class="settings-group" aria-labelledby="safety-settings-title">
-          <h3 id="safety-settings-title">Safety limits</h3>
-          <div class="option-grid">
-            <div class="field">
-              <label for="max-array">Array elements</label>
-              <input id="max-array" v-model.number="maxArrayElements" type="number" min="1" />
-            </div>
-            <div class="field">
-              <label for="max-string">String bytes</label>
-              <input id="max-string" v-model.number="maxStringBytes" type="number" min="1" />
-            </div>
-            <div class="field">
-              <label for="max-total">Total bytes</label>
-              <input id="max-total" v-model.number="maxTotalBytes" type="number" min="1" />
-            </div>
-            <div class="field">
-              <label for="max-depth">Nesting depth</label>
-              <input id="max-depth" v-model.number="maxNestingDepth" type="number" min="1" />
-            </div>
-          </div>
-        </section>
-
-        <button class="btn btn-primary" type="button" @click="closeSettings">Done</button>
-      </div>
-    </dialog>
 
     <div class="field">
       <label>Binary layout (C-like definition)</label>
-      <LayoutEditor v-model="definition" />
+      <LayoutEditor v-model="definition" :loadMonaco />
     </div>
 
     <div v-if="operation !== 'serialize'" class="field">
@@ -415,49 +327,14 @@ function currentRequest(): OperationRequest {
 </template>
 
 <style scoped>
-.operation-heading,
-.dialog-heading {
+.operation-heading {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
-.operation-heading h2,
-.dialog-heading h2 {
-  margin: 0;
-}
-.dialog-heading {
-  justify-content: space-between;
-}
 .operation-heading h2 {
   margin-inline-end: auto;
-}
-.icon-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  padding: 6px;
-  border: 1px solid var(--color-text-muted);
-  border-radius: 6px;
-  background: var(--color-bg-secondary);
-  color: var(--color-text);
-  cursor: pointer;
-}
-.icon-button:hover {
-  background: var(--color-bg-primary);
-  border-color: var(--color-accent);
-}
-.icon-button svg {
-  width: 20px;
-  height: 20px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 .settings-summary {
   display: flex;
@@ -475,66 +352,14 @@ function currentRequest(): OperationRequest {
   color: var(--color-text-muted);
   overflow-wrap: anywhere;
 }
-.settings-dialog {
-  width: min(620px, calc(100vw - 24px));
-  max-height: calc(100dvh - 32px);
-  padding: 0;
-  margin: auto;
-  border: 1px solid var(--color-text-muted);
-  border-radius: 12px;
-  background: var(--color-bg-secondary);
-  color: var(--color-text);
-  box-shadow: 0 24px 80px #0008;
-}
-.settings-dialog::backdrop {
-  background: #0009;
-}
-.dialog-content {
-  display: grid;
-  gap: 18px;
-  padding: 24px;
-}
-.dialog-content .field-hint {
-  margin: 0;
-}
-
 .operation-panel {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 
-.field {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 6px;
-}
-
-.field label,
-.settings-group h3 {
-  color: var(--color-text-muted);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-input,
-select,
-textarea {
-  width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-primary);
-  color: var(--color-text);
-  font: inherit;
-  padding: 9px 11px;
-}
-
 textarea,
-#path,
-#root-type,
-#origin {
+#path {
   font-family: var(--font-mono);
 }
 
@@ -550,44 +375,5 @@ textarea {
 .binary-input-editor :deep(.vuehex) {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-sm);
-}
-
-.field-hint {
-  color: var(--color-text-muted);
-  font-size: 12px;
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-  border-color: var(--color-accent);
-  outline: 2px solid var(--color-accent-glow);
-}
-
-.option-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
-  gap: 12px;
-  align-items: end;
-}
-
-.check-field {
-  display: flex;
-  min-height: 40px;
-  align-items: center;
-  gap: 8px;
-}
-
-.check-field input {
-  width: auto;
-}
-
-.settings-group {
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  padding-top: 14px;
-}
-
-.settings-group h3 {
-  margin-bottom: 10px;
 }
 </style>

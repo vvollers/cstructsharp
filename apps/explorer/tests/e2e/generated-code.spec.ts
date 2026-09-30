@@ -17,7 +17,7 @@ test("generation uses edited inputs, opens either language, and downloads the co
   await page.keyboard.press("0");
   await page.keyboard.press("a");
   await page.getByRole("button", { name: "Operation settings", exact: true }).click();
-  await page.getByTestId("endian-select").selectOption("big");
+  await page.getByLabel("Default byte order").selectOption("Big endian");
   await page.getByRole("button", { name: "Done", exact: true }).click();
   await page.getByRole("button", { name: "Generate C#", exact: true }).click();
   const modal = page.getByRole("dialog", { name: "Generated example" });

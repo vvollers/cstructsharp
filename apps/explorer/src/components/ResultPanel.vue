@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * The explorer's result view for an operation: the error with a recovery hint, or the resulting bytes with the
+ * field map and, for parse, the parsed JSON in a read-only editor.
+ */
 import { computed, ref, watch } from "vue";
 
 import { VueHex } from "vuehex";
@@ -6,7 +10,8 @@ import { VueHex } from "vuehex";
 import type { DebugItem, InteropResult } from "@cstructsharp/app-shared/wasm/contract";
 import { errorRecoveryHint } from "@cstructsharp/app-shared/error-hints";
 import { formatParsedJson } from "../format-parsed-json";
-import LayoutEditor from "./LayoutEditor.vue";
+import LayoutEditor from "@cstructsharp/app-shared/components/LayoutEditor.vue";
+import { loadMonaco } from "../load-monaco";
 
 interface DebugRange {
   end: number;
@@ -188,6 +193,7 @@ function handleBytesEdited(bytes: Uint8Array): void {
           <h3>Parsed JSON</h3>
           <LayoutEditor
             :model-value="formatParsedJson(parsedData)"
+            :loadMonaco
             language="json"
             label="Parsed JSON"
             read-only

@@ -77,11 +77,11 @@ test('"New" clears the schema and binary data', async ({ page }) => {
   await expect(page.locator(".byte-count")).toContainText("0 bytes");
 });
 
-test("schema settings dialog opens and closes", async ({ page }) => {
-  await page.getByRole("button", { name: "Schema settings" }).click();
-  await expect(page.getByRole("heading", { name: "Schema settings" })).toBeVisible();
+test("operation settings dialog opens and closes", async ({ page }) => {
+  await page.getByRole("button", { name: "Operation settings" }).click();
+  await expect(page.getByRole("heading", { name: "Operation settings" })).toBeVisible();
   await page.getByRole("button", { name: "Close settings" }).click();
-  await expect(page.getByRole("heading", { name: "Schema settings" })).toBeHidden();
+  await expect(page.getByRole("heading", { name: "Operation settings" })).toBeHidden();
 });
 
 test("editing the schema or parser settings clears the previous result", async ({
@@ -100,14 +100,14 @@ test("editing the schema or parser settings clears the previous result", async (
 
   await page.getByRole("button", { name: /^Run$/ }).click();
   await expect(page.locator(".result-status")).toHaveText("Parse completed");
-  await page.getByRole("button", { name: "Schema settings" }).click();
-  await page.getByLabel("Default byte order").selectOption("big");
+  await page.getByRole("button", { name: "Operation settings" }).click();
+  await page.getByLabel("Default byte order").selectOption("Big endian");
   await page.getByRole("button", { name: "Done", exact: true }).click();
   await expect(page.getByTestId("result-json")).toHaveCount(0);
 });
 
 test("manual file loads preserve settings and choosing a schema resets them", async ({ page }) => {
-  const settingsButton = page.getByRole("button", { name: "Schema settings" });
+  const settingsButton = page.getByRole("button", { name: "Operation settings" });
   await settingsButton.click();
   await page.getByLabel("Root type/path").fill("custom_root");
   await page.getByLabel("Pointer bytes").selectOption("1");
@@ -132,7 +132,8 @@ test("manual file loads preserve settings and choosing a schema resets them", as
   await page.getByTestId("example-png").click();
   await settingsButton.click();
   await expect(page.getByLabel("Root type/path")).toHaveValue("root");
-  await expect(page.getByLabel("Default byte order")).toHaveValue("big");
+  // The byte-order options carry the littleEndian flag: "false" is Big endian.
+  await expect(page.getByLabel("Default byte order")).toHaveValue("false");
   await expect(page.getByLabel("Pointer bytes")).toHaveValue("8");
   await page.getByRole("button", { name: "Done", exact: true }).click();
   await page.getByRole("button", { name: /^Run$/ }).click();

@@ -42,7 +42,7 @@ test("status tooltips explain live settings with matching value colors", async (
     await expect(tooltip).toHaveCount(0);
   }
   await page.getByRole("button", { name: "Operation settings", exact: true }).click();
-  await page.getByTestId("endian-select").selectOption("big");
+  await page.getByLabel("Default byte order").selectOption("Big endian");
   await page.getByRole("button", { name: "Done", exact: true }).click();
   const order = items.filter({ has: page.locator(".setting-label", { hasText: "Order:" }) });
   await order.focus();
@@ -73,7 +73,7 @@ test("settings popup updates the summary, applies options, and resets with the l
   await expect(dialog.locator("details")).toHaveCount(0);
   await expect(dialog.locator("#pointer-size")).toBeVisible();
   await expect(dialog.locator("#max-total")).toBeVisible();
-  await page.getByTestId("endian-select").selectOption("big");
+  await page.getByLabel("Default byte order").selectOption("Big endian");
   await page.keyboard.press("Escape");
   await expect(dialog).not.toBeVisible();
   await expect(settings).toBeFocused();
