@@ -62,8 +62,9 @@ first and otherwise calls `Read<Type>Members`, the member-by-member reader. `Try
 bytes only when the member-by-member code would read exactly those bytes without a failure: the bytes are present, the
 budget covers what the members would be charged, the nesting and array limits hold, and the start meets the struct's
 alignment. `WriteCursor.TryReserveFixed` does the same for writing, and the generated `Is<Type>FixedWritable` check
-first confirms that no nested value is null and every array has its declared length. Any other input goes member by
-member, so every failure keeps its text and position.
+first confirms that no nested value is null and every array has its declared length. `Serialize<Type>` into a new array
+writes such a value straight into an array of the struct's size. Any other input goes member by member, so every
+failure keeps its text and position.
 
 The split into a short `Read<Type>` and a separate member-by-member method is for speed. The .NET JIT copies a small,
 frequently called method into its caller (*inlining*), but it copies only so much code into one method. A

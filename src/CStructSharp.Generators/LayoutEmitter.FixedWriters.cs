@@ -41,11 +41,43 @@ internal sealed partial class LayoutEmitter
     /// <param name="plan">The fixed plan of the composite, which has a fixed writer.</param>
     private void EmitFixedWriterShortcut(SourceWriter writer, GeneratedComposite composite, FixedPlan plan)
     {
-        writer.Open("if (Is" + composite.Name + "FixedWritable(value) && cursor.TryReserveFixed(" + Int(plan.Size) + ", " + Int(this.request.Settings.Aligned ? plan.Alignment : 1) + ", " + Int(plan.NestingLevels) + ", " + Int(plan.MaximumArrayCount) + ", out global::System.Span<byte> fixedBytes))");
+        writer.Open("if (Is" + composite.Name + "FixedWritable(value) && cursor.TryReserveFixed(" + this.FixedReserveArguments(plan) + ", out global::System.Span<byte> fixedBytes))");
         writer.Line("Write" + composite.Name + "Fixed(fixedBytes, value);");
         writer.Line("return;");
         writer.Close();
     }
+
+    /// <summary>
+    ///     Emits the start of a composite's <c>Serialize&lt;Type&gt;</c> into a new array, when it has a fixed writer: a
+    ///     value the fixed writer takes is written straight into an array of the struct's size, through a cursor over
+    ///     that array whose <c>TryReserveFixed</c> applies the same conditions as the growable cursor's. Any other value,
+    ///     and a <see langword="null"/> one, continues to the growable cursor.
+    /// </summary>
+    /// <param name="writer">The generated source destination, at the top of the method.</param>
+    /// <param name="composite">The composite being serialized.</param>
+    /// <param name="path">The C# literal of the operation path the cursors report.</param>
+    private void EmitFixedArrayShortcut(SourceWriter writer, GeneratedComposite composite, string path)
+    {
+        if (!this.IsFixedWritable(composite, 0) || this.FixedPlanOf(composite, 0) is not { } plan)
+        {
+            return;
+        }
+
+        writer.Open("if (value is not null && Is" + composite.Name + "FixedWritable(value))");
+        writer.Line("var bytes = new byte[" + Int(plan.Size) + "];");
+        writer.Line("var direct = new " + WriteCursorType + "(bytes, options, " + path + ");");
+        writer.Open("if (direct.TryReserveFixed(" + this.FixedReserveArguments(plan) + ", out global::System.Span<byte> fixedBytes))");
+        writer.Line("Write" + composite.Name + "Fixed(fixedBytes, value);");
+        writer.Line("return bytes;");
+        writer.Close();
+        writer.Close();
+    }
+
+    /// <summary>The arguments of <c>WriteCursor.TryReserveFixed</c> for a fixed plan: size, alignment, nesting levels and largest array count.</summary>
+    /// <param name="plan">The composite's fixed plan.</param>
+    /// <returns>The comma-separated C# arguments, without the <c>out</c> parameter.</returns>
+    private string FixedReserveArguments(FixedPlan plan)
+        => Int(plan.Size) + ", " + Int(this.request.Settings.Aligned ? plan.Alignment : 1) + ", " + Int(plan.NestingLevels) + ", " + Int(plan.MaximumArrayCount);
 
     /// <summary>Emits the check that a value has every nested value and every array length the fixed writer relies on.</summary>
     private void EmitFixedWritableCheck(SourceWriter writer, GeneratedComposite composite)

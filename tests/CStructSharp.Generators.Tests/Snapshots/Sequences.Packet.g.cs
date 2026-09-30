@@ -1007,6 +1007,16 @@ namespace Demo
         /// <returns>The serialized bytes.</returns>
         public static byte[] SerializeHdr(Hdr value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
         {
+            if (value is not null && IsHdrFixedWritable(value))
+            {
+                var bytes = new byte[4];
+                var direct = new global::CStructSharp.Generated.WriteCursor(bytes, options, "hdr");
+                if (direct.TryReserveFixed(4, 1, 1, 0, out global::System.Span<byte> fixedBytes))
+                {
+                    WriteHdrFixed(fixedBytes, value);
+                    return bytes;
+                }
+            }
             var cursor = new global::CStructSharp.Generated.WriteCursor(options, "hdr");
             try
             {

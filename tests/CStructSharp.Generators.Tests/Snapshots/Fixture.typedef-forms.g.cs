@@ -977,6 +977,16 @@ namespace Demo
         /// <returns>The serialized bytes.</returns>
         public static byte[] SerializeX(X value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
         {
+            if (value is not null && IsXFixedWritable(value))
+            {
+                var bytes = new byte[3];
+                var direct = new global::CStructSharp.Generated.WriteCursor(bytes, options, "X");
+                if (direct.TryReserveFixed(3, 1, 1, 0, out global::System.Span<byte> fixedBytes))
+                {
+                    WriteXFixed(fixedBytes, value);
+                    return bytes;
+                }
+            }
             var cursor = new global::CStructSharp.Generated.WriteCursor(options, "X");
             try
             {
@@ -1060,6 +1070,16 @@ namespace Demo
         /// <returns>The serialized bytes.</returns>
         public static byte[] SerializeRoot(Root value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
         {
+            if (value is not null && IsRootFixedWritable(value))
+            {
+                var bytes = new byte[8];
+                var direct = new global::CStructSharp.Generated.WriteCursor(bytes, options, "root");
+                if (direct.TryReserveFixed(8, 1, 2, 2, out global::System.Span<byte> fixedBytes))
+                {
+                    WriteRootFixed(fixedBytes, value);
+                    return bytes;
+                }
+            }
             var cursor = new global::CStructSharp.Generated.WriteCursor(options, "root");
             try
             {

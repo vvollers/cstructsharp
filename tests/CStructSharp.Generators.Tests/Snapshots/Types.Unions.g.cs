@@ -866,6 +866,16 @@ namespace Demo
         /// <returns>The serialized bytes.</returns>
         public static byte[] SerializeRootPos(RootPos value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
         {
+            if (value is not null && IsRootPosFixedWritable(value))
+            {
+                var bytes = new byte[2];
+                var direct = new global::CStructSharp.Generated.WriteCursor(bytes, options, "pos");
+                if (direct.TryReserveFixed(2, 1, 1, 0, out global::System.Span<byte> fixedBytes))
+                {
+                    WriteRootPosFixed(fixedBytes, value);
+                    return bytes;
+                }
+            }
             var cursor = new global::CStructSharp.Generated.WriteCursor(options, "pos");
             try
             {

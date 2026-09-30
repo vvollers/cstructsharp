@@ -944,6 +944,16 @@ namespace Demo
         /// <returns>The serialized bytes.</returns>
         public static byte[] Serializechunk(chunk value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
         {
+            if (value is not null && IschunkFixedWritable(value))
+            {
+                var bytes = new byte[4];
+                var direct = new global::CStructSharp.Generated.WriteCursor(bytes, options, "chunk");
+                if (direct.TryReserveFixed(4, 1, 1, 0, out global::System.Span<byte> fixedBytes))
+                {
+                    WritechunkFixed(fixedBytes, value);
+                    return bytes;
+                }
+            }
             var cursor = new global::CStructSharp.Generated.WriteCursor(options, "chunk");
             try
             {
@@ -1027,6 +1037,16 @@ namespace Demo
         /// <returns>The serialized bytes.</returns>
         public static byte[] Serializeroot(root value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
         {
+            if (value is not null && IsrootFixedWritable(value))
+            {
+                var bytes = new byte[5];
+                var direct = new global::CStructSharp.Generated.WriteCursor(bytes, options, "root");
+                if (direct.TryReserveFixed(5, 1, 2, 0, out global::System.Span<byte> fixedBytes))
+                {
+                    WriterootFixed(fixedBytes, value);
+                    return bytes;
+                }
+            }
             var cursor = new global::CStructSharp.Generated.WriteCursor(options, "root");
             try
             {

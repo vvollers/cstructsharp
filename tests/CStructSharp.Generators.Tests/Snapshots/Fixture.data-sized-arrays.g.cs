@@ -944,6 +944,16 @@ namespace Demo
         /// <returns>The serialized bytes.</returns>
         public static byte[] SerializeEntry(Entry value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
         {
+            if (value is not null && IsEntryFixedWritable(value))
+            {
+                var bytes = new byte[2];
+                var direct = new global::CStructSharp.Generated.WriteCursor(bytes, options, "entry");
+                if (direct.TryReserveFixed(2, 1, 1, 0, out global::System.Span<byte> fixedBytes))
+                {
+                    WriteEntryFixed(fixedBytes, value);
+                    return bytes;
+                }
+            }
             var cursor = new global::CStructSharp.Generated.WriteCursor(options, "entry");
             try
             {

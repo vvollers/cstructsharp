@@ -1708,6 +1708,16 @@ namespace Demo
         /// <returns>The serialized bytes.</returns>
         public static byte[] SerializeInner(Inner value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
         {
+            if (value is not null && IsInnerFixedWritable(value))
+            {
+                var bytes = new byte[1];
+                var direct = new global::CStructSharp.Generated.WriteCursor(bytes, options, "inner");
+                if (direct.TryReserveFixed(1, 1, 1, 0, out global::System.Span<byte> fixedBytes))
+                {
+                    WriteInnerFixed(fixedBytes, value);
+                    return bytes;
+                }
+            }
             var cursor = new global::CStructSharp.Generated.WriteCursor(options, "inner");
             try
             {

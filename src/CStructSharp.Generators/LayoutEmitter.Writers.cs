@@ -57,6 +57,7 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <param name=\"options\">The write options; <see langword=\"null\"/> uses the documented defaults.</param>");
         writer.Line("/// <returns>The serialized bytes.</returns>");
         writer.Open("public static byte[] " + method + "(" + name + " value, " + VariablesType + " variables = null, global::CStructSharp.WriteOptions? options = null)");
+        this.EmitFixedArrayShortcut(writer, composite, layout);
         writer.Line("var cursor = new " + WriteCursorType + "(options, " + layout + ");");
         writer.Open("try");
         writer.Line("Encode" + name + "(ref cursor, value, variables, null, null);");

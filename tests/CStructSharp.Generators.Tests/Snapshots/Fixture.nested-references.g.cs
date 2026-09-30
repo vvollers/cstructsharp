@@ -957,6 +957,16 @@ namespace Demo
         /// <returns>The serialized bytes.</returns>
         public static byte[] SerializeH(H value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
         {
+            if (value is not null && IsHFixedWritable(value))
+            {
+                var bytes = new byte[2];
+                var direct = new global::CStructSharp.Generated.WriteCursor(bytes, options, "h");
+                if (direct.TryReserveFixed(2, 1, 1, 0, out global::System.Span<byte> fixedBytes))
+                {
+                    WriteHFixed(fixedBytes, value);
+                    return bytes;
+                }
+            }
             var cursor = new global::CStructSharp.Generated.WriteCursor(options, "h");
             try
             {

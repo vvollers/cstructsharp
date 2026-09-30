@@ -249,6 +249,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - Generated member-by-member readers and writers leave out the placement step before a field that needs no
   alignment in a struct without bitfields: the `packet` record parses in 43.7 ns instead of 49.4 ns and serializes in
   26.9 ns instead of 34.5 ns, and a conditional record parses about 18 % faster.
+- A generated `Serialize` into a new array writes a value its fixed writer takes straight into an array of the struct's
+  size, without a pooled buffer and a copy: a small record serializes in 5.7 ns instead of 14.1 ns, and 256 nested
+  records in 0.96 us instead of 3.49 us.
 - `Serialize` (to an array or a span) and `WriteAsync` of layouts with runtime-sized members run on the compiled engine:
   the comparison benchmark's `packet` record serializes in 248 ns instead of 496 ns and allocates only its 88-byte
   result. Bitfields, unions (including promoted ones), pointers, custom codecs and to-end, terminated and

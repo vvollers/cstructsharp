@@ -550,6 +550,16 @@ namespace Demo
         /// <returns>The serialized bytes.</returns>
         public static byte[] SerializeRoot(Root value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
         {
+            if (value is not null && IsRootFixedWritable(value))
+            {
+                var bytes = new byte[7];
+                var direct = new global::CStructSharp.Generated.WriteCursor(bytes, options, "root");
+                if (direct.TryReserveFixed(7, 1, 1, 2, out global::System.Span<byte> fixedBytes))
+                {
+                    WriteRootFixed(fixedBytes, value);
+                    return bytes;
+                }
+            }
             var cursor = new global::CStructSharp.Generated.WriteCursor(options, "root");
             try
             {

@@ -1390,6 +1390,16 @@ namespace Demo
         /// <returns>The serialized bytes.</returns>
         public static byte[] SerializeX(X value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
         {
+            if (value is not null && IsXFixedWritable(value))
+            {
+                var bytes = new byte[1];
+                var direct = new global::CStructSharp.Generated.WriteCursor(bytes, options, "X");
+                if (direct.TryReserveFixed(1, 1, 1, 0, out global::System.Span<byte> fixedBytes))
+                {
+                    WriteXFixed(fixedBytes, value);
+                    return bytes;
+                }
+            }
             var cursor = new global::CStructSharp.Generated.WriteCursor(options, "X");
             try
             {
@@ -1473,6 +1483,16 @@ namespace Demo
         /// <returns>The serialized bytes.</returns>
         public static byte[] SerializeAnon(Anon value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
         {
+            if (value is not null && IsAnonFixedWritable(value))
+            {
+                var bytes = new byte[2];
+                var direct = new global::CStructSharp.Generated.WriteCursor(bytes, options, "Anon");
+                if (direct.TryReserveFixed(2, 1, 1, 0, out global::System.Span<byte> fixedBytes))
+                {
+                    WriteAnonFixed(fixedBytes, value);
+                    return bytes;
+                }
+            }
             var cursor = new global::CStructSharp.Generated.WriteCursor(options, "Anon");
             try
             {

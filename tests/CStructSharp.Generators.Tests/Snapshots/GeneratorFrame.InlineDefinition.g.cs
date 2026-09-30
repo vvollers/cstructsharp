@@ -538,6 +538,16 @@ namespace Demo
         /// <returns>The serialized bytes.</returns>
         public static byte[] SerializeHeader(Header value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
         {
+            if (value is not null && IsHeaderFixedWritable(value))
+            {
+                var bytes = new byte[8];
+                var direct = new global::CStructSharp.Generated.WriteCursor(bytes, options, "header");
+                if (direct.TryReserveFixed(8, 4, 1, 0, out global::System.Span<byte> fixedBytes))
+                {
+                    WriteHeaderFixed(fixedBytes, value);
+                    return bytes;
+                }
+            }
             var cursor = new global::CStructSharp.Generated.WriteCursor(options, "header");
             try
             {
