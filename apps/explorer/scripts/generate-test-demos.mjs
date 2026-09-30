@@ -851,20 +851,27 @@ function extractMethods(filePath) {
     // Searching for the next parameterless method could silently borrow a later test's body and ID.
     const nextTest = text.indexOf("[TestMethod]", attrMatch.index + attrMatch[0].length);
     const afterAttr = text.slice(attrMatch.index, nextTest === -1 ? undefined : nextTest);
+    // A test method has a block body or an expression body (`=> AssertCase(id);`).
     const methodMatch =
-      /public\s+(?:(?:async|unsafe)\s+)*(?:void|Task)\s+(?<name>\w+)\s*\((?<parameters>[^)]*)\)\s*\{/.exec(
+      /public\s+(?:(?:async|unsafe)\s+)*(?:void|Task)\s+(?<name>\w+)\s*\((?<parameters>[^)]*)\)\s*(?<open>\{|=>)/.exec(
         afterAttr,
       );
     if (!methodMatch?.groups?.name) continue;
 
     const methodName = methodMatch.groups.name;
     const methodStartInSlice = methodMatch.index;
-    const openBraceInSlice = methodStartInSlice + methodMatch[0].lastIndexOf("{");
-    const openBrace = attrMatch.index + openBraceInSlice;
-    const closeBrace = findMatchingBrace(text, openBrace);
-    if (closeBrace === -1) continue;
-
-    const body = text.slice(openBrace + 1, closeBrace);
+    let body;
+    if (methodMatch.groups.open === "=>") {
+      const expressionStart = attrMatch.index + methodStartInSlice + methodMatch[0].length;
+      const expressionEnd = text.indexOf(";", expressionStart);
+      if (expressionEnd === -1) continue;
+      body = text.slice(expressionStart, expressionEnd);
+    } else {
+      const openBrace = attrMatch.index + methodStartInSlice + methodMatch[0].lastIndexOf("{");
+      const closeBrace = findMatchingBrace(text, openBrace);
+      if (closeBrace === -1) continue;
+      body = text.slice(openBrace + 1, closeBrace);
+    }
     const line = countLines(text, attrMatch.index + methodStartInSlice);
     const documentation = extractDocumentationFromXmlDoc(text, attrMatch.index);
 
