@@ -131,9 +131,12 @@ function toUint8Array(source) {
 // The managed side describes a fully fixed root (the compiler's static read plan: member offsets, codecs, counts,
 // nested plans, enum tables) once per definition and options; parsing such a layout is then a DataView walk that
 // produces exactly the value shapes the JSON projection produces (safe integers as numbers, larger ones as decimal
-// strings, float32 as the shortest round-trip decimal, Latin-1 character buffers, `{kind, enum, name, value}` enums).
-// Any option that changes read semantics (limits, pointers), a buffer shorter than the plan, a non-finite float, or
-// a plan the bundle cannot describe sends the parse to WASM, which is the reference implementation.
+// strings, float32 as the shortest round-trip decimal, NaN and infinities as the projection's "NaN"/"Infinity" text,
+// Latin-1 character buffers, `{kind, enum, name, value}` enums). It is several times faster than WASM because a parse
+// skips the interop crossing, the options JSON and the envelope parsing.
+// A parse goes to WASM, the reference implementation, when any option other than the compile options and `root` is
+// set (even to its default value), when the buffer is shorter than the plan, or when the layout has no static plan.
+// tools/packaging/test-native-parity.mjs (run by the npm package tests) checks that both paths return the same envelope.
 // ---------------------------------------------------------------------------------------------------------------
 
 /** The options the static plan supports: the compile-time choices and the root. */

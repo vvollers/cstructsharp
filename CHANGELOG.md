@@ -255,6 +255,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   `apps/explorer`.
 - The inspector schema catalog is a folder, `apps/inspector/src/schema-catalog/`: one file per sample format plus files
   grouped by kind, behind one index.
+- npm package: the JavaScript static-plan parse path was benchmarked against WASM (4–16× faster, about 9–14× on
+  inputs under 1 KiB) and stays; its source comment now states the real routing: any option other than the compile
+  options and `root` sends a parse to WASM, and NaN and infinities stay on the JavaScript path.
 
 ## 0.10.0 — 2026-09-26
 
