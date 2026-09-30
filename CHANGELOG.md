@@ -253,6 +253,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - The apps' build, lint, format and test tools are root workspace devDependencies with one Prettier config, and
   `apps/shared` provides the base ESLint and Playwright configs; the tools ESLint config no longer depends on
   `apps/explorer`.
+- The inspector schema catalog is a folder, `apps/inspector/src/schema-catalog/`: one file per sample format plus files
+  grouped by kind, behind one index.
 
 ## 0.10.0 — 2026-09-26
 

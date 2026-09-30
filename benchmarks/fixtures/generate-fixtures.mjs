@@ -7,7 +7,7 @@
 // result is NOT produced here: run `dotnet run --project benchmarks/CStructSharp.FixtureTool -c Release -f net10.0 -- fill`
 // afterwards so the managed library is the single source of truth for expectations.
 //
-// Real-format fixtures are imported from apps/inspector/src/schema-catalog.ts, which is itself verified byte-for-byte
+// Real-format fixtures are imported from apps/inspector/src/schema-catalog/, which is itself verified byte-for-byte
 // by tests/CStructSharpTests/Quality/WellKnownFormatTests.cs. Conditional fixtures reuse the definitions in
 // conditional-cases.json (kept from the retired comparison harness). Everything else is synthetic and seeded, so re-running this script is a no-op diff.
 import fs from "node:fs";
@@ -552,7 +552,7 @@ for (const depth of [1, 8, 64]) {
       return nextResolve(specifier, context);
     },
   });
-  const { sampleExamples } = await import(pathToFileURL(path.join(repositoryRoot, "apps/inspector/src/schema-catalog.ts")).href);
+  const { sampleExamples } = await import(pathToFileURL(path.join(repositoryRoot, "apps/inspector/src/schema-catalog/index.ts")).href);
   for (const format of sampleExamples) {
     if (format.schemaOnly) continue;
     const bytes = Uint8Array.from(format.binaryHex.trim().split(/\s+/), (h) => parseInt(h, 16));
@@ -569,7 +569,7 @@ for (const depth of [1, 8, 64]) {
       },
       readOptions: format.parserOptions.addressingMode ? { addressingMode: format.parserOptions.addressingMode } : null,
       bytes,
-      notes: `Imported from apps/inspector/src/schema-catalog.ts (${format.sourceFixture}).`,
+      notes: `Imported from apps/inspector/src/schema-catalog/ (${format.sourceFixture}).`,
     });
   }
 }

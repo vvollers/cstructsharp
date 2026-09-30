@@ -12,7 +12,7 @@ dotnet run --project benchmarks/CStructSharp.FixtureTool -c Release -f net10.0 -
 dotnet run --project benchmarks/CStructSharp.FixtureTool -c Release -f net10.0 -- verify    # re-check (exit 1 on drift)
 ```
 
-Real-format fixtures are imported from `apps/inspector/src/schema-catalog.ts`, which `WellKnownFormatTests.cs` verifies;
+Real-format fixtures are imported from `apps/inspector/src/schema-catalog/`, which `WellKnownFormatTests.cs` verifies;
 conditional fixtures reuse `benchmarks/fixtures/conditional-cases.json` definitions. The canonical JSON shape mirrors
 the WASM bridge (`CStructJsonConversion.cs`) so the JS harness can compare `result.data` directly.
 Expectations are inputs to the correctness gate: never regenerate them to hide a behavior change.

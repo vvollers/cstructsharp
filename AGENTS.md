@@ -12,7 +12,7 @@ and update the current contracts, tests, and documentation without retaining unu
 - `src/CStructSharp` owns the layout language and binary operations; `src/CStructSharp.Wasm` exposes the browser bridge.
 - `apps/explorer` teaches the library; `apps/inspector` applies standalone schemas to binary files.
   Use each app's README and package scripts. Keep related helpers together; create modules for clear responsibilities.
-- Inspector definitions belong in `apps/inspector/src/schema-catalog.ts`. Keep a format expressible as one CStruct;
+- Inspector definitions belong in `apps/inspector/src/schema-catalog/`. Keep a format expressible as one CStruct;
   do not introduce file scans, generated offsets, or merged parse results to compensate for schema limitations.
 - `docs/` contains DocFX sources and executable examples; `contracts/` records API and language promises.
   Update authored sources rather than generated API pages, app bundles, or files under `artifacts/`.

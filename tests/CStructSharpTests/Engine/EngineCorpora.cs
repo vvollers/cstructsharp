@@ -69,8 +69,8 @@ internal static partial class EngineCorpora
     /// <summary>Gets the ids of the benchmark fixtures whose inputs exceed <see cref="MaximumInputBytes"/>.</summary>
     public static List<string> SkippedBenchmarks { get; } = [];
 
-    /// <summary>Gets the path of the inspector's schema catalog in the repository.</summary>
-    private static string InspectorCatalogPath => Path.Combine(TestFixtures.RepositoryRoot, "apps", "inspector", "src", "schema-catalog.ts");
+    /// <summary>Gets the path of the inspector's schema catalog folder in the repository.</summary>
+    private static string InspectorCatalogPath => Path.Combine(TestFixtures.RepositoryRoot, "apps", "inspector", "src", "schema-catalog");
 
     /// <summary>Returns the ids of a corpus as <see cref="DynamicDataAttribute"/> rows.</summary>
     /// <param name="corpus">The corpus.</param>

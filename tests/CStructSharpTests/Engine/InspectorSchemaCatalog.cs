@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Text;
 
 /// <summary>
-///     Reads the inspector's schema catalog (<c>apps/inspector/src/schema-catalog.ts</c>) at test time: the detection
+///     Reads the inspector's schema catalog (<c>apps/inspector/src/schema-catalog/</c>) at test time: the detection
 ///     schema of every registered file extension, composed as the app's <c>schemaForFile</c> composes it, and every
 ///     teaching sample with its bytes and parser options.
 /// </summary>
@@ -13,7 +13,9 @@ using System.Text;
 ///     (whose <c>${name}</c> substitutions name top-level string constants), numbers, booleans, identifiers, arrays,
 ///     objects with <c>...spread</c>, and comments. <see cref="Parse"/> evaluates exactly that subset and fails loudly on
 ///     anything else, so a catalog change that this reader cannot follow breaks the corpus test rather than silently
-///     shrinking it. The app's <c>formatLayout</c> only changes whitespace, so it is not reproduced.
+///     shrinking it. The app's <c>formatLayout</c> only changes whitespace, so it is not reproduced. Each group file
+///     (<c>images.ts</c>, <c>audio.ts</c>, ...) registers its formats as the constant <c>formats</c>; <c>types.ts</c>
+///     holds the constants the group files share, and <c>index.ts</c>, which only combines the groups, is not read.
 /// </remarks>
 internal static class InspectorSchemaCatalog
 {
@@ -22,15 +24,36 @@ internal static class InspectorSchemaCatalog
     ///     id), each with its definition, root, parser options, and bytes (a sample's own; for a detection schema the
     ///     first sample registered with that format, or none).
     /// </summary>
-    /// <param name="path">The catalog file.</param>
-    /// <returns>The entries, in catalog order.</returns>
-    /// <exception cref="FormatException">The catalog uses syntax outside the subset this reader evaluates.</exception>
-    public static IReadOnlyList<Entry> Load(string path)
+    /// <param name="directory">The catalog folder.</param>
+    /// <returns>The entries, group file by group file (in ordinal file-name order), each file's in its order.</returns>
+    /// <exception cref="FormatException">
+    ///     A group file has no <c>formats</c>, or the catalog uses syntax outside the subset this reader evaluates.
+    /// </exception>
+    public static IReadOnlyList<Entry> Load(string directory)
     {
-        string source = File.ReadAllText(path);
-        Dictionary<string, object?> constants = Parse(source);
-        var formats = (List<object?>)(constants.GetValueOrDefault("formatDefinitions") ?? throw new FormatException("formatDefinitions not found in " + path));
+        Dictionary<string, object?> shared = Parse(File.ReadAllText(Path.Combine(directory, "types.ts")), "types.ts");
         var entries = new List<Entry>();
+        foreach (string path in Directory.GetFiles(directory, "*.ts").Order(StringComparer.Ordinal))
+        {
+            string file = Path.GetFileName(path);
+            if (file is "index.ts" or "types.ts")
+            {
+                continue;
+            }
+
+            Dictionary<string, object?> constants = Parse(File.ReadAllText(path), file, shared);
+            var formats = (List<object?>)(constants.GetValueOrDefault("formats") ?? throw new FormatException("formats not found in " + path));
+            AddFormats(formats, entries);
+        }
+
+        return entries;
+    }
+
+    /// <summary>Adds the detection schemas and samples of one group file's formats.</summary>
+    /// <param name="formats">The evaluated <c>formats</c> array.</param>
+    /// <param name="entries">The entries to add to.</param>
+    private static void AddFormats(List<object?> formats, List<Entry> entries)
+    {
         foreach (Dictionary<string, object?> format in formats.Cast<Dictionary<string, object?>>())
         {
             var extensions = ((List<object?>)format["extensions"]!).Cast<string>().ToList();
@@ -67,24 +90,25 @@ internal static class InspectorSchemaCatalog
                     Hex((string)sample["binaryHex"]!)));
             }
         }
-
-        return entries;
     }
 
     /// <summary>
-    ///     Evaluates every top-level <c>const NAME = value;</c> (with an optional type annotation) whose value is in the
-    ///     literal subset, in order, so later constants can use earlier ones; other statements are skipped.
+    ///     Evaluates every top-level <c>const NAME = value;</c> or <c>export const NAME = value;</c> (with an optional
+    ///     type annotation) whose value is in the literal subset, in order, so later constants can use earlier ones;
+    ///     other statements, such as imports, are skipped.
     /// </summary>
     /// <param name="source">The TypeScript text.</param>
-    /// <returns>The constants by name.</returns>
+    /// <param name="file">The file name, for error messages.</param>
+    /// <param name="imported">Constants of other files that this file imports, such as <c>sampleParserOptions</c>.</param>
+    /// <returns>The imported constants and this file's constants by name.</returns>
     /// <exception cref="FormatException">A literal constant uses syntax outside the subset.</exception>
-    public static Dictionary<string, object?> Parse(string source)
+    public static Dictionary<string, object?> Parse(string source, string file, IReadOnlyDictionary<string, object?>? imported = null)
     {
-        var constants = new Dictionary<string, object?>(StringComparer.Ordinal);
+        var constants = new Dictionary<string, object?>(imported ?? new Dictionary<string, object?>(), StringComparer.Ordinal);
         int index = 0;
-        while ((index = source.IndexOf("\nconst ", index, StringComparison.Ordinal)) >= 0)
+        while (NextConstant(source, ref index))
         {
-            var reader = new Reader(source, index + "\nconst ".Length, constants);
+            var reader = new Reader(source, file, index, constants);
             string name = reader.Identifier();
             if (reader.TrySkipAnnotation() && reader.Peek() == '=')
             {
@@ -99,6 +123,23 @@ internal static class InspectorSchemaCatalog
         }
 
         return constants;
+    }
+
+    /// <summary>Finds the next line that starts a top-level constant, exported or not.</summary>
+    /// <param name="source">The TypeScript text.</param>
+    /// <param name="index">The index to search from; on success, the index of the constant's name.</param>
+    /// <returns><see langword="true"/> when a constant follows.</returns>
+    private static bool NextConstant(string source, ref int index)
+    {
+        int local = source.IndexOf("\nconst ", index, StringComparison.Ordinal);
+        int exported = source.IndexOf("\nexport const ", index, StringComparison.Ordinal);
+        if (local < 0 && exported < 0)
+        {
+            return false;
+        }
+
+        index = exported < 0 || (local >= 0 && local < exported) ? local + "\nconst ".Length : exported + "\nexport const ".Length;
+        return true;
     }
 
     /// <summary>Decodes space-separated hexadecimal byte text.</summary>
@@ -123,16 +164,21 @@ internal static class InspectorSchemaCatalog
         /// <summary>The text.</summary>
         private readonly string text;
 
+        /// <summary>The file name, for error messages.</summary>
+        private readonly string file;
+
         /// <summary>The constants evaluated so far, for identifiers, spreads, and substitutions.</summary>
         private readonly Dictionary<string, object?> constants;
 
         /// <summary>Creates a reader.</summary>
         /// <param name="text">The text.</param>
+        /// <param name="file">The file name, for error messages.</param>
         /// <param name="position">The index to start at.</param>
         /// <param name="constants">The constants evaluated so far.</param>
-        public Reader(string text, int position, Dictionary<string, object?> constants)
+        public Reader(string text, string file, int position, Dictionary<string, object?> constants)
         {
             this.text = text;
+            this.file = file;
             this.Position = position;
             this.constants = constants;
         }
@@ -393,7 +439,7 @@ internal static class InspectorSchemaCatalog
         private FormatException Error(string problem)
         {
             int line = 1 + this.text.AsSpan(0, Math.Min(this.Position, this.text.Length)).Count('\n');
-            return new FormatException("schema-catalog.ts line " + line + ": " + problem);
+            return new FormatException("schema-catalog/" + this.file + " line " + line + ": " + problem);
         }
     }
 }

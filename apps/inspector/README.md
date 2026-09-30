@@ -25,7 +25,7 @@ See the [large-file API guide](../../docs/guides/browser/large-data.md).
 ## Detection
 
 **Load & detect** identifies the content with [`file-type`](https://github.com/sindresorhus/file-type) and selects
-the fixed definition registered for the detected extension in [schema-catalog.ts](src/schema-catalog.ts). The same
+the fixed definition registered for the detected extension in [the schema catalog](src/schema-catalog/index.ts). The same
 extension always produces the same definition text and parser settings. Detection may seek through the Blob to
 identify the format, but the extension is its only contribution to schema selection: no format-specific scanner
 supplies counts, offsets, parser variables or secondary roots. Detection and parsing run locally, and a 15-second
@@ -96,7 +96,7 @@ The header keeps its ready status short; hover over it to inspect the full runti
 | `components/BinaryPanel.vue`, `ResultPanel.vue`     | Hex navigation/highlighting and JSON results; neither owns the document                                     |
 | `components/InspectorHeader.vue`, `ExampleList.vue` | Runtime/source status and searchable schema catalog                                                         |
 | `load-monaco.ts`, `cstruct-language.ts`             | Lazy Monaco setup for the shared `LayoutEditor`: worker, highlighting and language help                     |
-| `schema-catalog.ts`                                 | One registry for file extensions, detection layouts, sample definitions/bytes, and sidebar descriptions     |
+| `schema-catalog/`                                   | One registry for file extensions, detection layouts, sample definitions/bytes, and sidebar descriptions     |
 | `@cstructsharp/app-shared/wasm/adapter`             | Runtime loading and validation of the browser bridge's result envelope (shared with the explorer)           |
 
 The flow is **panel event → session action → refs → panels**. Document changes cancel pending reads/parses
@@ -134,11 +134,20 @@ inspection-only: replacing or closing the session discards them, and there is no
 
 ### Adding or changing a format
 
-Edit the format's entry in `src/schema-catalog.ts`. Its `extensions` select the detection layout;
+Edit the format's entry in `src/schema-catalog/`. Its `extensions` select the detection layout;
 `aliases` explicitly share a layout with another extension, such as DLL with EXE. `fields`, `types`,
 parser settings and `scope` describe what detection loads. Add an optional `samples` entry beside them
 when the format has demonstration bytes; give the sample its extension explicitly. The sidebar is
 built from those registrations, so there is no separate ID-to-extension or description map to update.
+
+The eight formats with teaching samples each have their own file (`bmp.ts`, `riff.ts`, `zip.ts`, `png.ts`,
+`jpeg.ts`, `pe.ts`, `ico.ts`, `tar.ts`); the detection-only formats are grouped by kind (`images.ts`, `audio.ts`,
+`video.ts`, `archives.ts`, `documents.ts`, `fonts.ts`, `programs.ts`, `data.ts`, `models.ts`). Each file exports its
+registrations as `formats`; `index.ts` combines them in a fixed order (BMP first, since the inspector opens with the
+first sample) and builds the lookups, so a new file also needs a line there. The engine corpus test
+(`tests/CStructSharpTests/Engine/InspectorSchemaCatalog.cs`) reads these files as plain literals: keep
+registrations to string, template, number, boolean, array and object literals, and shared constants to top-level
+`const`s of the same file or of `types.ts`.
 
 Sample layouts sometimes cover less than the detection layout because their small fixtures teach a
 specific feature. Keeping both as explicit variants preserves those examples without an override pass.
