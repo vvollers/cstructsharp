@@ -106,6 +106,8 @@ Writing has `unknownMembers` (`"Ignore"` or `"Reject"` for value properties no f
 The default limits are configurable: arrays and string-byte budgets can be raised to `2_147_483_647`, and total
 read/write budgets to `Number.MAX_SAFE_INTEGER`. These limits count decoded work, not file size or pointer distance.
 Compilation and traversal-depth caps still apply. See [scattered pointers and budgets](large-data.md#scattered-pointers-and-read-budgets).
+Independently of these budgets, a parse result's JSON text may be at most 536,870,888 characters, the longest string
+V8 creates; a longer result fails with `read-budget` (see [result size limit](large-data.md#result-size-limit)).
 
 The browser API does not expose the C# runtime-variable dictionary, CLR streams/spans, or typed class mapping.
 Use earlier count fields, fixed counts or layout constants in browser examples. Caller-supplied C# variables

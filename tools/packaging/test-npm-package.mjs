@@ -88,6 +88,14 @@ console.log(
     timeout: 300000,
   }),
 );
+// Parse results beyond 2^27 characters on the calling thread and in the worker, and the result-length limit. It
+// needs minutes and gigabytes, so it only runs with CSTRUCTSHARP_LARGE_OUTPUT_STRESS=1 and otherwise reports a skip.
+console.log(
+  run(process.execPath, [fileURLToPath(new URL("./test-large-output.mjs", import.meta.url)), consumer], {
+    cwd: root,
+    timeout: 900000,
+  }),
+);
 fs.writeFileSync(
   path.join(consumer, "check.cjs"),
   'import("cstructsharp").then(async api => console.log(await api.getVersion())).catch(error => { console.error(error); process.exitCode = 1; });',

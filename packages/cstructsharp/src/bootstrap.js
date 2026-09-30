@@ -2,7 +2,7 @@
  * Locate and validate the managed exports, then expose the stable browser-facing adapter.
  * This module has no dependency on the .NET runtime and is therefore directly unit-testable.
  */
-import { parseEnvelope, stringifyInteropJson } from "./cstructsharp-shared.js";
+import { decodeEnvelopeText, parseEnvelope, stringifyInteropJson } from "./cstructsharp-shared.js";
 import { collectBytes, compileLargeSource, parseLargeSource, resolveAddressLargeSource } from "./large-source.js";
 
 /** The managed exports the adapter calls on the page's own thread. */
@@ -68,23 +68,21 @@ export function createCStructSharpWasm(assemblyExports) {
     compile: (definition, options = null, writers = {}) =>
       compileLargeSource(definition, options ?? {}, {
         parseBytes: (layout, bytes, parserOptions, debug) =>
-          managed.ParseBytes(layout, bytes, stringifyOptions(parserOptions), debug),
+          decodeEnvelopeText(managed.ParseBytes(layout, bytes, stringifyOptions(parserOptions), debug), "parse"),
         ...writers,
       }),
     resolveAddressSource: resolveAddressLargeSource,
     collectBytes,
-    /** Parses a byte array on the calling thread and records every value's byte range; the JSON envelope text. */
+    /**
+     * Parses a byte array on the calling thread and records every value's byte range; the JSON envelope text, decoded
+     * from the UTF-8 bytes the export returns.
+     */
     parseWithDebug(definition, bytes, options = null) {
-      return managed.ParseBytes(definition, bytes, stringifyOptions(options), true);
+      return decodeEnvelopeText(managed.ParseBytes(definition, bytes, stringifyOptions(options), true), "parse");
     },
-    /** Parses a byte array on the calling thread; the JSON envelope text. */
+    /** Parses a byte array on the calling thread; the JSON envelope text, decoded from the export's UTF-8 bytes. */
     parseBytes(definition, bytes, options = null, debug = false) {
-      return managed.ParseBytes(
-        definition,
-        bytes,
-        stringifyOptions(options),
-        debug,
-      );
+      return decodeEnvelopeText(managed.ParseBytes(definition, bytes, stringifyOptions(options), debug), "parse");
     },
     /** Encodes a value given as JSON text; the serialize envelope, whose `data` is the bytes on success. */
     serialize(definition, dataJson, options = null) {

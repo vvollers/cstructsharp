@@ -14,8 +14,10 @@ using CStructSharp.Values;
 /// <summary>
 ///     Exposes CStructSharp read, write, and debug operations to the browser.
 ///     Each export accepts browser-friendly strings and returns the shared versioned JSON envelope (see
-///     <see cref="StartEnvelope"/>); failures are reported in the envelope, never thrown. The one exception is
-///     <see cref="TakeOutput"/>, which hands over the bytes a successful write produced.
+///     <see cref="StartEnvelope"/>); failures are reported in the envelope, never thrown. The parse exports return
+///     the envelope as UTF-8 bytes, because a parse result can be too long for the runtime's string marshaling; the
+///     others return it as a string. The one exception is <see cref="TakeOutput"/>, which hands over the bytes a
+///     successful write produced.
 /// </summary>
 /// <remarks>
 ///     The .NET WebAssembly runtime runs managed code on one thread per runtime instance (the page's runtime, and one
@@ -78,10 +80,12 @@ public partial class CStructExports
     /// <param name="optionsJson">The JSON options object (<see cref="InteropOptionsDto"/>).</param>
     /// <param name="debug">Whether the envelope's <c>debug</c> array lists each decoded value's byte range.</param>
     /// <returns>
-    ///     The JSON text of a <c>parse</c> envelope: the selected value in <c>data</c>, or <c>error</c> on failure.
+    ///     The <c>parse</c> envelope as UTF-8 JSON bytes: the selected value in <c>data</c>, or <c>error</c> on failure
+    ///     (a <c>read-budget</c> error when the envelope would exceed <see cref="InteropLimits.MaximumResultLength"/>
+    ///     bytes).
     /// </returns>
     [JSExport]
-    public static string ParseBytes(string definition, byte[] binaryData, string optionsJson, bool debug)
+    public static byte[] ParseBytes(string definition, byte[] binaryData, string optionsJson, bool debug)
     {
         InteropOptionsDto? options = null;
         try
@@ -93,7 +97,7 @@ public partial class CStructExports
         }
         catch (Exception exception)
         {
-            return SerializeFailure("parse", exception, options);
+            return SerializeParseFailure(exception, options);
         }
     }
 
@@ -105,10 +109,12 @@ public partial class CStructExports
     /// <param name="optionsJson">The JSON options object (<see cref="InteropOptionsDto"/>).</param>
     /// <param name="debug">Whether the envelope's <c>debug</c> array lists each decoded value's byte range.</param>
     /// <returns>
-    ///     The JSON text of a <c>parse</c> envelope: the selected value in <c>data</c>, or <c>error</c> on failure.
+    ///     The <c>parse</c> envelope as UTF-8 JSON bytes: the selected value in <c>data</c>, or <c>error</c> on failure
+    ///     (a <c>read-budget</c> error when the envelope would exceed <see cref="InteropLimits.MaximumResultLength"/>
+    ///     bytes).
     /// </returns>
     [JSExport]
-    public static string ParseSource(string definition, JSObject source, string optionsJson, bool debug)
+    public static byte[] ParseSource(string definition, JSObject source, string optionsJson, bool debug)
     {
         InteropOptionsDto? options = null;
         try
@@ -119,7 +125,7 @@ public partial class CStructExports
         }
         catch (Exception exception)
         {
-            return SerializeFailure("parse", exception, options);
+            return SerializeParseFailure(exception, options);
         }
     }
 
@@ -162,11 +168,11 @@ public partial class CStructExports
     /// <param name="optionsJson">The JSON options object (<see cref="InteropOptionsDto"/>).</param>
     /// <param name="debug">Whether the envelope's <c>debug</c> array lists each decoded value's byte range.</param>
     /// <returns>
-    ///     The JSON text of a <c>parse</c> envelope; an <c>error</c> envelope when no layout was initialized or the
-    ///     read fails.
+    ///     The <c>parse</c> envelope as UTF-8 JSON bytes; an <c>error</c> envelope when no layout was initialized, the
+    ///     read fails, or the envelope would exceed <see cref="InteropLimits.MaximumResultLength"/> bytes.
     /// </returns>
     [JSExport]
-    public static string ParseCompiledSource(JSObject source, string optionsJson, bool debug)
+    public static byte[] ParseCompiledSource(JSObject source, string optionsJson, bool debug)
     {
         InteropOptionsDto? options = null;
         try
@@ -177,7 +183,7 @@ public partial class CStructExports
         }
         catch (Exception exception)
         {
-            return SerializeFailure("parse", exception, options);
+            return SerializeParseFailure(exception, options);
         }
     }
 
@@ -393,8 +399,8 @@ public partial class CStructExports
     /// <param name="stream">The seekable source.</param>
     /// <param name="options">The browser's options.</param>
     /// <param name="debug">Whether to record each value's byte range.</param>
-    /// <returns>The parse envelope.</returns>
-    private static string ParseStreamResult(string definition, Stream stream, InteropOptionsDto options, bool debug)
+    /// <returns>The parse envelope as UTF-8 JSON bytes.</returns>
+    private static byte[] ParseStreamResult(string definition, Stream stream, InteropOptionsDto options, bool debug)
     {
         return ParseStreamResult(CreateCStruct(definition, options), stream, options, debug);
     }
@@ -404,8 +410,8 @@ public partial class CStructExports
     /// <param name="stream">The seekable source.</param>
     /// <param name="options">The browser's options.</param>
     /// <param name="debug">Whether to record each value's byte range.</param>
-    /// <returns>The parse envelope.</returns>
-    private static string ParseStreamResult(CStruct cstruct, Stream stream, InteropOptionsDto options, bool debug)
+    /// <returns>The parse envelope as UTF-8 JSON bytes.</returns>
+    private static byte[] ParseStreamResult(CStruct cstruct, Stream stream, InteropOptionsDto options, bool debug)
     {
         string root = ResolveRoot(cstruct, options);
         ReadOptions readOptions = CreateReadOptions(options);

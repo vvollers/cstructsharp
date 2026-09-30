@@ -25,7 +25,8 @@ function loadManaged() {
  * Handles one request from the session client: compiles a layout or reads a source descriptor with the managed exports.
  * A file descriptor is opened for the request and closed before returning; failures are reported, not thrown.
  * @param {object} request The command, the source descriptor, the definition, options, `debug` and `path`.
- * @returns {Promise<{result: unknown} | {error: string}>} The reply posted back to the client.
+ * @returns {Promise<{result: unknown} | {envelope: Uint8Array} | {error: string}>} The reply posted back to the client:
+ *   a parse's UTF-8 envelope bytes, another command's parsed envelope, or the message of an unexpected failure.
  */
 async function run({ command, descriptor, definition, options, debug, path }) {
   /** Releases the request's file handle; replaced when a file is opened. */
@@ -72,22 +73,16 @@ async function run({ command, descriptor, definition, options, debug, path }) {
       throw new TypeError("Unsupported worker source descriptor.");
     }
     const source = { size: descriptor.size, read };
-    let json;
     switch (command) {
       case "parseCompiled":
-        json = managed.ParseCompiledSource(source, optionsJson, debug);
-        break;
+        return { envelope: ownedBytes(managed.ParseCompiledSource(source, optionsJson, debug)) };
       case "resolveAddress":
-        json = managed.ResolveAddress(definition, source, path, optionsJson);
-        break;
+        return { result: JSON.parse(managed.ResolveAddress(definition, source, path, optionsJson)) };
       case "resolveAddressCompiled":
-        json = managed.ResolveAddressCompiled(source, path, optionsJson);
-        break;
+        return { result: JSON.parse(managed.ResolveAddressCompiled(source, path, optionsJson)) };
       default:
-        json = managed.ParseSource(definition, source, optionsJson, debug);
-        break;
+        return { envelope: ownedBytes(managed.ParseSource(definition, source, optionsJson, debug)) };
     }
-    return { result: JSON.parse(json) };
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error) };
   } finally {
@@ -95,6 +90,30 @@ async function run({ command, descriptor, definition, options, debug, path }) {
   }
 }
 
+/**
+ * Returns a parse export's UTF-8 envelope as a Uint8Array that owns its whole buffer, so the reply can transfer the
+ * buffer instead of copying it. The runtime already returns such a copy; anything else (a view into another buffer,
+ * which transferring would detach) is copied once.
+ * @param {unknown} bytes The bytes the export returned.
+ * @returns {Uint8Array} The envelope bytes; the client decodes and validates them.
+ * @throws {TypeError} When the export did not return bytes.
+ */
+function ownedBytes(bytes) {
+  if (!(bytes instanceof Uint8Array)) throw new TypeError("CStructSharp returned an invalid parse response envelope.");
+  const owned = bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength && bytes.buffer instanceof ArrayBuffer;
+  return owned ? bytes : bytes.slice();
+}
+
+/**
+ * Posts one reply. A parse reply carries the envelope as UTF-8 bytes whose buffer is transferred: the client decodes
+ * and parses it once, instead of this worker parsing the JSON and the message channel cloning the object graph.
+ * @param {(message: object, transfer: ArrayBuffer[]) => void} post The worker port's postMessage.
+ * @param {object} message The value `run` returned.
+ */
+function postReply(post, message) {
+  post(message, message.envelope ? [message.envelope.buffer] : []);
+}
+
 if (isNode)
-  port.on("message", async (data) => port.postMessage(await run(data)));
-else self.onmessage = async (event) => self.postMessage(await run(event.data));
+  port.on("message", async (data) => postReply((message, transfer) => port.postMessage(message, transfer), await run(data)));
+else self.onmessage = async (event) => postReply((message, transfer) => self.postMessage(message, transfer), await run(event.data));

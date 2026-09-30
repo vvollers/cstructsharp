@@ -76,7 +76,8 @@ temporary directory and also stages Blob inputs. Normal completion, failures, an
 Large-source parsing runs in a worker and passes 64 KiB pages to WASM. Browser files are read on demand regardless
 of full-file size. `parse` avoids debug byte copies; `parseWithDebug` also returns field ranges. Small Uint8Array
 debug calls retain the direct path unless `signal` is supplied. Decoded results still use memory, and read limits
-still apply. `serialize` and `update` are in-memory operations: `update` reads any binary source completely and
+still apply. A parse result's JSON text may be at most 536,870,888 characters, V8's string limit; a longer result
+fails with `read-budget`, which a debug parse reaches with a far smaller input than `parse`. `serialize` and `update` are in-memory operations: `update` reads any binary source completely and
 hands at most 4 MiB to the runtime (larger inputs fail with `invalid-input`), and the raw adapter's byte-array
 exports share that 4 MiB limit; `parse`, `parseWithDebug`, and `resolveAddress` page larger sources through the
 worker. See the

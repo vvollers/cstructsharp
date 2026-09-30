@@ -3,6 +3,7 @@ import fs from "node:fs";
 import test from "node:test";
 
 import { MAIN_THREAD_EXPORTS, WORKER_EXPORTS, createCStructSharpWasm } from "./bootstrap.js";
+import { decodeEnvelopeText } from "./cstructsharp-shared.js";
 
 /**
  * The JSON text of an envelope as the managed exports write it.
@@ -17,8 +18,8 @@ function managedEnvelope(operation, data, error = null, root = null) {
 }
 
 /**
- * Builds fake managed exports that record every call and follow the managed transport: writes return an envelope
- * with `byteLength` and leave their bytes for TakeOutput.
+ * Builds fake managed exports that record every call and follow the managed transport: parses return UTF-8 bytes,
+ * writes return an envelope with `byteLength` and leave their bytes for TakeOutput.
  * @param {Array<[string, unknown[]]>} calls Receives each export name with its arguments.
  * @returns {object} The nested export shape the runtime produces.
  */
@@ -26,10 +27,10 @@ function createExports(calls) {
   /** The bytes the last write left for TakeOutput. */
   let pending = null;
   const managed = {
-    /** Records a byte parse and returns a marker. */
+    /** Records a byte parse and returns a marker as UTF-8 bytes, the way the parse exports return envelopes. */
     ParseBytes(...args) {
       calls.push(["ParseBytes", args]);
-      return "parse-bytes";
+      return new TextEncoder().encode("parse-bytes");
     },
     /** Records a serialize and leaves one byte pending. */
     Serialize(...args) {
@@ -206,6 +207,33 @@ test("adapter rejects a missing main-thread or worker export at initialization",
       () => createCStructSharpWasm(exports),
       new RegExp(`Managed CStruct exports are missing: ${name}`),
     );
+  }
+});
+
+/** A parse export that returns text instead of UTF-8 bytes breaks the transport, so the adapter reports it. */
+test("a parse export that does not return bytes is an invalid envelope", () => {
+  const exports = createExports([]);
+  exports.CStructSharpWeb.Wasm.CStructExports.ParseBytes = () => managedEnvelope("parse", { value: 1 });
+  const adapter = createCStructSharpWasm(exports);
+
+  assert.throws(() => adapter.parseBytes("layout", new Uint8Array([1])), {
+    name: "TypeError",
+    message: /invalid parse response envelope/,
+  });
+  assert.throws(() => adapter.parseWithDebug("layout", new Uint8Array([1])), TypeError);
+});
+
+/** Parse envelopes decode as UTF-8: escaped JSON text and raw multi-byte characters both round-trip. */
+test("decodeEnvelopeText decodes UTF-8 envelope bytes and rejects other values", () => {
+  const text = managedEnvelope("parse", { name: "café ☃", escaped: "\\u00e9" });
+
+  assert.equal(decodeEnvelopeText(new TextEncoder().encode(text), "parse"), text);
+  assert.equal(decodeEnvelopeText(new Uint8Array(0), "parse"), "");
+  for (const value of [text, null, undefined, new ArrayBuffer(1), [123, 125]]) {
+    assert.throws(() => decodeEnvelopeText(value, "parse"), {
+      name: "TypeError",
+      message: "CStructSharp returned an invalid parse response envelope.",
+    });
   }
 });
 

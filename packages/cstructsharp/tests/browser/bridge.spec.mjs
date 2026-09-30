@@ -364,7 +364,7 @@ test("a number origin gives what its decimal text gives, and a non-integer numbe
   }
 });
 
-test("the raw adapter returns each managed envelope, and TakeOutput hands over write output once", async ({ page }) => {
+test("the raw adapter returns each managed envelope, parses as UTF-8 bytes, and TakeOutput hands over write output once", async ({ page }) => {
   const results = await page.evaluate(async () => {
     const { api, plain } = window.bridge;
     const adapter = window.CStructSharpWasm;
@@ -392,7 +392,13 @@ test("the raw adapter returns each managed envelope, and TakeOutput hands over w
     // Any later envelope supersedes the write, so its unclaimed output is dropped.
     const version = JSON.parse(managed.GetVersion());
     const takeAfterOtherExport = take();
+    // The parse exports return their envelope as UTF-8 bytes, on success and on failure alike.
+    const parsedBytes = managed.ParseBytes(definition, new Uint8Array([42]), '{"root":"root"}', true);
+    const failedParseBytes = managed.ParseBytes(definition, new Uint8Array(0), "{}", false);
     return {
+      parseReturnsBytes: parsedBytes instanceof Uint8Array && failedParseBytes instanceof Uint8Array,
+      parsed: JSON.parse(new TextDecoder().decode(parsedBytes)),
+      failedParse: JSON.parse(new TextDecoder().decode(failedParseBytes)),
       initialTake,
       serialized,
       firstTake,
@@ -434,6 +440,17 @@ test("the raw adapter returns each managed envelope, and TakeOutput hands over w
   expect(results.failed).toMatchObject({ operation: "serialize", success: false, root: "root", data: null, debug: [], error: { code: "write-failed" } });
   expect(results.takeAfterFailure.thrown).toMatch(pending);
   expect(results.takeAfterOtherExport.thrown).toMatch(pending);
+  expect(results.parseReturnsBytes).toBe(true);
+  expect(results.parsed).toEqual({
+    contractVersion: 9,
+    operation: "parse",
+    success: true,
+    root: "root",
+    data: { value: 42 },
+    debug: [{ start: 0, end: 1, path: "root.value", type: "uint8", value: "42" }],
+    error: null,
+  });
+  expect(results.failedParse).toMatchObject({ operation: "parse", success: false, data: null, error: { code: "invalid-input" } });
 
   expect(results.version).toMatchObject({ contractVersion: 9, operation: "version", success: true, root: null, debug: [], error: null });
   expect(results.version.data.version).toMatch(/^CStructSharp WASM \d/);

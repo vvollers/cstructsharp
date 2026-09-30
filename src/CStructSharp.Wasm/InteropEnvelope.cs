@@ -12,7 +12,8 @@ using CStructSharp.Diagnostics;
 ///     <c>contractVersion</c> (<see cref="InteropContractVersion"/>), <c>operation</c> (the export's operation name),
 ///     <c>success</c>, <c>root</c> (the selected or echoed root, or null), <c>data</c> (the operation's result, null on
 ///     failure), <c>debug</c> (the byte ranges of a debug parse, otherwise empty), and <c>error</c> (null on success,
-///     the <see cref="ErrorDetailsDto"/> fields on failure).
+///     the <see cref="ErrorDetailsDto"/> fields on failure). The parse exports return the envelope as UTF-8 bytes,
+///     every other export as a string; either way it is at most <see cref="InteropLimits.MaximumResultLength"/> bytes.
 /// </summary>
 public partial class CStructExports
 {
@@ -64,27 +65,33 @@ public partial class CStructExports
     }
 
     /// <summary>
-    ///     Writes the whole successful parse envelope in one pass: the parsed value is projected straight into the
-    ///     envelope as a JSON value - no intermediate data string, no escaping pass, one <c>JSON.parse</c> on the
-    ///     JavaScript side.
+    ///     Writes the whole successful parse envelope in one pass and returns it as UTF-8 bytes: the parsed value is
+    ///     projected straight into the envelope as a JSON value - no intermediate data string, no escaping pass, one
+    ///     <c>JSON.parse</c> on the JavaScript side.
     /// </summary>
     /// <param name="root">The resolved root the parse selected.</param>
     /// <param name="result">The parsed value.</param>
     /// <param name="debugData">The byte ranges a debug parse recorded; empty for a values-only parse.</param>
-    /// <returns>The complete <c>parse</c> envelope.</returns>
-    private static string SerializeParseEnvelope(string root, object? result, IReadOnlyList<DebugData> debugData)
+    /// <returns>The complete <c>parse</c> envelope as UTF-8 JSON bytes; the caller owns the array.</returns>
+    /// <exception cref="CStructReadLimitException">
+    ///     The envelope would be longer than <see cref="InteropLimits.MaximumResultLength"/> bytes.
+    /// </exception>
+    private static byte[] SerializeParseEnvelope(string root, object? result, IReadOnlyList<DebugData> debugData)
     {
         InteropJsonWriter writer = StartEnvelope("parse", success: true, root);
         writer.WriteValue(result);
         if (debugData.Count == 0)
         {
-            return FinishEnvelope(writer);
+            writer.WriteRawBytes(EnvelopeNoDebugNoError);
+        }
+        else
+        {
+            writer.WriteRawBytes(EnvelopeDebug);
+            WriteDebugData(writer, debugData);
+            writer.WriteRawBytes(EnvelopeNoError);
         }
 
-        writer.WriteRawBytes(EnvelopeDebug);
-        WriteDebugData(writer, debugData);
-        writer.WriteRawBytes(EnvelopeNoError);
-        return FinishProjection(writer);
+        return FinishUtf8Projection(writer);
     }
 
     /// <summary>Writes the failure envelope of an operation, with <c>data</c> null and the categorized error.</summary>
@@ -97,6 +104,28 @@ public partial class CStructExports
     /// <returns>The complete envelope.</returns>
     private static string SerializeFailure(string operation, Exception exception, InteropOptionsDto? options)
     {
+        return FinishProjection(WriteFailureEnvelope(operation, exception, options));
+    }
+
+    /// <summary>
+    ///     Writes the failure envelope of a parse export, as <see cref="SerializeFailure"/> does, and returns it as
+    ///     UTF-8 bytes like the parse exports' successful envelopes.
+    /// </summary>
+    /// <param name="exception">The failure.</param>
+    /// <param name="options">The parsed options, or null when they could not be read.</param>
+    /// <returns>The complete <c>parse</c> envelope as UTF-8 JSON bytes; the caller owns the array.</returns>
+    private static byte[] SerializeParseFailure(Exception exception, InteropOptionsDto? options)
+    {
+        return FinishUtf8Projection(WriteFailureEnvelope("parse", exception, options));
+    }
+
+    /// <summary>Writes a complete failure envelope into the thread's reset writer.</summary>
+    /// <param name="operation">The operation name the envelope reports.</param>
+    /// <param name="exception">The failure.</param>
+    /// <param name="options">The parsed options, or null when they could not be read.</param>
+    /// <returns>The writer holding the envelope.</returns>
+    private static InteropJsonWriter WriteFailureEnvelope(string operation, Exception exception, InteropOptionsDto? options)
+    {
         ErrorDetailsDto error = DescribeError(exception, options);
 
         // The root the caller asked for; the default root is unknown until the layout compiles.
@@ -105,7 +134,7 @@ public partial class CStructExports
         writer.WriteRawBytes(EnvelopeNoDebugError);
         WriteError(writer, error);
         writer.WriteRawBytes("}"u8);
-        return FinishProjection(writer);
+        return writer;
     }
 
     /// <summary>
@@ -166,15 +195,44 @@ public partial class CStructExports
     /// <summary>Returns the written JSON text and releases an unusually large per-thread buffer.</summary>
     /// <param name="writer">The thread's writer.</param>
     /// <returns>The text written since the last reset.</returns>
+    /// <exception cref="CStructReadLimitException">
+    ///     The text is longer than <see cref="InteropLimits.MaximumResultLength"/> bytes.
+    /// </exception>
     private static string FinishProjection(InteropJsonWriter writer)
     {
+        writer.EnsureWithinLimit();
         string json = Encoding.UTF8.GetString(writer.WrittenSpan);
+        ReleaseLargeWriter(writer);
+        return json;
+    }
+
+    /// <summary>
+    ///     Returns a copy of the written JSON as UTF-8 bytes and releases an unusually large per-thread buffer. The
+    ///     parse exports return their envelopes this way: JavaScript decodes the bytes with a UTF-8
+    ///     <c>TextDecoder</c>, which builds strings up to the engine's string limit, while a returned .NET string
+    ///     is decoded as UTF-16 and fails far below it (at 2^27 characters in Node.js).
+    /// </summary>
+    /// <param name="writer">The thread's writer.</param>
+    /// <returns>The bytes written since the last reset; the caller owns the array.</returns>
+    /// <exception cref="CStructReadLimitException">
+    ///     The output is longer than <see cref="InteropLimits.MaximumResultLength"/> bytes.
+    /// </exception>
+    private static byte[] FinishUtf8Projection(InteropJsonWriter writer)
+    {
+        writer.EnsureWithinLimit();
+        byte[] json = writer.WrittenSpan.ToArray();
+        ReleaseLargeWriter(writer);
+        return json;
+    }
+
+    /// <summary>Drops the thread's writer after an unusually large result, so its buffer can be collected.</summary>
+    /// <param name="writer">The thread's writer, whose output has been copied out.</param>
+    private static void ReleaseLargeWriter(InteropJsonWriter writer)
+    {
         if (writer.Capacity > 4 * 1024 * 1024)
         {
             // Do not pin a multi-megabyte buffer to the thread after one unusually large result.
             projectionWriter = null;
         }
-
-        return json;
     }
 }

@@ -8,6 +8,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Text;
 using CStructSharp;
+using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 using CStructSharp.Values;
 
@@ -24,7 +25,9 @@ using CStructSharp.Values;
 /// <remarks>
 ///     Callers compose objects from <see cref="WriteRawBytes"/> for fixed punctuation and property names (which
 ///     must already be valid JSON) and the typed methods for values; strings are always escaped by
-///     <see cref="WriteString"/>, the bridge's only escaping implementation.
+///     <see cref="WriteString"/>, the bridge's only escaping implementation. Because every non-ASCII character is
+///     escaped, the output is pure ASCII: its byte count equals the length of the JavaScript string it decodes to,
+///     which is what <see cref="EnsureWithinLimit"/> bounds.
 /// </remarks>
 internal sealed class InteropJsonWriter
 {
@@ -47,14 +50,22 @@ internal sealed class InteropJsonWriter
     private static readonly byte[] HexDigits = "0123456789abcdef"u8.ToArray();
     private static readonly SearchValues<byte> UnescapedUtf8 = SearchValues.Create("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !#$%()*,-./:;=?@[]^_`{|}~"u8);
 
+    private readonly int maximumLength;
     private byte[] buffer;
     private int length;
 
-    /// <summary>Creates an empty writer whose buffer starts at the given size and doubles as output grows.</summary>
+    /// <summary>
+    ///     Creates an empty writer whose buffer starts at the given size and doubles as output grows, for outputs of
+    ///     at most <paramref name="maximumLength"/> bytes.
+    /// </summary>
     /// <param name="capacity">The initial buffer size in bytes.</param>
-    public InteropJsonWriter(int capacity)
+    /// <param name="maximumLength">
+    ///     The most bytes one output may hold: <see cref="InteropLimits.MaximumResultLength"/> unless a test lowers it.
+    /// </param>
+    public InteropJsonWriter(int capacity, int maximumLength = InteropLimits.MaximumResultLength)
     {
         this.buffer = new byte[capacity];
+        this.maximumLength = maximumLength;
     }
 
     /// <summary>The bytes written so far.</summary>
@@ -62,6 +73,22 @@ internal sealed class InteropJsonWriter
 
     /// <summary>Gets the current buffer size in bytes, which callers use to drop an unusually large writer.</summary>
     public int Capacity => this.buffer.Length;
+
+    /// <summary>
+    ///     Throws when the output written since the last <see cref="Reset"/> is longer than the writer's maximum
+    ///     length. Callers check once before handing the output over; growing the buffer checks too, so an oversized
+    ///     result stops early instead of first filling memory.
+    /// </summary>
+    /// <exception cref="CStructReadLimitException">
+    ///     The output is longer than the maximum length; the envelope reports it in the <c>read-budget</c> category.
+    /// </exception>
+    public void EnsureWithinLimit()
+    {
+        if (this.length > this.maximumLength)
+        {
+            throw new CStructReadLimitException($"The result's JSON text exceeds {this.maximumLength} bytes, the longest text the browser bridge returns as one JavaScript string. Select a smaller root, read fewer elements, or parse without debug ranges, which add one record per value.");
+        }
+    }
 
     /// <summary>Discards the written bytes so the writer can be reused; the buffer and its capacity are kept.</summary>
     public void Reset()
@@ -753,13 +780,23 @@ internal sealed class InteropJsonWriter
         }
     }
 
-    /// <summary>Enlarges the buffer to hold the written bytes plus <paramref name="additional"/>, at least doubling it.</summary>
+    /// <summary>
+    ///     Enlarges the buffer to hold the written bytes plus <paramref name="additional"/>, doubling it up to the
+    ///     maximum length.
+    /// </summary>
     /// <param name="additional">The bytes about to be written.</param>
+    /// <exception cref="CStructReadLimitException">The output written so far is already longer than the maximum.</exception>
     /// <exception cref="OverflowException">The output would exceed the largest array size.</exception>
     private void Grow(int additional)
     {
+        // Output past the limit never shrinks back under it, so fail before copying the buffer again.
+        this.EnsureWithinLimit();
+
+        // Doubling stops at the limit, so a result just under it never allocates twice its size. A reservation that
+        // crosses the limit still gets the room it asks for - a string reserves its worst-case escaped length, which
+        // it rarely uses - and EnsureWithinLimit decides by the bytes actually written.
         int required = checked(this.length + additional);
-        int capacity = Math.Max(required, this.buffer.Length * 2);
-        Array.Resize(ref this.buffer, capacity);
+        int doubled = (int)Math.Min((long)this.buffer.Length * 2, this.maximumLength);
+        Array.Resize(ref this.buffer, Math.Max(required, doubled));
     }
 }

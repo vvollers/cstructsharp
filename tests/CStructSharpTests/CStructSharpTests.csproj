@@ -32,6 +32,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      The browser bridge's JSON writer and its limits, compiled here because the WebAssembly project has no managed
+      test host: BrowserResultLimitTests checks the result-length guard with a lowered maximum.
+    -->
+    <Compile Include="..\..\src\CStructSharp.Wasm\InteropJsonWriter.cs" Link="BrowserBridge\InteropJsonWriter.cs"/>
+    <Compile Include="..\..\src\CStructSharp.Wasm\InteropLimits.cs" Link="BrowserBridge\InteropLimits.cs"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="..\..\contracts\quality\feature-operation-matrix.json"
           Link="feature-operation-matrix.json"
           CopyToOutputDirectory="PreserveNewest"/>

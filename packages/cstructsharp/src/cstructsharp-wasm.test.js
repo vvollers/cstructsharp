@@ -39,9 +39,11 @@ test("public wrapper returns byte arrays for writes, preserves errors and parse 
   };
   // Fake managed exports that follow the envelope-plus-TakeOutput transport.
   const managed = {
-    /** Returns a successful parse envelope for any input. */
+    /** Returns a successful parse envelope for any input, as UTF-8 bytes like the managed parse exports. */
     ParseBytes: () =>
-      JSON.stringify({ contractVersion: 9, operation: "parse", success: true, root: "root", data: { value: 2 }, debug: [], error: null }),
+      new TextEncoder().encode(
+        JSON.stringify({ contractVersion: 9, operation: "parse", success: true, root: "root", data: { value: 2 }, debug: [], error: null }),
+      ),
     /** Returns the serialize envelope and leaves the bytes pending. */
     Serialize: (_definition, _json, optionsJson) => writeEnvelope("serialize", optionsJson),
     /** Records the input bytes, returns the update envelope and leaves the bytes pending. */

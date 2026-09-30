@@ -150,6 +150,11 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Fixed
 
+- Browser package: a parse result longer than 2^27 characters (for example a debug parse of about 1.5 MiB of one-byte
+  records) no longer rejects with "The encoded data was not valid for encoding utf-16le". The parse exports return
+  their envelope as UTF-8 bytes, decoded with a UTF-8 `TextDecoder` on the calling thread and transferred as bytes
+  from the worker. A result longer than 536,870,888 characters, the JavaScript string limit of V8, is a `read-budget`
+  failure with an explanatory message instead of a runtime error.
 - Browser package: a number `origin` option (`origin: 10`, as `index.d.ts` allows) failed as `invalid-json`; it is
   now read as its decimal text, so `10` and `"10"` give the same result, and a fraction or an out-of-range number is
   `invalid-input` with the origin message.
@@ -210,6 +215,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Documentation and tooling
 
+- The browser guides describe the parse result size limit. `tools/packaging/test-large-output.mjs`, run by
+  `npm run test:npm` when `CSTRUCTSHARP_LARGE_OUTPUT_STRESS=1`, parses results beyond 2^27 characters on the calling
+  thread and in the worker and checks the limit; managed tests check the limit with a lowered maximum.
 - The performance guide explains the compiled engine; guides describe current behavior only, and *Differences from C*
   states which C forms are accepted and compares layouts with six compilers, including 32-bit x86.
 - The repository is one npm workspace: run `npm ci` once at the root. The apps and the npm package share

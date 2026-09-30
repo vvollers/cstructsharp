@@ -83,6 +83,9 @@ assert.deepEqual(Array.from(metadataBytes.data.slice(0, 4)), [1, 254, 255, 255])
 const metadataRead = await parseWithDebug(metadataDefinition, metadataBytes.data, metadataOptions);
 assert.equal(metadataRead.success, true);
 assert.deepEqual(metadataRead.data, metadata);
+// The worker returns its parse envelope as UTF-8 bytes: non-ASCII text must arrive exactly as on the calling thread.
+const metadataWorkerRead = await parseWithDebug(metadataDefinition, new Blob([metadataBytes.data]), metadataOptions);
+assert.deepEqual(metadataWorkerRead, metadataRead);
 const metadataRoundTrip = await serialize(metadataDefinition, metadataRead.data, metadataOptions);
 assert.deepEqual(metadataRoundTrip.data, metadataBytes.data);
 const metadataUpdate = await update(metadataDefinition, metadataBytes.data, "root.label", "£", metadataOptions);

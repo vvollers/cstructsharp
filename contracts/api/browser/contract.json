@@ -141,6 +141,11 @@
       "contractVersion": 9,
       "date": "2026-09-28",
       "change": "Every managed export except TakeOutput returns the same JSON envelope. GetVersion reports operation \"version\" with data {version}; GetStaticPlan reports operation \"staticPlan\" with data {root, plan}, or null when the layout has no static plan, and reports invalid options or input as a failure envelope instead of throwing. Serialize and UpdateStream return an envelope whose data is {byteLength}; the new TakeOutput export hands over the produced bytes and throws when none are pending, and failures use the error envelope instead of a thrown exception carrying error JSON. An invalid addressingMode or origin (including one outside the signed 64-bit range) is invalid-input with a specific message. The JavaScript package takes contractVersion from the managed envelopes. The public JavaScript functions, their envelopes, options and error codes are unchanged apart from the version; the raw adapter's serialize and updateStream now return the envelope instead of throwing."
+    },
+    {
+      "contractVersion": 9,
+      "date": "2026-09-30",
+      "change": "ParseBytes, ParseSource and ParseCompiledSource return the unchanged envelope as UTF-8 bytes instead of a string, and the adapter decodes it with a UTF-8 TextDecoder: a returned .NET string is decoded as UTF-16 and failed in Node.js beyond 2^27 characters. An envelope longer than 536,870,888 bytes (V8's string limit) is a read-budget failure envelope. The source worker transfers parse envelope bytes to the page. The public JavaScript functions, the raw adapter, the envelope, options and error codes are unchanged; version 9 was not yet released."
     }
   ]
 }

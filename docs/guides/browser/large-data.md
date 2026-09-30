@@ -270,3 +270,17 @@ Compilation, pointer-depth and nesting limits retain their existing bounds. The 
 and total-read budgets in its settings dialog. Available memory is still the practical limit: parsing materializes
 values and debug ranges. Prefer small typed pointer targets when you need metadata scattered through a large file.
 Managed callers can also raise `ReadOptions` budgets; `MaxTotalBytesRead` accepts values through `long.MaxValue`.
+
+## Result size limit
+
+The WebAssembly side hands each parse result to JavaScript as one piece of JSON text, and JavaScript engines limit
+how long one string can be. The smallest such limit is V8's, the engine in Chrome, Edge, and Node.js: 536,870,888
+characters. A result whose JSON text would be longer fails with the `read-budget` error code instead of crashing the
+runtime; raising the read budgets does not change this ceiling.
+
+The input size that reaches the ceiling depends on how much text each value produces. Consider
+`struct rec { uint8 a; }; struct file { rec items[EOF]; };`. `parse` writes `{"a":0},` for each input byte, about 8
+characters per byte, so a 64 MiB input stays within the ceiling. `parseWithDebug` adds a record with the byte range,
+path, type, and value text of every struct and field, about 90 characters per input byte here, so it reaches the
+ceiling near 5.6 MiB of input. When a result is too large, select a smaller root, read fewer elements, or use `parse`
+instead of `parseWithDebug`.

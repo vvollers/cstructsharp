@@ -65,6 +65,33 @@ export function stringifyInteropJson(value) {
 }
 
 /**
+ * The decoder of the parse exports' UTF-8 envelopes. It holds no state between calls (no streaming decode), so one
+ * instance serves every call.
+ */
+const utf8Decoder = new TextDecoder();
+
+/**
+ * Decodes the UTF-8 JSON envelope a parse export returned (ParseBytes, ParseSource, ParseCompiledSource) into text.
+ * Parse results travel as bytes because the runtime decodes a returned .NET string as UTF-16, which fails far below
+ * the JavaScript string limit; a UTF-8 TextDecoder builds strings up to that limit, and the managed bridge never
+ * returns more (a longer result is a read-budget failure envelope).
+ * @param {unknown} bytes The bytes the export returned.
+ * @param {string} operation The operation name, used in the error message.
+ * @returns {string} The envelope JSON text.
+ * @throws {TypeError} When the export did not return bytes or they cannot be decoded into one string.
+ */
+export function decodeEnvelopeText(bytes, operation) {
+  if (!(bytes instanceof Uint8Array)) {
+    throw new TypeError(`CStructSharp returned an invalid ${operation} response envelope.`);
+  }
+  try {
+    return utf8Decoder.decode(bytes);
+  } catch (cause) {
+    throw new TypeError(`CStructSharp returned an invalid ${operation} response envelope.`, { cause });
+  }
+}
+
+/**
  * Parses the JSON envelope a managed export returned.
  * @param {string} text The envelope JSON.
  * @param {string} operation The operation name, used in the error message.

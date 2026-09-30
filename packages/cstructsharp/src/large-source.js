@@ -1,5 +1,5 @@
 // Public asynchronous source adapter. Source bytes never become one managed byte[].
-import { COMPILE_OPTION_KEYS, isSmallByteInput } from "./cstructsharp-shared.js";
+import { COMPILE_OPTION_KEYS, decodeEnvelopeText, isSmallByteInput, parseEnvelope } from "./cstructsharp-shared.js";
 
 const isNode = typeof process !== "undefined" && !!process.versions?.node;
 const defaultSpoolLimit = 1024 * 1024 * 1024;
@@ -384,7 +384,7 @@ class WorkerSession {
    * An abort, worker error or early exit terminates the worker (before any staged file is deleted) and rejects.
    * @param {object} message The worker request; a `bytes` descriptor's buffer is transferred, not copied.
    * @param {AbortSignal} signal Cancels the request.
-   * @returns {Promise<unknown>} The `result` field of the worker's reply.
+   * @returns {Promise<unknown>} The envelope the worker replied with: its `result`, or its parsed `envelope` bytes.
    */
   async send(message, signal) {
     const worker = this.worker;
@@ -396,9 +396,23 @@ class WorkerSession {
       return await new Promise((resolve, reject) => {
         /** Rejects the pending request when the signal aborts. */
         const onAbort = () => reject(abortError());
-        /** Settles the pending request from a worker reply: `error` rejects, `result` resolves. */
-        const receive = (data) => data.error
-          ? reject(new Error(data.error)) : resolve(data.result);
+        /**
+         * Settles the pending request from a worker reply: `error` rejects, `result` resolves, and a parse's
+         * `envelope` bytes resolve once decoded and parsed (an invalid envelope rejects with a TypeError).
+         */
+        const receive = (data) => {
+          if (data.error) {
+            reject(new Error(data.error));
+          } else if (data.envelope) {
+            try {
+              resolve(parseEnvelope(decodeEnvelopeText(data.envelope, "parse"), "parse"));
+            } catch (error) {
+              reject(error);
+            }
+          } else {
+            resolve(data.result);
+          }
+        };
         /** Rejects the pending request when the worker reports an error. */
         const onError = (error) => reject(new Error(error.message || "Binary worker failed."));
         /** Rejects the pending request when the worker thread exits before replying. */

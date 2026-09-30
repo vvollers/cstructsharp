@@ -259,9 +259,12 @@ export interface RawWasmAdapter {
     source: BinarySource,
     options?: Pick<ParseOptions, "signal" | "maxSpoolBytes"> | null,
   ): Promise<Uint8Array>;
-  /** Synchronous byte-array parse that records every value's byte range; the JSON text of a ParseResult envelope. */
+  /**
+   * Synchronous byte-array parse that records every value's byte range; the JSON text of a ParseResult envelope, at
+   * most 536,870,888 characters (a longer result is a `read-budget` failure envelope).
+   */
   parseWithDebug(definition: string, bytes: Uint8Array, options?: (CompileOptions & ParseOptions) | null): string;
-  /** Synchronous byte-array parse; the JSON text of a ParseResult envelope. */
+  /** Synchronous byte-array parse; the JSON text of a ParseResult envelope, within the same result limit. */
   parseBytes(
     definition: string,
     bytes: Uint8Array,
@@ -289,14 +292,18 @@ export function loadCStructSharpWasm(options?: { runtimeUrl?: string }): Promise
 
 /**
  * Parse a binary source. `data` is the selected value (the root struct's members by name, e.g. `data.kind`, or the
- * union, array, or scalar a path selects). Large source length is independent of the read limits.
+ * union, array, or scalar a path selects). Large source length is independent of the read limits. The result's JSON
+ * text may be at most 536,870,888 characters (V8's string limit); a longer result fails with `read-budget`.
  */
 export function parse(
   definition: string,
   source: BinarySource,
   options?: (CompileOptions & ParseOptions) | null,
 ): Promise<ParseResult>;
-/** Parse and record each value's byte range in `debug`. */
+/**
+ * Parse and record each value's byte range in `debug`. The debug records count toward the same 536,870,888-character
+ * result limit as `parse`, so a debug result reaches it with a far smaller input.
+ */
 export function parseWithDebug(
   definition: string,
   source: BinarySource,

@@ -135,18 +135,18 @@ public partial class CStructExports
         return checked((int)stream.Position);
     }
 
-    /// <summary>The production JSON projection of the retained result (Expando → dictionary → UTF-8 JSON → string).</summary>
-    /// <returns>The JSON projection of the retained result.</returns>
+    /// <summary>The production JSON projection of the retained result (parsed value → UTF-8 JSON bytes, as the parse exports return it).</summary>
+    /// <returns>The JSON projection of the retained result as UTF-8 bytes.</returns>
     [JSExport]
-    public static string BenchProjectRetained() => SerializeParsedValue(benchRetainedResult!);
+    public static byte[] BenchProjectRetained() => SerializeParsedValue(benchRetainedResult!);
 
-    /// <summary>Parse + projection through the same code the public ParseWithDebug/ParseSource exports use.</summary>
+    /// <summary>Parse + projection through the same code the public ParseBytes/ParseSource exports use.</summary>
     /// <param name="bytes">The input bytes, marshaled from JavaScript.</param>
     /// <param name="root">The root declaration to parse.</param>
     /// <param name="optionsJson">The bridge options as JSON.</param>
-    /// <returns>The parse envelope JSON.</returns>
+    /// <returns>The projected value as UTF-8 JSON bytes.</returns>
     [JSExport]
-    public static string BenchParseJson(byte[] bytes, string root, string optionsJson)
+    public static byte[] BenchParseJson(byte[] bytes, string root, string optionsJson)
     {
         using var stream = new MemoryStream(bytes, writable: false);
         return SerializeParsedValue((object)benchLayout!.Parse(stream, root, options: CreateReadOptions(ParseOptions(optionsJson))));
@@ -165,7 +165,7 @@ public partial class CStructExports
 
     /// <summary>Envelope serialization alone for a given Data payload.</summary>
     /// <param name="data">The pre-serialized JSON payload placed in the envelope.</param>
-    /// <returns>The envelope length in characters.</returns>
+    /// <returns>The envelope length in bytes.</returns>
     [JSExport]
     public static int BenchEnvelope(string data) => SerializeParseEnvelope("root", data, []).Length;
 
@@ -206,11 +206,13 @@ public partial class CStructExports
     public static void BenchCollect() => GC.Collect();
 
     /// <summary>Serializes a parsed struct or union alone (benchmark projection cases).</summary>
-    private static string SerializeParsedValue(object value)
+    /// <param name="value">The parsed value.</param>
+    /// <returns>The value as UTF-8 JSON bytes, handed over the way the parse exports hand over their envelopes.</returns>
+    private static byte[] SerializeParsedValue(object value)
     {
         InteropJsonWriter writer = projectionWriter ??= new InteropJsonWriter(16 * 1024);
         writer.Reset();
         writer.WriteValue(value);
-        return FinishProjection(writer);
+        return FinishUtf8Projection(writer);
     }
 }

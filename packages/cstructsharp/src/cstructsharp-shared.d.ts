@@ -15,5 +15,7 @@ export const COMPILE_OPTION_KEYS: ReadonlySet<string>;
 export function isSmallByteInput(source: unknown, options: { signal?: AbortSignal } | null | undefined): boolean;
 /** Serializes a value to JSON text, writing each BigInt as its exact decimal string. */
 export function stringifyInteropJson(value: unknown): string;
+/** Decodes the UTF-8 envelope a parse export returned into JSON text; throws a TypeError for anything else. */
+export function decodeEnvelopeText(bytes: unknown, operation: string): string;
 /** Parses the JSON envelope a managed export returned; throws a TypeError for invalid JSON. */
 export function parseEnvelope(text: string, operation: string): unknown;

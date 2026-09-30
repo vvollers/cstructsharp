@@ -24,8 +24,15 @@ fall into three groups:
   operation. A compiled layout's `serialize` and `update` run on the calling thread through `Serialize` and
   `UpdateStream`.
 
-Every entry point except `TakeOutput` returns the same outer object as JSON text, called an *envelope*, and reports
-failures inside it rather than by throwing. The envelope has seven members, always in this order:
+Every entry point except `TakeOutput` returns the same outer object as JSON, called an *envelope*, and reports
+failures inside it rather than by throwing. The three parse entry points return the envelope as UTF-8 bytes (a
+`byte[]` that arrives as a `Uint8Array`), which the adapter decodes with a UTF-8 `TextDecoder`; the others return it
+as a string. A parse result can be very large, and the .NET runtime decodes a returned string as UTF-16, which fails
+in Node.js beyond 2^27 characters, far below the JavaScript string limit. An envelope is at most 536,870,888 bytes,
+the longest string V8 creates; the JSON is pure ASCII (every other character is escaped), so that is also its length
+in characters. A parse whose envelope would be longer returns a `read-budget` failure instead. The source worker
+transfers a parse envelope's bytes to the page, which decodes and parses them once. The envelope has seven members,
+always in this order:
 `contractVersion` (9), `operation`, `success`, `root` (the root or path the operation selected, or the `root`
 option a write echoes), `data`, `debug`, and `error`. `debug` lists `{ start, end, path, type, value }` byte ranges
 after a parse with debug ranges and is empty otherwise. On failure `data` is null and `error` is
