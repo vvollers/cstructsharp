@@ -747,6 +747,20 @@ function extractParseRootType(body) {
 }
 
 /**
+ * Reports whether a test that compiles several layouts reads a root the demo's layout never names, so the root must
+ * belong to another of its layouts.
+ * @param {string} body Test method body.
+ * @param {string} definition The layout text the demo would show.
+ * @param {string} rootType The root name the test reads.
+ * @returns {boolean} True when the root belongs to another layout.
+ */
+function readsAnotherLayout(body, definition, rootType) {
+  const layouts = (body.match(/\bnew\s+CStruct\s*\(/g) ?? []).length;
+  if (layouts < 2 || !/^[A-Za-z_]\w*$/.test(rootType)) return false;
+  return !new RegExp(`\\b${rootType}\\b`).test(definition);
+}
+
+/**
  * Finds the layout text of a test: a well-known string variable, any string that declares a type,
  * or the first argument of `new CStruct(...)`.
  * @param {string} body Test method body.
@@ -959,6 +973,21 @@ function extractMethods(filePath) {
     }
 
     const rootType = extractParseRootType(body);
+    if (rootType && readsAnotherLayout(body, definition, rootType)) {
+      // The demo shows one layout; a root read from another layout of the test would not resolve in it.
+      tests.push({
+        id: `${className}.${methodName}`,
+        className,
+        methodName,
+        filePath: relativePath,
+        line,
+        documentation,
+        runnable: false,
+        reason: "The root this test reads belongs to another of its layouts.",
+      });
+      continue;
+    }
+
     const options = extractCStructOptions(body);
 
     tests.push({
