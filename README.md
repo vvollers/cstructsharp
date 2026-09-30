@@ -342,44 +342,44 @@ write bytes their own library reads back.
 
 <!-- comparison-benchmarks:start -->
 
-Measured on AMD Ryzen 9 9950X, Windows 11, .NET 10.0.12, with BenchmarkDotNet 0.15.8 (`default` job) on 2026-09-26. Times are medians for one record; each table lists the fastest deserializer first.
+Measured on AMD Ryzen 9 9950X, Windows 11, .NET 10.0.12, with BenchmarkDotNet 0.15.8 (`default` job) on 2026-09-30. Times are medians for one record; each table lists the fastest deserializer first.
 
 **Same bytes: the 79-byte C layout**
 
 | Approach                                                                      | Deserialize | Allocated | Serialize | Allocated |
 | ----------------------------------------------------------------------------- | ----------: | --------: | --------: | --------: |
-| .NET `MemoryMarshal.Read` / `Write`                                           |      7.6 ns |       0 B |    0.3 ns |       0 B |
-| CStructSharp generated view                                                   |      8.6 ns |       0 B |         — |         — |
-| Hand-written `BinaryPrimitives`                                               |     19.3 ns |     248 B |    8.2 ns |       0 B |
-| CStructSharp generated `Parse` / `Serialize`                                  |     24.9 ns |     248 B |   19.1 ns |       0 B |
-| CStructSharp runtime view (`CreateView` + accessors)                          |     28.5 ns |       0 B |         — |         — |
-| CStructSharp runtime `ReadValue<T>` / `Serialize` (layout-bound mapped class) |     31.0 ns |     248 B |   22.1 ns |       0 B |
-| .NET `BinaryReader` / `BinaryWriter`                                          |     35.1 ns |     248 B |   41.6 ns |       0 B |
-| .NET `Marshal.PtrToStructure` / `StructureToPtr`                              |     49.5 ns |     128 B |   31.6 ns |      72 B |
-| Kaitai Struct 0.11.0                                                          |      118 ns |   1,040 B |         — |         — |
-| CStructSharp runtime `Parse` + accessors                                      |      136 ns |     672 B |         — |         — |
-| CStructSharp runtime `Parse` / `Serialize` (`StructValue`, path strings)      |      372 ns |     672 B |   79.0 ns |       0 B |
+| CStructSharp generated view                                                   |      8.5 ns |       0 B |         — |         — |
+| .NET `MemoryMarshal.Read` / `Write`                                           |      9.8 ns |       0 B |    0.3 ns |       0 B |
+| Hand-written `BinaryPrimitives`                                               |     20.3 ns |     248 B |    8.2 ns |       0 B |
+| CStructSharp generated `Parse` / `Serialize`                                  |     27.2 ns |     248 B |   28.6 ns |       0 B |
+| CStructSharp runtime view (`CreateView` + accessors)                          |     30.4 ns |       0 B |         — |         — |
+| CStructSharp runtime `ReadValue<T>` / `Serialize` (layout-bound mapped class) |     31.8 ns |     248 B |   21.7 ns |       0 B |
+| .NET `BinaryReader` / `BinaryWriter`                                          |     36.8 ns |     248 B |   42.6 ns |       0 B |
+| .NET `Marshal.PtrToStructure` / `StructureToPtr`                              |     53.3 ns |     128 B |   31.3 ns |      72 B |
+| Kaitai Struct 0.11.0                                                          |      125 ns |   1,040 B |         — |         — |
+| CStructSharp runtime `Parse` + accessors                                      |      139 ns |     672 B |         — |         — |
+| CStructSharp runtime `Parse` / `Serialize` (`StructValue`, path strings)      |      380 ns |     672 B |   76.0 ns |       0 B |
 
 **Same record, each library's own format**
 
 | Library                                      | Format           |  Size | Deserialize | Allocated | Serialize | Allocated |
 | -------------------------------------------- | ---------------- | ----: | ----------: | --------: | --------: | --------: |
-| CStructSharp generated `Parse` / `Serialize` | C layout         |  79 B |     24.9 ns |     248 B |   19.1 ns |       0 B |
-| FlatSharp 7.9.0 (lazy)                       | FlatBuffers      | 116 B |     29.1 ns |     240 B |   45.4 ns |       0 B |
-| MemoryPack 1.21.4                            | MemoryPack       |  86 B |     31.3 ns |     248 B |   18.7 ns |       0 B |
-| MessagePack-CSharp 3.1.10                    | MessagePack      |  74 B |      105 ns |     248 B |   55.7 ns |       0 B |
-| protobuf-net 3.4.30                          | Protocol Buffers |  91 B |      223 ns |     184 B |    204 ns |       0 B |
-| System.Text.Json (source-generated)          | JSON             | 207 B |      644 ns |     848 B |    338 ns |       0 B |
+| CStructSharp generated `Parse` / `Serialize` | C layout         |  79 B |     27.2 ns |     248 B |   28.6 ns |       0 B |
+| FlatSharp 7.9.0 (lazy)                       | FlatBuffers      | 116 B |     31.5 ns |     240 B |   48.8 ns |       0 B |
+| MemoryPack 1.21.4                            | MemoryPack       |  86 B |     32.5 ns |     248 B |   19.2 ns |       0 B |
+| MessagePack-CSharp 3.1.10                    | MessagePack      |  74 B |      111 ns |     248 B |   59.0 ns |       0 B |
+| protobuf-net 3.4.30                          | Protocol Buffers |  91 B |      242 ns |     184 B |    217 ns |       0 B |
+| System.Text.Json (source-generated)          | JSON             | 207 B |      698 ns |     848 B |    391 ns |       0 B |
 
 **A record whose shape depends on its data (the `packet` layout above)**
 
 | Approach                                                               | Deserialize | Allocated | Serialize | Allocated |
 | ---------------------------------------------------------------------- | ----------: | --------: | --------: | --------: |
-| Hand-written `BinaryPrimitives`                                        |     26.3 ns |     208 B |    9.2 ns |       0 B |
-| CStructSharp generated `Parse` / `Serialize`                           |     67.0 ns |     800 B |   34.2 ns |       0 B |
-| CStructSharp runtime `Parse` + accessors / `Serialize` (`StructValue`) |      861 ns |   1,536 B |    513 ns |     856 B |
-| CStructSharp runtime `Parse` from a `MemoryStream` + accessors         |      940 ns |   1,528 B |         — |         — |
-| CStructSharp runtime `ReadValue<T>` / `Serialize` (mapped class)       |    1,024 ns |   1,872 B |    656 ns |   1,128 B |
+| Hand-written `BinaryPrimitives`                                        |     27.1 ns |     208 B |   10.0 ns |       0 B |
+| CStructSharp generated `Parse` / `Serialize`                           |     73.1 ns |     800 B |   36.2 ns |       0 B |
+| CStructSharp runtime `Parse` + accessors / `Serialize` (`StructValue`) |      371 ns |     432 B |    247 ns |       0 B |
+| CStructSharp runtime `Parse` from a `MemoryStream` + accessors         |      539 ns |     592 B |         — |         — |
+| CStructSharp runtime `ReadValue<T>` / `Serialize` (mapped class)       |      556 ns |     552 B |    413 ns |     272 B |
 
 <!-- comparison-benchmarks:end -->
 
