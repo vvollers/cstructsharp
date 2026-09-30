@@ -55,17 +55,27 @@ internal sealed partial class LayoutEmitter
         writer.Open("public " + name + "(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null)");
         if (size is { } fixedSize)
         {
-            // The runtime's short-read text for a source that cannot hold the value.
+            // The runtime's short-read text for a source that cannot hold the value. The failure is built in a local
+            // function, so the constructor stays small enough for the JIT to inline at every nested view access.
             writer.Open("if (source.Length < " + Int(fixedSize) + ")");
-            writer.Line("var cursor = new global::CStructSharp.Generated.ReadCursor(source, options, " + layout + ");");
-            writer.Line("global::CStructSharp.Diagnostics.CStructException failure = cursor.Fail(global::CStructSharp.Generated.ReadCursor.ShortReadText(" + Int(fixedSize) + ", source.Length), null, null);");
-            writer.Line("cursor.Complete(failure);");
-            writer.Line("throw failure;");
+            writer.Line("throw ShortSource(source, options);");
             writer.Close();
         }
 
         writer.Line("this.source = source;");
         writer.Line("this.options = options;");
+        if (size is { } checkedSize)
+        {
+            writer.Line();
+            writer.Line("// Builds the short-read failure, with the runtime's context, for a source shorter than the value.");
+            writer.Open("static global::CStructSharp.Diagnostics.CStructException ShortSource(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options)");
+            writer.Line("var cursor = new global::CStructSharp.Generated.ReadCursor(source, options, " + layout + ");");
+            writer.Line("global::CStructSharp.Diagnostics.CStructException failure = cursor.Fail(global::CStructSharp.Generated.ReadCursor.ShortReadText(" + Int(checkedSize) + ", source.Length), null, null);");
+            writer.Line("cursor.Complete(failure);");
+            writer.Line("return failure;");
+            writer.Close();
+        }
+
         writer.Close();
         writer.Line();
         writer.Line("/// <summary>Gets the value's bytes" + (size is not null ? " (its " + Int(size.Value) + " bytes)" : ": the whole source, as the value's extent depends on its contents") + ".</summary>");

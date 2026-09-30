@@ -252,6 +252,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - A generated `Serialize` into a new array writes a value its fixed writer takes straight into an array of the struct's
   size, without a pooled buffer and a copy: a small record serializes in 5.7 ns instead of 14.1 ns, and 256 nested
   records in 0.96 us instead of 3.49 us.
+- A generated view's constructor builds its short-source failure in a separate function, so the JIT inlines the
+  constructor at every nested view access: reading three members of each of 256 nested records through views takes
+  193 ns instead of 414 ns.
 - `Serialize` (to an array or a span) and `WriteAsync` of layouts with runtime-sized members run on the compiled engine:
   the comparison benchmark's `packet` record serializes in 248 ns instead of 496 ns and allocates only its 88-byte
   result. Bitfields, unions (including promoted ones), pointers, custom codecs and to-end, terminated and

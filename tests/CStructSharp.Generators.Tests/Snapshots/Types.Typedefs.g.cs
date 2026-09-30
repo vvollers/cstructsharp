@@ -2210,13 +2210,19 @@ namespace Demo
             {
                 if (source.Length < 1)
                 {
-                    var cursor = new global::CStructSharp.Generated.ReadCursor(source, options, "X");
-                    global::CStructSharp.Diagnostics.CStructException failure = cursor.Fail(global::CStructSharp.Generated.ReadCursor.ShortReadText(1, source.Length), null, null);
-                    cursor.Complete(failure);
-                    throw failure;
+                    throw ShortSource(source, options);
                 }
                 this.source = source;
                 this.options = options;
+
+                // Builds the short-read failure, with the runtime's context, for a source shorter than the value.
+                static global::CStructSharp.Diagnostics.CStructException ShortSource(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options)
+                {
+                    var cursor = new global::CStructSharp.Generated.ReadCursor(source, options, "X");
+                    global::CStructSharp.Diagnostics.CStructException failure = cursor.Fail(global::CStructSharp.Generated.ReadCursor.ShortReadText(1, source.Length), null, null);
+                    cursor.Complete(failure);
+                    return failure;
+                }
             }
 
             /// <summary>Gets the value's bytes (its 1 bytes).</summary>
@@ -2327,13 +2333,19 @@ namespace Demo
             {
                 if (source.Length < 2)
                 {
-                    var cursor = new global::CStructSharp.Generated.ReadCursor(source, options, "Anon");
-                    global::CStructSharp.Diagnostics.CStructException failure = cursor.Fail(global::CStructSharp.Generated.ReadCursor.ShortReadText(2, source.Length), null, null);
-                    cursor.Complete(failure);
-                    throw failure;
+                    throw ShortSource(source, options);
                 }
                 this.source = source;
                 this.options = options;
+
+                // Builds the short-read failure, with the runtime's context, for a source shorter than the value.
+                static global::CStructSharp.Diagnostics.CStructException ShortSource(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options)
+                {
+                    var cursor = new global::CStructSharp.Generated.ReadCursor(source, options, "Anon");
+                    global::CStructSharp.Diagnostics.CStructException failure = cursor.Fail(global::CStructSharp.Generated.ReadCursor.ShortReadText(2, source.Length), null, null);
+                    cursor.Complete(failure);
+                    return failure;
+                }
             }
 
             /// <summary>Gets the value's bytes (its 2 bytes).</summary>
@@ -2444,13 +2456,19 @@ namespace Demo
             {
                 if (source.Length < 16)
                 {
-                    var cursor = new global::CStructSharp.Generated.ReadCursor(source, options, "root");
-                    global::CStructSharp.Diagnostics.CStructException failure = cursor.Fail(global::CStructSharp.Generated.ReadCursor.ShortReadText(16, source.Length), null, null);
-                    cursor.Complete(failure);
-                    throw failure;
+                    throw ShortSource(source, options);
                 }
                 this.source = source;
                 this.options = options;
+
+                // Builds the short-read failure, with the runtime's context, for a source shorter than the value.
+                static global::CStructSharp.Diagnostics.CStructException ShortSource(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options)
+                {
+                    var cursor = new global::CStructSharp.Generated.ReadCursor(source, options, "root");
+                    global::CStructSharp.Diagnostics.CStructException failure = cursor.Fail(global::CStructSharp.Generated.ReadCursor.ShortReadText(16, source.Length), null, null);
+                    cursor.Complete(failure);
+                    return failure;
+                }
             }
 
             /// <summary>Gets the value's bytes (its 16 bytes).</summary>
