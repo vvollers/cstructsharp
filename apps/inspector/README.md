@@ -4,8 +4,8 @@ The inspector demonstrates CStructSharp directly. Every example is a standalone,
 Native `if` and `switch` statements select variants; runtime array counts, bitfields, explicit byte order and typed
 pointers describe the stored data. The editor text is the complete layout passed to the library.
 
-**Load & detect** uses `file-type` to identify a format and selects its fixed definition. Detection does not generate
-fields, discover records for the schema, change its pointer width from file bytes, or merge multiple parse results.
+**Load & detect** selects the fixed definition of the detected format ([Detection](#detection)). Detection does not
+generate fields, discover records for the schema, change its pointer width from file bytes, or merge parse results.
 **Load file** preserves the editor text and settings. Sample buttons load their small teaching fixtures;
 **Schema · load your file** entries keep the currently loaded file. All examples open pretty-printed.
 
@@ -20,8 +20,63 @@ instead of clipped panels; enlarge the window to return to the same session. Mob
 
 The settings dialog controls decoded array, string and total-read budgets. These are independent of file size
 and pointer distance. Larger payload budgets can be selected explicitly; results still have to fit available memory.
-See the [schema coverage and catalog audit](SCHEMA-REVIEW.md),
-[detection behavior](DETECTION.md), and the [large-file API guide](../../docs/guides/browser/large-data.md).
+See the [large-file API guide](../../docs/guides/browser/large-data.md).
+
+## Detection
+
+**Load & detect** identifies the content with [`file-type`](https://github.com/sindresorhus/file-type) and selects
+the fixed definition registered for the detected extension in [schema-catalog.ts](src/schema-catalog.ts). The same
+extension always produces the same definition text and parser settings. Detection may seek through the Blob to
+identify the format, but the extension is its only contribution to schema selection: no format-specific scanner
+supplies counts, offsets, parser variables or secondary roots. Detection and parsing run locally, and a 15-second
+timeout stops stalled detection. Changing the selection cancels pending detection and parsing.
+
+The catalog covers every extension the installed detector reports, plus teaching aliases such as DLL, which shares
+the PE definition. A file the detector does not recognize gets a raw-bytes schema.
+
+The first 64 KiB of a loaded file is a hex preview only; the parser always receives the complete Blob. Formats
+such as TIFF and PCAP store their byte order in the file, so choose the matching byte order in the settings.
+
+## What the definitions decode
+
+Each catalog entry is a standalone library example. Copy the editor text and use the displayed byte order, pointer
+width and root type in any CStructSharp consumer. The inspector passes that text once to the library against the full
+source: `if` and `switch` choose stored variants, arrays use earlier counts, and typed pointers follow stored offsets.
+There are no discovered regions, input-dependent declarations, injected file offsets, or merged parse trees.
+
+Each entry's `scope` text in the catalog states what it decodes and where it deliberately stops; it also appears as
+a comment at the top of the detected definition. Many formats expose only their signature or a fixed header. PDF
+text grammar, JPEG entropy decoding, ZIP footer searches, decompression and arbitrary record discovery are never
+performed outside the definition. A limit
+such as "up to eight PNG chunks" is visible in the definition as eight sequential fields, not hidden in the library.
+A detected layout can be broader than its teaching sample: the ZIP sample shows one local header, while the detected
+ZIP layout branches on the record signature. A signature match and a successful read do not prove that a file is
+valid.
+
+The pointer width describes the stored offset, not the host OS or the file's length. A pointer in a running C program
+is usually a virtual-memory address, which means nothing in another process, so file formats store offsets measured
+from a defined origin instead. CStructSharp follows a typed pointer by seeking to its target and reading the declared
+type, without reading the gap in between; an eight-byte offset can reach beyond 4 GiB. PE shows why the two must not
+be confused: a section's raw-data offset is a file offset, but most data-directory addresses are RVAs (relative
+virtual addresses in the loaded image), so the PE example keeps RVAs as plain numbers. See
+[Pointers and addressing](../../docs/language/pointers-and-addressing.md).
+
+The definitions follow these specifications, whose scope exceeds what the examples implement:
+[PE/COFF](https://learn.microsoft.com/en-us/windows/win32/debug/pe-format),
+[ELF header](https://gabi.xinuos.com/elf/02-eheader.html),
+[ZIP application note](https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT),
+[PNG](https://www.w3.org/TR/png-3/), [JPEG T.81](https://www.w3.org/Graphics/JPEG/itu-t81.pdf) with
+[JFIF T.871](https://www.itu.int/rec/T-REC-T.871), and [PDF 2.0](https://pdf-issues.pdfa.org/32000-2-2020/clause07.html).
+
+## Schema list icons
+
+[file-type-icons.ts](src/file-type-icons.ts) gives every catalog extension a dedicated or family icon from the
+locally bundled VS Code Icons set (through Iconify). The generic file icon is reserved for an extension that has not
+been classified yet. An icon follows the file's purpose, not its container: DOCX uses a document icon rather than
+ZIP, and HEIC an image icon rather than video. Where the set has no dedicated icon, a family icon stands in: CAD and
+mesh files use the 3D solid icon, statistical datasets the data-storage icon, PCAP the network icon, and metadata
+formats the configuration icon. The schema filter also searches these family names. Icons are navigational hints
+and do not change schema coverage or parsing.
 
 ## Development
 
@@ -88,7 +143,9 @@ built from those registrations, so there is no separate ID-to-extension or descr
 Sample layouts sometimes cover less than the detection layout because their small fixtures teach a
 specific feature. Keeping both as explicit variants preserves those examples without an override pass.
 Identical declarations, such as the EXE/DLL sample layout and TAR fields, are shared within the catalog.
-Catalog tests check detector coverage, unique IDs/extensions, aliases and sample placement.
+Catalog tests check detector coverage, unique IDs/extensions, aliases and sample placement. The browser tests
+compile every registered layout in the real WASM runtime and parse native variants, distant pointers and raised
+budgets.
 The managed tests also read this file (`tests/CStructSharpTests/Engine/InspectorSchemaCatalog.cs`) and run every
 detection layout and sample through the engine's golden-outcome tests. That reader understands plain object literals,
 string and template constants, and `...spread`; it fails, rather than skipping an entry, when the catalog uses other

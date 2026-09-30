@@ -169,7 +169,7 @@ files it writes.
 
 Mutation testing checks whether the tests notice small, deliberate changes to the library logic. Use it for changes
 to the parser, layout calculations, readers, writers, and expression handling. The commands and the permanent scope
-are explained in [MUTATION_TESTING.md](MUTATION_TESTING.md).
+are explained in [Mutation testing](docs/project/mutation-testing.md).
 
 ### Compiler comparison fixture
 

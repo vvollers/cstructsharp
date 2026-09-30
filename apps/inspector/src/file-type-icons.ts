@@ -37,7 +37,7 @@ interface FilePresentation {
 }
 
 // Curated by format identity rather than schema/container title. Sources and family
-// substitutions are documented in FILE-ICONS.md. All icon data is bundled offline.
+// substitutions are documented in README.md ("Schema list icons"). All icon data is bundled offline.
 export const fileTypeIcons: Record<string, FilePresentation> = {};
 /**
  * Registers an icon and family label for each space-separated extension.

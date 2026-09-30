@@ -182,7 +182,7 @@ fail. A surviving mutation can reveal an assertion gap even when line coverage i
 
 `coverage-risk.mjs` applies the population and risk policy to the collector's merged report.
 `mutation-report.mjs` checks the permanent-scope Stryker report. The exact pinned mutation command is in
-the repository root `MUTATION_TESTING.md`.
+[Mutation testing](mutation-testing.md).
 
 Exact reviewed declarations with no mutation opportunities are reported as not applicable, not detected behavior.
 They remain in the configured scope and must have a present report with identical source and no mutants.
@@ -191,7 +191,7 @@ and compiler-rejected mutations do not qualify; executable code retains the scor
 Individually proven equivalent survivors are recorded in `contracts/quality/mutation-equivalents.json`, pinned to
 their exact source, tool version, operator, location and replacement. They remain survivors in the raw 75% score
 calculation, not detected behavior. Every unexplained survivor, uncovered mutation and runtime error still fails.
-See `MUTATION_TESTING.md` for the review criteria and the distinction from ordinary missing assertions.
+See [Mutation testing](mutation-testing.md) for the review criteria and the distinction from ordinary missing assertions.
 Mutation runners use source-project context so Stryker honors the configured core test project. Reports containing
 tests from unintended projects fail validation. Generator/parity suites remain independently required in normal CI.
 

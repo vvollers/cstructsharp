@@ -1,3 +1,8 @@
+---
+title: Mutation testing
+description: Check whether the tests notice small deliberate changes to the library, and review what survives.
+---
+
 # Mutation testing
 
 Code coverage tells us which lines ran during a test. It does not tell us whether the test would notice a mistake on
@@ -172,9 +177,8 @@ cd ../..
 `<start-commit>` must be a full SHA (or a branch or tag name): Stryker resolves it with LibGit2Sharp, which does not
 expand an abbreviated SHA ("No branch or tag or commit found with given target"). Stryker still generates every
 mutant of the project first and reports the ones outside the diff and the allowlist as "Removed by mutate filter";
-the count on the "total mutants will be tested" line is what the run will take (the full 2025 run managed about
-18 mutants a minute; a 1,029-mutant `--since` run in September 2026 did not finish in 90 minutes at the default
-concurrency, so budget for 10 a minute and pass `--concurrency <cores>` on a machine with spare cores). `--mutate
+the count on the "total mutants will be tested" line is what the run will take. Budget for about 10 mutants a minute
+at the default concurrency, and pass `--concurrency <cores>` on a machine with spare cores. `--mutate
 <glob>` on the command line narrows the allowlist further when that count is too large for the time available -
 the mutants of the files named this way, inside the diff, are the run.
 
@@ -249,13 +253,12 @@ than adding a test that knows too much about private code.
 Do not improve the score by removing difficult files, lowering the threshold, or counting compile errors as killed
 mutations. The goal is to find weak tests, not to make the percentage look better.
 
-## Performance implementation scope refresh
+## Scope notes
 
-The reviewed scope replaces six obsolete partial-class filenames with their current enum, exception, bitfield,
-layout-math, read/write-state and symbol-validation implementations. It also includes the new conditional-selection,
-compiled scope/field/size metadata, debug-path and fixed-point helpers. This expands semantic coverage; the score
-threshold, zero unexplained survivors, and zero uncovered/runtime-error requirements remain unchanged. Compiler-rejected mutations
-remain tool limitations, not detected behavior.
+The reviewed scope includes the enum, exception, bitfield, layout-math, read/write-state and symbol-validation
+implementations, and the conditional-selection, compiled scope/field/size metadata, debug-path and fixed-point
+helpers. The score threshold, zero unexplained survivors, and zero uncovered/runtime-error requirements apply to all
+of them. Compiler-rejected mutations remain tool limitations, not detected behavior.
 
 The mutation run excludes exactly the API export-list reflection test through `test-case-filter`. Stryker changes
 the assembly's public surface by injecting instrumentation; that test otherwise falsely kills unrelated mutants.

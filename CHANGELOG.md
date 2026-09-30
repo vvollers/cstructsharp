@@ -198,6 +198,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - Added `SECURITY.md`. The testing guide explains the engine golden outcomes and the compiler comparison fixtures with
   worked examples, custom codecs teach the authoritative `FixedSize` rule, and `tools/README.md`, `tests/README.md`
   and the API index are complete.
+- The mutation testing guide moved to `docs/project/mutation-testing.md` and is published with the site; the
+  inspector's detection, coverage and icon notes are part of its README.
 
 ## 0.10.0 — 2026-09-26
 
