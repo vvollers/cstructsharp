@@ -176,7 +176,6 @@ jobs:
         run: |
           node tools/packaging/validate-package.mjs --package-path "artifacts/package/CStructSharp.${VERSION}.nupkg" --symbol-package-path "artifacts/package/CStructSharp.${VERSION}.snupkg"
           node tools/packaging/test-package-consumer.mjs --package-directory artifacts/package
-          node tools/packaging/test-memory-package-consumer.mjs --package-directory artifacts/package
 
       - name: Verify onboarding against the NuGet artifact
         run: node tools/packaging/test-onboarding-package.mjs --package-directory ./artifacts/package

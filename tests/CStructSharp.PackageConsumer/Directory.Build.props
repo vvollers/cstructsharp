@@ -1,0 +1,10 @@
+<Project>
+
+  <!--
+    Deliberately does not import the repository root's Directory.Build.props: an external package consumer must not
+    inherit the repository's analyzer packages or project references. It also compiles the memory-analysis guide
+    examples from docs/examples, which, like every project under docs/, are outside the StyleCop and Roslynator gate
+    (docs/Directory.Build.props explains why).
+  -->
+
+</Project>

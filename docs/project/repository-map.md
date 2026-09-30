@@ -20,7 +20,7 @@ and which direction their dependencies point.
 | `benchmarks/CStructSharp.Benchmarks/` | BenchmarkDotNet timing and allocation scenarios | References core |
 | `benchmarks/CStructSharp.FixtureTool/` and `benchmarks/fixtures/` | The seeded fixture corpus shared by the .NET, Node, and browser harnesses, and the tool that records its managed expectations | References core |
 | `benchmarks/js/` | Node and headless-Chromium harness for the WASM bridge | Loads its own staged bundle |
-| `tests/CStructSharp.PackageConsumer/` and `tests/CStructSharp.Memory.PackageConsumer/` | Small external-style apps that install a built package (the second uses only the memory namespace) | Use the packed NuGet file, not the core project |
+| `tests/CStructSharp.PackageConsumer/` | A small external-style app that installs a built package and runs the core, generator and memory-analysis examples | Use the packed NuGet file, not the core project |
 | `tests/CStructSharp.AotConsumer/` | A Native AOT publication of the starter, typed reads, writes, generated layouts, mapped classes, and diagnostics | References core and the generator, published with `PublishAot` in CI |
 | `docs/` | DocFX pages, examples, site assets, browser checks, and machine-readable reference data | Reads a prebuilt core net10 assembly |
 | `src/CStructSharp.Wasm/` | Managed WebAssembly bridge (exports, DTOs, JSON projection) | References core |

@@ -1,3 +1,0 @@
-<Project>
-  <!-- An external package consumer must not inherit repository analyzer dependencies or project references. -->
-</Project>

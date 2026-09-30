@@ -27,7 +27,7 @@ internal static class Program
         """;
 
     /// <summary>Runs the example and fails if inspection, traversal, or byte preservation disagrees with the fixture.</summary>
-    private static void Main()
+    internal static void Main()
     {
         CStructSharp.Docs.Examples.MemoryTutorialExamples.Run();
         Console.WriteLine("Memory guide examples passed.");

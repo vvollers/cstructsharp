@@ -205,6 +205,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   checks its behavior against the runtime.
 - `tests/README.md` lists the four recorded-expectation mechanisms (engine golden outcomes, generator snapshots, the
   managed API baseline, benchmark fixture expectations) with their update commands and when updating is allowed.
+- One package-consumer project checks the core, generator and memory-analysis APIs through the built NuGet package;
+  the separate memory consumer and its runner are removed.
 
 ## 0.10.0 — 2026-09-26
 

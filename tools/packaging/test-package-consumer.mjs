@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
  * Restores and runs tests/CStructSharp.PackageConsumer against the one package in a directory from an isolated
- * package cache, checking that the consumer selected the package's own assemblies for net8.0 and net10.0 and that
- * the package came from the feed under test.
+ * package cache, checking that the consumer selected the package's own assemblies for net8.0 and net10.0, that the
+ * package came from the feed under test, and that the memory-analysis examples the consumer links needed no separate
+ * memory package.
  *
  *   node tools/packaging/test-package-consumer.mjs [--package-directory artifacts/package]
  */
@@ -43,6 +44,8 @@ await main(() => {
     if (!metadata.source || String(metadata.source).trim() === "") throw new Error("The restored package metadata does not identify its source.");
     const sourcePath = path.resolve(metadata.source);
     if (sourcePath !== packagePath && sourcePath !== packageDirectory) throw new Error(`CStructSharp restored from '${metadata.source}' instead of the package under test.`);
+    // The memory API ships inside the CStructSharp package, so the linked memory examples must need no other package.
+    if (fs.existsSync(path.join(packageCache, "cstructsharp.memory"))) throw new Error("The consumer restored a separate CStructSharp.Memory package.");
     runDotnet(["format", project, "--no-restore", "--verify-no-changes"], { env });
     for (const framework of ["net8.0", "net10.0"]) {
       runDotnet(["run", "--project", project, "-c", "Release", "-f", framework, "--no-restore"], { env });

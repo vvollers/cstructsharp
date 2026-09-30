@@ -259,6 +259,9 @@ using (var stream = new MemoryStream(input))
     }
 }
 
+// The memory-analysis guide examples (linked from docs/examples/memory-analysis) through the installed package only.
+CStructSharp.Examples.MemoryAnalysis.Program.Main();
+
 Console.WriteLine($"CStructSharp package consumer smoke passed on {AppContext.TargetFrameworkName}.");
 
 // A generated ParseAsync, the runtime's ParseAsync, two records through Records and ParseManyAsync, and TryParse.

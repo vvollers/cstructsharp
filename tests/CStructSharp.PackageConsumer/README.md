@@ -25,3 +25,11 @@ The generator smoke uses the package as a consumer would: `layouts/wire.cstruct`
 its `Parse`/`Serialize`/`Sizes`/view are called, and `[CStructMapped]` on `GeneratedRoot` generates a mapper that
 `ReadValue<T>` finds registered. The packaged analyzer runs too: the deliberately wrong `root.missing` path is
 suppressed with `#pragma warning disable CSG200` around that negative check.
+
+The memory smoke compiles the memory-analysis guide examples (`docs/examples/memory-analysis/Program.cs` and
+`MemoryTutorialExamples.cs`) against the installed package and runs them, so the memory API is proven to ship inside
+the one `CStructSharp` package; the runner fails if a separate `CStructSharp.Memory` package is restored. The examples
+keep their own `Main` for their documentation project, which is why the consumer suppresses warning CS7022.
+
+This is the only package consumer. `tests/CStructSharp.AotConsumer` stays a separate project because it covers a
+different target: a Native AOT publish for one runtime identifier, built from project references.

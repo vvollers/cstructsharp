@@ -162,7 +162,6 @@ jobs:
           node tools/packaging/validate-package.mjs --package-path artifacts/package/*.nupkg --symbol-package-path artifacts/package/*.snupkg
           node tools/packaging/test-package-consumer.mjs --package-directory artifacts/package
           node tools/packaging/test-onboarding-package.mjs --package-directory artifacts/package
-          node tools/packaging/test-memory-package-consumer.mjs --package-directory artifacts/package
 
       - name: Publish and run the Native AOT consumer
         run: |
