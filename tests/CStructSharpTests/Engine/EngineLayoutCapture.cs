@@ -65,7 +65,7 @@ internal static class EngineLayoutCapture
     public static (string Path, long Start, long End)[] Capture(CStruct layout, Stream stream, long origin, string root, in LayoutVariableInput variables, in ReadOperationSettings settings)
     {
         using VariableSlots slots = VariableSlots.Create(layout.Compilation.SlotTable, variables);
-        ReadProgram program = layout.Compilation.GetRootDebugReadProgram(root).Program ?? throw layout.Compilation.ModelQueries.UnknownRoot(root);
+        ReadProgram program = layout.Compilation.GetRootDebugReadProgram(root) ?? throw layout.Compilation.ModelQueries.UnknownRoot(root);
         return ReadEngine.CaptureLayout(layout, stream, origin, program, slots, settings);
     }
 

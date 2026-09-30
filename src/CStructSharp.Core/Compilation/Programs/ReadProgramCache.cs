@@ -7,13 +7,13 @@ using System.Threading;
 using CStructSharp.Syntax;
 
 /// <summary>
-///     The read programs of one compiled layout, compiled on first request and kept: one outcome per composite (shared by
+///     The read programs of one compiled layout, compiled on first request and kept: one program per composite (shared by
 ///     every struct and root that holds it) and one per root name. Held by the layout's <see cref="SlotTable"/>, because a
 ///     program's slots are that table's; neither exists until an operation asks for them, so constructing a layout
 ///     compiles no program.
 /// </summary>
 /// <remarks>
-///     Thread-safe: an outcome is compiled outside any lock and published with <c>GetOrAdd</c>, so two threads that race
+///     Thread-safe: a program is compiled outside any lock and published with <c>GetOrAdd</c>, so two threads that race
 ///     may both compile a composite (the programs are equal) and every caller then uses the first one published. A
 ///     nested struct's program may be the losing copy; it reads the same.
 /// </remarks>
@@ -21,8 +21,8 @@ internal sealed class ReadProgramCache
 {
     private static readonly ReadProgram.QualifiedTarget[] NoTargets = [];
 
-    private readonly ConcurrentDictionary<CompiledCompositeType, ReadProgramOutcome> composites = new(ReferenceEqualityComparer.Instance);
-    private readonly ConcurrentDictionary<string, ReadProgramOutcome> roots = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<CompiledCompositeType, ReadProgram> composites = new(ReferenceEqualityComparer.Instance);
+    private readonly ConcurrentDictionary<string, ReadProgram> roots = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ReadProgram.QualifiedTarget[]> qualifiedTargets;
 
     // The most recent root lookup. Callers read the same root call after call, so a repeated lookup is one string
@@ -80,12 +80,13 @@ internal sealed class ReadProgramCache
     /// <summary>Returns the program of a composite, compiling it on first request.</summary>
     /// <param name="compilation">The layout the composite belongs to (the compilation that owns this cache).</param>
     /// <param name="composite">The composite.</param>
-    /// <returns>The program, or the reason the engine cannot read the composite.</returns>
-    public ReadProgramOutcome GetComposite(LayoutCompilation compilation, CompiledCompositeType composite)
+    /// <returns>The program.</returns>
+    /// <exception cref="InvalidOperationException">The composite cannot be read (an internal invariant failure); nothing is cached.</exception>
+    public ReadProgram GetComposite(LayoutCompilation compilation, CompiledCompositeType composite)
     {
-        if (this.composites.TryGetValue(composite, out ReadProgramOutcome? outcome))
+        if (this.composites.TryGetValue(composite, out ReadProgram? program))
         {
-            return outcome;
+            return program;
         }
 
         return this.composites.GetOrAdd(composite, new ReadProgramCompiler(compilation, this).CompileComposite(composite));
@@ -97,26 +98,27 @@ internal sealed class ReadProgramCache
     /// </summary>
     /// <param name="compilation">The layout the root belongs to (the compilation that owns this cache).</param>
     /// <param name="rootName">The root's declared name, or a registered type spelling.</param>
-    /// <returns>The program, or the reason the engine cannot read the root.</returns>
-    public ReadProgramOutcome GetRoot(LayoutCompilation compilation, string rootName)
+    /// <returns>The program, or <see langword="null"/> for a name the layout does not declare.</returns>
+    /// <exception cref="InvalidOperationException">The root cannot be read (an internal invariant failure); nothing is cached.</exception>
+    public ReadProgram? GetRoot(LayoutCompilation compilation, string rootName)
     {
         if (Volatile.Read(ref this.lastRoot) is { } last && string.Equals(last.Name, rootName, StringComparison.Ordinal))
         {
-            return last.Outcome;
+            return last.Program;
         }
 
-        if (!this.roots.TryGetValue(rootName, out ReadProgramOutcome? outcome))
+        if (!this.roots.TryGetValue(rootName, out ReadProgram? program))
         {
             if (!compilation.ModelQueries.TryGetCompiledDeclaration(rootName, out CStructElement? declaration))
             {
-                return ReadProgramOutcome.NotSupported(rootName + ": the layout declares no such root");
+                return null;
             }
 
-            outcome = this.roots.GetOrAdd(rootName, new ReadProgramCompiler(compilation, this).CompileRoot(rootName, declaration));
+            program = this.roots.GetOrAdd(rootName, new ReadProgramCompiler(compilation, this).CompileRoot(rootName, declaration));
         }
 
-        Volatile.Write(ref this.lastRoot, new RootEntry(rootName, outcome));
-        return outcome;
+        Volatile.Write(ref this.lastRoot, new RootEntry(rootName, program));
+        return program;
     }
 
     /// <summary>Returns the slots a capture of <paramref name="name"/> is published to under each qualified prefix.</summary>
@@ -125,22 +127,22 @@ internal sealed class ReadProgramCache
     public ReadProgram.QualifiedTarget[] GetQualifiedTargets(string name)
         => this.qualifiedTargets.TryGetValue(name, out ReadProgram.QualifiedTarget[]? targets) ? targets : NoTargets;
 
-    /// <summary>One cached root lookup: a declared root's name and its outcome.</summary>
+    /// <summary>One cached root lookup: a declared root's name and its program.</summary>
     private sealed class RootEntry
     {
         /// <summary>Stores the lookup.</summary>
         /// <param name="name">The root's name.</param>
-        /// <param name="outcome">The root's program or reason.</param>
-        public RootEntry(string name, ReadProgramOutcome outcome)
+        /// <param name="program">The root's program.</param>
+        public RootEntry(string name, ReadProgram program)
         {
             this.Name = name;
-            this.Outcome = outcome;
+            this.Program = program;
         }
 
         /// <summary>Gets the root's name.</summary>
         public string Name { get; }
 
-        /// <summary>Gets the root's program or reason.</summary>
-        public ReadProgramOutcome Outcome { get; }
+        /// <summary>Gets the root's program.</summary>
+        public ReadProgram Program { get; }
     }
 }

@@ -80,10 +80,7 @@ internal sealed class TargetProgramCache
             return program;
         }
 
-        ReadProgramOutcome outcome = new ReadProgramCompiler(compilation, this.Table.ReadPrograms).CompileSelection(view);
-        return this.selections.GetOrAdd(
-            key,
-            outcome.Program ?? throw new InvalidOperationException("The compiled engine cannot read the selected member " + view.Name + ": " + outcome.Reason));
+        return this.selections.GetOrAdd(key, new ReadProgramCompiler(compilation, this.Table.ReadPrograms).CompileSelection(view));
     }
 
     /// <summary>

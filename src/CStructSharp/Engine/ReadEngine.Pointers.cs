@@ -248,7 +248,7 @@ internal static partial class ReadEngine
     private static object ReadPointerComposite<TCursor>(ref TCursor cursor, ref ReadEngineState state, ReadPointerTarget target)
         where TCursor : struct, IReadCursor
     {
-        ReadProgram program = target.Program ??= state.Slots.Table.ReadPrograms.GetComposite(state.Layout.Compilation, target.Composite!).Program!;
+        ReadProgram program = target.Program ??= state.Slots.Table.ReadPrograms.GetComposite(state.Layout.Compilation, target.Composite!);
         if (program.Kind == ReadProgramKind.Union)
         {
             return ReadUnion(ref cursor, ref state, program, promoted: false);

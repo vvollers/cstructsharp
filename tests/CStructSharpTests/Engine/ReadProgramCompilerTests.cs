@@ -12,34 +12,34 @@ using CStructSharp.Compilation.Programs;
 [TestClass]
 public class ReadProgramCompilerTests
 {
-    /// <summary>Constructing a layout compiles nothing; a request compiles once and later requests get the same outcome.</summary>
+    /// <summary>Constructing a layout compiles nothing; a request compiles once and later requests get the same program.</summary>
     [TestMethod]
     public void Programs_AreCompiledLazily_AndCachedPerComposite()
     {
         var layout = new CStruct("struct leaf { uint8 k; }; struct root { leaf a; leaf b; };");
         Assert.IsFalse(layout.Compilation.HasSlotTable, "construction builds no slot table and no program");
 
-        ReadProgramOutcome root = layout.Compilation.GetRootReadProgram("root");
-        Assert.IsNotNull(root.Program);
+        ReadProgram? root = layout.Compilation.GetRootReadProgram("root");
+        Assert.IsNotNull(root);
         Assert.AreSame(root, layout.Compilation.GetRootReadProgram("root"));
-        ReadProgramOutcome composite = layout.Compilation.GetReadProgram(Composite(layout, "root"));
-        Assert.AreSame(composite.Program, root.Program!.Nested[0]);
+        ReadProgram composite = layout.Compilation.GetReadProgram(Composite(layout, "root"));
+        Assert.AreSame(composite, root.Nested[0]);
         Assert.AreSame(composite, layout.Compilation.GetReadProgram(Composite(layout, "root")));
 
-        ReadProgram leaf = layout.Compilation.GetReadProgram(Composite(layout, "leaf")).Program!;
-        Assert.HasCount(1, composite.Program!.Nested, "both members share the leaf's one program");
-        Assert.AreSame(leaf, composite.Program.Nested[0]);
+        ReadProgram leaf = layout.Compilation.GetReadProgram(Composite(layout, "leaf"));
+        Assert.HasCount(1, composite.Nested, "both members share the leaf's one program");
+        Assert.AreSame(leaf, composite.Nested[0]);
     }
 
-    /// <summary>Concurrent first requests publish one outcome that every caller then sees.</summary>
+    /// <summary>Concurrent first requests publish one program that every caller then sees.</summary>
     [TestMethod]
-    public void ConcurrentRequests_ShareOnePublishedOutcome()
+    public void ConcurrentRequests_ShareOnePublishedProgram()
     {
         var layout = new CStruct("struct leaf { uint8 k; uint16 n; uint8 v[n]; }; struct root { leaf a; uint8 m; leaf b[m]; };");
-        var outcomes = new ReadProgramOutcome[16];
-        Parallel.For(0, outcomes.Length, index => outcomes[index] = layout.Compilation.GetRootReadProgram("root"));
-        Assert.IsTrue(outcomes.All(outcome => ReferenceEquals(outcome, outcomes[0])));
-        Assert.IsNotNull(outcomes[0].Program);
+        var programs = new ReadProgram?[16];
+        Parallel.For(0, programs.Length, index => programs[index] = layout.Compilation.GetRootReadProgram("root"));
+        Assert.IsTrue(programs.All(program => ReferenceEquals(program, programs[0])));
+        Assert.IsNotNull(programs[0]);
     }
 
     /// <summary>A packed layout never pads, so no member gets a placement step and the tail is empty.</summary>
@@ -357,9 +357,9 @@ public class ReadProgramCompilerTests
         SlotTable table = layout.Compilation.SlotTable;
         ReadProgram root = RootProgram(layout, "root").Nested[0];
         AssertLines(new[] { "ReadStruct a mid, prefix a.", "ReadStruct hdr hdr, prefix hdr." }, ReadProgramDump.Lines(root, table).Where(line => line.StartsWith("ReadStruct", StringComparison.Ordinal)).ToArray());
-        ReadProgram leaf = layout.Compilation.GetReadProgram(Composite(layout, "leaf")).Program!;
+        ReadProgram leaf = layout.Compilation.GetReadProgram(Composite(layout, "leaf"));
         CollectionAssert.Contains(ReadProgramDump.Lines(leaf, table), "PublishQualified n n -> a.b.*=a.b.n, b.*=b.n, hdr.*=hdr.n");
-        ReadProgram mid = layout.Compilation.GetReadProgram(Composite(layout, "mid")).Program!;
+        ReadProgram mid = layout.Compilation.GetReadProgram(Composite(layout, "mid"));
         CollectionAssert.Contains(ReadProgramDump.Lines(mid, table), "ReadStruct b leaf, prefix b.");
     }
 
@@ -462,20 +462,20 @@ public class ReadProgramCompilerTests
 
         ReadProgram named = root.Nested[root.Steps.Single(step => step.Op == ReadOpCode.ReadStruct).A];
         Assert.AreEqual(ReadProgramKind.Composite, named.Kind);
-        Assert.AreSame(named, layout.Compilation.GetReadProgram(named.Composite!).Program, "an inline named struct's program is cached with its composite");
+        Assert.AreSame(named, layout.Compilation.GetReadProgram(named.Composite!), "an inline named struct's program is cached with its composite");
         Assert.IsTrue(root.NotesMembers);
     }
 
     /// <summary>
-    ///     An undeclared name has no program, with the reason; a definition whose value is not an integer stores no value,
-    ///     so its program reads nothing.
+    ///     An undeclared name has no program; a definition whose value is not an integer stores no value, so its program
+    ///     reads nothing.
     /// </summary>
     [TestMethod]
-    public void Reasons_NameTheInnermostUnsupportedMember()
+    public void UndeclaredRoot_HasNoProgram_AndATextDefinitionReadsNothing()
     {
-        AssertReason("struct root { uint8 a; };", "missing", "missing: the layout declares no such root");
+        Assert.IsNull(new CStruct("struct root { uint8 a; };").Compilation.GetRootReadProgram("missing"));
         var text = new CStruct("#define MAGIC \"PNG\"\nstruct root { uint8 a; };");
-        Assert.IsEmpty(text.Compilation.GetRootReadProgram("MAGIC").Program!.Steps);
+        Assert.IsEmpty(text.Compilation.GetRootReadProgram("MAGIC")!.Steps);
     }
 
     /// <summary>
@@ -562,32 +562,21 @@ public class ReadProgramCompilerTests
     private static void AssertLines(IEnumerable<string> expected, IEnumerable<string> actual, string? message = null)
         => Assert.AreEqual(string.Join("\n", expected), string.Join("\n", actual), message);
 
-    /// <summary>Asserts that a root is refused with an exact reason.</summary>
-    /// <param name="definition">The layout.</param>
-    /// <param name="root">The root.</param>
-    /// <param name="reason">The expected reason.</param>
-    private static void AssertReason(string definition, string root, string reason)
-    {
-        ReadProgramOutcome outcome = new CStruct(definition).Compilation.GetRootReadProgram(root);
-        Assert.IsNull(outcome.Program, definition);
-        Assert.AreEqual(reason, outcome.Reason, definition);
-    }
-
     /// <summary>Returns a composite of a layout by name.</summary>
     /// <param name="layout">The layout.</param>
     /// <param name="name">The composite's name.</param>
     /// <returns>The composite.</returns>
     private static CompiledCompositeType Composite(CStruct layout, string name) => (CompiledCompositeType)layout.CompiledModel.Symbols[name].Symbol.Definition!;
 
-    /// <summary>Returns the program of an eligible root.</summary>
+    /// <summary>Returns the program of a declared root.</summary>
     /// <param name="layout">The layout.</param>
     /// <param name="root">The root.</param>
     /// <returns>The root program.</returns>
     private static ReadProgram RootProgram(CStruct layout, string root)
     {
-        ReadProgramOutcome outcome = layout.Compilation.GetRootReadProgram(root);
-        Assert.IsNotNull(outcome.Program, outcome.Reason);
-        return outcome.Program;
+        ReadProgram? program = layout.Compilation.GetRootReadProgram(root);
+        Assert.IsNotNull(program, root);
+        return program;
     }
 
     /// <summary>Returns the compact step lines of a struct root's composite program.</summary>

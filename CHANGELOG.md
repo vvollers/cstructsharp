@@ -186,7 +186,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   programs) instead of the pre-engine grammar and traversal; the Portable reference names revision 4, and the glossary
   covers more terms.
 - The library no longer carries code the compiled engine replaced: the stream codec reader table and the stream
-  readers behind it, the writers for numbers the engine encodes itself, and test-only types and members.
+  readers behind it, the writers for numbers the engine encodes itself, test-only types and members, and the
+  read-program eligibility reports (every layout compiles; a read compile that cannot finish is an internal error).
 
 ## 0.10.0 — 2026-09-26
 

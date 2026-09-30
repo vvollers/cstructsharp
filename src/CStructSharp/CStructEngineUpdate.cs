@@ -64,7 +64,7 @@ public sealed partial class CStruct
                 // The comparison reads start from the variables the operation started with.
                 layoutSlots = slots.Clone();
                 capturesLayout = true;
-                layoutProgram = this.compilation.GetRootDebugReadProgram(rootName).Program!;
+                layoutProgram = this.compilation.GetRootDebugReadProgram(rootName)!;
                 originalLayout = this.CaptureLayoutFrom(budget, originalPosition, layoutProgram, layoutSlots, readOptions);
                 budget.Position = originalPosition;
             }
@@ -111,7 +111,7 @@ public sealed partial class CStruct
                     // later field, so the whole layout is captured - from the variables the walk left - and compared.
                     layoutSlots = slots.Clone();
                     capturesLayout = true;
-                    layoutProgram = this.compilation.GetRootDebugReadProgram(rootName).Program!;
+                    layoutProgram = this.compilation.GetRootDebugReadProgram(rootName)!;
                     originalLayout = this.CaptureLayoutFrom(budget, originalPosition, layoutProgram, layoutSlots, readOptions);
                     variableExtentTarget = true;
                     budget.Position = target.Address;

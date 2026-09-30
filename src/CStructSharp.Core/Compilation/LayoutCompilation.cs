@@ -444,25 +444,28 @@ internal sealed partial class LayoutCompilation
     ///     the layout.
     /// </summary>
     /// <param name="composite">A composite of this layout.</param>
-    /// <returns>The program, or the reason the engine cannot read the composite.</returns>
-    public ReadProgramOutcome GetReadProgram(CompiledCompositeType composite) => this.SlotTable.ReadPrograms.GetComposite(this, composite);
+    /// <returns>The program.</returns>
+    /// <exception cref="InvalidOperationException">The composite cannot be read (an internal invariant failure).</exception>
+    public ReadProgram GetReadProgram(CompiledCompositeType composite) => this.SlotTable.ReadPrograms.GetComposite(this, composite);
 
     /// <summary>
-    ///     Returns the compiled engine's read program of a root, compiling it on first request. A root is eligible when
-    ///     every struct it reaches compiled without a reason (engine plan 6.2).
+    ///     Returns the compiled engine's read program of a root, compiling it (and every struct it reaches) on first
+    ///     request.
     /// </summary>
     /// <param name="rootName">A declared root name, or a type spelling already registered as a root.</param>
-    /// <returns>The program, or the reason the engine cannot read the root.</returns>
-    public ReadProgramOutcome GetRootReadProgram(string rootName) => this.SlotTable.ReadPrograms.GetRoot(this, rootName);
+    /// <returns>The program, or <see langword="null"/> for a name the layout does not declare.</returns>
+    /// <exception cref="InvalidOperationException">The root cannot be read (an internal invariant failure).</exception>
+    public ReadProgram? GetRootReadProgram(string rootName) => this.SlotTable.ReadPrograms.GetRoot(this, rootName);
 
     /// <summary>
     ///     Returns the compiled engine's debug read program of a root - the program a debug parse runs, which records every
-    ///     value's byte range and path (<see cref="ReadProgramCache.Debug"/>) - compiling it on first request. It is
-    ///     eligible exactly when <see cref="GetRootReadProgram"/> is: the debug program reads the same members.
+    ///     value's byte range and path (<see cref="ReadProgramCache.Debug"/>) - compiling it on first request. It reads the
+    ///     same members as the program <see cref="GetRootReadProgram"/> returns.
     /// </summary>
     /// <param name="rootName">A declared root name, or a type spelling already registered as a root.</param>
-    /// <returns>The program, or the reason the engine cannot read the root.</returns>
-    public ReadProgramOutcome GetRootDebugReadProgram(string rootName) => this.SlotTable.DebugReadPrograms.GetRoot(this, rootName);
+    /// <returns>The program, or <see langword="null"/> for a name the layout does not declare.</returns>
+    /// <exception cref="InvalidOperationException">The root cannot be read (an internal invariant failure).</exception>
+    public ReadProgram? GetRootDebugReadProgram(string rootName) => this.SlotTable.DebugReadPrograms.GetRoot(this, rootName);
 
     /// <summary>
     ///     Returns the compiled engine's write program of a composite of this layout, compiling it on first request; see

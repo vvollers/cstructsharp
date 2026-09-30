@@ -7,8 +7,9 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 
 /// <summary>
 ///     Translates a compiled struct (or a root) into a <see cref="ReadProgram"/> that reads each member of the
-///     layout in declaration order with its checks - or records why it cannot (<see cref="ReadProgramOutcome.Reason"/>),
-///     naming the innermost struct and member the engine cannot read.
+///     layout in declaration order with its checks. Every supported layout compiles; a member the compiler cannot read is
+///     an internal invariant failure, reported as an <see cref="InvalidOperationException"/> naming the innermost struct
+///     and member at fault.
 /// </summary>
 /// <remarks>
 ///     <para>Per member, in this order:</para>
@@ -91,8 +92,9 @@ internal sealed class ReadProgramCompiler
 
     /// <summary>Compiles a struct read into a value of its own.</summary>
     /// <param name="composite">The composite.</param>
-    /// <returns>The program, or why it cannot be built.</returns>
-    public ReadProgramOutcome CompileComposite(CompiledCompositeType composite)
+    /// <returns>The program.</returns>
+    /// <exception cref="InvalidOperationException">A member cannot be read (an internal invariant failure).</exception>
+    public ReadProgram CompileComposite(CompiledCompositeType composite)
         => composite.IsUnion ? this.CompileUnion(composite) : this.CompileStruct(composite, ReadProgramKind.Composite, composite.Shape);
 
     /// <summary>
@@ -101,8 +103,9 @@ internal sealed class ReadProgramCompiler
     /// </summary>
     /// <param name="rootName">The name the root is requested by.</param>
     /// <param name="declaration">The root's declaration.</param>
-    /// <returns>The program, or why it cannot be built.</returns>
-    public ReadProgramOutcome CompileRoot(string rootName, CStructElement declaration)
+    /// <returns>The program.</returns>
+    /// <exception cref="InvalidOperationException">A member cannot be read (an internal invariant failure).</exception>
+    public ReadProgram CompileRoot(string rootName, CStructElement declaration)
     {
         StructShape rootShape = this.compilation.ModelQueries.GetRootShape(rootName);
         switch (declaration)
@@ -119,7 +122,7 @@ internal sealed class ReadProgramCompiler
                 var unplaced = new ReadPlacement(false);
                 if (this.EmitMember(builder, 0, rootName, standalone: true, ref unplaced) is { } reason)
                 {
-                    return ReadProgramOutcome.NotSupported(reason);
+                    throw Unreadable(reason);
                 }
 
                 return this.CheckPointerTargets(builder.Build(ReadProgramKind.Root, rootName, null));
@@ -131,12 +134,12 @@ internal sealed class ReadProgramCompiler
                 int value = builder.AddExpression(definition.Value, "definition " + definition.Name.Name);
                 int slot = this.cache.Table.TryGetSlot(definition.Name.Name, out int found) ? found : -1;
                 builder.Emit(ReadOpCode.EvaluateDefinition, -1, value, slot);
-                return ReadProgramOutcome.Eligible(builder.Build(ReadProgramKind.Root, rootName, null));
+                return builder.Build(ReadProgramKind.Root, rootName, null);
             }
 
         default:
             // A declaration with no binary storage (a text #define) reads nothing; the root value stays empty.
-            return ReadProgramOutcome.Eligible(new ReadProgramBuilder(this.cache.Table, [], rootShape, 0).Build(ReadProgramKind.Root, rootName, null));
+            return new ReadProgramBuilder(this.cache.Table, [], rootShape, 0).Build(ReadProgramKind.Root, rootName, null);
         }
     }
 
@@ -147,19 +150,25 @@ internal sealed class ReadProgramCompiler
     ///     struct placed (<see cref="ReadOpCode.OpenSeededBitfieldUnit"/>).
     /// </summary>
     /// <param name="field">The selected field, peeled to the element or row the path's indexes select.</param>
-    /// <returns>The program (<see cref="ReadProgramKind.Root"/>), or why it cannot be built.</returns>
-    public ReadProgramOutcome CompileSelection(CompiledField field)
+    /// <returns>The program (<see cref="ReadProgramKind.Root"/>).</returns>
+    /// <exception cref="InvalidOperationException">The member cannot be read (an internal invariant failure).</exception>
+    public ReadProgram CompileSelection(CompiledField field)
     {
         this.selection = true;
         var builder = new ReadProgramBuilder(this.cache.Table, [field], this.compilation.ModelQueries.GetRootShape(field.Name), 0);
         var unplaced = new ReadPlacement(false);
         if (this.EmitMember(builder, 0, field.Name, standalone: true, ref unplaced) is { } reason)
         {
-            return ReadProgramOutcome.NotSupported(reason);
+            throw Unreadable(reason);
         }
 
         return this.CheckPointerTargets(builder.Build(ReadProgramKind.Root, field.Name, null));
     }
+
+    /// <summary>The failure of a compile that meets a member it cannot read: an internal invariant, never a user error.</summary>
+    /// <param name="reason">Where and why, as <c>location: what</c>.</param>
+    /// <returns>The exception to throw.</returns>
+    private static InvalidOperationException Unreadable(string reason) => new("The compiled engine cannot read " + reason + ".");
 
     /// <summary>
     ///     Describes how the target of a pointer field (or of a pointer view that still has levels to follow) is read (checked in
@@ -255,18 +264,15 @@ internal sealed class ReadProgramCompiler
     /// <param name="key">The name the value is stored under (a typedef's name for a typedef of an inline struct or union).</param>
     /// <param name="composite">The struct or union.</param>
     /// <param name="rootShape">The one-member root shape.</param>
-    /// <returns>The program, or why it cannot be built.</returns>
-    private ReadProgramOutcome CompileRootStruct(string rootName, string key, CompiledCompositeType composite, StructShape rootShape)
+    /// <returns>The program.</returns>
+    /// <exception cref="InvalidOperationException">A member cannot be read (an internal invariant failure).</exception>
+    private ReadProgram CompileRootStruct(string rootName, string key, CompiledCompositeType composite, StructShape rootShape)
     {
-        ReadProgramOutcome nested = this.cache.GetComposite(this.compilation, composite);
-        if (nested.Program is not { } program)
-        {
-            return nested;
-        }
+        ReadProgram program = this.cache.GetComposite(this.compilation, composite);
 
         if (!rootShape.TryGetIndex(key, out _))
         {
-            return ReadProgramOutcome.NotSupported(rootName + ": " + NoShapeSlot);
+            throw Unreadable(rootName + ": " + NoShapeSlot);
         }
 
         var builder = new ReadProgramBuilder(this.cache.Table, [], rootShape, 0);
@@ -282,13 +288,14 @@ internal sealed class ReadProgramCompiler
     }
 
     /// <summary>
-    ///     Makes a root eligible only when every struct or union its pointers can reach - through nested programs and
-    ///     through the targets' own pointers - has a program: each is compiled on first request, and the first one that
-    ///     cannot be read gives the root its reason.
+    ///     Compiles, before the root is used, every struct or union its pointers can reach - through nested programs and
+    ///     through the targets' own pointers - so a target that cannot be compiled fails when the root is compiled, not
+    ///     part-way through a read.
     /// </summary>
     /// <param name="root">The root's program.</param>
-    /// <returns>The root's outcome.</returns>
-    private ReadProgramOutcome CheckPointerTargets(ReadProgram root)
+    /// <returns><paramref name="root"/>.</returns>
+    /// <exception cref="InvalidOperationException">A reachable target cannot be read (an internal invariant failure).</exception>
+    private ReadProgram CheckPointerTargets(ReadProgram root)
     {
         var visited = new HashSet<ReadProgram>(ReferenceEqualityComparer.Instance) { root, };
         var pending = new Stack<ReadProgram>();
@@ -311,12 +318,7 @@ internal sealed class ReadProgramCompiler
                     continue;
                 }
 
-                ReadProgramOutcome outcome = this.cache.GetComposite(this.compilation, composite);
-                if (outcome.Program is not { } reached)
-                {
-                    return outcome;
-                }
-
+                ReadProgram reached = this.cache.GetComposite(this.compilation, composite);
                 if (visited.Add(reached))
                 {
                     pending.Push(reached);
@@ -324,7 +326,7 @@ internal sealed class ReadProgramCompiler
             }
         }
 
-        return ReadProgramOutcome.Eligible(root);
+        return root;
     }
 
     /// <summary>
@@ -333,8 +335,9 @@ internal sealed class ReadProgramCompiler
     ///     Conditions on a union's own members are not evaluated there, so none are here.
     /// </summary>
     /// <param name="union">The union.</param>
-    /// <returns>The program, or why it cannot be built.</returns>
-    private ReadProgramOutcome CompileUnion(CompiledCompositeType union)
+    /// <returns>The program.</returns>
+    /// <exception cref="InvalidOperationException">A member cannot be read (an internal invariant failure).</exception>
+    private ReadProgram CompileUnion(CompiledCompositeType union)
     {
         string location = Locate(union);
         CompiledField[] fields = [.. union.Fields];
@@ -345,19 +348,20 @@ internal sealed class ReadProgramCompiler
             builder.Emit(ReadOpCode.RestoreUnionSlots, -1, 0, 0);
             if (this.EmitMember(builder, index, location, standalone: true, ref unplaced) is { } reason)
             {
-                return ReadProgramOutcome.NotSupported(reason);
+                throw Unreadable(reason);
             }
         }
 
-        return ReadProgramOutcome.Eligible(builder.Build(ReadProgramKind.Union, union.Name, union));
+        return builder.Build(ReadProgramKind.Union, union.Name, union);
     }
 
     /// <summary>Compiles a struct's members into a program.</summary>
     /// <param name="composite">The struct.</param>
     /// <param name="kind">Whether it has a value of its own or is promoted into its parent's.</param>
     /// <param name="shape">The layout of the value its members are stored into.</param>
-    /// <returns>The program, or why it cannot be built.</returns>
-    private ReadProgramOutcome CompileStruct(CompiledCompositeType composite, ReadProgramKind kind, StructShape shape)
+    /// <returns>The program.</returns>
+    /// <exception cref="InvalidOperationException">A member cannot be read (an internal invariant failure).</exception>
+    private ReadProgram CompileStruct(CompiledCompositeType composite, ReadProgramKind kind, StructShape shape)
     {
         string location = Locate(composite);
         CompiledField[] fields = [.. composite.Fields];
@@ -407,7 +411,7 @@ internal sealed class ReadProgramCompiler
             ReadPlacement before = placement;
             if (this.EmitMember(builder, index, location, standalone: false, ref placement) is { } reason)
             {
-                return ReadProgramOutcome.NotSupported(reason);
+                throw Unreadable(reason);
             }
 
             if (builder.Scope is { } mapped && mapped.HasEffect(index))
@@ -433,17 +437,17 @@ internal sealed class ReadProgramCompiler
         if (builder.UsesPlacementCursor)
         {
             builder.Emit(ReadOpCode.FinishPlaced, -1, 0, alignment);
-            return ReadProgramOutcome.Eligible(builder.Build(kind, composite.Name, composite));
+            return builder.Build(kind, composite.Name, composite);
         }
 
         bool knownTail = placement.TryFinish(alignment, out int padding);
         if (knownTail && placement.KnownOffset is long end && composite.Symbol.FixedSize is int size && end + padding != size)
         {
-            return ReadProgramOutcome.NotSupported(location + ": " + PlacementMismatch);
+            throw Unreadable(location + ": " + PlacementMismatch);
         }
 
         builder.Emit(ReadOpCode.FinishComposite, -1, knownTail ? padding : -1, alignment);
-        return ReadProgramOutcome.Eligible(builder.Build(kind, composite.Name, composite));
+        return builder.Build(kind, composite.Name, composite);
     }
 
     /// <summary>
@@ -676,13 +680,9 @@ internal sealed class ReadProgramCompiler
 
         // An anonymous struct is compiled into this program's value; an anonymous union keeps its own cached program,
         // whose views are copied into this value after it is read.
-        ReadProgramOutcome nested = promoted && !composite.IsUnion
-                                        ? this.CompileStruct(composite, ReadProgramKind.Promoted, builder.Shape)
-                                        : this.cache.GetComposite(this.compilation, composite);
-        if (nested.Program is not { } program)
-        {
-            return nested.Reason;
-        }
+        ReadProgram program = promoted && !composite.IsUnion
+                                  ? this.CompileStruct(composite, ReadProgramKind.Promoted, builder.Shape)
+                                  : this.cache.GetComposite(this.compilation, composite);
 
         // A promoted struct's deferred pointers are followed by this struct.
         builder.DefersPointers |= promoted && program.DefersPointers;
@@ -772,11 +772,7 @@ internal sealed class ReadProgramCompiler
         case CompiledArrayKind.Scalar:
             if (field.Composite is { } nested)
             {
-                ReadProgramOutcome outcome = this.cache.GetComposite(this.compilation, nested);
-                if (outcome.Program is not { } program)
-                {
-                    return outcome.Reason;
-                }
+                ReadProgram program = this.cache.GetComposite(this.compilation, nested);
 
                 ReadOpCode read = (nested.IsUnion, this.debug) switch
                 {
@@ -839,11 +835,7 @@ internal sealed class ReadProgramCompiler
         bool table = field.Array.Dimensions.Length > 1;
         if (field.Composite is { } nested)
         {
-            ReadProgramOutcome outcome = this.cache.GetComposite(this.compilation, nested);
-            if (outcome.Program is not { } program)
-            {
-                return outcome.Reason;
-            }
+            ReadProgram program = this.cache.GetComposite(this.compilation, nested);
 
             // The engine takes an element struct's block path over the whole array only for one dimension, and never
             // for union elements.

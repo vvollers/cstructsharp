@@ -184,7 +184,7 @@ internal sealed record EngineCorpusCase(
         }
 
         // Every root the corpora declare compiles into the engine's programs.
-        Assert.IsNull(layout.Compilation.GetRootReadProgram(root).Reason, this.Id + ": the engine cannot read " + root);
+        Assert.IsNotNull(layout.Compilation.GetRootReadProgram(root), this.Id + ": the engine has no program for " + root);
         ReadOptions read = this.Read ?? new ReadOptions();
         byte[] data = this.Data;
         IReadOnlyDictionary<string, int>? variables = this.Variables;

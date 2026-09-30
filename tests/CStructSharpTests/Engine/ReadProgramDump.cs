@@ -50,23 +50,23 @@ internal static class ReadProgramDump
     /// <summary>Renders the program of a root of a layout.</summary>
     /// <param name="layout">The layout.</param>
     /// <param name="root">The root name.</param>
-    /// <returns>The text; fails the test when the root has no program.</returns>
+    /// <returns>The text; fails the test when the layout does not declare the root.</returns>
     public static string RenderRoot(CStruct layout, string root)
     {
-        ReadProgramOutcome outcome = layout.Compilation.GetRootReadProgram(root);
-        Assert.IsNotNull(outcome.Program, outcome.Reason);
-        return Render(outcome.Program, layout.Compilation.SlotTable);
+        ReadProgram? program = layout.Compilation.GetRootReadProgram(root);
+        Assert.IsNotNull(program, root);
+        return Render(program, layout.Compilation.SlotTable);
     }
 
     /// <summary>Renders the debug program of a root of a layout, the program a debug parse runs.</summary>
     /// <param name="layout">The layout.</param>
     /// <param name="root">The root name.</param>
-    /// <returns>The text; fails the test when the root has no debug program.</returns>
+    /// <returns>The text; fails the test when the layout does not declare the root.</returns>
     public static string RenderDebugRoot(CStruct layout, string root)
     {
-        ReadProgramOutcome outcome = layout.Compilation.GetRootDebugReadProgram(root);
-        Assert.IsNotNull(outcome.Program, outcome.Reason);
-        return Render(outcome.Program, layout.Compilation.SlotTable);
+        ReadProgram? program = layout.Compilation.GetRootDebugReadProgram(root);
+        Assert.IsNotNull(program, root);
+        return Render(program, layout.Compilation.SlotTable);
     }
 
     /// <summary>

@@ -529,7 +529,7 @@ internal static partial class ReadEngine
         SlotTable table = state.Slots.Table;
         if (state.Debug is not null)
         {
-            ReadProgram recorded = table.DebugReadPrograms.GetComposite(state.Layout.Compilation, composite).Program!;
+            ReadProgram recorded = table.DebugReadPrograms.GetComposite(state.Layout.Compilation, composite);
             if (recorded.Kind == ReadProgramKind.Union)
             {
                 return ReadRecordedUnion(ref cursor, ref state, recorded, promoted: false, path);
@@ -540,7 +540,7 @@ internal static partial class ReadEngine
             return recordedValue;
         }
 
-        ReadProgram program = table.ReadPrograms.GetComposite(state.Layout.Compilation, composite).Program!;
+        ReadProgram program = table.ReadPrograms.GetComposite(state.Layout.Compilation, composite);
         if (program.Kind == ReadProgramKind.Union)
         {
             return ReadUnion(ref cursor, ref state, program, promoted: false);

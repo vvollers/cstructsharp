@@ -116,7 +116,6 @@
       "**/CStructSharp.Core/Compilation/Programs/ReadProgramBuilder.cs",
       "**/CStructSharp.Core/Compilation/Programs/ReadProgramCache.cs",
       "**/CStructSharp.Core/Compilation/Programs/ReadProgramCompiler.cs",
-      "**/CStructSharp.Core/Compilation/Programs/ReadProgramOutcome.cs",
       "**/CStructSharp.Core/Compilation/Programs/SlotEvaluationSession.cs",
       "**/CStructSharp.Core/Compilation/Programs/SlotTable.cs",
       "**/CStructSharp.Core/Compilation/Programs/SlotValue.cs",

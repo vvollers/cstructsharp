@@ -112,6 +112,6 @@ public class EngineLayoutCaptureTests
         using var stream = new MemoryStream([1]);
         Diagnostics.CStructPathException failure = Assert.Throws<Diagnostics.CStructPathException>(() => EngineLayoutCapture.Capture(layout, stream, 0, "missing", variables, settings));
         StringAssert.Contains(failure.Message, "missing");
-        Assert.IsNull(layout.Compilation.GetRootDebugReadProgram("missing").Program);
+        Assert.IsNull(layout.Compilation.GetRootDebugReadProgram("missing"));
     }
 }

@@ -50,7 +50,7 @@ internal static class EnginePrograms
     public static ReadProgram? RootRead(LayoutCompilation compilation, string rootName)
     {
         EngineDiagnostics.Current?.RecordRun(EngineOperation.RootRead);
-        return Require(compilation, rootName, compilation.GetRootReadProgram(rootName));
+        return compilation.GetRootReadProgram(rootName);
     }
 
     /// <summary>
@@ -63,7 +63,7 @@ internal static class EnginePrograms
     public static ReadProgram? DebugRead(LayoutCompilation compilation, string rootName)
     {
         EngineDiagnostics.Current?.RecordRun(EngineOperation.DebugRead);
-        return Require(compilation, rootName, compilation.GetRootDebugReadProgram(rootName));
+        return compilation.GetRootDebugReadProgram(rootName);
     }
 
     /// <summary>
@@ -101,25 +101,4 @@ internal static class EnginePrograms
     ///     whose programs the update looks up as it resolves its path (<c>CStruct.UpdateWithEngine</c>).
     /// </summary>
     public static void Update() => EngineDiagnostics.Current?.RecordRun(EngineOperation.Update);
-
-    /// <summary>
-    ///     Returns a root's read program, or <see langword="null"/> for a root the layout does not declare, which the
-    ///     operation reports where its contract names.
-    /// </summary>
-    /// <param name="compilation">The layout.</param>
-    /// <param name="rootName">The root's name.</param>
-    /// <param name="outcome">The program lookup.</param>
-    /// <returns>The program, or <see langword="null"/>.</returns>
-    /// <exception cref="InvalidOperationException">The layout declares the root, but the engine cannot read it.</exception>
-    private static ReadProgram? Require(LayoutCompilation compilation, string rootName, ReadProgramOutcome outcome)
-    {
-        if (outcome.Program is { } program)
-        {
-            return program;
-        }
-
-        return compilation.ModelQueries.TryGetCompiledDeclaration(rootName, out _)
-                   ? throw new InvalidOperationException("The compiled engine cannot read " + outcome.Reason + ".")
-                   : null;
-    }
 }

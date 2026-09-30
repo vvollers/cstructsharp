@@ -333,7 +333,7 @@ public class TargetResolverTests
     {
         foreach (string root in roots)
         {
-            Assert.IsNotNull(layout.Compilation.GetRootReadProgram(root).Program, root + ": " + layout.Compilation.GetRootReadProgram(root).Reason);
+            Assert.IsNotNull(layout.Compilation.GetRootReadProgram(root), root);
         }
     }
 }

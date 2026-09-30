@@ -4,7 +4,7 @@
  "files": [
   {
    "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.cs",
-   "sourceSha256": "28897261f9cf218c11babebb574acab971a46f4f6cc979edf8c9bfcb6348d906",
+   "sourceSha256": "dcbf693d5991c1eb07b3a898de901c20c84c49ccff4a99ce83c077542b70fe0a",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": "remainingDeclarations-- >= 0",
      "location": {"start":{"line":392,"column":42},"end":{"line":392,"column":69}},
@@ -922,23 +922,14 @@
   },
   {
    "pattern": "Engine/EnginePrograms.cs",
-   "sourceSha256": "c5bb1cd026b5c16bcfaddf1261fe46f8ad8b916de64147857fd2d91b006b2f06",
+   "sourceSha256": "14f3c85478eff2a0c7587672f3b77d48d9db8d5eece3d3eda16413590680d7ea",
    "mutants": [
     { "mutatorName": "Logical mutation", "replacement": "CompiledArrayKind.Runtime and CompiledArrayKind.ToEnd",
      "location": {"start":{"line":41,"column":31},"end":{"line":41,"column":83}},
      "reason": "Removing Runtime and ToEnd from the resolve-first kinds changes only who takes those root counts first: the path resolver (ArrayCount, DynamicArrayExtent.CountToEnd) or the root program (EvaluateCount, CountToEnd). Both evaluate the same count expression or the same arithmetic count from the input length, fail with the same ReadFailures text (negative count, element limit, partial element) at offset 0, read and charge no byte, and note no member (the root program does not note members). A terminated root stays resolved first, which charges its scan twice (RootCountResolutionTests), and a multidimensional one checks its outermost count first (the Dimensions test is unchanged)." },
     { "mutatorName": "Equality mutation", "replacement": "root.Array.Dimensions.Length >= 1",
      "location": {"start":{"line":41,"column":119},"end":{"line":41,"column":151}},
-     "reason": "Dimensions.Length >= 1 adds one-dimensional fixed roots to the resolve-first kinds (a scalar root has no dimensions). The resolver checks such a count exactly as the root program checks it (CheckFixedCount before placement): the same ReadFailures.ArrayLengthLimit text at offset 0, with nothing read or charged and no member noted, so the added resolution changes no outcome." },
-    { "mutatorName": "Conditional (false) mutation", "replacement": "(false?throw new InvalidOperationException(\"The compiled engine cannot read \" + outcome.Reason + \".\")\n:null)",
-     "location": {"start":{"line":121,"column":16},"end":{"line":123,"column":26}},
-     "reason": "Require reaches its declared-root branch only when a declared root has no read program. Every declaration kind compiles: structs and inline-struct typedefs to their composite programs, typedef and enum roots to a standalone field (a type without a reader compiles to FailNoReader), #define roots to EvaluateDefinition, and any other declaration (a text #define) to an empty program; the remaining compiler reasons (placement contradicting the compiled offset, a shape without the member, bitfield arrays) are invariants the layout compilation already enforces, and the eligibility reports pin every corpus root as eligible. The throw, its message and its operands are therefore unreachable." },
-    { "mutatorName": "String mutation", "replacement": "\"\"",
-     "location": {"start":{"line":122,"column":58},"end":{"line":122,"column":92}},
-     "reason": "Require reaches its declared-root branch only when a declared root has no read program. Every declaration kind compiles: structs and inline-struct typedefs to their composite programs, typedef and enum roots to a standalone field (a type without a reader compiles to FailNoReader), #define roots to EvaluateDefinition, and any other declaration (a text #define) to an empty program; the remaining compiler reasons (placement contradicting the compiled offset, a shape without the member, bitfield arrays) are invariants the layout compilation already enforces, and the eligibility reports pin every corpus root as eligible. The throw, its message and its operands are therefore unreachable." },
-    { "mutatorName": "String mutation", "replacement": "\"\"",
-     "location": {"start":{"line":122,"column":112},"end":{"line":122,"column":115}},
-     "reason": "Require reaches its declared-root branch only when a declared root has no read program. Every declaration kind compiles: structs and inline-struct typedefs to their composite programs, typedef and enum roots to a standalone field (a type without a reader compiles to FailNoReader), #define roots to EvaluateDefinition, and any other declaration (a text #define) to an empty program; the remaining compiler reasons (placement contradicting the compiled offset, a shape without the member, bitfield arrays) are invariants the layout compilation already enforces, and the eligibility reports pin every corpus root as eligible. The throw, its message and its operands are therefore unreachable." }
+     "reason": "Dimensions.Length >= 1 adds one-dimensional fixed roots to the resolve-first kinds (a scalar root has no dimensions). The resolver checks such a count exactly as the root program checks it (CheckFixedCount before placement): the same ReadFailures.ArrayLengthLimit text at offset 0, with nothing read or charged and no member noted, so the added resolution changes no outcome." }
    ]
   },
   {
