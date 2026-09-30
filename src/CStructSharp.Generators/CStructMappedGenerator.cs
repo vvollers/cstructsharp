@@ -52,6 +52,14 @@ public sealed class CStructMappedGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(requests.Combine(layouts), static (productionContext, pair) => Generate(productionContext, pair.Left, pair.Right));
     }
 
+    /// <summary>
+    ///     Captures what the mapped generator needs from one <c>[CStructMapped]</c> type as an equatable request: its
+    ///     name, namespace, containing types with their declaration keywords, accessibility and kind, whether it and its
+    ///     containers are partial, the <c>Layout</c> argument, and every public settable property it maps.
+    /// </summary>
+    /// <param name="context">The attributed type's syntax and symbol.</param>
+    /// <param name="cancellation">Cancels reading the declaring syntax.</param>
+    /// <returns>The request; <see langword="null"/> when the target is not a named type declaration.</returns>
     private static MappedRequest? CreateRequest(GeneratorAttributeSyntaxContext context, CancellationToken cancellation)
     {
         if (context.TargetSymbol is not INamedTypeSymbol symbol || context.TargetNode is not TypeDeclarationSyntax declaration)
