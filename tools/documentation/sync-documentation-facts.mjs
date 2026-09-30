@@ -133,6 +133,22 @@ function typicalCosts() {
   return `\n${renderBlock({ summary: record.managed, js: record.javascript, runtime })}`;
 }
 
+/**
+ * The number of tested recipes, counted from the recipe table.
+ * @returns {string} The count as decimal text.
+ */
+function recipeCount() {
+  return String(recipes.length);
+}
+
+/**
+ * The line a run of every documentation scenario ends with, counted from the scenario table in the example runner.
+ * @returns {string} The inline-code text, such as `PASS all 58 scenarios` in backticks.
+ */
+function scenarioCount() {
+  return `\`PASS all ${scenarioNames().length} scenarios\``;
+}
+
 /** Every fact: its name, the page (repository-relative), its markers, and the renderer of the text between them. */
 const FACTS = [
   { name: "benchmark-fixture", page: "benchmarks/js/README.md", start: "<!-- benchmark-fixture-facts:start -->", end: "<!-- benchmark-fixture-facts:end -->", render: benchmarkFixtureFacts },
@@ -140,8 +156,8 @@ const FACTS = [
   { name: "accessor-costs", page: "docs/guides/performance.md", ...factMarkers("accessor-costs"), render: accessorCosts },
   { name: "mapped-direct-costs", page: "docs/guides/generated/mapped-classes.md", ...factMarkers("mapped-direct-costs"), render: mappedDirectCosts },
   { name: "npm-package-size", page: "packages/cstructsharp/README.md", ...factMarkers("npm-package-size"), render: npmPackageSize },
-  { name: "recipe-count", page: "docs/examples/index.md", ...factMarkers("recipe-count"), render: () => String(recipes.length) },
-  { name: "scenario-count", page: "docs/examples/index.md", ...factMarkers("scenario-count"), render: () => `\`PASS all ${scenarioNames().length} scenarios\`` },
+  { name: "recipe-count", page: "docs/examples/index.md", ...factMarkers("recipe-count"), render: recipeCount },
+  { name: "scenario-count", page: "docs/examples/index.md", ...factMarkers("scenario-count"), render: scenarioCount },
 ];
 
 /**
