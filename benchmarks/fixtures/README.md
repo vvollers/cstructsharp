@@ -13,7 +13,8 @@ dotnet run --project benchmarks/CStructSharp.FixtureTool -c Release -f net10.0 -
 ```
 
 Real-format fixtures are imported from `apps/inspector/src/schema-catalog/`, which `WellKnownFormatTests.cs` verifies;
-conditional fixtures reuse `benchmarks/fixtures/conditional-cases.json` definitions. The canonical JSON shape mirrors
+every other fixture, including the three conditional ones (`cond-plain128`, `cond-if128`, `cond-switch128`), is
+declared in `generate-fixtures.mjs`. The canonical JSON shape mirrors
 the WASM bridge (`CStructJsonConversion.cs`) so the JS harness can compare `result.data` directly.
 Expectations are inputs to the correctness gate: never regenerate them to hide a behavior change.
 `verify` checks the expected exception type, the SHA-256 and length of the canonical JSON, and the inline value when

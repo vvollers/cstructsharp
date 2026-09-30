@@ -64,7 +64,7 @@ public class GeneratedBenchmarks
     /// <summary>Generated <c>Parse</c> of the record into its typed class.</summary>
     /// <returns>The generated record.</returns>
     [Benchmark]
-    [BenchmarkCategory("Impact", "PrimRecord", "Gate")]
+    [BenchmarkCategory("Impact", "PrimRecord")]
     public PrimRecordLayout.Root Generated_PrimRecord_Parse() => PrimRecordLayout.Parse(this.primRecord.Bytes);
 
     /// <summary>Reads every member of the record through the generated view, which allocates nothing.</summary>
@@ -138,7 +138,7 @@ public class GeneratedBenchmarks
     /// <summary>Generated <c>Parse</c> of the 256 nested records, which creates 256 object trees.</summary>
     /// <returns>The generated root.</returns>
     [Benchmark]
-    [BenchmarkCategory("Nested256", "Gate")]
+    [BenchmarkCategory("Impact", "Nested256")]
     public NestedLayout.Root Generated_Nested256_Parse() => NestedLayout.Parse(this.nested.Bytes);
 
     /// <summary>Reads three members of each record through one generated view per element.</summary>

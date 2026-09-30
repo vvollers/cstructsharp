@@ -202,7 +202,7 @@ public class SequenceBenchmarks
     /// <summary>Reads the same members through the generated view enumerator.</summary>
     /// <returns>The sum of the members.</returns>
     [Benchmark]
-    [BenchmarkCategory("Records256View", "Gate")]
+    [BenchmarkCategory("Impact", "Records256View")]
     public double Generated_Records256_ViewEnumerator()
     {
         double sum = 0;

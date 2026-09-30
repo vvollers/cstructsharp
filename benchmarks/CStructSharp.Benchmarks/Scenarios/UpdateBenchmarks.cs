@@ -97,7 +97,7 @@ public class UpdateBenchmarks
     /// <summary>Updates the scalar inside the pointer target, which the update reaches by following the stored pointer.</summary>
     /// <returns>The stream position after the update.</returns>
     [Benchmark]
-    [BenchmarkCategory("Gate")]
+    [BenchmarkCategory("Impact")]
     public long Update_PointerTarget()
     {
         this.pointerStream.Position = 0;

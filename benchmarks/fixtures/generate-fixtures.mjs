@@ -8,8 +8,8 @@
 // afterwards so the managed library is the single source of truth for expectations.
 //
 // Real-format fixtures are imported from apps/inspector/src/schema-catalog/, which is itself verified byte-for-byte
-// by tests/CStructSharpTests/Quality/WellKnownFormatTests.cs. Conditional fixtures reuse the definitions in
-// conditional-cases.json (kept from the retired comparison harness). Everything else is synthetic and seeded, so re-running this script is a no-op diff.
+// by tests/CStructSharpTests/Quality/WellKnownFormatTests.cs. Everything else, including the conditional
+// fixtures, is synthetic and seeded, so re-running this script is a no-op diff.
 import fs from "node:fs";
 import { registerHooks } from "node:module";
 import path from "node:path";
@@ -515,10 +515,14 @@ for (const depth of [1, 8, 64]) {
 // ---------------------------------------------------------------- S-COND -----------------------------------------------------------
 
 {
-  const conditional = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "benchmarks/fixtures/conditional-cases.json"), "utf8"));
-  for (const name of ["plain128", "if128", "switch128"]) {
-    const source = conditional.find((c) => c.name === name);
-    if (!source) throw new Error(`Conditional case ${name} not found in conditional-cases.json.`);
+  // One 128-entry record three ways: its middle member is plain, an if/else arm, or a switch arm. The three cases
+  // differ only in that member, so comparing them gives the cost of evaluating a conditional group.
+  const middles = {
+    plain128: "uint32 value;",
+    if128: "if (tag == 1) { uint32 value; } else { uint16 small; }",
+    switch128: "switch (tag) { case 1: { uint32 value; } default: { uint16 small; } }",
+  };
+  for (const [name, middle] of Object.entries(middles)) {
     // Mixed tags so both arms are exercised: tag 1 → uint32 value, otherwise uint16 small; tail always uint16.
     const next = xorshift32(0x5eed00a0);
     const b = new ByteBuilder();
@@ -532,9 +536,9 @@ for (const depth of [1, 8, 64]) {
       id: `cond-${name}`,
       scenario: "S-COND",
       tags: ["warm"],
-      definition: source.definition,
+      definition: `struct entry { uint8 tag; ${middle} uint16 tail; }; struct root { entry items[128]; };`,
       bytes: b.toBytes(),
-      notes: "Definition reused from benchmarks/fixtures/conditional-cases.json; bytes regenerated with mixed tags.",
+      notes: "128 entries whose middle member is plain, an if/else arm or a switch arm; the conditional cases mix tags so both arms are read.",
     });
   }
 }

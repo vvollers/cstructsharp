@@ -87,7 +87,7 @@ public class ReadBenchmarks
     /// <summary>Parses <c>uint8[1024]</c> from a stream.</summary>
     /// <returns>The parsed root.</returns>
     [Benchmark]
-    [BenchmarkCategory("Gate")]
+    [BenchmarkCategory("Impact")]
     public StructValue ParsePrimitiveArray1KiB()
     {
         this.array1KiBStream.Position = 0;
@@ -163,7 +163,7 @@ public class ReadBenchmarks
     /// <summary>Parses the five-byte record from memory.</summary>
     /// <returns>The parsed root.</returns>
     [Benchmark]
-    [BenchmarkCategory("TypedRead", "MemoryIo", "Gate")]
+    [BenchmarkCategory("TypedRead", "MemoryIo")]
     public StructValue ParseSmallRootMemory()
     {
         return this.typedLayout.Parse(this.typedBytes.AsSpan(), "root");
@@ -182,7 +182,7 @@ public class ReadBenchmarks
     /// <summary>Reads the five-byte record into <see cref="TypedRoot"/> from memory.</summary>
     /// <returns>The mapped record.</returns>
     [Benchmark]
-    [BenchmarkCategory("Impact", "TypedRead", "MemoryIo", "Gate")]
+    [BenchmarkCategory("Impact", "TypedRead", "MemoryIo")]
     public TypedRoot ReadTypedSmallRootMemory()
     {
         return this.typedLayout.ReadValue<TypedRoot>(this.typedBytes.AsSpan(), "root");
@@ -201,7 +201,7 @@ public class ReadBenchmarks
     /// <summary>Reads <c>root.value</c> as a <see cref="ushort"/> from memory.</summary>
     /// <returns>The value.</returns>
     [Benchmark]
-    [BenchmarkCategory("Impact", "ScalarRead", "MemoryIo", "Gate")]
+    [BenchmarkCategory("Impact", "ScalarRead", "MemoryIo")]
     public ushort ReadSelectedScalarTypedMemory()
     {
         return this.scalarLayout.ReadValue<ushort>(this.scalarBytes.AsSpan(), "root.value");

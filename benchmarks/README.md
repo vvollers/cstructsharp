@@ -11,7 +11,7 @@ not refresh baselines merely to make a result look better.
 
 | Path | Purpose |
 | --- | --- |
-| `CStructSharp.Benchmarks/` | BenchmarkDotNet host. `Scenarios/` holds one fixture-driven class per operation (category `Scenario`: compile, parse, stream, path and typed reads, write, update, debug, malformed input, hand-written comparators); the classes beside it measure single operations (addresses, reads, text writes, memory analysis in category `Memory`); `GeneratedBenchmarks` (category `Generated`) compares generated code with the runtime, `AsyncBenchmarks` (category `Async`) the stream forms with their awaitable twins, `SequenceBenchmarks` (category `Sequences`) segmented input and record sequences (`ParseMany`, `Records`, the view enumerator) with the loops a caller would write, `PacketBenchmarks` (category `Packet`) the compiled engine's reader and writer on the comparison's data-dependent record, and `CostModelBenchmarks` (category `CostModel`) synthetic layouts whose differences give the engine's cost per call and per member. The `Gate` category selects the headline cases for a careful run with the Gate job, and `Impact` the quick before/after subset. `--profile <scenario>` runs a manual loop for sampling profilers. |
+| `CStructSharp.Benchmarks/` | BenchmarkDotNet host. `Scenarios/` holds one fixture-driven class per operation (category `Scenario`: compile, parse, stream, path and typed reads, write, update, debug, malformed input, hand-written comparators); the classes beside it measure single operations (addresses, reads, text writes, memory analysis in category `Memory`); `GeneratedBenchmarks` (category `Generated`) compares generated code with the runtime, `AsyncBenchmarks` (category `Async`) the stream forms with their awaitable twins, `SequenceBenchmarks` (category `Sequences`) segmented input and record sequences (`ParseMany`, `Records`, the view enumerator) with the loops a caller would write, and `PacketBenchmarks` (category `Packet`) the compiled engine's reader and writer on the comparison's data-dependent record. The `Impact` category selects the quick before/after subset. `--profile <scenario>` runs a manual loop for sampling profilers. |
 | `CStructSharp.Benchmarks/GeneratedLayouts/` | The `[CStructLayout]` classes the `Generated`, `Async` and `Sequences` cases use. An attribute needs a constant string, so each class copies a fixture's definition, root and options. `tools/quality/benchmark-generated-layouts.test.mjs` (run in CI) fails when a copy differs from the fixture that `FixtureCase.LoadMatching` pairs it with. |
 | `CStructSharp.Comparison/` | The serializer comparison shown in the root README: a fixed 79-byte record and a data-dependent record deserialized and serialized by CStructSharp and by other .NET serializers. It is outside both solutions; see [Compare with other serializers](#compare-with-other-serializers). |
 | `CStructSharp.FixtureTool/` | Fills and verifies `fixtures/` expectations with the managed library; also the shared fixture loader the benchmarks use. |
@@ -26,15 +26,13 @@ dotnet build ./CStructSharp.NonWeb.slnf -c Release
 # Scenario matrix, both target frameworks, Short job (1 launch, 3 warmups, 5 iterations):
 CSTRUCTSHARP_BENCHMARK_JOB=Short CSTRUCTSHARP_BENCHMARK_RUNTIMES=net10.0,net8.0 \
   dotnet run --project benchmarks/CStructSharp.Benchmarks -c Release -f net10.0 --no-build -- --filter '*' --anyCategories Scenario
-# Headline cases, Gate job (3 launches, 5 warmups, 8 iterations), net10.0 only:
-CSTRUCTSHARP_BENCHMARK_JOB=Gate dotnet run --project benchmarks/CStructSharp.Benchmarks -c Release -f net10.0 --no-build -- \
-  --filter '*' --anyCategories Gate
 # Cold start (5 fresh processes, one measured call each):
 CSTRUCTSHARP_BENCHMARK_JOB=ColdStart dotnet run --project benchmarks/CStructSharp.Benchmarks -c Release -f net10.0 --no-build -- \
   --filter '*Scenarios.CompileBenchmarks*'
 ```
 
-Environment variables: `CSTRUCTSHARP_BENCHMARK_JOB` = `Dry` | `Short` | `Gate` | `ColdStart`;
+Environment variables: `CSTRUCTSHARP_BENCHMARK_JOB` = `Dry` | `Short` | `Quick` | `ColdStart` (`Quick` is described
+under [Check a change quickly](#check-a-change-quickly-the-impact-category));
 `CSTRUCTSHARP_BENCHMARK_RUNTIMES` = comma list of `net8.0`, `net10.0` (default `net10.0`);
 `CSTRUCTSHARP_BENCHMARK_ARTIFACTS` = output directory (default `artifacts/baseline/benchmarks`);
 `CSTRUCTSHARP_BENCHMARK_PROFILE=cpu` adds the EventPipe CPU-sampling diagnoser (writes `.nettrace` per case).
@@ -60,11 +58,14 @@ no longer matches these records or `CStructSharp.Comparison/results.json`.
 
 ## Check a change quickly: the Impact category
 
-The full suite takes about 45 minutes. The `Impact` category is a subset of 46 cases that covers every
-execution path a change can affect: compilation, span parses of eleven fixtures chosen for their differences
-(`ImpactParseBenchmarks`: fixed records, nested structs, big-endian arrays, runtime counts, conditions, strings, a
-real file header, pointers, bitfields, unions, alias spellings), generated parse, view and serialize, a hand-written
-canary, paths, typed reads, serialize and update, debug ranges, async and segmented input, and the data-dependent
+The full suite takes about 45 minutes. The `Impact` category is a subset of 53 cases that covers every
+execution path a change can affect: compilation (including the longest definition the default options accept),
+span parses of eleven fixtures chosen for their differences (`ImpactParseBenchmarks`: fixed records, nested
+structs, big-endian arrays, runtime counts, conditions, strings, a real file header, pointers, bitfields, unions,
+alias spellings), a byte array parsed from a stream, generated parse (a flat record and 256 nested records), view,
+view enumerator and serialize, a hand-written canary, paths, typed reads, serialize to an array, a span and a
+buffer writer, UTF-8 text writing, updates (a bitfield and a pointer target), debug ranges, async and segmented
+input, and the data-dependent
 `packet` record (`PacketBenchmarks`: parse from a span, a `MemoryStream` and a `FileStream`, read into a mapped class,
 serialize a `StructValue` and a mapped instance). One run takes about eight minutes:
 
@@ -101,10 +102,9 @@ iteration:
   its first call. With tiering on, a short in-process run measures a mix of unoptimized and optimized code that
   changes from run to run; without it, both sides measure optimized code, only without dynamic PGO.
 
-Absolute Quick-job times are therefore higher than Short-job or Gate-job times and are not comparable with
-them; use Quick for before/after comparisons only. The baseline checkout needs a benchmark host that knows the
-`Quick` job: for a revision older than the job, copy `benchmarks/CStructSharp.Benchmarks/Program.cs` into it before
-building. `--job Short` (the default) runs the out-of-process Short job, about seven minutes per side.
+Absolute Quick-job times are therefore higher than Short-job times and are not comparable with them; use Quick for
+before/after comparisons only. The baseline checkout needs a benchmark host that knows the `Quick` job: for a
+revision older than the job, copy `benchmarks/CStructSharp.Benchmarks/Program.cs` into it before building. `--job Short` (the default) runs the out-of-process Short job, about seven minutes per side.
 
 To compare two summaries you already have (for example a recorded run and a new one), convert each BenchmarkDotNet
 report with `tools/quality/convert-benchmark-baseline.mjs` and compare them:
@@ -260,29 +260,6 @@ For a before/after comparison, preserve a separate checkout and its Release bina
 Run both checkouts repeatedly on the same machine with identical filters, runtime, input data, and job settings.
 Keep separate artifact directories using `CSTRUCTSHARP_BENCHMARK_ARTIFACTS`. Compare allocations as well as timing;
 do not run builds, tests, or mutation analysis while benchmarks are measuring.
-
-## Cost model of the compiled engine
-
-The *compiled engine* reads a layout member by member through a program compiled once per struct, and runs whenever a
-root has no fixed size (for example, because an array's length comes from the data); see
-[how a layout is run](../docs/guides/performance.md#how-a-layout-is-run-the-compiled-engine). `CostModelBenchmarks` parses seven synthetic layouts from
-memory. Each one differs from another by one kind of member, so subtracting two medians gives the cost of that member:
-
-| Shape | Members before `uint8 n; uint8 tail[n];` (`n = 0`) | Compare with | Gives |
-| --- | --- | --- | --- |
-| `fixed-1` | only `uint8 a;`, no tail: a fixed root | – | the direct fixed-root reader, for contrast |
-| `general-1` | none | – | the fixed cost of one call |
-| `scalars-16`, `scalars-32` | 16 or 32 `uint32` | each other | the cost of one scalar field (difference / 16) |
-| `plain-8`, `conditional-8` | `uint8 k;` and 8 `uint32`, plain or each in `if (k == 1) { … } else { … }` | each other | the extra cost of one conditional group (difference / 8) |
-| `char8-8` | 8 `char[8]` | `general-1` | the cost of one `char[8]` (difference / 8) |
-
-The trailing runtime-counted array keeps every shape but `fixed-1` off the fixed-size fast paths. Seven cases take
-about five seconds with the Quick job:
-
-```sh
-CSTRUCTSHARP_BENCHMARK_JOB=Quick DOTNET_TieredCompilation=0 \
-  dotnet benchmarks/CStructSharp.Benchmarks/bin/Release/net10.0/CStructSharp.Benchmarks.dll --filter '*CostModel*'
-```
 
 ## Profiling
 

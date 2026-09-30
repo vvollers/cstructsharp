@@ -41,7 +41,6 @@ public class AddressBenchmarks
     /// <summary>Resolves the element's byte offset in the fixed-count array.</summary>
     /// <returns>The byte offset from the start of the stream.</returns>
     [Benchmark]
-    [BenchmarkCategory("Gate")]
     public long ResolveFixedNestedArray()
     {
         return this.fixedLayout.ResolveAddress(this.stream, this.path);

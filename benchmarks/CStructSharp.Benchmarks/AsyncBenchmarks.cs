@@ -75,7 +75,7 @@ public class AsyncBenchmarks
     /// <summary>Runtime <c>ParseAsync</c> of a memory stream that exposes its buffer, so the bytes are read in place.</summary>
     /// <returns>The parse, already complete.</returns>
     [Benchmark]
-    [BenchmarkCategory("Impact", "PrimRecord", "Gate")]
+    [BenchmarkCategory("Impact", "PrimRecord")]
     public ValueTask<StructValue> Runtime_PrimRecord_ParseAsync_MemoryStream()
     {
         this.primRecordExposed.Position = 0;

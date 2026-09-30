@@ -11,8 +11,9 @@ using CStructSharp.Diagnostics;
 ///     Conditional groups (<c>if</c>/<c>else</c>, <c>switch</c>) through the generated readers, with the runtime as
 ///     the oracle: the guide's cases (decisions per array item, evaluate-once, unavailable locals, nested groups
 ///     skipped with their outer arm, switch without a match), wide selectors, and the variable rules a conditional
-///     layout leans on (caller variables override defines; a local hides them). The benchmark harness's conditional
-///     cases are compared by <c>CStructSharp.Generated.Parity</c>.
+///     layout leans on (caller variables override defines; a local hides them). The plain and conditional records over
+///     one repeated byte are compared in the parity project (<c>Layouts.Conditional</c>, from
+///     <c>generate-parity-layouts.mjs</c>).
 /// </summary>
 [TestClass]
 public class ConditionalParityTests

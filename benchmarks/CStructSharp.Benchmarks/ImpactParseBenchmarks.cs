@@ -9,6 +9,13 @@ using CStructSharp.Benchmarks.Scenarios;
 ///     Impact cases (compile, generated code, paths, writes, updates, async and segmented input) are tagged on their
 ///     own benchmark classes.
 /// </summary>
+/// <remarks>
+///     This class exists beside <see cref="ParseBenchmarks"/>, which measures the same <see cref="FixtureCase.ParseSpan"/>
+///     call, because BenchmarkDotNet applies a method's categories to every value of the class's <c>[Params]</c>. Tagging
+///     <see cref="ParseBenchmarks.ParseSpan"/> with <c>Impact</c> would put all 51 of its fixtures into the quick
+///     before/after run; a separate class carries only the eleven fixtures chosen for their differences, so the
+///     <c>Impact</c> run stays short enough to repeat after every hot-path change.
+/// </remarks>
 [BenchmarkCategory("Impact")]
 public class ImpactParseBenchmarks
 {

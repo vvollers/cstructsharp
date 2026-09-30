@@ -291,6 +291,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   resolver; the permanent mutation scope covers 139 files.
 - CI checks that each `[CStructLayout]` class the generated-code benchmarks use still matches the fixture it copies
   (`tools/quality/benchmark-generated-layouts.test.mjs`).
+- The benchmark suite no longer carries the unowned `IndexedArrayAccess`, `StringRead` and `CostModel` benchmarks;
+  the two compile benchmarks are one, the `Gate` category is gone (its cases the `Impact` subset lacked joined it),
+  and the conditional fixtures are declared in `generate-fixtures.mjs`.
 
 ## 0.10.0 — 2026-09-26
 

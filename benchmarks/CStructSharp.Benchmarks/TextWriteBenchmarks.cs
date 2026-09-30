@@ -38,7 +38,7 @@ public class TextWriteBenchmarks
     /// <summary>Serializes mixed Latin and CJK text as UTF-8 with its terminator.</summary>
     /// <returns>The bytes.</returns>
     [Benchmark]
-    [BenchmarkCategory("Gate")]
+    [BenchmarkCategory("Impact")]
     public byte[] SerializeTerminatedUtf8()
     {
         return this.utf8Layout.Serialize("root", this.utf8Data);

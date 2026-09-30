@@ -85,7 +85,7 @@ public class WriteBenchmarks
     /// <summary>Serializes the record from a mapped class into a caller-provided span.</summary>
     /// <returns>The number of bytes written.</returns>
     [Benchmark]
-    [BenchmarkCategory("Gate", "Impact", "MemoryIo")]
+    [BenchmarkCategory("Impact", "MemoryIo")]
     public int Serialize_Prim_Poco_ToSpan()
     {
         return this.primRecord.Layout.Serialize(this.primDestination.AsSpan(), "root", this.primPoco);
@@ -94,7 +94,7 @@ public class WriteBenchmarks
     /// <summary>Serializes the record from a mapped class into a reused <see cref="ArrayBufferWriter{T}"/>.</summary>
     /// <returns>The number of bytes written.</returns>
     [Benchmark]
-    [BenchmarkCategory("Gate", "MemoryIo")]
+    [BenchmarkCategory("Impact", "MemoryIo")]
     public long Serialize_Prim_Poco_ToBufferWriter()
     {
         this.bufferWriter.Clear();

@@ -12,7 +12,7 @@ using BenchmarkDotNet.Toolchains.InProcess.Emit;
 using Perfolizer.Horology;
 
 /// <summary>
-///     The BenchmarkDotNet host. <c>CSTRUCTSHARP_BENCHMARK_JOB</c> picks the job shape (Dry, Short, Quick, Gate, ColdStart),
+///     The BenchmarkDotNet host. <c>CSTRUCTSHARP_BENCHMARK_JOB</c> picks the job shape (Dry, Short, Quick, ColdStart),
 ///     <c>CSTRUCTSHARP_BENCHMARK_RUNTIMES</c> the runtimes, and <c>CSTRUCTSHARP_BENCHMARK_ARTIFACTS</c> the output
 ///     directory; <c>--profile</c> runs <see cref="ProfileDriver"/> instead.
 /// </summary>
@@ -34,7 +34,7 @@ internal static class Program
         string requestedJob = Environment.GetEnvironmentVariable("CSTRUCTSHARP_BENCHMARK_JOB") ?? "Short";
 
         // Runtimes are selected independently of the job shape so the same case list can be measured on every
-        // packaged target framework. The default is net10.0, the runtime the release gate is measured on.
+        // packaged target framework. The default is net10.0, the runtime the before/after checks are measured on.
         string requestedRuntimes = Environment.GetEnvironmentVariable("CSTRUCTSHARP_BENCHMARK_RUNTIMES") ?? "net10.0";
         var runtimes = new List<Runtime>();
         foreach (string moniker in requestedRuntimes.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
@@ -62,16 +62,6 @@ internal static class Program
             if (requestedJob.Equals("Dry", StringComparison.OrdinalIgnoreCase))
             {
                 job = Job.Dry.WithRuntime(runtime).WithId($"{suffix}-dry");
-            }
-            else if (requestedJob.Equals("Gate", StringComparison.OrdinalIgnoreCase))
-            {
-                job = Job.Default
-                         .WithRuntime(runtime)
-                         .WithId($"{suffix}-release-gate")
-                         .WithLaunchCount(3)
-                         .WithWarmupCount(5)
-                         .WithIterationCount(8)
-                         .WithUnrollFactor(1);
             }
             else if (requestedJob.Equals("Short", StringComparison.OrdinalIgnoreCase))
             {
@@ -116,7 +106,7 @@ internal static class Program
             else
             {
                 Console.Error.WriteLine(
-                    $"Unknown CSTRUCTSHARP_BENCHMARK_JOB '{requestedJob}'. Expected Dry, Short, Quick, Gate, or ColdStart.");
+                    $"Unknown CSTRUCTSHARP_BENCHMARK_JOB '{requestedJob}'. Expected Dry, Short, Quick, or ColdStart.");
                 return 2;
             }
 

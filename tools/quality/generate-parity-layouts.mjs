@@ -3,7 +3,8 @@
 // definition the repository's fixture sources declare, so the parity project compiles every one of them with the
 // generator and its tests can compare the generated code with the runtime. Sources: benchmarks/fixtures/cases/*.json,
 // contracts/language/manual-fixtures-v1.json (the valid fixtures), contracts/quality/compiler-fixtures/shapes.json,
-// benchmarks/fixtures/conditional-cases.json, and the layouts the docs recipes construct with a literal.
+// twelve filled layouts declared below (plain and conditional records over one repeated byte), and the layouts the
+// docs recipes construct with a literal.
 //
 // Usage: node tools/quality/generate-parity-layouts.mjs          # rewrite both files
 //        node tools/quality/generate-parity-layouts.mjs --check  # fail when the committed files are stale
@@ -88,10 +89,32 @@ for (const shape of shapes.shapes) {
   }
 }
 
-// benchmarks/fixtures/conditional-cases.json
-const conditional = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "benchmarks/fixtures/conditional-cases.json"), "utf8"));
-for (const item of conditional) {
-  add("Conditional", item.name, item.definition, { root: "root", pointerSize: 4, aligned: false, littleEndian: true, size: item.size, fill: item.fill });
+// Filled layouts: plain layouts and their conditional twins, each read from `size` bytes that all hold `fill` (a fill
+// of 1 selects the `tag == 1` arm in every entry). The parity suite and the engine corpus read them from layouts.json.
+{
+  const plain = "uint32 value;";
+  const ifArm = "if (tag == 1) { uint32 value; } else { uint16 small; }";
+  const switchArm = "switch (tag) { case 1: { uint32 value; } default: { uint16 small; } }";
+  /** Returns `count` entries of a tag, the given middle member and a tail. */
+  const entries = (middle, count) => `struct entry { uint8 tag; ${middle} uint16 tail; }; struct root { entry items[${count}]; };`;
+  const fields128 = `struct root { ${Array.from({ length: 128 }, (_, index) => `uint32 f${index};`).join("")} };`;
+  const filled = [
+    ["header", "struct root { uint8 kind; uint32 value; uint16 flags; };", 7, 0],
+    ["fields128", fields128, 512, 0],
+    ["bytes1024", "struct root { uint8 values[1024]; };", 1024, 0],
+    ["nested16", "struct leaf { uint8 marker; uint32 value; }; struct root { leaf items[16]; uint16 tail; };", 82, 0],
+    ["dynamic32", "struct root { uint8 count; uint16 values[count]; };", 65, 32],
+    ["text64", "struct root { char name[64]; uint32 value; };", 68, 65],
+    ["plain1", entries(plain, 1), 7, 1],
+    ["if1", entries(ifArm, 1), 7, 1],
+    ["switch1", entries(switchArm, 1), 7, 1],
+    ["plain128", entries(plain, 128), 896, 1],
+    ["if128", entries(ifArm, 128), 896, 1],
+    ["switch128", entries(switchArm, 128), 896, 1],
+  ];
+  for (const [id, definition, size, fill] of filled) {
+    add("Conditional", id, definition, { root: "root", pointerSize: 4, aligned: false, littleEndian: true, size, fill });
+  }
 }
 
 // docs/examples/recipes/*.cs: `new CStruct("literal" | identifier, named options)` where the identifier is a string
