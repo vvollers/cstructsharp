@@ -74,7 +74,7 @@ are written below `artifacts/mutation/permanent/`. The `artifacts/` directory is
 The scheduled/manual `mutation.yml` workflow runs the same permanent scope in 24 file-based partitions. The largest
 source file runs alone in `p00`; the others are assigned, larger files first, to the smallest remaining group, using
 file size only as an initial scheduling estimate. Every one
-of the 124 configured files belongs to exactly one partition. No character ranges or changed-file filters are used.
+of the 123 configured files belongs to exactly one partition. No character ranges or changed-file filters are used.
 Each partition runs the full permitted test suite with coverage-based test selection disabled. The memory scope
 runs in an independent job with its existing per-test selection and the same score floor.
 The runner uses source-project context and records the working directory and command arguments in its evidence.
@@ -101,13 +101,13 @@ node tools/quality/mutation-partitions.mjs --mode aggregate --input-directory ar
 Aggregation requires every partition, the same source revision and configuration, matching report hashes and
 source text, complete mutation outcomes, and valid references to killing/covering tests. It gives test and mutant
 identifiers a partition prefix so independently numbered reports cannot collide. The original full-scope validator
-then enforces all 124 files, the raw score floor and zero unexplained surviving/uncovered/runtime-error mutations. Missing reports
+then enforces all 123 files, the raw score floor and zero unexplained surviving/uncovered/runtime-error mutations. Missing reports
 fail; compile errors remain compile errors. Raw JSON/HTML reports and Stryker trace logs are retained even when a
 partition fails. A job timeout cannot be counted as a completed report.
 
 A declaration with no authored executable body may offer no mutation opportunities. Exact reviewed cases are
 recorded in `contracts/quality/mutation-non-mutable.json`, with their LF-normalized source hash, pinned Stryker
-version and reason. `ReadAttempt<T>` is such a positional record. It stays in the 124-file scope and must appear
+version and reason. `ReadAttempt<T>` is such a positional record. It stays in the 123-file scope and must appear
 exactly once with its current source and an explicitly empty mutation array. The validator reports it as
 **not applicable**, not as killed or successfully mutation-tested. A missing source/report, changed declaration,
 tool-version change, or ignored/compiler-rejected mutations cannot use this qualification. Review changed code
@@ -193,7 +193,7 @@ linked files, and Stryker matches a pattern against a file's full path or its pa
 
 - mutates the main `src/CStructSharp` library;
 - uses `tests/CStructSharpTests` to test each mutation;
-- limits mutation to 124 files that contain the main parsing and binary-data logic, including the compile-time core in
+- limits mutation to 123 files that contain the main parsing and binary-data logic, including the compile-time core in
   `src/CStructSharp.Core`, the compiled engine that reads, writes and updates general layouts (`Engine/` and
   `CStructSharp.Core/Compilation/Programs/`: every file with executable code; enums, interfaces and the step and member
   records, which have no bodies to mutate, are left out), the `Generated` support types the source generator's output
