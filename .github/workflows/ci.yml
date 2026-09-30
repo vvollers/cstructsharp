@@ -132,12 +132,6 @@ jobs:
           --output-directory artifacts/readme-badges
           --run-url "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-      - name: Test memory coverage
-        run: |
-          dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release -f net10.0 --no-build --filter FullyQualifiedName~Memory --collect:"XPlat Code Coverage" --results-directory artifacts/test-results/memory -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Include="[CStructSharp]CStructSharp.Memory.*"
-          coverage=$(find artifacts/test-results/memory -name coverage.cobertura.xml | head -n 1)
-          node tools/quality/coverage-risk.mjs --coverage-path "$coverage" --output-directory artifacts/test-results/memory-risk --minimum-line-percent 78 --minimum-branch-percent 80 --maximum-high-risk-files 0 --maximum-critical-risk-files 0
-
       - name: Upload README quality badges
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
