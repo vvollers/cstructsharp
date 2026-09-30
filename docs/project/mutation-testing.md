@@ -23,8 +23,8 @@ CStructSharp has many rules for parsing, layout, byte order, limits, and reading
 one of these code paths without checking the important result. Mutation testing is useful here because it shows
 whether the assertions notice a small logic error.
 
-Normal CI checks code coverage. Mutation testing is slower, so the complete mutation run is scheduled separately
-and is also used before a release.
+Normal CI checks code coverage. Mutation testing is slower, so the complete mutation run is scheduled separately,
+once a month, and can be started by hand, for example before a release.
 
 ## Memory analysis
 
@@ -71,7 +71,7 @@ are written below `artifacts/mutation/permanent/`. The `artifacts/` directory is
 
 ## Complete parallel workflow
 
-The scheduled/manual `mutation.yml` workflow runs the same permanent scope in 24 file-based partitions. The largest
+The monthly/manual `mutation.yml` workflow runs the same permanent scope in 24 file-based partitions. The largest
 source file runs alone in `p00`; the others are assigned, larger files first, to the smallest remaining group, using
 file size only as an initial scheduling estimate. Every one
 of the 125 configured files belongs to exactly one partition. No character ranges or changed-file filters are used.
