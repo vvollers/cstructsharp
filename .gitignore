@@ -1,6 +1,7 @@
 # Local-only project records
 /.local-docs/
 /agentdocs/
+/.claude/worktrees/
 
 # .NET SDK/tool state and build outputs
 /.dotnet/

@@ -243,6 +243,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - The read-engine tests are split by topic (codecs, arrays, shared storage, pointers, control flow).
 - The npm pack script stages the package from its own file list and checks it against `package.json` `files`; the
   package loaders, `copyRuntime` and the Vite plugin are documented.
+- The documentation examples project is in `CStructSharp.sln` under a `docs` folder, and `.claude/worktrees/` is
+  ignored.
 
 ## 0.10.0 — 2026-09-26
 

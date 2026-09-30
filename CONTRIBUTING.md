@@ -22,7 +22,9 @@ your `dotnet --info` output. That makes it much easier to tell a setup problem f
 
 Use `CStructSharp.NonWeb.slnf` for normal library work. It is a solution filter over `CStructSharp.sln` that leaves out
 the WebAssembly project and keeps the build smaller. A new project is added to `CStructSharp.sln` and, unless it is
-a web project, listed in the filter. Build the web projects only when your change affects the browser bridge or the web apps.
+a web project, listed in the filter. The documentation examples (`docs/examples/CStructSharp.Docs.Examples.csproj`,
+in the solution's `docs` folder) are the other exception: the documentation checks build and run them.
+Build the web projects only when your change affects the browser bridge or the web apps.
 
 ## A good workflow for a code change
 
