@@ -2,9 +2,8 @@
 /**
  * The complete documentation gate: ignored-input guard, recipe export, repository Markdown links, the build
  * wrapper, the API/language/canonical/feature-matrix/quality/workflow/Pages validators, language fixture tests on
- * both frameworks, the documentation and memory examples, the docs Node checks (audit, YAML, Markdown, spelling,
- * browser), and the structural checks on DocFX configuration, pages, TOCs, reachability, tracked sources,
- * published contracts, generated pages, the search index, root-absolute URLs, and the site budget.
+ * both frameworks, the documentation and memory examples, the docs Node checks (audit, Markdown, spelling, browser),
+ * and the structural checks on DocFX configuration, pages, TOCs, reachability, tracked sources, published contracts, generated pages, the search index, root-absolute URLs, and the site budget.
  *
  *   node tools/documentation/validate-documentation.mjs [--no-build] [--installed] [--self-test]
  *
@@ -164,7 +163,7 @@ await main(() => {
     runNpmStep(["ci", "--ignore-scripts"], documentationRoot, "Pinned documentation Node dependency restore failed.");
   }
   runNpmStep(["audit", "--audit-level=high"], documentationRoot, "Documentation Node dependency audit failed.");
-  for (const script of ["lint:workflow-yaml", "lint:markdown", "lint:spelling", "install:browser", "test:browser"]) {
+  for (const script of ["lint:markdown", "lint:spelling", "install:browser", "test:browser"]) {
     runNpmStep(["run", script], documentationRoot, `Documentation Node script '${script}' failed.`);
   }
 

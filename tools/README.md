@@ -12,7 +12,7 @@ purpose and usage. Output belongs in the ignored `artifacts/` folder or in a doc
 | `packaging/` | WASM publication and verification, the npm, ZIP, and NuGet consumer artifacts, and the onboarding checks. |
 | `release/` | Version state, release manifests, and npm publication identity. Only explicitly requested release workflows run the publication scripts. |
 | `quality/` | Checks of the public API, fuzz corpus, compiler fixtures, coverage, mutation testing, engine golden outcomes, solutions, and performance. |
-| `lib/` | Helpers the scripts share: assertions, a logged `dotnet` runner, argument parsing, small XML, ZIP, and NuGet readers, and the workflow YAML reader that release verification derives its gates from. |
+| `lib/` | Helpers the scripts share: assertions, a logged `dotnet` runner, argument parsing, small XML, ZIP, and NuGet readers, and the workflow YAML reader that release verification and `documentation/validate-documentation-workflow.mjs` use. |
 | `compiler-fixtures/`, `fixtures/` | Authored test inputs. |
 
 ## Where to start
