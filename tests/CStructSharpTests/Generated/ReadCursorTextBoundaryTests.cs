@@ -201,6 +201,69 @@ public class ReadCursorTextBoundaryTests
         }
     }
 
+    /// <summary>
+    ///     A string that spans chunks is charged every 256-byte chunk read up to the one holding its terminator, and a
+    ///     budget one byte short, or invalid bytes in a later chunk, fail at the end of the chunk being read.
+    /// </summary>
+    /// <param name="kind">The generated reader's supported terminated encoding.</param>
+    [TestMethod]
+    [DataRow(TerminatedTextEncoding.Ascii)]
+    [DataRow(TerminatedTextEncoding.Utf8)]
+    [DataRow(TerminatedTextEncoding.Utf16LittleEndian)]
+    [DataRow(TerminatedTextEncoding.Utf16BigEndian)]
+    public void TerminatedText_ChargesEveryChunkUpToItsTerminator(TerminatedTextEncoding kind)
+    {
+        Encoding encoding = EncodingFor(kind);
+        string expected = new('x', kind is TerminatedTextEncoding.Utf16LittleEndian or TerminatedTextEncoding.Utf16BigEndian ? 150 : 300);
+        byte[] payload = encoding.GetBytes(expected + '\0');
+        byte[] source = [.. payload, .. new byte[300],];
+
+        // The terminator starts in the second chunk: 512 bytes are charged, so two more bytes fit a 514-byte budget.
+        var cursor = new ReadCursor(source, new ReadOptions { MaxTotalBytesRead = 514, });
+        Assert.AreEqual(expected, cursor.TakeTerminatedString(kind, '\0', "text", "string"));
+        Assert.AreEqual(payload.Length, cursor.Position);
+        _ = cursor.Take(2, "tail", "uint16");
+        try
+        {
+            _ = cursor.Take(1, "tail", "uint8");
+            Assert.Fail("The budget is spent.");
+        }
+        catch (CStructReadLimitException)
+        {
+            Assert.AreEqual(payload.Length + 2, cursor.Position);
+        }
+
+        // One byte less and the second chunk is over the budget: the read fails at that chunk's end.
+        var overBudget = new ReadCursor(source, new ReadOptions { MaxTotalBytesRead = 511, });
+        try
+        {
+            overBudget.TakeTerminatedString(kind, '\0', "text", "string");
+            Assert.Fail("The second chunk exceeds the budget.");
+        }
+        catch (CStructReadLimitException failure)
+        {
+            StringAssert.Contains(failure.Message, "total read-byte limit");
+            Assert.AreEqual(512, overBudget.Position);
+        }
+
+        // An invalid unit in the second chunk (a lone low surrogate, 0xDC78, in UTF-16; a byte no ASCII or UTF-8
+        // character has otherwise) fails once that chunk is decoded.
+        byte[] invalid = [.. source,];
+        invalid[kind == TerminatedTextEncoding.Utf16LittleEndian ? 281 : 280] = kind is TerminatedTextEncoding.Ascii or TerminatedTextEncoding.Utf8 ? (byte)0xFF : (byte)0xDC;
+        var decoding = new ReadCursor(invalid);
+        try
+        {
+            decoding.TakeTerminatedString(kind, '\0', "text", "string");
+            Assert.Fail("Invalid bytes must not decode.");
+        }
+        catch (CStructReadException failure)
+        {
+            StringAssert.Contains(failure.Message, "String field contains bytes that are invalid for its encoding");
+            Assert.IsInstanceOfType<DecoderFallbackException>(failure.InnerException);
+            Assert.AreEqual(512, decoding.Position);
+        }
+    }
+
     /// <summary>Cancellation after constructing the cursor still ends a terminated read before consuming bytes.</summary>
     [TestMethod]
     public void TerminatedText_ObservesCancellationBeforeReading()

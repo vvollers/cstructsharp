@@ -599,9 +599,8 @@ public ref struct ReadCursor
         // The runtime reads the string in 256-byte chunks and, per chunk, checks the string byte limit, decodes the
         // bytes before the terminator (flushing only when the terminator is in the chunk), and stops at the
         // terminator; the checks run in that order, and the position a failure reports is the end of the chunk
-        // being read (the limit failure: one byte past the limit). A string that ends in its first chunk is decoded
-        // once, straight into the result; only a longer one needs the decoder and its scratch buffer, which carry an
-        // incomplete character from one chunk into the next.
+        // being read (the limit failure: one byte past the limit). TryTakeWholeString first reads, in one step, a string
+        // those chunks would read without a failure; any other string goes chunk by chunk, which reports its failure.
         const int Chunk = 256;
         System.Text.Encoding strict = encoding switch
         {
@@ -614,9 +613,14 @@ public ref struct ReadCursor
         Span<byte> terminatorBytes = stackalloc byte[4];
         int terminatorLength = EncodeTerminator(strict, encoding, terminator, terminatorBytes);
         terminatorBytes = terminatorBytes.Slice(0, terminatorLength);
+        if (this.TryTakeWholeString(strict, unitSize, terminatorBytes, Chunk, out string? whole))
+        {
+            return whole;
+        }
+
         ReadOnlySpan<byte> remaining = this.source.Slice(this.position);
         int start = this.position;
-        System.Text.Decoder? decoder = null;
+        System.Text.Decoder decoder = strict.GetDecoder();
         char[]? decoded = null;
         long encodedByteCount = 0;
         int offset = 0;
@@ -643,25 +647,6 @@ public ref struct ReadCursor
             }
 
             int prefixLength = terminatorIndex < 0 ? bytesRead : terminatorIndex;
-            if (terminatorIndex >= 0 && decoder is null)
-            {
-                // The whole string lies in the first chunk (offset 0): decoding it validates it exactly as the
-                // flushing decoder would, with the same failure.
-                string text;
-                try
-                {
-                    text = strict.GetString(chunk.Slice(0, prefixLength));
-                }
-                catch (System.Text.DecoderFallbackException exception)
-                {
-                    throw this.Fail(ReadFailures.TerminatedStringInvalid, member, memberType, exception);
-                }
-
-                this.position = start + prefixLength + terminatorLength;
-                return text;
-            }
-
-            decoder ??= strict.GetDecoder();
             decoded ??= new char[Chunk + 2];
             try
             {
@@ -982,6 +967,58 @@ public ref struct ReadCursor
 
         // The offset is attached when the exception leaves the operation (Complete), where the runtime attaches it.
         exception.AttachContext(this.path, null);
+    }
+
+    /// <summary>
+    ///     Reads a terminated string in one step when the chunked read of <see cref="TakeTerminatedString"/> would
+    ///     succeed, with the same result: the string, the position after its terminator, and the chunks charged to the
+    ///     read budget. That holds when the token is not cancelled, the terminator is present, the string and its
+    ///     terminator fit <c>MaxStringBytes</c> (every earlier chunk then fits too), the budget covers every chunk up to
+    ///     the one holding the terminator, and the bytes decode. Otherwise nothing changes.
+    /// </summary>
+    /// <param name="strict">The string's strict encoding.</param>
+    /// <param name="unitSize">The encoding's code unit size in bytes (1 or 2).</param>
+    /// <param name="terminator">The encoded terminator.</param>
+    /// <param name="chunk">The chunk size the chunked read uses; an even number, so no code unit spans two chunks.</param>
+    /// <param name="text">The string when the method returns <see langword="true"/>.</param>
+    /// <returns><see langword="true"/> when the string was read and charged.</returns>
+    private bool TryTakeWholeString(System.Text.Encoding strict, int unitSize, scoped ReadOnlySpan<byte> terminator, int chunk, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string? text)
+    {
+        text = null;
+        if (this.settings.CancellationToken.IsCancellationRequested)
+        {
+            return false;
+        }
+
+        // Every chunk starts on a code unit boundary, so the first aligned terminator of the whole input is the one
+        // the chunks find.
+        ReadOnlySpan<byte> remaining = this.source.Slice(this.position);
+        int terminatorIndex = Codec.FindTerminator(remaining, terminator, unitSize, 0);
+        if (terminatorIndex < 0 || (long)terminatorIndex + terminator.Length > this.settings.MaxStringBytes)
+        {
+            return false;
+        }
+
+        // The chunked read charges each chunk it reads, up to and including the one where the terminator starts.
+        long charged = Math.Min(((long)(terminatorIndex / chunk) + 1) * chunk, remaining.Length);
+        if (charged > this.settings.MaxTotalBytesRead - this.bytesRead)
+        {
+            return false;
+        }
+
+        try
+        {
+            text = strict.GetString(remaining.Slice(0, terminatorIndex));
+        }
+        catch (System.Text.DecoderFallbackException)
+        {
+            // Invalid bytes: the chunked read reports them at the chunk where its decoder finds them.
+            return false;
+        }
+
+        this.bytesRead += charged;
+        this.position += terminatorIndex + terminator.Length;
+        return true;
     }
 
     /// <summary>Moves to the source end and creates the short-read failure a complete attempted read would produce.</summary>

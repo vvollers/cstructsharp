@@ -238,9 +238,10 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   values, bytes and failures are unchanged.
 - The generated member-by-member readers and writers are never inlined into their callers, so the small cursor and
   codec calls inside them stay inlined: the generated parse of a bounded pointer graph takes 94 ns instead of 110 ns.
-- A generated reader decodes a terminated string (`cstring`, `utf8_string_zero`, ...) that ends within its first 256
-  bytes in one step, without a decoder and a 258-character scratch buffer: the comparison benchmark's `packet` record
-  parses from its generated class in 50 ns instead of 66 ns and allocates 200 B instead of 800 B.
+- A generated reader decodes a valid terminated string (`cstring`, `utf8_string_zero`, ...) within the read limits in
+  one step, without a decoder and a 258-character scratch buffer: the comparison benchmark's `packet` record parses
+  from its generated class in 50 ns instead of 66 ns and allocates 200 B instead of 800 B, and a record of four
+  1,024-character strings parses about 23 % faster with 23 % less allocation.
 - A generated fixed reader decodes a nested struct member into the value the class's property initializer already
   created, instead of allocating a second one (unless your partial class declares a constructor). The `sensor` record
   parses in 16.9 ns instead of 24.2 ns and allocates 184 B instead of 248 B; 256 nested records parse in 3.8 us
