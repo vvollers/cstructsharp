@@ -73,7 +73,7 @@ public sealed class CStructMappedGenerator : IIncrementalGenerator
         bool containersArePartial = true;
         for (INamedTypeSymbol? container = symbol.ContainingType; container is not null; container = container.ContainingType)
         {
-            containers.Insert(0, new ContainingType(TypeKeyword(container), container.Name));
+            containers.Insert(0, new ContainingType(ContainingType.KeywordOf(container), container.Name));
             containersArePartial &= container.DeclaringSyntaxReferences.Any(reference => reference.GetSyntax(cancellation) is TypeDeclarationSyntax type && type.Modifiers.Any(SyntaxKind.PartialKeyword));
         }
 
@@ -107,7 +107,7 @@ public sealed class CStructMappedGenerator : IIncrementalGenerator
             symbol.ContainingNamespace.IsGlobalNamespace ? null : symbol.ContainingNamespace.ToDisplayString(),
             new EquatableArray<ContainingType>(containers.ToArray()),
             SyntaxFacts.GetText(symbol.DeclaredAccessibility),
-            TypeKeyword(symbol),
+            ContainingType.KeywordOf(symbol),
             declaration.Modifiers.Any(SyntaxKind.PartialKeyword),
             containersArePartial,
             hasParameterlessConstructor,
@@ -244,17 +244,6 @@ public sealed class CStructMappedGenerator : IIncrementalGenerator
         }
 
         return null;
-    }
-
-    private static string TypeKeyword(INamedTypeSymbol type)
-    {
-        return type switch
-        {
-            { IsRecord: true, IsValueType: true } => "record struct",
-            { IsRecord: true } => "record",
-            { IsValueType: true } => "struct",
-            _ => "class",
-        };
     }
 
     /// <summary>Reports the class's diagnostics, resolves its layout struct when <c>Layout</c> names one, and adds the generated mapper.</summary>

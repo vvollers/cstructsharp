@@ -133,7 +133,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         bool containersArePartial = true;
         for (INamedTypeSymbol? container = symbol.ContainingType; container is not null; container = container.ContainingType)
         {
-            containers.Insert(0, new ContainingType(TypeKeyword(container), container.Name));
+            containers.Insert(0, new ContainingType(ContainingType.KeywordOf(container), container.Name));
             containersArePartial &= container.DeclaringSyntaxReferences.Any(reference => reference.GetSyntax(cancellation) is TypeDeclarationSyntax type && type.Modifiers.Any(SyntaxKind.PartialKeyword));
         }
 
@@ -171,19 +171,6 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
                                                 .Where(type => type.InstanceConstructors.Any(constructor => !constructor.IsImplicitlyDeclared))
                                                 .Select(type => type.Name)
                                                 .ToArray());
-    }
-
-    /// <summary>The declaration keyword of a containing type, for re-declaring it around the generated partial class.</summary>
-    /// <param name="type">The containing type.</param>
-    /// <returns><c>class</c>, <c>struct</c>, <c>record</c>, <c>record struct</c>, or <c>interface</c>.</returns>
-    private static string TypeKeyword(INamedTypeSymbol type)
-    {
-        return type.TypeKind switch
-        {
-            TypeKind.Struct => type.IsRecord ? "record struct" : "struct",
-            TypeKind.Interface => "interface",
-            _ => type.IsRecord ? "record" : "class",
-        };
     }
 
     /// <summary>

@@ -155,6 +155,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   empty definition or invalid options resolves with a failure envelope; `update()` without options no longer throws.
 - The explorer and inspector editors offer and highlight every word the language accepts, from the language
   contract's new `vocabulary` table; the explorer also completes the names a layout declares.
+- A `[CStructMapped]` class nested in a partial interface compiles: the mapped generator no longer re-declares the
+  interface as a class.
 
 ### Performance
 

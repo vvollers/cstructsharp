@@ -190,6 +190,33 @@ public class MappedClassTests
     }
 
     /// <summary>
+    ///     A mapped class nested in a partial interface and a partial record struct is emitted inside containers of the
+    ///     same kinds, so the generated partial declarations match the user's and the output compiles.
+    /// </summary>
+    [TestMethod]
+    public void NestedInInterfaceAndRecordStruct_KeepsEachContainerKind()
+    {
+        GeneratorResult result = GeneratorRunner.Run("""
+            using CStructSharp;
+
+            namespace Demo;
+
+            public partial interface IShapes
+            {
+                public partial record struct Holder
+                {
+                    [CStructMapped]
+                    public sealed partial class Point { public byte X { get; set; } }
+                }
+            }
+            """).AssertClean();
+
+        string source = result.GeneratedSources.Single(item => item.HintName.Contains("Point", StringComparison.Ordinal)).Source;
+        StringAssert.Contains(source, "partial interface IShapes");
+        StringAssert.Contains(source, "partial record struct Holder");
+    }
+
+    /// <summary>
     ///     Reads the <c>root</c> struct as a mapped class through the runtime's generic <c>ReadValue</c>.
     /// </summary>
     /// <param name="mapped">The mapped class to read.</param>
