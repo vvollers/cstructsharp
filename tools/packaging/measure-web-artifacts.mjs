@@ -7,27 +7,14 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { gzipSync } from "node:zlib";
+import { measureDirectory } from "../lib/files.mjs";
 import { parseArguments, repositoryRoot as root } from "../lib/tooling.mjs";
 import { validateWasmPublication } from "./wasm-publication.mjs";
 
 const { check } = parseArguments(process.argv.slice(2), { check: "flag" }, { defaults: { check: false } });
 const policy = JSON.parse(fs.readFileSync(path.join(root, "contracts/performance/web-size-budget.json"), "utf8"));
-/**
- * Measures the files below a directory: file count, total bytes, and total gzip (level 9) bytes.
- * @param {string} relative Repository-relative directory.
- * @returns {object} Totals and the per-file sizes.
- */
-function measure(relative) {
-  const directory = path.join(root, relative);
-  const entries = fs.readdirSync(directory, { recursive: true, withFileTypes: true })
-    .filter((entry) => entry.isFile()).map((entry) => {
-      const file = path.join(entry.parentPath, entry.name);
-      const data = fs.readFileSync(file);
-      return { path: path.relative(directory, file).replaceAll("\\", "/"), bytes: data.length, gzipBytes: gzipSync(data, { level: 9 }).length };
-    });
-  return { files: entries.length, bytes: entries.reduce((sum, file) => sum + file.bytes, 0), gzipBytes: entries.reduce((sum, file) => sum + file.gzipBytes, 0), entries };
-}
+/** Measures a repository-relative directory (see measureDirectory). */
+const measure = (relative) => measureDirectory(path.join(root, relative));
 validateWasmPublication(path.join(root, "artifacts/wasm"));
 const wasm = measure("artifacts/wasm");
 const frontend = measure("apps/explorer/dist");

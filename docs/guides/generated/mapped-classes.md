@@ -45,9 +45,7 @@ type and byte order.
 `layout.ReadValue<Header>(bytes, "header")` and `layout.Serialize(...)` of a whole struct in memory use these
 members instead of building a `StructValue` and mapping it property by property. The runtime compares the
 fingerprint with that of the layout the call uses. A layout compiled with other options (another byte order or
-alignment, say) has another fingerprint and takes the property-by-property route. On the repository benchmark
-machine, reading a 79-byte record into a mapped class took 25 ns instead of 280 ns, and writing one took 25 ns
-instead of 240 ns.
+alignment, say) has another fingerprint and takes the property-by-property route. <!-- facts:mapped-direct-costs:start -->In the repository's serializer comparison (a 79-byte record), `ReadValue<T>` into a layout-bound mapped class took 29.0 ns and `Serialize` of one took 21.5 ns; for comparison, `Parse` into a `StructValue` with every member read by path took 350 ns, and `Serialize` of a `StructValue` took 71.7 ns.<!-- facts:mapped-direct-costs:end -->
 
 The direct members give exactly the results of the property-by-property route, so they are generated only where
 that is certain:

@@ -1,0 +1,354 @@
+{
+  "schemaVersion": 1,
+  "managed": {
+    "schemaVersion": 1,
+    "generatedAtUtc": "2026-09-30T11:42:01.776Z",
+    "hostEnvironment": {
+      "ProcessorName": "AMD Ryzen 9 9950X",
+      "RuntimeVersion": ".NET 10.0.12 (10.0.12, 10.0.1226.42308)",
+      "OsVersion": "Windows 11 (10.0.26200.9550/25H2/2025Update/HudsonValley2)"
+    },
+    "benchmarks": [
+      {
+        "type": "CompileBenchmarks",
+        "method": "Compile",
+        "parameters": "Fixture=compile-small",
+        "medianNanoseconds": 3303.47,
+        "allocatedBytes": 15848
+      },
+      {
+        "type": "CompileBenchmarks",
+        "method": "Compile",
+        "parameters": "Fixture=real-png",
+        "medianNanoseconds": 19123.958,
+        "allocatedBytes": 47776
+      },
+      {
+        "type": "CompileBenchmarks",
+        "method": "GetOrCompile_Hit",
+        "parameters": "Fixture=real-png",
+        "medianNanoseconds": 254.297,
+        "allocatedBytes": 0
+      },
+      {
+        "type": "ReadBenchmarks",
+        "method": "ParseSmallRootMemory",
+        "parameters": "",
+        "medianNanoseconds": 115.108,
+        "allocatedBytes": 392
+      },
+      {
+        "type": "ReadBenchmarks",
+        "method": "ReadTypedSmallRootMemory",
+        "parameters": "",
+        "medianNanoseconds": 273.704,
+        "allocatedBytes": 560
+      },
+      {
+        "type": "ReadBenchmarks",
+        "method": "ReadSelectedScalarTypedMemory",
+        "parameters": "",
+        "medianNanoseconds": 152.608,
+        "allocatedBytes": 208
+      },
+      {
+        "type": "ReadBenchmarks",
+        "method": "ParsePrimitiveArray1KiB",
+        "parameters": "",
+        "medianNanoseconds": 115.659,
+        "allocatedBytes": 1264
+      },
+      {
+        "type": "AddressBenchmarks",
+        "method": "ResolveFixedNestedArray",
+        "parameters": "Index=127",
+        "medianNanoseconds": 130.658,
+        "allocatedBytes": 144
+      },
+      {
+        "type": "DebugBenchmarks",
+        "method": "ParseWithDebug",
+        "parameters": "Fixture=real-png",
+        "medianNanoseconds": 895.187,
+        "allocatedBytes": 5200
+      },
+      {
+        "type": "MalformedBenchmarks",
+        "method": "ParseAndCatch",
+        "parameters": "Fixture=malformed-truncated",
+        "medianNanoseconds": 5384.682,
+        "allocatedBytes": 1976
+      },
+      {
+        "type": "WriteBenchmarks",
+        "method": "Serialize_Prim_Poco_ToSpan",
+        "parameters": "",
+        "medianNanoseconds": 122.17,
+        "allocatedBytes": 304
+      },
+      {
+        "type": "UpdateBenchmarks",
+        "method": "Update_PointerTarget",
+        "parameters": "",
+        "medianNanoseconds": 313.015,
+        "allocatedBytes": 424
+      },
+      {
+        "type": "LargeStreamBenchmarks",
+        "method": "Parse16M_MemoryStream",
+        "parameters": "",
+        "medianNanoseconds": 1059300,
+        "allocatedBytes": 16777456
+      },
+      {
+        "type": "GeneratedBenchmarks",
+        "method": "Runtime_PrimRecord_Parse",
+        "parameters": "",
+        "medianNanoseconds": 36.404,
+        "allocatedBytes": 256
+      },
+      {
+        "type": "GeneratedBenchmarks",
+        "method": "Generated_PrimRecord_Parse",
+        "parameters": "",
+        "medianNanoseconds": 7.144,
+        "allocatedBytes": 48
+      },
+      {
+        "type": "GeneratedBenchmarks",
+        "method": "Generated_PrimRecord_View",
+        "parameters": "",
+        "medianNanoseconds": 0.673,
+        "allocatedBytes": 0
+      },
+      {
+        "type": "GeneratedBenchmarks",
+        "method": "HandWritten_PrimRecord",
+        "parameters": "",
+        "medianNanoseconds": 1.412,
+        "allocatedBytes": 0
+      },
+      {
+        "type": "GeneratedBenchmarks",
+        "method": "Runtime_Nested256_Parse",
+        "parameters": "",
+        "medianNanoseconds": 29881.972,
+        "allocatedBytes": 217232
+      },
+      {
+        "type": "GeneratedBenchmarks",
+        "method": "Generated_Nested256_Parse",
+        "parameters": "",
+        "medianNanoseconds": 3813.17,
+        "allocatedBytes": 57392
+      },
+      {
+        "type": "GeneratedBenchmarks",
+        "method": "Generated_Nested256_View",
+        "parameters": "",
+        "medianNanoseconds": 198.647,
+        "allocatedBytes": 0
+      },
+      {
+        "type": "GeneratedBenchmarks",
+        "method": "HandWritten_Nested256",
+        "parameters": "",
+        "medianNanoseconds": 209.019,
+        "allocatedBytes": 0
+      },
+      {
+        "type": "GeneratedBenchmarks",
+        "method": "Runtime_PrimRecord_Serialize",
+        "parameters": "",
+        "medianNanoseconds": 45.195,
+        "allocatedBytes": 56
+      },
+      {
+        "type": "GeneratedBenchmarks",
+        "method": "Generated_PrimRecord_Serialize",
+        "parameters": "",
+        "medianNanoseconds": 5.495,
+        "allocatedBytes": 56
+      },
+      {
+        "type": "GeneratedBenchmarks",
+        "method": "Runtime_PrimRecord_Update",
+        "parameters": "",
+        "medianNanoseconds": 234.244,
+        "allocatedBytes": 480
+      },
+      {
+        "type": "GeneratedBenchmarks",
+        "method": "Generated_PrimRecord_Update",
+        "parameters": "",
+        "medianNanoseconds": 3.179,
+        "allocatedBytes": 0
+      },
+      {
+        "type": "GeneratedBenchmarks",
+        "method": "Runtime_PrimRecord_ParseWithDebug",
+        "parameters": "",
+        "medianNanoseconds": 335.743,
+        "allocatedBytes": 1552
+      },
+      {
+        "type": "GeneratedBenchmarks",
+        "method": "Generated_PrimRecord_ParseWithDebug",
+        "parameters": "",
+        "medianNanoseconds": 336.216,
+        "allocatedBytes": 1600
+      },
+      {
+        "type": "AsyncBenchmarks",
+        "method": "Runtime_PrimRecord_ParseStream",
+        "parameters": "",
+        "medianNanoseconds": 94.105,
+        "allocatedBytes": 360
+      },
+      {
+        "type": "AsyncBenchmarks",
+        "method": "Runtime_PrimRecord_ParseAsync_MemoryStream",
+        "parameters": "",
+        "medianNanoseconds": 116.416,
+        "allocatedBytes": 416
+      },
+      {
+        "type": "AsyncBenchmarks",
+        "method": "Runtime_PrimRecord_ParseAsync_HiddenBuffer",
+        "parameters": "",
+        "medianNanoseconds": 113.059,
+        "allocatedBytes": 416
+      },
+      {
+        "type": "AsyncBenchmarks",
+        "method": "Runtime_PrimRecord_ParseAsync_File",
+        "parameters": "",
+        "medianNanoseconds": 12554.678,
+        "allocatedBytes": 974
+      },
+      {
+        "type": "AsyncBenchmarks",
+        "method": "Runtime_PrimRecord_WriteStream",
+        "parameters": "",
+        "medianNanoseconds": 84.951,
+        "allocatedBytes": 64
+      },
+      {
+        "type": "AsyncBenchmarks",
+        "method": "Runtime_PrimRecord_WriteAsync",
+        "parameters": "",
+        "medianNanoseconds": 56.926,
+        "allocatedBytes": 56
+      },
+      {
+        "type": "AsyncBenchmarks",
+        "method": "Runtime_PrimRecord_UpdateStream",
+        "parameters": "",
+        "medianNanoseconds": 222.39,
+        "allocatedBytes": 424
+      },
+      {
+        "type": "AsyncBenchmarks",
+        "method": "Runtime_PrimRecord_UpdateAsync",
+        "parameters": "",
+        "medianNanoseconds": 352.998,
+        "allocatedBytes": 568
+      },
+      {
+        "type": "AsyncBenchmarks",
+        "method": "Generated_PrimRecord_ParseStream",
+        "parameters": "",
+        "medianNanoseconds": 19.182,
+        "allocatedBytes": 48
+      },
+      {
+        "type": "AsyncBenchmarks",
+        "method": "Generated_PrimRecord_ParseAsync",
+        "parameters": "",
+        "medianNanoseconds": 33.648,
+        "allocatedBytes": 48
+      },
+      {
+        "type": "SequenceBenchmarks",
+        "method": "Runtime_Records256_ParseLoop",
+        "parameters": "",
+        "medianNanoseconds": 9050.652,
+        "allocatedBytes": 65536
+      },
+      {
+        "type": "SequenceBenchmarks",
+        "method": "Runtime_Records256_ParseMany",
+        "parameters": "",
+        "medianNanoseconds": 19357.246,
+        "allocatedBytes": 80216
+      },
+      {
+        "type": "SequenceBenchmarks",
+        "method": "Generated_Records256_ParseLoop",
+        "parameters": "",
+        "medianNanoseconds": 2019.71,
+        "allocatedBytes": 12288
+      },
+      {
+        "type": "SequenceBenchmarks",
+        "method": "Generated_Records256_Records",
+        "parameters": "",
+        "medianNanoseconds": 2424.911,
+        "allocatedBytes": 12464
+      },
+      {
+        "type": "SequenceBenchmarks",
+        "method": "HandWritten_Records256_ViewLoop",
+        "parameters": "",
+        "medianNanoseconds": 110.042,
+        "allocatedBytes": 0
+      },
+      {
+        "type": "SequenceBenchmarks",
+        "method": "Generated_Records256_ViewEnumerator",
+        "parameters": "",
+        "medianNanoseconds": 116.296,
+        "allocatedBytes": 0
+      }
+    ]
+  },
+  "javascript": {
+    "schemaVersion": 1,
+    "environment": {
+      "capturedAtUtc": "2026-09-30T11:43:14.041Z",
+      "node": {
+        "node": "26.8.1"
+      }
+    },
+    "results": [
+      {
+        "name": "public.parse.prim-le-record",
+        "medianNanoseconds": 2292
+      },
+      {
+        "name": "public.parse.real-png",
+        "medianNanoseconds": 1950
+      },
+      {
+        "name": "public.parse.nested-x256",
+        "medianNanoseconds": 88180
+      },
+      {
+        "name": "public.parse.strings-1024",
+        "medianNanoseconds": 132031
+      },
+      {
+        "name": "public.parseWithDebug.prim-le-record",
+        "medianNanoseconds": 46003
+      },
+      {
+        "name": "public.serialize.prim-le-record",
+        "medianNanoseconds": 39523
+      },
+      {
+        "name": "public.update.scalar.28B",
+        "medianNanoseconds": 33443
+      }
+    ]
+  }
+}

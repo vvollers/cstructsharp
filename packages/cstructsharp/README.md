@@ -140,8 +140,7 @@ The runtime lives for the process/page lifetime and normal Node processes exit w
 runtime startup remains failed for that instance; restart the process/page after fixing missing assets. A browser
 instance cannot be reconfigured to a different runtime URL after initialization starts.
 
-The tarball includes the runtime and third-party license notices: the 0.5 package is about 1.9 MB compressed and
-5.0 MB unpacked, of which the runtime is 26 files and 4.8 MB (about 1.7 MB over gzip). A browser downloads the
+The tarball includes the runtime and third-party license notices: <!-- facts:npm-package-size:start -->the 0.10.0 package is about 1.6 MiB compressed and 4.4 MiB unpacked, of which the runtime is 27 files and 4.2 MiB (about 1.6 MiB over gzip)<!-- facts:npm-package-size:end -->. A browser downloads the
 runtime on the first page load and keeps it in the HTTP cache afterwards, so deploy each release under its own
 versioned URL (the copy command refuses to overwrite) and let the static host send cache headers for that path;
 Node loads the runtime from disk. No Vue, Monaco, or other UI dependencies are installed. The library manages workers for large or cancellable reads;

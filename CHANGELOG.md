@@ -189,6 +189,10 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   readers behind it, the writers for numbers the engine encodes itself, test-only types and members, and the
   read-program eligibility reports (every layout compiles; a read compile that cannot finish is an internal error),
   and the interpreter-era names in code, tests and golden outcomes.
+- Published numbers have one source each: the performance guide's cost tables (re-measured with the compiled
+  engine), the accessor, view and mapped-class figures, the npm package and runtime sizes, and the recipe and scenario
+  counts are written by `tools/documentation/sync-documentation-facts.mjs` from committed benchmark, comparison and
+  pack records, and documentation validation fails when a page drifts from them.
 
 ## 0.10.0 — 2026-09-26
 

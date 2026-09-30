@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "name": "cstructsharp",
+  "version": "0.10.0",
+  "sourceSha": "ad20bda4207548bab84862f5b443a9afbd2c0367",
+  "size": 1714354,
+  "unpackedSize": 4586093,
+  "runtime": {
+    "files": 27,
+    "bytes": 4447119,
+    "gzipBytes": 1692996
+  }
+}

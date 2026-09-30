@@ -5,7 +5,7 @@ description: Run individual CStructSharp examples or download complete programs 
 
 # Executable examples
 
-Choose a task in the [recipe catalog](../guides/recipes/index.md). Each of the 28 recipes has a complete downloadable
+Choose a task in the [recipe catalog](../guides/recipes/index.md). Each of the <!-- facts:recipe-count:start -->40<!-- facts:recipe-count:end --> recipes has a complete downloadable
 program, exact checked values, an exercise, and an answer. Start with the [minimal first program](../guides/install-and-first-parse.md)
 if you have not used the library before.
 
@@ -17,8 +17,9 @@ With the repository's .NET 10 SDK, run from the repository root:
 dotnet run --project docs/examples/CStructSharp.Docs.Examples.csproj -c Release -- decode-header
 ```
 
-Use `--list` to list scenario names. Omit the final `-- decode-header` to run all scenarios. Success ends with
-`PASS all 28 scenarios`; a failed assertion reports the expected and actual value or byte sequence.
+Use `--list` to list scenario names. Omit the final `-- decode-header` to run all scenarios.
+Success ends with <!-- facts:scenario-count:start -->`PASS all 58 scenarios`<!-- facts:scenario-count:end -->;
+a failed assertion reports the expected and actual value or byte sequence.
 
 ## Adapt an independent program
 

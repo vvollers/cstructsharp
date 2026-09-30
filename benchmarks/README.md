@@ -54,11 +54,14 @@ The release gate (`contracts/performance/release-gate.json`) is a manual pre-rel
 with the Gate job on a quiet machine, convert the report, and pass it to `non-web-release-budgets.mjs`. CI runs only
 the tool's self-test, because shared runners are too noisy for timing budgets.
 
-The "Typical costs" table in `docs/guides/performance.md` is rendered from a converted summary (plus the JS
-harness's `node-latest.json` and the web artifact measurement) by
-`node tools/quality/render-performance-table.mjs --summary <summary.json> --js <node-latest.json> --web artifacts/performance/web.json`;
-`--check` reports whether the page still matches the inputs. Re-render it when a release re-baselines the
-performance contracts.
+The "Typical costs" tables in `docs/guides/performance.md` are rendered from the committed record
+`CStructSharp.Benchmarks/typical-costs.json` and the packed runtime size in `npm-package.json`. To refresh them,
+measure the shown cases (`node tools/quality/render-performance-table.mjs --filters` prints the `--filter` globs for
+a `Short` run), convert the report, and record it together with the JS harness's `node-latest.json`:
+`node tools/quality/render-performance-table.mjs --summary <summary.json> --js <node-latest.json>`. After
+`npm run pack:npm`, `node tools/documentation/sync-documentation-facts.mjs --record-package` records the package
+and runtime sizes. The documentation validator runs `sync-documentation-facts.mjs --check`, which fails when a page
+no longer matches these records or `CStructSharp.Comparison/results.json`.
 
 ## Check a change quickly: the Impact category
 

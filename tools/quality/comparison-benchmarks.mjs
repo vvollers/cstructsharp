@@ -27,7 +27,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { COMPARISON_RESULTS_PATH, formatBytes, formatTime } from "../lib/comparison-summary.mjs";
 import { assertCondition, main, parseArguments, repositoryRoot, runDotnet, runNpm } from "../lib/tooling.mjs";
+
+export { formatBytes, formatTime };
 
 const options = parseArguments(
   process.argv.slice(2),
@@ -47,7 +50,7 @@ const options = parseArguments(
       job: "default",
       filter: "*",
       readme: path.join(repositoryRoot, "README.md"),
-      summary: path.join(repositoryRoot, "benchmarks/CStructSharp.Comparison/results.json"),
+      summary: path.join(repositoryRoot, COMPARISON_RESULTS_PATH),
     },
   },
 );
@@ -121,19 +124,6 @@ export function sortRows(rows, median) {
       compare(key(a.readType, a.deserialize), key(b.readType, b.deserialize)) ||
       compare(key(a.writeType, a.serialize), key(b.writeType, b.serialize)),
   );
-}
-
-/** Formats a median in nanoseconds: one decimal below 100 ns, whole nanoseconds below 10 µs, then µs, then ms. */
-export function formatTime(nanoseconds) {
-  if (nanoseconds < 100) return `${nanoseconds.toFixed(1)} ns`;
-  if (nanoseconds < 10_000) return `${Math.round(nanoseconds).toLocaleString("en-US")} ns`;
-  if (nanoseconds < 10_000_000) return `${(nanoseconds / 1000).toFixed(1)} µs`;
-  return `${(nanoseconds / 1_000_000).toFixed(1)} ms`;
-}
-
-/** Formats allocated bytes per operation as whole bytes. */
-export function formatBytes(bytes) {
-  return `${Math.round(bytes).toLocaleString("en-US")} B`;
 }
 
 /** Reads the `PackageReference` versions of the comparison project, keyed by package id. */

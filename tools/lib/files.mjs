@@ -1,6 +1,7 @@
 /** File-system helpers shared by the Node tools. */
 import fs from "node:fs";
 import path from "node:path";
+import { gzipSync } from "node:zlib";
 import { runCommand } from "./tooling.mjs";
 
 /** Every file below a directory (absolute paths, sorted), optionally filtered by a predicate on the absolute path. */
@@ -16,6 +17,21 @@ export function listFiles(directory, predicate = () => true) {
   };
   if (fs.existsSync(directory)) visit(directory);
   return files;
+}
+
+/**
+ * Measures the files below a directory the way the web size budget counts them: file count, total bytes, and total
+ * gzip bytes, each file compressed on its own at level 9 (a browser fetches and decompresses files separately).
+ * @param {string} directory The directory to measure.
+ * @returns {{ files: number, bytes: number, gzipBytes: number, entries: { path: string, bytes: number, gzipBytes: number }[] }}
+ *   The totals and the per-file sizes, with directory-relative POSIX paths.
+ */
+export function measureDirectory(directory) {
+  const entries = listFiles(directory).map((file) => {
+    const data = fs.readFileSync(file);
+    return { path: path.relative(directory, file).replaceAll("\\", "/"), bytes: data.length, gzipBytes: gzipSync(data, { level: 9 }).length };
+  });
+  return { files: entries.length, bytes: entries.reduce((sum, file) => sum + file.bytes, 0), gzipBytes: entries.reduce((sum, file) => sum + file.gzipBytes, 0), entries };
 }
 
 /** Whether a path exists and is a regular file. */
