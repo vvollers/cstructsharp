@@ -67,6 +67,15 @@ export function createCStructSharpWasm(assemblyExports) {
      */
     compile: (definition, options = null, writers = {}) =>
       compileLargeSource(definition, options ?? {}, {
+        /**
+         * Parses bytes on the calling thread for the compiled layout's fast path; the envelope text, decoded from the
+         * UTF-8 bytes the export returns.
+         * @param {string} layout Portable layout source.
+         * @param {Uint8Array} bytes The input.
+         * @param {object | null} parserOptions Parse options.
+         * @param {boolean} debug Whether to record every value's byte range.
+         * @returns {string} The parse envelope's JSON text.
+         */
         parseBytes: (layout, bytes, parserOptions, debug) =>
           decodeEnvelopeText(managed.ParseBytes(layout, bytes, stringifyOptions(parserOptions), debug), "parse"),
         ...writers,
