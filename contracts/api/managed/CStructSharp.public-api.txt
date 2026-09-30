@@ -347,7 +347,6 @@ namespace CStructSharp.Generated
     {
         public static int BitfieldShift(int bitOffset, int bitSize, int unitBits, bool highBitFirst) { }
         public static void DecodeBooleans(System.ReadOnlySpan<byte> source, System.Span<bool> destination) { }
-        public static string DecodeBoundedText(System.ReadOnlySpan<byte> source, string encoding, bool trimTrailingNuls) { }
         public static double DecodeFixedPoint(long raw, int fractionBits) { }
         public static string DecodeFixedText(System.ReadOnlySpan<byte> source, bool trimTrailingNuls) { }
         public static void DecodeInt24(System.ReadOnlySpan<byte> source, System.Span<int> destination, bool littleEndian) { }
@@ -360,8 +359,6 @@ namespace CStructSharp.Generated
         public static void EncodeIntegers<T>(System.ReadOnlySpan<T> source, System.Span<byte> destination, bool littleEndian)
             where T :  unmanaged { }
         public static ulong ExtractBits(ulong unit, int shift, int bitSize) { }
-        public static int FindTerminator(System.ReadOnlySpan<byte> data, System.ReadOnlySpan<byte> terminator, int unitSize, int alignmentOffset) { }
-        public static ulong MergeBits(ulong unit, ulong value, int shift, int bitSize) { }
         public static char ReadChar(System.ReadOnlySpan<byte> source, bool littleEndian) { }
         public static double ReadDouble(System.ReadOnlySpan<byte> source, bool littleEndian) { }
         public static System.Guid ReadGuid(System.ReadOnlySpan<byte> source, bool networkOrder) { }
@@ -380,8 +377,6 @@ namespace CStructSharp.Generated
         public static ulong ReadUInt48(System.ReadOnlySpan<byte> source, bool littleEndian) { }
         public static ulong ReadUInt64(System.ReadOnlySpan<byte> source, bool littleEndian) { }
         public static ulong ReadUnsigned(System.ReadOnlySpan<byte> source, bool littleEndian) { }
-        public static ulong ToBitfieldValue(string name, int bitSize, object? value) { }
-        public static System.Guid ToGuid(object value) { }
         public static byte ToNarrowCharacter(char value) { }
         public static byte ToNarrowCharacter(object value) { }
         public static bool TrimsFixedText(CStructSharp.ReadOptions? options) { }
@@ -404,7 +399,6 @@ namespace CStructSharp.Generated
         public static void WriteUInt48(System.Span<byte> destination, ulong value, bool littleEndian) { }
         public static void WriteUInt64(System.Span<byte> destination, ulong value, bool littleEndian) { }
         public static int WriteULeb128(System.Span<byte> destination, ulong value) { }
-        public static void WriteUnsigned(System.Span<byte> destination, ulong value, bool littleEndian) { }
     }
     public struct CompositeCursor
     {
@@ -478,8 +472,6 @@ namespace CStructSharp.Generated
         public long Origin { get; }
         public string? Path { get; }
         public int Position { get; set; }
-        public int Remaining { get; }
-        public System.ReadOnlySpan<byte> Source { get; }
         public bool TrimFixedText { get; }
         public void Complete(CStructSharp.Diagnostics.CStructException exception) { }
         public int CountTerminated(int elementSize, string fieldName, string member, string? memberType) { }
@@ -494,15 +486,12 @@ namespace CStructSharp.Generated
         public CStructSharp.Diagnostics.CStructReadException Fail(string message, string? member, string? memberType, System.Exception? cause) { }
         public System.Exception FailExpression(System.Exception exception, string context, string? member, string? memberType) { }
         public CStructSharp.Diagnostics.CStructLayoutException FailLayout(string message, string? member, string? memberType) { }
-        public CStructSharp.Diagnostics.CStructReadLimitException FailLimit(string message, string? member, string? memberType) { }
         public System.ReadOnlySpan<byte> Peek(int count, string member, string? memberType) { }
         public int RequireArrayLength(System.Int128 count, string member, string? memberType) { }
-        public void RequireBoundedTextBytes(long count, string member, string? memberType) { }
         public void Seek(long position, string? member, string? memberType) { }
         public void Skip(int count, string member, string? memberType) { }
         public System.ReadOnlySpan<byte> Take(int count, string member, string? memberType) { }
         public System.ReadOnlySpan<byte> TakeArray(int count, int elementSize, string member, string? memberType) { }
-        public System.ReadOnlySpan<byte> TakeBoundedText(int count, string member, string? memberType) { }
         public object TakeCustom(CStructSharp.Codecs.ICustomCodec codec, string member, string? memberType) { }
         public System.ReadOnlySpan<byte> TakeElements(int count, int elementSize, string member, string? memberType) { }
         public string TakeEncodedText(int count, string encoding, string member, string? memberType) { }
@@ -546,14 +535,12 @@ namespace CStructSharp.Generated
         public WriteCursor(CStructSharp.WriteOptions? options, string? path) { }
         public WriteCursor(System.Span<byte> destination, CStructSharp.WriteOptions? options = null, string? path = null) { }
         public CStructSharp.PointerAddressingMode AddressingMode { get; }
-        public bool IsGrowable { get; }
         public int Length { get; }
         public int MaxArrayElements { get; }
         public long MaxStringBytes { get; }
         public long Origin { get; }
         public string? Path { get; }
         public int Position { get; set; }
-        public System.ReadOnlySpan<byte> Written { get; }
         public void Complete(CStructSharp.Diagnostics.CStructException exception) { }
         public void Dispose() { }
         public void EnterComposite(string member, string? memberType) { }
@@ -563,17 +550,14 @@ namespace CStructSharp.Generated
         public CStructSharp.Diagnostics.CStructWriteException FailArrayTooMany(string field, int maximum, string? member, string? memberType) { }
         public System.Exception FailExpression(System.Exception exception, string context, string? member, string? memberType) { }
         public CStructSharp.Diagnostics.CStructLayoutException FailLayout(string message, string? member, string? memberType) { }
-        public CStructSharp.Diagnostics.CStructWriteLimitException FailLimit(string message, string? member, string? memberType) { }
         public CStructSharp.Diagnostics.CStructWriteException FailRawStorageLength(string union, int expected, int actual, string? member, string? memberType) { }
         public CStructSharp.Diagnostics.CStructWriteException FailUnknownUnionMember(string union, string? selected, string? member, string? memberType) { }
         public void Pad(int count, string? member, string? memberType) { }
         public void RequireArrayLength(System.Int128 count, string member, string? memberType) { }
-        public void RequireStringBytes(long count, string member, string? memberType) { }
         public System.Span<byte> Reserve(int count, string? member, string? memberType) { }
         public void Seek(long position, string? member, string? memberType) { }
         public byte[] ToArray() { }
         public bool TryReserveFixed(int size, int alignment, int nestingLevels, int maximumArrayCount, out System.Span<byte> bytes) { }
-        public System.Span<byte> Unit(long unitStart, int unitSize, string member, string? memberType) { }
         public CStructSharp.Diagnostics.CStructException WithMember(CStructSharp.Diagnostics.CStructException exception, string member, string? memberType) { }
         public void WriteBits(CStructSharp.Generated.BitfieldSlot slot, int bitSize, object? value, bool littleEndian, bool highBitFirst, string member, string? memberType) { }
         public void WriteBoundedText(int count, string encoding, string value, string member, string? memberType) { }

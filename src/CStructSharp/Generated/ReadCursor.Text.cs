@@ -14,7 +14,7 @@ public ref partial struct ReadCursor
     /// <returns>The buffer's bytes.</returns>
     /// <exception cref="CStructReadLimitException">The buffer exceeds <c>MaxStringBytes</c> or the read budget.</exception>
     /// <exception cref="CStructReadException">The buffer does not fit in the remaining bytes.</exception>
-    public ReadOnlySpan<byte> TakeBoundedText(int count, string member, string? memberType)
+    internal ReadOnlySpan<byte> TakeBoundedText(int count, string member, string? memberType)
     {
         this.RequireBoundedTextBytes(count, member, memberType);
         if (count > this.Remaining)
@@ -184,7 +184,7 @@ public ref partial struct ReadCursor
     /// <param name="member">The text field, for the diagnostics.</param>
     /// <param name="memberType">The field's type spelling, for the diagnostics.</param>
     /// <exception cref="CStructReadLimitException">The buffer exceeds the limit.</exception>
-    public readonly void RequireBoundedTextBytes(long count, string member, string? memberType)
+    internal readonly void RequireBoundedTextBytes(long count, string member, string? memberType)
     {
         if (count > this.settings.MaxStringBytes)
         {

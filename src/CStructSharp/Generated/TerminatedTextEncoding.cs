@@ -1,6 +1,9 @@
 namespace CStructSharp.Generated;
 
+using System.ComponentModel;
+
 /// <summary>The encodings a terminated string field can have.</summary>
+[EditorBrowsable(EditorBrowsableState.Never)]
 public enum TerminatedTextEncoding
 {
     /// <summary><c>ascii_string_zero</c>, <c>ascii_string_newline</c>, <c>cstring</c>: strict 7-bit ASCII.</summary>

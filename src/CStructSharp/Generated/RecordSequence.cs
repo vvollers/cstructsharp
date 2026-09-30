@@ -3,6 +3,7 @@ namespace CStructSharp.Generated;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -23,6 +24,7 @@ using CStructSharp.Streams;
 ///     not hold (a seekable stream). Support for generated code; the documented entry points are the generated
 ///     members and <c>CStruct.ParseMany</c>.
 /// </summary>
+[EditorBrowsable(EditorBrowsableState.Never)]
 public static class RecordSequence
 {
     /// <summary>The records of <paramref name="source"/>, each read from the end of the previous one.</summary>

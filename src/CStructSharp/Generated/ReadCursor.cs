@@ -1,6 +1,7 @@
 namespace CStructSharp.Generated;
 
 using System;
+using System.ComponentModel;
 using CStructSharp.Diagnostics;
 using CStructSharp.Reading;
 
@@ -18,6 +19,7 @@ using CStructSharp.Reading;
 ///     the span's byte-zero origin. Stream adapters translate that origin at the operation boundary. Byte-budget
 ///     accounting is separate from position, so revisiting pointer targets still charges the bytes read.
 /// </remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 public ref partial struct ReadCursor
 {
     private readonly ReadOnlySpan<byte> source;
@@ -61,10 +63,10 @@ public ref partial struct ReadCursor
     public readonly string? Path => this.path;
 
     /// <summary>Gets the number of bytes from the position to the end of the source.</summary>
-    public readonly int Remaining => this.source.Length - this.position;
+    internal readonly int Remaining => this.source.Length - this.position;
 
     /// <summary>Gets the whole source.</summary>
-    public readonly ReadOnlySpan<byte> Source => this.source;
+    internal readonly ReadOnlySpan<byte> Source => this.source;
 
     /// <summary>Gets how pointer addresses are interpreted.</summary>
     public readonly PointerAddressingMode AddressingMode => this.settings.AddressingMode;

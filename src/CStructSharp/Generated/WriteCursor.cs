@@ -1,6 +1,7 @@
 namespace CStructSharp.Generated;
 
 using System;
+using System.ComponentModel;
 using CStructSharp.Codecs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
@@ -20,6 +21,7 @@ using CStructSharp.Writing;
 ///     copy an owning cursor and dispose both copies. Positions are byte offsets from this destination's start;
 ///     a failed write can leave earlier bytes changed, so this cursor is not a transaction.
 /// </remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 public ref struct WriteCursor
 {
     private const int InitialOwnedCapacity = 256;
@@ -75,7 +77,7 @@ public ref struct WriteCursor
     }
 
     /// <summary>Gets whether the cursor owns a growing buffer (see <see cref="WriteCursor(WriteOptions?, string?)"/>).</summary>
-    public readonly bool IsGrowable => this.owned is not null;
+    internal readonly bool IsGrowable => this.owned is not null;
 
     /// <summary>Gets the path the operation writes, as reported in diagnostics.</summary>
     public readonly string? Path => this.path;
@@ -84,7 +86,7 @@ public ref struct WriteCursor
     public readonly int Length => this.length;
 
     /// <summary>Gets the bytes written so far.</summary>
-    public readonly ReadOnlySpan<byte> Written => this.destination.Slice(0, this.length);
+    internal readonly ReadOnlySpan<byte> Written => this.destination.Slice(0, this.length);
 
     /// <summary>Gets how pointer addresses are interpreted.</summary>
     public readonly PointerAddressingMode AddressingMode => this.options.AddressingMode;
@@ -207,7 +209,7 @@ public ref struct WriteCursor
     /// <param name="member">The bitfield, for the diagnostics.</param>
     /// <param name="memberType">The field's type spelling, for the diagnostics.</param>
     /// <returns>The unit's bytes, to merge the field's bits into.</returns>
-    public Span<byte> Unit(long unitStart, int unitSize, string member, string? memberType)
+    internal Span<byte> Unit(long unitStart, int unitSize, string member, string? memberType)
     {
         this.Seek(unitStart, member, memberType);
         long end = unitStart + unitSize;
@@ -585,7 +587,7 @@ public ref struct WriteCursor
     /// <param name="member">The string field, for the diagnostics.</param>
     /// <param name="memberType">The field's type spelling, for the diagnostics.</param>
     /// <exception cref="CStructWriteLimitException">The string exceeds the limit.</exception>
-    public readonly void RequireStringBytes(long count, string member, string? memberType)
+    internal readonly void RequireStringBytes(long count, string member, string? memberType)
     {
         if (count < 0 || count > this.options.MaxStringBytes)
         {
@@ -660,7 +662,7 @@ public ref struct WriteCursor
     /// <param name="member">The layout field, or <see langword="null"/> when none applies.</param>
     /// <param name="memberType">The field's type spelling.</param>
     /// <returns>The exception to throw.</returns>
-    public readonly CStructWriteLimitException FailLimit(string message, string? member, string? memberType)
+    internal readonly CStructWriteLimitException FailLimit(string message, string? member, string? memberType)
     {
         var exception = new CStructWriteLimitException(message);
         this.Attach(exception, member, memberType);

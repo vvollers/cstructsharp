@@ -1,6 +1,7 @@
 namespace CStructSharp.Generated;
 
 using System;
+using System.ComponentModel;
 
 /// <summary>
 ///     Reads record <paramref name="index"/> of a sequence from <paramref name="offset"/> in <paramref name="source"/>
@@ -16,4 +17,5 @@ using System;
 /// <param name="options">The read options in force, with the operation's cancellation token.</param>
 /// <param name="consumed">The record's encoded length.</param>
 /// <returns>The record.</returns>
+[EditorBrowsable(EditorBrowsableState.Never)]
 public delegate T RecordReader<out T>(ReadOnlyMemory<byte> source, int offset, int index, long shift, ReadOptions? options, out int consumed);

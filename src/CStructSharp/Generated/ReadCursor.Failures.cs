@@ -54,7 +54,7 @@ public ref partial struct ReadCursor
     /// <param name="member">The layout field, or <see langword="null"/> when none applies.</param>
     /// <param name="memberType">The field's type spelling.</param>
     /// <returns>The exception to throw.</returns>
-    public readonly CStructReadLimitException FailLimit(string message, string? member, string? memberType)
+    internal readonly CStructReadLimitException FailLimit(string message, string? member, string? memberType)
     {
         var exception = new CStructReadLimitException(message);
         this.Attach(exception, member, memberType);

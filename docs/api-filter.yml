@@ -1,0 +1,5 @@
+# DocFX API filter: the generated-code support types are hidden from IntelliSense ([EditorBrowsable(Never)]), which
+# the default filter treats as excluded; the API reference keeps documenting them for readers of generated code.
+apiRules:
+- include:
+    uidRegex: ^CStructSharp\.Generated(\.|$)

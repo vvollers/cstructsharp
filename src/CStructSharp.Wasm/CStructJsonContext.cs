@@ -8,6 +8,6 @@ using System.Text.Json.Serialization;
 /// </summary>
 [JsonSerializable(typeof(InteropOptionsDto))]
 [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true, WriteIndented = false)]
-public partial class CStructJsonContext : JsonSerializerContext
+internal partial class CStructJsonContext : JsonSerializerContext
 {
 }

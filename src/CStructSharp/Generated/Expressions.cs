@@ -2,6 +2,7 @@ namespace CStructSharp.Generated;
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using CStructSharp.Expressions;
 using CStructSharp.Syntax;
 
@@ -15,6 +16,7 @@ using CStructSharp.Syntax;
 /// <remarks>
 ///     This is an advanced surface, public so the code the <c>[CStructLayout]</c> generator emits can call it.
 /// </remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 public static class Expressions
 {
     /// <summary>Checked addition.</summary>

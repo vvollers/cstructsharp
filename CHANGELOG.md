@@ -114,6 +114,14 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   trailing NUL character are rejected. A `MemorySchema` rejects a member whose name is not an identifier (a letter or
   underscore, then letters, digits and underscores). Migration: rename such members in the metadata (for example
   replace other characters with `_`) and write `a[1]` for `a.[1]`.
+- **Breaking (generated-code support):** 16 members of `CStructSharp.Generated` that generated code never calls are
+  internal: `Codec.DecodeBoundedText`, `FindTerminator`, `MergeBits`, `ToBitfieldValue`, `ToGuid` and
+  `WriteUnsigned`; `ReadCursor.Remaining`, `Source`, `FailLimit`, `RequireBoundedTextBytes` and `TakeBoundedText`;
+  `WriteCursor.IsGrowable`, `Written`, `FailLimit`, `RequireStringBytes` and `Unit`. The support types (`Codec`,
+  `ReadCursor`, `WriteCursor`, `CompositeCursor`, `BitfieldSlot`, `Expressions`, `RecordSequence`, `RecordReader<T>`,
+  `TerminatedTextEncoding`) are hidden from IntelliSense, and the WASM bridge's `CStructJsonContext` is internal.
+  Generated code is unaffected. Migration: code that called one of these members directly uses the `CStruct`
+  operations or the generated members instead.
 
 ### Added
 

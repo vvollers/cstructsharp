@@ -1,5 +1,6 @@
 namespace CStructSharp.Generated;
 
+using System.ComponentModel;
 using CStructSharp.Compilation;
 
 /// <summary>
@@ -11,6 +12,7 @@ using CStructSharp.Compilation;
 /// <remarks>
 ///     This is an advanced surface, public so the code the <c>[CStructLayout]</c> generator emits can use it.
 /// </remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 public struct CompositeCursor
 {
     private PlacementCursor cursor;
@@ -87,4 +89,5 @@ public struct CompositeCursor
 /// <param name="UnitStart">The unit's first byte.</param>
 /// <param name="UnitSize">The unit's size in bytes (a packed window can differ from the declared type's size).</param>
 /// <param name="BitOffset">The declaration-order bit offset inside the unit.</param>
+[EditorBrowsable(EditorBrowsableState.Never)]
 public readonly record struct BitfieldSlot(long UnitStart, int UnitSize, int BitOffset);

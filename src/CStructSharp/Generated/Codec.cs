@@ -2,6 +2,7 @@ namespace CStructSharp.Generated;
 
 using System;
 using System.Buffers.Binary;
+using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -19,6 +20,7 @@ using CStructSharp.Diagnostics;
 ///     layout class. It is public so the code the <c>[CStructLayout]</c> generator emits into your assembly can
 ///     call it.
 /// </remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 public static class Codec
 {
     private const int MaximumLeb128Bytes = 10;
@@ -435,7 +437,7 @@ public static class Codec
     /// <param name="destination">The bytes to write into.</param>
     /// <param name="value">The value to write.</param>
     /// <param name="littleEndian">Whether the bytes are little-endian.</param>
-    public static void WriteUnsigned(Span<byte> destination, ulong value, bool littleEndian)
+    internal static void WriteUnsigned(Span<byte> destination, ulong value, bool littleEndian)
     {
         switch (destination.Length)
         {
@@ -573,7 +575,7 @@ public static class Codec
     /// <param name="value">The value to write.</param>
     /// <returns>The converted value.</returns>
     /// <exception cref="CStructWriteException">The value is neither.</exception>
-    public static Guid ToGuid(object value)
+    internal static Guid ToGuid(object value)
     {
         if (value is Guid typed)
         {
@@ -616,7 +618,7 @@ public static class Codec
     /// <param name="shift">The bit offset of the slice inside the unit.</param>
     /// <param name="bitSize">The width of the slice in bits.</param>
     /// <returns>The updated storage unit.</returns>
-    public static ulong MergeBits(ulong unit, ulong value, int shift, int bitSize)
+    internal static ulong MergeBits(ulong unit, ulong value, int shift, int bitSize)
         => BitfieldCodecTable.MergeBitfieldValue(unit, value, shift, bitSize);
 
     /// <summary>Converts and validates a value against one bitfield's unsigned domain, with the runtime's messages.</summary>
@@ -625,7 +627,7 @@ public static class Codec
     /// <param name="value">The value to write.</param>
     /// <returns>The converted value.</returns>
     /// <exception cref="CStructWriteException">The value is null, not an integer, or does not fit.</exception>
-    public static ulong ToBitfieldValue(string name, int bitSize, object? value)
+    internal static ulong ToBitfieldValue(string name, int bitSize, object? value)
         => BitfieldCodecTable.ValidateBitfieldWriteValue(name, bitSize, value);
 
     // ------------------------------------------------------------------------------------------ primitive arrays
@@ -783,7 +785,7 @@ public static class Codec
     /// <param name="trimTrailingNuls">Whether to apply <c>ReadOptions.TrimFixedText</c>.</param>
     /// <returns>The decoded value.</returns>
     /// <exception cref="CStructReadException">The bytes are not valid in the encoding.</exception>
-    public static string DecodeBoundedText(ReadOnlySpan<byte> source, string encoding, bool trimTrailingNuls)
+    internal static string DecodeBoundedText(ReadOnlySpan<byte> source, string encoding, bool trimTrailingNuls)
     {
         ArgumentNullException.ThrowIfNull(encoding);
         string text;
@@ -809,7 +811,7 @@ public static class Codec
     /// <param name="unitSize">The encoding unit size (1 or 2 bytes).</param>
     /// <param name="alignmentOffset">The offset of the first encoding-unit boundary.</param>
     /// <returns>The index, or -1.</returns>
-    public static int FindTerminator(ReadOnlySpan<byte> data, ReadOnlySpan<byte> terminator, int unitSize, int alignmentOffset)
+    internal static int FindTerminator(ReadOnlySpan<byte> data, ReadOnlySpan<byte> terminator, int unitSize, int alignmentOffset)
     {
         if (unitSize == 1)
         {

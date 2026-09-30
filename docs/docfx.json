@@ -12,6 +12,7 @@
       ],
       "dest": "api",
       "disableDefaultFilter": false,
+      "filter": "api-filter.yml",
       "memberLayout": "samePage",
       "namespaceLayout": "flattened"
     }

@@ -382,49 +382,49 @@
   },
   {
    "pattern": "Generated/Codec.cs",
-   "sourceSha256": "f1e999905335d95a1d0f8f7fa320727f057910128aac757317a14ea39a046dff",
+   "sourceSha256": "70487b8cede15275dfce054b929fed09a43d10dbe4118e12d1d4bbff122333ef",
    "mutants": [
     { "mutatorName": "Block removal mutation", "replacement": "{}",
-     "location": {"start":{"line":815,"column":9},"end":{"line":817,"column":10}},
+     "location": {"start":{"line":817,"column":9},"end":{"line":819,"column":10}},
      "reason": "For supported one-byte encoding units (ASCII/UTF-8 NUL or newline terminators), the encoded terminator has one byte and the first encoding boundary is offset zero. Both production callers calculate alignmentOffset modulo unitSize, which is zero when unitSize is one. Removing this vectorized IndexOf fast path therefore falls through to a loop comparing that same byte at every index from zero, returning the same first match or minus one. Two-byte encodings already use the loop and are unchanged. This is an optimization-only change for supported terminator inputs, not a claim about malformed helper arguments." },
     { "mutatorName": "OrAssignmentExpression to ExclusiveOrAssignmentExpression mutation", "replacement": "value ^= (ulong)source[index] << shift",
-     "location": {"start":{"line":89,"column":13},"end":{"line":89,"column":51}},
+     "location": {"start":{"line":91,"column":13},"end":{"line":91,"column":51}},
      "reason": "ReadUInt48 starts with zero and places each of six bytes at a distinct multiple-of-eight shift, in either byte order. The new byte's bit positions never overlap accumulated bits, so OR and XOR produce identical 48-bit values." },
     { "mutatorName": "Equality mutation", "replacement": "< 8",
-     "location": {"start":{"line":170,"column":22},"end":{"line":170,"column":26}},
+     "location": {"start":{"line":172,"column":22},"end":{"line":172,"column":26}},
      "reason": "The preceding exact case 8 already returns ReadUInt64 for every eight-byte input. This fallback only receives widths 3, 5, 6 and 7; changing its upper bound from <= 8 to < 8 cannot change any selected case or result." },
     { "mutatorName": "OrAssignmentExpression to ExclusiveOrAssignmentExpression mutation", "replacement": "value ^= (ulong)source[index] << shift",
-     "location": {"start":{"line":177,"column":21},"end":{"line":177,"column":59}},
+     "location": {"start":{"line":179,"column":21},"end":{"line":179,"column":59}},
      "reason": "The generic ReadUnsigned loop starts with zero and assigns each source byte a distinct eight-bit position within at most 64 bits. The new byte cannot overlap previously accumulated bits, so OR and XOR yield the same value for both byte orders." },
     { "mutatorName": "Equality mutation", "replacement": "< 8",
-     "location": {"start":{"line":454,"column":22},"end":{"line":454,"column":26}},
+     "location": {"start":{"line":456,"column":22},"end":{"line":456,"column":26}},
      "reason": "The preceding exact case 8 already writes all eight-byte destinations and breaks. The generic fallback only receives widths 3, 5, 6 and 7, so changing its upper bound to < 8 does not change dispatch or output." },
     { "mutatorName": "Bitwise mutation", "replacement": "value >>> shift",
-     "location": {"start":{"line":458,"column":45},"end":{"line":458,"column":59}},
+     "location": {"start":{"line":460,"column":45},"end":{"line":460,"column":59}},
      "reason": "WriteUnsigned's value is ulong. Both >> and >>> shift this unsigned operand with zero fill and the same masked shift count, producing identical destination bytes." },
     { "mutatorName": "RightShiftAssignmentExpression to UnsignedRightShiftAssignmentExpression mutation", "replacement": "value >>>= 7",
-     "location": {"start":{"line":479,"column":13},"end":{"line":479,"column":24}},
+     "location": {"start":{"line":481,"column":13},"end":{"line":481,"column":24}},
      "reason": "WriteULeb128's value is ulong. Compound >>= and >>>= both use zero-fill shifts for this unsigned operand, so every subsequent value, continuation bit and output byte is identical." },
     { "mutatorName": "Remove checked expression", "replacement": "exact * (decimal)scale",
-     "location": {"start":{"line":533,"column":30},"end":{"line":533,"column":61}},
+     "location": {"start":{"line":535,"column":30},"end":{"line":535,"column":61}},
      "reason": "Decimal multiplication and conversion from double to decimal throw OverflowException on an unrepresentable result regardless of checked context. Removing this checked expression does not turn either decimal operation into wrapping arithmetic, and exact-grid validation still receives the same scaled decimal or the same exception." },
     { "mutatorName": "Bitwise mutation", "replacement": "unit >>> shift",
-     "location": {"start":{"line":611,"column":13},"end":{"line":611,"column":26}},
+     "location": {"start":{"line":613,"column":13},"end":{"line":613,"column":26}},
      "reason": "ExtractBits receives unit as ulong. Both right-shift operators zero-fill the same unsigned bits with the same shift-count masking before the unchanged bit mask is applied." },
     { "mutatorName": "Bitwise mutation", "replacement": "value >>> 8",
-     "location": {"start":{"line":871,"column":33},"end":{"line":871,"column":43}},
+     "location": {"start":{"line":873,"column":33},"end":{"line":873,"column":43}},
      "reason": "WriteUInt24Unchecked's value is uint, so >> and >>> both zero-fill before conversion to the middle output byte. The same eight low bits are written." },
     { "mutatorName": "Bitwise mutation", "replacement": "value >>> 16",
-     "location": {"start":{"line":873,"column":52},"end":{"line":873,"column":63}},
+     "location": {"start":{"line":875,"column":52},"end":{"line":875,"column":63}},
      "reason": "WriteUInt24Unchecked's value is uint, so >> and >>> both zero-fill before conversion to the high output byte. The byte-order-dependent destination index and written byte are unchanged." },
     { "mutatorName": "Bitwise mutation", "replacement": "value >>> shift",
-     "location": {"start":{"line":881,"column":41},"end":{"line":881,"column":55}},
+     "location": {"start":{"line":883,"column":41},"end":{"line":883,"column":55}},
      "reason": "WriteUInt48Unchecked's value is ulong. Both shift operators zero-fill this unsigned operand, preserving all six extracted bytes for either byte order." },
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?PrimitiveCodecs.StrictUtf16LittleEndianEncoding :PrimitiveCodecs.StrictUtf16BigEndianEncoding)",
-     "location": {"start":{"line":857,"column":48},"end":{"line":857,"column":157}},
+     "location": {"start":{"line":859,"column":48},"end":{"line":859,"column":157}},
      "reason": "ReadChar has already decoded source bytes using the requested endianness. The selected strict UTF-16 encoder is used only by ValidateWideText, whose GetByteCount validates the resulting string: both byte orders reject the same invalid surrogate sequences and count the same bytes for valid text. No encoded bytes or byte-order-specific output is returned here." },
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?PrimitiveCodecs.StrictUtf16LittleEndianEncoding :PrimitiveCodecs.StrictUtf16BigEndianEncoding)",
-     "location": {"start":{"line":857,"column":48},"end":{"line":857,"column":157}},
+     "location": {"start":{"line":859,"column":48},"end":{"line":859,"column":157}},
      "reason": "ReadChar has already decoded source bytes using the requested endianness. Selecting the strict big-endian UTF-16 encoder for ValidateWideText validates the same surrogate sequences as the little-endian encoder. Their counts are identical, the count is discarded, and the decoded string and trimming behavior are unchanged." }
    ]
   },
@@ -547,10 +547,10 @@
   },
   {
    "pattern": "Generated/ReadCursor.cs",
-   "sourceSha256": "469d90acc36c8173832f932c9d8dff273fd4239dc5b3a632d31e2dd142ff4539",
+   "sourceSha256": "e5ebd14b40101147785282d8416a71f70527e1719bd90450efc8a8f990cbd2cb",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": "count < 0",
-     "location": {"start":{"line":145,"column":13},"end":{"line":145,"column":23}},
+     "location": {"start":{"line":147,"column":13},"end":{"line":147,"column":23}},
      "reason": "Only count zero newly reaches budget arithmetic. bytesRead starts at zero and only accepted charges update it, so it never exceeds the nonnegative fixed limit. Adding zero cannot overflow or fail the limit check and reassigns the same value; position is unchanged. Negative counts still return early." }
    ]
   },
@@ -601,25 +601,25 @@
   },
   {
    "pattern": "Generated/WriteCursor.cs",
-   "sourceSha256": "b4d48f61e361fa1bdb66c606d221593c911ec3ff4acce78fefcd6d705eaa30fd",
+   "sourceSha256": "bbccd922b7966ecf0d53743a4897f6651807c82a767d24c8deb76c4eda90ab53",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":195,"column":13},"end":{"line":195,"column":20}},
+     "location": {"start":{"line":197,"column":13},"end":{"line":197,"column":20}},
      "reason": "A successful forward seek starts Reserve at the old length and reserves requested position minus that length, leaving position exactly equal to the requested position. Without the return, the following assignment writes that same value. A failing Reserve still throws before either path can continue." },
     { "mutatorName": "Arithmetic mutation", "replacement": "Math.Min(int.MaxValue / 2, this.destination.Length) / 2",
-     "location": {"start":{"line":535,"column":43},"end":{"line":535,"column":98}},
+     "location": {"start":{"line":537,"column":43},"end":{"line":537,"column":98}},
      "reason": "Grow is called only when required exceeds the old destination length. Math.Max still makes the requested rental at least required after this mutation; copying the written prefix, clearing the remaining capacity and replacing/returning buffers are unchanged. Future reservations remain capacity-checked. Only the private spare-capacity policy and resulting allocation frequency change, not encoded bytes, positions, limits or buffer ownership." },
     { "mutatorName": "Equality mutation", "replacement": "this.position >= this.length",
-     "location": {"start":{"line":161,"column":13},"end":{"line":161,"column":40}},
+     "location": {"start":{"line":163,"column":13},"end":{"line":163,"column":40}},
      "reason": "The only newly entered case is position equal to length. Its body only assigns length = position, leaving the same integer state. Both versions return the same reserved span and perform identical capacity and budget checks." }
    ]
   },
   {
    "pattern": "Generated/RecordSequence.cs",
-   "sourceSha256": "102bbef90178bd5fc13a00c81bd9525200036628ce91ba0c8e6d6778612f1c4a",
+   "sourceSha256": "d8067cce0743f9bc7b578963dfc8d149e92afec11cb7684e421e6016df2ced6c",
    "mutants": [
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?(options ?? new ReadOptions()) with { CancellationToken = token, } :options)",
-     "location": {"start":{"line":332,"column":12},"end":{"line":332,"column":110}},
+     "location": {"start":{"line":334,"column":12},"end":{"line":334,"column":110}},
      "reason": "When the linked token can cancel, this already takes the clone branch. Otherwise neither input token can cancel: cloning the sealed ReadOptions preserves every setting and assigns the same non-cancellable token; null denotes the same default settings as new ReadOptions. The documented read settings are unchanged. The extra descriptor allocation and descriptor reference identity are not record-reading results." }
    ]
   },
@@ -928,7 +928,7 @@
   },
   {
    "pattern": "Generated/ReadCursor.Failures.cs",
-   "sourceSha256": "8f16fd87ea0697c8ad1c28ec56fb0009110ab9536b62d289ef6491b03000178d",
+   "sourceSha256": "67e8613baa00057647fcbf670eb142ff3cc34a780755c1672a8a5142cd0a9039",
    "mutants": [
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?new CStructReadException(message) :new CStructReadException(message, cause))",
      "location": {"start":{"line":47,"column":25},"end":{"line":47,"column":117}},
@@ -946,7 +946,7 @@
   },
   {
    "pattern": "Generated/ReadCursor.Text.cs",
-   "sourceSha256": "451b6ab30ea453f33283e1004164bdd77c62823ec3e20af7fd95aa31d62ed5f7",
+   "sourceSha256": "c69b78dff9e5818ff62834dc194a1c72006f6c68351c069c46996d71995c5ffc",
    "mutants": [
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?Codecs.PrimitiveCodecs.StrictUtf16LittleEndianEncoding :Codecs.PrimitiveCodecs.StrictUtf16BigEndianEncoding)",
      "location": {"start":{"line":60,"column":18},"end":{"line":60,"column":141}},
