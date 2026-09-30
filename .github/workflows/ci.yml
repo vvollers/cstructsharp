@@ -37,9 +37,7 @@ on:
       - "stryker-memory-config.json"
       - ".node-version"
       - ".github/workflows/ci.yml"
-  schedule:
-    # A weekly full run catches an effect on the managed side that the path filter did not anticipate.
-    - cron: "11 3 * * 0"
+  # The weekly full run is started by scheduled.yml.
   workflow_dispatch:
 
 concurrency:

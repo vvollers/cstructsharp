@@ -1,0 +1,31 @@
+name: Scheduled checks
+
+# The repository's recurring runs, in one place. Weekly (Sunday 03:11 UTC): the managed, web and documentation
+# workflows in full, whatever their path filters would select, so an effect that a filter did not anticipate still
+# shows up; and the vulnerability check of the locked dependencies. The complete mutation run keeps its own monthly
+# schedule in mutation.yml. Each reused workflow can also be started on its own from its workflow page, and this
+# workflow can be started by hand for the weekly set.
+on:
+  schedule:
+    - cron: "11 3 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  managed:
+    name: Managed verification
+    uses: ./.github/workflows/ci.yml
+
+  web:
+    name: Web verification
+    uses: ./.github/workflows/web.yml
+
+  documentation:
+    name: Documentation verification
+    uses: ./.github/workflows/docs.yml
+
+  dependencies:
+    name: Dependency check
+    uses: ./.github/workflows/dependency-check.yml

@@ -55,9 +55,7 @@ on:
       - "Directory.Build.props"
       - ".config/**"
       - ".node-version"
-  schedule:
-    # A weekly full run catches an effect on the site that the path filter did not anticipate.
-    - cron: "11 5 * * 0"
+  # The weekly full run is started by scheduled.yml.
   workflow_dispatch:
 
 permissions:

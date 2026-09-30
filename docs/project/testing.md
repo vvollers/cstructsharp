@@ -312,8 +312,8 @@ Three workflows run on pull requests and on pushes to `main`, each only when a f
 | `web.yml` | WASM bridge, npm package, explorer, inspector | Lint and unit tests without .NET; one WASM build shared by the package, explorer, inspector and onboarding browser tests; the npm package on the minimum Node on every platform and the newest Node on Linux |
 | `docs.yml` | Documentation sources, the API reference's source, contracts | The complete documentation gate |
 
-Each also runs weekly on a schedule and on demand, so an effect that a path filter did not anticipate still shows up.
-The release workflow always runs all three. Every workflow reads its Node version from `.node-version`.
+`scheduled.yml` runs all three every week, together with the dependency check, so an effect that a path filter did
+not anticipate still shows up. Each can also be started on demand, and the release workflow always runs all three. Every workflow reads its Node version from `.node-version`.
 
 ## Documentation
 
