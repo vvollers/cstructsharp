@@ -154,7 +154,6 @@ jobs:
           node tools/quality/fuzz-corpus.mjs
           node tools/quality/compiler-fixture.mjs validate
           node tools/quality/compiler-fixture.mjs table --check
-          node tools/quality/non-web-release-budgets.mjs --self-test
           node tools/quality/render-performance-table.mjs --self-test
       - name: Pack and verify actual NuGet consumers
         run: |

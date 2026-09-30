@@ -278,17 +278,15 @@ lists the steps.
 ## Performance, packages, and release checks
 
 BenchmarkDotNet scenarios compare timing and allocation for controlled before/after cases. Package checks inspect
-metadata, framework assets, symbols, Source Link, installed consumer behavior, dependency audit results, and raw or
-compressed sizes.
+metadata, framework assets, symbols, Source Link, installed consumer behavior, dependency audit results, and the
+browser build's raw and compressed sizes.
 
 Performance work follows a recorded-baseline discipline. `benchmarks/fixtures/` is a seeded corpus shared by the
 .NET, Node, and browser harnesses; `CStructSharp.FixtureTool fill` records the expected result of every fixture
 from the managed library and `verify` re-checks it, so a performance change that alters any parsed value fails
-before it is measured. `contracts/performance/release-gate.json` is the release gate: the maintainer runs the `Gate`
-benchmark category with the Gate job before a release, and `tools/quality/non-web-release-budgets.mjs` compares the
-medians and allocations with generous multipliers. No workflow runs it with real data, because shared CI runners are
-too noisy for a timing budget; for the same reason no workflow compares timings with a recorded baseline. A
-performance change is judged by a before/after comparison on one machine (`tools/quality/quick-perf-check.mjs`).
+before it is measured. No workflow measures timings, because shared CI runners are too noisy for a timing budget
+or for a comparison with a recorded baseline. A performance change is judged by a before/after comparison on one
+machine (`tools/quality/quick-perf-check.mjs`).
 `web-size-budget.json` holds the size and startup limits of the browser build. The complete procedure (jobs,
 runtimes, profiling, browser harness, AOT variant) is in `benchmarks/README.md` and `benchmarks/js/README.md` in the repository.
 

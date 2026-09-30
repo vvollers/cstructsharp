@@ -1,7 +1,7 @@
 # Performance measurement
 
-`CStructSharp.Benchmarks/` contains BenchmarkDotNet timing/allocation cases that reference core. Baselines live under
-`contracts/performance/`; benchmark output is ignored. Performance checks are manual measurements on a quiet
+`CStructSharp.Benchmarks/` contains BenchmarkDotNet timing/allocation cases that reference core. Benchmark output is
+ignored; no timing baseline is stored in the repository. Performance checks are manual measurements on a quiet
 machine, not a timing gate in CI: shared runners are too noisy to compare with a recorded baseline. A change is
 judged by a before/after comparison of the same cases on the same machine
 ([Check a change quickly](#check-a-change-quickly-the-impact-category)). Retain instability and canary warnings, and do
@@ -11,7 +11,7 @@ not refresh baselines merely to make a result look better.
 
 | Path | Purpose |
 | --- | --- |
-| `CStructSharp.Benchmarks/` | BenchmarkDotNet host. `Scenarios/` holds one fixture-driven class per operation (category `Scenario`: compile, parse, stream, path and typed reads, write, update, debug, malformed input, hand-written comparators); the classes beside it measure single operations (addresses, reads, text writes, memory analysis in category `Memory`); `GeneratedBenchmarks` (category `Generated`) compares generated code with the runtime, `AsyncBenchmarks` (category `Async`) the stream forms with their awaitable twins, `SequenceBenchmarks` (category `Sequences`) segmented input and record sequences (`ParseMany`, `Records`, the view enumerator) with the loops a caller would write, `PacketBenchmarks` (category `Packet`) the compiled engine's reader and writer on the comparison's data-dependent record, and `CostModelBenchmarks` (category `CostModel`) synthetic layouts whose differences give the engine's cost per call and per member. The `Gate` category selects the release-gate cases, and `Impact` the quick before/after subset. `--profile <scenario>` runs a manual loop for sampling profilers. |
+| `CStructSharp.Benchmarks/` | BenchmarkDotNet host. `Scenarios/` holds one fixture-driven class per operation (category `Scenario`: compile, parse, stream, path and typed reads, write, update, debug, malformed input, hand-written comparators); the classes beside it measure single operations (addresses, reads, text writes, memory analysis in category `Memory`); `GeneratedBenchmarks` (category `Generated`) compares generated code with the runtime, `AsyncBenchmarks` (category `Async`) the stream forms with their awaitable twins, `SequenceBenchmarks` (category `Sequences`) segmented input and record sequences (`ParseMany`, `Records`, the view enumerator) with the loops a caller would write, `PacketBenchmarks` (category `Packet`) the compiled engine's reader and writer on the comparison's data-dependent record, and `CostModelBenchmarks` (category `CostModel`) synthetic layouts whose differences give the engine's cost per call and per member. The `Gate` category selects the headline cases for a careful run with the Gate job, and `Impact` the quick before/after subset. `--profile <scenario>` runs a manual loop for sampling profilers. |
 | `CStructSharp.Comparison/` | The serializer comparison shown in the root README: a fixed 79-byte record and a data-dependent record deserialized and serialized by CStructSharp and by other .NET serializers. It is outside both solutions; see [Compare with other serializers](#compare-with-other-serializers). |
 | `CStructSharp.FixtureTool/` | Fills and verifies `fixtures/` expectations with the managed library; also the shared fixture loader the benchmarks use. |
 | `fixtures/` | Seeded fixture corpus shared by .NET, Node, and browser harnesses (see its README). |
@@ -25,7 +25,7 @@ dotnet build ./CStructSharp.NonWeb.slnf -c Release
 # Scenario matrix, both target frameworks, Short job (1 launch, 3 warmups, 5 iterations):
 CSTRUCTSHARP_BENCHMARK_JOB=Short CSTRUCTSHARP_BENCHMARK_RUNTIMES=net10.0,net8.0 \
   dotnet run --project benchmarks/CStructSharp.Benchmarks -c Release -f net10.0 --no-build -- --filter '*' --anyCategories Scenario
-# Release-gate cases, Gate job (3 launches, 5 warmups, 8 iterations), net10.0 only:
+# Headline cases, Gate job (3 launches, 5 warmups, 8 iterations), net10.0 only:
 CSTRUCTSHARP_BENCHMARK_JOB=Gate dotnet run --project benchmarks/CStructSharp.Benchmarks -c Release -f net10.0 --no-build -- \
   --filter '*' --anyCategories Gate
 # Cold start (5 fresh processes, one measured call each):
@@ -42,14 +42,11 @@ Normalize and compare:
 
 ```sh
 node tools/quality/convert-benchmark-baseline.mjs <results dir or report-full.json> artifacts/summary.json
-node tools/quality/non-web-release-budgets.mjs --benchmark-summary-path artifacts/summary.json   # release gate
+node tools/quality/compare-summaries.mjs --before before.json --after artifacts/summary.json --threshold 0.05
 ```
 
-`convert-benchmark-baseline.mjs` is the only converter.
-
-The release gate (`contracts/performance/release-gate.json`) is a manual pre-release check: run the `Gate` cases
-with the Gate job on a quiet machine, convert the report, and pass it to `non-web-release-budgets.mjs`. CI runs only
-the tool's self-test, because shared runners are too noisy for timing budgets.
+`convert-benchmark-baseline.mjs` is the only converter. Compare two summaries measured on the same machine; a
+summary from another machine or another job is not a baseline.
 
 The "Typical costs" tables in `docs/guides/performance.md` are rendered from the committed record
 `CStructSharp.Benchmarks/typical-costs.json` and the packed runtime size in `npm-package.json`. To refresh them,
@@ -103,7 +100,7 @@ iteration:
   its first call. With tiering on, a short in-process run measures a mix of unoptimized and optimized code that
   changes from run to run; without it, both sides measure optimized code, only without dynamic PGO.
 
-Absolute Quick-job times are therefore higher than Short-job or release-gate times and are not comparable with
+Absolute Quick-job times are therefore higher than Short-job or Gate-job times and are not comparable with
 them; use Quick for before/after comparisons only. The baseline checkout needs a benchmark host that knows the
 `Quick` job: for a revision older than the job, copy `benchmarks/CStructSharp.Benchmarks/Program.cs` into it before
 building. `--job Short` (the default) runs the out-of-process Short job, about seven minutes per side.
@@ -229,7 +226,7 @@ meaningful; comparing absolute times across machines is not.
 ### Run it
 
 The project is kept out of `CStructSharp.sln` (and so out of the `CStructSharp.NonWeb.slnf` filter) so that its third-party packages never
-enter the library build, its tests, or the release gate.
+enter the library build, its tests, or the release artifacts.
 
 ```sh
 node tools/quality/comparison-benchmarks.mjs               # build, verify, measure (default job), update README
@@ -309,7 +306,7 @@ CSTRUCTSHARP_BENCHMARK_JOB=Short CSTRUCTSHARP_BENCHMARK_PROFILE=cpu CSTRUCTSHARP
 ## Anti-benchmarking rules
 
 The `Scenarios.ComparatorBenchmarks.HandWritten_*` cases exercise no library code, so they are the canary for a
-recording run: if any of them drifts more than 10 % against the contract, the machine was perturbed during the run
+measuring run: if any of them moves more than 10 % against the other side of the comparison, the machine was perturbed during the run
 (this happens on shared VMs) — discard the run and repeat it rather than re-recording from it.
 
 

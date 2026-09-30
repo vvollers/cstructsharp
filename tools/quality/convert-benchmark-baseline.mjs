@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Normalizes a BenchmarkDotNet "*report-full.json" into the schemaVersion 1 summary consumed by
-// quick-perf-check.mjs, compare-summaries.mjs, render-performance-table.mjs and non-web-release-budgets.mjs.
+// quick-perf-check.mjs, compare-summaries.mjs and render-performance-table.mjs.
 //
 // Usage: node tools/quality/convert-benchmark-baseline.mjs <report-full.json | directory> <output.json>
 import fs from "node:fs";

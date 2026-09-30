@@ -213,6 +213,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - The complete mutation run is monthly (and on demand) instead of weekly.
 - The advisory benchmark drift workflow and its machine-specific baselines are removed; performance changes are judged
   by same-machine before/after runs (`tools/quality/quick-perf-check.mjs`).
+- The release budget file and tools that no release enforced (`release-gate.json`, `non-web-release-budgets.mjs`,
+  `artifact-baseline.mjs`) are removed; the web size budget, which the explorer tests enforce, stays.
 
 ## 0.10.0 — 2026-09-26
 

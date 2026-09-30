@@ -45,9 +45,7 @@ code. Reading the table:
 The nested fixture (`Nested256`) shows the same four numbers for a struct with an array of 256 nested records,
 where the generated `Parse` has 256 objects to create and the view has none.
 
-Numbers are from one machine and one run; the point is the ratios, not the microseconds. The release gate
-(`contracts/performance/release-gate.json`), checked before each release, keeps the generated headline cases from
-regressing.
+Numbers are from one machine and one run; the point is the ratios, not the microseconds.
 
 ## Check yourself
 

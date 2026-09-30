@@ -39,6 +39,6 @@ the newly built package; website-only deployments use the latest published relea
 Badge links lead to the measured CI run. Statistics refresh with site deployments; no generated
 Git branch or separate publishing workflow is needed.
 
-Use `quality/artifact-baseline.mjs --package-directory artifacts/package --output-path artifacts/package-sizes.json` to capture raw and gzip-equivalent package sizes. Pass that report to `quality/non-web-release-budgets.mjs --package-artifact-path artifacts/package-sizes.json`. The same meter accepts `--wasm-directory` and `--frontend-directory`. Benchmark JSON conversion is documented in [benchmarks](../benchmarks/README.md). Reports are generated output; historical raw measurements are not required inputs.
+Benchmark JSON conversion is documented in [benchmarks](../benchmarks/README.md). Reports are generated output; historical raw measurements are not required inputs.
 
 Run `node tools/packaging/measure-web-artifacts.mjs` after building to record current web sizes without historical report dependencies. Add `--check` to fail when a size exceeds `contracts/performance/web-size-budget.json`; that is a manual check. The 6 MiB WASM publication limit and the browser startup limit are automatic gates.
