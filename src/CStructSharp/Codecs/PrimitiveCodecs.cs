@@ -16,16 +16,115 @@ using CStructSharp.Streams;
 internal static partial class PrimitiveCodecs
 {
     /// <summary>
-    ///     The number of bytes requested per underlying <see cref="Stream.Read(byte[],int,int)"/> call while
-    ///     scanning for a string terminator. Decoding still happens one byte at a time so behavior is unchanged;
-    ///     this only amortizes the I/O call cost for a stream (such as a raw
-    ///     <see cref="System.Net.Sockets.NetworkStream"/> or another unbuffered custom stream) that does not
-    ///     already buffer internally. Any bytes read past the terminator, or past the point where the encoded-byte
-    ///     budget is exceeded, are seeked back before returning or throwing so the caller-visible stream position
-    ///     exactly matches reading one byte at a time.
+    ///     The bytes one read of a terminated string takes (and charges to the read budget) while it searches for the
+    ///     terminator: every reader of terminated text - the stream and memory sources, the engine's memory cursor and the
+    ///     generated <see cref="ReadCursor"/> - reads, charges and reports failures in chunks of this size. Bytes read past
+    ///     the terminator, or past the string limit, are given back, so the position after a string is the same as reading
+    ///     one byte at a time. An even number, so no UTF-16 code unit spans two chunks.
     /// </summary>
-    /// <summary>The bytes one read of a terminated string takes (and charges) while it searches for the terminator.</summary>
     internal const int TerminatedStringReadChunkSize = 256;
+
+    /// <summary>The shared strict encoding of a terminated-text kind, which rejects unrepresentable text instead of replacing it.</summary>
+    /// <param name="encoding">The terminated-text encoding kind.</param>
+    /// <returns>The shared immutable encoding instance.</returns>
+    public static Encoding StrictEncodingOf(TerminatedTextEncoding encoding) => encoding switch
+    {
+        TerminatedTextEncoding.Ascii => StrictAsciiEncoding,
+        TerminatedTextEncoding.Utf8 => StrictUtf8Encoding,
+        TerminatedTextEncoding.Utf16LittleEndian => StrictUtf16LittleEndianEncoding,
+        _ => StrictUtf16BigEndianEncoding,
+    };
+
+    /// <summary>
+    ///     Encodes a terminated string's terminator: an ASCII terminator directly (one byte, or one UTF-16 code unit in the
+    ///     encoding's byte order), any other through the strict encoding.
+    /// </summary>
+    /// <param name="strict">The string's strict encoding: ASCII, UTF-8, or UTF-16 in either byte order.</param>
+    /// <param name="terminator">The terminator character.</param>
+    /// <param name="destination">At least four bytes for the encoded terminator.</param>
+    /// <returns>The number of bytes written.</returns>
+    public static int EncodeTerminator(Encoding strict, char terminator, Span<byte> destination)
+    {
+        if (terminator > 0x7F)
+        {
+            return strict.GetBytes(new ReadOnlySpan<char>(in terminator), destination);
+        }
+
+        if (strict is UnicodeEncoding)
+        {
+            // Code page 1201 is UTF-16 big-endian, 1200 little-endian.
+            bool bigEndian = strict.CodePage == 1201;
+            destination[0] = bigEndian ? (byte)0 : (byte)terminator;
+            destination[1] = bigEndian ? (byte)terminator : (byte)0;
+            return 2;
+        }
+
+        destination[0] = (byte)terminator;
+        return 1;
+    }
+
+    /// <summary>
+    ///     Reads a terminated string from contiguous bytes in one step when the chunked read would succeed, with the chunked
+    ///     read's result: the text, the bytes consumed (through the terminator), and the bytes the chunks charge (every
+    ///     chunk up to the one holding the terminator's first byte, in full, or up to the end of the input). That holds when
+    ///     the terminator is present, the string and its terminator fit <paramref name="maxStringBytes"/> (every earlier
+    ///     chunk then fits too), the charge fits <paramref name="maxCharge"/>, and the bytes decode. Otherwise it returns
+    ///     <see langword="false"/> and the caller runs the chunked read, which reports the failure where it always has.
+    /// </summary>
+    /// <param name="remaining">The input from the string's first byte to the end of the readable input.</param>
+    /// <param name="strict">The string's strict encoding.</param>
+    /// <param name="unitSize">The encoding's code unit size in bytes (1 or 2); the terminator is searched unit-aligned.</param>
+    /// <param name="terminator">The encoded terminator.</param>
+    /// <param name="maxStringBytes">The per-string limit on the encoded bytes, terminator included.</param>
+    /// <param name="maxCharge">The read budget still available, or <see cref="long.MaxValue"/> when the caller checks it itself.</param>
+    /// <param name="text">The text without its terminator, when the method returns <see langword="true"/>.</param>
+    /// <param name="consumed">The bytes the string and its terminator occupy.</param>
+    /// <param name="charged">The bytes the chunked read would charge.</param>
+    /// <returns>Whether the string was read.</returns>
+    public static bool TryReadWholeTerminated(
+        ReadOnlySpan<byte> remaining,
+        Encoding strict,
+        int unitSize,
+        scoped ReadOnlySpan<byte> terminator,
+        long maxStringBytes,
+        long maxCharge,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string? text,
+        out int consumed,
+        out long charged)
+    {
+        text = null;
+        consumed = 0;
+        charged = 0;
+
+        // Every chunk starts on a code unit boundary, so the first aligned terminator of the whole input is the one the
+        // chunks find.
+        int index = Codec.FindTerminator(remaining, terminator, unitSize, 0);
+        if (index < 0 || (long)index + terminator.Length > maxStringBytes)
+        {
+            return false;
+        }
+
+        long charge = Math.Min(((long)(index / TerminatedStringReadChunkSize) + 1) * TerminatedStringReadChunkSize, remaining.Length);
+        if (charge > maxCharge)
+        {
+            return false;
+        }
+
+        try
+        {
+            text = strict.GetString(remaining[..index]);
+        }
+        catch (DecoderFallbackException)
+        {
+            // Invalid bytes: the chunked read reports them at the chunk where its decoder finds them.
+            text = null;
+            return false;
+        }
+
+        consumed = index + terminator.Length;
+        charged = charge;
+        return true;
+    }
 
     /// <summary>Checks that decoded wide characters form valid UTF-16 (no unpaired surrogate), as every read requires.</summary>
     /// <param name="text">The decoded text.</param>
@@ -128,7 +227,7 @@ internal static partial class PrimitiveCodecs
         Decoder decoder = encoding.GetDecoder();
         int unitSize = encoding is UnicodeEncoding ? 2 : 1;
         Span<byte> terminatorBytes = stackalloc byte[4];
-        int terminatorLength = encoding.GetBytes(new ReadOnlySpan<char>(in terminator), terminatorBytes);
+        int terminatorLength = EncodeTerminator(encoding, terminator, terminatorBytes);
         terminatorBytes = terminatorBytes[..terminatorLength];
 
         byte[] chunk = ArrayPool<byte>.Shared.Rent(TerminatedStringReadChunkSize);

@@ -239,7 +239,7 @@ public ref struct WriteCursor
             throw this.Fail(WriteFailures.TerminatorInValue, member, memberType);
         }
 
-        System.Text.Encoding strict = StrictEncoding(encoding);
+        System.Text.Encoding strict = Codecs.PrimitiveCodecs.StrictEncodingOf(encoding);
         try
         {
             int valueBytes = strict.GetByteCount(value);
@@ -688,20 +688,6 @@ public ref struct WriteCursor
         var failure = new CStructWriteException(LayoutExpressionEvaluator.DescribeFailure(context, exception), exception);
         this.Attach(failure, member, memberType);
         return failure;
-    }
-
-    /// <summary>Selects the shared encoding that rejects unrepresentable text rather than replacing characters.</summary>
-    /// <param name="encoding">The supported terminated-text encoding.</param>
-    /// <returns>The shared immutable encoding instance; callers do not change its fallbacks.</returns>
-    private static System.Text.Encoding StrictEncoding(TerminatedTextEncoding encoding)
-    {
-        return encoding switch
-        {
-            TerminatedTextEncoding.Ascii => Codecs.PrimitiveCodecs.StrictAsciiEncoding,
-            TerminatedTextEncoding.Utf8 => Codecs.PrimitiveCodecs.StrictUtf8Encoding,
-            TerminatedTextEncoding.Utf16LittleEndian => Codecs.PrimitiveCodecs.StrictUtf16LittleEndianEncoding,
-            _ => Codecs.PrimitiveCodecs.StrictUtf16BigEndianEncoding,
-        };
     }
 
     /// <summary>Attaches field and path context without fixing the final operation-relative byte offset yet.</summary>

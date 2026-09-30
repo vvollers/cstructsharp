@@ -46,10 +46,10 @@
   },
   {
    "pattern": "Codecs/PrimitiveCodecs.cs",
-   "sourceSha256": "4a66495dacd5b157dddbe7c46bff3be59339d5cba40927abff6bc66a67001968",
+   "sourceSha256": "c8fc60cf5d6e8613de7ab49fe82d3bbe8fe52b588ab7db1dfcc093f81ede9cf1",
    "mutants": [
     { "mutatorName": "Remove checked expression", "replacement": "(long)valueBytes + terminatorBytes",
-     "location": {"start":{"line":242,"column":37},"end":{"line":242,"column":80}},
+     "location": {"start":{"line":341,"column":37},"end":{"line":341,"column":80}},
      "reason": "Both Encoding.GetByteCount results are nonnegative Int32 values. The left operand is widened to Int64 before addition, so their sum is at most 2 * Int32.MaxValue, far below Int64.MaxValue. Removing checked from this sum cannot change overflow behavior, budget validation or the later allocation." }
    ]
   },
@@ -568,7 +568,7 @@
   },
   {
    "pattern": "Generated/ReadCursor.cs",
-   "sourceSha256": "26da837d06b6c7ae2ed1f0174ce85c4b3be442c508a9754e9671cd7e7e2669dc",
+   "sourceSha256": "bafbd258d26d00f5f2d9da29ebb2e9684687ad7eab2c01f3025372a086a35ece",
    "mutants": [
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?Codecs.PrimitiveCodecs.StrictUtf16LittleEndianEncoding :Codecs.PrimitiveCodecs.StrictUtf16BigEndianEncoding)",
      "location": {"start":{"line":558,"column":18},"end":{"line":558,"column":141}},
@@ -580,25 +580,25 @@
      "location": {"start":{"line":317,"column":13},"end":{"line":317,"column":23}},
      "reason": "Only count zero with a positive element size newly reaches the body. The total is zero, remaining bytes and affordable bytes are nonnegative, both failure conditions stay false, and Take(0) returns an empty view without charging or moving. Cancellation is checked before either branch. Empty-span backing identity is unspecified; the supported result is the same empty element sequence and unchanged cursor/budget." },
     { "mutatorName": "Equality mutation", "replacement": ">= 0",
-     "location": {"start":{"line":848,"column":48},"end":{"line":848,"column":51}},
+     "location": {"start":{"line":823,"column":48},"end":{"line":823,"column":51}},
      "reason": "ExitPointer's supported use returns from one successful unmatched EnterPointer, which pushes exactly one target before returning its resume position. Thus the stack contains at least one entry on every valid exit and both predicates pop the same target. LayoutEmitter.Arrays emits EnterPointer before its try and exactly one ExitPointer in finally, including nested targets. An extra exit without a matching entry violates the documented pairing and is not an equivalent-input claim." },
     { "mutatorName": "Block removal mutation", "replacement": "{}",
      "location": {"start":{"line":446,"column":9},"end":{"line":448,"column":10}},
      "reason": "For elementSize zero, count starts at zero and the valid cursor offset does not exceed source.Length. Slice(offset, 0) is empty and IndexOfAnyExcept returns -1, immediately returning the same zero count before any limit, increment or position change. Nonzero element sizes already bypass the removed block." },
     { "mutatorName": "Arithmetic mutation", "replacement": "unitSize + (encodedByteCount % unitSize)",
-     "location": {"start":{"line":639,"column":42},"end":{"line":639,"column":82}},
+     "location": {"start":{"line":646,"column":42},"end":{"line":646,"column":82}},
      "reason": "unitSize is one or two. Every continuing chunk has 256 bytes; a shorter unterminated last chunk is followed by the zero-byte failure before alignment is computed again. Thus encodedByteCount is a multiple of 256 whenever this expression is reached, its remainder is zero, and adding or subtracting that zero gives the same alignment." },
     { "mutatorName": "Arithmetic mutation", "replacement": "encodedByteCount * unitSize",
-     "location": {"start":{"line":639,"column":54},"end":{"line":639,"column":81}},
+     "location": {"start":{"line":646,"column":54},"end":{"line":646,"column":81}},
      "reason": "At each reached alignment calculation encodedByteCount is a multiple of the 256-byte chunk size and unitSize is one or two. The original inner remainder is zero; the replacement product is a multiple of unitSize, so the outer remainder remains zero. The count is bounded by an Int32-sized source, so its long product cannot overflow." },
     { "mutatorName": "CoalesceAssignmentExpression to SimpleAssignmentExpression mutation", "replacement": "decoded = new char[Chunk + 2]",
-     "location": {"start":{"line":650,"column":13},"end":{"line":650,"column":44}},
+     "location": {"start":{"line":657,"column":13},"end":{"line":657,"column":44}},
      "reason": "decoded is a private output-only scratch buffer passed to Decoder.Convert; its contents and output counts are never consumed. Decoder state is held by the separate decoder object, and the returned string is decoded independently from the original byte slice. Replacing the buffer adds allocations but changes no decoded result, consumption or failure." },
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?new CStructReadException(message) :new CStructReadException(message, cause))",
-     "location": {"start":{"line":905,"column":25},"end":{"line":905,"column":117}},
+     "location": {"start":{"line":880,"column":25},"end":{"line":880,"column":117}},
      "reason": "Only a null cause changes constructor selection. Both CStructReadException overloads delegate to the same protected constructor with ReadFailed, the same message and a null inner exception. The same Attach call follows, preserving category, message, field, path and offset." },
     { "mutatorName": "Equality mutation", "replacement": "count < 0",
-     "location": {"start":{"line":1043,"column":13},"end":{"line":1043,"column":23}},
+     "location": {"start":{"line":966,"column":13},"end":{"line":966,"column":23}},
      "reason": "Only count zero newly reaches budget arithmetic. bytesRead starts at zero and only accepted charges update it, so it never exceeds the nonnegative fixed limit. Adding zero cannot overflow or fail the limit check and reassigns the same value; position is unchanged. Negative counts still return early." }
    ]
   },
@@ -649,7 +649,7 @@
   },
   {
    "pattern": "Generated/WriteCursor.cs",
-   "sourceSha256": "38973d5f93848d477e4cb1866bd83b75b5bfa06bfcdf89b9aded75edb3824b7d",
+   "sourceSha256": "b4d48f61e361fa1bdb66c606d221593c911ec3ff4acce78fefcd6d705eaa30fd",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":195,"column":13},"end":{"line":195,"column":20}},

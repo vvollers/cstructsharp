@@ -599,22 +599,29 @@ public ref struct ReadCursor
         // The runtime reads the string in 256-byte chunks and, per chunk, checks the string byte limit, decodes the
         // bytes before the terminator (flushing only when the terminator is in the chunk), and stops at the
         // terminator; the checks run in that order, and the position a failure reports is the end of the chunk
-        // being read (the limit failure: one byte past the limit). TryTakeWholeString first reads, in one step, a string
-        // those chunks would read without a failure; any other string goes chunk by chunk, which reports its failure.
-        const int Chunk = 256;
-        System.Text.Encoding strict = encoding switch
-        {
-            TerminatedTextEncoding.Ascii => Codecs.PrimitiveCodecs.StrictAsciiEncoding,
-            TerminatedTextEncoding.Utf8 => Codecs.PrimitiveCodecs.StrictUtf8Encoding,
-            TerminatedTextEncoding.Utf16LittleEndian => Codecs.PrimitiveCodecs.StrictUtf16LittleEndianEncoding,
-            _ => Codecs.PrimitiveCodecs.StrictUtf16BigEndianEncoding,
-        };
+        // being read (the limit failure: one byte past the limit). A string those chunks would read without a failure is
+        // first read in one step (PrimitiveCodecs.TryReadWholeTerminated, shared with the engine's memory cursor); any
+        // other string goes chunk by chunk, which reports its failure.
+        const int Chunk = Codecs.PrimitiveCodecs.TerminatedStringReadChunkSize;
+        System.Text.Encoding strict = Codecs.PrimitiveCodecs.StrictEncodingOf(encoding);
         int unitSize = encoding is TerminatedTextEncoding.Utf16LittleEndian or TerminatedTextEncoding.Utf16BigEndian ? 2 : 1;
         Span<byte> terminatorBytes = stackalloc byte[4];
-        int terminatorLength = EncodeTerminator(strict, encoding, terminator, terminatorBytes);
+        int terminatorLength = Codecs.PrimitiveCodecs.EncodeTerminator(strict, terminator, terminatorBytes);
         terminatorBytes = terminatorBytes.Slice(0, terminatorLength);
-        if (this.TryTakeWholeString(strict, unitSize, terminatorBytes, Chunk, out string? whole))
+        if (!this.settings.CancellationToken.IsCancellationRequested &&
+            Codecs.PrimitiveCodecs.TryReadWholeTerminated(
+                this.source.Slice(this.position),
+                strict,
+                unitSize,
+                terminatorBytes,
+                this.settings.MaxStringBytes,
+                this.settings.MaxTotalBytesRead - this.bytesRead,
+                out string? whole,
+                out int consumed,
+                out long charged))
         {
+            this.bytesRead += charged;
+            this.position += consumed;
             return whole;
         }
 
@@ -667,38 +674,6 @@ public ref struct ReadCursor
             int payloadLength = offset + terminatorIndex;
             this.position = start + payloadLength + terminatorLength;
             return strict.GetString(remaining.Slice(0, payloadLength));
-        }
-    }
-
-    /// <summary>
-    ///     Encodes a terminated string's terminator into <paramref name="destination"/>: an ASCII terminator directly
-    ///     (one byte, or one UTF-16 code unit in the string's byte order), any other through <paramref name="strict"/>.
-    /// </summary>
-    /// <param name="strict">The string's strict encoding.</param>
-    /// <param name="encoding">The string's encoding kind, which fixes the code unit size and byte order.</param>
-    /// <param name="terminator">The terminator character.</param>
-    /// <param name="destination">At least four bytes for the encoded terminator.</param>
-    /// <returns>The number of bytes written.</returns>
-    private static int EncodeTerminator(System.Text.Encoding strict, TerminatedTextEncoding encoding, char terminator, Span<byte> destination)
-    {
-        if (terminator > 0x7F)
-        {
-            return strict.GetBytes(new ReadOnlySpan<char>(in terminator), destination);
-        }
-
-        switch (encoding)
-        {
-        case TerminatedTextEncoding.Utf16LittleEndian:
-            destination[0] = (byte)terminator;
-            destination[1] = 0;
-            return 2;
-        case TerminatedTextEncoding.Utf16BigEndian:
-            destination[0] = 0;
-            destination[1] = (byte)terminator;
-            return 2;
-        default:
-            destination[0] = (byte)terminator;
-            return 1;
         }
     }
 
@@ -967,58 +942,6 @@ public ref struct ReadCursor
 
         // The offset is attached when the exception leaves the operation (Complete), where the runtime attaches it.
         exception.AttachContext(this.path, null);
-    }
-
-    /// <summary>
-    ///     Reads a terminated string in one step when the chunked read of <see cref="TakeTerminatedString"/> would
-    ///     succeed, with the same result: the string, the position after its terminator, and the chunks charged to the
-    ///     read budget. That holds when the token is not cancelled, the terminator is present, the string and its
-    ///     terminator fit <c>MaxStringBytes</c> (every earlier chunk then fits too), the budget covers every chunk up to
-    ///     the one holding the terminator, and the bytes decode. Otherwise nothing changes.
-    /// </summary>
-    /// <param name="strict">The string's strict encoding.</param>
-    /// <param name="unitSize">The encoding's code unit size in bytes (1 or 2).</param>
-    /// <param name="terminator">The encoded terminator.</param>
-    /// <param name="chunk">The chunk size the chunked read uses; an even number, so no code unit spans two chunks.</param>
-    /// <param name="text">The string when the method returns <see langword="true"/>.</param>
-    /// <returns><see langword="true"/> when the string was read and charged.</returns>
-    private bool TryTakeWholeString(System.Text.Encoding strict, int unitSize, scoped ReadOnlySpan<byte> terminator, int chunk, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string? text)
-    {
-        text = null;
-        if (this.settings.CancellationToken.IsCancellationRequested)
-        {
-            return false;
-        }
-
-        // Every chunk starts on a code unit boundary, so the first aligned terminator of the whole input is the one
-        // the chunks find.
-        ReadOnlySpan<byte> remaining = this.source.Slice(this.position);
-        int terminatorIndex = Codec.FindTerminator(remaining, terminator, unitSize, 0);
-        if (terminatorIndex < 0 || (long)terminatorIndex + terminator.Length > this.settings.MaxStringBytes)
-        {
-            return false;
-        }
-
-        // The chunked read charges each chunk it reads, up to and including the one where the terminator starts.
-        long charged = Math.Min(((long)(terminatorIndex / chunk) + 1) * chunk, remaining.Length);
-        if (charged > this.settings.MaxTotalBytesRead - this.bytesRead)
-        {
-            return false;
-        }
-
-        try
-        {
-            text = strict.GetString(remaining.Slice(0, terminatorIndex));
-        }
-        catch (System.Text.DecoderFallbackException)
-        {
-            // Invalid bytes: the chunked read reports them at the chunk where its decoder finds them.
-            return false;
-        }
-
-        this.bytesRead += charged;
-        this.position += terminatorIndex + terminator.Length;
-        return true;
     }
 
     /// <summary>Moves to the source end and creates the short-read failure a complete attempted read would produce.</summary>

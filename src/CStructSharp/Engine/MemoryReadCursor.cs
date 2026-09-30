@@ -262,38 +262,23 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
             return false;
         }
 
-        // The chunked reader searches unit-aligned from the string's start; its chunks are whole units, so a
-        // terminator never straddles two of them and one search over the remaining bytes finds the same one.
         int unitSize = encoding is UnicodeEncoding ? 2 : 1;
         Span<byte> terminatorBytes = stackalloc byte[4];
-        int terminatorLength = encoding.GetBytes(new ReadOnlySpan<char>(in terminator), terminatorBytes);
-        int index = Generated.Codec.FindTerminator(remaining, terminatorBytes[..terminatorLength], unitSize, 0);
-        if (index < 0 || (long)index + terminatorLength > this.maxStringBytes)
+        int terminatorLength = PrimitiveCodecs.EncodeTerminator(encoding, terminator, terminatorBytes);
+        if (!PrimitiveCodecs.TryReadWholeTerminated(remaining, encoding, unitSize, terminatorBytes[..terminatorLength], this.maxStringBytes, long.MaxValue, out text, out int consumed, out long charged))
         {
             return false;
         }
 
-        try
-        {
-            text = encoding.GetString(remaining[..index]);
-        }
-        catch (DecoderFallbackException)
-        {
-            text = null;
-            return false;
-        }
-
-        // Every chunk up to the one holding the terminator's first byte is read, and charged, in full.
-        const int Chunk = PrimitiveCodecs.TerminatedStringReadChunkSize;
-        int charged = (int)Math.Min(((long)(index / Chunk) + 1) * Chunk, remaining.Length);
+        // The core charges the chunks against the read budget; a string the budget cannot cover is read chunk by chunk.
         long start = this.core.Position;
-        if (!this.core.TryReadSpanWithinBudget(charged, out _))
+        if (!this.core.TryReadSpanWithinBudget((int)charged, out _))
         {
             text = null;
             return false;
         }
 
-        this.core.SetPosition(start + index + terminatorLength);
+        this.core.SetPosition(start + consumed);
         return true;
     }
 
