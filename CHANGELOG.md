@@ -241,6 +241,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   replaces nine tests that each swept the whole corpus. `CStructSharp.Generated.Parity` is the only generator parity
   suite over the fixtures.
 - The read-engine tests are split by topic (codecs, arrays, shared storage, pointers, control flow).
+- The npm pack script stages the package from its own file list and checks it against `package.json` `files`; the
+  package loaders, `copyRuntime` and the Vite plugin are documented.
 
 ## 0.10.0 — 2026-09-26
 
