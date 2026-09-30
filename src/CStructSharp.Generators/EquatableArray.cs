@@ -3,7 +3,6 @@ namespace CStructSharp.Generators;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 
 /// <summary>
 ///     An immutable array with element-wise equality, so a record in the incremental pipeline that holds a list
@@ -44,10 +43,6 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IRea
     /// <param name="right">The second array.</param>
     /// <returns><see langword="true"/> when the lengths or any pair of elements differ.</returns>
     public static bool operator !=(EquatableArray<T> left, EquatableArray<T> right) => !left.Equals(right);
-
-    /// <summary>Copies the elements into an immutable array.</summary>
-    /// <returns>A new immutable array; empty for a default instance.</returns>
-    public ImmutableArray<T> ToImmutableArray() => this.items is null ? ImmutableArray<T>.Empty : ImmutableArray.Create(this.items);
 
     /// <summary>Compares element by element; a default instance equals an empty one.</summary>
     /// <param name="other">The array to compare with.</param>
