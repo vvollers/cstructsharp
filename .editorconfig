@@ -5,11 +5,6 @@ charset = utf-8
 end_of_line = lf
 insert_final_newline = true
 
-# disable rider formatter for this file since the language definition is much clearer this way
-[CStructDefinitionParser.cs]
-ij_formatter_enabled = false
-resharper_disable_formatter = true
-
 [*.{csproj,props,targets}]
 indent_style = space
 indent_size = 2
@@ -433,8 +428,9 @@ dotnet_diagnostic.SA1620.severity = warning
 dotnet_diagnostic.SA1621.severity = warning
 # Generic type parameter documentation should have text
 dotnet_diagnostic.SA1622.severity = warning
-# Property summary documentation should match accessors
-dotnet_diagnostic.SA1623.severity = warning
+# Property summary documentation should match accessors (off, as in Directory.Build.props, so dotnet format agrees
+# with dotnet build)
+dotnet_diagnostic.SA1623.severity = none
 # Property summary documentation should omit accessor with restricted access
 dotnet_diagnostic.SA1624.severity = warning
 # Element documentation should not be copied and pasted
@@ -471,8 +467,8 @@ dotnet_diagnostic.SA1639.severity = none
 dotnet_diagnostic.SA1640.severity = none
 # File header company name text should match
 dotnet_diagnostic.SA1641.severity = none
-# Constructor summary documentation should begin with standard text
-dotnet_diagnostic.SA1642.severity = warning
+# Constructor summary documentation should begin with standard text (off, as in Directory.Build.props)
+dotnet_diagnostic.SA1642.severity = none
 # Destructor summary documentation should begin with standard text
 dotnet_diagnostic.SA1643.severity = warning
 # Documentation headers should not contain blank lines
@@ -491,11 +487,6 @@ dotnet_diagnostic.SA1649.severity = warning
 dotnet_diagnostic.SA1650.severity = none
 # Do not use placeholder elements
 dotnet_diagnostic.SA1651.severity = warning
-
-# Summary wording rules are off everywhere, as in Directory.Build.props, so dotnet format agrees with dotnet build.
-[*.cs]
-dotnet_diagnostic.SA1623.severity = none
-dotnet_diagnostic.SA1642.severity = none
 
 # Generated serializer code in the comparison benchmark (Kaitai output, FlatSharp build output) carries no XML docs.
 [{benchmarks/CStructSharp.Comparison/Kaitai/*.g.cs,**/FlatSharp.generated.cs}]
