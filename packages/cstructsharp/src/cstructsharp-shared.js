@@ -35,19 +35,21 @@ export const COMPILE_OPTION_KEYS = new Set([
 ]);
 
 /**
- * Whether a source is a byte buffer or view of at most SYNCHRONOUS_PARSE_LIMIT bytes, with no cancellation signal.
+ * Whether a source is a byte buffer or view of at most `limit` bytes, with no cancellation signal.
  * @param {unknown} source Binary source.
  * @param {object | null | undefined} options Operation options; a `signal` excludes the synchronous path.
+ * @param {number} [limit] The largest input, in bytes, the calling thread takes: SYNCHRONOUS_PARSE_LIMIT unless an
+ *   operation is cheaper there up to a larger size.
  * @returns {boolean} True when the source may be parsed on the calling thread.
  */
-export function isSmallByteInput(source, options) {
+export function isSmallByteInput(source, options, limit = SYNCHRONOUS_PARSE_LIMIT) {
   if (options?.signal) return false;
   if (
     source instanceof ArrayBuffer ||
     ArrayBuffer.isView(source) ||
     (typeof SharedArrayBuffer !== "undefined" && source instanceof SharedArrayBuffer)
   ) {
-    return source.byteLength <= SYNCHRONOUS_PARSE_LIMIT;
+    return source.byteLength <= limit;
   }
   return false;
 }

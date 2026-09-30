@@ -18,17 +18,21 @@ import {
  */
 export function createPublicApi(loadCStructSharpWasm) {
   /** Parse bytes and record every value's byte range. `data` is the selected value; `debug` lists the ranges.
+   * Byte inputs without a cancellation signal are parsed on the calling thread by the rule `parse` uses
+   * (`isSmallByteInput`), up to the 4 MiB the managed bridge copies (MANAGED_COPY_LIMIT) rather than 64 KiB: a debug
+   * parse returns a record per value, and sending those back from the worker made inputs over 64 KiB about a quarter
+   * slower. Everything else goes through the staged source and the worker.
    * @param {string} definition Portable layout source.
-   * @param {import("./cstructsharp-wasm.js").BinarySource} bytes Binary source.
+   * @param {import("./cstructsharp-wasm.js").BinarySource} source Binary source.
    * @param {import("./cstructsharp-wasm.js").ParseOptions | null} [options]
    * @returns {Promise<import("./cstructsharp-wasm.js").ParseResult>}
    */
-  async function parseWithDebug(definition, bytes, options = null) {
+  async function parseWithDebug(definition, source, options = null) {
     const api = await loadCStructSharpWasm();
-    if (!(bytes instanceof Uint8Array) || bytes.byteLength > MANAGED_COPY_LIMIT || options?.signal) {
-      return api.parseSource(definition, bytes, options, true);
+    if (isSmallByteInput(source, options, MANAGED_COPY_LIMIT)) {
+      return parseEnvelope(api.parseWithDebug(definition, toUint8Array(source), options), "parse");
     }
-    return parseEnvelope(api.parseWithDebug(definition, bytes, options), "parse");
+    return api.parseSource(definition, source, options, true);
   }
 
   /**

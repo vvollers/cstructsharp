@@ -144,6 +144,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - The explorer and the inspector share one layout editor and one "Operation settings" dialog from `apps/shared`, with
   the same wording in both apps (the inspector's "Schema settings" button is now "Operation settings"); both apps'
   production bundles are slightly smaller.
+- npm package: `parseWithDebug` decides where to run by the rule `parse` uses: any byte buffer or view without a
+  cancellation signal is parsed on the calling thread, up to 4 MiB for a debug parse (64 KiB for `parse`). An
+  `ArrayBuffer` or `DataView` used to go to the worker; a 1 KiB one now parses 19-27 % faster.
 
 ### Fixed
 

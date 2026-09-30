@@ -166,6 +166,50 @@ test("parse takes the synchronous path for small byte inputs and the worker path
   }
 });
 
+test("parseWithDebug routes byte inputs by the rule parse uses", async () => {
+  const previous = globalThis.CStructSharpWasm;
+  const calls = [];
+  /** Builds a successful debug parse envelope around the given data. */
+  const envelope = (data) => ({ contractVersion: 9, operation: "parse", success: true, root: "root", data, debug: [], error: null });
+  globalThis.CStructSharpWasm = {
+    ready: true,
+    /** The synchronous debug parse, which receives a Uint8Array over the caller's bytes. */
+    parseWithDebug: (definition, bytes, options) => {
+      calls.push(["parseWithDebug", bytes instanceof Uint8Array, bytes.byteLength, options]);
+      return JSON.stringify(envelope({ value: 1 }));
+    },
+    /** The staged worker path. */
+    parseSource: async (definition, source, options, debug) => {
+      calls.push(["parseSource", debug, source.byteLength ?? source.size, options]);
+      return envelope({ value: 2 });
+    },
+  };
+  try {
+    const { parseWithDebug } = await import("./cstructsharp-wasm.js");
+    const controller = new AbortController();
+
+    // Any byte view up to 4 MiB without a signal parses on the calling thread; larger inputs and a signal use the worker.
+    assert.deepEqual((await parseWithDebug("layout", new ArrayBuffer(16))).data, { value: 1 });
+    assert.deepEqual((await parseWithDebug("layout", new DataView(new ArrayBuffer(32), 8, 8))).data, { value: 1 });
+    assert.deepEqual((await parseWithDebug("layout", new Uint8Array(64 * 1024 + 1))).data, { value: 1 });
+    assert.deepEqual((await parseWithDebug("layout", new Uint8Array(4 * 1024 * 1024 + 1))).data, { value: 2 });
+    assert.deepEqual((await parseWithDebug("layout", new Uint8Array(16), { signal: controller.signal })).data, { value: 2 });
+
+    assert.deepEqual(
+      calls.map(([name, flag, size]) => [name, flag, size]),
+      [
+        ["parseWithDebug", true, 16],
+        ["parseWithDebug", true, 8],
+        ["parseWithDebug", true, 65537],
+        ["parseSource", true, 4194305],
+        ["parseSource", true, 16],
+      ],
+    );
+  } finally {
+    globalThis.CStructSharpWasm = previous;
+  }
+});
+
 test("the standalone loader reports the runtime's own startup error and retries after a failure", async (t) => {
   // A copy of the bundle's modules beside a fake .NET runtime whose first start fails, as a failed download would.
   const bundle = fs.mkdtempSync(path.join(os.tmpdir(), "cstructsharp-loader-"));
