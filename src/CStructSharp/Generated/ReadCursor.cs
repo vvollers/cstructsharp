@@ -183,8 +183,8 @@ public ref struct ReadCursor
 
     /// <summary>
     ///     Consumes <paramref name="count"/> bytes: checks the total read budget, checks that the bytes exist, and
-    ///     advances. A short read moves the cursor to the end, as the stream reader ends there, and its message
-    ///     states how many bytes the item needed and how many were left.
+    ///     advances. A short read moves the cursor to the end of the input (where a short read of a stream also
+    ///     leaves it), and its message states how many bytes the item needed and how many were left.
     /// </summary>
     /// <param name="count">The number of bytes the item occupies.</param>
     /// <param name="member">The layout field being read, for the diagnostics.</param>

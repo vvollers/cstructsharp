@@ -15,8 +15,9 @@ using CStructSharp.Streams;
 /// <summary>
 ///     The cursor over input in memory: a pinned region (span, <see cref="byte"/> array, <see cref="ReadOnlyMemory{T}"/>,
 ///     single-segment sequence) or the exposed buffer of a caller's <see cref="MemoryStream"/>. Reading, bounds and
-///     budget charges go through the same <see cref="MemoryReadCore"/> that <see cref="ReadBudgetStream"/> uses for the
-///     same sources, and the array, text and short-read paths run the shared readers, so the two cannot drift.
+///     budget charges go through <see cref="MemoryReadCore"/>, which a memory-backed <see cref="ReadBudgetStream"/> also
+///     uses, and arrays, text and short reads run the shared readers, so a value read from memory or from a
+///     memory-backed stream consumes, charges and fails the same way.
 /// </summary>
 /// <remarks>
 ///     A plain mutable struct (not a <see langword="ref"/> struct, so it also works where the executor stores it):
@@ -142,8 +143,8 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
     /// <inheritdoc/>
     public object? ReadCustom(ICustomCodec codec)
     {
-        // A memory input always exposes its remaining bytes (the position never passes the end), which is the branch
-        // CustomCodecAdapter.Read takes for a memory-backed ReadBudgetStream.
+        // A memory input always exposes its remaining bytes (the position never passes the end), so the codec is
+        // handed the whole remainder in place rather than a doubling window.
         _ = this.core.TryPeekRemaining(out ReadOnlySpan<byte> remaining);
         return CustomCodecAdapter.ReadInMemory(codec, ref this, remaining);
     }
@@ -151,8 +152,8 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
     /// <inheritdoc/>
     public byte ReadByteExactly()
     {
-        // BinaryPrimitiveIO.ReadByteExactly over a memory-backed ReadBudgetStream: ReadByte, and at the end the
-        // short-read text without an inner exception.
+        // One byte through the core; at the end of the input the failure is the one-byte short-read text, with no
+        // inner exception.
         int value = this.core.ReadByte();
         if (value < 0)
         {
@@ -165,9 +166,8 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
     /// <inheritdoc/>
     public void ReadExactly(Span<byte> destination)
     {
-        // BinaryPrimitiveIO.ReadExactlyOrThrow over a memory-backed ReadBudgetStream: the bytes that are there are
-        // copied and charged first (so the budget can fail before the shortage), then the text reports what was
-        // available at the item's start and the position is left at the end of the input.
+        // The bytes that are there are copied and charged first (so the budget can fail before the shortage); a
+        // shortage then reports what was available at the item's start and leaves the position at the end of the input.
         long start = this.core.Position;
         try
         {

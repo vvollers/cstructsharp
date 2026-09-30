@@ -759,8 +759,8 @@ internal static class TargetResolver
     }
 
     /// <summary>
-    ///     Reads one value through the field's codec reader: a caller's codec through its adapter (its value may be
-    ///     <see langword="null"/>), any other codec as its stream reader reads it.
+    ///     Reads one value of the field's codec: a caller's codec through its adapter (its value may be
+    ///     <see langword="null"/>), any other codec through <see cref="ReadEngine.ReadCodecValue{TCursor}"/>.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor, at the value.</param>

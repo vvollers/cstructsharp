@@ -88,8 +88,8 @@ internal readonly struct StreamReadCursor : IReadCursor
     /// <inheritdoc/>
     public ReadOnlySpan<byte> ReadFixed(Span<byte> scratch)
     {
-        // A memory-backed stream serves the value in place; otherwise the codec's reader,
-        // which takes one byte through ReadByte and a wider value through ReadExactly.
+        // A memory-backed stream serves the value in place; from any other stream a one-byte value is
+        // read through ReadByteExactly and a wider one through ReadExactlyOrThrow, which word their short-read failures.
         if (this.stream.TryReadSpan(scratch.Length, out ReadOnlySpan<byte> direct))
         {
             return direct;

@@ -37,10 +37,10 @@
   },
   {
    "pattern": "Streams/ReadBudgetStream.cs",
-   "sourceSha256": "6628c1c5ba94333babb1bd3c3f780932a820ee9da1e9ea9fbdc6df16c733fe61",
+   "sourceSha256": "fb54155fab6aa50a3224c7558dc86e1ae8a5e1c48b10301295a4c539675f8f36",
    "mutants": [
     { "mutatorName": "Block removal mutation", "replacement": "{}",
-     "location": {"start":{"line":451,"column":9},"end":{"line":454,"column":10}},
+     "location": {"start":{"line":452,"column":9},"end":{"line":455,"column":10}},
      "reason": "TryGetPosition returns nullable Int64. If querying the source position throws, the original catch returns null. Stryker 5.0.0 makes this block-removal mutant compilable with its default-return fallback; default(long?) is also null. Both paths preserve the original physical-stream exception with no available offset and perform the same single failed position query. Tool implementation: EndingReturnEngine.InjectReturn, https://github.com/stryker-mutator/stryker-net/blob/6e77a3451bac4793e9c839c3ff4055c1b30ca3af/src/Stryker.Core/Stryker.Core/Instrumentation/EndingReturnEngine.cs." }
    ]
   },
@@ -340,7 +340,7 @@
   },
   {
    "pattern": "CStructOperations.Async.cs",
-   "sourceSha256": "40a40226315af1cf2f88daf8e15fe4452ec1703bfadb35a9f52068467920c5dc",
+   "sourceSha256": "0bb5389cb114958af06af1cf5799f72bfacb15e233e52457387f8e677e9b4f95",
    "mutants": [
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?origin :origin + consumed)",
      "location": {"start":{"line":336,"column":35},"end":{"line":336,"column":77}},
@@ -373,7 +373,7 @@
   },
   {
    "pattern": "CStructWriter.cs",
-   "sourceSha256": "2dd119e222fe0361fe6cecf2990f22b8f135526731c81ae82a376470856f8a50",
+   "sourceSha256": "c333bb121e8f205689d273db6800fa2608727fd3c8b3951713d9efbad2f816a9",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":86,"column":13},"end":{"line":86,"column":20}},
@@ -481,7 +481,7 @@
   },
   {
    "pattern": "Codecs/Leb128Decoder.cs",
-   "sourceSha256": "8858957f19dc0e4e1781cbbddceb949b6f5b507862589749e9107970f040c360",
+   "sourceSha256": "70651549c0f2982d2e15d75c977d2c660c11f58a2611a58d59f4a092750420c6",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": "this.shift > this.width",
      "location": {"start":{"line":47,"column":13},"end":{"line":47,"column":37}},
@@ -568,7 +568,7 @@
   },
   {
    "pattern": "Generated/ReadCursor.cs",
-   "sourceSha256": "17f476d66fc85667a94c6b1b245a7c672f4eaa7ffbf6d9ac94311e1b72b33b61",
+   "sourceSha256": "3e770e6904f4c01c89508f908a8277a9649757de1d9fd30ba49bd72ca843b885",
    "mutants": [
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?Codecs.PrimitiveCodecs.StrictUtf16LittleEndianEncoding :Codecs.PrimitiveCodecs.StrictUtf16BigEndianEncoding)",
      "location": {"start":{"line":558,"column":18},"end":{"line":558,"column":141}},
@@ -883,13 +883,13 @@
   },
   {
    "pattern": "Streams/MemoryReadCore.cs",
-   "sourceSha256": "ca9288bd2ce3dee486cddcd9621fe49f99d10919539a5d4e215597a76ff6ebd6",
+   "sourceSha256": "13b36446fef1e5467266f9602de28dd862ceed08e7ac3ffd53b3017822f21cc7",
    "mutants": [
     { "mutatorName": "Logical mutation", "replacement": "this.memoryBacked || count <= this.knownLength - this.position",
-     "location": {"start":{"line":226,"column":13},"end":{"line":226,"column":75}},
+     "location": {"start":{"line":227,"column":13},"end":{"line":227,"column":75}},
      "reason": "This changes only the availability subexpression of the outer preflight; its byte-budget condition remains required. A newly admitted case still calls TryReadSpan, which repeats the original memoryBacked and remaining-length checks before touching bytes or accounting. It returns false with a default span on every unavailable/non-memory case. Cases admitted by the original outer check remain admitted, with identical reads and budget charges." },
     { "mutatorName": "Arithmetic mutation", "replacement": "this.knownLength + this.position",
-     "location": {"start":{"line":226,"column":43},"end":{"line":226,"column":75}},
+     "location": {"start":{"line":227,"column":43},"end":{"line":227,"column":75}},
      "reason": "TryReadSpan repeats the original subtraction-based availability check. If a nonnegative requested count is available, the memoryBacked conjunct has already excluded a stream-mode core, and every memory core reads an Int32-sized input (a FixedBufferStream region, an exposed MemoryStream array, or the span, array or memory the engine pins), so length + position cannot overflow Int64 and is at least length - position. Thus every originally successful preflight still reaches the same read. Extra candidates are rejected by the unchanged inner check without consuming or charging bytes." }
    ]
   },

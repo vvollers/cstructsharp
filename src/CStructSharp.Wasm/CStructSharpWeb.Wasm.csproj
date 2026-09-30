@@ -32,12 +32,11 @@
 
   <ItemGroup>
     <!--
-      No C# runtime-binder call site executes in the browser build (parsed values are StructValue, the bridge
-      handles them as object), so Microsoft.CSharp is no longer rooted and the trimmer drops it (E3.10).
-    -->
-    <!--
-      The library declares itself trimmable (IsTrimmable in its own project); the bridge is member-trimmed for
-      this publish only. Measured (E3.10): the publication shrank from 5.35 MB / 2.05 MB gzip to 4.36 MB / 1.66 MB gzip.
+      Marks the bridge assembly itself as trimmable, so the WebAssembly publish removes its unused members as well.
+      The library already declares itself trimmable (IsTrimmable in its own project), so this setting is needed
+      only for this publish. No C# runtime-binder call site runs in the browser build (parsed values are
+      StructValue and the bridge handles them as object), so nothing roots Microsoft.CSharp and the trimmer
+      removes it. Together this keeps the downloaded runtime small.
     -->
     <TrimmableAssembly Include="CStructSharpWeb.Wasm" />
   </ItemGroup>

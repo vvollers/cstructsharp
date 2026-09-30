@@ -15,9 +15,9 @@ using CStructSharp.Values;
 ///     The awaitable forms of the read operations. Each reads the stream into a pooled buffer with
 ///     <see cref="Stream.ReadAsync(Memory{byte}, CancellationToken)"/> - a seekable stream up to its remaining
 ///     length, any stream up to <see cref="ReadOptions.MaxTotalBytesRead"/> plus one byte - and runs the synchronous
-///     span reader over it, so values, limits, and failure texts are the stream reader's. A seekable stream ends
-///     just after the value on success and at its origin on any failure; a non-seekable stream is consumed by what
-///     was buffered, whatever the outcome. A <see cref="MemoryStream"/> that exposes its buffer is read in place
+///     span reader over it, so values, limits, and failure texts are those of the synchronous forms. A seekable
+///     stream ends just after the value on success and at its origin on any failure; a non-seekable stream is
+///     consumed by what was buffered, whatever the outcome. A <see cref="MemoryStream"/> that exposes its buffer is read in place
 ///     with no copy and the returned task is already complete. The token given here is linked with
 ///     <see cref="ReadOptions.CancellationToken"/>; it gates the I/O and the boundaries the synchronous reader checks.
 ///     Because the buffered region starts at the origin, a stored absolute pointer address counts from the origin -

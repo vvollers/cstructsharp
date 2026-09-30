@@ -76,7 +76,8 @@ internal unsafe struct MemoryReadCore
     /// <returns>The core for the operation.</returns>
     public static MemoryReadCore Over(Stream source, long maxTotalBytesRead)
     {
-        // Exactly one memory backing is chosen; every other source keeps the delegating stream path.
+        // Exactly one memory backing is chosen; any other source is read through the stream itself, and the core only
+        // charges the budget.
         if (source is FixedBufferStream fixedBuffer && fixedBuffer.TryGetReadOnlyRegion(out byte* region, out long regionLength))
         {
             return OverRegion(region, regionLength, fixedBuffer.Position, maxTotalBytesRead);

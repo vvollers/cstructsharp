@@ -181,7 +181,8 @@ internal sealed class ReadBudgetStream : Stream
     /// <summary>
     ///     Serves <paramref name="count"/> bytes straight from memory at the current position, advancing and charging
     ///     the budget exactly like a read would. False when the source is a stream or the bytes are not all available,
-    ///     in which case the caller takes the ordinary stream path (which then produces the usual short-read error).
+    ///     in which case the caller reads the bytes through the stream instead, which reports a shortage with the
+    ///     short-read text.
     /// </summary>
     /// <param name="count">The nonnegative number of requested bytes.</param>
     /// <param name="bytes">The borrowed source span on success, or an empty span on failure.</param>

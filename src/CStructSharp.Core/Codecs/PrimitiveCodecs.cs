@@ -4,7 +4,8 @@ using System.Text;
 
 /// <summary>
 ///     The compile-time half of the primitive codec vocabulary: the strict text encodings the text codecs decode
-///     with and the variable-length name predicate; the stream readers and writers are the runtime half.
+///     with and the variable-length name predicate. The runtime half is the engine's own decoding and the codec
+///     writer delegates of the runtime's codec table.
 /// </summary>
 internal static partial class PrimitiveCodecs
 {

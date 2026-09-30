@@ -39,7 +39,7 @@ internal sealed class ProgramTables
     public SlotTable Table => this.table;
 
     /// <summary>Adds a codec, or finds an equal one.</summary>
-    /// <param name="codecId">The catalog codec id of the stream reader or writer.</param>
+    /// <param name="codecId">The field's catalog codec id, which names a caller's codec or a writer delegate at run time; -1 for none.</param>
     /// <param name="codec">The codec identity.</param>
     /// <returns>The codec's index.</returns>
     public int AddCodec(int codecId, PrimitiveCodec codec) => IndexOf(this.codecs, new ReadProgram.Codec(codecId, codec));

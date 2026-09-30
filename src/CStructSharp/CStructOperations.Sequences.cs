@@ -26,8 +26,8 @@ using CStructSharp.Values;
 ///         the text a <c>T v[EOF]</c> array uses for a partial element when the root has a fixed size; a caller who
 ///         expects them slices first. A failure names the record by its index before the path (<c>[3].header.length</c>).
 ///         In the memory, sequence, and asynchronous forms each record is its own region, so a stored absolute pointer
-///         address counts from the record's first byte; the synchronous stream form runs the stream reader, so there
-///         it counts from the stream's first byte, as in <c>Parse(Stream)</c>.
+///         address counts from the record's first byte; the synchronous stream form parses each record from the caller's
+///         stream as <c>Parse(Stream)</c> does, so there it counts from the stream's first byte.
 ///     </para>
 /// </summary>
 public sealed partial class CStruct
@@ -248,7 +248,7 @@ public sealed partial class CStruct
     }
 
     /// <summary>
-    ///     Reads the records of a seekable stream from its current position to its end with the stream reader, one
+    ///     Reads the records of a seekable stream from its current position to its end as <c>Parse(Stream)</c> does, one
     ///     record per enumeration step, byte-exact: the stream is left after the last record read, or where a failed
     ///     read stopped. A stream that cannot seek is read with <c>ParseManyAsync</c>.
     /// </summary>

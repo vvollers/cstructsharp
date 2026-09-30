@@ -43,7 +43,7 @@ public class RecordSequenceTests
             CollectionAssert.AreEqual(new byte[] { 7, 8, }, records[1].Get<byte[]>("d"), kind);
             if (kind == "stream")
             {
-                // The stream reader counts a stored address from the stream's first byte, as Parse(Stream) does.
+                // The synchronous stream form counts a stored address from the stream's first byte, as Parse(Stream) does.
                 Assert.AreEqual((ushort)0xBBAA, records[0].Get<ushort>("p.value"), kind);
                 Assert.AreEqual((ushort)0x02BB, records[1].Get<ushort>("p.value"), kind);
             }

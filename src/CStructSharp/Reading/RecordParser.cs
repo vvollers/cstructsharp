@@ -12,8 +12,8 @@ using CStructSharp.Values;
 
 /// <summary>
 ///     The runtime's side of a record sequence: the <see cref="RecordReader{T}"/> that parses one record as its own
-///     region with the stream core over a pinned slice, and the synchronous stream form that runs the stream reader
-///     over the caller's stream one record per step. The sequence rules live in <see cref="RecordSequence"/>.
+///     region over a pinned slice, and the synchronous stream form that parses the caller's stream one record per
+///     step, as <c>Parse(Stream)</c> parses one value. The sequence rules live in <see cref="RecordSequence"/>.
 /// </summary>
 /// <remarks>
 ///     In the memory, sequence, and asynchronous forms a stored absolute pointer address counts from the record's
@@ -33,7 +33,7 @@ internal static class RecordParser
         return (ReadOnlyMemory<byte> source, int offset, int index, long shift, ReadOptions? options, out int consumed) => ParseAt(layout, source, offset, index, shift, root, variables, options, out consumed);
     }
 
-    /// <summary>The records of a seekable stream, read with the stream reader from the current position to the end; the stream is left after the last record read, or where a failed read stopped.</summary>
+    /// <summary>The records of a seekable stream, parsed from the stream itself from the current position to the end; the stream is left after the last record read, or where a failed read stopped.</summary>
     /// <param name="layout">The compiled layout that declares the record struct.</param>
     /// <param name="stream">The readable, seekable stream; reading starts at its current position.</param>
     /// <param name="root">The record struct's name and, when known, its fixed size in bytes.</param>

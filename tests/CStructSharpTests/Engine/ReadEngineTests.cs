@@ -7,7 +7,7 @@ using CStructSharp.Values;
 /// <summary>
 ///     The compiled read engine's step semantics where the sweeps and corpora do not reach: every codec at every
 ///     truncation and byte budget, an offset assertion checked before its member is placed, cancellation only at the
-///     documented boundaries (engine plan Appendix A), nesting limits with promoted members, the conditional variable
+///     documented boundaries, nesting limits with promoted members, the conditional variable
 ///     scope, qualified prefixes through static plans, and the member, path and offset a failure reports. Each case
 ///     compares the engine with the golden outcomes (<see cref="EngineGolden"/>) through the differential harness, and pins
 ///     the expected outcome.
@@ -15,7 +15,7 @@ using CStructSharp.Values;
 [TestClass]
 public class ReadEngineTests
 {
-    /// <summary>A packed layout with one scalar or array of every codec the engine reads through a codec reader.</summary>
+    /// <summary>A packed layout with one scalar or array of every codec the engine reads element by element (<c>ReadEngine.ReadCodecValue</c>).</summary>
     private const string CodecLayout = """
         enum e16 : uint16 { A = 1, B = 4660 };
         struct rec {
@@ -184,8 +184,8 @@ public class ReadEngineTests
     }
 
     /// <summary>
-    ///     Cancellation is observed at struct entries (each element of a struct array is one) and never per primitive
-    ///     (engine plan Appendix A, CONTRACT): a token cancelled while a struct's primitives are read ends the read at
+    ///     Cancellation is observed at struct entries (each element of a struct array is one) and never per primitive:
+    ///     a token cancelled while a struct's primitives are read ends the read at
     ///     the next struct entry, at the position the golden outcomes record; a read with no further struct entry completes.
     /// </summary>
     [TestMethod]
@@ -408,7 +408,7 @@ public class ReadEngineTests
 
     /// <summary>
     ///     A terminated array is scanned for its all-zero element from its start, then read: the scan's bytes are charged
-    ///     and the elements again when they are read (engine plan section 4.3), so the whole read of three elements costs
+    ///     and the elements again when they are read, so the whole read of three elements costs
     ///     tag 1 + scan 8 + re-read 6 + tail 1 = 16 bytes of budget. Input that ends before the terminator, and more
     ///     elements than the limit allows, fail at the array's start. Arrays of scalars and of structs (through the element
     ///     struct's block path) agree at every budget, truncation and source.
@@ -503,7 +503,7 @@ public class ReadEngineTests
     }
 
     /// <summary>
-    ///     Caller-supplied codecs run through one adapter on every path (engine plan Appendix A): from memory the
+    ///     Caller-supplied codecs run through one adapter on every path: from memory the
     ///     codec sees the whole remainder and the position advances, and is charged, before a failure - by the whole
     ///     remainder when the codec needs more data; from a stream through a window that doubles from 256 bytes up to
     ///     <see cref="ReadOptions.MaxStringBytes"/>. Every truncation, byte budget and string limit, and a codec that decodes
@@ -680,7 +680,7 @@ public class ReadEngineTests
     }
 
     /// <summary>
-    ///     Large data-sized and multidimensional arrays read in blocks of 64 KiB (engine plan Appendix A): a byte budget or
+    ///     Large data-sized and multidimensional arrays read in blocks of 64 KiB: a byte budget or
     ///     an input that ends inside the first or the second block fails at that block, cancellation is observed only
     ///     before a block, and a terminated array charges its whole scan before its blocks.
     /// </summary>
@@ -756,7 +756,7 @@ public class ReadEngineTests
     }
 
     /// <summary>
-    ///     Every bitfield reads its whole storage unit again, and is charged for it (engine plan section 4.3): three
+    ///     Every bitfield reads its whole storage unit again, and is charged for it: three
     ///     bitfields sharing a two-byte unit cost 6 bytes, the tail 1 more. While bits of a unit remain, the position is
     ///     back at the unit's start, so a later member that cannot be placed fails from there. A packed window whose
     ///     placed unit differs from its declared type, the MSVC and high-bit-first rules, and values without sign extension

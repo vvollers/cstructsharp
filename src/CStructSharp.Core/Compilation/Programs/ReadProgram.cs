@@ -193,7 +193,7 @@ internal sealed class ReadProgram
     }
 
     /// <summary>One element codec of a read step.</summary>
-    /// <param name="CodecId">The catalog codec id whose stream reader the step uses, or -1 when the step decodes from memory only.</param>
+    /// <param name="CodecId">The field's catalog codec id, through which the engine finds a caller's codec instance, or -1 for none.</param>
     /// <param name="Primitive">The codec identity: kind, size and byte order.</param>
     internal readonly record struct Codec(int CodecId, PrimitiveCodec Primitive);
 

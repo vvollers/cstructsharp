@@ -15,9 +15,9 @@ internal readonly partial record struct PrimitiveCodec
     private static readonly object BoxedFalse = false;
 
     /// <summary>
-    ///     Encodes one caller-supplied value into exactly this codec's bytes, applying the same <see cref="Convert"/>
-    ///     conversion (and the same range failures) as the stream write handler for the same primitive name, so a
-    ///     static write plan produces the bytes and the errors of the member-by-member write.
+    ///     Encodes one caller-supplied value into exactly this codec's bytes through a <see cref="Convert"/> conversion
+    ///     to the codec's type (an out-of-range value fails). It is the one encoding of a fixed-width number: the write
+    ///     engine and a static write plan both call it, so both produce the same bytes and the same failures.
     /// </summary>
     /// <param name="bytes">The destination, at least this codec's size; the value fills its first bytes.</param>
     /// <param name="value">The number to encode, converted to the codec's type with the invariant culture.</param>
@@ -72,7 +72,7 @@ internal readonly partial record struct PrimitiveCodec
         }
     }
 
-    /// <summary>Decodes one fixed-width numeric element from exactly its bytes into the same boxed CLR type the stream codec produces.</summary>
+    /// <summary>Decodes one fixed-width numeric element from exactly its bytes into the codec's boxed CLR type, the type every read of this codec produces.</summary>
     /// <param name="bytes">The encoded element, starting at its first byte.</param>
     /// <returns>The boxed value, such as a <c>short</c> for <c>int16</c>; one-byte values share cached boxes.</returns>
     /// <exception cref="InvalidOperationException">This codec is not a fixed-width numeric codec.</exception>

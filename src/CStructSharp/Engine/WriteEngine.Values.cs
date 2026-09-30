@@ -24,8 +24,8 @@ internal static partial class WriteEngine
     /// <summary>
     ///     Encodes one fixed-width number and writes it: the value is converted first (a conversion failure names the value
     ///     and the field's type), then the budget and room are checked.
-    ///     The conversion is the codec's own (<see cref="PrimitiveCodec.WriteNumeric"/>), the one the stream writers and the
-    ///     static write plan share.
+    ///     The conversion is the codec's own (<see cref="PrimitiveCodec.WriteNumeric"/>), the one the static write plan
+    ///     also uses.
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
     /// <param name="destination">The operation's destination.</param>
@@ -156,8 +156,8 @@ internal static partial class WriteEngine
     /// <summary>
     ///     Writes one enum value: the value is resolved to a member's exact number
     ///     (<see cref="EnumFieldValueParser"/>, which reports its own failures), and its storage value is written without the
-    ///     primitive writer's failure translation. A fixed-width storage encodes through the codec's own conversion, which
-    ///     the stream writer and the static write plan share.
+    ///     primitive writer's failure translation. A fixed-width storage encodes through the codec's own conversion
+    ///     (<see cref="PrimitiveCodec.WriteNumeric"/>), which the static write plan also uses.
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
     /// <param name="destination">The operation's destination.</param>

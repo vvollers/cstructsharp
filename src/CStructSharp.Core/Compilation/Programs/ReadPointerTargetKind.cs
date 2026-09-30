@@ -12,7 +12,7 @@ internal enum ReadPointerTargetKind : byte
     /// <summary>Text up to its terminator (<c>char *</c> and the other string pointers).</summary>
     Terminated,
 
-    /// <summary>Any other value through its codec's reader, a caller's codec included.</summary>
+    /// <summary>Any other value, decoded by its codec: a built-in codec by the engine, a caller's codec through its adapter.</summary>
     Value,
 
     /// <summary>A type no reader exists for (<c>void</c> below the first level): reading it fails.</summary>

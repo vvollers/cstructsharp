@@ -32,7 +32,10 @@ internal interface IWriteDestination
     /// <summary>Gets a value indicating whether a typed array or narrow text may be written as one block rather than element by element (not into a stream or a union's staging).</summary>
     bool AllowsBlocks { get; }
 
-    /// <summary>Gets the destination as the stream codec writers write to; it enforces the same budget.</summary>
+    /// <summary>
+    ///     Gets the destination as a <see cref="Stream"/>, for the codec writer delegates (every codec except the
+    ///     fixed-width numbers) that write through one; writes through it are charged against the same budget.
+    /// </summary>
     Stream Stream { get; }
 
     /// <summary>Writes bytes at the position after the budget and the destination's room are checked.</summary>

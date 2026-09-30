@@ -372,8 +372,9 @@ internal static partial class ReadEngine
     }
 
     /// <summary>
-    ///     Reads count elements of a codec with a record each: through the codec's reader, or, for the fixed-width numbers of
-    ///     unnamed padding, as a numeric element is read.
+    ///     Reads count elements of a codec with a record each: one at a time through
+    ///     <see cref="ReadCodecValue{TCursor}"/>, or, for the fixed-width numbers of unnamed padding, as a numeric
+    ///     element is read.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -400,7 +401,7 @@ internal static partial class ReadEngine
         return elements;
     }
 
-    /// <summary>Reads count characters one at a time through their codec reader, with a record per character.</summary>
+    /// <summary>Reads count characters one at a time through <see cref="ReadCodecValue{TCursor}"/>, with a record per character.</summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
     /// <param name="debug">The recorder, whose member path the records carry.</param>

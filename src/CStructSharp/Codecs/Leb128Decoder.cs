@@ -1,8 +1,8 @@
 namespace CStructSharp.Codecs;
 
 /// <summary>
-///     The LEB128 decoding rule, one byte at a time, so a stream reader (which must stop at the terminating byte)
-///     and a span reader share it: payload bits accumulate seven at a time, the final byte may not carry bits past
+///     The LEB128 decoding rule, one byte at a time, so every LEB128 read (the engine's cursor read, the generated
+///     readers' span read, and the length probe of a sparse update) stops at the terminating byte and applies it: payload bits accumulate seven at a time, the final byte may not carry bits past
 ///     the declared width, and a signed value is sign-extended from its last payload bit.
 /// </summary>
 internal struct Leb128Decoder

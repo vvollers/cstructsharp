@@ -273,7 +273,7 @@ public sealed partial class CStruct
 
     /// <summary>
     ///     Reads past the existing variable-length value at the stream position, so the caller learns its encoded length:
-    ///     a LEB128 integer through the shared LEB128 decoder, an unsized custom value through its codec's reader.
+    ///     a LEB128 integer through the shared LEB128 decoder, an unsized custom value through its codec's adapter.
     /// </summary>
     /// <param name="field">The LEB128 or unsized custom field.</param>
     /// <param name="stream">The source, positioned at the value; left after it.</param>

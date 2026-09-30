@@ -8,11 +8,14 @@ namespace CStructSharp.Tests;
 [TestClass]
 public class ReadProgramDumpTests
 {
-    /// <summary>The engine plan's <c>packet</c> layout.</summary>
+    /// <summary>
+    ///     A <c>packet</c> layout that exercises the main step kinds: fixed scalars, count-sized arrays, text, an
+    ///     if/else on a field value and a terminated string.
+    /// </summary>
     private const string Packet = "struct packet { uint32 id; uint16 count; int32 samples[count]; uint8 name_length; char name[name_length]; uint8 kind; " +
                                   "if (kind == 1) { float64 value; } else { uint32 code; } cstring note; };";
 
-    /// <summary>The engine plan's <c>packet</c> layout, packed: no placement steps, counts before their arrays, a lazy if/else.</summary>
+    /// <summary>The <c>packet</c> layout, packed: no placement steps, counts before their arrays, a lazy if/else.</summary>
     [TestMethod]
     public void Packet_Packed()
     {

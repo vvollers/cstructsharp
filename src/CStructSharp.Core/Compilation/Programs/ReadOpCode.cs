@@ -27,8 +27,8 @@ namespace CStructSharp.Compilation.Programs;
 ///     </para>
 ///     <para>
 ///         <b>Codec operand.</b> Scalar and array reads name an entry of <see cref="ReadProgram.Codecs"/>: the element's
-///         <see cref="Codecs.PrimitiveCodec"/> (size, kind, byte order) and the catalog codec id whose reader the
-///         stream path calls.
+///         <see cref="Codecs.PrimitiveCodec"/> (size, kind, byte order), which the executor decodes itself, and the
+///         catalog codec id, which names a caller's codec when the element has one.
 ///     </para>
 /// </remarks>
 internal enum ReadOpCode : byte

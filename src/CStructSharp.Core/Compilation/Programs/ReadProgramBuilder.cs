@@ -106,7 +106,7 @@ internal sealed class ReadProgramBuilder
     }
 
     /// <summary>Adds a codec, or finds an equal one.</summary>
-    /// <param name="codecId">The catalog codec id of the stream reader.</param>
+    /// <param name="codecId">The field's catalog codec id, through which the engine finds a caller's codec; -1 for none.</param>
     /// <param name="codec">The codec identity.</param>
     /// <returns>The codec's index.</returns>
     public int AddCodec(int codecId, PrimitiveCodec codec) => this.tables.AddCodec(codecId, codec);

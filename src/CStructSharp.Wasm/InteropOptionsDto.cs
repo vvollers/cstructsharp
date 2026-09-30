@@ -3,9 +3,10 @@ namespace CStructSharpWeb.Wasm;
 using System.Text.Json.Serialization;
 
 /// <summary>
-///     The one options object every browser operation accepts (contract v8, camelCase on the wire). Compile-time
-///     choices (placement, byte order, pointer width, bitfield rules, compiler limits) and per-operation choices
-///     (root, budgets, pointer policy, diagnostics) travel together; the adapter merges what the caller passed to
+///     The one options object every browser operation accepts, camelCase on the wire; its field names are part of the
+///     browser contract (<c>optionFields</c> in <c>contracts/api/browser/contract.json</c>). Compile-time choices
+///     (placement, byte order, pointer width, bitfield rules, compiler limits) and per-operation choices (root,
+///     budgets, pointer policy, diagnostics) travel together; the adapter merges what the caller passed to
 ///     <c>compile</c> with what it passed to the operation.
 /// </summary>
 public sealed class InteropOptionsDto

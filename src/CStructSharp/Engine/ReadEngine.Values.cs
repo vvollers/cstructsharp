@@ -16,11 +16,12 @@ using CStructSharp.Values;
 internal static partial class ReadEngine
 {
     /// <summary>
-    ///     Reads one value exactly as the codec's stream reader does (the reader used for every codec that is not a
+    ///     Reads one value of a codec through the cursor, element by element (used for every codec that is not a
     ///     fixed-width number, for enum storage and for array elements not read as a block): a one-byte value through
     ///     <see cref="IReadCursor.ReadByteExactly"/>, a wider fixed-size one through
     ///     <see cref="IReadCursor.ReadExactly"/>, LEB128 byte by byte, text up to its terminator, and a UUID through
-    ///     the plain exact read whose short-read failure it words itself. The boxed CLR type is the reader's.
+    ///     the plain exact read whose short-read failure it words itself. The boxed CLR type is the codec's value type
+    ///     (such as <see cref="char"/> for <c>char</c> and <see cref="Guid"/> for a UUID).
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
@@ -100,8 +101,8 @@ internal static partial class ReadEngine
                 throw new InvalidOperationException("The compiled engine has no reader for codec " + codec.Kind + ".");
             }
 
-            // A fixed-width number read through its codec reader (enum storage): one byte through ReadByte, a wider
-            // value through an exact read, never straight from memory.
+            // A fixed-width number read element by element (enum storage): one byte through ReadByteExactly, a wider
+            // value through an exact read, never straight from memory, so it fails with the element-read texts.
             Span<byte> value = scratch[..codec.Size];
             if (value.Length == 1)
             {
@@ -128,7 +129,11 @@ internal static partial class ReadEngine
         return bytes;
     }
 
-    /// <summary>Reads a LEB128 integer one byte at a time, as <c>Leb128Codec.Read</c> does, failing where it fails.</summary>
+    /// <summary>
+    ///     Reads a LEB128 integer one byte at a time through the shared <see cref="Leb128Decoder"/>, stopping at the
+    ///     terminating byte; input that ends first fails with the one-byte short-read text, and an encoding that runs
+    ///     past the declared width fails where the decoder rejects it.
+    /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
     /// <param name="width">The declared width in bits.</param>
@@ -412,7 +417,7 @@ internal static partial class ReadEngine
         return elements;
     }
 
-    /// <summary>Reads <paramref name="count"/> characters one at a time through their codec reader into a string.</summary>
+    /// <summary>Reads <paramref name="count"/> characters one at a time through <see cref="ReadCodecValue{TCursor}"/> into a string.</summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
     /// <param name="codec">The character codec.</param>
