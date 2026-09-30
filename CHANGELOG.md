@@ -193,6 +193,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   engine), the accessor, view and mapped-class figures, the npm package and runtime sizes, and the recipe and scenario
   counts are written by `tools/documentation/sync-documentation-facts.mjs` from committed benchmark, comparison and
   pack records, and documentation validation fails when a page drifts from them.
+- Pointers, layout reuse and concurrency, and the 128-bit expression rule each have one home page that the other pages
+  link to, and the tested recipe catalog is the single entry point for recipes.
 
 ## 0.10.0 — 2026-09-26
 

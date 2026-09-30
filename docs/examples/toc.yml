@@ -1,9 +1,9 @@
 items:
+- name: Tested recipes
+  href: ../guides/recipes/index.md
+- name: Complete recipe programs
+  href: recipes/
 - name: Synthetic memory analysis
   href: memory-analysis/index.md
-- name: Choose a recipe
-  href: ../guides/recipes/index.md
-- name: Complete recipes
-  href: recipes/
-- name: Run the examples
+- name: About the examples
   href: index.md

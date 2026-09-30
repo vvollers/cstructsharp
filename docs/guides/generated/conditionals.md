@@ -49,7 +49,7 @@ Every later field of the same group tests the slot; nothing is evaluated twice. 
 value with each case label in turn (`caseSelector == 1 ? 0 : -1` for a single `case 1`, the default arm being `-1`). A group nested inside an arm is
 evaluated only when that arm is active, so an unknown name inside an inactive arm never fails.
 
-The expression operators are the runtime's: exact, checked 128-bit arithmetic over members widened to `Int128`,
+The expression operators are the runtime's: [exact, checked 128-bit arithmetic](../../language/expressions-defines-and-variables.md#expressions-use-exact-128-bit-integers) over members widened to `Int128`,
 `&&`/`||` that stop early, and the same
 failure text - `Cannot evaluate conditional selector: ...` - when a selector divides by zero or uses a member the
 struct has not read yet. Inside a struct with conditional fields, the struct's own member names hide any caller

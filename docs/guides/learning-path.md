@@ -65,7 +65,7 @@ These pages extend the journey. Skip questions you can already answer.
 5. **Modify and write.** [Write and serialize values](writing-and-serialization.md) and
    [update existing data](updating-existing-data.md).
 6. **Layout features.** [Strings](strings-and-encodings.md), [enums](enums.md), [unions](unions.md),
-   [pointers](pointers.md), [conditional fields](conditional-fields.md), and
+   [pointers](../language/pointers-and-addressing.md), [conditional fields](conditional-fields.md), and
    [binary metadata types](binary-metadata-types.md); the
    [language tutorial](../language/tutorial/index.md) teaches the syntax behind them.
 7. **Errors, files, and streams.** [Errors and recovery](errors-and-recovery.md),

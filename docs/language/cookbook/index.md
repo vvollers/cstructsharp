@@ -5,7 +5,9 @@ description: Adapt tested layout patterns for common headers, mixed byte order, 
 
 # Portable layout cookbook
 
-Each recipe is backed by either the compiled documentation runner or a named pair in
+This cookbook collects short layout patterns. For complete programs you can run, choose from the
+[tested recipe catalog](../../guides/recipes/index.md). Each pattern here is backed by either the compiled
+documentation runner or a named pair in
 [`manual-fixtures-v1.json`](../../../contracts/language/manual-fixtures-v1.json), executed on .NET 8 and .NET 10.
 
 Before copying one, replace widths, byte order, placement, pointer coordinates, and limits with facts from your

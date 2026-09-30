@@ -143,12 +143,9 @@ both declare `value` directly. Use distinct names, or named structs such as
 reached. Multiplication happens before comparison. Comparisons return 0 or 1;
 an `if` treats any nonzero integer as true. Parentheses can make your intention clear.
 
-Layout expressions use exact, checked signed 128-bit integer arithmetic, so a `uint64`
-field keeps its real value: `if (next != 0)` is true for an address such as
-`0xFFFF800000001000`, and `switch (tag)` on a `uint64` can match
-`case 0xFFFFFFFFFFFFFFFF:`. They are not floating-point calculations: division truncates
-toward zero, and overflow or division by zero produces an error. Missing names and
-expression depth/work limits also produce errors when the expression is evaluated.
+Layout expressions calculate with exact signed 128-bit integers, so a `uint64` field keeps its real value; see
+[expressions use exact 128-bit integers](../language/expressions-defines-and-variables.md#expressions-use-exact-128-bit-integers) for the arithmetic rules and
+the errors. Missing names and expression depth/work limits also produce errors when the expression is evaluated.
 
 `&&` and `||` evaluate only as much as needed. For example,
 `count != 0 && size / count > 2` never divides when count is zero.

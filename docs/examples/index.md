@@ -1,36 +1,21 @@
 ---
 title: Executable examples
-description: Run individual CStructSharp examples or download complete programs with their required types and helpers.
+description: Find the tested recipe catalog, the complete recipe programs, and the runnable memory-analysis project.
 ---
 
 # Executable examples
 
-Choose a task in the [recipe catalog](../guides/recipes/index.md). Each of the <!-- facts:recipe-count:start -->40<!-- facts:recipe-count:end --> recipes has a complete downloadable
-program, exact checked values, an exercise, and an answer. Start with the [minimal first program](../guides/install-and-first-parse.md)
-if you have not used the library before.
+The examples in this section are programs that the documentation build runs and checks. The
+[tested recipe catalog](../guides/recipes/index.md) is the one place to choose one of the <!-- facts:recipe-count:start -->40<!-- facts:recipe-count:end -->
+recipes: it lists each task with its difficulty and the result it checks, and shows how to run one recipe or all of
+them from the repository root; a run of all of them ends with <!-- facts:scenario-count:start -->`PASS all 58 scenarios`<!-- facts:scenario-count:end -->. Each
+recipe links to its complete program, with its imports, helper methods, and types, ready to copy into a console
+project.
 
-## Run one or all examples
+The [synthetic memory analysis](memory-analysis/index.md) project is a separate runnable consumer for the memory
+guides.
 
-With the repository's .NET 10 SDK, run from the repository root:
-
-```sh
-dotnet run --project docs/examples/CStructSharp.Docs.Examples.csproj -c Release -- decode-header
-```
-
-Use `--list` to list scenario names. Omit the final `-- decode-header` to run all scenarios.
-Success ends with <!-- facts:scenario-count:start -->`PASS all 58 scenarios`<!-- facts:scenario-count:end -->;
-a failed assertion reports the expected and actual value or byte sequence.
-
-## Adapt an independent program
-
-Each recipe page contains all required imports, types, and comparison helpers. Copy its whole program into a new
-.NET 10 console project with a matching CStructSharp package, or follow the repository run command above.
-The first-use C# starter is also checked on .NET 8.
-
-The complete programs are generated from the same methods that the runner executes, so copied code and tested code
-stay together. The checked source is in `Program.cs`, `MoreExamples.cs`, and `BinaryTypeExamples.cs`. After changing a scenario or its teaching
-text in `tools/documentation/export-documentation-examples.mjs`, run that script or build the documentation to regenerate pages.
-The original snippet region names remain available to API and language guides.
-
-For larger tasks, follow [the binary file walkthrough](../guides/binary-file-walkthrough.md) or
-[the browser inspector](../guides/browser/inspector.md).
+The complete programs are generated from the methods the runner executes (`Program.cs`, `MoreExamples.cs`,
+`BinaryTypeExamples.cs`, and the other example files in `docs/examples/`), so copied code and tested code stay the
+same. To change a recipe, edit its source method or its teaching text in
+`tools/documentation/export-documentation-examples.mjs`, then run that script or build the documentation.

@@ -29,11 +29,12 @@ setters - with the same rules and the same failure texts as the runtime; [runtim
 is the decision table.
 
 The data-shape guides cover [strings](strings-and-encodings.md), [enums](enums.md), [unions](unions.md),
-[pointers](pointers.md), [conditional fields](conditional-fields.md) (with per-item decisions, variable scope, and
+[pointers](../language/pointers-and-addressing.md), [conditional fields](conditional-fields.md) (with per-item decisions, variable scope, and
 browser exercises), and the [binary metadata types](binary-metadata-types.md). The operational guides cover
 [errors](errors-and-recovery.md) (including the common-mistakes checklist),
-[runtime variables and limits](variables-options-and-limits.md), [performance](performance.md) (including layout
-reuse and ownership), [spans and buffer writers](spans-and-memory.md), and
+[runtime variables and limits](variables-options-and-limits.md), [performance](performance.md),
+[layout reuse and concurrency](../language/compilation-and-operations.md#concurrency-and-ownership),
+[spans and buffer writers](spans-and-memory.md), and
 [byte ranges and addresses](debug-data-and-addresses.md). The [binary file walkthrough](binary-file-walkthrough.md)
 combines the concepts in a larger task.
 

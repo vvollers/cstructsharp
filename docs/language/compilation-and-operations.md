@@ -61,15 +61,28 @@ Struct reads at a root, nested field, array element, or pointer target run the s
 Union members share one overlapping storage region; a struct view inside a union begins at that union address and
 then advances through its own fields.
 
-## Concurrency
+## Concurrency and ownership
 
 The completed `CStruct` is immutable and supports concurrent operations without one global instance lock.
-Concurrency does not extend to mutable caller resources. Each operation needs its own stream, writer, mutable payload
-graph, mapped class, or collection, or the application must synchronize that resource for the complete call.
+Concurrency does not extend to mutable objects supplied by your application. Each operation must have exclusive use
+of its:
+
+- stream;
+- writable span or `IBufferWriter<byte>`;
+- mutable dictionary while CStructSharp is copying it;
+- dynamic object, mapped-class instance, collection, or enumerable being written; and
+- returned mutable dynamic or debug result.
+
+Two tasks may share one `CStruct` and use separate streams. They must not seek or read the same stream at the same
+time unless the application holds a lock for the complete CStructSharp call. Locking only an individual stream read
+is not enough, because one operation may seek, read, and revisit several ranges.
 
 Variable dictionaries are copied when an operation starts and must not change during that copy. Returned dynamic and
 debug objects belong to one operation and remain mutable application data. Init-only option objects can be shared
 after construction.
+
+A common mistake is placing both the layout and one `MemoryStream` in a singleton service. Keep the reusable layout
+in the service; create or obtain an independent stream for each request.
 
 The contributor [architecture page](../project/architecture.md) maps this flow to internal classes. Those names are
 maintenance details, not public API promises.

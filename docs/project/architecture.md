@@ -102,13 +102,9 @@ streams do not provide reliable rollback.
 
 ## Ownership and concurrency
 
-The completed layout is immutable and safe for concurrent use. Per-call state is separate. Mutable resources supplied
-by the application are not made thread-safe:
-
-- streams and output writers need exclusive use for the complete call;
-- dictionaries must not change while they are being copied;
-- mapped-class instances, dynamic objects, and collections being written must not change during the write; and
-- returned dynamic and debug values belong to that call.
+The completed layout is immutable and shared; everything an operation changes lives in its per-call state or in the
+caller's own resources, which the library does not make thread-safe
+([concurrency and ownership](../language/compilation-and-operations.md#concurrency-and-ownership)).
 
 Internal class names on this page help contributors navigate the source; they are not public APIs. Public behavior is
 defined by the documented operations, generated API signatures, and executable tests.

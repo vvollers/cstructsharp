@@ -201,27 +201,9 @@ because every step is written out as ordinary C# that the compiler optimizes
 
 ## Reuse layouts safely
 
-A successfully constructed `CStruct` is immutable and can be used by concurrent operations. Reusing it also avoids
-parsing and preparing the same layout for every record.
-
-That thread-safety applies to the layout object, not to mutable objects supplied by your application. Each operation
-must have exclusive use of its:
-
-- stream;
-- writable span or `IBufferWriter<byte>`;
-- mutable dictionary while CStructSharp is copying it;
-- dynamic object, mapped-class instance, collection, or enumerable being written; and
-- returned mutable dynamic or debug result.
-
-Two tasks may share one `CStruct` and separate streams. They must not seek or read the same stream at the same time
-unless the application holds a lock for the complete CStructSharp call. Locking only an individual stream read is not
-enough because one operation may seek, read, and revisit several ranges.
-
-Initialized option objects are safe to share. Variable dictionaries are copied at operation entry, but the caller
-must not modify a dictionary while that copy is taking place.
-
-A common mistake is placing both the layout and one `MemoryStream` in a singleton service. Keep the reusable layout
-in the service; create or obtain an independent stream for each request.
+Construct a `CStruct` once and share it: it is immutable, safe for concurrent operations, and saves parsing and
+preparing the layout for every record, while each operation still needs exclusive use of its own stream, output, and
+mutable values ([concurrency and ownership](../language/compilation-and-operations.md#concurrency-and-ownership)).
 
 ## Many records of one shape
 
