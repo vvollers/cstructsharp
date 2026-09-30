@@ -484,7 +484,6 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 head
             {
-                cursor.Seek(placement.AdvanceToField(1), "head", "uint8");
                 value.Head = cursor.Take(1, "head", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
@@ -670,7 +669,6 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 head
             {
-                cursor.Seek(placement.AdvanceToField(1), "head", "uint8");
                 cursor.Reserve(1, "head", "uint8")[0] = value.Head;
                 placement.CompleteField(cursor.Position);
             }

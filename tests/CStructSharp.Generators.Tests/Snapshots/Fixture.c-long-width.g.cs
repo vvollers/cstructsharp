@@ -484,19 +484,16 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // int32 a
             {
-                cursor.Seek(placement.AdvanceToField(4), "a", "int32");
                 value.A = global::CStructSharp.Generated.Codec.ReadInt32(cursor.Take(4, "a", "int32"), true);
                 placement.CompleteField(cursor.Position);
             }
             // uint32 b
             {
-                cursor.Seek(placement.AdvanceToField(4), "b", "uint32");
                 value.B = global::CStructSharp.Generated.Codec.ReadUInt32(cursor.Take(4, "b", "uint32"), true);
                 placement.CompleteField(cursor.Position);
             }
             // uint8 tail
             {
-                cursor.Seek(placement.AdvanceToField(1), "tail", "uint8");
                 value.Tail = cursor.Take(1, "tail", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
@@ -670,19 +667,16 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // int32 a
             {
-                cursor.Seek(placement.AdvanceToField(4), "a", "int32");
                 global::CStructSharp.Generated.Codec.WriteInt32(cursor.Reserve(4, "a", "int32"), value.A, true);
                 placement.CompleteField(cursor.Position);
             }
             // uint32 b
             {
-                cursor.Seek(placement.AdvanceToField(4), "b", "uint32");
                 global::CStructSharp.Generated.Codec.WriteUInt32(cursor.Reserve(4, "b", "uint32"), value.B, true);
                 placement.CompleteField(cursor.Position);
             }
             // uint8 tail
             {
-                cursor.Seek(placement.AdvanceToField(1), "tail", "uint8");
                 cursor.Reserve(1, "tail", "uint8")[0] = value.Tail;
                 placement.CompleteField(cursor.Position);
             }

@@ -468,7 +468,6 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // fixed16_16> value
             {
-                cursor.Seek(placement.AdvanceToField(4), "value", "fixed16_16>");
                 value.Value = global::CStructSharp.Generated.Codec.DecodeFixedPoint(global::CStructSharp.Generated.Codec.ReadInt32(cursor.Take(4, "value", "fixed16_16>"), false), 16);
                 placement.CompleteField(cursor.Position);
             }
@@ -606,7 +605,6 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // fixed16_16> value
             {
-                cursor.Seek(placement.AdvanceToField(4), "value", "fixed16_16>");
                 {
                     long raw;
                     try

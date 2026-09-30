@@ -850,13 +850,11 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint32 a
             {
-                cursor.Seek(placement.AdvanceToField(4), "a", "uint32");
                 value.A = global::CStructSharp.Generated.Codec.ReadUInt32(cursor.Take(4, "a", "uint32"), true);
                 placement.CompleteField(cursor.Position);
             }
             // uint16 b
             {
-                cursor.Seek(placement.AdvanceToField(2), "b", "uint16");
                 value.B = global::CStructSharp.Generated.Codec.ReadUInt16(cursor.Take(2, "b", "uint16"), true);
                 placement.CompleteField(cursor.Position);
             }
@@ -874,7 +872,6 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 x[...]
             {
-                cursor.Seek(placement.AdvanceToField(1), "x", "uint8");
                 int count;
                 global::System.Int128 countValue;
                 try
@@ -901,7 +898,6 @@ namespace Demo
             }
             // uint8 y[4]
             {
-                cursor.Seek(placement.AdvanceToField(1), "y", "uint8");
                 int count;
                 global::System.Int128 countValue;
                 try
@@ -1177,13 +1173,11 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint32 a
             {
-                cursor.Seek(placement.AdvanceToField(4), "a", "uint32");
                 global::CStructSharp.Generated.Codec.WriteUInt32(cursor.Reserve(4, "a", "uint32"), value.A, true);
                 placement.CompleteField(cursor.Position);
             }
             // uint16 b
             {
-                cursor.Seek(placement.AdvanceToField(2), "b", "uint16");
                 global::CStructSharp.Generated.Codec.WriteUInt16(cursor.Reserve(2, "b", "uint16"), value.B, true);
                 placement.CompleteField(cursor.Position);
             }
@@ -1204,7 +1198,6 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 x[...]
             {
-                cursor.Seek(placement.AdvanceToField(1), "x", "uint8");
                 if (value.X is null)
                 {
                     throw cursor.Fail("Null is valid only for a scalar pointer field: x", "x", "uint8");
@@ -1242,7 +1235,6 @@ namespace Demo
             }
             // uint8 y[4]
             {
-                cursor.Seek(placement.AdvanceToField(1), "y", "uint8");
                 if (value.Y is null)
                 {
                     throw cursor.Fail("Null is valid only for a scalar pointer field: y", "y", "uint8");

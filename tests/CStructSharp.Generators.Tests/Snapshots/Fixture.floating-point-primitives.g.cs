@@ -481,13 +481,11 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // float32 a
             {
-                cursor.Seek(placement.AdvanceToField(4), "a", "float32");
                 value.A = global::CStructSharp.Generated.Codec.ReadSingle(cursor.Take(4, "a", "float32"), true);
                 placement.CompleteField(cursor.Position);
             }
             // float64 b
             {
-                cursor.Seek(placement.AdvanceToField(8), "b", "float64");
                 value.B = global::CStructSharp.Generated.Codec.ReadDouble(cursor.Take(8, "b", "float64"), true);
                 placement.CompleteField(cursor.Position);
             }
@@ -659,13 +657,11 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // float32 a
             {
-                cursor.Seek(placement.AdvanceToField(4), "a", "float32");
                 global::CStructSharp.Generated.Codec.WriteSingle(cursor.Reserve(4, "a", "float32"), value.A, true);
                 placement.CompleteField(cursor.Position);
             }
             // float64 b
             {
-                cursor.Seek(placement.AdvanceToField(8), "b", "float64");
                 global::CStructSharp.Generated.Codec.WriteDouble(cursor.Reserve(8, "b", "float64"), value.B, true);
                 placement.CompleteField(cursor.Position);
             }

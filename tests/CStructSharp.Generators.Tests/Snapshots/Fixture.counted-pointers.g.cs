@@ -475,20 +475,17 @@ namespace Demo
             int deferredPointer0 = -1;
             // uint8 *iv
             {
-                cursor.Seek(placement.AdvanceToField(1), "iv", "uint8");
                 value.Iv = new global::CStructSharp.Generated.Pointer<byte[]>(cursor.TakePointerAddress(PointerSize, LittleEndian, "iv", "uint8"), 1);
                 deferredPointer0 = cursor.Position;
                 placement.CompleteField(cursor.Position);
             }
             // uint8 len
             {
-                cursor.Seek(placement.AdvanceToField(1), "len", "uint8");
                 value.Len = cursor.Take(1, "len", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
             // uint8 data[2]
             {
-                cursor.Seek(placement.AdvanceToField(1), "data", "uint8");
                 int count;
                 count = 2;
                 cursor.RequireArrayLength(count, "data", "uint8");
@@ -686,19 +683,16 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 *iv
             {
-                cursor.Seek(placement.AdvanceToField(1), "iv", "uint8");
                 cursor.WritePointerAddress(value.Iv.Address, PointerSize, LittleEndian, "iv", "uint8");
                 placement.CompleteField(cursor.Position);
             }
             // uint8 len
             {
-                cursor.Seek(placement.AdvanceToField(1), "len", "uint8");
                 cursor.Reserve(1, "len", "uint8")[0] = value.Len;
                 placement.CompleteField(cursor.Position);
             }
             // uint8 data[2]
             {
-                cursor.Seek(placement.AdvanceToField(1), "data", "uint8");
                 if (value.Data is null)
                 {
                     throw cursor.Fail("Null is valid only for a scalar pointer field: data", "data", "uint8");

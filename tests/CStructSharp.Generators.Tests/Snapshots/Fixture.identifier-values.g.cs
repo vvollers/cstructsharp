@@ -471,13 +471,11 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uuid network
             {
-                cursor.Seek(placement.AdvanceToField(1), "network", "uuid");
                 value.Network = cursor.TakeGuid(true, "network", "uuid");
                 placement.CompleteField(cursor.Position);
             }
             // guid windows
             {
-                cursor.Seek(placement.AdvanceToField(1), "windows", "guid");
                 value.Windows = cursor.TakeGuid(false, "windows", "guid");
                 placement.CompleteField(cursor.Position);
             }
@@ -615,13 +613,11 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uuid network
             {
-                cursor.Seek(placement.AdvanceToField(1), "network", "uuid");
                 global::CStructSharp.Generated.Codec.WriteGuid(cursor.Reserve(16, "network", "uuid"), value.Network, true);
                 placement.CompleteField(cursor.Position);
             }
             // guid windows
             {
-                cursor.Seek(placement.AdvanceToField(1), "windows", "guid");
                 global::CStructSharp.Generated.Codec.WriteGuid(cursor.Reserve(16, "windows", "guid"), value.Windows, false);
                 placement.CompleteField(cursor.Position);
             }

@@ -481,13 +481,11 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint16 value
             {
-                cursor.Seek(placement.AdvanceToField(2), "value", "uint16");
                 value.Value = global::CStructSharp.Generated.Codec.ReadUInt16(cursor.Take(2, "value", "uint16"), true);
                 placement.CompleteField(cursor.Position);
             }
             // byte tail
             {
-                cursor.Seek(placement.AdvanceToField(1), "tail", "byte");
                 value.Tail = cursor.Take(1, "tail", "byte")[0];
                 placement.CompleteField(cursor.Position);
             }
@@ -659,13 +657,11 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint16 value
             {
-                cursor.Seek(placement.AdvanceToField(2), "value", "uint16");
                 global::CStructSharp.Generated.Codec.WriteUInt16(cursor.Reserve(2, "value", "uint16"), value.Value, true);
                 placement.CompleteField(cursor.Position);
             }
             // byte tail
             {
-                cursor.Seek(placement.AdvanceToField(1), "tail", "byte");
                 cursor.Reserve(1, "tail", "byte")[0] = value.Tail;
                 placement.CompleteField(cursor.Position);
             }

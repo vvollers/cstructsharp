@@ -840,7 +840,6 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 value
             {
-                cursor.Seek(placement.AdvanceToField(1), "value", "uint8");
                 value.Value = cursor.Take(1, "value", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
@@ -868,13 +867,11 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // child item
             {
-                cursor.Seek(placement.AdvanceToField(1), "item", "child");
                 value.Item = ReadChild(ref cursor, variables, "item", "child");
                 placement.CompleteField(cursor.Position);
             }
             // byte tail
             {
-                cursor.Seek(placement.AdvanceToField(1), "tail", "byte");
                 value.Tail = cursor.Take(1, "tail", "byte")[0];
                 placement.CompleteField(cursor.Position);
             }
@@ -1150,7 +1147,6 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 value
             {
-                cursor.Seek(placement.AdvanceToField(1), "value", "uint8");
                 cursor.Reserve(1, "value", "uint8")[0] = value.Value;
                 placement.CompleteField(cursor.Position);
             }
@@ -1182,7 +1178,6 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // child item
             {
-                cursor.Seek(placement.AdvanceToField(1), "item", "child");
                 if (value.Item is null)
                 {
                     throw cursor.Fail("Null is valid only for a scalar pointer field: item", "item", "child");
@@ -1192,7 +1187,6 @@ namespace Demo
             }
             // byte tail
             {
-                cursor.Seek(placement.AdvanceToField(1), "tail", "byte");
                 cursor.Reserve(1, "tail", "byte")[0] = value.Tail;
                 placement.CompleteField(cursor.Position);
             }

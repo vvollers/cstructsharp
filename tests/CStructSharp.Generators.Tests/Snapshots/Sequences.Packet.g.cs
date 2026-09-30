@@ -860,19 +860,16 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint16 length
             {
-                cursor.Seek(placement.AdvanceToField(2), "length", "uint16");
                 value.Length = global::CStructSharp.Generated.Codec.ReadUInt16(cursor.Take(2, "length", "uint16"), false);
                 placement.CompleteField(cursor.Position);
             }
             // uint8 tag
             {
-                cursor.Seek(placement.AdvanceToField(1), "tag", "uint8");
                 value.Tag = cursor.Take(1, "tag", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
             // uint8 flags
             {
-                cursor.Seek(placement.AdvanceToField(1), "flags", "uint8");
                 value.Flags = cursor.Take(1, "flags", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
@@ -891,13 +888,11 @@ namespace Demo
             int deferredPointer0 = -1;
             // uint8 n
             {
-                cursor.Seek(placement.AdvanceToField(1), "n", "uint8");
                 value.N = cursor.Take(1, "n", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
             // uint8 data[...]
             {
-                cursor.Seek(placement.AdvanceToField(1), "data", "uint8");
                 int count;
                 global::System.Int128 countValue;
                 try
@@ -924,14 +919,12 @@ namespace Demo
             }
             // uint16 *link
             {
-                cursor.Seek(placement.AdvanceToField(2), "link", "uint16");
                 value.Link = new global::CStructSharp.Generated.Pointer<ushort>(cursor.TakePointerAddress(PointerSize, LittleEndian, "link", "uint16"), 1);
                 deferredPointer0 = cursor.Position;
                 placement.CompleteField(cursor.Position);
             }
             // uint16 blob
             {
-                cursor.Seek(placement.AdvanceToField(2), "blob", "uint16");
                 value.Blob = global::CStructSharp.Generated.Codec.ReadUInt16(cursor.Take(2, "blob", "uint16"), false);
                 placement.CompleteField(cursor.Position);
             }
@@ -1218,19 +1211,16 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint16 length
             {
-                cursor.Seek(placement.AdvanceToField(2), "length", "uint16");
                 global::CStructSharp.Generated.Codec.WriteUInt16(cursor.Reserve(2, "length", "uint16"), value.Length, false);
                 placement.CompleteField(cursor.Position);
             }
             // uint8 tag
             {
-                cursor.Seek(placement.AdvanceToField(1), "tag", "uint8");
                 cursor.Reserve(1, "tag", "uint8")[0] = value.Tag;
                 placement.CompleteField(cursor.Position);
             }
             // uint8 flags
             {
-                cursor.Seek(placement.AdvanceToField(1), "flags", "uint8");
                 cursor.Reserve(1, "flags", "uint8")[0] = value.Flags;
                 placement.CompleteField(cursor.Position);
             }
@@ -1251,13 +1241,11 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 n
             {
-                cursor.Seek(placement.AdvanceToField(1), "n", "uint8");
                 cursor.Reserve(1, "n", "uint8")[0] = value.N;
                 placement.CompleteField(cursor.Position);
             }
             // uint8 data[...]
             {
-                cursor.Seek(placement.AdvanceToField(1), "data", "uint8");
                 if (value.Data is null)
                 {
                     throw cursor.Fail("Null is valid only for a scalar pointer field: data", "data", "uint8");
@@ -1295,13 +1283,11 @@ namespace Demo
             }
             // uint16 *link
             {
-                cursor.Seek(placement.AdvanceToField(2), "link", "uint16");
                 cursor.WritePointerAddress(value.Link.Address, PointerSize, LittleEndian, "link", "uint16");
                 placement.CompleteField(cursor.Position);
             }
             // uint16 blob
             {
-                cursor.Seek(placement.AdvanceToField(2), "blob", "uint16");
                 global::CStructSharp.Generated.Codec.WriteUInt16(cursor.Reserve(2, "blob", "uint16"), value.Blob, false);
                 placement.CompleteField(cursor.Position);
             }

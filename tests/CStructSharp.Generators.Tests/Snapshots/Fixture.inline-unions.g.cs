@@ -480,13 +480,11 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint32 attributes
             {
-                cursor.Seek(placement.AdvanceToField(4), "attributes", "uint32");
                 value.Attributes = global::CStructSharp.Generated.Codec.ReadUInt32(cursor.Take(4, "attributes", "uint32"), true);
                 placement.CompleteField(cursor.Position);
             }
             //  
             {
-                cursor.Seek(placement.AdvanceToField(4), member, memberType);
                 int unionStart = cursor.Position;
                 _ = cursor.Take(4, member, memberType);
                 cursor.EnterUnion();
@@ -496,13 +494,11 @@ namespace Demo
                     var placementUN = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
                     // uint16 ea_size
                     {
-                        cursor.Seek(placementUN.AdvanceToField(2), "ea_size", "uint16");
                         value.EaSize = global::CStructSharp.Generated.Codec.ReadUInt16(cursor.Take(2, "ea_size", "uint16"), true);
                         placementUN.CompleteField(cursor.Position);
                     }
                     // uint16 reserved
                     {
-                        cursor.Seek(placementUN.AdvanceToField(2), "reserved", "uint16");
                         value.Reserved = global::CStructSharp.Generated.Codec.ReadUInt16(cursor.Take(2, "reserved", "uint16"), true);
                         placementUN.CompleteField(cursor.Position);
                     }
@@ -519,7 +515,6 @@ namespace Demo
             }
             // uint8 name_length
             {
-                cursor.Seek(placement.AdvanceToField(1), "name_length", "uint8");
                 value.NameLength = cursor.Take(1, "name_length", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
@@ -657,13 +652,11 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint32 attributes
             {
-                cursor.Seek(placement.AdvanceToField(4), "attributes", "uint32");
                 global::CStructSharp.Generated.Codec.WriteUInt32(cursor.Reserve(4, "attributes", "uint32"), value.Attributes, true);
                 placement.CompleteField(cursor.Position);
             }
             //  
             {
-                cursor.Seek(placement.AdvanceToField(4), member, memberType);
                 int unionStart = cursor.Position;
                 cursor.Pad(4, member, memberType);
                 cursor.Position = unionStart;
@@ -672,13 +665,11 @@ namespace Demo
                     var placementUN = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
                     // uint16 ea_size
                     {
-                        cursor.Seek(placementUN.AdvanceToField(2), "ea_size", "uint16");
                         global::CStructSharp.Generated.Codec.WriteUInt16(cursor.Reserve(2, "ea_size", "uint16"), value.EaSize, true);
                         placementUN.CompleteField(cursor.Position);
                     }
                     // uint16 reserved
                     {
-                        cursor.Seek(placementUN.AdvanceToField(2), "reserved", "uint16");
                         global::CStructSharp.Generated.Codec.WriteUInt16(cursor.Reserve(2, "reserved", "uint16"), value.Reserved, true);
                         placementUN.CompleteField(cursor.Position);
                     }
@@ -690,7 +681,6 @@ namespace Demo
             }
             // uint8 name_length
             {
-                cursor.Seek(placement.AdvanceToField(1), "name_length", "uint8");
                 cursor.Reserve(1, "name_length", "uint8")[0] = value.NameLength;
                 placement.CompleteField(cursor.Position);
             }

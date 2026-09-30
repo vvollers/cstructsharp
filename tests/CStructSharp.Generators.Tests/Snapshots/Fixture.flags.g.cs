@@ -495,13 +495,11 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // access mode
             {
-                cursor.Seek(placement.AdvanceToField(2), "mode", "access");
                 value.Mode = (Access)global::CStructSharp.Generated.Codec.ReadUInt16(cursor.Take(2, "mode", "access"), true);
                 placement.CompleteField(cursor.Position);
             }
             // uint8 tail
             {
-                cursor.Seek(placement.AdvanceToField(1), "tail", "uint8");
                 value.Tail = cursor.Take(1, "tail", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
@@ -673,13 +671,11 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // access mode
             {
-                cursor.Seek(placement.AdvanceToField(2), "mode", "access");
                 global::CStructSharp.Generated.Codec.WriteUInt16(cursor.Reserve(2, "mode", "access"), (ushort)value.Mode, true);
                 placement.CompleteField(cursor.Position);
             }
             // uint8 tail
             {
-                cursor.Seek(placement.AdvanceToField(1), "tail", "uint8");
                 cursor.Reserve(1, "tail", "uint8")[0] = value.Tail;
                 placement.CompleteField(cursor.Position);
             }

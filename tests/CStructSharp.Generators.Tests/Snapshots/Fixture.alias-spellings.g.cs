@@ -484,19 +484,16 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 kind
             {
-                cursor.Seek(placement.AdvanceToField(1), "kind", "uint8");
                 value.Kind = cursor.Take(1, "kind", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
             // uint16 count
             {
-                cursor.Seek(placement.AdvanceToField(2), "count", "uint16");
                 value.Count = global::CStructSharp.Generated.Codec.ReadUInt16(cursor.Take(2, "count", "uint16"), true);
                 placement.CompleteField(cursor.Position);
             }
             // uint32 length
             {
-                cursor.Seek(placement.AdvanceToField(4), "length", "uint32");
                 value.Length = global::CStructSharp.Generated.Codec.ReadUInt32(cursor.Take(4, "length", "uint32"), true);
                 placement.CompleteField(cursor.Position);
             }
@@ -670,19 +667,16 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 kind
             {
-                cursor.Seek(placement.AdvanceToField(1), "kind", "uint8");
                 cursor.Reserve(1, "kind", "uint8")[0] = value.Kind;
                 placement.CompleteField(cursor.Position);
             }
             // uint16 count
             {
-                cursor.Seek(placement.AdvanceToField(2), "count", "uint16");
                 global::CStructSharp.Generated.Codec.WriteUInt16(cursor.Reserve(2, "count", "uint16"), value.Count, true);
                 placement.CompleteField(cursor.Position);
             }
             // uint32 length
             {
-                cursor.Seek(placement.AdvanceToField(4), "length", "uint32");
                 global::CStructSharp.Generated.Codec.WriteUInt32(cursor.Reserve(4, "length", "uint32"), value.Length, true);
                 placement.CompleteField(cursor.Position);
             }

@@ -478,7 +478,6 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint32 value
             {
-                cursor.Seek(placement.AdvanceToField(4), "value", "uint32");
                 value.Value = global::CStructSharp.Generated.Codec.ReadUInt32(cursor.Take(4, "value", "uint32"), true);
                 placement.CompleteField(cursor.Position);
             }
@@ -648,7 +647,6 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint32 value
             {
-                cursor.Seek(placement.AdvanceToField(4), "value", "uint32");
                 global::CStructSharp.Generated.Codec.WriteUInt32(cursor.Reserve(4, "value", "uint32"), value.Value, true);
                 placement.CompleteField(cursor.Position);
             }

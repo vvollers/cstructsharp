@@ -472,14 +472,12 @@ namespace Demo
             int deferredPointer0 = -1;
             // uint16 *target
             {
-                cursor.Seek(placement.AdvanceToField(2), "target", "uint16");
                 value.Target = new global::CStructSharp.Generated.Pointer<ushort>(cursor.TakePointerAddress(PointerSize, LittleEndian, "target", "uint16"), 1);
                 deferredPointer0 = cursor.Position;
                 placement.CompleteField(cursor.Position);
             }
             // byte tail
             {
-                cursor.Seek(placement.AdvanceToField(1), "tail", "byte");
                 value.Tail = cursor.Take(1, "tail", "byte")[0];
                 placement.CompleteField(cursor.Position);
             }
@@ -647,13 +645,11 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint16 *target
             {
-                cursor.Seek(placement.AdvanceToField(2), "target", "uint16");
                 cursor.WritePointerAddress(value.Target.Address, PointerSize, LittleEndian, "target", "uint16");
                 placement.CompleteField(cursor.Position);
             }
             // byte tail
             {
-                cursor.Seek(placement.AdvanceToField(1), "tail", "byte");
                 cursor.Reserve(1, "tail", "byte")[0] = value.Tail;
                 placement.CompleteField(cursor.Position);
             }

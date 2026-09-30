@@ -521,32 +521,27 @@ namespace Demo
             int deferredPointer0 = -1;
             // uint8 head
             {
-                cursor.Seek(placement.AdvanceToField(1), "head", "uint8");
                 value.Head = cursor.Take(1, "head", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
             // blob name
             {
-                cursor.Seek(placement.AdvanceToField(1), "name", "blob");
                 value.Name = cursor.TakeCustom(CodecInstances.Value[0], "name", "blob");
                 placement.CompleteField(cursor.Position);
             }
             // rgb colour
             {
-                cursor.Seek(placement.AdvanceToField(1), "colour", "rgb");
                 value.Colour = cursor.TakeCustom(CodecInstances.Value[1], "colour", "rgb");
                 placement.CompleteField(cursor.Position);
             }
             // rgb *ptr
             {
-                cursor.Seek(placement.AdvanceToField(1), "ptr", "rgb");
                 value.Ptr = new global::CStructSharp.Generated.Pointer<object?>(cursor.TakePointerAddress(PointerSize, LittleEndian, "ptr", "rgb"), 1);
                 deferredPointer0 = cursor.Position;
                 placement.CompleteField(cursor.Position);
             }
             // blob items[2]
             {
-                cursor.Seek(placement.AdvanceToField(1), "items", "blob");
                 int count;
                 count = 2;
                 cursor.RequireArrayLength(count, "items", "blob");
@@ -560,7 +555,6 @@ namespace Demo
             }
             // uint8 tail
             {
-                cursor.Seek(placement.AdvanceToField(1), "tail", "uint8");
                 value.Tail = cursor.Take(1, "tail", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
@@ -728,31 +722,26 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 head
             {
-                cursor.Seek(placement.AdvanceToField(1), "head", "uint8");
                 cursor.Reserve(1, "head", "uint8")[0] = value.Head;
                 placement.CompleteField(cursor.Position);
             }
             // blob name
             {
-                cursor.Seek(placement.AdvanceToField(1), "name", "blob");
                 cursor.WriteCustom(CodecInstances.Value[0], value.Name, "name", "blob");
                 placement.CompleteField(cursor.Position);
             }
             // rgb colour
             {
-                cursor.Seek(placement.AdvanceToField(1), "colour", "rgb");
                 cursor.WriteCustom(CodecInstances.Value[1], value.Colour, "colour", "rgb");
                 placement.CompleteField(cursor.Position);
             }
             // rgb *ptr
             {
-                cursor.Seek(placement.AdvanceToField(1), "ptr", "rgb");
                 cursor.WritePointerAddress(value.Ptr.Address, PointerSize, LittleEndian, "ptr", "rgb");
                 placement.CompleteField(cursor.Position);
             }
             // blob items[2]
             {
-                cursor.Seek(placement.AdvanceToField(1), "items", "blob");
                 if (value.Items is null)
                 {
                     throw cursor.Fail("Null is valid only for a scalar pointer field: items", "items", "blob");
@@ -776,7 +765,6 @@ namespace Demo
             }
             // uint8 tail
             {
-                cursor.Seek(placement.AdvanceToField(1), "tail", "uint8");
                 cursor.Reserve(1, "tail", "uint8")[0] = value.Tail;
                 placement.CompleteField(cursor.Position);
             }

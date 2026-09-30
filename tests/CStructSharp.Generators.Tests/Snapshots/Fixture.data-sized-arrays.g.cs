@@ -851,13 +851,11 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 kind
             {
-                cursor.Seek(placement.AdvanceToField(1), "kind", "uint8");
                 value.Kind = cursor.Take(1, "kind", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
             // uint8 size
             {
-                cursor.Seek(placement.AdvanceToField(1), "size", "uint8");
                 value.Size = cursor.Take(1, "size", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
@@ -875,7 +873,6 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // entry entries[...]
             {
-                cursor.Seek(placement.AdvanceToField(1), "entries", "entry");
                 int count;
                 count = cursor.CountTerminated(2, "entries", "entries", "entry");
                 var elements = new Entry[count];
@@ -889,7 +886,6 @@ namespace Demo
             }
             // uint16 values[...][EOF]
             {
-                cursor.Seek(placement.AdvanceToField(2), "values", "uint16");
                 int count;
                 count = cursor.CountToEnd(2, "values", "values", "uint16");
                 var elements = new ushort[count];
@@ -1152,13 +1148,11 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 kind
             {
-                cursor.Seek(placement.AdvanceToField(1), "kind", "uint8");
                 cursor.Reserve(1, "kind", "uint8")[0] = value.Kind;
                 placement.CompleteField(cursor.Position);
             }
             // uint8 size
             {
-                cursor.Seek(placement.AdvanceToField(1), "size", "uint8");
                 cursor.Reserve(1, "size", "uint8")[0] = value.Size;
                 placement.CompleteField(cursor.Position);
             }
@@ -1179,7 +1173,6 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // entry entries[...]
             {
-                cursor.Seek(placement.AdvanceToField(1), "entries", "entry");
                 if (value.Entries is null)
                 {
                     throw cursor.Fail("Null is valid only for a scalar pointer field: entries", "entries", "entry");
@@ -1198,7 +1191,6 @@ namespace Demo
             }
             // uint16 values[...][EOF]
             {
-                cursor.Seek(placement.AdvanceToField(2), "values", "uint16");
                 if (value.Values is null)
                 {
                     throw cursor.Fail("Null is valid only for a scalar pointer field: values", "values", "uint16");

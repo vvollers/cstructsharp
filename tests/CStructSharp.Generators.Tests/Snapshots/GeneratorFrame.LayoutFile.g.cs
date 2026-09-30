@@ -841,7 +841,6 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint32 length
             {
-                cursor.Seek(placement.AdvanceToField(4), "length", "uint32");
                 value.length = global::CStructSharp.Generated.Codec.ReadUInt32(cursor.Take(4, "length", "uint32"), true);
                 placement.CompleteField(cursor.Position);
             }
@@ -869,13 +868,11 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // chunk first
             {
-                cursor.Seek(placement.AdvanceToField(4), "first", "chunk");
                 value.first = Readchunk(ref cursor, variables, "first", "chunk");
                 placement.CompleteField(cursor.Position);
             }
             // uint8 tail
             {
-                cursor.Seek(placement.AdvanceToField(1), "tail", "uint8");
                 value.tail = cursor.Take(1, "tail", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
@@ -1151,7 +1148,6 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint32 length
             {
-                cursor.Seek(placement.AdvanceToField(4), "length", "uint32");
                 global::CStructSharp.Generated.Codec.WriteUInt32(cursor.Reserve(4, "length", "uint32"), value.length, true);
                 placement.CompleteField(cursor.Position);
             }
@@ -1183,7 +1179,6 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // chunk first
             {
-                cursor.Seek(placement.AdvanceToField(4), "first", "chunk");
                 if (value.first is null)
                 {
                     throw cursor.Fail("Null is valid only for a scalar pointer field: first", "first", "chunk");
@@ -1193,7 +1188,6 @@ namespace Demo
             }
             // uint8 tail
             {
-                cursor.Seek(placement.AdvanceToField(1), "tail", "uint8");
                 cursor.Reserve(1, "tail", "uint8")[0] = value.tail;
                 placement.CompleteField(cursor.Position);
             }

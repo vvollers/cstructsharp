@@ -481,7 +481,6 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // int24< values[2]
             {
-                cursor.Seek(placement.AdvanceToField(1), "values", "int24<");
                 int count;
                 count = 2;
                 cursor.RequireArrayLength(count, "values", "int24<");
@@ -496,7 +495,6 @@ namespace Demo
             }
             // uint8 tail
             {
-                cursor.Seek(placement.AdvanceToField(1), "tail", "uint8");
                 value.Tail = cursor.Take(1, "tail", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
@@ -673,7 +671,6 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // int24< values[2]
             {
-                cursor.Seek(placement.AdvanceToField(1), "values", "int24<");
                 if (value.Values is null)
                 {
                     throw cursor.Fail("Null is valid only for a scalar pointer field: values", "values", "int24<");
@@ -708,7 +705,6 @@ namespace Demo
             }
             // uint8 tail
             {
-                cursor.Seek(placement.AdvanceToField(1), "tail", "uint8");
                 cursor.Reserve(1, "tail", "uint8")[0] = value.Tail;
                 placement.CompleteField(cursor.Position);
             }

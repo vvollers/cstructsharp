@@ -330,7 +330,7 @@ internal sealed partial class LayoutEmitter
             writer.Close();
         }
 
-        this.EmitWriteFieldBody(writer, field, scope, target, inUnion, placement, promoted, member, memberType, generated, openBlock: opened == 0);
+        this.EmitWriteFieldBody(writer, field, scope, target, inUnion, placement, promoted, member, memberType, generated, openBlock: opened == 0, this.StartsAtCursor(composite, field));
         for (int index = 0; index < opened; index++)
         {
             writer.Close();
@@ -352,7 +352,8 @@ internal sealed partial class LayoutEmitter
     /// <param name="memberType">The member-type expression for failures.</param>
     /// <param name="generated">The field's generated member, or <see langword="null"/> to look it up in <paramref name="scope"/>.</param>
     /// <param name="openBlock">Whether to wrap the emitted code in its own block.</param>
-    private void EmitWriteFieldBody(SourceWriter writer, CompiledField field, ReaderScope scope, string target, bool inUnion, string placement, bool promoted, string member, string memberType, GeneratedMember? generated, bool openBlock)
+    /// <param name="startsAtCursor">Whether the field starts where the cursor is, so it needs no placement step (see <see cref="StartsAtCursor"/>).</param>
+    private void EmitWriteFieldBody(SourceWriter writer, CompiledField field, ReaderScope scope, string target, bool inUnion, string placement, bool promoted, string member, string memberType, GeneratedMember? generated, bool openBlock, bool startsAtCursor)
     {
         if (openBlock)
         {
@@ -379,7 +380,12 @@ internal sealed partial class LayoutEmitter
 
         if (!inUnion)
         {
-            writer.Line("cursor.Seek(" + placement + ".AdvanceToField(" + Int(field.Alignment) + "), " + member + ", " + memberType + ");");
+            // A field that starts at the cursor needs no placement step (see StartsAtCursor).
+            if (!startsAtCursor)
+            {
+                writer.Line("cursor.Seek(" + placement + ".AdvanceToField(" + Int(field.Alignment) + "), " + member + ", " + memberType + ");");
+            }
+
             EmitOffsetAssertion(writer, field, placement, member, memberType);
         }
 

@@ -245,6 +245,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   created, instead of allocating a second one (unless your partial class declares a constructor). The `sensor` record
   parses in 16.9 ns instead of 24.2 ns and allocates 184 B instead of 248 B; 256 nested records parse in 3.8 us
   instead of 8.9 us with 55 % less allocation.
+- Generated member-by-member readers and writers leave out the placement step before a field that needs no
+  alignment in a struct without bitfields: the `packet` record parses in 43.7 ns instead of 49.4 ns and serializes in
+  26.9 ns instead of 34.5 ns, and a conditional record parses about 18 % faster.
 - `Serialize` (to an array or a span) and `WriteAsync` of layouts with runtime-sized members run on the compiled engine:
   the comparison benchmark's `packet` record serializes in 248 ns instead of 496 ns and allocates only its 88-byte
   result. Bitfields, unions (including promoted ones), pointers, custom codecs and to-end, terminated and

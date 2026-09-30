@@ -476,7 +476,6 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // utf8_string_zero text
             {
-                cursor.Seek(placement.AdvanceToField(1), "text", "utf8_string_zero");
                 value.Text = cursor.TakeTerminatedString(global::CStructSharp.Generated.TerminatedTextEncoding.Utf8, '\0', "text", "utf8_string_zero");
                 placement.CompleteField(cursor.Position);
             }
@@ -614,7 +613,6 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // utf8_string_zero text
             {
-                cursor.Seek(placement.AdvanceToField(1), "text", "utf8_string_zero");
                 if (value.Text is null)
                 {
                     throw cursor.Fail("Null is valid only for a scalar pointer field: text", "text", "utf8_string_zero");

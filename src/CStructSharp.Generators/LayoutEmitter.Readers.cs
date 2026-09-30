@@ -413,6 +413,17 @@ internal sealed partial class LayoutEmitter
 
     private static string ArmSlot(string prefix, int slot) => prefix + "Arm" + Int(slot);
 
+    /// <summary>
+    ///     Emits the read of one declared field: the selector of each conditional group it belongs to (once per group), the
+    ///     test for its arms, and then its body.
+    /// </summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="field">The field.</param>
+    /// <param name="composite">The struct or union that declares the field.</param>
+    /// <param name="scope">The expression scope for counts and conditions.</param>
+    /// <param name="target">The expression holding the value being built.</param>
+    /// <param name="inUnion">Whether the field is a union member, placed at the union's start.</param>
+    /// <param name="placement">The composite cursor's local.</param>
     private void EmitField(SourceWriter writer, CompiledField field, CompiledCompositeType composite, ReaderScope scope, string target, bool inUnion, string placement)
     {
         // A promoted anonymous composite has no name of its own: a failure inside it is attributed to the enclosing
@@ -437,7 +448,7 @@ internal sealed partial class LayoutEmitter
             writer.Open("if (" + slot + " == " + Int(branch.Arm) + ")");
         }
 
-        this.EmitFieldBody(writer, field, scope, target, inUnion, placement, promoted, member, memberType, openBlock: field.ConditionalBranches.Length == 0);
+        this.EmitFieldBody(writer, field, scope, target, inUnion, placement, promoted, member, memberType, openBlock: field.ConditionalBranches.Length == 0, this.StartsAtCursor(composite, field));
         for (int index = 0; index < field.ConditionalBranches.Length; index++)
         {
             writer.Close();
@@ -495,7 +506,8 @@ internal sealed partial class LayoutEmitter
     /// <param name="member">The member-name expression for failures.</param>
     /// <param name="memberType">The member-type expression for failures.</param>
     /// <param name="openBlock">Whether to wrap the emitted code in its own block.</param>
-    private void EmitFieldBody(SourceWriter writer, CompiledField field, ReaderScope scope, string target, bool inUnion, string placement, bool promoted, string member, string memberType, bool openBlock)
+    /// <param name="startsAtCursor">Whether the field starts where the cursor is, so it needs no placement step (see <see cref="StartsAtCursor"/>).</param>
+    private void EmitFieldBody(SourceWriter writer, CompiledField field, ReaderScope scope, string target, bool inUnion, string placement, bool promoted, string member, string memberType, bool openBlock, bool startsAtCursor)
     {
         if (openBlock)
         {
@@ -523,7 +535,11 @@ internal sealed partial class LayoutEmitter
 
         if (!inUnion)
         {
-            writer.Line("cursor.Seek(" + placement + ".AdvanceToField(" + Int(field.Alignment) + "), " + member + ", " + memberType + ");");
+            if (!startsAtCursor)
+            {
+                writer.Line("cursor.Seek(" + placement + ".AdvanceToField(" + Int(field.Alignment) + "), " + member + ", " + memberType + ");");
+            }
+
             EmitOffsetAssertion(writer, field, placement, member, memberType);
         }
 
@@ -567,6 +583,38 @@ internal sealed partial class LayoutEmitter
         CloseBlock(writer, openBlock);
     }
 
+    /// <summary>
+    ///     Whether a struct field (not a bitfield or a union member) starts exactly where the cursor is when it is
+    ///     reached, so the placement step before it - <c>AdvanceToField</c> and the <c>Seek</c> to its result - would
+    ///     change nothing and is left out. That holds when the field needs no alignment (a packed layout, or an
+    ///     alignment of 1) and its struct has no bitfield or separator: then no bitfield run is open for
+    ///     <c>AdvanceToField</c> to close, and the placement position is the one the previous field's
+    ///     <c>CompleteField</c> recorded from the cursor (or the struct's start), which nothing moves in between.
+    /// </summary>
+    /// <param name="composite">The struct whose fields are being emitted with one placement cursor.</param>
+    /// <param name="field">The field.</param>
+    /// <returns><see langword="true"/> when the placement step can be left out.</returns>
+    private bool StartsAtCursor(CompiledCompositeType composite, CompiledField field)
+    {
+        if (this.request.Settings.Aligned && field.Alignment != 1)
+        {
+            return false;
+        }
+
+        foreach (CompiledField other in composite.Fields)
+        {
+            if (other.BitSize > 0 || other.IsZeroWidthBitfield)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>Closes the block <see cref="EmitFieldBody"/> opened for a field, when it opened one.</summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="openBlock">Whether a block was opened.</param>
     private static void CloseBlock(SourceWriter writer, bool openBlock)
     {
         if (openBlock)

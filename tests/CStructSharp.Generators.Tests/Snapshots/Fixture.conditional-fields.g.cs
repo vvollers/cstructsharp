@@ -492,7 +492,6 @@ namespace Demo
             int placementArm0 = int.MinValue;
             // uint8 tag
             {
-                cursor.Seek(placement.AdvanceToField(1), "tag", "uint8");
                 value.Tag = cursor.Take(1, "tag", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
@@ -507,7 +506,6 @@ namespace Demo
             }
             if (placementArm0 == 1)
             {
-                cursor.Seek(placement.AdvanceToField(1), "number", "uint24<");
                 value.Number = global::CStructSharp.Generated.Codec.ReadUInt24(cursor.Take(3, "number", "uint24<"), true);
                 value.HasNumber = true;
                 placement.CompleteField(cursor.Position);
@@ -515,7 +513,6 @@ namespace Demo
             // utf8 label[3]
             if (placementArm0 == 0)
             {
-                cursor.Seek(placement.AdvanceToField(1), "label", "utf8");
                 int count;
                 count = 3;
                 cursor.RequireArrayLength(count, "label", "utf8");
@@ -525,7 +522,6 @@ namespace Demo
             }
             // uint8 tail
             {
-                cursor.Seek(placement.AdvanceToField(1), "tail", "uint8");
                 value.Tail = cursor.Take(1, "tail", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
@@ -664,7 +660,6 @@ namespace Demo
             int placementArm0 = int.MinValue;
             // uint8 tag
             {
-                cursor.Seek(placement.AdvanceToField(1), "tag", "uint8");
                 cursor.Reserve(1, "tag", "uint8")[0] = value.Tag;
                 placement.CompleteField(cursor.Position);
             }
@@ -687,7 +682,6 @@ namespace Demo
                 {
                     throw cursor.Fail("No value was supplied for 'number'.", "number", "uint24<");
                 }
-                cursor.Seek(placement.AdvanceToField(1), "number", "uint24<");
                 {
                     global::System.Span<byte> encoded = stackalloc byte[3];
                     try
@@ -713,7 +707,6 @@ namespace Demo
                 {
                     throw cursor.Fail("No value was supplied for 'label'.", "label", "utf8");
                 }
-                cursor.Seek(placement.AdvanceToField(1), "label", "utf8");
                 if (value.Label is null)
                 {
                     throw cursor.Fail("Null is valid only for a scalar pointer field: label", "label", "utf8");
@@ -726,7 +719,6 @@ namespace Demo
             }
             // uint8 tail
             {
-                cursor.Seek(placement.AdvanceToField(1), "tail", "uint8");
                 cursor.Reserve(1, "tail", "uint8")[0] = value.Tail;
                 placement.CompleteField(cursor.Position);
             }

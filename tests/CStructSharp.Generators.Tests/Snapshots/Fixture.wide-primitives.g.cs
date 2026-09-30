@@ -474,19 +474,16 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint48 a
             {
-                cursor.Seek(placement.AdvanceToField(1), "a", "uint48");
                 value.A = global::CStructSharp.Generated.Codec.ReadUInt48(cursor.Take(6, "a", "uint48"), true);
                 placement.CompleteField(cursor.Position);
             }
             // float16 b
             {
-                cursor.Seek(placement.AdvanceToField(2), "b", "float16");
                 value.B = global::CStructSharp.Generated.Codec.ReadHalf(cursor.Take(2, "b", "float16"), true);
                 placement.CompleteField(cursor.Position);
             }
             // void *p
             {
-                cursor.Seek(placement.AdvanceToField(4), "p", "void");
                 value.P = ReadPointer_void_1(ref cursor, variables, "p", "void");
                 placement.CompleteField(cursor.Position);
             }
@@ -637,7 +634,6 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint48 a
             {
-                cursor.Seek(placement.AdvanceToField(1), "a", "uint48");
                 {
                     global::System.Span<byte> encoded = stackalloc byte[6];
                     try
@@ -654,13 +650,11 @@ namespace Demo
             }
             // float16 b
             {
-                cursor.Seek(placement.AdvanceToField(2), "b", "float16");
                 global::CStructSharp.Generated.Codec.WriteHalf(cursor.Reserve(2, "b", "float16"), value.B, true);
                 placement.CompleteField(cursor.Position);
             }
             // void *p
             {
-                cursor.Seek(placement.AdvanceToField(4), "p", "void");
                 cursor.WritePointerAddress(value.P.Address, PointerSize, LittleEndian, "p", "void");
                 placement.CompleteField(cursor.Position);
             }

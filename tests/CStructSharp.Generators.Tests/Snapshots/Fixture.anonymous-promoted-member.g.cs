@@ -477,23 +477,19 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 a
             {
-                cursor.Seek(placement.AdvanceToField(1), "a", "uint8");
                 value.A = cursor.Take(1, "a", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
             //  
             {
-                cursor.Seek(placement.AdvanceToField(1), member, memberType);
                 var placementN = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
                 // uint8 x
                 {
-                    cursor.Seek(placementN.AdvanceToField(1), "x", "uint8");
                     value.X = cursor.Take(1, "x", "uint8")[0];
                     placementN.CompleteField(cursor.Position);
                 }
                 // uint8 y
                 {
-                    cursor.Seek(placementN.AdvanceToField(1), "y", "uint8");
                     value.Y = cursor.Take(1, "y", "uint8")[0];
                     placementN.CompleteField(cursor.Position);
                 }
@@ -502,7 +498,6 @@ namespace Demo
             }
             // uint8 b
             {
-                cursor.Seek(placement.AdvanceToField(1), "b", "uint8");
                 value.B = cursor.Take(1, "b", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
@@ -640,23 +635,19 @@ namespace Demo
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 a
             {
-                cursor.Seek(placement.AdvanceToField(1), "a", "uint8");
                 cursor.Reserve(1, "a", "uint8")[0] = value.A;
                 placement.CompleteField(cursor.Position);
             }
             //  
             {
-                cursor.Seek(placement.AdvanceToField(1), member, memberType);
                 var placementN = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
                 // uint8 x
                 {
-                    cursor.Seek(placementN.AdvanceToField(1), "x", "uint8");
                     cursor.Reserve(1, "x", "uint8")[0] = value.X;
                     placementN.CompleteField(cursor.Position);
                 }
                 // uint8 y
                 {
-                    cursor.Seek(placementN.AdvanceToField(1), "y", "uint8");
                     cursor.Reserve(1, "y", "uint8")[0] = value.Y;
                     placementN.CompleteField(cursor.Position);
                 }
@@ -666,7 +657,6 @@ namespace Demo
             }
             // uint8 b
             {
-                cursor.Seek(placement.AdvanceToField(1), "b", "uint8");
                 cursor.Reserve(1, "b", "uint8")[0] = value.B;
                 placement.CompleteField(cursor.Position);
             }
