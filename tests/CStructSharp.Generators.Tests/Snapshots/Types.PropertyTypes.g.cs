@@ -1006,6 +1006,12 @@ namespace Demo
             {
                 return ReadInnerFixed(fixedBytes, cursor.TrimFixedText);
             }
+            return ReadInnerMembers(ref cursor, variables, member, memberType);
+        }
+
+        /// <summary>Reads one <c>inner</c> member by member at the cursor's position, when <see cref="ReadInner"/> cannot use the fixed reader.</summary>
+        private static Inner ReadInnerMembers(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "inner", memberType);
             var value = new Inner();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);

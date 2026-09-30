@@ -838,6 +838,12 @@ namespace Demo
             {
                 return ReadHeadFixed(fixedBytes, cursor.TrimFixedText);
             }
+            return ReadHeadMembers(ref cursor, variables, member, memberType);
+        }
+
+        /// <summary>Reads one <c>head</c> member by member at the cursor's position, when <see cref="ReadHead"/> cannot use the fixed reader.</summary>
+        private static Head ReadHeadMembers(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "head", memberType);
             var value = new Head();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);

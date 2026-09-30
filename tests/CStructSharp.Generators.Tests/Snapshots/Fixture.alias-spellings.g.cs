@@ -472,6 +472,12 @@ namespace Demo
             {
                 return ReadRootFixed(fixedBytes, cursor.TrimFixedText);
             }
+            return ReadRootMembers(ref cursor, variables, member, memberType);
+        }
+
+        /// <summary>Reads one <c>root</c> member by member at the cursor's position, when <see cref="ReadRoot"/> cannot use the fixed reader.</summary>
+        private static Root ReadRootMembers(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "root", memberType);
             var value = new Root();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);

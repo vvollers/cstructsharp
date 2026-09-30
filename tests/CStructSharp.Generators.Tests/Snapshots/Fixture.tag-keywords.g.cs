@@ -825,6 +825,12 @@ namespace Demo
             {
                 return ReadChildFixed(fixedBytes, cursor.TrimFixedText);
             }
+            return ReadChildMembers(ref cursor, variables, member, memberType);
+        }
+
+        /// <summary>Reads one <c>child</c> member by member at the cursor's position, when <see cref="ReadChild"/> cannot use the fixed reader.</summary>
+        private static Child ReadChildMembers(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "child", memberType);
             var value = new Child();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
@@ -846,6 +852,12 @@ namespace Demo
             {
                 return ReadRootFixed(fixedBytes, cursor.TrimFixedText);
             }
+            return ReadRootMembers(ref cursor, variables, member, memberType);
+        }
+
+        /// <summary>Reads one <c>root</c> member by member at the cursor's position, when <see cref="ReadRoot"/> cannot use the fixed reader.</summary>
+        private static Root ReadRootMembers(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "root", memberType);
             var value = new Root();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);

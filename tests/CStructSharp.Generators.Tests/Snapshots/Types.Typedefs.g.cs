@@ -1199,6 +1199,12 @@ namespace Demo
             {
                 return ReadXFixed(fixedBytes, cursor.TrimFixedText);
             }
+            return ReadXMembers(ref cursor, variables, member, memberType);
+        }
+
+        /// <summary>Reads one <c>X</c> member by member at the cursor's position, when <see cref="ReadX"/> cannot use the fixed reader.</summary>
+        private static X ReadXMembers(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "X", memberType);
             var value = new X();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
@@ -1220,6 +1226,12 @@ namespace Demo
             {
                 return ReadAnonFixed(fixedBytes, cursor.TrimFixedText);
             }
+            return ReadAnonMembers(ref cursor, variables, member, memberType);
+        }
+
+        /// <summary>Reads one <c>Anon</c> member by member at the cursor's position, when <see cref="ReadAnon"/> cannot use the fixed reader.</summary>
+        private static Anon ReadAnonMembers(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "Anon", memberType);
             var value = new Anon();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);

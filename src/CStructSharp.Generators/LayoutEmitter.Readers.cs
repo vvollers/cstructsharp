@@ -289,13 +289,33 @@ internal sealed partial class LayoutEmitter
         }
     }
 
-    /// <summary>One composite's reader, entered with the cursor at the composite's first byte.</summary>
+    /// <summary>
+    ///     One composite's reader, entered with the cursor at the composite's first byte. A composite with a fixed reader
+    ///     gets a small <c>Read&lt;Type&gt;</c> that tries the fixed reader and otherwise calls a separate
+    ///     <c>Read&lt;Type&gt;Members</c> with the member-by-member steps.
+    /// </summary>
+    /// <remarks>
+    ///     The split keeps the fixed path cheap: the JIT inlines a hot <c>Read&lt;Type&gt;</c> into its caller, and a
+    ///     member-by-member body in the same method would be inlined with it and use up the inlining budget, so the
+    ///     span and codec helpers of the fixed reader would stay calls.
+    /// </remarks>
+    /// <param name="writer">The generated source destination.</param>
+    /// <param name="composite">The composite whose reader is emitted.</param>
     private void EmitCompositeReader(SourceWriter writer, GeneratedComposite composite)
     {
         string name = composite.Name;
+        string parameters = "(ref " + Cursor + " cursor, " + VariablesType + " variables, string? member, string? memberType)";
         writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> at the cursor's position.</summary>");
-        writer.Open("private static " + name + " Read" + name + "(ref " + Cursor + " cursor, " + VariablesType + " variables, string? member, string? memberType)");
-        this.EmitFixedReaderShortcut(writer, composite);
+        writer.Open("private static " + name + " Read" + name + parameters);
+        if (this.EmitFixedReaderShortcut(writer, composite))
+        {
+            writer.Line("return Read" + name + "Members(ref cursor, variables, member, memberType);");
+            writer.Close();
+            writer.Line();
+            writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> member by member at the cursor's position, when " + Cref("Read" + name) + " cannot use the fixed reader.</summary>");
+            writer.Open("private static " + name + " Read" + name + "Members" + parameters);
+        }
+
         writer.Line("cursor.EnterComposite(member ?? " + SourceWriter.Literal(composite.LayoutName) + ", memberType);");
         writer.Line("var value = new " + name + "();");
         var scope = new ReaderScope(this, composite);

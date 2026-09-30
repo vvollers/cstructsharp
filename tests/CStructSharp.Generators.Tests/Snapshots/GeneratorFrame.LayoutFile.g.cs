@@ -829,6 +829,12 @@ namespace Demo
             {
                 return ReadchunkFixed(fixedBytes, cursor.TrimFixedText);
             }
+            return ReadchunkMembers(ref cursor, variables, member, memberType);
+        }
+
+        /// <summary>Reads one <c>chunk</c> member by member at the cursor's position, when <see cref="Readchunk"/> cannot use the fixed reader.</summary>
+        private static chunk ReadchunkMembers(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "chunk", memberType);
             var value = new chunk();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
@@ -850,6 +856,12 @@ namespace Demo
             {
                 return ReadrootFixed(fixedBytes, cursor.TrimFixedText);
             }
+            return ReadrootMembers(ref cursor, variables, member, memberType);
+        }
+
+        /// <summary>Reads one <c>root</c> member by member at the cursor's position, when <see cref="Readroot"/> cannot use the fixed reader.</summary>
+        private static root ReadrootMembers(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "root", memberType);
             var value = new root();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);

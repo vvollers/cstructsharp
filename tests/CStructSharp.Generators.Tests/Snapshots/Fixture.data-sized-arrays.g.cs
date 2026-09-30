@@ -839,6 +839,12 @@ namespace Demo
             {
                 return ReadEntryFixed(fixedBytes, cursor.TrimFixedText);
             }
+            return ReadEntryMembers(ref cursor, variables, member, memberType);
+        }
+
+        /// <summary>Reads one <c>entry</c> member by member at the cursor's position, when <see cref="ReadEntry"/> cannot use the fixed reader.</summary>
+        private static Entry ReadEntryMembers(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "entry", memberType);
             var value = new Entry();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);

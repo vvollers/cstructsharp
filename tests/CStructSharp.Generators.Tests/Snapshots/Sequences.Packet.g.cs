@@ -848,6 +848,12 @@ namespace Demo
             {
                 return ReadHdrFixed(fixedBytes, cursor.TrimFixedText);
             }
+            return ReadHdrMembers(ref cursor, variables, member, memberType);
+        }
+
+        /// <summary>Reads one <c>hdr</c> member by member at the cursor's position, when <see cref="ReadHdr"/> cannot use the fixed reader.</summary>
+        private static Hdr ReadHdrMembers(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "hdr", memberType);
             var value = new Hdr();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);

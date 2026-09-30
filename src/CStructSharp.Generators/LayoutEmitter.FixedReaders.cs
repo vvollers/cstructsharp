@@ -9,7 +9,7 @@ using static CStructSharp.Generators.Emit;
 /// <summary>
 ///     The fixed readers: for a struct whose every member sits at an offset known at build time, a
 ///     <c>Read&lt;Type&gt;Fixed(source, trimFixedText)</c> that decodes each member at its constant offset, the
-///     build-time counterpart of the runtime's static read plan. The generated member-by-member reader tries it first
+///     build-time counterpart of the runtime's static read plan. The composite's generated <c>Read&lt;Type&gt;</c> tries it first
 ///     through <c>ReadCursor.TryTakeFixed</c>, which hands over the struct's bytes only when the member-by-member reader would
 ///     read exactly those bytes without a failure (enough input, within the read budget and the nesting and array
 ///     limits, and on the struct's alignment); any other input takes the member-by-member reader, which reports any
@@ -34,20 +34,22 @@ internal sealed partial class LayoutEmitter
         }
     }
 
-    /// <summary>Emits the fast-path test at the top of a composite's member-by-member reader, when it has a fixed reader.</summary>
+    /// <summary>Emits the fast-path test at the top of a composite's <c>Read&lt;Type&gt;</c>, when it has a fixed reader.</summary>
     /// <param name="writer">The generated source destination, inside the reader before the composite is entered.</param>
     /// <param name="composite">The composite being read.</param>
-    private void EmitFixedReaderShortcut(SourceWriter writer, GeneratedComposite composite)
+    /// <returns>Whether the composite has a fixed reader, so that the test was emitted.</returns>
+    private bool EmitFixedReaderShortcut(SourceWriter writer, GeneratedComposite composite)
     {
         if (this.FixedPlanOf(composite, 0) is not { } plan)
         {
-            return;
+            return false;
         }
 
         // Alignment only constrains the start in an aligned layout; a packed layout places members by size alone.
         writer.Open("if (cursor.TryTakeFixed(" + Int(plan.Size) + ", " + Int(this.request.Settings.Aligned ? plan.Alignment : 1) + ", " + plan.ChargedBytes.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", " + Int(plan.NestingLevels) + ", " + Int(plan.MaximumArrayCount) + ", out global::System.ReadOnlySpan<byte> fixedBytes))");
         writer.Line("return Read" + composite.Name + "Fixed(fixedBytes, cursor.TrimFixedText);");
         writer.Close();
+        return true;
     }
 
     /// <summary>Emits one composite's fixed reader.</summary>

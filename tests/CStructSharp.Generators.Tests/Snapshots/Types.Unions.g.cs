@@ -618,6 +618,12 @@ namespace Demo
             {
                 return ReadRootPosFixed(fixedBytes, cursor.TrimFixedText);
             }
+            return ReadRootPosMembers(ref cursor, variables, member, memberType);
+        }
+
+        /// <summary>Reads one <c>pos</c> member by member at the cursor's position, when <see cref="ReadRootPos"/> cannot use the fixed reader.</summary>
+        private static RootPos ReadRootPosMembers(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
             cursor.EnterComposite(member ?? "pos", memberType);
             var value = new RootPos();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
