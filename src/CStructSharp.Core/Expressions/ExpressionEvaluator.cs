@@ -67,7 +67,7 @@ internal sealed class ExpressionEvaluator
     private bool TryEvaluateSimple(CompiledExpression program, IReadOnlyDictionary<string, Expr> variables, out Int128 result)
     {
         result = Int128.Zero;
-        ExpressionInstruction[] code = program.Instructions;
+        SessionInstruction[] code = program.Code;
         int operands = code.Length == 3 ? 2 : 1;
         if (code.Length is < 1 or > 3 ||
             (code.Length == 2 && code[1].Opcode is not (ExpressionOpcode.Negate or ExpressionOpcode.Complement or ExpressionOpcode.LogicalNot)) ||
@@ -79,30 +79,30 @@ internal sealed class ExpressionEvaluator
 
         Int128 first = default;
         Int128 second = default;
-        string? firstDependency = null;
+        int firstDependency = -1;
         int extraNodes = 0;
         for (int index = 0; index < operands; index++)
         {
-            ExpressionInstruction instruction = code[index];
+            SessionInstruction instruction = code[index];
             Int128 value;
             if (instruction.Opcode == ExpressionOpcode.Literal)
             {
                 value = instruction.Value;
             }
             else if (instruction.Opcode == ExpressionOpcode.Identifier &&
-                     variables.TryGetValue(instruction.Name!, out Expr? expression) && expression is Literal { IsInDomain: true, } literal)
+                     variables.TryGetValue(program.Dependencies[instruction.Key], out Expr? expression) && expression is Literal { IsInDomain: true, } literal)
             {
                 if (instruction.Depth + 1 > this.limits.MaximumDepth)
                 {
                     throw new CStructLayoutException("Maximum expression evaluation depth exceeded.");
                 }
 
-                if (instruction.Name != firstDependency)
+                if (instruction.Key != firstDependency)
                 {
                     extraNodes++;
                 }
 
-                firstDependency = instruction.Name;
+                firstDependency = instruction.Key;
                 value = literal.Value;
             }
             else
@@ -134,7 +134,7 @@ internal sealed class ExpressionEvaluator
                 ExpressionOpcode.Complement => ExpressionArithmetic.Complement(first),
                 _ => ExpressionArithmetic.LogicalNot(first),
             },
-            _ => ExpressionEvaluationSession.EvaluateBinary(code[2].Opcode, first, second),
+            _ => ExpressionArithmetic.Binary(code[2].Opcode, first, second),
         };
         return true;
     }
@@ -390,7 +390,7 @@ internal sealed class ExpressionEvaluator
         }
 
         return new CompiledExpression(
-            instructions.ToArray(),
+            instructions,
             dependencies.Count == 0 ? Array.Empty<string>() : [.. dependencies,]);
     }
 
@@ -427,17 +427,14 @@ internal sealed class ExpressionEvaluator
         return new ExpressionInstruction(opcode, Int128.Zero, null, depth);
     }
 
-    /// <summary>Executes compiled expressions while sharing a finite work budget across named dependencies.</summary>
-    internal sealed class ExpressionEvaluationSession
+    /// <summary>
+    ///     Evaluates expressions over a variable dictionary while sharing a finite work budget across named dependencies:
+    ///     the session rules (<see cref="ExpressionSession{TKey, TProgram, TResolver}"/>) with names resolved through the
+    ///     variables and compiled through the evaluator's program cache.
+    /// </summary>
+    internal sealed class ExpressionEvaluationSession : ExpressionSession<string, CompiledExpression, DictionaryResolver>
     {
-        private readonly HashSet<string> activeIdentifiers = new(StringComparer.Ordinal);
-        private readonly Dictionary<string, Int128> identifierValues = new(StringComparer.Ordinal);
         private readonly ExpressionEvaluator evaluator;
-        private readonly ExpressionEvaluationLimits limits;
-        private readonly Dictionary<string, int> validatedIdentifierDepths = new(StringComparer.Ordinal);
-        private readonly IReadOnlyDictionary<string, Expr> variables;
-        private int executedNodes;
-        private int validatedNodes;
 
         /// <summary>Creates one bounded evaluation session.</summary>
         /// <param name="evaluator">The evaluator whose compiled-program cache the session uses.</param>
@@ -449,274 +446,92 @@ internal sealed class ExpressionEvaluator
             ExpressionEvaluator evaluator,
             IReadOnlyDictionary<string, Expr> variables,
             ExpressionEvaluationLimits limits)
+            : base(new DictionaryResolver(evaluator, variables, limits))
         {
             this.evaluator = evaluator;
-            this.variables = variables;
-            this.limits = limits;
         }
 
         /// <summary>Evaluates one root while retaining the session's dependency values and total work counter.</summary>
         /// <param name="expression">The expression tree to compile (or fetch from the cache) and run.</param>
         /// <returns>The signed 128-bit value of the expression.</returns>
-        public Int128 Evaluate(Expr expression)
+        public Int128 Evaluate(Expr expression) => this.EvaluateRoot(this.evaluator.GetProgram(expression));
+    }
+
+    /// <summary>Resolves a dictionary session's names: a name's program is its variable's expression, compiled through the evaluator's cache.</summary>
+    internal readonly struct DictionaryResolver : IExpressionSessionResolver<string, CompiledExpression>
+    {
+        private readonly ExpressionEvaluator evaluator;
+        private readonly IReadOnlyDictionary<string, Expr> variables;
+
+        /// <summary>Creates the resolver of one session.</summary>
+        /// <param name="evaluator">The evaluator whose program cache compiles the variables.</param>
+        /// <param name="variables">The names identifiers resolve to.</param>
+        /// <param name="limits">The session's limits.</param>
+        public DictionaryResolver(ExpressionEvaluator evaluator, IReadOnlyDictionary<string, Expr> variables, ExpressionEvaluationLimits limits)
         {
-            CompiledExpression program = this.evaluator.GetProgram(expression);
-            this.ValidateDependencyDepth(program);
-            return this.EvaluateProgram(program, 0);
+            this.evaluator = evaluator;
+            this.variables = variables;
+            this.Limits = limits;
         }
 
-        /// <summary>Checks complete dependency paths independently of result-cache order and without recursive calls.</summary>
-        private void ValidateDependencyDepth(CompiledExpression root, int baseDepth = 0)
+        /// <inheritdoc/>
+        public ExpressionEvaluationLimits Limits { get; }
+
+        /// <inheritdoc/>
+        public SessionInstruction[] Code(CompiledExpression program) => program.Code;
+
+        /// <inheritdoc/>
+        public int MaximumDepth(CompiledExpression program) => program.MaximumDepth;
+
+        /// <inheritdoc/>
+        public int MaximumStackSize(CompiledExpression program) => Math.Max(1, program.MaximumStackSize);
+
+        /// <inheritdoc/>
+        public SessionReference[] Prelude(CompiledExpression program) => program.Prelude;
+
+        /// <inheritdoc/>
+        public string Key(CompiledExpression program, int reference) => program.Dependencies[reference];
+
+        /// <inheritdoc/>
+        public string Name(string key) => key;
+
+        /// <inheritdoc/>
+        public bool IsDefined(string key) => this.variables.TryGetValue(key, out Expr? value) && value is not UnusableVariable;
+
+        /// <inheritdoc/>
+        public CompiledExpression? Dependency(string key) => this.evaluator.GetProgram(this.Variable(key));
+
+        /// <inheritdoc/>
+        public CompiledExpression? Evaluation(string key, out Int128 leaf)
         {
-            var activeIdentifiers = new HashSet<string>(StringComparer.Ordinal);
-            var pending = new Stack<DependencyValidationFrame>();
-            this.ChargeValidatedNodes(root);
-            pending.Push(new DependencyValidationFrame(root, baseDepth, 0, null));
-
-            while (pending.Count > 0)
-            {
-                DependencyValidationFrame frame = pending.Pop();
-                if (frame.NextReference >= frame.Program.IdentifierReferences.Length)
-                {
-                    if (frame.EnteredIdentifier is not null)
-                    {
-                        activeIdentifiers.Remove(frame.EnteredIdentifier);
-                    }
-
-                    continue;
-                }
-
-                ExpressionIdentifierReference reference =
-                    frame.Program.IdentifierReferences[frame.NextReference];
-                pending.Push(frame with { NextReference = frame.NextReference + 1, });
-                int dependencyDepth = frame.BaseDepth + reference.Depth;
-                if (!activeIdentifiers.Add(reference.Name))
-                {
-                    throw new CStructLayoutException(
-                        "Circular expression dependency detected at: " + reference.Name);
-                }
-
-                if (!this.variables.TryGetValue(reference.Name, out Expr? expression))
-                {
-                    throw new KeyNotFoundException("Undefined expression identifier: " + reference.Name);
-                }
-
-                if (expression is UnusableVariable unusable)
-                {
-                    throw unusable.CreateFailure(reference.Name);
-                }
-
-                CompiledExpression dependency = this.evaluator.GetProgram(expression);
-                if (dependencyDepth + dependency.MaximumDepth > this.limits.MaximumDepth)
-                {
-                    throw new CStructLayoutException("Maximum expression evaluation depth exceeded.");
-                }
-
-                if (this.validatedIdentifierDepths.TryGetValue(reference.Name, out int validatedDepth) &&
-                    validatedDepth >= dependencyDepth)
-                {
-                    activeIdentifiers.Remove(reference.Name);
-                    continue;
-                }
-
-                this.validatedIdentifierDepths[reference.Name] = dependencyDepth;
-                this.ChargeValidatedNodes(dependency);
-                pending.Push(new DependencyValidationFrame(
-                    dependency,
-                    dependencyDepth,
-                    0,
-                    reference.Name));
-            }
-        }
-
-        /// <summary>Bounds the iterative dependency-validation walk to the same session work setting.</summary>
-        private void ChargeValidatedNodes(CompiledExpression program)
-        {
-            this.validatedNodes = checked(this.validatedNodes + program.Instructions.Length);
-            if (this.validatedNodes > this.limits.MaximumNodes)
-            {
-                throw new CStructLayoutException("Maximum expression evaluation work exceeded.");
-            }
-        }
-
-        /// <summary>Runs one postfix program and recursively resolves only bounded identifier dependencies.</summary>
-        /// <param name="program">The validated instructions for this expression.</param>
-        /// <param name="dependencyDepth">The number of enclosing expression levels at this dependency's root.</param>
-        /// <returns>The signed 128-bit result.</returns>
-        /// <exception cref="CStructLayoutException">The complete dependency depth or session work exceeds its limit.</exception>
-        /// <exception cref="KeyNotFoundException">A selected dependency name is not defined.</exception>
-        /// <exception cref="InvalidOperationException">A selected value or operation is outside the expression domain.</exception>
-        /// <exception cref="OverflowException">An arithmetic result does not fit the signed 128-bit domain.</exception>
-        /// <exception cref="DivideByZeroException">A selected division or remainder has a zero divisor.</exception>
-        private Int128 EvaluateProgram(CompiledExpression program, int dependencyDepth)
-        {
-            if (dependencyDepth + program.MaximumDepth > this.limits.MaximumDepth)
-            {
-                throw new CStructLayoutException("Maximum expression evaluation depth exceeded.");
-            }
-
-            Int128[] values = ArrayPool<Int128>.Shared.Rent(Math.Max(1, program.MaximumStackSize));
-            int valueCount = 0;
-            try
-            {
-                for (int pc = 0; pc < program.Instructions.Length; pc++)
-                {
-                    ExpressionInstruction instruction = program.Instructions[pc];
-                    this.executedNodes++;
-                    if (this.executedNodes > this.limits.MaximumNodes)
-                    {
-                        throw new CStructLayoutException("Maximum expression evaluation work exceeded.");
-                    }
-
-                    switch (instruction.Opcode)
-                    {
-                    case ExpressionOpcode.Literal:
-                        values[valueCount++] = instruction.Value;
-                        break;
-                    case ExpressionOpcode.OutOfDomainLiteral:
-                        throw new InvalidOperationException(instruction.Name);
-                    case ExpressionOpcode.JumpIfFalse:
-                    case ExpressionOpcode.JumpIfTrue:
-                        bool truth = values[valueCount - 1] != Int128.Zero;
-                        if (truth == (instruction.Opcode == ExpressionOpcode.JumpIfTrue))
-                        {
-                            values[valueCount - 1] = truth ? Int128.One : Int128.Zero;
-                            pc = instruction.Patch!.Target - 1;
-                        }
-
-                        break;
-                    case ExpressionOpcode.BranchIfFalse:
-                        if (values[--valueCount] == Int128.Zero)
-                        {
-                            pc = instruction.Patch!.Target - 1;
-                        }
-
-                        break;
-                    case ExpressionOpcode.Jump:
-                        pc = instruction.Patch!.Target - 1;
-                        break;
-                    case ExpressionOpcode.Join:
-                        break;
-                    case ExpressionOpcode.Identifier:
-                        // An unusable variable (a wide value, a non-integer field) is not an expression tree; EvaluateIdentifier reports its failure.
-                        if (instruction.Conditional &&
-                            this.variables.TryGetValue(instruction.Name!, out Expr? selected) &&
-                            selected is not UnusableVariable)
-                        {
-                            this.ValidateDependencyDepth(this.evaluator.GetProgram(selected), dependencyDepth + instruction.Depth);
-                        }
-
-                        values[valueCount++] = this.EvaluateIdentifier(
-                            instruction.Name ??
-                            throw new InvalidOperationException("Identifier instruction has no name."),
-                            dependencyDepth + instruction.Depth);
-                        break;
-                    case ExpressionOpcode.LogicalNot:
-                        values[valueCount - 1] = ExpressionArithmetic.LogicalNot(values[valueCount - 1]);
-                        break;
-                    case ExpressionOpcode.Complement:
-                        values[valueCount - 1] = ExpressionArithmetic.Complement(values[valueCount - 1]);
-                        break;
-                    case ExpressionOpcode.Negate:
-                        values[valueCount - 1] = ExpressionArithmetic.Negate(values[valueCount - 1]);
-                        break;
-                    default:
-                        Int128 right = values[--valueCount];
-                        int leftIndex = valueCount - 1;
-                        values[leftIndex] = EvaluateBinary(instruction.Opcode, values[leftIndex], right);
-                        break;
-                    }
-                }
-
-                if (valueCount != 1)
-                {
-                    throw new InvalidOperationException("Compiled expression did not produce exactly one value.");
-                }
-
-                return values[0];
-            }
-            finally
-            {
-                ArrayPool<Int128>.Shared.Return(values);
-            }
-        }
-
-        /// <summary>Evaluates one named expression once and rejects dependency cycles at their first repeated name.</summary>
-        private Int128 EvaluateIdentifier(string name, int dependencyDepth)
-        {
-            if (this.identifierValues.TryGetValue(name, out Int128 known))
-            {
-                return known;
-            }
-
-            if (!this.variables.TryGetValue(name, out Expr? expression))
-            {
-                throw new KeyNotFoundException("Undefined expression identifier: " + name);
-            }
-
-            if (expression is UnusableVariable unusable)
-            {
-                throw unusable.CreateFailure(name);
-            }
-
+            Expr expression = this.Variable(key);
             if (expression is Literal { IsInDomain: false, } wide)
             {
                 // A constant beyond the domain (an unsigned 128-bit enum member, a define such as 1 << 127) is
                 // reported under the name the expression used rather than as an anonymous literal.
-                throw new InvalidOperationException(WideValueVariable.DescribeOutOfRange(name, wide.ExactValue));
+                throw new InvalidOperationException(WideValueVariable.DescribeOutOfRange(key, wide.ExactValue));
             }
 
-            if (!this.activeIdentifiers.Add(name))
-            {
-                throw new CStructLayoutException("Circular expression dependency detected at: " + name);
-            }
-
-            try
-            {
-                Int128 value = this.EvaluateProgram(this.evaluator.GetProgram(expression), dependencyDepth);
-                this.identifierValues.Add(name, value);
-                return value;
-            }
-            finally
-            {
-                this.activeIdentifiers.Remove(name);
-            }
+            leaf = Int128.Zero;
+            return this.evaluator.GetProgram(expression);
         }
 
-        /// <summary>Applies the documented signed 128-bit operator semantics (<see cref="ExpressionArithmetic"/>).</summary>
-        /// <param name="opcode">The binary operator to apply; unary, literal, and jump opcodes are rejected.</param>
-        /// <param name="left">The left operand.</param>
-        /// <param name="right">The right operand (the divisor, or the shift count in bits).</param>
-        /// <returns>The operator's signed 128-bit result; comparisons and logical operators yield 0 or 1.</returns>
-        /// <exception cref="InvalidOperationException">
-        ///     The opcode is not a binary operator, or a shift count is outside 0-127.
-        /// </exception>
-        /// <exception cref="OverflowException">The result does not fit the signed 128-bit domain.</exception>
-        /// <exception cref="DivideByZeroException">A division or remainder has a zero divisor.</exception>
-        internal static Int128 EvaluateBinary(ExpressionOpcode opcode, Int128 left, Int128 right)
+        /// <summary>Returns a name's variable, failing for an undefined name and for an unusable value.</summary>
+        /// <param name="key">The name.</param>
+        /// <returns>The variable's expression.</returns>
+        private Expr Variable(string key)
         {
-            return opcode switch
+            if (!this.variables.TryGetValue(key, out Expr? expression))
             {
-                ExpressionOpcode.LogicalAnd => ExpressionArithmetic.LogicalAnd(left, right),
-                ExpressionOpcode.LogicalOr => ExpressionArithmetic.LogicalOr(left, right),
-                ExpressionOpcode.Equal => ExpressionArithmetic.Equal(left, right),
-                ExpressionOpcode.NotEqual => ExpressionArithmetic.NotEqual(left, right),
-                ExpressionOpcode.Less => ExpressionArithmetic.Less(left, right),
-                ExpressionOpcode.LessOrEqual => ExpressionArithmetic.LessOrEqual(left, right),
-                ExpressionOpcode.Greater => ExpressionArithmetic.Greater(left, right),
-                ExpressionOpcode.GreaterOrEqual => ExpressionArithmetic.GreaterOrEqual(left, right),
-                ExpressionOpcode.Add => ExpressionArithmetic.Add(left, right),
-                ExpressionOpcode.Subtract => ExpressionArithmetic.Subtract(left, right),
-                ExpressionOpcode.And => ExpressionArithmetic.And(left, right),
-                ExpressionOpcode.Divide => ExpressionArithmetic.Divide(left, right),
-                ExpressionOpcode.Multiply => ExpressionArithmetic.Multiply(left, right),
-                ExpressionOpcode.Or => ExpressionArithmetic.Or(left, right),
-                ExpressionOpcode.ShiftLeft => ExpressionArithmetic.ShiftLeft(left, right),
-                ExpressionOpcode.ShiftRight => ExpressionArithmetic.ShiftRight(left, right),
-                ExpressionOpcode.Modulo => ExpressionArithmetic.Modulo(left, right),
-                ExpressionOpcode.Xor => ExpressionArithmetic.Xor(left, right),
-                _ => throw new InvalidOperationException("Unknown compiled binary expression opcode: " + opcode),
-            };
+                throw new KeyNotFoundException("Undefined expression identifier: " + key);
+            }
+
+            if (expression is UnusableVariable unusable)
+            {
+                throw unusable.CreateFailure(key);
+            }
+
+            return expression;
         }
     }
 
@@ -880,15 +695,14 @@ internal sealed class ExpressionEvaluator
         /// <param name="dependencies">The distinct identifier names the program reads directly.</param>
         /// <exception cref="InvalidOperationException">The instructions do not form a valid stack program.</exception>
         public CompiledExpression(
-            ExpressionInstruction[] instructions,
+            List<ExpressionInstruction> instructions,
             string[] dependencies)
         {
-            this.Instructions = instructions;
             this.Dependencies = dependencies;
             int maximumDepth = 0;
             int maximumStackSize = 0;
             int stackSize = 0;
-            var identifierReferences = new List<ExpressionIdentifierReference>();
+            var identifierReferences = new List<SessionReference>();
             foreach (ExpressionInstruction instruction in instructions)
             {
                 maximumDepth = Math.Max(maximumDepth, instruction.Depth);
@@ -902,10 +716,10 @@ internal sealed class ExpressionEvaluator
                     stackSize++;
                     if (!instruction.Conditional)
                     {
-                        identifierReferences.Add(
-                        new ExpressionIdentifierReference(
-                            instruction.Name ??
-                            throw new InvalidOperationException("Identifier instruction has no name."),
+                        identifierReferences.Add(new SessionReference(
+                            DependencyIndex(
+                                dependencies,
+                                instruction.Name ?? throw new InvalidOperationException("Identifier instruction has no name.")),
                             instruction.Depth));
                     }
 
@@ -943,22 +757,58 @@ internal sealed class ExpressionEvaluator
                 throw new InvalidOperationException("Compiled expression does not leave exactly one stack value.");
             }
 
-            this.IdentifierReferences = identifierReferences.ToArray();
             this.MaximumDepth = maximumDepth;
             this.MaximumStackSize = maximumStackSize;
+
+            // The session runs the instructions with each identifier as an index into Dependencies and each jump target
+            // resolved; the prelude lists the identifiers outside the arms in the same form.
+            this.Code = new SessionInstruction[instructions.Count];
+            for (int position = 0; position < instructions.Count; position++)
+            {
+                ExpressionInstruction instruction = instructions[position];
+                this.Code[position] = new SessionInstruction(
+                    instruction.Opcode,
+                    instruction.Value,
+                    instruction.Opcode == ExpressionOpcode.Identifier ? DependencyIndex(dependencies, instruction.Name!) : instruction.Patch?.Target ?? 0,
+                    instruction.Depth,
+                    instruction.Conditional,
+                    instruction.Opcode == ExpressionOpcode.OutOfDomainLiteral ? instruction.Name : null);
+            }
+
+            this.Prelude = identifierReferences.ToArray();
+        }
+
+        /// <summary>
+        ///     Returns a name's index in the program's dependencies. A program reads few distinct names, so a linear search
+        ///     costs less than building a lookup table for every compiled expression.
+        /// </summary>
+        /// <param name="dependencies">The program's distinct identifier names.</param>
+        /// <param name="name">A name the program reads.</param>
+        /// <returns>The index.</returns>
+        private static int DependencyIndex(string[] dependencies, string name)
+        {
+            for (int index = 0; index < dependencies.Length; index++)
+            {
+                if (string.Equals(dependencies[index], name, StringComparison.Ordinal))
+                {
+                    return index;
+                }
+            }
+
+            throw new InvalidOperationException("Identifier instruction names no dependency: " + name);
         }
 
         /// <summary>Gets the distinct identifier names the program reads directly.</summary>
         public string[] Dependencies { get; }
 
-        /// <summary>
-        ///     Gets the identifier occurrences outside short-circuit and conditional arms, in instruction order: the
-        ///     names a session validates before it evaluates the program.
-        /// </summary>
-        public ExpressionIdentifierReference[] IdentifierReferences { get; }
+        /// <summary>Gets the instructions a session runs: each identifier an index into <see cref="Dependencies"/>, each jump target resolved.</summary>
+        public SessionInstruction[] Code { get; }
 
-        /// <summary>Gets the postfix instructions, in execution order.</summary>
-        public ExpressionInstruction[] Instructions { get; }
+        /// <summary>
+        ///     Gets the identifier occurrences outside short-circuit and conditional arms, in instruction order, each an index
+        ///     into <see cref="Dependencies"/> and its level: the names a session validates before it evaluates the program.
+        /// </summary>
+        public SessionReference[] Prelude { get; }
 
         /// <summary>Gets the deepest syntax level of any instruction (the root is level 1).</summary>
         public int MaximumDepth { get; }
@@ -976,18 +826,6 @@ internal sealed class ExpressionEvaluator
         /// <summary>Gets or sets the index of the instruction the jump continues at.</summary>
         public int Target { get; set; }
     }
-
-    /// <summary>Tracks one iterative dependency walk and the identifier removed when that frame exits.</summary>
-    private readonly record struct DependencyValidationFrame(
-        CompiledExpression Program,
-        int BaseDepth,
-        int NextReference,
-        string? EnteredIdentifier);
-
-    /// <summary>Records one identifier occurrence and its syntax-tree depth inside a compiled program.</summary>
-    /// <param name="Name">The identifier's name.</param>
-    /// <param name="Depth">The identifier's syntax level inside its program (the root is level 1).</param>
-    internal readonly record struct ExpressionIdentifierReference(string Name, int Depth);
 
     /// <summary>Represents one postfix stack-machine instruction.</summary>
     /// <param name="Opcode">The operation.</param>

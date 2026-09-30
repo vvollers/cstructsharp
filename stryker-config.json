@@ -37,6 +37,7 @@
       "Values/EnumValueResult.cs",
       "**/CStructSharp.Core/Expressions/ExpressionEvaluationLimits.cs",
       "**/CStructSharp.Core/Expressions/ExpressionEvaluator.cs",
+      "**/CStructSharp.Core/Expressions/ExpressionSession.cs",
       "**/CStructSharp.Core/Expressions/LayoutVariableInput.cs",
       "**/CStructSharp.Core/Expressions/LayoutVariableResolver.cs",
       "Values/Pointer.cs",

@@ -17,7 +17,9 @@ public class ExpressionSessionBoundaryTests
     {
         var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(10, int.MaxValue));
         ExpressionEvaluator.ExpressionEvaluationSession session = evaluator.CreateSession();
-        FieldInfo counter = typeof(ExpressionEvaluator.ExpressionEvaluationSession).GetField("validatedNodes", BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+        // The counter belongs to the shared session core the dictionary session derives from.
+        FieldInfo counter = typeof(ExpressionEvaluator.ExpressionEvaluationSession).BaseType!.GetField("validatedNodes", BindingFlags.Instance | BindingFlags.NonPublic)!;
 
         // Seed a valid near-limit state instead of executing billions of earlier validation steps.
         counter.SetValue(session, int.MaxValue - 1);

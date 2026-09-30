@@ -146,7 +146,7 @@ public class SlotTableTests
         Assert.AreEqual(SlotState.LiveExpression, slots.Get(Slot("E")).State);
         Assert.AreEqual(SlotState.Undefined, slots.Get(Slot("n")).State);
         Assert.IsTrue(((ProgramExpression)slots.Get(Slot("E")).Payload!).IsNative);
-        CollectionAssert.AreEqual(new[] { Slot("D"), }, ((ProgramExpression)slots.Get(Slot("E")).Payload!).PreludeSlots.ToArray());
+        CollectionAssert.AreEqual(new[] { Slot("D"), }, ((ProgramExpression)slots.Get(Slot("E")).Payload!).Prelude.Select(reference => reference.Key).ToArray());
     }
 
     /// <summary>

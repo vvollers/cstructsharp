@@ -25,7 +25,7 @@ using ExpressionOpcode = CStructSharp.Expressions.ExpressionEvaluator.Expression
 ///         </item>
 ///         <item>
 ///             <b>Session path</b>: the program reaches a live expression, or is not leaf-safe (near the limits). A
-///             session over the slots repeats the dictionary evaluator's session step for step - the transitive
+///             session over the slots runs the session core the dictionary evaluator runs - the transitive
 ///             validation walk with its per-walk cycle set, depth checks and work counter, the lazy validation of
 ///             selected conditional names, one evaluation per name per session, the evaluation cycle check - so cycles
 ///             through live expressions and limits are reported identically.
@@ -51,9 +51,8 @@ internal sealed class ProgramExpression
     [ThreadStatic]
     private static Int128[]? scratch;
 
-    private readonly SlotInstruction[] code;
-    private readonly int[] preludeDepths;
-    private readonly int[] preludeSlots;
+    private readonly SessionInstruction[] code;
+    private readonly SessionReference[] prelude;
     private readonly SlotTable table;
 
     // The program's shape when it is one operand, or two operands and an operator that cannot fail (a comparison or a
@@ -68,8 +67,7 @@ internal sealed class ProgramExpression
         this.table = table;
         this.Source = source;
         this.code = [];
-        this.preludeSlots = [];
-        this.preludeDepths = [];
+        this.prelude = [];
 
         ExpressionEvaluator.CompiledExpression compiled;
         try
@@ -83,43 +81,41 @@ internal sealed class ProgramExpression
             return;
         }
 
-        ExpressionEvaluator.ExpressionInstruction[] instructions = compiled.Instructions;
-        var code = new SlotInstruction[instructions.Length];
+        // The evaluator's code names each identifier by its index in the program's dependencies; a slot program names
+        // the slot instead.
+        string[] dependencies = compiled.Dependencies;
+        int[] slots = new int[dependencies.Length];
+        for (int dependency = 0; dependency < dependencies.Length; dependency++)
+        {
+            if (!table.TryGetSlot(dependencies[dependency], out slots[dependency]))
+            {
+                this.NotNativeReason = "the expression names '" + dependencies[dependency] + "', which has no slot";
+                return;
+            }
+        }
+
+        SessionInstruction[] instructions = compiled.Code;
+        var code = new SessionInstruction[instructions.Length];
         int identifiers = 0;
         int deepestIdentifier = 0;
         for (int index = 0; index < instructions.Length; index++)
         {
-            ExpressionEvaluator.ExpressionInstruction instruction = instructions[index];
-            int slot = -1;
+            SessionInstruction instruction = instructions[index];
             if (instruction.Opcode == ExpressionOpcode.Identifier)
             {
-                if (!table.TryGetSlot(instruction.Name!, out slot))
-                {
-                    this.NotNativeReason = "the expression names '" + instruction.Name + "', which has no slot";
-                    return;
-                }
-
                 identifiers++;
                 deepestIdentifier = Math.Max(deepestIdentifier, instruction.Depth);
+                instruction = instruction with { Operand = slots[instruction.Key], };
             }
 
-            code[index] = new SlotInstruction(
-                instruction.Opcode,
-                instruction.Value,
-                slot,
-                instruction.Depth,
-                instruction.Patch?.Target ?? 0,
-                instruction.Conditional,
-                instruction.Opcode == ExpressionOpcode.OutOfDomainLiteral ? instruction.Name : null);
+            code[index] = instruction;
         }
 
-        ExpressionEvaluator.ExpressionIdentifierReference[] references = compiled.IdentifierReferences;
-        this.preludeSlots = new int[references.Length];
-        this.preludeDepths = new int[references.Length];
+        SessionReference[] references = compiled.Prelude;
+        this.prelude = new SessionReference[references.Length];
         for (int index = 0; index < references.Length; index++)
         {
-            _ = table.TryGetSlot(references[index].Name, out this.preludeSlots[index]);
-            this.preludeDepths[index] = references[index].Depth;
+            this.prelude[index] = references[index] with { Key = slots[references[index].Key], };
         }
 
         this.code = code;
@@ -164,9 +160,6 @@ internal sealed class ProgramExpression
     /// </summary>
     public bool IsLeafSafe { get; }
 
-    /// <summary>Gets the validation prelude: the slots of the identifiers outside conditional arms, in validation order.</summary>
-    public IReadOnlyList<int> PreludeSlots => this.preludeSlots;
-
     /// <summary>Gets the number of instructions, which is also the work a session charges for validating the program.</summary>
     internal int Length => this.code.Length;
 
@@ -177,13 +170,10 @@ internal sealed class ProgramExpression
     internal int MaximumStackSize { get; }
 
     /// <summary>Gets the instructions, for the session path.</summary>
-    internal SlotInstruction[] Code => this.code;
+    internal SessionInstruction[] Code => this.code;
 
-    /// <summary>Gets the depths of the prelude's identifiers, parallel to <see cref="PreludeSlots"/>.</summary>
-    internal int[] PreludeDepths => this.preludeDepths;
-
-    /// <summary>Gets the prelude's slots as an array, for the session path.</summary>
-    internal int[] PreludeSlotArray => this.preludeSlots;
+    /// <summary>Gets the validation prelude: each identifier outside short-circuit and <c>?:</c> arms, as its slot and level.</summary>
+    internal SessionReference[] Prelude => this.prelude;
 
     /// <summary>Gets the table the program was compiled against.</summary>
     internal SlotTable Table => this.table;
@@ -269,10 +259,10 @@ internal sealed class ProgramExpression
     /// <summary>Classifies a program's shape for <see cref="TryEvaluateFast"/>.</summary>
     /// <param name="code">The program's instructions.</param>
     /// <returns>The shape.</returns>
-    private static FastForm Classify(SlotInstruction[] code)
+    private static FastForm Classify(SessionInstruction[] code)
     {
         // An operand pushes one value: a literal, or an identifier whose slot is read.
-        static bool IsOperand(in SlotInstruction instruction) => instruction.Opcode is ExpressionOpcode.Literal or ExpressionOpcode.Identifier;
+        static bool IsOperand(in SessionInstruction instruction) => instruction.Opcode is ExpressionOpcode.Literal or ExpressionOpcode.Identifier;
 
         if (code.Length == 1 && IsOperand(code[0]))
         {
@@ -291,7 +281,7 @@ internal sealed class ProgramExpression
     /// <param name="values">The slot array.</param>
     /// <param name="value">The operand.</param>
     /// <returns><see langword="false"/> when the identifier's slot holds anything but a literal.</returns>
-    private static bool TryReadLiteral(in SlotInstruction instruction, SlotValue[] values, out Int128 value)
+    private static bool TryReadLiteral(in SessionInstruction instruction, SlotValue[] values, out Int128 value)
     {
         if (instruction.Opcode == ExpressionOpcode.Literal)
         {
@@ -299,7 +289,7 @@ internal sealed class ProgramExpression
             return true;
         }
 
-        ref readonly SlotValue slot = ref values[instruction.Slot];
+        ref readonly SlotValue slot = ref values[instruction.Key];
         value = slot.Value;
         return slot.State == SlotState.Literal;
     }
@@ -317,10 +307,10 @@ internal sealed class ProgramExpression
 
         // The dictionary session validates these names in this order before running anything; with leaf values only
         // the undefined and unusable checks can fail (no cycles, and the limits are proven out of reach).
-        int[] prelude = this.preludeSlots;
+        SessionReference[] prelude = this.prelude;
         for (int index = 0; index < prelude.Length; index++)
         {
-            int slot = prelude[index];
+            int slot = prelude[index].Key;
             switch (values[slot].State)
             {
             case SlotState.Literal:
@@ -335,7 +325,7 @@ internal sealed class ProgramExpression
             }
         }
 
-        SlotInstruction[] instructions = this.code;
+        SessionInstruction[] instructions = this.code;
         if (instructions.Length == 1)
         {
             return this.TryRead(instructions[0], values, out result);
@@ -348,7 +338,7 @@ internal sealed class ProgramExpression
             int count = 0;
             for (int pc = 0; pc < instructions.Length; pc++)
             {
-                SlotInstruction instruction = instructions[pc];
+                SessionInstruction instruction = instructions[pc];
                 switch (instruction.Opcode)
                 {
                 case ExpressionOpcode.Literal:
@@ -394,7 +384,7 @@ internal sealed class ProgramExpression
                     break;
                 default:
                     Int128 right = stack[--count];
-                    stack[count - 1] = ExpressionEvaluator.ExpressionEvaluationSession.EvaluateBinary(instruction.Opcode, stack[count - 1], right);
+                    stack[count - 1] = ExpressionArithmetic.Binary(instruction.Opcode, stack[count - 1], right);
                     break;
                 }
             }
@@ -418,7 +408,7 @@ internal sealed class ProgramExpression
     /// <returns>Whether the program was evaluated.</returns>
     private bool TryEvaluateFast(SlotValue[] values, out Int128 result)
     {
-        SlotInstruction[] code = this.code;
+        SessionInstruction[] code = this.code;
         if (!TryReadLiteral(code[0], values, out result))
         {
             return false;
@@ -434,7 +424,7 @@ internal sealed class ProgramExpression
             return false;
         }
 
-        result = ExpressionEvaluator.ExpressionEvaluationSession.EvaluateBinary(code[2].Opcode, result, right);
+        result = ExpressionArithmetic.Binary(code[2].Opcode, result, right);
         return true;
     }
 
@@ -446,7 +436,7 @@ internal sealed class ProgramExpression
     /// <param name="values">The slot array.</param>
     /// <param name="value">The operand.</param>
     /// <returns><see langword="false"/> when the slot holds a live expression or an identifier.</returns>
-    private bool TryRead(in SlotInstruction instruction, SlotValue[] values, out Int128 value)
+    private bool TryRead(in SessionInstruction instruction, SlotValue[] values, out Int128 value)
     {
         if (instruction.Opcode == ExpressionOpcode.Literal)
         {
@@ -459,38 +449,21 @@ internal sealed class ProgramExpression
             throw new InvalidOperationException(instruction.Text);
         }
 
-        SlotValue slot = values[instruction.Slot];
+        SlotValue slot = values[instruction.Key];
         switch (slot.State)
         {
         case SlotState.Literal:
             value = slot.Value;
             return true;
         case SlotState.Undefined:
-            throw Undefined(this.table.GetName(instruction.Slot));
+            throw Undefined(this.table.GetName(instruction.Key));
         case SlotState.Unusable:
-            throw ((UnusableVariable)slot.Payload!).CreateFailure(this.table.GetName(instruction.Slot));
+            throw ((UnusableVariable)slot.Payload!).CreateFailure(this.table.GetName(instruction.Key));
         case SlotState.OutOfDomain:
-            throw new InvalidOperationException(WideValueVariable.DescribeOutOfRange(this.table.GetName(instruction.Slot), slot.Payload!));
+            throw new InvalidOperationException(WideValueVariable.DescribeOutOfRange(this.table.GetName(instruction.Key), slot.Payload!));
         default:
             value = Int128.Zero;
             return false;
         }
     }
-
-    /// <summary>One instruction of a slot program: the evaluator's instruction with its identifier resolved to a slot and its jump target resolved.</summary>
-    /// <param name="Opcode">The operation.</param>
-    /// <param name="Value">The constant a literal pushes.</param>
-    /// <param name="Slot">The slot an identifier reads, otherwise -1.</param>
-    /// <param name="Depth">The syntax level of the node the instruction came from.</param>
-    /// <param name="Target">The instruction a jump continues at.</param>
-    /// <param name="Conditional">Whether an identifier sits in a short-circuit or <c>?:</c> arm.</param>
-    /// <param name="Text">The failure message of an out-of-domain literal, otherwise <see langword="null"/>.</param>
-    internal readonly record struct SlotInstruction(
-        ExpressionOpcode Opcode,
-        Int128 Value,
-        int Slot,
-        int Depth,
-        int Target,
-        bool Conditional,
-        string? Text);
 }

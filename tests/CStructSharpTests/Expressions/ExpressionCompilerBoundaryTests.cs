@@ -57,7 +57,7 @@ public class ExpressionCompilerBoundaryTests
         var opcode = (ExpressionEvaluator.ExpressionOpcode)value;
 
         // A leaf or unknown opcode must not silently select an unrelated binary operation.
-        InvalidOperationException failure = Assert.Throws<InvalidOperationException>(() => ExpressionEvaluator.ExpressionEvaluationSession.EvaluateBinary(opcode, 1, 2));
+        InvalidOperationException failure = Assert.Throws<InvalidOperationException>(() => ExpressionArithmetic.Binary(opcode, 1, 2));
         Assert.AreEqual("Unknown compiled binary expression opcode: " + opcode, failure.Message);
     }
 

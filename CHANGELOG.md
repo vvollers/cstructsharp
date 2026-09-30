@@ -286,6 +286,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - Library source folders match their namespaces' roles: engine-only types live in `Engine/`, the codec table in
   `Codecs/`, and the value rules every write shares in `Writing/`; the permanent mutation scope covers 138 files.
 - The path grammar documents leading zeros in an index as accepted (`[01]` is `[1]`), as the parser always did.
+- The layout-expression evaluator has one session core: the name-based evaluator (layout compilation) and the
+  slot-based one (the compiled engine) run the same validation, execution and failure rules over a name or slot
+  resolver; the permanent mutation scope covers 139 files.
 
 ## 0.10.0 — 2026-09-26
 

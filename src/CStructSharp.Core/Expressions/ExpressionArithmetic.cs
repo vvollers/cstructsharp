@@ -1,6 +1,7 @@
 namespace CStructSharp.Expressions;
 
 using System;
+using ExpressionOpcode = CStructSharp.Expressions.ExpressionEvaluator.ExpressionOpcode;
 
 /// <summary>
 ///     The operator semantics every layout expression is evaluated with, in the domain of signed 128-bit integers
@@ -214,5 +215,41 @@ internal static class ExpressionArithmetic
         {
             throw new OverflowException();
         }
+    }
+
+    /// <summary>Applies a binary operator by the rules of this class, as a compiled program names it.</summary>
+    /// <param name="opcode">The binary operator to apply; unary, literal, and jump opcodes are rejected.</param>
+    /// <param name="left">The left operand.</param>
+    /// <param name="right">The right operand (the divisor, or the shift count in bits).</param>
+    /// <returns>The operator's signed 128-bit result; comparisons and logical operators yield 0 or 1.</returns>
+    /// <exception cref="InvalidOperationException">
+    ///     The opcode is not a binary operator, or a shift count is outside 0-127.
+    /// </exception>
+    /// <exception cref="OverflowException">The result does not fit the signed 128-bit domain.</exception>
+    /// <exception cref="DivideByZeroException">A division or remainder has a zero divisor.</exception>
+    internal static Int128 Binary(ExpressionOpcode opcode, Int128 left, Int128 right)
+    {
+        return opcode switch
+        {
+            ExpressionOpcode.LogicalAnd => LogicalAnd(left, right),
+            ExpressionOpcode.LogicalOr => LogicalOr(left, right),
+            ExpressionOpcode.Equal => Equal(left, right),
+            ExpressionOpcode.NotEqual => NotEqual(left, right),
+            ExpressionOpcode.Less => Less(left, right),
+            ExpressionOpcode.LessOrEqual => LessOrEqual(left, right),
+            ExpressionOpcode.Greater => Greater(left, right),
+            ExpressionOpcode.GreaterOrEqual => GreaterOrEqual(left, right),
+            ExpressionOpcode.Add => Add(left, right),
+            ExpressionOpcode.Subtract => Subtract(left, right),
+            ExpressionOpcode.And => And(left, right),
+            ExpressionOpcode.Divide => Divide(left, right),
+            ExpressionOpcode.Multiply => Multiply(left, right),
+            ExpressionOpcode.Or => Or(left, right),
+            ExpressionOpcode.ShiftLeft => ShiftLeft(left, right),
+            ExpressionOpcode.ShiftRight => ShiftRight(left, right),
+            ExpressionOpcode.Modulo => Modulo(left, right),
+            ExpressionOpcode.Xor => Xor(left, right),
+            _ => throw new InvalidOperationException("Unknown compiled binary expression opcode: " + opcode),
+        };
     }
 }
