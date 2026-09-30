@@ -42,7 +42,20 @@ internal readonly record struct ReadOperationSettings(
     /// <summary>Returns whether these limits admit running <paramref name="plan"/> as a root read.</summary>
     /// <param name="plan">The static read plan.</param>
     /// <returns>Whether the plan's bytes, nesting and arrays stay within the limits.</returns>
-    public bool CoversPlan(StaticReadPlan plan) => this.Covers(plan.Size, 0, plan.NestingDepth, plan.MaximumArrayCount);
+    public bool CoversPlan(StaticReadPlan plan) => plan.Size <= this.MaxTotalBytesRead && PlanFits(plan, 0, this.MaxNestingDepth, this.MaxArrayElements);
+
+    /// <summary>
+    ///     Returns whether a static plan's structs and arrays fit the nesting and element limits when it starts at
+    ///     <paramref name="structureDepth"/>: the check a root read (<see cref="CoversPlan"/>) and the engine's nested reads
+    ///     share; the byte budget is the caller's to check.
+    /// </summary>
+    /// <param name="plan">The static read plan.</param>
+    /// <param name="structureDepth">The structure depth the plan starts at (0 for a root).</param>
+    /// <param name="maxNestingDepth">The nesting limit.</param>
+    /// <param name="maxArrayElements">The element limit.</param>
+    /// <returns>Whether the plan's nesting and arrays stay within the limits.</returns>
+    public static bool PlanFits(StaticReadPlan plan, int structureDepth, int maxNestingDepth, int maxArrayElements)
+        => structureDepth + plan.NestingDepth <= maxNestingDepth && plan.MaximumArrayCount <= maxArrayElements;
 
     /// <summary>Copies every read choice before variable enumeration, stream access, or another caller callback.</summary>
     /// <param name="options">The caller's read options, or null for <see cref="ReadOptions.Default"/>.</param>

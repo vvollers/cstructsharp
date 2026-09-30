@@ -122,7 +122,7 @@ internal static partial class ReadEngine
     /// <param name="cursor">The operation's cursor.</param>
     /// <param name="bytes">The span to fill.</param>
     /// <returns><paramref name="bytes"/>, filled.</returns>
-    private static ReadOnlySpan<byte> ReadExact<TCursor>(ref TCursor cursor, Span<byte> bytes)
+    internal static ReadOnlySpan<byte> ReadExact<TCursor>(ref TCursor cursor, Span<byte> bytes)
         where TCursor : struct, IReadCursor
     {
         cursor.ReadExactly(bytes);

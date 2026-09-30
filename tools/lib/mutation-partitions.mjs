@@ -13,7 +13,7 @@ export function mutationFileHash(filename) {
  * The number of files in the permanent mutation scope. The tools and their tests check the configured allowlist against
  * it, so a file cannot leave the scope silently; a file split into partial files adds its parts here.
  */
-export const PERMANENT_SCOPE_SIZE = 131;
+export const PERMANENT_SCOPE_SIZE = 133;
 
 /**
  * The number of file partitions the permanent scope runs in. The mutation workflow runs one job per partition, so the

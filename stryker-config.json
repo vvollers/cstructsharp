@@ -106,6 +106,8 @@
       "Engine/SlotWriteCaptures.cs",
       "Engine/StreamReadCursor.cs",
       "Engine/StreamWriteDestination.cs",
+      "Engine/TargetResolver.Counts.cs",
+      "Engine/TargetResolver.Measure.cs",
       "Engine/TargetResolver.cs",
       "Engine/VariableSlots.cs",
       "Engine/WriteEngine.Unions.cs",

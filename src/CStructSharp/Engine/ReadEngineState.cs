@@ -240,7 +240,7 @@ internal struct ReadEngineState
     /// <param name="plan">The static read plan of a fixed composite.</param>
     /// <returns>Whether the plan's structs and arrays stay within the limits.</returns>
     public readonly bool CoversPlan(StaticReadPlan plan)
-        => this.StructureDepth + plan.NestingDepth <= this.MaxNestingDepth && plan.MaximumArrayCount <= this.MaxArrayElements;
+        => ReadOperationSettings.PlanFits(plan, this.StructureDepth, this.MaxNestingDepth, this.MaxArrayElements);
 
     /// <summary>Applies <see cref="TrimFixedText"/> to one decoded fixed-capacity string.</summary>
     /// <param name="text">The decoded text, including any NUL padding.</param>

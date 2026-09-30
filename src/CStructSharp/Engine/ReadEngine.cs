@@ -882,7 +882,7 @@ internal static partial class ReadEngine
     /// <returns>The count as an <see cref="int"/>.</returns>
     /// <exception cref="CStructReadException">The count is negative.</exception>
     /// <exception cref="CStructReadLimitException">The count exceeds <paramref name="maximum"/>.</exception>
-    private static int CheckCount(Int128 count, CompiledField member, int maximum)
+    internal static int CheckCount(Int128 count, CompiledField member, int maximum)
     {
         if (count < 0)
         {
