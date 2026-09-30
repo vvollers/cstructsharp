@@ -195,6 +195,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   pack records, and documentation validation fails when a page drifts from them.
 - Pointers, layout reuse and concurrency, and the 128-bit expression rule each have one home page that the other pages
   link to, and the tested recipe catalog is the single entry point for recipes.
+- Added `SECURITY.md`. The testing guide explains the engine golden outcomes and the compiler comparison fixtures with
+  worked examples, custom codecs teach the authoritative `FixedSize` rule, and `tools/README.md`, `tests/README.md`
+  and the API index are complete.
 
 ## 0.10.0 — 2026-09-26
 

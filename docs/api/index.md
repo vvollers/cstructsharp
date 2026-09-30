@@ -30,16 +30,20 @@ Types such as [`Pointer`](xref:CStructSharp.Values.Pointer), [`UnionValue`](xref
 [`EnumValueResult`](xref:CStructSharp.Values.EnumValueResult) preserve details that a plain C# number or object would lose.
 The task guides explain when those result types appear and how to use them.
 
+The optional WebAssembly adapter for JavaScript has its own independently versioned
+[browser interface](browser-contract.md). You do not need that page when using CStructSharp from an ordinary .NET
+application.
+
 The namespaces group the public surface by role:
 
 | Namespace | Contents |
 | --- | --- |
-| `CStructSharp` | `CStruct` and the option types on its methods; `CStructLayoutAttribute`/`CStructMappedAttribute` for the source generator, `ICStructMapped<T>` and `ICStructGenerated<T>` that mapped and generated classes implement, and `MappedTypes` |
-| `CStructSharp.Values` | What reads return and writes accept: `StructValue`, `UnionValue`, `EnumValueResult`, `FlagValueResult`, `Pointer`, `PrimitiveArray<T>` |
+| `CStructSharp` | `CStruct`; the option types on its methods and their enums (`CStructCompilationOptions`, `ReadOptions`, `WriteOptions`, `UpdateOptions`, `BitfieldAllocation`, `BitfieldPacking`, `PointerAddressingMode`, `UnknownMemberPolicy`); `FieldAccessor<T>` and `StructView` for reading the same members many times; `CStructLayoutAttribute`, `CStructMappedAttribute`, and `CStructMemberAttribute` for the source generator; `ICStructMapped<T>`, `ICStructFixedMapped<T>`, and `ICStructGenerated<T>` that mapped and generated classes implement; `MappedTypes`; and `StaticHelpers`, small conversion helpers |
+| `CStructSharp.Values` | What reads return and writes accept: `StructValue`, `UnionValue`, `EnumValueResult`, `FlagValueResult`, `Pointer`, `PrimitiveArray<T>`; the debug outcomes `ParseResult` and `ReadResult`; and `ReadAttempt<T>`, the result of `TryReadValueAsync<T>` |
 | `CStructSharp.Introspection` | `LayoutInfo` and the records that describe a compiled layout's declarations, fields, and constants |
 | `CStructSharp.Diagnostics` | The exception family, `CStructErrorCode`, and `DebugData` |
 | `CStructSharp.Codecs` | `ICustomCodec`, the extension point for caller-defined primitive types |
-| `CStructSharp.Generated` | The support the code emitted by the `[CStructLayout]` generator calls: `Codec` (the byte-level rules, shared with the runtime reader and writer), `ReadCursor`/`WriteCursor` (the runtime's accounting and diagnostics over spans), `CompositeCursor` (field placement: alignment and bitfield packing), `Pointer<T>`, and `Expressions` (the layout expression operators). Application code reads through a generated layout class or `CStruct` instead |
+| `CStructSharp.Generated` | The support the code emitted by the `[CStructLayout]` generator calls: `Codec` (the byte-level rules, shared with the runtime reader and writer), `ReadCursor`/`WriteCursor` (the runtime's accounting and diagnostics over spans), `CompositeCursor` (field placement: alignment and bitfield packing) with `BitfieldSlot`, `Pointer<T>`, `Expressions` (the layout expression operators), `TerminatedTextEncoding`, and `RecordSequence` over a `RecordReader<T>` (the record-sequence rules shared by the generated `Records` and `ParseMany`). Application code reads through a generated layout class or `CStruct` instead |
 | `CStructSharp.Memory` and `.Memory.Metadata` | Address spaces, metadata import, sessions, traversal, and offline patches for memory images |
 
 ## Where this reference comes from
@@ -51,7 +55,3 @@ The reviewed signature list is stored under
 [`contracts/api/managed`](../../contracts/api/managed/manifest.json). An *API baseline* is a saved description
 of the public surface. It lets maintainers notice a changed method, default value, nullability annotation, or
 attribute during review instead of after packaging.
-
-The optional WebAssembly adapter has an independently versioned
-[browser interface](browser-contract.md). You do not need that page when using CStructSharp from an ordinary .NET
-application.

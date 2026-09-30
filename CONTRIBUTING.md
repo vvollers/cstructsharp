@@ -3,8 +3,9 @@
 Thank you for helping with CStructSharp. This guide explains the usual workflow and points out the extra checks
 needed for parts of the project that have a public compatibility promise.
 
-If you are new to the repository, start with the build instructions in [README.md](README.md). You do not need to
-understand every release check before fixing a small bug.
+If you are new to the repository, install the tools listed in
+[Contributor setup](docs/project/getting-started.md), then follow [Start with a working build](#start-with-a-working-build)
+below. You do not need to understand every release check before fixing a small bug.
 
 ## Start with a working build
 
@@ -257,6 +258,9 @@ turn bad input into a believable but wrong result.
 
 Be especially careful with layout and ABI assumptions. Document the supported rule instead of guessing what a C
 compiler would do on the current machine.
+
+Report a suspected security vulnerability privately, as [SECURITY.md](SECURITY.md) describes, rather than in a
+public issue or pull request.
 
 ## Before requesting review
 

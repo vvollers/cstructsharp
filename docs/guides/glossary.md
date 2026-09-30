@@ -33,6 +33,7 @@ description: Plain-language definitions for the terms used in CStructSharp examp
 | Base64 | A text encoding that writes every three bytes as four letters, digits, or symbols; the browser API uses it for a union's `rawStorage` |
 | Stride | Distance in bytes between adjacent array elements, including their tail padding |
 | Codec | The rule that converts one primitive type between bytes and a .NET value, such as a little-endian `uint16` |
+| Custom codec | A codec your program supplies through `ICustomCodec`, so a layout can use a format-specific type by name |
 | Accessor | A path such as `packet.header.kind` resolved once by `GetAccessor<T>`, so repeated reads skip the path lookup |
 | View | A wrapper over bytes, created by `CreateView` or generated code, that reads members on request instead of decoding the whole record |
 | Virtual address | A location in a process address space, distinct from a file offset |

@@ -30,6 +30,51 @@ dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release
 This builds as needed and runs unit, integration, regression, property, stream-adapter, concurrency, limit, and
 compatibility tests on both frameworks.
 
+## Engine golden outcomes
+
+The library reads, writes, and updates most layouts with its compiled engine (see
+[Architecture](architecture.md#what-happens-during-an-operation)). The tests in `tests/CStructSharpTests/Engine/`
+check the engine by comparing each operation's *outcome* with a *golden outcome*: a reviewed copy of the outcome,
+stored in the repository. An outcome is everything a caller can observe, written as text: the value or the failure
+(exception type, message, path, and offset), the final stream position, the written bytes, the debug records, and
+how many operations reached the engine instead of a faster path in front of it.
+
+For example, `EngineDifferentialTests.Bitfields_ReadAndUpdateIdentically` parses this layout from the three bytes
+`21 34 12`:
+
+```c
+struct rec {
+    uint8 low : 4;   /* the low four bits of byte 0 */
+    uint8 high : 4;  /* the high four bits of byte 0 */
+    uint16 rest;     /* bytes 1-2, little-endian */
+};
+```
+
+Byte `21` holds `low = 1` and `high = 2`, and bytes `34 12` hold `rest = 0x1234 = 4660`. The golden outcome of the
+parse from a span is recorded in `Engine/Golden/EngineDifferentialTests.txt`:
+
+```text
+@test Bitfields_ReadAndUpdateIdentically
+@case Parse rec (Span) (Fastest)
+  result = StructValue {3}
+  result.low = Int32 1
+  result.high = Int32 2
+  result.rest = UInt16 4660
+  decisions = 1
+```
+
+`decisions = 1` means one operation reached the engine. If a change made `high` read as `3`, or moved the stream
+position, or sent the parse down a different path, the test would fail with a line-by-line difference.
+
+Each test class has one manifest file in `Engine/Golden/`, with one `@test` section per test. A small test stores its
+outcomes as readable `@case` blocks. A sweep over many layouts or corpus inputs stores one SHA-256 hash per group of
+outcomes (`@hash`), which keeps the files small but does not show which outcome changed. A test fails when an
+outcome differs from its golden one, when it has no golden outcome, or when a golden outcome is no longer produced.
+
+The same outcomes are checked on .NET 8 and .NET 10. Record the manifests again only for an intended, explained
+behavior change; [CONTRIBUTING.md](https://github.com/vvollers/cstructsharp/blob/main/CONTRIBUTING.md#engine-golden-outcomes)
+gives the `node tools/quality/engine-golden.mjs record` procedure and how to find what changed inside a hashed group.
+
 ## Generator snapshots and parity
 
 The source generator has three test projects of its own:
@@ -187,11 +232,47 @@ excludes from ordinary runs. To run it, extract a corpus with `node tools/qualit
 CSTRUCTSHARP_DISSECT_CORPUS=corpus.json dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release -f net10.0 --settings tests/CStructSharpTests/opt-in.runsettings
 ```
 
-## Compiler-differential fixtures
+## Compiler comparison fixtures
 
-Small Clang and GCC fixtures record how selected C11 objects were laid out under specific recorded environments.
-They help explain where Portable deliberately agrees or differs. They do not add a selectable compiler/ABI mode to
-CStructSharp.
+A C compiler places struct members by the rules of its *ABI* (application binary interface): the size and alignment
+of each type, where padding goes, and how bitfields share storage. Different compilers and targets follow different
+ABIs. CStructSharp does not ask the compiler; its Portable rules, together with the constructor's placement options,
+decide every offset. The compiler comparison fixtures record what real compilers do, so the documentation can say
+exactly where the Portable rules agree with them and where they differ.
+
+The evidence has three parts:
+
+- `tools/compiler-fixtures/portable-host-facts.c` declares a set of C11 objects and prints their sizes, alignments,
+  and byte images. The objects have static storage, so their padding bytes are zero and each image is repeatable.
+- `contracts/quality/compiler-fixtures/baselines/` holds one observation file per compiler and target: GCC and Clang
+  on Linux x64, GCC with `-m32` on Linux x86, Clang on macOS arm64, and MSVC and clang-cl on Windows x64. Each file
+  records the compiler's identity, flags, host, and the SHA-256 hash of the fixture source it ran.
+- `contracts/quality/compiler-fixtures/shapes.json` pairs each C shape with the equivalent Portable layout and its
+  values, and *claims* whether the library reproduces the compiler byte for byte with SysV placement (`sysv`), SysV
+  placement with four-byte pointers (`sysvX86`, compared with 32-bit x86), and MSVC placement (`msvc`).
+
+For example, the shape `u64-after-u8` is `struct { uint8_t a; uint64_t b; }` with `a = 0x11` and
+`b = 0x8877665544332211`:
+
+| Baseline | Size | Byte image |
+| --- | ---: | --- |
+| Linux x64 GCC, Windows x64 MSVC | 16 | `11 00 00 00 00 00 00 00 11 22 33 44 55 66 77 88` |
+| Linux x86 GCC (`-m32`) | 12 | `11 00 00 00 11 22 33 44 55 66 77 88` |
+
+On x86-64 and arm64, `b` is aligned to eight bytes, so seven padding bytes follow `a`. The 32-bit x86 System V ABI
+aligns an eight-byte integer inside a struct to only four bytes, so `b` starts at offset 4. Aligned Portable
+placement always aligns `uint64` to eight bytes, so the shape claims `sysv` and `msvc` but not `sysvX86`.
+
+`CompilerDifferentialFixtureTests` checks every claim against every baseline of the matching ABI family: in the named
+mode, the library's size, alignment, and bytes must equal the compiler's, and the compiler's bytes must parse back to
+the shape's values. The fixture's observations are evidence for the documentation, not a promise that CStructSharp
+follows a host compiler's ABI. `node tools/quality/compiler-fixture.mjs table` renders the comparison table in
+[Differences from C](../language/differences-from-c.md) from the same files, and CI checks that the table is current.
+
+A baseline made from an older fixture source is stale, and `node tools/quality/compiler-fixture.mjs validate` rejects
+it. When the C file or the shapes change, the baselines are recorded again by the hand-started `compiler-fixtures`
+workflow; [CONTRIBUTING.md](https://github.com/vvollers/cstructsharp/blob/main/CONTRIBUTING.md#compiler-comparison-fixture)
+lists the steps.
 
 ## Performance, packages, and release checks
 

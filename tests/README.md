@@ -1,8 +1,9 @@
 # Managed test projects
 
-Run the commands from the repository root after `dotnet build CStructSharp.NonWeb.slnf -c Release`. Tests consume
-reviewed inputs from `contracts/`; do not regenerate expectations to hide a regression. Reports and build outputs are
-ignored.
+This folder holds the .NET test projects. Run the commands from the repository root after
+`dotnet build CStructSharp.NonWeb.slnf -c Release`. Tests consume reviewed inputs from `contracts/`; do not
+regenerate expectations to hide a regression. Reports and build outputs are ignored. The
+[testing guide](../docs/project/testing.md) explains the test layers and which checks a change needs.
 
 | Project | What it checks | How to run it |
 | --- | --- | --- |
@@ -14,6 +15,12 @@ ignored.
 | `CStructSharp.AotConsumer/` | A `PublishAot` application that runs typed reads, generated layouts and mapped classes. | `dotnet publish tests/CStructSharp.AotConsumer -c Release -r <rid>`, then run the published executable |
 | `CStructSharp.PackageConsumer/` | The built NuGet package, installed without a project reference, with a generated layout and a `.cstruct` file. Kept out of the solution restore. | `node tools/packaging/test-package-consumer.mjs --package-directory <dir>` |
 | `CStructSharp.Memory.PackageConsumer/` | The memory-analysis API through the built package only. Kept out of the solution restore. | `node tools/packaging/test-memory-package-consumer.mjs --package-directory <dir>` |
+
+## Recorded expectations
+
+Several tests compare what the code produces with a reviewed file stored in the repository: a golden manifest, a
+snapshot, a baseline, or a recorded digest. Such a file changes only for an intended behavior change, recorded with
+its tool and explained in the commit, never to make a failing test pass.
 
 ## Opt-in tests
 
@@ -31,3 +38,15 @@ CSTRUCTSHARP_DISSECT_CORPUS=corpus.json dotnet test tests/CStructSharpTests/CStr
 Without `CSTRUCTSHARP_DISSECT_CORPUS` the test is inconclusive. The status file defaults to `corpus-status.json`
 beside the corpus (`CSTRUCTSHARP_DISSECT_CORPUS_STATUS` overrides it), and every run writes
 `corpus-status.latest.json`; `CSTRUCTSHARP_DISSECT_CORPUS_RATCHET=1` also replaces the recorded status with the latest.
+
+## Tests outside this folder
+
+Other parts of the repository keep their tests next to the code they check:
+
+| Location | What it checks | How to run it |
+| --- | --- | --- |
+| `docs/examples/` | Every documentation recipe and snippet, run with assertions | `node tools/documentation/validate-documentation.mjs` ([docs/README.md](../docs/README.md)) |
+| `benchmarks/CStructSharp.FixtureTool/` | The recorded expectation of every benchmark fixture | See [benchmarks/README.md](../benchmarks/README.md) |
+| `packages/cstructsharp/` | The npm package: the WASM bootstrap and the package installed in Node.js and browsers | `npm run test:bootstrap` and `npm run test:npm` from the root |
+| `apps/explorer/`, `apps/inspector/` | The browser apps: unit tests and Playwright end-to-end tests | `npm run test:unit` and `npm run test:e2e` in the app folder (see its README) |
+| `tools/**/*.test.mjs` | The repository scripts | `node --test "tools/**/*.test.mjs"` |

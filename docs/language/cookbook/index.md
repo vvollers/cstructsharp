@@ -174,6 +174,42 @@ an array count:
 
 [!code-csharp[A custom codec](../../examples/DissectParityExamples.cs#recipe-custom-codec)]
 
+### A fixed size is a promise
+
+`ICustomCodec.FixedSize` tells the layout how many bytes every value of the type occupies, or `null` when the length
+varies, as it does for the varint above. A fixed size is *authoritative*: the layout computes the offsets of the
+members that follow from it, so every value occupies exactly that many bytes, whatever `Read` or `Write` reports.
+
+For example, suppose a codec named `half` declares `FixedSize => 4`, but its `Read` decodes a little-endian `uint16`
+from the first two bytes and reports two bytes consumed:
+
+```c
+struct rec {
+    half a;      /* offsets 0-3: the declared size */
+    uint8 tail;  /* offset 4 */
+};
+```
+
+With the input `34 12 AA BB 09`:
+
+| Offset | Bytes | Member | Value |
+| --- | --- | --- | --- |
+| 0 | `34 12 AA BB` | `a` | `0x1234`; the codec reads the first two bytes, and `AA BB` are skipped |
+| 4 | `09` | `tail` | 9 |
+
+`tail` is at offset 4, not 2, in a parse, a selected read (`ReadValue`), an address (`ResolveAddress`), and an array
+length, and the same holds in generated code. Writing works the same way: when `Write` produces fewer bytes than the
+fixed size, zero bytes fill the rest, so serializing this value gives `34 12 00 00 09`.
+
+The rule also sets the limits of a fixed-size codec:
+
+- an input that ends before the declared size is a short read, even if `Read` would need fewer bytes;
+- a `Read` that reports more bytes consumed than the fixed size fails the read; and
+- a `Write` that answers `DestinationTooSmall` to ask for more room than the fixed size fails the write.
+
+So return `null` from `FixedSize` for an encoding whose length varies, and otherwise make `Read` consume, and
+`Write` produce, exactly the declared size.
+
 ## Patch one field in existing data
 
 Use a path and `Update` when surrounding bytes and positions must stay fixed:

@@ -1,6 +1,33 @@
 # Repository tooling
 
-`documentation/` builds DocFX, exports executable recipes, validates content, and packages the site. `packaging/` publishes and verifies WASM, assembles npm/ZIP/NuGet consumer artifacts, and checks onboarding. `release/` handles version state, release manifests, and npm publication identity. `quality/` checks API, fuzz, compiler fixtures, coverage, mutation, solutions, and performance, runs the serializer comparison behind the README tables (`quality/comparison-benchmarks.mjs`), and generates the generator's parity layouts (`quality/generate-parity-layouts.mjs`, `--check` in CI); `documentation/validate-generator-diagnostics.mjs` keeps the diagnostics lesson in step with the analyzer's release file. `lib/` holds the helpers the scripts share (assertions, a logged `dotnet` runner, argument parsing, small XML, ZIP, and NuGet readers, and a reader for the workflow YAML that release verification derives its gates from); `compiler-fixtures/` and `fixtures/` contain authored test inputs. Every tool is a Node script (`node tools/<area>/<name>.mjs --option value`; `--self-test` where a tool has fail-first fixtures). Run scripts from the root; output belongs in ignored `artifacts/` or documented app build folders. Start with `node tools/documentation/validate-documentation.mjs`, `node tools/quality/managed-api-baseline.mjs compare`, and the package commands in [release guidance](../docs/project/release-process.md). Publication scripts are invoked only by explicitly requested release workflows.
+Every tool is a Node script. Run it from the repository root as `node tools/<area>/<name>.mjs --option value`; a
+tool with fail-first fixtures also accepts `--self-test`. Each script starts with a header comment that states its
+purpose and usage. Output belongs in the ignored `artifacts/` folder or in a documented app build folder.
+
+## Folders
+
+| Folder | What it holds |
+| --- | --- |
+| `documentation/` | The DocFX build, the export of executable recipes, the content validators, and the Pages artifact. `validate-generator-diagnostics.mjs` keeps the diagnostics lesson in step with the analyzer's release file. |
+| `packaging/` | WASM publication and verification, the npm, ZIP, and NuGet consumer artifacts, and the onboarding checks. |
+| `release/` | Version state, release manifests, and npm publication identity. Only explicitly requested release workflows run the publication scripts. |
+| `quality/` | Checks of the public API, fuzz corpus, compiler fixtures, coverage, mutation testing, engine golden outcomes, solutions, and performance. |
+| `lib/` | Helpers the scripts share: assertions, a logged `dotnet` runner, argument parsing, small XML, ZIP, and NuGet readers, and the workflow YAML reader that release verification derives its gates from. |
+| `compiler-fixtures/`, `fixtures/` | Authored test inputs. |
+
+## Where to start
+
+- `node tools/documentation/validate-documentation.mjs` runs the complete documentation gate
+  ([docs/README.md](../docs/README.md)).
+- `node tools/quality/managed-api-baseline.mjs compare` compares the public .NET API with its reviewed baseline.
+- `node tools/quality/engine-golden.mjs record|check` records or checks the golden outcomes of the engine tests
+  ([CONTRIBUTING.md](../CONTRIBUTING.md#engine-golden-outcomes)).
+- `node tools/quality/quick-perf-check.mjs --baseline <checkout> --job Quick --categories Impact` compares benchmark
+  timings and allocations of this checkout with a baseline checkout while you change a hot path; both checkouts
+  must already be built in Release.
+- `node tools/quality/comparison-benchmarks.mjs` runs the serializer comparison behind the README tables.
+- `node tools/quality/generate-parity-layouts.mjs` generates the generator's parity layouts (`--check` in CI).
+- The package commands are in the [release guidance](../docs/project/release-process.md).
 
 ## Manual measurements
 

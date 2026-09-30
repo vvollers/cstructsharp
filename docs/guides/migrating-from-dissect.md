@@ -115,6 +115,8 @@ var layout = new CStruct("struct entry { varint length; uint8 data[length]; };",
 A custom codec is read through its delegate on every operation (never a span fast path), may be an array element or
 a pointer target, is measured by reading when it has no fixed size, and is neither bitfield storage nor an enum
 backing type. Keep one instance per codec: the list is compared by reference in the compiled-layout cache.
+A codec that declares a `FixedSize` always occupies exactly that many bytes, whatever its `Read` or `Write` reports
+([a fixed size is a promise](../language/cookbook/index.md#a-fixed-size-is-a-promise)).
 
 ## What stays different on purpose
 
