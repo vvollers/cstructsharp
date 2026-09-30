@@ -573,7 +573,7 @@ for (const depth of [1, 8, 64]) {
       },
       readOptions: format.parserOptions.addressingMode ? { addressingMode: format.parserOptions.addressingMode } : null,
       bytes,
-      notes: `Imported from apps/inspector/src/schema-catalog/ (${format.sourceFixture}).`,
+      notes: `Imported from apps/inspector/src/schema-catalog/: the ${format.id} sample, which WellKnownFormatTests checks.`,
     });
   }
 }
