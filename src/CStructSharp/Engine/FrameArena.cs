@@ -47,7 +47,7 @@ internal struct FrameArena
     /// <param name="domain">Whether a selector failure is a read or a write failure.</param>
     /// <returns>The selected arm of the branch's group.</returns>
     /// <exception cref="Diagnostics.CStructException">The selector cannot be evaluated.</exception>
-    public static int SelectedArm(Span<int> frameArms, VariableSlots slots, ReadProgram.ConditionalGroup[] groups, ProgramExpression[] expressions, string[] contexts, ReadProgram.ConditionalBranch branch, ExpressionFailureDomain domain)
+    public static int SelectedArm(Span<int> frameArms, VariableSlots slots, ReadProgram.ConditionalGroup[] groups, ProgramExpression[] expressions, string[] contexts, ProgramBranch branch, ExpressionFailureDomain domain)
     {
         int arm = frameArms[branch.Group];
         if (arm == Undecided)
@@ -70,7 +70,7 @@ internal struct FrameArena
     /// <param name="scope">The composite's scope in slot terms.</param>
     /// <param name="member">The member's index.</param>
     /// <param name="localBase">The base of the frame's saved values in the arena.</param>
-    public static void CompleteMember(ref FrameArena arena, VariableSlots slots, ReadConditionalScope scope, int member, int localBase)
+    public static void CompleteMember(ref FrameArena arena, VariableSlots slots, ConditionalScopeSlots scope, int member, int localBase)
     {
         SlotValue[] saved = arena.Locals;
         int[] captured = scope.GetCaptured(member);

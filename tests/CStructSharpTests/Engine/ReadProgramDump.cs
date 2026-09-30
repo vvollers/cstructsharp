@@ -196,14 +196,14 @@ internal static class ReadProgramDump
             return "clear " + string.Join(", ", program.Scope!.ClearedSlots.Select(table.GetName));
         case ReadOpCode.SelectArm:
             {
-                ReadProgram.ConditionalBranch branch = program.Branches[step.A];
+                ProgramBranch branch = program.Branches[step.A];
                 ReadProgram.ConditionalGroup group = program.Groups[branch.Group];
                 return $"group {branch.Group} ({Expression(program.Expressions[group.Selector].Source)}) arm {branch.Arm}, else -> {step.B}";
             }
 
         case ReadOpCode.CompleteMember:
             {
-                ReadConditionalScope scope = program.Scope!;
+                ConditionalScopeSlots scope = program.Scope!;
 
                 // Names the slots that scope locals mirror.
                 string Names(IReadOnlyList<int> locals) => string.Join(", ", locals.Select(local => table.GetName(scope.LocalSlots[local])));
@@ -260,7 +260,7 @@ internal static class ReadProgramDump
     /// <summary>Describes a codec by kind and, for multi-byte built-in kinds, byte order (a caller's codec decides its own).</summary>
     /// <param name="codec">The codec.</param>
     /// <returns>The description, such as <c>UInt32 le</c>.</returns>
-    private static string Codec(ReadProgram.Codec codec)
+    private static string Codec(ProgramCodec codec)
     {
         PrimitiveCodec primitive = codec.Primitive;
         return primitive.Size > 1 && !primitive.IsCustom ? primitive.Kind + (primitive.LittleEndian ? " le" : " be") : primitive.Kind.ToString();

@@ -22,7 +22,7 @@ internal sealed class TargetProgram
     /// <param name="members">The members, in declaration order.</param>
     /// <param name="tables">The side tables that hold the conditional decisions and their selectors.</param>
     /// <param name="scope">The conditional scope in slot terms, or <see langword="null"/> when no member is conditional.</param>
-    internal TargetProgram(CompiledCompositeType composite, TargetMember[] members, ProgramTables tables, ReadConditionalScope? scope)
+    internal TargetProgram(CompiledCompositeType composite, TargetMember[] members, ProgramTables tables, ConditionalScopeSlots? scope)
     {
         this.Composite = composite;
         this.Members = members;
@@ -39,11 +39,11 @@ internal sealed class TargetProgram
     /// <summary>Gets the members, parallel to the composite's fields.</summary>
     public TargetMember[] Members { get; }
 
-    /// <summary>Gets the conditional decisions, indexed by <see cref="ReadProgram.ConditionalBranch.Group"/> (a decision's selected-arm slot).</summary>
+    /// <summary>Gets the conditional decisions, indexed by <see cref="ProgramBranch.Group"/> (a decision's selected-arm slot).</summary>
     public ReadProgram.ConditionalGroup[] Groups { get; }
 
     /// <summary>Gets the conditional branches the members' <see cref="TargetMember.Branches"/> index.</summary>
-    public ReadProgram.ConditionalBranch[] Branches { get; }
+    public ProgramBranch[] Branches { get; }
 
     /// <summary>Gets the slot programs of the decisions' selectors.</summary>
     public ProgramExpression[] Expressions { get; }
@@ -52,7 +52,7 @@ internal sealed class TargetProgram
     public string[] ExpressionContexts { get; }
 
     /// <summary>Gets the composite's conditional variable scope in slot terms, or <see langword="null"/> when it has no conditional member.</summary>
-    public ReadConditionalScope? Scope { get; }
+    public ConditionalScopeSlots? Scope { get; }
 
     /// <summary>Gets the number of selected-arm entries a walk of the composite keeps.</summary>
     public int GroupCount => this.Groups.Length;

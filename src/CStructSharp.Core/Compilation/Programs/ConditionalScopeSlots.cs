@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 
 /// <summary>
-///     A composite's <see cref="CompiledConditionalScope"/> in slot terms, for the <see cref="ReadOpCode.EnterConditionalScope"/>
-///     and <see cref="ReadOpCode.CompleteMember"/> steps. Each kept name is a <em>local</em> index with the slot it
+///     A composite's <see cref="CompiledConditionalScope"/> in slot terms, for the <see cref="StructuralStep.EnterConditionalScope"/>
+///     and <see cref="StructuralStep.CompleteMember"/> steps of read and write programs. Each kept name is a <em>local</em> index with the slot it
 ///     mirrors, holding one local value per kept name.
 /// </summary>
 /// <remarks>
@@ -17,7 +17,7 @@ using System.Collections.Immutable;
 ///     </para>
 ///     <para>Immutable and shared by every thread.</para>
 /// </remarks>
-internal sealed class ReadConditionalScope
+internal sealed class ConditionalScopeSlots
 {
     private readonly int[][] captured;
     private readonly int[][] restored;
@@ -25,7 +25,7 @@ internal sealed class ReadConditionalScope
     /// <summary>Maps a composite's scope through the layout's slot table.</summary>
     /// <param name="scope">The composite's conditional scope.</param>
     /// <param name="table">The layout's slot table.</param>
-    public ReadConditionalScope(CompiledConditionalScope scope, SlotTable table)
+    public ConditionalScopeSlots(CompiledConditionalScope scope, SlotTable table)
     {
         this.LocalSlots = table.MapNames(scope.LocalNames);
         var cleared = new List<int>(this.LocalSlots.Length);
@@ -50,7 +50,7 @@ internal sealed class ReadConditionalScope
     /// <summary>Gets the slot each local mirrors, by local index; -1 for a kept name without a slot.</summary>
     public int[] LocalSlots { get; }
 
-    /// <summary>Gets the slots <see cref="ReadOpCode.EnterConditionalScope"/> makes undefined: every kept name that has one.</summary>
+    /// <summary>Gets the slots <see cref="StructuralStep.EnterConditionalScope"/> makes undefined: every kept name that has one.</summary>
     public int[] ClearedSlots { get; }
 
     /// <summary>Gets the number of locals, the length of an instance's saved-value array.</summary>
@@ -66,7 +66,7 @@ internal sealed class ReadConditionalScope
     /// <returns>Local indexes; empty when the member restores nothing observable.</returns>
     public int[] GetRestored(int member) => this.restored[member];
 
-    /// <summary>Whether completing a member has an observable effect, so the compiler emits its <see cref="ReadOpCode.CompleteMember"/> step.</summary>
+    /// <summary>Whether completing a member has an observable effect, so the compiler emits its <see cref="StructuralStep.CompleteMember"/> step.</summary>
     /// <param name="member">The member's index in its composite.</param>
     /// <returns><see langword="true"/> when the member saves or restores a slotted name.</returns>
     public bool HasEffect(int member) => this.captured[member].Length > 0 || this.restored[member].Length > 0;

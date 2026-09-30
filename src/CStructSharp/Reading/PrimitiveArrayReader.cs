@@ -259,7 +259,7 @@ internal static class PrimitiveArrayReader
         int elementSize = codec.Size;
         object? last = null;
         long remaining = (long)count * elementSize;
-        int blockCapacity = (int)Math.Min(remaining, ReadBlock.Size) / elementSize * elementSize;
+        int blockCapacity = (int)Math.Min(remaining, BlockSize.Bytes) / elementSize * elementSize;
         byte[] block = ArrayPool<byte>.Shared.Rent(Math.Max(blockCapacity, elementSize));
         try
         {
@@ -304,7 +304,7 @@ internal static class PrimitiveArrayReader
     {
         var result = new T[count];
         long remaining = (long)count * elementSize;
-        int blockCapacity = (int)Math.Min(remaining, ReadBlock.Size) / elementSize * elementSize;
+        int blockCapacity = (int)Math.Min(remaining, BlockSize.Bytes) / elementSize * elementSize;
         int decoded = 0;
         byte[]? block = null;
         try

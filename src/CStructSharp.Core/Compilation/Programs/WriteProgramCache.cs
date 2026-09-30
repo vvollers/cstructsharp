@@ -127,7 +127,7 @@ internal sealed class WriteProgramCache
     /// <summary>Returns the slots a capture of <paramref name="name"/> is published to under each qualified prefix.</summary>
     /// <param name="name">The bare field name.</param>
     /// <returns>The targets; empty when no expression spells the name with a prefix.</returns>
-    public ReadProgram.QualifiedTarget[] GetQualifiedTargets(string name) => this.Table.ReadPrograms.GetQualifiedTargets(name);
+    public QualifiedTarget[] GetQualifiedTargets(string name) => this.Table.ReadPrograms.GetQualifiedTargets(name);
 
     /// <summary>Selects an element view of <paramref name="declared"/> per peeled dimension.</summary>
     /// <param name="declared">The declared member.</param>

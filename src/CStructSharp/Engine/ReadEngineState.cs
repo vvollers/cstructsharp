@@ -152,14 +152,14 @@ internal struct ReadEngineState
     /// <param name="branch">The branch being tested.</param>
     /// <param name="frameArms">The frame's selected arms, which the frame keeps on its stack.</param>
     /// <returns>The selected arm of the branch's group.</returns>
-    public readonly int SelectedArm(ReadProgram program, ReadProgram.ConditionalBranch branch, Span<int> frameArms)
+    public readonly int SelectedArm(ReadProgram program, ProgramBranch branch, Span<int> frameArms)
         => FrameArena.SelectedArm(frameArms, this.Slots, program.Groups, program.Expressions, program.ExpressionContexts, branch, ExpressionFailureDomain.Read);
 
     /// <summary>Completes a member of a conditional composite through the shared arena rule (<see cref="FrameArena.CompleteMember"/>).</summary>
     /// <param name="scope">The composite's scope in slot terms.</param>
     /// <param name="member">The member's index.</param>
     /// <param name="localBase">The base of the frame's saved values.</param>
-    public void CompleteMember(ReadConditionalScope scope, int member, int localBase)
+    public void CompleteMember(ConditionalScopeSlots scope, int member, int localBase)
         => FrameArena.CompleteMember(ref this.arena, this.Slots, scope, member, localBase);
 
     /// <summary>
@@ -254,14 +254,14 @@ internal struct ReadEngineState
     /// </summary>
     /// <param name="targets">The bare name's publication targets, one per prefix some expression spells it with.</param>
     /// <param name="value">The captured value; <see cref="SlotValue.Undefined"/> removes the qualified name.</param>
-    public readonly void PublishQualified(ReadProgram.QualifiedTarget[] targets, SlotValue value)
+    public readonly void PublishQualified(QualifiedTarget[] targets, SlotValue value)
     {
         if (this.QualifiedPrefix is not { } prefix)
         {
             return;
         }
 
-        foreach (ReadProgram.QualifiedTarget target in targets)
+        foreach (QualifiedTarget target in targets)
         {
             if (QualifiedPublication.Covers(prefix, target.Prefix))
             {

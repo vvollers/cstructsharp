@@ -15,14 +15,14 @@ using CStructSharp.Syntax;
 /// <remarks>Used by one compilation on one thread and discarded once the program is built.</remarks>
 internal sealed class ProgramTables
 {
-    private readonly List<ReadProgram.Codec> codecs = [];
+    private readonly List<ProgramCodec> codecs = [];
     private readonly List<CompiledEnumType> enums = [];
     private readonly List<ProgramExpression> expressions = [];
     private readonly List<string> contexts = [];
     private readonly List<string> prefixes = [];
-    private readonly List<ReadProgram.QualifiedTarget[]> qualifiedTargets = [];
+    private readonly List<QualifiedTarget[]> qualifiedTargets = [];
     private readonly List<UnusableVariable> unusables = [];
-    private readonly List<ReadProgram.ConditionalBranch> branches = [];
+    private readonly List<ProgramBranch> branches = [];
     private readonly ReadProgram.ConditionalGroup?[] groups;
     private readonly SlotTable table;
 
@@ -42,7 +42,7 @@ internal sealed class ProgramTables
     /// <param name="codecId">The field's catalog codec id, which names a caller's codec or a writer delegate at run time; -1 for none.</param>
     /// <param name="codec">The codec identity.</param>
     /// <returns>The codec's index.</returns>
-    public int AddCodec(int codecId, PrimitiveCodec codec) => IndexOf(this.codecs, new ReadProgram.Codec(codecId, codec));
+    public int AddCodec(int codecId, PrimitiveCodec codec) => IndexOf(this.codecs, new ProgramCodec(codecId, codec));
 
     /// <summary>Adds an enum type, or finds it.</summary>
     /// <param name="enm">The enum.</param>
@@ -57,7 +57,7 @@ internal sealed class ProgramTables
     /// <summary>Adds a name's publication targets.</summary>
     /// <param name="targets">The targets.</param>
     /// <returns>The targets' index.</returns>
-    public int AddQualifiedTargets(ReadProgram.QualifiedTarget[] targets) => IndexOfReference(this.qualifiedTargets, targets);
+    public int AddQualifiedTargets(QualifiedTarget[] targets) => IndexOfReference(this.qualifiedTargets, targets);
 
     /// <summary>Adds the unusable value a not-a-number capture stores.</summary>
     /// <param name="reason">What the member holds, as the phrase after "is".</param>
@@ -102,12 +102,12 @@ internal sealed class ProgramTables
             this.groups[branch.Slot] = new ReadProgram.ConditionalGroup(this.AddExpression(branch.Group.Selector, "conditional selector"), branch.Group);
         }
 
-        return IndexOf(this.branches, new ReadProgram.ConditionalBranch(branch.Slot, branch.Arm));
+        return IndexOf(this.branches, new ProgramBranch(branch.Slot, branch.Arm));
     }
 
     /// <summary>Returns the element codecs collected so far.</summary>
     /// <returns>A new array.</returns>
-    public ReadProgram.Codec[] Codecs() => this.codecs.ToArray();
+    public ProgramCodec[] Codecs() => this.codecs.ToArray();
 
     /// <summary>Returns the enum types collected so far.</summary>
     /// <returns>A new array.</returns>
@@ -127,7 +127,7 @@ internal sealed class ProgramTables
 
     /// <summary>Returns the publication targets collected so far.</summary>
     /// <returns>A new array.</returns>
-    public ReadProgram.QualifiedTarget[][] QualifiedTargets() => this.qualifiedTargets.ToArray();
+    public QualifiedTarget[][] QualifiedTargets() => this.qualifiedTargets.ToArray();
 
     /// <summary>Returns the not-a-number values collected so far.</summary>
     /// <returns>A new array.</returns>
@@ -135,7 +135,7 @@ internal sealed class ProgramTables
 
     /// <summary>Returns the conditional branches collected so far.</summary>
     /// <returns>A new array.</returns>
-    public ReadProgram.ConditionalBranch[] Branches() => this.branches.ToArray();
+    public ProgramBranch[] Branches() => this.branches.ToArray();
 
     /// <summary>Returns the composite's conditional decisions, indexed by their selected-arm slot.</summary>
     /// <returns>A new array.</returns>

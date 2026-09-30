@@ -106,7 +106,7 @@ internal sealed class ReadProgram
     public CompiledField[] Fields { get; }
 
     /// <summary>Gets the element codecs, indexed by a read step's codec operand.</summary>
-    public Codec[] Codecs { get; }
+    public ProgramCodec[] Codecs { get; }
 
     /// <summary>Gets the enum and flag types, indexed by a <see cref="ReadOpCode.ReadEnum"/> or <see cref="ReadOpCode.ReadEnumArray"/> step's <c>B</c>.</summary>
     public CompiledEnumType[] Enums { get; }
@@ -132,17 +132,17 @@ internal sealed class ReadProgram
     /// <summary>Gets the unusable values not-a-number captures store, one per capturing member, indexed by a capture's <c>B</c>.</summary>
     public UnusableVariable[] Unusables { get; }
 
-    /// <summary>Gets the conditional groups of the composite, indexed by <see cref="ConditionalBranch.Group"/>.</summary>
+    /// <summary>Gets the conditional groups of the composite, indexed by <see cref="ProgramBranch.Group"/>.</summary>
     public ConditionalGroup[] Groups { get; }
 
     /// <summary>Gets the conditional branches <see cref="ReadOpCode.SelectArm"/> steps test, indexed by their <c>A</c>.</summary>
-    public ConditionalBranch[] Branches { get; }
+    public ProgramBranch[] Branches { get; }
 
     /// <summary>Gets the number of selected-arm entries a frame holds: the composite's conditional group count.</summary>
     public int GroupCount => this.Groups.Length;
 
     /// <summary>Gets the composite's conditional variable scope in slot terms, or <see langword="null"/> when it has no conditional member.</summary>
-    public ReadConditionalScope? Scope { get; }
+    public ConditionalScopeSlots? Scope { get; }
 
     /// <summary>Gets the member slots, parallel to <see cref="Fields"/>.</summary>
     internal int[] ShapeSlots { get; }
@@ -172,7 +172,7 @@ internal sealed class ReadProgram
     /// <param name="steps">The steps.</param>
     /// <param name="codecs">The codec table the steps' codec operands index.</param>
     /// <returns>Each step's run length and run size in bytes.</returns>
-    private static (int[] Lengths, int[] Bytes) FindScalarRuns(ReadStep[] steps, Codec[] codecs)
+    private static (int[] Lengths, int[] Bytes) FindScalarRuns(ReadStep[] steps, ProgramCodec[] codecs)
     {
         int[] lengths = new int[steps.Length];
         int[] bytes = new int[steps.Length];
@@ -191,21 +191,6 @@ internal sealed class ReadProgram
 
         return (lengths, bytes);
     }
-
-    /// <summary>One element codec of a read step.</summary>
-    /// <param name="CodecId">The field's catalog codec id, through which the engine finds a caller's codec instance, or -1 for none.</param>
-    /// <param name="Primitive">The codec identity: kind, size and byte order.</param>
-    internal readonly record struct Codec(int CodecId, PrimitiveCodec Primitive);
-
-    /// <summary>One arm a member sits in: the decision and the arm it needs.</summary>
-    /// <param name="Group">The decision's index in <see cref="Groups"/> and in the frame's selected-arm array.</param>
-    /// <param name="Arm">The arm: 1 or 0 for an <c>if</c>; a switch's case index, or -1 for <c>default</c>.</param>
-    internal readonly record struct ConditionalBranch(int Group, int Arm);
-
-    /// <summary>A slot a bare name is published to under one qualified prefix.</summary>
-    /// <param name="Prefix">The active prefix, including its final dot (<c>hdr.</c>).</param>
-    /// <param name="Slot">The slot of <c>Prefix + name</c>.</param>
-    internal readonly record struct QualifiedTarget(string Prefix, int Slot);
 
     /// <summary>One <c>if</c>/<c>switch</c> decision of the composite.</summary>
     /// <param name="Selector">The selector's index in <see cref="Expressions"/>.</param>
@@ -234,7 +219,7 @@ internal sealed class ReadProgram
         ReadStep[] Steps,
         CompiledField[] Fields,
         int[] ShapeSlots,
-        Codec[] Codecs,
+        ProgramCodec[] Codecs,
         CompiledEnumType[] Enums,
         ProgramExpression[] Expressions,
         string[] ExpressionContexts,
@@ -243,8 +228,8 @@ internal sealed class ReadProgram
         QualifiedTarget[][] QualifiedTargets,
         UnusableVariable[] Unusables,
         ConditionalGroup[] Groups,
-        ConditionalBranch[] Branches,
-        ReadConditionalScope? Scope,
+        ProgramBranch[] Branches,
+        ConditionalScopeSlots? Scope,
         bool UsesPlacementCursor,
         ReadPointerTarget[] PointerTargets,
         bool DefersPointers);

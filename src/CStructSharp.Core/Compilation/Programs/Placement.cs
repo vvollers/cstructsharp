@@ -1,11 +1,11 @@
 namespace CStructSharp.Compilation.Programs;
 
 /// <summary>
-///     What <see cref="ReadProgramCompiler"/> knows, while it walks a struct's members, about where the read position
-///     will be: an <em>anchor</em> the data decides, a guarantee about the anchor's offset from the struct's first byte,
-///     and the fixed number of bytes read since the anchor. From it the compiler decides each member's placement: nothing,
-///     a relative <see cref="ReadOpCode.Seek"/> over padding whose size is known, or an <see cref="ReadOpCode.Align"/> the
-///     executor computes because the padding depends on the data.
+///     What a program compiler (<see cref="StructProgramCompiler{TBuilder}"/>) knows, while it walks a struct's members,
+///     about where the position will be: an <em>anchor</em> the data decides, a guarantee about the anchor's offset from
+///     the struct's first byte, and the fixed number of bytes read or written since the anchor. From it the compiler
+///     decides each member's placement: nothing, a relative <see cref="StructuralStep.Seek"/> over padding whose size is
+///     known, or an <see cref="StructuralStep.Align"/> the executor computes because the padding depends on the data.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -27,7 +27,7 @@ namespace CStructSharp.Compilation.Programs;
 ///     </para>
 ///     <para>A packed layout never pads, so no member needs a placement step there.</para>
 /// </remarks>
-internal struct ReadPlacement
+internal struct Placement
 {
     private readonly bool aligned;
     private long anchor;
@@ -35,7 +35,7 @@ internal struct ReadPlacement
 
     /// <summary>Starts at a struct's first byte, whose offset is known to be 0.</summary>
     /// <param name="aligned">Whether the layout applies the portable alignment rules.</param>
-    public ReadPlacement(bool aligned)
+    public Placement(bool aligned)
     {
         this.aligned = aligned;
         this.anchor = 0;
@@ -58,7 +58,7 @@ internal struct ReadPlacement
     /// <param name="skipped">The state before the member, which stands when the member is not selected.</param>
     /// <param name="read">The state after the member was read.</param>
     /// <returns>The merged state.</returns>
-    public static ReadPlacement Merge(ReadPlacement skipped, ReadPlacement read)
+    public static Placement Merge(Placement skipped, Placement read)
     {
         if (skipped.anchor == read.anchor && skipped.delta == read.delta)
         {
@@ -66,19 +66,19 @@ internal struct ReadPlacement
         }
 
         long common = Gcd(skipped.Guarantee, read.Guarantee);
-        return new ReadPlacement(read.aligned) { anchor = common == 0 ? 1 : common, delta = 0, };
+        return new Placement(read.aligned) { anchor = common == 0 ? 1 : common, delta = 0, };
     }
 
     /// <summary>
     ///     Places a member aligned to <paramref name="alignment"/> and returns the step that moves the position there, if
-    ///     any: none when no padding is needed, a <see cref="ReadOpCode.Seek"/> over known padding, or an
-    ///     <see cref="ReadOpCode.Align"/> when the padding depends on the data.
+    ///     any: none when no padding is needed, a <see cref="StructuralStep.Seek"/> over known padding, or an
+    ///     <see cref="StructuralStep.Align"/> when the padding depends on the data.
     /// </summary>
-    /// <param name="field">The member's index, the step's <see cref="ReadStep.Field"/>.</param>
+    /// <param name="field">The member's index, the step's <see cref="PlacementStep.Field"/>.</param>
     /// <param name="alignment">The member's alignment in bytes.</param>
     /// <param name="step">The placement step, when one is needed.</param>
     /// <returns>Whether a placement step is needed.</returns>
-    public bool Place(int field, int alignment, out ReadStep step)
+    public bool Place(int field, int alignment, out PlacementStep step)
     {
         step = default;
         if (!this.aligned || alignment <= 1)
@@ -96,13 +96,13 @@ internal struct ReadPlacement
                 return false;
             }
 
-            step = new ReadStep(ReadOpCode.Seek, field, checked((int)padding), 0);
+            step = new PlacementStep(false, field, checked((int)padding));
             return true;
         }
 
         this.anchor = alignment;
         this.delta = 0;
-        step = new ReadStep(ReadOpCode.Align, field, alignment, 0);
+        step = new PlacementStep(true, field, alignment);
         return true;
     }
 
@@ -112,7 +112,7 @@ internal struct ReadPlacement
     ///     that moves the position there (<see cref="Place"/>), whether a statically known start contradicts the offset the
     ///     layout compiled, and the assertion the executor still has to check at run time.
     /// </summary>
-    /// <param name="field">The member's index, the steps' <see cref="ReadStep.Field"/>.</param>
+    /// <param name="field">The member's index, the step's <see cref="PlacementStep.Field"/>.</param>
     /// <param name="member">The member.</param>
     /// <param name="step">The placement step, when one is needed.</param>
     /// <param name="checkedOffset">The asserted offset to check at run time, or <see langword="null"/> when the build checked it or the known start satisfies it.</param>
@@ -120,9 +120,9 @@ internal struct ReadPlacement
     ///     Whether the statically known start contradicts the compiled offset (the program cannot be built); a start the data
     ///     decides never does.
     /// </returns>
-    public bool PlaceMember(int field, CompiledField member, out ReadStep? step, out int? checkedOffset)
+    public bool PlaceMember(int field, CompiledField member, out PlacementStep? step, out int? checkedOffset)
     {
-        step = this.Place(field, member.Alignment, out ReadStep placed) ? placed : null;
+        step = this.Place(field, member.Alignment, out PlacementStep placed) ? placed : null;
         long? known = this.KnownOffset;
         checkedOffset = member.AssertedOffset is int asserted && member.FixedOffset is null && known != asserted ? asserted : null;
         return member.FixedOffset is int compiled && known is long offset && offset != compiled;

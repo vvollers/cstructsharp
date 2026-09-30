@@ -20,7 +20,7 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 ///         <item>the value: looked up for a named member, the all-zero padding value for an unnamed one;</item>
 ///         <item>the element count: a fixed count is checked against the array limit, a runtime count is evaluated, and an
 ///         array whose value decides its count takes it from the value;</item>
-///         <item>placement: by the member's declaration, statically where the offset is known (<see cref="ReadPlacement"/>,
+///         <item>placement: by the member's declaration, statically where the offset is known (<see cref="Placement"/>,
 ///         shared with the reader), or through the runtime placement cursor in a struct with bitfields;</item>
 ///         <item>the encoding, specialized by value kind, and a terminated array's all-zero terminator;</item>
 ///         <item>the capture of the supplied value (or an enum's exact number) and its qualified publication;</item>
@@ -34,7 +34,7 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 ///     </para>
 ///     <para>A member the engine cannot write gives a reason instead of a program. A compiler is used for one request on one thread.</para>
 /// </remarks>
-internal sealed class WriteProgramCompiler
+internal sealed class WriteProgramCompiler : StructProgramCompiler<WriteProgramBuilder>
 {
     /// <summary>The reason for an array of bitfields, which the layout's compilation rejects before a program is built.</summary>
     public const string BitfieldArrays = "a bitfield array has no writer";
@@ -48,18 +48,15 @@ internal sealed class WriteProgramCompiler
     /// <summary>The reason for a nested path that selects no writable member; the path's own failure text follows.</summary>
     public const string UnresolvedPath = "the path selects no writable member: ";
 
-    private readonly LayoutCompilation compilation;
     private readonly WriteProgramCache cache;
-    private readonly MemberExtents extents;
 
     /// <summary>Creates a compiler for one request.</summary>
     /// <param name="compilation">The layout.</param>
     /// <param name="cache">The layout's write program cache, which supplies nested programs and qualified targets.</param>
     public WriteProgramCompiler(LayoutCompilation compilation, WriteProgramCache cache)
+        : base(compilation)
     {
-        this.compilation = compilation;
         this.cache = cache;
-        this.extents = new MemberExtents(compilation);
     }
 
     /// <summary>Compiles the write of a struct from a value of its own, or of a union from its selection.</summary>
@@ -77,19 +74,19 @@ internal sealed class WriteProgramCompiler
     /// <returns>The program, or why it cannot be built.</returns>
     public WriteProgramOutcome CompileRoot(string rootName, CStructElement declaration)
     {
-        StructShape rootShape = this.compilation.ModelQueries.GetRootShape(rootName);
+        StructShape rootShape = this.Compilation.ModelQueries.GetRootShape(rootName);
         switch (declaration)
         {
         case Struct strct:
-            return this.CompileRootStruct(this.compilation.SizeQueries.GetCompiledComposite(strct), rootName, rootShape);
+            return this.CompileRootStruct(this.Compilation.SizeQueries.GetCompiledComposite(strct), rootName, rootShape);
         case Typedef { Struct: { } inline, }:
-            return this.CompileRootStruct(this.compilation.SizeQueries.GetCompiledComposite(inline), rootName, rootShape);
+            return this.CompileRootStruct(this.Compilation.SizeQueries.GetCompiledComposite(inline), rootName, rootShape);
         case Typedef:
         case CstructEnum:
             {
-                CompiledField field = this.compilation.ModelQueries.GetCompiledRootField(declaration);
+                CompiledField field = this.Compilation.ModelQueries.GetCompiledRootField(declaration);
                 var builder = new WriteProgramBuilder(this.cache.Table, [field], rootShape, 0);
-                var unplaced = new ReadPlacement(false);
+                var unplaced = new Placement(false);
                 if (this.EmitMember(builder, 0, rootName, standalone: true, ref unplaced) is { } reason)
                 {
                     return WriteProgramOutcome.NotSupported(reason);
@@ -123,7 +120,7 @@ internal sealed class WriteProgramCompiler
     public WriteProgramOutcome CompileMember(CompiledField field)
     {
         var builder = new WriteProgramBuilder(this.cache.Table, [field], new StructShape([field.Name]), 0);
-        var unplaced = new ReadPlacement(false);
+        var unplaced = new Placement(false);
         if (this.EmitMember(builder, 0, field.Name, standalone: true, ref unplaced) is { } reason)
         {
             return WriteProgramOutcome.NotSupported(reason);
@@ -150,7 +147,7 @@ internal sealed class WriteProgramCompiler
         {
             kind = WriteElementKind.Zeroes;
             operand = field.FixedElementSize ?? 0;
-            return field.FixedElementSize is null ? ReadProgramCompiler.Refuse(location, member, NoWriter) : null;
+            return field.FixedElementSize is null ? Refuse(location, member, NoWriter) : null;
         }
 
         if (field.PointerDepth > 0)
@@ -163,13 +160,13 @@ internal sealed class WriteProgramCompiler
         {
             kind = WriteElementKind.Enum;
             operand = builder.AddCodec(field.CodecId, field.Codec);
-            return field.CodecId < 0 ? ReadProgramCompiler.Refuse(location, member, NoWriter) : null;
+            return field.CodecId < 0 ? Refuse(location, member, NoWriter) : null;
         }
 
         if (field.Composite is { } nested)
         {
             kind = WriteElementKind.Composite;
-            WriteProgramOutcome outcome = this.cache.GetComposite(this.compilation, nested);
+            WriteProgramOutcome outcome = this.cache.GetComposite(this.Compilation, nested);
             if (outcome.Program is not { } program)
             {
                 return outcome.Reason;
@@ -198,7 +195,7 @@ internal sealed class WriteProgramCompiler
     /// <returns>The program, or why it cannot be built.</returns>
     private WriteProgramOutcome CompileRootStruct(CompiledCompositeType composite, string rootName, StructShape rootShape)
     {
-        WriteProgramOutcome nested = this.cache.GetComposite(this.compilation, composite);
+        WriteProgramOutcome nested = this.cache.GetComposite(this.Compilation, composite);
         if (nested.Program is not { } program)
         {
             return nested;
@@ -217,10 +214,10 @@ internal sealed class WriteProgramCompiler
     /// <returns>The program, or why it cannot be built.</returns>
     private WriteProgramOutcome CompileUnion(CompiledCompositeType union)
     {
-        string location = ReadProgramCompiler.Locate(union);
+        string location = Locate(union);
         CompiledField[] fields = [.. union.Fields];
         var builder = new WriteProgramBuilder(this.cache.Table, fields, union.Shape, 0) { UnionEntries = new int[fields.Length], };
-        var unplaced = new ReadPlacement(false);
+        var unplaced = new Placement(false);
         for (int index = 0; index < fields.Length; index++)
         {
             builder.UnionEntries[index] = builder.Count;
@@ -242,7 +239,7 @@ internal sealed class WriteProgramCompiler
     /// <returns>The program, or why it cannot be built.</returns>
     private WriteProgramOutcome CompileStruct(CompiledCompositeType composite, WriteProgramKind kind, StructShape shape)
     {
-        string location = ReadProgramCompiler.Locate(composite);
+        string location = Locate(composite);
         CompiledField[] fields = [.. composite.Fields];
 
         // Bitfields share storage units by the layout's packing rule, which only the runtime placement cursor applies.
@@ -250,62 +247,14 @@ internal sealed class WriteProgramCompiler
         {
             UsesPlacementCursor = System.Array.Exists(fields, field => field.BitSize > 0 || field.IsZeroWidthBitfield),
         };
-        if (composite.ConditionalScope is { } scope)
+        if (this.EmitStructMembers(builder, composite, location, out Placement placement) is { } reason)
         {
-            // The scope removes the kept names at entry; only the ones an expression can read matter.
-            builder.Scope = new ReadConditionalScope(scope, this.cache.Table);
-            if (builder.Scope.ClearedSlots.Length > 0)
-            {
-                builder.Emit(WriteOpCode.EnterConditionalScope, -1, 0, 0);
-            }
+            return WriteProgramOutcome.NotSupported(reason);
         }
 
-        var placement = new ReadPlacement(this.compilation.Aligned);
-        var selections = new List<int>();
-        for (int index = 0; index < fields.Length; index++)
-        {
-            CompiledField field = fields[index];
-
-            // An unselected member is skipped whole after its inactive check: no lookup, placement, write or scope step.
-            selections.Clear();
-            foreach (CompiledConditionalBranch branch in field.ConditionalBranches)
-            {
-                selections.Add(builder.Emit(WriteOpCode.SelectArm, index, builder.AddBranch(branch), -1));
-            }
-
-            ReadPlacement before = placement;
-            if (this.EmitMember(builder, index, location, standalone: false, ref placement) is { } reason)
-            {
-                return WriteProgramOutcome.NotSupported(reason);
-            }
-
-            if (builder.Scope is { } mapped && mapped.HasEffect(index))
-            {
-                builder.Emit(WriteOpCode.CompleteMember, index, 0, 0);
-            }
-
-            if (field.IsConditional)
-            {
-                builder.PatchSkipTargets(selections);
-                placement = ReadPlacement.Merge(before, placement);
-            }
-        }
-
-        int alignment = composite.Symbol.Alignment;
-        if (builder.UsesPlacementCursor)
-        {
-            builder.Emit(WriteOpCode.FinishPlaced, -1, 0, alignment);
-            return WriteProgramOutcome.Eligible(builder.Build(kind, composite.Name, composite));
-        }
-
-        bool knownTail = placement.TryFinish(alignment, out int padding);
-        if (knownTail && placement.KnownOffset is long end && composite.Symbol.FixedSize is int size && end + padding != size)
-        {
-            return WriteProgramOutcome.NotSupported(location + ": " + ReadProgramCompiler.PlacementMismatch);
-        }
-
-        builder.Emit(WriteOpCode.FinishComposite, -1, knownTail ? padding : -1, alignment);
-        return WriteProgramOutcome.Eligible(builder.Build(kind, composite.Name, composite));
+        return EmitStructEnd(builder, composite, placement)
+                   ? WriteProgramOutcome.Eligible(builder.Build(kind, composite.Name, composite))
+                   : WriteProgramOutcome.NotSupported(location + ": " + PlacementMismatch);
     }
 
     /// <summary>
@@ -318,7 +267,7 @@ internal sealed class WriteProgramCompiler
     /// <param name="standalone">Whether no composite places the member: a root field or a union member.</param>
     /// <param name="placement">The placement state; advanced past the member (a standalone field leaves it alone).</param>
     /// <returns>A reason, or <see langword="null"/> when the member was emitted.</returns>
-    private string? EmitMember(WriteProgramBuilder builder, int index, string location, bool standalone, ref ReadPlacement placement)
+    protected override string? EmitMember(WriteProgramBuilder builder, int index, string location, bool standalone, ref Placement placement)
     {
         CompiledField field = builder.Fields[index];
         if (field.IsZeroWidthBitfield)
@@ -339,7 +288,7 @@ internal sealed class WriteProgramCompiler
 
         if (field.BitSize > 0 && field.Array.Kind != CompiledArrayKind.Scalar)
         {
-            return ReadProgramCompiler.Refuse(location, field, BitfieldArrays);
+            return Refuse(location, field, BitfieldArrays);
         }
 
         if (this.EmitValueField(builder, index, location) is { } unsized)
@@ -361,7 +310,7 @@ internal sealed class WriteProgramCompiler
         {
             if (!builder.SetShapeSlot(index))
             {
-                return ReadProgramCompiler.Refuse(location, field, ReadProgramCompiler.NoShapeSlot);
+                return Refuse(location, field, NoShapeSlot);
             }
 
             builder.NotedMember = index;
@@ -398,7 +347,7 @@ internal sealed class WriteProgramCompiler
     /// <param name="standalone">Whether no composite places the member.</param>
     /// <param name="placement">The static placement state.</param>
     /// <returns>A reason when a static placement contradicts the compiled offset; otherwise <see langword="null"/>.</returns>
-    private string? EmitMemberPlacement(WriteProgramBuilder builder, int index, string location, bool standalone, ref ReadPlacement placement)
+    private string? EmitMemberPlacement(WriteProgramBuilder builder, int index, string location, bool standalone, ref Placement placement)
     {
         CompiledField field = builder.Fields[index];
         if (standalone)
@@ -422,36 +371,7 @@ internal sealed class WriteProgramCompiler
             return null;
         }
 
-        return this.EmitPlacement(builder, index, location, ref placement);
-    }
-
-    /// <summary>
-    ///     Records where a placed member ended: the runtime cursor learns the position after a member that is not a bitfield
-    ///     (a bitfield's unit was reserved when it opened), and a static placement advances past the member's size (or
-    ///     restarts after a size the data decides).
-    /// </summary>
-    /// <param name="builder">The program under construction.</param>
-    /// <param name="index">The member's index.</param>
-    /// <param name="standalone">Whether no composite places the member; nothing is recorded then.</param>
-    /// <param name="placement">The static placement state.</param>
-    private void EmitCompletion(WriteProgramBuilder builder, int index, bool standalone, ref ReadPlacement placement)
-    {
-        if (standalone)
-        {
-            return;
-        }
-
-        if (builder.UsesPlacementCursor)
-        {
-            if (builder.Fields[index].BitSize == 0)
-            {
-                builder.Emit(WriteOpCode.CompletePlacement, index, 0, 0);
-            }
-        }
-        else
-        {
-            this.extents.AdvancePast(ref placement, builder.Fields[index]);
-        }
+        return EmitStaticPlacement(builder, index, ref placement) is { } misplaced ? Refuse(location, field, misplaced) : null;
     }
 
     /// <summary>
@@ -471,13 +391,13 @@ internal sealed class WriteProgramCompiler
         }
 
         CompiledField? view = field.IsCharElement
-                                  ? field.SelectPointerTarget(0, CharacterFieldTypes.CstringType.Name, this.compilation.PointerSize)
+                                  ? field.SelectPointerTarget(0, CharacterFieldTypes.CstringType.Name, this.Compilation.PointerSize)
                                   : field.IsWideCharElement
-                                      ? field.SelectPointerTarget(0, CharacterFieldTypes.GetStringPointerHandlerKey(field.TypeSpelling), this.compilation.PointerSize)
+                                      ? field.SelectPointerTarget(0, CharacterFieldTypes.GetStringPointerHandlerKey(field.TypeSpelling), this.Compilation.PointerSize)
                                       : null;
         if (view is null || !PrimitiveCodecs.IsVariableLengthType(view.TypeSpelling))
         {
-            return ReadProgramCompiler.Refuse(location, field, UnsizedArrays);
+            return Refuse(location, field, UnsizedArrays);
         }
 
         builder.ValueFields[index] = view;
@@ -521,40 +441,6 @@ internal sealed class WriteProgramCompiler
         => builder.ValueFields[index].IsCharacterArray || (!builder.Fields[index].IsPointer && BoundedTextCodec.IsType(builder.Fields[index].TypeSpelling));
 
     /// <summary>
-    ///     Emits where a member a struct places starts - nothing, a relative <see cref="WriteOpCode.Seek"/> over known
-    ///     padding, or an <see cref="WriteOpCode.Align"/> - and, when the layout's build could not check it, its <c>@N</c>
-    ///     assertion, by the rule the reader shares (<see cref="ReadPlacement.PlaceMember"/>): a member is placed by its
-    ///     declaration, so an unsized <c>wchar name[]</c> keeps its element's alignment although its value is written
-    ///     through a terminated view. A static placement that contradicts the layout's compiled offset is refused.
-    /// </summary>
-    /// <param name="builder">The program under construction.</param>
-    /// <param name="index">The member's index.</param>
-    /// <param name="location">The struct's name, for reasons.</param>
-    /// <param name="placement">The placement state.</param>
-    /// <returns>A reason when a statically known placement contradicts the compiled offset; otherwise <see langword="null"/>.</returns>
-    private string? EmitPlacement(WriteProgramBuilder builder, int index, string location, ref ReadPlacement placement)
-    {
-        CompiledField field = builder.Fields[index];
-        bool contradicts = placement.PlaceMember(index, field, out ReadStep? step, out int? asserted);
-        if (step is { } move)
-        {
-            builder.EmitPlacement(move);
-        }
-
-        if (contradicts)
-        {
-            return ReadProgramCompiler.Refuse(location, field, ReadProgramCompiler.PlacementMismatch);
-        }
-
-        if (asserted is int offset)
-        {
-            builder.Emit(WriteOpCode.CheckOffset, index, offset, 0);
-        }
-
-        return null;
-    }
-
-    /// <summary>
     ///     Emits a member's encoding step, checked in this order: a multidimensional array (character rows or leaves),
     ///     text, a numeric array (with its typed block path), any other array element by element; or a scalar by its kind.
     /// </summary>
@@ -574,7 +460,7 @@ internal sealed class WriteProgramCompiler
             {
                 if (field.CodecId < 0)
                 {
-                    return ReadProgramCompiler.Refuse(location, field, NoWriter);
+                    return Refuse(location, field, NoWriter);
                 }
 
                 builder.Emit(WriteOpCode.WriteTextTable, index, builder.AddCodec(field.CodecId, field.Codec), 0);
@@ -585,7 +471,7 @@ internal sealed class WriteProgramCompiler
             {
                 if (field.CodecId < 0)
                 {
-                    return ReadProgramCompiler.Refuse(location, field, NoWriter);
+                    return Refuse(location, field, NoWriter);
                 }
 
                 builder.Emit(WriteOpCode.WriteText, index, builder.AddCodec(field.CodecId, field.Codec), 0);
@@ -599,7 +485,7 @@ internal sealed class WriteProgramCompiler
 
             if (elements == WriteElementKind.Unwritable)
             {
-                return ReadProgramCompiler.Refuse(location, field, NoWriter);
+                return Refuse(location, field, NoWriter);
             }
 
             WriteOpCode op = field.Array.Dimensions.Length > 1 ? WriteOpCode.WriteLeaves
@@ -660,17 +546,17 @@ internal sealed class WriteProgramCompiler
     /// <param name="standalone">Whether the member belongs to a union rather than a struct.</param>
     /// <param name="placement">The placement state.</param>
     /// <returns>A reason, or <see langword="null"/>.</returns>
-    private string? EmitPromoted(WriteProgramBuilder builder, int index, string location, bool standalone, ref ReadPlacement placement)
+    private string? EmitPromoted(WriteProgramBuilder builder, int index, string location, bool standalone, ref Placement placement)
     {
         CompiledField field = builder.Fields[index];
-        CompiledCompositeType composite = field.Composite ?? this.compilation.SizeQueries.GetCompiledComposite((Struct)field.Declaration);
+        CompiledCompositeType composite = field.Composite ?? this.Compilation.SizeQueries.GetCompiledComposite((Struct)field.Declaration);
         if (this.EmitMemberPlacement(builder, index, location, standalone, ref placement) is { } misplaced)
         {
             return misplaced;
         }
 
         WriteProgramOutcome nested = composite.IsUnion
-                                         ? this.cache.GetComposite(this.compilation, composite)
+                                         ? this.cache.GetComposite(this.Compilation, composite)
                                          : this.CompileStruct(composite, WriteProgramKind.Promoted, builder.Shape);
         if (nested.Program is not { } program)
         {
@@ -698,7 +584,7 @@ internal sealed class WriteProgramCompiler
             return;
         }
 
-        ReadProgram.QualifiedTarget[] targets = this.cache.GetQualifiedTargets(field.Name);
+        QualifiedTarget[] targets = this.cache.GetQualifiedTargets(field.Name);
         int published = targets.Length > 0 ? builder.AddQualifiedTargets(targets) : -1;
         if (field.NotANumberReason is { } reason)
         {

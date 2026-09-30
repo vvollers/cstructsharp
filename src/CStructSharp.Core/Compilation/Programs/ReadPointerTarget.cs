@@ -29,7 +29,7 @@ internal sealed class ReadPointerTarget
     public ReadPointerTarget(
         CompiledField field,
         ReadPointerTargetKind kind,
-        ReadProgram.Codec codec,
+        ProgramCodec codec,
         CompiledEnumType? enumType,
         CompiledCompositeType? composite,
         CompiledField? element,
@@ -52,7 +52,7 @@ internal sealed class ReadPointerTarget
     public ReadPointerTargetKind Kind { get; }
 
     /// <summary>Gets the codec of the value, enum storage, terminated text or counted element.</summary>
-    public ReadProgram.Codec Codec { get; }
+    public ProgramCodec Codec { get; }
 
     /// <summary>Gets the enum type of an enum target or of counted enum elements.</summary>
     public CompiledEnumType? Enum { get; }

@@ -16,7 +16,7 @@ internal sealed class TargetMember
     /// <param name="captureSlot">The slot its captured value is stored in, or -1 when no expression can read it.</param>
     /// <param name="qualifiedTargets">The slots a capture is also published to under each qualified prefix.</param>
     /// <param name="promoted">Whether it is an anonymous struct or union whose members are addressed as the composite's own.</param>
-    internal TargetMember(CompiledField field, int[] branches, ProgramExpression? count, int captureSlot, ReadProgram.QualifiedTarget[] qualifiedTargets, bool promoted)
+    internal TargetMember(CompiledField field, int[] branches, ProgramExpression? count, int captureSlot, QualifiedTarget[] qualifiedTargets, bool promoted)
     {
         this.Field = field;
         this.Branches = branches;
@@ -50,7 +50,7 @@ internal sealed class TargetMember
     public UnusableVariable? NotANumber { get; }
 
     /// <summary>Gets the slots a capture is also published to while a qualified prefix is active; empty when no expression spells the name with a prefix.</summary>
-    public ReadProgram.QualifiedTarget[] QualifiedTargets { get; }
+    public QualifiedTarget[] QualifiedTargets { get; }
 
     /// <summary>Gets a value indicating whether the member is an anonymous struct or union whose own members belong to the composite's namespace.</summary>
     public bool Promoted { get; }

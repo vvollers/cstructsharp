@@ -16,7 +16,7 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 ///     <list type="number">
 ///         <item>one <see cref="ReadOpCode.SelectArm"/> per <c>if</c>/<c>switch</c> arm the member sits in, outermost first;</item>
 ///         <item>the element count: a fixed count is checked against the array limit, a data count is evaluated;</item>
-///         <item>placement (<see cref="ReadPlacement"/>) and, where the build could not check it, the <c>@N</c> assertion;</item>
+///         <item>placement (<see cref="Placement"/>) and, where the build could not check it, the <c>@N</c> assertion;</item>
 ///         <item>the read, specialized by value kind;</item>
 ///         <item>the layout-variable capture and its qualified publication, right after the read;</item>
 ///         <item>for a composite with conditional members, the scope step that saves and restores its names.</item>
@@ -54,7 +54,7 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 ///         thread.
 ///     </para>
 /// </remarks>
-internal sealed class ReadProgramCompiler
+internal sealed class ReadProgramCompiler : StructProgramCompiler<ReadProgramBuilder>
 {
     /// <summary>The reason for an array of bitfields, which the layout's compilation rejects before a program is built.</summary>
     public const string BitfieldArrays = "a bitfield array has no reader";
@@ -62,15 +62,7 @@ internal sealed class ReadProgramCompiler
     /// <summary>The reason for an array, text or bitfield member the catalog has no reader for, which the layout's compilation never produces.</summary>
     public const string NoReader = "the field has no codec reader";
 
-    /// <summary>The reason for a member whose name the value shape does not hold.</summary>
-    public const string NoShapeSlot = "the value shape has no slot for the member";
-
-    /// <summary>The reason for a member whose static offset differs from the offset the layout compiled.</summary>
-    public const string PlacementMismatch = "the static placement differs from the compiled offset";
-
-    private readonly LayoutCompilation compilation;
     private readonly ReadProgramCache cache;
-    private readonly MemberExtents extents;
 
     // Whether the programs are the debug programs of a debug parse; set by the cache the compiler serves.
     private readonly bool debug;
@@ -83,10 +75,9 @@ internal sealed class ReadProgramCompiler
     /// <param name="compilation">The layout.</param>
     /// <param name="cache">The layout's program cache, which supplies nested structs' programs and qualified targets.</param>
     public ReadProgramCompiler(LayoutCompilation compilation, ReadProgramCache cache)
+        : base(compilation)
     {
-        this.compilation = compilation;
         this.cache = cache;
-        this.extents = new MemberExtents(compilation);
         this.debug = cache.Debug;
     }
 
@@ -107,19 +98,19 @@ internal sealed class ReadProgramCompiler
     /// <exception cref="InvalidOperationException">A member cannot be read (an internal invariant failure).</exception>
     public ReadProgram CompileRoot(string rootName, CStructElement declaration)
     {
-        StructShape rootShape = this.compilation.ModelQueries.GetRootShape(rootName);
+        StructShape rootShape = this.Compilation.ModelQueries.GetRootShape(rootName);
         switch (declaration)
         {
         case Struct strct:
-            return this.CompileRootStruct(rootName, strct.Name.Name, this.compilation.SizeQueries.GetCompiledComposite(strct), rootShape);
+            return this.CompileRootStruct(rootName, strct.Name.Name, this.Compilation.SizeQueries.GetCompiledComposite(strct), rootShape);
         case Typedef { Struct: { } inline, } typedef:
-            return this.CompileRootStruct(rootName, typedef.Name.Name, this.compilation.SizeQueries.GetCompiledComposite(inline), rootShape);
+            return this.CompileRootStruct(rootName, typedef.Name.Name, this.Compilation.SizeQueries.GetCompiledComposite(inline), rootShape);
         case Typedef:
         case CstructEnum:
             {
-                CompiledField field = this.compilation.ModelQueries.GetCompiledRootField(declaration);
+                CompiledField field = this.Compilation.ModelQueries.GetCompiledRootField(declaration);
                 var builder = new ReadProgramBuilder(this.cache.Table, [field], rootShape, 0);
-                var unplaced = new ReadPlacement(false);
+                var unplaced = new Placement(false);
                 if (this.EmitMember(builder, 0, rootName, standalone: true, ref unplaced) is { } reason)
                 {
                     throw Unreadable(reason);
@@ -155,8 +146,8 @@ internal sealed class ReadProgramCompiler
     public ReadProgram CompileSelection(CompiledField field)
     {
         this.selection = true;
-        var builder = new ReadProgramBuilder(this.cache.Table, [field], this.compilation.ModelQueries.GetRootShape(field.Name), 0);
-        var unplaced = new ReadPlacement(false);
+        var builder = new ReadProgramBuilder(this.cache.Table, [field], this.Compilation.ModelQueries.GetRootShape(field.Name), 0);
+        var unplaced = new Placement(false);
         if (this.EmitMember(builder, 0, field.Name, standalone: true, ref unplaced) is { } reason)
         {
             throw Unreadable(reason);
@@ -177,20 +168,6 @@ internal sealed class ReadProgramCompiler
     /// <param name="field">The pointer field or view.</param>
     /// <returns>The target.</returns>
     public ReadPointerTarget DescribeSelectedPointer(CompiledField field) => this.DescribePointerTarget(field);
-
-    /// <summary>Formats a reason with the struct and member it concerns.</summary>
-    /// <param name="location">The struct (or root) name.</param>
-    /// <param name="field">The member.</param>
-    /// <param name="what">What is not supported.</param>
-    /// <returns>The reason, <c>struct.member: what</c>.</returns>
-    internal static string Refuse(string location, CompiledField field, string what)
-        => location + "." + (field.Name.Length > 0 ? field.Name : field.IsPromotedComposite ? "(anonymous)" : "(unnamed)") + ": " + what;
-
-    /// <summary>The location a struct's reasons name: its name, or a marker for an anonymous one.</summary>
-    /// <param name="composite">The composite.</param>
-    /// <returns>The name.</returns>
-    internal static string Locate(CompiledCompositeType composite)
-        => composite.Name.Length > 0 ? composite.Name : composite.IsUnion ? "(anonymous union)" : "(anonymous struct)";
 
     /// <summary>
     ///     The step that reads one scalar of a codec, or <see langword="null"/> for a codec the engine does not read
@@ -268,7 +245,7 @@ internal sealed class ReadProgramCompiler
     /// <exception cref="InvalidOperationException">A member cannot be read (an internal invariant failure).</exception>
     private ReadProgram CompileRootStruct(string rootName, string key, CompiledCompositeType composite, StructShape rootShape)
     {
-        ReadProgram program = this.cache.GetComposite(this.compilation, composite);
+        ReadProgram program = this.cache.GetComposite(this.Compilation, composite);
 
         if (!rootShape.TryGetIndex(key, out _))
         {
@@ -318,7 +295,7 @@ internal sealed class ReadProgramCompiler
                     continue;
                 }
 
-                ReadProgram reached = this.cache.GetComposite(this.compilation, composite);
+                ReadProgram reached = this.cache.GetComposite(this.Compilation, composite);
                 if (visited.Add(reached))
                 {
                     pending.Push(reached);
@@ -342,7 +319,7 @@ internal sealed class ReadProgramCompiler
         string location = Locate(union);
         CompiledField[] fields = [.. union.Fields];
         var builder = new ReadProgramBuilder(this.cache.Table, fields, union.Shape, 0) { UnionMembers = true, };
-        var unplaced = new ReadPlacement(false);
+        var unplaced = new Placement(false);
         for (int index = 0; index < fields.Length; index++)
         {
             builder.Emit(ReadOpCode.RestoreUnionSlots, -1, 0, 0);
@@ -371,62 +348,10 @@ internal sealed class ReadProgramCompiler
         {
             UsesPlacementCursor = System.Array.Exists(fields, field => field.BitSize > 0 || field.IsZeroWidthBitfield),
         };
-        if (composite.ConditionalScope is { } scope)
+        if (this.EmitStructMembers(builder, composite, location, out Placement placement) is { } reason)
         {
-            // The scope removes the kept names at entry; only the ones an expression can read matter.
-            builder.Scope = new ReadConditionalScope(scope, this.cache.Table);
-            if (builder.Scope.ClearedSlots.Length > 0)
-            {
-                builder.Emit(ReadOpCode.EnterConditionalScope, -1, 0, 0);
-            }
+            throw Unreadable(reason);
         }
-
-        var placement = new ReadPlacement(this.compilation.Aligned);
-        var selections = new List<int>();
-        for (int index = 0; index < fields.Length; index++)
-        {
-            CompiledField field = fields[index];
-
-            // An unselected member is skipped whole: no placement, no read, no scope step.
-            selections.Clear();
-
-            // A debug program traces every conditional member where its selection is decided: inactive until its
-            // selection passes, at the position before the member is placed.
-            bool traced = this.debug && field.IsConditional;
-            if (traced)
-            {
-                builder.Emit(ReadOpCode.DebugCondition, index, 0, 0);
-            }
-
-            foreach (CompiledConditionalBranch branch in field.ConditionalBranches)
-            {
-                selections.Add(builder.Emit(ReadOpCode.SelectArm, -1, builder.AddBranch(branch), -1));
-            }
-
-            if (traced)
-            {
-                builder.Emit(ReadOpCode.DebugConditionActive, index, 0, 0);
-            }
-
-            ReadPlacement before = placement;
-            if (this.EmitMember(builder, index, location, standalone: false, ref placement) is { } reason)
-            {
-                throw Unreadable(reason);
-            }
-
-            if (builder.Scope is { } mapped && mapped.HasEffect(index))
-            {
-                builder.Emit(ReadOpCode.CompleteMember, index, 0, 0);
-            }
-
-            if (field.IsConditional)
-            {
-                builder.PatchSkipTargets(selections);
-                placement = ReadPlacement.Merge(before, placement);
-            }
-        }
-
-        int alignment = composite.Symbol.Alignment;
 
         // A named struct follows the pointers it and its promoted members deferred once every member is read.
         if (kind == ReadProgramKind.Composite && builder.DefersPointers)
@@ -434,20 +359,32 @@ internal sealed class ReadProgramCompiler
             builder.Emit(ReadOpCode.FollowPendingPointers, -1, 0, 0);
         }
 
-        if (builder.UsesPlacementCursor)
-        {
-            builder.Emit(ReadOpCode.FinishPlaced, -1, 0, alignment);
-            return builder.Build(kind, composite.Name, composite);
-        }
-
-        bool knownTail = placement.TryFinish(alignment, out int padding);
-        if (knownTail && placement.KnownOffset is long end && composite.Symbol.FixedSize is int size && end + padding != size)
+        if (!EmitStructEnd(builder, composite, placement))
         {
             throw Unreadable(location + ": " + PlacementMismatch);
         }
 
-        builder.Emit(ReadOpCode.FinishComposite, -1, knownTail ? padding : -1, alignment);
         return builder.Build(kind, composite.Name, composite);
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>A debug program traces a conditional member where its selection is decided: inactive until its selection passes.</remarks>
+    protected override void OnArmsStart(ReadProgramBuilder builder, int index)
+    {
+        if (this.debug && builder.Fields[index].IsConditional)
+        {
+            builder.Emit(ReadOpCode.DebugCondition, index, 0, 0);
+        }
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>A debug program marks a conditional member active at the position before it is placed.</remarks>
+    protected override void OnArmsEnd(ReadProgramBuilder builder, int index)
+    {
+        if (this.debug && builder.Fields[index].IsConditional)
+        {
+            builder.Emit(ReadOpCode.DebugConditionActive, index, 0, 0);
+        }
     }
 
     /// <summary>
@@ -460,7 +397,7 @@ internal sealed class ReadProgramCompiler
     /// <param name="standalone">Whether no composite places the member: a root field or a union member view.</param>
     /// <param name="placement">The placement state; advanced past the member (a standalone field leaves it alone).</param>
     /// <returns>A reason, or <see langword="null"/> when the member was emitted.</returns>
-    private string? EmitMember(ReadProgramBuilder builder, int index, string location, bool standalone, ref ReadPlacement placement)
+    protected override string? EmitMember(ReadProgramBuilder builder, int index, string location, bool standalone, ref Placement placement)
     {
         CompiledField field = builder.Fields[index];
         if (field.IsZeroWidthBitfield)
@@ -605,7 +542,7 @@ internal sealed class ReadProgramCompiler
     /// <param name="standalone">Whether no composite places the member.</param>
     /// <param name="placement">The static placement state.</param>
     /// <returns>A reason when a static placement contradicts the compiled offset; otherwise <see langword="null"/>.</returns>
-    private string? EmitMemberPlacement(ReadProgramBuilder builder, int index, bool standalone, ref ReadPlacement placement)
+    private string? EmitMemberPlacement(ReadProgramBuilder builder, int index, bool standalone, ref Placement placement)
     {
         if (builder.UnionMembers)
         {
@@ -624,32 +561,7 @@ internal sealed class ReadProgramCompiler
             return null;
         }
 
-        return this.EmitPlacement(builder, index, ref placement);
-    }
-
-    /// <summary>
-    ///     Records where a placed member ended: the runtime cursor learns the position after its read, and a static
-    ///     placement advances past its size (or restarts after a size the data decides).
-    /// </summary>
-    /// <param name="builder">The program under construction.</param>
-    /// <param name="index">The member's index.</param>
-    /// <param name="standalone">Whether no composite places the member; nothing is recorded then.</param>
-    /// <param name="placement">The static placement state.</param>
-    private void EmitCompletion(ReadProgramBuilder builder, int index, bool standalone, ref ReadPlacement placement)
-    {
-        if (standalone)
-        {
-            return;
-        }
-
-        if (builder.UsesPlacementCursor)
-        {
-            builder.Emit(ReadOpCode.CompletePlacement, index, 0, 0);
-        }
-        else
-        {
-            this.extents.AdvancePast(ref placement, builder.Fields[index]);
-        }
+        return EmitStaticPlacement(builder, index, ref placement);
     }
 
     /// <summary>
@@ -662,10 +574,10 @@ internal sealed class ReadProgramCompiler
     /// <param name="promoted">Whether the member is anonymous and promoted.</param>
     /// <param name="placement">The placement state.</param>
     /// <returns>A reason, or <see langword="null"/>.</returns>
-    private string? EmitInlineComposite(ReadProgramBuilder builder, int index, string location, bool promoted, ref ReadPlacement placement)
+    private string? EmitInlineComposite(ReadProgramBuilder builder, int index, string location, bool promoted, ref Placement placement)
     {
         CompiledField field = builder.Fields[index];
-        CompiledCompositeType composite = field.Composite ?? this.compilation.SizeQueries.GetCompiledComposite((Struct)field.Declaration);
+        CompiledCompositeType composite = field.Composite ?? this.Compilation.SizeQueries.GetCompiledComposite((Struct)field.Declaration);
 
         // An anonymous member adds no segment to the debug path: its members are recorded under the enclosing composite's.
         if (!promoted)
@@ -682,7 +594,7 @@ internal sealed class ReadProgramCompiler
         // whose views are copied into this value after it is read.
         ReadProgram program = promoted && !composite.IsUnion
                                   ? this.CompileStruct(composite, ReadProgramKind.Promoted, builder.Shape)
-                                  : this.cache.GetComposite(this.compilation, composite);
+                                  : this.cache.GetComposite(this.Compilation, composite);
 
         // A promoted struct's deferred pointers are followed by this struct.
         builder.DefersPointers |= promoted && program.DefersPointers;
@@ -701,39 +613,6 @@ internal sealed class ReadProgramCompiler
         if (!builder.UnionMembers)
         {
             this.EmitCompletion(builder, index, standalone: false, ref placement);
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    ///     Emits a member's placement and, when the layout's build could not check it, its <c>@N</c> offset assertion (a
-    ///     statically known offset that satisfies it needs no step).
-    /// </summary>
-    /// <param name="builder">The program under construction.</param>
-    /// <param name="index">The member's index.</param>
-    /// <param name="placement">The placement state.</param>
-    /// <returns>
-    ///     A reason when a statically known placement contradicts the compiled offset; otherwise <see langword="null"/>. A
-    ///     placement the data decides (after a member whose size the data decides) is aligned at run time from the struct's
-    ///     start.
-    /// </returns>
-    private string? EmitPlacement(ReadProgramBuilder builder, int index, ref ReadPlacement placement)
-    {
-        bool contradicts = placement.PlaceMember(index, builder.Fields[index], out ReadStep? step, out int? asserted);
-        if (step is { } move)
-        {
-            builder.Emit(move);
-        }
-
-        if (contradicts)
-        {
-            return PlacementMismatch;
-        }
-
-        if (asserted is int offset)
-        {
-            builder.Emit(ReadOpCode.CheckOffset, index, offset, 0);
         }
 
         return null;
@@ -772,7 +651,7 @@ internal sealed class ReadProgramCompiler
         case CompiledArrayKind.Scalar:
             if (field.Composite is { } nested)
             {
-                ReadProgram program = this.cache.GetComposite(this.compilation, nested);
+                ReadProgram program = this.cache.GetComposite(this.Compilation, nested);
 
                 ReadOpCode read = (nested.IsUnion, this.debug) switch
                 {
@@ -835,7 +714,7 @@ internal sealed class ReadProgramCompiler
         bool table = field.Array.Dimensions.Length > 1;
         if (field.Composite is { } nested)
         {
-            ReadProgram program = this.cache.GetComposite(this.compilation, nested);
+            ReadProgram program = this.cache.GetComposite(this.Compilation, nested);
 
             // The engine takes an element struct's block path over the whole array only for one dimension, and never
             // for union elements.
@@ -943,7 +822,7 @@ internal sealed class ReadProgramCompiler
     /// <returns>The target.</returns>
     private ReadPointerTarget DescribePointerTarget(CompiledField field)
     {
-        int pointerSize = this.compilation.PointerSize;
+        int pointerSize = this.Compilation.PointerSize;
         if (field.HasCountedTarget)
         {
             CompiledArrayShape elements = field.PointerElements!;
@@ -954,7 +833,7 @@ internal sealed class ReadProgramCompiler
             }
 
             CompiledField element = field.CountedElement(pointerSize);
-            var elementCodec = new ReadProgram.Codec(element.CodecId, element.Codec);
+            var elementCodec = new ProgramCodec(element.CodecId, element.Codec);
             if (element.IsCharElement || element.IsWideCharElement)
             {
                 return new ReadPointerTarget(field, ReadPointerTargetKind.CountedText, elementCodec, null, null, element, count);
@@ -976,7 +855,7 @@ internal sealed class ReadProgramCompiler
         }
 
         CompiledField view = field.SelectPointerTarget(0, null, pointerSize);
-        var codec = new ReadProgram.Codec(field.CodecId, view.Codec);
+        var codec = new ProgramCodec(field.CodecId, view.Codec);
         return field.Type.Symbol.Definition switch
         {
             CompiledEnumType enm => new ReadPointerTarget(field, ReadPointerTargetKind.Enum, codec, enm, null, null, null),
@@ -984,7 +863,7 @@ internal sealed class ReadProgramCompiler
             _ when field.HasTerminatedCodec => new ReadPointerTarget(
                 field,
                 ReadPointerTargetKind.Terminated,
-                new ReadProgram.Codec(field.TerminatedCodecId, PrimitiveCodec.Resolve(PrimitiveCatalog.CanonicalNames[field.TerminatedCodecId], field.LayoutLittleEndian)),
+                new ProgramCodec(field.TerminatedCodecId, PrimitiveCodec.Resolve(PrimitiveCatalog.CanonicalNames[field.TerminatedCodecId], field.LayoutLittleEndian)),
                 null,
                 null,
                 null,
@@ -1075,7 +954,7 @@ internal sealed class ReadProgramCompiler
             break;
         }
 
-        ReadProgram.QualifiedTarget[] targets = this.cache.GetQualifiedTargets(field.Name);
+        QualifiedTarget[] targets = this.cache.GetQualifiedTargets(field.Name);
         if (targets.Length > 0)
         {
             builder.Emit(ReadOpCode.PublishQualified, index, slot, builder.AddQualifiedTargets(targets));

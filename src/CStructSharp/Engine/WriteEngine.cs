@@ -279,7 +279,7 @@ internal static partial class WriteEngine
     private static bool TryWriteStaticPlan<TDestination>(ref TDestination destination, ref WriteEngineState state, CompiledCompositeType composite, object data, bool promoted)
         where TDestination : struct, IWriteDestination
     {
-        if (state.UpdateSemantics || state.NoFastPaths || composite.StaticPlan is not { SupportsWrite: true } plan || plan.Size > ReadBlock.Size ||
+        if (state.UpdateSemantics || state.NoFastPaths || composite.StaticPlan is not { SupportsWrite: true } plan || plan.Size > BlockSize.Bytes ||
             state.StructureDepth + plan.NestingDepth - (promoted ? 1 : 0) > state.MaxNestingDepth || plan.MaximumArrayCount > state.MaxArrayElements)
         {
             return false;
@@ -557,7 +557,7 @@ internal static partial class WriteEngine
 
                 case WriteOpCode.SelectArm:
                     {
-                        ReadProgram.ConditionalBranch branch = program.Branches[step.A];
+                        ProgramBranch branch = program.Branches[step.A];
                         if (state.SelectedArm(program, branch, arms) != branch.Arm)
                         {
                             RejectInactive(program, program.Fields[step.Field], data);

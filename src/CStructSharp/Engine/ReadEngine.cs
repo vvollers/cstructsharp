@@ -931,7 +931,7 @@ internal static partial class ReadEngine
             return true;
         }
 
-        if (count <= ReadBlock.Size)
+        if (count <= BlockSize.Bytes)
         {
             byte[]? block = ArrayPool<byte>.Shared.Rent(count);
             try

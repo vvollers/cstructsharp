@@ -64,7 +64,7 @@ public class WriterStateBoundaryTests
     public void QualifiedScope_RemovesStaleAliasesAndStopsWithoutAPrefix()
     {
         var layout = new CStruct("struct child { uint8 count; }; struct rec { child nested; uint8 items[nested.count]; };");
-        ReadProgram.QualifiedTarget[] targets = layout.Compilation.SlotTable.ReadPrograms.GetQualifiedTargets("count");
+        QualifiedTarget[] targets = layout.Compilation.SlotTable.ReadPrograms.GetQualifiedTargets("count");
         Assert.HasCount(1, targets);
         int slot = targets[0].Slot;
         VariableSlots slots = VariableSlots.Create(layout.Compilation.SlotTable, LayoutVariableInput.FromIntegers(null));

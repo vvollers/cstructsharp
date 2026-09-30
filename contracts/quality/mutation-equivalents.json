@@ -568,7 +568,7 @@
   },
   {
    "pattern": "Generated/ReadCursor.cs",
-   "sourceSha256": "3e770e6904f4c01c89508f908a8277a9649757de1d9fd30ba49bd72ca843b885",
+   "sourceSha256": "26da837d06b6c7ae2ed1f0174ce85c4b3be442c508a9754e9671cd7e7e2669dc",
    "mutants": [
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?Codecs.PrimitiveCodecs.StrictUtf16LittleEndianEncoding :Codecs.PrimitiveCodecs.StrictUtf16BigEndianEncoding)",
      "location": {"start":{"line":558,"column":18},"end":{"line":558,"column":141}},
@@ -934,28 +934,28 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/Programs/MemberExtents.cs",
-   "sourceSha256": "1c598e26d5240e3da2fa2d608d6d1058b4adfc62af2dcc965efe4ce556a2f578",
+   "sourceSha256": "953248b92feb2bd370532c1d6d1d79d6e4baebb478719032636361441d4d9fdc",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": "size >= 0",
      "location": {"start":{"line":37,"column":60},"end":{"line":37,"column":68}},
      "reason": "size >= 0 adds arrays of zero-size elements, whose unit becomes 0 instead of the element composite's alignment or 1. Restart(0) keeps the previous guarantee (gcd(g, 0) = g, and 1 when g is 0). An array of zero-size elements always occupies 0 bytes, so the position is unchanged and the previous guarantee still holds: every placement it produces is correct, and the executor aligns and seeks to the same offsets." },
     { "mutatorName": "Logical mutation", "replacement": "(array || field.Array.Kind == CompiledArrayKind.Scalar) || aligned",
      "location": {"start":{"line":42,"column":16},"end":{"line":42,"column":82}},
-     "reason": "The mutation also returns a composite member's alignment in a packed layout. A packed layout never consults the placement guarantee: ReadPlacement.Place and TryFinish return before they read the anchor when the layout is not aligned, so the unit changes no step and no offset." }
+     "reason": "The mutation also returns a composite member's alignment in a packed layout. A packed layout never consults the placement guarantee: Placement.Place and TryFinish return before they read the anchor when the layout is not aligned, so the unit changes no step and no offset." }
    ]
   },
   {
-   "pattern": "**/CStructSharp.Core/Compilation/Programs/ReadPlacement.cs",
-   "sourceSha256": "286803d075550a06a470be3459a2cb47fb25750300a16770975e148ae6d34360",
+   "pattern": "**/CStructSharp.Core/Compilation/Programs/Placement.cs",
+   "sourceSha256": "1bc9820099394c7304a9a6eb136fdb54606735cc42a74d9880f9d2819d94b73a",
    "mutants": [
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?1 :common)",
-     "location": {"start":{"line":69,"column":59},"end":{"line":69,"column":83}},
+     "location": {"start":{"line":69,"column":55},"end":{"line":69,"column":79}},
      "reason": "Merge reaches this line only with different states. The common guarantee is 0 only when both guarantees are 0, which requires anchor 0 and delta 0 in both states: equal states, already returned above. common is therefore at least 1, and the replaced conditional is never true." },
     { "mutatorName": "Equality mutation", "replacement": "alignment < 1",
      "location": {"start":{"line":84,"column":30},"end":{"line":84,"column":44}},
      "reason": "With alignment 1 the original returns false at once; the mutation continues: anchor % 1 is 0, AlignUp(delta, 1) is delta, the padding is 0 and the method returns false without a step, leaving delta unchanged. Alignments below 1 do not occur (a member's alignment is at least 1)." },
     { "mutatorName": "Remove checked expression", "replacement": "(int)padding",
-     "location": {"start":{"line":99,"column":57},"end":{"line":99,"column":78}},
+     "location": {"start":{"line":99,"column":52},"end":{"line":99,"column":73}},
      "reason": "The padding before an aligned member is less than its alignment, a small power of two, so the conversion to int cannot overflow and the checked context never throws." },
     { "mutatorName": "Remove checked expression", "replacement": "this.delta + size",
      "location": {"start":{"line":135,"column":22},"end":{"line":135,"column":48}},

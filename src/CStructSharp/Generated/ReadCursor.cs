@@ -277,7 +277,7 @@ public ref struct ReadCursor
             return ReadOnlySpan<byte>.Empty;
         }
 
-        int blockCapacity = (int)Math.Min(total, ReadBlock.Size) / elementSize * elementSize;
+        int blockCapacity = (int)Math.Min(total, BlockSize.Bytes) / elementSize * elementSize;
         long remainingElementsBytes = total;
         int start = this.position;
         while (remainingElementsBytes > 0)

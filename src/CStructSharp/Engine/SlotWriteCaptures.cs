@@ -54,7 +54,7 @@ internal struct SlotWriteCaptures : IStaticWriteCaptures
             return;
         }
 
-        foreach (ReadProgram.QualifiedTarget target in table.ReadPrograms.GetQualifiedTargets(name))
+        foreach (QualifiedTarget target in table.ReadPrograms.GetQualifiedTargets(name))
         {
             if (QualifiedPublication.Covers(prefix, target.Prefix))
             {

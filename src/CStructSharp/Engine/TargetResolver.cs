@@ -229,7 +229,7 @@ internal static class TargetResolver
         }
 
         // The composite's conditional names are removed at entry, so an outer value is not read as the composite's own.
-        ReadConditionalScope? scope = program.Scope;
+        ConditionalScopeSlots? scope = program.Scope;
         if (scope is not null)
         {
             foreach (int slot in scope.ClearedSlots)
@@ -661,7 +661,7 @@ internal static class TargetResolver
     {
         foreach (int branch in member.Branches)
         {
-            ReadProgram.ConditionalBranch selected = program.Branches[branch];
+            ProgramBranch selected = program.Branches[branch];
             if (FrameArena.SelectedArm(arms, state.Slots, program.Groups, program.Expressions, program.ExpressionContexts, selected, ExpressionFailureDomain.Read) != selected.Arm)
             {
                 return false;
@@ -949,7 +949,7 @@ internal static class TargetResolver
         }
 
         var placer = new PlacementCursor(start, state.Layout.Aligned, state.Layout.BitfieldPacking, state.Layout.Compilation.HighBitFirst);
-        ReadConditionalScope? scope = program.Scope;
+        ConditionalScopeSlots? scope = program.Scope;
         if (scope is not null)
         {
             foreach (int slot in scope.ClearedSlots)

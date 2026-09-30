@@ -62,7 +62,7 @@ internal static partial class WriteEngine
     /// <param name="field">The field the value is written as.</param>
     /// <param name="value">The supplied value.</param>
     /// <exception cref="CStructWriteException">The value cannot be encoded.</exception>
-    private static void WriteThroughCodec<TDestination>(ref TDestination destination, ref WriteEngineState state, ReadProgram.Codec codec, CompiledField field, object value)
+    private static void WriteThroughCodec<TDestination>(ref TDestination destination, ref WriteEngineState state, ProgramCodec codec, CompiledField field, object value)
         where TDestination : struct, IWriteDestination
     {
         if (codec.Primitive.IsTerminatedText)
@@ -167,7 +167,7 @@ internal static partial class WriteEngine
     /// <param name="value">The supplied value.</param>
     /// <param name="scratch">The frame's scratch buffer.</param>
     /// <returns>The exact number written, which a capture stores.</returns>
-    private static BigInteger WriteEnum<TDestination>(ref TDestination destination, ref WriteEngineState state, ReadProgram.Codec codec, CompiledEnumType enm, object value, Span<byte> scratch)
+    private static BigInteger WriteEnum<TDestination>(ref TDestination destination, ref WriteEngineState state, ProgramCodec codec, CompiledEnumType enm, object value, Span<byte> scratch)
         where TDestination : struct, IWriteDestination
     {
         BigInteger number = EnumFieldValueParser.GetEnumValue(enm, value);
@@ -388,7 +388,7 @@ internal static partial class WriteEngine
         where TDestination : struct, IWriteDestination
     {
         long length = (long)count * field.Codec.Size;
-        if (length > ReadBlock.Size || !CanWriteBlock(ref destination, ref state, (int)length))
+        if (length > BlockSize.Bytes || !CanWriteBlock(ref destination, ref state, (int)length))
         {
             return false;
         }

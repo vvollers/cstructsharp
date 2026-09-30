@@ -51,7 +51,7 @@ public class ReadEngineStateTests
     public void PublishQualified_RemovesStaleValuesAndStopsWithoutAPrefix()
     {
         var layout = new CStruct("struct header { uint8 count; }; struct rec { header hdr; uint8 items[hdr.count]; };");
-        ReadProgram.QualifiedTarget[] targets = layout.Compilation.SlotTable.ReadPrograms.GetQualifiedTargets("count");
+        QualifiedTarget[] targets = layout.Compilation.SlotTable.ReadPrograms.GetQualifiedTargets("count");
         Assert.HasCount(1, targets);
         int slot = targets[0].Slot;
         RunState(

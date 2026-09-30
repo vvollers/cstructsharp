@@ -147,13 +147,13 @@ public class ReadProgramCompilerTests
 
             // Build the placement steps as the compiler does: kind 0 has a static size, kind 1 an extent that is a
             // multiple of its unit (an array or a padded struct), kind 2 an arbitrary extent (terminated text).
-            var placement = new ReadPlacement(aligned);
-            var steps = new List<ReadStep?>();
+            var placement = new Placement(aligned);
+            var steps = new List<PlacementStep?>();
             for (int index = 0; index < count; index++)
             {
                 (int alignment, int kind, int size, int unit, bool conditional) = members[index];
-                ReadPlacement before = placement;
-                steps.Add(placement.Place(index, alignment, out ReadStep step) ? step : null);
+                Placement before = placement;
+                steps.Add(placement.Place(index, alignment, out PlacementStep step) ? step : null);
                 if (kind == 0)
                 {
                     placement.Advance(size);
@@ -165,7 +165,7 @@ public class ReadProgramCompilerTests
 
                 if (conditional)
                 {
-                    placement = ReadPlacement.Merge(before, placement);
+                    placement = Placement.Merge(before, placement);
                 }
             }
 
@@ -548,10 +548,10 @@ public class ReadProgramCompilerTests
     /// <param name="position">The position before the step.</param>
     /// <param name="start">The struct's first byte.</param>
     /// <returns>The position after the step.</returns>
-    private static long Apply(ReadStep? step, long position, long start) => step switch
+    private static long Apply(PlacementStep? step, long position, long start) => step switch
     {
-        { Op: ReadOpCode.Seek, } seek => position + seek.A,
-        { Op: ReadOpCode.Align, } align => start + LayoutMath.AlignUp(position - start, align.A),
+        { Aligns: false, } seek => position + seek.Amount,
+        { Aligns: true, } align => start + LayoutMath.AlignUp(position - start, align.Amount),
         _ => position,
     };
 

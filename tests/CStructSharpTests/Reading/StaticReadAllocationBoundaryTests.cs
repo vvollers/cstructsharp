@@ -106,11 +106,11 @@ public class StaticReadAllocationBoundaryTests
             Assert.AreEqual((long)size + 1, source.Position);
         }
 
-        if (size <= ReadBlock.Size)
+        if (size <= BlockSize.Bytes)
         {
             Assert.AreEqual(1, source.BlockReads);
             Assert.AreEqual(0, source.ByteReads);
-            Assert.AreEqual(ReadBlock.Size, source.RentalLength);
+            Assert.AreEqual(BlockSize.Bytes, source.RentalLength);
             Assert.IsTrue(returns.Returned, "The observed fixed-block rental must be returned before parsing exits.");
         }
         else

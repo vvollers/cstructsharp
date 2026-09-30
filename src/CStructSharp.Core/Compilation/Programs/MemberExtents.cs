@@ -2,7 +2,7 @@ namespace CStructSharp.Compilation.Programs;
 
 /// <summary>
 ///     What a program compiler knows, per member, about the position after it: a member of known size advances the
-///     static placement (<see cref="ReadPlacement"/>), a member whose size the data decides restarts it from a new anchor.
+///     static placement (<see cref="Placement"/>), a member whose size the data decides restarts it from a new anchor.
 ///     Shared by <see cref="ReadProgramCompiler"/> and <see cref="WriteProgramCompiler"/>, because the reader and the
 ///     writer place the members of a struct by the same rule: each member starts where the previous one ended, aligned
 ///     from the struct's first byte.
@@ -25,7 +25,7 @@ internal sealed class MemberExtents
 
     /// <summary>
     ///     A size a dynamic member's extent is always a multiple of, which carries alignment knowledge past it (see
-    ///     <see cref="ReadPlacement.Restart"/>): the element size of an array whose count the data decides, or the
+    ///     <see cref="Placement.Restart"/>): the element size of an array whose count the data decides, or the
     ///     alignment of a struct in an aligned layout (its tail padding makes its size a multiple of it); otherwise 1.
     /// </summary>
     /// <param name="field">The member.</param>
@@ -47,7 +47,7 @@ internal sealed class MemberExtents
     /// <summary>Records where the position is after a member: a known size advances, a size the data decides restarts from a new anchor.</summary>
     /// <param name="placement">The placement state after the member was placed; the position's guarantee there is the member's start guarantee.</param>
     /// <param name="field">The member.</param>
-    public void AdvancePast(ref ReadPlacement placement, CompiledField field)
+    public void AdvancePast(ref Placement placement, CompiledField field)
     {
         if (field.FixedStorageSize is int size)
         {

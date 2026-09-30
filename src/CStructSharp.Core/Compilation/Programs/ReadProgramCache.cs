@@ -19,11 +19,11 @@ using CStructSharp.Syntax;
 /// </remarks>
 internal sealed class ReadProgramCache
 {
-    private static readonly ReadProgram.QualifiedTarget[] NoTargets = [];
+    private static readonly QualifiedTarget[] NoTargets = [];
 
     private readonly ConcurrentDictionary<CompiledCompositeType, ReadProgram> composites = new(ReferenceEqualityComparer.Instance);
     private readonly ConcurrentDictionary<string, ReadProgram> roots = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, ReadProgram.QualifiedTarget[]> qualifiedTargets;
+    private readonly Dictionary<string, QualifiedTarget[]> qualifiedTargets;
 
     // The most recent root lookup. Callers read the same root call after call, so a repeated lookup is one string
     // comparison instead of a dictionary lookup; the entry is immutable and replaced whole, so no reader sees it torn.
@@ -40,7 +40,7 @@ internal sealed class ReadProgramCache
         // Every slot spelled `prefix.name` is a place a capture of `name` is published to while `prefix.` is active
         // (field names contain no dots, so the bare name is the last segment). A name with no such slot is published
         // nowhere observable.
-        var targets = new Dictionary<string, List<ReadProgram.QualifiedTarget>>(StringComparer.Ordinal);
+        var targets = new Dictionary<string, List<QualifiedTarget>>(StringComparer.Ordinal);
         for (int slot = 0; slot < table.Count; slot++)
         {
             string name = table.GetName(slot);
@@ -51,16 +51,16 @@ internal sealed class ReadProgramCache
             }
 
             string bare = name.Substring(dot + 1);
-            if (!targets.TryGetValue(bare, out List<ReadProgram.QualifiedTarget>? list))
+            if (!targets.TryGetValue(bare, out List<QualifiedTarget>? list))
             {
                 targets.Add(bare, list = []);
             }
 
-            list.Add(new ReadProgram.QualifiedTarget(name.Substring(0, dot + 1), slot));
+            list.Add(new QualifiedTarget(name.Substring(0, dot + 1), slot));
         }
 
-        this.qualifiedTargets = new Dictionary<string, ReadProgram.QualifiedTarget[]>(targets.Count, StringComparer.Ordinal);
-        foreach (KeyValuePair<string, List<ReadProgram.QualifiedTarget>> entry in targets)
+        this.qualifiedTargets = new Dictionary<string, QualifiedTarget[]>(targets.Count, StringComparer.Ordinal);
+        foreach (KeyValuePair<string, List<QualifiedTarget>> entry in targets)
         {
             this.qualifiedTargets.Add(entry.Key, entry.Value.ToArray());
         }
@@ -124,8 +124,8 @@ internal sealed class ReadProgramCache
     /// <summary>Returns the slots a capture of <paramref name="name"/> is published to under each qualified prefix.</summary>
     /// <param name="name">The bare field name.</param>
     /// <returns>The targets; empty when no expression spells the name with a prefix.</returns>
-    public ReadProgram.QualifiedTarget[] GetQualifiedTargets(string name)
-        => this.qualifiedTargets.TryGetValue(name, out ReadProgram.QualifiedTarget[]? targets) ? targets : NoTargets;
+    public QualifiedTarget[] GetQualifiedTargets(string name)
+        => this.qualifiedTargets.TryGetValue(name, out QualifiedTarget[]? targets) ? targets : NoTargets;
 
     /// <summary>One cached root lookup: a declared root's name and its program.</summary>
     private sealed class RootEntry

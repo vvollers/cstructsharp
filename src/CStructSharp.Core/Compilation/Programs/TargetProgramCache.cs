@@ -164,8 +164,8 @@ internal sealed class TargetProgramCache
         }
 
         // The resolver removes the kept names at entry and saves and restores them after each member, as a read does.
-        ReadConditionalScope? scope = composite.HasDirectConditionalFields && !composite.IsUnion
-                                          ? new ReadConditionalScope(composite.ConditionalScope!, this.Table)
+        ConditionalScopeSlots? scope = composite.HasDirectConditionalFields && !composite.IsUnion
+                                          ? new ConditionalScopeSlots(composite.ConditionalScope!, this.Table)
                                           : null;
         return new TargetProgram(composite, members, tables, scope);
     }
@@ -182,7 +182,7 @@ internal sealed class TargetProgramCache
 
         // A capture no expression can read is not observable; its value is still read, because the bytes are charged.
         int slot = field.CapturesLayoutVariable && this.Table.TryGetSlot(field.Name, out int found) ? found : -1;
-        ReadProgram.QualifiedTarget[] qualified = slot >= 0 ? this.Table.ReadPrograms.GetQualifiedTargets(field.Name) : [];
+        QualifiedTarget[] qualified = slot >= 0 ? this.Table.ReadPrograms.GetQualifiedTargets(field.Name) : [];
         bool promoted = composite is not null && composite.PromotedFields.Contains(field);
         return new TargetMember(field, branches, count, slot, qualified, promoted);
     }

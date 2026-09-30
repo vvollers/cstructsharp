@@ -92,7 +92,7 @@ internal sealed class WriteProgram
     public UnusableVariable?[] NotANumbers { get; }
 
     /// <summary>Gets the element codecs, indexed by a write step's codec operand.</summary>
-    public ReadProgram.Codec[] Codecs { get; }
+    public ProgramCodec[] Codecs { get; }
 
     /// <summary>Gets the enum and flag types, indexed by an enum write step's <c>B</c>.</summary>
     public CompiledEnumType[] Enums { get; }
@@ -110,19 +110,19 @@ internal sealed class WriteProgram
     public string[] Prefixes { get; }
 
     /// <summary>Gets, per capture step's <c>B</c>, the slots a bare name is published to under each qualified prefix.</summary>
-    public ReadProgram.QualifiedTarget[][] QualifiedTargets { get; }
+    public QualifiedTarget[][] QualifiedTargets { get; }
 
-    /// <summary>Gets the conditional groups of the composite, indexed by <see cref="ReadProgram.ConditionalBranch.Group"/>.</summary>
+    /// <summary>Gets the conditional groups of the composite, indexed by <see cref="ProgramBranch.Group"/>.</summary>
     public ReadProgram.ConditionalGroup[] Groups { get; }
 
     /// <summary>Gets the conditional branches <see cref="WriteOpCode.SelectArm"/> steps test, indexed by their <c>A</c>.</summary>
-    public ReadProgram.ConditionalBranch[] Branches { get; }
+    public ProgramBranch[] Branches { get; }
 
     /// <summary>Gets the number of selected-arm entries a frame holds: the composite's conditional group count.</summary>
     public int GroupCount => this.Groups.Length;
 
     /// <summary>Gets the composite's conditional variable scope in slot terms, or <see langword="null"/> when it has no conditional member.</summary>
-    public ReadConditionalScope? Scope { get; }
+    public ConditionalScopeSlots? Scope { get; }
 
     /// <summary>
     ///     Gets a value indicating whether the members are placed at run time by a <see cref="PlacementCursor"/> the frame
@@ -171,16 +171,16 @@ internal sealed class WriteProgram
         CompiledField[] ValueFields,
         int[] ShapeSlots,
         UnusableVariable?[] NotANumbers,
-        ReadProgram.Codec[] Codecs,
+        ProgramCodec[] Codecs,
         CompiledEnumType[] Enums,
         ProgramExpression[] Expressions,
         string[] ExpressionContexts,
         WriteProgram[] Nested,
         string[] Prefixes,
-        ReadProgram.QualifiedTarget[][] QualifiedTargets,
+        QualifiedTarget[][] QualifiedTargets,
         ReadProgram.ConditionalGroup[] Groups,
-        ReadProgram.ConditionalBranch[] Branches,
-        ReadConditionalScope? Scope,
+        ProgramBranch[] Branches,
+        ConditionalScopeSlots? Scope,
         bool UsesPlacementCursor,
         int[] UnionEntries);
 }
