@@ -3,227 +3,227 @@
 # @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes,
 # counted by kind on the indented line below it.
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("aligned-x256")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("aligned-x256")
 @hash 84ac8aa6ed44e42d8b1fd63f0b204fa9a9e54d860e8d7eb586634aee788767c0 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("array-struct-100")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("array-struct-100")
 @hash e0c27e30a90c6929ac05f3aa2dd3a50b76fca3c91ceea0ae7e9446ee76ae96b6 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("array-struct-10000")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("array-struct-10000")
 @hash cd9d8de097f38fb17914fb4218813ef6ad05f7a383ec007be1600411c4fbaf55 18
   ok 18
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("array-u32-be-16384")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("array-u32-be-16384")
 @hash 826ec8993438174380b9ef02f0d38056e65e91beb069dd318487553589f48711 18
   ok 18
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("array-u32-be-256")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("array-u32-be-256")
 @hash 6258fbb6e267e9387dc698b68d839e945061d7a62ac96c77ff9790ac1a5a9e5b 31
   ok 31
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("array-u32-le-16384")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("array-u32-le-16384")
 @hash 1d9dea7296e5a0e4db7c8b4f64ca7914aaefce126762f9f1fa40e8c1aa645306 18
   ok 18
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("array-u32-le-256")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("array-u32-le-256")
 @hash e211884608963b53eac48c2ebdcb4a8014a0eeb5065d7c655a75c8594e250065 31
   ok 31
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("array-u8-1024")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("array-u8-1024")
 @hash 7d73327b3b22a8846b118eb87dc071ee211ace8a11bf9d9f29706c72b148cd44 31
   ok 31
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("array-u8-65536")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("array-u8-65536")
 @hash 56d1fb6ae575929e6f5c7c892fd7491222ce04b8fe287dbf1d83ec54b0737b40 18
   ok 18
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("bitfield-x1k")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("bitfield-x1k")
 @hash 885f42b0ba4c7b503f08326aa990f0c4ffb3d46c6cd40d135e4d48e76360e6f7 39
   ok 37, CStructWriteException 2
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("compile-k100")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("compile-k100")
 @hash 7d8b4fe320b05ec0bd4ed4c3ccd85a2cf57338a06722e142cea93b726887d06e 16
   CStructPathException 16
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("compile-large-512")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("compile-large-512")
 @hash 8d75cdee22f41a9988b3e285b3d5c422cc6a1f546967a686520ae530114f0f4b 17
   CStructReadException 17
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("compile-medium-128")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("compile-medium-128")
 @hash b7bef13310a09e2d8e34e1444c5a00ab1c1b3895c5f611a978e170c871553d06 17
   CStructReadException 17
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("compile-nested")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("compile-nested")
 @hash ef0e2d005f2b279cd4bd34139344656c89bd2337ef87d49b91475813ad7d19b2 17
   CStructReadException 17
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("compile-small")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("compile-small")
 @hash 673eee80eb683157b5e54f2e267f72f03ceb7f26986e3b1844677ceba4260b5a 35
   ok 35
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("compile-windows-header")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("compile-windows-header")
 @hash b6b64170ff29cd4536af3e4b457968db9cbd618cc1375fc9f193d19504a6bb4a 17
   CStructReadException 17
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("cond-if128")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("cond-if128")
 @hash a2dcb06d54da379829459451c9beec68581e53c5b4d11a17b97fdb8cde4620bb 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("cond-plain128")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("cond-plain128")
 @hash 02ceb7440524eef8101a44507ec0841c23d038ab1995362b4e8a1777447d13a7 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("cond-switch128")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("cond-switch128")
 @hash a2dcb06d54da379829459451c9beec68581e53c5b4d11a17b97fdb8cde4620bb 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("dynamic-1")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("dynamic-1")
 @hash ff230457ee428a91c02193060480029ec8f1363bcaf6150d28d97eb1150a8647 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("dynamic-1024")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("dynamic-1024")
 @hash 5450e6bb41f1921ff68185140c9776facdf409ffdc901488afd908e01f2a30ba 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("dynamic-64")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("dynamic-64")
 @hash 932d78ba2021d87c94debe0fbb6d645b81273c06d6c5f15ba456da03f3b8bed7 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("enum-x1k")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("enum-x1k")
 @hash 65997b24b42439379dc7bca10deb51cb2383831f6c6d76cb88330bea4dd5c595 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("malformed-budget-exceeded")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("malformed-budget-exceeded")
 @hash 8a404402a117b6e55db07b3cac0b8eaa66e3a9a0c68922246820d93ec263b7a1 10
   CStructReadLimitException 10
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("malformed-dangling-pointer")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("malformed-dangling-pointer")
 @hash c6bfd23c816e9a8d43f0a01ed3130d6dae28bc3b867d5749b22a9863bac0170b 17
   CStructReadException 17
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("malformed-negative-count")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("malformed-negative-count")
 @hash 1755322bf7643049b97eb563a06ba47823f276c542bb2e92eb74958a9c02cbc2 17
   CStructReadException 17
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("malformed-truncated")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("malformed-truncated")
 @hash 31b682747f0c3899c96f8d307092cf12df284f1605e87f6f971ed7e5c8a8ec48 17
   CStructReadException 17
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("mixed-endian-record")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("mixed-endian-record")
 @hash aed0a2766b24386d85bbc3d0e8d01866dc4a70e9eb84fd321da2304dfdcaf7dd 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("multidim-16x16")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("multidim-16x16")
 @hash 42eda3537ad2d08b0a8787eada973ef5ea61b65a5aba7c541d5e0323929ae1bf 31
   ok 31
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("nested-x1")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("nested-x1")
 @hash b29163a54fa7e96991be4ca15dbbb81d296425c32707acf74f21f40a3edaa54c 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("nested-x256")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("nested-x256")
 @hash 342654e695f160b8333e6a4c9991b128dc6af9591d354e1750acdf7b4603bd1c 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("parity-alias-x1k")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("parity-alias-x1k")
 @hash 0c1145e41f3bc0c2d45f8fa83bfc9074706a6f08eafbb5c8b4d5782c90384724 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("parity-flag-x1k")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("parity-flag-x1k")
 @hash be878c6ffa2118248cc5d4683364a68990670fddf4622019a43faf40d4e3d501 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("parity-inline-union-x1k")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("parity-inline-union-x1k")
 @hash 62fb44c04c451c4006fe39bc8f00318c86f910e543857f5a19e36a4eba34d06a 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("parity-primitive-root-256")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("parity-primitive-root-256")
 @hash fe7a403b7d247588428e01175d4dc6c5ecbed756b11470aec35846a19f6ab516 31
   ok 15, CStructPathException 12, KeyNotFoundException 4
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("parity-terminated-struct-1k")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("parity-terminated-struct-1k")
 @hash 1000c42830059d79b5d1f4f1378103400274dec43f45c354729508aa2198ed8c 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("parity-toend-u32-64k")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("parity-toend-u32-64k")
 @hash 6e2ff7a94279579c90f354bb1b3c00330846a6f7d22685b1c2187293fe17f0d2 18
   ok 18
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("pointer-depth-1")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("pointer-depth-1")
 @hash 02fa24e3feb4e2201731b704f35351bf399ca67c9e9b6229c821884dd53151bc 37
   ok 35, CStructPathException 2
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("pointer-depth-64")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("pointer-depth-64")
 @hash 554e8548e1378ea75016d233b1ef6618610c09dbc42d9bbad7c87f27608b7370 35
   ok 31, CStructPathException 4
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("pointer-depth-8")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("pointer-depth-8")
 @hash 953a296931d99db209cae68a775733b82d9c8bd54a8bf484eb08331c1dd783c7 35
   ok 31, CStructPathException 4
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("prim-be-record")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("prim-be-record")
 @hash 3e36d8d3f368f0a58d509da5d6a670be45ee4eb44374df9408486e52f21037dc 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("prim-be-x1k")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("prim-be-x1k")
 @hash 400e2c195e16d8be9b3be4e698b042b991f753c19a151d8f19de12a63f9d8f13 18
   ok 18
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("prim-le-record")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("prim-le-record")
 @hash 8869018ebce715ba30ff5bd25fc6d3b28f64a44b19f0c49d9652813404d1ebd6 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("prim-le-x1k")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("prim-le-x1k")
 @hash 98744523398f793eea40e1b9e8ee0cdbc44a5745d854c345a4a3b5ce6d031dc7 18
   ok 18
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("real-bmp")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("real-bmp")
 @hash 4eaa10788e464ca989c320f6effa3ec5cb1c2c9dd71ef103506212a7aa8271fa 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("real-ico")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("real-ico")
 @hash 5a0402f059b5baadf3cf7f17dbb78068b2ca438099c3ffef83761253c82bd763 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("real-jpg")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("real-jpg")
 @hash fc1f6abe29598e132db7c78cde8fec80aeef3aac4fd2296d4feb7a2743827a8e 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("real-pe-dll")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("real-pe-dll")
 @hash 4230964cb9e65a3315a9830171798f75dbc47755f310deebc4a7505c92437574 37
   ok 35, CStructPathException 2
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("real-pe-exe")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("real-pe-exe")
 @hash 23af243a833a0557d03073cda94cb483e63c18732d8ada70bc5971fce077546c 37
   ok 35, CStructPathException 2
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("real-png")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("real-png")
 @hash 9bd4fe72a4586e481e31c55ed13f282df52829c17a0bbfdbdfdf8e271c46839e 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("real-tar")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("real-tar")
 @hash 2f8231a806dfe74fcfb54131ecac19087b060b480977034c023b47d830e387de 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("real-wav")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("real-wav")
 @hash 1e1d9542a581ec1bebe3142715ffe99546db4dca8a988e98ad83a45d82e986a7 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("real-zip")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("real-zip")
 @hash 0896aa1d9baa8ffba94fc8b19b46faaab9da243143728e094eee6a4eab3fd8a3 39
   ok 39
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("strings-1024")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("strings-1024")
 @hash ef29dcfe803f5b84969f04776c8c93a99d7e1581551a7301715ee0516dc4009b 35
   ok 35
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("strings-8")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("strings-8")
 @hash bcb8e910e9dabbcfb31f175e9331aad18f354a39e5b0f146be2ef2e35ba73c1e 35
   ok 35
 
-@test BenchmarkFixture_ReadsAndWritesOnEverySourceAndPath("union-x1k")
+@test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("union-x1k")
 @hash a11f6aea591b1d2714baf59fbdc36a58e9aba7fa9297a08fedadd15bcaaf7355 39
   ok 39
 

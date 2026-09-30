@@ -221,6 +221,10 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - Engine golden manifests no longer record how many operations reached the engine, so a performance-only change no
   longer forces a re-record; each hashed group carries a summary that counts its outcomes by kind, and a failing
   group shows which kinds changed with an example of each.
+- One data-driven test per corpus case, including every benchmark fixture, checks the recorded expectation, the static
+  read plan, agreement between the fast paths and member-by-member reads, and every operation on the engine; it
+  replaces nine tests that each swept the whole corpus. `CStructSharp.Generated.Parity` is the only generator parity
+  suite over the fixtures.
 
 ## 0.10.0 — 2026-09-26
 

@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
 using CStructSharp;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
@@ -15,9 +14,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 /// <summary>
 ///     Pins the static read plan: a fully fixed composite read from one span must be indistinguishable from the engine's
 ///     member-by-member reads - values, captured variables, limits, truncation failures and final positions. The plan must exist
-///     exactly for the composites its conditions describe - every fixed benchmark fixture root among them, since a
-///     composite that looks dynamic to the planner loses the plan speed-up - and a completed plan keeps the nesting
-///     depth of the runtime-sized records that follow.
+///     exactly for the composites its conditions describe, and a completed plan keeps the nesting depth of the
+///     runtime-sized records that follow. (That every fixed benchmark fixture root keeps its plan is checked per fixture
+///     by <see cref="EngineCorpusTests.BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath"/>.)
 /// </summary>
 [TestClass]
 public class StaticReadPlanTests
@@ -39,21 +38,6 @@ public class StaticReadPlanTests
             uint8 tail;
         };
         """;
-
-    /// <summary>The benchmark fixture ids whose roots are fixed composites and so must have a static read plan.</summary>
-    private static readonly string[] PlannedFixtureRoots =
-    [
-        "aligned-x256", "array-struct-100", "array-struct-10000", "array-u32-be-16384", "array-u32-be-256",
-        "array-u32-be-262144", "array-u32-le-16384", "array-u32-le-256", "array-u32-le-262144",
-        "array-u32-neutral-262144", "array-u64-le-1000000", "array-u8-1024", "array-u8-1048576",
-        "array-u8-16m-stream", "array-u8-65536", "compile-large-512", "compile-medium-128", "compile-nested",
-        "compile-small", "cond-plain128", "enum-x1k", "malformed-budget-exceeded", "malformed-truncated",
-        "mixed-endian-record", "nested-x1", "nested-x256", "prim-be-record", "prim-be-x1k", "prim-le-record",
-        "prim-le-x1k", "real-bmp", "real-jpg", "real-png", "real-tar", "real-wav",
-    ];
-
-    /// <summary>The parity fixtures whose roots are fixed and must be planned too (aliases resolve at construction; a promoted union is read member by member).</summary>
-    private static readonly string[] EligibleParityFixtures = ["parity-alias-x1k",];
 
     /// <summary>Composites get a plan exactly when every member is statically placed and decodable.</summary>
     [TestMethod]
@@ -195,36 +179,6 @@ public class StaticReadPlanTests
         Assert.AreEqual((byte)42, (byte)parsed.body.child.data[0]);
     }
 
-    /// <summary>Plan eligibility of every recorded fixture root is unchanged, and the fixed parity roots are planned.</summary>
-    [TestMethod]
-    public void FixtureRoots_KeepTheirStaticPlans()
-    {
-        string directory = TestFixtures.BenchmarkFixtures;
-        var eligible = new List<string>();
-        var unplanned = new List<string>();
-        foreach (string path in Directory.GetFiles(Path.Combine(directory, "cases"), "*.json").Order(StringComparer.Ordinal))
-        {
-            using JsonDocument document = JsonDocument.Parse(File.ReadAllText(path), new JsonDocumentOptions { MaxDepth = 4096, });
-            JsonElement root = document.RootElement;
-            string id = root.GetProperty("id").GetString()!;
-            JsonElement options = root.GetProperty("options");
-            var layout = new CStruct(
-                root.GetProperty("definition").GetString()!,
-                options.GetProperty("pointerSize").GetByte(),
-                options.GetProperty("aligned").GetBoolean(),
-                options.GetProperty("littleEndian").GetBoolean());
-            string rootName = root.GetProperty("root").GetString()!;
-            bool planned = HasPlan(layout, rootName);
-            (planned ? eligible : unplanned).Add(id);
-        }
-
-        string[] lost = PlannedFixtureRoots.Where(id => !eligible.Contains(id)).ToArray();
-        Assert.IsEmpty(lost, "fixture roots that lost their static read plan: " + string.Join(", ", lost));
-        string[] missingParity = EligibleParityFixtures.Where(id => !eligible.Contains(id)).ToArray();
-        Assert.IsEmpty(missingParity, "parity fixture roots without a static read plan: " + string.Join(", ", missingParity));
-        Console.WriteLine($"{eligible.Count} planned, {unplanned.Count} member-by-member fixtures");
-    }
-
     /// <summary>Returns a compiled struct of a layout by name.</summary>
     private static CompiledCompositeType Composite(CStruct layout, string name) => (CompiledCompositeType)layout.CompiledModel.Symbols[name].Symbol.Definition!;
 
@@ -267,12 +221,5 @@ public class StaticReadPlanTests
             OperationOutcome.AssertSame(memberByMember, fast, caseLabel);
             Assert.AreEqual(withoutPlan?.Position, withPlan?.Position, caseLabel + ": final position");
         }
-    }
-
-    /// <summary>A composite root with a static read plan; a synthetic root (<c>uint32[256]</c>) has no composite and reads through the bulk primitive path instead.</summary>
-    private static bool HasPlan(CStruct layout, string rootName)
-    {
-        return layout.CompiledModel.Symbols.TryGetValue(rootName, out CompiledTypeReference reference) &&
-               reference.Symbol.Definition is CompiledCompositeType { StaticPlan: not null, };
     }
 }

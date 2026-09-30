@@ -9,8 +9,11 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
 /// <summary>
-///     Generated readers against the runtime, the oracle: for every fixture with bytes, <c>Parse</c> yields the same
+///     Generated readers against the runtime, the oracle, for the shapes the fixture corpora do not reach (counted and
+///     deferred pointers, offset assertions, qualified references, wide counts and more): <c>Parse</c> yields the same
 ///     value member by member, and every truncated prefix of the bytes fails with the same exception type and message.
+///     Every repository fixture is compared by <c>CStructSharp.Generated.Parity</c>, the one generator parity suite
+///     over the corpora; a <c>.cstruct</c> file declares the same readers as the inline text.
 /// </summary>
 [TestClass]
 public class ReaderParityTests
@@ -21,69 +24,6 @@ public class ReaderParityTests
         namespace Parity;
 
         """;
-
-    /// <summary>
-    ///     Generated readers decode every manual fixture with bytes as the runtime does, and every truncated prefix
-    ///     fails with the runtime's exception type and message.
-    /// </summary>
-    [TestMethod]
-    public void ManualFixtures_ParseAndTruncationSweep_MatchTheRuntime()
-    {
-        var failures = new List<string>();
-        foreach (ManualFixture fixture in ManualFixtures.Load())
-        {
-            if (fixture.Bytes is null)
-            {
-                continue;
-            }
-
-            try
-            {
-                RunParity(fixture);
-            }
-            catch (Exception exception) when (exception is AssertFailedException or InvalidOperationException or TargetInvocationException or CStructException)
-            {
-                failures.Add(fixture.Id + ": " + (exception.InnerException ?? exception).Message);
-            }
-        }
-
-        Assert.IsEmpty(failures, string.Join("\n\n", failures));
-    }
-
-    /// <summary>The benchmark harness's fixtures (up to 128 KiB of bytes): values, expected errors, and a truncation sweep bounded by the fixture's size.</summary>
-    [TestMethod]
-    public void BenchmarkFixtures_ParseAndTruncationSweep_MatchTheRuntime()
-    {
-        var failures = new List<string>();
-        foreach (BenchmarkFixture fixture in BenchmarkFixtures.Load(128 * 1024))
-        {
-            if (fixture.Root.Contains('[', StringComparison.Ordinal))
-            {
-                // A synthetic root (a type spelling such as `uint32[256]`) is the runtime's alone; a generated
-                // Parse needs a declaration.
-                continue;
-            }
-
-            try
-            {
-                string arguments = "Root = \"" + fixture.Root + "\", PointerSize = " + fixture.PointerSize + ", Aligned = " + (fixture.Aligned ? "true" : "false") + ", LittleEndian = " + (fixture.LittleEndian ? "true" : "false");
-                RunParity(fixture.Id, fixture.Definition, arguments, fixture.Root, fixture.Bytes, fixture.Variables, fixture.ReadOptions, fixture.ExpectedError);
-            }
-            catch (Exception exception) when (exception is AssertFailedException or InvalidOperationException or TargetInvocationException or CStructException)
-            {
-                failures.Add(fixture.Id + ": " + (exception.InnerException ?? exception).Message);
-            }
-        }
-
-        Assert.IsEmpty(failures, string.Join("\n\n", failures));
-    }
-
-    /// <summary>Runs one manual fixture through both readers with the options it was recorded with.</summary>
-    /// <param name="fixture">A fixture that has input bytes.</param>
-    private static void RunParity(ManualFixture fixture)
-    {
-        RunParity(fixture.Id, fixture.Definition, ManualFixtures.AttributeArguments(fixture), fixture.Root, Convert.FromHexString(fixture.Bytes!), fixture.Variables, null, null);
-    }
 
     /// <summary>A layout declared from a <c>.cstruct</c> file generates the same readers as the inline text: every manual fixture, through the file path.</summary>
     [TestMethod]

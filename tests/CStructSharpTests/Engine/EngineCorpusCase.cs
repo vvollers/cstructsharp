@@ -78,69 +78,82 @@ internal sealed record EngineCorpusCase(
             EngineLayoutCapture.AssertGolden(this.Id, layout, this.Data, EngineInput.ChunkedStream3, root, this.Variables, read);
         }
 
+        var outcomes = new Dictionary<ExecutionPath, List<(string Operation, string Rendering)>>();
         foreach (ExecutionPath path in CorpusPaths)
         {
+            List<(string Operation, string Rendering)> pathOutcomes = outcomes[path] = [];
+
+            // Checks one operation against its golden outcome under this path, and keeps the rendering for the
+            // comparison of the two paths.
+            string Check(GoldenOperation operation)
+            {
+                string rendering = Golden(operation, path);
+                pathOutcomes.Add((operation.Name, rendering));
+                return rendering;
+            }
+
             var renderings = new List<(EngineInput Input, string Rendering)>();
             foreach (EngineInput input in sources)
             {
                 GoldenOperation operation = union
                                                       ? EngineOperations.ReadValue(layout, this.Data, input, root, this.Variables, read)
                                                       : EngineOperations.Parse(layout, this.Data, input, root, this.Variables, read);
-                renderings.Add((input, Golden(operation, path)));
+                renderings.Add((input, Check(operation)));
             }
 
             EngineAgreement.AssertSourcesAgree(this.Id + " (" + path + ")", renderings);
-            Golden(EngineOperations.ReadValue(layout, this.Data, EngineInput.Memory, root, this.Variables, read), path);
+            Check(EngineOperations.ReadValue(layout, this.Data, EngineInput.Memory, root, this.Variables, read));
             if (detailed)
             {
-                Golden(EngineOperations.ParseWithDebug(layout, this.Data, EngineInput.Span, root, this.Variables, read), path);
-                Golden(EngineOperations.ReadValueWithDebug(layout, this.Data, EngineInput.ChunkedStream3, root, this.Variables, read), path);
+                Check(EngineOperations.ParseWithDebug(layout, this.Data, EngineInput.Span, root, this.Variables, read));
+                Check(EngineOperations.ReadValueWithDebug(layout, this.Data, EngineInput.ChunkedStream3, root, this.Variables, read));
             }
 
             foreach (string address in addresses)
             {
-                Golden(EngineOperations.ResolveAddress(layout, this.Data, EngineInput.Span, address, this.Variables, read), path);
+                Check(EngineOperations.ResolveAddress(layout, this.Data, EngineInput.Span, address, this.Variables, read));
             }
 
             foreach (string selected in this.Paths ?? [])
             {
-                Golden(EngineOperations.ReadValue(layout, this.Data, EngineInput.Stream, selected, this.Variables, read), path);
-                Golden(EngineOperations.GetArrayLength(layout, this.Data, EngineInput.Span, selected, this.Variables, read), path);
+                Check(EngineOperations.ReadValue(layout, this.Data, EngineInput.Stream, selected, this.Variables, read));
+                Check(EngineOperations.GetArrayLength(layout, this.Data, EngineInput.Span, selected, this.Variables, read));
             }
 
             if (value is not null)
             {
-                Golden(EngineOperations.Serialize(layout, root, value, this.Variables, this.Write), path);
-                Golden(EngineOperations.SerializeToSpan(layout, this.Data.Length, root, value, this.Variables, this.Write), path);
-                Golden(EngineOperations.Write(layout, [0xAA, 0xAA], 1, root, value, this.Variables, this.Write), path);
-                Golden(EngineOperations.SerializeToWindows(layout, 3, root, value, this.Variables, this.Write), path);
+                Check(EngineOperations.Serialize(layout, root, value, this.Variables, this.Write));
+                Check(EngineOperations.SerializeToSpan(layout, this.Data.Length, root, value, this.Variables, this.Write));
+                Check(EngineOperations.Write(layout, [0xAA, 0xAA], 1, root, value, this.Variables, this.Write));
+                Check(EngineOperations.SerializeToWindows(layout, 3, root, value, this.Variables, this.Write));
 
                 // Each selected member written on its own from the value the read selects there.
                 foreach (string selected in this.Paths ?? [])
                 {
                     if (Attempt(() => layout.ReadValue(this.Data, selected, this.Variables, read)) is { } member)
                     {
-                        Golden(EngineOperations.Write(layout, [0xAA, 0xAA], 1, selected, member, this.Variables, this.Write), path);
-                        Golden(EngineOperations.Serialize(layout, selected, member, this.Variables, this.Write), path);
-                        Golden(EngineOperations.Update(layout, this.Data, EngineInput.Stream, selected, member, this.Variables), path);
+                        Check(EngineOperations.Write(layout, [0xAA, 0xAA], 1, selected, member, this.Variables, this.Write));
+                        Check(EngineOperations.Serialize(layout, selected, member, this.Variables, this.Write));
+                        Check(EngineOperations.Update(layout, this.Data, EngineInput.Stream, selected, member, this.Variables));
                     }
                 }
 
                 // Updates in place, with the value each target holds: the root, and every member a debug record names.
                 if (detailed)
                 {
-                    Golden(EngineOperations.Update(layout, this.Data, EngineInput.Span, root, value, this.Variables), path);
+                    Check(EngineOperations.Update(layout, this.Data, EngineInput.Span, root, value, this.Variables));
                     foreach (string address in addresses)
                     {
                         if (Attempt(() => layout.ReadValue(this.Data, address, this.Variables, read)) is { } member)
                         {
-                            Golden(EngineOperations.Update(layout, this.Data, EngineInput.Span, address, member, this.Variables), path);
+                            Check(EngineOperations.Update(layout, this.Data, EngineInput.Span, address, member, this.Variables));
                         }
                     }
                 }
             }
         }
 
+        AssertPathsAgree(this.Id, outcomes[ExecutionPath.NoFastPaths], outcomes[ExecutionPath.Fastest]);
         return true;
     }
 
@@ -281,6 +294,29 @@ internal sealed record EngineCorpusCase(
     /// <param name="path">The execution path the run uses.</param>
     /// <returns>The rendering, for the source-agreement check.</returns>
     private static string Golden(GoldenOperation operation, ExecutionPath path) => EngineDifferential.AssertGolden(operation, path: path);
+
+    /// <summary>
+    ///     Asserts that the two execution paths ran the same operations with the same outcomes: the static read and
+    ///     write plans and the block paths of <see cref="ExecutionPath.Fastest"/> must return, write and report exactly
+    ///     what the member-by-member work of <see cref="ExecutionPath.NoFastPaths"/> does, final stream positions included.
+    /// </summary>
+    /// <param name="id">The case, for the failure message.</param>
+    /// <param name="memberByMember">Each operation's name and rendering under <see cref="ExecutionPath.NoFastPaths"/>, in order.</param>
+    /// <param name="fastest">The same under <see cref="ExecutionPath.Fastest"/>.</param>
+    /// <exception cref="AssertFailedException">An operation renders differently under the two paths.</exception>
+    private static void AssertPathsAgree(string id, List<(string Operation, string Rendering)> memberByMember, List<(string Operation, string Rendering)> fastest)
+    {
+        Assert.HasCount(memberByMember.Count, fastest, id + ": both execution paths run the same operations");
+        for (int index = 0; index < fastest.Count; index++)
+        {
+            (string operation, string expected) = memberByMember[index];
+            Assert.AreEqual(operation, fastest[index].Operation, id + ": both execution paths run the same operations");
+            if (!string.Equals(expected, fastest[index].Rendering, StringComparison.Ordinal))
+            {
+                Assert.Fail(id + ", " + operation + ": the member-by-member path (-) and the fast paths (+) differ:\n" + EngineDifferential.Diff(expected, fastest[index].Rendering));
+            }
+        }
+    }
 
     /// <summary>Returns the result of <paramref name="call"/>, or <see langword="null"/> when it throws.</summary>
     /// <param name="call">The call.</param>

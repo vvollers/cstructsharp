@@ -17,5 +17,6 @@ conditional fixtures reuse `benchmarks/fixtures/conditional-cases.json` definiti
 the WASM bridge (`CStructJsonConversion.cs`) so the JS harness can compare `result.data` directly.
 Expectations are inputs to the correctness gate: never regenerate them to hide a behavior change.
 `verify` checks the expected exception type, the SHA-256 and length of the canonical JSON, and the inline value when
-one is stored. `tests/CStructSharpTests/Quality/BenchmarkFixtureExpectationTests.cs` applies the same check to every
-case (through the tool's `FixtureVerification`) in the ordinary managed test run.
+one is stored. `EngineCorpusTests.BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath`
+(`tests/CStructSharpTests/Engine/EngineCorpusTests.cs`) applies the same check to every case (through the tool's
+`FixtureVerification`) in the ordinary managed test run, together with the case's other corpus checks.

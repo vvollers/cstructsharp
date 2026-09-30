@@ -100,9 +100,10 @@ dotnet test tests/CStructSharp.Generators.Modern.Tests/CStructSharp.Generators.M
 The first runs the generator in memory over small sources: every language-contract fixture must generate without a
 diagnostic and compile, the generated file for a hand-picked set of sources (the emitted types and one source per
 feature) is compared byte for byte with the golden file in `Snapshots/*.g.cs`, and behavior tests compile the output
-and compare it with the runtime (`ReaderParityTests`, `WriterParityTests`, `ConditionalParityTests`, the analyzer's
-diagnostics). When a change to the emitter alters the generated text on purpose, rewrite the snapshots and review the
-diff in the commit:
+for hand-written cases and compare it with the runtime (`ReaderParityTests`, `WriterParityTests`,
+`ConditionalParityTests`, the analyzer's diagnostics). The repository's fixture corpora are compared with the runtime
+only by the second project. When a change to the emitter alters the generated text on purpose, rewrite the snapshots
+and review the diff in the commit:
 
 ```sh
 UPDATE_SNAPSHOTS=1 dotnet test tests/CStructSharp.Generators.Tests/CStructSharp.Generators.Tests.csproj -c Release

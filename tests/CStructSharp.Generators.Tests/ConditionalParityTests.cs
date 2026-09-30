@@ -4,15 +4,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text.Json;
 using CStructSharp;
 using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     Conditional groups (<c>if</c>/<c>else</c>, <c>switch</c>) through the generated readers, with the runtime as
 ///     the oracle: the guide's cases (decisions per array item, evaluate-once, unavailable locals, nested groups
-///     skipped with their outer arm, switch without a match), the benchmark harness's conditional cases, and the
-///     variable rules a conditional layout leans on (caller variables override defines; a local hides them).
+///     skipped with their outer arm, switch without a match), wide selectors, and the variable rules a conditional
+///     layout leans on (caller variables override defines; a local hides them). The benchmark harness's conditional
+///     cases are compared by <c>CStructSharp.Generated.Parity</c>.
 /// </summary>
 [TestClass]
 public class ConditionalParityTests
@@ -122,27 +122,6 @@ public class ConditionalParityTests
         Run("switch-one", Switch, "01 00 00 00 00 00 00 00 07");
         Run("switch-default", Switch, "02 00 00 00 00 00 00 00 07 08 09 0a");
         Run("switch-enum-wide", "enum big : uint64 { Low = 1, High = 0xFFFFFFFFFFFFFFFE }; struct root { big e; switch (e) { case big.High: { uint8 high; } default: { uint8 other; } } };", "fe ff ff ff ff ff ff ff 07");
-    }
-
-    /// <summary>The benchmark harness's conditional cases with the harness's fill rule (every byte is the fill value).</summary>
-    [TestMethod]
-    public void BenchmarkConditionalCases_MatchTheRuntime()
-    {
-        string path = System.IO.Path.Combine(BenchmarkFixtures.Root, "benchmarks", "fixtures", "conditional-cases.json");
-        using JsonDocument document = JsonDocument.Parse(System.IO.File.ReadAllText(path));
-        int cases = 0;
-        foreach (JsonElement item in document.RootElement.EnumerateArray())
-        {
-            string definition = item.GetProperty("definition").GetString()!;
-            int size = item.GetProperty("size").GetInt32();
-            byte fill = (byte)item.GetProperty("fill").GetInt32();
-            byte[] bytes = new byte[size];
-            Array.Fill(bytes, fill);
-            ReaderParityTests.RunParity("bench-" + item.GetProperty("name").GetString(), definition, Unaligned, "root", bytes, NoVariables, null, null);
-            cases++;
-        }
-
-        Assert.AreEqual(12, cases);
     }
 
     /// <summary>Compares the generated reader with the runtime for one unaligned little-endian case.</summary>

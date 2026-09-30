@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using CStructSharp.Reading;
@@ -225,51 +224,6 @@ public class StaticWritePlanTests
         };
         CollectionAssert.AreEqual(new byte[] { 1, 2, 7, 8, 9 }, layout.Serialize("root", data));
         AssertSameOutcome(layout, data, null, "captured");
-    }
-
-    /// <summary>Every benchmark fixture that parses re-serializes to identical bytes with and without the plan.</summary>
-    [TestMethod]
-    public void EveryFixture_SerializesIdenticallyWithAndWithoutThePlan()
-    {
-        string directory = TestFixtures.BenchmarkFixtures;
-        int compared = 0;
-        foreach (string path in Directory.GetFiles(Path.Combine(directory, "cases"), "*.json").Order(StringComparer.Ordinal))
-        {
-            using JsonDocument document = JsonDocument.Parse(File.ReadAllText(path), new JsonDocumentOptions { MaxDepth = 4096 });
-            JsonElement root = document.RootElement;
-            if (root.GetProperty("bytes").ValueKind == JsonValueKind.Null || root.GetProperty("byteLength").GetInt64() > 2 * 1024 * 1024 ||
-                root.GetProperty("expectedError").ValueKind != JsonValueKind.Null)
-            {
-                continue;
-            }
-
-            byte[] bytes = TestFixtures.Materialize(root.GetProperty("bytes"));
-            JsonElement options = root.GetProperty("options");
-            var layout = new CStruct(
-                root.GetProperty("definition").GetString()!,
-                options.GetProperty("pointerSize").GetByte(),
-                options.GetProperty("aligned").GetBoolean(),
-                options.GetProperty("littleEndian").GetBoolean());
-            string rootName = root.GetProperty("root").GetString()!;
-            string id = root.GetProperty("id").GetString()!;
-            object parsed;
-            try
-            {
-                parsed = layout.Parse(bytes, rootName);
-            }
-            catch (CStructException)
-            {
-                continue;
-            }
-
-            OperationOutcome planned = OperationOutcome.Of(() => layout.Serialize(rootName, parsed));
-            OperationOutcome memberByMember = OperationOutcome.Of(() => layout.Serialize(rootName, parsed, options: ExecutionPaths.NoFastPathsWrite()));
-            OperationOutcome.AssertSame(memberByMember, planned, id, compareOffsets: false);
-
-            compared++;
-        }
-
-        Assert.IsGreaterThan(30, compared);
     }
 
     /// <summary>Asserts that every write destination gives the same bytes and failure with the static write plan and member by member.</summary>
