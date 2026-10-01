@@ -7,6 +7,11 @@ updates:
       - /benchmarks/*
       - /docs/examples
       - /docs/examples/starter
+    # The generator targets Roslyn 4.8 (Visual Studio 17.8, .NET SDK 8) as its floor, and its tests host it there;
+    # a newer Microsoft.CodeAnalysis would stop it loading in those hosts, so it is raised only on purpose.
+    ignore:
+      - dependency-name: Microsoft.CodeAnalysis.CSharp
+      - dependency-name: Microsoft.CodeAnalysis.Analyzers
     schedule:
       interval: weekly
     groups:

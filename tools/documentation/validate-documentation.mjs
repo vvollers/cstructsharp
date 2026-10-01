@@ -171,7 +171,7 @@ await main(() => {
   const toolManifest = JSON.parse(fs.readFileSync(toolManifestPath, "utf8"));
   const coreProject = parseXml(fs.readFileSync(coreProjectPath, "utf8"));
   const exampleProject = parseXml(fs.readFileSync(exampleProjectPath, "utf8"));
-  assertCondition(toolManifest.tools.docfx.version === "2.80.1", "DocFX must remain pinned to reviewed version 2.80.1.");
+  assertCondition(toolManifest.tools.docfx.version === "2.81.0", "DocFX must remain pinned to reviewed version 2.81.0.");
   assertCondition(!toolManifest.tools.docfx.rollForward, "DocFX tool roll-forward must remain disabled.");
   // The generator is packed from the core project without being referenced as an assembly (ReferenceOutputAssembly=false),
   // so it adds nothing to the API metadata; any other project reference would.

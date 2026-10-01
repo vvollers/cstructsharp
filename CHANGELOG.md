@@ -322,6 +322,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - The benchmark suite no longer carries the unowned `IndexedArrayAccess`, `StringRead` and `CostModel` benchmarks;
   the two compile benchmarks are one, the `Gate` category is gone (its cases the `Impact` subset lacked joined it),
   and the conditional fixtures are declared in `generate-fixtures.mjs`.
+- Dependency updates: DocFX 2.81.0, coverlet 10.1.0, PolySharp 1.16.0, monaco-editor 0.57.0, Prettier 3.9.9,
+  typescript-eslint 8.70.1, eslint-plugin-vue 10.11.1, @iconify/vue 5.0.3, @iconify-icons/vscode-icons 2.0.9 and
+  cspell 10.3.4. The generator keeps Microsoft.CodeAnalysis 4.8 (its supported floor), which Dependabot now ignores.
 
 ## 0.10.0 — 2026-09-26
 

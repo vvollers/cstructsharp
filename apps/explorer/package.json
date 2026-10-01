@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@cstructsharp/app-shared": "*",
-    "monaco-editor": "^0.56.0",
+    "monaco-editor": "^0.57.0",
     "vue": "^3.5.43",
     "vuehex": "^0.7.0"
   }
