@@ -15,6 +15,7 @@ internal static class MemoryTutorialExamples
         CrossPage();
         ExplicitLayout();
         ImportIsf();
+        IsfSymbolsAndForwardDeclarations();
         ImportBtf();
         DescribeBtf();
         BestEffortImport();
@@ -106,6 +107,41 @@ internal static class MemoryTutorialExamples
         object? value = session.Read(new MemoryRegion(source, 0, 8), imported.RootTypeId, "value");
         Require((uint)value! == 7, "Imported explicit offset");
         Require(imported.Schema.GetField(imported.RootTypeId, "value").Offset == 4, "Metadata inspection");
+        #endregion
+    }
+
+    /// <summary>Finds a record through the ISF symbol table and imports a type whose pointer targets a forward-declared struct.</summary>
+    private static void IsfSymbolsAndForwardDeclarations()
+    {
+        #region memory-isf-symbols
+        // "task" points to "files_struct", which the profile never defines: C only needs a forward declaration for that.
+        const string json = """
+            { "metadata": { "format": "6.2.0" },
+              "base_types": { "u32": { "kind": "int", "size": 4, "signed": false, "endian": "little" } },
+              "user_types": { "task": { "kind": "struct", "size": 16, "fields": {
+                "pid": { "offset": 0, "type": { "kind": "base", "name": "u32" } },
+                "files": { "offset": 8, "type": { "kind": "pointer", "subtype": { "kind": "struct", "name": "files_struct" } } }
+              } } },
+              "enums": {},
+              "symbols": { "init_task": { "address": 4096 } } }
+            """;
+        var metadata = new IsfMetadata(Encoding.UTF8.GetBytes(json));
+        Require(metadata.UserTypeNames.SequenceEqual(["task"]), "User type names");
+        Require(metadata.TryGetSymbol("init_task", out ulong address) && address == 0x1000, "Symbol address");
+
+        // The missing struct becomes an address-only type, named in the diagnostics; the pointer still reads.
+        MetadataImportResult imported = metadata.Import("task");
+        Require(imported.Schema.GetType("isf:user:files_struct").Kind == MemoryTypeKind.Incomplete, "Forward declaration");
+        Require(imported.Diagnostics.Any(note => note.StartsWith("isf:user:files_struct:", StringComparison.Ordinal)), "Diagnostic");
+
+        // A toy capture whose byte offsets are addresses: the task record starts at the symbol's address.
+        byte[] capture = new byte[0x1010];
+        capture[0x1000] = 1;
+        capture[0x1008] = 0x40;
+        var session = new MemorySession(imported.Schema);
+        var task = new MemoryRegion(new ByteArrayMemorySource("capture", capture), address, 16);
+        Require((uint)session.Read(task, imported.RootTypeId, "pid")! == 1, "Record at symbol");
+        Require(session.Read(task, imported.RootTypeId, "files") is StoredPointer { Address: 0x40 }, "Opaque pointer");
         #endregion
     }
 

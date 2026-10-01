@@ -6,6 +6,47 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 onward, each version uses these headings in this order and omits the empty ones: *Breaking changes* (each with its
 migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and tooling*.
 
+## Unreleased (0.11.1)
+
+Volatility 3 ISF profiles of real Linux kernels now import. Before this release, importing `task_struct`,
+`mm_struct`, `net` or `module` from a kernel profile failed with `Invalid ISF metadata: The given key was not present
+in the dictionary`, even with `BestEffort`.
+
+### Added
+
+- `IsfMetadata.Symbols` (`IReadOnlyDictionary<string, ulong>`) and `IsfMetadata.TryGetSymbol(name, out address)`
+  read the ISF `symbols` table. Addresses are returned as recorded, without relocation; a negative recorded number
+  (some generators write top-half kernel addresses that way) is returned as its unsigned 64-bit pattern. A symbol
+  without an integer address throws `CStructLayoutException` on first access.
+- `IsfMetadata.UserTypeNames` lists the `user_types` names in ordinal order.
+
+### Changed
+
+- A struct, enum, or base type name that an ISF document references but does not define (a forward declaration)
+  imports as an address-only `MemoryTypeKind.Incomplete` type with a diagnostic, in strict and best-effort imports.
+  A pointer to it reads as an address. Embedding it by value still fails a strict import, now with a message that
+  names the missing type; a best-effort import turns the embedding type into a raw-bytes placeholder. A root name
+  missing from `user_types` throws `CStructLayoutException` naming it.
+- ISF bitfields are placed in the storage unit a C compiler uses: an integer of the storage type's size at a
+  multiple of that size, holding the same physical bits. Profiles that record the byte holding a slice's first bit
+  no longer seem to overrun their struct, so types like `desc_struct` import instead of failing or
+  becoming raw bytes. A packed struct's slice that crosses an aligned unit keeps its recorded place when that fits the
+  struct and otherwise moves to a narrower aligned unsigned integer; a `_Bool` bitfield reads through an unsigned
+  integer. `MemoryField.Offset` and `BitOffset` of an imported ISF bitfield can therefore differ from the profile's
+  numbers.
+- An ISF enum's storage width comes from its own `size`, and a negative constant makes it signed, so a packed enum
+  over an `unsigned int` base and an enum with negative constants over an unsigned base import and read correctly.
+- A by-value member of an incomplete type now fails `MemorySchema` validation with a message that names the
+  incomplete type, rather than reporting that the member exceeds its containing extent.
+
+### Performance
+
+- `IsfMetadata` indexes its type tables once per document, so a lookup by name no longer scans the JSON object.
+
+### Documentation and tooling
+
+- The memory schema guide explains ISF symbols, forward declarations, and how ISF bitfields and enums are placed.
+
 ## 0.11.0 — 2026-10-01
 
 This release is about speed, for both the generated code (`[CStructLayout]`) and the runtime that reads and writes

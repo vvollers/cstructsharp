@@ -150,8 +150,45 @@ with raw-bytes placeholders.
 everything it references, so several roots can share one parsed document. ISF import requires format `6.2.0`. It
 supports base integers, floats and booleans, structs, classes, unions, arrays, enums, pointers, and member
 bitfields. A base type's explicit endianness overrides the schema default that the constructor's `isLittleEndian`
-sets. The constructor's `maxBytes` bounds the document; symbol evaluation, relocations, profile matching, and
-guesses about older formats are outside its scope.
+sets. The constructor's `maxBytes` bounds the document (16 MiB by default; a full kernel profile is often larger,
+so pass a bigger limit for one). Relocations, profile matching, and guesses about older formats are outside its scope.
+
+### Symbols, type names, and forward declarations
+
+A real profile also lists **symbols**: named addresses of kernel variables and functions, such as `init_task`, the
+first task record. `TryGetSymbol(name, out address)` looks one up and `Symbols` lists them all; `UserTypeNames`
+lists the struct, class and union names that `Import` accepts, in ordinal order. An address is reported exactly as the
+profile records it. If the running kernel was loaded at a randomized offset (kernel address space layout
+randomization), adding that offset is the application's job. Some profile generators write an address in the top
+half of the 64-bit space as a negative number; it is returned as the unsigned number with the same bits.
+
+In C, a struct may hold a pointer to a type it has only declared, as in `struct files_struct *files;`. The compiler
+needs no layout for the pointed-to type, and profiles often omit it from `user_types`. The importer turns such a
+name, whether a user type, an enum, or a base type, into an address-only `Incomplete` type and adds a diagnostic that
+names it. A pointer to it reads as an address but cannot be followed. Embedding an undefined type by value is a
+different matter: the containing type has no size for that member, so a strict import fails with a message that
+names the missing type, and a best-effort import turns the containing type into a raw-bytes placeholder.
+
+[!code-csharp[Find a record through the symbol table](../examples/memory-analysis/MemoryTutorialExamples.cs#memory-isf-symbols)]
+
+### How ISF bitfields are placed
+
+ISF describes a bitfield as an integer of its storage type, read at the member's `offset` in that type's byte
+order, and a slice of `bit_length` bits starting `bit_position` bits above the integer's low bit. Profile generators
+disagree about which byte the `offset` names. Some record the start of the compiler's storage unit; others record the
+byte that holds the slice's first bit. In the second form, the last bitfield of the eight-byte x86 segment descriptor
+`desc_struct` appears as a two-byte integer at byte 7, which would end past the struct.
+
+Both forms select the same physical bits, so the importer places each slice in the storage unit a C compiler would
+use: an integer of the storage type's size whose offset is a multiple of that size. That descriptor field becomes bits
+8 to 15 of the two-byte unit at byte 6, and its neighbors in the same unit share offset 6. A packed struct can put a
+slice across such a unit; the slice then keeps its recorded place when that fits the struct, and otherwise moves to
+the widest smaller aligned integer that holds it. A C `_Bool` bitfield, and any slice moved to a smaller integer, is
+read through an unsigned integer of the unit's size, so it reads as a number rather than as a Boolean.
+
+An ISF enum is read with the width of its own `size`. Its base type contributes the byte order, and the constants
+decide the sign: a negative constant makes the storage signed even when the recorded base type is unsigned, as a C
+compiler does for such an enum.
 
 Both importers take the same `MetadataImportOptions`:
 
