@@ -1,8 +1,8 @@
 name: Mutation tests
 
 on:
-  # The complete run takes 24 partitions of up to five hours each, so it has no schedule: start it by hand before a
-  # release and after a change to the mutation scope or its reviewed equivalents (docs/project/mutation-testing.md).
+  # The complete run takes 24 partitions of up to five hours each, so it has no schedule and releases do not require
+  # it: the maintainer starts it by hand when a change warrants it (docs/project/mutation-testing.md).
   workflow_dispatch:
 
 permissions:

@@ -72,9 +72,9 @@ are written below `artifacts/mutation/permanent/`. The `artifacts/` directory is
 
 ## When to run the complete check
 
-Nothing runs the complete check automatically, so run it yourself:
+Nothing runs the complete check automatically, and a release does not require it. The maintainer decides when a
+change warrants the run, for example:
 
-- before a release, so the released code meets the score floor with no unexplained survivors;
 - after a change to the permanent scope (`stryker-config.json`, `PERMANENT_SCOPE_SIZE` in
   `tools/lib/mutation-partitions.mjs`) or to the reviewed equivalents (`contracts/quality/mutation-equivalents.json`);
 - after a larger change to the engine, the expression evaluator or the codecs, where tests can run new code without

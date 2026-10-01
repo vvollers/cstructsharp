@@ -46,6 +46,8 @@ in the dictionary`, even with `BestEffort`.
 ### Documentation and tooling
 
 - The memory schema guide explains ISF symbols, forward declarations, and how ISF bitfields and enums are placed.
+- The complete mutation check is no longer a release step. The maintainer starts it by hand when a change warrants
+  it; the release process and mutation-testing guides say so.
 
 ## 0.11.0 — 2026-10-01
 

@@ -104,7 +104,7 @@ await main(() => {
   assertCondition(valid > 0, "The mutation report has no valid mutants.");
   const score = (100 * detected) / valid;
   const scoreText = score.toFixed(2);
-  assertCondition(score >= 75, `Permanent mutation score ${scoreText}% is below the 75% release gate.`);
+  assertCondition(score >= 75, `Permanent mutation score ${scoreText}% is below the 75% score floor.`);
   assertCondition(survived === qualifiedEquivalents.length, `The final report contains ${survived - qualifiedEquivalents.length} surviving mutants without reviewed equivalence (${qualifiedEquivalents.length} individually reviewed).`);
   assertCondition(noCoverage === 0, `The final report contains ${noCoverage} uncovered mutants.`);
   assertCondition(runtimeErrors === 0, `The final report contains ${runtimeErrors} runtime-error mutants.`);
