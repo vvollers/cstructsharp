@@ -42,9 +42,9 @@ job, median of 3 rounds):
 In the npm package, a parse that runs in the worker is 15–17 % faster (256 KiB–1 MiB inputs), and debug parses of
 any size now complete (a 4 MiB input with 2.1 million debug records used to fail).
 
-Of the 86 cases measured in both versions, 62 got faster and most of the rest are unchanged. Two got worse and are tracked for the next
-release: parsing a 1 MiB `uint32` array is about 8 % slower in both the generated code and the runtime (#56), and
-importing ISF memory metadata allocates 24 % more, at unchanged speed (#57).
+Of the 86 cases measured in both versions, 62 got faster and most of the rest are unchanged. Two got worse and are
+tracked for the next release: parsing a 1 MiB `uint32` array is about 8 % slower in both the generated code and the
+runtime (#56), and importing ISF memory metadata allocates 24 % more, at unchanged speed (#57).
 
 ### Breaking changes
 
