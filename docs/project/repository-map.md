@@ -30,7 +30,7 @@ and which direction their dependencies point.
 | `apps/inspector/` | Binary inspector UI, format examples, and browser checks | Stages the repository WASM publication |
 | `contracts/` | Reviewed compatibility, fixture, quality, and documentation inputs | Read by managed tests, validators, and DocFX |
 | `tools/` | Node validation, measurement, packaging, release, and documentation scripts; `lib/` holds their shared helpers | Takes explicit files/projects as inputs |
-| `.github/workflows/` | Continuous integration, scheduled checks, monthly mutation, docs, and release automation | Runs pinned actions and repository scripts |
+| `.github/workflows/` | Continuous integration, scheduled checks, the manual mutation run, docs, and release automation | Runs pinned actions and repository scripts |
 
 `CStructSharp.NonWeb.slnf` is a solution filter over `CStructSharp.sln` that loads core, the generator, tests, fuzz,
 and benchmarks. Use it for routine development. `CStructSharp.sln` also contains the WASM project; add a new project

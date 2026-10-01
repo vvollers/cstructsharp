@@ -6,7 +6,7 @@ name: Scheduled checks
 #   locked dependencies.
 # - Monthly (first day, 05:23 UTC): the external-link check of the documentation. It depends on third-party sites,
 #   so it stays out of the pull-request gate.
-# The complete mutation run keeps its own monthly schedule in mutation.yml. Each reused workflow can also be started
+# The complete mutation run (mutation.yml) has no schedule; it is started by hand. Each reused workflow can also be started
 # on its own from its workflow page; starting this workflow by hand runs the selected set.
 on:
   schedule:

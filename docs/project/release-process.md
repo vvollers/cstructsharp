@@ -58,6 +58,9 @@ waiting but not runner usage, and GitHub's billed minutes can differ from that s
 
 ## Normal release and local synchronization
 
+Before a release, run the complete mutation check on `main` and wait for it to pass: it has no schedule and the
+release does not run it ([Mutation testing](mutation-testing.md#when-to-run-the-complete-check)).
+
 From a clean, synchronized `main`, dispatch the workflow with the intended version bump:
 
 ```sh

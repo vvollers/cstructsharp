@@ -23,8 +23,9 @@ CStructSharp has many rules for parsing, layout, byte order, limits, and reading
 one of these code paths without checking the important result. Mutation testing is useful here because it shows
 whether the assertions notice a small logic error.
 
-Normal CI checks code coverage. Mutation testing is slower, so the complete mutation run is scheduled separately,
-once a month, and can be started by hand, for example before a release.
+Normal CI checks code coverage. Mutation testing is much slower - the complete run takes several hours of runner time -
+so it has no schedule: it is started by hand when its result matters (see
+[When to run the complete check](#when-to-run-the-complete-check)).
 
 ## Memory analysis
 
@@ -69,9 +70,37 @@ project identity. See [Stryker operating modes](https://stryker-mutator.io/docs/
 This can take much longer than an ordinary test run. Progress is shown in the terminal. The JSON and HTML reports
 are written below `artifacts/mutation/permanent/`. The `artifacts/` directory is ignored by Git.
 
+## When to run the complete check
+
+Nothing runs the complete check automatically, so run it yourself:
+
+- before a release, so the released code meets the score floor with no unexplained survivors;
+- after a change to the permanent scope (`stryker-config.json`, `PERMANENT_SCOPE_SIZE` in
+  `tools/lib/mutation-partitions.mjs`) or to the reviewed equivalents (`contracts/quality/mutation-equivalents.json`);
+- after a larger change to the engine, the expression evaluator or the codecs, where tests can run new code without
+  checking its result.
+
+Start the workflow on `main` from the repository's Actions page (**Mutation tests**, then **Run workflow**) or with
+the GitHub CLI, and follow the run:
+
+```sh
+gh workflow run mutation.yml --ref main
+gh run list --workflow mutation.yml --limit 1
+gh run watch <run id>
+```
+
+The run takes hours, so continue other work meanwhile. When it fails, download its
+`mutation-permanent-aggregate`, `mutation-permanent-p*` and `mutation-memory` artifacts (`gh run download <run id>`)
+and handle each surviving, uncovered or runtime-error mutant as described in
+[What to do with a surviving mutation](#what-to-do-with-a-surviving-mutation). While you iterate, check the files you
+changed with a focused run ([Use a focused run while developing](#use-a-focused-run-while-developing)) instead of
+starting the whole workflow again. At a high `--concurrency`, Stryker can report a mutant that changes nothing as
+Timeout rather than Survived; give a focused run a larger `additional-timeout` in a copy of the configuration before
+reading its timeouts as kills.
+
 ## Complete parallel workflow
 
-The monthly/manual `mutation.yml` workflow runs the same permanent scope in 24 file-based partitions. The largest
+The manual `mutation.yml` workflow runs the same permanent scope in 24 file-based partitions. The largest
 source file runs alone in `p00`; the others are assigned, larger files first, to the smallest remaining group, using
 file size only as an initial scheduling estimate. Every one
 of the 139 configured files belongs to exactly one partition. No character ranges or changed-file filters are used.

@@ -1,10 +1,8 @@
 name: Mutation tests
 
 on:
-  # The complete run takes 24 partitions of up to five hours each, so it runs once a month (first day, 03:17 UTC)
-  # and on demand, for example before a release or after a change to the mutation scope.
-  schedule:
-    - cron: "17 3 1 * *"
+  # The complete run takes 24 partitions of up to five hours each, so it has no schedule: start it by hand before a
+  # release and after a change to the mutation scope or its reviewed equivalents (docs/project/mutation-testing.md).
   workflow_dispatch:
 
 permissions:

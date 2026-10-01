@@ -283,7 +283,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - A release reruns no check that the CI, web and documentation workflows it reuses already ran; its own verification
   covers only the versioned artifacts. The npm package is tested on the minimum Node version on every operating system
   and on the newest Node on Linux.
-- The complete mutation run is monthly (and on demand) instead of weekly.
+- The complete mutation run has no schedule; it is started by hand before a release and after changes to the mutation
+  scope (see `docs/project/mutation-testing.md`).
 - The advisory benchmark drift workflow and its machine-specific baselines are removed; performance changes are judged
   by same-machine before/after runs (`tools/quality/quick-perf-check.mjs`).
 - The release budget file and tools that no release enforced (`release-gate.json`, `non-web-release-budgets.mjs`,
