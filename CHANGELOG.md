@@ -6,7 +6,45 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 onward, each version uses these headings in this order and omits the empty ones: *Breaking changes* (each with its
 migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and tooling*.
 
-## Unreleased
+## 0.11.0 — 2026-10-01
+
+This release is about speed, for both the generated code (`[CStructLayout]`) and the runtime that reads and writes
+layouts without generated code. Measured against 0.10.0 on one machine (.NET 10, BenchmarkDotNet's in-process Quick
+job, median of 3 rounds):
+
+| Generated code | 0.10.0 | 0.11.0 | Change |
+| --- | --- | --- | --- |
+| Parse a 256-element nested struct (`Nested256`) | 11.1 µs | 5.8 µs | 48 % faster, 55 % less memory |
+| Serialize a fixed record | 25 ns | 13 ns | 47 % faster |
+| Parse with debug ranges | 634 ns | 425 ns | 33 % faster |
+| Parse a conditional layout | 1.0 µs | 787 ns | 24 % faster |
+| Parse a fixed record | 14 ns | 11 ns | 22 % faster |
+| Parse strings | 6.1 µs | 4.8 µs | 21 % faster |
+| Zero-copy view over 256 nested structs / a PNG header | 413 ns / 6 ns | 193 ns / 1 ns | 53 % / 78 % faster |
+| Write a record to a stream | 31 ns | 19 ns | 38 % faster |
+| Parse 256 records in a loop | 3.3 µs | 2.5 µs | 25 % faster |
+
+| Runtime (`CStruct`) | 0.10.0 | 0.11.0 | Change |
+| --- | --- | --- | --- |
+| Parse a conditional layout | 34.3 µs | 11.7 µs | 66 % faster, 58 % less memory |
+| Parse a small root from memory | 483 ns | 180 ns | 63 % faster |
+| Resolve an address in a runtime-sized nested array | 707 ns | 292 ns | 59 % faster, 92 % less memory |
+| Parse a record sequence (`ParseMany`, 256 records) | 56.0 µs | 29.0 µs | 48 % faster, 65 % less memory |
+| Parse a pointer graph | 645 ns | 364 ns | 44 % faster, 70 % less memory |
+| `ParseAsync` from a memory stream | 339 ns | 198 ns | 42 % faster, 58 % less memory |
+| Update a field in place | 697 ns | 448 ns | 36 % faster, 74 % less memory |
+| Parse with debug ranges | 618 ns | 409 ns | 34 % faster |
+| Read a typed small root | 977 ns | 663 ns | 32 % faster |
+| Parse strings | 6.4 µs | 5.0 µs | 22 % faster, 57 % less memory |
+| Memory analysis: cached or cross-page scalar read | 396–398 ns | 88–94 ns | 76–78 % faster, 82 % less memory |
+| Memory analysis: follow 4,096 stored pointers | 2.06 ms | 1.05 ms | 49 % faster, 75 % less memory |
+
+In the npm package, a parse that runs in the worker is 15–17 % faster (256 KiB–1 MiB inputs), and debug parses of
+any size now complete (a 4 MiB input with 2.1 million debug records used to fail).
+
+Of the 86 cases measured in both versions, 62 got faster and most of the rest are unchanged. Two got worse and are tracked for the next
+release: parsing a 1 MiB `uint32` array is about 8 % slower in both the generated code and the runtime (#56), and
+importing ISF memory metadata allocates 24 % more, at unchanged speed (#57).
 
 ### Breaking changes
 
