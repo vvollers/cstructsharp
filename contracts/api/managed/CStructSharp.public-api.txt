@@ -935,7 +935,10 @@ namespace CStructSharp.Memory.Metadata
     {
         public IsfMetadata(System.ReadOnlyMemory<byte> json, bool isLittleEndian = true, int maxBytes = 16777216, System.Threading.CancellationToken cancellationToken = default) { }
         public bool IsLittleEndian { get; }
+        public System.Collections.Generic.IReadOnlyDictionary<string, ulong> Symbols { get; }
+        public System.Collections.Generic.IReadOnlyList<string> UserTypeNames { get; }
         public CStructSharp.Memory.Metadata.MetadataImportResult Import(string rootName, CStructSharp.Memory.Metadata.MetadataImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public bool TryGetSymbol(string name, out ulong address) { }
     }
     public sealed class MetadataImportOptions : System.IEquatable<CStructSharp.Memory.Metadata.MetadataImportOptions>
     {

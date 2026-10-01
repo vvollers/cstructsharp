@@ -377,7 +377,13 @@ public sealed class MemorySchema
             }
 
             MemoryTypeDefinition member = this.Reference(type, field.TypeId);
-            if (member.Kind == MemoryTypeKind.Incomplete || field.Offset > type.Size || member.Size > type.Size - field.Offset)
+            if (member.Kind == MemoryTypeKind.Incomplete)
+            {
+                // A forward declaration, function, or void has no size, so a by-value member cannot be placed.
+                throw new CStructLayoutException($"Member '{type.Id}.{field.Name}' has incomplete type '{member.Id}', which has no storage; only a pointer can refer to it.");
+            }
+
+            if (field.Offset > type.Size || member.Size > type.Size - field.Offset)
             {
                 throw new CStructLayoutException($"Member '{type.Id}.{field.Name}' exceeds its containing extent.");
             }

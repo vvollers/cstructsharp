@@ -20,8 +20,29 @@ using CStructSharp.Diagnostics;
 /// <see cref="Import"/> consumes the first three tables for one root user type and everything it references, so
 /// several roots can reuse one parsed document. It keeps the explicit byte order of base types, takes the target
 /// pointer width as an import option (a 32-bit profile analyzed on a 64-bit host must say so), and reserves each
-/// composite's identity before following its fields so recursive pointers terminate. Symbols are not evaluated,
-/// relocations are not applied, and no file is opened.
+/// composite's identity before following its fields so recursive pointers terminate.
+/// </para>
+/// <para>
+/// A reference to a type name that the document does not define imports as an address-only
+/// <see cref="MemoryTypeKind.Incomplete"/> type with a diagnostic. Kernel profiles contain many such names: C lets a
+/// struct hold a pointer to a type that is only forward-declared (<c>struct files_struct *files;</c>), and the profile
+/// generator leaves the pointed-to type out of <c>user_types</c>. A pointer to it reads as an address. Embedding it by
+/// value has no size to lay out, so the containing type fails validation, or becomes a raw-bytes placeholder in a
+/// best-effort import.
+/// </para>
+/// <para>
+/// A bitfield's recorded <c>offset</c> and <c>bit_position</c> name an integer of its storage type at that byte offset
+/// and a slice of that integer counted from its low bit. Profile generators differ on which byte they record: the start
+/// of the compiler's storage unit, or the byte that holds the slice's first bit, so that a two-byte slice in the last
+/// byte of a struct appears to overrun it. The importer moves each slice to the storage unit, aligned to its own size
+/// from the start of the struct, that holds the same physical bits, which is how a C compiler allocates bitfields and
+/// how <see cref="BtfMetadata"/> places them. A slice that crosses such a unit, as in a packed struct, keeps its
+/// recorded placement.
+/// </para>
+/// <para>
+/// <see cref="UserTypeNames"/>, <see cref="Symbols"/> and <see cref="TryGetSymbol"/> read the <c>user_types</c> and
+/// <c>symbols</c> tables directly. A symbol's address is reported as recorded: relocations such as kernel address space
+/// layout randomization (KASLR) are not applied, and no file is opened.
 /// </para>
 /// <para>
 /// A document that is not valid JSON, is not ISF 6.2.0, or lacks or mistypes a property the import needs throws
@@ -32,6 +53,11 @@ using CStructSharp.Diagnostics;
 public sealed class IsfMetadata
 {
     private readonly JsonElement root;
+    private readonly Lazy<Dictionary<string, JsonElement>> userTypes;
+    private readonly Lazy<Dictionary<string, JsonElement>> baseTypes;
+    private readonly Lazy<Dictionary<string, JsonElement>> enums;
+    private readonly Lazy<IReadOnlyList<string>> userTypeNames;
+    private readonly Lazy<IReadOnlyDictionary<string, ulong>> symbols;
 
     /// <summary>Parses a UTF-8 ISF 6.2.0 document.</summary>
     /// <param name="json">The UTF-8 document.</param>
@@ -70,10 +96,52 @@ public sealed class IsfMetadata
         }
 
         this.IsLittleEndian = isLittleEndian;
+
+        // The tables are indexed on first use, so a caller that only reads symbols never indexes types and vice versa.
+        // A JSON object lookup is a linear scan, and a kernel profile has tens of thousands of entries per table.
+        this.userTypes = new(() => this.Index("user_types"));
+        this.baseTypes = new(() => this.Index("base_types"));
+        this.enums = new(() => this.Index("enums"));
+        this.userTypeNames = new(() => Array.AsReadOnly(this.userTypes.Value.Keys.Order(StringComparer.Ordinal).ToArray()));
+        this.symbols = new(this.ReadSymbols);
     }
 
     /// <summary>Gets the byte order of the imported schemas; base types with an explicit order override it.</summary>
     public bool IsLittleEndian { get; }
+
+    /// <summary>Gets the names in the <c>user_types</c> table (the structs, classes and unions <see cref="Import"/> accepts as a root), in ordinal order.</summary>
+    /// <remarks>The list is built on first access. A document without a <c>user_types</c> table has no names.</remarks>
+    /// <exception cref="CStructLayoutException">The <c>user_types</c> table is not a JSON object.</exception>
+    public IReadOnlyList<string> UserTypeNames => this.userTypeNames.Value;
+
+    /// <summary>Gets the <c>symbols</c> table: each symbol's name and its recorded address.</summary>
+    /// <remarks>
+    /// <para>
+    /// An address is a virtual address in the analyzed image, as the profile generator recorded it; relocations such as
+    /// kernel address space layout randomization (KASLR) are not applied. Some generators write an address in the top
+    /// half of a 64-bit address space, such as <c>0xffffffff82614940</c>, as the negative signed number with the same
+    /// bits; such a number is returned as that unsigned bit pattern.
+    /// </para>
+    /// <para>
+    /// The table is read and checked on first access. A document without a <c>symbols</c> table has no symbols. Other
+    /// properties of a symbol, such as its <c>type</c>, are not read.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="CStructLayoutException">The <c>symbols</c> table is not a JSON object, or a symbol has no integer <c>address</c> in the signed or unsigned 64-bit range.</exception>
+    public IReadOnlyDictionary<string, ulong> Symbols => this.symbols.Value;
+
+    /// <summary>Looks up a symbol's recorded address by its exact (case-sensitive) name.</summary>
+    /// <remarks>See <see cref="Symbols"/> for how addresses are read; the first lookup reads the whole table.</remarks>
+    /// <param name="name">The symbol name, such as <c>init_task</c>.</param>
+    /// <param name="address">The recorded address when the symbol exists; otherwise zero.</param>
+    /// <returns>True when the <c>symbols</c> table has an entry named <paramref name="name"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="name"/> is null.</exception>
+    /// <exception cref="CStructLayoutException">The <c>symbols</c> table is malformed.</exception>
+    public bool TryGetSymbol(string name, out ulong address)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        return this.Symbols.TryGetValue(name, out address);
+    }
 
     /// <summary>Imports one named user type and its reachable dependencies.</summary>
     /// <remarks>The result owns compiled descriptors, not the parsed JSON. Use its <see cref="MetadataImportResult.RootTypeId"/>
@@ -88,17 +156,75 @@ public sealed class IsfMetadata
     /// <exception cref="ArgumentNullException"><paramref name="rootName"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The options are out of range.</exception>
     /// <exception cref="CStructLayoutException">
-    ///     <paramref name="rootName"/> is not in <c>user_types</c>, or a reachable type is missing, malformed,
-    ///     unsupported, or exceeds the descriptor budget.
+    ///     <paramref name="rootName"/> is not in <c>user_types</c>, or a reachable type is malformed, unsupported,
+    ///     embeds an undefined type by value (in a strict import), or exceeds the descriptor budget.
     /// </exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public MetadataImportResult Import(string rootName, MetadataImportOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rootName);
         options = MetadataImportOptions.ValidateOrDefault(options);
-        var importer = new Importer(this.root, options);
+        var importer = new Importer(this, options);
         string id = importer.Import(rootName, cancellationToken);
         return MetadataImportResult.Compile(importer.Types.Values, id, importer.Diagnostics, this.IsLittleEndian, options, cancellationToken);
+    }
+
+    /// <summary>Indexes one top-level table by entry name.</summary>
+    /// <remarks>JSON allows a repeated property name; the last entry wins, as it does for <see cref="JsonElement.GetProperty(string)"/>.</remarks>
+    /// <param name="table">The table's property name, such as <c>user_types</c>.</param>
+    /// <returns>The entries by name; empty when the document has no such table.</returns>
+    /// <exception cref="CStructLayoutException">The table is not a JSON object.</exception>
+    private Dictionary<string, JsonElement> Index(string table)
+    {
+        var entries = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        if (!this.root.TryGetProperty(table, out JsonElement element))
+        {
+            return entries;
+        }
+
+        if (element.ValueKind != JsonValueKind.Object)
+        {
+            throw new CStructLayoutException($"ISF table '{table}' is not a JSON object.");
+        }
+
+        foreach (JsonProperty entry in element.EnumerateObject())
+        {
+            entries[entry.Name] = entry.Value;
+        }
+
+        return entries;
+    }
+
+    /// <summary>Reads every symbol's address from the <c>symbols</c> table.</summary>
+    /// <returns>The read-only addresses by symbol name.</returns>
+    /// <exception cref="CStructLayoutException">The table is not an object, or a symbol has no integer address.</exception>
+    private IReadOnlyDictionary<string, ulong> ReadSymbols()
+    {
+        var addresses = new Dictionary<string, ulong>(StringComparer.Ordinal);
+        foreach ((string name, JsonElement symbol) in this.Index("symbols"))
+        {
+            if (symbol.ValueKind != JsonValueKind.Object || !symbol.TryGetProperty("address", out JsonElement address) || address.ValueKind != JsonValueKind.Number)
+            {
+                throw new CStructLayoutException($"ISF symbol '{name}' has no integer address.");
+            }
+
+            // Both readers reject a fraction or an exponent, so only an exact integer is accepted.
+            if (address.TryGetUInt64(out ulong unsigned))
+            {
+                addresses.Add(name, unsigned);
+            }
+            else if (address.TryGetInt64(out long signed))
+            {
+                // A negative address is a top-half address written as a signed number; keep its 64-bit pattern.
+                addresses.Add(name, unchecked((ulong)signed));
+            }
+            else
+            {
+                throw new CStructLayoutException($"ISF symbol '{name}' has no integer address in the 64-bit range.");
+            }
+        }
+
+        return addresses.AsReadOnly();
     }
 
     /// <summary>The state of one import: the descriptors built so far, the generated-ID counter, and diagnostics.</summary>
@@ -107,21 +233,21 @@ public sealed class IsfMetadata
     /// functions, enum codecs) in the order it meets them. A type reached by name gets its ID from the name, so it is
     /// imported once; a user type is reserved as an empty composite before its fields are followed, so a field that
     /// points back to it finds the ID and stops. Only by-value recursion is invalid, and <see cref="MemorySchema"/>
-    /// checks for that.
+    /// checks for that. A name missing from its table is recorded once as an incomplete type under the same ID.
     /// </remarks>
     private sealed class Importer
     {
-        private readonly JsonElement root;
+        private readonly IsfMetadata document;
         private readonly int pointerSize;
         private readonly int maxTypes;
         private int nextId;
 
         /// <summary>Starts an import over a parsed document.</summary>
-        /// <param name="root">Root element of the document.</param>
+        /// <param name="document">The parsed document, whose table indexes the import reads.</param>
         /// <param name="options">Validated import options.</param>
-        internal Importer(JsonElement root, MetadataImportOptions options)
+        internal Importer(IsfMetadata document, MetadataImportOptions options)
         {
-            this.root = root;
+            this.document = document;
             this.pointerSize = options.PointerSize;
             this.maxTypes = options.MaxTypes;
         }
@@ -155,6 +281,12 @@ public sealed class IsfMetadata
         /// <exception cref="CStructLayoutException">The root or a reachable type is missing, malformed, unsupported, or over budget.</exception>
         internal string Import(string rootName, CancellationToken cancellationToken)
         {
+            // Any other name may be a forward declaration, but the root must have a layout to import.
+            if (!this.document.userTypes.Value.ContainsKey(rootName))
+            {
+                throw new CStructLayoutException($"ISF user type '{rootName}' is not in user_types.");
+            }
+
             string id = UserId(rootName);
             try
             {
@@ -181,6 +313,82 @@ public sealed class IsfMetadata
         /// <param name="name">The name in <c>base_types</c>.</param>
         /// <returns>The ID.</returns>
         private static string BaseId(string name) => "isf:base:" + name;
+
+        /// <summary>
+        ///     Moves a bitfield to the storage unit that holds its bits: an integer of the storage type's size, at a
+        ///     multiple of that size from the start of the containing type, as a C compiler allocates it.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// ISF reads a bitfield as an integer of its storage type at <paramref name="offset"/>, in that type's byte
+        /// order, and selects <paramref name="width"/> bits starting at bit <paramref name="bitPosition"/>, counted from
+        /// the integer's low bit. Some profile generators record the byte that holds the slice's first bit as the offset
+        /// instead of the start of the storage unit, so the integer they describe can run past the end of its struct.
+        /// Any integer that contains the same physical bits selects the same value, so moving the slice changes nothing a
+        /// read or write sees, and it makes every slice of one unit share that unit's offset.
+        /// </para>
+        /// <para>
+        /// The slice's position is first expressed as a bit index counted from the struct's first byte in the unit's own
+        /// bit order: low bit first for little-endian storage, and high bit first for big-endian storage, whose low bits
+        /// are in its last byte. Dividing that index by the unit's width in bits gives the unit. For example, a
+        /// little-endian two-byte unit with offset 7 and bit position 0 starts at struct bit 56, which is bit 8 of the
+        /// unit at byte 6.
+        /// </para>
+        /// <para>
+        /// The choices, in order: the aligned unit of the declared size; the recorded placement, when it fits the
+        /// containing type (a slice that crosses an aligned unit, as a packed struct can have); and the widest narrower
+        /// aligned unit that holds the slice and fits, for a packed struct whose last bits cannot hold a whole declared
+        /// unit, such as a four-bit <c>unsigned int</c> slice in the last two bytes of a six-byte struct. An invalid slice,
+        /// or one that no unit holds, keeps its recorded placement for schema validation to accept or reject.
+        /// </para>
+        /// </remarks>
+        /// <param name="offset">The recorded byte offset.</param>
+        /// <param name="bitPosition">The recorded bit position, counted from the low bit of the integer at <paramref name="offset"/>.</param>
+        /// <param name="width">The slice's width in bits.</param>
+        /// <param name="storageSize">The storage type's size in bytes.</param>
+        /// <param name="littleEndian">Whether the storage type is little-endian.</param>
+        /// <param name="containerSize">The containing type's size in bytes.</param>
+        /// <returns>The unit's byte offset, the slice's position from the unit's low bit, and the unit's size in bytes.</returns>
+        private static (int Offset, int BitPosition, int UnitSize) StorageUnitPlacement(int offset, int bitPosition, int width, int storageSize, bool littleEndian, int containerSize)
+        {
+            if (storageSize is not (1 or 2 or 4 or 8) || offset < 0 || bitPosition < 0 || width <= 0 || bitPosition + (long)width > storageSize * 8L)
+            {
+                return (offset, bitPosition, storageSize);
+            }
+
+            long first = (offset * 8L) + (littleEndian ? bitPosition : (storageSize * 8L) - bitPosition - width);
+            if (TryUnit(storageSize, out (int, int, int) placement))
+            {
+                return placement;
+            }
+
+            if ((long)offset + storageSize <= containerSize)
+            {
+                return (offset, bitPosition, storageSize);
+            }
+
+            for (int size = storageSize / 2; size >= 1; size /= 2)
+            {
+                if (TryUnit(size, out placement))
+                {
+                    return placement;
+                }
+            }
+
+            return (offset, bitPosition, storageSize);
+
+            // Places the slice in the aligned unit of the given size that holds its first bit, if the whole slice fits
+            // that unit and the unit fits the containing type.
+            bool TryUnit(int size, out (int Offset, int BitPosition, int UnitSize) unit)
+            {
+                long unitBits = size * 8L;
+                long unitOffset = first / unitBits * size;
+                long bitInUnit = first - (unitOffset * 8);
+                bool fits = bitInUnit + width <= unitBits && unitOffset + size <= containerSize;
+                unit = fits ? ((int)unitOffset, (int)(littleEndian ? bitInUnit : unitBits - bitInUnit - width), size) : default;
+                return fits;
+            }
+        }
 
         /// <summary>Runs one step.</summary>
         /// <param name="step">The step.</param>
@@ -271,7 +479,12 @@ public sealed class IsfMetadata
                 return id;
             }
 
-            JsonElement type = this.root.GetProperty("base_types").GetProperty(name);
+            if (!this.document.baseTypes.Value.TryGetValue(name, out JsonElement type))
+            {
+                this.AddUndefined(id, name, "base type");
+                return id;
+            }
+
             int size = type.GetProperty("size").GetInt32();
             string kind = type.GetProperty("kind").GetString()!;
             if (kind == "void")
@@ -309,7 +522,12 @@ public sealed class IsfMetadata
                 return;
             }
 
-            JsonElement type = this.root.GetProperty("user_types").GetProperty(name);
+            if (!this.document.userTypes.Value.TryGetValue(name, out JsonElement type))
+            {
+                this.AddUndefined(id, name, "user type");
+                return;
+            }
+
             int size = type.GetProperty("size").GetInt32();
             MemoryTypeKind kind = type.GetProperty("kind").GetString() switch
             {
@@ -347,8 +565,26 @@ public sealed class IsfMetadata
                 string storageId = this.DescriptorId(storage);
                 int bit = descriptor.GetProperty("bit_position").GetInt32();
                 int width = descriptor.GetProperty("bit_length").GetInt32();
-                composite.Fields.Add(new(property.Name, storageId, offset, bit, width, this.IsSigned(storage)));
-                work.Push(new Step(StepKind.Descriptor, storageId, storage, null, null));
+                bool signed = false;
+                bool importStorage = true;
+                if (this.TryGetStorage(storage, out int storageSize, out bool littleEndian, out signed, out bool isBool))
+                {
+                    (offset, bit, int unitSize) = StorageUnitPlacement(offset, bit, width, storageSize, littleEndian, composite.Size);
+
+                    // A narrower unit than the declared type, or a C _Bool (whose codec is not an integer a slice can be
+                    // cut from), reads its bits through a plain unsigned integer of the unit's size and byte order.
+                    if (unitSize != storageSize || isBool)
+                    {
+                        storageId = this.UnsignedStorage(unitSize, littleEndian);
+                        importStorage = false;
+                    }
+                }
+
+                composite.Fields.Add(new(property.Name, storageId, offset, bit, width, signed));
+                if (importStorage)
+                {
+                    work.Push(new Step(StepKind.Descriptor, storageId, storage, null, null));
+                }
             }
             else
             {
@@ -378,15 +614,34 @@ public sealed class IsfMetadata
             this.Add(id, new(id, string.Empty, isArray ? MemoryTypeKind.Array : MemoryTypeKind.Pointer, size, elementTypeId: element, count: count, provenance: "ISF 6.2.0 " + (isArray ? "array" : "pointer")));
         }
 
-        /// <summary>Imports an enum as a scalar whose codec is a generated Portable enum declaration over its base type.</summary>
+        /// <summary>Imports an enum as a scalar whose codec is a generated Portable enum declaration over an integer of the enum's size.</summary>
+        /// <remarks>
+        /// The enum's own <c>size</c> is what it occupies in memory, and profile generators do not always record a base
+        /// type of that size: a packed C enum (<c>enum rw_hint { ... } __packed;</c>) is one byte wide but may name
+        /// <c>unsigned int</c> as its base. Its constants also decide its signedness, because a C compiler gives an enum
+        /// with a negative constant a signed type, while some generators still record an unsigned base. So an integer
+        /// base contributes only its byte order and its signedness, a negative constant makes the storage signed, and the
+        /// width comes from <c>size</c>.
+        /// </remarks>
         /// <param name="id">The enum's ID.</param>
         /// <param name="name">Enum name in the <c>enums</c> table.</param>
         private void ImportEnum(string id, string name)
         {
-            JsonElement data = this.root.GetProperty("enums").GetProperty(name);
-            MemoryTypeDefinition storage = this.Types[this.ImportBase(data.GetProperty("base").GetString()!)];
-            string enumName = "__isf_enum_" + this.nextId++;
-            var source = new StringBuilder($"enum {enumName} : {storage.ScalarType} {{");
+            if (!this.document.enums.Value.TryGetValue(name, out JsonElement data))
+            {
+                this.AddUndefined(id, name, "enum");
+                return;
+            }
+
+            // An enum's base type is part of its own definition, not a forward reference, so it must exist.
+            string baseName = data.GetProperty("base").GetString()!;
+            MemoryTypeDefinition storage = this.Types[this.ImportBase(baseName)];
+            if (storage.Kind != MemoryTypeKind.Scalar)
+            {
+                throw new CStructLayoutException($"ISF enum '{name}' has base type '{baseName}', which is not a defined scalar.");
+            }
+
+            var constants = new List<(string Name, System.Numerics.BigInteger Value)>();
             foreach (JsonProperty constant in data.GetProperty("constants").EnumerateObject())
             {
                 if (constant.Name.Length == 0 || constant.Name.Any(character => !char.IsAsciiLetterOrDigit(character) && character != '_'))
@@ -395,12 +650,26 @@ public sealed class IsfMetadata
                 }
 
                 // Parsing the raw token as an integer rejects fractional or exponential constants instead of rounding.
-                System.Numerics.BigInteger value = System.Numerics.BigInteger.Parse(constant.Value.GetRawText(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
-                source.Append(constant.Name).Append('=').Append(value.ToString(CultureInfo.InvariantCulture)).Append(',');
+                constants.Add((constant.Name, System.Numerics.BigInteger.Parse(constant.Value.GetRawText(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture)));
+            }
+
+            int size = data.GetProperty("size").GetInt32();
+            string codec = storage.ScalarType!;
+            if (size is 1 or 2 or 4 or 8 && (codec.StartsWith("int", StringComparison.Ordinal) || codec.StartsWith("uint", StringComparison.Ordinal)))
+            {
+                bool signed = codec.StartsWith("int", StringComparison.Ordinal) || constants.Any(constant => constant.Value.Sign < 0);
+                codec = (signed ? "int" : "uint") + (size * 8).ToString(CultureInfo.InvariantCulture);
+            }
+
+            string enumName = "__isf_enum_" + this.nextId++;
+            var source = new StringBuilder($"enum {enumName} : {codec} {{");
+            foreach ((string constantName, System.Numerics.BigInteger value) in constants)
+            {
+                source.Append(constantName).Append('=').Append(value.ToString(CultureInfo.InvariantCulture)).Append(',');
             }
 
             source.Append("};");
-            this.Add(id, new(id, name, MemoryTypeKind.Scalar, data.GetProperty("size").GetInt32(), scalarType: enumName, declaration: source.ToString(), provenance: id, isLittleEndian: storage.IsLittleEndian));
+            this.Add(id, new(id, name, MemoryTypeKind.Scalar, size, scalarType: enumName, declaration: source.ToString(), provenance: id, isLittleEndian: storage.IsLittleEndian));
         }
 
         /// <summary>Adds a descriptor within the descriptor budget.</summary>
@@ -417,19 +686,68 @@ public sealed class IsfMetadata
             this.Types.Add(id, type);
         }
 
-        /// <summary>Reads the signedness of a bitfield's storage type, looking through an enum to its base type.</summary>
-        /// <param name="descriptor">The storage type descriptor of a bitfield.</param>
-        /// <returns>True when the storage base type is signed.</returns>
-        private bool IsSigned(JsonElement descriptor)
+        /// <summary>Records a name the document references but does not define as an address-only type.</summary>
+        /// <param name="id">The ID the reference chose for the name.</param>
+        /// <param name="name">The missing name.</param>
+        /// <param name="table">What the name was expected to be, for the diagnostic: <c>user type</c>, <c>enum</c> or <c>base type</c>.</param>
+        private void AddUndefined(string id, string name, string table)
         {
+            this.Add(id, new(id, name, MemoryTypeKind.Incomplete, 0, provenance: id));
+            this.Diagnostics.Add($"{id}: {table} '{name}' is referenced but not defined (a forward declaration); address-only use is supported.");
+        }
+
+        /// <summary>Reads the size, byte order and signedness of a bitfield's storage type, looking through an enum to its base type.</summary>
+        /// <param name="descriptor">The storage type descriptor of a bitfield.</param>
+        /// <param name="size">The storage size in bytes.</param>
+        /// <param name="littleEndian">Whether the storage is little-endian.</param>
+        /// <param name="signed">Whether the storage base type is signed.</param>
+        /// <param name="isBool">Whether the storage is a base type of kind <c>bool</c>, rather than an integer or an enum.</param>
+        /// <returns>
+        ///     False when the storage is not a defined base type or an enum over one; the storage then imports as
+        ///     whatever its descriptor names, and schema validation reports it.
+        /// </returns>
+        private bool TryGetStorage(JsonElement descriptor, out int size, out bool littleEndian, out bool signed, out bool isBool)
+        {
+            (size, littleEndian, signed, isBool) = (0, false, false, false);
             string kind = descriptor.GetProperty("kind").GetString()!;
             string name = descriptor.GetProperty("name").GetString()!;
             if (kind == "enum")
             {
-                name = this.root.GetProperty("enums").GetProperty(name).GetProperty("base").GetString()!;
+                if (!this.document.enums.Value.TryGetValue(name, out JsonElement data))
+                {
+                    return false;
+                }
+
+                name = data.GetProperty("base").GetString()!;
             }
 
-            return this.root.GetProperty("base_types").GetProperty(name).GetProperty("signed").GetBoolean();
+            if (kind is not ("enum" or "base") || !this.document.baseTypes.Value.TryGetValue(name, out JsonElement type) ||
+                !type.TryGetProperty("endian", out JsonElement endian))
+            {
+                return false;
+            }
+
+            size = type.GetProperty("size").GetInt32();
+            littleEndian = endian.ValueEquals("little");
+            signed = type.GetProperty("signed").GetBoolean();
+            isBool = kind == "base" && type.GetProperty("kind").ValueEquals("bool");
+            return true;
+        }
+
+        /// <summary>Gets the ID of an unsigned integer storage type for bitfields, adding it on first use.</summary>
+        /// <param name="size">The integer's size in bytes: 1, 2, 4 or 8.</param>
+        /// <param name="littleEndian">The integer's byte order.</param>
+        /// <returns>The storage type's ID.</returns>
+        private string UnsignedStorage(int size, bool littleEndian)
+        {
+            string scalar = "uint" + (size * 8).ToString(CultureInfo.InvariantCulture);
+            string id = "isf:bitfield-storage:" + scalar + (littleEndian ? ":little" : ":big");
+            if (!this.Types.ContainsKey(id))
+            {
+                this.Add(id, new(id, scalar, MemoryTypeKind.Scalar, size, scalarType: scalar, provenance: "ISF 6.2.0 bitfield storage", isLittleEndian: littleEndian));
+            }
+
+            return id;
         }
 
         /// <summary>One step of the walk.</summary>
