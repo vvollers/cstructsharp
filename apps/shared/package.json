@@ -1,6 +1,6 @@
 {
   "name": "@cstructsharp/app-shared",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "private": true,
   "type": "module",
   "description": "Source shared by the explorer and the inspector: components and modules both applications compile from source.",
