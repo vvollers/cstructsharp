@@ -6,7 +6,7 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 onward, each version uses these headings in this order and omits the empty ones: *Breaking changes* (each with its
 migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and tooling*.
 
-## Unreleased (0.11.1)
+## 0.11.1 — 2026-10-01
 
 Volatility 3 ISF profiles of real Linux kernels now import. Before this release, importing `task_struct`,
 `mm_struct`, `net` or `module` from a kernel profile failed with `Invalid ISF metadata: The given key was not present
