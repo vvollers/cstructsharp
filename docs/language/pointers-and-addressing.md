@@ -194,7 +194,7 @@ struct rec {
 ```
 
 with a one-byte pointer and input `02 07 09`, `ParseWithDebug` lists `rec.p` (offset 0), then `rec.tail` (offset 1),
-then the target's `rec.p.v` (offset 2). A failure while following a pointer still names the pointer field and
+then the target's `rec.p.value.v` (offset 2). A failure while following a pointer still names the pointer field and
 reports the offset just after its coordinate, as it would if the pointer were followed in place. Pointers in a union
 view are never followed, so this rule does not apply to them.
 

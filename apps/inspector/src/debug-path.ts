@@ -10,22 +10,20 @@ export function tokenizePath(stackString: string): string[] {
 }
 
 /**
- * Convert a schema field's path into the path used by the JSON result.
- * Pointer results have extra properties: address holds the stored address and value holds the
- * data found there. Add those steps where necessary so clicks select the right JSON property.
+ * Convert a debug entry's path into the path of the same value in the JSON result.
+ * The parser names a pointer's target with a value step (root.ptr.value.a), exactly as the JSON
+ * pointer object holds its target in value, so the tokens already walk the JSON result. The one
+ * addition: an entry that ends at the pointer itself covers the stored address, so it maps to the
+ * pointer's address property.
+ * @param item The debug entry whose path is mapped.
+ * @param result The parsed JSON result, used to see whether the path ends at a pointer.
+ * @returns The JSON path steps, the root name first.
  */
 export function debugEntryJsonPath(item: DebugItem, result?: unknown): string[] {
-  const path: string[] = [];
+  const path = tokenizePath(item.path);
   let value = result;
 
-  for (const segment of tokenizePath(item.path)) {
-    // Follow pointer wrappers before looking up the next ordinary field.
-    while (isPointer(value)) {
-      path.push("value");
-      value = value.value;
-    }
-
-    path.push(segment);
+  for (const segment of path) {
     value =
       value !== null && typeof value === "object"
         ? (value as Record<string, unknown>)[segment]
@@ -33,9 +31,7 @@ export function debugEntryJsonPath(item: DebugItem, result?: unknown): string[] 
   }
 
   // If the path ends at the pointer itself, highlight address: these bytes store the address.
-  if (isPointer(value)) path.push("address");
-
-  return path;
+  return isPointer(value) ? [...path, "address"] : path;
 }
 
 /**

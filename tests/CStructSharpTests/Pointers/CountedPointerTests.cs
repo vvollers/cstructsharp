@@ -109,11 +109,36 @@ public class CountedPointerTests
 
         ParseResult result = layout.ParseWithDebug(new byte[] { 2, 7, 9, }, "rec");
 
-        CollectionAssert.AreEqual(new[] { "rec.p", "rec.tail", "rec.p.v", }, result.Debug.Select(record => record.Path).ToArray());
+        CollectionAssert.AreEqual(new[] { "rec.p", "rec.tail", "rec.p.value.v", }, result.Debug.Select(record => record.Path).ToArray());
         Assert.IsTrue(((Pointer)result.Debug[0].Value!).IsDereferenced);
     }
 
-    /// <summary>Each struct element of a counted target reports its own indexed debug path after the struct's fields.</summary>
+    /// <summary>
+    ///     The number and character elements of counted targets are each recorded under the target's path
+    ///     (<c>rec.v.value</c>) after the struct's fields, and the debug parse returns the values a plain parse returns.
+    /// </summary>
+    [TestMethod]
+    public void DebugRecords_RecordCountedValueElements()
+    {
+        var layout = new CStruct("struct rec { uint16 *v @count(n); uint8 n; char *s @count(n); };", pointerSize: 1);
+        byte[] bytes = [3, 2, 7, 1, 0, 2, 0, (byte)'o', (byte)'k',];
+
+        ParseResult result = layout.ParseWithDebug(bytes, "rec");
+
+        CollectionAssert.AreEqual(
+            new[] { "rec.v [0,1)", "rec.n [1,2)", "rec.s [2,3)", "rec.v.value [3,5)", "rec.v.value [5,7)", "rec.s.value [7,8)", "rec.s.value [8,9)", },
+            result.Debug.Select(record => $"{record.Path} [{record.Start},{record.End})").ToArray());
+        StructValue plain = layout.Parse(bytes, "rec");
+        object? numbers = result.Value.Get<Pointer>("v").Value;
+        Assert.AreEqual(plain.Get<Pointer>("v").Value!.GetType(), numbers!.GetType());
+        CollectionAssert.AreEqual(new ushort[] { 1, 2, }, ((IEnumerable<object?>)numbers).ToArray());
+        Assert.AreEqual("ok", result.Value.Get<Pointer>("s").Value);
+    }
+
+    /// <summary>
+    ///     Each struct element of a counted target reports its own indexed debug path (<c>rec.items.value[0]</c>) after the
+    ///     struct's fields.
+    /// </summary>
     [TestMethod]
     public void DebugRecords_IndexCountedStructElements()
     {
@@ -121,7 +146,7 @@ public class CountedPointerTests
 
         ParseResult result = layout.ParseWithDebug(new byte[] { 2, 2, 7, 8, }, "rec");
 
-        CollectionAssert.AreEqual(new[] { "rec.items", "rec.n", "rec.items[0].a", "rec.items[1].a", }, result.Debug.Select(record => record.Path).ToArray());
+        CollectionAssert.AreEqual(new[] { "rec.items", "rec.n", "rec.items.value[0].a", "rec.items.value[1].a", }, result.Debug.Select(record => record.Path).ToArray());
         CollectionAssert.AreEqual(new long[] { 0, 1, 2, 3, }, result.Debug.Select(record => record.Start).ToArray());
     }
 

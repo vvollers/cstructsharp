@@ -58,7 +58,7 @@ public class ReadEngineDebugTests
             "rec.value [13, 15) u = " + value["value"],
             "rec.p [15, 16) node = " + value["p"],
             "rec.tail [16, 17) uint8 = 9",
-            "rec.p.v [17, 18) uint8 = 85",
+            "rec.p.value.v [17, 18) uint8 = 85",
         ];
         string[] actual = debug.Select(record => record.ToString()).ToArray();
         Assert.AreEqual(string.Join("\n", expected), string.Join("\n", actual));

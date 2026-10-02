@@ -76,7 +76,7 @@ public class ManagedFuzzTests
             ["pointer-union"] = (
                 26,
                 106,
-                "5CEEF89A6B1B467E9707EECD204021319ABAB5A24EEBD238729AE67526C1DF4E"),
+                "A547A1774CA7D116A71F6B07C0621D50BE4BC3E0CDDA6C44AEA6CD1286423346"),
         };
 
         Assert.AreEqual(1, report.SchemaVersion);

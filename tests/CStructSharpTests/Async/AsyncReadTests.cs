@@ -61,7 +61,9 @@ public class AsyncReadTests
                 Assert.AreEqual(expected.Debug.Count, actual.Debug.Count, kind);
                 for (int index = 0; index < expected.Debug.Count; index++)
                 {
-                    long shift = async.CanSeek ? 0 : Origin;
+                    // The pointed-to value is read at the stored address, which the async forms count from the origin
+                    // (see above), so its record lies Origin bytes further than the synchronous stream form's.
+                    long shift = (async.CanSeek ? 0 : Origin) - (expected.Debug[index].Path == "root.link.value" ? Origin : 0);
                     Assert.AreEqual(expected.Debug[index].Start - shift, actual.Debug[index].Start, $"{kind}: {expected.Debug[index].Path}");
                     Assert.AreEqual(expected.Debug[index].End - shift, actual.Debug[index].End, kind);
                 }

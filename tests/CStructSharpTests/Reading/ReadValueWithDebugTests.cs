@@ -39,6 +39,25 @@ public class ReadValueWithDebugTests
                                   """;
 
     /// <summary>
+    ///     An unaligned layout, one-byte pointers, of one pointer per kind of target: a struct, a union, an enum, a string, a
+    ///     pointer to a pointer, a pointer array to structs and one to bytes.
+    /// </summary>
+    private const string PointerLayout = """
+                                         enum color : uint8 { red = 1, green = 2 };
+                                         struct pair { uint8 a; uint8 b; };
+                                         union choice { uint8 small; uint16 large; };
+                                         struct root {
+                                             pair *ptr;
+                                             choice *uptr;
+                                             color *tintp;
+                                             char *text;
+                                             uint8 **deep;
+                                             pair *items[2];
+                                             uint8 *bytes[2];
+                                         };
+                                         """;
+
+    /// <summary>
     ///     The bytes of <see cref="Layout"/>: head 0 (<c>AA</c>), value 1-2 (<c>0x1234</c>), inner 3-4, u 5-6, sarr 7-10,
     ///     arr 11-13, the bitfield byte 14 (<c>0xAB</c>: low 3, high 21), ptr 15 (to 22), bytep 16 (to 24), deep 17 (to
     ///     16, the stored <c>bytep</c>), tint 18 (green), name 19-21 (<c>"hi"</c>), then the pointed-to pair 22-23 and
@@ -50,14 +69,23 @@ public class ReadValueWithDebugTests
     ];
 
     /// <summary>
+    ///     The bytes of <see cref="PointerLayout"/>: the pointers 0-8 (ptr to 9, uptr to 11, tintp to 13, text to 14, deep
+    ///     to 17, items to 9 and 11, bytes to 13 and 18), then the pair 9-10, the union 11-12, green at 13, <c>"hi"</c> at
+    ///     14-16, the intermediate pointer at 17 (to 18) and the byte 18.
+    /// </summary>
+    private static readonly byte[] PointerBytes = [9, 11, 13, 14, 17, 9, 11, 13, 18, 0x11, 0x22, 0x34, 0x12, 2, (byte)'h', (byte)'i', 0, 18, 0x55,];
+
+    /// <summary>
     ///     Each selection returns what <c>ReadValue</c> returns and records each value it read, as
     ///     <c>path [start,end) type = value</c>, on every input form.
     /// </summary>
     /// <remarks>
     ///     A scalar is one record (<c>root.value [1,3)</c>), an array one per element, a bitfield one over its byte, a
     ///     struct element its members under the indexed path (<c>root.sarr[1].a</c>), a pointer its stored address and its
-    ///     struct target's members, <c>.address</c> the stored address alone, a scalar <c>.value</c> its target byte under
-    ///     the pointer's path, an enum its number, and a terminated string its bytes with the terminator.
+    ///     struct target's members under <c>root.ptr.value</c>, <c>.address</c> the stored address alone under the
+    ///     pointer's path, a scalar <c>.value</c> its target byte under the selected path (<c>root.bytep.value</c>), a
+    ///     pointer left to follow its own target and then its stored address, an enum its number, and a terminated string
+    ///     its bytes with the terminator.
     /// </remarks>
     /// <param name="path">The selected path.</param>
     /// <param name="expected">The expected records, separated by <c>|</c>.</param>
@@ -74,13 +102,15 @@ public class ReadValueWithDebugTests
     [DataRow("root.arr[1]", "root.arr [12,13) uint8 = 8")]
     [DataRow("root.low", "root.low [14,15) uint8 = 3")]
     [DataRow("root.high", "root.high [14,15) uint8 = 21")]
-    [DataRow("root.ptr", "root.ptr.a [22,23) uint8 = 17|root.ptr.b [23,24) uint8 = 34|root.ptr [15,16) pair = pointer")]
+    [DataRow("root.ptr", "root.ptr.value.a [22,23) uint8 = 17|root.ptr.value.b [23,24) uint8 = 34|root.ptr [15,16) pair = pointer")]
     [DataRow("root.ptr.address", "root.ptr [15,16) pair = 22")]
-    [DataRow("root.ptr.value", "root.ptr.a [22,23) uint8 = 17|root.ptr.b [23,24) uint8 = 34")]
-    [DataRow("root.ptr.value.b", "root.ptr.b [23,24) uint8 = 34")]
-    [DataRow("root.bytep.value", "root.bytep [24,25) uint8 = 51")]
-    [DataRow("root.deep.value", "root.deep [16,17) uint8 = pointer")]
-    [DataRow("root.deep.value.value", "root.deep [24,25) uint8 = 51")]
+    [DataRow("root.ptr.value", "root.ptr.value.a [22,23) uint8 = 17|root.ptr.value.b [23,24) uint8 = 34")]
+    [DataRow("root.ptr.value.b", "root.ptr.value.b [23,24) uint8 = 34")]
+    [DataRow("root.bytep.value", "root.bytep.value [24,25) uint8 = 51")]
+    [DataRow("root.deep.address", "root.deep [17,18) uint8 = 16")]
+    [DataRow("root.deep.value", "root.deep.value.value [24,25) uint8 = 51|root.deep.value [16,17) uint8 = pointer")]
+    [DataRow("root.deep.value.address", "root.deep.value [16,17) uint8 = 24")]
+    [DataRow("root.deep.value.value", "root.deep.value.value [24,25) uint8 = 51")]
     [DataRow("root.tint", "root.tint [18,19) color = 2")]
     [DataRow("root.name", "root.name [19,22) ascii_string_zero = hi")]
     public void ReadValueWithDebug_EverySelection_RecordsEachValueRead(string path, string expected)
@@ -109,6 +139,13 @@ public class ReadValueWithDebugTests
     [DataRow("root.arr")]
     [DataRow("root.low")]
     [DataRow("root.ptr")]
+    [DataRow("root.ptr.address")]
+    [DataRow("root.ptr.value")]
+    [DataRow("root.ptr.value.b")]
+    [DataRow("root.bytep.value")]
+    [DataRow("root.deep.value")]
+    [DataRow("root.deep.value.address")]
+    [DataRow("root.deep.value.value")]
     [DataRow("root.tint")]
     [DataRow("root.name")]
     public void ReadValueWithDebug_NestedSelection_MatchesWholeRootRecords(string path)
@@ -173,7 +210,10 @@ public class ReadValueWithDebugTests
         Assert.AreEqual("root.grid[1][1].a [6,7) uint8 = 6|root.grid[1][1].b [7,8) uint8 = 7", Records(cell.Debug));
     }
 
-    /// <summary>The struct target of one element of a pointer array records its members under the element's path.</summary>
+    /// <summary>
+    ///     The struct target of one element of a pointer array records its members under the element's path extended by
+    ///     <c>value</c>.
+    /// </summary>
     [TestMethod]
     public void ReadValueWithDebug_PointerArrayElementTarget_UsesTheElementPath()
     {
@@ -182,7 +222,7 @@ public class ReadValueWithDebugTests
 
         ReadResult target = layout.ReadValueWithDebug(bytes, "root.items[1].value");
 
-        Assert.AreEqual("root.items[1].a [4,5) uint8 = 48|root.items[1].b [5,6) uint8 = 64", Records(target.Debug));
+        Assert.AreEqual("root.items[1].value.a [4,5) uint8 = 48|root.items[1].value.b [5,6) uint8 = 64", Records(target.Debug));
         CollectionAssert.IsSubsetOf(
             target.Debug.Select(record => record.Path).ToList(),
             layout.ParseWithDebug(bytes, "root").Debug.Select(record => record.Path).ToList());
@@ -201,8 +241,9 @@ public class ReadValueWithDebugTests
     [DataRow("root.codes", "root.codes [7,8) uint8 = 7|root.codes [8,9) uint8 = 8")]
     [DataRow("root.codes[1]", "root.codes [8,9) uint8 = 8")]
     [DataRow("root.high", "root.high [9,10) uint8 = 21")]
+    [DataRow("root.link", "root.link.value.a [11,12) uint8 = 17|root.link.value.b [12,13) uint8 = 34|root.link [10,11) pair = pointer")]
     [DataRow("root.link.address", "root.link [10,11) pair = 11")]
-    [DataRow("root.link.value", "root.link.a [11,12) uint8 = 17|root.link.b [12,13) uint8 = 34")]
+    [DataRow("root.link.value", "root.link.value.a [11,12) uint8 = 17|root.link.value.b [12,13) uint8 = 34")]
     public void ReadValueWithDebug_GuideExample_GivesTheDocumentedRecords(string path, string expected)
     {
         const string layout = """
@@ -221,6 +262,137 @@ public class ReadValueWithDebugTests
         byte[] bytes = [0x00, 0x34, 0x12, 0x01, 0x02, 0x03, 0x04, 0x07, 0x08, 0xAB, 0x0B, 0x11, 0x22,];
 
         Assert.AreEqual(expected, Records(cstruct.ReadValueWithDebug(bytes, path).Debug));
+    }
+
+    /// <summary>
+    ///     A whole-root debug parse records every followed target under the pointer's path extended by one <c>value</c> per
+    ///     level: a struct's members, a union's views and own record, an enum's number, a string's bytes, an intermediate
+    ///     pointer and its byte, and each element target of a pointer array; the pointers' own records keep their paths,
+    ///     an element of a pointer array its index (<c>root.bytes[1]</c>) whatever its target.
+    /// </summary>
+    [TestMethod]
+    public void ParseWithDebug_PointerTargets_RecordUnderValuePaths()
+    {
+        var layout = new CStruct(PointerLayout, pointerSize: 1, aligned: false);
+
+        ParseResult parsed = layout.ParseWithDebug(PointerBytes, "root");
+
+        Assert.AreEqual(
+            string.Join(
+                "|",
+                "root.ptr [0,1) pair = pointer",
+                "root.uptr [1,2) choice = pointer",
+                "root.tintp [2,3) color = pointer",
+                "root.text [3,4) char = pointer",
+                "root.deep [4,5) uint8 = pointer",
+                "root.items[0] [5,6) pair = pointer",
+                "root.items[1] [6,7) pair = pointer",
+                "root.bytes[0] [7,8) uint8 = pointer",
+                "root.bytes[1] [8,9) uint8 = pointer",
+                "root.ptr.value.a [9,10) uint8 = 17",
+                "root.ptr.value.b [10,11) uint8 = 34",
+                "root.uptr.value.small [11,12) uint8 = 52",
+                "root.uptr.value.large [11,13) uint16 = 4660",
+                "root.uptr.value [11,13) choice = choice",
+                "root.tintp.value [13,14) color = 2",
+                "root.text.value [14,17) char = hi",
+                "root.deep.value.value [18,19) uint8 = 85",
+                "root.deep.value [17,18) uint8 = pointer",
+                "root.items[0].value.a [9,10) uint8 = 17",
+                "root.items[0].value.b [10,11) uint8 = 34",
+                "root.items[1].value.a [11,12) uint8 = 52",
+                "root.items[1].value.b [12,13) uint8 = 18",
+                "root.bytes[0].value [13,14) uint8 = 2",
+                "root.bytes[1].value [18,19) uint8 = 85"),
+            Records(parsed.Debug));
+    }
+
+    /// <summary>
+    ///     No record of a pointer target shares a path with a pointer's own record: before every followed level added a
+    ///     <c>value</c> segment, a union target's own record took the pointer's path (<c>root.uptr</c>) over different
+    ///     bytes. In <see cref="PointerLayout"/>, which has no scalar array, no two records share a path at all: each
+    ///     element of a pointer array keeps its index, because each has a target of its own.
+    /// </summary>
+    [TestMethod]
+    public void ParseWithDebug_PointerTargets_NeverShareAPointersPath()
+    {
+        var layout = new CStruct(PointerLayout, pointerSize: 1, aligned: false);
+
+        IReadOnlyList<DebugData> records = layout.ParseWithDebug(PointerBytes, "root").Debug;
+
+        HashSet<string> pointers = [.. records.Where(record => record.Value is Pointer).Select(record => record.Path),];
+        foreach (DebugData record in records.Where(record => record.Value is not Pointer))
+        {
+            Assert.DoesNotContain(record.Path, pointers, $"{record.Path} [{record.Start},{record.End})");
+        }
+
+        CollectionAssert.AllItemsAreUnique(records.Select(record => record.Path).ToList());
+    }
+
+    /// <summary>
+    ///     A selection through any pointer of <see cref="PointerLayout"/> records what the whole-root debug parse records
+    ///     for the same bytes: the same paths with the same ranges.
+    /// </summary>
+    /// <param name="path">The selected path.</param>
+    [TestMethod]
+    [DataRow("root.ptr.value")]
+    [DataRow("root.uptr")]
+    [DataRow("root.uptr.value")]
+    [DataRow("root.uptr.value.large")]
+    [DataRow("root.tintp.value")]
+    [DataRow("root.text.value")]
+    [DataRow("root.deep")]
+    [DataRow("root.deep.value")]
+    [DataRow("root.deep.value.value")]
+    [DataRow("root.items[1].value")]
+    [DataRow("root.items[1].value.b")]
+    [DataRow("root.bytes[1].value")]
+    public void ReadValueWithDebug_PointerSelection_MatchesWholeRootRecords(string path)
+    {
+        var layout = new CStruct(PointerLayout, pointerSize: 1, aligned: false);
+        HashSet<string> whole = [.. layout.ParseWithDebug(PointerBytes, "root").Debug.Select(record => $"{record.Path} [{record.Start},{record.End})"),];
+
+        IReadOnlyList<DebugData> records = layout.ReadValueWithDebug(PointerBytes, path).Debug;
+
+        Assert.IsNotEmpty(records, path);
+        foreach (DebugData record in records)
+        {
+            Assert.Contains($"{record.Path} [{record.Start},{record.End})", whole, path);
+        }
+    }
+
+    /// <summary>
+    ///     Every record of a whole-root parse of <see cref="PointerLayout"/> names a path that selects its value: a selection
+    ///     of that path records the same path over the same bytes, and resolves to the record's first byte.
+    /// </summary>
+    [TestMethod]
+    public void ParseWithDebug_PointerRecordPaths_AreSelectionPaths()
+    {
+        var layout = new CStruct(PointerLayout, pointerSize: 1, aligned: false);
+
+        foreach (DebugData record in layout.ParseWithDebug(PointerBytes, "root").Debug)
+        {
+            string expected = $"{record.Path} [{record.Start},{record.End})";
+            IReadOnlyList<DebugData> selected = layout.ReadValueWithDebug(PointerBytes, record.Path).Debug;
+            Assert.Contains(expected, selected.Select(item => $"{item.Path} [{item.Start},{item.End})").ToList(), expected);
+            Assert.AreEqual(record.Start, layout.ResolveAddress(PointerBytes, record.Path), expected);
+        }
+    }
+
+    /// <summary>
+    ///     The scalar example in <c>docs/guides/debug-data-and-addresses.md</c> ("Records of a pointer and its target"):
+    ///     for <c>struct box { uint8 *flag; }</c> and input <c>01 2A</c>, the parse records the stored address under
+    ///     <c>box.flag</c> and the byte 42 under <c>box.flag.value</c>.
+    /// </summary>
+    [TestMethod]
+    public void ParseWithDebug_GuideScalarPointer_RecordsAddressAndTargetApart()
+    {
+        var layout = new CStruct("struct box { uint8 *flag; };", pointerSize: 1);
+
+        ParseResult parsed = layout.ParseWithDebug(new byte[] { 0x01, 0x2A, }, "box");
+
+        Assert.AreEqual("box.flag [0,1) uint8 = pointer|box.flag.value [1,2) uint8 = 42", Records(parsed.Debug));
+        Assert.AreEqual(1L, ((Pointer)parsed.Debug[0].Value!).Address);
     }
 
     /// <summary>A null pointer's <c>.value</c> reads nothing: the value is null and there are no records.</summary>

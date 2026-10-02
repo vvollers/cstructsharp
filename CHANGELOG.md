@@ -8,6 +8,25 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ## Unreleased
 
+### Breaking changes
+
+- **Breaking (debug records):** every pointer level a debug read follows adds a `value` segment to the paths of the
+  target's records, in `ParseWithDebug` and `ReadValueWithDebug` alike. A struct target's members are
+  `root.ptr.value.a` (was `root.ptr.a`), a union target's own record is `root.uptr.value` (was `root.uptr`, the path of
+  the pointer's address record), a selected scalar target is `root.bytep.value` (was `root.bytep`), the levels of
+  `uint8 **deep` are `root.deep.value` and `root.deep.value.value`, and element 3 of a counted target is
+  `root.nodes.value[3].a` (was `root.nodes[3].a`). Every element of a pointer array keeps its index: the pointers of
+  `uint8 *bytes[2]` are `root.bytes[0]` and `root.bytes[1]` (both were `root.bytes`), with the targets
+  `root.bytes[0].value` and `root.bytes[1].value`. A whole-root debug parse now also records scalar, enum, string and
+  caller-codec pointer targets, intermediate pointer levels, and each element of a counted target of numbers,
+  characters, enums or values; a selection of a pointer with a level left records that level's target too. The record
+  of a pointer's stored address keeps the pointer's path, so no target record shares it. Apart from the elements of a
+  scalar array, which still share their member's path, a record's path is now its value's path in the result and,
+  except inside a counted target, a valid selection path. Update conflict detection compares the same ranges as
+  before. Migration: match target records by the path with `.value` inserted after each pointer, as in the result's
+  `Pointer.Value` and in `ReadValue` paths, and match each pointer-array element by its index; code that inserted the
+  `value` step itself (as the inspector's JSON highlighting did) drops that step. (#55)
+
 ### Fixed
 
 - A `MemorySchema` (and a BTF or ISF import) accepts a struct or union member placed more than 1,000,000 bytes from

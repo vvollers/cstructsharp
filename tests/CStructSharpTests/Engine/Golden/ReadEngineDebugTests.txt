@@ -8,5 +8,5 @@
   CStructReadException 36
 
 @test DebugParse_RecordsEveryValueInReadOrder
-@hash 21206c72a140897422b6b882aaa32bdafe0bd2ecbb079b293708ca04a8faa29f 8
+@hash 7045e262d5efb62bebb284d9686774300de7e8e75e939a90e5228401b239e585 8
   ok 8

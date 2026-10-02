@@ -94,7 +94,8 @@ internal static partial class ReadEngine
     ///     Follows an address to its target, checking in this order: nothing for a null pointer, disabled or suppressed
     ///     following, or a one-level <c>void *</c>; then the depth limit, the target address (relative overflow), its bounds,
     ///     the count of an in-place counted target, the target size limit, the cycle check, and cancellation. The target is
-    ///     read one level deeper, and the depth, the active target and the position are restored whatever happens.
+    ///     read one level deeper, and the depth, the active target and the position are restored whatever happens. A debug
+    ///     read records the target (<see cref="ReadRecordedPointerTarget{TCursor}"/>).
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor, just after the stored address.</param>
@@ -155,6 +156,12 @@ internal static partial class ReadEngine
         try
         {
             cursor.Position = targetAddress;
+            if (state.Debug is { } debug)
+            {
+                // A debug read records the target under the followed pointer's path extended by `value`.
+                return ReadRecordedPointerTarget(ref cursor, ref state, target, depth - 1, elementCount, new DebugPath(debug.Target, "value"), scratch);
+            }
+
             return depth > 1
                        ? ReadPointerValue(ref cursor, ref state, target, depth - 1, elementCount, scratch)
                        : ReadPointerTargetValue(ref cursor, ref state, target, elementCount, scratch);
@@ -200,7 +207,7 @@ internal static partial class ReadEngine
         case ReadPointerTargetKind.Enum:
             return ValueDecoding.CreateEnumValue(target.Enum!, ReadCodecValue(ref cursor, target.Codec.Primitive, scratch));
         case ReadPointerTargetKind.Composite:
-            // A debug parse records the target's members under the pointer's path.
+            // A debug read records the target's members under the target's path, `value` after the pointer's.
             return state.Debug is { } debug ? ReadRecordedPointerComposite(ref cursor, ref state, target, debug.Target) : ReadPointerComposite(ref cursor, ref state, target);
         case ReadPointerTargetKind.Terminated:
             return ReadCodecValue(ref cursor, target.Codec.Primitive, scratch);
@@ -262,7 +269,10 @@ internal static partial class ReadEngine
     /// <summary>
     ///     Reads a counted target's elements from the position: characters as one string (trimmed; wide text validated),
     ///     fixed-width numbers as a typed array in blocks, and anything else one element after another into a list, with
-    ///     cancellation observed before each element.
+    ///     cancellation observed before each element. A debug read records every element under the target's path
+    ///     (<see cref="DebugRecorder.Target"/>): a character, number, enum number or value as one record each (where the
+    ///     recorder keeps target values, <see cref="DebugRecorder.RecordsTargetValues"/>), and a struct or union element's
+    ///     members under the element's path (<c>nodes.value[3]</c>).
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor, at the first element.</param>
@@ -275,6 +285,13 @@ internal static partial class ReadEngine
         where TCursor : struct, IReadCursor
     {
         PrimitiveCodec codec = target.Codec.Primitive;
+        DebugRecorder? debug = state.Debug;
+        DebugPath? path = debug?.Target;
+        string typeName = target.Field.TypeSpelling;
+
+        // The recorder of the non-composite elements, absent outside a debug read and in an update's layout capture;
+        // without it no element position is taken.
+        DebugRecorder? valueRecorder = debug is { RecordsTargetValues: true, } ? debug : null;
         switch (target.Kind)
         {
         case ReadPointerTargetKind.CountedText:
@@ -282,7 +299,10 @@ internal static partial class ReadEngine
                 char[] characters = new char[count];
                 for (int index = 0; index < count; index++)
                 {
-                    characters[index] = (char)ReadCodecValue(ref cursor, codec, scratch);
+                    long start = valueRecorder is null ? 0 : cursor.Position;
+                    object character = ReadCodecValue(ref cursor, codec, scratch);
+                    valueRecorder?.Record(start, cursor.Position, path, character, typeName);
+                    characters[index] = (char)character;
                 }
 
                 string text = state.FixedText(new string(characters));
@@ -296,24 +316,31 @@ internal static partial class ReadEngine
             }
 
         case ReadPointerTargetKind.CountedNumbers:
+            if (valueRecorder is not null)
+            {
+                return RecordCountedNumbers(ref cursor, valueRecorder, codec, count, typeName);
+            }
+
             return count == 0 ? PrimitiveArrayReader.Empty(codec) : cursor.ReadPrimitiveArray(codec, count);
         default:
             {
-                // A debug parse records each composite element under the pointer's path with the element's index.
-                DebugPath? path = state.Debug?.Target;
                 var values = new List<object?>(count);
                 for (int index = 0; index < count; index++)
                 {
                     cursor.ThrowIfCancellationRequested();
-                    values.Add(
-                        target.Kind switch
-                        {
-                            ReadPointerTargetKind.CountedComposites => state.Debug is null
-                                                                           ? ReadPointerComposite(ref cursor, ref state, target)
-                                                                           : ReadRecordedPointerComposite(ref cursor, ref state, target, DebugRecorder.CountedElementPath(path, index)),
-                            ReadPointerTargetKind.CountedEnums => ValueDecoding.CreateEnumValue(target.Enum!, ReadCodecValue(ref cursor, codec, scratch)),
-                            _ => ReadTargetCodecValue(ref cursor, ref state, target, "Counted target has no reader: ", scratch),
-                        });
+                    if (target.Kind == ReadPointerTargetKind.CountedComposites)
+                    {
+                        // A debug read records each composite element under the target's path with the element's index.
+                        values.Add(debug is null ? ReadPointerComposite(ref cursor, ref state, target) : ReadRecordedPointerComposite(ref cursor, ref state, target, DebugRecorder.CountedElementPath(path, index)));
+                        continue;
+                    }
+
+                    long start = valueRecorder is null ? 0 : cursor.Position;
+                    object value = target.Kind == ReadPointerTargetKind.CountedEnums
+                                       ? ValueDecoding.CreateEnumValue(target.Enum!, ReadCodecValue(ref cursor, codec, scratch))
+                                       : ReadTargetCodecValue(ref cursor, ref state, target, "Counted target has no reader: ", scratch);
+                    valueRecorder?.Record(start, cursor.Position, path, value is EnumValueResult number ? number.Value : value, typeName);
+                    values.Add(value);
                 }
 
                 return values;

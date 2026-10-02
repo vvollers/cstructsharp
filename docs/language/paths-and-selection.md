@@ -97,6 +97,13 @@ root.ptr.value.value   ──► final target for T **
 The words `address` and `value` are special only immediately after a pointer. An ordinary non-pointer field may use
 either name normally.
 
+Debug records use the same spelling. The record of a pointer's stored address carries the pointer's path
+(`root.ptr`), and every level a debug parse follows adds `value`: a target member is `root.ptr.value.a`, the final
+target of `T **` is `root.ptr.value.value`, and an element of a pointer array keeps its index (`root.bytes[1].value`).
+So a debug record's path selects the value it describes, except an element of a scalar array, which shares its
+member's path, and an element of a counted target (`root.nodes.value[3].a`), which no path can select. See
+[Inspect byte ranges and addresses](../guides/debug-data-and-addresses.md#records-of-a-pointer-and-its-target).
+
 ## Operations that accept paths
 
 | Operation | What a path selects |

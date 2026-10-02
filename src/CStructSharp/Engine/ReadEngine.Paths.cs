@@ -673,9 +673,9 @@ internal static partial class ReadEngine
     /// <summary>
     ///     Reads what a resolved path selects as <see cref="ReadTarget{TCursor}"/> does, recording every value read under
     ///     the path a whole-root debug parse gives it (<c>ReadValueWithDebug</c>): a pointer's stored address as one
-    ///     record over its storage; a pointer's target under the pointer's path - a struct's members and a union's own
-    ///     record as a debug parse records them, any other target (or a pointer left to follow) as one record over what
-    ///     was read, and nothing for a null pointer; a struct or union through its debug program; and a selected field,
+    ///     record over its storage, under the pointer's path; a pointer's target under the selected path, which ends in
+    ///     <c>value</c>, as <see cref="ReadRecordedPointerTarget{TCursor}"/> records it, and nothing for a null pointer; a
+    ///     struct or union through its debug program; and a selected field,
     ///     element or row through its debug read - a scalar as one record, an array as one record per element (a struct
     ///     element's members under the element's path), a bitfield as one record over its storage unit.
     /// </summary>
@@ -712,27 +712,11 @@ internal static partial class ReadEngine
             state.PointerDepth = target.PointerAccessorsConsumed;
             CompiledField pointer = target.Effective!;
 
-            // A struct or union the target reaches records its members under the pointer's path, as a debug parse does.
-            debug.Target = path;
-            object value;
-            if (target.RemainingPointerDepth > 0)
-            {
-                CompiledField levels = programs.GetPointerView(target.Declared!, target.Indexes, pointer, target.RemainingPointerDepth, state.Layout.PointerSize);
-                ReadPointerTarget remaining = programs.GetDebugPointerTarget(compilation, target.Declared!, target.Indexes, levels);
-                value = ReadPointerValue(ref cursor, ref state, remaining, target.RemainingPointerDepth, -1, scratch);
-            }
-            else
-            {
-                ReadPointerTarget reached = programs.GetDebugPointerTarget(compilation, target.Declared!, target.Indexes, pointer);
-                value = ReadPointerTargetValue(ref cursor, ref state, reached, 1, scratch);
-                if (reached.Kind == ReadPointerTargetKind.Composite)
-                {
-                    return value;
-                }
-            }
-
-            debug.Record(target.Address, cursor.Position, path, value is EnumValueResult number ? number.Value : value, pointer.TypeSpelling);
-            return value;
+            // The target is recorded as a whole-root debug parse records a followed target; its path already ends in `value`.
+            int levels = target.RemainingPointerDepth;
+            CompiledField reached = levels > 0 ? programs.GetPointerView(target.Declared!, target.Indexes, pointer, levels, state.Layout.PointerSize) : pointer;
+            ReadPointerTarget description = programs.GetDebugPointerTarget(compilation, target.Declared!, target.Indexes, reached);
+            return ReadRecordedPointerTarget(ref cursor, ref state, description, levels, levels > 0 ? -1 : 1, path, scratch);
         }
 
         bool composite = (!target.IsArray || target.SelectsArrayElement) &&

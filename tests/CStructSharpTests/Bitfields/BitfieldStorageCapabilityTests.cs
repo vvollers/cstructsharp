@@ -233,8 +233,8 @@ public class BitfieldStorageCapabilityTests
 
         stream.Position = 0;
         (dynamic _, IReadOnlyList<DebugData> debug) = cstruct.ParseWithDebug(stream, "root.selected.value");
-        Assert.IsTrue(debug.Any(item => item.Start == 3 && item.Path == "root.selected.low"));
-        Assert.IsTrue(debug.Any(item => item.Start == 3 && item.Path == "root.selected.high"));
+        Assert.IsTrue(debug.Any(item => item.Start == 3 && item.Path == "root.selected.value.low"));
+        Assert.IsTrue(debug.Any(item => item.Start == 3 && item.Path == "root.selected.value.high"));
 
         stream.Position = 0;
         Assert.AreEqual(3L, cstruct.ResolveAddress(stream, "root.selected.value.high"));

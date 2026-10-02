@@ -17,7 +17,7 @@ public class Int24Tests
         (dynamic parsed, IReadOnlyList<DebugData> debug) = parser.ParseWithDebug(stream, "root");
         Assert.AreEqual(8388607, (int)parsed.items[0].value);
         Assert.AreEqual(-1, (int)parsed.target.Value.value);
-        DebugData entry = debug.Single(item => item.Path == "root.target.value");
+        DebugData entry = debug.Single(item => item.Path == "root.target.value.value");
         Assert.AreEqual(7L, entry.Start);
         Assert.AreEqual(10L, entry.End);
         stream.Position = 0;

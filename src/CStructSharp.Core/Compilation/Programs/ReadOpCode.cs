@@ -537,13 +537,13 @@ internal enum ReadOpCode : byte
 
     /// <summary>
     ///     Debug programs: <see cref="ReadPointer"/> whose record follows the records of a target it follows in place, and
-    ///     whose struct target is recorded under the pointer's path.
+    ///     whose target is recorded under the pointer's path extended by <c>value</c> for each level followed.
     /// </summary>
     DebugPointer,
 
     /// <summary>
-    ///     Debug programs: <see cref="ReadPointerArray"/> with a record per pointer; a pointer to a struct or union is
-    ///     recorded under its element path.
+    ///     Debug programs: <see cref="ReadPointerArray"/> with a record per pointer under its element path
+    ///     (<c>bytes[1]</c>), and each target under that path extended by <c>value</c>.
     /// </summary>
     DebugPointerArray,
 

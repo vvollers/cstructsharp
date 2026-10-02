@@ -36,7 +36,7 @@ same rows plus exact test methods, round-trip conditions, and limitation text us
 | [Typedefs](structs-unions-enums-typedefs.md#typedefs) | V | V | V | — | V | V | V | V | `typedefs` |
 | [Unions](structs-unions-enums-typedefs.md#unions) | V | V | V | — | V | V | V | V | `unions` |
 | [Pointers](pointers-and-addressing.md#pointers) | L | V | V | — | L | L | V | L | `pointers` |
-| [Multi-level pointers](pointers-and-addressing.md#multi-level-pointers) | V | L | V | — | V | V | V | V | `multi-pointers` |
+| [Multi-level pointers](pointers-and-addressing.md#multi-level-pointers) | V | V | V | — | V | V | V | V | `multi-pointers` |
 | [Alignment/endian](layout-alignment-and-padding.md#alignment-and-endian) | V | V | V | — | V | V | V | V | `alignment-and-endian-overrides` |
 | [Bounded failures](limits-and-diagnostics.md#bounded-failures) | V | V | V | V | V | V | V | V | `bounded-failures` |
 | [Invalid layouts](limits-and-diagnostics.md#invalid-layouts) | V | V | V | V | V | V | V | V | `invalid-layouts` |
@@ -85,8 +85,7 @@ stored pointer address counts from, and how cancellation surfaces, each with the
 A terminated-string update cannot grow beyond the existing storage plan or move later fields.
 
 Pointer parsing, selected reads, and writes require explicit coordinate and following rules. Serialization writes
-addresses; it does not relocate target objects. Multi-level-pointer debugging records pointer storage but does not
-add a separate final primitive target range on every route.
+addresses; it does not relocate target objects.
 
 ## Binary metadata type limits
 

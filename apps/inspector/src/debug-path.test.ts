@@ -61,11 +61,12 @@ describe("findDebugEntryIndicesByPath", () => {
         value: { leaf: 12 },
       },
     };
+    // The parser names each followed target with a value step, so its paths walk the JSON result.
     const entries = [
-      debugItem({ path: "root.ptr.myfield", start: 32, end: 36 }),
-      debugItem({ path: "root.ptr.value", start: 36, end: 40 }),
-      debugItem({ path: "root.ptr.nested.leaf", start: 48, end: 52 }),
-      debugItem({ path: "root.ptr.nested", start: 40, end: 44 }),
+      debugItem({ path: "root.ptr.value.myfield", start: 32, end: 36 }),
+      debugItem({ path: "root.ptr.value.value", start: 36, end: 40 }),
+      debugItem({ path: "root.ptr.value.nested.value.leaf", start: 48, end: 52 }),
+      debugItem({ path: "root.ptr.value.nested", start: 40, end: 44 }),
       debugItem({ path: "root.ptr", start: 0, end: 4 }),
       debugItem({ path: "root.value.leaf", start: 4, end: 8 }),
     ];
@@ -88,9 +89,16 @@ describe("findDebugEntryIndicesByPath", () => {
       "value",
       "leaf",
     ]);
+    expect(debugEntryJsonPath(entries[3]!, result)).toEqual([
+      "root",
+      "ptr",
+      "value",
+      "nested",
+      "address",
+    ]);
   });
 
-  it("maps pointer chains and pointers within struct arrays", () => {
+  it("maps pointer chains, scalar targets and pointers within struct arrays", () => {
     const result = {
       root: {
         entries: [
@@ -110,17 +118,86 @@ describe("findDebugEntryIndicesByPath", () => {
             },
           },
         ],
+        bytep: { kind: "pointer", address: 24, depth: 1, dereferenced: true, value: 51 },
       },
     };
-    const entry = debugItem({ path: "root.entries[0].ptr.leaf" });
-    expect(debugEntryJsonPath(entry, result)).toEqual([
+    expect(
+      debugEntryJsonPath(debugItem({ path: "root.entries[0].ptr.value.value.leaf" }), result),
+    ).toEqual(["root", "entries", "0", "ptr", "value", "value", "leaf"]);
+    // The intermediate pointer's own record covers its stored address.
+    expect(debugEntryJsonPath(debugItem({ path: "root.entries[0].ptr.value" }), result)).toEqual([
       "root",
       "entries",
       "0",
       "ptr",
       "value",
+      "address",
+    ]);
+    // A scalar target and the pointer's storage map to different JSON properties.
+    expect(debugEntryJsonPath(debugItem({ path: "root.bytep.value" }), result)).toEqual([
+      "root",
+      "bytep",
       "value",
-      "leaf",
+    ]);
+    expect(debugEntryJsonPath(debugItem({ path: "root.bytep" }), result)).toEqual([
+      "root",
+      "bytep",
+      "address",
+    ]);
+  });
+
+  it("maps each element of a scalar pointer array and its target separately", () => {
+    const result = {
+      root: {
+        bytes: [
+          { kind: "pointer", address: 13, depth: 1, dereferenced: true, value: 2 },
+          { kind: "pointer", address: 18, depth: 1, dereferenced: true, value: 85 },
+        ],
+      },
+    };
+    // The parser indexes every pointer-array element, so its storage and its target each map to one JSON property.
+    expect(debugEntryJsonPath(debugItem({ path: "root.bytes[1]" }), result)).toEqual([
+      "root",
+      "bytes",
+      "1",
+      "address",
+    ]);
+    expect(debugEntryJsonPath(debugItem({ path: "root.bytes[1].value" }), result)).toEqual([
+      "root",
+      "bytes",
+      "1",
+      "value",
+    ]);
+    const entries = [
+      debugItem({ path: "root.bytes[0]", start: 0, end: 1 }),
+      debugItem({ path: "root.bytes[1]", start: 1, end: 2 }),
+      debugItem({ path: "root.bytes[0].value", start: 13, end: 14 }),
+      debugItem({ path: "root.bytes[1].value", start: 18, end: 19 }),
+    ];
+    expect(findDebugEntryIndicesByPath(entries, ["root", "bytes", "1", "value"], result)).toEqual([
+      3,
+    ]);
+    expect(findDebugEntryIndicesByPath(entries, ["root", "bytes", "1"], result)).toEqual([1, 3]);
+  });
+
+  it("maps the elements of a counted pointer target through the pointer's value list", () => {
+    const result = {
+      root: {
+        nodes: {
+          kind: "pointer",
+          address: 8,
+          depth: 1,
+          dereferenced: true,
+          value: [{ a: 1 }, { a: 2 }],
+        },
+      },
+    };
+    expect(debugEntryJsonPath(debugItem({ path: "root.nodes.value[1].a" }), result)).toEqual([
+      "root",
+      "nodes",
+      "value",
+      "1",
+      "a",
     ]);
   });
 

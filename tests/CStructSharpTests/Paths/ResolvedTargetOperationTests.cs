@@ -182,7 +182,7 @@ public class ResolvedTargetOperationTests
 
         stream.Position = 0;
         (object? _, IReadOnlyList<DebugData> debug) = cstruct.ReadValueWithDebug(stream, "root.ptr.value");
-        Assert.IsTrue(debug.Any(item => item.Start == 4 && item.Path == "root.ptr.value"));
+        Assert.IsTrue(debug.Any(item => item.Start == 4 && item.Path == "root.ptr.value.value"));
 
         stream.Position = 0;
         cstruct.Update(stream, "root.ptr.value.value", (byte)0xA5);

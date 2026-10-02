@@ -64,8 +64,8 @@ public class CompositeArrayTests
         var parser = new CStruct(layout, pointerSize: 1, aligned: false);
         using var stream = new MemoryStream(new byte[] { 2, 4, 11, 0, 22, 0 });
         (_, IReadOnlyList<DebugData> debug) = parser.ParseWithDebug(stream, "root");
-        Assert.AreEqual(2L, debug.Single(item => item.Path == "root.data[0].val").Start);
-        Assert.AreEqual(4L, debug.Single(item => item.Path == "root.data[1].val").Start);
+        Assert.AreEqual(2L, debug.Single(item => item.Path == "root.data[0].value.val").Start);
+        Assert.AreEqual(4L, debug.Single(item => item.Path == "root.data[1].value.val").Start);
         Assert.AreEqual(0L, debug.Single(item => item.Path == "root.data[0]").Start);
         Assert.AreEqual(1L, debug.Single(item => item.Path == "root.data[1]").Start);
     }

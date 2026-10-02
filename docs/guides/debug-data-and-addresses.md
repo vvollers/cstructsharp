@@ -70,12 +70,45 @@ With input `00 34 12 01 02 03 04 07 08 AB 0B 11 22`, the target of `link` is the
 | `root.codes` | an array of the bytes 7 and 8 | `root.codes [7, 8)`, `root.codes [8, 9)`: one record per element |
 | `root.codes[1]` | `8` | `root.codes [8, 9)` |
 | `root.high` | `21` | `root.high [9, 10)`: a bitfield covers its whole storage unit |
+| `root.link` | a `Pointer` | `root.link.value.a [11, 12)`, `root.link.value.b [12, 13)`, then `root.link [10, 11)` |
 | `root.link.address` | `11` | `root.link [10, 11)`: the stored address |
-| `root.link.value` | a `StructValue` | `root.link.a [11, 12)`, `root.link.b [12, 13)` |
+| `root.link.value` | a `StructValue` | `root.link.value.a [11, 12)`, `root.link.value.b [12, 13)` |
 
 The elements of a struct array keep their index in the path because each element has members of its own. The
-elements of a scalar array share their member's path, as they do in a whole-root parse. A pointer target's records
-use the pointer's path, and a null pointer's `.value` returns `null` with no records.
+elements of a scalar array share their member's path, as they do in a whole-root parse. A null pointer's `.value`
+returns `null` with no records.
+
+## Records of a pointer and its target
+
+A pointer occupies two places in the input: the bytes that store the address, and the bytes at that address (the
+*target*). Its debug records keep the two apart, using the same names as the result. In the result, a pointer is a
+`Pointer` object whose `Address` is the stored number and whose `Value` is the target. In a path, `.address`
+selects the stored number and `.value` follows the pointer. So:
+
+- The record of the stored address carries the pointer's own path: `root.link [10, 11)`.
+- Every level a parse follows adds a `value` segment. The members of the `pair` above are `root.link.value.a` and
+  `root.link.value.b`.
+
+A scalar target works the same way. For `struct box { uint8 *flag; };` and input `01 2A`, the parse records
+`box.flag [0, 1)` for the stored address 1 and `box.flag.value [1, 2)` for the byte 42 at that address. A pointer
+to a pointer (`uint8 **deep`) adds one `value` per level: `root.deep` is the first stored address,
+`root.deep.value` the second one, and `root.deep.value.value` the final byte. A union target's own record is
+`root.choice.value`, after the records of its views (`root.choice.value.small`, ...).
+
+Each element of a pointer array keeps its index, whatever its target, because each element has a target of its own.
+For `uint8 *bytes[2];` the stored addresses are `root.bytes[0]` and `root.bytes[1]`, and their targets are
+`root.bytes[0].value` and `root.bytes[1].value`.
+
+Because of these rules, no target record shares a path with the record of a pointer's address. Apart from the
+elements of a scalar array, which share their member's path, a record's path is also the path of its value in the
+result. Apart from one more case, it is a path you can pass to `ReadValue`, `ResolveAddress` or
+`ReadValueWithDebug`. The exception is a counted target (`pair *nodes @count(n);`): its element `3` is recorded as
+`root.nodes.value[3].a`, but a path cannot select a counted target, because the count may name a member that a path
+never reads.
+
+A struct follows its pointers after its last member, so the records of a pointer's target come after the records of
+the struct that holds the pointer. A pointer's own record comes after its target's records when the pointer is
+followed in place, as a selection of `root.link` shows.
 
 ## Resolve a position without returning the value
 

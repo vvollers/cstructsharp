@@ -30,11 +30,24 @@ internal sealed class DebugRecorder
     private int condition = -1;
 
     /// <summary>Creates the recorder of one debug parse.</summary>
-    /// <param name="trace">Whether to keep the conditional-layout trace an update compares (<see cref="Trace"/>).</param>
+    /// <param name="trace">
+    ///     Whether the recorder captures the layout an update compares: it then keeps the conditional-layout trace
+    ///     (<see cref="Trace"/>) and leaves out pointer target values (<see cref="RecordsTargetValues"/>).
+    /// </param>
     public DebugRecorder(bool trace)
     {
         this.Trace = trace ? [] : null;
+        this.RecordsTargetValues = !trace;
     }
+
+    /// <summary>
+    ///     Gets a value indicating whether a followed pointer's value target is recorded: a scalar, enum, string or caller's
+    ///     value, an intermediate pointer level, and each non-composite element of a counted target. Every debug parse
+    ///     records them; the layout an update captures leaves them out and compares, as it always has, the pointers' own
+    ///     storage and the members of their struct and union targets, so replacing a pointed-to string with one of another
+    ///     length is not reported as a moved layout.
+    /// </summary>
+    public bool RecordsTargetValues { get; }
 
     /// <summary>Gets the records, in the order the values were read; the list the debug parse returns.</summary>
     public List<DebugData> Records { get; } = [];
@@ -52,8 +65,10 @@ internal sealed class DebugRecorder
     public DebugPath? Member { get; set; }
 
     /// <summary>
-    ///     Gets or sets the path a pointer's target is recorded under: the pointer's own path (or its element path in a
-    ///     pointer array), set before the pointer is followed, in place or after its struct's last member.
+    ///     Gets or sets the path of the pointer being followed: the pointer's own path (or its element path in a pointer
+    ///     array), set before the pointer is followed, in place or after its struct's last member. While its target is read,
+    ///     it is the target's path - the pointer's path extended by <c>value</c> - which a struct, union or counted target's
+    ///     records extend and a further pointer level follows from.
     /// </summary>
     public DebugPath? Target { get; set; }
 
@@ -77,7 +92,7 @@ internal sealed class DebugRecorder
         => field.Name.Length == 0 && field.BitSize == 0 && !field.IsInlineComposite ? "_" : field.Name;
 
     /// <summary>
-    ///     The path of one element of a composite array (or of a pointer array whose targets are composites): the last
+    ///     The path of one element of a composite array or a pointer array: the last
     ///     segment of the member's path with the element's coordinates, beside the member's own path under the same parent,
     ///     such as <c>items[2]</c> or <c>grid[1][0]</c>. A selected row keeps the index that selected it, so element 0 of
     ///     <c>grid[1]</c> is <c>grid[1][0]</c>.
@@ -102,10 +117,10 @@ internal sealed class DebugRecorder
     }
 
     /// <summary>
-    ///     The path of one element of a counted pointer target whose elements are composites: the pointer's path with the
-    ///     element's index appended to its last segment (<c>nodes[3]</c>).
+    ///     The path of one element of a counted pointer target whose elements are composites: the target's path with the
+    ///     element's index appended to its last segment (<c>nodes.value[3]</c>).
     /// </summary>
-    /// <param name="pointer">The pointer's path, or <see langword="null"/>.</param>
+    /// <param name="pointer">The target's path (the pointer's path extended by <c>value</c>), or <see langword="null"/>.</param>
     /// <param name="index">The element's index.</param>
     /// <returns>The element's path, or <see langword="null"/> when the pointer has none.</returns>
     public static DebugPath? CountedElementPath(DebugPath? pointer, int index)

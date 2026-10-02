@@ -152,16 +152,16 @@
   ok 18
 
 @test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("pointer-depth-1")
-@hash 02fa24e3feb4e2201731b704f35351bf399ca67c9e9b6229c821884dd53151bc 37
-  ok 35, CStructPathException 2
+@hash ba45662c4199657da8e1f9d1b1e9f6c102d8b2c6db91ccf44d916621cf8cdcdc 39
+  ok 39
 
 @test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("pointer-depth-64")
-@hash 554e8548e1378ea75016d233b1ef6618610c09dbc42d9bbad7c87f27608b7370 35
-  ok 31, CStructPathException 4
+@hash 57317318da74747db8099bd27854124c6db82656924ca43517eb498ccb808ad1 39
+  ok 39
 
 @test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("pointer-depth-8")
-@hash 953a296931d99db209cae68a775733b82d9c8bd54a8bf484eb08331c1dd783c7 35
-  ok 31, CStructPathException 4
+@hash f6f6760ddef50367cc165d9de71879d3abcfed60b4126031074cae636fcd7707 39
+  ok 39
 
 @test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("prim-be-record")
 @hash 3e36d8d3f368f0a58d509da5d6a670be45ee4eb44374df9408486e52f21037dc 39
@@ -192,12 +192,12 @@
   ok 39
 
 @test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("real-pe-dll")
-@hash 4230964cb9e65a3315a9830171798f75dbc47755f310deebc4a7505c92437574 37
-  ok 35, CStructPathException 2
+@hash 2a4a3620a23bbe02b6ebca09380b95f101d5cce4ccf25dec4d85378713c4e590 39
+  ok 39
 
 @test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("real-pe-exe")
-@hash 23af243a833a0557d03073cda94cb483e63c18732d8ada70bc5971fce077546c 37
-  ok 35, CStructPathException 2
+@hash 80bf528434b2847806aab041d474ef98b57f48955a168b3b900ccef5859df174 39
+  ok 39
 
 @test BenchmarkFixture_MatchesItsExpectationOnEverySourceAndPath("real-png")
 @hash 9bd4fe72a4586e481e31c55ed13f282df52829c17a0bbfdbdfdf8e271c46839e 39
@@ -536,7 +536,7 @@
   CStructReadException 17
 @hash 4648b0d0440d4c94f77bb98e83c4f148f2c2b0b6dda4c3ac1d3177985a3781a3 39 generated-differential/path-with-pointer#1/binary
   ok 39
-@hash e24149bcc8874eb82337651d5f34801a907f515bcbe4fc169dbd3b27c2ac9402 39 generated-differential/path-with-pointer#1/path
+@hash 31dff5f95bdcd39e8ecb4075a862e4d40896efc86097e552e250b6163f8a260f 39 generated-differential/path-with-pointer#1/path
   ok 39
 @hash 3fdc0ca8fb5117c61572a898c1ec25945c0f4dd8d926e054fbf26dc6d8cf3950 17 generated-differential/path-with-pointer#1/pointer-union
   CStructReadException 17
@@ -560,10 +560,10 @@
   ok 39
 @hash 477c1a00ccb95f783a1255bcb8b6c6a6e1d777dd40a3edc02540a04c4c1eacc7 39 generated-differential/mutation#1/binary
   ok 39
-@hash 94a31ce8e38796135251fa160c387510e137036eef864321734a168177756c40 39 generated-differential/mutation#1/path
+@hash 15108022015cbd5f0a6b189f98264c86feb9d81b9fe95241843349442e672311 39 generated-differential/mutation#1/path
   ok 39
-@hash d5254cb513691ddccd859cf76e2f80e32059a7f1a1c72449df0799082b56e51f 35 generated-differential/mutation#1/pointer-union
-  ok 31, CStructPathException 4
+@hash 6cd4e26f7684fe53d9943b05d2b2a35254948178e9423d144132b818f7f672bf 39 generated-differential/mutation#1/pointer-union
+  ok 39
 @hash 4f7c5f61f3b7b7549e2e59a18ec304532c5800cecf64018881cb16f760d1f786 17 generated-differential/mutation#2/binary
   CStructReadLimitException 17
 @hash d7e2755f4e202a97a1232730f1732db922631474d5722b594ea6952948a64f41 17 generated-differential/mutation#2/path
@@ -572,7 +572,7 @@
   CStructReadException 17
 @hash 114a3b814e29856a8aa87f3e73fdbcf76bd42d8b44db9fed5981f6bdccd55d76 39 generated-differential/mutation#3/binary
   ok 39
-@hash fc2ee1136a595ece02bdbb35d7b7b490bfbf87b95a7ea7b770ad5b648b7955ad 39 generated-differential/mutation#3/path
+@hash 4041222d07160f5c813e1b4dec140f73baffe6f6467ab0e9d1020d029cb053c2 39 generated-differential/mutation#3/path
   ok 39
 @hash 3fdc0ca8fb5117c61572a898c1ec25945c0f4dd8d926e054fbf26dc6d8cf3950 17 generated-differential/mutation#3/pointer-union
   CStructReadException 17
@@ -598,8 +598,8 @@
   ok 39
 @hash 2877cf4fcc18707d0cedfef57f7670907b20c5f0eeb67a573975719c64f5d258 17 generated-differential/mutation#7/path
   CStructReadException 17
-@hash 95d876b5ba2cfd992392346edd632e855492aafec8407ffca6050716bb6b2848 35 generated-differential/mutation#7/pointer-union
-  ok 31, CStructPathException 4
+@hash 4419d04c353e5f70ad9c41040865e5a06bdd688929ab2f252107bf6999767a10 39 generated-differential/mutation#7/pointer-union
+  ok 39
 @hash b470ffafd079b33784473a5639ff84225b2f7c4c523bb1dcb57fd54338007d66 17 generated-differential/mutation#8/binary
   CStructReadLimitException 17
 @hash d7e2755f4e202a97a1232730f1732db922631474d5722b594ea6952948a64f41 17 generated-differential/mutation#8/path
@@ -608,7 +608,7 @@
   CStructReadException 17
 @hash 4648b0d0440d4c94f77bb98e83c4f148f2c2b0b6dda4c3ac1d3177985a3781a3 39 generated-differential/mutation#9/binary
   ok 39
-@hash e24149bcc8874eb82337651d5f34801a907f515bcbe4fc169dbd3b27c2ac9402 39 generated-differential/mutation#9/path
+@hash 31dff5f95bdcd39e8ecb4075a862e4d40896efc86097e552e250b6163f8a260f 39 generated-differential/mutation#9/path
   ok 39
 @hash 3fdc0ca8fb5117c61572a898c1ec25945c0f4dd8d926e054fbf26dc6d8cf3950 17 generated-differential/mutation#9/pointer-union
   CStructReadException 17
@@ -688,8 +688,8 @@
   ok 39
 @hash f34b7974797afb4893b8217dce94b0e39c66ddeeebea9b87c28a65fb45270ca6 39 generated-differential/mutation#22/path
   ok 39
-@hash 98fbc19d92931c30a563883eaf303b7983442f9faa0f409c89afa5963ce1d971 35 generated-differential/mutation#22/pointer-union
-  ok 31, CStructPathException 4
+@hash c01927c0dc2a832afde353f330758a5abae5b9772186415a37b3c7fc20a69e6b 39 generated-differential/mutation#22/pointer-union
+  ok 39
 @hash d94c83c539cd152caadab5d2862c88be99000064cc8d60696c9ab1b7dfc7ee5f 17 generated-differential/mutation#23/binary
   CStructReadException 17
 @hash 4b9aa990e6441c67f58806e3947cbfaca2465dff82ad0101296b33f8b1275c29 17 generated-differential/mutation#23/path
@@ -728,7 +728,7 @@
   CStructReadException 17
 @hash 1b6007af66164a2dafe8e36f092ff4557ea20c409450abd10c27d5121c617201 39 generated-differential/mutation#29/binary
   ok 39
-@hash a6a4a085cd70f8407f56f30151ff031c10f92ecd88ff2aefa231f88d05ab0f46 39 generated-differential/mutation#29/path
+@hash c063efe44452d10b6bc0b75c4e8336f48bc4271a2fec805fa48b83f13fbe0625 39 generated-differential/mutation#29/path
   ok 39
 @hash 3fdc0ca8fb5117c61572a898c1ec25945c0f4dd8d926e054fbf26dc6d8cf3950 17 generated-differential/mutation#29/pointer-union
   CStructReadException 17
@@ -746,7 +746,7 @@
   CStructReadException 17
 @hash f8064aad3614547e2d5e1ce7970069a1b4287f34836ddff4069c6de8c6ae42b5 39 generated-differential/mutation#32/binary
   ok 39
-@hash e6a8abbce7a79d8aaa67f8e05aaa8fec2d71ffeea78421df64ee5a0cdc975e89 39 generated-differential/mutation#32/path
+@hash 76f0759f4df083ab26d7948bed62797840b70d0385dde7591571de713097c164 39 generated-differential/mutation#32/path
   ok 39
 @hash 3fdc0ca8fb5117c61572a898c1ec25945c0f4dd8d926e054fbf26dc6d8cf3950 17 generated-differential/mutation#32/pointer-union
   CStructReadException 17
@@ -794,7 +794,7 @@
   CStructReadException 17
 @hash 275f6c11cb8c02ca614d20b328ecf90e885ea6930e9d4122aac9ca4fb7204605 39 generated-differential/mutation#40/binary
   ok 39
-@hash 4aadc5e44642ad47c693ce10ab09abb7ba0290a05ba42d71237d2f1220a1abc4 39 generated-differential/mutation#40/path
+@hash 574b24d6a8ed33466f61f39b1baa449dce5952edb2660ee77f3d6f25410eaa16 39 generated-differential/mutation#40/path
   ok 39
 @hash 076b1895f3e85317f4aec6d4cbede8e808fe94fdee5d78fa6c77b0e06aaffd25 39 generated-differential/mutation#40/pointer-union
   ok 39
@@ -944,13 +944,13 @@
   CStructReadException 17
 @hash a832f60f9d0e94b8b09349487d755d28a9a1c9caaa02f60d473daf41a6b99676 39 generated-differential/mutation#65/binary
   ok 39
-@hash a21948c65b56d7ef6280c29fd9fe39bad2b205c093a1a419873241604d51efc7 39 generated-differential/mutation#65/path
+@hash 107036fe14067f4d685228b6442410842512595b61ada82b7d325594f5f04e06 39 generated-differential/mutation#65/path
   ok 39
 @hash dbc0061d978c7508e4a9b0a4d4ec325b9fec535222f3a616862e97d7e95e62d9 17 generated-differential/mutation#65/pointer-union
   CStructReadException 17
 @hash e9f9c4b3a4be55c0c8f965fdada9971e449f111f99afb8ede0ec0151b6186e4b 39 generated-differential/mutation#66/binary
   ok 39
-@hash 56ec5082d25837ae8f0ebd663b5fb10b7a277df6efe55f89395fd7950b62ca11 39 generated-differential/mutation#66/path
+@hash db1544e5f6c6b97c10fdbff84819cb6292b49a402cba3ef2d07338ed1498a1b5 39 generated-differential/mutation#66/path
   ok 39
 @hash 3fdc0ca8fb5117c61572a898c1ec25945c0f4dd8d926e054fbf26dc6d8cf3950 17 generated-differential/mutation#66/pointer-union
   CStructReadException 17
@@ -980,7 +980,7 @@
   CStructReadException 17
 @hash 12255a58ed1f696e680226a810c34b29dc6788ebd3b6cd2db6848a73e451f295 39 generated-differential/mutation#71/binary
   ok 39
-@hash 10a0b87e6dbffaba9369f849fadb96fac0e92413b77058b06372c51eed92cfe2 39 generated-differential/mutation#71/path
+@hash 3f9bd8b332c7d61b866ec5b775a55c1d56890c3f33bfeb7f46abba30117eb53e 39 generated-differential/mutation#71/path
   ok 39
 @hash 7e7429f005913ce0e6104da8432724191a4ff484a623250b1d9bd996ad72e5c2 39 generated-differential/mutation#71/pointer-union
   ok 39
@@ -994,8 +994,8 @@
   ok 39
 @hash 63f85eb221cfd9e4f740b773b1b7c62960fc3502aa87ef60d7f57b36ef6f8ccb 39 generated-differential/mutation#73/path
   ok 39
-@hash 97b9f3752f1b8de7066aa4c8417fb199c1919a04f15b73f9129461b2e2528655 35 generated-differential/mutation#73/pointer-union
-  ok 31, CStructPathException 4
+@hash 9dd4e0b03b01168d93d2ac4fb89c18a0972c336587e034edfc68052917edb7c7 39 generated-differential/mutation#73/pointer-union
+  ok 39
 @hash 8302ed9f9416715d72793c6e5962f008583b9c3c8665f95eafcf98633f5b8422 17 generated-differential/mutation#74/binary
   CStructReadException 17
 @hash 33bd72dc270e594343952fcd35711af9cd044f398eff75c518fd2c844147b92d 17 generated-differential/mutation#74/path
@@ -1016,7 +1016,7 @@
   CStructReadException 17
 @hash 00e7f402dc1399d623034a509dffbe89714c43c6bad30524e56a1395ef02b4b6 39 generated-differential/mutation#77/binary
   ok 39
-@hash a69b583df687922875d26d57861ee241c36a40c002c8a243cad66d480869ba3d 39 generated-differential/mutation#77/path
+@hash e502d53dcbca6289cad5ba898ac70cdcc90c631e1874e11bb2b7d136bd7a5d30 39 generated-differential/mutation#77/path
   ok 39
 @hash 3fdc0ca8fb5117c61572a898c1ec25945c0f4dd8d926e054fbf26dc6d8cf3950 17 generated-differential/mutation#77/pointer-union
   CStructReadException 17
@@ -1058,7 +1058,7 @@
   CStructReadException 17
 @hash b724b7e82b2f61f3ac7d58a7503f1d9165083aa2970002dd5d2cacdb7ff022f9 39 generated-differential/mutation#84/binary
   ok 39
-@hash 727ecb2d90789b38377dd7a94aa3336c9fe0dd28810d9af1ca8334fefa33a54b 39 generated-differential/mutation#84/path
+@hash 1278564c2212a7fbaad9e38437fb9b3f3b6cf375f97574bd7be76794528c77e4 39 generated-differential/mutation#84/path
   ok 39
 @hash 57a8438463e47ff445521502f2837ae6f2fbe1ef93fe58edf93a1a204b687fb0 17 generated-differential/mutation#84/pointer-union
   CStructReadException 17
@@ -1094,7 +1094,7 @@
   CStructReadException 17
 @hash 90fe6b98ed96c8618122d1da11d013114394f46c751fd77cdb542d6aae2ff9f7 39 generated-differential/mutation#90/binary
   ok 39
-@hash 264dfc7ad87658ed65b23380a8d6a43eaf64602c4ebc07bd3306dbc8dc0bb279 39 generated-differential/mutation#90/path
+@hash 03d13e6019d2626356e10ab4a9278fc84038a4241e0a65e44c45335128345d22 39 generated-differential/mutation#90/path
   ok 39
 @hash dbc0061d978c7508e4a9b0a4d4ec325b9fec535222f3a616862e97d7e95e62d9 17 generated-differential/mutation#90/pointer-union
   CStructReadException 17
@@ -1124,7 +1124,7 @@
   CStructReadException 17
 @hash 1764854b43124d103367bb1857445d1b3320057560bb7c87445fc4006a2891c6 39 generated-differential/mutation#95/binary
   ok 39
-@hash fab1147da92c69690b95d14c9f38cf0fa108f94472a01c5239dc5a78f14da303 39 generated-differential/mutation#95/path
+@hash b79838d2ad1757b6e8cfd6f8143f137421109359601bd48b2cfb9ba64a5235a0 39 generated-differential/mutation#95/path
   ok 39
 @hash b35d18871bd70c7c97449341a2811eafd0ce4c722586a932d78657ed5eaf7b4f 17 generated-differential/mutation#95/pointer-union
   CStructReadException 17
@@ -1172,16 +1172,16 @@
   CStructReadException 17
 @hash 3aea7ec0a78a34b14df04f0d9077e339c56c6ee9307830318dfa33ffc46fd9d2 39 generated-differential/mutation#103/binary
   ok 39
-@hash 9c88ab2cebb91255b59f41db96b2391bd367181ba403824e15b55a86b41e8984 39 generated-differential/mutation#103/path
+@hash cf48cec7a9903f0c048138be647ad9eae3e70fd846bc4dd88d9c50bdddc25eb7 39 generated-differential/mutation#103/path
   ok 39
 @hash 3fdc0ca8fb5117c61572a898c1ec25945c0f4dd8d926e054fbf26dc6d8cf3950 17 generated-differential/mutation#103/pointer-union
   CStructReadException 17
 @hash e714bb05d6646e68313e3f78dc39cb8034724736dabc0e6580169384d883f5fd 39 generated-differential/mutation#104/binary
   ok 39
-@hash 74e8578c835e2f1b5deaab63af82a1cb170d5ea23676138e34430375e7df9032 39 generated-differential/mutation#104/path
+@hash 0b03a7ec8cf059eba916d92d1f8ce7e91433c029bfe5ad41574611fea159b772 39 generated-differential/mutation#104/path
   ok 39
-@hash b98b8374bb59dc8679b42a12dbd20fb8f17f68572470a4e189d454f49312d082 35 generated-differential/mutation#104/pointer-union
-  ok 31, CStructPathException 4
+@hash ac946863bd624571efe91e61906d8cbcb4798ac531ee6d9397cd797627b40e93 39 generated-differential/mutation#104/pointer-union
+  ok 39
 @hash d39faa82f5df145847b0cc54d22e926e3fa9827ae39bc0832fc5782aa15a7963 17 generated-differential/mutation#105/binary
   CStructReadLimitException 17
 @hash d7e2755f4e202a97a1232730f1732db922631474d5722b594ea6952948a64f41 17 generated-differential/mutation#105/path
@@ -1310,7 +1310,7 @@
   CStructReadException 17
 @hash 0fca6813f73e88df0a431f5824bfaf2e8660f2a2b8156368d1eef9c41f93382f 35 generated-differential/mutation#126/binary
   ok 35
-@hash 5301e5c7d9695b8016319016a8f9725813e09cf48ed61fc526ba068f67c7d98f 39 generated-differential/mutation#126/path
+@hash df928d903448f6cf15cd65bde0ba9721e792905c12d7ca562b114d6fae74ffee 39 generated-differential/mutation#126/path
   ok 39
 @hash 3c677c2ec087264dbca76f0af1de36c91224ad2a00b0e5c1aff568df030b5b1a 17 generated-differential/mutation#126/pointer-union
   CStructReadException 17
@@ -1828,8 +1828,8 @@
   ok 39
 @hash 27e80c24933b47d567ba15b0dff1a7170acbc1922b5a6797e4d3b71a55484943 17 pointer-union/mutation#115
   CStructReadException 17
-@hash 348d8a4bd5b185b1b209e3d1ea27a8bb9e17c9f4cd4ab6c82093836133b778bd 35 pointer-union/mutation#116
-  ok 31, CStructPathException 4
+@hash 1c25caa2dde507fccbe987df53edca732a7ba17968034fb64616c6829c91a19c 39 pointer-union/mutation#116
+  ok 39
 @hash 62d0bf8a616ca464b0c0d4f171e0d3700f461eb87bbca7d417d0ac292bdb9fd2 17 pointer-union/mutation#117
   CStructReadException 17
 @hash ca7ed3bca5a2436be6b44881dc0b2bf96f755fd2620312912240189a05370517 17 pointer-union/mutation#118
@@ -2602,12 +2602,12 @@
   ok 39
 
 @test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("pe-dll")
-@hash 4230964cb9e65a3315a9830171798f75dbc47755f310deebc4a7505c92437574 37
-  ok 35, CStructPathException 2
+@hash 2a4a3620a23bbe02b6ebca09380b95f101d5cce4ccf25dec4d85378713c4e590 39
+  ok 39
 
 @test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("pe-exe")
-@hash 23af243a833a0557d03073cda94cb483e63c18732d8ada70bc5971fce077546c 37
-  ok 35, CStructPathException 2
+@hash 80bf528434b2847806aab041d474ef98b57f48955a168b3b900ccef5859df174 39
+  ok 39
 
 @test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("png")
 @hash 9bd4fe72a4586e481e31c55ed13f282df52829c17a0bbfdbdfdf8e271c46839e 39
@@ -2702,8 +2702,8 @@
   ok 63, CStructPathException 4
 
 @test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/counted-pointers")
-@hash a0babb6cef9f44bf852a1af87d6f11b31db043007e4fc5b6967f97c20787bc13 75
-  ok 67, CStructPathException 8
+@hash 0207e6b27512ef3761c5cdd9025eda884d039c950fc3943030e79ee447742500 77
+  ok 67, CStructPathException 10
 
 @test ManualFixture_ReadsAndWritesOnEverySourceAndPath("valid/data-sized-arrays")
 @hash 32f23d524e27a66982594402b40758e431bc926eea3cbab6798a0ec2bde440c2 67
@@ -2990,16 +2990,16 @@
   ok 18
 
 @test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/pointer-depth-1")
-@hash 02fa24e3feb4e2201731b704f35351bf399ca67c9e9b6229c821884dd53151bc 37
-  ok 35, CStructPathException 2
+@hash ba45662c4199657da8e1f9d1b1e9f6c102d8b2c6db91ccf44d916621cf8cdcdc 39
+  ok 39
 
 @test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/pointer-depth-64")
-@hash 554e8548e1378ea75016d233b1ef6618610c09dbc42d9bbad7c87f27608b7370 35
-  ok 31, CStructPathException 4
+@hash 57317318da74747db8099bd27854124c6db82656924ca43517eb498ccb808ad1 39
+  ok 39
 
 @test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/pointer-depth-8")
-@hash 953a296931d99db209cae68a775733b82d9c8bd54a8bf484eb08331c1dd783c7 35
-  ok 31, CStructPathException 4
+@hash f6f6760ddef50367cc165d9de71879d3abcfed60b4126031074cae636fcd7707 39
+  ok 39
 
 @test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/prim-be-record")
 @hash 3e36d8d3f368f0a58d509da5d6a670be45ee4eb44374df9408486e52f21037dc 39
@@ -3030,12 +3030,12 @@
   ok 39
 
 @test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/real-pe-dll")
-@hash 4230964cb9e65a3315a9830171798f75dbc47755f310deebc4a7505c92437574 37
-  ok 35, CStructPathException 2
+@hash 2a4a3620a23bbe02b6ebca09380b95f101d5cce4ccf25dec4d85378713c4e590 39
+  ok 39
 
 @test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/real-pe-exe")
-@hash 23af243a833a0557d03073cda94cb483e63c18732d8ada70bc5971fce077546c 37
-  ok 35, CStructPathException 2
+@hash 80bf528434b2847806aab041d474ef98b57f48955a168b3b900ccef5859df174 39
+  ok 39
 
 @test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Benchmarks/real-png")
 @hash 9bd4fe72a4586e481e31c55ed13f282df52829c17a0bbfdbdfdf8e271c46839e 39
@@ -3162,8 +3162,8 @@
   ok 39
 
 @test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/counted-pointers")
-@hash 36f08e361c3c34f93b6a1a8919e9cbc058f12382e0c5750b502d28be0e79499a 33
-  ok 33
+@hash 71aa861d310116cd077fe023000d8ed488ab4075bba46a6201736f2fad24c29e 35
+  ok 33, CStructPathException 2
 
 @test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Manual/data-sized-arrays")
 @hash 5c54d14224dbbae190e0fade585494af2d199b75132d8560ebc32469de87a3f9 39
@@ -3446,8 +3446,8 @@
   ok 37, CStructPathException 2
 
 @test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/relative-pointer")
-@hash d940c8a72f574f96bfb0fbec17d1c327b8474c6062afa22479344bf7ee467079 31
-  ok 31
+@hash 94e5e526ca0d85804a51be15049a59f06ad1bc7ea5764418ef5b76a4e6a2aa0c 35
+  ok 35
 
 @test ParityLayout_ReadsAndWritesOnEverySourceAndPath("Recipes/round-trip")
 @hash 351781515968fb7189566a8e4ad9f2a7b524d876209dac68c19cd55e60ddfeec 35
@@ -4078,8 +4078,8 @@
   ok 39
 
 @test WellKnownFormat_ReadsAndWritesOnEverySourceAndPath("Pe_DosHeaderPointerToCoffHeader_DecodesAcrossExeAndDll#0")
-@hash 23af243a833a0557d03073cda94cb483e63c18732d8ada70bc5971fce077546c 37
-  ok 35, CStructPathException 2
+@hash 80bf528434b2847806aab041d474ef98b57f48955a168b3b900ccef5859df174 39
+  ok 39
 
 @test WellKnownFormat_ReadsAndWritesOnEverySourceAndPath("Png_SignatureAndIhdrChunk_DecodeBigEndianFields#0")
 @hash 9bd4fe72a4586e481e31c55ed13f282df52829c17a0bbfdbdfdf8e271c46839e 39

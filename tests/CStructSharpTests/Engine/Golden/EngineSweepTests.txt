@@ -94,33 +94,33 @@
   ok 246, CStructReadException 24, CStructReadLimitException 140, CStructWriteLimitException 100
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("pointer-arrays")
-@hash 34088756e3e3b9c267ae8eb08fec1a44aa38c4d2ff1960f4748a5027214d700d 276 pointer-arrays/packed
+@hash b135711bb2d10d4ed435c02e9da49263a2bdbe10bed85dc5f1c42e81b5e55a00 276 pointer-arrays/packed
   ok 148, CStructReadLimitException 88, CStructWriteLimitException 40
-@hash 34088756e3e3b9c267ae8eb08fec1a44aa38c4d2ff1960f4748a5027214d700d 276 pointer-arrays/aligned
+@hash b135711bb2d10d4ed435c02e9da49263a2bdbe10bed85dc5f1c42e81b5e55a00 276 pointer-arrays/aligned
   ok 148, CStructReadLimitException 88, CStructWriteLimitException 40
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("pointer-counted")
-@hash ba5255ffa2086f34e56d8297e495412a373db16562a32bcd7bcf78c5415033b9 312 pointer-counted/packed
+@hash 597d56b157814fb234e035d7109baecaef8d01e5f41436b464a6b355c270c4dc 312 pointer-counted/packed
   ok 132, CStructPathException 24, CStructReadLimitException 124, CStructWriteLimitException 32
-@hash ba5255ffa2086f34e56d8297e495412a373db16562a32bcd7bcf78c5415033b9 312 pointer-counted/aligned
+@hash 597d56b157814fb234e035d7109baecaef8d01e5f41436b464a6b355c270c4dc 312 pointer-counted/aligned
   ok 132, CStructPathException 24, CStructReadLimitException 124, CStructWriteLimitException 32
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("pointer-list")
-@hash 9bc9998af10cdbf7514503a6ce381d1aaefd140fa3f6883b7b92976cb57b8124 372 pointer-list/packed
+@hash 608a249c56826a02cb2d507fcff8ed2430522c576fe48864cd60a4d3baf24eef 372 pointer-list/packed
   ok 154, CStructReadLimitException 170, CStructWriteLimitException 48
-@hash 9bc9998af10cdbf7514503a6ce381d1aaefd140fa3f6883b7b92976cb57b8124 372 pointer-list/aligned
+@hash 608a249c56826a02cb2d507fcff8ed2430522c576fe48864cd60a4d3baf24eef 372 pointer-list/aligned
   ok 154, CStructReadLimitException 170, CStructWriteLimitException 48
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("pointer-views")
-@hash 0233af4f96f4f20036e792b20c990d316c7c943dc147fb5211b2dfefd5d375a2 268 pointer-views/packed
+@hash e543b8b27b395850594800a2760e6f0ff8a461e1896123862b17bfce36b31c1f 268 pointer-views/packed
   ok 132, CStructReadLimitException 104, CStructWriteLimitException 32
-@hash 0233af4f96f4f20036e792b20c990d316c7c943dc147fb5211b2dfefd5d375a2 268 pointer-views/aligned
+@hash e543b8b27b395850594800a2760e6f0ff8a461e1896123862b17bfce36b31c1f 268 pointer-views/aligned
   ok 132, CStructReadLimitException 104, CStructWriteLimitException 32
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("pointers")
-@hash 3c1b0179c5d2513a5402293f6d32729df84384d7b89378c2a298fe932ef09a47 378 pointers/packed
+@hash 48a1af7a18a6679587677970cb941454c46bfc85a907fadc4e05c35b1329b413 378 pointers/packed
   ok 214, CStructReadException 10, CStructReadLimitException 122, CStructWriteLimitException 32
-@hash 3c1b0179c5d2513a5402293f6d32729df84384d7b89378c2a298fe932ef09a47 378 pointers/aligned
+@hash 48a1af7a18a6679587677970cb941454c46bfc85a907fadc4e05c35b1329b413 378 pointers/aligned
   ok 214, CStructReadException 10, CStructReadLimitException 122, CStructWriteLimitException 32
 
 @test ByteBudgets_FailOrSucceedAtEveryLimit("promoted")
@@ -328,33 +328,33 @@
   ok 168
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("pointer-arrays")
-@hash e3966d4599b05904181fadc1dd63bb216be5c80ca4b0a14bd16e6477258a657d 168 pointer-arrays/packed
+@hash 07331179d510629e7116a4fa04d18d12ee3539d7f3403beff3efbcc41f28b4c0 168 pointer-arrays/packed
   ok 168
-@hash e3966d4599b05904181fadc1dd63bb216be5c80ca4b0a14bd16e6477258a657d 168 pointer-arrays/aligned
+@hash 07331179d510629e7116a4fa04d18d12ee3539d7f3403beff3efbcc41f28b4c0 168 pointer-arrays/aligned
   ok 168
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("pointer-counted")
-@hash 691bba39ba03f446a0a1f0b5da393bd90b7e63fe485c6974c03385fda53d22e2 252 pointer-counted/packed
+@hash 08905e2cb9e3399688d62c8b8029b552fadb385d50ab4e29a93358bb14f40790 252 pointer-counted/packed
   ok 252
-@hash 691bba39ba03f446a0a1f0b5da393bd90b7e63fe485c6974c03385fda53d22e2 252 pointer-counted/aligned
+@hash 08905e2cb9e3399688d62c8b8029b552fadb385d50ab4e29a93358bb14f40790 252 pointer-counted/aligned
   ok 252
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("pointer-list")
-@hash bfa5468b697ba997ce1bf5c49cb9502e8f063707a8b3d138c34ac178ff5f953c 36 pointer-list/packed
+@hash e41fcf9ba33ac57823f847402e2e2d9d3dcd6151fc774db4f286e330bc8f07a4 36 pointer-list/packed
   ok 36
-@hash bfa5468b697ba997ce1bf5c49cb9502e8f063707a8b3d138c34ac178ff5f953c 36 pointer-list/aligned
+@hash e41fcf9ba33ac57823f847402e2e2d9d3dcd6151fc774db4f286e330bc8f07a4 36 pointer-list/aligned
   ok 36
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("pointer-views")
-@hash 54ff355012e720ce9f6eccd36536ea03f16402c5c693881fa8c9490e59c47f66 36 pointer-views/packed
+@hash 4e09d84b0ec9d59fce827286d08b6f6f298da8b8e7d16d30dbebdeb64f3b3579 36 pointer-views/packed
   ok 36
-@hash 54ff355012e720ce9f6eccd36536ea03f16402c5c693881fa8c9490e59c47f66 36 pointer-views/aligned
+@hash 4e09d84b0ec9d59fce827286d08b6f6f298da8b8e7d16d30dbebdeb64f3b3579 36 pointer-views/aligned
   ok 36
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("pointers")
-@hash df421b49f5aa1b426e75b27977c192831aa22ddc929310deece3886cd06081a4 144 pointers/packed
+@hash 443948dc03cc5ad6833df5c9b0f3ca52b0e153af3e1e7b7b93207d8c34d20c81 144 pointers/packed
   ok 144
-@hash df421b49f5aa1b426e75b27977c192831aa22ddc929310deece3886cd06081a4 144 pointers/aligned
+@hash 443948dc03cc5ad6833df5c9b0f3ca52b0e153af3e1e7b7b93207d8c34d20c81 144 pointers/aligned
   ok 144
 
 @test CallerVariables_ReadAndWriteUpToTheIntegerBounds("promoted")
@@ -1030,33 +1030,33 @@
   ok 48, ArgumentOutOfRangeException 16, CStructReadLimitException 14, CStructWriteLimitException 2
 
 @test NestingLimits_AgreeAcrossExecutionPaths("pointer-arrays")
-@hash d3843151cfd092e86ad9509936641860f97711be10a79e2c4101b2ffacaccb8c 80 pointer-arrays/packed
+@hash f6d34d791ed0dc75d656d4d8660b237dc3dc0af040069a59cfaa69d42eaa45ff 80 pointer-arrays/packed
   ok 56, ArgumentOutOfRangeException 16, CStructReadLimitException 8
-@hash d3843151cfd092e86ad9509936641860f97711be10a79e2c4101b2ffacaccb8c 80 pointer-arrays/aligned
+@hash f6d34d791ed0dc75d656d4d8660b237dc3dc0af040069a59cfaa69d42eaa45ff 80 pointer-arrays/aligned
   ok 56, ArgumentOutOfRangeException 16, CStructReadLimitException 8
 
 @test NestingLimits_AgreeAcrossExecutionPaths("pointer-counted")
-@hash 5b0225c4cfe48cffb8e71f6501416d385a4588e3fba5d93c99e866cf2b7c35d0 70 pointer-counted/packed
+@hash 7f980c987ad1c321ebab0cf2cd4ebaac8c8cb03538d4cbea73b30ad72b0895f1 70 pointer-counted/packed
   ok 42, ArgumentOutOfRangeException 14, CStructPathException 8, CStructReadLimitException 6
-@hash 5b0225c4cfe48cffb8e71f6501416d385a4588e3fba5d93c99e866cf2b7c35d0 70 pointer-counted/aligned
+@hash 7f980c987ad1c321ebab0cf2cd4ebaac8c8cb03538d4cbea73b30ad72b0895f1 70 pointer-counted/aligned
   ok 42, ArgumentOutOfRangeException 14, CStructPathException 8, CStructReadLimitException 6
 
 @test NestingLimits_AgreeAcrossExecutionPaths("pointer-list")
-@hash fb404362499754392265dbaf59bc7ba7f1463af6c568e5fe58fb6c509c3685e1 70 pointer-list/packed
+@hash d6a404a81af67dfd3c7732667804dbe677c07fd8f0b90a4cfce1099e0efe0af2 70 pointer-list/packed
   ok 26, ArgumentOutOfRangeException 14, CStructReadLimitException 28, CStructWriteLimitException 2
-@hash fb404362499754392265dbaf59bc7ba7f1463af6c568e5fe58fb6c509c3685e1 70 pointer-list/aligned
+@hash d6a404a81af67dfd3c7732667804dbe677c07fd8f0b90a4cfce1099e0efe0af2 70 pointer-list/aligned
   ok 26, ArgumentOutOfRangeException 14, CStructReadLimitException 28, CStructWriteLimitException 2
 
 @test NestingLimits_AgreeAcrossExecutionPaths("pointer-views")
-@hash 25cbc2a113bb03a1f9229d773dba0add55735cf7b22cb354f607bc909e44a05c 70 pointer-views/packed
+@hash 9d3b774bee102ff6c664faa44ce64f669db2a9d11a53e5a41bc111e6d6e5f5a0 70 pointer-views/packed
   ok 42, ArgumentOutOfRangeException 14, CStructReadLimitException 12, CStructWriteLimitException 2
-@hash 25cbc2a113bb03a1f9229d773dba0add55735cf7b22cb354f607bc909e44a05c 70 pointer-views/aligned
+@hash 9d3b774bee102ff6c664faa44ce64f669db2a9d11a53e5a41bc111e6d6e5f5a0 70 pointer-views/aligned
   ok 42, ArgumentOutOfRangeException 14, CStructReadLimitException 12, CStructWriteLimitException 2
 
 @test NestingLimits_AgreeAcrossExecutionPaths("pointers")
-@hash 9fd934b1afc6b5b6b1f5eb1c18c4786e4e6b02291ec42592ea97796e5981e6a5 70 pointers/packed
+@hash 2cbb0734dee653a1c04cc2b306021a376fd82353f4b04edfdc1ca74117199a92 70 pointers/packed
   ok 46, ArgumentOutOfRangeException 14, CStructReadLimitException 10
-@hash 9fd934b1afc6b5b6b1f5eb1c18c4786e4e6b02291ec42592ea97796e5981e6a5 70 pointers/aligned
+@hash 2cbb0734dee653a1c04cc2b306021a376fd82353f4b04edfdc1ca74117199a92 70 pointers/aligned
   ok 46, ArgumentOutOfRangeException 14, CStructReadLimitException 10
 
 @test NestingLimits_AgreeAcrossExecutionPaths("promoted")
@@ -1264,33 +1264,33 @@
   ok 480, CStructReadException 48
 
 @test ReadOptions_DecodeFromMemoryAndStreams("pointer-arrays")
-@hash b01532679a01f5d393980840eb1996440bec9dec029dd9313b5c6b23727ffc96 528 pointer-arrays/packed
+@hash 45990f879050e204fd43623efba1c335327ab22dc558d027ae52970e46bbfe55 528 pointer-arrays/packed
   ok 404, CStructReadException 124
-@hash b01532679a01f5d393980840eb1996440bec9dec029dd9313b5c6b23727ffc96 528 pointer-arrays/aligned
+@hash 45990f879050e204fd43623efba1c335327ab22dc558d027ae52970e46bbfe55 528 pointer-arrays/aligned
   ok 404, CStructReadException 124
 
 @test ReadOptions_DecodeFromMemoryAndStreams("pointer-counted")
-@hash 1219929bda1462b3f799b271b68a828e7363b896bbf47650a91b3418a4dc2291 528 pointer-counted/packed
+@hash 4445d153f24cb6527144aba10b169a8603b751b8833c9bf843c577fec473b6ca 528 pointer-counted/packed
   ok 268, CStructPathException 192, CStructReadException 68
-@hash 1219929bda1462b3f799b271b68a828e7363b896bbf47650a91b3418a4dc2291 528 pointer-counted/aligned
+@hash 4445d153f24cb6527144aba10b169a8603b751b8833c9bf843c577fec473b6ca 528 pointer-counted/aligned
   ok 268, CStructPathException 192, CStructReadException 68
 
 @test ReadOptions_DecodeFromMemoryAndStreams("pointer-list")
-@hash 35795f61147be9347eacc0441e6bf7008010e64e6375788315a24e6017c85e49 528 pointer-list/packed
+@hash 610ba4526a5619e7ef7d06be5469cf7394a96b3227d5a3c9963b541cf949f04b 528 pointer-list/packed
   ok 324, CStructPathException 56, CStructReadException 148
-@hash 35795f61147be9347eacc0441e6bf7008010e64e6375788315a24e6017c85e49 528 pointer-list/aligned
+@hash 610ba4526a5619e7ef7d06be5469cf7394a96b3227d5a3c9963b541cf949f04b 528 pointer-list/aligned
   ok 324, CStructPathException 56, CStructReadException 148
 
 @test ReadOptions_DecodeFromMemoryAndStreams("pointer-views")
-@hash 14648596a8f33b38438376a009e33794de36ba20898e46b37cca49f2b36a2c57 528 pointer-views/packed
+@hash 80bd0bef876c76a827c84402fec1aa3025ec9d013aebbe385094b4a775ba097d 528 pointer-views/packed
   ok 396, CStructReadException 132
-@hash 14648596a8f33b38438376a009e33794de36ba20898e46b37cca49f2b36a2c57 528 pointer-views/aligned
+@hash 80bd0bef876c76a827c84402fec1aa3025ec9d013aebbe385094b4a775ba097d 528 pointer-views/aligned
   ok 396, CStructReadException 132
 
 @test ReadOptions_DecodeFromMemoryAndStreams("pointers")
-@hash b7892f925f194705d4ec8d904e186487365548b209b10a9e6f7d1e44e6728b31 576 pointers/packed
+@hash 9918475b6b25d28cdf3775121242069b28cffb25e370bcbc5e593e24c93e651f 576 pointers/packed
   ok 348, CStructPathException 152, CStructReadException 76
-@hash b7892f925f194705d4ec8d904e186487365548b209b10a9e6f7d1e44e6728b31 576 pointers/aligned
+@hash 9918475b6b25d28cdf3775121242069b28cffb25e370bcbc5e593e24c93e651f 576 pointers/aligned
   ok 348, CStructPathException 152, CStructReadException 76
 
 @test ReadOptions_DecodeFromMemoryAndStreams("promoted")
@@ -1732,33 +1732,33 @@
   ok 100, CStructReadException 590
 
 @test Truncations_ReadFromEverySource("pointer-arrays")
-@hash f44a0dbac80aa24be7350a46da358497e625024a45b4bb31edda7974af387f2a 460 pointer-arrays/packed
+@hash e47247305ead761ef3b4cc9d72c3f5dede7f4a9e3e9f77bdaa2520d8d1c93b08 460 pointer-arrays/packed
   ok 96, CStructReadException 364
-@hash f44a0dbac80aa24be7350a46da358497e625024a45b4bb31edda7974af387f2a 460 pointer-arrays/aligned
+@hash e47247305ead761ef3b4cc9d72c3f5dede7f4a9e3e9f77bdaa2520d8d1c93b08 460 pointer-arrays/aligned
   ok 96, CStructReadException 364
 
 @test Truncations_ReadFromEverySource("pointer-counted")
-@hash e20e2cdd5ab31fc5f8f2580837cab53fff995e7b407b58025161ced5057e64b9 528 pointer-counted/packed
+@hash a897ea4d3c35692bc6fb437afb1c991907db7c462d7342b80d0f1d379f556bf1 528 pointer-counted/packed
   ok 66, CStructPathException 48, CStructReadException 414
-@hash e20e2cdd5ab31fc5f8f2580837cab53fff995e7b407b58025161ced5057e64b9 528 pointer-counted/aligned
+@hash a897ea4d3c35692bc6fb437afb1c991907db7c462d7342b80d0f1d379f556bf1 528 pointer-counted/aligned
   ok 66, CStructPathException 48, CStructReadException 414
 
 @test Truncations_ReadFromEverySource("pointer-list")
-@hash 4ef2b20ece13c46413491589aceb74c3100ddc6f9a1b1cbf2508bcf457aa875e 352 pointer-list/packed
+@hash 8f800d3524ab10ad9f014c1bf80eed5fcdc5b8af1f058d4a64737cc773952710 352 pointer-list/packed
   ok 50, CStructReadException 302
-@hash 4ef2b20ece13c46413491589aceb74c3100ddc6f9a1b1cbf2508bcf457aa875e 352 pointer-list/aligned
+@hash 8f800d3524ab10ad9f014c1bf80eed5fcdc5b8af1f058d4a64737cc773952710 352 pointer-list/aligned
   ok 50, CStructReadException 302
 
 @test Truncations_ReadFromEverySource("pointer-views")
-@hash 1d013dd504cef9775d222fdc7f6793380867f5b8addad35e2254fbf2dfb44a79 352 pointer-views/packed
+@hash b9f1ba6047bcc9a7d33ca38f62de15b3db0956c2e68ad6d6e74c1b540da64b3b 352 pointer-views/packed
   ok 54, CStructReadException 298
-@hash 1d013dd504cef9775d222fdc7f6793380867f5b8addad35e2254fbf2dfb44a79 352 pointer-views/aligned
+@hash b9f1ba6047bcc9a7d33ca38f62de15b3db0956c2e68ad6d6e74c1b540da64b3b 352 pointer-views/aligned
   ok 54, CStructReadException 298
 
 @test Truncations_ReadFromEverySource("pointers")
-@hash 8415439c9ad9769133592687392b8e62a599204f6a087539e14e7864b230b51b 528 pointers/packed
+@hash 8d7345cb392038ac085430ff83c1b7a1a3aecfa0aa5b87d95da0347cd256d92e 528 pointers/packed
   ok 82, CStructReadException 446
-@hash 8415439c9ad9769133592687392b8e62a599204f6a087539e14e7864b230b51b 528 pointers/aligned
+@hash 8d7345cb392038ac085430ff83c1b7a1a3aecfa0aa5b87d95da0347cd256d92e 528 pointers/aligned
   ok 82, CStructReadException 446
 
 @test Truncations_ReadFromEverySource("promoted")

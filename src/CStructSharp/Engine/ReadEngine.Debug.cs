@@ -30,6 +30,13 @@ using CStructSharp.Values;
 ///         own record follows its views', a pointer followed in place comes after its target's records, and a deferred
 ///         pointer's target records come after its struct's last member.
 ///     </para>
+///     <para>
+///         <b>Pointer paths.</b> A pointer's own record (its stored address) carries the pointer's path; each level it
+///         follows adds a <c>value</c> segment, as the result's pointer object holds its target in <c>value</c>: the
+///         members of <c>pair *ptr</c>'s target are <c>root.ptr.value.a</c>, the byte of <c>uint8 **deep</c> is
+///         <c>root.deep.value.value</c> after the intermediate pointer <c>root.deep.value</c>, and element 3 of a counted
+///         target is <c>root.nodes.value[3]</c>. No target record therefore shares the path of the pointer's storage.
+///     </para>
 /// </remarks>
 internal static partial class ReadEngine
 {
@@ -278,8 +285,9 @@ internal static partial class ReadEngine
                 var pointers = new List<object?>(count);
                 for (int index = 0; index < count; index++)
                 {
-                    // A pointer to a struct or union is recorded, with its target's members, under its element path.
-                    DebugPath? element = member.TargetComposite is not null ? DebugRecorder.ElementPath(member, path, index, count) : path;
+                    // Each pointer has a target of its own, so it is recorded under its element path, which its target's
+                    // paths extend (root.bytes[1].value), as the result and a selection name them.
+                    DebugPath element = DebugRecorder.ElementPath(member, path, index, count);
                     pointers.Add(ReadRecordedPointer(ref cursor, ref state, member, program.PointerTargets[step.A], step.B == 1, element, scratch));
                 }
 
@@ -523,8 +531,8 @@ internal static partial class ReadEngine
 
     /// <summary>
     ///     Reads a pointer (or one element of a pointer array) and records it under <paramref name="path"/> once it is read:
-    ///     a target followed in place is read first, its records under the same path, and a deferred target keeps the path for
-    ///     when its struct follows it.
+    ///     a target followed in place is read first, its records under the path extended by <c>value</c>, and a deferred
+    ///     target keeps the pointer's path for when its struct follows it.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor, at the stored address.</param>
@@ -532,7 +540,7 @@ internal static partial class ReadEngine
     /// <param name="member">The pointer member.</param>
     /// <param name="target">The pointer's target description.</param>
     /// <param name="deferred">Whether the target is followed after the struct's last member.</param>
-    /// <param name="path">The pointer's path, which its target's records share.</param>
+    /// <param name="path">The pointer's path, which its target's paths extend.</param>
     /// <param name="scratch">A buffer of at least 16 bytes.</param>
     /// <returns>The pointer as stored in the result.</returns>
     private static Pointer ReadRecordedPointer<TCursor>(ref TCursor cursor, ref ReadEngineState state, CompiledField member, ReadPointerTarget target, bool deferred, DebugPath? path, Span<byte> scratch)
@@ -545,13 +553,92 @@ internal static partial class ReadEngine
         Pointer pointer = ReadPointerField(ref cursor, ref state, target, deferred, scratch);
         if (state.PendingPointerCount > queued)
         {
-            // The pointer was queued: its target is recorded under this path when the struct follows it.
+            // The pointer was queued: its target is recorded under this path, extended by `value`, when the struct follows it.
             List<PendingPointer> pending = state.Pointers.Pending;
             pending[^1] = pending[^1] with { DebugStack = path, };
         }
 
         debug.Record(start, cursor.Position, path, pointer, member.DisplayTypeSpelling);
         return pointer;
+    }
+
+    /// <summary>
+    ///     Reads one followed pointer target with its records, the cursor at the target: with pointer levels left, the
+    ///     stored pointer there (its own target recorded under <paramref name="path"/> extended by <c>value</c>) and then its
+    ///     record; a struct or union's members and a counted target's elements as they record themselves; and any other
+    ///     value as one record over its bytes, an enum as its number (the value records only where the recorder keeps them,
+    ///     <see cref="DebugRecorder.RecordsTargetValues"/>). Both the whole-root debug parse and a selected
+    ///     <c>.value</c> of <c>ReadValueWithDebug</c> record a target here, so the two give it the same records.
+    /// </summary>
+    /// <typeparam name="TCursor">The cursor type.</typeparam>
+    /// <param name="cursor">The operation's cursor, at the target.</param>
+    /// <param name="state">The operation's state, which holds the recorder.</param>
+    /// <param name="target">The pointer's target description (of a debug program).</param>
+    /// <param name="levels">The pointer levels stored at the target: 0 for the final target.</param>
+    /// <param name="elementCount">A counted target's element count, or -1 to evaluate it when the final level is reached.</param>
+    /// <param name="path">The target's path, ending in <c>value</c>.</param>
+    /// <param name="scratch">A buffer of at least 16 bytes.</param>
+    /// <returns>The target's value: another pointer while levels are left.</returns>
+    private static object ReadRecordedPointerTarget<TCursor>(ref TCursor cursor, ref ReadEngineState state, ReadPointerTarget target, int levels, int elementCount, DebugPath? path, Span<byte> scratch)
+        where TCursor : struct, IReadCursor
+    {
+        DebugRecorder debug = state.Debug!;
+        long start = cursor.Position;
+
+        // The target reads with this path as the pointer it follows next, or as the struct, union or counted target.
+        debug.Target = path;
+        object value;
+        if (levels > 0)
+        {
+            value = ReadPointerValue(ref cursor, ref state, target, levels, elementCount, scratch);
+        }
+        else
+        {
+            value = ReadPointerTargetValue(ref cursor, ref state, target, elementCount, scratch);
+            if (target.Kind is ReadPointerTargetKind.Composite or ReadPointerTargetKind.CountedText or ReadPointerTargetKind.CountedNumbers or ReadPointerTargetKind.CountedComposites or ReadPointerTargetKind.CountedEnums or ReadPointerTargetKind.CountedValues)
+            {
+                return value;
+            }
+        }
+
+        if (debug.RecordsTargetValues)
+        {
+            debug.Record(start, cursor.Position, path, value is EnumValueResult number ? number.Value : value, target.Field.TypeSpelling);
+        }
+
+        return value;
+    }
+
+    /// <summary>
+    ///     Reads a counted target's fixed-width numbers as the ordinary read does - one block read, with its checks and
+    ///     failures - and records each element over its own bytes, as a debug parse records a numeric array.
+    /// </summary>
+    /// <typeparam name="TCursor">The cursor type.</typeparam>
+    /// <param name="cursor">The operation's cursor, at the first element.</param>
+    /// <param name="debug">The recorder, whose <see cref="DebugRecorder.Target"/> path the records carry.</param>
+    /// <param name="codec">The element codec, fixed-width numeric.</param>
+    /// <param name="count">The element count.</param>
+    /// <param name="typeName">The type spelling the records carry.</param>
+    /// <returns>The elements as the typed array the ordinary read returns.</returns>
+    private static IList<object?> RecordCountedNumbers<TCursor>(ref TCursor cursor, DebugRecorder debug, PrimitiveCodec codec, int count, string typeName)
+        where TCursor : struct, IReadCursor
+    {
+        if (count == 0)
+        {
+            return PrimitiveArrayReader.Empty(codec);
+        }
+
+        // The elements are contiguous and fixed-width, so element i spans [start + i * size, start + (i + 1) * size).
+        long start = cursor.Position;
+        IList<object?> elements = cursor.ReadPrimitiveArray(codec, count);
+        DebugPath? path = debug.Target;
+        for (int index = 0; index < count; index++)
+        {
+            long elementStart = start + ((long)index * codec.Size);
+            debug.Record(elementStart, elementStart + codec.Size, path, elements[index]!, typeName);
+        }
+
+        return elements;
     }
 
     /// <summary>
@@ -562,7 +649,7 @@ internal static partial class ReadEngine
     /// <param name="cursor">The operation's cursor, at the target.</param>
     /// <param name="state">The operation's state, which holds the recorder.</param>
     /// <param name="target">The target description of a debug program; its composite's debug program is taken on first use.</param>
-    /// <param name="path">The pointer's path (or a counted target's element path).</param>
+    /// <param name="path">The target's path, ending in <c>value</c> (or a counted target's element path).</param>
     /// <returns>The struct or union value.</returns>
     private static object ReadRecordedPointerComposite<TCursor>(ref TCursor cursor, ref ReadEngineState state, ReadPointerTarget target, DebugPath? path)
         where TCursor : struct, IReadCursor

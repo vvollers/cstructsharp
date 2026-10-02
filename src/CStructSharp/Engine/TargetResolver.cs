@@ -69,8 +69,9 @@ internal static partial class TargetResolver
     /// <param name="state">The operation's state: the slots the walk captures into and reads counts from, the limits, the depths.</param>
     /// <param name="segments">The parsed path, at least one segment.</param>
     /// <param name="debugPrefix">
-    ///     A list that receives the names of the path's struct and field segments (the path a debug parse of the target
-    ///     records under), or <see langword="null"/> when no debug parse follows.
+    ///     A list that receives the names of the path's struct and field segments and a <c>value</c> for each pointer
+    ///     level it follows (the path a debug parse of the target records under), or <see langword="null"/> when no debug
+    ///     parse follows.
     /// </param>
     /// <param name="readsTarget">
     ///     Whether the caller reads the target's value next (<c>ReadValue</c>): a whole terminated array is then left to that
@@ -505,6 +506,9 @@ internal static partial class TargetResolver
         state.Layout.EnsurePointerTargetSize(field.PointerDepth, field, state.MaxPointerTargetBytes, 1);
         long target = ReadPointerTargetAddress(ref cursor, ref state, storage);
         pointers = new PointerContext(target, checked(pointers.Consumed + 1));
+
+        // A followed level names its target `value`, as the result's pointer object and a whole-root debug parse do.
+        walk.DebugPrefix?.Add("value");
         (long Address, string TypeName, int PointerDepth) key = (target, field.TypeSpelling, field.PointerDepth);
         HashSet<(long Address, string TypeName, int PointerDepth)>? active = target != 0 ? state.Pointers.ActiveTargets : null;
         if (active is not null && !active.Add(key))
@@ -812,16 +816,17 @@ internal static partial class TargetResolver
 
     /// <summary>
     ///     The debug path segment a debug read of the target records a member under, as a whole-root debug parse names it:
-    ///     an element or row of a struct, union or composite-pointer array keeps the path's indexes (<c>items[1]</c>,
-    ///     <c>grid[1][2]</c>), because every element of such an array has a path of its own; any other member is its name
-    ///     alone, as the elements of a scalar array share their member's path.
+    ///     an element or row of a struct, union or pointer array keeps the path's indexes (<c>items[1]</c>,
+    ///     <c>grid[1][2]</c>), because every element of such an array has a path of its own (a pointer element's target is
+    ///     <c>bytes[1].value</c>); any other member is its name alone, as the elements of a scalar array share their
+    ///     member's path.
     /// </summary>
     /// <param name="declared">The member's declared field.</param>
     /// <param name="segment">The path segment that names it, with the indexes it applies.</param>
     /// <returns>The segment.</returns>
     private static string DebugSegment(CompiledField declared, PathSegment segment)
     {
-        if (segment.Indexes.Count == 0 || declared.TargetComposite is null)
+        if (segment.Indexes.Count == 0 || (declared.TargetComposite is null && declared.PointerDepth == 0))
         {
             return declared.Name;
         }

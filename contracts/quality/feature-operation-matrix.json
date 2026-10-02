@@ -1633,12 +1633,7 @@
       }
     }
   ],
-  "knownContractLimits": [
-    {
-      "id": "primitive-pointer-target-debug-range",
-      "summary": "Debug parsing records pointer storage and fields inside composite targets, but not the final primitive target range of a pointer or multi-pointer chain."
-    }
-  ],
+  "knownContractLimits": [],
   "features": [
     {
       "id": "fixed-primitives",
@@ -3894,7 +3889,7 @@
       },
       "operations": {
         "parse": "verified",
-        "debug": "limited",
+        "debug": "verified",
         "address": "verified",
         "length": "notApplicable",
         "serialize": "verified",
@@ -3930,11 +3925,16 @@
           "operations": [
             "read-value"
           ]
+        },
+        {
+          "test": "tests/CStructSharpTests/Reading/ReadValueWithDebugTests.cs#ParseWithDebug_PointerTargets_RecordUnderValuePaths",
+          "operations": [
+            "debug"
+          ]
         }
       ],
       "limitations": [
-        "Pointer traversal is limited by explicit depth, target-range, nesting, and physical-read budgets.",
-        "Debug data records the pointer storage but does not yet add a range for a final primitive pointer target."
+        "Pointer traversal is limited by explicit depth, target-range, nesting, and physical-read budgets."
       ]
     },
     {
