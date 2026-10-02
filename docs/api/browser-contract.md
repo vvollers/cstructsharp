@@ -13,7 +13,7 @@ serialization, or update without exposing every .NET type to JavaScript. It is v
 API because JSON passed between browser code and WebAssembly has different compatibility concerns from a C# method
 call.
 
-The reviewed browser description uses browser interface version 9. It records eleven managed entry points, which
+The reviewed browser description uses browser interface version 10. It records eleven managed entry points, which
 fall into three groups:
 
 - On the calling thread: `ParseBytes` (parses byte inputs, with debug ranges when its `debug` argument is true),
@@ -33,12 +33,14 @@ the longest string V8 creates; the JSON is pure ASCII (every other character is 
 in characters. A parse whose envelope would be longer returns a `read-budget` failure instead. The source worker
 transfers a parse envelope's bytes to the page, which decodes and parses them once. The envelope has seven members,
 always in this order:
-`contractVersion` (9), `operation`, `success`, `root` (the root or path the operation selected, or the `root`
+`contractVersion` (10), `operation`, `success`, `root` (the root or path the operation selected, or the `root`
 option a write echoes), `data`, `debug`, and `error`. `debug` lists `{ start, end, path, type, value }` byte ranges
 after a parse with debug ranges and is empty otherwise. On failure `data` is null and `error` is
 `{ code, message, path, offset, member, memberType, line, column }`. The `message` is the library's own diagnostic
 verbatim; the `redactDiagnostics` option keeps only the category `code` and its curated text and clears `path`,
-`member`, and `memberType`, for pages that must not echo layout text, values, or paths.
+`member`, and `memberType`, for pages that must not echo layout text, values, or paths. A failure caused by
+running out of WebAssembly memory has the code `resource-exhausted`; any other unexpected failure of the bridge is
+`operation-failed`, whose fixed text reveals nothing about the cause.
 
 What `data` holds on success depends on the operation:
 

@@ -77,7 +77,11 @@ Large-source parsing runs in a worker and passes 64 KiB pages to WASM. Browser f
 of full-file size. `parse` avoids debug byte copies; `parseWithDebug` also returns field ranges. Small Uint8Array
 debug calls retain the direct path unless `signal` is supplied. Decoded results still use memory, and read limits
 still apply. A parse result's JSON text may be at most 536,870,888 characters, V8's string limit; a longer result
-fails with `read-budget`, which a debug parse reaches with a far smaller input than `parse`. `serialize` and `update` are in-memory operations: `update` reads any binary source completely and
+fails with `read-budget`, which a debug parse reaches with a far smaller input than `parse`. WebAssembly memory
+grows but never shrinks: the calling thread's runtime keeps the memory its largest result needed until the page or
+process ends, while a worker is replaced after a result of 64 MiB or more. In a long-running process, pass `signal`
+to send very large debug parses to the worker. A parse that runs out of memory fails with `resource-exhausted`.
+`serialize` and `update` are in-memory operations: `update` reads any binary source completely and
 hands at most 4 MiB to the runtime (larger inputs fail with `invalid-input`), and the raw adapter's byte-array
 exports share that 4 MiB limit; `parse`, `parseWithDebug`, and `resolveAddress` page larger sources through the
 worker. See the

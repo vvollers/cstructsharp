@@ -26,6 +26,8 @@ const baseline = JSON.parse(read("contracts/api/browser/contract.json"));
 const declarations = read("packages/cstructsharp/index.d.ts");
 const contract = read("apps/shared/src/wasm/contract.ts") + "\n" + declarations;
 const boundary = read("src/CStructSharp.Wasm/CStructInteropBoundary.cs");
+// The failure mapping that names every error code the envelopes report.
+const errorCategories = read("src/CStructSharp.Wasm/InteropErrorCategories.cs");
 const wasmDirectory = "src/CStructSharp.Wasm";
 // Every C# file of the bridge, so an export added in any partial file is seen.
 const wasmSources = fs
@@ -141,7 +143,7 @@ for (const field of baseline.optionFields) {
 }
 
 for (const code of baseline.errorCodes) {
-  if (!boundary.includes(`"${code}"`)) {
+  if (!errorCategories.includes(`"${code}"`)) {
     fail(`Managed browser error code is missing: ${code}`);
   }
 }

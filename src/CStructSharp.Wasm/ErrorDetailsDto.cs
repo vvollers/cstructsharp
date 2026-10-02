@@ -11,7 +11,7 @@ internal sealed class ErrorDetailsDto
 {
     /// <summary>
     ///     The stable failure category, such as <c>invalid-layout</c>, <c>read-budget</c>, or <c>invalid-json</c>;
-    ///     <c>operation-failed</c> for an unexpected failure.
+    ///     <c>resource-exhausted</c> when memory ran out; <c>operation-failed</c> for any other unexpected failure.
     /// </summary>
     public string Code { get; init; } = string.Empty;
 

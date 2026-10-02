@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { InteropResult, RawWasmAdapter } from "./contract";
 
 const validParseResult: InteropResult = {
-  contractVersion: 9,
+  contractVersion: 10,
   operation: "parse",
   success: true,
   root: "root",
@@ -33,7 +33,7 @@ function writeResult(
   error: InteropResult["error"] = null,
 ): InteropResult {
   return {
-    contractVersion: 9,
+    contractVersion: 10,
     operation,
     success: error === null,
     root: null,

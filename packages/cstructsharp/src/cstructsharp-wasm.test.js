@@ -32,17 +32,17 @@ test("public wrapper returns byte arrays for writes, preserves errors and parse 
     const root = JSON.parse(optionsJson).root ?? null;
     if (shouldFail) {
       pending = null;
-      return JSON.stringify({ contractVersion: 9, operation, success: false, root, data: null, debug: [], error: failure });
+      return JSON.stringify({ contractVersion: 10, operation, success: false, root, data: null, debug: [], error: failure });
     }
     pending = written;
-    return JSON.stringify({ contractVersion: 9, operation, success: true, root, data: { byteLength: written.byteLength }, debug: [], error: null });
+    return JSON.stringify({ contractVersion: 10, operation, success: true, root, data: { byteLength: written.byteLength }, debug: [], error: null });
   };
   // Fake managed exports that follow the envelope-plus-TakeOutput transport.
   const managed = {
     /** Returns a successful parse envelope for any input, as UTF-8 bytes like the managed parse exports. */
     ParseBytes: () =>
       new TextEncoder().encode(
-        JSON.stringify({ contractVersion: 9, operation: "parse", success: true, root: "root", data: { value: 2 }, debug: [], error: null }),
+        JSON.stringify({ contractVersion: 10, operation: "parse", success: true, root: "root", data: { value: 2 }, debug: [], error: null }),
       ),
     /** Returns the serialize envelope and leaves the bytes pending. */
     Serialize: (_definition, _json, optionsJson) => writeEnvelope("serialize", optionsJson),
@@ -60,7 +60,7 @@ test("public wrapper returns byte arrays for writes, preserves errors and parse 
     /** Returns the version envelope. */
     GetVersion: () =>
       JSON.stringify({
-        contractVersion: 9,
+        contractVersion: 10,
         operation: "version",
         success: true,
         root: null,
@@ -86,7 +86,7 @@ test("public wrapper returns byte arrays for writes, preserves errors and parse 
   try {
     const serialized = await serialize("layout", {}, { root: "root" });
     assert.deepEqual(Object.keys(serialized), ENVELOPE_KEYS);
-    assert.equal(serialized.contractVersion, 9);
+    assert.equal(serialized.contractVersion, 10);
     assert.equal(serialized.operation, "serialize");
     assert.equal(serialized.success, true);
     assert.equal(serialized.root, "root");
@@ -130,11 +130,11 @@ test("parse takes the synchronous path for small byte inputs and the worker path
   const calls = [];
   /** Builds a successful parse envelope's JSON around the given data. */
   const envelope = (data) =>
-    JSON.stringify({ contractVersion: 9, operation: "parse", success: true, root: "root", data, debug: [], error: null });
+    JSON.stringify({ contractVersion: 10, operation: "parse", success: true, root: "root", data, debug: [], error: null });
   globalThis.CStructSharpWasm = {
     ready: true,
     /** A layout that is not fully fixed has no static plan, so small inputs cross into WASM. */
-    getStaticPlan: () => ({ contractVersion: 9, operation: "staticPlan", success: true, root: "root", data: null, debug: [], error: null }),
+    getStaticPlan: () => ({ contractVersion: 10, operation: "staticPlan", success: true, root: "root", data: null, debug: [], error: null }),
     parseBytes: (definition, bytes, options, debug) => {
       calls.push(["parseBytes", bytes.byteLength, options, debug]);
       return envelope({ value: 1 });
@@ -172,7 +172,7 @@ test("parseWithDebug routes byte inputs by the rule parse uses", async () => {
   const previous = globalThis.CStructSharpWasm;
   const calls = [];
   /** Builds a successful debug parse envelope around the given data. */
-  const envelope = (data) => ({ contractVersion: 9, operation: "parse", success: true, root: "root", data, debug: [], error: null });
+  const envelope = (data) => ({ contractVersion: 10, operation: "parse", success: true, root: "root", data, debug: [], error: null });
   globalThis.CStructSharpWasm = {
     ready: true,
     /** The synchronous debug parse, which receives a Uint8Array over the caller's bytes. */
@@ -241,7 +241,7 @@ test("the standalone loader reports the runtime's own startup error and retries 
   }
   /** Returns the version envelope of the fake runtime. */
   managed.GetVersion = () =>
-    JSON.stringify({ contractVersion: 9, operation: "version", success: true, root: null, data: { version: "fake" }, debug: [], error: null });
+    JSON.stringify({ contractVersion: 10, operation: "version", success: true, root: null, data: { version: "fake" }, debug: [], error: null });
 
   // main.js publishes on window and announces the outcome with an event; Node has neither, so the test lends both.
   const saved = { window: globalThis.window, dispatchEvent: globalThis.dispatchEvent, adapter: globalThis.CStructSharpWasm };

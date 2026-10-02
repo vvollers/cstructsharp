@@ -8,6 +8,7 @@ describe("errorRecoveryHint", () => {
   it("gives code-specific advice that names the app's limits", () => {
     expect(errorRecoveryHint("read-budget", context)).toContain("Safety limits");
     expect(errorRecoveryHint("invalid-path", context)).toContain("letter case");
+    expect(errorRecoveryHint("resource-exhausted", context)).toContain("reload the page");
   });
 
   it("falls back to the app's advice for other or missing codes", () => {

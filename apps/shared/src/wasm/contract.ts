@@ -23,7 +23,7 @@ export type {
 } from "../../../../packages/cstructsharp/index.js";
 
 /** The contract version every envelope carries; the declarations fix it as a literal type. */
-export const INTEROP_CONTRACT_VERSION = 9 as const satisfies Result<unknown>["contractVersion"];
+export const INTEROP_CONTRACT_VERSION = 10 as const satisfies Result<unknown>["contractVersion"];
 
 /** The operations an envelope can report. */
 export type InteropOperation = Operation;

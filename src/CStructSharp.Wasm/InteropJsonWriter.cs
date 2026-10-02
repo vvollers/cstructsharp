@@ -50,29 +50,89 @@ internal sealed class InteropJsonWriter
     private static readonly byte[] HexDigits = "0123456789abcdef"u8.ToArray();
     private static readonly SearchValues<byte> UnescapedUtf8 = SearchValues.Create("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !#$%()*,-./:;=?@[]^_`{|}~"u8);
 
+    /// <summary>
+    ///     The buffer size, in bytes, at which the writer stops doubling one array and continues in further segments
+    ///     of this size instead: 4 MiB.
+    /// </summary>
+    public const int DefaultSegmentLength = 4 * 1024 * 1024;
+
     private readonly int maximumLength;
+    private readonly int segmentLength;
+
+    // The segment being written. Every write method reserves room with Ensure or WriteByte and then writes straight
+    // into this array, so one reserved write never straddles two segments.
     private byte[] buffer;
     private int length;
 
+    // The full segments before the current one, in output order, each with the bytes it holds; null until the output
+    // first outgrows one segment. The output is their concatenation followed by the current segment's bytes.
+    private List<ArraySegment<byte>>? sealedSegments;
+    private int sealedLength;
+    private int sealedCapacity;
+
     /// <summary>
-    ///     Creates an empty writer whose buffer starts at the given size and doubles as output grows, for outputs of
-    ///     at most <paramref name="maximumLength"/> bytes.
+    ///     Creates an empty writer for outputs of at most <paramref name="maximumLength"/> bytes. Its buffer starts at
+    ///     <paramref name="capacity"/> bytes and doubles as output grows, up to <paramref name="segmentLength"/>;
+    ///     a longer output continues in further segments of that size.
     /// </summary>
     /// <param name="capacity">The initial buffer size in bytes.</param>
     /// <param name="maximumLength">
     ///     The most bytes one output may hold: <see cref="InteropLimits.MaximumResultLength"/> unless a test lowers it.
     /// </param>
-    public InteropJsonWriter(int capacity, int maximumLength = InteropLimits.MaximumResultLength)
+    /// <param name="segmentLength">
+    ///     The largest buffer the writer doubles to and the size of each further segment, in bytes:
+    ///     <see cref="DefaultSegmentLength"/> unless a test lowers it.
+    /// </param>
+    /// <remarks>
+    ///     Segments bound the memory a very large output needs. Doubling one array briefly holds the old and the new
+    ///     array, and a WebAssembly memory keeps such a peak for the runtime's life. Segments hold little more than
+    ///     the output itself, and <see cref="ToArray"/> adds one exact-size copy. An output that fits one segment is
+    ///     written into one contiguous array, the fast path every ordinary envelope takes.
+    /// </remarks>
+    public InteropJsonWriter(int capacity, int maximumLength = InteropLimits.MaximumResultLength, int segmentLength = DefaultSegmentLength)
     {
         this.buffer = new byte[capacity];
         this.maximumLength = maximumLength;
+        this.segmentLength = segmentLength;
     }
 
-    /// <summary>The bytes written so far.</summary>
-    public ReadOnlySpan<byte> WrittenSpan => this.buffer.AsSpan(0, this.length);
+    /// <summary>
+    ///     Gets the bytes allocated for the output across all segments, which callers use to drop an unusually large
+    ///     writer.
+    /// </summary>
+    public int Capacity => this.sealedCapacity + this.buffer.Length;
 
-    /// <summary>Gets the current buffer size in bytes, which callers use to drop an unusually large writer.</summary>
-    public int Capacity => this.buffer.Length;
+    /// <summary>Returns a copy of the bytes written since the last <see cref="Reset"/>, as one exact-size array.</summary>
+    /// <returns>A new array the caller owns; the writer keeps its segments until the next reset.</returns>
+    public byte[] ToArray()
+    {
+        if (this.sealedSegments is null)
+        {
+            return this.buffer.AsSpan(0, this.length).ToArray();
+        }
+
+        byte[] output = new byte[checked(this.sealedLength + this.length)];
+        int offset = 0;
+        foreach (ArraySegment<byte> segment in this.sealedSegments)
+        {
+            segment.AsSpan().CopyTo(output.AsSpan(offset));
+            offset += segment.Count;
+        }
+
+        this.buffer.AsSpan(0, this.length).CopyTo(output.AsSpan(offset));
+        return output;
+    }
+
+    /// <summary>Decodes the bytes written since the last <see cref="Reset"/> as UTF-8 text.</summary>
+    /// <returns>The written JSON text.</returns>
+    public string ToUtf8String()
+    {
+        // A segmented output is joined into one array first; only the string exports come here, and their envelopes
+        // are small, so the extra copy does not matter.
+        return this.sealedSegments is null
+            ? Encoding.UTF8.GetString(this.buffer, 0, this.length)
+            : Encoding.UTF8.GetString(this.ToArray());
+    }
 
     /// <summary>
     ///     Throws when the output written since the last <see cref="Reset"/> is longer than the writer's maximum
@@ -84,16 +144,25 @@ internal sealed class InteropJsonWriter
     /// </exception>
     public void EnsureWithinLimit()
     {
-        if (this.length > this.maximumLength)
+        if ((long)this.sealedLength + this.length > this.maximumLength)
         {
             throw new CStructReadLimitException($"The result's JSON text exceeds {this.maximumLength} bytes, the longest text the browser bridge returns as one JavaScript string. Select a smaller root, read fewer elements, or parse without debug ranges, which add one record per value.");
         }
     }
 
-    /// <summary>Discards the written bytes so the writer can be reused; the buffer and its capacity are kept.</summary>
+    /// <summary>
+    ///     Discards the written bytes so the writer can be reused. The current segment and its capacity are kept;
+    ///     earlier segments are dropped, so the garbage collector can reclaim them.
+    /// </summary>
     public void Reset()
     {
         this.length = 0;
+        if (this.sealedSegments is not null)
+        {
+            this.sealedSegments = null;
+            this.sealedLength = 0;
+            this.sealedCapacity = 0;
+        }
     }
 
     /// <summary>Appends bytes that are already valid JSON (envelope framing, source-generated fragments).</summary>
@@ -781,8 +850,8 @@ internal sealed class InteropJsonWriter
     }
 
     /// <summary>
-    ///     Enlarges the buffer to hold the written bytes plus <paramref name="additional"/>, doubling it up to the
-    ///     maximum length.
+    ///     Makes room for <paramref name="additional"/> more bytes: doubles the buffer up to the segment length and the
+    ///     maximum length, and once the buffer has reached the segment length, continues in a new segment.
     /// </summary>
     /// <param name="additional">The bytes about to be written.</param>
     /// <exception cref="CStructReadLimitException">The output written so far is already longer than the maximum.</exception>
@@ -792,11 +861,34 @@ internal sealed class InteropJsonWriter
         // Output past the limit never shrinks back under it, so fail before copying the buffer again.
         this.EnsureWithinLimit();
 
-        // Doubling stops at the limit, so a result just under it never allocates twice its size. A reservation that
-        // crosses the limit still gets the room it asks for - a string reserves its worst-case escaped length, which
-        // it rarely uses - and EnsureWithinLimit decides by the bytes actually written.
+        if (this.buffer.Length >= this.segmentLength)
+        {
+            this.StartSegment(additional);
+            return;
+        }
+
+        // Doubling stops at the segment length and at the limit, so a result just under the limit never allocates
+        // twice its size. A reservation beyond them still gets the room it asks for - a string reserves its
+        // worst-case escaped length, which it rarely uses - and EnsureWithinLimit decides by the bytes actually
+        // written.
         int required = checked(this.length + additional);
-        int doubled = (int)Math.Min((long)this.buffer.Length * 2, this.maximumLength);
+        int doubled = (int)Math.Min(Math.Min((long)this.buffer.Length * 2, this.maximumLength), this.segmentLength);
         Array.Resize(ref this.buffer, Math.Max(required, doubled));
+    }
+
+    /// <summary>
+    ///     Seals the current segment with the bytes it holds and continues in a new segment of the segment length, or
+    ///     larger when <paramref name="additional"/> needs more. A sealed segment is never copied again until
+    ///     <see cref="ToArray"/>, and its unused tail is never copied at all.
+    /// </summary>
+    /// <param name="additional">The bytes about to be written.</param>
+    /// <exception cref="OverflowException">The output would exceed the largest array size.</exception>
+    private void StartSegment(int additional)
+    {
+        (this.sealedSegments ??= []).Add(new ArraySegment<byte>(this.buffer, 0, this.length));
+        this.sealedLength = checked(this.sealedLength + this.length);
+        this.sealedCapacity = checked(this.sealedCapacity + this.buffer.Length);
+        this.buffer = new byte[Math.Max(additional, this.segmentLength)];
+        this.length = 0;
     }
 }

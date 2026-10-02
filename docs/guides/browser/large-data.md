@@ -113,7 +113,8 @@ Byte inputs (`ArrayBuffer`, typed arrays, `DataView`, `Buffer`) of at most 64 Ki
 on the calling thread instead, avoiding a worker round trip. Eligible fixed-layout `parse()` calls execute a
 JavaScript plan; other direct reads use the managed runtime. Public `parseWithDebug()` keeps a wider direct path
 for `Uint8Array` inputs up to 4 MiB. Supplying `signal` selects the cancellable worker path. Handles from `compile()`
-use direct managed reads for byte inputs up to 64 KiB without `signal`.
+use direct managed reads for byte inputs up to 64 KiB without `signal`. Which path runs a parse also decides which
+runtime keeps the memory a large result needs; see [Memory after a large parse](#memory-after-a-large-parse).
 
 Streams use origin-private file storage in browsers and a private temporary directory in Node. Browser staging
 requires HTTPS or localhost and storage quota. `maxSpoolBytes` defaults to 1 GiB and can be increased explicitly;
@@ -286,3 +287,40 @@ type, and value text of every struct and field, about 98 characters per input by
 near 5.2 MiB of input. Inputs this large also need `maxArrayElements` raised past its default of 1,000,000 elements,
 because each input byte here is one array element. When a result is too large, select a smaller root, read fewer
 elements, or use `parse` instead of `parseWithDebug`.
+
+## Memory after a large parse
+
+A WebAssembly program sees its memory as one array of bytes, called its *linear memory*. The array can grow while the
+program runs, but it can never shrink. The .NET runtime inside CStructSharp grows it whenever an operation needs more
+room, and it stays at that size for as long as the runtime runs. Later operations in the same runtime reuse the freed
+space, but the browser or operating system does not get it back.
+
+While a parse builds its result, the runtime holds the decoded values, the debug records of a debug parse, and the
+JSON text. The text is written in pieces of 4 MiB and then copied once into one array for JavaScript, so a large
+result briefly needs about twice its own size for the text alone. Take the record layout from the previous section
+over 1.5 MiB of input: `parseWithDebug` writes about 98 characters per input byte, about 155 million characters. The
+runtime that runs this parse needs at least 310 MB for the text and keeps its memory that large afterwards.
+
+The package runs two kinds of runtime, and they handle this differently:
+
+- **The calling thread.** Byte inputs without a `signal` run here: up to 64 KiB for `parse` and for `compile()`
+  handles, and up to 4 MiB for `parseWithDebug`. There is one such runtime per page or Node.js process, and it cannot
+  be restarted. After a large result it keeps its largest size until the page or process ends.
+- **Workers.** Everything else runs in a worker, which has its own runtime. After a reply of 64 MiB or more, the
+  package ends that worker and the next request starts a fresh one, which gives the memory back. A `compile()` handle
+  compiles its layout into the new worker, so its `root` and its results do not change. The only cost is one runtime
+  start after a result that was large anyway.
+
+A long-running service or browser tab should therefore send very large debug parses to a worker by passing a `signal`:
+
+```js
+const result = await parseWithDebug(definition, bytes, { ...options, signal: new AbortController().signal });
+if (!result.success && result.error.code === "resource-exhausted") {
+  // The runtime ran out of memory: narrow the root, or parse without debug ranges.
+}
+```
+
+When a runtime runs out of memory, the parse fails with the `resource-exhausted` error code, and the message suggests
+a fresh worker or process, or a narrower root. A worker that reports it is replaced as well. If the runtime cannot
+report the failure at all, the promise rejects with an `Error`, and a worker is replaced in that case too. On the
+calling thread, only a new page or process starts with fresh memory.

@@ -148,8 +148,11 @@ release ZIP. Mixing assets can produce incompatible results.
 ## Diagnose a failure
 
 For `read-failed`, compare the input byte count with the layout widths. For `invalid-path`, check case and spelling.
-For a limit error, check the format's required size before raising the limit. A plausible but wrong number often
-means the byte order or field placement is wrong; such a read may succeed because the bytes are still valid.
+For a limit error, check the format's required size before raising the limit. `resource-exhausted` means the
+WebAssembly memory ran out, usually during a very large debug parse; narrow the root, parse without debug ranges, or
+pass `signal` so the parse runs in a worker (see [memory after a large parse](large-data.md#memory-after-a-large-parse)).
+A plausible but wrong number often means the byte order or field placement is wrong; such a read may succeed because
+the bytes are still valid.
 
 Keep error codes for program decisions and messages for people. See the [managed error guide](../errors-and-recovery.md)
 for the distinction between validation failures and physical write failures, and the

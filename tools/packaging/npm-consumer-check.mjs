@@ -13,7 +13,7 @@ const definition = "struct header { uint16 kind; uint32 length; };";
 const options = { root: "header" };
 const input = Buffer.from([2, 0, 6, 0, 0, 0]);
 const read = await parseWithDebug(definition, input, options);
-assert.equal(read.contractVersion, 9);
+assert.equal(read.contractVersion, 10);
 assert.equal(read.operation, "parse");
 assert.equal(read.success, true);
 assert.equal(read.root, "header");
@@ -139,3 +139,30 @@ try {
   assert.equal(typeof compiledAddress.data, "number");
 } finally { await compiled.dispose(); }
 await assert.rejects(compiled.parse(input), /disposed/);
+
+// Worker recycling: a worker is replaced after a large result, which releases the WebAssembly memory its runtime
+// grew to. The package's internal module is the one the installed runtime loads; lowering its threshold to one byte
+// makes every worker parse count as large. A signal sends byte inputs to the worker.
+const { workerRecycling } = await import(new URL("./node_modules/cstructsharp/runtime/large-source.js", import.meta.url).href);
+const recycleThreshold = workerRecycling.resultBytes;
+workerRecycling.resultBytes = 1;
+try {
+  const signal = new AbortController().signal;
+  const recycledBefore = workerRecycling.recycled;
+  assert.deepEqual(await parseWithDebug(definition, input, { ...options, signal }), read);
+  assert.equal(workerRecycling.recycled, recycledBefore + 1);
+  assert.deepEqual(await parseWithDebug(definition, input, { ...options, signal }), read);
+  assert.equal(workerRecycling.recycled, recycledBefore + 2);
+  const recycledLayout = await compile(definition, options);
+  try {
+    assert.deepEqual(await recycledLayout.parseWithDebug(new Blob([input])), read);
+    assert.deepEqual(await recycledLayout.parseWithDebug(new Blob([input])), read);
+    assert.equal(workerRecycling.recycled, recycledBefore + 4, "the compiled layout recompiles into each new worker");
+    assert.equal(recycledLayout.root, "header");
+  } finally {
+    await recycledLayout.dispose();
+  }
+} finally {
+  workerRecycling.resultBytes = recycleThreshold;
+}
+console.log("Worker recycling passed");

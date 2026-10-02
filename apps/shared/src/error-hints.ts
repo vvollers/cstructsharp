@@ -22,6 +22,8 @@ export function errorRecoveryHint(
     "write-failed":
       "Check the JSON field names, numeric ranges, and text capacity. An update cannot move later fields.",
     "write-budget": `Check the output size against ${context.limits} before increasing the allowed work.`,
+    "resource-exhausted":
+      "The result needed more memory than the WebAssembly runtime could provide. Select a smaller root or parse without debug ranges, and reload the page to start with fresh memory.",
     "invalid-input":
       "Check the input and the settings. The size of a file is independent of the read limits.",
     "file-read-failed": "Reload the file after checking its location and access permissions.",

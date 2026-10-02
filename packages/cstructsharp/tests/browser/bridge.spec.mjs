@@ -78,9 +78,9 @@ test("parse, serialize and update return the contract's envelopes and value shap
   });
 
   /** The envelope of a successful operation with the given data. */
-  const success = (operation, data) => ({ contractVersion: 9, operation, success: true, data, error: null });
+  const success = (operation, data) => ({ contractVersion: 10, operation, success: true, data, error: null });
   /** The envelope of an operation that failed to write. */
-  const writeFailure = (operation) => ({ contractVersion: 9, operation, success: false, data: null, error: { code: "write-failed" } });
+  const writeFailure = (operation) => ({ contractVersion: 10, operation, success: false, data: null, error: { code: "write-failed" } });
 
   expect(results.parse).toMatchObject(success("parse", { value: 42 }));
   expect(results.scopedInlineParse).toMatchObject(success("parse", { value: { small: 42 } }));
@@ -127,7 +127,7 @@ test("64-bit values stay exact and an invalid option is a stable error", async (
   expect(results.parse.data).toEqual({ value: "18446744073709551615" });
   expect(results.serialize).toMatchObject({ success: true, data: "ff ff ff ff ff ff ff ff" });
   expect(results.invalidMode).toMatchObject({
-    contractVersion: 9,
+    contractVersion: 10,
     operation: "update",
     success: false,
     data: null,
@@ -147,7 +147,7 @@ test("options select byte order and enforce the caller's limits", async ({ page 
     };
   });
 
-  expect(results.bigEndian).toMatchObject({ contractVersion: 9, operation: "parse", success: true, data: { value: 0x1234 } });
+  expect(results.bigEndian).toMatchObject({ contractVersion: 10, operation: "parse", success: true, data: { value: 0x1234 } });
   expect(results.readBudget).toMatchObject({ success: false, error: { code: "read-budget" } });
   expect(results.optionCap).toMatchObject({ success: false, error: { code: "invalid-input" } });
   expect(results.definitionBudget).toMatchObject({ success: false, error: { code: "invalid-layout" } });
@@ -190,8 +190,8 @@ test("every signed and unsigned JavaScript precision boundary round-trips exactl
 
   for (const result of results) {
     expect(String(result.parsed.data.value)).toBe(result.expected);
-    expect(result.parsed).toMatchObject({ contractVersion: 9, operation: "parse", success: true, error: null });
-    expect(result.serialized).toMatchObject({ contractVersion: 9, operation: "serialize", success: true, data: result.bytes });
+    expect(result.parsed).toMatchObject({ contractVersion: 10, operation: "parse", success: true, error: null });
+    expect(result.serialized).toMatchObject({ contractVersion: 10, operation: "serialize", success: true, data: result.bytes });
   }
 });
 
@@ -285,7 +285,7 @@ test("each failure category uses the same release-safe error shape", async ({ pa
   };
 
   for (const [name, failure] of Object.entries(failures)) {
-    expect(failure, name).toMatchObject({ contractVersion: 9, success: false, data: null, error: { code: expectedCodes[name] } });
+    expect(failure, name).toMatchObject({ contractVersion: 10, success: false, data: null, error: { code: expectedCodes[name] } });
     expect(Object.keys(failure.error).sort(), name).toEqual([
       "code",
       "column",
@@ -338,7 +338,7 @@ test("invalid addressing modes and origins are invalid-input with the accepted v
     ["updateOverflow", originMessage],
     ["notDecimal", originMessage],
   ]) {
-    expect(results[name], name).toMatchObject({ contractVersion: 9, success: false, data: null, error: { code: "invalid-input", message } });
+    expect(results[name], name).toMatchObject({ contractVersion: 10, success: false, data: null, error: { code: "invalid-input", message } });
   }
   expect(results.largestOrigin).toMatchObject({ success: true, data: { value: 0 } });
 });
@@ -436,7 +436,7 @@ test("the raw adapter returns each managed envelope, parses as UTF-8 bytes, and 
   expect(results.initialTake.thrown).toMatch(pending);
   expect(Object.keys(results.serialized)).toEqual(envelopeKeys);
   expect(results.serialized).toEqual({
-    contractVersion: 9,
+    contractVersion: 10,
     operation: "serialize",
     success: true,
     root: "root",
@@ -452,7 +452,7 @@ test("the raw adapter returns each managed envelope, parses as UTF-8 bytes, and 
   expect(results.takeAfterOtherExport.thrown).toMatch(pending);
   expect(results.parseReturnsBytes).toBe(true);
   expect(results.parsed).toEqual({
-    contractVersion: 9,
+    contractVersion: 10,
     operation: "parse",
     success: true,
     root: "root",
@@ -462,7 +462,7 @@ test("the raw adapter returns each managed envelope, parses as UTF-8 bytes, and 
   });
   expect(results.failedParse).toMatchObject({ operation: "parse", success: false, data: null, error: { code: "invalid-input" } });
 
-  expect(results.version).toMatchObject({ contractVersion: 9, operation: "version", success: true, root: null, debug: [], error: null });
+  expect(results.version).toMatchObject({ contractVersion: 10, operation: "version", success: true, root: null, debug: [], error: null });
   expect(results.version.data.version).toMatch(/^CStructSharp WASM \d/);
   expect(results.publicVersion).toBe(results.version.data.version);
   expect(results.adapterVersion).toBe(results.version.data.version);
@@ -472,7 +472,7 @@ test("the raw adapter returns each managed envelope, parses as UTF-8 bytes, and 
   expect(results.adapterUpdated).toMatchObject({ operation: "update", success: true, data: "07", error: null });
 
   expect(results.plan).toMatchObject({
-    contractVersion: 9,
+    contractVersion: 10,
     operation: "staticPlan",
     success: true,
     root: "root",

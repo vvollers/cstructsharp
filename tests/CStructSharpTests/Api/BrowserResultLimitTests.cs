@@ -5,10 +5,11 @@ using CStructSharp.Diagnostics;
 using CStructSharpWeb.Wasm;
 
 /// <summary>
-///     The browser bridge's result-length guard. The bridge's JSON writer is compiled into this project (the WebAssembly
-///     project itself has no managed test host), so these tests lower the writer's maximum length to a few bytes and
-///     check that an output of exactly the maximum passes, one byte more fails with a read-limit error, and the
-///     failure stops the writer early instead of letting the buffer grow without bound.
+///     The browser bridge's result-length guard and its segmented growth. The bridge's JSON writer is compiled into
+///     this project (the WebAssembly project itself has no managed test host), so these tests lower the writer's
+///     maximum length and segment length to a few bytes. They check that an output of exactly the maximum passes, one
+///     byte more fails with a read-limit error, the failure stops the writer early instead of letting the buffer grow
+///     without bound, and an output spread over several segments is byte-identical to a contiguous one.
 /// </summary>
 [TestClass]
 public class BrowserResultLimitTests
@@ -22,7 +23,7 @@ public class BrowserResultLimitTests
         writer.WriteRawBytes("0123456789abcdef"u8);
         writer.EnsureWithinLimit();
 
-        Assert.AreEqual("0123456789abcdef", Encoding.ASCII.GetString(writer.WrittenSpan));
+        Assert.AreEqual("0123456789abcdef", writer.ToUtf8String());
         Assert.AreEqual(16, writer.Capacity);
     }
 
@@ -61,7 +62,7 @@ public class BrowserResultLimitTests
         writer.WriteString("abcdefghijklmn");
         writer.EnsureWithinLimit();
 
-        Assert.AreEqual("\"abcdefghijklmn\"", Encoding.ASCII.GetString(writer.WrittenSpan));
+        Assert.AreEqual("\"abcdefghijklmn\"", writer.ToUtf8String());
     }
 
     /// <summary>Resetting after an oversized output makes the writer usable for the failure envelope that follows.</summary>
@@ -75,7 +76,7 @@ public class BrowserResultLimitTests
         writer.WriteNull();
         writer.EnsureWithinLimit();
 
-        Assert.AreEqual("null", Encoding.ASCII.GetString(writer.WrittenSpan));
+        Assert.AreEqual("null", writer.ToUtf8String());
     }
 
     /// <summary>
@@ -89,7 +90,87 @@ public class BrowserResultLimitTests
 
         writer.WriteString("café ☃ \U0001F600");
 
-        Assert.AreEqual("\"caf\\u00e9 \\u2603 \\ud83d\\ude00\"", Encoding.ASCII.GetString(writer.WrittenSpan));
-        Assert.IsTrue(writer.WrittenSpan.IndexOfAnyInRange((byte)0x80, (byte)0xFF) < 0);
+        Assert.AreEqual("\"caf\\u00e9 \\u2603 \\ud83d\\ude00\"", writer.ToUtf8String());
+        Assert.IsTrue(writer.ToArray().AsSpan().IndexOfAnyInRange((byte)0x80, (byte)0xFF) < 0);
+    }
+
+    /// <summary>
+    ///     An output that fits one segment stays in one doubling array; the first byte past it starts a second segment
+    ///     instead of doubling again, and a reset drops the earlier segments.
+    /// </summary>
+    [TestMethod]
+    public void OutputPastOneSegment_ContinuesInANewSegment()
+    {
+        var writer = new InteropJsonWriter(4, maximumLength: 1024, segmentLength: 16);
+
+        writer.WriteRawBytes("0123456789abcdef"u8);
+        Assert.AreEqual(16, writer.Capacity, "one array of the segment length");
+
+        writer.WriteRawBytes("g"u8);
+        Assert.AreEqual(32, writer.Capacity, "a second 16-byte segment, not a 32-byte copy");
+        Assert.AreEqual("0123456789abcdefg", writer.ToUtf8String());
+
+        writer.Reset();
+        writer.WriteNull();
+        Assert.AreEqual(16, writer.Capacity, "only the current segment remains");
+        Assert.AreEqual("null", writer.ToUtf8String());
+    }
+
+    /// <summary>
+    ///     A segmented output is byte-identical to the contiguous output of the same writes. Short segments put many
+    ///     boundaries inside strings, escapes, and numbers, and a string longer than a segment gets a segment of its
+    ///     own.
+    /// </summary>
+    [TestMethod]
+    public void SegmentedOutput_IsByteIdenticalToContiguousOutput()
+    {
+        var contiguous = new InteropJsonWriter(4);
+        var segmented = new InteropJsonWriter(4, segmentLength: 8);
+
+        foreach (InteropJsonWriter writer in new[] { contiguous, segmented, })
+        {
+            writer.WriteRawBytes("["u8);
+            for (int index = 0; index < 200; index++)
+            {
+                writer.WriteRawBytes(index == 0 ? "{\"i\":"u8 : ",{\"i\":"u8);
+                writer.WriteSafeInteger(index * 7919L);
+                writer.WriteRawBytes(",\"s\":"u8);
+                writer.WriteString(index % 3 == 0 ? $"plain {index}" : $"esc\"aped\n{index} café ☃");
+                writer.WriteRawBytes(",\"v\":"u8);
+                writer.WriteValue(index % 2 == 0 ? index / 4.0 : null);
+                writer.WriteRawBytes("}"u8);
+            }
+
+            writer.WriteRawBytes(","u8);
+            writer.WriteString(new string('x', 40));
+            writer.WriteRawBytes("]"u8);
+            writer.EnsureWithinLimit();
+        }
+
+        CollectionAssert.AreEqual(contiguous.ToArray(), segmented.ToArray());
+        Assert.AreEqual(contiguous.ToUtf8String(), segmented.ToUtf8String());
+        Assert.IsTrue(segmented.Capacity > 8, "the output spans several segments");
+    }
+
+    /// <summary>
+    ///     The maximum length counts the bytes in every segment: output of exactly the maximum passes, one byte more is
+    ///     a read-limit failure, and growth after passing it fails early.
+    /// </summary>
+    [TestMethod]
+    public void SegmentedOutput_EnforcesTheMaximumAcrossSegments()
+    {
+        var writer = new InteropJsonWriter(4, maximumLength: 40, segmentLength: 8);
+        for (int index = 0; index < 4; index++)
+        {
+            writer.WriteRawBytes("0123456789"u8);
+        }
+
+        writer.EnsureWithinLimit();
+        Assert.AreEqual(40, writer.ToArray().Length);
+
+        writer.WriteRawBytes("x"u8);
+        CStructReadLimitException exception = Assert.Throws<CStructReadLimitException>(() => writer.EnsureWithinLimit());
+        StringAssert.StartsWith(exception.Message, "The result's JSON text exceeds 40 bytes");
+        Assert.Throws<CStructReadLimitException>(() => writer.WriteRawBytes("0123456789"u8));
     }
 }

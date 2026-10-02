@@ -26,12 +26,25 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   before. Migration: match target records by the path with `.value` inserted after each pointer, as in the result's
   `Pointer.Value` and in `ReadValue` paths, and match each pointer-array element by its index; code that inserted the
   `value` step itself (as the inspector's JSON highlighting did) drops that step. (#55)
+- **Breaking (browser bridge, contract v10):** a parse or other operation that runs out of WebAssembly memory now fails
+  with the new error code `resource-exhausted` instead of `operation-failed`, with a message that suggests a fresh
+  worker or process or a narrower root; the explorer and the inspector show a recovery hint for it. Envelopes report
+  `contractVersion` 10. Migration: code that switches on `error.code` should handle `resource-exhausted`; code that
+  checks `contractVersion === 9` should accept 10 (#51).
 
 ### Fixed
 
 - A `MemorySchema` (and a BTF or ISF import) accepts a struct or union member placed more than 1,000,000 bytes from
   the start of its container. Such metadata used to fail with a `CStructReadLimitException` about
   `MaxArrayElements` from an internal placement check (#57).
+- In the npm package, a second very large parse in the same process no longer fails because an earlier one grew the
+  WebAssembly memory, which never shrinks. A source worker is replaced after a parse result of 64 MiB or more, or after
+  running out of memory; the next request starts a fresh worker, and a `compile()` handle compiles its layout into it
+  again. The calling thread's runtime cannot be replaced and keeps its largest size; pass `signal` to send very large
+  debug parses to the worker (#51).
+- The browser bridge writes a result larger than 4 MiB in 4 MiB segments instead of doubling one array, so a large
+  parse result needs about twice its size in WebAssembly memory instead of up to three times. Smaller results use the
+  same single buffer as before (#51).
 
 ### Performance
 
@@ -54,6 +67,10 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   make the before and after dumps with the same version (#54).
 - The `Impact` benchmark category now includes the generated and runtime parse of a 1 MiB `uint32` array (55 cases),
   so the quick before/after check covers large numeric arrays. (#56)
+- The large-data guide explains how WebAssembly memory grows after a large parse, which runtime keeps it, and when to
+  pass `signal`; the browser API guide explains `resource-exhausted` (#51).
+- The large-output stress test's worker scenario now really runs in the worker and checks that it did, and a new
+  scenario runs several large parses in one process. The package consumer check covers worker recycling (#51).
 
 ## 0.11.1 — 2026-10-01
 

@@ -33,9 +33,12 @@
 
   <ItemGroup>
     <!--
-      The browser bridge's JSON writer and its limits, compiled here because the WebAssembly project has no managed
-      test host: BrowserResultLimitTests checks the result-length guard with a lowered maximum.
+      The browser bridge's JSON writer, its limits, and its error categories, compiled here because the WebAssembly
+      project has no managed test host: BrowserResultLimitTests checks the result-length guard and the segmented
+      growth with lowered sizes, and BrowserErrorCategoryTests checks the failure categories.
     -->
+    <Compile Include="..\..\src\CStructSharp.Wasm\BrowserInputException.cs" Link="BrowserBridge\BrowserInputException.cs"/>
+    <Compile Include="..\..\src\CStructSharp.Wasm\InteropErrorCategories.cs" Link="BrowserBridge\InteropErrorCategories.cs"/>
     <Compile Include="..\..\src\CStructSharp.Wasm\InteropJsonWriter.cs" Link="BrowserBridge\InteropJsonWriter.cs"/>
     <Compile Include="..\..\src\CStructSharp.Wasm\InteropLimits.cs" Link="BrowserBridge\InteropLimits.cs"/>
   </ItemGroup>

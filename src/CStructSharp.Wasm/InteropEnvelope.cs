@@ -201,7 +201,7 @@ public partial class CStructExports
     private static string FinishProjection(InteropJsonWriter writer)
     {
         writer.EnsureWithinLimit();
-        string json = Encoding.UTF8.GetString(writer.WrittenSpan);
+        string json = writer.ToUtf8String();
         ReleaseLargeWriter(writer);
         return json;
     }
@@ -212,6 +212,10 @@ public partial class CStructExports
     ///     <c>TextDecoder</c>, which builds strings up to the engine's string limit, while a returned .NET string
     ///     is decoded as UTF-16 and fails far below it (at 2^27 characters in Node.js).
     /// </summary>
+    /// <remarks>
+    ///     A large envelope sits in the writer's fixed-size segments, so this copy is the one moment it exists twice:
+    ///     the WebAssembly memory peaks at about twice the envelope, and keeps that size for the runtime's life.
+    /// </remarks>
     /// <param name="writer">The thread's writer.</param>
     /// <returns>The bytes written since the last reset; the caller owns the array.</returns>
     /// <exception cref="CStructReadLimitException">
@@ -220,18 +224,20 @@ public partial class CStructExports
     private static byte[] FinishUtf8Projection(InteropJsonWriter writer)
     {
         writer.EnsureWithinLimit();
-        byte[] json = writer.WrittenSpan.ToArray();
+        byte[] json = writer.ToArray();
         ReleaseLargeWriter(writer);
         return json;
     }
 
-    /// <summary>Drops the thread's writer after an unusually large result, so its buffer can be collected.</summary>
+    /// <summary>
+    ///     Drops the thread's writer after a result that outgrew one writer segment, so its segments can be collected.
+    /// </summary>
     /// <param name="writer">The thread's writer, whose output has been copied out.</param>
     private static void ReleaseLargeWriter(InteropJsonWriter writer)
     {
-        if (writer.Capacity > 4 * 1024 * 1024)
+        if (writer.Capacity > InteropJsonWriter.DefaultSegmentLength)
         {
-            // Do not pin a multi-megabyte buffer to the thread after one unusually large result.
+            // Do not pin many megabytes to the thread after one unusually large result.
             projectionWriter = null;
         }
     }

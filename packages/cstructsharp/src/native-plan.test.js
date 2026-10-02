@@ -7,7 +7,7 @@ import test from "node:test";
  * @param {number} [contractVersion] The contract version the managed export states.
  * @returns {object} The envelope.
  */
-function planEnvelope(plan, contractVersion = 9) {
+function planEnvelope(plan, contractVersion = 10) {
   return { contractVersion, operation: "staticPlan", success: true, root: plan?.root ?? "root", data: plan, debug: [], error: null };
 }
 
@@ -45,7 +45,7 @@ test("parse executes a fully fixed layout's static plan in JavaScript and falls 
     parseBytes: (definition, bytes, options, debug) => {
       calls.push(["parseBytes", definition, bytes.byteLength, options, debug]);
       return JSON.stringify({
-        contractVersion: 9,
+        contractVersion: 10,
         operation: "parse",
         success: true,
         root: "root",
@@ -63,7 +63,7 @@ test("parse executes a fully fixed layout's static plan in JavaScript and falls 
     ]);
     const native = await parse("static", bytes, { root: "root" });
     assert.deepEqual(native, {
-      contractVersion: 9,
+      contractVersion: 10,
       operation: "parse",
       success: true,
       root: "root",
@@ -130,7 +130,7 @@ test("the native parse states the managed contract version and leaves failed pla
       calls.push(["getStaticPlan", definition]);
       if (definition === "invalid") {
         return {
-          contractVersion: 9,
+          contractVersion: 10,
           operation: "staticPlan",
           success: false,
           root: null,
@@ -145,7 +145,7 @@ test("the native parse states the managed contract version and leaves failed pla
     /** Records the WASM parse and reports the invalid input. */
     parseBytes: (definition) => {
       calls.push(["parseBytes", definition]);
-      return JSON.stringify({ contractVersion: 9, operation: "parse", success: false, root: null, data: null, debug: [], error: { code: "invalid-input" } });
+      return JSON.stringify({ contractVersion: 10, operation: "parse", success: false, root: null, data: null, debug: [], error: { code: "invalid-input" } });
     },
   };
   try {

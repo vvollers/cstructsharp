@@ -1,11 +1,13 @@
 /**
  * Stress test of the browser bridge's result transport with parse results beyond 2^27 characters, the length at which
  * a result returned as a .NET string fails to decode in Node.js. It checks that such a result arrives intact on the
- * calling thread (the raw adapter's ParseBytes path) and through the source worker, and that a result longer than the
- * bridge's 536,870,888-byte maximum is a read-budget failure envelope instead of a runtime crash. It runs inside an
- * installed consumer of the packed tarball (see test-npm-package.mjs), needs a few gigabytes of memory and about a
- * minute, and is therefore skipped unless CSTRUCTSHARP_LARGE_OUTPUT_STRESS=1. Each scenario runs in its own process:
- * a WebAssembly memory never shrinks, so one scenario's grown runtime would starve the next of address space.
+ * calling thread (the raw adapter's ParseBytes path) and through the source worker, that a result longer than the
+ * bridge's 536,870,888-byte maximum is a read-budget failure envelope instead of a runtime crash, and that several
+ * large parses in one process succeed or report resource-exhausted. It runs inside an installed consumer of the
+ * packed tarball (see test-npm-package.mjs), needs a few gigabytes of memory and a few minutes, and is therefore
+ * skipped unless CSTRUCTSHARP_LARGE_OUTPUT_STRESS=1. Each scenario runs in its own process, so a WebAssembly memory
+ * that one scenario grew (it never shrinks) cannot affect another; the sequential scenario runs its parses in one
+ * process on purpose.
  *
  *   CSTRUCTSHARP_LARGE_OUTPUT_STRESS=1 node tools/packaging/test-large-output.mjs <consumer directory>
  */
@@ -51,12 +53,49 @@ const scenarios = {
   },
 
   /**
-   * The source worker: the public API sends inputs above 64 KiB there, and the reply carries the envelope bytes.
+   * The source worker: a byte input with a signal always goes there (without one, a debug parse of up to 4 MiB runs
+   * on the calling thread), and the reply carries the envelope bytes. The result is larger than the worker recycling
+   * threshold, so the recycling counter proves that the worker ran it.
    * @param {object} api The installed package.
    */
   async worker(api) {
-    assertRecords(await api.parseWithDebug(records, recordBytes(), recordOptions));
+    const recycling = await workerRecycling();
+    const recycledBefore = recycling.recycled;
+    assertRecords(await api.parseWithDebug(records, recordBytes(), { ...recordOptions, signal: new AbortController().signal }));
+    assert.equal(recycling.recycled, recycledBefore + 1, "the parse ran in a worker, which was replaced afterwards");
     console.log("Worker: the same result arrived intact.");
+  },
+
+  /**
+   * Several large parses in one process: on the calling thread, in the shared worker, and twice through one compiled
+   * layout's worker. Each runtime keeps the memory it grew to, so each parse must succeed or report
+   * resource-exhausted, never operation-failed or a crash. The worker is replaced after each large result, so the
+   * compiled layout must still parse a small input afterwards.
+   * @param {object} api The installed package.
+   */
+  async sequential(api) {
+    const signal = new AbortController().signal;
+    const recycling = await workerRecycling();
+    assertRecordsOrExhausted(await api.parseWithDebug(records, recordBytes(), recordOptions), "calling thread");
+    assert.equal(recycling.recycled, 0, "the parse without a signal ran on the calling thread");
+    assertRecordsOrExhausted(await api.parseWithDebug(records, recordBytes(), { ...recordOptions, signal }), "shared worker");
+    assert.equal(recycling.recycled, 1, "the parse with a signal ran in the shared worker, which was replaced");
+    const compiled = await api.compile(records, { root: "file" });
+    try {
+      for (const round of [1, 2]) {
+        assertRecordsOrExhausted(
+          await compiled.parseWithDebug(recordBytes(), { maxArrayElements: recordCount, signal }),
+          `compiled layout, parse ${round}`,
+        );
+      }
+      assert.equal(recycling.recycled, 3, "each large compiled parse replaced the layout's worker");
+      const small = await compiled.parse(new Uint8Array([7]), { signal });
+      assert.equal(small.success, true, small.error?.message);
+      assert.deepEqual(small.data.items, [{ a: 7 }]);
+    } finally {
+      await compiled.dispose();
+    }
+    console.log("Sequential: every large parse in one process completed.");
   },
 
   /**
@@ -93,6 +132,32 @@ function assertRecords(envelope) {
   assert.equal(envelope.data.items.length, recordCount);
   assert.deepEqual(envelope.data.items.at(-1), { a: (recordCount - 1) & 0xff });
   assert.ok(envelope.debug.length >= recordCount);
+}
+
+/**
+ * Loads the installed runtime's worker recycling state, the same module instance the package's public API uses, so a
+ * scenario can tell from its `recycled` counter which large parses ran in a worker.
+ * @returns {Promise<{resultBytes: number, recycled: number}>} The runtime's `workerRecycling` object.
+ */
+async function workerRecycling() {
+  const url = pathToFileURL(path.join(consumer, "node_modules", "cstructsharp", "runtime", "large-source.js")).href;
+  return (await import(url)).workerRecycling;
+}
+
+/**
+ * Checks a debug parse envelope of the record layout, or accepts the categorized out-of-memory failure, which a
+ * process that already holds grown runtimes may report instead.
+ * @param {object} envelope The parsed envelope.
+ * @param {string} label Names the parse in the log and in assertion messages.
+ */
+function assertRecordsOrExhausted(envelope, label) {
+  if (!envelope.success && envelope.error.code === "resource-exhausted") {
+    console.log(`${label}: resource-exhausted: ${envelope.error.message}`);
+    return;
+  }
+  assert.equal(envelope.success, true, `${label}: ${envelope.error?.code}: ${envelope.error?.message}`);
+  assertRecords(envelope);
+  console.log(`${label}: the result arrived intact.`);
 }
 
 if (scenario) {

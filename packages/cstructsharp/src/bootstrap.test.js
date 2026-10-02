@@ -14,7 +14,7 @@ import { decodeEnvelopeText } from "./cstructsharp-shared.js";
  * @returns {string} The envelope JSON.
  */
 function managedEnvelope(operation, data, error = null, root = null) {
-  return JSON.stringify({ contractVersion: 9, operation, success: error === null, root, data, debug: [], error });
+  return JSON.stringify({ contractVersion: 10, operation, success: error === null, root, data, debug: [], error });
 }
 
 /**
@@ -100,7 +100,7 @@ test("adapter binds every managed export and normalizes boundary values", () => 
       aligned: false,
       pointerSize: 8,
     }),
-    { contractVersion: 9, operation: "serialize", success: true, root: null, data: new Uint8Array([0x2a]), debug: [], error: null },
+    { contractVersion: 10, operation: "serialize", success: true, root: null, data: new Uint8Array([0x2a]), debug: [], error: null },
   );
   assert.deepEqual(
     adapter.updateStream("layout", bytes, "root.value", "42", {
@@ -114,7 +114,7 @@ test("adapter binds every managed export and normalizes boundary values", () => 
   );
   assert.equal(adapter.parseBytes("layout", bytes, { root: "root" }, false), "parse-bytes");
   assert.deepEqual(adapter.getStaticPlan("layout", { root: "root" }), {
-    contractVersion: 9,
+    contractVersion: 10,
     operation: "staticPlan",
     success: true,
     root: "root",
@@ -178,7 +178,7 @@ test("a failed write returns the managed error envelope without taking output", 
   const adapter = createCStructSharpWasm(exports);
 
   assert.deepEqual(adapter.serialize("layout", "{}", { root: "root" }), {
-    contractVersion: 9,
+    contractVersion: 10,
     operation: "serialize",
     success: false,
     root: "root",

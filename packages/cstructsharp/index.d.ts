@@ -1,5 +1,5 @@
 /**
- * CStructSharp for JavaScript (contract v9). Every operation loads the WebAssembly runtime on first use and
+ * CStructSharp for JavaScript (contract v10). Every operation loads the WebAssembly runtime on first use and
  * returns a `Result` envelope; loading and argument failures reject the returned promise instead.
  */
 
@@ -81,7 +81,10 @@ export interface UpdateOptions extends SerializeOptions {
   maxTraversalNestingDepth?: number;
 }
 
-/** The stable failure categories. */
+/**
+ * The stable failure categories. `resource-exhausted` means the WebAssembly memory ran out, usually during a very
+ * large debug parse; `operation-failed` is any other unexpected failure.
+ */
 export type ErrorCode =
   | "invalid-layout"
   | "invalid-path"
@@ -91,6 +94,7 @@ export type ErrorCode =
   | "write-budget"
   | "invalid-input"
   | "invalid-json"
+  | "resource-exhausted"
   | "operation-failed";
 
 export interface ErrorDetails {
@@ -168,7 +172,7 @@ export type ParsedValue =
 export type ParsedStruct = { [name: string]: ParsedValue };
 
 export type Result<T, O extends Operation = Operation> = {
-  contractVersion: 9;
+  contractVersion: 10;
   operation: O;
   /**
    * The root or path the operation selected. A parse, resolveAddress, or compile reports the resolved name even
@@ -209,7 +213,7 @@ export type BinarySource =
  * detail of the public parse's fast path, not a stable format.
  */
 export type StaticPlanResult = {
-  contractVersion: 9;
+  contractVersion: 10;
   operation: "staticPlan";
   root: string | null;
   debug: DebugItem[];
@@ -303,6 +307,11 @@ export function parse(
 /**
  * Parse and record each value's byte range in `debug`. The debug records count toward the same 536,870,888-character
  * result limit as `parse`, so a debug result reaches it with a far smaller input.
+ *
+ * A WebAssembly memory grows but never shrinks. A byte input of up to 4 MiB without a `signal` is parsed on the calling
+ * thread, whose runtime keeps the memory a large result needed (about twice the result) for the life of the process.
+ * Pass a `signal` to send a very large debug parse to the worker instead, which is replaced after a result of 64 MiB
+ * or more. A parse that runs out of memory fails with `resource-exhausted`.
  */
 export function parseWithDebug(
   definition: string,

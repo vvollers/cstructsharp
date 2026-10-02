@@ -6,6 +6,16 @@ const defaultSpoolLimit = 1024 * 1024 * 1024;
 /** Browser byte inputs up to this size are snapshotted and transferred to the worker rather than staged as a Blob. */
 const transferableByteLimit = 64 * 1024 * 1024;
 
+/**
+ * When a source worker is replaced. A WebAssembly memory can grow but never shrink, so a worker that produced a large
+ * result keeps that much memory until it ends, and the next large operation in the process may then run out. After a
+ * reply whose parse envelope is at least `resultBytes` bytes (64 MiB), or whose error is `resource-exhausted`, the
+ * session terminates its worker once the reply is decoded; the next request starts a fresh one, and a compiled
+ * session compiles its layout into it again. `recycled` counts those replacements. The package tests lower
+ * `resultBytes` and read `recycled` to exercise recycling with small inputs; nothing else changes this object.
+ */
+export const workerRecycling = { resultBytes: 64 * 1024 * 1024, recycled: 0 };
+
 /** Creates the AbortError DOMException that every cancelled source operation rejects with. */
 function abortError() {
   return new DOMException("Binary parsing was cancelled.", "AbortError");
@@ -268,7 +278,8 @@ export async function prepareSource(
 /**
  * Serializes requests to one source worker and owns that worker's lifetime.
  * A session with a layout keeps its worker (and the compiled layout inside it) until disposal; the shared session
- * without a layout stops its worker after 30 seconds of idleness.
+ * without a layout stops its worker after 30 seconds of idleness. Either session replaces its worker after a large
+ * result or an out-of-memory failure (see `workerRecycling`).
  */
 class WorkerSession {
   worker = null;
@@ -382,6 +393,8 @@ class WorkerSession {
   /**
    * Posts one message to the running worker and waits for its reply.
    * An abort, worker error or early exit terminates the worker (before any staged file is deleted) and rejects.
+   * A reply that calls for recycling (see `workerRecycling`) terminates the worker after it is decoded and before
+   * this resolves, so its memory is released before the next request starts a replacement.
    * @param {object} message The worker request; a `bytes` descriptor's buffer is transferred, not copied.
    * @param {AbortSignal} signal Cancels the request.
    * @returns {Promise<unknown>} The envelope the worker replied with: its `result`, or its parsed `envelope` bytes.
@@ -391,25 +404,31 @@ class WorkerSession {
     worker.ref?.();
     /** Removes the listeners of the pending request; replaced once they are registered. */
     let cleanup = () => {};
+    let recycle = false;
     try {
       checkAbort(signal);
-      return await new Promise((resolve, reject) => {
+      const reply = await new Promise((resolve, reject) => {
         /** Rejects the pending request when the signal aborts. */
         const onAbort = () => reject(abortError());
         /**
          * Settles the pending request from a worker reply: `error` rejects, `result` resolves, and a parse's
-         * `envelope` bytes resolve once decoded and parsed (an invalid envelope rejects with a TypeError).
+         * `envelope` bytes resolve once decoded and parsed (an invalid envelope rejects with a TypeError). It also
+         * decides whether the reply's size or failure calls for recycling the worker.
          */
         const receive = (data) => {
           if (data.error) {
             reject(new Error(data.error));
           } else if (data.envelope) {
+            recycle = data.envelope.byteLength >= workerRecycling.resultBytes;
             try {
-              resolve(parseEnvelope(decodeEnvelopeText(data.envelope, "parse"), "parse"));
+              const envelope = parseEnvelope(decodeEnvelopeText(data.envelope, "parse"), "parse");
+              recycle ||= envelope.error?.code === "resource-exhausted";
+              resolve(envelope);
             } catch (error) {
               reject(error);
             }
           } else {
+            recycle = data.result?.error?.code === "resource-exhausted";
             resolve(data.result);
           }
         };
@@ -444,6 +463,12 @@ class WorkerSession {
           worker.postMessage(message, transfer);
         }
       });
+      if (recycle) {
+        // The decoded reply no longer needs the worker; ending it now releases the memory its runtime grew to.
+        workerRecycling.recycled++;
+        await this.stop();
+      }
+      return reply;
     } catch (error) {
       // Await termination before deleting any spooled file used by the worker.
       await this.stop();

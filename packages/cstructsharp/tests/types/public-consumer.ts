@@ -67,7 +67,7 @@ const version: string = await getVersion();
 const raw = await loadCStructSharpWasm();
 const rawResult = raw.serialize(definition, '{"value":"42"}');
 const rawBytes: Uint8Array | null = rawResult.success ? rawResult.data : null;
-const rawVersion: 9 = rawResult.contractVersion;
+const rawVersion: 10 = rawResult.contractVersion;
 console.log(version, rawBytes, rawVersion);
 const rawPlan = raw.getStaticPlan(definition, { root: "root" });
 const planRoot: string | null = rawPlan.success && rawPlan.data !== null ? rawPlan.data.root : null;
