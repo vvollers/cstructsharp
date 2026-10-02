@@ -1268,7 +1268,7 @@ namespace Demo
                 int count;
                 count = 4;
                 cursor.RequireArrayLength(count, "bytes", "uint8");
-                var elements = new byte[count];
+                var elements = global::System.GC.AllocateUninitializedArray<byte>(count);
                 if (count > 0)
                 {
                     global::System.ReadOnlySpan<byte> bytes = cursor.TakeArray(count, 1, "bytes", "uint8");
@@ -1283,7 +1283,7 @@ namespace Demo
                 int count;
                 count = 4;
                 cursor.RequireArrayLength(count, "words", "uint16");
-                var elements = new ushort[count];
+                var elements = global::System.GC.AllocateUninitializedArray<ushort>(count);
                 if (count > 0)
                 {
                     global::System.ReadOnlySpan<byte> bytes = cursor.TakeInBlocks(count, 2, "words", "uint16");
@@ -1316,7 +1316,7 @@ namespace Demo
                     throw cursor.Fail("Array length cannot be negative: items", "items", "uint8");
                 }
                 count = cursor.RequireArrayLength(countValue, "items", "uint8");
-                var elements = new byte[count];
+                var elements = global::System.GC.AllocateUninitializedArray<byte>(count);
                 if (count > 0)
                 {
                     global::System.ReadOnlySpan<byte> bytes = cursor.TakeArray(count, 1, "items", "uint8");
@@ -1330,7 +1330,7 @@ namespace Demo
                 cursor.Seek(placement.AdvanceToField(1), "tail", "uint8");
                 int count;
                 count = cursor.CountTerminated(1, "tail", "tail", "uint8");
-                var elements = new byte[count];
+                var elements = global::System.GC.AllocateUninitializedArray<byte>(count);
                 if (count > 0)
                 {
                     global::System.ReadOnlySpan<byte> bytes = cursor.TakeArray(count, 1, "tail", "uint8");
@@ -1345,7 +1345,7 @@ namespace Demo
                 cursor.Seek(placement.AdvanceToField(2), "rest", "uint16");
                 int count;
                 count = cursor.CountToEnd(2, "rest", "rest", "uint16");
-                var elements = new ushort[count];
+                var elements = global::System.GC.AllocateUninitializedArray<ushort>(count);
                 if (count > 0)
                 {
                     global::System.ReadOnlySpan<byte> bytes = cursor.TakeArray(count, 2, "rest", "uint16");

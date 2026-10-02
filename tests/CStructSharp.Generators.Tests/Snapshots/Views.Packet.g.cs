@@ -931,7 +931,7 @@ namespace Demo
                 int count;
                 count = 2;
                 cursor.RequireArrayLength(count, "values", "uint32");
-                var elements = new uint[count];
+                var elements = global::System.GC.AllocateUninitializedArray<uint>(count);
                 if (count > 0)
                 {
                     global::System.ReadOnlySpan<byte> bytes = cursor.TakeArray(count, 4, "values", "uint32");
@@ -997,7 +997,7 @@ namespace Demo
                     throw cursor.Fail("Array length cannot be negative: data", "data", "uint8");
                 }
                 count = cursor.RequireArrayLength(countValue, "data", "uint8");
-                var elements = new byte[count];
+                var elements = global::System.GC.AllocateUninitializedArray<byte>(count);
                 if (count > 0)
                 {
                     global::System.ReadOnlySpan<byte> bytes = cursor.TakeArray(count, 1, "data", "uint8");

@@ -294,6 +294,66 @@ public class TypeEmissionTests
     }
 
     /// <summary>
+    ///     Bulk-decoded numeric arrays are allocated without zeroing (<c>GC.AllocateUninitializedArray</c>), in the fixed
+    ///     reader and in the member-by-member reader, while arrays filled element by element (enums, structs) keep
+    ///     <c>new T[count]</c>; the decoded values are complete, including a byte swap and arrays large enough
+    ///     (over 2 KiB) for the runtime to skip the zeroing.
+    /// </summary>
+    [TestMethod]
+    public void BulkNumericArrays_AreAllocatedUninitialized_AndDecodeEveryElement()
+    {
+        GeneratorResult fixedResult = GeneratorRunner.Run(Header + """
+            [CStructLayout("enum color : uint8 { Red = 1, Green }; struct root { uint32> values[1024]; color shades[2]; };")]
+            public static partial class FixedArrays { }
+            """).AssertClean();
+        StringAssert.Contains(fixedResult.Source, "var elements = global::System.GC.AllocateUninitializedArray<uint>(1024);");
+        StringAssert.Contains(fixedResult.Source, "var elements = global::System.GC.AllocateUninitializedArray<uint>(count);");
+        StringAssert.Contains(fixedResult.Source, "var elements = new Color[2];");
+        StringAssert.Contains(fixedResult.Source, "var elements = new Color[count];");
+
+        // Big-endian elements: the fixed reader copies, then swaps every element in place.
+        var bytes = new byte[(1024 * 4) + 2];
+        for (int index = 0; index < 1024; index++)
+        {
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(index * 4), 0x10000000u + (uint)index);
+        }
+
+        bytes[^2] = 1;
+        bytes[^1] = 2;
+        Assembly fixedAssembly = fixedResult.Load();
+        Type fixedLayout = fixedAssembly.GetType("Demo.FixedArrays")!;
+        MethodInfo fixedParse = fixedLayout.GetMethod("Parse", [typeof(byte[]), typeof(ReadOptions)])!;
+        object fixedRoot = fixedParse.Invoke(null, [bytes, null])!;
+        var values = (uint[])fixedRoot.GetType().GetProperty("Values")!.GetValue(fixedRoot)!;
+        CollectionAssert.AreEqual(Enumerable.Range(0, 1024).Select(index => 0x10000000u + (uint)index).ToArray(), values);
+        Assert.AreEqual("Red,Green", string.Join(",", ((Array)fixedRoot.GetType().GetProperty("Shades")!.GetValue(fixedRoot)!).Cast<object>()));
+
+        // A short input takes the member-by-member reader, which fails without returning a partial array.
+        var shortRead = Assert.Throws<TargetInvocationException>(() => fixedParse.Invoke(null, [bytes.AsSpan(0, 4000).ToArray(), null]));
+        Assert.IsInstanceOfType<CStructSharp.Diagnostics.CStructReadException>(shortRead.InnerException);
+
+        GeneratorResult countedResult = GeneratorRunner.Run(Header + """
+            [CStructLayout("struct inner { uint8 z; }; struct root { uint16 n; uint16 counted[n]; inner kids[2]; };", Root = "root")]
+            public static partial class CountedArrays { }
+            """).AssertClean();
+        StringAssert.Contains(countedResult.Source, "var elements = global::System.GC.AllocateUninitializedArray<ushort>(count);");
+        StringAssert.Contains(countedResult.Source, "var elements = new Inner[count];");
+
+        var counted = new byte[2 + (1500 * 2) + 2];
+        counted[0] = 1500 & 0xFF;
+        counted[1] = 1500 >> 8;
+        for (int index = 0; index < 1500; index++)
+        {
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(counted.AsSpan(2 + (index * 2)), (ushort)(index * 3));
+        }
+
+        Type countedLayout = countedResult.Load().GetType("Demo.CountedArrays")!;
+        object countedRoot = countedLayout.GetMethod("Parse", [typeof(byte[]), typeof(ReadOptions)])!.Invoke(null, [counted, null])!;
+        var countedValues = (ushort[])countedRoot.GetType().GetProperty("Counted")!.GetValue(countedRoot)!;
+        CollectionAssert.AreEqual(Enumerable.Range(0, 1500).Select(index => (ushort)(index * 3)).ToArray(), countedValues);
+    }
+
+    /// <summary>
     ///     Quotes a layout as a regular C# string literal, escaping backslashes, quotes, and line breaks.
     /// </summary>
     /// <param name="definition">The layout text.</param>

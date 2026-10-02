@@ -68,7 +68,9 @@ internal sealed partial class LayoutEmitter
             bool bulk = field.PointerDepth == 0 && generated.Composite is null && generated.Enum is null && field.Name.Length > 0 && codec.IsFixedWidthNumeric;
             if (bulk)
             {
-                writer.Line("var elements = new " + elementType + "[count];");
+                // The bulk decode overwrites every element or throws while the array is still local, so the array
+                // skips the zeroing pass a large array would otherwise pay for.
+                writer.Line("var elements = " + UninitializedArray(elementType, "count") + ";");
                 writer.Open("if (count > 0)");
 
                 // The runtime's bulk reader: one typed read for a one-dimensional array (its own short-read text), the

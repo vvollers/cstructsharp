@@ -200,6 +200,20 @@ internal static class Emit
         };
     }
 
+    /// <summary>
+    ///     The expression allocating a numeric array without zeroing its memory
+    ///     (<c>GC.AllocateUninitializedArray</c>), for a destination that a bulk decode overwrites completely.
+    /// </summary>
+    /// <param name="elementType">The C# element type; it must be an unmanaged numeric or boolean type.</param>
+    /// <param name="count">The element-count expression.</param>
+    /// <returns>The allocation expression.</returns>
+    /// <remarks>
+    ///     Use it only where every element is written before the array can escape, or where a failure leaves the array
+    ///     unreachable; the runtime allocates small arrays normally, so short arrays cost the same as <c>new T[count]</c>.
+    /// </remarks>
+    public static string UninitializedArray(string elementType, string count) =>
+        "global::System.GC.AllocateUninitializedArray<" + elementType + ">(" + count + ")";
+
     /// <summary>The statement decoding a whole array of numbers from its bytes into an existing array.</summary>
     /// <param name="codec">The element codec.</param>
     /// <param name="elementType">The C# element type.</param>

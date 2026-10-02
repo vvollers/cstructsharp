@@ -157,6 +157,14 @@ internal static class PrimitiveArrayReader
     /// <param name="codec">The fixed-width numeric codec of one element, including its byte order.</param>
     /// <param name="count">The number of elements to decode.</param>
     /// <returns>A new <see cref="PrimitiveArray{T}"/> that owns a copy of the decoded values.</returns>
+    /// <remarks>
+    ///     The result arrays are allocated without zeroing (<see cref="GC.AllocateUninitializedArray{T}(int, bool)"/>):
+    ///     every decoder below writes all <paramref name="count"/> elements or throws before the array escapes, so the
+    ///     zeroing pass would only be overwritten. This matters for large arrays, where it is a full extra memory pass.
+    ///     A <paramref name="bytes"/> span shorter than <paramref name="count"/> elements therefore throws
+    ///     (<see cref="ArgumentOutOfRangeException"/> or, for <c>bool</c>, <see cref="IndexOutOfRangeException"/>)
+    ///     instead of returning unwritten elements; <c>uint8</c> copies the bytes as given.
+    /// </remarks>
     /// <exception cref="InvalidOperationException">The codec is not a fixed-width numeric codec.</exception>
     public static IList<object?> Decode(ReadOnlySpan<byte> bytes, PrimitiveCodec codec, int count)
     {
@@ -167,14 +175,16 @@ internal static class PrimitiveArrayReader
             return new PrimitiveArray<byte>(bytes.ToArray());
         case PrimitiveCodecKind.Int8:
             {
-                var values = new sbyte[count];
-                bytes.CopyTo(MemoryMarshal.AsBytes(values.AsSpan()));
+                var values = GC.AllocateUninitializedArray<sbyte>(count);
+
+                // Slicing to exactly count bytes throws on a short source instead of leaving uninitialized elements.
+                bytes[..count].CopyTo(MemoryMarshal.AsBytes(values.AsSpan()));
                 return new PrimitiveArray<sbyte>(values);
             }
 
         case PrimitiveCodecKind.Bool:
             {
-                var values = new bool[count];
+                var values = GC.AllocateUninitializedArray<bool>(count);
                 Codec.DecodeBooleans(bytes, values);
                 return new PrimitiveArray<bool>(values);
             }
@@ -193,28 +203,28 @@ internal static class PrimitiveArrayReader
             return new PrimitiveArray<ulong>(DecodeIntegers<ulong>(bytes, count, le));
         case PrimitiveCodecKind.Float32:
             {
-                var values = new float[count];
+                var values = GC.AllocateUninitializedArray<float>(count);
                 Codec.DecodeIntegers(bytes, values.AsSpan(), le);
                 return new PrimitiveArray<float>(values);
             }
 
         case PrimitiveCodecKind.Float64:
             {
-                var values = new double[count];
+                var values = GC.AllocateUninitializedArray<double>(count);
                 Codec.DecodeIntegers(bytes, values.AsSpan(), le);
                 return new PrimitiveArray<double>(values);
             }
 
         case PrimitiveCodecKind.Int24:
             {
-                var values = new int[count];
+                var values = GC.AllocateUninitializedArray<int>(count);
                 Codec.DecodeInt24(bytes, values, le);
                 return new PrimitiveArray<int>(values);
             }
 
         case PrimitiveCodecKind.UInt24:
             {
-                var values = new uint[count];
+                var values = GC.AllocateUninitializedArray<uint>(count);
                 Codec.DecodeUInt24(bytes, values, le);
                 return new PrimitiveArray<uint>(values);
             }
@@ -298,11 +308,15 @@ internal static class PrimitiveArrayReader
     /// <param name="decode">Decodes one block of bytes into its elements.</param>
     /// <param name="littleEndian">Whether the elements are stored least significant byte first.</param>
     /// <returns>The decoded elements.</returns>
+    /// <remarks>
+    ///     The result is allocated without zeroing: the loop fills every block or throws, and a partly filled array is
+    ///     unreachable after a throw, so no uninitialized element can escape.
+    /// </remarks>
     private static T[] ReadBlocks<TCursor, T>(ref TCursor cursor, int elementSize, int count, BlockDecoder<T> decode, bool littleEndian)
         where TCursor : struct, IReadCursor
         where T : unmanaged
     {
-        var result = new T[count];
+        var result = GC.AllocateUninitializedArray<T>(count);
         long remaining = (long)count * elementSize;
         int blockCapacity = (int)Math.Min(remaining, BlockSize.Bytes) / elementSize * elementSize;
         int decoded = 0;
@@ -341,10 +355,20 @@ internal static class PrimitiveArrayReader
         return result;
     }
 
+    /// <summary>
+    ///     Decodes <paramref name="count"/> fixed-width integers or floats into a new array, allocated without zeroing
+    ///     because <see cref="Codec.DecodeIntegers{T}(ReadOnlySpan{byte}, Span{T}, bool)"/> overwrites every element.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="source">At least <paramref name="count"/> elements' worth of encoded bytes.</param>
+    /// <param name="count">The number of elements to decode.</param>
+    /// <param name="littleEndian">Whether the elements are stored least significant byte first.</param>
+    /// <returns>The decoded elements.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="source"/> is too short.</exception>
     private static T[] DecodeIntegers<T>(ReadOnlySpan<byte> source, int count, bool littleEndian)
         where T : unmanaged
     {
-        var values = new T[count];
+        var values = GC.AllocateUninitializedArray<T>(count);
         Codec.DecodeIntegers(source, values.AsSpan(), littleEndian);
         return values;
     }

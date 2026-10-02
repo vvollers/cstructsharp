@@ -120,15 +120,17 @@ internal sealed partial class LayoutEmitter
 
         string elementType = ElementType(member.TypeName, 1);
         writer.Open(string.Empty);
-        writer.Line("var elements = new " + elementType + "[" + Int(count) + "];");
         if (member.Composite is null && member.Enum is null)
         {
-            // The bulk decode the member-by-member reader applies to the same bytes.
+            // The bulk decode the member-by-member reader applies to the same bytes; it overwrites every element, so
+            // the array is allocated without zeroing.
+            writer.Line("var elements = " + UninitializedArray(elementType, Int(count)) + ";");
             writer.Line("global::System.ReadOnlySpan<byte> bytes = source.Slice(" + Int(offset) + ", " + Int(count * field.Codec.Size) + ");");
             writer.Line(BulkDecode(field.Codec, elementType, "bytes", "elements"));
         }
         else
         {
+            writer.Line("var elements = new " + elementType + "[" + Int(count) + "];");
             int stride = field.FixedElementSize ?? throw new InvalidOperationException("Fixed array without an element size: " + field.Name);
             writer.Open("for (int index = 0; index < " + Int(count) + "; index++)");
             writer.Line("elements[index] = " + this.FixedElement(field, member, "source", Int(offset) + " + index * " + Int(stride)) + ";");

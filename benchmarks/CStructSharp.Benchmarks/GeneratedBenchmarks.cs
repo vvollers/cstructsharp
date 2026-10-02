@@ -193,13 +193,13 @@ public class GeneratedBenchmarks
     /// <summary>Runtime <c>Parse</c> of one 262,144-element <c>uint32</c> array (1 MiB): the group's reference.</summary>
     /// <returns>The parsed root.</returns>
     [Benchmark(Baseline = true)]
-    [BenchmarkCategory("ArrayU32")]
+    [BenchmarkCategory("Impact", "ArrayU32")]
     public StructValue Runtime_ArrayU32_Parse() => this.arrayU32.Layout.Parse(this.arrayU32.Bytes.AsSpan(), "root", options: this.arrayU32.ReadOptions);
 
     /// <summary>Generated <c>Parse</c> of the same array.</summary>
     /// <returns>The generated root.</returns>
     [Benchmark]
-    [BenchmarkCategory("ArrayU32")]
+    [BenchmarkCategory("Impact", "ArrayU32")]
     public ArrayU32Layout.Root Generated_ArrayU32_Parse() => ArrayU32Layout.Parse(this.arrayU32.Bytes, this.arrayU32.ReadOptions);
 
     /// <summary>Reads every element through the generated view.</summary>

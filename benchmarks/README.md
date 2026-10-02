@@ -58,14 +58,14 @@ no longer matches these records or `CStructSharp.Comparison/results.json`.
 
 ## Check a change quickly: the Impact category
 
-The full suite takes about 45 minutes. The `Impact` category is a subset of 53 cases that covers every
+The full suite takes about 45 minutes. The `Impact` category is a subset of 55 cases that covers every
 execution path a change can affect: compilation (including the longest definition the default options accept),
 span parses of eleven fixtures chosen for their differences (`ImpactParseBenchmarks`: fixed records, nested
 structs, big-endian arrays, runtime counts, conditions, strings, a real file header, pointers, bitfields, unions,
-alias spellings), a byte array parsed from a stream, generated parse (a flat record and 256 nested records), view,
-view enumerator and serialize, a hand-written canary, paths, typed reads, serialize to an array, a span and a
-buffer writer, UTF-8 text writing, updates (a bitfield and a pointer target), debug ranges, async and segmented
-input, and the data-dependent
+alias spellings), a byte array parsed from a stream, generated and runtime parse of a 1 MiB `uint32` array,
+generated parse (a flat record and 256 nested records), view, view enumerator and serialize, a hand-written
+canary, paths, typed reads, serialize to an array, a span and a buffer writer, UTF-8 text writing, updates (a
+bitfield and a pointer target), debug ranges, async and segmented input, and the data-dependent
 `packet` record (`PacketBenchmarks`: parse from a span, a `MemoryStream` and a `FileStream`, read into a mapped class,
 serialize a `StructValue` and a mapped instance). One run takes about eight minutes:
 

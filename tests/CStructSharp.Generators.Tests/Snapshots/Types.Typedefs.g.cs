@@ -1285,7 +1285,7 @@ namespace Demo
                 int count;
                 count = 2;
                 cursor.RequireArrayLength(count, "pr", "uint8");
-                var elements = new byte[count];
+                var elements = global::System.GC.AllocateUninitializedArray<byte>(count);
                 if (count > 0)
                 {
                     global::System.ReadOnlySpan<byte> bytes = cursor.TakeArray(count, 1, "pr", "uint8");

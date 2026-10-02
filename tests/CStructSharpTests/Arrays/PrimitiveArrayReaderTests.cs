@@ -11,11 +11,15 @@ using CStructSharp.Diagnostics;
 [TestClass]
 public class PrimitiveArrayReaderTests
 {
-    /// <summary>Every numeric codec in both byte orders decodes the same values through the bulk and the debug (per-element) paths.</summary>
+    /// <summary>
+    ///     Every numeric codec in both byte orders decodes the same values through the bulk stream reader, the span
+    ///     (static plan) decoder, and the debug (per-element) path; the arrays exceed 2 KiB, so the bulk readers'
+    ///     uninitialized result arrays must be completely overwritten.
+    /// </summary>
     [TestMethod]
     public void BulkAndPerElementPaths_ProduceIdenticalValues()
     {
-        string[] types = ["uint8", "int8", "bool", "int16<", "int16>", "uint16<", "uint16>", "int32<", "int32>", "uint32<", "uint32>", "int64<", "int64>", "uint64<", "uint64>", "float32<", "float32>", "float64<", "float64>"];
+        string[] types = ["uint8", "int8", "bool", "int16<", "int16>", "uint16<", "uint16>", "int32<", "int32>", "uint32<", "uint32>", "int64<", "int64>", "uint64<", "uint64>", "float32<", "float32>", "float64<", "float64>", "int24<", "int24>", "uint24<", "uint24>"];
         var random = new Random(1234);
         foreach (string type in types)
         {
@@ -41,6 +45,11 @@ public class PrimitiveArrayReaderTests
             CollectionAssert.AreEqual(perElementValues.ToArray(), bulkValues.ToArray(), type);
             Assert.AreEqual(perElementValues[0]!.GetType(), bulkValues[0]!.GetType(), type);
             Assert.AreEqual((byte)perElement.tail, (byte)bulk.tail, type);
+
+            dynamic fromSpan = layout.Parse(bytes.AsSpan(), "root");
+            var spanValues = (IList<object?>)fromSpan.values;
+            CollectionAssert.AreEqual(perElementValues.ToArray(), spanValues.ToArray(), type);
+            Assert.AreEqual(perElementValues[0]!.GetType(), spanValues[0]!.GetType(), type);
         }
     }
 

@@ -19,6 +19,10 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - Constructing a `MemorySchema`, including every BTF and ISF import, no longer compiles an internal layout of the
   whole type graph to re-check placement that validation has already checked. Importing the one-struct ISF profile of
   `MemoryAnalysisBenchmarks.ImportIsf` now allocates about 21 KB instead of 67 KB (v0.10.0: 53 KB) (#57).
+- Bulk-decoded arrays of fixed-width numbers (integers, floats, `bool`, `int24`/`uint24`) are allocated without
+  the zeroing pass that every element then overwrote, in the runtime reader and in generated code (the
+  member-by-member and fixed readers). This removes one full memory pass from parsing a large array, such as a
+  1 MiB `uint32` array. Generated readers now call `GC.AllocateUninitializedArray`; results are unchanged. (#56)
 
 ### Documentation and tooling
 
@@ -26,6 +30,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   sanitized id plus a short hash of the full id), so parallel tests whose ids differ only in punctuation or case no
   longer share a file or fail with an `IOException` on Windows. Dumps made before this change use different names;
   make the before and after dumps with the same version (#54).
+- The `Impact` benchmark category now includes the generated and runtime parse of a 1 MiB `uint32` array (55 cases),
+  so the quick before/after check covers large numeric arrays. (#56)
 
 ## 0.11.1 — 2026-10-01
 
