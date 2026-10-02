@@ -284,16 +284,22 @@ which should not need it.
 
 [!code-csharp[Best-effort import demotes a broken member to raw bytes](../examples/memory-analysis/MemoryTutorialExamples.cs#memory-best-effort)]
 
-## Semantic metadata versus compiled storage views
+## Semantic metadata versus compiled scalar codecs
 
 `Schema.Types`, `GetType`, and `GetField` present the imported model: real names, IDs, offsets, bit slices, and
 `Provenance` strings that say where a definition came from. Use these in an analyzer's user interface.
 `GetField` looks up immediate members; session paths additionally resolve uniquely promoted members.
 
-To decode bytes, the schema also compiles an internal Portable layout in which every metadata type becomes a union
-of byte arrays placed at the recorded offsets. This lets the memory APIs reuse the core's scalar and bitfield
-codecs without a second decoder. The layout and its generated names (such as `m0` and `f0`) are not part of the
-API: results and diagnostics always use the metadata's own names and IDs.
+The schema never compiles a layout for a struct, union, or array. Their placement is already recorded, so the
+constructor checks it directly with the rules listed above: plain byte arithmetic on sizes and offsets. A struct
+can therefore be as large as an `int` byte count allows, and a member may sit millions of bytes into it.
+
+Only the leaves need the core compiler. To decode and encode bytes, the schema compiles one tiny core layout per
+scalar, such as `struct __memory_scalar { uint32 value; };`, and one per bit slice, such as
+`struct __bits { uint32 :12; uint32 value:5; };` for a 5-bit slice that starts at bit 12 of a four-byte unit.
+The memory APIs reuse the core's scalar and bitfield codecs through these layouts instead of a second decoder.
+The generated names (`__memory_scalar`, `__bits`, `value`) are not part of the API: results and diagnostics always
+use the metadata's own names and IDs.
 
 ## Check your understanding
 

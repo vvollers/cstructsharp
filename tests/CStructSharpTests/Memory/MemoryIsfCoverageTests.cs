@@ -154,4 +154,39 @@ public class MemoryIsfCoverageTests
         Assert.AreEqual(MemoryTypeKind.RawBytes, tolerant.Schema.GetType("isf:user:inner").Kind);
         StringAssert.Contains(string.Join('\n', tolerant.Diagnostics), "isf:user:inner");
     }
+
+    /// <summary>Importing a small ISF profile stays within a per-import allocation budget (#57).</summary>
+    /// <remarks>
+    /// The profile is the one <c>MemoryAnalysisBenchmarks.ImportIsf</c> measures: a <c>u32</c> base type and an
+    /// eight-byte <c>record</c> struct with one member at offset 4. An import compiles one small core layout per scalar
+    /// and validates the recorded placement directly, which allocates roughly 21 KB. The 40,000-byte bound leaves room
+    /// for runtime differences between target frameworks, yet fails if the schema again compiles a throwaway layout
+    /// for every struct (the removed placement-check views cost about 45 KB per import on their own).
+    /// </remarks>
+    [TestMethod]
+    public void Isf_SmallImportStaysWithinItsAllocationBudget()
+    {
+        const string Record = """
+            {"metadata":{"format":"6.2.0"},"base_types":{"u32":{"kind":"int","size":4,"signed":false,"endian":"little"}},
+            "user_types":{"record":{"kind":"struct","size":8,"fields":{"value":{"offset":4,"type":{"kind":"base","name":"u32"}}}}},"enums":{},"symbols":{}}
+            """;
+        const int Imports = 50;
+        const long BudgetPerImport = 40_000;
+        byte[] bytes = Encoding.UTF8.GetBytes(Record);
+
+        // Warm up so one-time JIT and static caches are not charged to the measured imports.
+        for (int i = 0; i < 5; i++)
+        {
+            Assert.AreEqual("isf:user:record", new IsfMetadata(bytes).Import("record").RootTypeId);
+        }
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        for (int i = 0; i < Imports; i++)
+        {
+            _ = new IsfMetadata(bytes).Import("record");
+        }
+
+        long perImport = (GC.GetAllocatedBytesForCurrentThread() - before) / Imports;
+        Assert.IsTrue(perImport < BudgetPerImport, $"An ISF import allocated {perImport} bytes; the budget is {BudgetPerImport}.");
+    }
 }

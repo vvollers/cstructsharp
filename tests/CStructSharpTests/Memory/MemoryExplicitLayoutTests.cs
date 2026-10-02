@@ -161,4 +161,23 @@ public class MemoryExplicitLayoutTests
         Assert.Throws<CStructWriteException>(() => MemoryPatch.Create(new MemoryRegion(mapped, 0, 2), new byte[] { 1, 2, }));
         CollectionAssert.AreEqual(new byte[1], source.ToArray());
     }
+
+    /// <summary>A member placed more than a million bytes into its struct is accepted and readable (#57).</summary>
+    /// <remarks>
+    /// Placement is a byte count checked against the definition, not an array read, so the read option
+    /// <c>MaxArrayElements</c> (default 1,000,000) has no say in which metadata a schema accepts.
+    /// </remarks>
+    [TestMethod]
+    public void Struct_AcceptsAMemberBeyondAMillionBytes()
+    {
+        const int Offset = 3_000_000;
+        var schema = new MemorySchema([
+            new("u32", "u32", MemoryTypeKind.Scalar, 4, scalarType: "uint32"),
+            new("big", "big", MemoryTypeKind.Struct, Offset + 4, [new("value", "u32", Offset),]),
+        ]);
+        byte[] image = new byte[Offset + 4];
+        image[Offset] = 0x2a;
+        var session = new MemorySession(schema);
+        Assert.AreEqual(42U, session.Read(new MemoryRegion(new ByteArrayMemorySource("image", image), 0, image.Length), "big", "value"));
+    }
 }

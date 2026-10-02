@@ -1,7 +1,6 @@
 namespace CStructSharp.Memory;
 
 using System.Collections.ObjectModel;
-using System.Text;
 using CStructSharp.Addressing;
 using CStructSharp.Diagnostics;
 
@@ -17,9 +16,10 @@ using CStructSharp.Diagnostics;
 /// </para>
 /// <para>
 /// <see cref="Types"/> is the semantic graph: real names, IDs, offsets, bit slices, and provenance, which is what an
-/// analyzer should show. To decode, the schema also compiles an internal Portable layout in which every metadata
-/// type is a union of byte arrays at the recorded offsets, so the memory APIs reuse the core scalar and bitfield
-/// codecs instead of a second decoder; its generated names (<c>m0</c>, <c>f0</c>) never appear in results.
+/// analyzer should show. The recorded placement is checked directly against these definitions; no layout is
+/// compiled for a struct, union, or array. To decode, the schema compiles one small core layout per scalar
+/// (<c>struct __memory_scalar { T value; }</c>) and one per bitfield slice, and the memory APIs reuse those core
+/// scalar and bitfield codecs instead of a second decoder. Their generated names never appear in results.
 /// </para>
 /// <para>
 /// Compile once and reuse the schema across many regions and sessions; it holds no bytes and no mutable state.
@@ -37,7 +37,6 @@ public sealed class MemorySchema
 
     private readonly Dictionary<string, MemoryScalarCodec> scalarLayouts = new(StringComparer.Ordinal);
     private readonly Dictionary<(string Type, string Field), MemoryScalarCodec> bitLayouts = new();
-    private readonly Dictionary<string, string> compiledNames = new(StringComparer.Ordinal);
 
     /// <summary>Snapshots, validates, and compiles a type graph. Placement comes from the definitions; nothing is inferred from the host.</summary>
     /// <param name="types">Definitions to include; every ID they reference must be among them.</param>
@@ -68,7 +67,7 @@ public sealed class MemorySchema
         this.PointerSize = pointerSize;
         this.Options = options ?? new CStructCompilationOptions();
 
-        // Pass 1: collect definitions and assign each a generated compiled name, enforcing the budgets as we go.
+        // Pass 1: collect definitions, enforcing the budgets as we go.
         var definitions = new Dictionary<string, MemoryTypeDefinition>(StringComparer.Ordinal);
         int fields = 0;
         foreach (MemoryTypeDefinition type in types)
@@ -84,8 +83,6 @@ public sealed class MemorySchema
             {
                 throw new CStructLayoutException($"Duplicate memory type ID '{type.Id}'.");
             }
-
-            this.compiledNames.Add(type.Id, "m" + (definitions.Count - 1));
         }
 
         this.Types = new ReadOnlyDictionary<string, MemoryTypeDefinition>(definitions);
@@ -154,9 +151,6 @@ public sealed class MemorySchema
             cancellationToken.ThrowIfCancellationRequested();
             this.CheckRecursion(type, visiting, visited, 0);
         }
-
-        // Pass 4: express the explicit offsets as generated union views so the core compiler can verify them.
-        this.CompiledLayout = this.CompileViews(cancellationToken);
     }
 
     /// <summary>Gets the semantic graph: every validated definition keyed by its ID.</summary>
@@ -167,9 +161,6 @@ public sealed class MemorySchema
 
     /// <summary>Gets the target pointer width in bytes, used to compile pointer-width integer aliases.</summary>
     public int PointerSize { get; }
-
-    /// <summary>Gets the generated Portable storage views. Their names are placement labels; semantic names live in <see cref="Types"/>.</summary>
-    internal CStruct CompiledLayout { get; }
 
     /// <summary>Gets one note per definition that best-effort validation demoted to <see cref="MemoryTypeKind.RawBytes"/>, in ordinal order; empty unless the schema was constructed with <c>bestEffort: true</c>.</summary>
     public IReadOnlyList<string> Diagnostics { get; }
@@ -187,11 +178,6 @@ public sealed class MemorySchema
         ArgumentNullException.ThrowIfNull(id);
         return this.Types.TryGetValue(id, out MemoryTypeDefinition? type) ? type : throw new CStructPathException($"Unknown memory type '{id}'.");
     }
-
-    /// <summary>Returns the generated name under which a type appears in <see cref="CompiledLayout"/>.</summary>
-    /// <param name="typeId">Stable identity of the definition.</param>
-    /// <returns>The generated view name, such as <c>m3</c>.</returns>
-    internal string GetCompiledName(string typeId) => this.compiledNames[typeId];
 
     /// <summary>Finds an immediate member by name; promoted members are resolved by session paths, not here.</summary>
     /// <param name="typeId">Stable identity of the containing struct or union.</param>
@@ -495,73 +481,5 @@ public sealed class MemorySchema
 
         visiting.Remove(type.Id);
         visited.Add(type.Id);
-    }
-
-    /// <summary>Expresses every definition as a generated Portable union view, then checks that the core agrees with the recorded placement.</summary>
-    /// <remarks>
-    /// <para>
-    /// Portable structs place members by declaration order, so they cannot state "this member is at offset 4"
-    /// directly. A union can: each member of a union starts at offset 0, and a member that is a struct of
-    /// <c>uint8 _[offset]</c> followed by <c>uint8 value[size]</c> puts <c>value</c> exactly at <c>offset</c>.
-    /// A record with a four-byte member at offset 4 therefore becomes
-    /// <c>union m0 { uint8 raw[8]; struct { uint8 _[4]; uint8 value[4]; } f0; };</c>.
-    /// </para>
-    /// <para>
-    /// The views are then compiled once and each size and member address is read back through the core's
-    /// introspection. This turns the recorded placement into something the compiler has verified, without
-    /// changing Portable placement rules. Generated names are deliberately separate from semantic IDs and names;
-    /// the original definitions remain the public metadata model.
-    /// </para>
-    /// </remarks>
-    /// <param name="cancellationToken">Checked between definitions.</param>
-    /// <returns>The compiled generated views.</returns>
-    /// <exception cref="CStructLayoutException">The core compiler places a view differently from the recorded metadata.</exception>
-    private CStruct CompileViews(CancellationToken cancellationToken)
-    {
-        var source = new StringBuilder();
-        foreach (MemoryTypeDefinition type in this.Types.Values)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (type.Kind == MemoryTypeKind.Incomplete)
-            {
-                continue;
-            }
-
-            string name = this.compiledNames[type.Id];
-            source.Append("union ").Append(name).Append(" { uint8 raw[").Append(type.Size).Append("]; ");
-            for (int i = 0; i < type.Fields.Count; i++)
-            {
-                MemoryField field = type.Fields[i];
-                source.Append("struct { uint8 _[").Append(field.Offset).Append("]; uint8 value[").Append(this.Reference(type, field.TypeId).Size).Append("]; } f").Append(i).Append(';');
-            }
-
-            source.AppendLine("};");
-        }
-
-        if (source.Length == 0)
-        {
-            source.Append("struct __memory_empty { uint8 _; };");
-        }
-
-        var compiled = new CStruct(source.ToString(), compilationOptions: new CStructCompilationOptions { MaxDefinitionLength = Math.Max(128 * 1024, source.Length), });
-        foreach (MemoryTypeDefinition type in this.Types.Values)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (type.Kind != MemoryTypeKind.Incomplete && compiled.GetStructSizeInBytes(this.compiledNames[type.Id]) != type.Size)
-            {
-                throw new CStructLayoutException($"Compiled metadata extent differs for '{type.Id}'.");
-            }
-
-            for (int index = 0; index < type.Fields.Count; index++)
-            {
-                string path = this.compiledNames[type.Id] + ".f" + index + ".value";
-                if (compiled.ResolveAddress(Stream.Null, path) != type.Fields[index].Offset)
-                {
-                    throw new CStructLayoutException($"Compiled metadata placement differs for '{type.Id}.{type.Fields[index].Name}'.");
-                }
-            }
-        }
-
-        return compiled;
     }
 }

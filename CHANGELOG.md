@@ -8,6 +8,18 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ## Unreleased
 
+### Fixed
+
+- A `MemorySchema` (and a BTF or ISF import) accepts a struct or union member placed more than 1,000,000 bytes from
+  the start of its container. Such metadata used to fail with a `CStructReadLimitException` about
+  `MaxArrayElements` from an internal placement check (#57).
+
+### Performance
+
+- Constructing a `MemorySchema`, including every BTF and ISF import, no longer compiles an internal layout of the
+  whole type graph to re-check placement that validation has already checked. Importing the one-struct ISF profile of
+  `MemoryAnalysisBenchmarks.ImportIsf` now allocates about 21 KB instead of 67 KB (v0.10.0: 53 KB) (#57).
+
 ### Documentation and tooling
 
 - The engine golden dump mode (`CSTRUCTSHARP_ENGINE_GOLDEN_DUMP`) gives each test and group a unique file name (a
