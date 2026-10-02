@@ -249,10 +249,23 @@ internal sealed class GeneratedModel
         return candidate;
     }
 
+    /// <summary>Names a composite for collision messages, such as <c>the struct 'header'</c>.</summary>
+    /// <param name="composite">The compiled composite.</param>
+    /// <param name="layoutName">Its name in the layout.</param>
+    /// <returns>The description.</returns>
     private static string Describe(CompiledCompositeType composite, string layoutName) => (composite.IsUnion ? "the union '" : "the struct '") + layoutName + "'";
 
+    /// <summary>Upper-cases the first character of a text, leaving the rest unchanged.</summary>
+    /// <param name="text">The text; may be empty.</param>
+    /// <returns>The capitalized text.</returns>
     private static string Capitalize(string text) => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text.Substring(1);
 
+    /// <summary>
+    ///     Names the members of one generated composite and checks them against the class name, the union helper
+    ///     properties and, when views are generated, the view's own members and array slices.
+    /// </summary>
+    /// <param name="generated">The composite whose members are named.</param>
+    /// <param name="compiled">The compiled layout model.</param>
     private void ResolveMembers(GeneratedComposite generated, CompiledLayoutModel compiled)
     {
         var memberNames = new Dictionary<string, string>(StringComparer.Ordinal) { [generated.Name] = "the class itself" };
