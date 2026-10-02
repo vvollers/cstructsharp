@@ -214,6 +214,28 @@ public class GoldenManifestTests
         StringAssert.Contains(Assert.Throws<AssertFailedException>(fewer.Verify).Message, "stale golden entries the test no longer produces (record the golden outcomes again): 'part 1'");
     }
 
+    /// <summary>
+    ///     The dump mode's file names are portable and deterministic, and keep apart names that differ only in punctuation
+    ///     or case, so parallel tests never append to one shared file (issue #54).
+    /// </summary>
+    [TestMethod]
+    public void DumpFileNames_AreUniquePortableAndStable()
+    {
+        string[] names = ["primitive/int16<", "primitive/int16>", "A", "a", string.Empty, new string('x', 300), new string('x', 301)];
+        string[] fileNames = [.. names.Select(GoldenScope.FileName)];
+
+        Assert.AreEqual(names.Length, fileNames.Distinct(StringComparer.OrdinalIgnoreCase).Count(), string.Join(", ", fileNames));
+        foreach (string fileName in fileNames)
+        {
+            // Every character is an ASCII letter, digit, hyphen, period or underscore.
+            Assert.IsTrue(fileName.All(character => char.IsAsciiLetterOrDigit(character) || character is '-' or '.' or '_'), fileName);
+            Assert.IsLessThanOrEqualTo(GoldenScope.FileNamePrefixLimit + 9, fileName.Length, fileName);
+        }
+
+        Assert.AreEqual(GoldenScope.FileName("primitive/int16<"), GoldenScope.FileName("primitive/int16<"));
+        StringAssert.StartsWith(GoldenScope.FileName("primitive/int16<"), "primitive_int16_-");
+    }
+
     /// <summary>The id of a running data-driven test is one its class declares, with its text argument quoted and escaped.</summary>
     /// <param name="text">A text argument with a quote and a backslash.</param>
     /// <param name="number">A number argument.</param>

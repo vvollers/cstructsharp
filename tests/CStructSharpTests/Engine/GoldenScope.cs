@@ -27,6 +27,9 @@ internal sealed partial class GoldenScope : IDisposable
     /// <summary>The kind of an outcome that names no exception (<see cref="KindOf"/>).</summary>
     public const string SuccessKind = "ok";
 
+    /// <summary>The most characters of a name's readable prefix that <see cref="FileName"/> keeps.</summary>
+    internal const int FileNamePrefixLimit = 80;
+
     /// <summary>How many characters of an example outcome a failure shows.</summary>
     private const int SampleLimit = 2048;
 
@@ -273,10 +276,26 @@ internal sealed partial class GoldenScope : IDisposable
     private static bool IsStorableLine(string line)
         => !line.Contains('\r', StringComparison.Ordinal) && !line.Contains('\n', StringComparison.Ordinal) && (line.Length == 0 || !char.IsWhiteSpace(line[^1]));
 
-    /// <summary>Turns a test id or group name into a file name: every character but letters, digits, '-' and '.' becomes '_'.</summary>
+    /// <summary>
+    ///     Turns a test id or group name into a unique, portable file name: a readable prefix, where every character but
+    ///     ASCII letters, digits, '-' and '.' becomes '_' and at most <see cref="FileNamePrefixLimit"/> characters are kept,
+    ///     then '-' and the first 8 lowercase hex digits of the SHA-256 of the name's UTF-8 bytes.
+    /// </summary>
+    /// <remarks>
+    ///     The prefix alone loses information: <c>primitive/int16&lt;</c> and <c>primitive/int16&gt;</c> would share a
+    ///     file, and on a case-insensitive file system so would names that differ only in case. Tests run in parallel, so
+    ///     a shared dump file mixes their outcomes or fails with an <see cref="IOException"/>. The hash of the exact name
+    ///     keeps distinct names apart and is the same on every run and target framework.
+    /// </remarks>
     /// <param name="name">The name.</param>
-    /// <returns>The file name.</returns>
-    private static string FileName(string name) => string.Concat(name.Select(character => char.IsAsciiLetterOrDigit(character) || character is '-' or '.' ? character : '_'));
+    /// <returns>The file name, made of ASCII letters, digits, '-', '.' and '_' only.</returns>
+    internal static string FileName(string name)
+    {
+        // Keeps portable characters of the capped prefix and replaces every other character with an underscore.
+        string prefix = string.Concat(name.Take(FileNamePrefixLimit).Select(character => char.IsAsciiLetterOrDigit(character) || character is '-' or '.' ? character : '_'));
+        string hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(name)), 0, 4).ToLowerInvariant();
+        return prefix + "-" + hash;
+    }
 
     /// <summary>Matches the simple name of an exception type, such as <c>CStructReadException</c>.</summary>
     /// <returns>The expression.</returns>

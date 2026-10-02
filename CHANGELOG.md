@@ -6,6 +6,15 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 onward, each version uses these headings in this order and omits the empty ones: *Breaking changes* (each with its
 migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and tooling*.
 
+## Unreleased
+
+### Documentation and tooling
+
+- The engine golden dump mode (`CSTRUCTSHARP_ENGINE_GOLDEN_DUMP`) gives each test and group a unique file name (a
+  sanitized id plus a short hash of the full id), so parallel tests whose ids differ only in punctuation or case no
+  longer share a file or fail with an `IOException` on Windows. Dumps made before this change use different names;
+  make the before and after dumps with the same version (#54).
+
 ## 0.11.1 — 2026-10-01
 
 Volatility 3 ISF profiles of real Linux kernels now import. Before this release, importing `task_struct`,

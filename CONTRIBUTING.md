@@ -166,7 +166,9 @@ current outcome, then checks the new manifests on .NET 8 and .NET 10 and lists t
 recording as well. Review `git diff -- tests/CStructSharpTests/Engine/Golden` and explain every changed entry in the
 commit message: which behaviour changed, and why the new outcome is correct. A failing group shows its golden and
 current summary and an example outcome of each kind whose count changed, but not every changed outcome; run the test
-with `CSTRUCTSHARP_ENGINE_GOLDEN_DUMP=<directory>` before and after the change and compare the files it writes.
+with `CSTRUCTSHARP_ENGINE_GOLDEN_DUMP=<directory>` before and after the change and compare the files it writes. The
+dump holds one folder per test and one file per group, each named by its sanitized id plus a short hash of the full
+id, so ids that differ only in punctuation or case get separate files.
 
 ### Mutation testing
 
