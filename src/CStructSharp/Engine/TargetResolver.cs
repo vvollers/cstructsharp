@@ -655,7 +655,7 @@ internal static partial class TargetResolver
             throw new CStructPathException("Relative pointer target overflowed the stream address range.", exception);
         }
 
-        if (target < 0 || target >= cursor.Length)
+        if (target < 0 || cursor.EndsAtOrBefore(target))
         {
             throw new CStructReadException("Pointer target is outside the readable stream range: " + target);
         }

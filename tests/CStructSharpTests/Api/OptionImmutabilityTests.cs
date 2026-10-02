@@ -127,4 +127,30 @@ public class OptionImmutabilityTests
         var layout = new CStruct("struct root { uint8 value; };", compilationOptions: compilationCopy);
         Assert.AreEqual((byte)5, layout.ReadValue<byte>(new byte[] { 5, }, "root.value", options: readCopy));
     }
+
+    /// <summary>
+    ///     <see cref="ReadOptions.MaxPointerTargetBytes"/> keeps null, zero and <see cref="long.MaxValue"/> apart through
+    ///     construction, <c>with</c>, equality, hashing and printing: clearing a limit gives back an instance equal to the
+    ///     defaults, and a limit of zero never equals no limit.
+    /// </summary>
+    [TestMethod]
+    public void MaxPointerTargetBytes_RoundTripsNullZeroAndLargest()
+    {
+        var unlimited = new ReadOptions();
+        var zero = new ReadOptions { MaxPointerTargetBytes = 0, };
+        var largest = new ReadOptions { MaxPointerTargetBytes = long.MaxValue, };
+        Assert.IsNull(unlimited.MaxPointerTargetBytes);
+        Assert.AreEqual(0L, zero.MaxPointerTargetBytes);
+        Assert.AreEqual(long.MaxValue, largest.MaxPointerTargetBytes);
+        Assert.AreEqual(long.MaxValue, (largest with { Origin = 3, }).MaxPointerTargetBytes, "with copies the limit");
+
+        Assert.AreNotEqual(unlimited, zero, "a zero limit is a limit");
+        Assert.AreNotEqual(zero, largest);
+        Assert.AreEqual(unlimited, zero with { MaxPointerTargetBytes = null, }, "clearing the limit restores the defaults");
+        Assert.AreEqual(unlimited.GetHashCode(), (largest with { MaxPointerTargetBytes = null, }).GetHashCode());
+        Assert.AreEqual(zero, new ReadOptions { MaxPointerTargetBytes = 0, });
+
+        StringAssert.Contains(zero.ToString(), "MaxPointerTargetBytes = 0");
+        StringAssert.Contains(unlimited.ToString(), "MaxPointerTargetBytes = ,");
+    }
 }

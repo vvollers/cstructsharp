@@ -22,7 +22,9 @@ using CStructSharp.Streams;
 /// <remarks>
 ///     A plain mutable struct (not a <see langword="ref"/> struct, so it also works where the executor stores it):
 ///     pass it by reference and never copy it mid-operation. A region must stay pinned until the operation ends. A
-///     cursor over a caller's stream leaves that stream's position alone until <see cref="FlushPosition"/>.
+///     cursor over a caller's stream leaves that stream's position alone until <see cref="FlushPosition"/>. A region
+///     that holds only the first part of a buffered input (<see cref="BufferedInput"/>) raises
+///     <see cref="BufferedInputShortfallException"/> wherever the read needs a byte past it.
 /// </remarks>
 internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
 {
@@ -40,9 +42,18 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
     /// <param name="maxStringBytes">The largest number of encoded bytes one string may consume.</param>
     /// <param name="maxTotalBytesRead">The largest number of bytes the whole operation may read.</param>
     /// <param name="cancellationToken">The operation's token.</param>
-    public MemoryReadCursor(byte* region, long length, long position, long maxStringBytes, long maxTotalBytesRead, CancellationToken cancellationToken)
+    /// <param name="continuedLength">
+    ///     <see cref="BufferedInput.WholeInput"/> when the region is the whole input; otherwise the whole input's length
+    ///     in bytes or <see cref="BufferedInput.UnknownLength"/> (<see cref="ReadOptions.ContinuedInputLength"/>).
+    /// </param>
+    public MemoryReadCursor(byte* region, long length, long position, long maxStringBytes, long maxTotalBytesRead, CancellationToken cancellationToken, long continuedLength = BufferedInput.WholeInput)
         : this(MemoryReadCore.OverRegion(region, length, position, maxTotalBytesRead), null, maxStringBytes, cancellationToken)
     {
+        // The partly buffered core is made in place, out of line: a whole-input read pays only this comparison.
+        if (continuedLength != BufferedInput.WholeInput)
+        {
+            this.core.ContinueAsPartOf(continuedLength);
+        }
     }
 
     /// <summary>Creates a cursor over part of an array.</summary>
@@ -79,7 +90,8 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
     }
 
     /// <inheritdoc/>
-    public readonly long Length => this.core.KnownLength;
+    /// <exception cref="BufferedInputShortfallException">Only part of the input is buffered and its length is unknown.</exception>
+    public readonly long Length => this.core.InputLength;
 
     /// <inheritdoc/>
     public readonly long MaxStringBytes => this.maxStringBytes;
@@ -112,6 +124,9 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
     }
 
     /// <inheritdoc/>
+    public readonly bool EndsAtOrBefore(long address) => this.core.EndsAtOrBefore(address);
+
+    /// <inheritdoc/>
     public readonly void ThrowIfCancellationRequested() => this.cancellationToken.ThrowIfCancellationRequested();
 
     /// <inheritdoc/>
@@ -121,9 +136,10 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
     /// <remarks>The scan runs over the input in place; the position does not move.</remarks>
     public readonly int ScanTerminated(int elementSize, int maximumElements, string fieldName)
     {
-        // A memory input always exposes its remaining bytes, since the position never passes the end.
+        // A memory input always exposes its remaining bytes, since the position never passes the end (a partly
+        // buffered input raises the buffered-input signal instead, and the scan raises it when it runs off the buffer).
         _ = this.core.TryPeekRemaining(out ReadOnlySpan<byte> remaining);
-        return DynamicArrayExtent.ScanSpan(remaining, elementSize, maximumElements, this.core.RemainingBudget, fieldName);
+        return DynamicArrayExtent.ScanSpan(remaining, elementSize, maximumElements, this.core.RemainingBudget, fieldName, this.core.IsPartial ? this.core.Position : -1);
     }
 
     /// <inheritdoc/>
@@ -161,6 +177,11 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
         // A memory input always exposes its remaining bytes (the position never passes the end), so the codec is
         // handed the whole remainder in place rather than a doubling window.
         _ = this.core.TryPeekRemaining(out ReadOnlySpan<byte> remaining);
+        if (this.core.IsPartial)
+        {
+            return this.ReadCustomFromPartialInput(codec, remaining);
+        }
+
         return CustomCodecAdapter.ReadInMemory(codec, ref this, remaining);
     }
 
@@ -191,8 +212,8 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
         catch (EndOfStreamException exception)
         {
             this.core.SetPosition(start);
-            string message = ReadFailures.ShortRead(destination.Length, Math.Max(0, this.core.KnownLength - this.core.Position));
-            this.core.SetPosition(this.core.KnownLength);
+            string message = ReadFailures.ShortRead(destination.Length, Math.Max(0, this.core.InputLength - this.core.Position));
+            this.core.SetPosition(this.core.InputLength);
             throw new CStructReadException(message, exception);
         }
     }
@@ -259,6 +280,37 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
     {
         Stream.Null.ReadExactly(stackalloc byte[1]);
         throw new UnreachableException("Stream.Null supplied a byte.");
+    }
+
+    /// <summary>
+    ///     Decodes a custom value from the buffered part of a partly buffered input: an answer that may rest on where the
+    ///     buffered part ends (<see cref="CustomCodecAdapter.MayDependOnWindowEnd"/>) - a short read, a rejection, a value
+    ///     that took every buffered byte, a fixed size that runs past them - raises the buffered-input signal before
+    ///     anything is consumed, so the rerun over more of the input decides the outcome as the span form does.
+    /// </summary>
+    /// <param name="codec">The codec.</param>
+    /// <param name="remaining">The buffered bytes from the value's start.</param>
+    /// <returns>The decoded value.</returns>
+    /// <exception cref="BufferedInputShortfallException">The codec needs bytes past the buffered part.</exception>
+    /// <exception cref="CStructReadException">The codec rejects the bytes, throws, or reports an impossible length.</exception>
+    /// <exception cref="CStructReadLimitException">The advance exceeds the total read budget.</exception>
+    private object ReadCustomFromPartialInput(ICustomCodec codec, ReadOnlySpan<byte> remaining)
+    {
+        CStructReadException? failure = CustomCodecAdapter.DecodeFromMemory(codec, remaining, out object? value, out int consumed);
+        if (CustomCodecAdapter.MayDependOnWindowEnd(codec, failure, consumed, remaining.Length))
+        {
+            // The codec is promised the whole remaining input: an answer that may rest on where the buffered part
+            // ends (a short read, a rejection, a value that took the whole window) is decided over more of it.
+            this.core.RequireBuffered(this.core.Position, this.core.Position + remaining.Length + 1);
+        }
+
+        this.core.Advance(consumed);
+        if (failure is not null)
+        {
+            throw failure;
+        }
+
+        return value!;
     }
 
     /// <summary>

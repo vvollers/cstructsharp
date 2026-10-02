@@ -74,9 +74,13 @@ programs the same way, and an update resolves its path and captures its layout w
 replacement with a write program.
 
 The awaitable forms and the record sequences add no reader. An `*Async` read links the call's token with the
-options' token, reads the stream with `ReadAsync` into a pooled buffer (`Streams/AsyncStreamBuffer`: a seekable
-stream up to its remaining length, any stream up to the budget plus one byte), runs the stream core over a
-`FixedBufferStream` pinned on that buffer, and sets the stream's position from what the core consumed. A record
+options' token, reads the stream with `ReadAsync` into a pooled buffer (`Streams/AsyncStreamBuffer`: first a
+seekable stream up to its remaining length, any stream up to the budget plus one byte), runs the engine over the
+pinned buffer, and sets the stream's position from where the read ended. The budget charges consumed bytes, not
+positions, so a buffered read can need bytes past its copy; `Streams/BufferedInput` marks such a copy as part of a
+longer input (`ReadOptions.ContinuedInputLength`), the memory cursor and the generated `ReadCursor` raise an internal
+signal on any access past it, and the buffered form - a segmented sequence, an async read, a generated stream read,
+a record window - grows the copy and runs the read again until it equals the span read. A record
 sequence (`Generated/RecordSequence`, shared by `ParseMany` and the generated `Records`) drives a one-record
 reader from the end of the previous record - the runtime's reader pins a slice and runs the stream core over it,
 the generated one runs its cursor over it - checks a fixed-size root against the bytes left before reading it, and

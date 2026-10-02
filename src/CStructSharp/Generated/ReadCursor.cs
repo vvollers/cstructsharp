@@ -17,7 +17,10 @@ using CStructSharp.Reading;
 ///     This is an advanced surface, public so the code the <c>[CStructLayout]</c> generator emits can use it.
 ///     The cursor borrows its source span; it neither owns nor mutates those bytes. Position and diagnostics use
 ///     the span's byte-zero origin. Stream adapters translate that origin at the operation boundary. Byte-budget
-///     accounting is separate from position, so revisiting pointer targets still charges the bytes read.
+///     accounting is separate from position, so revisiting pointer targets still charges the bytes read. When the
+///     buffered forms hand the cursor only the first part of a longer input (<see cref="Streams.BufferedInput"/>), every
+///     access that needs a byte past that part raises the internal signal that makes the form read more of the input
+///     and run the generated reader again; the checks sit on the branches that would otherwise fail.
 /// </remarks>
 [EditorBrowsable(EditorBrowsableState.Never)]
 public ref partial struct ReadCursor
@@ -52,6 +55,7 @@ public ref partial struct ReadCursor
         {
             if (value < 0 || value > this.source.Length)
             {
+                this.RequireBufferedPosition(value);
                 throw this.Fail(ReadFailures.OutsideRegion, null, null);
             }
 
@@ -100,6 +104,7 @@ public ref partial struct ReadCursor
     {
         if (position < 0 || position > this.source.Length)
         {
+            this.RequireBufferedPosition(position);
             throw this.Fail(ReadFailures.OutsideRegion, member, memberType);
         }
 
@@ -135,6 +140,42 @@ public ref partial struct ReadCursor
         }
 
         this.position += count;
+    }
+
+    /// <summary>
+    ///     Raises the buffered-input signal when the source is only the first part of the input and bytes the input does
+    ///     or may hold in [<paramref name="start"/>, <paramref name="end"/>) lie past it; otherwise returns, and the caller
+    ///     reports what the whole input gives. Called only on branches where an access would otherwise come up short.
+    /// </summary>
+    /// <param name="start">The first byte the access needs, from the source's byte 0.</param>
+    /// <param name="end">The end of the bytes the access needs.</param>
+    /// <exception cref="Streams.BufferedInputShortfallException">The access needs bytes past the source.</exception>
+    private readonly void RequireBuffered(long start, long end)
+    {
+        if (this.settings.ContinuedInputLength == Streams.BufferedInput.WholeInput)
+        {
+            return;
+        }
+
+        long limit = this.settings.ContinuedInputLength < 0 ? end : Math.Min(end, this.settings.ContinuedInputLength);
+        if (limit > this.source.Length && limit > start)
+        {
+            throw Streams.BufferedInput.Shortfall(limit);
+        }
+    }
+
+    /// <summary>
+    ///     Raises the buffered-input signal for a position past the source that the input does or may reach, since the
+    ///     cursor keeps its position within the bytes it holds; otherwise returns and the caller fails.
+    /// </summary>
+    /// <param name="value">The rejected position.</param>
+    /// <exception cref="Streams.BufferedInputShortfallException">The position lies past the source, inside the input.</exception>
+    private readonly void RequireBufferedPosition(long value)
+    {
+        if (value >= 0 && this.settings.ContinuedInputLength != Streams.BufferedInput.WholeInput && (this.settings.ContinuedInputLength < 0 || value <= this.settings.ContinuedInputLength))
+        {
+            throw Streams.BufferedInput.Shortfall(value);
+        }
     }
 
     /// <summary>Charges positive bytes to the operation budget without changing position or charging a rejected read.</summary>

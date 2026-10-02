@@ -1,5 +1,7 @@
 namespace CStructSharp;
 
+using System.Runtime.CompilerServices;
+
 /// <summary>Lists how pointer addresses in the input stream should be interpreted.</summary>
 public enum PointerAddressingMode
 {
@@ -21,6 +23,13 @@ public enum PointerAddressingMode
 /// </remarks>
 public sealed record ReadOptions
 {
+    // MaxPointerTargetBytes is stored as a value and a flag rather than a long? (16 bytes with padding): the flag packs
+    // beside the other bool members, which keeps an instance - copied once per stream or async operation that links a
+    // token - at 88 bytes with ContinuedInputLength included. The value is 0 when the flag is unset, so the record's
+    // member-wise equality matches the nullable property's.
+    private readonly long maxPointerTargetBytes;
+    private readonly bool hasMaxPointerTargetBytes;
+
     /// <summary>Creates the default bounded read and pointer policy.</summary>
     public ReadOptions()
     {
@@ -31,6 +40,15 @@ public sealed record ReadOptions
 
     /// <summary>Gets which fast paths the read may take before the compiled engine; tests restrict it to compare them with the engine.</summary>
     internal ExecutionPath ExecutionPath { get; init; }
+
+    /// <summary>
+    ///     Gets what the buffered input forms record when the bytes an operation is handed are only the first part of
+    ///     a longer input: <see cref="Streams.BufferedInput.WholeInput"/> (the default) when they are the whole input,
+    ///     the whole input's length in bytes when it is known, or <see cref="Streams.BufferedInput.UnknownLength"/>.
+    ///     A reader that needs a byte past the handed part then raises the internal signal that makes the buffered form
+    ///     read more of the input and run the operation again (<see cref="Streams.BufferedInput"/>).
+    /// </summary>
+    internal long ContinuedInputLength { get; init; }
 
     /// <summary>Gets whether pointer addresses are stream positions or offsets from <see cref="Origin"/>.</summary>
     public PointerAddressingMode AddressingMode { get; init; } = PointerAddressingMode.Absolute;
@@ -50,7 +68,16 @@ public sealed record ReadOptions
     ///     A null value leaves the target size unrestricted. Variable-length string targets are rejected when a limit is set.
     ///     This is a target's decoded size, never a maximum pointer address or seek distance.
     /// </summary>
-    public long? MaxPointerTargetBytes { get; init; }
+    public long? MaxPointerTargetBytes
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => this.hasMaxPointerTargetBytes ? this.maxPointerTargetBytes : null;
+        init
+        {
+            this.hasMaxPointerTargetBytes = value.HasValue;
+            this.maxPointerTargetBytes = value.GetValueOrDefault();
+        }
+    }
 
     /// <summary>Gets the greatest number of elements a single traversed array field may contain.</summary>
     public int MaxArrayElements { get; init; } = 1_000_000;

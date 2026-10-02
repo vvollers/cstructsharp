@@ -108,6 +108,16 @@ internal sealed class GeneratedModel
             }
         }
 
+        // Each declared composite's buffered forms use a private reader struct. Its name is an implementation detail,
+        // so when a layout type already spells it the struct takes a numbered name instead of failing the layout.
+        foreach (GeneratedComposite composite in model.Composites)
+        {
+            if (composite.IsDeclared)
+            {
+                composite.BufferedReaderName = model.ClaimFree(composite.Name + "BufferedReader", "the buffered reader of '" + composite.LayoutName + "'");
+            }
+        }
+
         return model;
     }
 
@@ -218,6 +228,25 @@ internal sealed class GeneratedModel
 
         this.takenNames[name] = $"generated for {what}";
         return name;
+    }
+
+    /// <summary>
+    ///     Takes the first free C# name among <paramref name="name"/>, <paramref name="name"/>2, <paramref name="name"/>3,
+    ///     and so on, for a private generated type whose exact name nothing outside the class depends on.
+    /// </summary>
+    /// <param name="name">The preferred C# name.</param>
+    /// <param name="what">The owner recorded for the name, as collision messages describe it.</param>
+    /// <returns>The name taken.</returns>
+    private string ClaimFree(string name, string what)
+    {
+        string candidate = name;
+        for (int suffix = 2; this.takenNames.ContainsKey(candidate); suffix++)
+        {
+            candidate = name + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        this.takenNames[candidate] = $"generated for {what}";
+        return candidate;
     }
 
     private static string Describe(CompiledCompositeType composite, string layoutName) => (composite.IsUnion ? "the union '" : "the struct '") + layoutName + "'";
@@ -468,6 +497,12 @@ internal sealed class GeneratedComposite
 
     /// <summary>Whether the composite is a top-level declaration (a root candidate) rather than an inline type.</summary>
     public bool IsDeclared { get; }
+
+    /// <summary>
+    ///     Gets or sets the name of the private struct the buffered <c>Parse</c> forms of a declared composite run
+    ///     (<c>IBufferedReader</c>); assigned once every type has its name, empty for an inline composite.
+    /// </summary>
+    public string BufferedReaderName { get; set; } = string.Empty;
 
     /// <summary>Gets a value indicating whether the composite is a union, whose members share offset 0.</summary>
     public bool IsUnion => this.Composite.IsUnion;

@@ -107,7 +107,7 @@ public class AsyncBufferBoundaryTests
         using var stream = new AsyncReadTestSupport.GatedStream();
         var context = new AsyncReadTestSupport.RecordingContext();
         SynchronizationContext? previous = SynchronizationContext.Current;
-        Task<(byte[] Buffer, int Length)> pending;
+        Task<(byte[] Buffer, int Length, int Capacity)> pending;
         try
         {
             SynchronizationContext.SetSynchronizationContext(context);
@@ -119,7 +119,7 @@ public class AsyncBufferBoundaryTests
         }
 
         stream.ReleaseRead();
-        (byte[] buffer, int length) = await pending.WaitAsync(TimeSpan.FromSeconds(10));
+        (byte[] buffer, int length, _) = await pending.WaitAsync(TimeSpan.FromSeconds(10));
         try
         {
             Assert.AreEqual(2, length);

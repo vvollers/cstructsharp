@@ -23,6 +23,7 @@ public ref partial struct ReadCursor
         long total = (long)count * elementSize;
         if (total > this.Remaining)
         {
+            this.RequireBuffered(this.position, this.position + total);
             int available = this.Remaining;
             this.position = this.source.Length;
             throw this.Fail(ReadFailures.ArrayShortRead(count, elementSize, available), member, memberType);
@@ -57,6 +58,7 @@ public ref partial struct ReadCursor
             int blockLength = (int)Math.Min(remainingElementsBytes, blockCapacity);
             if (blockLength > this.Remaining)
             {
+                this.RequireBuffered(this.position, (long)this.position + blockLength);
                 int available = this.Remaining;
                 this.position = this.source.Length;
                 throw this.Fail(ReadFailures.ShortRead(blockLength, available), member, memberType);
@@ -95,6 +97,15 @@ public ref partial struct ReadCursor
         long wholeElements = available / elementSize;
         long allowed = Math.Max(0, this.settings.MaxTotalBytesRead - this.bytesRead);
         long affordableElements = allowed / elementSize;
+        if (total > available)
+        {
+            // Both failures below depend on where the input ends up to the element that crosses the budget. That end is
+            // computed only when such an element exists (fewer affordable elements than the count), so it cannot
+            // overflow at a budget near long.MaxValue.
+            long reach = affordableElements < count ? (affordableElements + 1) * elementSize : total;
+            this.RequireBuffered(this.position, this.position + reach);
+        }
+
         if (total > available && wholeElements <= affordableElements)
         {
             int leftover = (int)(available - (wholeElements * elementSize));
@@ -121,9 +132,16 @@ public ref partial struct ReadCursor
     /// <param name="member">The array field, for the diagnostics.</param>
     /// <param name="memberType">The field's type spelling, for the diagnostics.</param>
     /// <returns>The element count.</returns>
+    /// <exception cref="Streams.BufferedInputShortfallException">The source is the first part of an input whose length is unknown.</exception>
     public readonly int CountToEnd(int elementSize, string fieldName, string member, string? memberType)
     {
-        long remaining = this.Remaining;
+        // A partly buffered source counts to the end of the whole input; an unknown end needs the whole input buffered.
+        long remaining = this.settings.ContinuedInputLength switch
+        {
+            Streams.BufferedInput.WholeInput => this.Remaining,
+            < 0 => throw Streams.BufferedInput.Shortfall(long.MaxValue),
+            _ => this.settings.ContinuedInputLength - this.position,
+        };
         if (elementSize == 0)
         {
             return 0;
@@ -165,7 +183,8 @@ public ref partial struct ReadCursor
 
         try
         {
-            return Engine.DynamicArrayExtent.ScanSpan(this.source.Slice(this.position), elementSize, this.settings.MaxArrayElements, this.settings.MaxTotalBytesRead - this.bytesRead, fieldName);
+            long continuesFrom = this.settings.ContinuedInputLength == Streams.BufferedInput.WholeInput ? -1 : this.position;
+            return Engine.DynamicArrayExtent.ScanSpan(this.source.Slice(this.position), elementSize, this.settings.MaxArrayElements, this.settings.MaxTotalBytesRead - this.bytesRead, fieldName, continuesFrom);
         }
         catch (CStructReadLimitException exception)
         {

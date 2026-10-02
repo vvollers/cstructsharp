@@ -35,6 +35,7 @@ public class PublicApiSurfaceTests
         "CStructSharp.Generated.CompositeCursor",
         "CStructSharp.Generated.BitfieldSlot",
         "CStructSharp.Generated.Expressions",
+        "CStructSharp.Generated.IBufferedReader`1",
         "CStructSharp.Generated.Pointer`1",
         "CStructSharp.Generated.ReadCursor",
         "CStructSharp.Generated.RecordReader`1",

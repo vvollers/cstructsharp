@@ -1,77 +1,181 @@
 namespace CStructSharp.Generated;
 
 using System;
-using CStructSharp.Reading;
+using System.Buffers;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using CStructSharp.Streams;
 
-/// <summary>Preparing a stream or byte sequence as one contiguous buffer, with the runtime's limits and cancellation, before a generated read.</summary>
+/// <summary>
+///     The buffered input forms of a generated read: a segmented sequence or a stream is read through a pooled buffer
+///     that grows while the span reader needs bytes past it, so the value, failures and offsets are those of the span
+///     form over the whole input (<see cref="BufferedInput"/>).
+/// </summary>
 public ref partial struct ReadCursor
 {
     /// <summary>
-    ///     Reads a stream into a pooled buffer for the span-based generated reader: up to the options' total read
-    ///     budget (or the stream's remaining length when it is known and smaller). The caller returns the array to
-    ///     <see cref="System.Buffers.ArrayPool{T}.Shared"/> after parsing. A seekable stream is left where it was; the
-    ///     generated <c>Parse</c> moves it past the bytes the value took.
+    ///     Reads a multi-segment <see cref="ReadOnlySequence{T}"/> with the span reader <paramref name="reader"/>: the
+    ///     sequence is copied into a pooled array - first at most the total read budget plus one byte - and the copy
+    ///     grows and the read runs again while the reader needs bytes past it. A single-segment sequence needs no copy;
+    ///     callers read its <see cref="ReadOnlySequence{T}.FirstSpan"/> directly.
     /// </summary>
-    /// <param name="stream">The stream to read from its current position.</param>
+    /// <typeparam name="TReader">The span reader's struct type, so each run is a direct call (the generated code's reader carries its layout variables).</typeparam>
+    /// <typeparam name="TResult">The value type.</typeparam>
+    /// <param name="source">The sequence; offset 0 is coordinate zero.</param>
+    /// <param name="reader">The span reader with the operation's state, run over each buffer.</param>
     /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
-    /// <param name="length">The number of bytes read into the buffer.</param>
-    /// <returns>The rented buffer.</returns>
-    public static byte[] BufferStream(System.IO.Stream stream, ReadOptions? options, out int length)
-        => Streams.AsyncStreamBuffer.Rent(stream, options, out length);
+    /// <returns>The value the span reader returns for the whole sequence.</returns>
+    /// <exception cref="Diagnostics.CStructReadLimitException">The value needs more of the sequence than one array can hold.</exception>
+    public static TResult ReadSequence<TReader, TResult>(ReadOnlySequence<byte> source, TReader reader, ReadOptions? options)
+        where TReader : struct, IBufferedReader<TResult>
+        => BufferedInput.ReadSequence<TReader, TResult>(source, options, reader);
 
     /// <summary>
-    ///     The awaitable form of <see cref="BufferStream"/>: the same bytes read with
-    ///     <see cref="System.IO.Stream.ReadAsync(Memory{byte}, System.Threading.CancellationToken)"/>; the generated
-    ///     <c>ParseAsync</c> forms and the runtime's async operations share it.
+    ///     Reads a value from <paramref name="stream"/>'s current position with the span reader <paramref name="reader"/>:
+    ///     the stream is read into a pooled buffer - first a seekable stream up to its remaining length, any stream up
+    ///     to the total read budget, plus one byte - which grows while the reader needs bytes past it. A seekable stream
+    ///     is left just after the value, or back at its origin on any failure; a stream that cannot seek is consumed by
+    ///     what was buffered.
     /// </summary>
-    /// <param name="stream">The stream to read from its current position.</param>
+    /// <typeparam name="TReader">The span reader's struct type, so each run is a direct call (the generated code's reader carries its layout variables).</typeparam>
+    /// <typeparam name="TResult">The value type.</typeparam>
+    /// <param name="stream">The readable stream; its current position is coordinate zero.</param>
+    /// <param name="reader">The span reader with the operation's state, run over each buffer.</param>
     /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
-    /// <param name="cancellationToken">The token that ends the read while it waits for bytes.</param>
-    /// <returns>The rented buffer and the number of bytes read into it.</returns>
-    public static System.Threading.Tasks.ValueTask<(byte[] Buffer, int Length)> BufferStreamAsync(System.IO.Stream stream, ReadOptions? options, System.Threading.CancellationToken cancellationToken)
-        => Streams.AsyncStreamBuffer.RentAsync(stream, options, cancellationToken);
-
-    /// <summary>
-    ///     The options an awaitable generated read runs with: <paramref name="options"/> carrying the token that
-    ///     ends the operation - the options' own token, <paramref name="cancellationToken"/>, or a source linked from
-    ///     both when both can cancel (the caller disposes <paramref name="linked"/> after the operation).
-    /// </summary>
-    /// <param name="options">The caller's read options, or <see langword="null"/>.</param>
-    /// <param name="cancellationToken">The token given to the async method.</param>
-    /// <param name="linked">The linked source when both tokens can cancel; otherwise <see langword="null"/>.</param>
-    /// <returns>The options to read with; <see langword="null"/> when neither token can cancel and none were given.</returns>
-    public static ReadOptions? WithCancellation(ReadOptions? options, System.Threading.CancellationToken cancellationToken, out System.Threading.CancellationTokenSource? linked)
+    /// <returns>The value the span reader returns for the stream's remaining bytes.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="stream"/> is <see langword="null"/>.</exception>
+    public static TResult ReadStream<TReader, TResult>(Stream stream, TReader reader, ReadOptions? options)
+        where TReader : struct, IBufferedReader<TResult>
     {
-        System.Threading.CancellationToken token = Streams.AsyncStreamBuffer.Link(options, cancellationToken, out linked);
-        return token.CanBeCanceled ? (options ?? new ReadOptions()) with { CancellationToken = token, } : options;
-    }
-
-    /// <summary>
-    ///     Copies a multi-segment <see cref="System.Buffers.ReadOnlySequence{T}"/> into one pooled array so it can be
-    ///     read through the span reader: at most the total read budget plus one byte is copied (the extra byte lets
-    ///     the reader report the budget failure instead of a short read, as <see cref="BufferStream"/> does). A
-    ///     single-segment sequence needs no copy - callers take its <see cref="System.Buffers.ReadOnlySequence{T}.FirstSpan"/>
-    ///     directly. The caller returns the array to <see cref="System.Buffers.ArrayPool{T}.Shared"/>.
-    /// </summary>
-    /// <param name="source">The sequence to copy.</param>
-    /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
-    /// <param name="length">The number of bytes copied.</param>
-    /// <returns>The rented buffer.</returns>
-    public static byte[] CopySequence(System.Buffers.ReadOnlySequence<byte> source, ReadOptions? options, out int length)
-    {
-        ReadOperationSettings settings = ReadOperationSettings.SnapshotReadOptions(options);
-        long limit = Math.Min(settings.MaxTotalBytesRead, int.MaxValue - 1);
-        length = (int)Math.Min(source.Length, limit + 1);
-        byte[] buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(Math.Max(length, 1));
+        ArgumentNullException.ThrowIfNull(stream);
+        long start = stream.CanSeek ? stream.Position : 0;
         try
         {
-            System.Buffers.BuffersExtensions.CopyTo(source.Slice(0, length), buffer.AsSpan(0, length));
-            return buffer;
+            int capacity = AsyncStreamBuffer.Capacity(stream, options);
+            byte[]? buffer = ArrayPool<byte>.Shared.Rent(capacity);
+            try
+            {
+                int length = AsyncStreamBuffer.Fill(stream, buffer, 0, capacity);
+                long continuation = BufferedInput.Continuation(stream, start, length, capacity);
+                TResult value;
+                long consumed;
+                if (continuation == BufferedInput.WholeInput)
+                {
+                    value = reader.Read(new ReadOnlySpan<byte>(buffer, 0, length), options, out consumed);
+                }
+                else
+                {
+                    // Only part of the input is buffered: the growth path takes the array over.
+                    byte[] partial = buffer;
+                    buffer = null;
+                    value = BufferedInput.ReadPartialStream<TReader, TResult>(stream, start, reader, options, partial, length, continuation, out consumed);
+                }
+
+                if (stream.CanSeek)
+                {
+                    stream.Position = start + consumed;
+                }
+
+                return value;
+            }
+            finally
+            {
+                if (buffer is not null)
+                {
+                    ArrayPool<byte>.Shared.Return(buffer);
+                }
+            }
         }
         catch
         {
-            System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+            RestoreOrigin(stream, start);
             throw;
+        }
+    }
+
+    /// <summary>
+    ///     The awaitable form of <see cref="ReadStream{TReader, TResult}"/>: the same buffering with
+    ///     <see cref="Stream.ReadAsync(Memory{byte}, CancellationToken)"/>. The token is linked with the options' own
+    ///     token; it ends the read while it waits for bytes and at the boundaries the span reader checks.
+    /// </summary>
+    /// <typeparam name="TReader">The span reader's struct type, so each run is a direct call (the generated code's reader carries its layout variables).</typeparam>
+    /// <typeparam name="TResult">The value type.</typeparam>
+    /// <param name="stream">The readable stream; its current position is coordinate zero.</param>
+    /// <param name="reader">The span reader with the operation's state, run over each buffer.</param>
+    /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+    /// <param name="cancellationToken">The token given to the async method.</param>
+    /// <returns>The value the span reader returns for the stream's remaining bytes.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="stream"/> is <see langword="null"/>.</exception>
+    /// <exception cref="OperationCanceledException">A token was cancelled.</exception>
+    public static async ValueTask<TResult> ReadStreamAsync<TReader, TResult>(Stream stream, TReader reader, ReadOptions? options, CancellationToken cancellationToken = default)
+        where TReader : struct, IBufferedReader<TResult>
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        CancellationToken token = AsyncStreamBuffer.Link(options, cancellationToken, out CancellationTokenSource? linked);
+        using (linked)
+        {
+            ReadOptions? effective = token.CanBeCanceled ? (options ?? new ReadOptions()) with { CancellationToken = token, } : options;
+            long start = stream.CanSeek ? stream.Position : 0;
+            try
+            {
+                // The first fill and every growth step yield the same tuple, so one await serves both: the state machine
+                // a stream that reads asynchronously boxes holds nothing for the growth path.
+                ValueTask<(byte[] Buffer, int Length, int Capacity)> pending = AsyncStreamBuffer.RentAsync(stream, effective, token);
+                while (true)
+                {
+                    (byte[] buffer, int length, int capacity) = await pending.ConfigureAwait(false);
+                    long continuation = BufferedInput.Continuation(stream, start, length, capacity, buffer);
+                    TResult? value;
+                    long consumed;
+                    if (continuation == BufferedInput.WholeInput)
+                    {
+                        try
+                        {
+                            value = reader.Read(new ReadOnlySpan<byte>(buffer, 0, length), effective, out consumed);
+                        }
+                        finally
+                        {
+                            ArrayPool<byte>.Shared.Return(buffer);
+                        }
+                    }
+                    else if (!BufferedInput.TryReadPartialStream<TReader, TResult>(stream, start, reader, effective, buffer, length, continuation, out value, out consumed, out pending))
+                    {
+                        // The value needs bytes past the buffer; the growth step now owns it.
+                        continue;
+                    }
+
+                    if (stream.CanSeek)
+                    {
+                        stream.Position = start + consumed;
+                    }
+
+                    return value!;
+                }
+            }
+            catch
+            {
+                RestoreOrigin(stream, start);
+                throw;
+            }
+        }
+    }
+
+    /// <summary>Moves a seekable stream back to the operation's origin after a failure, without replacing that failure.</summary>
+    /// <param name="stream">The caller's stream.</param>
+    /// <param name="start">The origin.</param>
+    private static void RestoreOrigin(Stream stream, long start)
+    {
+        try
+        {
+            if (stream.CanSeek)
+            {
+                stream.Position = start;
+            }
+        }
+        catch
+        {
+            // Preserve the original failure if the underlying stream also refuses restoration.
         }
     }
 }

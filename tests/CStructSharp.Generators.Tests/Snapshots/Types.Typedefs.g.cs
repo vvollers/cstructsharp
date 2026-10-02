@@ -100,7 +100,7 @@ namespace Demo
         public static X ParseX(global::System.ReadOnlyMemory<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
             => ParseX(source.Span, variables, options);
 
-        /// <summary>Reads one <c>X</c> from a sequence of segments: a single segment is read in place, several are copied into a pooled buffer bounded by the total read budget.</summary>
+        /// <summary>Reads one <c>X</c> from a sequence of segments: a single segment is read in place, several are copied into a pooled buffer - first the total read budget plus one byte - that grows while the reader needs bytes past it, so the result is the span form's for the whole sequence.</summary>
         /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
         /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
         /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
@@ -111,109 +111,47 @@ namespace Demo
             {
                 return ParseX(source.FirstSpan, variables, options);
             }
-            byte[] buffer = global::CStructSharp.Generated.ReadCursor.CopySequence(source, options, out int length);
-            try
-            {
-                return ParseX(new global::System.ReadOnlySpan<byte>(buffer, 0, length), variables, options);
-            }
-            finally
-            {
-                global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
-            }
+            return global::CStructSharp.Generated.ReadCursor.ReadSequence<XBufferedReader, X>(source, new XBufferedReader(variables), options);
         }
 
-        /// <summary>Reads one <c>X</c> from <paramref name="stream"/>: the stream is buffered up to the total read budget (or its remaining length) and read through the span reader; a seekable stream is left after the value.</summary>
+        /// <summary>Reads one <c>X</c> from <paramref name="stream"/>: the stream is buffered - first up to the total read budget plus one byte (or its remaining length) - and read through the span reader, and the buffer grows while the reader needs bytes past it; a seekable stream is left after the value (at its origin on failure).</summary>
         /// <param name="stream">The stream, read from its current position.</param>
         /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
         /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
         /// <returns>The parsed value.</returns>
         public static X ParseX(global::System.IO.Stream stream, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
-        {
-            global::System.ArgumentNullException.ThrowIfNull(stream);
-            long start = stream.CanSeek ? stream.Position : 0;
-            try
-            {
-                byte[] buffer = global::CStructSharp.Generated.ReadCursor.BufferStream(stream, options, out int length);
-                try
-                {
-                    return ParseXBuffered(buffer, length, stream, start, variables, options);
-                }
-                finally
-                {
-                    global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
-                }
-            }
-            catch
-            {
-                try
-                {
-                    if (stream.CanSeek)
-                    {
-                        stream.Position = start;
-                    }
-                }
-                catch
-                {
-                    // Preserve the original failure if the underlying stream also refuses restoration.
-                }
-                throw;
-            }
-        }
+            => global::CStructSharp.Generated.ReadCursor.ReadStream<XBufferedReader, X>(stream, new XBufferedReader(variables), options);
 
-        /// <summary>Reads one <c>X</c> from <paramref name="stream"/> with the bytes read by <see cref="global::System.IO.Stream.ReadAsync(global::System.Memory{byte}, global::System.Threading.CancellationToken)"/>: the same buffering and the same reader as the synchronous form; a seekable stream is left after the value (at its origin on failure), a stream that cannot seek is consumed up to the total read budget plus one byte. A stored absolute pointer address counts from the origin, as in the span form.</summary>
+        /// <summary>Reads one <c>X</c> from <paramref name="stream"/> with the bytes read by <see cref="global::System.IO.Stream.ReadAsync(global::System.Memory{byte}, global::System.Threading.CancellationToken)"/>: the same buffering and the same reader as the synchronous form; a seekable stream is left after the value (at its origin on failure), a stream that cannot seek is consumed by what was buffered - more than the total read budget plus one byte only when the value addresses bytes past it. A stored absolute pointer address counts from the origin, as in the span form.</summary>
         /// <param name="stream">The stream, read from its current position.</param>
         /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
         /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
         /// <param name="cancellationToken">Ends the read while it waits for bytes or at the next boundary the reader checks; linked with the options' token.</param>
         /// <returns>The parsed value.</returns>
-        public static async global::System.Threading.Tasks.ValueTask<X> ParseXAsync(global::System.IO.Stream stream, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default)
+        public static global::System.Threading.Tasks.ValueTask<X> ParseXAsync(global::System.IO.Stream stream, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default)
+            => global::CStructSharp.Generated.ReadCursor.ReadStreamAsync<XBufferedReader, X>(stream, new XBufferedReader(variables), options, cancellationToken);
+
+        /// <summary>The span reader the buffered forms run: a struct carrying the layout variables, so each run is a direct call and a read allocates nothing for it.</summary>
+        private readonly struct XBufferedReader : global::CStructSharp.Generated.IBufferedReader<X>
         {
-            global::System.ArgumentNullException.ThrowIfNull(stream);
-            global::CStructSharp.ReadOptions? effective = global::CStructSharp.Generated.ReadCursor.WithCancellation(options, cancellationToken, out global::System.Threading.CancellationTokenSource? linked);
-            using (linked)
-            {
-                long start = stream.CanSeek ? stream.Position : 0;
-                try
-                {
-                    (byte[] buffer, int length) = await global::CStructSharp.Generated.ReadCursor.BufferStreamAsync(stream, effective, effective?.CancellationToken ?? default).ConfigureAwait(false);
-                    try
-                    {
-                        return ParseXBuffered(buffer, length, stream, start, variables, effective);
-                    }
-                    finally
-                    {
-                        global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
-                    }
-                }
-                catch
-                {
-                    try
-                    {
-                        if (stream.CanSeek)
-                        {
-                            stream.Position = start;
-                        }
-                    }
-                    catch
-                    {
-                        // Preserve the original failure if the underlying stream also refuses restoration.
-                    }
-                    throw;
-                }
-            }
+            private readonly global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables;
+
+            /// <summary>Creates the reader for one operation.</summary>
+            /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+            public XBufferedReader(global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables) => this.variables = variables;
+
+            /// <inheritdoc/>
+            public X Read(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options, out long consumed) => ParseXBuffered(source, this.variables, options, out consumed);
         }
 
-        /// <summary>The synchronous half of the stream forms: the span reader over the buffered bytes, then the stream's final position (after the value, or the origin on failure).</summary>
-        private static X ParseXBuffered(byte[] buffer, int length, global::System.IO.Stream stream, long start, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, global::CStructSharp.ReadOptions? options)
+        /// <summary>One run of the buffered forms: the span reader over the buffered bytes, reporting where the value ended.</summary>
+        private static X ParseXBuffered(global::System.ReadOnlySpan<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, global::CStructSharp.ReadOptions? options, out long consumed)
         {
-            var cursor = new global::CStructSharp.Generated.ReadCursor(new global::System.ReadOnlySpan<byte>(buffer, 0, length), options, "X");
+            var cursor = new global::CStructSharp.Generated.ReadCursor(source, options, "X");
             try
             {
                 X value = ReadX(ref cursor, variables, null, null);
-                if (stream.CanSeek)
-                {
-                    stream.Position = start + cursor.Position;
-                }
+                consumed = cursor.Position;
                 return value;
             }
             catch (global::CStructSharp.Diagnostics.CStructException exception)
@@ -452,7 +390,7 @@ namespace Demo
         public static Anon ParseAnon(global::System.ReadOnlyMemory<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
             => ParseAnon(source.Span, variables, options);
 
-        /// <summary>Reads one <c>Anon</c> from a sequence of segments: a single segment is read in place, several are copied into a pooled buffer bounded by the total read budget.</summary>
+        /// <summary>Reads one <c>Anon</c> from a sequence of segments: a single segment is read in place, several are copied into a pooled buffer - first the total read budget plus one byte - that grows while the reader needs bytes past it, so the result is the span form's for the whole sequence.</summary>
         /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
         /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
         /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
@@ -463,109 +401,47 @@ namespace Demo
             {
                 return ParseAnon(source.FirstSpan, variables, options);
             }
-            byte[] buffer = global::CStructSharp.Generated.ReadCursor.CopySequence(source, options, out int length);
-            try
-            {
-                return ParseAnon(new global::System.ReadOnlySpan<byte>(buffer, 0, length), variables, options);
-            }
-            finally
-            {
-                global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
-            }
+            return global::CStructSharp.Generated.ReadCursor.ReadSequence<AnonBufferedReader, Anon>(source, new AnonBufferedReader(variables), options);
         }
 
-        /// <summary>Reads one <c>Anon</c> from <paramref name="stream"/>: the stream is buffered up to the total read budget (or its remaining length) and read through the span reader; a seekable stream is left after the value.</summary>
+        /// <summary>Reads one <c>Anon</c> from <paramref name="stream"/>: the stream is buffered - first up to the total read budget plus one byte (or its remaining length) - and read through the span reader, and the buffer grows while the reader needs bytes past it; a seekable stream is left after the value (at its origin on failure).</summary>
         /// <param name="stream">The stream, read from its current position.</param>
         /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
         /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
         /// <returns>The parsed value.</returns>
         public static Anon ParseAnon(global::System.IO.Stream stream, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
-        {
-            global::System.ArgumentNullException.ThrowIfNull(stream);
-            long start = stream.CanSeek ? stream.Position : 0;
-            try
-            {
-                byte[] buffer = global::CStructSharp.Generated.ReadCursor.BufferStream(stream, options, out int length);
-                try
-                {
-                    return ParseAnonBuffered(buffer, length, stream, start, variables, options);
-                }
-                finally
-                {
-                    global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
-                }
-            }
-            catch
-            {
-                try
-                {
-                    if (stream.CanSeek)
-                    {
-                        stream.Position = start;
-                    }
-                }
-                catch
-                {
-                    // Preserve the original failure if the underlying stream also refuses restoration.
-                }
-                throw;
-            }
-        }
+            => global::CStructSharp.Generated.ReadCursor.ReadStream<AnonBufferedReader, Anon>(stream, new AnonBufferedReader(variables), options);
 
-        /// <summary>Reads one <c>Anon</c> from <paramref name="stream"/> with the bytes read by <see cref="global::System.IO.Stream.ReadAsync(global::System.Memory{byte}, global::System.Threading.CancellationToken)"/>: the same buffering and the same reader as the synchronous form; a seekable stream is left after the value (at its origin on failure), a stream that cannot seek is consumed up to the total read budget plus one byte. A stored absolute pointer address counts from the origin, as in the span form.</summary>
+        /// <summary>Reads one <c>Anon</c> from <paramref name="stream"/> with the bytes read by <see cref="global::System.IO.Stream.ReadAsync(global::System.Memory{byte}, global::System.Threading.CancellationToken)"/>: the same buffering and the same reader as the synchronous form; a seekable stream is left after the value (at its origin on failure), a stream that cannot seek is consumed by what was buffered - more than the total read budget plus one byte only when the value addresses bytes past it. A stored absolute pointer address counts from the origin, as in the span form.</summary>
         /// <param name="stream">The stream, read from its current position.</param>
         /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
         /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
         /// <param name="cancellationToken">Ends the read while it waits for bytes or at the next boundary the reader checks; linked with the options' token.</param>
         /// <returns>The parsed value.</returns>
-        public static async global::System.Threading.Tasks.ValueTask<Anon> ParseAnonAsync(global::System.IO.Stream stream, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default)
+        public static global::System.Threading.Tasks.ValueTask<Anon> ParseAnonAsync(global::System.IO.Stream stream, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default)
+            => global::CStructSharp.Generated.ReadCursor.ReadStreamAsync<AnonBufferedReader, Anon>(stream, new AnonBufferedReader(variables), options, cancellationToken);
+
+        /// <summary>The span reader the buffered forms run: a struct carrying the layout variables, so each run is a direct call and a read allocates nothing for it.</summary>
+        private readonly struct AnonBufferedReader : global::CStructSharp.Generated.IBufferedReader<Anon>
         {
-            global::System.ArgumentNullException.ThrowIfNull(stream);
-            global::CStructSharp.ReadOptions? effective = global::CStructSharp.Generated.ReadCursor.WithCancellation(options, cancellationToken, out global::System.Threading.CancellationTokenSource? linked);
-            using (linked)
-            {
-                long start = stream.CanSeek ? stream.Position : 0;
-                try
-                {
-                    (byte[] buffer, int length) = await global::CStructSharp.Generated.ReadCursor.BufferStreamAsync(stream, effective, effective?.CancellationToken ?? default).ConfigureAwait(false);
-                    try
-                    {
-                        return ParseAnonBuffered(buffer, length, stream, start, variables, effective);
-                    }
-                    finally
-                    {
-                        global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
-                    }
-                }
-                catch
-                {
-                    try
-                    {
-                        if (stream.CanSeek)
-                        {
-                            stream.Position = start;
-                        }
-                    }
-                    catch
-                    {
-                        // Preserve the original failure if the underlying stream also refuses restoration.
-                    }
-                    throw;
-                }
-            }
+            private readonly global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables;
+
+            /// <summary>Creates the reader for one operation.</summary>
+            /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+            public AnonBufferedReader(global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables) => this.variables = variables;
+
+            /// <inheritdoc/>
+            public Anon Read(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options, out long consumed) => ParseAnonBuffered(source, this.variables, options, out consumed);
         }
 
-        /// <summary>The synchronous half of the stream forms: the span reader over the buffered bytes, then the stream's final position (after the value, or the origin on failure).</summary>
-        private static Anon ParseAnonBuffered(byte[] buffer, int length, global::System.IO.Stream stream, long start, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, global::CStructSharp.ReadOptions? options)
+        /// <summary>One run of the buffered forms: the span reader over the buffered bytes, reporting where the value ended.</summary>
+        private static Anon ParseAnonBuffered(global::System.ReadOnlySpan<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, global::CStructSharp.ReadOptions? options, out long consumed)
         {
-            var cursor = new global::CStructSharp.Generated.ReadCursor(new global::System.ReadOnlySpan<byte>(buffer, 0, length), options, "Anon");
+            var cursor = new global::CStructSharp.Generated.ReadCursor(source, options, "Anon");
             try
             {
                 Anon value = ReadAnon(ref cursor, variables, null, null);
-                if (stream.CanSeek)
-                {
-                    stream.Position = start + cursor.Position;
-                }
+                consumed = cursor.Position;
                 return value;
             }
             catch (global::CStructSharp.Diagnostics.CStructException exception)
@@ -804,7 +680,7 @@ namespace Demo
         public static Root ParseRoot(global::System.ReadOnlyMemory<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
             => ParseRoot(source.Span, variables, options);
 
-        /// <summary>Reads one <c>root</c> from a sequence of segments: a single segment is read in place, several are copied into a pooled buffer bounded by the total read budget.</summary>
+        /// <summary>Reads one <c>root</c> from a sequence of segments: a single segment is read in place, several are copied into a pooled buffer - first the total read budget plus one byte - that grows while the reader needs bytes past it, so the result is the span form's for the whole sequence.</summary>
         /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
         /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
         /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
@@ -815,109 +691,47 @@ namespace Demo
             {
                 return ParseRoot(source.FirstSpan, variables, options);
             }
-            byte[] buffer = global::CStructSharp.Generated.ReadCursor.CopySequence(source, options, out int length);
-            try
-            {
-                return ParseRoot(new global::System.ReadOnlySpan<byte>(buffer, 0, length), variables, options);
-            }
-            finally
-            {
-                global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
-            }
+            return global::CStructSharp.Generated.ReadCursor.ReadSequence<RootBufferedReader, Root>(source, new RootBufferedReader(variables), options);
         }
 
-        /// <summary>Reads one <c>root</c> from <paramref name="stream"/>: the stream is buffered up to the total read budget (or its remaining length) and read through the span reader; a seekable stream is left after the value.</summary>
+        /// <summary>Reads one <c>root</c> from <paramref name="stream"/>: the stream is buffered - first up to the total read budget plus one byte (or its remaining length) - and read through the span reader, and the buffer grows while the reader needs bytes past it; a seekable stream is left after the value (at its origin on failure).</summary>
         /// <param name="stream">The stream, read from its current position.</param>
         /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
         /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
         /// <returns>The parsed value.</returns>
         public static Root ParseRoot(global::System.IO.Stream stream, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
-        {
-            global::System.ArgumentNullException.ThrowIfNull(stream);
-            long start = stream.CanSeek ? stream.Position : 0;
-            try
-            {
-                byte[] buffer = global::CStructSharp.Generated.ReadCursor.BufferStream(stream, options, out int length);
-                try
-                {
-                    return ParseRootBuffered(buffer, length, stream, start, variables, options);
-                }
-                finally
-                {
-                    global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
-                }
-            }
-            catch
-            {
-                try
-                {
-                    if (stream.CanSeek)
-                    {
-                        stream.Position = start;
-                    }
-                }
-                catch
-                {
-                    // Preserve the original failure if the underlying stream also refuses restoration.
-                }
-                throw;
-            }
-        }
+            => global::CStructSharp.Generated.ReadCursor.ReadStream<RootBufferedReader, Root>(stream, new RootBufferedReader(variables), options);
 
-        /// <summary>Reads one <c>root</c> from <paramref name="stream"/> with the bytes read by <see cref="global::System.IO.Stream.ReadAsync(global::System.Memory{byte}, global::System.Threading.CancellationToken)"/>: the same buffering and the same reader as the synchronous form; a seekable stream is left after the value (at its origin on failure), a stream that cannot seek is consumed up to the total read budget plus one byte. A stored absolute pointer address counts from the origin, as in the span form.</summary>
+        /// <summary>Reads one <c>root</c> from <paramref name="stream"/> with the bytes read by <see cref="global::System.IO.Stream.ReadAsync(global::System.Memory{byte}, global::System.Threading.CancellationToken)"/>: the same buffering and the same reader as the synchronous form; a seekable stream is left after the value (at its origin on failure), a stream that cannot seek is consumed by what was buffered - more than the total read budget plus one byte only when the value addresses bytes past it. A stored absolute pointer address counts from the origin, as in the span form.</summary>
         /// <param name="stream">The stream, read from its current position.</param>
         /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
         /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
         /// <param name="cancellationToken">Ends the read while it waits for bytes or at the next boundary the reader checks; linked with the options' token.</param>
         /// <returns>The parsed value.</returns>
-        public static async global::System.Threading.Tasks.ValueTask<Root> ParseRootAsync(global::System.IO.Stream stream, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default)
+        public static global::System.Threading.Tasks.ValueTask<Root> ParseRootAsync(global::System.IO.Stream stream, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default)
+            => global::CStructSharp.Generated.ReadCursor.ReadStreamAsync<RootBufferedReader, Root>(stream, new RootBufferedReader(variables), options, cancellationToken);
+
+        /// <summary>The span reader the buffered forms run: a struct carrying the layout variables, so each run is a direct call and a read allocates nothing for it.</summary>
+        private readonly struct RootBufferedReader : global::CStructSharp.Generated.IBufferedReader<Root>
         {
-            global::System.ArgumentNullException.ThrowIfNull(stream);
-            global::CStructSharp.ReadOptions? effective = global::CStructSharp.Generated.ReadCursor.WithCancellation(options, cancellationToken, out global::System.Threading.CancellationTokenSource? linked);
-            using (linked)
-            {
-                long start = stream.CanSeek ? stream.Position : 0;
-                try
-                {
-                    (byte[] buffer, int length) = await global::CStructSharp.Generated.ReadCursor.BufferStreamAsync(stream, effective, effective?.CancellationToken ?? default).ConfigureAwait(false);
-                    try
-                    {
-                        return ParseRootBuffered(buffer, length, stream, start, variables, effective);
-                    }
-                    finally
-                    {
-                        global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
-                    }
-                }
-                catch
-                {
-                    try
-                    {
-                        if (stream.CanSeek)
-                        {
-                            stream.Position = start;
-                        }
-                    }
-                    catch
-                    {
-                        // Preserve the original failure if the underlying stream also refuses restoration.
-                    }
-                    throw;
-                }
-            }
+            private readonly global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables;
+
+            /// <summary>Creates the reader for one operation.</summary>
+            /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+            public RootBufferedReader(global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables) => this.variables = variables;
+
+            /// <inheritdoc/>
+            public Root Read(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options, out long consumed) => ParseRootBuffered(source, this.variables, options, out consumed);
         }
 
-        /// <summary>The synchronous half of the stream forms: the span reader over the buffered bytes, then the stream's final position (after the value, or the origin on failure).</summary>
-        private static Root ParseRootBuffered(byte[] buffer, int length, global::System.IO.Stream stream, long start, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, global::CStructSharp.ReadOptions? options)
+        /// <summary>One run of the buffered forms: the span reader over the buffered bytes, reporting where the value ended.</summary>
+        private static Root ParseRootBuffered(global::System.ReadOnlySpan<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, global::CStructSharp.ReadOptions? options, out long consumed)
         {
-            var cursor = new global::CStructSharp.Generated.ReadCursor(new global::System.ReadOnlySpan<byte>(buffer, 0, length), options, "root");
+            var cursor = new global::CStructSharp.Generated.ReadCursor(source, options, "root");
             try
             {
                 Root value = ReadRoot(ref cursor, variables, null, null);
-                if (stream.CanSeek)
-                {
-                    stream.Position = start + cursor.Position;
-                }
+                consumed = cursor.Position;
                 return value;
             }
             catch (global::CStructSharp.Diagnostics.CStructException exception)

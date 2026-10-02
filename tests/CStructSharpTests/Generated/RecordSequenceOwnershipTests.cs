@@ -11,12 +11,12 @@ public class RecordSequenceOwnershipTests
     /// <summary>A sequence-copy failure returns its exact rented array and preserves the original source exception.</summary>
     [TestMethod]
     [DoNotParallelize]
-    public void CopySequence_ReturnsItsRentalWhenSourceMemoryThrows()
+    public void ReadSequence_ReturnsItsRentalWhenSourceMemoryThrows()
     {
         using var returns = new PoolReturnListener();
         using var memory = new ThrowingMemory(returns);
         var source = new ReadOnlySequence<byte>(memory.Descriptor);
-        IOException failure = Assert.Throws<IOException>(() => ReadCursor.CopySequence(source, null, out _));
+        IOException failure = Assert.Throws<IOException>(() => ReadCursor.ReadSequence<NeverReader, int>(source, default, null));
         Assert.AreSame(memory.Failure, failure);
         Assert.IsTrue(returns.Returned, "The copy must return the exact buffer rented before reading the failing memory.");
     }
@@ -115,6 +115,14 @@ public class RecordSequenceOwnershipTests
         Assert.IsTrue(MemoryMarshal.TryGetArray(source, out ArraySegment<byte> segment));
         consumed = 2;
         return segment.Array!.GetHashCode();
+    }
+
+    /// <summary>A span reader the failing copy never reaches.</summary>
+    private readonly struct NeverReader : IBufferedReader<int>
+    {
+        /// <inheritdoc/>
+        public int Read(ReadOnlySpan<byte> source, ReadOptions? options, out long consumed)
+            => throw new AssertFailedException("The copy failed before the reader could run.");
     }
 
     /// <summary>Provides a valid one-byte memory descriptor whose storage becomes unreadable when copied.</summary>

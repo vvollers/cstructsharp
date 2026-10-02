@@ -90,6 +90,13 @@ public ref partial struct ReadCursor
             throw;
         }
 
+        if (this.settings.ContinuedInputLength != Streams.BufferedInput.WholeInput && CustomCodecAdapter.MayDependOnWindowEnd(codec, failure, consumed, this.Remaining))
+        {
+            // The codec is promised the whole remaining input: an answer that may rest on where this partly buffered
+            // source ends is decided over more of it.
+            this.RequireBuffered(this.position, (long)this.position + this.Remaining + 1);
+        }
+
         this.position += consumed;
         this.Charge(consumed, member, memberType);
         if (failure is not null)
@@ -110,6 +117,7 @@ public ref partial struct ReadCursor
     {
         if (this.Remaining < 16)
         {
+            this.RequireBuffered(this.position, (long)this.position + 16);
             this.Charge(this.Remaining, member, memberType);
             this.position = this.source.Length;
             throw this.Fail(ReadFailures.IdentifierShortRead, member, memberType);

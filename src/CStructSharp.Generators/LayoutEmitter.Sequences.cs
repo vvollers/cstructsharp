@@ -81,7 +81,7 @@ internal sealed partial class LayoutEmitter
         writer.Line("    => " + Sequence + ".FromSequence(source, " + size + ", " + layout + ", options, " + name + "RecordReader(variables));");
         writer.Line();
         writer.Line("/// <summary>Reads the records of a stream from its current position: " + (stride is null
-            ? "through a pooled window of the bytes left (at most the total read budget plus one) that refills from the start of a record it could not hold, which needs a seekable stream"
+            ? "through a pooled window of the bytes left (first the total read budget plus one byte) that refills from the start of a record it could not hold and grows when a record that starts it needs more, which needs a seekable stream"
             : "exactly one record at a time, byte-exact, from any readable stream") + "; a seekable stream sits at the record's end after each step. See " + Cref(method + "(global::System.ReadOnlyMemory{byte}, " + cref + ", global::CStructSharp.ReadOptions)") + ".</summary>");
         writer.Line("/// <param name=\"stream\">The stream, read from its current position.</param>");
         writer.Line(VariablesDoc);

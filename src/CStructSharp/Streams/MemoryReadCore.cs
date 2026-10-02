@@ -1,6 +1,7 @@
 namespace CStructSharp.Streams;
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using CStructSharp.Diagnostics;
@@ -16,22 +17,44 @@ using CStructSharp.Diagnostics;
 ///     through a copy, or the copy's position and charges are lost. A memory region stays valid only while its owner
 ///     keeps it pinned. A core made by <see cref="ForStream"/> is not memory-backed: it only charges the budget and
 ///     remembers the largest stream length observed; its memory members then report nothing available.
+///     <para>
+///         A buffered input form hands the core only the first part of a longer input (<see cref="BufferedInput"/>).
+///         The core then models the whole input: positions range over the input's length, while bytes exist only in the
+///         buffered part. Any access that needs a byte past that part - a read, a position past it when the input's
+///         length is unknown, the length itself when it is unknown - raises <see cref="BufferedInputShortfallException"/>,
+///         and the form reruns the operation over more of the input. The reads compare with the bytes in memory exactly
+///         as they do for a whole input, and those checks sit only on the branches that would otherwise fail, so a whole
+///         input (every span read) and a read inside the buffered part cost nothing more.
+///     </para>
 /// </remarks>
 internal unsafe struct MemoryReadCore
 {
+    // The largest whole-input length a partly buffered core records (2^48 - 1 bytes, 256 TiB): the length is packed into
+    // 48 bits. A longer input is recorded as one of unknown length: an operation that needs its end then buffers up to
+    // it instead of reading the recorded length.
+    private const long MaxContinuedLength = (1L << 48) - 1;
+
     private readonly byte* memoryPointer;
     private readonly byte[]? memoryArray;
-    private readonly int memoryArrayOffset;
+
+    // An array-backed core's index of the input's byte 0 within the array. A partly buffered input (always a pinned
+    // region, never an array) keeps the low 32 bits of the whole input's length here instead, and the high 16 bits in
+    // continuedLengthHigh (see ContinuedLength). Sharing the slot and the padding beside memoryBacked keeps the struct -
+    // embedded in every ReadBudgetStream - at the size it has without the buffered-input support.
+    private readonly int arrayOffsetOrContinuedLengthLow;
+    private readonly ushort continuedLengthHigh;
     private readonly bool memoryBacked;
+    private readonly Continuation continuation;
     private readonly long maxTotalBytesRead;
     private long bytesRead;
 
-    // A memory-backed source's length; for a stream source, the largest stream length observed so far (-1 until the
-    // first position that needs it), so a position up to it needs no length query.
+    // A memory-backed source's bytes in memory: the input length, or the buffered first part of a partly buffered input;
+    // for a stream source, the largest stream length observed so far (-1 until the first position that needs it), so a
+    // position up to it needs no length query.
     private long knownLength;
     private long position;
 
-    /// <summary>Creates a core over a pinned region, an array segment, or neither (a stream source).</summary>
+    /// <summary>Creates a core over a pinned region, an array segment, or neither (a stream source) that is the whole input.</summary>
     /// <param name="pointer">The region's first byte, or null.</param>
     /// <param name="array">The array holding the input, or null.</param>
     /// <param name="arrayOffset">The index of the input's byte 0 within <paramref name="array"/>.</param>
@@ -43,7 +66,7 @@ internal unsafe struct MemoryReadCore
     {
         this.memoryPointer = pointer;
         this.memoryArray = array;
-        this.memoryArrayOffset = arrayOffset;
+        this.arrayOffsetOrContinuedLengthLow = arrayOffset;
         this.knownLength = length;
         this.position = position;
         this.memoryBacked = memoryBacked;
@@ -51,12 +74,58 @@ internal unsafe struct MemoryReadCore
         this.bytesRead = 0;
     }
 
+    /// <summary>
+    ///     Creates a core over a pinned region that holds the first <paramref name="length"/> bytes of a longer input
+    ///     (<see cref="BufferedInput"/>). A constructor of its own keeps the whole-input constructor, which every read
+    ///     runs, as small as it is without the buffered-input support.
+    /// </summary>
+    /// <param name="region">The input's byte 0.</param>
+    /// <param name="length">The bytes in the region.</param>
+    /// <param name="position">The starting position in bytes from byte 0.</param>
+    /// <param name="maxTotalBytesRead">The largest number of bytes the whole operation may read.</param>
+    /// <param name="continuedLength">The whole input's length in bytes, or <see cref="BufferedInput.UnknownLength"/>.</param>
+    private MemoryReadCore(byte* region, long length, long position, long maxTotalBytesRead, long continuedLength)
+    {
+        this.memoryPointer = region;
+        this.knownLength = length;
+        this.position = position;
+        this.memoryBacked = true;
+        this.maxTotalBytesRead = maxTotalBytesRead;
+        this.bytesRead = 0;
+
+        // A length the region already holds makes the region the whole input; one too long to pack is recorded as unknown.
+        if (continuedLength < 0 || continuedLength > MaxContinuedLength)
+        {
+            this.continuation = Continuation.UnknownLength;
+        }
+        else if (continuedLength > length)
+        {
+            this.continuation = Continuation.KnownLength;
+            this.arrayOffsetOrContinuedLengthLow = (int)continuedLength;
+            this.continuedLengthHigh = (ushort)(continuedLength >> 32);
+        }
+    }
+
+    /// <summary>Lists whether a memory input continues past the bytes in memory (<see cref="BufferedInput"/>).</summary>
+    private enum Continuation : byte
+    {
+        /// <summary>The bytes in memory are the whole input.</summary>
+        None = 0,
+
+        /// <summary>The input continues to the length recorded in <see cref="ContinuedLength"/>.</summary>
+        KnownLength = 1,
+
+        /// <summary>The input continues to an unknown length.</summary>
+        UnknownLength = 2,
+    }
+
     /// <summary>Gets a value indicating whether the input lives in memory this core reads directly.</summary>
     public readonly bool IsMemoryBacked => this.memoryBacked;
 
     /// <summary>
-    ///     Gets or sets the input length in bytes for a memory source; for a stream source, the largest stream length
-    ///     observed so far, or -1 before the first one. Only a stream source's owner updates it.
+    ///     Gets or sets the bytes in memory for a memory source: the input length, or only the buffered first part of a
+    ///     partly buffered input (whose whole length is <see cref="InputLength"/>); for a stream source, the largest
+    ///     stream length observed so far, or -1 before the first one. Only a stream source's owner updates it.
     /// </summary>
     public long KnownLength
     {
@@ -66,6 +135,16 @@ internal unsafe struct MemoryReadCore
 
     /// <summary>Gets the memory-mode position in bytes from the input's byte 0.</summary>
     public readonly long Position => this.position;
+
+    /// <summary>Gets a value indicating whether only the first part of the input is in memory (<see cref="BufferedInput"/>).</summary>
+    public readonly bool IsPartial => this.continuation != Continuation.None;
+
+    /// <summary>Gets the length of a memory input in bytes: the whole input's, also when only its first part is buffered.</summary>
+    /// <exception cref="BufferedInputShortfallException">Only part of the input is buffered and its length is unknown.</exception>
+    public readonly long InputLength => this.continuation == Continuation.None ? this.knownLength : this.PartialInputLength();
+
+    /// <summary>Gets the whole input's length in bytes when only its first part is buffered and that length is known.</summary>
+    private readonly long ContinuedLength => ((long)this.continuedLengthHigh << 32) | (uint)this.arrayOffsetOrContinuedLengthLow;
 
     /// <summary>
     ///     Gets the bytes the operation may still consume before the total read budget fails: a scan that inspects bytes
@@ -124,16 +203,39 @@ internal unsafe struct MemoryReadCore
         => new(null, null, 0, -1, 0, memoryBacked: false, maxTotalBytesRead);
 
     /// <summary>
+    ///     Turns a core just made by <see cref="OverRegion"/> into one over the first part of a longer input
+    ///     (<see cref="BufferedInput"/>): the region then holds the buffered bytes, and the input continues past them.
+    ///     The core is rebuilt in place and the method kept out of line, so a whole-input read (every span read) pays one
+    ///     comparison for the support and its caller needs no temporary core.
+    /// </summary>
+    /// <param name="continuedLength">The whole input's length in bytes, or <see cref="BufferedInput.UnknownLength"/>.</param>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void ContinueAsPartOf(long continuedLength)
+    {
+        Debug.Assert(this.memoryBacked && this.memoryArray is null && this.bytesRead == 0, "Only a fresh region core continues.");
+        this = new MemoryReadCore(this.memoryPointer, this.knownLength, this.position, this.maxTotalBytesRead, continuedLength);
+    }
+
+    /// <summary>
     ///     Moves the memory-mode position. The position may reach the end of the input but not pass it, because the
     ///     input then provably lacks bytes a layout places there.
     /// </summary>
     /// <param name="value">The new position in bytes from the input's byte 0.</param>
     /// <exception cref="CStructReadException">The position is negative or lies past the end of the input.</exception>
+    /// <exception cref="BufferedInputShortfallException">The position lies past the buffered part of an input of unknown length.</exception>
     public void SetPosition(long value)
     {
         if (value < 0 || value > this.knownLength)
         {
-            throw new CStructReadException(ReadFailures.OutsideRegion);
+            // A whole input fails here, as it did before the buffered-input support: the throw keeps this method out
+            // of its callers, so the engine's frame loop keeps its code size.
+            if (this.continuation == Continuation.None)
+            {
+                throw new CStructReadException(ReadFailures.OutsideRegion);
+            }
+
+            this.SetPositionPastMemory(value);
+            return;
         }
 
         this.position = value;
@@ -152,7 +254,7 @@ internal unsafe struct MemoryReadCore
         {
             SeekOrigin.Begin => 0,
             SeekOrigin.Current => this.position,
-            SeekOrigin.End => this.knownLength,
+            SeekOrigin.End => this.InputLength,
             _ => throw new ArgumentOutOfRangeException(nameof(origin)),
         };
         this.SetPosition(checked(basis + offset));
@@ -162,10 +264,44 @@ internal unsafe struct MemoryReadCore
     /// <summary>Reports whether the memory input provably cannot supply <paramref name="count"/> more bytes.</summary>
     /// <param name="count">The nonnegative number of requested bytes.</param>
     /// <returns>Whether fewer than <paramref name="count"/> bytes remain after the position.</returns>
+    /// <exception cref="BufferedInputShortfallException">The bytes lie past the buffered part of an input of unknown length.</exception>
     public readonly bool IsShortBy(long count)
     {
         // Subtraction cannot overflow for nonnegative lengths and positions; adding the requested count can.
-        return count > this.knownLength - this.position;
+        return count > this.knownLength - this.position && this.IsShortPastMemory(count);
+    }
+
+    /// <summary>
+    ///     Reports whether the input ends at or before <paramref name="address"/>, so no byte exists there - the check a
+    ///     pointer target passes - without needing the input's length when the buffered part already holds the address.
+    /// </summary>
+    /// <param name="address">The nonnegative address in bytes from the input's byte 0.</param>
+    /// <returns>Whether <paramref name="address"/> is at or past the end of the input.</returns>
+    /// <exception cref="BufferedInputShortfallException">The address lies past the buffered part of an input of unknown length.</exception>
+    public readonly bool EndsAtOrBefore(long address) => address >= this.knownLength && this.EndsAtOrBeforePastMemory(address);
+
+    /// <summary>
+    ///     Raises the buffered-input signal when only part of the input is buffered and bytes the input does or may hold
+    ///     in [<paramref name="start"/>, <paramref name="end"/>) lie past it; otherwise returns, and the caller reports
+    ///     what the whole input gives. Called only on the branches where a read would otherwise come up short, and kept out of
+    ///     line so the reads that call it stay small.
+    /// </summary>
+    /// <param name="start">The first byte the access needs, in bytes from the input's byte 0.</param>
+    /// <param name="end">The end of the bytes the access needs.</param>
+    /// <exception cref="BufferedInputShortfallException">The access needs bytes past the buffered part.</exception>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public readonly void RequireBuffered(long start, long end)
+    {
+        if (this.continuation == Continuation.None)
+        {
+            return;
+        }
+
+        long limit = this.continuation == Continuation.UnknownLength ? end : Math.Min(end, this.ContinuedLength);
+        if (limit > this.knownLength && limit > start)
+        {
+            BufferedInput.ThrowShortfall(limit);
+        }
     }
 
     /// <summary>
@@ -182,7 +318,7 @@ internal unsafe struct MemoryReadCore
         {
             bytes = this.memoryArray is null
                         ? new ReadOnlySpan<byte>(this.memoryPointer + this.position, count)
-                        : new ReadOnlySpan<byte>(this.memoryArray, this.memoryArrayOffset + (int)this.position, count);
+                        : new ReadOnlySpan<byte>(this.memoryArray, this.arrayOffsetOrContinuedLengthLow + (int)this.position, count);
             this.position += count;
             this.Charge(count);
             return true;
@@ -196,8 +332,13 @@ internal unsafe struct MemoryReadCore
     ///     The bytes from the position to the end of a memory input, without consuming or charging them; false for a
     ///     stream source. Pair with <see cref="Advance"/> once the consumer knows how many it used.
     /// </summary>
+    /// <remarks>
+    ///     Over a partly buffered input the span ends with the buffered bytes; a consumer whose outcome depends on where
+    ///     the span ends checks <see cref="IsPartial"/>.
+    /// </remarks>
     /// <param name="bytes">The borrowed remaining bytes (at most <see cref="int.MaxValue"/>), or an empty span.</param>
     /// <returns>Whether the input is in memory and the remaining bytes were exposed.</returns>
+    /// <exception cref="BufferedInputShortfallException">The position lies past the buffered part of the input.</exception>
     public readonly bool TryPeekRemaining(out ReadOnlySpan<byte> bytes)
     {
         if (this.memoryBacked && this.position <= this.knownLength)
@@ -205,8 +346,14 @@ internal unsafe struct MemoryReadCore
             int count = (int)Math.Min(this.knownLength - this.position, int.MaxValue);
             bytes = this.memoryArray is null
                         ? new ReadOnlySpan<byte>(this.memoryPointer + this.position, count)
-                        : new ReadOnlySpan<byte>(this.memoryArray, this.memoryArrayOffset + (int)this.position, count);
+                        : new ReadOnlySpan<byte>(this.memoryArray, this.arrayOffsetOrContinuedLengthLow + (int)this.position, count);
             return true;
+        }
+
+        if (this.memoryBacked)
+        {
+            // Only a partly buffered input lets the position pass the bytes in memory.
+            BufferedInput.ThrowShortfall(this.position + 1);
         }
 
         bytes = default;
@@ -259,14 +406,21 @@ internal unsafe struct MemoryReadCore
     /// <param name="buffer">The span that receives the bytes.</param>
     /// <returns>The number of bytes copied, which is 0 at the end of the input.</returns>
     /// <exception cref="CStructReadLimitException">The copied bytes exceed the total read budget (they are consumed).</exception>
+    /// <exception cref="BufferedInputShortfallException">The input holds requested bytes past its buffered part; nothing is copied.</exception>
     public int Read(Span<byte> buffer)
     {
         int available = (int)Math.Min(buffer.Length, Math.Max(0, this.knownLength - this.position));
+        if (available < buffer.Length)
+        {
+            // Checked before anything is copied or charged, so the rerun over more input reads as the span form does.
+            this.RequireBuffered(this.position, this.position + buffer.Length);
+        }
+
         if (available > 0)
         {
             ReadOnlySpan<byte> source = this.memoryArray is null
                                             ? new ReadOnlySpan<byte>(this.memoryPointer + this.position, available)
-                                            : new ReadOnlySpan<byte>(this.memoryArray, this.memoryArrayOffset + (int)this.position, available);
+                                            : new ReadOnlySpan<byte>(this.memoryArray, this.arrayOffsetOrContinuedLengthLow + (int)this.position, available);
             source.CopyTo(buffer);
             this.position += available;
             this.Charge(available);
@@ -278,16 +432,18 @@ internal unsafe struct MemoryReadCore
     /// <summary>Reads one byte from memory at the position, charging it like any read.</summary>
     /// <returns>The byte value from 0 to 255, or -1 at the end of the input (nothing charged).</returns>
     /// <exception cref="CStructReadLimitException">The byte exceeds the total read budget (it is consumed).</exception>
+    /// <exception cref="BufferedInputShortfallException">The input holds the byte past its buffered part.</exception>
     public int ReadByte()
     {
         if (this.position >= this.knownLength)
         {
+            this.RequireBuffered(this.position, this.position + 1);
             return -1;
         }
 
         byte result = this.memoryArray is null
                           ? this.memoryPointer[this.position]
-                          : this.memoryArray[this.memoryArrayOffset + (int)this.position];
+                          : this.memoryArray[this.arrayOffsetOrContinuedLengthLow + (int)this.position];
         this.position++;
         this.Charge(1);
         return result;
@@ -349,5 +505,83 @@ internal unsafe struct MemoryReadCore
         }
 
         throw new CStructReadLimitException(ReadFailures.TotalBytesLimit);
+    }
+
+    /// <summary>
+    ///     The rare half of <see cref="SetPosition"/>, for a position outside the bytes in memory: a partly buffered
+    ///     input's position may pass them within the input (a read there raises the buffered-input signal), and one of
+    ///     unknown length raises the signal at once; any other such position fails. Kept out of line so the common move
+    ///     stays as small as it is without the buffered-input support.
+    /// </summary>
+    /// <param name="value">The rejected position in bytes from the input's byte 0.</param>
+    /// <exception cref="BufferedInputShortfallException">The position lies past the buffered part of an input of unknown length.</exception>
+    /// <exception cref="CStructReadException">The position lies outside the input.</exception>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void SetPositionPastMemory(long value)
+    {
+        if (value >= 0 && this.continuation == Continuation.UnknownLength)
+        {
+            BufferedInput.ThrowShortfall(value);
+        }
+
+        if (value < 0 || this.continuation == Continuation.None || value > this.ContinuedLength)
+        {
+            throw new CStructReadException(ReadFailures.OutsideRegion);
+        }
+
+        this.position = value;
+    }
+
+    /// <summary>
+    ///     The rare half of <see cref="IsShortBy"/>, for bytes past those in memory: they are missing from a whole input
+    ///     and from a partly buffered one that ends before them; whether an input of unknown length holds them is known
+    ///     only once more of it is buffered. Kept out of line so the common check stays as small as it is without that
+    ///     support.
+    /// </summary>
+    /// <param name="count">The requested bytes.</param>
+    /// <returns>Whether fewer than <paramref name="count"/> bytes remain in the input after the position.</returns>
+    /// <exception cref="BufferedInputShortfallException">The input's length is unknown.</exception>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private readonly bool IsShortPastMemory(long count)
+    {
+        if (this.continuation == Continuation.UnknownLength)
+        {
+            BufferedInput.ThrowShortfall(this.position + count);
+        }
+
+        return this.continuation == Continuation.None || count > this.ContinuedLength - this.position;
+    }
+
+    /// <summary>
+    ///     The rare half of <see cref="EndsAtOrBefore"/>, for an address past the bytes in memory: a whole input ends
+    ///     there, a partly buffered one when its length reaches no further, and one of unknown length raises the
+    ///     buffered-input signal.
+    /// </summary>
+    /// <param name="address">The address in bytes from the input's byte 0, at or past the bytes in memory.</param>
+    /// <returns>Whether <paramref name="address"/> is at or past the end of the input.</returns>
+    /// <exception cref="BufferedInputShortfallException">The input's length is unknown.</exception>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private readonly bool EndsAtOrBeforePastMemory(long address)
+    {
+        if (this.continuation == Continuation.UnknownLength)
+        {
+            BufferedInput.ThrowShortfall(address + 1);
+        }
+
+        return this.continuation == Continuation.None || address >= this.ContinuedLength;
+    }
+
+    /// <summary>The whole input's length when only its first part is buffered (see <see cref="InputLength"/>).</summary>
+    /// <returns>The recorded length in bytes.</returns>
+    /// <exception cref="BufferedInputShortfallException">The input's length is unknown.</exception>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private readonly long PartialInputLength()
+    {
+        if (this.continuation == Continuation.UnknownLength)
+        {
+            BufferedInput.ThrowShortfall(long.MaxValue);
+        }
+
+        return this.ContinuedLength;
     }
 }

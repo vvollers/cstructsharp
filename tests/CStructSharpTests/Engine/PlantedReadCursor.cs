@@ -38,6 +38,9 @@ internal struct PlantedReadCursor : IReadCursor
     public readonly CancellationToken CancellationToken => this.inner.CancellationToken;
 
     /// <inheritdoc/>
+    public readonly bool EndsAtOrBefore(long address) => this.inner.EndsAtOrBefore(address);
+
+    /// <inheritdoc/>
     public readonly void ThrowIfCancellationRequested() => this.inner.ThrowIfCancellationRequested();
 
     /// <inheritdoc/>

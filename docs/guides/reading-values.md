@@ -196,7 +196,9 @@ with the same limits and messages. A `MemoryStream` that exposes its buffer is r
 [!code-csharp[Parse a file asynchronously](../examples/Program.cs#api-guide-parse-async)]
 
 A seekable stream ends just after the value on success and back at its origin on any failure; a stream that cannot
-seek is consumed up to `MaxTotalBytesRead` plus one byte, whatever the value needed. `TryReadValueAsync<T>` returns a
+seek is consumed by what was buffered - up to `MaxTotalBytesRead` plus one byte, whatever the value needed, and
+further only when the value addresses bytes past them (padding, a pointer target, or a `T v[EOF]` count moves past
+bytes without charging the budget; the buffer then grows and the read runs again). `TryReadValueAsync<T>` returns a
 `ReadAttempt<T>` - `Succeeded`, `Value`, `Failure` - because an `out` parameter cannot cross an `await`. The
 `cancellationToken` parameter ends the wait for bytes and the decode at its next boundary; it is linked with
 `ReadOptions.CancellationToken` when both are given. One difference from the synchronous stream form: the buffered
@@ -224,9 +226,9 @@ to each record on its own (`MaxArrayElements` counts the elements *inside* a rec
 `ParseMany` takes a `ReadOnlyMemory<byte>`, a `ReadOnlySequence<byte>`, or a seekable `Stream` (read with the
 stream reader, byte-exact, the stream left after each record). `ParseManyAsync` returns an `IAsyncEnumerable` for
 `await foreach`: a fixed-size root is read exactly one record at a time with `ReadAsync`, which works on a stream
-that cannot seek (a socket, a pipe); a runtime-sized root is read through a pooled window of at most
-`MaxTotalBytesRead` plus one byte that refills from the start of a record it could not hold, which needs a seekable
-stream. In the memory, sequence, and awaitable forms each record is its own region, so a stored absolute pointer
+that cannot seek (a socket, a pipe); a runtime-sized root is read through a pooled window - first
+`MaxTotalBytesRead` plus one byte - that refills from the start of a record it could not hold and grows when a
+record that starts the window needs more, which needs a seekable stream. In the memory, sequence, and awaitable forms each record is its own region, so a stored absolute pointer
 address counts from the record's first byte; the synchronous stream form counts from the stream's first byte, as
 `Parse(Stream)` does. The generated series has the typed twin, `Records`, in
 [Sequences and TryParse](generated/sequences-and-try-parse.md).

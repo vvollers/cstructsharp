@@ -44,4 +44,34 @@ public static partial class ReadBudgetLayouts
     public static partial class CharText
     {
     }
+
+    /// <summary>An aligned terminated array after a byte: the padding before it moves the position without being charged.</summary>
+    [CStructLayout("struct rec { uint8 tag; uint16 values[]; uint8 tail; };", Root = "rec", Aligned = true)]
+    public static partial class AlignedArray
+    {
+    }
+
+    /// <summary>An aligned fixed struct whose padding and tail padding are skipped, not charged.</summary>
+    [CStructLayout("struct padded { uint8 a; uint32 b; uint8 c; };", Root = "padded", Aligned = true)]
+    public static partial class PaddedFixed
+    {
+    }
+
+    /// <summary>An aligned read-to-end array after a byte: its count depends on where the whole input ends.</summary>
+    [CStructLayout("struct tail { uint8 a; uint32 v[EOF]; };", Root = "tail", Aligned = true)]
+    public static partial class AlignedToEnd
+    {
+    }
+
+    /// <summary>A runtime-sized aligned record whose padding and tail padding are not charged, read as a sequence of records.</summary>
+    [CStructLayout("struct rec { uint8 tag; uint32 values[]; uint8 tail; };", Root = "rec", Aligned = true)]
+    public static partial class AlignedRecord
+    {
+    }
+
+    /// <summary>A pointer whose target lies far past the bytes the read is charged for.</summary>
+    [CStructLayout("struct far { uint8 a; uint8* p; };", Root = "far")]
+    public static partial class FarPointer
+    {
+    }
 }

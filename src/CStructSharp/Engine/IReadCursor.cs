@@ -47,6 +47,16 @@ internal interface IReadCursor
     /// <summary>Gets the operation's cancellation token.</summary>
     CancellationToken CancellationToken { get; }
 
+    /// <summary>
+    ///     Reports whether the input ends at or before <paramref name="address"/>, so no byte exists there: the check a
+    ///     pointer target passes. Unlike comparing with <see cref="Length"/>, a partly buffered input whose length is
+    ///     unknown answers from its buffered bytes when they reach the address.
+    /// </summary>
+    /// <param name="address">The nonnegative address in bytes from the input's byte 0.</param>
+    /// <returns>Whether <paramref name="address"/> is at or past the end of the input.</returns>
+    /// <exception cref="CStructReadException">A stream source failed to report its length.</exception>
+    bool EndsAtOrBefore(long address);
+
     /// <summary>Throws when the operation's token is cancelled; the executor calls it only at the documented boundaries.</summary>
     /// <exception cref="OperationCanceledException">The token is cancelled.</exception>
     void ThrowIfCancellationRequested();

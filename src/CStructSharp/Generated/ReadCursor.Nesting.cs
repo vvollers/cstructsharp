@@ -82,6 +82,13 @@ public ref partial struct ReadCursor
 
         if (target < 0 || target >= this.source.Length)
         {
+            // A target past a partly buffered source may lie inside the input: read on over more of it. A negative
+            // target lies outside any input, so it fails here without buffering more.
+            if (target >= 0)
+            {
+                this.RequireBuffered(target, target + Math.Max(targetSize ?? 1, 1));
+            }
+
             throw this.Fail(ReadFailures.PointerTargetOutside(target), member, memberType);
         }
 

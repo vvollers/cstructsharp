@@ -20,9 +20,10 @@ using CStructSharp.Streams;
 ///     text a <c>T v[EOF]</c> array uses for a partial element; a failure carries the record's index before the path
 ///     (<c>[3].header.length</c>) and an offset in the input's coordinates. A stream is read either exactly one
 ///     fixed-size record at a time (any readable stream, byte-exact) or through a pooled window of the bytes left,
-///     at most <see cref="ReadOptions.MaxTotalBytesRead"/> plus one, that refills from the start of a record it could
-///     not hold (a seekable stream). Support for generated code; the documented entry points are the generated
-///     members and <c>CStruct.ParseMany</c>.
+///     first at most <see cref="ReadOptions.MaxTotalBytesRead"/> plus one, that refills from the start of a record it
+///     could not hold and grows when a record that starts the window needs bytes past it (a seekable stream), so each
+///     record reads as it would from the whole input. Support for generated code; the documented entry points are the
+///     generated members and <c>CStruct.ParseMany</c>.
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class RecordSequence
@@ -235,10 +236,12 @@ public static class RecordSequence
     }
 
     /// <summary>
-    ///     Runtime-sized records through a window of the bytes left (at most the budget plus one). A window that
-    ///     reached the end holds every remaining record; a shorter one holds the budget plus one byte, so a record
-    ///     that starts it and still fails has failed for real, while a later record that fails may only have outgrown
-    ///     the window and is read again from a window that starts at it.
+    ///     Runtime-sized records through a window of the bytes left, first at most the budget plus one. A window that
+    ///     reached the end holds every remaining record. A shorter one is read with options that say the input
+    ///     continues - by the stream's remaining length for the record at the window's start, by an unknown length for a
+    ///     later one - so a record that needs bytes past the window raises the buffered-input signal instead of failing
+    ///     (<see cref="BufferedInput"/>): a later record is read again from a window that starts at it, and a record that
+    ///     starts the window makes the window grow. Any failure is therefore the record's own, as from the whole input.
     /// </summary>
     private static IEnumerable<T> Windowed<T>(Stream stream, string layoutName, ReadOptions? options, RecordReader<T> read)
     {
@@ -248,28 +251,55 @@ public static class RecordSequence
         while (origin + consumedTotal < stream.Length)
         {
             options?.CancellationToken.ThrowIfCancellationRequested();
-            stream.Position = origin + consumedTotal;
-            byte[] window = AsyncStreamBuffer.Rent(stream, options, out int length);
+            long start = origin + consumedTotal;
+            stream.Position = start;
+            int capacity = AsyncStreamBuffer.Capacity(stream, options);
+            byte[] window = ArrayPool<byte>.Shared.Rent(capacity);
             try
             {
-                bool complete = origin + consumedTotal + length >= stream.Length;
+                int length = AsyncStreamBuffer.Fill(stream, window, 0, capacity);
+                long left = stream.Length - start;
+                bool complete = BufferedInput.IsComplete(length, capacity, left);
+                ReadOptions? head = null;
+                ReadOptions? partial = null;
                 int offset = 0;
                 while (offset < length)
                 {
                     T record;
                     int consumed;
+                    long needed = 0;
                     try
                     {
-                        record = ReadOne(new ReadOnlyMemory<byte>(window, 0, length), offset, index, origin + consumedTotal, null, layoutName, options, read, out consumed);
+                        // The options record that the input continues past the window, once per window: a record at the window's
+                        // start knows how far (the stream's remaining length), a later one does not, and refills from its start.
+                        record = ReadOne(new ReadOnlyMemory<byte>(window, 0, length), offset, index, start, null, layoutName, complete ? options : offset == 0 ? head ??= BufferedInput.Continue(options, left) : partial ??= Continued(options), read, out consumed);
                     }
-                    catch (CStructException) when (!complete && offset > 0)
+                    catch (BufferedInputShortfallException shortfall) when (!complete)
                     {
-                        break;
+                        needed = shortfall.NeededLength;
+                        record = default!;
+                        consumed = 0;
+                    }
+
+                    if (needed > 0)
+                    {
+                        if (offset > 0)
+                        {
+                            // Refill from this record's start.
+                            break;
+                        }
+
+                        capacity = BufferedInput.NextLength(length, needed, left);
+                        stream.Position = start + length;
+                        window = AsyncStreamBuffer.Grow(window, length, capacity, ArrayPool<byte>.Shared);
+                        length = AsyncStreamBuffer.Fill(stream, window, length, capacity);
+                        complete = BufferedInput.IsComplete(length, capacity, left);
+                        continue;
                     }
 
                     offset += consumed;
                     index++;
-                    stream.Position = origin + consumedTotal + offset;
+                    stream.Position = start + offset;
                     yield return record;
                 }
 
@@ -282,6 +312,17 @@ public static class RecordSequence
         }
     }
 
+    /// <summary>
+    ///     The awaitable form of <see cref="Windowed{T}"/>: the same windows, read with
+    ///     <see cref="Stream.ReadAsync(Memory{byte}, CancellationToken)"/>.
+    /// </summary>
+    /// <typeparam name="T">The record type.</typeparam>
+    /// <param name="stream">The seekable stream whose current position is the first record's start.</param>
+    /// <param name="layoutName">The root's layout name, reported by failures.</param>
+    /// <param name="options">The read options applied to every record, or <see langword="null"/>.</param>
+    /// <param name="read">The one-record reader.</param>
+    /// <param name="cancellationToken">Linked with the options' token; ends the enumeration while it waits for bytes.</param>
+    /// <returns>The records, read as they are enumerated.</returns>
     private static async IAsyncEnumerable<T> WindowedAsync<T>(Stream stream, string layoutName, ReadOptions? options, RecordReader<T> read, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         CancellationToken token = AsyncStreamBuffer.Link(options, cancellationToken, out CancellationTokenSource? linked);
@@ -294,28 +335,55 @@ public static class RecordSequence
             while (origin + consumedTotal < stream.Length)
             {
                 token.ThrowIfCancellationRequested();
-                stream.Position = origin + consumedTotal;
-                (byte[] window, int length) = await AsyncStreamBuffer.RentAsync(stream, effective, token).ConfigureAwait(false);
+                long start = origin + consumedTotal;
+                stream.Position = start;
+                int capacity = AsyncStreamBuffer.Capacity(stream, effective);
+                byte[] window = ArrayPool<byte>.Shared.Rent(capacity);
                 try
                 {
-                    bool complete = origin + consumedTotal + length >= stream.Length;
+                    int length = await AsyncStreamBuffer.FillAsync(stream, window, 0, capacity, token).ConfigureAwait(false);
+                    long left = stream.Length - start;
+                    bool complete = BufferedInput.IsComplete(length, capacity, left);
+                    ReadOptions? head = null;
+                    ReadOptions? partial = null;
                     int offset = 0;
                     while (offset < length)
                     {
                         T record;
                         int consumed;
+                        long needed = 0;
                         try
                         {
-                            record = ReadOne(new ReadOnlyMemory<byte>(window, 0, length), offset, index, origin + consumedTotal, null, layoutName, effective, read, out consumed);
+                            // The options record that the input continues past the window, once per window: a record at the window's
+                            // start knows how far (the stream's remaining length), a later one does not, and refills from its start.
+                            record = ReadOne(new ReadOnlyMemory<byte>(window, 0, length), offset, index, start, null, layoutName, complete ? effective : offset == 0 ? head ??= BufferedInput.Continue(effective, left) : partial ??= Continued(effective), read, out consumed);
                         }
-                        catch (CStructException) when (!complete && offset > 0)
+                        catch (BufferedInputShortfallException shortfall) when (!complete)
                         {
-                            break;
+                            needed = shortfall.NeededLength;
+                            record = default!;
+                            consumed = 0;
+                        }
+
+                        if (needed > 0)
+                        {
+                            if (offset > 0)
+                            {
+                                // Refill from this record's start.
+                                break;
+                            }
+
+                            capacity = BufferedInput.NextLength(length, needed, left);
+                            stream.Position = start + length;
+                            window = AsyncStreamBuffer.Grow(window, length, capacity, ArrayPool<byte>.Shared);
+                            length = await AsyncStreamBuffer.FillAsync(stream, window, length, capacity, token).ConfigureAwait(false);
+                            complete = BufferedInput.IsComplete(length, capacity, left);
+                            continue;
                         }
 
                         offset += consumed;
                         index++;
-                        stream.Position = origin + consumedTotal + offset;
+                        stream.Position = start + offset;
                         yield return record;
                     }
 
@@ -328,6 +396,15 @@ public static class RecordSequence
             }
         }
     }
+
+    /// <summary>
+    ///     The options a record after the start of a window that does not reach the end is read with: the input
+    ///     continues past the window by an amount the record's region does not know (<see cref="BufferedInput.UnknownLength"/>).
+    ///     A record that needs bytes past the window is read again from a window that starts at it, which knows the length.
+    /// </summary>
+    /// <param name="options">The options records are read with.</param>
+    /// <returns>A copy that records the continuation.</returns>
+    private static ReadOptions? Continued(ReadOptions? options) => BufferedInput.Continue(options, BufferedInput.UnknownLength);
 
     /// <summary>The options a record is read with: the linked token in place of the options' own when one can cancel.</summary>
     private static ReadOptions? Effective(ReadOptions? options, CancellationToken token)

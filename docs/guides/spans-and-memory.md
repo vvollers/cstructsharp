@@ -40,8 +40,10 @@ Optimized block-read checks also compare against the remaining read budget befor
 
 Bytes that arrive in pieces - a `PipeReader`'s buffer, a chain of pooled segments - are a `ReadOnlySequence<byte>`,
 and every read operation accepts one. A sequence with a single segment is read in place, at the span path's cost; a
-sequence with several segments is copied into a pooled buffer first, bounded by `MaxTotalBytesRead` plus one byte,
-so a sequence longer than the budget fails with the budget text a stream would give.
+sequence with several segments is copied into a pooled buffer first - at most `MaxTotalBytesRead` plus one byte, so
+a value larger than the budget fails with the budget text a stream would give. When the value needs bytes past that
+copy (padding, a pointer target, or a `T v[EOF]` count moves past bytes without charging the budget), the copy grows
+and the read runs again, so the result is always the span read's.
 
 ## Write to a span
 

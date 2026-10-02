@@ -83,6 +83,9 @@ public class EngineSweepTests
     ///     Every <see cref="ReadOptions.MaxTotalBytesRead"/> from 1 to one past the parse's natural total,
     ///     <see cref="WriteOptions.MaxTotalBytesWritten"/> from 1 to one past the write's, and every update's write
     ///     budget and <see cref="UpdateOptions.MaxTraversalBytesRead"/> fail or succeed as the golden outcomes record.
+    ///     At every read budget the buffered forms - a multi-segment sequence and the async stream form, which first
+    ///     copy only the budget plus one byte - agree with the span, also where padding or a pointer moves the position
+    ///     past bytes the budget does not charge (issue #52).
     /// </summary>
     /// <param name="name">The sweep layout.</param>
     [TestMethod]
@@ -101,10 +104,14 @@ public class EngineSweepTests
                 for (long budget = 1; budget <= readTotal + 1; budget++)
                 {
                     ReadOptions read = variant.BaseRead() with { MaxTotalBytesRead = budget, };
-                    Golden(EngineOperations.Parse(variant.Layout, data, EngineInput.Span, "rec", variables, read), path);
+                    string span = Golden(EngineOperations.Parse(variant.Layout, data, EngineInput.Span, "rec", variables, read), path);
                     Golden(EngineOperations.Parse(variant.Layout, data, EngineInput.Stream, "rec", variables, read), path);
                     Golden(EngineOperations.Parse(variant.Layout, data, EngineInput.ChunkedStream3, "rec", variables, read), path);
-                    Golden(EngineOperations.Parse(variant.Layout, data, EngineInput.Sequence, "rec", variables, read), path);
+                    string sequence = Golden(EngineOperations.Parse(variant.Layout, data, EngineInput.Sequence, "rec", variables, read), path);
+                    string buffered = Golden(EngineOperations.ParseAsync(variant.Layout, data, EngineInput.ChunkedStream3, "rec", variables, read), path);
+                    EngineAgreement.AssertSourcesAgree(
+                        variant.Name + " budget " + budget + " (" + path + ")",
+                        [(EngineInput.Span, span), (EngineInput.Sequence, sequence), (EngineInput.ChunkedStream3, buffered)]);
                     Golden(EngineOperations.ParseWithDebug(variant.Layout, data, EngineInput.Span, "rec", variables, read), path);
                     Golden(EngineOperations.ReadValue(variant.Layout, data, EngineInput.Span, source.Paths[0], variables, read), path);
                     Golden(EngineOperations.ResolveAddress(variant.Layout, data, EngineInput.Span, source.Paths[^1], variables, read), path);

@@ -8,23 +8,51 @@ using CStructSharp.Generated;
 [TestClass]
 public class ReadCursorStateBoundaryTests
 {
-    /// <summary>Sequence buffering copies at most the byte budget plus the one byte needed to distinguish a limit failure.</summary>
+    /// <summary>
+    ///     Sequence buffering first copies at most the byte budget plus one byte; a shorter copy tells the reader that the
+    ///     input continues and how long it is, and a whole copy passes the caller's options through unchanged.
+    /// </summary>
     [TestMethod]
-    public void CopySequence_CapsTheCopiedPrefixAtBudgetPlusOne()
+    public void ReadSequence_FirstCopiesTheBudgetPlusOne()
     {
         byte[] source = [17, 29, 41,];
         foreach (long budget in new long[] { 0, 1, 2, 3, long.MaxValue, })
         {
-            byte[] buffer = ReadCursor.CopySequence(new ReadOnlySequence<byte>(source), new ReadOptions { MaxTotalBytesRead = budget, }, out int length);
+            var options = new ReadOptions { MaxTotalBytesRead = budget, };
+            (byte[] Copy, ReadOptions? Options) seen = ReadCursor.ReadSequence<CopyReader, (byte[], ReadOptions?)>(new ReadOnlySequence<byte>(source), default, options);
+            int expected = budget < source.Length ? (int)budget + 1 : source.Length;
+            CollectionAssert.AreEqual(source[..expected], seen.Copy);
+            if (expected < source.Length)
+            {
+                Assert.AreEqual(source.Length, seen.Options!.ContinuedInputLength, "the copy records the whole sequence's length");
+                Assert.AreEqual(budget, seen.Options.MaxTotalBytesRead);
+            }
+            else
+            {
+                Assert.AreSame(options, seen.Options, "a whole copy reads with the caller's options");
+            }
+        }
+    }
+
+    /// <summary>
+    ///     An element array that runs past a partly buffered source asks for more of the input even when the budget is
+    ///     so large that the end of the first element past the budget overflows a <see langword="long"/>; it never
+    ///     reports a short read from the buffered part alone.
+    /// </summary>
+    [TestMethod]
+    public void TakeElements_PastAPartialSource_AsksForMoreInputAtTheLargestBudget()
+    {
+        foreach (long continued in new long[] { CStructSharp.Streams.BufferedInput.UnknownLength, 64, })
+        {
+            var cursor = new ReadCursor(new byte[4], new ReadOptions { MaxTotalBytesRead = long.MaxValue, ContinuedInputLength = continued, });
             try
             {
-                int expected = budget < source.Length ? (int)budget + 1 : source.Length;
-                Assert.AreEqual(expected, length);
-                CollectionAssert.AreEqual(source[..expected], buffer[..length]);
+                cursor.TakeElements(10, 1, "values", "uint8");
+                Assert.Fail("The array crosses the buffered bytes, so the read needs more of the input.");
             }
-            finally
+            catch (CStructSharp.Streams.BufferedInputShortfallException shortfall)
             {
-                ArrayPool<byte>.Shared.Return(buffer);
+                Assert.AreEqual(10, shortfall.NeededLength, "the array's end, from the source's first byte");
             }
         }
     }
@@ -135,33 +163,25 @@ public class ReadCursorStateBoundaryTests
         }
     }
 
-    /// <summary>Linked cancellation preserves other read settings and either original token can stop the generated operation.</summary>
+    /// <summary>The awaitable stream form links both tokens, preserves the other read settings, and either original token stops the read.</summary>
+    /// <returns>A task that completes after every token combination is checked.</returns>
     [TestMethod]
-    public void WithCancellation_LinksTokensWithoutDroppingSettings()
+    public async Task ReadStreamAsync_LinksTokensWithoutDroppingSettings()
     {
-        Assert.IsNull(ReadCursor.WithCancellation(null, default, out CancellationTokenSource? absent));
-        Assert.IsNull(absent);
+        byte[] bytes = [1, 2,];
+        ReadOptions? absent = await ReadCursor.ReadStreamAsync<OptionsReader, ReadOptions?>(new MemoryStream(bytes), default, null);
+        Assert.IsNull(absent, "neither token can cancel and no options were given");
         foreach (bool cancelOptions in new[] { false, true, })
         {
             using var first = new CancellationTokenSource();
             using var second = new CancellationTokenSource();
             var original = new ReadOptions { MaxArrayElements = 17, TrimFixedText = true, CancellationToken = first.Token, };
-            ReadOptions? effective = ReadCursor.WithCancellation(original, second.Token, out CancellationTokenSource? linked);
-            using (linked)
-            {
-                Assert.IsNotNull(linked);
-                Assert.IsNotNull(effective);
-                Assert.AreEqual(17, effective.MaxArrayElements);
-                Assert.IsTrue(effective.TrimFixedText);
-                Assert.IsFalse(effective.CancellationToken.IsCancellationRequested);
-                (cancelOptions ? first : second).Cancel();
-                Assert.IsTrue(effective.CancellationToken.IsCancellationRequested);
-            }
+            bool cancelled = await ReadCursor.ReadStreamAsync<CancellingReader, bool>(new MemoryStream(bytes), new CancellingReader(cancelOptions ? first : second), original, second.Token);
+            Assert.IsTrue(cancelled, "the linked token follows the cancelled original");
         }
 
         using var only = new CancellationTokenSource();
-        ReadOptions? defaults = ReadCursor.WithCancellation(null, only.Token, out CancellationTokenSource? unnecessary);
-        Assert.IsNull(unnecessary);
+        ReadOptions? defaults = await ReadCursor.ReadStreamAsync<OptionsReader, ReadOptions?>(new MemoryStream(bytes), default, null, only.Token);
         Assert.IsNotNull(defaults);
         Assert.AreEqual(only.Token, defaults.CancellationToken);
     }
@@ -208,5 +228,52 @@ public class ReadCursorStateBoundaryTests
         Assert.AreEqual("uleb128", failure.MemberType);
         Assert.AreEqual("root", failure.Path);
         StringAssert.StartsWith(failure.Message, "LEB128 integer exceeds its declared width");
+    }
+
+    /// <summary>A span reader that returns the options its run was given.</summary>
+    private readonly struct OptionsReader : IBufferedReader<ReadOptions?>
+    {
+        /// <inheritdoc/>
+        public ReadOptions? Read(ReadOnlySpan<byte> source, ReadOptions? options, out long consumed)
+        {
+            consumed = 0;
+            return options;
+        }
+    }
+
+    /// <summary>A span reader that returns a copy of the bytes it was handed and the options of its run.</summary>
+    private readonly struct CopyReader : IBufferedReader<(byte[], ReadOptions?)>
+    {
+        /// <inheritdoc/>
+        public (byte[], ReadOptions?) Read(ReadOnlySpan<byte> source, ReadOptions? options, out long consumed)
+        {
+            consumed = source.Length;
+            return (source.ToArray(), options);
+        }
+    }
+
+    /// <summary>
+    ///     A span reader that checks its run kept the caller's settings, cancels one of the original tokens, and reports
+    ///     whether the run's token followed.
+    /// </summary>
+    private readonly struct CancellingReader : IBufferedReader<bool>
+    {
+        private readonly CancellationTokenSource stop;
+
+        /// <summary>Creates the reader.</summary>
+        /// <param name="stop">The original token's source the run cancels.</param>
+        public CancellingReader(CancellationTokenSource stop) => this.stop = stop;
+
+        /// <inheritdoc/>
+        public bool Read(ReadOnlySpan<byte> source, ReadOptions? options, out long consumed)
+        {
+            consumed = 0;
+            Assert.IsNotNull(options);
+            Assert.AreEqual(17, options.MaxArrayElements);
+            Assert.IsTrue(options.TrimFixedText);
+            Assert.IsFalse(options.CancellationToken.IsCancellationRequested);
+            this.stop.Cancel();
+            return options.CancellationToken.IsCancellationRequested;
+        }
     }
 }

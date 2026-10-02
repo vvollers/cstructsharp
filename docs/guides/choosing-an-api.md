@@ -21,7 +21,7 @@ until measurements show that allocation matters.
 | --- | --- | --- |
 | `byte[]`, `ReadOnlySpan<byte>`, or `ReadOnlyMemory<byte>` | `Parse` or `ReadValue` | The call is synchronous and does not retain the input. |
 | A readable, seekable `Stream` | `Parse` or `ReadValue` | Reading begins at the stream's current position. |
-| A `ReadOnlySequence<byte>` (a `PipeReader`'s buffer, a chain of pooled segments) | `Parse` or `ReadValue` | One segment is read in place; several are copied into a pooled buffer bounded by `MaxTotalBytesRead`. |
+| A `ReadOnlySequence<byte>` (a `PipeReader`'s buffer, a chain of pooled segments) | `Parse` or `ReadValue` | One segment is read in place; several are copied into a pooled buffer - first `MaxTotalBytesRead` plus one byte, more when the value needs it - with the span read's result. |
 | A stream whose bytes arrive while the program runs (a file opened for asynchronous I/O, a socket, a request body) | `ParseAsync` or `ReadValueAsync` | The bytes are read with `ReadAsync` into a pooled buffer and decoded by the same reader; the thread is free while they arrive ([async guide](async-and-pipelines.md)). |
 | One record after another with nothing between them | `ParseMany` / `ParseManyAsync` | Each record is parsed on the step of the loop that reaches it, and trailing bytes shorter than a record fail. |
 

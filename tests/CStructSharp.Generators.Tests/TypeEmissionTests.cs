@@ -354,6 +354,27 @@ public class TypeEmissionTests
     }
 
     /// <summary>
+    ///     A layout type spelled like a composite's private buffered-reader struct (<c>x</c> and
+    ///     <c>x_buffered_reader</c> both want <c>XBufferedReader</c>) still generates: the private struct takes the next
+    ///     free name, and the stream form of both composites reads through it.
+    /// </summary>
+    [TestMethod]
+    public void BufferedReaderStruct_TakesAFreeName_WhenALayoutTypeSpellsIt()
+    {
+        GeneratorResult result = GeneratorRunner.Run(Header + """
+            [CStructLayout("struct x { uint8 a; }; struct x_buffered_reader { uint8 b; };")]
+            public static partial class ReaderNames { }
+            """).AssertClean();
+        StringAssert.Contains(result.Source, "private readonly struct XBufferedReader2 : global::CStructSharp.Generated.IBufferedReader<X>");
+        StringAssert.Contains(result.Source, "private readonly struct XBufferedReaderBufferedReader : global::CStructSharp.Generated.IBufferedReader<XBufferedReader>");
+
+        Type owner = result.Load().GetType("Demo.ReaderNames")!;
+        object parsed = owner.GetMethod("ParseX", [typeof(System.IO.Stream), typeof(IReadOnlyDictionary<string, int>), typeof(ReadOptions)])!
+                             .Invoke(null, [new System.IO.MemoryStream([7]), null, null])!;
+        Assert.AreEqual((byte)7, parsed.GetType().GetProperty("A")!.GetValue(parsed));
+    }
+
+    /// <summary>
     ///     Quotes a layout as a regular C# string literal, escaping backslashes, quotes, and line breaks.
     /// </summary>
     /// <param name="definition">The layout text.</param>

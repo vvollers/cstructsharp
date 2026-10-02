@@ -4,6 +4,10 @@ using System;
 using System.IO;
 
 /// <summary>Stores the immutable read settings copied at an operation boundary without a heap allocation.</summary>
+/// <remarks>
+///     <see cref="ContinuedInputLength"/> is <see cref="ReadOptions.ContinuedInputLength"/>: zero when the input is whole,
+///     otherwise the length of the input the handed bytes start (or <see cref="Streams.BufferedInput.UnknownLength"/>).
+/// </remarks>
 internal readonly record struct ReadOperationSettings(
     PointerAddressingMode AddressingMode,
     bool DereferencePointers,
@@ -16,14 +20,33 @@ internal readonly record struct ReadOperationSettings(
     long Origin,
     bool TrimFixedText = false,
     System.Threading.CancellationToken CancellationToken = default,
-    ExecutionPath ExecutionPath = ExecutionPath.Fastest)
+    ExecutionPath ExecutionPath = ExecutionPath.Fastest,
+    long ContinuedInputLength = Streams.BufferedInput.WholeInput)
 {
+    // MaxPointerTargetBytes is stored as a value and a flag rather than a long? (16 bytes with padding): the flag packs
+    // beside the bool members, which keeps the struct - copied into every read's state and cursor - at the 72 bytes it
+    // has without ContinuedInputLength. The value is 0 when the flag is unset, so member-wise equality matches the
+    // nullable's and the limit checks test the value alone.
+    private readonly long maxPointerTargetBytes = MaxPointerTargetBytes.GetValueOrDefault();
+    private readonly bool hasMaxPointerTargetBytes = MaxPointerTargetBytes.HasValue;
+
+    /// <summary>Gets the largest decoded size of one pointer target in bytes, or null when target sizes are unrestricted.</summary>
+    public long? MaxPointerTargetBytes
+    {
+        get => this.hasMaxPointerTargetBytes ? this.maxPointerTargetBytes : null;
+        init
+        {
+            this.hasMaxPointerTargetBytes = value.HasValue;
+            this.maxPointerTargetBytes = value.GetValueOrDefault();
+        }
+    }
+
     /// <summary>
     ///     Gets whether every limit is usable and the operation is not already cancelled. When this is false the compiled
     ///     engine reports the problem (<see cref="ValidateSettings"/>), so a fast path must leave the call to it.
     /// </summary>
     public bool HasValidLimits =>
-        !this.CancellationToken.IsCancellationRequested && this.MaxPointerDepth >= 0 && !(this.MaxPointerTargetBytes < 0) &&
+        !this.CancellationToken.IsCancellationRequested && this.MaxPointerDepth >= 0 && this.maxPointerTargetBytes >= 0 &&
         this.MaxArrayElements >= 0 && this.MaxStringBytes >= 0 && this.MaxTotalBytesRead >= 0 && this.MaxNestingDepth > 0;
 
     /// <summary>
@@ -75,7 +98,8 @@ internal readonly record struct ReadOperationSettings(
             options.Origin,
             options.TrimFixedText,
             options.CancellationToken,
-            options.ExecutionPath);
+            options.ExecutionPath,
+            options.ContinuedInputLength);
     }
 
     /// <summary>Maps already-snapshotted update traversal choices into the same read operation settings.</summary>
@@ -137,7 +161,7 @@ internal readonly record struct ReadOperationSettings(
             throw new ArgumentOutOfRangeException(nameof(options), "Maximum pointer depth cannot be negative.");
         }
 
-        if (options.MaxPointerTargetBytes < 0)
+        if (options.maxPointerTargetBytes < 0)
         {
             // Likewise, a byte budget must either be absent or be a non-negative number of bytes.
             throw new ArgumentOutOfRangeException(nameof(options), "Maximum pointer target bytes cannot be negative.");

@@ -62,7 +62,7 @@ form would have raised. A generated layout class has `TryParse(input, out value)
 | --- | --- |
 | Layout construction | No binary input has been touched. Fix or reject the layout. |
 | `TryReadValue<T>` on a stream | Returns `false` and restores the starting position. |
-| `ParseAsync` and the other awaitable reads | A seekable stream returns to its origin on any failure; a stream that cannot seek has been consumed up to the budget plus one byte. |
+| `ParseAsync` and the other awaitable reads | A seekable stream returns to its origin on any failure; a stream that cannot seek has been consumed by what was buffered: the budget plus one byte, or more when the value addressed bytes past them. |
 | `WriteAsync` | Serializes first and writes once: a validation failure writes nothing. |
 | `UpdateAsync` | Updates a buffered copy and writes back only the changed runs; a failure leaves the stream unchanged. |
 | `ParseMany` / `Records` | Records before the failing one were delivered; the failure names the record by index (`[3].header`). |

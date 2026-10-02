@@ -119,10 +119,15 @@ internal static class DynamicArrayExtent
     /// <param name="maximumElements">The largest element count the read options allow.</param>
     /// <param name="budget">The bytes the operation may still consume.</param>
     /// <param name="fieldName">The array field, named in failure messages.</param>
+    /// <param name="continuesFrom">
+    ///     -1 when <paramref name="input"/> runs to the end of the input; otherwise the position of its first byte in a
+    ///     partly buffered input (<see cref="Streams.BufferedInput"/>) that may continue after it.
+    /// </param>
     /// <returns>The number of elements before the terminator.</returns>
     /// <exception cref="CStructReadException">The input ends before an all-zero element.</exception>
     /// <exception cref="CStructReadLimitException">The count exceeds <paramref name="maximumElements"/>, or the array exceeds <paramref name="budget"/>.</exception>
-    public static int ScanSpan(ReadOnlySpan<byte> input, int elementSize, int maximumElements, long budget, string fieldName)
+    /// <exception cref="Streams.BufferedInputShortfallException">The outcome depends on bytes past a partly buffered <paramref name="input"/>.</exception>
+    public static int ScanSpan(ReadOnlySpan<byte> input, int elementSize, int maximumElements, long budget, string fieldName, long continuesFrom)
     {
         // The elements the scan may inspect: whole ones in the input, within the budget (terminator included), and one
         // past the element limit, whose nonzero value is the limit failure.
@@ -139,9 +144,17 @@ internal static class DynamicArrayExtent
             throw new CStructReadLimitException(ReadFailures.ArrayLengthLimit((long)maximumElements + 1, maximumElements));
         }
 
+        // Whether the next element is complete, and the failure below, depend on where the input ends: past a partly
+        // buffered input that is decided over more of it.
+        long nextEnd = ((long)inspected + 1) * elementSize;
+        if (continuesFrom >= 0 && nextEnd > input.Length)
+        {
+            throw Streams.BufferedInput.Shortfall(continuesFrom + nextEnd);
+        }
+
         // The next element is missing or incomplete, or lies past the budget. Reading it would consume the rest of the
         // input when it is incomplete, so that is a budget failure only when the rest exceeds the budget.
-        bool incomplete = ((long)inspected + 1) * elementSize > input.Length;
+        bool incomplete = nextEnd > input.Length;
         if (incomplete && input.Length <= budget)
         {
             throw new CStructReadException(ReadFailures.TerminatedArrayUnterminated(fieldName));

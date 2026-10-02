@@ -12,14 +12,16 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
 using CStructSharp.Generated;
 using CStructSharp.Reading;
+using CStructSharp.Streams;
 using CStructSharp.Values;
 
 /// <summary>
 ///     The <see cref="ReadOnlySequence{T}"/> forms of the read operations, for input that arrives in segments (a
 ///     <c>PipeReader</c>, a chain of pooled buffers). A single-segment sequence takes the span path with no copy; a
-///     multi-segment one is copied into a pooled buffer bounded by <see cref="ReadOptions.MaxTotalBytesRead"/> plus
-///     one byte, so a sequence longer than the budget fails with the budget text, as a stream would. Coordinates are
-///     zero-based at the sequence's start.
+///     multi-segment one is copied into a pooled buffer - first at most <see cref="ReadOptions.MaxTotalBytesRead"/>
+///     plus one byte - that grows, and the read runs again, while the reader needs bytes past it (alignment padding,
+///     a pointer target, a <c>T v[EOF]</c> count move past bytes without charging them). Results, failures and offsets
+///     are therefore those of the span form over the whole sequence. Coordinates are zero-based at the sequence's start.
 ///     <para>
 ///         <c>ParseMany</c> and <c>ParseManyAsync</c> read a sequence of records - one root struct after another
 ///         until the input ends - each parsed on the <c>MoveNext</c> that reaches it, with the read limits applied per
@@ -33,6 +35,16 @@ using CStructSharp.Values;
 /// </summary>
 public sealed partial class CStruct
 {
+    /// <summary>The span form of a read operation that a sequence form runs over its buffered copy.</summary>
+    /// <typeparam name="T">The operation's result type.</typeparam>
+    /// <param name="layout">The layout that reads.</param>
+    /// <param name="source">The buffered bytes.</param>
+    /// <param name="path">The operation's path.</param>
+    /// <param name="variables">The caller's layout variables.</param>
+    /// <param name="options">The read options for this run.</param>
+    /// <returns>The operation's result.</returns>
+    private delegate T SpanOperation<T>(CStruct layout, ReadOnlySpan<byte> source, string? path, IReadOnlyDictionary<string, int>? variables, ReadOptions? options);
+
     /// <inheritdoc cref="Parse(ReadOnlySpan{byte}, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
     public StructValue Parse(
         ReadOnlySequence<byte> source,
@@ -45,10 +57,13 @@ public sealed partial class CStruct
             return this.Parse(source.FirstSpan, path, variables, options);
         }
 
-        byte[] buffer = ReadCursor.CopySequence(source, options, out int length);
+        // A whole copy runs the span form directly; a partial one runs it through the lambda over the first and larger copies.
+        byte[] buffer = BufferedInput.CopySequence(source, options, out int length, out long continuation);
         try
         {
-            return this.Parse(new ReadOnlySpan<byte>(buffer, 0, length), path, variables, options);
+            return continuation == BufferedInput.WholeInput
+                       ? this.Parse(new ReadOnlySpan<byte>(buffer, 0, length), path, variables, options)
+                       : this.ReadPartialSequence(source, path, variables, options, buffer, length, continuation, static (layout, bytes, selected, values, effective) => layout.Parse(bytes, selected, values, effective));
         }
         finally
         {
@@ -68,10 +83,13 @@ public sealed partial class CStruct
             return this.ParseWithDebug(source.FirstSpan, path, variables, options);
         }
 
-        byte[] buffer = ReadCursor.CopySequence(source, options, out int length);
+        // A whole copy runs the span form directly; a partial one runs it through the lambda over the first and larger copies.
+        byte[] buffer = BufferedInput.CopySequence(source, options, out int length, out long continuation);
         try
         {
-            return this.ParseWithDebug(new ReadOnlySpan<byte>(buffer, 0, length), path, variables, options);
+            return continuation == BufferedInput.WholeInput
+                       ? this.ParseWithDebug(new ReadOnlySpan<byte>(buffer, 0, length), path, variables, options)
+                       : this.ReadPartialSequence(source, path, variables, options, buffer, length, continuation, static (layout, bytes, selected, values, effective) => layout.ParseWithDebug(bytes, selected, values, effective));
         }
         finally
         {
@@ -91,10 +109,13 @@ public sealed partial class CStruct
             return this.ReadValue(source.FirstSpan, path, variables, options);
         }
 
-        byte[] buffer = ReadCursor.CopySequence(source, options, out int length);
+        // A whole copy runs the span form directly; a partial one runs it through the lambda over the first and larger copies.
+        byte[] buffer = BufferedInput.CopySequence(source, options, out int length, out long continuation);
         try
         {
-            return this.ReadValue(new ReadOnlySpan<byte>(buffer, 0, length), path, variables, options);
+            return continuation == BufferedInput.WholeInput
+                       ? this.ReadValue(new ReadOnlySpan<byte>(buffer, 0, length), path, variables, options)
+                       : this.ReadPartialSequence(source, path, variables, options, buffer, length, continuation, static (layout, bytes, selected, values, effective) => layout.ReadValue(bytes, selected, values, effective));
         }
         finally
         {
@@ -114,10 +135,13 @@ public sealed partial class CStruct
             return this.ReadValue<T>(source.FirstSpan, path, variables, options);
         }
 
-        byte[] buffer = ReadCursor.CopySequence(source, options, out int length);
+        // A whole copy runs the span form directly; a partial one runs it through the lambda over the first and larger copies.
+        byte[] buffer = BufferedInput.CopySequence(source, options, out int length, out long continuation);
         try
         {
-            return this.ReadValue<T>(new ReadOnlySpan<byte>(buffer, 0, length), path, variables, options);
+            return continuation == BufferedInput.WholeInput
+                       ? this.ReadValue<T>(new ReadOnlySpan<byte>(buffer, 0, length), path, variables, options)
+                       : this.ReadPartialSequence(source, path, variables, options, buffer, length, continuation, static (layout, bytes, selected, values, effective) => layout.ReadValue<T>(bytes, selected, values, effective));
         }
         finally
         {
@@ -137,10 +161,13 @@ public sealed partial class CStruct
             return this.ReadValueWithDebug(source.FirstSpan, path, variables, options);
         }
 
-        byte[] buffer = ReadCursor.CopySequence(source, options, out int length);
+        // A whole copy runs the span form directly; a partial one runs it through the lambda over the first and larger copies.
+        byte[] buffer = BufferedInput.CopySequence(source, options, out int length, out long continuation);
         try
         {
-            return this.ReadValueWithDebug(new ReadOnlySpan<byte>(buffer, 0, length), path, variables, options);
+            return continuation == BufferedInput.WholeInput
+                       ? this.ReadValueWithDebug(new ReadOnlySpan<byte>(buffer, 0, length), path, variables, options)
+                       : this.ReadPartialSequence(source, path, variables, options, buffer, length, continuation, static (layout, bytes, selected, values, effective) => layout.ReadValueWithDebug(bytes, selected, values, effective));
         }
         finally
         {
@@ -180,10 +207,13 @@ public sealed partial class CStruct
             return this.ResolveAddress(source.FirstSpan, path, variables, options);
         }
 
-        byte[] buffer = ReadCursor.CopySequence(source, options, out int length);
+        // A whole copy runs the span form directly; a partial one runs it through the lambda over the first and larger copies.
+        byte[] buffer = BufferedInput.CopySequence(source, options, out int length, out long continuation);
         try
         {
-            return this.ResolveAddress(new ReadOnlySpan<byte>(buffer, 0, length), path, variables, options);
+            return continuation == BufferedInput.WholeInput
+                       ? this.ResolveAddress(new ReadOnlySpan<byte>(buffer, 0, length), path, variables, options)
+                       : this.ReadPartialSequence(source, path, variables, options, buffer, length, continuation, static (layout, bytes, selected, values, effective) => layout.ResolveAddress(bytes, selected!, values, effective));
         }
         finally
         {
@@ -203,16 +233,38 @@ public sealed partial class CStruct
             return this.GetArrayLength(source.FirstSpan, path, variables, options);
         }
 
-        byte[] buffer = ReadCursor.CopySequence(source, options, out int length);
+        // A whole copy runs the span form directly; a partial one runs it through the lambda over the first and larger copies.
+        byte[] buffer = BufferedInput.CopySequence(source, options, out int length, out long continuation);
         try
         {
-            return this.GetArrayLength(new ReadOnlySpan<byte>(buffer, 0, length), path, variables, options);
+            return continuation == BufferedInput.WholeInput
+                       ? this.GetArrayLength(new ReadOnlySpan<byte>(buffer, 0, length), path, variables, options)
+                       : this.ReadPartialSequence(source, path, variables, options, buffer, length, continuation, static (layout, bytes, selected, values, effective) => layout.GetArrayLength(bytes, selected!, values, effective));
         }
         finally
         {
             ArrayPool<byte>.Shared.Return(buffer);
         }
     }
+
+    /// <summary>
+    ///     Reads a multi-segment sequence whose first copy holds only part of it (see the class remarks): the span
+    ///     operation runs over the first copy and, while it needs bytes past its copy, over larger ones. The operations are
+    ///     static lambdas and their state travels in a <see cref="SequenceOperation{T}"/> struct, so a read allocates
+    ///     nothing more.
+    /// </summary>
+    /// <typeparam name="T">The operation's result type.</typeparam>
+    /// <param name="source">The multi-segment sequence.</param>
+    /// <param name="path">The operation's path, passed to <paramref name="read"/>.</param>
+    /// <param name="variables">The caller's layout variables, passed to <paramref name="read"/>.</param>
+    /// <param name="options">The caller's read options.</param>
+    /// <param name="buffer">The first copy (<see cref="BufferedInput.CopySequence"/>), which stays the caller's.</param>
+    /// <param name="length">The bytes the first copy holds.</param>
+    /// <param name="continuation">The sequence's length, as the copy reported it.</param>
+    /// <param name="read">The span form of the operation.</param>
+    /// <returns>The span form's result for the whole sequence.</returns>
+    private T ReadPartialSequence<T>(ReadOnlySequence<byte> source, string? path, IReadOnlyDictionary<string, int>? variables, ReadOptions? options, byte[] buffer, int length, long continuation, SpanOperation<T> read)
+        => BufferedInput.ReadPartialSequence<SequenceOperation<T>, T>(source, options, new SequenceOperation<T>(this, path, variables, read), buffer, length, continuation);
 
     // ------------------------------------------------------------------------------------------------- ParseMany
 
@@ -280,9 +332,10 @@ public sealed partial class CStruct
     /// <summary>
     ///     Reads the records of a stream with <see cref="Stream.ReadAsync(Memory{byte}, CancellationToken)"/>. A
     ///     root with a fixed size is read exactly one record at a time, so any readable stream serves, byte-exact; a
-    ///     runtime-sized root is read through a pooled window of the bytes left (at most
-    ///     <see cref="ReadOptions.MaxTotalBytesRead"/> plus one) that refills from the start of a record it could not
-    ///     hold, which needs a seekable stream. After each record a seekable stream sits at the record's end.
+    ///     runtime-sized root is read through a pooled window of the bytes left (first
+    ///     <see cref="ReadOptions.MaxTotalBytesRead"/> plus one byte) that refills from the start of a record it could
+    ///     not hold and grows when a record that starts the window needs bytes past it, which needs a seekable stream.
+    ///     After each record a seekable stream sits at the record's end.
     /// </summary>
     /// <param name="stream">The readable stream whose current position is the first record's start.</param>
     /// <param name="path">The case-sensitive name of the root struct each record is; <see langword="null"/> selects the first declared struct.</param>
@@ -392,5 +445,25 @@ public sealed partial class CStruct
         }
 
         return new RecordRoot(name, size);
+    }
+
+    /// <summary>A span operation with its arguments, run by the sequence forms' growth path over each copy.</summary>
+    /// <typeparam name="T">The operation's result type.</typeparam>
+    /// <param name="Layout">The layout that reads.</param>
+    /// <param name="Path">The operation's path.</param>
+    /// <param name="Variables">The caller's layout variables.</param>
+    /// <param name="Operation">The span form of the operation.</param>
+    private readonly record struct SequenceOperation<T>(CStruct Layout, string? Path, IReadOnlyDictionary<string, int>? Variables, SpanOperation<T> Operation) : IBufferedReader<T>
+    {
+        /// <summary>Runs the operation over one copy; the sequence forms report no end position.</summary>
+        /// <param name="source">The copied bytes.</param>
+        /// <param name="options">The read options for this run.</param>
+        /// <param name="consumed">Always 0.</param>
+        /// <returns>The operation's result.</returns>
+        public T Read(ReadOnlySpan<byte> source, ReadOptions? options, out long consumed)
+        {
+            consumed = 0;
+            return this.Operation(this.Layout, source, this.Path, this.Variables, options);
+        }
     }
 }

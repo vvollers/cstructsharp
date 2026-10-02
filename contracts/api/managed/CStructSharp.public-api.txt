@@ -443,6 +443,10 @@ namespace CStructSharp.Generated
         public static System.Int128 Variable(System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string name, System.Int128 value) { }
         public static System.Int128 Xor(System.Int128 left, System.Int128 right) { }
     }
+    public interface IBufferedReader<TResult>
+    {
+        TResult Read(System.ReadOnlySpan<byte> source, CStructSharp.ReadOptions? options, out long consumed);
+    }
     public readonly struct Pointer<T> : System.IEquatable<CStructSharp.Generated.Pointer<T>>
     {
         public Pointer(long address, int depth, T? value = default, bool isDereferenced = false) { }
@@ -504,14 +508,13 @@ namespace CStructSharp.Generated
         public void TakeTerminator(int elementSize, string member, string? memberType) { }
         public string TakeWideText(int count, bool littleEndian, string member, string? memberType) { }
         public bool TryTakeFixed(int size, int alignment, long chargedBytes, int nestingLevels, int maximumArrayCount, out System.ReadOnlySpan<byte> bytes) { }
-        public static byte[] BufferStream(System.IO.Stream stream, CStructSharp.ReadOptions? options, out int length) { }
-        [return: System.Runtime.CompilerServices.TupleElementNames(new string[] {
-                "Buffer",
-                "Length"})]
-        public static System.Threading.Tasks.ValueTask<System.ValueTuple<byte[], int>> BufferStreamAsync(System.IO.Stream stream, CStructSharp.ReadOptions? options, System.Threading.CancellationToken cancellationToken) { }
-        public static byte[] CopySequence(System.Buffers.ReadOnlySequence<byte> source, CStructSharp.ReadOptions? options, out int length) { }
+        public static TResult ReadSequence<TReader, TResult>(System.Buffers.ReadOnlySequence<byte> source, TReader reader, CStructSharp.ReadOptions? options)
+            where TReader :  struct, CStructSharp.Generated.IBufferedReader<TResult> { }
+        public static TResult ReadStream<TReader, TResult>(System.IO.Stream stream, TReader reader, CStructSharp.ReadOptions? options)
+            where TReader :  struct, CStructSharp.Generated.IBufferedReader<TResult> { }
+        public static System.Threading.Tasks.ValueTask<TResult> ReadStreamAsync<TReader, TResult>(System.IO.Stream stream, TReader reader, CStructSharp.ReadOptions? options, System.Threading.CancellationToken cancellationToken = default)
+            where TReader :  struct, CStructSharp.Generated.IBufferedReader<TResult> { }
         public static string ShortReadText(long needed, long available) { }
-        public static CStructSharp.ReadOptions? WithCancellation(CStructSharp.ReadOptions? options, System.Threading.CancellationToken cancellationToken, out System.Threading.CancellationTokenSource? linked) { }
     }
     public delegate T RecordReader<out T>(System.ReadOnlyMemory<byte> source, int offset, int index, long shift, CStructSharp.ReadOptions? options, out int consumed);
     public static class RecordSequence

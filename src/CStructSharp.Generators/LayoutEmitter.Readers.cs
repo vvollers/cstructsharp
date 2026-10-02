@@ -35,23 +35,6 @@ internal sealed partial class LayoutEmitter
     private readonly Dictionary<CompiledField, DeferredPointer> deferredPointers = new(ReferenceEqualityComparer.Instance);
     private readonly List<DeferredPointer> deferredPointerOrder = new();
 
-    /// <summary>Emits best-effort cursor restoration without replacing the original acquisition or decode failure.</summary>
-    /// <param name="writer">The generated source destination, immediately after a stream operation's try block.</param>
-    private static void EmitStreamFailureRestoration(SourceWriter writer)
-    {
-        writer.Open("catch");
-        writer.Open("try");
-        writer.Open("if (stream.CanSeek)");
-        writer.Line("stream.Position = start;");
-        writer.Close();
-        writer.Close();
-        writer.Open("catch");
-        writer.Line("// Preserve the original failure if the underlying stream also refuses restoration.");
-        writer.Close();
-        writer.Line("throw;");
-        writer.Close();
-    }
-
     /// <summary>Emits reader entry points and per-composite readers using the compiled layout and fixed parser settings.</summary>
     /// <param name="writer">The generated source destination; emitted cursors own operation state, not caller input.</param>
     private void EmitReaders(SourceWriter writer)
@@ -101,6 +84,7 @@ internal sealed partial class LayoutEmitter
     {
         string name = composite.Name;
         string method = "Parse" + name;
+        string reader = composite.BufferedReaderName;
         writer.Line();
         writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from the start of <paramref name=\"source\"/> with the generated reader; the same value, and the same failures, as the runtime's <c>Parse</c>.</summary>");
         writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
@@ -126,7 +110,7 @@ internal sealed partial class LayoutEmitter
         writer.Line("public static " + name + " " + method + "(global::System.ReadOnlyMemory<byte> source, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
         writer.Line("    => " + method + "(source.Span, variables, options);");
         writer.Line();
-        writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from a sequence of segments: a single segment is read in place, several are copied into a pooled buffer bounded by the total read budget.</summary>");
+        writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from a sequence of segments: a single segment is read in place, several are copied into a pooled buffer - first the total read budget plus one byte - that grows while the reader needs bytes past it, so the result is the span form's for the whole sequence.</summary>");
         writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
         writer.Line(VariablesDoc);
         writer.Line(ReadOptionsDoc);
@@ -135,67 +119,44 @@ internal sealed partial class LayoutEmitter
         writer.Open("if (source.IsSingleSegment)");
         writer.Line("return " + method + "(source.FirstSpan, variables, options);");
         writer.Close();
-        writer.Line("byte[] buffer = " + Cursor + ".CopySequence(source, options, out int length);");
-        writer.Open("try");
-        writer.Line("return " + method + "(new global::System.ReadOnlySpan<byte>(buffer, 0, length), variables, options);");
-        writer.Close();
-        writer.Open("finally");
-        writer.Line("global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);");
-        writer.Close();
+        writer.Line("return " + Cursor + ".ReadSequence<" + reader + ", " + name + ">(source, new " + reader + "(variables), options);");
         writer.Close();
         writer.Line();
-        writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from <paramref name=\"stream\"/>: the stream is buffered up to the total read budget (or its remaining length) and read through the span reader; a seekable stream is left after the value.</summary>");
+        writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from <paramref name=\"stream\"/>: the stream is buffered - first up to the total read budget plus one byte (or its remaining length) - and read through the span reader, and the buffer grows while the reader needs bytes past it; a seekable stream is left after the value (at its origin on failure).</summary>");
         writer.Line("/// <param name=\"stream\">The stream, read from its current position.</param>");
         writer.Line(VariablesDoc);
         writer.Line(ReadOptionsDoc);
         writer.Line("/// <returns>The parsed value.</returns>");
-        writer.Open("public static " + name + " " + method + "(global::System.IO.Stream stream, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
-        writer.Line("global::System.ArgumentNullException.ThrowIfNull(stream);");
-        writer.Line("long start = stream.CanSeek ? stream.Position : 0;");
-        writer.Open("try");
-        writer.Line("byte[] buffer = " + Cursor + ".BufferStream(stream, options, out int length);");
-        writer.Open("try");
-        writer.Line("return " + method + "Buffered(buffer, length, stream, start, variables, options);");
-        writer.Close();
-        writer.Open("finally");
-        writer.Line("global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);");
-        writer.Close();
-        writer.Close();
-        EmitStreamFailureRestoration(writer);
-        writer.Close();
+        writer.Line("public static " + name + " " + method + "(global::System.IO.Stream stream, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
+        writer.Line("    => " + Cursor + ".ReadStream<" + reader + ", " + name + ">(stream, new " + reader + "(variables), options);");
         writer.Line();
-        writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from <paramref name=\"stream\"/> with the bytes read by <see cref=\"global::System.IO.Stream.ReadAsync(global::System.Memory{byte}, global::System.Threading.CancellationToken)\"/>: the same buffering and the same reader as the synchronous form; a seekable stream is left after the value (at its origin on failure), a stream that cannot seek is consumed up to the total read budget plus one byte. A stored absolute pointer address counts from the origin, as in the span form.</summary>");
+        writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from <paramref name=\"stream\"/> with the bytes read by <see cref=\"global::System.IO.Stream.ReadAsync(global::System.Memory{byte}, global::System.Threading.CancellationToken)\"/>: the same buffering and the same reader as the synchronous form; a seekable stream is left after the value (at its origin on failure), a stream that cannot seek is consumed by what was buffered - more than the total read budget plus one byte only when the value addresses bytes past it. A stored absolute pointer address counts from the origin, as in the span form.</summary>");
         writer.Line("/// <param name=\"stream\">The stream, read from its current position.</param>");
         writer.Line(VariablesDoc);
         writer.Line(ReadOptionsDoc);
         writer.Line("/// <param name=\"cancellationToken\">Ends the read while it waits for bytes or at the next boundary the reader checks; linked with the options' token.</param>");
         writer.Line("/// <returns>The parsed value.</returns>");
-        writer.Open("public static async global::System.Threading.Tasks.ValueTask<" + name + "> " + method + "Async(global::System.IO.Stream stream, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default)");
-        writer.Line("global::System.ArgumentNullException.ThrowIfNull(stream);");
-        writer.Line("global::CStructSharp.ReadOptions? effective = " + Cursor + ".WithCancellation(options, cancellationToken, out global::System.Threading.CancellationTokenSource? linked);");
-        writer.Open("using (linked)");
-        writer.Line("long start = stream.CanSeek ? stream.Position : 0;");
-        writer.Open("try");
-        writer.Line("(byte[] buffer, int length) = await " + Cursor + ".BufferStreamAsync(stream, effective, effective?.CancellationToken ?? default).ConfigureAwait(false);");
-        writer.Open("try");
-        writer.Line("return " + method + "Buffered(buffer, length, stream, start, variables, effective);");
-        writer.Close();
-        writer.Open("finally");
-        writer.Line("global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);");
-        writer.Close();
-        writer.Close();
-        EmitStreamFailureRestoration(writer);
-        writer.Close();
+        writer.Line("public static global::System.Threading.Tasks.ValueTask<" + name + "> " + method + "Async(global::System.IO.Stream stream, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default)");
+        writer.Line("    => " + Cursor + ".ReadStreamAsync<" + reader + ", " + name + ">(stream, new " + reader + "(variables), options, cancellationToken);");
+        writer.Line();
+        writer.Line("/// <summary>The span reader the buffered forms run: a struct carrying the layout variables, so each run is a direct call and a read allocates nothing for it.</summary>");
+        writer.Open("private readonly struct " + reader + " : global::CStructSharp.Generated.IBufferedReader<" + name + ">");
+        writer.Line("private readonly " + VariablesType + " variables;");
+        writer.Line();
+        writer.Line("/// <summary>Creates the reader for one operation.</summary>");
+        writer.Line(VariablesDoc);
+        writer.Line("public " + reader + "(" + VariablesType + " variables) => this.variables = variables;");
+        writer.Line();
+        writer.Line("/// <inheritdoc/>");
+        writer.Line("public " + name + " Read(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options, out long consumed) => " + method + "Buffered(source, this.variables, options, out consumed);");
         writer.Close();
         writer.Line();
-        writer.Line("/// <summary>The synchronous half of the stream forms: the span reader over the buffered bytes, then the stream's final position (after the value, or the origin on failure).</summary>");
-        writer.Open("private static " + name + " " + method + "Buffered(byte[] buffer, int length, global::System.IO.Stream stream, long start, " + VariablesType + " variables, global::CStructSharp.ReadOptions? options)");
-        writer.Line("var cursor = new " + Cursor + "(new global::System.ReadOnlySpan<byte>(buffer, 0, length), options, " + SourceWriter.Literal(composite.LayoutName) + ");");
+        writer.Line("/// <summary>One run of the buffered forms: the span reader over the buffered bytes, reporting where the value ended.</summary>");
+        writer.Open("private static " + name + " " + method + "Buffered(global::System.ReadOnlySpan<byte> source, " + VariablesType + " variables, global::CStructSharp.ReadOptions? options, out long consumed)");
+        writer.Line("var cursor = new " + Cursor + "(source, options, " + SourceWriter.Literal(composite.LayoutName) + ");");
         writer.Open("try");
         writer.Line(name + " value = Read" + name + "(ref cursor, variables, null, null);");
-        writer.Open("if (stream.CanSeek)");
-        writer.Line("stream.Position = start + cursor.Position;");
-        writer.Close();
+        writer.Line("consumed = cursor.Position;");
         writer.Line("return value;");
         writer.Close();
         writer.Open("catch (global::CStructSharp.Diagnostics.CStructException exception)");

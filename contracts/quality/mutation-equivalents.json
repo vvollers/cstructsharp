@@ -259,7 +259,7 @@
   },
   {
    "pattern": "CStructOperations.AsyncWrite.cs",
-   "sourceSha256": "1179fb7eaf8fa0bed1b068fd7137a2d08428b8e216ece8d2ad3234b3ab4b5c7e",
+   "sourceSha256": "d14fdeb31990cc3b59430f2d4565e5d5a29a8a0a68321f211271e39b047c24c5",
    "mutants": [
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?(options ?? new UpdateOptions()) with { CancellationToken = token, } :options)",
      "location": {"start":{"line":95,"column":40},"end":{"line":95,"column":140}},
@@ -334,25 +334,25 @@
   },
   {
    "pattern": "CStructOperations.Async.cs",
-   "sourceSha256": "f3c95740420a9645322cf29702a730fcff7680b1a33cbd7bef9484335465da17",
+   "sourceSha256": "8fe7c35e35ddf61c05ae9f5dbead8e793296453d9b470bc161d705769648fb72",
    "mutants": [
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?origin :origin + consumed)",
-     "location": {"start":{"line":347,"column":35},"end":{"line":347,"column":77}},
+     "location": {"start":{"line":418,"column":31},"end":{"line":418,"column":73}},
      "reason": "restoreOrigin is true only for ResolveAddressAsync and GetArrayLengthAsync. Their synchronous core operations restore their borrowed FixedBufferStream to its initial position zero in finally, so consumed is zero on every successful query. origin + consumed is therefore origin when this branch changes. All consuming operations pass false and already take the unchanged origin + consumed branch; failures follow the separate restoration catch." },
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?result :new ParseResult(result.Value, Shift(result.Debug, origin)))",
-     "location": {"start":{"line":85,"column":40},"end":{"line":85,"column":121}},
+     "location": {"start":{"line":89,"column":40},"end":{"line":89,"column":121}},
      "reason": "The changed branch is only the zero-origin fast return. Shift copies each private DebugData record with Start plus zero and End plus zero, preserving every other record member. The returned value is unchanged. Neither the original private result nor its list has escaped, so the extra result/list/record copies cannot change observable reference relationships with caller-owned objects or any coordinates." },
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?result :new ReadResult(result.Value, Shift(result.Debug, origin)))",
-     "location": {"start":{"line":142,"column":40},"end":{"line":142,"column":120}},
+     "location": {"start":{"line":146,"column":40},"end":{"line":146,"column":120}},
      "reason": "For origin zero, Shift preserves every DebugData member and the selected result value; only private result/list/record objects are copied instead of returned directly. For nonzero origin the same shift already occurs. No original debug-list identity escapes this private callback, so decoded values, diagnostic ranges and caller-visible object relationships are unchanged." },
     { "mutatorName": "Boolean mutation", "replacement": "false",
-     "location": {"start":{"line":196,"column":28},"end":{"line":196,"column":32}},
+     "location": {"start":{"line":200,"column":28},"end":{"line":200,"column":32}},
      "reason": "ResolveAddressCore always restores its input position in finally. Its buffered input starts at zero, so RunOverBuffer observes consumed equal to zero on every successful address query. The false restoreOrigin branch therefore assigns origin plus zero instead of origin; failure restoration is handled independently by ReadBufferedAsync." },
     { "mutatorName": "Boolean mutation", "replacement": "false",
-     "location": {"start":{"line":221,"column":28},"end":{"line":221,"column":32}},
+     "location": {"start":{"line":225,"column":28},"end":{"line":225,"column":32}},
      "reason": "GetDynamicArrayLengthCore always restores the buffered input position in finally, including terminated-string scans. The buffer starts at zero, so consumed is zero on every successful length query. Setting restoreOrigin false assigns origin plus zero, exactly the original origin assignment; failure restoration is unchanged." },
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?(options ?? new ReadOptions()) with { CancellationToken = token, } :options)",
-     "location": {"start":{"line":269,"column":38},"end":{"line":269,"column":136}},
+     "location": {"start":{"line":273,"column":38},"end":{"line":273,"column":136}},
      "reason": "When the linked token is cancellable the selected expression is unchanged. Otherwise both source tokens are non-cancellable: copying the sealed ReadOptions record with CancellationToken.None preserves every option, and a null options argument becomes the same default settings used by SnapshotReadOptions. The options record has no custom getters or copy side effects and its identity is not exposed by these private operation delegates. Only an extra temporary options allocation can differ." }
    ]
   },
@@ -550,10 +550,10 @@
   },
   {
    "pattern": "Generated/ReadCursor.cs",
-   "sourceSha256": "e5ebd14b40101147785282d8416a71f70527e1719bd90450efc8a8f990cbd2cb",
+   "sourceSha256": "36f4565d4ab9ebe264a35cef4d57efbe836ea11cbd9c3cedf7e61dd53c21568f",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": "count < 0",
-     "location": {"start":{"line":147,"column":13},"end":{"line":147,"column":23}},
+     "location": {"start":{"line":188,"column":13},"end":{"line":188,"column":23}},
      "reason": "Only count zero newly reaches budget arithmetic. bytesRead starts at zero and only accepted charges update it, so it never exceeds the nonnegative fixed limit. Adding zero cannot overflow or fail the limit check and reassigns the same value; position is unchanged. Negative counts still return early." }
    ]
   },
@@ -619,10 +619,10 @@
   },
   {
    "pattern": "Generated/RecordSequence.cs",
-   "sourceSha256": "d8067cce0743f9bc7b578963dfc8d149e92afec11cb7684e421e6016df2ced6c",
+   "sourceSha256": "ac1dc783158365d7bc46224e020a4c41cb3e286c95a5e941a139be0a41d9ef88",
    "mutants": [
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?(options ?? new ReadOptions()) with { CancellationToken = token, } :options)",
-     "location": {"start":{"line":334,"column":12},"end":{"line":334,"column":110}},
+     "location": {"start":{"line":411,"column":12},"end":{"line":411,"column":110}},
      "reason": "When the linked token can cancel, this already takes the clone branch. Otherwise neither input token can cancel: cloning the sealed ReadOptions preserves every setting and assigns the same non-cancellable token; null denotes the same default settings as new ReadOptions. The documented read settings are unchanged. The extra descriptor allocation and descriptor reference identity are not record-reading results." }
    ]
   },
@@ -838,16 +838,16 @@
   },
   {
    "pattern": "Streams/MemoryReadCore.cs",
-   "sourceSha256": "a30ba4820f77b6bdbfddc40f7cf110728c42a219658ad54e41f8af97ba207412",
+   "sourceSha256": "1ee231950dcb96c11a24d3efee56d4dce17542c668cf9bd0f0923d7e7a7cdb67",
    "mutants": [
     { "mutatorName": "Logical mutation", "replacement": "this.memoryBacked || count <= this.knownLength - this.position",
-     "location": {"start":{"line":234,"column":13},"end":{"line":234,"column":75}},
+     "location": {"start":{"line":381,"column":13},"end":{"line":381,"column":75}},
      "reason": "This changes only the availability subexpression of the outer preflight; its byte-budget condition remains required. A newly admitted case still calls TryReadSpan, which repeats the original memoryBacked and remaining-length checks before touching bytes or accounting. It returns false with a default span on every unavailable/non-memory case. Cases admitted by the original outer check remain admitted, with identical reads and budget charges." },
     { "mutatorName": "Arithmetic mutation", "replacement": "this.knownLength + this.position",
-     "location": {"start":{"line":234,"column":43},"end":{"line":234,"column":75}},
-     "reason": "TryReadSpan repeats the original subtraction-based availability check. If a nonnegative requested count is available, the memoryBacked conjunct has already excluded a stream-mode core, and every memory core reads an Int32-sized input (a FixedBufferStream region, an exposed MemoryStream array, or the span, array or memory the engine pins), so length + position cannot overflow Int64 and is at least length - position. Thus every originally successful preflight still reaches the same read. Extra candidates are rejected by the unchanged inner check without consuming or charging bytes." },
+     "location": {"start":{"line":381,"column":43},"end":{"line":381,"column":75}},
+     "reason": "TryReadSpan repeats the original subtraction-based availability check. If a nonnegative requested count is available, the memoryBacked conjunct has already excluded a stream-mode core, and every memory core holds an Int32-sized buffer (a FixedBufferStream region, an exposed MemoryStream array, the span, array or memory the engine pins, or a buffered form's pooled copy) with its position at most the whole input's length (below 2^48 bytes for a partly buffered input), so buffer length + position cannot overflow Int64 and is at least buffer length - position. Thus every originally successful preflight still reaches the same read. Extra candidates are rejected by the unchanged inner check without consuming or charging bytes." },
     { "mutatorName": "Equality mutation", "replacement": "count >= 0",
-     "location": {"start":{"line":315,"column":18},"end":{"line":315,"column":27}},
+     "location": {"start":{"line":471,"column":18},"end":{"line":471,"column":27}},
      "reason": "This branch runs only when count fits the remaining budget. The mutation additionally admits count == 0, which adds 0 to bytesRead and leaves the total, the remaining budget and every later charge unchanged. Negative counts are still excluded, so no charge can be given back through this path." }
    ]
   },
@@ -922,16 +922,16 @@
   },
   {
    "pattern": "Generated/ReadCursor.Arrays.cs",
-   "sourceSha256": "7b4bcbe2bcb28d1552afffae6139abd9bda308abf47feb2333cf657b74c0f1e4",
+   "sourceSha256": "b3421dc5908fc1a650c68c81dee07d33b0ed5f330c817c6e12f18f87e8df291e",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": "count < 0",
-     "location": {"start":{"line":88,"column":13},"end":{"line":88,"column":23}},
+     "location": {"start":{"line":90,"column":13},"end":{"line":90,"column":23}},
      "reason": "Only count zero with a positive element size newly reaches the body. The total is zero, remaining bytes and affordable bytes are nonnegative, both failure conditions stay false, and Take(0) returns an empty view without charging or moving. Cancellation is checked before either branch. Empty-span backing identity is unspecified; the supported result is the same empty element sequence and unchanged cursor/budget." }
    ]
   },
   {
    "pattern": "Generated/ReadCursor.Failures.cs",
-   "sourceSha256": "67e8613baa00057647fcbf670eb142ff3cc34a780755c1672a8a5142cd0a9039",
+   "sourceSha256": "5e95501d329b18f1529e9211c1668d4d7e31d8274cfe0f49a743070e3632435b",
    "mutants": [
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?new CStructReadException(message) :new CStructReadException(message, cause))",
      "location": {"start":{"line":47,"column":25},"end":{"line":47,"column":117}},
@@ -940,31 +940,31 @@
   },
   {
    "pattern": "Generated/ReadCursor.Nesting.cs",
-   "sourceSha256": "ee95a021dc8b3442d55ba34d7680ba859c469f19a21fca8279275a06211fc61d",
+   "sourceSha256": "d1a749214bb888f4a4f3dc0b2e01969825c8fd3ed9b732661d22eba313495b4d",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": ">= 0",
-     "location": {"start":{"line":121,"column":48},"end":{"line":121,"column":51}},
+     "location": {"start":{"line":128,"column":48},"end":{"line":128,"column":51}},
      "reason": "ExitPointer's supported use returns from one successful unmatched EnterPointer, which pushes exactly one target before returning its resume position. Thus the stack contains at least one entry on every valid exit and both predicates pop the same target. LayoutEmitter.Arrays emits EnterPointer before its try and exactly one ExitPointer in finally, including nested targets. An extra exit without a matching entry violates the documented pairing and is not an equivalent-input claim." }
    ]
   },
   {
    "pattern": "Generated/ReadCursor.Text.cs",
-   "sourceSha256": "02b59cf4d2bd71163c54fbc5d9905a3c311214ed457725bbf68810dd87580034",
+   "sourceSha256": "7f822343c29ef0c0c99c70294336eef3eb79ede306d8f547f375515c466f7a81",
    "mutants": [
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?Codecs.PrimitiveCodecs.StrictUtf16LittleEndianEncoding :Codecs.PrimitiveCodecs.StrictUtf16BigEndianEncoding)",
-     "location": {"start":{"line":60,"column":18},"end":{"line":60,"column":141}},
+     "location": {"start":{"line":61,"column":18},"end":{"line":61,"column":141}},
      "reason": "The input code units have already been read using the requested byte order. This call only validates the resulting string with GetByteCount; its count is discarded and it produces no bytes. Both UnicodeEncoding instances have identical strict surrogate fallback and no byte-order mark, differing only in output byte order, which cannot change string validity, byte count or EncoderFallbackException here." },
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?Codecs.PrimitiveCodecs.StrictUtf16LittleEndianEncoding :Codecs.PrimitiveCodecs.StrictUtf16BigEndianEncoding)",
-     "location": {"start":{"line":60,"column":18},"end":{"line":60,"column":141}},
+     "location": {"start":{"line":61,"column":18},"end":{"line":61,"column":141}},
      "reason": "ReadChar has already applied the requested input byte order before constructing text. GetByteCount only validates that string and its result is ignored. The two strict UnicodeEncoding instances differ only in encoded byte order, not accepted surrogate sequences, counts or fallback exceptions; no encoded bytes are exposed by this call." },
     { "mutatorName": "Arithmetic mutation", "replacement": "unitSize + (encodedByteCount % unitSize)",
-     "location": {"start":{"line":166,"column":42},"end":{"line":166,"column":82}},
+     "location": {"start":{"line":174,"column":42},"end":{"line":174,"column":82}},
      "reason": "unitSize is one or two. Every continuing chunk holds whole code units: a request is 256 bytes or the budget rounded down to whole units, a one-byte request is completed to a unit (or fails over budget), and a partial unit only occurs at the end of the input, which the zero-byte failure ends before alignment is computed again. Thus encodedByteCount is a multiple of unitSize whenever this expression is reached, its remainder is zero, and adding or subtracting that zero gives the same alignment." },
     { "mutatorName": "Arithmetic mutation", "replacement": "encodedByteCount * unitSize",
-     "location": {"start":{"line":166,"column":54},"end":{"line":166,"column":81}},
+     "location": {"start":{"line":174,"column":54},"end":{"line":174,"column":81}},
      "reason": "At each reached alignment calculation encodedByteCount is a multiple of unitSize (every continuing chunk holds whole code units) and unitSize is one or two. The original inner remainder is zero; the replacement product is a multiple of unitSize, so the outer remainder remains zero. The count is bounded by an Int32-sized source, so its long product cannot overflow." },
     { "mutatorName": "CoalesceAssignmentExpression to SimpleAssignmentExpression mutation", "replacement": "decoded = new char[Chunk + 2]",
-     "location": {"start":{"line":177,"column":13},"end":{"line":177,"column":44}},
+     "location": {"start":{"line":185,"column":13},"end":{"line":185,"column":44}},
      "reason": "decoded is a private output-only scratch buffer passed to Decoder.Convert; its contents and output counts are never consumed. Decoder state is held by the separate decoder object, and the returned string is decoded independently from the original byte slice. Replacing the buffer adds allocations but changes no decoded result, consumption or failure." }
    ]
   },

@@ -131,7 +131,7 @@ internal static partial class ReadEngine
             throw new CStructReadException(ReadFailures.RelativePointerOverflow, exception);
         }
 
-        if (targetAddress < 0 || targetAddress >= cursor.Length)
+        if (targetAddress < 0 || cursor.EndsAtOrBefore(targetAddress))
         {
             throw new CStructReadException(ReadFailures.PointerTargetOutside(targetAddress));
         }

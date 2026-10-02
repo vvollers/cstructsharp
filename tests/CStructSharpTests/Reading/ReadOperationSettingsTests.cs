@@ -56,6 +56,22 @@ public class ReadOperationSettingsTests
     }
 
     /// <summary>
+    ///     The pointer-target limit is stored as a value and a flag: an unset limit stays distinct from a zero limit in the
+    ///     property and in equality, and setting it back to null restores the unset settings.
+    /// </summary>
+    [TestMethod]
+    public void MaxPointerTargetBytes_KeepsNullDistinctFromZero()
+    {
+        ReadOperationSettings unset = ReadOperationSettings.SnapshotReadOptions(null);
+        ReadOperationSettings zero = unset with { MaxPointerTargetBytes = 0, };
+
+        Assert.AreEqual(0L, zero.MaxPointerTargetBytes);
+        Assert.AreNotEqual(unset, zero);
+        Assert.AreEqual(unset, zero with { MaxPointerTargetBytes = null, });
+        Assert.AreEqual(0L, ReadOperationSettings.SnapshotReadOptions(new ReadOptions { MaxPointerTargetBytes = 0, }).MaxPointerTargetBytes);
+    }
+
+    /// <summary>
     ///     Update-path traversal limits (the Max*Traversal* family) must map onto the equivalent read-operation
     ///     limits, not silently fall back to unrelated write limits.
     /// </summary>

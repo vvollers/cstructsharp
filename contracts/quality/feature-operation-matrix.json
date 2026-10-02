@@ -93,7 +93,7 @@
       "Serialize(Span<byte>)",
       "Serialize(IBufferWriter<byte>)"
     ],
-    "lifetime": "Every memory operation is synchronous and retains no caller buffer after returning; a ReadOnlySequence<byte> of one segment is read in place, a chain of segments through a pooled copy bounded by MaxTotalBytesRead plus one byte, and a ParseMany enumeration over a chain keeps its pooled copy only while it is enumerated.",
+    "lifetime": "Every memory operation is synchronous and retains no caller buffer after returning; a ReadOnlySequence<byte> of one segment is read in place, a chain of segments through a pooled copy (first MaxTotalBytesRead plus one byte) that grows and reruns the read while the value needs bytes past it, so the result is the span read's, and a ParseMany enumeration over a chain keeps its pooled copy only while it is enumerated.",
     "pointerCoordinates": "Pointer positions are zero-based within the supplied input region or newly serialized output region, including sliced memory and appends to an existing writer.",
     "partialFailure": "Span output can leave an initialized prefix changed, and IBufferWriter output can retain advanced windows, when a later write fails; neither caller-owned destination promises rollback.",
     "evidence": [
@@ -164,7 +164,7 @@
   },
   "asyncContract": {
     "schemaVersion": 1,
-    "rule": "Every awaitable form reads the stream with ReadAsync into a pooled buffer - a seekable stream up to its remaining length, any stream up to MaxTotalBytesRead plus one byte - and runs the synchronous span reader over it; there is no second reader, so values, limits, and failure texts are the synchronous forms'.",
+    "rule": "Every awaitable form reads the stream with ReadAsync into a pooled buffer - first a seekable stream up to its remaining length, any stream up to MaxTotalBytesRead plus one byte, growing while the reader needs bytes past it - and runs the synchronous span reader over it; there is no second reader, so values, limits, and failure texts are the synchronous forms'.",
     "readForms": [
       "ParseAsync",
       "ParseWithDebugAsync",
@@ -191,7 +191,7 @@
       "records": "ParseManyAsync and Records<Name>Async read a fixed-size root exactly one record at a time and a runtime-sized root through a pooled window that refills from the start of a record it could not hold; a seekable stream sits at the record's end after each step."
     },
     "seekableRequirements": {
-      "reads": "Any readable stream; a stream that cannot seek is consumed up to the budget plus one byte.",
+      "reads": "Any readable stream; a stream that cannot seek is consumed by what was buffered: the budget plus one byte, more only when the value addresses bytes past them.",
       "UpdateAsync": "A readable, writable, seekable stream.",
       "records": "A fixed-size root reads from any stream; a runtime-sized root needs a seekable stream."
     },

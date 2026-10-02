@@ -112,7 +112,7 @@ internal static partial class ReadEngine
         var state = new ReadEngineState(layout, slots, options, debug);
         try
         {
-            var cursor = new MemoryReadCursor(region, length, 0, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken);
+            var cursor = new MemoryReadCursor(region, length, 0, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken, options.ContinuedInputLength);
             StructValue value = Run(ref cursor, ref state, program, segments, null, out selected);
             position = cursor.Position;
             return value;

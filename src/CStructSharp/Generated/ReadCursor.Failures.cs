@@ -116,8 +116,10 @@ public ref partial struct ReadCursor
     /// <param name="member">The field being read.</param>
     /// <param name="memberType">The field's layout type spelling.</param>
     /// <returns>The contextual failure; the caller throws it.</returns>
+    /// <exception cref="Streams.BufferedInputShortfallException">The source is the first part of an input that holds more of the bytes.</exception>
     private CStructReadException ShortRead(int count, string member, string? memberType)
     {
+        this.RequireBuffered(this.position, (long)this.position + count);
         int available = this.Remaining;
         this.position = this.source.Length;
         return this.Fail(ReadFailures.ShortRead(count, available), member, memberType);

@@ -93,9 +93,10 @@ table.
 
 [!code-csharp[ParseAsync and WriteAsync](../../examples/GeneratedExamples.cs#generated-async)]
 
-`Wire.ParseAsync(stream)` reads the stream with `ReadAsync` into a pooled buffer - a seekable stream up to its
-remaining length, any stream up to `MaxTotalBytesRead` plus one byte - and runs the generated reader over it:
-the same value, limits, and messages as `Parse(stream)`, with the thread free while the bytes arrive. A seekable
+`Wire.ParseAsync(stream)` reads the stream with `ReadAsync` into a pooled buffer - first a seekable stream up to its
+remaining length, any stream up to `MaxTotalBytesRead` plus one byte - and runs the generated reader over it,
+growing the buffer and running the reader again when the value needs bytes past it (padding and pointer targets are
+not charged to the budget): the same value, limits, and messages as `Parse(stream)`, with the thread free while the bytes arrive. A seekable
 stream ends after the value and returns to its origin on a failure. `Wire.WriteAsync(stream, header)` serializes
 first and writes once, so a validation failure writes nothing. The [async guide](../async-and-pipelines.md)
 explains the rule, the position, the pointer coordinates, and cancellation in full.

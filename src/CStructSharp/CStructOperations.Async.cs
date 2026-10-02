@@ -3,6 +3,7 @@ namespace CStructSharp;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,11 +14,14 @@ using CStructSharp.Values;
 
 /// <summary>
 ///     The awaitable forms of the read operations. Each reads the stream into a pooled buffer with
-///     <see cref="Stream.ReadAsync(Memory{byte}, CancellationToken)"/> - a seekable stream up to its remaining
+///     <see cref="Stream.ReadAsync(Memory{byte}, CancellationToken)"/> - first a seekable stream up to its remaining
 ///     length, any stream up to <see cref="ReadOptions.MaxTotalBytesRead"/> plus one byte - and runs the synchronous
-///     span reader over it, so values, limits, and failure texts are those of the synchronous forms. A seekable
-///     stream ends just after the value on success and at its origin on any failure; a non-seekable stream is
-///     consumed by what was buffered, whatever the outcome. A <see cref="MemoryStream"/> that exposes its buffer is read in place
+///     span reader over it; while the reader needs bytes past the buffer (alignment padding, a pointer target, a
+///     <c>T v[EOF]</c> count move past bytes without charging them) the buffer grows and the reader runs again. So
+///     values, limits, failure texts and offsets are those of the span form over the stream's remaining bytes. A
+///     seekable stream ends just after the value on success and at its origin on any failure; a non-seekable stream is
+///     consumed by what was buffered, whatever the outcome - which exceeds the budget plus one byte only when the value
+///     addresses bytes past it. A <see cref="MemoryStream"/> that exposes its buffer is read in place
 ///     with no copy and the returned task is already complete. The token given here is linked with
 ///     <see cref="ReadOptions.CancellationToken"/>; it gates the I/O and the boundaries the synchronous reader checks.
 ///     Because the buffered region starts at the origin, a stored absolute pointer address counts from the origin -
@@ -279,15 +283,31 @@ public sealed partial class CStruct
                     return this.RunOverBuffer(stream, origin, segment.Array!, offset, available, effective, operation, finish, restoreOrigin);
                 }
 
-                // Acquisition can advance the source before it throws, so it belongs inside the restoration scope.
-                (byte[] buffer, int length) = await AsyncStreamBuffer.RentAsync(stream, effective, token).ConfigureAwait(false);
-                try
+                // Acquisition can advance the source before it throws, so it belongs inside the restoration scope. The
+                // first fill and every growth step yield the same tuple, so one await serves both: the state machine a
+                // stream that reads asynchronously boxes holds nothing for the growth path.
+                ValueTask<(byte[] Buffer, int Length, int Capacity)> pending = AsyncStreamBuffer.RentAsync(stream, effective, token);
+                while (true)
                 {
-                    return this.RunOverBuffer(stream, origin, buffer, 0, length, effective, operation, finish, restoreOrigin);
-                }
-                finally
-                {
-                    ArrayPool<byte>.Shared.Return(buffer);
+                    (byte[] buffer, int length, int capacity) = await pending.ConfigureAwait(false);
+                    long continuation = BufferedInput.Continuation(stream, origin, length, capacity, buffer);
+                    if (continuation == BufferedInput.WholeInput)
+                    {
+                        try
+                        {
+                            return this.RunOverBuffer(stream, origin, buffer, 0, length, effective, operation, finish, restoreOrigin);
+                        }
+                        finally
+                        {
+                            ArrayPool<byte>.Shared.Return(buffer);
+                        }
+                    }
+
+                    // Only part of the input is buffered: run once, and on a shortfall await the growth step and run again.
+                    if (this.TryRunOverPartialBuffer(stream, origin, buffer, length, continuation, effective, operation, finish, restoreOrigin, out TResult? result, out pending))
+                    {
+                        return result;
+                    }
                 }
             }
             catch
@@ -309,7 +329,99 @@ public sealed partial class CStruct
         }
     }
 
-    /// <summary>The synchronous half: the span reader over the buffered bytes, then the stream's final position.</summary>
+    /// <summary>
+    ///     One run over a buffer that holds only the first part of the stream's input: the synchronous half of
+    ///     <see cref="ReadBufferedAsync"/>'s growth loop, kept apart from its common path so a buffer that holds the
+    ///     whole input carries no exception handler for the growth signal. The buffer's ownership moves to this method.
+    /// </summary>
+    /// <typeparam name="TResult">The decoded result type.</typeparam>
+    /// <param name="stream">Caller-owned source, positioned just after the buffered bytes.</param>
+    /// <param name="origin">Starting byte position in the source.</param>
+    /// <param name="buffer">The buffer, rented from <see cref="ArrayPool{T}.Shared"/>.</param>
+    /// <param name="length">The bytes it holds.</param>
+    /// <param name="continuation">What <see cref="BufferedInput.Continuation(Stream, long, int, int)"/> reported for the buffer.</param>
+    /// <param name="effective">Read settings with the linked cancellation token.</param>
+    /// <param name="operation">Synchronous decoder over the borrowed bytes, which reports where it ended.</param>
+    /// <param name="finish">Adjusts result coordinates using the origin.</param>
+    /// <param name="restoreOrigin">Whether successful queries restore rather than consume.</param>
+    /// <param name="result">The result with caller-visible coordinates when the run succeeded.</param>
+    /// <param name="growth">
+    ///     When the run needed bytes past the buffer: the growth step, which now owns the buffer; the caller awaits it
+    ///     and runs again over the larger buffer.
+    /// </param>
+    /// <returns>Whether the run succeeded; on success and on failure the buffer has been returned to the pool.</returns>
+    private bool TryRunOverPartialBuffer<TResult>(
+        Stream stream,
+        long origin,
+        byte[] buffer,
+        int length,
+        long continuation,
+        ReadOptions? effective,
+        RegionOperation<TResult> operation,
+        Func<TResult, long, TResult> finish,
+        bool restoreOrigin,
+        [MaybeNullWhen(false)] out TResult result,
+        out ValueTask<(byte[] Buffer, int Length, int Capacity)> growth)
+    {
+        bool owned = true;
+        try
+        {
+            result = this.RunOverBuffer(stream, origin, buffer, 0, length, BufferedInput.Continue(effective, continuation), operation, finish, restoreOrigin);
+            growth = default;
+            return true;
+        }
+        catch (BufferedInputShortfallException shortfall)
+        {
+            // The effective options carry the operation's token whenever it can be cancelled.
+            owned = false;
+            growth = BufferedInput.GrowStreamAsync(stream, origin, buffer, length, shortfall.NeededLength, effective?.CancellationToken ?? default);
+            result = default;
+            return false;
+        }
+        finally
+        {
+            if (owned)
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+    }
+
+    /// <summary>Runs a region operation over borrowed bytes, pinned for the call.</summary>
+    /// <typeparam name="TResult">The decoded result type.</typeparam>
+    /// <param name="source">The borrowed bytes; offset 0 is the operation's coordinate 0.</param>
+    /// <param name="operation">The synchronous decoder.</param>
+    /// <param name="options">The read settings for this run.</param>
+    /// <param name="consumed">Where the read ended, in bytes from the first byte.</param>
+    /// <returns>The result in buffer coordinates.</returns>
+    private static unsafe TResult RunRegion<TResult>(ReadOnlySpan<byte> source, RegionOperation<TResult> operation, ReadOptions? options, out long consumed)
+    {
+        fixed (byte* pointer = &System.Runtime.InteropServices.MemoryMarshal.GetReference(source))
+        {
+            return operation(pointer, source.Length, options, out consumed);
+        }
+    }
+
+    /// <summary>Sets a seekable stream's final position after a successful operation and moves the result into caller coordinates.</summary>
+    /// <typeparam name="TResult">The decoded result type.</typeparam>
+    /// <param name="stream">Caller-owned source whose successful final position is updated.</param>
+    /// <param name="origin">Starting byte position in the source.</param>
+    /// <param name="result">The result in buffer coordinates.</param>
+    /// <param name="consumed">Where the read ended, in bytes from the origin.</param>
+    /// <param name="finish">Adjusts result coordinates using the origin.</param>
+    /// <param name="restoreOrigin">Whether successful queries restore rather than consume.</param>
+    /// <returns>The result with caller-visible coordinates.</returns>
+    private static TResult Complete<TResult>(Stream stream, long origin, TResult result, long consumed, Func<TResult, long, TResult> finish, bool restoreOrigin)
+    {
+        if (stream.CanSeek)
+        {
+            stream.Position = restoreOrigin ? origin : origin + consumed;
+        }
+
+        return finish(result, origin);
+    }
+
+    /// <summary>The synchronous half of the in-place path: the span reader over the exposed bytes, then the stream's final position.</summary>
     /// <typeparam name="TResult">The decoded result type.</typeparam>
     /// <param name="stream">Caller-owned source whose successful final position is updated.</param>
     /// <param name="origin">Starting byte position in the source.</param>
@@ -322,7 +434,7 @@ public sealed partial class CStruct
     /// <param name="restoreOrigin">Whether successful queries restore rather than consume.</param>
     /// <returns>The result with caller-visible coordinates.</returns>
     /// <remarks>The enclosing operation restores position after failures; this method shifts diagnostic offsets only.</remarks>
-    private unsafe TResult RunOverBuffer<TResult>(
+    private TResult RunOverBuffer<TResult>(
         Stream stream,
         long origin,
         byte[] buffer,
@@ -335,19 +447,8 @@ public sealed partial class CStruct
     {
         try
         {
-            TResult result;
-            long consumed;
-            fixed (byte* pointer = &System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(buffer))
-            {
-                result = operation(pointer + offset, length, effective, out consumed);
-            }
-
-            if (stream.CanSeek)
-            {
-                stream.Position = restoreOrigin ? origin : origin + consumed;
-            }
-
-            return finish(result, origin);
+            TResult result = RunRegion(new ReadOnlySpan<byte>(buffer, offset, length), operation, effective, out long consumed);
+            return Complete(stream, origin, result, consumed, finish, restoreOrigin);
         }
         catch (CStructException failure)
         {

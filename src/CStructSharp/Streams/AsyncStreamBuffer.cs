@@ -5,36 +5,35 @@ using System.Buffers;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using CStructSharp.Reading;
 
 /// <summary>
-///     The one buffering rule every stream form that runs the span reader follows (the generated <c>Parse(Stream)</c>,
-///     the runtime's <c>*Async</c> operations): the input is read from the stream's current position into a pooled
-///     array - a seekable stream up to its remaining length, any stream up to <see cref="ReadOptions.MaxTotalBytesRead"/>,
-///     plus one byte so the reader reports a budget failure rather than a short read when the value is larger than
-///     the budget - and the span reader runs over it. The caller returns the array to the pool.
+///     The stream half of the buffering every stream form that runs the span reader shares (the generated
+///     <c>Parse(Stream)</c> and <c>ParseAsync</c>, the runtime's <c>*Async</c> operations, the windows of a record
+///     sequence): the input is read from the stream's current position into a pooled array - first a seekable stream up
+///     to its remaining length, any stream up to <see cref="ReadOptions.MaxTotalBytesRead"/>, plus one byte - and the
+///     array grows (<see cref="Grow"/>, <see cref="Fill"/>) when the reader needs bytes past it, as
+///     <see cref="BufferedInput"/> decides. The caller returns the array to the pool.
 /// </summary>
 /// <remarks>
 ///     A seekable stream is left where the read loop stopped; the operation that used the buffer sets the final
 ///     position (just after the value on success, the origin on failure). A non-seekable stream is consumed by
-///     whatever the loop read, which the documentation of every async form states.
+///     whatever the loops read, which the documentation of every async form states.
 /// </remarks>
 internal static class AsyncStreamBuffer
 {
-    /// <summary>The number of bytes to buffer: the budget plus one, or the seekable stream's remaining length plus one when that is smaller.</summary>
+    /// <summary>
+    ///     The number of bytes to buffer first: the budget plus one, or the seekable stream's remaining length plus one
+    ///     when that is smaller, never more than one array (<see cref="BufferedInput.InitialLength"/>, the rule the
+    ///     sequence copy shares). The byte past a seekable stream's end lets a fill that comes up short show that the
+    ///     buffer holds the whole input.
+    /// </summary>
     /// <param name="stream">The input stream; its length and position are consulted only when it can seek.</param>
     /// <param name="options">The read options that supply the byte budget, or <see langword="null"/>.</param>
-    /// <returns>The buffer capacity in bytes, at most <c>int.MaxValue - 1</c>.</returns>
+    /// <returns>The buffer capacity in bytes, from 1 to <see cref="Array.MaxLength"/>.</returns>
     public static int Capacity(Stream stream, ReadOptions? options)
     {
-        ReadOperationSettings settings = ReadOperationSettings.SnapshotReadOptions(options);
-        long limit = Math.Min(settings.MaxTotalBytesRead, int.MaxValue - 1);
-        if (stream.CanSeek)
-        {
-            limit = Math.Min(limit, Math.Max(0, stream.Length - stream.Position));
-        }
-
-        return (int)Math.Min(limit + 1, int.MaxValue - 1);
+        long inputLength = stream.CanSeek ? Math.Min(Math.Max(0, stream.Length - stream.Position), long.MaxValue - 1) + 1 : BufferedInput.UnknownLength;
+        return BufferedInput.InitialLength(options, inputLength);
     }
 
     /// <summary>Reads the input synchronously; see the class remarks.</summary>
@@ -59,18 +58,7 @@ internal static class AsyncStreamBuffer
         byte[] buffer = pool.Rent(capacity);
         try
         {
-            length = 0;
-            while (length < capacity)
-            {
-                int read = stream.Read(buffer, length, capacity - length);
-                if (read <= 0)
-                {
-                    break;
-                }
-
-                length += read;
-            }
-
+            length = Fill(stream, buffer, 0, capacity);
             return buffer;
         }
         catch
@@ -85,10 +73,11 @@ internal static class AsyncStreamBuffer
     /// <param name="options">The read options that bound the byte count, or <see langword="null"/>.</param>
     /// <param name="cancellationToken">The token observed before and during each read.</param>
     /// <returns>
-    ///     An array rented from <see cref="ArrayPool{T}.Shared"/>, which the caller returns, and the number of bytes
-    ///     read into it.
+    ///     An array rented from <see cref="ArrayPool{T}.Shared"/>, which the caller returns, the number of bytes read
+    ///     into it, and the number of bytes the fill asked for (<see cref="Capacity"/>; fewer bytes read means the
+    ///     stream ended).
     /// </returns>
-    public static ValueTask<(byte[] Buffer, int Length)> RentAsync(Stream stream, ReadOptions? options, CancellationToken cancellationToken)
+    public static ValueTask<(byte[] Buffer, int Length, int Capacity)> RentAsync(Stream stream, ReadOptions? options, CancellationToken cancellationToken)
         => RentAsync(stream, options, ArrayPool<byte>.Shared, cancellationToken);
 
     /// <summary>Reads the input asynchronously from <paramref name="pool"/>'s arrays; the tests supply a counting pool.</summary>
@@ -97,11 +86,16 @@ internal static class AsyncStreamBuffer
     /// <param name="pool">The pool that supplies the array; the array returns to it if reading fails.</param>
     /// <param name="cancellationToken">The token observed before and during each read.</param>
     /// <returns>
-    ///     The rented array, which the caller returns to <paramref name="pool"/>, and the number of bytes read into it.
+    ///     The rented array, which the caller returns to <paramref name="pool"/>, the number of bytes read into it, and
+    ///     the number of bytes the fill asked for.
     /// </returns>
+    /// <remarks>
+    ///     The fill loop is written out here rather than awaiting <see cref="FillAsync"/>: a stream that completes its
+    ///     reads asynchronously then boxes one state machine for the acquisition, not two.
+    /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="stream"/> is <see langword="null"/>.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
-    public static async ValueTask<(byte[] Buffer, int Length)> RentAsync(Stream stream, ReadOptions? options, ArrayPool<byte> pool, CancellationToken cancellationToken)
+    public static async ValueTask<(byte[] Buffer, int Length, int Capacity)> RentAsync(Stream stream, ReadOptions? options, ArrayPool<byte> pool, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stream);
         cancellationToken.ThrowIfCancellationRequested();
@@ -121,13 +115,75 @@ internal static class AsyncStreamBuffer
                 length += read;
             }
 
-            return (buffer, length);
+            return (buffer, length, capacity);
         }
         catch
         {
             pool.Return(buffer);
             throw;
         }
+    }
+
+    /// <summary>Reads from the stream into <paramref name="buffer"/> after its first <paramref name="length"/> bytes until <paramref name="capacity"/> bytes are buffered or the stream ends.</summary>
+    /// <param name="stream">The stream, read from its current position.</param>
+    /// <param name="buffer">The array that receives the bytes; at least <paramref name="capacity"/> long.</param>
+    /// <param name="length">The bytes already buffered.</param>
+    /// <param name="capacity">The bytes to buffer in total.</param>
+    /// <returns>The bytes buffered afterwards; less than <paramref name="capacity"/> only when the stream ended.</returns>
+    public static int Fill(Stream stream, byte[] buffer, int length, int capacity)
+    {
+        while (length < capacity)
+        {
+            int read = stream.Read(buffer, length, capacity - length);
+            if (read <= 0)
+            {
+                break;
+            }
+
+            length += read;
+        }
+
+        return length;
+    }
+
+    /// <summary>The awaitable form of <see cref="Fill"/>, with <see cref="Stream.ReadAsync(Memory{byte}, CancellationToken)"/>.</summary>
+    /// <param name="stream">The stream, read from its current position.</param>
+    /// <param name="buffer">The array that receives the bytes; at least <paramref name="capacity"/> long.</param>
+    /// <param name="length">The bytes already buffered.</param>
+    /// <param name="capacity">The bytes to buffer in total.</param>
+    /// <param name="cancellationToken">The token observed during each read.</param>
+    /// <returns>The bytes buffered afterwards; less than <paramref name="capacity"/> only when the stream ended.</returns>
+    public static async ValueTask<int> FillAsync(Stream stream, byte[] buffer, int length, int capacity, CancellationToken cancellationToken)
+    {
+        while (length < capacity)
+        {
+            int read = await stream.ReadAsync(buffer.AsMemory(length, capacity - length), cancellationToken).ConfigureAwait(false);
+            if (read <= 0)
+            {
+                break;
+            }
+
+            length += read;
+        }
+
+        return length;
+    }
+
+    /// <summary>
+    ///     Moves the first <paramref name="length"/> bytes of <paramref name="buffer"/> into a larger array from
+    ///     <paramref name="pool"/> and returns the old array to it.
+    /// </summary>
+    /// <param name="buffer">The current array, rented from <paramref name="pool"/>; the caller no longer uses it afterwards.</param>
+    /// <param name="length">The bytes it holds.</param>
+    /// <param name="capacity">The length the new array must reach.</param>
+    /// <param name="pool">The pool both arrays belong to.</param>
+    /// <returns>The new array, holding the same first bytes.</returns>
+    public static byte[] Grow(byte[] buffer, int length, int capacity, ArrayPool<byte> pool)
+    {
+        byte[] larger = pool.Rent(capacity);
+        Buffer.BlockCopy(buffer, 0, larger, 0, length);
+        pool.Return(buffer);
+        return larger;
     }
 
     /// <summary>

@@ -23,6 +23,21 @@ internal static class CustomCodecAdapter
     private const int InitialWindow = 256;
 
     /// <summary>
+    ///     Reports whether a codec's answer over a window that ends where a partly buffered input's buffer ends
+    ///     (<see cref="Streams.BufferedInput"/>) may change once more of the input is buffered. The codec's contract
+    ///     promises it the whole remaining input, so any answer that could rest on the window's end - a value that took
+    ///     the whole window, a short read, a rejection - is decided over more input. A fixed-size codec whose window holds
+    ///     its declared size, and a value that ended before the window's end, are already decided.
+    /// </summary>
+    /// <param name="codec">The codec.</param>
+    /// <param name="failure">The failure <see cref="DecodeFromMemory"/> returned, or <see langword="null"/>.</param>
+    /// <param name="consumed">The bytes <see cref="DecodeFromMemory"/> reported.</param>
+    /// <param name="windowLength">The window's length in bytes.</param>
+    /// <returns>Whether the caller must require bytes past the window before using the answer.</returns>
+    public static bool MayDependOnWindowEnd(ICustomCodec codec, CStructReadException? failure, int consumed, int windowLength)
+        => (codec.FixedSize is not int size || size > windowLength) && (consumed == windowLength || failure is not null);
+
+    /// <summary>
     ///     Decodes one value from memory-backed input (the whole remaining input is the codec's window), as the
     ///     runtime's memory path and the generated code's <c>ReadCursor.TakeCustom</c> both do: the value and the
     ///     bytes it took, or the failure to raise after the caller moved past the bytes the codec looked at.

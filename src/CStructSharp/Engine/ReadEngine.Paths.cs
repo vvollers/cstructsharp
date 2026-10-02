@@ -76,7 +76,7 @@ internal static partial class ReadEngine
         var state = new ReadEngineState(layout, slots, options, null);
         try
         {
-            var cursor = new MemoryReadCursor(region, length, 0, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken);
+            var cursor = new MemoryReadCursor(region, length, 0, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken, options.ContinuedInputLength);
             try
             {
                 return RunValue(ref cursor, ref state, segments, root, null);
@@ -150,7 +150,7 @@ internal static partial class ReadEngine
         var state = new ReadEngineState(layout, slots, options, debug);
         try
         {
-            var cursor = new MemoryReadCursor(region, length, 0, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken);
+            var cursor = new MemoryReadCursor(region, length, 0, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken, options.ContinuedInputLength);
             try
             {
                 return RunValue(ref cursor, ref state, segments, root, null);
@@ -223,7 +223,7 @@ internal static partial class ReadEngine
         var state = new ReadEngineState(layout, slots, options, debug);
         try
         {
-            var cursor = new MemoryReadCursor(region, length, 0, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken);
+            var cursor = new MemoryReadCursor(region, length, 0, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken, options.ContinuedInputLength);
             try
             {
                 return RunComposite(ref cursor, ref state, segments, null);
@@ -291,7 +291,7 @@ internal static partial class ReadEngine
         var state = new ReadEngineState(layout, slots, options, null);
         try
         {
-            var cursor = new MemoryReadCursor(region, length, 0, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken);
+            var cursor = new MemoryReadCursor(region, length, 0, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken, options.ContinuedInputLength);
             return RunAddress(ref cursor, ref state, segments);
         }
         finally
@@ -355,7 +355,7 @@ internal static partial class ReadEngine
         var state = new ReadEngineState(layout, slots, options, null);
         try
         {
-            var cursor = new MemoryReadCursor(region, length, 0, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken);
+            var cursor = new MemoryReadCursor(region, length, 0, options.MaxStringBytes, options.MaxTotalBytesRead, options.CancellationToken, options.ContinuedInputLength);
             return RunLength(ref cursor, ref state, segments, path);
         }
         finally

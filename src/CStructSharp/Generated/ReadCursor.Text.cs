@@ -19,6 +19,7 @@ public ref partial struct ReadCursor
         this.RequireBoundedTextBytes(count, member, memberType);
         if (count > this.Remaining)
         {
+            this.RequireBuffered(this.position, (long)this.position + count);
             this.Charge(this.Remaining, member, memberType);
             this.position = this.source.Length;
             throw this.Fail(ReadFailures.BoundedTextShortRead, member, memberType);
@@ -137,7 +138,14 @@ public ref partial struct ReadCursor
         while (true)
         {
             this.settings.CancellationToken.ThrowIfCancellationRequested();
-            int bytesRead = Math.Min(Codecs.PrimitiveCodecs.ChunkRequest(budget - offset, unitSize), remaining.Length - offset);
+            int request = Codecs.PrimitiveCodecs.ChunkRequest(budget - offset, unitSize);
+            if (request + unitSize - 1 > remaining.Length - offset)
+            {
+                // The chunk, or the second byte of its last code unit, would run past a partly buffered source.
+                this.RequireBuffered(start + offset, (long)start + offset + request + unitSize - 1);
+            }
+
+            int bytesRead = Math.Min(request, remaining.Length - offset);
             if (bytesRead == 0)
             {
                 throw this.Fail(ReadFailures.TerminatedStringUnterminated, member, memberType);

@@ -102,7 +102,7 @@ public sealed partial class CStruct
             try
             {
                 // Own each rental only after acquisition succeeds; either acquisition can fail before staging.
-                (buffer, int length) = await AsyncStreamBuffer.RentAsync(stream, region, token).ConfigureAwait(false);
+                (buffer, int length, _) = await AsyncStreamBuffer.RentAsync(stream, region, token).ConfigureAwait(false);
                 original = ArrayPool<byte>.Shared.Rent(Math.Max(length, 1));
                 buffer.AsSpan(0, length).CopyTo(original);
                 this.Update(buffer.AsSpan(0, length), path, value, variables, effective);

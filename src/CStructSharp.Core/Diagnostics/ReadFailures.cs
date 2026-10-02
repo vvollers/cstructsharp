@@ -42,6 +42,12 @@ internal static class ReadFailures
     /// <summary>A terminated string that ran past the configured encoded-byte limit without a terminator.</summary>
     public const string TerminatedStringLimit = "String field exceeded the configured encoded-byte limit.";
 
+    /// <summary>
+    ///     A buffered read (a segmented sequence, an asynchronous or generated stream read) whose value needs more of the
+    ///     input than one array can hold, so the input cannot be buffered far enough to read it as a span would.
+    /// </summary>
+    public const string BufferedInputLimit = "The value needs more of the input than a buffered read can hold in one array.";
+
     /// <summary>A position, set by a seek or a padding skip, that lies outside the supplied memory region.</summary>
     public const string OutsideRegion = "The requested position is outside the supplied memory region.";
 

@@ -22,7 +22,7 @@ public class AsyncStreamBufferTests
         byte[] bytes = [0xEE, 1, 2, 3, 4, 5, 6,];
         using var sync = new MemoryStream(bytes);
         sync.Position = 1;
-        byte[] buffer = ReadCursor.BufferStream(sync, null, out int length);
+        byte[] buffer = AsyncStreamBuffer.Rent(sync, null, out int length);
         try
         {
             Assert.AreEqual(6, length, "the remaining bytes; the plus-one byte is not there to read");
@@ -40,7 +40,7 @@ public class AsyncStreamBufferTests
         {
             await using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
             file.Position = 1;
-            (byte[] asyncBuffer, int asyncLength) = await ReadCursor.BufferStreamAsync(file, null, CancellationToken.None);
+            (byte[] asyncBuffer, int asyncLength, _) = await AsyncStreamBuffer.RentAsync(file, null, CancellationToken.None);
             try
             {
                 Assert.AreEqual(6, asyncLength);
@@ -74,7 +74,7 @@ public class AsyncStreamBufferTests
 
         var options = new ReadOptions { MaxTotalBytesRead = 40, };
         using var stream = new NonSeekableStream(bytes);
-        (byte[] buffer, int length) = await AsyncStreamBuffer.RentAsync(stream, options, CancellationToken.None);
+        (byte[] buffer, int length, _) = await AsyncStreamBuffer.RentAsync(stream, options, CancellationToken.None);
         try
         {
             Assert.AreEqual(41, length);
@@ -87,7 +87,7 @@ public class AsyncStreamBufferTests
         }
 
         using var rest = new NonSeekableStream(bytes[..10]);
-        (buffer, length) = await AsyncStreamBuffer.RentAsync(rest, options, CancellationToken.None);
+        (buffer, length, _) = await AsyncStreamBuffer.RentAsync(rest, options, CancellationToken.None);
         ArrayPool<byte>.Shared.Return(buffer);
         Assert.AreEqual(10, length, "a stream that ends before the budget gives what it has");
     }

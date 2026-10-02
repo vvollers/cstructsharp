@@ -67,8 +67,11 @@ conditions.
 The awaitable forms (`ParseAsync`, `ReadValueAsync`, `ReadValueAsync<T>`, `ParseWithDebugAsync`,
 `ReadValueWithDebugAsync`, `TryReadValueAsync<T>`, `ResolveAddressAsync`, `GetArrayLengthAsync`, `WriteAsync`,
 `UpdateAsync`, `ParseManyAsync`) accept any readable stream for a read: the bytes are read with `ReadAsync` into a
-pooled buffer - a seekable stream up to its remaining length, any stream up to `MaxTotalBytesRead` plus one byte -
-and the span reader decodes them, so a stream that cannot seek is consumed by what was buffered. A seekable stream
+pooled buffer - first a seekable stream up to its remaining length, any stream up to `MaxTotalBytesRead` plus one
+byte - and the span reader decodes them. The budget charges consumed bytes, while padding, pointer targets and
+`T v[EOF]` counts move past bytes without consuming them; when the reader needs a byte past the buffer, the buffer
+grows and the reader runs again, so the result equals the span read's. A stream that cannot seek is consumed by what
+was buffered. A seekable stream
 ends after the value on success and at its origin on any failure; the two queries end at the origin. `UpdateAsync`
 needs a readable, writable, seekable stream; `ParseManyAsync` of a runtime-sized root needs a seekable one. In
 the buffered forms a stored absolute pointer address counts from the origin, as in the memory forms.
@@ -78,7 +81,7 @@ the buffered forms a stored absolute pointer address counts from the origin, as 
 `Parse`, `ReadValue`, and `TryReadValue<T>` accept `byte[]`, `ReadOnlySpan<byte>`, or `ReadOnlyMemory<byte>`. They complete
 synchronously and do not retain the caller's region. Pointer coordinates start at zero inside that region. Every
 read operation also accepts a `ReadOnlySequence<byte>`: one segment is read in place, a chain of segments through a
-pooled copy bounded by `MaxTotalBytesRead` plus one byte.
+pooled copy - first `MaxTotalBytesRead` plus one byte - that grows, by the same rule, while the reader needs bytes past it.
 
 `ParseMany` reads one root struct after another until the input ends - memory, a sequence, or a seekable stream -
 and yields each record on the step that reaches it, with the limits applied per record; trailing bytes shorter

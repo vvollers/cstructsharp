@@ -32,11 +32,31 @@ follows a single rule:
 
 1. Read the stream with `ReadAsync` into a pooled buffer: a seekable stream up to its remaining length, any
    stream up to `MaxTotalBytesRead`, plus one byte.
-2. Run the span reader over the buffer.
+2. Run the span reader over the buffer. If the reader needs a byte past the buffer while the stream has more, read
+   more of the stream - at least twice as much, never past its end - and run the reader again.
 3. Set the stream's position and return the buffer to the pool.
 
 The extra byte is what makes a value larger than the budget fail with the budget message rather than a short
-read, exactly as the synchronous stream reader would. The stream position follows from the rule:
+read, exactly as the synchronous stream reader would. Step 2 is needed because the budget counts the bytes a read
+*consumes*, not the position it reaches. Alignment padding is skipped, not consumed; a pointer jumps to its target;
+a `T v[EOF]` array is counted to the end of the input before its elements are read. Each moves the reader past bytes
+without charging them, so a value can need bytes past the first buffer while staying inside the budget.
+
+A worked example. In an aligned layout, `b` must start at a multiple of 4, so three padding bytes follow `a`, and
+the struct ends with three bytes of tail padding:
+
+```c
+struct padded { uint8 a; uint32 b; uint8 c; };   // a at 0, b at 4, c at 8; 12 bytes in all
+```
+
+The input is `01 EE EE EE 02 00 00 00 03 EE EE EE` (`EE` marks padding). The read consumes 6 bytes - `a`, the four
+bytes of `b`, and `c` - so 6 is the smallest budget a span read succeeds with. With that budget the first buffer
+holds 7 bytes, but `b` occupies offsets 4 to 7. The reader asks for byte 7, the buffer grows to the whole input, and
+the reader runs again: `a = 1`, `b = 2`, `c = 3`, as from a span. With a budget of 5 every form fails with the
+budget message. Once the buffer holds what the value needs, the result is the span reader's: the same value, the
+same failure text and the same offset.
+
+The stream position follows from the rule:
 
 ```text
 seekable stream, success:            origin ─── value ───┤ position   (just after the value)
@@ -46,8 +66,10 @@ non-seekable stream:                 consumed by what was buffered, whatever the
 ```
 
 A stream that cannot seek (a socket, a pipe, a compressed stream) cannot be rewound, so the bytes the rule
-buffered are gone whether the value used them or not. A value-sized budget does **not** frame consecutive records:
-`ParseAsync` may consume the budget plus one byte. For example, with `struct record { uint16 value; };`, input
+buffered are gone whether the value used them or not: normally up to the budget plus one byte, and more only when
+the value addresses bytes past them (as `padded` above does). One buffer never holds more than an array can
+(about 2 GiB); a value that needs more fails with `CStructReadLimitException`. A value-sized budget does **not**
+frame consecutive records: `ParseAsync` may consume the budget plus one byte. For example, with `struct record { uint16 value; };`, input
 `01 00 02 00` and a two-byte budget, the first call returns 1 but consumes `01 00 02`. A second call has only `00`
 left, not the two bytes needed for 2. The budget limits decoding; it does not define stream message boundaries.
 
