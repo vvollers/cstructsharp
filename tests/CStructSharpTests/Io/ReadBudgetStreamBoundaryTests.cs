@@ -242,6 +242,102 @@ public class ReadBudgetStreamBoundaryTests
     }
 
     /// <summary>
+    ///     With a budget of 2 over <c>11 12 13</c>, two single-byte reads exactly reach the budget; the third byte is still
+    ///     consumed but fails, and its charge stays recorded, so the remaining budget is -1. Later charges of zero or less
+    ///     cost nothing, while a further byte fails again and is recorded again.
+    /// </summary>
+    /// <param name="memoryBacked">Whether the bytes are read from memory or delegated to the stream.</param>
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public void Charge_AcceptsTheExactBudgetAndRecordsTheOvershoot(bool memoryBacked)
+    {
+        using var source = new MemoryStream([11, 12, 13,], 0, 3, writable: false, publiclyVisible: memoryBacked);
+        using var reader = new ReadBudgetStream(source, 100, 2);
+
+        Assert.AreEqual(11, reader.ReadByte());
+        Assert.AreEqual(12, reader.ReadByte());
+        Assert.AreEqual(0L, reader.RemainingReadBudget);
+
+        // The byte is read before it is charged, so the failing read has consumed it.
+        CStructReadLimitException failure = Assert.ThrowsExactly<CStructReadLimitException>(() => reader.ReadByte());
+        Assert.AreEqual(ReadFailures.TotalBytesLimit, failure.Message);
+        Assert.IsNull(failure.InnerException);
+        Assert.AreEqual(3L, reader.Position);
+        Assert.AreEqual(-1L, reader.RemainingReadBudget);
+
+        // A caller that refunds the budget change it observed relies on the overshoot staying recorded.
+        reader.Charge(0);
+        reader.Charge(-1);
+        Assert.AreEqual(-1L, reader.RemainingReadBudget);
+        Assert.AreEqual(ReadFailures.TotalBytesLimit, Assert.ThrowsExactly<CStructReadLimitException>(() => reader.Charge(1)).Message);
+        Assert.AreEqual(-2L, reader.RemainingReadBudget);
+    }
+
+    /// <summary>
+    ///     A charge that would overflow the cumulative count reports the accounting range and leaves the count unchanged, so
+    ///     the remaining budget is still the 1 byte it was before the failure.
+    /// </summary>
+    [TestMethod]
+    public void Charge_AccountingOverflowLeavesTheCountUnchanged()
+    {
+        using var source = new MemoryStream([11,], 0, 1, writable: false, publiclyVisible: true);
+        using var reader = new ReadBudgetStream(source, 100, long.MaxValue);
+        SeedBytesRead(reader, long.MaxValue - 1);
+
+        CStructReadLimitException failure = Assert.ThrowsExactly<CStructReadLimitException>(() => reader.Charge(long.MaxValue));
+        Assert.IsInstanceOfType<OverflowException>(failure.InnerException);
+        Assert.AreEqual(1L, reader.RemainingReadBudget);
+        reader.Charge(1);
+        Assert.AreEqual(0L, reader.RemainingReadBudget);
+    }
+
+    /// <summary>
+    ///     A path read of <c>s.b</c> in <c>struct s { uint32 a; uint32 b; }</c> through the engine's memory cursor succeeds
+    ///     with the smallest budget it needs and fails with the total-limit message one byte below it, from both a byte
+    ///     array and an exposable memory stream.
+    /// </summary>
+    [TestMethod]
+    public void PathRead_ExactBudgetSucceedsAndOneLessFails()
+    {
+        var layout = new CStruct("struct s { uint32 a; uint32 b; };");
+        byte[] data = [1, 0, 0, 0, 2, 0, 0, 0,];
+
+        // A path read is charged the bytes from the struct start through its target, as a parse up to b would be.
+        const int Needed = 8;
+        var enough = new ReadOptions { MaxTotalBytesRead = Needed, };
+        var tooSmall = new ReadOptions { MaxTotalBytesRead = Needed - 1, };
+        Assert.AreEqual(2u, layout.ReadValue(data, "s.b", options: enough));
+        Assert.AreEqual(2u, layout.ReadValue(ExposedStream(data), "s.b", options: enough));
+
+        // The failure message may carry the field context after the shared total-limit wording.
+        string limitPrefix = ReadFailures.TotalBytesLimit.TrimEnd('.');
+        CStructReadLimitException arrayFailure = Assert.ThrowsExactly<CStructReadLimitException>(
+            () => layout.ReadValue(data, "s.b", options: tooSmall));
+        CStructReadLimitException streamFailure = Assert.ThrowsExactly<CStructReadLimitException>(
+            () => layout.ReadValue(ExposedStream(data), "s.b", options: tooSmall));
+        StringAssert.StartsWith(arrayFailure.Message, limitPrefix);
+        StringAssert.StartsWith(streamFailure.Message, limitPrefix);
+    }
+
+    /// <summary>
+    ///     An exposable memory stream may be positioned past its end before the operation starts. Reading there returns no
+    ///     bytes and charges nothing, instead of addressing the buffer beyond its slice.
+    /// </summary>
+    [TestMethod]
+    public void MemoryRead_PositionedPastTheEndReturnsNothing()
+    {
+        using var source = new MemoryStream([11, 12, 13,], 0, 3, writable: false, publiclyVisible: true) { Position = 10, };
+        using var reader = new ReadBudgetStream(source, 100, 5);
+        byte[] destination = [99, 99,];
+
+        Assert.AreEqual(0, reader.Read(destination, 0, destination.Length));
+        Assert.AreEqual(-1, reader.ReadByte());
+        CollectionAssert.AreEqual(new byte[] { 99, 99, }, destination);
+        Assert.AreEqual(5L, reader.RemainingReadBudget);
+    }
+
+    /// <summary>
     ///     The wrapper must read 11,22,33 through array, span, and single-byte APIs, report end-of-stream correctly,
     ///     and permit seeking.
     /// </summary>
@@ -301,6 +397,11 @@ public class ReadBudgetStreamBoundaryTests
         typeof(MemoryReadCore).GetField("bytesRead", Private)!.SetValue(core, bytesRead);
         coreField.SetValue(reader, core);
     }
+
+    /// <summary>Wraps <paramref name="data"/> in a read-only memory stream whose buffer the reader may use directly.</summary>
+    /// <param name="data">The bytes to expose; the stream does not copy them.</param>
+    /// <returns>A stream positioned at byte 0.</returns>
+    private static MemoryStream ExposedStream(byte[] data) => new(data, 0, data.Length, writable: false, publiclyVisible: true);
 
     /// <summary>Exposes its array for borrowed reads but fails the independent flush operation.</summary>
     private sealed class FailedFlushMemoryStream : MemoryStream

@@ -2,6 +2,7 @@ namespace CStructSharp.Streams;
 
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using CStructSharp.Diagnostics;
 
 /// <summary>
@@ -299,7 +300,37 @@ internal unsafe struct MemoryReadCore
     /// </summary>
     /// <param name="count">The number of bytes just read; zero or less charges nothing.</param>
     /// <exception cref="CStructReadLimitException">The total exceeds the budget or the accounting range.</exception>
+    /// <remarks>
+    ///     This runs on every memory and budget-stream read, so the common case is one comparison against the remaining
+    ///     budget; everything else goes to <see cref="ChargeSlow"/>. The subtraction cannot overflow because the operation
+    ///     boundary rejects a negative budget and <see cref="Refund"/> only gives back bytes that were charged, so both
+    ///     operands are nonnegative.
+    /// </remarks>
     public void Charge(long count)
+    {
+        if (count > this.maxTotalBytesRead - this.bytesRead)
+        {
+            this.ChargeSlow(count);
+        }
+        else if (count > 0)
+        {
+            this.bytesRead += count;
+        }
+    }
+
+    /// <summary>
+    ///     Handles a <see cref="Charge"/> that does not fit the remaining budget: it records the overshoot and throws, or
+    ///     reports the accounting-range failure without changing the total, or charges nothing for a count of zero or less
+    ///     (an empty read after an earlier charge already went over the budget).
+    /// </summary>
+    /// <param name="count">The number of bytes just read.</param>
+    /// <remarks>
+    ///     Kept out of line so the hot <see cref="Charge"/> stays small. The overshoot stays recorded on purpose: a caller
+    ///     that refunds the budget it observed changing (a terminated array's scan) gives back exactly what was charged.
+    /// </remarks>
+    /// <exception cref="CStructReadLimitException">The total exceeds the budget or the accounting range.</exception>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void ChargeSlow(long count)
     {
         if (count <= 0)
         {
@@ -317,9 +348,6 @@ internal unsafe struct MemoryReadCore
                 exception);
         }
 
-        if (this.bytesRead > this.maxTotalBytesRead)
-        {
-            throw new CStructReadLimitException(ReadFailures.TotalBytesLimit);
-        }
+        throw new CStructReadLimitException(ReadFailures.TotalBytesLimit);
     }
 }

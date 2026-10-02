@@ -838,14 +838,17 @@
   },
   {
    "pattern": "Streams/MemoryReadCore.cs",
-   "sourceSha256": "132c7ecef378dff3c6856c61580f044e66151739dd5338f62983858e7ec39263",
+   "sourceSha256": "a30ba4820f77b6bdbfddc40f7cf110728c42a219658ad54e41f8af97ba207412",
    "mutants": [
     { "mutatorName": "Logical mutation", "replacement": "this.memoryBacked || count <= this.knownLength - this.position",
-     "location": {"start":{"line":233,"column":13},"end":{"line":233,"column":75}},
+     "location": {"start":{"line":234,"column":13},"end":{"line":234,"column":75}},
      "reason": "This changes only the availability subexpression of the outer preflight; its byte-budget condition remains required. A newly admitted case still calls TryReadSpan, which repeats the original memoryBacked and remaining-length checks before touching bytes or accounting. It returns false with a default span on every unavailable/non-memory case. Cases admitted by the original outer check remain admitted, with identical reads and budget charges." },
     { "mutatorName": "Arithmetic mutation", "replacement": "this.knownLength + this.position",
-     "location": {"start":{"line":233,"column":43},"end":{"line":233,"column":75}},
-     "reason": "TryReadSpan repeats the original subtraction-based availability check. If a nonnegative requested count is available, the memoryBacked conjunct has already excluded a stream-mode core, and every memory core reads an Int32-sized input (a FixedBufferStream region, an exposed MemoryStream array, or the span, array or memory the engine pins), so length + position cannot overflow Int64 and is at least length - position. Thus every originally successful preflight still reaches the same read. Extra candidates are rejected by the unchanged inner check without consuming or charging bytes." }
+     "location": {"start":{"line":234,"column":43},"end":{"line":234,"column":75}},
+     "reason": "TryReadSpan repeats the original subtraction-based availability check. If a nonnegative requested count is available, the memoryBacked conjunct has already excluded a stream-mode core, and every memory core reads an Int32-sized input (a FixedBufferStream region, an exposed MemoryStream array, or the span, array or memory the engine pins), so length + position cannot overflow Int64 and is at least length - position. Thus every originally successful preflight still reaches the same read. Extra candidates are rejected by the unchanged inner check without consuming or charging bytes." },
+    { "mutatorName": "Equality mutation", "replacement": "count >= 0",
+     "location": {"start":{"line":315,"column":18},"end":{"line":315,"column":27}},
+     "reason": "This branch runs only when count fits the remaining budget. The mutation additionally admits count == 0, which adds 0 to bytesRead and leaves the total, the remaining budget and every later charge unchanged. Negative counts are still excluded, so no charge can be given back through this path." }
    ]
   },
   {

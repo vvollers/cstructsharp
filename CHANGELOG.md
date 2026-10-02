@@ -23,6 +23,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   the zeroing pass that every element then overwrote, in the runtime reader and in generated code (the
   member-by-member and fixed readers). This removes one full memory pass from parsing a large array, such as a
   1 MiB `uint32` array. Generated readers now call `GC.AllocateUninitializedArray`; results are unchanged. (#56)
+- The total read-budget check on in-memory and budget-stream reads is a single comparison again, with the failure
+  handling moved out of line, so the hot path no longer carries a `try`/`checked` block. Scalar path reads
+  (`ReadValue`) measure the same or up to 2 % faster; limits, failure messages and the bytes charged are unchanged (#53).
 
 ### Documentation and tooling
 
