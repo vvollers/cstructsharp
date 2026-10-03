@@ -3,7 +3,7 @@
 param([string]$Node = 'node')
 $ErrorActionPreference = 'Stop'
 $repo = (Get-Location).Path
-$base = Join-Path $repo '.local-docs/fast-impact/revision-checkout'
+$base = Join-Path $repo 'artifacts/perf/fast-impact/revision-checkout'
 $output = Join-Path $repo 'artifacts/perf/fast-impact'
 $records = [Collections.Generic.List[object]]::new()
 if (Test-Path -LiteralPath $base) { throw 'The isolated checkout already exists; retain it and choose a new path for another study.' }

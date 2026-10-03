@@ -399,7 +399,7 @@ All paths below are relative to the repository root; raw results are ignored and
 | `artifacts/perf/fast-impact/current-aa-*-processes.jsonl` | Original-command child-process timing |
 | `artifacts/perf/quick/investigation-aa-*/` | Original Quick rounds, minimum-selected summaries and reports |
 | `artifacts/perf/fast-impact/revisions.json`, `revision-*/`, `revisions-*.json` | Build timings, distinct bundles, output verification, source-change trials and confirmations; `revision-source.zip` holds tracked source |
-| `.local-docs/fast-impact/revision-checkout/` | Isolated edited source; the working library source is unchanged |
+| `artifacts/perf/fast-impact/revision-checkout/` | Isolated edited source in new reproductions; the working library source is unchanged |
 | `artifacts/perf/fast-impact/initial-build.json`, `current-aa-1.json`, `harness-audit.json` | First-command wall times and harness/async audit |
 
 Validation after timing: Release `CStructSharp.NonWeb.slnf` build passed; core tests passed **4,245/4,245 on

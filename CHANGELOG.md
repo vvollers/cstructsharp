@@ -17,6 +17,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Documentation and tooling
 
+- Add a fast managed development test profile, bounded parallel test orchestration and parallel generator tests.
+  Keep exhaustive sweeps in full, CI and release runs, and document the edit-loop and final-validation commands.
 - Document the measured speed and reliability limits of short Impact comparisons, with isolated runners that reuse
   existing benchmark cases. Clarify that 3% flags and smallest-median selection do not establish confidence.
 - Add development performance comparisons with immutable, source-validated build bundles, automatic CPU affinity,

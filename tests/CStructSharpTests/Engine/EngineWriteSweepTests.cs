@@ -19,6 +19,7 @@ using Variant = EngineSweepLayouts.Variant;
 ///     elements), text given as characters, and values of the wrong kind entirely (dictionaries, <see langword="null"/>).
 /// </remarks>
 [TestClass]
+[TestCategory(TestCategories.Extended)]
 public class EngineWriteSweepTests
 {
     /// <summary>The execution paths every sweep runs under.</summary>

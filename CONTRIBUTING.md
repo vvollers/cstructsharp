@@ -32,7 +32,7 @@ Build the web projects only when your change affects the browser bridge or the w
 2. For a bug, add a test that fails because of that bug.
 3. Make the smallest change that fixes the shared code path.
 4. Run the new test on .NET 8 and .NET 10.
-5. Run the complete managed test suite.
+5. Run the complete managed test suite before handing off the change; use the development profiles while iterating.
 6. Run the extra checks listed below for the area you changed.
 7. Update comments and documentation if users will see different behavior.
 8. Review `git diff` before you ask someone else to review the change.
@@ -55,21 +55,62 @@ reviewed baseline merely to make a check pass.
 
 ### Library code
 
-Run the full managed test suite:
+Use the managed development profiles below while editing, then run the full checks before review.
+
+### Managed development profiles
+
+For a normal runtime edit, use:
 
 ```sh
-dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release
+node tools/quality/test-managed.mjs
+node tools/quality/test-managed.mjs --filter "FullyQualifiedName~WriteBudgetTests"
 ```
 
-When a change only affects one class, use a test filter while you work, then finish with the full suite. For example:
+The command builds the runtime test project for Release/.NET 10 before running it. The development profile retains
+targeted behavior, regression, allocation, property and limit tests. It omits the `Extended` exhaustive engine/corpus
+sweeps and the external `OptIn` corpus. An empty filter result fails the command. This is quick feedback, not evidence
+that the omitted tests or .NET 8 passed.
+
+Choose a broader scope for generated code or shared changes:
 
 ```sh
-dotnet test tests/CStructSharpTests/CStructSharpTests.csproj \
-  -c Release -f net10.0 \
-  --filter "FullyQualifiedName~WriteBudgetTests"
+node tools/quality/test-managed.mjs --suite generator
+node tools/quality/test-managed.mjs --suite all
 ```
 
-Repeat a focused test with `-f net8.0` before you finish.
+`generator` runs the generator driver, newer-compiler compatibility and compiled parity projects. `all` adds runtime
+tests. Both use .NET 10 in development mode. `--suite parity` selects only the compiled generated/runtime comparison.
+Builds finish before tests start. At most two test hosts run at once on machines with eight or more logical CPUs;
+smaller machines use one. Each host gets at most eight test workers. Use `--jobs 1 --workers 4` to leave more resources
+for other applications. Existing `DoNotParallelize` protections remain effective inside each host.
+
+Before handoff, run the normal solution build and the full managed checks:
+
+```sh
+dotnet build CStructSharp.NonWeb.slnf -c Release
+node tools/quality/test-managed.mjs --full --no-build
+```
+
+`--full` includes the Extended sweeps, all four managed test projects, and .NET 8/.NET 10 where supported. Generator
+compiler tests target .NET 10 only. CI, coverage and release checks still run the exhaustive tests; they are not
+postponed until release. Ordinary `dotnet test` also retains its full selection. The environment-dependent external
+`OptIn` corpus keeps its existing separate setup.
+
+Run the exhaustive tests relevant to an engine change during development as well:
+
+```sh
+node tools/quality/test-managed.mjs --full --suite runtime --filter "FullyQualifiedName~CursorDifferentialTests"
+```
+
+An explicit suite or filter narrows even a full profile. Use unfiltered `--full` for the final complete pass.
+`--no-build` skips compilation only when you explicitly request it; you are responsible for binary freshness in that
+mode. Without it, every invocation checks the selected projects through an incremental build. Never overlap builds,
+tests or coverage runs with benchmark timing.
+
+Logs, TRX reports, slowest-test observations, selected filters and wall times are saved under
+`artifacts/test-results/development/`. Test durations overlap during parallel execution; their sum is not wall time.
+The [test-loop measurements](tests/experiments/test-loop/README.md) explain the selected profile and its omitted coverage.
+Functional runner checks use `node --test tools/quality/test-managed.test.mjs`.
 
 ### Layout language, parser, expressions, or binary behavior
 

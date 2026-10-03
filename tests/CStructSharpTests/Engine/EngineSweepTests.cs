@@ -20,6 +20,7 @@ using Variant = EngineSweepLayouts.Variant;
 ///     and one more, since no layout needs more elements or bytes than its input length, or more than three levels.
 /// </remarks>
 [TestClass]
+[TestCategory(TestCategories.Extended)]
 public class EngineSweepTests
 {
     /// <summary>The execution paths every sweep runs under.</summary>

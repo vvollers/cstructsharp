@@ -43,6 +43,7 @@ public class CursorDifferentialTests
     ///     ReadBudgetStream's trace for every script, input form and budget; the memory cursor for every memory form.
     /// </summary>
     [TestMethod]
+    [TestCategory(TestCategories.Extended)]
     public void Cursors_MatchReadBudgetStream_OverSmallInputs()
     {
         var differences = new List<string>();
@@ -71,6 +72,7 @@ public class CursorDifferentialTests
     ///     the same impossible counts, and observe cancellation before the same block as ReadBudgetStream.
     /// </summary>
     [TestMethod]
+    [TestCategory(TestCategories.Extended)]
     public void Cursors_MatchReadBudgetStream_AtBlockBoundaries()
     {
         byte[] data = new byte[LargeLength];

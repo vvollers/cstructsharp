@@ -20,6 +20,9 @@ purpose and usage. Output belongs in the ignored `artifacts/` folder or in a doc
 - `node tools/documentation/validate-documentation.mjs` runs the complete documentation gate
   ([docs/README.md](../docs/README.md)).
 - `node tools/quality/managed-api-baseline.mjs compare` compares the public .NET API with its reviewed baseline.
+- `node tools/quality/test-managed.mjs` runs the fast runtime development profile; `--suite generator` selects the
+  generator-specific checks, and `--full` runs all normal managed tests on their supported frameworks. See
+  [managed development profiles](../CONTRIBUTING.md#managed-development-profiles).
 - `node tools/quality/engine-golden.mjs record|check` records or checks the golden outcomes of the engine tests
   ([CONTRIBUTING.md](../CONTRIBUTING.md#engine-golden-outcomes)).
 - `node tools/quality/quick-perf-check.mjs --baseline <checkout> --job Quick --categories Impact` compares benchmark

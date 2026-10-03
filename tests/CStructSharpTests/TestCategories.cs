@@ -6,6 +6,13 @@ namespace CStructSharp.Tests;
 internal static class TestCategories
 {
     /// <summary>
+    ///     Exhaustive cross-products of corpus inputs, execution paths, budgets, and stream forms. The development
+    ///     profile omits these sweeps; ordinary full runs, coverage, CI, and release verification still execute them.
+    ///     Targeted regression tests and allocation checks remain in the development profile.
+    /// </summary>
+    public const string Extended = "Extended";
+
+    /// <summary>
     ///     Tests that assert how many bytes an operation allocates, measured with
     ///     <see cref="GC.GetAllocatedBytesForCurrentThread"/>. Every such test is also marked
     ///     <see cref="DoNotParallelizeAttribute"/>, so the whole group runs serially after the parallel tests: work

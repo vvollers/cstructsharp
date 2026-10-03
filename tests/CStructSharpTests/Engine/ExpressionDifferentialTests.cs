@@ -32,6 +32,7 @@ public class ExpressionDifferentialTests
     /// <param name="corpus">The corpus name.</param>
     [TestMethod]
     [DynamicData(nameof(Corpora))]
+    [TestCategory(TestCategories.Extended)]
     public void CorpusExpressions_EvaluateLikeTheDictionaryModel(string corpus)
     {
         IEnumerable<EngineCorpusCase> cases = corpus switch

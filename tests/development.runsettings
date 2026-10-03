@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fast local feedback. Ordinary dotnet test, CI and coverage retain the exhaustive Extended tests. -->
+<RunSettings>
+  <RunConfiguration>
+    <TestCaseFilter>TestCategory!=OptIn&amp;TestCategory!=Extended</TestCaseFilter>
+  </RunConfiguration>
+  <MSTest>
+    <Parallelize>
+      <Workers>8</Workers>
+      <Scope>MethodLevel</Scope>
+    </Parallelize>
+  </MSTest>
+</RunSettings>

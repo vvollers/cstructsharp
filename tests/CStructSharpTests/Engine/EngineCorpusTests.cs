@@ -16,6 +16,7 @@ using CStructSharp.FixtureTool;
 ///     fixed composite, for its static read plan.
 /// </summary>
 [TestClass]
+[TestCategory(TestCategories.Extended)]
 public class EngineCorpusTests
 {
     /// <summary>The largest benchmark input outside the golden corpus whose sources and execution paths are compared.</summary>

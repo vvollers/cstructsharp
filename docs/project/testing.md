@@ -9,6 +9,46 @@ The repository uses several test layers because a binary-format bug can affect v
 behavior, package compatibility, or performance. You do not need to run every expensive check after every edit.
 Start narrow, then widen according to the changed behavior.
 
+## Use a short development loop
+
+For runtime changes, run:
+
+```sh
+node tools/quality/test-managed.mjs
+```
+
+This incrementally builds the runtime tests, then runs the .NET 10 development profile. Targeted regressions,
+allocation checks, properties and limit tests stay included. The exhaustive engine/corpus sweeps in the `Extended`
+category run in full checks. No test assertions or sweep inputs change between profiles.
+
+For generator changes, use `--suite generator`; for runtime and generator changes together, use `--suite all`.
+The generator scope includes the generator driver, newer-compiler compatibility and compiled parity projects.
+Use `--filter "FullyQualifiedName~WriteBudgetTests"` for a focused runtime check. Filters that select no tests fail.
+
+Builds finish before tests begin. The runner bounds concurrent hosts and test workers; use `--jobs 1 --workers 4`
+to reduce resource use while working on the same computer. Do not run tests during performance measurements.
+Logs, TRX results, selected filters and separate build/test wall times are saved under
+`artifacts/test-results/development/`.
+
+Before review, run the complete managed checks:
+
+```sh
+dotnet build CStructSharp.NonWeb.slnf -c Release
+node tools/quality/test-managed.mjs --full --no-build
+```
+
+The unfiltered full command runs all four managed test projects, including exhaustive sweeps, on both supported
+frameworks where applicable. Generator compiler tests target .NET 10. CI, coverage and release verification retain
+these full tests. Ordinary `dotnet test` also includes the exhaustive sweeps. The external `OptIn` corpus still
+requires its separate environment and settings.
+
+`--no-build` makes you responsible for using current binaries; omit it to build first. A suite or filter narrows the
+selection even with `--full`. For example, use `--full --suite runtime --filter "FullyQualifiedName~CursorDifferentialTests"`
+when changing cursor behavior, but use unfiltered `--full` for the final pass.
+
+See [Contributing](https://github.com/vvollers/cstructsharp/blob/main/CONTRIBUTING.md#managed-development-profiles)
+for profile coverage and commands.
+
 ## Run a focused test on both frameworks
 
 After building the test project, run the smallest relevant class or method separately for .NET 8 and .NET 10:
@@ -21,7 +61,7 @@ dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release -f net10
 Replace the sample filter with the test that covers your change. Running both targets catches differences hidden by
 one runtime. A successful result reports no failed tests and exit code 0 for each command.
 
-Then run the full managed suite:
+The ordinary runtime project command also remains available:
 
 ```sh
 dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release

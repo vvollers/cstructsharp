@@ -63,9 +63,12 @@ and update the current contracts, tests, and documentation without retaining unu
 - Use the SDK in `global.json` and the Node version in `.node-version` (CI pins it). Minimums: Node 22.14 for `tools/`
   and the npm package, Node 24 for the documentation checks; each app uses its declared Node/npm versions and lockfile.
   Run commands from the repository root unless an app directory is specified.
-- Managed changes: `dotnet build CStructSharp.NonWeb.slnf -c Release`, then
-  `dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release --no-build` (both target frameworks).
-  Add regression tests for behavior changes; use focused tests while iterating, then the required area checks.
+- Managed edit loop: `node tools/quality/test-managed.mjs` builds and runs the fast .NET 10 runtime profile;
+  use `--suite generator` for generator work, `--suite all` for both, or `--filter` for a focused runtime check.
+  Before handoff, run `dotnet build CStructSharp.NonWeb.slnf -c Release`, then
+  `node tools/quality/test-managed.mjs --full --no-build` (all managed test projects and both supported runtimes).
+  Keep exhaustive sweeps in CI; see [test profiles](CONTRIBUTING.md#managed-development-profiles). Add regression tests
+  for behavior changes. Do not treat a development-profile pass as full coverage or run tests during performance timing.
 - Hot-path work: capture before editing with `node tools/quality/perf-check.mjs --capture NAME`, then use
   `--baseline NAME` after edits. Run measurements serially; confirm signals with `--confirm --filter`.
   Keep provisional/unstable results inconclusive. Follow [the performance guide](benchmarks/README.md#development-comparisons)
