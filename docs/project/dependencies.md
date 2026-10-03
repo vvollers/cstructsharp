@@ -101,6 +101,12 @@ Do not change a version only to silence an audit. Confirm whether the vulnerable
 record how the chosen update or accepted limitation addresses it.
 
 The `dependency-check` workflow, started every week by `scheduled.yml`, runs
-`dotnet list package --vulnerable --include-transitive` for both solutions and `npm audit --audit-level=high` for every lockfile (the repository workspace, the documentation, and the
-JavaScript benchmarks); it fails on a known high-severity advisory in a locked graph, and it can be started on
-demand from the Actions page.
+`dotnet list package --vulnerable --include-transitive` for both solutions and `tools/quality/npm-audit.mjs` for
+every lockfile (the repository workspace, the documentation, and the JavaScript benchmarks); it fails on a known
+high-severity advisory in a locked graph, and it can be started on demand from the Actions page. The documentation
+gate runs the same audit for `docs/`.
+
+An advisory with no fixed release can be accepted only by recording it in
+`contracts/quality/npm-audit-exceptions.json`: the lockfile directory, the advisory ID, the package, and why the
+vulnerable code is not reachable. The audit fails when a recorded exception no longer matches an advisory, so remove
+the entry once a fixed release reaches the lockfile.

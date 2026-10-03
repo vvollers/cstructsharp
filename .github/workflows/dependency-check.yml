@@ -1,7 +1,8 @@
 name: Dependency check
 
 # Weekly vulnerability report for the managed and Node dependency graphs: `dotnet list package --vulnerable` for
-# both solutions and `npm audit --audit-level=high` for every lockfile. scheduled.yml starts it every week; it also
+# both solutions and `npm audit` at high severity for every lockfile (tools/quality/npm-audit.mjs, which honours the
+# recorded exceptions in contracts/quality/npm-audit-exceptions.json). scheduled.yml starts it every week; it also
 # runs on demand. Dependabot keeps the pins current; this job fails when a known high-severity advisory reaches the
 # locked graphs.
 
@@ -47,5 +48,6 @@ jobs:
         run: |
           for directory in . docs benchmarks/js; do
             echo "==> $directory"
-            (cd "$directory" && npm ci --ignore-scripts --no-audit --no-fund && npm audit --audit-level=high)
+            (cd "$directory" && npm ci --ignore-scripts --no-audit --no-fund)
+            node tools/quality/npm-audit.mjs --directory "$directory"
           done

@@ -1,0 +1,11 @@
+{
+  "description": "High-severity npm advisories accepted for one lockfile directory, with the reason. tools/quality/npm-audit.mjs ignores only these advisories and fails when an exception no longer matches, so each entry is removed as soon as a fixed release reaches the lockfile.",
+  "exceptions": [
+    {
+      "directory": "docs",
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "package": "braces",
+      "reason": "Stack exhaustion through deeply nested brace patterns; no braces release is patched (<= 3.0.3). The only path is the documentation lint tool markdownlint-cli2 (already the latest version) through micromatch. It runs on developer machines and CI, and expands only the globs in docs/.markdownlint-cli2.mjs, so no untrusted pattern reaches braces."
+    }
+  ]
+}

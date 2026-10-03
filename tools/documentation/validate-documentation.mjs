@@ -161,7 +161,8 @@ await main(() => {
   if (!options.installed) {
     runNpmStep(["ci", "--ignore-scripts"], documentationRoot, "Pinned documentation Node dependency restore failed.");
   }
-  runNpmStep(["audit", "--audit-level=high"], documentationRoot, "Documentation Node dependency audit failed.");
+  // High-severity advisories fail unless recorded in contracts/quality/npm-audit-exceptions.json.
+  runNode(path.join(repositoryRoot, "tools/quality/npm-audit.mjs"), ["--directory", "docs"], "Documentation Node dependency audit failed.");
   for (const script of ["lint:markdown", "lint:spelling", "install:browser", "test:browser"]) {
     runNpmStep(["run", script], documentationRoot, `Documentation Node script '${script}' failed.`);
   }
