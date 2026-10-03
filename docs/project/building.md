@@ -25,6 +25,13 @@ src/CStructSharp/bin/Release/net10.0/
 DocFX uses those three files to generate the API reference. Use `-f net8.0` when you specifically need the other
 target.
 
+The XML file in `bin/` documents only the public API. The compiler writes every documentation comment, including those
+on internal and private members, to `obj/Release/<framework>/CStructSharp.xml`. The build tool
+`tools/build/PublicDocumentation` then copies only the entries for externally visible types and their public or
+protected members to `obj/Release/<framework>/public-documentation/`. That copy is what `bin/` and the NuGet package
+receive. Read the source for the internal documentation; `tools/packaging/validate-package.mjs` rejects a package whose
+XML is over its size budget or documents an internal type.
+
 ## Build the routine development solution
 
 ```sh

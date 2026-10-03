@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Build-time tool for src/CStructSharp: removes the documentation of non-public members from the compiler's XML
+    documentation file, so the NuGet package ships IntelliSense for the public API only. CStructSharp.csproj references
+    this project without consuming its assembly and runs it after compilation (target FilterPublicDocumentation).
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- net8.0 is compatible with both CStructSharp targets; RollForward lets an SDK-only machine without the 8.0
+         runtime run it on a newer one. -->
+    <TargetFramework>net8.0</TargetFramework>
+    <RollForward>Major</RollForward>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>

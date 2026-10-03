@@ -6,6 +6,15 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 onward, each version uses these headings in this order and omits the empty ones: *Breaking changes* (each with its
 migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and tooling*.
 
+## Unreleased
+
+### Changed
+
+- The NuGet package's `CStructSharp.xml` documents only the public API. The compiler also wrote the documentation of
+  every internal and private member, about three quarters of the file, which IntelliSense never shows. Each copy
+  shrinks from 2.1 MB to 0.5 MB and the package from 1.68 MB to 1.15 MB. No public documentation is removed, and
+  package validation now rejects internal documentation.
+
 ## 0.12.0 — 2026-10-03
 
 Buffered reads (multi-segment sequences, `*Async` reads and generated stream parsing) now give exactly the span

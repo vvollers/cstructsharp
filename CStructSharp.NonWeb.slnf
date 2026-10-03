@@ -11,7 +11,8 @@
       "tests\\CStructSharp.Generated.Parity\\CStructSharp.Generated.Parity.csproj",
       "tests\\CStructSharp.Generators.Modern.Tests\\CStructSharp.Generators.Modern.Tests.csproj",
       "tests\\CStructSharp.Generators.Tests\\CStructSharp.Generators.Tests.csproj",
-      "tests\\CStructSharpTests\\CStructSharpTests.csproj"
+      "tests\\CStructSharpTests\\CStructSharpTests.csproj",
+      "tools\\build\\PublicDocumentation\\PublicDocumentation.csproj"
     ]
   }
 }

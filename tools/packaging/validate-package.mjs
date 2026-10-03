@@ -10,6 +10,11 @@ import { assertCondition, main, parseArguments } from "../lib/tooling.mjs";
 import { childrenNamed, findAll, findFirst, parseXml } from "../lib/xml.mjs";
 import { openZip } from "../lib/zip.mjs";
 
+/** Largest accepted size of one packed CStructSharp.xml: the public documentation is about 0.5 MB in 0.12. */
+const MAX_DOCUMENTATION_BYTES = 1024 * 1024;
+/** An internal type whose documentation must never reach the package. */
+const INTERNAL_SENTINEL = "T:CStructSharp.Engine.ReadEngine";
+
 const options = parseArguments(process.argv.slice(2), { "package-path": "string", "symbol-package-path": "string" });
 assertCondition(options["package-path"] && options["symbol-package-path"], "Options --package-path and --symbol-package-path are required.");
 
@@ -73,6 +78,18 @@ await main(() => {
   const requiredSymbolEntries = ["lib/net8.0/CStructSharp.pdb", "lib/net10.0/CStructSharp.pdb"];
   for (const required of requiredSymbolEntries) {
     if (!symbolEntryNames.includes(required)) throw new Error(`The symbol package is missing required entry '${required}'.`);
+  }
+  // The build ships public documentation only (target FilterPublicDocumentation in CStructSharp.csproj). The full
+  // compiler output, internals included, is about four times larger; the size budget and an internal sentinel type
+  // catch a package built without the filter.
+  for (const framework of ["net8.0", "net10.0"]) {
+    const documentation = archive.read(`lib/${framework}/CStructSharp.xml`);
+    if (documentation.length > MAX_DOCUMENTATION_BYTES) {
+      throw new Error(`lib/${framework}/CStructSharp.xml is ${documentation.length} bytes, over the ${MAX_DOCUMENTATION_BYTES}-byte budget; internal documentation may have been packed.`);
+    }
+    if (documentation.toString("utf8").includes(`name="${INTERNAL_SENTINEL}"`)) {
+      throw new Error(`lib/${framework}/CStructSharp.xml documents the internal type ${INTERNAL_SENTINEL}; the public-documentation filter did not run.`);
+    }
   }
   if (findAll(nuspec, "dependency").length !== 0) throw new Error("CStructSharp must have zero runtime NuGet dependencies, including for memory analysis.");
   const assemblies = entryNames.filter((name) => /^lib\/.*\.dll$/.test(name)).sort();

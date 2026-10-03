@@ -50,6 +50,48 @@
     <None Include="build\CStructSharp.targets" Pack="true" PackagePath="build" />
   </ItemGroup>
 
+  <!--
+    Public documentation only. The compiler's XML file documents every member, internal and private ones included,
+    because every declaration here carries a documentation comment; about three quarters of it described internals that
+    IntelliSense never shows. After compilation the build tool writes a copy with only the externally visible types and
+    their public or protected members, and that copy replaces the compiler's file in bin/ and in the package.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\tools\build\PublicDocumentation\PublicDocumentation.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <PublicDocumentationTool>$(MSBuildThisFileDirectory)..\..\tools\build\PublicDocumentation\bin\$(Configuration)\net8.0\PublicDocumentation.dll</PublicDocumentationTool>
+    <!-- The dotnet CLI sets DOTNET_HOST_PATH; Visual Studio's MSBuild may not, so fall back to the dotnet on PATH. -->
+    <PublicDocumentationHost>$(DOTNET_HOST_PATH)</PublicDocumentationHost>
+    <PublicDocumentationHost Condition="'$(PublicDocumentationHost)' == ''">dotnet</PublicDocumentationHost>
+  </PropertyGroup>
+
+  <!-- The intermediate path and target name are only known once the SDK targets are evaluated, so the output path is
+       set in a target rather than in the project body. -->
+  <Target Name="PreparePublicDocumentationPath">
+    <PropertyGroup>
+      <PublicDocumentationFile>$(IntermediateOutputPath)public-documentation\$(TargetName).xml</PublicDocumentationFile>
+    </PropertyGroup>
+  </Target>
+
+  <!-- Incremental: reruns only when the assembly or the compiler's XML file changed. -->
+  <Target Name="FilterPublicDocumentation" AfterTargets="CoreCompile" DependsOnTargets="PreparePublicDocumentationPath" Condition="'@(DocFileItem)' != ''"
+          Inputs="@(IntermediateAssembly);@(DocFileItem);$(PublicDocumentationTool)" Outputs="$(PublicDocumentationFile)">
+    <Exec Command="&quot;$(PublicDocumentationHost)&quot; &quot;$(PublicDocumentationTool)&quot; &quot;@(IntermediateAssembly->'%(FullPath)')&quot; &quot;@(DocFileItem->'%(FullPath)')&quot; &quot;$(PublicDocumentationFile)&quot;" StandardOutputImportance="low" />
+  </Target>
+
+  <!-- Separate from the filter so the swap also happens when the filter was up to date and skipped. The copy to bin/
+       and the package's documentation entry both read DocFileItem after this point. -->
+  <Target Name="UsePublicDocumentation" AfterTargets="FilterPublicDocumentation" Condition="'@(DocFileItem)' != ''">
+    <ItemGroup>
+      <!-- Both files are build outputs; listing them keeps IncrementalClean from deleting them. -->
+      <FileWrites Include="@(DocFileItem);$(PublicDocumentationFile)" />
+      <DocFileItem Remove="@(DocFileItem)" />
+      <DocFileItem Include="$(PublicDocumentationFile)" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <!-- Local copies may intentionally have no Git remote. Release/CI checkouts do, so enable Source Link there and
          avoid emitting misleading local-build warnings while still validating every publishable symbol package. -->
