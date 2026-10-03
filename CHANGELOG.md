@@ -15,6 +15,13 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   shrinks from 2.1 MB to 0.5 MB and the package from 1.68 MB to 1.15 MB. No public documentation is removed, and
   package validation now rejects internal documentation.
 
+### Documentation and tooling
+
+- Document the measured speed and reliability limits of short Impact comparisons, with isolated runners that reuse
+  existing benchmark cases. Clarify that 3% flags and smallest-median selection do not establish confidence.
+- Add development performance comparisons with immutable, source-validated build bundles, automatic CPU affinity,
+  full-sample timing and allocation reports, and targeted confirmation. Document the workflow for contributors and agents.
+
 ## 0.12.0 — 2026-10-03
 
 Buffered reads (multi-segment sequences, `*Async` reads and generated stream parsing) now give exactly the span

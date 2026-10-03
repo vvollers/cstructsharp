@@ -66,6 +66,10 @@ and update the current contracts, tests, and documentation without retaining unu
 - Managed changes: `dotnet build CStructSharp.NonWeb.slnf -c Release`, then
   `dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release --no-build` (both target frameworks).
   Add regression tests for behavior changes; use focused tests while iterating, then the required area checks.
+- Hot-path work: capture before editing with `node tools/quality/perf-check.mjs --capture NAME`, then use
+  `--baseline NAME` after edits. Run measurements serially; confirm signals with `--confirm --filter`.
+  Keep provisional/unstable results inconclusive. Follow [the performance guide](benchmarks/README.md#development-comparisons)
+  for affinity, stale-build checks, allocation interpretation and evidence needed for performance claims.
 - Vue changes: from the affected app, run `npm run lint`, `npm run format:check`, `npm run test:unit`,
   `npm run build`, and relevant `npm run test:e2e` checks. Follow its README for WASM build prerequisites.
 - Documentation changes under `docs/`: run `node tools/documentation/validate-documentation.mjs`.

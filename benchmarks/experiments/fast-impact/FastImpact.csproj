@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Isolated research executable; deliberately outside the product solutions. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../CStructSharp.Benchmarks/CStructSharp.Benchmarks.csproj" />
+  </ItemGroup>
+</Project>

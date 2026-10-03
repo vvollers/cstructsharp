@@ -12,7 +12,7 @@ using BenchmarkDotNet.Toolchains.InProcess.Emit;
 using Perfolizer.Horology;
 
 /// <summary>
-///     The BenchmarkDotNet host. <c>CSTRUCTSHARP_BENCHMARK_JOB</c> picks the job shape (Dry, Short, Quick, ColdStart),
+///     The BenchmarkDotNet host. <c>CSTRUCTSHARP_BENCHMARK_JOB</c> picks Dry, Short, Quick, Screen, Confirm or ColdStart,
 ///     <c>CSTRUCTSHARP_BENCHMARK_RUNTIMES</c> the runtimes, and <c>CSTRUCTSHARP_BENCHMARK_ARTIFACTS</c> the output
 ///     directory; <c>--profile</c> runs <see cref="ProfileDriver"/> instead.
 /// </summary>
@@ -78,7 +78,7 @@ internal static class Program
                 // A before/after check in about a second per case: in-process, so no project is generated or built and
                 // no process is started per case; 25 ms iterations instead of the default 500 ms; no separate overhead
                 // evaluation (every case pays the same empty-loop cost on both sides). It trades absolute precision for
-                // speed; quick-perf-check.mjs compensates by interleaving rounds and keeping each side's best.
+                // speed. A small median delta is a screening signal, not evidence of statistical confidence.
                 job = Job.Default
                          .WithRuntime(runtime)
                          .WithToolchain(InProcessEmitToolchain.Instance)
@@ -88,6 +88,25 @@ internal static class Program
                          .WithIterationCount(5)
                          .WithIterationTime(TimeInterval.FromMilliseconds(25))
                          .WithEvaluateOverhead(false);
+            }
+            else if (requestedJob.Equals("Screen", StringComparison.OrdinalIgnoreCase) ||
+                     requestedJob.Equals("Confirm", StringComparison.OrdinalIgnoreCase))
+            {
+                bool confirmation = requestedJob.Equals("Confirm", StringComparison.OrdinalIgnoreCase);
+
+                // Keep BDN's fixtures and allocation diagnosis; avoid repeated machine power-plan changes.
+                job = Job.Default
+                         .WithRuntime(runtime)
+                         .WithToolchain(InProcessEmitToolchain.Instance)
+                         .WithId(confirmation ? "development-confirm" : "development-screen")
+                         .WithLaunchCount(1)
+                         .WithWarmupCount(3)
+                         .WithIterationCount(confirmation ? 30 : 12)
+                         .WithIterationTime(TimeInterval.FromMilliseconds(confirmation ? 100 : 1))
+                         .WithEvaluateOverhead(false)
+                         .WithGcForce(confirmation)
+                         .WithPowerPlan(PowerPlan.UserPowerPlan);
+                job = DevelopmentEnvironment.Apply(job, artifactsPath);
             }
             else if (requestedJob.Equals("ColdStart", StringComparison.OrdinalIgnoreCase))
             {
@@ -106,7 +125,7 @@ internal static class Program
             else
             {
                 Console.Error.WriteLine(
-                    $"Unknown CSTRUCTSHARP_BENCHMARK_JOB '{requestedJob}'. Expected Dry, Short, Quick, or ColdStart.");
+                    $"Unknown CSTRUCTSHARP_BENCHMARK_JOB '{requestedJob}'. Expected Dry, Short, Quick, Screen, Confirm, or ColdStart.");
                 return 2;
             }
 

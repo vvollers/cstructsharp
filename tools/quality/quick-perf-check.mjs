@@ -6,10 +6,10 @@
 // Usage: node tools/quality/quick-perf-check.mjs --baseline <checkout dir> [--filter '*ReadBenchmarks*' ...]
 //        [--categories Impact] [--threshold 0.03] [--label <name>] [--rounds 2] [--job Short|Quick]
 // --job Quick runs the benchmarks in-process with short iterations (a few seconds per case instead of about ten); the
-// baseline checkout's benchmark host must know the Quick job, so copy benchmarks/CStructSharp.Benchmarks/Program.cs
-// into an older baseline and build it there.
-// Each side is measured `rounds` times, interleaved (before, after, before, after, ...), and the best median and
-// allocation per case is kept: a transient slowdown on either side then cannot masquerade as a change.
+// baseline checkout's benchmark host must know the Quick job, so copy Program.cs and DevelopmentEnvironment.cs
+// from benchmarks/CStructSharp.Benchmarks/ into an older baseline and build it there.
+// Each side is measured `rounds` times, interleaved (before, after, before, after, ...), and its smallest median is
+// kept. This optimistic selection does not establish confidence. Prefer perf-check.mjs for development screens.
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -54,7 +54,7 @@ function measure(checkout, name) {
     stdio: ["ignore", "ignore", "inherit"],
     // The Quick job runs in-process with short warmups, too short for tiered compilation to promote the measured code
     // to optimized code at a predictable moment. Starting the host without tiering compiles every method fully
-    // optimized on first use (no dynamic PGO), the same on both sides, so the comparison is stable.
+    // optimized on first use (no dynamic PGO) on both sides. This removes one source of variation, not all drift.
     env: {
       ...process.env,
       CSTRUCTSHARP_BENCHMARK_JOB: job,
@@ -68,7 +68,7 @@ function measure(checkout, name) {
   return summary;
 }
 
-/** Merges converter summaries by keeping, per case, the smallest median and allocation seen across rounds. */
+/** Keeps each smallest timing median; allocation updates only when that timing record replaces its predecessor. */
 function best(summaries, name) {
   const cases = new Map();
   for (const file of summaries) {

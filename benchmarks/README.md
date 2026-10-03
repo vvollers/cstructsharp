@@ -31,8 +31,8 @@ CSTRUCTSHARP_BENCHMARK_JOB=ColdStart dotnet run --project benchmarks/CStructShar
   --filter '*Scenarios.CompileBenchmarks*'
 ```
 
-Environment variables: `CSTRUCTSHARP_BENCHMARK_JOB` = `Dry` | `Short` | `Quick` | `ColdStart` (`Quick` is described
-under [Check a change quickly](#check-a-change-quickly-the-impact-category));
+Environment variables: `CSTRUCTSHARP_BENCHMARK_JOB` = `Dry` | `Short` | `Quick` | `Screen` | `Confirm` | `ColdStart`
+(`Screen` and `Confirm` are configured by the [development comparison tool](#development-comparisons));
 `CSTRUCTSHARP_BENCHMARK_RUNTIMES` = comma list of `net8.0`, `net10.0` (default `net10.0`);
 `CSTRUCTSHARP_BENCHMARK_ARTIFACTS` = output directory (default `artifacts/baseline/benchmarks`);
 `CSTRUCTSHARP_BENCHMARK_PROFILE=cpu` adds the EventPipe CPU-sampling diagnoser (writes `.nettrace` per case).
@@ -58,8 +58,8 @@ no longer matches these records or `CStructSharp.Comparison/results.json`.
 
 ## Check a change quickly: the Impact category
 
-The full suite takes about 45 minutes. The `Impact` category is a subset of 55 cases that covers every
-execution path a change can affect: compilation (including the longest definition the default options accept),
+The full suite takes about 45 minutes. The `Impact` category is a subset of 55 cases that samples the main
+execution paths: compilation (including the longest definition the default options accept),
 span parses of eleven fixtures chosen for their differences (`ImpactParseBenchmarks`: fixed records, nested
 structs, big-endian arrays, runtime counts, conditions, strings, a real file header, pointers, bitfields, unions,
 alias spellings), a byte array parsed from a stream, generated and runtime parse of a 1 MiB `uint32` array,
@@ -75,9 +75,95 @@ CSTRUCTSHARP_BENCHMARK_JOB=Short dotnet run --project benchmarks/CStructSharp.Be
   --no-build -- --filter '*' --anyCategories Impact
 ```
 
-To compare a change with the code before it, build a second checkout of the earlier revision and let
-`quick-perf-check.mjs` run both, interleaved, keeping the best median of each case. The `Quick` job measures the
-whole `Impact` category on both sides, twice, in about a minute and forty seconds:
+### Development comparisons
+
+Capture a baseline **before editing a hot path**, then compare each candidate with it:
+
+```sh
+node tools/quality/perf-check.mjs --capture before-parser-change
+# Edit the library, then run the required correctness tests before measuring.
+node tools/quality/perf-check.mjs --baseline before-parser-change
+```
+
+Capture rebuilds the benchmark project in Release/net10.0, verifies the canonical fixtures, and snapshots the
+host, dependencies and fixture bytes under `artifacts/perf/development/bundles/`. Names cannot overwrite an
+existing capture. Both sides execute the original benchmark cases. No second benchmark implementation or
+persistent worker service is needed. `--checkout <path>` captures/builds another checkout; it must contain the
+current `Program.cs` and `DevelopmentEnvironment.cs` host support for the Screen/Confirm jobs.
+
+A comparison rebuilds and snapshots the candidate only when its source/SDK input hashes change. Every run checks
+all bundle files, requires identical fixture inputs and exact case membership, then launches both sides serially.
+`--no-build` requests an already-built comparison and **fails** if the candidate is stale. It never trusts file
+timestamps alone. Only build bundles are cached; measurement samples and calibration are always fresh. Do not
+build, run tests, edit source, or run another benchmark during measurement. A lock prevents concurrent invocations
+of this tool in the same repository; it cannot prevent unrelated applications from using the CPU.
+An individual Screen host times out after 60 seconds. A failed or incomplete run never becomes a partial success.
+
+The default **Screen** job measures all 55 Impact cases using twelve 1 ms iterations and three warmups, retaining
+allocation diagnosis. It disables per-iteration forced GC and overhead evaluation, disables tiering/PGO for both
+hosts, and keeps the machine's current power plan. BDN still collects before its allocation-diagnostic batch.
+The report uses **every actual timing sample**, including values BDN excludes from its summary as outliers.
+Three implemented full comparisons took **7.86–7.91 seconds externally measured** with both bundles already built;
+initial capture took **11.2 seconds**, and a source edit/rebuild/compare took **18.1 seconds**. These observations
+are from the investigation's Windows Ryzen machine, not deadlines or promises for other hardware.
+Build/setup, comparison and total invocation times are reported
+separately. An edit requiring compilation adds build and fixture-verification cost.
+
+Narrow a screen or confirm the affected original operations:
+
+```sh
+node tools/quality/perf-check.mjs --baseline before-parser-change --no-build --filter '*PacketBenchmarks.ParseSpan*'
+node tools/quality/perf-check.mjs --baseline before-parser-change --confirm --filter '*PacketBenchmarks.ParseSpan*'
+```
+
+Filters narrow **Impact**; omitted cases provide no evidence. Confirmation requires an explicit filter and uses
+three fresh launches per side, thirty 100 ms measurements and three warmups per launch, with forced GC. Starting
+side is randomized and reverses each round. All launches are retained; the tool never selects a smallest median.
+An explicit `--filter '*'` confirms the entire category and can take many minutes. For cases outside Impact or
+deployment tiering/PGO, use the standard out-of-process benchmark jobs with the intended runtime settings.
+
+### CPU affinity and interpretation
+
+On Windows/Linux, `--cpu auto` pins both hosts to the same allowed logical CPU: the middle entry of the process's
+allowed CPU list. This reduces migration between cores/caches; it does **not** reserve that core, stop other
+applications, isolate its simultaneous-multithreading sibling, or guarantee stable frequency. Measurements stay
+serial. `--cpu 24` selects a logical CPU explicitly; `--cpu none` disables pinning. Unsupported platforms leave
+auto unrestricted and record that fact. Explicit pinning is limited to indices 0–62 in one processor group;
+machines reporting more than 64 logical CPUs must use `--cpu none`. Choose an explicit suitable CPU on hybrid
+processors or when the automatically chosen core is busy. Use the same option for screening and confirmation.
+
+In a separate twelve-comparison A/A campaign, automatic CPU 16 reduced raw 3% flags from **226 to 176 of 660**
+case comparisons (22% fewer) and reduced the 95th-percentile absolute delta from **15.2% to 10.3%**. CPU 24 gave
+161 flags. Every suite still had a false flag: affinity improves repeatability here but does not establish
+confidence. See the [affinity experiment](experiments/fast-impact/README.md#affinity-follow-up) for raw observations
+and [the .NET affinity contract](https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.process.processoraffinity?view=net-10.0).
+Single-CPU results describe these mostly synchronous microbenchmarks, not multi-core throughput or genuine async I/O.
+
+Read `report.md`, `report.json`, `wall.json`, and each host's original full JSON/log under
+`artifacts/perf/development/runs/`. Runtime, applied affinity, input hashes, source identity, and actual launch order
+are recorded. Timing deltas summarize paired launch ratios; the separate before/after columns summarize each side's
+launch medians and can differ from that ratio when conditions drift. Use the following interpretation rules:
+
+- **Possible speedup/slowdown:** the observed median difference crosses the practical margin (default 3%). Run
+  targeted confirmation. The margin is not statistical confidence, and this command is not a CI timing gate.
+- **Inconclusive:** no signal, excessive spread, contradictory launch directions, or a drifting hand-written
+  canary. The observed percentile span and launch-delta range are not confidence intervals. Do not subtract
+  canary drift from other results or interpret no flag as equivalent performance.
+- **Repeatable direction:** confirmation launches agree beyond the margin without the tool's instability warning.
+  This is descriptive evidence, not a suite-adjusted confidence claim. Claim improved/regressed only after
+  independent evidence resolves process/order effects and uncertainty lies beyond the chosen practical margin.
+- **Allocation change:** inspect bytes/op separately from time. The process-wide BDN counter covers managed
+  continuation allocations; it does not measure native allocations. Confirm stable changes with fresh launches.
+  Missing diagnostics, missing cases, changed fixtures or mismatched runtime/affinity fail the command.
+
+All raw observations remain available even when warnings suppress a direction label. The tool returns a nonzero
+exit code for invalid/incomplete work, not for an unconfirmed performance signal. Run its functional checks with
+`node --test tools/quality/perf-check.test.mjs`; these test reporting and stale-input safeguards, not wall-time gates.
+
+### Existing comparison and reference jobs
+
+The existing `Quick` workflow compares already-built checkouts with two rounds per side and smallest-median
+selection. It is available for reproducing existing measurements; its timing flags also require confirmation:
 
 ```sh
 git worktree add ../cstructsharp-before HEAD
@@ -87,12 +173,14 @@ git worktree remove ../cstructsharp-before
 ```
 
 It prints each case's median and allocation before and after, flags differences above `--threshold` (default
-3%), and reports how long the measurement took. Confirm a flagged case by rerunning only its class with
-`--filter '*PathAndTypedBenchmarks*' --rounds 3` (under a minute): a real change repeats, noise does not. Nothing
-else should run on the machine meanwhile.
+3%), and reports how long the measurement took. These flags are screening signals, not statistical confidence:
+identical code can cross the threshold, and a suite of 55 cases has many opportunities for false alarms. Confirm
+affected cases with longer measurements and independent launches, retaining every round and its variation.
+Use `--filter '*PathAndTypedBenchmarks*'` to focus the existing workflow. Nothing else should run on the machine
+meanwhile. See the [fast-comparison investigation](experiments/fast-impact/README.md) for measured limits and
+isolated reproduction tools.
 
-The `Quick` job is fast because it avoids BenchmarkDotNet's fixed costs rather than measuring less carefully per
-iteration:
+The `Quick` job reduces startup and sampling costs:
 
 - It runs the benchmarks in the host process, so no project is generated, built, or started for each case.
 - Iterations last 25 ms instead of 500 ms, with one warmup and five measured iterations, and no separate
@@ -102,9 +190,16 @@ iteration:
   its first call. With tiering on, a short in-process run measures a mix of unoptimized and optimized code that
   changes from run to run; without it, both sides measure optimized code, only without dynamic PGO.
 
-Absolute Quick-job times are therefore higher than Short-job times and are not comparable with them; use Quick for
-before/after comparisons only. The baseline checkout needs a benchmark host that knows the `Quick` job: for a
-revision older than the job, copy `benchmarks/CStructSharp.Benchmarks/Program.cs` into it before building. `--job Short` (the default) runs the out-of-process Short job, about seven minutes per side.
+Quick and Short use different JIT and harness settings, so their absolute times are not interchangeable; use Quick
+for before/after comparisons only. The baseline checkout needs a benchmark host that knows the `Quick` job: for a
+revision older than the job, copy `Program.cs` and `DevelopmentEnvironment.cs` from
+`benchmarks/CStructSharp.Benchmarks/` into it before building. `--job Short` (the default) runs the out-of-process
+Short job, about seven minutes per side.
+
+Keeping each case's smallest median favors optimistic observations and hides between-round variation. It does
+not establish that a change is real or that a missing flag means equivalent performance. Inspect the individual
+`before-*` and `after-*` summaries as well as the merged report. Build both revisions explicitly: the comparison
+starts existing binaries and does not verify that they match the current source files.
 
 To compare two summaries you already have (for example a recorded run and a new one), convert each BenchmarkDotNet
 report with `tools/quality/convert-benchmark-baseline.mjs` and compare them:

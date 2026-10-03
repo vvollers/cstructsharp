@@ -242,7 +242,7 @@ also review:
 | Layout syntax or behavior | Parser and operation tests, grammar, language pages, Portable contract, fixtures, feature matrix |
 | An intended change to a read, write or update outcome | The engine golden manifests, recorded again with each changed entry explained in the commit |
 | Dynamic or typed value shape | Read/write guides, round-trip properties, mapping errors, browser representation |
-| Performance-sensitive code | The `Impact` benchmark comparison and allocation results; published numbers only from a real run, recorded as described in [benchmarks/README.md](benchmarks/README.md) and checked by `tools/documentation/sync-documentation-facts.mjs` |
+| Performance-sensitive code | Capture an immutable baseline before editing, run the development `Impact` screen, and independently confirm affected cases and allocations as described in [benchmarks/README.md](benchmarks/README.md#development-comparisons). Retain all launches and inconclusive results. Published numbers require the longer reference workflow and `tools/documentation/sync-documentation-facts.mjs`. |
 | Build, package, dependency, workflow, or release step | Both framework assets, package consumers, metadata, symbols, audit, size, the affected READMEs |
 | Browser bridge or apps | Browser contract, package browser tests, the apps' unit and e2e tests |
 | Documentation structure or presentation | Markdown, spelling, links, search, browser and accessibility tests, Pages artifact |
