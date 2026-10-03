@@ -2,6 +2,7 @@ namespace CStructSharp.Codecs;
 
 using System;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using CStructSharp.Generated;
 
 /// <summary>The runtime half of a primitive descriptor: reading and writing one numeric value through a span, via <see cref="Codec"/>.</summary>
@@ -23,6 +24,8 @@ internal readonly partial record struct PrimitiveCodec
     /// <param name="value">The number to encode, converted to the codec's type with the invariant culture.</param>
     /// <exception cref="OverflowException">The value is outside the codec type's range.</exception>
     /// <exception cref="InvalidOperationException">This codec is not a fixed-width numeric codec.</exception>
+    /// <remarks>Inlining keeps the hot caller's span and value in registers across numeric dispatch.</remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteNumeric(Span<byte> bytes, object value)
     {
         bool le = this.LittleEndian;
@@ -76,6 +79,8 @@ internal readonly partial record struct PrimitiveCodec
     /// <param name="bytes">The encoded element, starting at its first byte.</param>
     /// <returns>The boxed value, such as a <c>short</c> for <c>int16</c>; one-byte values share cached boxes.</returns>
     /// <exception cref="InvalidOperationException">This codec is not a fixed-width numeric codec.</exception>
+    /// <remarks>Inlining avoids a separate span-call frame and its register spills for each scalar field.</remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public object ReadNumeric(ReadOnlySpan<byte> bytes)
     {
         bool le = this.LittleEndian;

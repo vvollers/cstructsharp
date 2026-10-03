@@ -15,6 +15,12 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   shrinks from 2.1 MB to 0.5 MB and the package from 1.68 MB to 1.15 MB. No public documentation is removed, and
   package validation now rejects internal documentation.
 
+### Performance
+
+- Speed up fixed-root runtime reads by constructing complete member slots, reduce runtime numeric call overhead,
+  and inline bounded generated fixed-record helpers. Preserve validation, conversions, ordering, mutation and
+  owned results; retain general-path fallbacks.
+
 ### Documentation and tooling
 
 - Add a fast managed development test profile, bounded parallel test orchestration and parallel generator tests.

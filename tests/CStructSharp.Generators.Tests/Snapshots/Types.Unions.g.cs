@@ -589,6 +589,7 @@ namespace Demo
         /// <param name="source">The struct's bytes.</param>
         /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
         /// <param name="value">A new value, whose nested struct members are the new values its constructor created; they are filled in place.</param>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         private static void FillRootPosFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText, RootPos value)
         {
             // uint8 x
@@ -1063,6 +1064,7 @@ namespace Demo
         /// <summary>Writes one <c>pos</c> into exactly its cleared bytes, each member at its constant offset (reached only through <c>WriteCursor.TryReserveFixed</c>).</summary>
         /// <param name="target">The struct's bytes, already zero so that padding is written as zeros.</param>
         /// <param name="value">A value that passed <see cref="IsRootPosFixedWritable"/>.</param>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         private static void WriteRootPosFixed(global::System.Span<byte> target, RootPos value)
         {
             // uint8 x

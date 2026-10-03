@@ -68,6 +68,13 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <param name=\"source\">The struct's bytes.</param>");
         writer.Line("/// <param name=\"trimFixedText\">Whether fixed-capacity text drops its trailing NUL padding.</param>");
         writer.Line("/// <param name=\"value\">A new value, whose nested struct members are the new values its constructor created; they are filled in place.</param>");
+
+        // Fixed leaf helpers expose constant offsets when inlined into their parent; array loops stay separate.
+        if (InlineFixedMembers(composite, plan))
+        {
+            writer.Line("[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
+        }
+
         writer.Open("private static void Fill" + name + "Fixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText, " + name + " value)");
         var scope = new ReaderScope(this, composite);
 
@@ -80,6 +87,16 @@ internal sealed partial class LayoutEmitter
         }
 
         writer.Close();
+    }
+
+    /// <summary>Bounds inlining hints to small fixed helpers without array loops.</summary>
+    /// <param name="composite">The fixed composite whose helper is being emitted.</param>
+    /// <param name="plan">Its storage and limit facts.</param>
+    /// <returns>Whether exposing the member operations to the caller keeps expansion small.</returns>
+    private static bool InlineFixedMembers(GeneratedComposite composite, FixedPlan plan)
+    {
+        // Array loops keep their own method body, while scalar helpers expose offsets to their callers.
+        return plan.Size <= 64 && composite.Composite.Fields.Length <= 8 && composite.Composite.Fields.All(field => field.Array.Kind == CompiledArrayKind.Scalar);
     }
 
     /// <summary>Emits the statement that decodes one member of a fixed reader.</summary>

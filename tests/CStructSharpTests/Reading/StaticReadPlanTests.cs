@@ -39,6 +39,42 @@ public class StaticReadPlanTests
         };
         """;
 
+    /// <summary>Complete direct-plan slots preserve presence, insertion order and independent nested ownership after mutation.</summary>
+    [TestMethod]
+    public void DirectPlan_CompleteSlots_MatchGeneralResultMutation()
+    {
+        var layout = new CStruct("struct leaf { uint8 x; uint16 y; }; struct root { uint8 _; struct { uint8 a; uint8 b; }; leaf children[2]; uint8 none[0]; };");
+        byte[] bytes = [0, 1, 2, 3, 4, 0, 5, 6, 0];
+        StructValue direct = layout.Parse(bytes, "root");
+        StructValue general = layout.Parse(bytes, "root", options: ExecutionPaths.NoFastPaths());
+        Assert.AreEqual(OperationOutcome.Render(general), OperationOutcome.Render(direct));
+        CollectionAssert.AreEqual(new[] { "a", "b", "children", "none" }, direct.Keys.ToArray());
+        Assert.AreEqual(4, direct.Count);
+
+        // Removing and reinserting a shape slot must append it after an extra member on either path.
+        foreach (StructValue value in new[] { direct, general })
+        {
+            Assert.IsTrue(value.Remove("a"));
+            value["extra"] = null;
+            value.Add("a", (byte)9);
+            Assert.AreEqual(5, value.Count);
+            CollectionAssert.AreEqual(new[] { "b", "children", "none", "extra", "a" }, value.Keys.ToArray());
+            Assert.IsTrue(value.ContainsKey("extra"));
+        }
+
+        var children = (IList<object?>)direct["children"]!;
+        ((StructValue)children[0]!)["x"] = (byte)42;
+        Assert.AreEqual((byte)5, ((StructValue)children[1]!)["x"]);
+        Assert.AreEqual((byte)3, ((StructValue)((IList<object?>)general["children"]!)[0]!)["x"]);
+        direct.Clear();
+        Assert.AreEqual(0, direct.Count);
+        Assert.IsFalse(direct.Any());
+        direct.Add("b", null);
+        Assert.IsTrue(direct.ContainsKey("b"));
+        Assert.AreEqual(1, direct.Count);
+        CollectionAssert.AreEqual(new[] { "b" }, direct.Keys.ToArray());
+    }
+
     /// <summary>Composites get a plan exactly when every member is statically placed and decodable.</summary>
     [TestMethod]
     public void StaticPlan_ExistsForFixedComposites_Only()

@@ -93,11 +93,18 @@ public sealed partial class CStruct
     }
 
     /// <summary>Runs a root's static plan over its bytes, once <see cref="CanReadFixedRoot"/> allowed it.</summary>
+    /// <param name="source">The borrowed bytes beginning at the root.</param>
+    /// <param name="composite">The composite whose shape the plan fills completely.</param>
+    /// <param name="plan">The validated fixed read plan.</param>
+    /// <param name="settings">The operation's validated limits, text policy and cancellation token.</param>
+    /// <returns>An owned mutable result, exposed only after every slot is filled.</returns>
+    /// <exception cref="OperationCanceledException">The token is cancelled before the plan finishes.</exception>
     private StructValue ReadPlannedRoot(ReadOnlySpan<byte> source, CompiledCompositeType composite, StaticReadPlan plan, ReadOperationSettings settings)
     {
-        var value = new StructValue(composite.Shape);
-        ExecuteStaticPlan(plan, source[..plan.Size], value, settings.MaxArrayElements, settings.TrimFixedText, settings.CancellationToken);
-        return value;
+        // A fixed plan fills every named shape slot; no conditional member can remain absent.
+        object?[] slots = composite.Shape.Count == 0 ? Array.Empty<object?>() : new object?[composite.Shape.Count];
+        ExecuteStaticPlan(plan, source[..plan.Size], slots, settings.MaxArrayElements, settings.TrimFixedText, settings.CancellationToken);
+        return new StructValue(composite.Shape, slots);
     }
 
     /// <summary>
@@ -107,7 +114,7 @@ public sealed partial class CStruct
     /// </summary>
     /// <param name="plan">The plan of the composite being read.</param>
     /// <param name="bytes">Exactly the composite's bytes.</param>
-    /// <param name="destination">The value receiving the members.</param>
+    /// <param name="destination">The complete shape's owned slots; every slot is filled before the value is exposed.</param>
     /// <param name="maxArrayElements">The array element limit of the read.</param>
     /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
     /// <param name="cancellationToken">The token observed on entering each composite.</param>
@@ -116,7 +123,7 @@ public sealed partial class CStruct
     private static void ExecuteStaticPlan(
         StaticReadPlan plan,
         ReadOnlySpan<byte> bytes,
-        StructValue destination,
+        object?[] destination,
         int maxArrayElements,
         bool trimFixedText,
         CancellationToken cancellationToken)
@@ -130,13 +137,13 @@ public sealed partial class CStruct
             switch (operation.Kind)
             {
             case StaticReadKind.Numeric:
-                destination.SetFreshSlot(operation.Slot, field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size)));
+                destination[operation.Slot] = field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size));
                 break;
 
             case StaticReadKind.Enum:
                 {
                     object storage = field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size));
-                    destination.SetFreshSlot(operation.Slot, ValueDecoding.CreateEnumValue(field.Enum!, storage));
+                    destination[operation.Slot] = ValueDecoding.CreateEnumValue(field.Enum!, storage);
                     break;
                 }
 
@@ -148,7 +155,7 @@ public sealed partial class CStruct
                     }
 
                     string latin1 = ValueDecoding.ReadLatin1Characters(bytes.Slice(operation.Offset, operation.Count));
-                    destination.SetFreshSlot(operation.Slot, trimFixedText ? latin1.TrimEnd('\0') : latin1);
+                    destination[operation.Slot] = trimFixedText ? latin1.TrimEnd('\0') : latin1;
                     break;
                 }
 
@@ -162,15 +169,17 @@ public sealed partial class CStruct
                     object values = operation.Count == 0
                                         ? PrimitiveArrayReader.Empty(field.Codec)
                                         : PrimitiveArrayReader.Decode(bytes.Slice(operation.Offset, operation.Count * field.Codec.Size), field.Codec, operation.Count);
-                    destination.SetFreshSlot(operation.Slot, values);
+                    destination[operation.Slot] = values;
                     break;
                 }
 
             case StaticReadKind.Nested:
                 {
-                    var nested = new StructValue(operation.NestedComposite!.Shape);
-                    destination.SetFreshSlot(operation.Slot, nested);
-                    ExecuteStaticPlan(operation.NestedPlan!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), nested, maxArrayElements, trimFixedText, cancellationToken);
+                    StructShape nestedShape = operation.NestedComposite!.Shape;
+                    object?[] nestedSlots = nestedShape.Count == 0 ? Array.Empty<object?>() : new object?[nestedShape.Count];
+                    var nested = new StructValue(nestedShape, nestedSlots);
+                    destination[operation.Slot] = nested;
+                    ExecuteStaticPlan(operation.NestedPlan!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), nestedSlots, maxArrayElements, trimFixedText, cancellationToken);
                     break;
                 }
 
@@ -182,15 +191,16 @@ public sealed partial class CStruct
                     }
 
                     var elements = new List<object?>(operation.Count);
-                    destination.SetFreshSlot(operation.Slot, elements);
+                    destination[operation.Slot] = elements;
                     StaticReadPlan nestedPlan = operation.NestedPlan!;
                     StructShape nestedShape = operation.NestedComposite!.Shape;
                     int elementOffset = operation.Offset;
                     for (int element = 0; element < operation.Count; element++, elementOffset += nestedPlan.Size)
                     {
-                        var nested = new StructValue(nestedShape);
+                        object?[] nestedSlots = nestedShape.Count == 0 ? Array.Empty<object?>() : new object?[nestedShape.Count];
+                        var nested = new StructValue(nestedShape, nestedSlots);
                         elements.Add(nested);
-                        ExecuteStaticPlan(nestedPlan, bytes.Slice(elementOffset, nestedPlan.Size), nested, maxArrayElements, trimFixedText, cancellationToken);
+                        ExecuteStaticPlan(nestedPlan, bytes.Slice(elementOffset, nestedPlan.Size), nestedSlots, maxArrayElements, trimFixedText, cancellationToken);
                     }
 
                     break;

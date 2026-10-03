@@ -47,6 +47,21 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
         Array.Fill(this.slots, Unset);
     }
 
+    /// <summary>Owns a complete fixed-plan result without initializing or tracking absent members.</summary>
+    /// <param name="shape">The member table shared by values of this composite.</param>
+    /// <param name="slots">One value per shape member, in shape order; ownership passes to this instance.</param>
+    /// <remarks>
+    ///     Only a complete fixed plan may use this constructor. The caller fills every slot before exposing the value;
+    ///     after publishing the completed result, it must not retain or modify the array.
+    /// </remarks>
+    internal StructValue(StructShape shape, object?[] slots)
+    {
+        this.shape = shape;
+        this.slots = slots;
+        this.count = slots.Length;
+        this.highestSlot = slots.Length - 1;
+    }
+
     /// <summary>Creates an empty value that accepts any member names, for callers assembling data to write.</summary>
     public StructValue()
         : this(StructShape.Empty)

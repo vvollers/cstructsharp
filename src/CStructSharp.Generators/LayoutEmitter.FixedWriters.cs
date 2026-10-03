@@ -123,12 +123,19 @@ internal sealed partial class LayoutEmitter
     }
 
     /// <summary>Emits one composite's fixed writer.</summary>
+    /// <param name="writer">The generated source destination.</param>
+    /// <param name="composite">The eligible composite whose validated members are stored at fixed offsets.</param>
     private void EmitFixedWriter(SourceWriter writer, GeneratedComposite composite)
     {
         string name = composite.Name;
         writer.Line("/// <summary>Writes one <c>" + composite.LayoutName + "</c> into exactly its cleared bytes, each member at its constant offset (reached only through <c>WriteCursor.TryReserveFixed</c>).</summary>");
         writer.Line("/// <param name=\"target\">The struct's bytes, already zero so that padding is written as zeros.</param>");
         writer.Line("/// <param name=\"value\">A value that passed <see cref=\"Is" + name + "FixedWritable\"/>.</param>");
+        if (this.FixedPlanOf(composite, 0) is { } plan && InlineFixedMembers(composite, plan))
+        {
+            writer.Line("[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
+        }
+
         writer.Open("private static void Write" + name + "Fixed(global::System.Span<byte> target, " + name + " value)");
         var scope = new ReaderScope(this, composite);
         foreach (CompiledField field in composite.Composite.Fields)
