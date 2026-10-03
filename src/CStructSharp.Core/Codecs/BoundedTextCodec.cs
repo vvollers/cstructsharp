@@ -4,7 +4,7 @@ using System;
 using System.Text;
 
 /// <summary>Locale-independent codecs for byte-counted text buffers.</summary>
-internal static class BoundedTextCodec
+internal static partial class BoundedTextCodec
 {
     // Unicode CP437 mapping: https://www.unicode.org/Public/MAPPINGS/VENDORS/MICSFT/PC/CP437.TXT
     private const string Cp437High = "ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ ";

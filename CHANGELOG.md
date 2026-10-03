@@ -17,6 +17,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Performance
 
+- Decode generated numeric multidimensional arrays directly into owned rows, removing flat temporary arrays and
+  copying. Reduce generated UTF/Latin-1 text scratch storage and padded Latin-1 string allocations while preserving
+  strict validation and error details.
 - Speed up fixed-root runtime reads by constructing complete member slots, reduce runtime numeric call overhead,
   and inline bounded generated fixed-record helpers. Preserve validation, conversions, ordering, mutation and
   owned results; retain general-path fallbacks.

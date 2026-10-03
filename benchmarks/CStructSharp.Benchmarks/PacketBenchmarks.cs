@@ -45,6 +45,10 @@ public class PacketBenchmarks
         this.fileStream = new FileStream(this.filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
         this.structValue = this.layout.Parse(this.bytes, "packet");
+        if (!PacketLayout.Serialize(PacketLayout.Parse(this.bytes)).AsSpan().SequenceEqual(this.bytes))
+        {
+            throw new InvalidOperationException("The generated packet must preserve every input byte.");
+        }
     }
 
     /// <summary>Closes the file stream and deletes the temporary file.</summary>
@@ -60,6 +64,11 @@ public class PacketBenchmarks
     /// <returns>The parsed root.</returns>
     [Benchmark]
     public StructValue ParseSpan() => this.layout.Parse(this.bytes, "packet");
+
+    /// <summary>Parses the same data-dependent packet through its generated reader.</summary>
+    /// <returns>The complete owned generated packet.</returns>
+    [Benchmark]
+    public PacketLayout.Packet Generated_Parse() => PacketLayout.Parse(this.bytes);
 
     /// <summary>Parses the packet from a <see cref="MemoryStream"/> rewound before each call.</summary>
     /// <returns>The parsed root.</returns>

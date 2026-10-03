@@ -1159,13 +1159,20 @@ namespace Demo
                 int count;
                 count = 4;
                 cursor.RequireArrayLength(count, "words", "uint16");
-                var elements = global::System.GC.AllocateUninitializedArray<ushort>(count);
+                var elements = new ushort[count == 0 ? 0 : 2][];
                 if (count > 0)
                 {
                     global::System.ReadOnlySpan<byte> bytes = cursor.TakeInBlocks(count, 2, "words", "uint16");
-                    global::CStructSharp.Generated.Codec.DecodeIntegers<ushort>(bytes, elements, true);
+                    int byteOffset = 0;
+                    for (int rowIndex1 = 0; rowIndex1 < elements.Length; rowIndex1++)
+                    {
+                        var row1 = global::System.GC.AllocateUninitializedArray<ushort>(2);
+                        global::CStructSharp.Generated.Codec.DecodeIntegers<ushort>(bytes.Slice(byteOffset, row1.Length * 2), row1, true);
+                        byteOffset += row1.Length * 2;
+                        elements[rowIndex1] = row1;
+                    }
                 }
-                value.Words = Split<ushort>(elements, 2);
+                value.Words = elements;
                 placement.CompleteField(cursor.Position);
             }
             // uint8 count

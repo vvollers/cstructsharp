@@ -774,9 +774,19 @@ public static class Codec
     /// <returns>The decoded value.</returns>
     public static string DecodeFixedText(ReadOnlySpan<byte> source, bool trimTrailingNuls)
     {
-        // Latin-1 maps every byte to the code point of the same value, which is what the runtime's char[N] read produces.
-        string text = System.Text.Encoding.Latin1.GetString(source);
-        return trimTrailingNuls ? text.TrimEnd('\0') : text;
+        if (trimTrailingNuls)
+        {
+            // Every byte is valid Latin-1, and zero maps only to NUL. Removing padding cannot hide invalid input.
+            int length = source.Length;
+            while (length > 0 && source[length - 1] == 0)
+            {
+                length--;
+            }
+
+            source = source[..length];
+        }
+
+        return System.Text.Encoding.Latin1.GetString(source);
     }
 
     /// <summary>Decodes an encoded text buffer (<c>utf8[N]</c>, <c>latin1[N]</c>, <c>cp437[N]</c>, <c>utf16le[N]</c>, <c>utf16be[N]</c>).</summary>
@@ -791,7 +801,7 @@ public static class Codec
         string text;
         try
         {
-            text = BoundedTextCodec.Decode(encoding, source.ToArray());
+            text = BoundedTextCodec.Decode(encoding, source);
         }
         catch (System.Text.DecoderFallbackException exception)
         {
@@ -849,16 +859,37 @@ public static class Codec
     /// <exception cref="CStructReadException">The code units are not valid UTF-16.</exception>
     public static string DecodeWideText(ReadOnlySpan<byte> source, bool littleEndian, ReadOptions? options)
     {
-        var characters = new char[source.Length / 2];
-        for (int index = 0; index < characters.Length; index++)
-        {
-            characters[index] = ReadChar(source.Slice(index * 2, 2), littleEndian);
-        }
-
-        string text = new(characters);
-        PrimitiveCodecs.ValidateWideText(text, littleEndian ? PrimitiveCodecs.StrictUtf16LittleEndianEncoding : PrimitiveCodecs.StrictUtf16BigEndianEncoding);
-
+        string text = DecodeWideCharacters(source, littleEndian);
         return TrimsFixedText(options) ? text.TrimEnd('\0') : text;
+    }
+
+    /// <summary>Decodes complete wide-character units directly on success, retaining the original encoder failure for invalid UTF-16.</summary>
+    /// <param name="source">Borrowed code-unit bytes; an unmatched final byte is ignored, as by <see cref="DecodeWideText"/>.</param>
+    /// <param name="littleEndian">The code units' byte order.</param>
+    /// <returns>The owned, validated characters, including trailing NULs.</returns>
+    /// <exception cref="CStructReadException">A code-unit sequence is invalid; the inner exception is the original encoder failure.</exception>
+    internal static string DecodeWideCharacters(ReadOnlySpan<byte> source, bool littleEndian)
+    {
+        System.Text.Encoding encoding = littleEndian ? PrimitiveCodecs.StrictUtf16LittleEndianEncoding : PrimitiveCodecs.StrictUtf16BigEndianEncoding;
+        source = source[..(source.Length / 2 * 2)];
+        try
+        {
+            return encoding.GetString(source);
+        }
+        catch (System.Text.DecoderFallbackException)
+        {
+            // wchar buffers historically validate decoded code units through the encoder. Recreate that failure,
+            // not the decoder's different exception kind or byte index. No temporary characters are needed on success.
+            var characters = new char[source.Length / 2];
+            for (int index = 0; index < characters.Length; index++)
+            {
+                characters[index] = ReadChar(source.Slice(index * 2, 2), littleEndian);
+            }
+
+            string text = new(characters);
+            PrimitiveCodecs.ValidateWideText(text, encoding);
+            return text;
+        }
     }
 
     /// <summary>Converts one character to the one-byte domain of the layout's <c>char</c> type.</summary>

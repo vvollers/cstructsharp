@@ -46,23 +46,25 @@ public ref partial struct ReadCursor
     /// <param name="memberType">The field's type spelling, for the diagnostics.</param>
     /// <returns>The text.</returns>
     /// <exception cref="CStructReadException">The code units are not valid UTF-16.</exception>
+    /// <exception cref="OverflowException">The code-unit count is negative.</exception>
     public string TakeWideText(int count, bool littleEndian, string member, string? memberType)
     {
         ReadOnlySpan<byte> bytes = this.TakeElements(count, 2, member, memberType);
-        var characters = new char[count];
-        for (int index = 0; index < count; index++)
+        if (count < 0)
         {
-            characters[index] = Codec.ReadChar(bytes.Slice(index * 2, 2), littleEndian);
+            // This advanced entry point historically reaches array allocation for a negative count, after the
+            // cursor's cancellation check. Keep that allocation failure even though valid reads need no array.
+            _ = new char[count];
         }
 
-        string text = new(characters);
+        string text;
         try
         {
-            _ = (littleEndian ? Codecs.PrimitiveCodecs.StrictUtf16LittleEndianEncoding : Codecs.PrimitiveCodecs.StrictUtf16BigEndianEncoding).GetByteCount(text);
+            text = Codec.DecodeWideCharacters(bytes, littleEndian);
         }
-        catch (System.Text.EncoderFallbackException exception)
+        catch (CStructReadException exception)
         {
-            throw this.Fail(ReadFailures.WideTextInvalid, member, memberType, exception);
+            throw this.Fail(ReadFailures.WideTextInvalid, member, memberType, exception.InnerException);
         }
 
         return this.settings.TrimFixedText ? text.TrimEnd('\0') : text;

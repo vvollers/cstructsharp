@@ -58,7 +58,7 @@ no longer matches these records or `CStructSharp.Comparison/results.json`.
 
 ## Check a change quickly: the Impact category
 
-The full suite takes about 45 minutes. The `Impact` category is a subset of 55 cases that samples the main
+The full suite takes about 45 minutes. The `Impact` category is a subset of 64 cases that samples the main
 execution paths: compilation (including the longest definition the default options accept),
 span parses of eleven fixtures chosen for their differences (`ImpactParseBenchmarks`: fixed records, nested
 structs, big-endian arrays, runtime counts, conditions, strings, a real file header, pointers, bitfields, unions,
@@ -67,7 +67,9 @@ generated parse (a flat record and 256 nested records), view, view enumerator an
 canary, paths, typed reads, serialize to an array, a span and a buffer writer, UTF-8 text writing, updates (a
 bitfield and a pointer target), debug ranges, async and segmented input, and the data-dependent
 `packet` record (`PacketBenchmarks`: parse from a span, a `MemoryStream` and a `FileStream`, read into a mapped class,
-serialize a `StructValue` and a mapped instance). One run takes about eight minutes:
+serialize a `StructValue` and a mapped instance, and generated parsing). `MaterializationBenchmarks` adds owned
+generated numeric matrices in both byte orders, matrix serialization, and generated/runtime mixed text with and
+without trimming. Its setup verifies values, bytes and ownership outside timing. One Short run takes about eight minutes:
 
 ```sh
 dotnet build ./CStructSharp.NonWeb.slnf -c Release
@@ -99,11 +101,11 @@ build, run tests, edit source, or run another benchmark during measurement. A lo
 of this tool in the same repository; it cannot prevent unrelated applications from using the CPU.
 An individual Screen host times out after 60 seconds. A failed or incomplete run never becomes a partial success.
 
-The default **Screen** job measures all 55 Impact cases using twelve 1 ms iterations and three warmups, retaining
+The default **Screen** job measures all 64 Impact cases using twelve 1 ms iterations and three warmups, retaining
 allocation diagnosis. It disables per-iteration forced GC and overhead evaluation, disables tiering/PGO for both
 hosts, and keeps the machine's current power plan. BDN still collects before its allocation-diagnostic batch.
 The report uses **every actual timing sample**, including values BDN excludes from its summary as outliers.
-Three implemented full comparisons took **7.86–7.91 seconds externally measured** with both bundles already built;
+Three full comparisons of the original 55-case suite took **7.86–7.91 seconds externally measured** with both bundles already built;
 initial capture took **11.2 seconds**, and a source edit/rebuild/compare took **18.1 seconds**. These observations
 are from the investigation's Windows Ryzen machine, not deadlines or promises for other hardware.
 Build/setup, comparison and total invocation times are reported

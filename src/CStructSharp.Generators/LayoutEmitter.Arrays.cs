@@ -17,6 +17,14 @@ internal sealed partial class LayoutEmitter
     private readonly List<CompiledField> pendingPointerReaders = new();
 
     /// <summary>Emits the read of one array field: its count, then a bulk decode, a text read, or an element loop (addresses only for a deferred pointer array).</summary>
+    /// <param name="writer">The generated source destination.</param>
+    /// <param name="field">The compiled array field.</param>
+    /// <param name="generated">The field's generated type and property metadata.</param>
+    /// <param name="scope">The scope used to evaluate an element count.</param>
+    /// <param name="property">The property assigned the owned array or text.</param>
+    /// <param name="inUnion">Whether reads use the union's per-element accounting.</param>
+    /// <param name="member">The member-name expression for failures.</param>
+    /// <param name="memberType">The member-type expression for failures.</param>
     private void EmitArray(SourceWriter writer, CompiledField field, GeneratedMember generated, ReaderScope scope, string property, bool inUnion, string member, string memberType)
     {
         // The element count, as the runtime derives it before reading.
@@ -66,7 +74,12 @@ internal sealed partial class LayoutEmitter
         {
             string elementType = ElementType(generated.TypeName, field.Array.Dimensions.Length == 0 ? 1 : field.Array.Dimensions.Length);
             bool bulk = field.PointerDepth == 0 && generated.Composite is null && generated.Enum is null && field.Name.Length > 0 && codec.IsFixedWidthNumeric;
-            if (bulk)
+            bool directRows = bulk && field.Array.Dimensions.Length > 1;
+            if (directRows)
+            {
+                EmitNumericRows(writer, field, elementType, inUnion, member, memberType);
+            }
+            else if (bulk)
             {
                 // The bulk decode overwrites every element or throws while the array is still local, so the array
                 // skips the zeroing pass a large array would otherwise pay for.
@@ -100,7 +113,7 @@ internal sealed partial class LayoutEmitter
                 writer.Close();
             }
 
-            writer.Line(property + " = " + Reshape("elements", field.Array.Dimensions, elementType) + ";");
+            writer.Line(property + " = " + (directRows ? "elements" : Reshape("elements", field.Array.Dimensions, elementType)) + ";");
         }
 
         if (field.Array.Kind == CompiledArrayKind.Terminated)
@@ -108,6 +121,62 @@ internal sealed partial class LayoutEmitter
             // The all-zero terminator element belongs to the field but not to its value; it is consumed, so it is charged.
             writer.Line("cursor.TakeTerminator(" + Int(field.FixedElementSize ?? 0) + ", " + member + ", " + memberType + ");");
         }
+    }
+
+    /// <summary>
+    ///     Emits an owned numeric jagged array without an intermediate flat element array. The whole field is still
+    ///     consumed once, preserving the existing block or union accounting and its cancellation and failure order.
+    /// </summary>
+    /// <param name="writer">The generated source destination.</param>
+    /// <param name="field">A fixed multidimensional numeric field.</param>
+    /// <param name="elementType">The numeric element's C# type.</param>
+    /// <param name="inUnion">Whether the field uses per-element union accounting.</param>
+    /// <param name="member">The member-name expression for failures.</param>
+    /// <param name="memberType">The member-type expression for failures.</param>
+    private static void EmitNumericRows(SourceWriter writer, CompiledField field, string elementType, bool inUnion, string member, string memberType)
+    {
+        int outer = field.Array.Dimensions[0].FixedCount ?? throw new InvalidOperationException("Multidimensional array without a fixed outer dimension.");
+        string suffix = string.Concat(System.Linq.Enumerable.Repeat("[]", field.Array.Dimensions.Length - 1));
+
+        // Split collapses every zero-total shape to a fresh empty outer array; do not create declared empty rows.
+        writer.Line("var elements = new " + elementType + "[count == 0 ? 0 : " + Int(outer) + "]" + suffix + ";");
+        writer.Open("if (count > 0)");
+        string take = inUnion ? "TakeElements" : "TakeInBlocks";
+        writer.Line("global::System.ReadOnlySpan<byte> bytes = cursor." + take + "(count, " + Int(field.Codec.Size) + ", " + member + ", " + memberType + ");");
+        writer.Line("int byteOffset = 0;");
+        EmitNumericRowLevel(writer, field, elementType, 1, "elements");
+        writer.Close();
+    }
+
+    /// <summary>Emits one jagged-array level, decoding each innermost row directly from its validated byte slice.</summary>
+    /// <param name="writer">The generated source destination.</param>
+    /// <param name="field">The field whose dimensions and codec determine each row.</param>
+    /// <param name="elementType">The numeric element's C# type.</param>
+    /// <param name="dimension">The dimension allocated inside the parent's element loop.</param>
+    /// <param name="parent">The local holding the parent reference array.</param>
+    private static void EmitNumericRowLevel(SourceWriter writer, CompiledField field, string elementType, int dimension, string parent)
+    {
+        int length = field.Array.Dimensions[dimension].FixedCount ?? throw new InvalidOperationException("Multidimensional array without a fixed inner dimension.");
+        string index = "rowIndex" + Int(dimension);
+        string row = "row" + Int(dimension);
+        writer.Open("for (int " + index + " = 0; " + index + " < " + parent + ".Length; " + index + "++)");
+        if (dimension == field.Array.Dimensions.Length - 1)
+        {
+            // No partially decoded row escapes: bulk decoding overwrites every element before publication.
+            writer.Line("var " + row + " = " + UninitializedArray(elementType, Int(length)) + ";");
+            string byteLength = row + ".Length * " + Int(field.Codec.Size);
+            writer.Line(BulkDecode(field.Codec, elementType, "bytes.Slice(byteOffset, " + byteLength + ")", row));
+            writer.Line("byteOffset += " + byteLength + ";");
+        }
+        else
+        {
+            string suffix = string.Concat(System.Linq.Enumerable.Repeat("[]", field.Array.Dimensions.Length - dimension - 1));
+            writer.Line("var " + row + " = new " + elementType + "[" + Int(length) + "]" + suffix + ";");
+            EmitNumericRowLevel(writer, field, elementType, dimension + 1, row);
+        }
+
+        writer.Line(parent + "[" + index + "] = " + row + ";");
+        writer.Close();
     }
 
     /// <summary>
