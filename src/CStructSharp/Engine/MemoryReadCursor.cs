@@ -249,7 +249,17 @@ internal unsafe struct MemoryReadCursor : IReadCursor, ITextReadSource
         => this.TryReadTerminatedInPlace(encoding, terminator, out string? text) ? text : PrimitiveCodecs.ReadIntoString(ref this, encoding, terminator);
 
     /// <inheritdoc/>
-    public string ReadBoundedText(int byteCount, string type) => PrimitiveCodecs.ReadBoundedText(ref this, byteCount, type);
+    public string ReadBoundedText(int byteCount, string type)
+    {
+        // Retain the shared reader's string-limit precedence and partial-read behavior. A complete memory read
+        // charges the same extent before decoding, whose span overload recreates the original array failures.
+        if (byteCount >= 0 && byteCount <= this.maxStringBytes && this.core.TryReadSpan(byteCount, out ReadOnlySpan<byte> bytes))
+        {
+            return Generated.Codec.DecodeBoundedText(bytes, type, trimTrailingNuls: false);
+        }
+
+        return PrimitiveCodecs.ReadBoundedText(ref this, byteCount, type);
+    }
 
     /// <inheritdoc/>
     public readonly void FlushPosition()

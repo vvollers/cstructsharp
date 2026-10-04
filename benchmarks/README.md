@@ -58,7 +58,7 @@ no longer matches these records or `CStructSharp.Comparison/results.json`.
 
 ## Check a change quickly: the Impact category
 
-The full suite takes about 45 minutes. The `Impact` category is a subset of 74 cases that samples the main
+The full suite takes about 45 minutes. The `Impact` category is a subset of 86 cases that samples the main
 execution paths: compilation (including the longest definition the default options accept),
 span parses of eleven fixtures chosen for their differences (`ImpactParseBenchmarks`: fixed records, nested
 structs, big-endian arrays, runtime counts, conditions, strings, a real file header, pointers, bitfields, unions,
@@ -71,7 +71,9 @@ serialize a `StructValue` and a mapped instance, and generated parsing). `Materi
 generated numeric matrices in both byte orders, small and big-endian matrix serialization, runtime matrix parsing
 and serialization, and generated/runtime mixed text with and without trimming. Runtime matrix cases also include
 small inputs, big-endian leaves and non-exposable streams. `BitfieldBenchmarks` covers generated bitfield leaf and
-array parsing with serialization as a control. Setup verifies values, bytes and ownership outside timing.
+array parsing with serialization as a control. `TextRecordBenchmarks` covers one or 256 complete records with short
+multilingual text, both UTF-16 byte orders, UTF-8, physical stream calls, cached async file reads and owned write
+controls. Setup verifies values, bytes and ownership outside timing.
 One Short run takes about eight minutes:
 
 ```sh
@@ -88,6 +90,13 @@ production and first-use measurements.
 
 The [deferred-candidate investigation](experiments/deferred-next/README.md) continues from that baseline with
 runtime matrix materialization, bounded write-normalization capacity and generated fixed bitfield leaves.
+
+The [numeric-section investigation](experiments/execution-next/README.md) measures bounded scalar sections in
+dynamic generated readers, removed after reviewing first-use cost and workload relevance, and the rejected
+runtime block-copy prototype.
+
+The [runtime text investigation](experiments/ordinary-next/README.md) covers wide-character boxing and bounded
+text copies, with small and repeated complete records, cached async file reads, write controls and first-use costs.
 
 Capture a baseline **before editing a hot path**, then compare each candidate with it:
 
@@ -111,7 +120,7 @@ build, run tests, edit source, or run another benchmark during measurement. A lo
 of this tool in the same repository; it cannot prevent unrelated applications from using the CPU.
 An individual Screen host times out after 60 seconds. A failed or incomplete run never becomes a partial success.
 
-The default **Screen** job measures all 74 Impact cases using twelve 1 ms iterations and three warmups, retaining
+The default **Screen** job measures all 86 Impact cases using twelve 1 ms iterations and three warmups, retaining
 allocation diagnosis. It disables per-iteration forced GC and overhead evaluation, disables tiering/PGO for both
 hosts, and keeps the machine's current power plan. BDN still collects before its allocation-diagnostic batch.
 The report uses **every actual timing sample**, including values BDN excludes from its summary as outliers.

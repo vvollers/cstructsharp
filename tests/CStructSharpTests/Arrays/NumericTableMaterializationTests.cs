@@ -10,6 +10,31 @@ using CStructSharp.Values;
 [TestClass]
 public class NumericTableMaterializationTests
 {
+    /// <summary>Borrowing input during decoding never borrows storage in the returned rows, including a block-crossing row.</summary>
+    [TestMethod]
+    public void NumericRows_OwnValuesAfterSourceMutation()
+    {
+        var layout = new CStruct("struct root { uint16> grid[2][20001]; };");
+        byte[] source = new byte[80004];
+        Array.Fill(source, (byte)0x17);
+        var value = layout.Parse(source, "root");
+        Array.Fill(source, (byte)0x81);
+        var rows = (List<object?>)value["grid"]!;
+        foreach (object? item in rows)
+        {
+            var row = (List<object?>)item!;
+            Assert.AreEqual(20001, row.Count);
+            foreach (object? element in row)
+            {
+                Assert.AreEqual((ushort)0x1717, element);
+            }
+        }
+
+        ((List<object?>)rows[0]!)[0] = (ushort)0x4242;
+        Assert.AreEqual((ushort)0x1717, ((List<object?>)rows[1]!)[0]);
+        Assert.AreEqual((byte)0x81, source[0]);
+    }
+
     /// <summary>Every bulk numeric codec retains its boxed leaf types and row shape across unaligned block boundaries.</summary>
     /// <param name="bigEndian">Whether multi-byte leaves use most-significant-byte-first encoding.</param>
     [TestMethod]

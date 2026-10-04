@@ -17,6 +17,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Performance
 
+- Reduce temporary storage and per-character work when runtime readers decode wide and byte-counted text from
+  memory, including buffered async input, while preserving owned strings and original failure behavior.
 - Materialize runtime numeric matrix rows without a temporary flat reference array, and reduce allocation while
   validating matrices for serialization. Specialize generated fixed bitfield leaf readers while preserving repeated
   read charges, caller construction effects and original failure paths.

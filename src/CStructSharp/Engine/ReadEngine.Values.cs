@@ -247,7 +247,7 @@ internal static partial class ReadEngine
         return state.FixedText(ReadCharacters(ref cursor, program.Codecs[codec].Primitive, count, scratch));
     }
 
-    /// <summary>Reads a <c>wchar[N]</c> character by character as one string, trimmed as the options say, which must be valid UTF-16.</summary>
+    /// <summary>Reads owned, validated <c>wchar[N]</c> text from complete memory or through the original character reads.</summary>
     /// <typeparam name="TCursor">The cursor type.</typeparam>
     /// <param name="cursor">The operation's cursor.</param>
     /// <param name="state">The operation's state.</param>
@@ -260,6 +260,13 @@ internal static partial class ReadEngine
     private static string ReadWideCharArray<TCursor>(ref TCursor cursor, ref ReadEngineState state, CompiledField member, PrimitiveCodec codec, int count, Span<byte> scratch)
         where TCursor : struct, IReadCursor
     {
+        // Only a complete, affordable memory extent can skip the individual reads. Short input and budget failures
+        // must still consume and fail at the original code unit; physical streams retain their read callbacks.
+        if (!state.NoFastPaths && count <= int.MaxValue / 2 && cursor.TryReadSpanWithinBudget(count * 2, out ReadOnlySpan<byte> bytes))
+        {
+            return state.FixedText(Codec.DecodeWideCharacters(bytes, codec.LittleEndian));
+        }
+
         string text = state.FixedText(ReadCharacters(ref cursor, codec, count, scratch));
         PrimitiveCodecs.ValidateWideText(text, state.Layout.GetWideCharacterEncoding(member));
         return text;
