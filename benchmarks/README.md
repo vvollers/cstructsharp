@@ -387,6 +387,11 @@ uses the npm build of `kaitai-struct-compiler`, so no Java is required.
 
 ## Memory analysis workloads
 
+`MemoryWorkloadBenchmarks` adds wide/tiny selections, complete owned 16-byte and 4 KiB arrays, repeated pointer
+preparation, tiny-schema construction and writer controls to `Impact`. Its setup checks values, bytes and ownership.
+The [memory-workload investigation](experiments/memory-workload/README.md) separates preparation, first use and
+sustained execution, including local Native AOT validation.
+
 `MemoryAnalysisBenchmarks` measures cross-page selected reads, cached reads, one scalar member read by name from a
 byte-array source (`ScalarReadByName`), ISF import, bounded traversal, 4,096 stored-pointer links, a selected field in
 a sparse one-million-byte record, and mapped offline updates.

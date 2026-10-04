@@ -17,8 +17,9 @@ using CStructSharp.Diagnostics;
 /// <para>
 /// <see cref="Types"/> is the semantic graph: real names, IDs, offsets, bit slices, and provenance, which is what an
 /// analyzer should show. The recorded placement is checked directly against these definitions; no layout is
-/// compiled for a struct, union, or array. To decode, the schema compiles one small core layout per scalar
-/// (<c>struct __memory_scalar { T value; }</c>) and one per bitfield slice, and the memory APIs reuse those core
+/// compiled for a struct, union, or array. To decode, the schema compiles small core scalar layouts
+/// (<c>struct __memory_scalar { T value; }</c>) and one per bitfield slice. Equivalent built-in scalar encodings
+/// share a layout within the schema; caller-supplied codecs and declarations compile independently. The APIs reuse these
 /// scalar and bitfield codecs instead of a second decoder. Their generated names never appear in results.
 /// </para>
 /// <para>
@@ -94,12 +95,17 @@ public sealed class MemorySchema
         // original size, which is all most references check; the one exception is a bitfield, whose storage must
         // be a scalar, so pass 2b demotes the users of a demoted scalar whatever order they were validated in.
         var diagnostics = new List<string>();
+
+        // Do not even inspect caller-owned collections to decide eligibility: their getters/enumeration may
+        // have effects. This temporary cache shares only built-in preparation under this schema's fixed options.
+        Dictionary<(string Root, bool LittleEndian), MemoryScalarCodec>? sharedScalars =
+            this.Options.Codecs is null && this.Options.Defined is null && this.Options.Prelude is null ? new() : null;
         foreach (MemoryTypeDefinition type in new List<MemoryTypeDefinition>(definitions.Values))
         {
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
-                this.Validate(type);
+                this.Validate(type, sharedScalars);
             }
             catch (CStructLayoutException error) when (bestEffort)
             {
@@ -286,8 +292,9 @@ public sealed class MemorySchema
     /// </para>
     /// </remarks>
     /// <param name="type">The definition to check.</param>
+    /// <param name="sharedScalars">Constructor-local built-in codecs, or null when options may invoke caller code.</param>
     /// <exception cref="CStructLayoutException">The definition is invalid.</exception>
-    private void Validate(MemoryTypeDefinition type)
+    private void Validate(MemoryTypeDefinition type, Dictionary<(string Root, bool LittleEndian), MemoryScalarCodec>? sharedScalars)
     {
         if (!Enum.IsDefined(type.Kind))
         {
@@ -316,13 +323,26 @@ public sealed class MemorySchema
                 throw new CStructLayoutException($"Scalar '{type.Id}' names no codec type.");
             }
 
-            var codec = new CStruct((type.Declaration ?? string.Empty) + $"\nstruct __memory_scalar {{ {root} value; }};", pointerSize: (byte)this.PointerSize, isLittleEndian: type.IsLittleEndian ?? this.IsLittleEndian, compilationOptions: this.Options);
-            if (codec.GetStructSizeInBytes("__memory_scalar") != type.Size)
+            bool littleEndian = type.IsLittleEndian ?? this.IsLittleEndian;
+            bool share = sharedScalars is not null && type.Declaration is null;
+            if (!share || !sharedScalars!.TryGetValue((root, littleEndian), out MemoryScalarCodec? prepared))
+            {
+                var codec = new CStruct((type.Declaration ?? string.Empty) + $"\nstruct __memory_scalar {{ {root} value; }};", pointerSize: (byte)this.PointerSize, isLittleEndian: littleEndian, compilationOptions: this.Options);
+                prepared = MemoryScalarCodec.ForValue(codec, root);
+            }
+
+            // Size and pointer-reference validation still belong to each definition, including cache hits.
+            if (prepared.Layout.GetStructSizeInBytes("__memory_scalar") != type.Size)
             {
                 throw new CStructLayoutException($"Scalar size disagrees with codec for '{type.Id}'.");
             }
 
-            this.scalarLayouts.Add(type.Id, MemoryScalarCodec.ForValue(codec, root));
+            if (share)
+            {
+                sharedScalars![(root, littleEndian)] = prepared;
+            }
+
+            this.scalarLayouts.Add(type.Id, prepared);
         }
         else if (type.Kind == MemoryTypeKind.Array)
         {

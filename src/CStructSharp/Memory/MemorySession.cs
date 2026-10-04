@@ -474,6 +474,14 @@ public sealed class MemorySession
         MemorySelection? found = null;
         foreach (MemoryField field in parent.Type.Fields)
         {
+            if (field.Name != name && !field.Promoted)
+            {
+                // Schema validation proves every extent fits the bounded parent selection. Its one remaining
+                // address failure is an empty member just past ulong.MaxValue; retain that check in field order.
+                _ = checked(parent.Region.Address + (ulong)field.Offset);
+                continue;
+            }
+
             MemoryTypeDefinition type = this.Schema.GetType(field.TypeId);
             var candidate = new MemorySelection(parent.Region.Slice(field.Offset, type.Size), type, field, parent.Type.Id, parent.Region);
             if (field.Name == name)

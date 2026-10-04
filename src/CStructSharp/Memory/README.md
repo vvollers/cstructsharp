@@ -25,10 +25,13 @@ MemoryAccessContext      one budget (bytes, requests, nesting, pointer steps, ca
 ## Follow one read
 
 1. `MemorySession.Resolve` tokenizes the path and walks semantic field offsets from `MemorySchema`. Ordinary
-   members and array indexes are arithmetic on the region; a `.value` step reads a `StoredPointer` and asks the
-   resolver for another bounded `MemoryRegion`, possibly in another source.
-2. `ReadCore` decodes only the selected storage. A `MemoryRegionStream` translates local stream positions into
-   unsigned source addresses so the existing compiled scalar codecs can do the binary decoding.
+   members and array indexes are arithmetic on the region; only matching or promoted members need selections.
+   All promoted branches still participate in ambiguity and depth checks. A `.value` step reads a `StoredPointer`
+   and asks the resolver for another bounded `MemoryRegion`, possibly in another source.
+2. `ReadCore` decodes only the selected storage through the existing compiled scalar codecs. A schema shares
+   equivalent built-in scalar preparation within its own lifetime, while validating every definition's size and
+   references. Custom codecs, declarations, preludes and caller-owned option collections keep independent preparation.
+   `MemoryRegionStream` separately exposes a region to callers of the ordinary stream API.
 3. `MappedMemorySource` splits a read across mappings and forwards the same `MemoryAccessContext`. Leaf sources
    acquire bytes; caches and overlays compose around them. No layer owns a caller's file or transport lifetime.
 4. `Inspect` adds ordered backing ranges to the value by flattening known mapping layers. Semantic names and bit

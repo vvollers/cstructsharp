@@ -17,6 +17,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Performance
 
+- Reduce memory-session member-selection allocations for wide structs and share equivalent built-in scalar
+  preparation within each memory schema. Preserve promoted-member failures, source interactions and per-type
+  validation; caller-supplied codecs and declarations keep independent preparation.
 - Reduce temporary allocations when serializing bounded text and short wide-character fields, including runtime
   span, stream and async output. Runtime writes retain normal tiered compilation to limit first-use cost.
   Generated bounded-text writes encode directly into their destination after validation.
