@@ -190,9 +190,11 @@ internal static partial class WriteEngine
 
     /// <summary>
     ///     Writes fixed-capacity text of <paramref name="count"/> characters (or bytes, for byte-counted text), padded with
-    ///     zeroes, checking in this order: the per-string limit, the text's length against the capacity, then the
-    ///     encoding. A narrow <c>char[N]</c> is written as one block when every character fits a byte and the budget and
-    ///     room hold the block; otherwise character by character, so a failure leaves the earlier characters written.
+    ///     zeroes. Byte-counted text checks its string limit, encoded length and capacity; character arrays check their
+    ///     character capacity before the string limit and encoding. A narrow <c>char[N]</c> is written as one block when
+    ///     every character fits a byte and the budget and room hold the block; otherwise character by character, so a
+    ///     failure leaves the earlier characters written. Short encoded fields use bounded stack storage; larger
+    ///     runtime fields retain the allocating encoder without introducing retained pool capacity.
     /// </summary>
     /// <typeparam name="TDestination">The destination type.</typeparam>
     /// <param name="destination">The operation's destination.</param>
@@ -201,6 +203,7 @@ internal static partial class WriteEngine
     /// <param name="codecId">The character codec's id, whose writer the character-by-character path uses.</param>
     /// <param name="text">The text, already converted from characters or bytes when the caller supplied those.</param>
     /// <param name="count">The capacity in characters (bytes for byte-counted text).</param>
+    /// <exception cref="CStructWriteException">The text is invalid, exceeds its capacity or a limit, or the destination rejects it.</exception>
     private static void WriteText<TDestination>(ref TDestination destination, ref WriteEngineState state, CompiledField field, int codecId, string text, int count)
         where TDestination : struct, IWriteDestination
     {
@@ -212,24 +215,32 @@ internal static partial class WriteEngine
                 throw new CStructWriteException(WriteFailures.Utf16CapacityOdd);
             }
 
-            byte[] encoded;
+            int length;
             try
             {
-                int length = BoundedTextCodec.GetByteCount(field.TypeSpelling, text);
+                length = BoundedTextCodec.GetByteCount(field.TypeSpelling, text);
                 if (length > count)
                 {
                     throw new CStructWriteException(WriteFailures.BoundedTextTooLong(field.Name, length, count));
                 }
-
-                encoded = BoundedTextCodec.Encode(field.TypeSpelling, text);
             }
             catch (EncoderFallbackException exception)
             {
                 throw new CStructWriteException(WriteFailures.EncodingUnrepresentable, exception);
             }
 
-            destination.Write(encoded);
-            destination.WriteZeroes(count - encoded.Length);
+            // Validation above uses the original overload before any output. The immutable string is now encodable;
+            // retain the separate payload and padding writes, including an empty payload's stream callback.
+            if (length <= StackStagingLimit)
+            {
+                WriteSmallBoundedText(ref destination, field.TypeSpelling, text, length);
+            }
+            else
+            {
+                destination.Write(BoundedTextCodec.Encode(field.TypeSpelling, text));
+            }
+
+            destination.WriteZeroes(count - length);
             return;
         }
 
@@ -242,6 +253,11 @@ internal static partial class WriteEngine
         destination.EnsureStringBytes(checked((long)count * (field.IsWideCharElement ? 2 : 1)));
         if (field.IsWideCharElement)
         {
+            if (TryWriteSmallWideText(ref destination, state.Layout.GetWideCharacterEncoding(field), text, count))
+            {
+                return;
+            }
+
             byte[] encoded;
             try
             {
@@ -276,6 +292,56 @@ internal static partial class WriteEngine
                 throw new CStructWriteException(WriteValueRules.DescribeUnwritableValue(character, field), exception);
             }
         }
+    }
+
+    /// <summary>Stages a validated small bounded payload separately from the shared text dispatcher's stack frame.</summary>
+    /// <typeparam name="TDestination">The destination type.</typeparam>
+    /// <param name="destination">The operation's destination; payload and padding remain separate writes.</param>
+    /// <param name="encoding">The bounded encoding spelling used for validation.</param>
+    /// <param name="text">The immutable string whose encoding and capacity were already validated.</param>
+    /// <param name="length">The validated encoded byte count, at most <see cref="StackStagingLimit"/>.</param>
+    /// <exception cref="CStructWriteException">The destination cannot accept the payload.</exception>
+    private static void WriteSmallBoundedText<TDestination>(ref TDestination destination, string encoding, string text, int length)
+        where TDestination : struct, IWriteDestination
+    {
+        // WriteText also contains the narrow-character loop. Combining that loop with localloc makes the JIT
+        // optimize the whole dispatcher on first use; this loop-free helper lets both methods tier independently.
+        Span<byte> encoded = stackalloc byte[length];
+        BoundedTextCodec.EncodeValidated(encoding, text, encoded);
+        destination.Write(encoded);
+    }
+
+    /// <summary>Stages a small complete wide field on the stack, retaining one whole-field destination write.</summary>
+    /// <typeparam name="TDestination">The destination type.</typeparam>
+    /// <param name="destination">The operation's destination; string and character capacity were already checked.</param>
+    /// <param name="encoding">The field's strict UTF-16 encoding.</param>
+    /// <param name="text">The immutable text, at most <paramref name="count"/> characters.</param>
+    /// <param name="count">The capacity in UTF-16 code units.</param>
+    /// <returns>Whether the field was written; larger fields and malformed input use the original allocating encoder.</returns>
+    /// <exception cref="CStructWriteException">The destination cannot accept the complete field.</exception>
+    private static bool TryWriteSmallWideText<TDestination>(ref TDestination destination, Encoding encoding, string text, int count)
+        where TDestination : struct, IWriteDestination
+    {
+        if (count > StackStagingLimit / 2)
+        {
+            return false;
+        }
+
+        Span<byte> encoded = stackalloc byte[count * 2];
+        try
+        {
+            int written = encoding.GetBytes(text, encoded);
+            encoded[written..].Clear();
+        }
+        catch (EncoderFallbackException)
+        {
+            // The padded-string overload can report different invalid-surrogate metadata. Let it report the
+            // original failure, with no destination mutation. Stream-thrown exceptions stay outside this catch.
+            return false;
+        }
+
+        destination.Write(encoded);
+        return true;
     }
 
     /// <summary>

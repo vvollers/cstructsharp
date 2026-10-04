@@ -17,6 +17,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Performance
 
+- Reduce temporary allocations when serializing bounded text and short wide-character fields, including runtime
+  span, stream and async output. Runtime writes retain normal tiered compilation to limit first-use cost.
+  Generated bounded-text writes encode directly into their destination after validation.
 - Reduce temporary storage and per-character work when runtime readers decode wide and byte-counted text from
   memory, including buffered async input, while preserving owned strings and original failure behavior.
 - Materialize runtime numeric matrix rows without a temporary flat reference array, and reduce allocation while

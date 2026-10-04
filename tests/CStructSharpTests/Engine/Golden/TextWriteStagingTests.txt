@@ -1,0 +1,270 @@
+# Golden outcomes of TextWriteStagingTests: the reference each differential comparison checks the engine against.
+# Regenerate only for an intended, explained behaviour change: node tools/quality/engine-golden.mjs record (CONTRIBUTING.md).
+# @test starts a test; @case a readable outcome, indented below it; @hash <sha256> <count> <group> hashes a group's outcomes,
+# counted by kind on the indented line below it.
+
+@test TextFailures_KeepBaselineTraces("cp437")
+@hash 20619e1d6e1cad14c5e823a9d3020b70487e2a7c9d0cf890819f06615b28fd4f 60 capacity=0, text=
+  ok 18, CStructWriteException 9, CStructWriteLimitException 24, EncoderFallbackException 9
+@hash 23d534bb1ba85387375db51e569f39991a91c255168a7858e9b6a333f6b8871c 60 capacity=0, text=E9000000
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash d6f0d4826ee3223d181ca058bae228bb0102fcd52d7aa561e1f80f4e681a07f5 60 capacity=0, text=164E4C753DD800DE
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash d6f0d4826ee3223d181ca058bae228bb0102fcd52d7aa561e1f80f4e681a07f5 60 capacity=0, text=4100FDFF
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash d6f0d4826ee3223d181ca058bae228bb0102fcd52d7aa561e1f80f4e681a07f5 60 capacity=0, text=FDFF
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash d6f0d4826ee3223d181ca058bae228bb0102fcd52d7aa561e1f80f4e681a07f5 60 capacity=0, text=3DD800DE4100FDFF
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash 67c6fbd086b934de0de0c696b93874b06510827489c73f0e5e89318b80c6462d 60 capacity=3, text=
+  ok 6, CStructWriteException 6, CStructWriteLimitException 42, EncoderFallbackException 6
+@hash ef78fde0ddb05e4a3951faceb268f059b31541fd834ba5d03358f5bf532c5d70 60 capacity=3, text=E9000000
+  ok 6, CStructWriteException 4, CStructWriteLimitException 46, EncoderFallbackException 4
+@hash 74dc28ba684d8c285e823d6d59069debbf98275b348a2e62d9e135a77db287dd 60 capacity=3, text=164E4C753DD800DE
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash 74dc28ba684d8c285e823d6d59069debbf98275b348a2e62d9e135a77db287dd 60 capacity=3, text=4100FDFF
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash 74dc28ba684d8c285e823d6d59069debbf98275b348a2e62d9e135a77db287dd 60 capacity=3, text=FDFF
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash 74dc28ba684d8c285e823d6d59069debbf98275b348a2e62d9e135a77db287dd 60 capacity=3, text=3DD800DE4100FDFF
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash 92c289b891a47e1230439e22ec8970b8015011025017ed38a3052775551505ad 60 capacity=8, text=
+  ok 1, CStructWriteException 5, CStructWriteLimitException 51, EncoderFallbackException 3
+@hash 894fb6bb74046951d6c518b0900db427ec6ca27e28a5a29cfa455abcbe6ced90 60 capacity=8, text=E9000000
+  ok 1, CStructWriteException 4, CStructWriteLimitException 53, EncoderFallbackException 2
+@hash bff9ef3479fb1e8fbdffdd53c112a3be9f79479c964010f3771a7f2ea9f7973c 60 capacity=8, text=164E4C753DD800DE
+  CStructWriteException 15, CStructWriteLimitException 45
+@hash bff9ef3479fb1e8fbdffdd53c112a3be9f79479c964010f3771a7f2ea9f7973c 60 capacity=8, text=4100FDFF
+  CStructWriteException 15, CStructWriteLimitException 45
+@hash bff9ef3479fb1e8fbdffdd53c112a3be9f79479c964010f3771a7f2ea9f7973c 60 capacity=8, text=FDFF
+  CStructWriteException 15, CStructWriteLimitException 45
+@hash bff9ef3479fb1e8fbdffdd53c112a3be9f79479c964010f3771a7f2ea9f7973c 60 capacity=8, text=3DD800DE4100FDFF
+  CStructWriteException 15, CStructWriteLimitException 45
+
+@test TextFailures_KeepBaselineTraces("latin1")
+@hash 135b9a4c074d1ba523caa28f59ed63d5c68a95a7fa84d2db1daf8a82d7889a27 60 capacity=0, text=
+  ok 18, CStructWriteException 9, CStructWriteLimitException 24, EncoderFallbackException 9
+@hash a2caa6fdc97f8c9f62b36158c08a26cedd3e47b153f202fcde1615faafa2babd 60 capacity=0, text=E9000000
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash 273bcc952e4a118c34424514d5fb106b6892dbda99a437d99d05b1845e587d8c 60 capacity=0, text=164E4C753DD800DE
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash 099a557cfaaaee8a2b644a5d75e85023073a16b215e6f0af94c696f36a2856e9 60 capacity=0, text=4100FDFF
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash 068bf7977afc0153d61596427ea3760dc7e2847c7f1ba015baface832efdf43f 60 capacity=0, text=FDFF
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash 74d51217dc2852765045a3bf9f74fd5fd150c9ffe9662a7ba92f6ea62a5fceef 60 capacity=0, text=3DD800DE4100FDFF
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash a811ed314d21b45772f7ac1e7a15b0497622142a41f6f6bdded2b45f883300e4 60 capacity=3, text=
+  ok 6, CStructWriteException 6, CStructWriteLimitException 42, EncoderFallbackException 6
+@hash 27c414a42c55bb3d6f32a3a173ea00cf79ced6d981a89e19d867ad07239fd621 60 capacity=3, text=E9000000
+  ok 6, CStructWriteException 4, CStructWriteLimitException 46, EncoderFallbackException 4
+@hash c4cbd6168d81b7911efc95b693351d94c519f50eff123e0acfa64ea0e64a7f39 60 capacity=3, text=164E4C753DD800DE
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash 49a369985c3ab5b4ffc41e6c8ea53331788ac0ae2f3825c5c52e4c45f2182d84 60 capacity=3, text=4100FDFF
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash bc69c6448f778fb1ba38dab11c936651a3310da0e710e6512ce9916a2f314b0d 60 capacity=3, text=FDFF
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash 801fc70b217e6be2c8eb548c9bbd28033b19446629658c3d84cfd497925dacc9 60 capacity=3, text=3DD800DE4100FDFF
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash 830e8d9d96d5690d0a61f619bdba18f36012b9f4f1ad9e73cd678488c3a5812f 60 capacity=8, text=
+  ok 1, CStructWriteException 5, CStructWriteLimitException 51, EncoderFallbackException 3
+@hash 0d97f84ab2073610b285315f9ee0535f9e2ec270108d3903beafde6074efe897 60 capacity=8, text=E9000000
+  ok 1, CStructWriteException 4, CStructWriteLimitException 53, EncoderFallbackException 2
+@hash 22dbe26c6197aa1563a3e5725c067785cae47d24f35653d225446f62a3a16ea7 60 capacity=8, text=164E4C753DD800DE
+  CStructWriteException 15, CStructWriteLimitException 45
+@hash 52fc143c55d612f594a17adbee94b6765a2451b42f032156795036845355a24f 60 capacity=8, text=4100FDFF
+  CStructWriteException 15, CStructWriteLimitException 45
+@hash cbd692b8046b1ea005b7f603e1e0653abb0872302f5854595d87666aea4cc017 60 capacity=8, text=FDFF
+  CStructWriteException 15, CStructWriteLimitException 45
+@hash 2fcb6fdc3f46785e09e3892e1e6021a3ade533ae9ee827ae25c27cc4d9ce4d66 60 capacity=8, text=3DD800DE4100FDFF
+  CStructWriteException 15, CStructWriteLimitException 45
+
+@test TextFailures_KeepBaselineTraces("utf16be")
+@hash 01b96c7aa1abd83ec91d7150c9c32bcaeb38a61c8503f00bc88ceb6c54506e9b 60 capacity=0, text=
+  ok 18, CStructWriteException 9, CStructWriteLimitException 24, EncoderFallbackException 9
+@hash 4511fc7edbe5d0c6c16ac259607379f7a2e7889dd45448e0d3874ef5df9cf398 60 capacity=0, text=E9000000
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash 8331c9c52ea94b593f28f31314974c605a35c2c628a69e47453a305807cc9b15 60 capacity=0, text=164E4C753DD800DE
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash 12145ea14765c0c36d137113bbd86000d7b3ac6df64db40d5b48454fbc7d20dd 60 capacity=0, text=4100FDFF
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash b874985bcbc5bd103ecbdbecd6960ecb251849edd08a0cc3b029d918036edc0f 60 capacity=0, text=FDFF
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash 0955a201d97d689ce5db0cf80ebb216d8a4590b9f813678b993d0439a885d56a 60 capacity=0, text=3DD800DE4100FDFF
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash 9a0a7895f49652f342b161f974fe65f84ef1e7c6eb823a4c7ae9cb2fd3c669bc 60 capacity=3, text=
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash 9a0a7895f49652f342b161f974fe65f84ef1e7c6eb823a4c7ae9cb2fd3c669bc 60 capacity=3, text=E9000000
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash 9a0a7895f49652f342b161f974fe65f84ef1e7c6eb823a4c7ae9cb2fd3c669bc 60 capacity=3, text=164E4C753DD800DE
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash 9a0a7895f49652f342b161f974fe65f84ef1e7c6eb823a4c7ae9cb2fd3c669bc 60 capacity=3, text=4100FDFF
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash 9a0a7895f49652f342b161f974fe65f84ef1e7c6eb823a4c7ae9cb2fd3c669bc 60 capacity=3, text=FDFF
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash 9a0a7895f49652f342b161f974fe65f84ef1e7c6eb823a4c7ae9cb2fd3c669bc 60 capacity=3, text=3DD800DE4100FDFF
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash d897048a7fdea8e5136094e8cfebf0b5a95a619f00d6ee81555cdd692820a6bb 60 capacity=8, text=
+  ok 1, CStructWriteException 5, CStructWriteLimitException 51, EncoderFallbackException 3
+@hash e31732fda92244a1b1eb0cc9edac7f1d90439a8e4431d02d9887f92282af87ce 60 capacity=8, text=E9000000
+  ok 1, CStructWriteException 3, CStructWriteLimitException 55, EncoderFallbackException 1
+@hash df11710a9ad26650b98c032e0172162c4ea40b6295a19cf7c2c372b2dff445b8 60 capacity=8, text=164E4C753DD800DE
+  ok 1, CStructWriteException 3, CStructWriteLimitException 55, EncoderFallbackException 1
+@hash d576b6028d8a61db3a68023363a95719890f4bc643e50835f744768ca0fddbb4 60 capacity=8, text=4100FDFF
+  CStructWriteException 15, CStructWriteLimitException 45
+@hash 9a0324c1e9dd21393988a16815d4942ce54e41b15c313ac38d9874d8f937c835 60 capacity=8, text=FDFF
+  CStructWriteException 15, CStructWriteLimitException 45
+@hash 0c59f116d6c4d10c673b5b992c7a0e56709fa4076ce0d81300ba4707313b7fb6 60 capacity=8, text=3DD800DE4100FDFF
+  CStructWriteException 15, CStructWriteLimitException 45
+
+@test TextFailures_KeepBaselineTraces("utf16le")
+@hash 4fe40909850a7e7fb476b7743587770f9a409b942eda9d4d7c269bd01cc1024a 60 capacity=0, text=
+  ok 18, CStructWriteException 9, CStructWriteLimitException 24, EncoderFallbackException 9
+@hash d30f36fce18666a01a33ca8fb1d56789505d16e851852f0c98293c1427929fd1 60 capacity=0, text=E9000000
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash 59cd9e3ea3d2c6ce60ff2c8510c0da7c20424c06d7daca477a7069cc6413a01b 60 capacity=0, text=164E4C753DD800DE
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash e33f71c55248868329c667a1d11cf2a1e175f92dc84ecd6d366f06307f52484c 60 capacity=0, text=4100FDFF
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash b6d01abca4cfd0605f439333c8aa98803ccbdb48c6e1df827d05ec50cfc4ed1b 60 capacity=0, text=FDFF
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash 8831ff4e8da20c3f3ed5903e77da09ce56307547565358e836fd148f19fd4325 60 capacity=0, text=3DD800DE4100FDFF
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash c86455f964ae38542d3a4eae0e0c65b51f542223f335cb66c5f56ecdb2be7b67 60 capacity=3, text=
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash c86455f964ae38542d3a4eae0e0c65b51f542223f335cb66c5f56ecdb2be7b67 60 capacity=3, text=E9000000
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash c86455f964ae38542d3a4eae0e0c65b51f542223f335cb66c5f56ecdb2be7b67 60 capacity=3, text=164E4C753DD800DE
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash c86455f964ae38542d3a4eae0e0c65b51f542223f335cb66c5f56ecdb2be7b67 60 capacity=3, text=4100FDFF
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash c86455f964ae38542d3a4eae0e0c65b51f542223f335cb66c5f56ecdb2be7b67 60 capacity=3, text=FDFF
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash c86455f964ae38542d3a4eae0e0c65b51f542223f335cb66c5f56ecdb2be7b67 60 capacity=3, text=3DD800DE4100FDFF
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash 293fc55c10a114e49e29d18b6d4eb3f99df3ed43581360cc3aa330f331648d69 60 capacity=8, text=
+  ok 1, CStructWriteException 5, CStructWriteLimitException 51, EncoderFallbackException 3
+@hash 085ceb0a286557b650f0818f84ae0d0b0cb695dafceb6e534c5c238fbf04ad3d 60 capacity=8, text=E9000000
+  ok 1, CStructWriteException 3, CStructWriteLimitException 55, EncoderFallbackException 1
+@hash ffbbd8905be5021c9130eebf3cf8af61b2c68b8b67ecfe09c49be58345ae6624 60 capacity=8, text=164E4C753DD800DE
+  ok 1, CStructWriteException 3, CStructWriteLimitException 55, EncoderFallbackException 1
+@hash 6c8eb3814588b854b64eeda1e99a05796f75dca4b1153f06f2f8493aa7551f51 60 capacity=8, text=4100FDFF
+  CStructWriteException 15, CStructWriteLimitException 45
+@hash 0aacc0d03a08927c03792b606c07a15470734fb415a908fbc92a7bd8e322dde3 60 capacity=8, text=FDFF
+  CStructWriteException 15, CStructWriteLimitException 45
+@hash 6ba77871f4f6d67f852b4084341dca0ad9c405970af91b7f82608b39f157f92d 60 capacity=8, text=3DD800DE4100FDFF
+  CStructWriteException 15, CStructWriteLimitException 45
+
+@test TextFailures_KeepBaselineTraces("utf8")
+@hash f6197f8b0319197d68c96871de026dc0615315509318de8edb5854f202afa7b9 60 capacity=0, text=
+  ok 18, CStructWriteException 9, CStructWriteLimitException 24, EncoderFallbackException 9
+@hash 73a212ab13262b8dc96678027fc3694003888c2e301dd1c189890cdef7ae0694 60 capacity=0, text=E9000000
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash ae69e86ba965157ade6d6e85e5c18d91db8b46d059c90fab5f5b4ae4648192b6 60 capacity=0, text=164E4C753DD800DE
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash fac35efba29e0b5bc01cc7187809da26ecafebf82325f75398ecffa8a8d489c5 60 capacity=0, text=4100FDFF
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash 4e1b87ec22408ff0f6c965d3803052dfd682e007ac33d430e797479b0f096f06 60 capacity=0, text=FDFF
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash 46dd1a0185c7eb42a70c5f07a4abe10ac36c1625772abef3d6b4f4ba03cc2db5 60 capacity=0, text=3DD800DE4100FDFF
+  CStructWriteException 45, CStructWriteLimitException 15
+@hash d9fa5a52c8be41d58f385fbb80b0486b2f86603989b5183963097ba3e697be6f 60 capacity=3, text=
+  ok 6, CStructWriteException 6, CStructWriteLimitException 42, EncoderFallbackException 6
+@hash 2e6e0625aa964a99553b10a6d8eb7e017d58c182b866e36e32eac7edf3570390 60 capacity=3, text=E9000000
+  ok 6, CStructWriteException 4, CStructWriteLimitException 46, EncoderFallbackException 4
+@hash 3ac65de48373cf8aafbbce374eeda652402de1e762a59a72ee99f287e122be71 60 capacity=3, text=164E4C753DD800DE
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash cf48921c99bfbf48f4feba4f818ec20d1980e6333ca62ebf4558925ccc6535c2 60 capacity=3, text=4100FDFF
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash e7291e0463a2b56d5f9fdaeb85d85b3596d67314fb814aaddfdb5cadfc09532c 60 capacity=3, text=FDFF
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash ca59b220bdad887ec8da98ff7346cccd14763206887dacfb6f510f9ff878d73b 60 capacity=3, text=3DD800DE4100FDFF
+  CStructWriteException 30, CStructWriteLimitException 30
+@hash d258f59a93627820b7a2a630de23a55c231f095e0ce5c098b8680b82c08d3eb3 60 capacity=8, text=
+  ok 1, CStructWriteException 5, CStructWriteLimitException 51, EncoderFallbackException 3
+@hash f5f597ebcf2229177fee90d4a187aa9d9e21a8b9e9af81bb802dceaa759399ea 60 capacity=8, text=E9000000
+  ok 1, CStructWriteException 4, CStructWriteLimitException 53, EncoderFallbackException 2
+@hash c6d67b694ab3eae0c112debf36f80c64ca95794f87f629b109cc33a3f726ccce 60 capacity=8, text=164E4C753DD800DE
+  CStructWriteException 15, CStructWriteLimitException 45
+@hash 01f4ae69ad00266118be617fbe289e4d7e44a23363d512aa34607d9143372f50 60 capacity=8, text=4100FDFF
+  CStructWriteException 15, CStructWriteLimitException 45
+@hash b5ffba6f2646f0cc7c51d8720f2648db6b654df7923528a8a3477da9c281ca48 60 capacity=8, text=FDFF
+  CStructWriteException 15, CStructWriteLimitException 45
+@hash a1a4b73985167255aa960406767b48d451515691d5dc9389821f80ec92bf272d 60 capacity=8, text=3DD800DE4100FDFF
+  CStructWriteException 15, CStructWriteLimitException 45
+
+@test TextFailures_KeepBaselineTraces("wchar<")
+@hash 5a07d1b52a359131751da1cde0ee909beca8c56a8c55e95b57ab579438102a97 48 capacity=0, text=
+  ok 12, CStructWriteException 9, CStructWriteLimitException 18, EncoderFallbackException 9
+@hash 7d8823fa663d70568383940ef7f528a6af8f9ae43ed680e847eb1be204a4ff11 48 capacity=0, text=E9000000
+  CStructWriteException 36, CStructWriteLimitException 12
+@hash c5592a95b0708b2e013068cd2b5927b8207a0f605b9894d7b8afabac5b166019 48 capacity=0, text=164E4C753DD800DE
+  CStructWriteException 36, CStructWriteLimitException 12
+@hash 7d8823fa663d70568383940ef7f528a6af8f9ae43ed680e847eb1be204a4ff11 48 capacity=0, text=4100FDFF
+  CStructWriteException 36, CStructWriteLimitException 12
+@hash 30da5f9556fddc5e693ea8e8cdd97357fe0e28478f0acee60a79fe8ed3df0bea 48 capacity=0, text=FDFF
+  CStructWriteException 36, CStructWriteLimitException 12
+@hash c5592a95b0708b2e013068cd2b5927b8207a0f605b9894d7b8afabac5b166019 48 capacity=0, text=3DD800DE4100FDFF
+  CStructWriteException 36, CStructWriteLimitException 12
+@hash 5ada05403ac87b70525d98ec489fb2153532f7925ebbb95cba7f9e5951517f26 48 capacity=3, text=
+  ok 4, CStructWriteException 2, CStructWriteLimitException 40, EncoderFallbackException 2
+@hash fa6ed9273d0f6e085c5c1c01dd2510e07fc9e43cc9665a5279dc5549f34e4d26 48 capacity=3, text=E9000000
+  ok 4, CStructWriteException 2, CStructWriteLimitException 40, EncoderFallbackException 2
+@hash 3b66d460c624e59c95224c15f0f3d414e9f4894854cb9fe043255d2d11bb3623 48 capacity=3, text=164E4C753DD800DE
+  CStructWriteException 36, CStructWriteLimitException 12
+@hash cb957eccccce8b8aa2b51d4a104fa20707d667e80825380bf382d0dad96536a7 48 capacity=3, text=4100FDFF
+  CStructWriteException 24, CStructWriteLimitException 24
+@hash 18fa787257e98fcd7af54bb950fb55d00846dcbbc90d20cfe41950e6d654a399 48 capacity=3, text=FDFF
+  CStructWriteException 24, CStructWriteLimitException 24
+@hash 3b66d460c624e59c95224c15f0f3d414e9f4894854cb9fe043255d2d11bb3623 48 capacity=3, text=3DD800DE4100FDFF
+  CStructWriteException 36, CStructWriteLimitException 12
+@hash a51f468e96414c38cf0efd528cbbdc287925b9c930d62b1cfe17cb05df7ec366 48 capacity=8, text=
+  ok 1, CStructWriteException 2, CStructWriteLimitException 44, EncoderFallbackException 1
+@hash f546a42dede9c53d8612fe26ba7454bc6a2f85c70eb8345b98f13f446bcbf9de 48 capacity=8, text=E9000000
+  ok 1, CStructWriteException 2, CStructWriteLimitException 44, EncoderFallbackException 1
+@hash 110f7eb35845183ac725b6403ca3914192c4272fced082574610651a5d6f8726 48 capacity=8, text=164E4C753DD800DE
+  ok 1, CStructWriteException 2, CStructWriteLimitException 44, EncoderFallbackException 1
+@hash 6cd167c4f313ffff72bce81fb013ec9eebf2c1f0b50dbdedb4598824ce45f288 48 capacity=8, text=4100FDFF
+  CStructWriteException 12, CStructWriteLimitException 36
+@hash bd4ccacc94ba1acf3a9a4feb84d83158416fe7edd800cef36c48a30f8a3cfa0c 48 capacity=8, text=FDFF
+  CStructWriteException 12, CStructWriteLimitException 36
+@hash 98bf8f0f32b6dfcfd53317f30b82c3e65197820ef8fc75aadd3b28fbdc8fc454 48 capacity=8, text=3DD800DE4100FDFF
+  CStructWriteException 12, CStructWriteLimitException 36
+
+@test TextFailures_KeepBaselineTraces("wchar>")
+@hash 84b6a36f6354ff3a21dfa21881815c70a6c520f3dedbcad8a0354c106693fb9f 48 capacity=0, text=
+  ok 12, CStructWriteException 9, CStructWriteLimitException 18, EncoderFallbackException 9
+@hash 9ce3598b914ed2ca8f2351c8d6ddb70e5ec728ed4352b44cadab1b8535b9747a 48 capacity=0, text=E9000000
+  CStructWriteException 36, CStructWriteLimitException 12
+@hash 1ba94bf40ce8c43ba064c98e3501a97c10b14119cc2eb79b619e9ebb52241f3e 48 capacity=0, text=164E4C753DD800DE
+  CStructWriteException 36, CStructWriteLimitException 12
+@hash 9ce3598b914ed2ca8f2351c8d6ddb70e5ec728ed4352b44cadab1b8535b9747a 48 capacity=0, text=4100FDFF
+  CStructWriteException 36, CStructWriteLimitException 12
+@hash ad10450e33150ea610ef495ef3e2699a1660bc80f93211016252e1fa7ad1adc8 48 capacity=0, text=FDFF
+  CStructWriteException 36, CStructWriteLimitException 12
+@hash 1ba94bf40ce8c43ba064c98e3501a97c10b14119cc2eb79b619e9ebb52241f3e 48 capacity=0, text=3DD800DE4100FDFF
+  CStructWriteException 36, CStructWriteLimitException 12
+@hash 3a2e39e98a10ef722dec03a9de82820d470ad2aa6112dd8616e9f87e883a4cad 48 capacity=3, text=
+  ok 4, CStructWriteException 2, CStructWriteLimitException 40, EncoderFallbackException 2
+@hash a052a407e85984262ede78af6c70cb78dd535cd06652df721743a859085a35c9 48 capacity=3, text=E9000000
+  ok 4, CStructWriteException 2, CStructWriteLimitException 40, EncoderFallbackException 2
+@hash 449ee32590a39001fe5e6e16a2d35c27f50b4c52addea22fc0df67c3f12b763a 48 capacity=3, text=164E4C753DD800DE
+  CStructWriteException 36, CStructWriteLimitException 12
+@hash 024092444a8fbacfe2ea24a7ba8dd958000db1c3c313f7fb68379549c3a71c2f 48 capacity=3, text=4100FDFF
+  CStructWriteException 24, CStructWriteLimitException 24
+@hash 8ffbc501bbd5116b5f10c79788a297ea065d069ddc99f5badb42051003fac99a 48 capacity=3, text=FDFF
+  CStructWriteException 24, CStructWriteLimitException 24
+@hash 449ee32590a39001fe5e6e16a2d35c27f50b4c52addea22fc0df67c3f12b763a 48 capacity=3, text=3DD800DE4100FDFF
+  CStructWriteException 36, CStructWriteLimitException 12
+@hash cbfd466fe34e1ca77615510fb57b4408d1dce532b521169344c86b6dd91318a9 48 capacity=8, text=
+  ok 1, CStructWriteException 2, CStructWriteLimitException 44, EncoderFallbackException 1
+@hash 1af9bb051ef2339c5b7264f69f884e07de43a1aa2604071789cac2d15fbf67ae 48 capacity=8, text=E9000000
+  ok 1, CStructWriteException 2, CStructWriteLimitException 44, EncoderFallbackException 1
+@hash 87e253ee331dee048737868053ba63a0c769d8d9298d8912177ef32c407cc0be 48 capacity=8, text=164E4C753DD800DE
+  ok 1, CStructWriteException 2, CStructWriteLimitException 44, EncoderFallbackException 1
+@hash 1072d900e68df0e2ee1ee765780d7351a341a1e667e3d520f42c4bd4c94a451b 48 capacity=8, text=4100FDFF
+  CStructWriteException 12, CStructWriteLimitException 36
+@hash bc31c05b1977d5f0281a51a08c2f85807768d931b99d07c5d967235c4adaa689 48 capacity=8, text=FDFF
+  CStructWriteException 12, CStructWriteLimitException 36
+@hash 47d2383ea41f17bf926a02dcfa850fd88be0c53fc743fbb54fd064cb1a87a66b 48 capacity=8, text=3DD800DE4100FDFF
+  CStructWriteException 12, CStructWriteLimitException 36

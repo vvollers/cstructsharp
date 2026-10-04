@@ -98,6 +98,12 @@ runtime block-copy prototype.
 The [runtime text investigation](experiments/ordinary-next/README.md) covers wide-character boxing and bounded
 text copies, with small and repeated complete records, cached async file reads, write controls and first-use costs.
 
+The [text serialization investigation](experiments/text-write-next/README.md) covers bounded runtime staging and
+direct generated text encoding, including exact failure traces, output forms, first-write costs and noisy production timing.
+
+The [runtime text slowdown investigation](experiments/runtime-text-slowdown/README.md) isolates stack staging from
+the shared writer, explains its JIT interaction, and compares sustained production writes, cold cost and diagnostic timing.
+
 Capture a baseline **before editing a hot path**, then compare each candidate with it:
 
 ```sh
@@ -120,7 +126,7 @@ build, run tests, edit source, or run another benchmark during measurement. A lo
 of this tool in the same repository; it cannot prevent unrelated applications from using the CPU.
 An individual Screen host times out after 60 seconds. A failed or incomplete run never becomes a partial success.
 
-The default **Screen** job measures all 86 Impact cases using twelve 1 ms iterations and three warmups, retaining
+The default **Screen** job measures all 92 Impact cases using twelve 1 ms iterations and three warmups, retaining
 allocation diagnosis. It disables per-iteration forced GC and overhead evaluation, disables tiering/PGO for both
 hosts, and keeps the machine's current power plan. BDN still collects before its allocation-diagnostic batch.
 The report uses **every actual timing sample**, including values BDN excludes from its summary as outliers.

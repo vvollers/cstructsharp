@@ -6,7 +6,7 @@ using CStructSharp.Benchmarks.GeneratedLayouts;
 using CStructSharp.Benchmarks.Scenarios;
 using CStructSharp.Values;
 
-/// <summary>Owned generated array and text parsing, including the temporary storage that materialization needs.</summary>
+/// <summary>Owned array and text parsing and serialization, including temporary storage.</summary>
 [BenchmarkCategory("Impact", "Materialization")]
 public class MaterializationBenchmarks
 {
@@ -19,6 +19,8 @@ public class MaterializationBenchmarks
     private CStruct smallMatrixLayout = null!;
     private CStruct bigMatrixLayout = null!;
     private StructValue runtimeMatrix = null!;
+    private StructValue runtimeText = null!;
+    private MaterializedText.Root generatedText = null!;
     private MaterializedSmallMatrix.Root smallValue = null!;
     private MaterializedBigMatrix.Root bigValue = null!;
     private MaterializedLargeMatrix.Root largeValue = null!;
@@ -54,6 +56,10 @@ public class MaterializationBenchmarks
         this.smallMatrixLayout = FixtureCase.CompileLike(typeof(MaterializedSmallMatrix));
         this.bigMatrixLayout = FixtureCase.CompileLike(typeof(MaterializedBigMatrix));
         this.runtimeMatrix = this.matrixLayout.Parse(this.large, "root");
+        this.runtimeText = this.textLayout.Parse(this.text, "root", options: this.trimmed);
+        this.generatedText = MaterializedText.Parse(this.text, this.trimmed);
+        RequireBytes(this.text, this.Runtime_Text_Serialize());
+        RequireBytes(this.text, this.Generated_Text_Serialize());
         this.smallValue = MaterializedSmallMatrix.Parse(this.small);
         this.bigValue = MaterializedBigMatrix.Parse(this.large);
         this.largeValue = MaterializedLargeMatrix.Parse(this.large);
@@ -163,6 +169,16 @@ public class MaterializationBenchmarks
     /// <returns>The complete owned dynamic record without trailing NUL characters.</returns>
     [Benchmark]
     public StructValue Runtime_TextTrimmed_Parse() => this.textLayout.Parse(this.text, "root", options: this.trimmed);
+
+    /// <summary>Serializes the existing 4 KiB text fixture from unpadded strings, including larger bounded and wide fields.</summary>
+    /// <returns>All bytes in an owned array, including restored padding.</returns>
+    [Benchmark]
+    public byte[] Runtime_Text_Serialize() => this.textLayout.Serialize("root", this.runtimeText);
+
+    /// <summary>Serializes the identical unpadded strings through generated text writers.</summary>
+    /// <returns>The complete owned output.</returns>
+    [Benchmark]
+    public byte[] Generated_Text_Serialize() => MaterializedText.Serialize(this.generatedText);
 
     /// <summary>Rejects a byte mismatch during untimed setup.</summary>
     /// <param name="expected">The complete input bytes.</param>

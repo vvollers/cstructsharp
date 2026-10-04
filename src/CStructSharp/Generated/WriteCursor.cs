@@ -333,16 +333,14 @@ public ref struct WriteCursor
             throw this.Fail(WriteFailures.Utf16CapacityOdd, member, memberType);
         }
 
-        byte[] encoded;
+        int length;
         try
         {
-            int length = Codecs.BoundedTextCodec.GetByteCount(encoding, value);
+            length = Codecs.BoundedTextCodec.GetByteCount(encoding, value);
             if (length > count)
             {
                 throw this.Fail(WriteFailures.BoundedTextTooLong(member, length, count), member, memberType);
             }
-
-            encoded = Codecs.BoundedTextCodec.Encode(encoding, value);
         }
         catch (System.Text.EncoderFallbackException exception)
         {
@@ -351,9 +349,11 @@ public ref struct WriteCursor
             throw failure;
         }
 
+        // The original GetByteCount overload has already validated the complete immutable string. Encoding can
+        // now fill the reserved bytes without an intermediate array or any change to failure precedence.
         Span<byte> bytes = this.Reserve(count, member, memberType);
-        encoded.CopyTo(bytes);
-        bytes.Slice(encoded.Length).Clear();
+        Codecs.BoundedTextCodec.EncodeValidated(encoding, value, bytes);
+        bytes.Slice(length).Clear();
     }
 
     /// <summary>Writes a pointer's stored address with the runtime's addressing rule (absolute, or relative to <see cref="Origin"/>; 0 stays null).</summary>
