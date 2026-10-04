@@ -84,6 +84,22 @@ CSTRUCTSHARP_BENCHMARK_JOB=Short dotnet run --project benchmarks/CStructSharp.Be
 
 ### Development comparisons
 
+Fixed records in `ImpactParseBenchmarks.ParseSpan` pass variables and use the engine's static plan;
+the `GeneratedBenchmarks.Runtime_*` methods also cover the direct root path. Measure both when changing shared
+numeric operations. Compare complete owned results and keep binary-access lower bounds separate.
+
+The [production comparison runner](experiments/runtime-generated/production.mjs) enables tiering/PGO and runs
+three alternating process pairs against existing benchmark methods. Build both checkouts' benchmark projects
+in Release/net10.0 first, then run:
+
+```sh
+node benchmarks/experiments/runtime-generated/production.mjs BEFORE_CHECKOUT AFTER_CHECKOUT NEW_OUTPUT '*AffectedMethod*'
+```
+
+This runner pins logical CPU 16; use it only where that CPU is available and appropriate. It retains all launches
+and samples. `PERF_WARMUPS` accepts 6–100 warmups (default 6); inspect tier transitions before interpreting warmed
+performance. Keep production measurements separate from tiering-disabled diagnostic jobs.
+
 The [overall execution investigation](experiments/overall-next/README.md) covers owned generated matrix writes and
 complete nested runtime slots in the general engine, including overlapping-span fallbacks and separate diagnostic,
 production and first-use measurements.
