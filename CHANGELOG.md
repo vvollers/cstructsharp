@@ -17,6 +17,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Performance
 
+- Bulk-encode generated numeric matrix rows into owned serialization output, retaining scalar writes for borrowed
+  spans and failure fallbacks. Construct complete nested runtime values inside general-engine static plans without
+  repeated presence bookkeeping; preserve captures, mutable ownership and cancellation checkpoints.
 - Decode generated numeric multidimensional arrays directly into owned rows, removing flat temporary arrays and
   copying. Reduce generated UTF/Latin-1 text scratch storage and padded Latin-1 string allocations while preserving
   strict validation and error details.

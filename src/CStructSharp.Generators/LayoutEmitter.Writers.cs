@@ -20,6 +20,9 @@ internal sealed partial class LayoutEmitter
 {
     private const string WriteCursorType = "global::CStructSharp.Generated.WriteCursor";
 
+    /// <summary>Caches whether this emission needs private output-ownership arguments; no runtime state is generated.</summary>
+    private bool? hasBulkWritableRows;
+
     /// <summary>Emits the serialize overloads, one member-by-member writer per composite, and the fixed writers.</summary>
     /// <param name="writer">The generated source destination.</param>
     private void EmitWriters(SourceWriter writer)
@@ -60,7 +63,7 @@ internal sealed partial class LayoutEmitter
         this.EmitFixedArrayShortcut(writer, composite, layout);
         writer.Line("var cursor = new " + WriteCursorType + "(options, " + layout + ");");
         writer.Open("try");
-        writer.Line("Encode" + name + "(ref cursor, value, variables, null, null);");
+        writer.Line("Encode" + name + "(ref cursor, value, variables, null, null" + (this.HasBulkWritableRows() ? ", ownsOutput: true" : string.Empty) + ");");
         writer.Line("return cursor.ToArray();");
         writer.Close();
         writer.Open("catch (global::CStructSharp.Diagnostics.CStructException exception)");
@@ -165,9 +168,16 @@ internal sealed partial class LayoutEmitter
     private void EmitCompositeWriter(SourceWriter writer, GeneratedComposite composite)
     {
         string name = composite.Name;
-        string parameters = "(ref " + WriteCursorType + " cursor, " + name + "? value, " + VariablesType + " variables, string? member, string? memberType)";
+        bool ownsOutput = this.HasBulkWritableRows();
+        string ownershipParameter = ownsOutput ? ", bool ownsOutput = false" : string.Empty;
+        string parameters = "(ref " + WriteCursorType + " cursor, " + name + "? value, " + VariablesType + " variables, string? member, string? memberType" + ownershipParameter + ")";
         FixedPlan? plan = this.IsFixedWritable(composite, 0) ? this.FixedPlanOf(composite, 0) : null;
         writer.Line("/// <summary>Writes one <c>" + composite.LayoutName + "</c> at the cursor's position.</summary>");
+        if (ownsOutput)
+        {
+            EmitOwnedWriterDocumentation(writer);
+        }
+
         if (plan is null)
         {
             writer.Line(NoInlining);
@@ -180,12 +190,17 @@ internal sealed partial class LayoutEmitter
         if (plan is not null)
         {
             this.EmitFixedWriterShortcut(writer, composite, plan);
-            writer.Line("Encode" + name + "Members(ref cursor, value, variables, member, memberType);");
+            writer.Line("Encode" + name + "Members(ref cursor, value, variables, member, memberType" + (ownsOutput ? ", ownsOutput" : string.Empty) + ");");
             writer.Close();
             writer.Line();
             writer.Line("/// <summary>Writes one <c>" + composite.LayoutName + "</c> member by member at the cursor's position, when " + Cref("Encode" + name) + " cannot use the fixed writer.</summary>");
+            if (ownsOutput)
+            {
+                EmitOwnedWriterDocumentation(writer);
+            }
+
             writer.Line(NoInlining);
-            writer.Open("private static void Encode" + name + "Members(ref " + WriteCursorType + " cursor, " + name + " value, " + VariablesType + " variables, string? member, string? memberType)");
+            writer.Open("private static void Encode" + name + "Members(ref " + WriteCursorType + " cursor, " + name + " value, " + VariablesType + " variables, string? member, string? memberType" + ownershipParameter + ")");
         }
 
         writer.Line("cursor.EnterComposite(member ?? " + SourceWriter.Literal(composite.LayoutName) + ", memberType);");
@@ -636,7 +651,72 @@ internal sealed partial class LayoutEmitter
         writer.Close();
     }
 
-    /// <summary>A multidimensional array: every level must have its declared length; the leaves are written in row-major order.</summary>
+    /// <summary>Whether this layout needs to propagate output ownership through its private writers.</summary>
+    /// <returns>True when any generated composite contains an eligible numeric row.</returns>
+    private bool HasBulkWritableRows()
+    {
+        if (this.hasBulkWritableRows is { } known)
+        {
+            return known;
+        }
+
+        foreach (GeneratedComposite composite in this.model.Composites)
+        {
+            // Generated members also contain fields promoted out of anonymous inline composites.
+            foreach (GeneratedMember member in composite.Members)
+            {
+                if (BulkWritableRowByteCount(member.Field) > 0)
+                {
+                    this.hasBulkWritableRows = true;
+                    return true;
+                }
+            }
+        }
+
+        this.hasBulkWritableRows = false;
+        return false;
+    }
+
+    /// <summary>Gets an infallible numeric row's byte length when it fits one cursor reservation.</summary>
+    /// <param name="field">The field whose leaf rows may be encoded as blocks.</param>
+    /// <returns>A positive byte count, or zero for an empty, unsupported or oversized row.</returns>
+    private static int BulkWritableRowByteCount(CompiledField field)
+    {
+        if (field.PointerDepth != 0 || field.Enum is not null || field.Array.Dimensions.Length <= 1 ||
+            !CanBulkEncode(field.Codec) || field.Array.Dimensions[field.Array.Dimensions.Length - 1].FixedCount is not { } count)
+        {
+            return 0;
+        }
+
+        long bytes = (long)count * field.Codec.Size;
+        return bytes > 0 && bytes <= int.MaxValue ? (int)bytes : 0;
+    }
+
+    /// <summary>Documents the private writer's ownership argument and its existing operation context.</summary>
+    /// <param name="writer">The generated source destination.</param>
+    private static void EmitOwnedWriterDocumentation(SourceWriter writer)
+    {
+        writer.Line("/// <param name=\"cursor\">The destination and its write limits.</param>");
+        writer.Line("/// <param name=\"value\">The value to encode.</param>");
+        writer.Line("/// <param name=\"variables\">The layout expression variables.</param>");
+        writer.Line("/// <param name=\"member\">The containing member's name for failures.</param>");
+        writer.Line("/// <param name=\"memberType\">The containing member's type spelling for failures.</param>");
+        writer.Line("/// <param name=\"ownsOutput\">Whether the output belongs to this serialization and cannot overlap the input arrays.</param>");
+    }
+
+    /// <summary>
+    ///     Emits a multidimensional array in row-major order, checking each level before writing its leaves. An
+    ///     infallible numeric row is encoded in one reservation when it fits owned output; borrowed destinations
+    ///     retain scalar writes because they may overlap source rows. The original scalar sequence also preserves
+    ///     the written prefix and diagnostic offset when a row cannot fit the byte budget.
+    /// </summary>
+    /// <param name="writer">The generated source destination.</param>
+    /// <param name="field">The array field and its fixed dimensions.</param>
+    /// <param name="generated">The generated member's type information.</param>
+    /// <param name="access">The expression accessing the generated array property.</param>
+    /// <param name="elementType">The CLR type of one leaf value.</param>
+    /// <param name="member">The member-name expression used by failures.</param>
+    /// <param name="memberType">The member-type expression used by failures.</param>
     private void EmitNestedArrayWrite(SourceWriter writer, CompiledField field, GeneratedMember generated, string access, string elementType, string member, string memberType)
     {
         var dimensions = field.Array.Dimensions;
@@ -660,10 +740,32 @@ internal sealed partial class LayoutEmitter
             writer.Close();
         }
 
+        PrimitiveCodec codec = field.Codec;
+        int rowBytes = BulkWritableRowByteCount(field);
+        bool bulk = generated.Composite is null && generated.Enum is null && rowBytes > 0;
+        if (bulk)
+        {
+            // Keep validation row by row. These generated properties are automatic and the eligible codecs cannot
+            // invoke caller code or reject a leaf value. Reserve has no per-scalar cancellation checkpoint: a
+            // cancelled token merely declines this shortcut and retains the original loop. Append-only reservation
+            // also leaves union overwrites on that loop, with their original extent and partial-write behavior.
+            // Only owned output is eligible: clearing or block-copying a borrowed destination can change both the
+            // source values and the scalar loop's cascading writes when its memory overlaps a source row.
+            writer.Open("if (ownsOutput && cursor.Position <= " + Int(int.MaxValue - rowBytes) + " && cursor.TryReserveFixed(" + Int(rowBytes) + ", 1, 0, 0, out global::System.Span<byte> rowBytes))");
+            writer.Line(BulkEncode(codec, elementType, current, "rowBytes"));
+            writer.Close();
+            writer.Open("else");
+        }
+
         string leaf = "i" + Int(dimensions.Length - 1);
         writer.Open("for (int " + leaf + " = 0; " + leaf + " < " + current + ".Length; " + leaf + "++)");
         this.EmitScalarWrite(writer, field, generated, current + "[" + leaf + "]", member, memberType);
         writer.Close();
+        if (bulk)
+        {
+            writer.Close();
+        }
+
         for (int level = 0; level < indices.Count; level++)
         {
             writer.Close();
@@ -728,7 +830,7 @@ internal sealed partial class LayoutEmitter
 
         if (generated.Composite is not null)
         {
-            writer.Line("Encode" + generated.Composite.Name + "(ref cursor, " + access + ", variables, " + member + ", " + memberType + ");");
+            writer.Line("Encode" + generated.Composite.Name + "(ref cursor, " + access + ", variables, " + member + ", " + memberType + (this.HasBulkWritableRows() ? ", ownsOutput" : string.Empty) + ");");
             return;
         }
 

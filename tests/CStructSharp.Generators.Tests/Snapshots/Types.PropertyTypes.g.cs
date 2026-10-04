@@ -1605,7 +1605,7 @@ namespace Demo
             var cursor = new global::CStructSharp.Generated.WriteCursor(options, "inner");
             try
             {
-                EncodeInner(ref cursor, value, variables, null, null);
+                EncodeInner(ref cursor, value, variables, null, null, ownsOutput: true);
                 return cursor.ToArray();
             }
             catch (global::CStructSharp.Diagnostics.CStructException exception)
@@ -1710,7 +1710,7 @@ namespace Demo
             var cursor = new global::CStructSharp.Generated.WriteCursor(options, "root");
             try
             {
-                EncodeRoot(ref cursor, value, variables, null, null);
+                EncodeRoot(ref cursor, value, variables, null, null, ownsOutput: true);
                 return cursor.ToArray();
             }
             catch (global::CStructSharp.Diagnostics.CStructException exception)
@@ -1784,7 +1784,13 @@ namespace Demo
         }
 
         /// <summary>Writes one <c>inner</c> at the cursor's position.</summary>
-        private static void EncodeInner(ref global::CStructSharp.Generated.WriteCursor cursor, Inner? value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        /// <param name="cursor">The destination and its write limits.</param>
+        /// <param name="value">The value to encode.</param>
+        /// <param name="variables">The layout expression variables.</param>
+        /// <param name="member">The containing member's name for failures.</param>
+        /// <param name="memberType">The containing member's type spelling for failures.</param>
+        /// <param name="ownsOutput">Whether the output belongs to this serialization and cannot overlap the input arrays.</param>
+        private static void EncodeInner(ref global::CStructSharp.Generated.WriteCursor cursor, Inner? value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType, bool ownsOutput = false)
         {
             if (value is null)
             {
@@ -1795,12 +1801,18 @@ namespace Demo
                 WriteInnerFixed(fixedBytes, value);
                 return;
             }
-            EncodeInnerMembers(ref cursor, value, variables, member, memberType);
+            EncodeInnerMembers(ref cursor, value, variables, member, memberType, ownsOutput);
         }
 
         /// <summary>Writes one <c>inner</c> member by member at the cursor's position, when <see cref="EncodeInner"/> cannot use the fixed writer.</summary>
+        /// <param name="cursor">The destination and its write limits.</param>
+        /// <param name="value">The value to encode.</param>
+        /// <param name="variables">The layout expression variables.</param>
+        /// <param name="member">The containing member's name for failures.</param>
+        /// <param name="memberType">The containing member's type spelling for failures.</param>
+        /// <param name="ownsOutput">Whether the output belongs to this serialization and cannot overlap the input arrays.</param>
         [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private static void EncodeInnerMembers(ref global::CStructSharp.Generated.WriteCursor cursor, Inner value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        private static void EncodeInnerMembers(ref global::CStructSharp.Generated.WriteCursor cursor, Inner value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType, bool ownsOutput = false)
         {
             cursor.EnterComposite(member ?? "inner", memberType);
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
@@ -1815,8 +1827,14 @@ namespace Demo
         }
 
         /// <summary>Writes one <c>root</c> at the cursor's position.</summary>
+        /// <param name="cursor">The destination and its write limits.</param>
+        /// <param name="value">The value to encode.</param>
+        /// <param name="variables">The layout expression variables.</param>
+        /// <param name="member">The containing member's name for failures.</param>
+        /// <param name="memberType">The containing member's type spelling for failures.</param>
+        /// <param name="ownsOutput">Whether the output belongs to this serialization and cannot overlap the input arrays.</param>
         [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private static void EncodeRoot(ref global::CStructSharp.Generated.WriteCursor cursor, Root? value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        private static void EncodeRoot(ref global::CStructSharp.Generated.WriteCursor cursor, Root? value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType, bool ownsOutput = false)
         {
             if (value is null)
             {
@@ -2216,9 +2234,16 @@ namespace Demo
                     {
                         throw cursor.FailArrayLengthMismatch("words", 2, value.Words[i0].Length, "words", "uint16");
                     }
-                    for (int i1 = 0; i1 < value.Words[i0].Length; i1++)
+                    if (ownsOutput && cursor.Position <= 2147483643 && cursor.TryReserveFixed(4, 1, 0, 0, out global::System.Span<byte> rowBytes))
                     {
-                        global::CStructSharp.Generated.Codec.WriteUInt16(cursor.Reserve(2, "words", "uint16"), value.Words[i0][i1], true);
+                        global::CStructSharp.Generated.Codec.EncodeIntegers<ushort>(value.Words[i0], rowBytes, true);
+                    }
+                    else
+                    {
+                        for (int i1 = 0; i1 < value.Words[i0].Length; i1++)
+                        {
+                            global::CStructSharp.Generated.Codec.WriteUInt16(cursor.Reserve(2, "words", "uint16"), value.Words[i0][i1], true);
+                        }
                     }
                 }
                 placement.CompleteField(cursor.Position);
@@ -2325,7 +2350,7 @@ namespace Demo
                 {
                     throw cursor.Fail("Null is valid only for a scalar pointer field: child", "child", "inner");
                 }
-                EncodeInner(ref cursor, value.Child, variables, "child", "inner");
+                EncodeInner(ref cursor, value.Child, variables, "child", "inner", ownsOutput);
                 placement.CompleteField(cursor.Position);
             }
             // inner children[2]
@@ -2348,7 +2373,7 @@ namespace Demo
                 }
                 for (int index = 0; index < count; index++)
                 {
-                    EncodeInner(ref cursor, value.Children[index], variables, "children", "inner");
+                    EncodeInner(ref cursor, value.Children[index], variables, "children", "inner", ownsOutput);
                 }
                 placement.CompleteField(cursor.Position);
             }

@@ -3,6 +3,7 @@ namespace CStructSharp.Engine;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using CStructSharp.Compilation.Programs;
@@ -655,7 +656,8 @@ internal static partial class ReadEngine
     /// <param name="plan">The composite's plan.</param>
     /// <param name="bytes">Exactly the composite's bytes.</param>
     /// <param name="destination">The composite's new value.</param>
-    private static void RunStaticPlan<TCursor>(ref TCursor cursor, ref ReadEngineState state, StaticReadPlan plan, ReadOnlySpan<byte> bytes, StructValue destination)
+    /// <param name="completeSlots">The nested value's owned slots, or null for an incrementally constructed outer value; every slot is filled before the result escapes.</param>
+    private static void RunStaticPlan<TCursor>(ref TCursor cursor, ref ReadEngineState state, StaticReadPlan plan, ReadOnlySpan<byte> bytes, StructValue destination, object?[]? completeSlots = null)
         where TCursor : struct, IReadCursor
     {
         state.EnterStructure(ref cursor);
@@ -669,7 +671,7 @@ internal static partial class ReadEngine
                 case StaticReadKind.Numeric:
                     {
                         object value = field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size));
-                        destination.SetFreshSlot(operation.Slot, value);
+                        StoreStaticSlot(destination, completeSlots, operation.Slot, value);
                         CaptureStatic(ref state, field, value);
                         break;
                     }
@@ -677,7 +679,7 @@ internal static partial class ReadEngine
                 case StaticReadKind.Enum:
                     {
                         EnumValueResult value = ValueDecoding.CreateEnumValue(field.Enum!, field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size)));
-                        destination.SetFreshSlot(operation.Slot, value);
+                        StoreStaticSlot(destination, completeSlots, operation.Slot, value);
                         CaptureStatic(ref state, field, value);
                         break;
                     }
@@ -686,7 +688,7 @@ internal static partial class ReadEngine
                     {
                         CheckPlanCount(operation.Count, state.MaxArrayElements);
                         string text = state.FixedText(ValueDecoding.ReadLatin1Characters(bytes.Slice(operation.Offset, operation.Count)));
-                        destination.SetFreshSlot(operation.Slot, text);
+                        StoreStaticSlot(destination, completeSlots, operation.Slot, text);
                         CaptureStatic(ref state, field, text);
                         break;
                     }
@@ -696,27 +698,29 @@ internal static partial class ReadEngine
                         CheckPlanCount(operation.Count, state.MaxArrayElements);
                         if (operation.Count == 0)
                         {
-                            destination.SetFreshSlot(operation.Slot, PrimitiveArrayReader.Empty(field.Codec));
+                            StoreStaticSlot(destination, completeSlots, operation.Slot, PrimitiveArrayReader.Empty(field.Codec));
                             break;
                         }
 
                         IList<object?> values = PrimitiveArrayReader.Decode(bytes.Slice(operation.Offset, operation.Count * field.Codec.Size), field.Codec, operation.Count);
-                        destination.SetFreshSlot(operation.Slot, values);
+                        StoreStaticSlot(destination, completeSlots, operation.Slot, values);
                         CaptureStatic(ref state, field, values);
                         break;
                     }
 
                 case StaticReadKind.Nested:
                     {
-                        var nested = new StructValue(operation.NestedComposite!.Shape);
-                        destination.SetFreshSlot(operation.Slot, nested);
+                        StructShape shape = operation.NestedComposite!.Shape;
+                        object?[] slots = shape.Count == 0 ? Array.Empty<object?>() : new object?[shape.Count];
+                        var nested = new StructValue(shape, slots);
+                        StoreStaticSlot(destination, completeSlots, operation.Slot, nested);
                         string? outer = state.QualifiedPrefix;
                         if (field.HasQualifiedPrefix)
                         {
                             state.QualifiedPrefix = outer is null ? field.QualifiedPrefix : outer + field.QualifiedPrefix;
                         }
 
-                        RunStaticPlan(ref cursor, ref state, operation.NestedPlan!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), nested);
+                        RunStaticPlan(ref cursor, ref state, operation.NestedPlan!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), nested, slots);
                         state.QualifiedPrefix = outer;
                         break;
                     }
@@ -725,14 +729,16 @@ internal static partial class ReadEngine
                     {
                         CheckPlanCount(operation.Count, state.MaxArrayElements);
                         var elements = new List<object?>(operation.Count);
-                        destination.SetFreshSlot(operation.Slot, elements);
+                        StoreStaticSlot(destination, completeSlots, operation.Slot, elements);
                         StaticReadPlan nestedPlan = operation.NestedPlan!;
+                        StructShape shape = operation.NestedComposite!.Shape;
                         int offset = operation.Offset;
                         for (int element = 0; element < operation.Count; element++, offset += nestedPlan.Size)
                         {
-                            var nested = new StructValue(operation.NestedComposite!.Shape);
+                            object?[] slots = shape.Count == 0 ? Array.Empty<object?>() : new object?[shape.Count];
+                            var nested = new StructValue(shape, slots);
                             elements.Add(nested);
-                            RunStaticPlan(ref cursor, ref state, nestedPlan, bytes.Slice(offset, nestedPlan.Size), nested);
+                            RunStaticPlan(ref cursor, ref state, nestedPlan, bytes.Slice(offset, nestedPlan.Size), nested, slots);
                         }
 
                         break;
@@ -743,6 +749,25 @@ internal static partial class ReadEngine
         finally
         {
             state.StructureDepth--;
+        }
+    }
+
+    /// <summary>Fills a static-plan slot, tracking presence only for the outer value the general engine already constructed.</summary>
+    /// <param name="destination">The value that owns the slot.</param>
+    /// <param name="completeSlots">The complete nested shape's owned storage, or null for an incremental outer value.</param>
+    /// <param name="slot">The named member's index in the destination shape.</param>
+    /// <param name="value">The decoded member value.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void StoreStaticSlot(StructValue destination, object?[]? completeSlots, int slot, object? value)
+    {
+        if (completeSlots is null)
+        {
+            destination.SetFreshSlot(slot, value);
+        }
+        else
+        {
+            // Static plans fill every named and promoted slot; a failed operation never publishes the partial graph.
+            completeSlots[slot] = value;
         }
     }
 

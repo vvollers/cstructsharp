@@ -15,6 +15,10 @@ public class MaterializationBenchmarks
     private byte[] large = null!;
     private byte[] text = null!;
     private CStruct textLayout = null!;
+    private CStruct matrixLayout = null!;
+    private StructValue runtimeMatrix = null!;
+    private MaterializedSmallMatrix.Root smallValue = null!;
+    private MaterializedBigMatrix.Root bigValue = null!;
     private MaterializedLargeMatrix.Root largeValue = null!;
 
     /// <summary>Loads the existing small matrix, prepares larger inputs, and verifies owned values and output outside timing.</summary>
@@ -44,12 +48,17 @@ public class MaterializationBenchmarks
         }
 
         this.textLayout = FixtureCase.CompileLike(typeof(MaterializedText));
+        this.matrixLayout = FixtureCase.CompileLike(typeof(MaterializedLargeMatrix));
+        this.runtimeMatrix = this.matrixLayout.Parse(this.large, "root");
+        this.smallValue = MaterializedSmallMatrix.Parse(this.small);
+        this.bigValue = MaterializedBigMatrix.Parse(this.large);
         this.largeValue = MaterializedLargeMatrix.Parse(this.large);
-        RequireRows(FixtureCase.CompileLike(typeof(MaterializedLargeMatrix)).Parse(this.large, "root").Get<ushort[][]>("grid"), this.largeValue.Grid);
+        RequireRows(this.runtimeMatrix.Get<ushort[][]>("grid"), this.largeValue.Grid);
         RequireRows(FixtureCase.CompileLike(typeof(MaterializedBigMatrix)).Parse(this.large, "root").Get<ushort[][]>("grid"), MaterializedBigMatrix.Parse(this.large).Grid);
         RequireBytes(this.small, MaterializedSmallMatrix.Serialize(MaterializedSmallMatrix.Parse(this.small)));
         RequireBytes(this.large, MaterializedLargeMatrix.Serialize(this.largeValue));
         RequireBytes(this.large, MaterializedBigMatrix.Serialize(MaterializedBigMatrix.Parse(this.large)));
+        RequireBytes(this.large, this.matrixLayout.Serialize("root", this.runtimeMatrix));
         foreach (ReadOptions options in new[] { new ReadOptions(), this.trimmed })
         {
             MaterializedText.Root generated = MaterializedText.Parse(this.text, options);
@@ -91,6 +100,26 @@ public class MaterializationBenchmarks
     /// <returns>The complete owned encoded bytes.</returns>
     [Benchmark]
     public byte[] Generated_Matrix256_Serialize() => MaterializedLargeMatrix.Serialize(this.largeValue);
+
+    /// <summary>Serializes the small canonical matrix, including ownership of its output.</summary>
+    /// <returns>The complete owned encoded bytes.</returns>
+    [Benchmark]
+    public byte[] Generated_Matrix16_Serialize() => MaterializedSmallMatrix.Serialize(this.smallValue);
+
+    /// <summary>Serializes the large matrix with explicit big-endian numeric encoding.</summary>
+    /// <returns>The complete owned encoded bytes.</returns>
+    [Benchmark]
+    public byte[] Generated_Matrix256Big_Serialize() => MaterializedBigMatrix.Serialize(this.bigValue);
+
+    /// <summary>Parses the large matrix through the runtime's boxed multidimensional path.</summary>
+    /// <returns>The complete owned dynamic result, including every row and element.</returns>
+    [Benchmark]
+    public StructValue Runtime_Matrix256_Parse() => this.matrixLayout.Parse(this.large, "root");
+
+    /// <summary>Serializes the runtime's complete matrix, including normalization and owned output.</summary>
+    /// <returns>The complete owned encoded bytes.</returns>
+    [Benchmark]
+    public byte[] Runtime_Matrix256_Serialize() => this.matrixLayout.Serialize("root", this.runtimeMatrix);
 
     /// <summary>Parses fixed Latin-1, UTF-8, CP437 and wide-character buffers without trimming.</summary>
     /// <returns>The owned text record, including its NUL padding.</returns>
