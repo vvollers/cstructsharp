@@ -155,7 +155,8 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             definitionSpan,
             literalShape,
             ((CSharpParseOptions)declaration.SyntaxTree.Options).LanguageVersion.ToDisplayString(),
-            TypesWithConstructors(symbol));
+            TypesWithConstructors(symbol),
+            ConsumerDeclaredTypes(symbol));
     }
 
     /// <summary>
@@ -171,6 +172,15 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
                                                 .Where(type => type.InstanceConstructors.Any(constructor => !constructor.IsImplicitlyDeclared))
                                                 .Select(type => type.Name)
                                                 .ToArray());
+    }
+
+    /// <summary>Finds all consumer-declared nested types, including those whose implicit constructors run field initializers.</summary>
+    /// <param name="symbol">The attributed class before generated source is added.</param>
+    /// <returns>The consumer's nested type names in declaration order.</returns>
+    private static EquatableArray<string> ConsumerDeclaredTypes(INamedTypeSymbol symbol)
+    {
+        // Every nested type in this input compilation comes from consumer source, not this generator's output.
+        return new EquatableArray<string>(symbol.GetTypeMembers().Select(type => type.Name).ToArray());
     }
 
     /// <summary>

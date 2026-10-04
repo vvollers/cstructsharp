@@ -258,12 +258,17 @@ internal static class PrimitiveArrayReader
     /// <param name="cursor">The cursor, positioned at the first element; it advances past the array.</param>
     /// <param name="codec">The fixed-width numeric codec of one element, including its byte order.</param>
     /// <param name="count">The number of elements to read.</param>
-    /// <param name="target">The list that receives the boxed values, appended in element order.</param>
+    /// <param name="target">The list that receives boxed values or owned leaf rows, appended in element order.</param>
+    /// <param name="rowSize">The positive number of elements in each leaf row, or zero to append flat values.</param>
     /// <returns>The last value read, or null when <paramref name="count"/> is 0.</returns>
+    /// <remarks>
+    ///     A positive row size creates independent, mutable leaf lists without a flat reference array. Rows may cross
+    ///     block boundaries: the byte reads, charges and cancellation checkpoints still follow the whole-field blocks.
+    /// </remarks>
     /// <exception cref="CStructReadException">The source ends inside a block; the elements of earlier blocks were appended.</exception>
     /// <exception cref="CStructReadLimitException">A block exceeds the total read budget.</exception>
     /// <exception cref="OperationCanceledException">The operation's token is cancelled before a block.</exception>
-    public static object? ReadInto<TCursor>(ref TCursor cursor, PrimitiveCodec codec, int count, List<object?> target)
+    public static object? ReadInto<TCursor>(ref TCursor cursor, PrimitiveCodec codec, int count, List<object?> target, int rowSize = 0)
         where TCursor : struct, IReadCursor
     {
         int elementSize = codec.Size;
@@ -271,6 +276,7 @@ internal static class PrimitiveArrayReader
         long remaining = (long)count * elementSize;
         int blockCapacity = (int)Math.Min(remaining, BlockSize.Bytes) / elementSize * elementSize;
         byte[] block = ArrayPool<byte>.Shared.Rent(Math.Max(blockCapacity, elementSize));
+        List<object?> row = target;
         try
         {
             while (remaining > 0)
@@ -278,10 +284,21 @@ internal static class PrimitiveArrayReader
                 cursor.ThrowIfCancellationRequested();
                 int blockLength = (int)Math.Min(remaining, blockCapacity);
                 cursor.ReadExactly(block.AsSpan(0, blockLength));
-                for (int offset = 0; offset < blockLength; offset += elementSize)
+                for (int offset = 0; offset < blockLength;)
                 {
-                    last = codec.ReadNumeric(block.AsSpan(offset, elementSize));
-                    target.Add(last);
+                    if (rowSize > 0 && (ReferenceEquals(row, target) || row.Count == rowSize))
+                    {
+                        row = new List<object?>(rowSize);
+                        target.Add(row);
+                    }
+
+                    int elements = rowSize > 0 ? Math.Min((blockLength - offset) / elementSize, rowSize - row.Count) : (blockLength - offset) / elementSize;
+                    int end = offset + (elements * elementSize);
+                    for (; offset < end; offset += elementSize)
+                    {
+                        last = codec.ReadNumeric(block.AsSpan(offset, elementSize));
+                        row.Add(last);
+                    }
                 }
 
                 remaining -= blockLength;

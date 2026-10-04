@@ -16,6 +16,8 @@ public class MaterializationBenchmarks
     private byte[] text = null!;
     private CStruct textLayout = null!;
     private CStruct matrixLayout = null!;
+    private CStruct smallMatrixLayout = null!;
+    private CStruct bigMatrixLayout = null!;
     private StructValue runtimeMatrix = null!;
     private MaterializedSmallMatrix.Root smallValue = null!;
     private MaterializedBigMatrix.Root bigValue = null!;
@@ -49,6 +51,8 @@ public class MaterializationBenchmarks
 
         this.textLayout = FixtureCase.CompileLike(typeof(MaterializedText));
         this.matrixLayout = FixtureCase.CompileLike(typeof(MaterializedLargeMatrix));
+        this.smallMatrixLayout = FixtureCase.CompileLike(typeof(MaterializedSmallMatrix));
+        this.bigMatrixLayout = FixtureCase.CompileLike(typeof(MaterializedBigMatrix));
         this.runtimeMatrix = this.matrixLayout.Parse(this.large, "root");
         this.smallValue = MaterializedSmallMatrix.Parse(this.small);
         this.bigValue = MaterializedBigMatrix.Parse(this.large);
@@ -115,6 +119,25 @@ public class MaterializationBenchmarks
     /// <returns>The complete owned dynamic result, including every row and element.</returns>
     [Benchmark]
     public StructValue Runtime_Matrix256_Parse() => this.matrixLayout.Parse(this.large, "root");
+
+    /// <summary>Parses the small canonical matrix through runtime row materialization.</summary>
+    /// <returns>The complete owned dynamic result.</returns>
+    [Benchmark]
+    public StructValue Runtime_Matrix16_Parse() => this.smallMatrixLayout.Parse(this.small, "root");
+
+    /// <summary>Parses the large matrix using big-endian runtime numeric decoding.</summary>
+    /// <returns>The complete owned dynamic result.</returns>
+    [Benchmark]
+    public StructValue Runtime_Matrix256Big_Parse() => this.bigMatrixLayout.Parse(this.large, "root");
+
+    /// <summary>Parses the large matrix through a non-exposable stream and returns all owned rows.</summary>
+    /// <returns>The complete owned dynamic result after the input stream has been disposed.</returns>
+    [Benchmark]
+    public StructValue Runtime_Matrix256_Stream()
+    {
+        using var stream = new System.IO.MemoryStream(this.large, writable: false);
+        return this.matrixLayout.Parse(stream, "root");
+    }
 
     /// <summary>Serializes the runtime's complete matrix, including normalization and owned output.</summary>
     /// <returns>The complete owned encoded bytes.</returns>

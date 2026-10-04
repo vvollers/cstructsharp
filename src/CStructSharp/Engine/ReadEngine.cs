@@ -505,7 +505,21 @@ internal static partial class ReadEngine
                     break;
 
                 case ReadOpCode.ReadNumericList:
-                    Store(destination, program, field, ReadNumericList(ref cursor, program.Codecs[step.A].Primitive, count));
+                    // Fuse only the adjacent shape step: block reads still span rows and retain their original
+                    // failure boundaries, while the final leaf lists replace the temporary flat reference array.
+                    if (!state.NoFastPaths && count > 0 && index + 1 < steps.Length && steps[index + 1].Op == ReadOpCode.ReshapeTable && steps[index + 1].Field == field)
+                    {
+                        int[] dimensions = ValueDecoding.FixedDimensionSizes(program.Fields[field]);
+                        var rows = new List<object?>(count / dimensions[^1]);
+                        _ = PrimitiveArrayReader.ReadInto(ref cursor, program.Codecs[step.A].Primitive, count, rows, dimensions[^1]);
+                        Store(destination, program, field, ValueDecoding.ReshapeFlatArrayValues(rows, dimensions[..^1]));
+                        index++;
+                    }
+                    else
+                    {
+                        Store(destination, program, field, ReadNumericList(ref cursor, program.Codecs[step.A].Primitive, count));
+                    }
+
                     break;
 
                 case ReadOpCode.ReadNumericElementList:

@@ -237,6 +237,7 @@ internal enum ReadOpCode : byte
     ///     Reads count-register fixed-width numbers (codec <c>A</c>) of a multidimensional member its composite placed into
     ///     a flat list, in blocks of at most 64 KiB, boxing each element; <see cref="ReshapeTable"/> nests it.
     /// </summary>
+    /// <remarks>The executor may fuse an immediately following shape step to fill owned leaf rows directly, preserving the same block reads.</remarks>
     ReadNumericList,
 
     /// <summary>

@@ -17,6 +17,10 @@ using CStructSharp.Values;
 /// </summary>
 internal static class WriteValueRules
 {
+    // A declared shape may be much larger than the supplied values. Speculative capacity stays at most 512 KiB
+    // of references on a 64-bit runtime, and is reserved only after the first child has validated successfully.
+    private const int MaximumInitialFlattenedCapacity = 65_536;
+
     /// <summary>Whether the data supplies at least one leaf of an anonymous promoted member (transitively).</summary>
     /// <param name="promoted">The anonymous member.</param>
     /// <param name="data">The data that would carry its members.</param>
@@ -165,6 +169,7 @@ internal static class WriteValueRules
     /// <param name="dimensionSizes">The declared size of each remaining dimension, outermost first.</param>
     /// <param name="fieldName">The array field, named in a failure.</param>
     /// <returns>The leaves in row-major order.</returns>
+    /// <remarks>After the first child validates, a bounded capacity hint avoids repeated growth without trusting an arbitrarily large declared shape.</remarks>
     /// <exception cref="CStructWriteException">A level is not a collection or has a different number of elements.</exception>
     internal static List<object> FlattenNestedArrayValues(object value, IReadOnlyList<int> dimensionSizes, string fieldName)
     {
@@ -181,9 +186,23 @@ internal static class WriteValueRules
 
         int[] remainingDimensions = [.. dimensionSizes.Skip(1),];
         var flattened = new List<object>();
+        bool firstChild = true;
         foreach (object item in level)
         {
-            flattened.AddRange(FlattenNestedArrayValues(item, remainingDimensions, fieldName));
+            List<object> child = FlattenNestedArrayValues(item, remainingDimensions, fieldName);
+            if (firstChild)
+            {
+                int capacity = 1;
+                foreach (int size in dimensionSizes)
+                {
+                    capacity = (int)Math.Min((long)capacity * size, MaximumInitialFlattenedCapacity);
+                }
+
+                flattened.EnsureCapacity(capacity);
+                firstChild = false;
+            }
+
+            flattened.AddRange(child);
         }
 
         return flattened;

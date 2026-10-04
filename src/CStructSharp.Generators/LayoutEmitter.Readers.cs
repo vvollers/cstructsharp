@@ -63,6 +63,7 @@ internal sealed partial class LayoutEmitter
         }
 
         this.EmitFixedReaders(writer);
+        this.EmitBitfieldLeafReaders(writer);
         this.EmitPointerReaders(writer);
         writer.Line();
         writer.Line("/// <summary>Groups a flat element array into rows of <paramref name=\"inner\"/> elements (one nesting level of a multidimensional array).</summary>");
@@ -268,16 +269,25 @@ internal sealed partial class LayoutEmitter
         string name = composite.Name;
         string parameters = "(ref " + Cursor + " cursor, " + VariablesType + " variables, string? member, string? memberType)";
         FixedPlan? plan = this.FixedPlanOf(composite, 0);
+        BitfieldLeafPlan? bitfieldPlan = this.BitfieldLeafPlanOf(composite);
         writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> at the cursor's position.</summary>");
-        if (plan is null)
+        if (plan is null && bitfieldPlan is null)
         {
             writer.Line(NoInlining);
         }
 
         writer.Open("private static " + name + " Read" + name + parameters);
-        if (plan is not null)
+        if (plan is not null || bitfieldPlan is not null)
         {
-            this.EmitFixedReaderShortcut(writer, composite, plan);
+            if (plan is not null)
+            {
+                this.EmitFixedReaderShortcut(writer, composite, plan);
+            }
+            else
+            {
+                this.EmitBitfieldLeafShortcut(writer, composite, bitfieldPlan!);
+            }
+
             writer.Line("return Read" + name + "Members(ref cursor, variables, member, memberType);");
             writer.Close();
             writer.Line();

@@ -58,7 +58,7 @@ no longer matches these records or `CStructSharp.Comparison/results.json`.
 
 ## Check a change quickly: the Impact category
 
-The full suite takes about 45 minutes. The `Impact` category is a subset of 68 cases that samples the main
+The full suite takes about 45 minutes. The `Impact` category is a subset of 74 cases that samples the main
 execution paths: compilation (including the longest definition the default options accept),
 span parses of eleven fixtures chosen for their differences (`ImpactParseBenchmarks`: fixed records, nested
 structs, big-endian arrays, runtime counts, conditions, strings, a real file header, pointers, bitfields, unions,
@@ -69,8 +69,10 @@ bitfield and a pointer target), debug ranges, async and segmented input, and the
 `packet` record (`PacketBenchmarks`: parse from a span, a `MemoryStream` and a `FileStream`, read into a mapped class,
 serialize a `StructValue` and a mapped instance, and generated parsing). `MaterializationBenchmarks` adds owned
 generated numeric matrices in both byte orders, small and big-endian matrix serialization, runtime matrix parsing
-and serialization, and generated/runtime mixed text with and without trimming. Its setup verifies values, bytes
-and ownership outside timing. One Short run takes about eight minutes:
+and serialization, and generated/runtime mixed text with and without trimming. Runtime matrix cases also include
+small inputs, big-endian leaves and non-exposable streams. `BitfieldBenchmarks` covers generated bitfield leaf and
+array parsing with serialization as a control. Setup verifies values, bytes and ownership outside timing.
+One Short run takes about eight minutes:
 
 ```sh
 dotnet build ./CStructSharp.NonWeb.slnf -c Release
@@ -83,6 +85,9 @@ CSTRUCTSHARP_BENCHMARK_JOB=Short dotnet run --project benchmarks/CStructSharp.Be
 The [overall execution investigation](experiments/overall-next/README.md) covers owned generated matrix writes and
 complete nested runtime slots in the general engine, including overlapping-span fallbacks and separate diagnostic,
 production and first-use measurements.
+
+The [deferred-candidate investigation](experiments/deferred-next/README.md) continues from that baseline with
+runtime matrix materialization, bounded write-normalization capacity and generated fixed bitfield leaves.
 
 Capture a baseline **before editing a hot path**, then compare each candidate with it:
 
@@ -106,7 +111,7 @@ build, run tests, edit source, or run another benchmark during measurement. A lo
 of this tool in the same repository; it cannot prevent unrelated applications from using the CPU.
 An individual Screen host times out after 60 seconds. A failed or incomplete run never becomes a partial success.
 
-The default **Screen** job measures all 68 Impact cases using twelve 1 ms iterations and three warmups, retaining
+The default **Screen** job measures all 74 Impact cases using twelve 1 ms iterations and three warmups, retaining
 allocation diagnosis. It disables per-iteration forced GC and overhead evaluation, disables tiering/PGO for both
 hosts, and keeps the machine's current power plan. BDN still collects before its allocation-diagnostic batch.
 The report uses **every actual timing sample**, including values BDN excludes from its summary as outliers.

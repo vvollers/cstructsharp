@@ -17,6 +17,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Performance
 
+- Materialize runtime numeric matrix rows without a temporary flat reference array, and reduce allocation while
+  validating matrices for serialization. Specialize generated fixed bitfield leaf readers while preserving repeated
+  read charges, caller construction effects and original failure paths.
 - Bulk-encode generated numeric matrix rows into owned serialization output, retaining scalar writes for borrowed
   spans and failure fallbacks. Construct complete nested runtime values inside general-engine static plans without
   repeated presence bookkeeping; preserve captures, mutable ownership and cancellation checkpoints.
