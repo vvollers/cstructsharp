@@ -19,7 +19,7 @@ The highest-value choices are usually:
    read plan when the layout is fully fixed) and hands it to the class's own `ReadFrom`; the mapping itself is the
    code the generator or you wrote, with no reflection to pay for.
 7. Resolve paths you read repeatedly once, with `GetAccessor<T>`, and read members without parsing through
-   `CreateView` ([read the same members many times](reading-values.md#read-the-same-members-many-times)). <!-- facts:accessor-costs:start -->In the repository's serializer comparison (a 79-byte record, every member read), `Parse` followed by path-string reads took 350 ns, `Parse` followed by accessor reads took 130 ns, and `CreateView` with accessors took 28.5 ns without allocating.<!-- facts:accessor-costs:end -->
+   `CreateView` ([read the same members many times](reading-values.md#read-the-same-members-many-times)). <!-- facts:accessor-costs:start -->In the repository's serializer comparison (a 79-byte record, every member read), `Parse` followed by path-string reads took 329 ns, `Parse` followed by accessor reads took 127 ns, and `CreateView` with accessors took 28.9 ns without allocating.<!-- facts:accessor-costs:end -->
 8. Generate the layout when it is part of the program: a `[CStructLayout]` class parses straight into typed
    properties, and its view reads members without allocating (the "Generated" table below and
    [runtime or generated?](generated/choosing-runtime-or-generated.md)).

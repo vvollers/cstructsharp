@@ -1,0 +1,933 @@
+{
+  "runtime": "aot",
+  "completeResultHashesMatch": true,
+  "completeResultKinds": [
+    "lsmod",
+    "lsof",
+    "mounts",
+    "netstat",
+    "ps",
+    "symbols"
+  ],
+  "warmAfterSeconds": 5,
+  "rows": [
+    {
+      "operation": "bootstrap",
+      "phase": "first",
+      "before": [
+        {
+          "round": 0,
+          "side": "before",
+          "operation": "bootstrap",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 695.154,
+          "minimumMilliseconds": 695.154,
+          "maximumMilliseconds": 695.154,
+          "medianAllocatedBytes": 490688984
+        },
+        {
+          "round": 1,
+          "side": "before",
+          "operation": "bootstrap",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 686.0828,
+          "minimumMilliseconds": 686.0828,
+          "maximumMilliseconds": 686.0828,
+          "medianAllocatedBytes": 490946072
+        },
+        {
+          "round": 2,
+          "side": "before",
+          "operation": "bootstrap",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 695.6966,
+          "minimumMilliseconds": 695.6966,
+          "maximumMilliseconds": 695.6966,
+          "medianAllocatedBytes": 490646888
+        }
+      ],
+      "after": [
+        {
+          "round": 0,
+          "side": "after",
+          "operation": "bootstrap",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 154.0072,
+          "minimumMilliseconds": 154.0072,
+          "maximumMilliseconds": 154.0072,
+          "medianAllocatedBytes": 266009288
+        },
+        {
+          "round": 1,
+          "side": "after",
+          "operation": "bootstrap",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 152.748,
+          "minimumMilliseconds": 152.748,
+          "maximumMilliseconds": 152.748,
+          "medianAllocatedBytes": 266039232
+        },
+        {
+          "round": 2,
+          "side": "after",
+          "operation": "bootstrap",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 147.3787,
+          "minimumMilliseconds": 147.3787,
+          "maximumMilliseconds": 147.3787,
+          "medianAllocatedBytes": 266027224
+        }
+      ],
+      "pairedSpeedups": [
+        4.513775979304864,
+        4.49159923534187,
+        4.720469104422823
+      ],
+      "medianPairedSpeedup": 4.513775979304864
+    },
+    {
+      "operation": "ps",
+      "phase": "first",
+      "before": [
+        {
+          "round": 0,
+          "side": "before",
+          "operation": "ps",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 85.7434,
+          "minimumMilliseconds": 85.7434,
+          "maximumMilliseconds": 85.7434,
+          "medianAllocatedBytes": 74405928
+        },
+        {
+          "round": 1,
+          "side": "before",
+          "operation": "ps",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 94.9456,
+          "minimumMilliseconds": 94.9456,
+          "maximumMilliseconds": 94.9456,
+          "medianAllocatedBytes": 74405904
+        },
+        {
+          "round": 2,
+          "side": "before",
+          "operation": "ps",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 85.5016,
+          "minimumMilliseconds": 85.5016,
+          "maximumMilliseconds": 85.5016,
+          "medianAllocatedBytes": 74405904
+        }
+      ],
+      "after": [
+        {
+          "round": 0,
+          "side": "after",
+          "operation": "ps",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 6.3023,
+          "minimumMilliseconds": 6.3023,
+          "maximumMilliseconds": 6.3023,
+          "medianAllocatedBytes": 2360792
+        },
+        {
+          "round": 1,
+          "side": "after",
+          "operation": "ps",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 6.1783,
+          "minimumMilliseconds": 6.1783,
+          "maximumMilliseconds": 6.1783,
+          "medianAllocatedBytes": 2360792
+        },
+        {
+          "round": 2,
+          "side": "after",
+          "operation": "ps",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 6.2717,
+          "minimumMilliseconds": 6.2717,
+          "maximumMilliseconds": 6.2717,
+          "medianAllocatedBytes": 2360792
+        }
+      ],
+      "pairedSpeedups": [
+        13.605096552052425,
+        15.367593027208132,
+        13.632922493103942
+      ],
+      "medianPairedSpeedup": 13.632922493103942
+    },
+    {
+      "operation": "ps",
+      "phase": "warm",
+      "before": [
+        {
+          "round": 0,
+          "side": "before",
+          "operation": "ps",
+          "phase": "warm",
+          "samples": 155,
+          "medianMilliseconds": 32.1508,
+          "minimumMilliseconds": 31.3291,
+          "maximumMilliseconds": 36.1785,
+          "medianAllocatedBytes": 74380744
+        },
+        {
+          "round": 1,
+          "side": "before",
+          "operation": "ps",
+          "phase": "warm",
+          "samples": 156,
+          "medianMilliseconds": 31.8583,
+          "minimumMilliseconds": 31.1143,
+          "maximumMilliseconds": 36.0815,
+          "medianAllocatedBytes": 74380744.0
+        },
+        {
+          "round": 2,
+          "side": "before",
+          "operation": "ps",
+          "phase": "warm",
+          "samples": 156,
+          "medianMilliseconds": 31.7452,
+          "minimumMilliseconds": 30.9997,
+          "maximumMilliseconds": 35.5105,
+          "medianAllocatedBytes": 74380744.0
+        }
+      ],
+      "after": [
+        {
+          "round": 0,
+          "side": "after",
+          "operation": "ps",
+          "phase": "warm",
+          "samples": 919,
+          "medianMilliseconds": 5.2996,
+          "minimumMilliseconds": 5.1944,
+          "maximumMilliseconds": 6.8017,
+          "medianAllocatedBytes": 2327080
+        },
+        {
+          "round": 1,
+          "side": "after",
+          "operation": "ps",
+          "phase": "warm",
+          "samples": 894,
+          "medianMilliseconds": 5.37045,
+          "minimumMilliseconds": 5.2064,
+          "maximumMilliseconds": 8.1876,
+          "medianAllocatedBytes": 2327080.0
+        },
+        {
+          "round": 2,
+          "side": "after",
+          "operation": "ps",
+          "phase": "warm",
+          "samples": 922,
+          "medianMilliseconds": 5.2732,
+          "minimumMilliseconds": 5.1889,
+          "maximumMilliseconds": 7.7136,
+          "medianAllocatedBytes": 2327080.0
+        }
+      ],
+      "pairedSpeedups": [
+        6.066646539361461,
+        5.932147212989601,
+        6.020101646059318
+      ],
+      "medianPairedSpeedup": 6.020101646059318
+    },
+    {
+      "operation": "lsof",
+      "phase": "first",
+      "before": [
+        {
+          "round": 0,
+          "side": "before",
+          "operation": "lsof",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 23.9542,
+          "minimumMilliseconds": 23.9542,
+          "maximumMilliseconds": 23.9542,
+          "medianAllocatedBytes": 54892344
+        },
+        {
+          "round": 1,
+          "side": "before",
+          "operation": "lsof",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 22.748,
+          "minimumMilliseconds": 22.748,
+          "maximumMilliseconds": 22.748,
+          "medianAllocatedBytes": 54892344
+        },
+        {
+          "round": 2,
+          "side": "before",
+          "operation": "lsof",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 22.9262,
+          "minimumMilliseconds": 22.9262,
+          "maximumMilliseconds": 22.9262,
+          "medianAllocatedBytes": 54892344
+        }
+      ],
+      "after": [
+        {
+          "round": 0,
+          "side": "after",
+          "operation": "lsof",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 6.3857,
+          "minimumMilliseconds": 6.3857,
+          "maximumMilliseconds": 6.3857,
+          "medianAllocatedBytes": 10506168
+        },
+        {
+          "round": 1,
+          "side": "after",
+          "operation": "lsof",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 6.0213,
+          "minimumMilliseconds": 6.0213,
+          "maximumMilliseconds": 6.0213,
+          "medianAllocatedBytes": 10506168
+        },
+        {
+          "round": 2,
+          "side": "after",
+          "operation": "lsof",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 6.237,
+          "minimumMilliseconds": 6.237,
+          "maximumMilliseconds": 6.237,
+          "medianAllocatedBytes": 10506168
+        }
+      ],
+      "pairedSpeedups": [
+        3.751225394240256,
+        3.777921711258366,
+        3.6758377425044095
+      ],
+      "medianPairedSpeedup": 3.751225394240256
+    },
+    {
+      "operation": "lsof",
+      "phase": "warm",
+      "before": [
+        {
+          "round": 0,
+          "side": "before",
+          "operation": "lsof",
+          "phase": "warm",
+          "samples": 219,
+          "medianMilliseconds": 22.405,
+          "minimumMilliseconds": 22.057,
+          "maximumMilliseconds": 24.4741,
+          "medianAllocatedBytes": 54881792
+        },
+        {
+          "round": 1,
+          "side": "before",
+          "operation": "lsof",
+          "phase": "warm",
+          "samples": 220,
+          "medianMilliseconds": 22.4556,
+          "minimumMilliseconds": 21.7848,
+          "maximumMilliseconds": 25.1643,
+          "medianAllocatedBytes": 54881792.0
+        },
+        {
+          "round": 2,
+          "side": "before",
+          "operation": "lsof",
+          "phase": "warm",
+          "samples": 216,
+          "medianMilliseconds": 22.5098,
+          "minimumMilliseconds": 21.8741,
+          "maximumMilliseconds": 58.9332,
+          "medianAllocatedBytes": 54881792.0
+        }
+      ],
+      "after": [
+        {
+          "round": 0,
+          "side": "after",
+          "operation": "lsof",
+          "phase": "warm",
+          "samples": 902,
+          "medianMilliseconds": 5.4353,
+          "minimumMilliseconds": 5.1171,
+          "maximumMilliseconds": 7.6009,
+          "medianAllocatedBytes": 10503680.0
+        },
+        {
+          "round": 1,
+          "side": "after",
+          "operation": "lsof",
+          "phase": "warm",
+          "samples": 864,
+          "medianMilliseconds": 5.43635,
+          "minimumMilliseconds": 5.115,
+          "maximumMilliseconds": 9.8178,
+          "medianAllocatedBytes": 10503680.0
+        },
+        {
+          "round": 2,
+          "side": "after",
+          "operation": "lsof",
+          "phase": "warm",
+          "samples": 901,
+          "medianMilliseconds": 5.4273,
+          "minimumMilliseconds": 5.1132,
+          "maximumMilliseconds": 7.8715,
+          "medianAllocatedBytes": 10503680
+        }
+      ],
+      "pairedSpeedups": [
+        4.122127573455008,
+        4.1306391236767315,
+        4.147513496582094
+      ],
+      "medianPairedSpeedup": 4.1306391236767315
+    },
+    {
+      "operation": "mounts",
+      "phase": "first",
+      "before": [
+        {
+          "round": 0,
+          "side": "before",
+          "operation": "mounts",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 0.6804,
+          "minimumMilliseconds": 0.6804,
+          "maximumMilliseconds": 0.6804,
+          "medianAllocatedBytes": 1453920
+        },
+        {
+          "round": 1,
+          "side": "before",
+          "operation": "mounts",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 0.7008,
+          "minimumMilliseconds": 0.7008,
+          "maximumMilliseconds": 0.7008,
+          "medianAllocatedBytes": 1453920
+        },
+        {
+          "round": 2,
+          "side": "before",
+          "operation": "mounts",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 0.6794,
+          "minimumMilliseconds": 0.6794,
+          "maximumMilliseconds": 0.6794,
+          "medianAllocatedBytes": 1453920
+        }
+      ],
+      "after": [
+        {
+          "round": 0,
+          "side": "after",
+          "operation": "mounts",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 0.3229,
+          "minimumMilliseconds": 0.3229,
+          "maximumMilliseconds": 0.3229,
+          "medianAllocatedBytes": 442760
+        },
+        {
+          "round": 1,
+          "side": "after",
+          "operation": "mounts",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 0.3204,
+          "minimumMilliseconds": 0.3204,
+          "maximumMilliseconds": 0.3204,
+          "medianAllocatedBytes": 442760
+        },
+        {
+          "round": 2,
+          "side": "after",
+          "operation": "mounts",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 0.3164,
+          "minimumMilliseconds": 0.3164,
+          "maximumMilliseconds": 0.3164,
+          "medianAllocatedBytes": 442760
+        }
+      ],
+      "pairedSpeedups": [
+        2.1071539176215546,
+        2.1872659176029963,
+        2.147281921618205
+      ],
+      "medianPairedSpeedup": 2.147281921618205
+    },
+    {
+      "operation": "mounts",
+      "phase": "warm",
+      "before": [
+        {
+          "round": 0,
+          "side": "before",
+          "operation": "mounts",
+          "phase": "warm",
+          "samples": 8669,
+          "medianMilliseconds": 0.4986,
+          "minimumMilliseconds": 0.4866,
+          "maximumMilliseconds": 1.6436,
+          "medianAllocatedBytes": 1444376
+        },
+        {
+          "round": 1,
+          "side": "before",
+          "operation": "mounts",
+          "phase": "warm",
+          "samples": 8630,
+          "medianMilliseconds": 0.4992,
+          "minimumMilliseconds": 0.4866,
+          "maximumMilliseconds": 1.9953,
+          "medianAllocatedBytes": 1444376.0
+        },
+        {
+          "round": 2,
+          "side": "before",
+          "operation": "mounts",
+          "phase": "warm",
+          "samples": 8503,
+          "medianMilliseconds": 0.5019,
+          "minimumMilliseconds": 0.4876,
+          "maximumMilliseconds": 2.9466,
+          "medianAllocatedBytes": 1444376
+        }
+      ],
+      "after": [
+        {
+          "round": 0,
+          "side": "after",
+          "operation": "mounts",
+          "phase": "warm",
+          "samples": 25783,
+          "medianMilliseconds": 0.1774,
+          "minimumMilliseconds": 0.1739,
+          "maximumMilliseconds": 1.0151,
+          "medianAllocatedBytes": 440272
+        },
+        {
+          "round": 1,
+          "side": "after",
+          "operation": "mounts",
+          "phase": "warm",
+          "samples": 25412,
+          "medianMilliseconds": 0.1774,
+          "minimumMilliseconds": 0.1732,
+          "maximumMilliseconds": 0.9917,
+          "medianAllocatedBytes": 440272.0
+        },
+        {
+          "round": 2,
+          "side": "after",
+          "operation": "mounts",
+          "phase": "warm",
+          "samples": 25412,
+          "medianMilliseconds": 0.1773,
+          "minimumMilliseconds": 0.173,
+          "maximumMilliseconds": 0.9981,
+          "medianAllocatedBytes": 440272.0
+        }
+      ],
+      "pairedSpeedups": [
+        2.810597519729425,
+        2.8139797068771135,
+        2.830795262267343
+      ],
+      "medianPairedSpeedup": 2.8139797068771135
+    },
+    {
+      "operation": "lsmod",
+      "phase": "first",
+      "before": [
+        {
+          "round": 0,
+          "side": "before",
+          "operation": "lsmod",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 498.759,
+          "minimumMilliseconds": 498.759,
+          "maximumMilliseconds": 498.759,
+          "medianAllocatedBytes": 243116640
+        },
+        {
+          "round": 1,
+          "side": "before",
+          "operation": "lsmod",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 503.8524,
+          "minimumMilliseconds": 503.8524,
+          "maximumMilliseconds": 503.8524,
+          "medianAllocatedBytes": 243312560
+        },
+        {
+          "round": 2,
+          "side": "before",
+          "operation": "lsmod",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 511.5021,
+          "minimumMilliseconds": 511.5021,
+          "maximumMilliseconds": 511.5021,
+          "medianAllocatedBytes": 243167304
+        }
+      ],
+      "after": [
+        {
+          "round": 0,
+          "side": "after",
+          "operation": "lsmod",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 8.5572,
+          "minimumMilliseconds": 8.5572,
+          "maximumMilliseconds": 8.5572,
+          "medianAllocatedBytes": 10895016
+        },
+        {
+          "round": 1,
+          "side": "after",
+          "operation": "lsmod",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 11.834,
+          "minimumMilliseconds": 11.834,
+          "maximumMilliseconds": 11.834,
+          "medianAllocatedBytes": 10895016
+        },
+        {
+          "round": 2,
+          "side": "after",
+          "operation": "lsmod",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 10.953,
+          "minimumMilliseconds": 10.953,
+          "maximumMilliseconds": 10.953,
+          "medianAllocatedBytes": 10895016
+        }
+      ],
+      "pairedSpeedups": [
+        58.28530360398261,
+        42.576677370289,
+        46.69972610243769
+      ],
+      "medianPairedSpeedup": 46.69972610243769
+    },
+    {
+      "operation": "lsmod",
+      "phase": "warm",
+      "before": [
+        {
+          "round": 0,
+          "side": "before",
+          "operation": "lsmod",
+          "phase": "warm",
+          "samples": 2809,
+          "medianMilliseconds": 1.5581,
+          "minimumMilliseconds": 1.5191,
+          "maximumMilliseconds": 3.3109,
+          "medianAllocatedBytes": 2235544
+        },
+        {
+          "round": 1,
+          "side": "before",
+          "operation": "lsmod",
+          "phase": "warm",
+          "samples": 2811,
+          "medianMilliseconds": 1.5455,
+          "minimumMilliseconds": 1.5187,
+          "maximumMilliseconds": 5.7071,
+          "medianAllocatedBytes": 2235544
+        },
+        {
+          "round": 2,
+          "side": "before",
+          "operation": "lsmod",
+          "phase": "warm",
+          "samples": 2790,
+          "medianMilliseconds": 1.5645,
+          "minimumMilliseconds": 1.5194,
+          "maximumMilliseconds": 4.4993,
+          "medianAllocatedBytes": 2235544.0
+        }
+      ],
+      "after": [
+        {
+          "round": 0,
+          "side": "after",
+          "operation": "lsmod",
+          "phase": "warm",
+          "samples": 11815,
+          "medianMilliseconds": 0.4004,
+          "minimumMilliseconds": 0.3951,
+          "maximumMilliseconds": 1.2032,
+          "medianAllocatedBytes": 159608
+        },
+        {
+          "round": 1,
+          "side": "after",
+          "operation": "lsmod",
+          "phase": "warm",
+          "samples": 11939,
+          "medianMilliseconds": 0.3968,
+          "minimumMilliseconds": 0.3905,
+          "maximumMilliseconds": 1.2003,
+          "medianAllocatedBytes": 159608
+        },
+        {
+          "round": 2,
+          "side": "after",
+          "operation": "lsmod",
+          "phase": "warm",
+          "samples": 11955,
+          "medianMilliseconds": 0.3952,
+          "minimumMilliseconds": 0.391,
+          "maximumMilliseconds": 1.2005,
+          "medianAllocatedBytes": 159608
+        }
+      ],
+      "pairedSpeedups": [
+        3.8913586413586416,
+        3.894909274193549,
+        3.958755060728745
+      ],
+      "medianPairedSpeedup": 3.894909274193549
+    },
+    {
+      "operation": "netstat",
+      "phase": "first",
+      "before": [
+        {
+          "round": 0,
+          "side": "before",
+          "operation": "netstat",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 1979.3972,
+          "minimumMilliseconds": 1979.3972,
+          "maximumMilliseconds": 1979.3972,
+          "medianAllocatedBytes": 938545280
+        },
+        {
+          "round": 1,
+          "side": "before",
+          "operation": "netstat",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 1963.2936,
+          "minimumMilliseconds": 1963.2936,
+          "maximumMilliseconds": 1963.2936,
+          "medianAllocatedBytes": 939236224
+        },
+        {
+          "round": 2,
+          "side": "before",
+          "operation": "netstat",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 1941.8094,
+          "minimumMilliseconds": 1941.8094,
+          "maximumMilliseconds": 1941.8094,
+          "medianAllocatedBytes": 938776552
+        }
+      ],
+      "after": [
+        {
+          "round": 0,
+          "side": "after",
+          "operation": "netstat",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 136.8884,
+          "minimumMilliseconds": 136.8884,
+          "maximumMilliseconds": 136.8884,
+          "medianAllocatedBytes": 202657576
+        },
+        {
+          "round": 1,
+          "side": "after",
+          "operation": "netstat",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 117.1758,
+          "minimumMilliseconds": 117.1758,
+          "maximumMilliseconds": 117.1758,
+          "medianAllocatedBytes": 202652112
+        },
+        {
+          "round": 2,
+          "side": "after",
+          "operation": "netstat",
+          "phase": "first",
+          "samples": 1,
+          "medianMilliseconds": 119.5039,
+          "minimumMilliseconds": 119.5039,
+          "maximumMilliseconds": 119.5039,
+          "medianAllocatedBytes": 202657544
+        }
+      ],
+      "pairedSpeedups": [
+        14.459933785477807,
+        16.755111550337187,
+        16.24892074651957
+      ],
+      "medianPairedSpeedup": 16.24892074651957
+    },
+    {
+      "operation": "netstat",
+      "phase": "warm",
+      "before": [
+        {
+          "round": 0,
+          "side": "before",
+          "operation": "netstat",
+          "phase": "warm",
+          "samples": 39,
+          "medianMilliseconds": 128.3727,
+          "minimumMilliseconds": 124.7034,
+          "maximumMilliseconds": 132.2669,
+          "medianAllocatedBytes": 215034056
+        },
+        {
+          "round": 1,
+          "side": "before",
+          "operation": "netstat",
+          "phase": "warm",
+          "samples": 39,
+          "medianMilliseconds": 129.3025,
+          "minimumMilliseconds": 125.393,
+          "maximumMilliseconds": 133.8813,
+          "medianAllocatedBytes": 215034056
+        },
+        {
+          "round": 2,
+          "side": "before",
+          "operation": "netstat",
+          "phase": "warm",
+          "samples": 39,
+          "medianMilliseconds": 128.2541,
+          "minimumMilliseconds": 124.9113,
+          "maximumMilliseconds": 133.5818,
+          "medianAllocatedBytes": 215034056
+        }
+      ],
+      "after": [
+        {
+          "round": 0,
+          "side": "after",
+          "operation": "netstat",
+          "phase": "warm",
+          "samples": 70,
+          "medianMilliseconds": 70.9243,
+          "minimumMilliseconds": 70.3197,
+          "maximumMilliseconds": 73.2997,
+          "medianAllocatedBytes": 170366680.0
+        },
+        {
+          "round": 1,
+          "side": "after",
+          "operation": "netstat",
+          "phase": "warm",
+          "samples": 70,
+          "medianMilliseconds": 70.86115000000001,
+          "minimumMilliseconds": 70.5476,
+          "maximumMilliseconds": 74.4631,
+          "medianAllocatedBytes": 170366680.0
+        },
+        {
+          "round": 2,
+          "side": "after",
+          "operation": "netstat",
+          "phase": "warm",
+          "samples": 70,
+          "medianMilliseconds": 70.82300000000001,
+          "minimumMilliseconds": 70.1556,
+          "maximumMilliseconds": 83.8175,
+          "medianAllocatedBytes": 170366680.0
+        }
+      ],
+      "pairedSpeedups": [
+        1.8099960098301993,
+        1.8247304764317258,
+        1.8109102975022235
+      ],
+      "medianPairedSpeedup": 1.8109102975022235
+    }
+  ],
+  "memory": [
+    {
+      "round": 0,
+      "side": "before",
+      "retainedManagedBytes": 484171272,
+      "peakWorkingSetBytes": 839426048
+    },
+    {
+      "round": 0,
+      "side": "after",
+      "retainedManagedBytes": 115717728,
+      "peakWorkingSetBytes": 419790848
+    },
+    {
+      "round": 1,
+      "side": "before",
+      "retainedManagedBytes": 486494584,
+      "peakWorkingSetBytes": 847466496
+    },
+    {
+      "round": 1,
+      "side": "after",
+      "retainedManagedBytes": 115747824,
+      "peakWorkingSetBytes": 419028992
+    },
+    {
+      "round": 2,
+      "side": "before",
+      "retainedManagedBytes": 484350736,
+      "peakWorkingSetBytes": 847405056
+    },
+    {
+      "round": 2,
+      "side": "after",
+      "retainedManagedBytes": 115735824,
+      "peakWorkingSetBytes": 419041280
+    }
+  ]
+}

@@ -8,6 +8,11 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ## Unreleased
 
+## 0.12.1 — 2026-10-04
+
+This patch reduces allocations and speeds up memory analysis, numeric matrices, text handling and fixed-record
+operations. It also reduces the NuGet package size and adds reproducible performance comparisons.
+
 ### Changed
 
 - The NuGet package's `CStructSharp.xml` documents only the public API. The compiler also wrote the documentation of
@@ -41,8 +46,56 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   and inline bounded generated fixed-record helpers. Preserve validation, conversions, ordering, mutation and
   owned results; retain general-path fallbacks.
 
+**Measured against 0.11.1.** These results include the changes shipped in 0.12.0 as well as this patch; the
+0.12.0 migrations below still apply. Identical benchmark sources, inputs and complete owned results were measured
+on an AMD Ryzen 9 9950X, Windows 11, .NET 10.0.12, with production tiering and PGO enabled. Three alternating
+process pairs used 24 warmup iterations and 15 measured iterations each. Times are medians of launch medians;
+speedup ranges are the observed paired ratios, not confidence intervals. Every measured iteration was retained.
+
+| Operation | 0.11.1 | 0.12.1 | Observed speedup range | Allocated per operation, before → after |
+| --- | ---: | ---: | ---: | ---: |
+| Generated bitfield leaf parse | 57.7 ns | 16.5 ns | 3.45–3.55× | 32 → 32 B |
+| Generated 256 × 256 `uint16` matrix parse | 55.7 µs | 3.48 µs | 15.93–16.23× | ≈264.1 → 136.0 KiB |
+| Generated matrix serialization, same input | 116.2 µs | 46.5 µs | 2.48–2.51× | ≈128.1 → 128.1 KiB |
+| Runtime fixed-record serialization, 28 bytes | 44.8 ns | 34.1 ns | 1.29–1.32× | 56 → 56 B |
+| Runtime matrix serialization, same input | 712.5 µs | 580.5 µs | 1.18–1.29× | ≈1,150.7 → 640.4 KiB |
+| Runtime text parse, 4 KiB | 5.42 µs | 0.848 µs | 6.38–6.43× | 26,952 → 12,568 B |
+| Memory-session owned byte-array read, 16 bytes | 468 ns | 387 ns | 1.21–1.27× | 1,912 → 224 B |
+| Memory-session owned byte-array read, 4 KiB | 108.4 µs | 86.2 µs | 1.23–1.28× | ≈430,313 → 4,304 B |
+
+These eight cases showed repeatable reductions under the comparison's screening rules. Of the other 22 selected
+cases, five stayed within the timing margin and 17 remained unstable. In particular, small generated serialization,
+mapped packet reads and 256 generated text records do **not** support a speedup claim. Wide-member selection
+still reduced allocation from 26,400 to 288 bytes, and preparation of 1,000 pointer definitions from 18.7–19.0 MB
+to about 0.515 MB, but their timings remained variable. The initial six-warmup campaign also remains inconclusive.
+See the [complete measurements, limitations and reproduction commands](benchmarks/experiments/release-0.12.1/README.md),
+including every selected case and the retained samples. These observations do not establish performance on other
+workloads or machines.
+
+**Complete memory-image workflows.** The application sources are identical on both versions. Three fresh process
+pairs per runtime use one private Linux memory image with a warm operating-system cache. Bootstrap and first calls
+include preparation; repeated calls start after five seconds of warmup. All workflow-result and symbol hashes match
+across all 12 JIT/Native AOT processes. These are capture-specific results, not cold-disk throughput measurements.
+
+| Runtime / operation | 0.11.1 | 0.12.1 | Observed speedup range |
+| --- | ---: | ---: | ---: |
+| JIT: bootstrap (first) | 1,061.9 ms | 259.8 ms | 4.04–4.09× |
+| JIT: process listing (repeated) | 18.5 ms | 2.294 ms | 7.96–8.14× |
+| JIT: open-file listing (repeated) | 12.7 ms | 2.673 ms | 4.67–4.74× |
+| JIT: module listing (first) | 898.7 ms | 26.3 ms | 32.73–35.43× |
+| JIT: network listing (repeated) | 85.6 ms | 37.6 ms | 2.22–2.32× |
+| Native AOT: bootstrap (first) | 695.2 ms | 152.7 ms | 4.49–4.72× |
+| Native AOT: process listing (repeated) | 31.9 ms | 5.300 ms | 5.93–6.07× |
+| Native AOT: open-file listing (repeated) | 22.5 ms | 5.435 ms | 4.12–4.15× |
+| Native AOT: module listing (first) | 503.9 ms | 11.0 ms | 42.58–58.29× |
+| Native AOT: network listing (repeated) | 128.4 ms | 70.9 ms | 1.81–1.82× |
+
 ### Documentation and tooling
 
+- Refresh the README serializer comparison and add a measured comparison with 0.11.1, including allocation costs,
+  production JIT and Native AOT results, uncertainty, and reproduction instructions.
+- Refresh the explorer catalog for 73 added regression tests. Re-review mutation-equivalence entries after codec
+  changes and remove four proofs that no longer apply; test and mutation scopes remain unchanged.
 - Add a fast managed development test profile, bounded parallel test orchestration and parallel generator tests.
   Keep exhaustive sweeps in full, CI and release runs, and document the edit-loop and final-validation commands.
 - Document the measured speed and reliability limits of short Impact comparisons, with isolated runners that reuse

@@ -1,0 +1,178 @@
+{
+  "sourceCommit": "96458af1991143054d9f95e7ba4c938ea26cb2cb",
+  "sdk": "10.0.401",
+  "tieredCompilation": true,
+  "tieredPgo": true,
+  "affinityOverride": null,
+  "job": "default",
+  "all37CasesVerified": true,
+  "summarySha256": "fe5e969eb18a645dd4b5166fa2ecd86f3266ee8310e6eedcd7418da325c5609a",
+  "rawReports": [
+    {
+      "file": "CStructSharp.Comparison.DeserializeBenchmarks-report-full.json",
+      "sha256": "ab5b97ed4c5f8a8222e308d53e335ff457f19a718dd901eaf714718f04c35619",
+      "cases": [
+        {
+          "name": "CStructSharp.Comparison.DeserializeBenchmarks.Own_MemoryPack",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.DeserializeBenchmarks.Own_MessagePack",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.DeserializeBenchmarks.Own_ProtobufNet",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.DeserializeBenchmarks.Own_FlatSharp",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.DeserializeBenchmarks.Own_SystemTextJson",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.DeserializeBenchmarks.CStructSharp_GeneratedView",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.DeserializeBenchmarks.CStructSharp_GeneratedParse",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.DeserializeBenchmarks.CStructSharp_RuntimeReadValue",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.DeserializeBenchmarks.CStructSharp_RuntimeParse",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.DeserializeBenchmarks.CStructSharp_RuntimeView",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.DeserializeBenchmarks.CStructSharp_RuntimeParseAccessors",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.DeserializeBenchmarks.HandWritten_BinaryPrimitives",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.DeserializeBenchmarks.Stock_MemoryMarshal",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.DeserializeBenchmarks.Stock_BinaryReader",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.DeserializeBenchmarks.Stock_MarshalPtrToStructure",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.DeserializeBenchmarks.Kaitai_Struct",
+          "actualSamples": 15
+        }
+      ]
+    },
+    {
+      "file": "CStructSharp.Comparison.SerializeBenchmarks-report-full.json",
+      "sha256": "7760186c5665755aaca405c61816b064e6a3cb7080d69c40de6763fe272831ff",
+      "cases": [
+        {
+          "name": "CStructSharp.Comparison.SerializeBenchmarks.Own_MemoryPack",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.SerializeBenchmarks.Own_MessagePack",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.SerializeBenchmarks.Own_ProtobufNet",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.SerializeBenchmarks.Own_FlatSharp",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.SerializeBenchmarks.Own_SystemTextJson",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.SerializeBenchmarks.CStructSharp_GeneratedSerialize",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.SerializeBenchmarks.CStructSharp_RuntimeSerializeMapped",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.SerializeBenchmarks.CStructSharp_RuntimeSerializeStructValue",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.SerializeBenchmarks.HandWritten_BinaryPrimitives",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.SerializeBenchmarks.Stock_MemoryMarshal",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.SerializeBenchmarks.Stock_BinaryWriter",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.SerializeBenchmarks.Stock_MarshalStructureToPtr",
+          "actualSamples": 15
+        }
+      ]
+    },
+    {
+      "file": "CStructSharp.Comparison.Variable.VariableBenchmarks-report-full.json",
+      "sha256": "876d43d14a80d179b7f40d0790732c207911a156309e27ba82cb08c0c3b67880",
+      "cases": [
+        {
+          "name": "CStructSharp.Comparison.Variable.VariableBenchmarks.Runtime_Parse",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.Variable.VariableBenchmarks.Runtime_ParseStream",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.Variable.VariableBenchmarks.Runtime_ReadValueMapped",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.Variable.VariableBenchmarks.Generated_Parse",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.Variable.VariableBenchmarks.HandWritten_Read",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.Variable.VariableBenchmarks.Runtime_SerializeStructValue",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.Variable.VariableBenchmarks.Runtime_SerializeMapped",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.Variable.VariableBenchmarks.Generated_Serialize",
+          "actualSamples": 15
+        },
+        {
+          "name": "CStructSharp.Comparison.Variable.VariableBenchmarks.HandWritten_Write",
+          "actualSamples": 15
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+[
+  "*GeneratedBenchmarks.*PrimRecord_Parse",
+  "*GeneratedBenchmarks.*PrimRecord_Serialize",
+  "*GeneratedBenchmarks.HandWritten_PrimRecord",
+  "*GeneratedBenchmarks.Generated_Nested256_Parse",
+  "*BitfieldBenchmarks.Generated_BitfieldLeaf_Parse",
+  "*MaterializationBenchmarks.*Matrix256_Parse",
+  "*MaterializationBenchmarks.*Matrix256_Serialize",
+  "*MaterializationBenchmarks.*Text_Parse",
+  "*TextOutputBenchmarks.Span",
+  "*TextRecordBenchmarks.*_Parse",
+  "*MemoryWorkloadBenchmarks.*",
+  "*PacketBenchmarks.ReadValueMapped",
+  "*PathAndTypedBenchmarks.ReadValue_Scalar_Natural*"
+]
