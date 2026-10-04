@@ -3,6 +3,7 @@ namespace CStructSharp.Memory.Metadata;
 using System.Buffers.Binary;
 using System.Globalization;
 using System.Text;
+using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 
 /// <summary>A parsed BTF v1 type table, optionally split on top of a base table, from which reachable types can be imported into a <see cref="MemorySchema"/>.</summary>
@@ -58,6 +59,15 @@ public sealed class BtfMetadata
     private readonly BtfMetadata? baseMetadata;
     private readonly int baseStringLength;
     private readonly int splitDepth;
+
+    /// <summary>Serializes lazy name lookups; the bounded cache belongs only to this immutable metadata table.</summary>
+    private readonly object nameGate = new();
+
+    /// <summary>Up to 256 queried names: zero means absent, uint.MaxValue ambiguous, otherwise a numeric type ID.</summary>
+    private Dictionary<string, uint>? nameCache;
+
+    /// <summary>Successful scalar and bit-slice layouts shared by this table's imports, allocated only after a graph walk succeeds.</summary>
+    private CStructLayoutCache? layoutCache;
 
     /// <summary>Parses and indexes a BTF v1 blob, reading its byte order from the magic number.</summary>
     /// <remarks>The header is: magic (2 bytes, the value 0xeb9f in the producer's order), version (1), flags (1), then four little- or
@@ -206,33 +216,68 @@ public sealed class BtfMetadata
     /// <summary>Finds the ID of a uniquely named type; a name shared by several types is an error rather than a first match.</summary>
     /// <remarks>Native metadata may contain distinct types with identical display names. Guessing which one the
     /// caller meant could produce believable values at the wrong offsets, so ambiguity throws and the caller must
-    /// supply a numeric ID from the metadata producer instead.</remarks>
+    /// supply a numeric ID from the metadata producer instead. The first 256 queried names retain their resolution
+    /// for this table's lifetime; later uncached names still scan the same complete table.</remarks>
     /// <param name="name">Type name to look for.</param>
     /// <returns>The unique matching type ID.</returns>
     /// <exception cref="CStructLayoutException">No type has that name, or several types do.</exception>
     public uint FindType(string name)
     {
-        uint? found = null;
-        foreach (BtfType type in this.types.Values)
+        // Null cannot match a parsed name and uses the absent-name diagnostic.
+        uint found = name is null ? 0 : this.FindTypeCached(name);
+        return found switch
         {
-            if (type.Name == name)
+            0 => throw new CStructLayoutException($"BTF has no type named '{name}'."),
+            uint.MaxValue => throw new CStructLayoutException($"BTF name '{name}' is ambiguous."),
+            _ => found,
+        };
+    }
+
+    /// <summary>Looks up an ordinal name, retaining only a bounded number of outcomes and never caching exceptions.</summary>
+    /// <param name="name">Non-null requested name, including an empty name.</param>
+    /// <returns>A type ID, zero for absence, or uint.MaxValue for ambiguity.</returns>
+    private uint FindTypeCached(string name)
+    {
+        lock (this.nameGate)
+        {
+            this.nameCache ??= new Dictionary<string, uint>(StringComparer.Ordinal);
+            if (this.nameCache.TryGetValue(name, out uint cached))
             {
-                if (found.HasValue)
+                return cached;
+            }
+
+            uint found = 0;
+            foreach (BtfType type in this.types.Values)
+            {
+                if (type.Name != name)
                 {
-                    throw new CStructLayoutException($"BTF name '{name}' is ambiguous.");
+                    continue;
+                }
+
+                if (found != 0)
+                {
+                    found = uint.MaxValue;
+                    break;
                 }
 
                 found = type.Id;
             }
-        }
 
-        return found ?? throw new CStructLayoutException($"BTF has no type named '{name}'.");
+            if (this.nameCache.Count < 256)
+            {
+                this.nameCache.Add(name, found);
+            }
+
+            return found;
+        }
     }
 
     /// <summary>Compiles the type graph reachable from one root into a schema, keeping functions and forward declarations as address-only.</summary>
     /// <remarks>Parsing indexed the whole table; importing compiles only what one consumer needs, so several roots can
     /// reuse one parsed table. A pointer to an incomplete target can still be read as stored bits but cannot be
-    /// followed by value.</remarks>
+    /// followed by value. Successful core scalar and bit-slice compilations share a table-owned cache bounded to
+    /// 256 layouts and 1,048,576 source characters. Each import still validates and owns its root-specific graph
+    /// and ordered diagnostics; failed compilations are not cached.</remarks>
     /// <param name="rootTypeId">Numeric ID of the root type, which may be inherited from a base table.</param>
     /// <param name="options">The pointer width, validation mode and descriptor budget; <see cref="MetadataImportOptions.Default"/> when null.</param>
     /// <param name="cancellationToken">Checked at each step of the walk and while compiling the schema.</param>
@@ -245,7 +290,10 @@ public sealed class BtfMetadata
         options = MetadataImportOptions.ValidateOrDefault(options);
         var importer = new BtfImporter(this, options);
         importer.Import(rootTypeId, cancellationToken);
-        return MetadataImportResult.Compile(importer.Definitions.Values, Id(rootTypeId), importer.Diagnostics, this.IsLittleEndian, options, cancellationToken);
+
+        // Cache compiled pieces only: each root still walks and validates its own graph in its original order.
+        CStructLayoutCache cache = LazyInitializer.EnsureInitialized(ref this.layoutCache, static () => new CStructLayoutCache(256, 1024 * 1024));
+        return MetadataImportResult.Compile(importer.Definitions.Values, Id(rootTypeId), importer.Diagnostics, this.IsLittleEndian, options, cancellationToken, cache);
     }
 
     /// <summary>Describes one type record's own shape - kind, size, and (for a struct or union) direct members - without importing or validating any type it refers to.</summary>

@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Numerics;
 using CStructSharp.Addressing;
+using CStructSharp.Codecs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Reading;
 using CStructSharp.Values;
@@ -447,6 +448,44 @@ public sealed class MemorySession
         return (ulong)(integer < 0 ? integer + modulus : integer);
     }
 
+    /// <summary>Reads each numeric element into the final owned storage with the same source requests and charges as a scalar read.</summary>
+    /// <typeparam name="T">The exact managed value type returned by the core codec.</typeparam>
+    /// <param name="region">The complete array's validated region.</param>
+    /// <param name="elementSize">Width of one element in bytes, at most eight.</param>
+    /// <param name="codec">The already resolved built-in codec.</param>
+    /// <param name="count">Number of elements.</param>
+    /// <param name="context">The operation's shared budget and cancellation.</param>
+    /// <param name="depth">The element nesting depth.</param>
+    /// <returns>An independent mutable primitive array.</returns>
+    /// <exception cref="MemoryAccessException">An element read fails or the operation exceeds a limit.</exception>
+    /// <exception cref="OperationCanceledException">Cancellation is observed before an element or source request.</exception>
+    private static PrimitiveArray<T> ReadPrimitiveArray<T>(MemoryRegion region, int elementSize, MemoryScalarCodec codec, int count, MemoryAccessContext context, int depth)
+        where T : unmanaged
+    {
+        var values = new T[count];
+        Span<byte> bytes = stackalloc byte[elementSize];
+        for (int index = 0; index < count; index++)
+        {
+            // Schema and root validation prove each extent fits. Keep the slice's checked address before depth checks.
+            int offset = checked(index * elementSize);
+            ulong address = checked(region.Address + (ulong)offset);
+            context.CheckNestingDepth(depth);
+            context.Charge(region.Source.Id, address, 0);
+
+            // A source can inspect its destination. Each scalar previously received freshly zeroed storage.
+            bytes.Clear();
+            for (int consumed = 0; consumed < bytes.Length;)
+            {
+                context.CancellationToken.ThrowIfCancellationRequested();
+                consumed += region.ReadAt(offset + consumed, bytes[consumed..], context);
+            }
+
+            values[index] = (T)codec.Decode(bytes);
+        }
+
+        return new PrimitiveArray<T>(values);
+    }
+
     /// <summary>Finds a direct member, or a member of a promoted anonymous composite, without decoding any bytes.</summary>
     /// <remarks>Promotion makes a nested anonymous struct or union's members visible at the parent level, as C
     /// does for anonymous members. All candidates are examined rather than returning the first match: two promoted
@@ -554,6 +593,13 @@ public sealed class MemorySession
             }
 
             MemoryTypeDefinition element = this.Schema.GetType(type.ElementTypeId!);
+            if (element.Kind == MemoryTypeKind.Scalar && element.Declaration is null &&
+                this.Schema.Options.Codecs is null && this.Schema.Options.Defined is null && this.Schema.Options.Prelude is null &&
+                this.ReadPrimitiveArray(selected.Region, element, type.Count, context, depth + 1) is { } primitive)
+            {
+                return primitive;
+            }
+
             var values = new object?[type.Count];
             for (int i = 0; i < values.Length; i++)
             {
@@ -605,6 +651,33 @@ public sealed class MemorySession
         }
 
         throw new CStructPathException($"Cannot read incomplete type '{type.Id}' by value.");
+    }
+
+    /// <summary>Materializes the core's supported plain numeric array shapes, leaving all other codecs on the general path.</summary>
+    /// <param name="region">The complete array's validated region.</param>
+    /// <param name="element">The built-in scalar element, without declarations or caller-defined options.</param>
+    /// <param name="count">Number of elements, already checked against the remaining work budget.</param>
+    /// <param name="context">The operation's shared budget and cancellation.</param>
+    /// <param name="depth">The element nesting depth.</param>
+    /// <returns>An owned primitive array, or null when the core uses another return shape.</returns>
+    private IList<object?>? ReadPrimitiveArray(MemoryRegion region, MemoryTypeDefinition element, int count, MemoryAccessContext context, int depth)
+    {
+        MemoryScalarCodec codec = this.Schema.GetCodec(element);
+        return codec.GetPrimitiveKind() switch
+        {
+            PrimitiveCodecKind.UInt8 => ReadPrimitiveArray<byte>(region, element.Size, codec, count, context, depth),
+            PrimitiveCodecKind.Int8 => ReadPrimitiveArray<sbyte>(region, element.Size, codec, count, context, depth),
+            PrimitiveCodecKind.Bool => ReadPrimitiveArray<bool>(region, element.Size, codec, count, context, depth),
+            PrimitiveCodecKind.Int16 => ReadPrimitiveArray<short>(region, element.Size, codec, count, context, depth),
+            PrimitiveCodecKind.UInt16 => ReadPrimitiveArray<ushort>(region, element.Size, codec, count, context, depth),
+            PrimitiveCodecKind.Int24 or PrimitiveCodecKind.Int32 => ReadPrimitiveArray<int>(region, element.Size, codec, count, context, depth),
+            PrimitiveCodecKind.UInt24 or PrimitiveCodecKind.UInt32 => ReadPrimitiveArray<uint>(region, element.Size, codec, count, context, depth),
+            PrimitiveCodecKind.Int64 => ReadPrimitiveArray<long>(region, element.Size, codec, count, context, depth),
+            PrimitiveCodecKind.UInt64 => ReadPrimitiveArray<ulong>(region, element.Size, codec, count, context, depth),
+            PrimitiveCodecKind.Float32 => ReadPrimitiveArray<float>(region, element.Size, codec, count, context, depth),
+            PrimitiveCodecKind.Float64 => ReadPrimitiveArray<double>(region, element.Size, codec, count, context, depth),
+            _ => null,
+        };
     }
 
     /// <summary>

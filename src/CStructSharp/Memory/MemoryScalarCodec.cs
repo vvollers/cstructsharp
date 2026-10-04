@@ -69,6 +69,23 @@ internal sealed class MemoryScalarCodec
     /// <returns>The codec.</returns>
     public static MemoryScalarCodec ForSlice(CStruct layout, int bitOffset, int bitWidth) => new(layout, "__bits.value", bitOffset, bitWidth);
 
+    /// <summary>Identifies a plain built-in number whose array can be materialized without boxed intermediate storage.</summary>
+    /// <remarks>Call only for schemas without caller-defined codecs, declarations, or prelude options. Resolving the
+    /// static plan early must not move a caller callback ahead of a source read.</remarks>
+    /// <returns>The primitive kind, or <see cref="PrimitiveCodecKind.None"/> for other return shapes.</returns>
+    public PrimitiveCodecKind GetPrimitiveKind()
+    {
+        if (!this.resolved)
+        {
+            this.field = this.FindDirectField();
+            this.resolved = true;
+        }
+
+        return this.bitWidth == 0 && this.field is { Enum: null, } direct && direct.Codec.IsFixedWidthNumeric
+            ? direct.Codec.Kind
+            : PrimitiveCodecKind.None;
+    }
+
     /// <summary>
     ///     Decodes a value from exactly its bytes (a slice's whole storage unit), into the value a read of the layout
     ///     returns: the codec's CLR type, an enum result, or a slice's bits as an <see cref="int"/> below 32 bits and a

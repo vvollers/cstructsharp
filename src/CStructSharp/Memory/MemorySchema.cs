@@ -2,6 +2,7 @@ namespace CStructSharp.Memory;
 
 using System.Collections.ObjectModel;
 using CStructSharp.Addressing;
+using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 
 /// <summary>A validated, immutable graph of type definitions with explicit placement, compiled so the core codecs can decode its scalars.</summary>
@@ -23,7 +24,7 @@ using CStructSharp.Diagnostics;
 /// scalar and bitfield codecs instead of a second decoder. Their generated names never appear in results.
 /// </para>
 /// <para>
-/// Compile once and reuse the schema across many regions and sessions; it holds no bytes and no mutable state.
+/// Compile once and reuse the schema across many regions and sessions; it holds no source bytes or mutable per-operation state.
 /// </para>
 /// </remarks>
 public sealed class MemorySchema
@@ -58,6 +59,27 @@ public sealed class MemorySchema
     /// </exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public MemorySchema(IEnumerable<MemoryTypeDefinition> types, bool isLittleEndian = true, CStructCompilationOptions? options = null, int maxTypes = 100_000, int maxFields = 1_000_000, int pointerSize = 8, CancellationToken cancellationToken = default, bool bestEffort = false)
+        : this(types, isLittleEndian, options, maxTypes, maxFields, pointerSize, cancellationToken, bestEffort, null)
+    {
+    }
+
+    /// <summary>Validates an independent graph while optionally sharing successful built-in layout compilation with its metadata owner.</summary>
+    /// <remarks>The cache is internal to metadata import, which supplies no caller-defined compilation options.
+    /// Graph traversal, per-definition checks, diagnostics, cancellation and returned schemas remain independent.</remarks>
+    /// <param name="types">Definitions to snapshot and validate.</param>
+    /// <param name="isLittleEndian">Default scalar byte order.</param>
+    /// <param name="options">Core compilation settings; null for cached metadata imports.</param>
+    /// <param name="maxTypes">Maximum accepted definition count.</param>
+    /// <param name="maxFields">Maximum accepted member count.</param>
+    /// <param name="pointerSize">Target pointer width in bytes.</param>
+    /// <param name="cancellationToken">Checked between definitions.</param>
+    /// <param name="bestEffort">Whether invalid local definitions become raw bytes with diagnostics.</param>
+    /// <param name="layoutCache">Metadata-owned bounded cache, or null for independent compilation.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="types"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A budget or pointer width is invalid.</exception>
+    /// <exception cref="CStructLayoutException">The graph violates a schema rule.</exception>
+    /// <exception cref="OperationCanceledException">Cancellation was requested during compilation.</exception>
+    internal MemorySchema(IEnumerable<MemoryTypeDefinition> types, bool isLittleEndian, CStructCompilationOptions? options, int maxTypes, int maxFields, int pointerSize, CancellationToken cancellationToken, bool bestEffort, CStructLayoutCache? layoutCache)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(types);
@@ -105,7 +127,7 @@ public sealed class MemorySchema
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
-                this.Validate(type, sharedScalars);
+                this.Validate(type, sharedScalars, layoutCache);
             }
             catch (CStructLayoutException error) when (bestEffort)
             {
@@ -274,6 +296,20 @@ public sealed class MemorySchema
         }
     }
 
+    /// <summary>Compiles one exact scalar layout, optionally reusing a successful compilation from the same metadata table.</summary>
+    /// <param name="source">Complete declaration text, including any enum or bit-slice declaration.</param>
+    /// <param name="littleEndian">Effective layout byte order.</param>
+    /// <param name="options">Exact core compilation settings.</param>
+    /// <param name="layoutCache">A metadata-owned cache, or null for independent compilation.</param>
+    /// <returns>The immutable core layout; failures are not cached.</returns>
+    /// <exception cref="CStructLayoutException">The generated declaration violates a core layout rule.</exception>
+    private CStruct CompileScalarLayout(string source, bool littleEndian, CStructCompilationOptions options, CStructLayoutCache? layoutCache)
+    {
+        return layoutCache is null
+            ? new CStruct(source, pointerSize: (byte)this.PointerSize, isLittleEndian: littleEndian, compilationOptions: options)
+            : layoutCache.GetOrCompile(source, (byte)this.PointerSize, aligned: false, isLittleEndian: littleEndian, compilationOptions: options);
+    }
+
     /// <summary>
     ///     Checks one definition against the others (kind, size, member extents, bitfield storage, overlap) and compiles
     ///     its scalar and bit-slice codecs.
@@ -294,7 +330,8 @@ public sealed class MemorySchema
     /// <param name="type">The definition to check.</param>
     /// <param name="sharedScalars">Constructor-local built-in codecs, or null when options may invoke caller code.</param>
     /// <exception cref="CStructLayoutException">The definition is invalid.</exception>
-    private void Validate(MemoryTypeDefinition type, Dictionary<(string Root, bool LittleEndian), MemoryScalarCodec>? sharedScalars)
+    /// <param name="layoutCache">Optional metadata-owned cache of successful core compilations with exact settings.</param>
+    private void Validate(MemoryTypeDefinition type, Dictionary<(string Root, bool LittleEndian), MemoryScalarCodec>? sharedScalars, CStructLayoutCache? layoutCache)
     {
         if (!Enum.IsDefined(type.Kind))
         {
@@ -327,7 +364,7 @@ public sealed class MemorySchema
             bool share = sharedScalars is not null && type.Declaration is null;
             if (!share || !sharedScalars!.TryGetValue((root, littleEndian), out MemoryScalarCodec? prepared))
             {
-                var codec = new CStruct((type.Declaration ?? string.Empty) + $"\nstruct __memory_scalar {{ {root} value; }};", pointerSize: (byte)this.PointerSize, isLittleEndian: littleEndian, compilationOptions: this.Options);
+                CStruct codec = this.CompileScalarLayout((type.Declaration ?? string.Empty) + $"\nstruct __memory_scalar {{ {root} value; }};", littleEndian, this.Options, layoutCache);
                 prepared = MemoryScalarCodec.ForValue(codec, root);
             }
 
@@ -424,7 +461,7 @@ public sealed class MemorySchema
                     BitfieldPacking = BitfieldPacking.Msvc,
                     BitfieldAllocation = BitfieldAllocation.LowBitFirst,
                 };
-                var slice = new CStruct((member.Declaration ?? string.Empty) + $"\nstruct __bits {{ {padding} {storage} value:{width}; }};", pointerSize: (byte)this.PointerSize, isLittleEndian: littleEndian, compilationOptions: bitOptions);
+                CStruct slice = this.CompileScalarLayout((member.Declaration ?? string.Empty) + $"\nstruct __bits {{ {padding} {storage} value:{width}; }};", littleEndian, bitOptions, layoutCache);
                 this.bitLayouts.Add((type.Id, field.Name), MemoryScalarCodec.ForSlice(slice, field.BitOffset.Value, width));
 
                 // Translate the logical slice into physical bit intervals, one per byte it touches. Logical bit b of

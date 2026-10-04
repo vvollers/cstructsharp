@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 
 /// <summary>
-///     Process-wide, bounded, most-recently-used cache of compiled layouts keyed by every constructor input. A hit
+///     Bounded, most-recently-used cache of compiled layouts keyed by every constructor input. A hit
 ///     returns the same immutable <see cref="CStruct"/> instance, which is safe because a compiled layout carries no
 ///     per-operation state. Compilation runs outside the lock, so two threads may compile the same source
 ///     concurrently; the first result stored wins and the other is discarded.

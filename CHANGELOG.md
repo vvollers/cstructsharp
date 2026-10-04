@@ -20,6 +20,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - Reduce memory-session member-selection allocations for wide structs and share equivalent built-in scalar
   preparation within each memory schema. Preserve promoted-member failures, source interactions and per-type
   validation; caller-supplied codecs and declarations keep independent preparation.
+- Materialize memory-session numeric arrays directly into owned storage while preserving element-by-element source
+  requests, cancellation and budgets. Bound BTF name lookup caching and share successful scalar/bit-slice compilation
+  within each metadata table, keeping independent root graphs, diagnostics and validation.
 - Reduce temporary allocations when serializing bounded text and short wide-character fields, including runtime
   span, stream and async output. Runtime writes retain normal tiered compilation to limit first-use cost.
   Generated bounded-text writes encode directly into their destination after validation.

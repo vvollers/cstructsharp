@@ -1,5 +1,7 @@
 namespace CStructSharp.Memory.Metadata;
 
+using CStructSharp.Compilation;
+
 /// <summary>What an importer returns: the compiled schema of every type reachable from the chosen root, that root's ID, and notes about what was kept address-only.</summary>
 /// <remarks>
 /// An importer compiles a reachable graph starting at the type the caller named; it does not find an instance of
@@ -25,12 +27,13 @@ public sealed record MetadataImportResult(MemorySchema Schema, string RootTypeId
     /// <param name="isLittleEndian">Byte order for scalars that do not specify their own.</param>
     /// <param name="options">Options already checked by <see cref="MetadataImportOptions.ValidateOrDefault"/>.</param>
     /// <param name="cancellationToken">Checked while compiling the schema.</param>
+    /// <param name="layoutCache">Optional bounded cache owned by the parsed metadata; it retains no root-specific results.</param>
     /// <returns>The import result.</returns>
     /// <exception cref="CStructSharp.Diagnostics.CStructLayoutException">The definitions do not form a valid schema.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
-    internal static MetadataImportResult Compile(IEnumerable<MemoryTypeDefinition> definitions, string rootTypeId, List<string> diagnostics, bool isLittleEndian, MetadataImportOptions options, CancellationToken cancellationToken)
+    internal static MetadataImportResult Compile(IEnumerable<MemoryTypeDefinition> definitions, string rootTypeId, List<string> diagnostics, bool isLittleEndian, MetadataImportOptions options, CancellationToken cancellationToken, CStructLayoutCache? layoutCache = null)
     {
-        var schema = new MemorySchema(definitions, isLittleEndian, maxTypes: options.MaxTypes, pointerSize: options.PointerSize, cancellationToken: cancellationToken, bestEffort: options.BestEffort);
+        var schema = new MemorySchema(definitions, isLittleEndian, options: null, maxTypes: options.MaxTypes, maxFields: 1_000_000, pointerSize: options.PointerSize, cancellationToken: cancellationToken, bestEffort: options.BestEffort, layoutCache: layoutCache);
         diagnostics.AddRange(schema.Diagnostics);
         return new MetadataImportResult(schema, rootTypeId, diagnostics.AsReadOnly());
     }

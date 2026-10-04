@@ -31,11 +31,20 @@ MemoryAccessContext      one budget (bytes, requests, nesting, pointer steps, ca
 2. `ReadCore` decodes only the selected storage through the existing compiled scalar codecs. A schema shares
    equivalent built-in scalar preparation within its own lifetime, while validating every definition's size and
    references. Custom codecs, declarations, preludes and caller-owned option collections keep independent preparation.
+   Plain built-in numeric arrays use their final owned storage directly; each element still makes the same reads and
+   budget charges. Enums, text and custom configurations use the general materialization path.
    `MemoryRegionStream` separately exposes a region to callers of the ordinary stream API.
 3. `MappedMemorySource` splits a read across mappings and forwards the same `MemoryAccessContext`. Leaf sources
    acquire bytes; caches and overlays compose around them. No layer owns a caller's file or transport lifetime.
 4. `Inspect` adds ordered backing ranges to the value by flattening known mapping layers. Semantic names and bit
    slices come from descriptors; the generated compiled storage names stay an implementation detail.
+
+`BtfMetadata` keeps bounded caches for its own lifetime: the first 256 queried names retain unique, missing or
+ambiguous outcomes, and imports share up to 256 successful core layouts within a one-million-character source budget.
+Compilation keys include the complete declaration, pointer width, byte order and core settings. Every import still
+walks its own reachable graph, validates every descriptor, and returns independent schemas and ordered diagnostics.
+Failed compilations and exceptions are not cached. Base and split tables own separate caches. ISF imports and public
+`MemorySchema` construction do not use this cross-root cache.
 
 ## Find the owner of a change
 
