@@ -385,10 +385,10 @@
   },
   {
    "pattern": "Generated/Codec.cs",
-   "sourceSha256": "70487b8cede15275dfce054b929fed09a43d10dbe4118e12d1d4bbff122333ef",
+   "sourceSha256": "97caa8ee7e2f63079efd7c9501334cf304e78b29c07db1973cb9122a79e9256c",
    "mutants": [
     { "mutatorName": "Block removal mutation", "replacement": "{}",
-     "location": {"start":{"line":817,"column":9},"end":{"line":819,"column":10}},
+     "location": {"start":{"line":827,"column":9},"end":{"line":829,"column":10}},
      "reason": "For supported one-byte encoding units (ASCII/UTF-8 NUL or newline terminators), the encoded terminator has one byte and the first encoding boundary is offset zero. Both production callers calculate alignmentOffset modulo unitSize, which is zero when unitSize is one. Removing this vectorized IndexOf fast path therefore falls through to a loop comparing that same byte at every index from zero, returning the same first match or minus one. Two-byte encodings already use the loop and are unchanged. This is an optimization-only change for supported terminator inputs, not a claim about malformed helper arguments." },
     { "mutatorName": "OrAssignmentExpression to ExclusiveOrAssignmentExpression mutation", "replacement": "value ^= (ulong)source[index] << shift",
      "location": {"start":{"line":91,"column":13},"end":{"line":91,"column":51}},
@@ -415,20 +415,14 @@
      "location": {"start":{"line":613,"column":13},"end":{"line":613,"column":26}},
      "reason": "ExtractBits receives unit as ulong. Both right-shift operators zero-fill the same unsigned bits with the same shift-count masking before the unchanged bit mask is applied." },
     { "mutatorName": "Bitwise mutation", "replacement": "value >>> 8",
-     "location": {"start":{"line":873,"column":33},"end":{"line":873,"column":43}},
+     "location": {"start":{"line":904,"column":33},"end":{"line":904,"column":43}},
      "reason": "WriteUInt24Unchecked's value is uint, so >> and >>> both zero-fill before conversion to the middle output byte. The same eight low bits are written." },
     { "mutatorName": "Bitwise mutation", "replacement": "value >>> 16",
-     "location": {"start":{"line":875,"column":52},"end":{"line":875,"column":63}},
+     "location": {"start":{"line":906,"column":52},"end":{"line":906,"column":63}},
      "reason": "WriteUInt24Unchecked's value is uint, so >> and >>> both zero-fill before conversion to the high output byte. The byte-order-dependent destination index and written byte are unchanged." },
     { "mutatorName": "Bitwise mutation", "replacement": "value >>> shift",
-     "location": {"start":{"line":883,"column":41},"end":{"line":883,"column":55}},
-     "reason": "WriteUInt48Unchecked's value is ulong. Both shift operators zero-fill this unsigned operand, preserving all six extracted bytes for either byte order." },
-    { "mutatorName": "Conditional (true) mutation", "replacement": "(true?PrimitiveCodecs.StrictUtf16LittleEndianEncoding :PrimitiveCodecs.StrictUtf16BigEndianEncoding)",
-     "location": {"start":{"line":859,"column":48},"end":{"line":859,"column":157}},
-     "reason": "ReadChar has already decoded source bytes using the requested endianness. The selected strict UTF-16 encoder is used only by ValidateWideText, whose GetByteCount validates the resulting string: both byte orders reject the same invalid surrogate sequences and count the same bytes for valid text. No encoded bytes or byte-order-specific output is returned here." },
-    { "mutatorName": "Conditional (false) mutation", "replacement": "(false?PrimitiveCodecs.StrictUtf16LittleEndianEncoding :PrimitiveCodecs.StrictUtf16BigEndianEncoding)",
-     "location": {"start":{"line":859,"column":48},"end":{"line":859,"column":157}},
-     "reason": "ReadChar has already decoded source bytes using the requested endianness. Selecting the strict big-endian UTF-16 encoder for ValidateWideText validates the same surrogate sequences as the little-endian encoder. Their counts are identical, the count is discarded, and the decoded string and trimming behavior are unchanged." }
+     "location": {"start":{"line":914,"column":41},"end":{"line":914,"column":55}},
+     "reason": "WriteUInt48Unchecked's value is ulong. Both shift operators zero-fill this unsigned operand, preserving all six extracted bytes for either byte order." }
    ]
   },
   {
@@ -604,7 +598,7 @@
   },
   {
    "pattern": "Generated/WriteCursor.cs",
-   "sourceSha256": "bbccd922b7966ecf0d53743a4897f6651807c82a767d24c8deb76c4eda90ab53",
+   "sourceSha256": "7e65e43782528aeeb2d6a8b96d6fc2525a24a6259927c1576d80ae3fe974f882",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":197,"column":13},"end":{"line":197,"column":20}},
@@ -949,22 +943,16 @@
   },
   {
    "pattern": "Generated/ReadCursor.Text.cs",
-   "sourceSha256": "7f822343c29ef0c0c99c70294336eef3eb79ede306d8f547f375515c466f7a81",
+   "sourceSha256": "8a5ab2c98b3eea5a8fbfa11ca1eab3d194d52cde74daeaea99e5e4ed930ad6ea",
    "mutants": [
-    { "mutatorName": "Conditional (true) mutation", "replacement": "(true?Codecs.PrimitiveCodecs.StrictUtf16LittleEndianEncoding :Codecs.PrimitiveCodecs.StrictUtf16BigEndianEncoding)",
-     "location": {"start":{"line":61,"column":18},"end":{"line":61,"column":141}},
-     "reason": "The input code units have already been read using the requested byte order. This call only validates the resulting string with GetByteCount; its count is discarded and it produces no bytes. Both UnicodeEncoding instances have identical strict surrogate fallback and no byte-order mark, differing only in output byte order, which cannot change string validity, byte count or EncoderFallbackException here." },
-    { "mutatorName": "Conditional (false) mutation", "replacement": "(false?Codecs.PrimitiveCodecs.StrictUtf16LittleEndianEncoding :Codecs.PrimitiveCodecs.StrictUtf16BigEndianEncoding)",
-     "location": {"start":{"line":61,"column":18},"end":{"line":61,"column":141}},
-     "reason": "ReadChar has already applied the requested input byte order before constructing text. GetByteCount only validates that string and its result is ignored. The two strict UnicodeEncoding instances differ only in encoded byte order, not accepted surrogate sequences, counts or fallback exceptions; no encoded bytes are exposed by this call." },
     { "mutatorName": "Arithmetic mutation", "replacement": "unitSize + (encodedByteCount % unitSize)",
-     "location": {"start":{"line":174,"column":42},"end":{"line":174,"column":82}},
+     "location": {"start":{"line":176,"column":42},"end":{"line":176,"column":82}},
      "reason": "unitSize is one or two. Every continuing chunk holds whole code units: a request is 256 bytes or the budget rounded down to whole units, a one-byte request is completed to a unit (or fails over budget), and a partial unit only occurs at the end of the input, which the zero-byte failure ends before alignment is computed again. Thus encodedByteCount is a multiple of unitSize whenever this expression is reached, its remainder is zero, and adding or subtracting that zero gives the same alignment." },
     { "mutatorName": "Arithmetic mutation", "replacement": "encodedByteCount * unitSize",
-     "location": {"start":{"line":174,"column":54},"end":{"line":174,"column":81}},
+     "location": {"start":{"line":176,"column":54},"end":{"line":176,"column":81}},
      "reason": "At each reached alignment calculation encodedByteCount is a multiple of unitSize (every continuing chunk holds whole code units) and unitSize is one or two. The original inner remainder is zero; the replacement product is a multiple of unitSize, so the outer remainder remains zero. The count is bounded by an Int32-sized source, so its long product cannot overflow." },
     { "mutatorName": "CoalesceAssignmentExpression to SimpleAssignmentExpression mutation", "replacement": "decoded = new char[Chunk + 2]",
-     "location": {"start":{"line":185,"column":13},"end":{"line":185,"column":44}},
+     "location": {"start":{"line":187,"column":13},"end":{"line":187,"column":44}},
      "reason": "decoded is a private output-only scratch buffer passed to Decoder.Convert; its contents and output counts are never consumed. Decoder state is held by the separate decoder object, and the returned string is decoded independently from the original byte slice. Replacing the buffer adds allocations but changes no decoded result, consumption or failure." }
    ]
   },
@@ -988,19 +976,19 @@
   },
   {
    "pattern": "Writing/WriteValueRules.cs",
-   "sourceSha256": "26cc5958856e4796c93b07b969a64125c0f29f023fdbd4d9cf1528de3e235656",
+   "sourceSha256": "9539cbd9a85daf606a5eb465a4ad8033f02644c5ba264799abce7008754b802c",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":67,"column":13},"end":{"line":67,"column":20}},
+     "location": {"start":{"line":71,"column":13},"end":{"line":71,"column":20}},
      "reason": "UnionValue is sealed and implements IReadOnlyDictionary, not either mutable IDictionary interface inspected by WriteDataBinding.EnumerateMemberNames and TryGetMemberValue. Removing this early return therefore enumerates an empty name array; nested named fields also fail TryGetMemberValue without calling into the union value. Promoted composites recurse only over their finite inline declaration tree with that same unrecognized data object, reaching the same empty lookups. No caller callbacks, value validation or stream operations occur. WriteUnion still performs the actual union-name, storage-size and selected-member checks afterwards. This qualification does not apply to removing those validations." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":122,"column":17},"end":{"line":122,"column":23}},
+     "location": {"start":{"line":126,"column":17},"end":{"line":126,"column":23}},
      "reason": "This rethrow is inside catch (CStructException exception) when (exception.NoteMember(...)). The nonvirtual CStructException.NoteMember method attaches the innermost member context and unconditionally returns false. The exception therefore continues unwinding without entering this catch body. Removing its unreachable throw preserves the filter call, context attachment and original exception propagation. This qualification does not apply to the following conditional-scope CompleteField call or any cancellation checkpoint." },
     { "mutatorName": "Boolean mutation", "replacement": "true",
-     "location": {"start":{"line":28,"column":20},"end":{"line":28,"column":25}},
+     "location": {"start":{"line":32,"column":20},"end":{"line":32,"column":25}},
      "reason": "Every caller of SuppliesAnyPromotedMember (its own recursion and the compiled write engine's union selection) first requires membership in a compiled composite's PromotedFields set. That set contains only anonymous inline Struct declarations. CompileComposite resolves these declarations through compositeSymbols, completes and binds their CompiledCompositeType before publishing the parent model; the immutable field keeps that symbol. Thus promoted.Type.Symbol.Definition is always a CompiledCompositeType here, and the defensive non-composite return cannot execute. Changing only its boolean cannot affect recursive member selection." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":40,"column":17},"end":{"line":40,"column":26}},
+     "location": {"start":{"line":44,"column":17},"end":{"line":44,"column":26}},
      "reason": "The recursive promoted-member branch applies only to anonymous inline Struct declarations in PromotedFields. Their empty declaration names are preserved by effective-field compilation and placement. If recursion finds no supplied named leaf, removing this continue only reaches the next name.Length > 0 guard with an empty name. It short-circuits without consulting caller data and proceeds to the same next member. A successful recursion still returns true before this statement. The nonempty-name guard remains required and is not qualified by this proof." }
    ]
   }
