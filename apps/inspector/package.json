@@ -21,10 +21,10 @@
   },
   "dependencies": {
     "@cstructsharp/app-shared": "*",
-    "@iconify-icons/vscode-icons": "^2.0.8",
+    "@iconify-icons/vscode-icons": "^2.0.11",
     "@iconify/vue": "^5.0.3",
     "@vueuse/core": "^15.0.0",
-    "dockview-vue": "^8.3.1",
+    "dockview-vue": "^8.4.0",
     "file-type": "22.1.1",
     "json-editor-vue": "^0.19.2",
     "monaco-editor": "^0.57.0",
