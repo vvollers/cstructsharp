@@ -335,7 +335,7 @@ jobs:
       - name: Pin the OIDC-capable npm CLI
         run: npm install --global npm@12.0.2
       - name: Download release manifest
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-manifest
           path: artifacts
@@ -361,35 +361,35 @@ jobs:
           clean: false
           fetch-depth: 0
       - name: Download version files
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: version-bump-files
           path: .
           run-id: ${{ env.ARTIFACT_RUN_ID }}
           github-token: ${{ github.token }}
       - name: Download npm package
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-npm-package
           path: artifacts/npm
           run-id: ${{ env.ARTIFACT_RUN_ID }}
           github-token: ${{ github.token }}
       - name: Download NuGet packages
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: nuget-package
           path: artifacts/package
           run-id: ${{ env.ARTIFACT_RUN_ID }}
           github-token: ${{ github.token }}
       - name: Download standalone WASM bundle
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: wasm-bundle
           path: artifacts
           run-id: ${{ env.ARTIFACT_RUN_ID }}
           github-token: ${{ github.token }}
       - name: Download Pages site
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: pages-site
           path: artifacts/pages
