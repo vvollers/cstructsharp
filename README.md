@@ -372,7 +372,7 @@ Measured on AMD Ryzen 9 9950X, Windows 11, .NET 10.0.12, with BenchmarkDotNet 0.
 | CStructSharp generated `Parse` / `Serialize` | C layout         |  79 B |     15.5 ns |     184 B |    8.4 ns |       0 B |
 | FlatSharp 7.9.0 (lazy)                       | FlatBuffers      | 116 B |     27.8 ns |     240 B |   46.1 ns |       0 B |
 | MemoryPack 1.21.4                            | MemoryPack       |  86 B |     31.9 ns |     248 B |   17.3 ns |       0 B |
-| MessagePack-CSharp 3.1.10                    | MessagePack      |  74 B |      110 ns |     248 B |   55.6 ns |       0 B |
+| MessagePack-CSharp 3.1.12                    | MessagePack      |  74 B |      110 ns |     248 B |   55.6 ns |       0 B |
 | protobuf-net 3.4.30                          | Protocol Buffers |  91 B |      227 ns |     184 B |    221 ns |       0 B |
 | System.Text.Json (source-generated)          | JSON             | 207 B |      641 ns |     848 B |    355 ns |       0 B |
 
