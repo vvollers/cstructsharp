@@ -14,9 +14,9 @@
     "test:browser:list": "playwright test --list"
   },
   "devDependencies": {
-    "@axe-core/playwright": "4.13.0",
-    "@playwright/test": "1.64.0",
-    "cspell": "10.3.6",
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "1.64.1",
+    "cspell": "10.4.0",
     "markdownlint-cli2": "0.23.3"
   },
   "overrides": {
