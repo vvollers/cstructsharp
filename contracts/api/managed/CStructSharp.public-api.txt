@@ -131,6 +131,7 @@ namespace CStructSharp
         public bool LittleEndian { get; set; }
         public int PointerSize { get; set; }
         public string? Root { get; set; }
+        public CStructSharp.GeneratedSurface Surface { get; set; }
         public bool Views { get; set; }
     }
     [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Struct, AllowMultiple=false, Inherited=false)]
@@ -151,6 +152,12 @@ namespace CStructSharp
         public string Root { get; }
         public T Get(CStructSharp.Values.StructValue value) { }
         public T Read(System.ReadOnlySpan<byte> source, CStructSharp.ReadOptions? options = null) { }
+    }
+    public enum GeneratedSurface
+    {
+        Full = 0,
+        Reader = 1,
+        Views = 2,
     }
     public interface ICStructFixedMapped<TSelf>
         where TSelf : CStructSharp.ICStructFixedMapped<TSelf>
@@ -173,6 +180,11 @@ namespace CStructSharp
     {
         TSelf ReadFrom(CStructSharp.Values.StructValue source);
         void WriteTo(TSelf value, CStructSharp.Values.StructValue target);
+    }
+    public enum InvalidTextHandling
+    {
+        Fail = 0,
+        Replace = 1,
     }
     public static class MappedTypes
     {
@@ -197,6 +209,7 @@ namespace CStructSharp
         public CStructSharp.PointerAddressingMode AddressingMode { get; init; }
         public System.Threading.CancellationToken CancellationToken { get; init; }
         public bool DereferencePointers { get; init; }
+        public CStructSharp.InvalidTextHandling InvalidText { get; init; }
         public int MaxArrayElements { get; init; }
         public int MaxNestingDepth { get; init; }
         public int MaxPointerDepth { get; init; }

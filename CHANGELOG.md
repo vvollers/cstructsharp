@@ -8,6 +8,30 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ## Unreleased
 
+### Added
+
+- **Generate less code.** `[CStructLayout(Surface = ...)]` chooses how much the generator writes. `GeneratedSurface.Full`
+  (the default) is today's output. `GeneratedSurface.Reader` keeps the typed classes, `Parse` and `TryParse` over a span,
+  an array or a `ReadOnlyMemory<byte>`, `Sizes`, `Offsets` and the views, and leaves out the writers, `Update`, the
+  sequence, stream and asynchronous readers, `Records`, the path operations, the runtime `Layout` and the view
+  enumerators. `GeneratedSurface.Views` keeps only the views, the constants and the enums. Every struct costs the same
+  generated code however small it is, so a project with hundreds of layouts of which it reads a few members each compiles
+  and ships much less. `Surface = Views` with `Views = false` generates nothing and reports the new error CSG011.
+- **Views reach more members.** A view exposes an array whose length comes from earlier members (`CountOf<Name>()`, the
+  bytes, one element and `Copy<Name>To(Span<T>)`, which decodes the whole array in one pass) and every member placed
+  after such an array, reading it at an offset the view computes with the reader's own count limits and failures.
+  Aligned layouts round the computed offset up to the member's alignment. A view also exposes encoded text arrays
+  (`utf8`, `latin1`, `cp437`, `utf16le`, `utf16be`) as bytes and as a string, fixed custom codec members as bytes and as
+  the codec's value, and a bulk copy for fixed numeric arrays. A count that needs a caller variable, a value that is not
+  read yet, or a member after something the view cannot measure is not exposed, as before, and a newly reachable
+  member named like one of the view's own members (`bytes`, `to_object`) stays hidden instead of breaking a build that
+  compiled before.
+- **Read invalid text without failing.** `ReadOptions.InvalidText = InvalidTextHandling.Replace` reads each invalid UTF-8
+  sequence, unpaired UTF-16 surrogate and non-ASCII byte of an ASCII string as U+FFFD and continues, for `utf8` and UTF-16
+  buffers, `wchar[N]` and terminated strings, in the runtime, in generated readers and in generated views. The default,
+  `Fail`, is unchanged, and lengths, offsets and read budgets are the same either way. The option is managed API only:
+  the browser bridge does not expose it.
+
 ## 0.12.1 — 2026-10-04
 
 This patch reduces allocations and speeds up memory analysis, numeric matrices, text handling and fixed-record

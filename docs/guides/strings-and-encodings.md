@@ -77,7 +77,8 @@ scan farther than the format should allow.
 ## Encodings and byte order
 
 - `char` is one raw byte-sized code unit. ASCII terminated handlers reject bytes outside valid ASCII.
-- UTF-8 handlers decode strict UTF-8. Malformed sequences fail instead of inserting a replacement character.
+- UTF-8 handlers decode strict UTF-8. Malformed sequences fail instead of inserting a replacement character, unless
+  you ask for one with [`ReadOptions.InvalidText`](#invalid-text).
 - `wchar` and `string` use UTF-16. A neutral type follows the layout's byte order; `<` forces little-endian and `>`
   forces big-endian.
 - A Unicode character outside the Basic Multilingual Plane uses two UTF-16 code units. A fixed `wchar[N]` count is a
@@ -85,6 +86,27 @@ scan farther than the format should allow.
 
 CStructSharp does not detect a byte-order mark and does not use the machine's current locale. The layout must state
 the encoding used by the format.
+
+## Invalid text
+
+Real files hold text that is not valid in its encoding: a name cut in the middle of a UTF-8 sequence, a UTF-16 name
+with an unpaired surrogate, a byte above 127 in a field that should be ASCII. By default the read fails with an error
+that names the field. An investigation often wants the rest of the record anyway, so
+`new ReadOptions { InvalidText = InvalidTextHandling.Replace }` reads each invalid sequence as U+FFFD, the Unicode
+replacement character, and carries on:
+
+| Layout | Bytes | Default | `Replace` |
+| --- | --- | --- | --- |
+| `utf8 name[3]` | `61 FF 62` | fails | `"a\uFFFDb"` |
+| `utf16le name[4]` | `61 00 00 D8` | fails | `"a\uFFFD"` (the lone high surrogate `D800`) |
+| `cstring name` | `61 80 62 00` | fails | `"a\uFFFDb"` |
+
+The option covers `utf8` and `utf16le`/`utf16be` buffers, `wchar[N]`, and terminated strings. `latin1`, `cp437`, and
+`char[N]` map every byte to a character, so they never fail. Lengths, terminators, offsets and the read budget are
+exactly what they are without the option. Two different invalid sequences read as the same replacement character, so
+the string no longer says which bytes were stored; a generated [view](generated/views-and-zero-allocation.md) keeps
+them reachable, because each text member also exposes its bytes (`NameBytes`). Writing is unaffected: text that cannot
+be encoded still fails.
 
 ## Legacy and byte-bounded encodings
 

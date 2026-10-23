@@ -107,11 +107,14 @@ network message expected to contain at most 100 items, set a limit near 100 rath
 
 ## Choose a policy for the quiet cases
 
-Two options change behavior rather than a limit. Both default to the permissive choice:
+Three options change behavior rather than a limit. The first two default to the permissive choice, and the third to the strict one:
 
 - `ReadOptions.TrimFixedText` (default `false`): fixed-capacity text such as `char name[8]`, `wchar[N]`, or a
   bounded `utf8 name[N]` buffer keeps its NUL padding when read, so `61 62 00 00` is `"ab\0\0"`. Set the option to
   read `"ab"`; only trailing NULs are removed and writing still zero-pads to the declared capacity.
+- `ReadOptions.InvalidText` (default `Fail`): text that is not valid in its encoding - malformed UTF-8, an unpaired
+  UTF-16 surrogate, a non-ASCII byte in a `cstring` - fails the read at its field. `InvalidTextHandling.Replace` reads each
+  invalid sequence as U+FFFD and continues; see [invalid text](strings-and-encodings.md#invalid-text).
 - `WriteOptions.UnknownMembers` (default `Ignore`): a supplied value may carry members the struct does not declare
   and they are skipped. `UnknownMemberPolicy.Reject` fails the write before any byte is written -
   `'bogus' is not a member of 'root' (WriteOptions.UnknownMembers is Reject). The layout declares: kind, tail.` -

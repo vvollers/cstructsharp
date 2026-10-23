@@ -20,6 +20,7 @@ list cannot drift from what ships.
 | [CSG005](#csg005---attributed-class-must-be-partial) | Error | Attributed class must be partial |
 | [CSG006](#csg006---custom-codec-declaration-is-invalid) | Error | Custom codec declaration is invalid |
 | [CSG010](#csg010---c-12-or-later-is-required) | Error | C# 12 or later is required |
+| [CSG011](#csg011---the-views-surface-needs-views) | Error | The Views surface needs views |
 | [CSG100](#csg100---mapped-type-must-be-partial-with-a-parameterless-constructor) | Error | Mapped type must be partial with a parameterless constructor |
 | [CSG101](#csg101---mapped-member-type-is-not-mapped) | Error | Mapped member type is not mapped |
 | [CSG102](#csg102---mapped-member-has-no-layout-counterpart) | Warning | Mapped member has no layout counterpart |
@@ -91,6 +92,13 @@ generator has nowhere to add members. An error.
 expressions, static abstract interface members). An error.
 
 **Fix.** Add `<LangVersion>12</LangVersion>` (or newer) to the project file; .NET 8 and later default to it.
+
+## CSG011 - The Views surface needs views
+
+**Cause.** `Surface = GeneratedSurface.Views` generates only views, and `Views = false` turns views off, so together they
+would generate nothing. An error.
+
+**Fix.** Remove `Views = false`, or choose `GeneratedSurface.Reader` or `GeneratedSurface.Full`.
 
 ## CSG100 - Mapped type must be partial with a parameterless constructor
 

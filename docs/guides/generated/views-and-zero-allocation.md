@@ -47,32 +47,49 @@ and returns plain values.
 
 ## What a view exposes
 
-A view has an accessor for every member whose position the compiler fixed at build time: scalars, bitfields,
-enums, a pointer's stored address, a nested struct (as a nested view), a fixed array of numbers (`Values(int index)`
-and `ValuesBytes`), and fixed text (`NameBytes`, and `Name` when a string is wanted - that one allocates the string).
-Members it does not expose are the ones whose position depends on the data: a count-sized array, a terminated
-string, a conditional member, and everything placed after one of those. For those, `ToObject()` runs the full
-reader, or `Parse` does from the start.
+A view has an accessor for every member it can place: scalars, bitfields, enums, a pointer's stored address, a nested
+struct (as a nested view), an array of numbers (`Values(int index)`, `ValuesBytes`, and `CopyValuesTo(Span<uint>)`
+to decode every element in one pass), text (`NameBytes`, and `Name` when a string is wanted - that one allocates the
+string), and a custom codec's value (`ColourBytes`, and `Colour`, which the codec boxes).
+
+An array whose length comes from an earlier member (`uint32 entries[count]`) is exposed the same way, with
+`CountOfEntries()` for its length. The view evaluates the count from the members before it with the reader's own limits
+and failures, so a hostile count fails exactly as it does in `Parse`. Members placed after such an array are exposed
+too: the view works out where they start from the counts before them, rounds up to the member's alignment in an aligned
+layout, and fails with the reader's short-read message when the source ends first.
+
+```c
+struct table { uint32 count; uint64 origin; uint32 entries[count]; uint32 checksum; };
+```
+
+`view.Checksum` finds `checksum` after the `count` entries; `view.CopyEntriesTo(destination)` copies the entries
+without the array a `Table` object would allocate for them.
+
+Members it does not expose are the ones whose position the view cannot compute: a terminated string, a conditional
+member, an array whose length needs a caller variable or a value that is not read yet, a pointer's target, a struct
+with a variable size, a bitfield whose storage the compiler placed after the data, and everything placed after one of
+those. For those, `ToObject()` runs the full reader, or `Parse` does from the start. A member after a runtime-sized
+array that is named like one of the view's own members (`bytes`, `to_object`) stays hidden rather than breaking the build.
 
 ## When a view is the wrong tool
 
 - You need most of the members anyway and keep them around: parse once into an object.
 - You need a string member: the accessor allocates the string, so the view saves nothing there.
-- The struct is runtime-sized and the members you want sit after the variable part.
+- The members you want sit after a terminated string, a conditional member, or a variable part the view cannot measure.
 - The value must outlive the method or travel through an `async` boundary.
 
 ## Check yourself
 
 1. Does slicing a span copy bytes?
 2. Why can a `ref struct` not be stored in a `List<T>`?
-3. A header has `uint8 n; uint8 data[n]; uint32 crc;`. Can a view read `Crc`?
+3. A header has `uint8 n; uint8 data[n]; uint32 crc;`. Can a view read `Crc`, and where does it look for it?
 
 <details>
 <summary>Answers</summary>
 
 1. No; it creates a new window onto the same memory.
 2. A list lives on the heap and could outlive the memory the struct's span points to; the compiler forbids it.
-3. No. `crc` is placed after a runtime-sized array, so its offset is not fixed at build time; `ToObject()` reads it.
+3. Yes. The view reads `n`, evaluates the array length with the reader's limits, and reads `crc` at offset `1 + n`.
 
 </details>
 

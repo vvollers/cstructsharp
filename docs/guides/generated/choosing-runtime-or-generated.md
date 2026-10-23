@@ -24,7 +24,30 @@ Both paths read and write the same layouts with the same rules. They differ in *
 | Exploring a format interactively? | `dynamic`, paths | Less convenient |
 
 The table's short form: **if the layout is in your source, generate; if it arrives with the data, use the
-runtime.** Mixed programs are normal - a generated class always carries its runtime `Layout`.
+runtime.** Mixed programs are normal - a generated class of the full surface carries its runtime `Layout`.
+
+## Generate less
+
+The generator writes the same large set of members for every struct and union, however small, so a project with
+hundreds of layouts of which it reads only a few members each pays for code it never calls. `Surface` chooses how much:
+
+| `Surface` | Generated | Left out |
+| --- | --- | --- |
+| `GeneratedSurface.Full` (default) | Everything: typed classes, every reader, `TryParse`, `Records`, `Serialize`/`Write`, `Update`, path operations, `Layout`, `Sizes`, `Offsets`, views | Nothing |
+| `GeneratedSurface.Reader` | Typed classes, `Parse` and `TryParse` over a span, an array or a `ReadOnlyMemory<byte>`, `Sizes`, `Offsets`, views | Writers, `Update`, sequence, stream and asynchronous readers, `Records`, path operations, `Layout`, the view enumerators |
+| `GeneratedSurface.Views` | Views, `Sizes`, `Offsets`, and the layout's enums | The typed classes and every reader, so a view has no `ToObject()` |
+
+```csharp
+[CStructLayout("struct word { uint32 value; };", Surface = GeneratedSurface.Views)]
+internal static partial class WordLayout { }
+
+uint value = new WordLayout.WordView(bytes).Value;
+```
+
+For the layout in the generator's tests the reader surface is less than half the full output and the views surface less
+than a sixth. All three read the same values with the same failures; the smaller ones simply have fewer ways in. A
+`[CStructMapped]` class and any code that uses `Layout`, `Serialize` or `Update` need the full surface, and `Views`
+cannot be combined with `Views = false` (see [CSG011](diagnostics.md#csg011---the-views-surface-needs-views)).
 
 ## What the numbers mean
 
