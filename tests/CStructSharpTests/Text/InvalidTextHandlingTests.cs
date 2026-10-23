@@ -85,4 +85,30 @@ public class InvalidTextHandlingTests
         var tight = new ReadOptions { InvalidText = InvalidTextHandling.Replace, MaxTotalBytesRead = bytes.Length - 1 };
         Assert.Throws<CStructReadLimitException>(() => parser.Parse(bytes, "root", options: tight));
     }
+
+    /// <summary>The option is stored as a flag, so a <see cref="ReadOptions"/> instance stays the 88 bytes every read that builds its own options allocates.</summary>
+    [TestMethod]
+    public void TheOption_DoesNotGrowReadOptions()
+    {
+        var keep = new object[1000];
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        for (int index = 0; index < keep.Length; index++)
+        {
+            keep[index] = new ReadOptions { InvalidText = InvalidTextHandling.Replace };
+        }
+
+        long perInstance = (GC.GetAllocatedBytesForCurrentThread() - before) / keep.Length;
+        Assert.IsLessThanOrEqualTo(88L, perInstance, "ReadOptions grew; keep new two-valued options as flags beside the others");
+    }
+
+    /// <summary>An undefined value is rejected when it is set, and equal options compare equal.</summary>
+    [TestMethod]
+    public void TheOption_ValidatesItsValue_AndParticipatesInEquality()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new ReadOptions { InvalidText = (InvalidTextHandling)7 });
+        Assert.AreEqual(new ReadOptions { InvalidText = InvalidTextHandling.Replace }, Lenient);
+        Assert.AreNotEqual(new ReadOptions(), Lenient);
+        Assert.AreEqual(InvalidTextHandling.Fail, new ReadOptions().InvalidText);
+        Assert.AreEqual(InvalidTextHandling.Fail, (Lenient with { InvalidText = InvalidTextHandling.Fail }).InvalidText);
+    }
 }

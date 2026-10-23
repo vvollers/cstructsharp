@@ -30,6 +30,10 @@ public sealed record ReadOptions
     private readonly long maxPointerTargetBytes;
     private readonly bool hasMaxPointerTargetBytes;
 
+    // InvalidText has two values, so it is stored as a flag beside the other flags instead of as a four-byte enum: an
+    // instance is allocated by every read that builds its own options, and a wider field would grow it past 88 bytes.
+    private readonly bool lenientText;
+
     /// <summary>Creates the default bounded read and pointer policy.</summary>
     public ReadOptions()
     {
@@ -122,10 +126,20 @@ public sealed record ReadOptions
     ///     U+FFFD and continues. It applies to <c>utf8</c> and UTF-16 buffers, <c>wchar[N]</c>, and terminated strings;
     ///     see <see cref="InvalidTextHandling"/>. Writing is unaffected: text that cannot be encoded still fails.
     /// </summary>
-    public InvalidTextHandling InvalidText { get; init; }
+    /// <exception cref="ArgumentOutOfRangeException">The value is not a member of <see cref="InvalidTextHandling"/>.</exception>
+    public InvalidTextHandling InvalidText
+    {
+        get => this.lenientText ? InvalidTextHandling.Replace : InvalidTextHandling.Fail;
+        init => this.lenientText = value switch
+        {
+            InvalidTextHandling.Fail => false,
+            InvalidTextHandling.Replace => true,
+            _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Not a member of InvalidTextHandling."),
+        };
+    }
 
     /// <summary>Gets whether invalid text is replaced instead of failing, as the readers test it.</summary>
-    internal bool LenientText => this.InvalidText == InvalidTextHandling.Replace;
+    internal bool LenientText => this.lenientText;
 
     /// <summary>
     ///     Gets the signed base position added with checked arithmetic to non-null relative pointer offsets
