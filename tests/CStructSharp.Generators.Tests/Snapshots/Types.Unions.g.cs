@@ -1464,8 +1464,9 @@ namespace Demo
 
         /// <summary>
         ///     A zero-allocation view of one <c>root</c> over its bytes: each statically placed member decodes
-        ///     directly from the span when read; a member the view does not expose (runtime-sized, conditional, or placed after one)
-        ///     is reached through <see cref="ToObject"/>. A view cannot leave the method that created it.
+        ///     directly from the span when read, or at an offset computed after a runtime-sized array; a member the view does not expose
+        ///     (conditional, a pointer's target, a terminated string, or placed after a member of unknown size) is reached through
+        ///     <see cref="ToObject"/>. A view cannot leave the method that created it.
         /// </summary>
         public readonly ref struct RootView
         {
@@ -1608,8 +1609,9 @@ namespace Demo
 
         /// <summary>
         ///     A zero-allocation view of one <c>choice</c> over its bytes: each statically placed member decodes
-        ///     directly from the span when read; a member the view does not expose (runtime-sized, conditional, or placed after one)
-        ///     is reached through <see cref="ToObject"/>. A view cannot leave the method that created it.
+        ///     directly from the span when read, or at an offset computed after a runtime-sized array; a member the view does not expose
+        ///     (conditional, a pointer's target, a terminated string, or placed after a member of unknown size) is reached through
+        ///     <see cref="ToObject"/>. A view cannot leave the method that created it.
         /// </summary>
         public readonly ref struct RootChoiceView
         {
@@ -1734,8 +1736,9 @@ namespace Demo
 
         /// <summary>
         ///     A zero-allocation view of one <c>pos</c> over its bytes: each statically placed member decodes
-        ///     directly from the span when read; a member the view does not expose (runtime-sized, conditional, or placed after one)
-        ///     is reached through <see cref="ToObject"/>. A view cannot leave the method that created it.
+        ///     directly from the span when read, or at an offset computed after a runtime-sized array; a member the view does not expose
+        ///     (conditional, a pointer's target, a terminated string, or placed after a member of unknown size) is reached through
+        ///     <see cref="ToObject"/>. A view cannot leave the method that created it.
         /// </summary>
         public readonly ref struct RootPosView
         {

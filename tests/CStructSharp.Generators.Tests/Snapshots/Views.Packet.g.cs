@@ -1663,8 +1663,9 @@ namespace Demo
 
         /// <summary>
         ///     A zero-allocation view of one <c>hdr</c> over its bytes: each statically placed member decodes
-        ///     directly from the span when read; a member the view does not expose (runtime-sized, conditional, or placed after one)
-        ///     is reached through <see cref="ToObject"/>. A view cannot leave the method that created it.
+        ///     directly from the span when read, or at an offset computed after a runtime-sized array; a member the view does not expose
+        ///     (conditional, a pointer's target, a terminated string, or placed after a member of unknown size) is reached through
+        ///     <see cref="ToObject"/>. A view cannot leave the method that created it.
         /// </summary>
         public readonly ref struct HdrView
         {
@@ -1727,6 +1728,20 @@ namespace Demo
                     throw new global::System.ArgumentOutOfRangeException(nameof(index));
                 }
                 return global::CStructSharp.Generated.Codec.ReadUInt32(this.source.Slice(8 + index * 4, 4), false);
+            }
+
+            /// <summary>Decodes every element of <c>uint32 values[2]</c> into <paramref name="destination"/> in one pass.</summary>
+            /// <param name="destination">The span to fill; it must hold at least every element.</param>
+            /// <exception cref="global::System.ArgumentException"><paramref name="destination"/> is too short.</exception>
+            public void CopyValuesTo(global::System.Span<uint> destination)
+            {
+                int length = 2;
+                if (destination.Length < length)
+                {
+                    throw new global::System.ArgumentException("The destination is shorter than the array.", nameof(destination));
+                }
+                global::System.ReadOnlySpan<byte> bytes = ValuesBytes;
+                global::CStructSharp.Generated.Codec.DecodeIntegers<uint>(bytes, destination, false);
             }
 
             /// <summary>The stored address of <c>uint16 *link</c> at offset 16 (the target is read by <see cref="ToObject"/>).</summary>
@@ -1819,8 +1834,9 @@ namespace Demo
 
         /// <summary>
         ///     A zero-allocation view of one <c>root</c> over its bytes: each statically placed member decodes
-        ///     directly from the span when read; a member the view does not expose (runtime-sized, conditional, or placed after one)
-        ///     is reached through <see cref="ToObject"/>. A view cannot leave the method that created it.
+        ///     directly from the span when read, or at an offset computed after a runtime-sized array; a member the view does not expose
+        ///     (conditional, a pointer's target, a terminated string, or placed after a member of unknown size) is reached through
+        ///     <see cref="ToObject"/>. A view cannot leave the method that created it.
         /// </summary>
         public readonly ref struct RootView
         {
@@ -1847,6 +1863,92 @@ namespace Demo
 
             /// <summary><c>uint8 n</c> at offset 24.</summary>
             public byte N => this.source.Slice(24, 1)[0];
+
+            /// <summary>The element count of <c>uint8 data[...]</c>, evaluated from the members before it with the reader's limits and failures.</summary>
+            /// <returns>The number of elements.</returns>
+            public int CountOfData()
+            {
+                global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null;
+                var cursor = new global::CStructSharp.Generated.ReadCursor(this.source, this.options, "data");
+                try
+                {
+                    int count;
+                    global::System.Int128 countValue;
+                    try
+                    {
+                        countValue = ((global::System.Int128)this.N);
+                    }
+                    catch (global::System.Exception expressionFailure)
+                    {
+                        throw cursor.FailExpression(expressionFailure, "array length for data", "data", "uint8");
+                    }
+                    if (countValue < 0)
+                    {
+                        throw cursor.Fail("Array length cannot be negative: data", "data", "uint8");
+                    }
+                    count = cursor.RequireArrayLength(countValue, "data", "uint8");
+                    return count;
+                }
+                catch (global::CStructSharp.Diagnostics.CStructException exception)
+                {
+                    cursor.Complete(exception);
+                    throw;
+                }
+            }
+
+            /// <summary>The bytes of <c>uint8 data[...]</c> at offset 25.</summary>
+            public global::System.ReadOnlySpan<byte> DataBytes => Take(25, (long)CountOfData() * 1, "data", "uint8");
+
+            /// <summary>One element of <c>uint8 data[...]</c>.</summary>
+            /// <param name="index">The element index.</param>
+            /// <returns>The element.</returns>
+            public byte Data(int index)
+            {
+                if ((uint)index >= (uint)CountOfData())
+                {
+                    throw new global::System.ArgumentOutOfRangeException(nameof(index));
+                }
+                return Take(25 + (long)index * 1, 1, "data", "uint8")[0];
+            }
+
+            /// <summary>Decodes every element of <c>uint8 data[...]</c> into <paramref name="destination"/> in one pass.</summary>
+            /// <param name="destination">The span to fill; it must hold at least every element.</param>
+            /// <exception cref="global::System.ArgumentException"><paramref name="destination"/> is too short.</exception>
+            public void CopyDataTo(global::System.Span<byte> destination)
+            {
+                int length = CountOfData();
+                if (destination.Length < length)
+                {
+                    throw new global::System.ArgumentException("The destination is shorter than the array.", nameof(destination));
+                }
+                global::System.ReadOnlySpan<byte> bytes = DataBytes;
+                bytes.CopyTo(destination);
+            }
+
+            /// <summary><c>uint8 tail</c> at a run-time offset.</summary>
+            public byte Tail => Take(OffsetOfTail(), 1, "tail", "uint8")[0];
+
+            /// <summary>The offset of the member after the runtime-sized array before it, from the start of the source.</summary>
+            /// <returns>The offset in bytes.</returns>
+            private long OffsetOfTail() => 25L + (long)CountOfData() * 1L;
+
+            /// <summary>Slices bytes out of the source, failing with the reader's short-read text when the source ends first.</summary>
+            /// <param name="offset">The first byte.</param>
+            /// <param name="length">The number of bytes.</param>
+            /// <param name="member">The member, for the failure.</param>
+            /// <param name="memberType">The member's type, for the failure.</param>
+            /// <returns>The bytes.</returns>
+            private global::System.ReadOnlySpan<byte> Take(long offset, long length, string member, string memberType)
+            {
+                if (offset < 0 || length < 0 || offset + length > this.source.Length)
+                {
+                    var cursor = new global::CStructSharp.Generated.ReadCursor(this.source, this.options, "root");
+                    global::CStructSharp.Diagnostics.CStructException failure = cursor.Fail(global::CStructSharp.Generated.ReadCursor.ShortReadText(offset + length, this.source.Length), member, memberType);
+                    cursor.Complete(failure);
+                    throw failure;
+                }
+                return this.source.Slice((int)offset, (int)length);
+            }
 
             /// <summary>Reads the whole value with the generated reader (every member, runtime-sized ones included).</summary>
             /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>

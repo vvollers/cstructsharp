@@ -2013,8 +2013,9 @@ namespace Demo
 
         /// <summary>
         ///     A zero-allocation view of one <c>X</c> over its bytes: each statically placed member decodes
-        ///     directly from the span when read; a member the view does not expose (runtime-sized, conditional, or placed after one)
-        ///     is reached through <see cref="ToObject"/>. A view cannot leave the method that created it.
+        ///     directly from the span when read, or at an offset computed after a runtime-sized array; a member the view does not expose
+        ///     (conditional, a pointer's target, a terminated string, or placed after a member of unknown size) is reached through
+        ///     <see cref="ToObject"/>. A view cannot leave the method that created it.
         /// </summary>
         public readonly ref struct XView
         {
@@ -2136,8 +2137,9 @@ namespace Demo
 
         /// <summary>
         ///     A zero-allocation view of one <c>Anon</c> over its bytes: each statically placed member decodes
-        ///     directly from the span when read; a member the view does not expose (runtime-sized, conditional, or placed after one)
-        ///     is reached through <see cref="ToObject"/>. A view cannot leave the method that created it.
+        ///     directly from the span when read, or at an offset computed after a runtime-sized array; a member the view does not expose
+        ///     (conditional, a pointer's target, a terminated string, or placed after a member of unknown size) is reached through
+        ///     <see cref="ToObject"/>. A view cannot leave the method that created it.
         /// </summary>
         public readonly ref struct AnonView
         {
@@ -2259,8 +2261,9 @@ namespace Demo
 
         /// <summary>
         ///     A zero-allocation view of one <c>root</c> over its bytes: each statically placed member decodes
-        ///     directly from the span when read; a member the view does not expose (runtime-sized, conditional, or placed after one)
-        ///     is reached through <see cref="ToObject"/>. A view cannot leave the method that created it.
+        ///     directly from the span when read, or at an offset computed after a runtime-sized array; a member the view does not expose
+        ///     (conditional, a pointer's target, a terminated string, or placed after a member of unknown size) is reached through
+        ///     <see cref="ToObject"/>. A view cannot leave the method that created it.
         /// </summary>
         public readonly ref struct RootView
         {
@@ -2320,6 +2323,20 @@ namespace Demo
                     throw new global::System.ArgumentOutOfRangeException(nameof(index));
                 }
                 return this.source.Slice(14 + index * 1, 1)[0];
+            }
+
+            /// <summary>Decodes every element of <c>uint8 pr[2]</c> into <paramref name="destination"/> in one pass.</summary>
+            /// <param name="destination">The span to fill; it must hold at least every element.</param>
+            /// <exception cref="global::System.ArgumentException"><paramref name="destination"/> is too short.</exception>
+            public void CopyPrTo(global::System.Span<byte> destination)
+            {
+                int length = 2;
+                if (destination.Length < length)
+                {
+                    throw new global::System.ArgumentException("The destination is shorter than the array.", nameof(destination));
+                }
+                global::System.ReadOnlySpan<byte> bytes = PrBytes;
+                bytes.CopyTo(destination);
             }
 
             /// <summary>Reads the whole value with the generated reader (every member, runtime-sized ones included).</summary>

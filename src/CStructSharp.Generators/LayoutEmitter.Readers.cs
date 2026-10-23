@@ -789,9 +789,23 @@ internal sealed partial class LayoutEmitter
     ///     cursor only checks it).
     /// </param>
     private void EmitCount(SourceWriter writer, string fieldName, Expr expression, ReaderScope scope, string context, string member, string memberType, bool validatedCountIsReturned)
+        => EmitCountCode(writer, fieldName, scope.Expressions.Emit(expression), ExpressionEmitter.IsInt32Literal(expression), context, member, memberType, validatedCountIsReturned);
+
+    /// <summary>
+    ///     Emits the checks around an already translated count expression: see <see cref="EmitCount"/>, which translates the
+    ///     expression and calls this.
+    /// </summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="fieldName">The field, named by the negative-length failure.</param>
+    /// <param name="code">The C# expression of the count, in the 128-bit domain.</param>
+    /// <param name="isLiteral">Whether the expression is a plain <see cref="int"/> literal, which cannot fail.</param>
+    /// <param name="context">What is evaluated, for the expression failure.</param>
+    /// <param name="member">The member-name expression for failures.</param>
+    /// <param name="memberType">The member-type expression for failures.</param>
+    /// <param name="validatedCountIsReturned">Whether the cursor's <c>RequireArrayLength</c> returns the validated count.</param>
+    private static void EmitCountCode(SourceWriter writer, string fieldName, string code, bool isLiteral, string context, string member, string memberType, bool validatedCountIsReturned)
     {
-        string code = scope.Expressions.Emit(expression);
-        if (ExpressionEmitter.IsInt32Literal(expression))
+        if (isLiteral)
         {
             // A constant (a fixed count, a folded sizeof) cannot fail, and layout compilation already rejected a
             // negative one.

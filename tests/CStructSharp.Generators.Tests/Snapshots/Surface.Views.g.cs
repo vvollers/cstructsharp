@@ -70,8 +70,9 @@ namespace Demo
 
         /// <summary>
         ///     A zero-allocation view of one <c>hdr</c> over its bytes: each statically placed member decodes
-        ///     directly from the span when read; a member the view does not expose (conditional, or placed after a member of unknown size)
-        ///     is not available with this surface. A view cannot leave the method that created it.
+        ///     directly from the span when read, or at an offset computed after a runtime-sized array; a member the view does not expose
+        ///     (conditional, a pointer's target, a terminated string, or placed after a member of unknown size) is not available with this surface.
+        ///     A view cannot leave the method that created it.
         /// </summary>
         public readonly ref struct HdrView
         {
@@ -135,12 +136,27 @@ namespace Demo
                 }
                 return global::CStructSharp.Generated.Codec.ReadUInt32(this.source.Slice(8 + index * 4, 4), true);
             }
+
+            /// <summary>Decodes every element of <c>uint32 values[2]</c> into <paramref name="destination"/> in one pass.</summary>
+            /// <param name="destination">The span to fill; it must hold at least every element.</param>
+            /// <exception cref="global::System.ArgumentException"><paramref name="destination"/> is too short.</exception>
+            public void CopyValuesTo(global::System.Span<uint> destination)
+            {
+                int length = 2;
+                if (destination.Length < length)
+                {
+                    throw new global::System.ArgumentException("The destination is shorter than the array.", nameof(destination));
+                }
+                global::System.ReadOnlySpan<byte> bytes = ValuesBytes;
+                global::CStructSharp.Generated.Codec.DecodeIntegers<uint>(bytes, destination, true);
+            }
         }
 
         /// <summary>
         ///     A zero-allocation view of one <c>root</c> over its bytes: each statically placed member decodes
-        ///     directly from the span when read; a member the view does not expose (conditional, or placed after a member of unknown size)
-        ///     is not available with this surface. A view cannot leave the method that created it.
+        ///     directly from the span when read, or at an offset computed after a runtime-sized array; a member the view does not expose
+        ///     (conditional, a pointer's target, a terminated string, or placed after a member of unknown size) is not available with this surface.
+        ///     A view cannot leave the method that created it.
         /// </summary>
         public readonly ref struct RootView
         {
