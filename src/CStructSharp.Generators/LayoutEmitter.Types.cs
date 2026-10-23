@@ -16,6 +16,11 @@ internal sealed partial class LayoutEmitter
             EmitEnum(writer, generatedEnum);
         }
 
+        if (this.request.Surface == GenerationSurface.Views)
+        {
+            return;
+        }
+
         foreach (GeneratedComposite composite in this.model.Composites)
         {
             writer.Line();

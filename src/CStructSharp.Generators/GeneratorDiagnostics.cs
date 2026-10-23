@@ -64,6 +64,15 @@ internal static class GeneratorDiagnostics
         isEnabledByDefault: true,
         description: "An entry of [CStructLayout(Codecs = ...)] must be \"name\", \"name:size\", \"name:size:alignment\", or \"name:*:alignment\" with an identifier name, a non-negative size, and a power-of-two alignment, and must not repeat a built-in type.");
 
+    /// <summary>CSG011 (error): <c>Surface = Views</c> generates only views, so <c>Views = false</c> would leave nothing.</summary>
+    public static readonly DiagnosticDescriptor SurfaceNeedsViews = new(
+        "CSG011",
+        "The Views surface needs views",
+        "'{0}' sets Surface = GeneratedSurface.Views and Views = false, which together generate nothing; remove Views = false or choose another surface",
+        Category,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     /// <summary>CSG100 (error): a mapped type is not partial or lacks a parameterless constructor.</summary>
     public static readonly DiagnosticDescriptor MappedNotPartial = new(
         "CSG100",

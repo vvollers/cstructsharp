@@ -39,6 +39,14 @@ internal sealed partial class LayoutEmitter
     /// <param name="writer">The generated source destination; emitted cursors own operation state, not caller input.</param>
     private void EmitReaders(SourceWriter writer)
     {
+        this.EmitSettingConstants(writer);
+        this.EmitReaderBodies(writer);
+    }
+
+    /// <summary>Emits the private constants the readers and the views read the layout's fixed settings from.</summary>
+    /// <param name="writer">The generated source destination.</param>
+    private void EmitSettingConstants(SourceWriter writer)
+    {
         writer.Line();
         writer.Line("private const bool Aligned = " + Bool(this.request.Settings.Aligned) + ";");
         writer.Line("private const bool LittleEndian = " + Bool(this.request.Settings.LittleEndian) + ";");
@@ -46,7 +54,12 @@ internal sealed partial class LayoutEmitter
         writer.Line("private const bool HighBitFirst = " + Bool(this.compilation.HighBitFirst) + ";");
         writer.Line("private const global::CStructSharp.BitfieldPacking Packing = global::CStructSharp.BitfieldPacking." + this.request.Settings.BitfieldPacking + ";");
         writer.Line("private const global::CStructSharp.BitfieldAllocation Allocation = global::CStructSharp.BitfieldAllocation." + this.request.Settings.BitfieldAllocation + ";");
+    }
 
+    /// <summary>Emits the parse overloads and the member-by-member and fixed readers of every composite.</summary>
+    /// <param name="writer">The generated source destination.</param>
+    private void EmitReaderBodies(SourceWriter writer)
+    {
         GeneratedComposite? root = this.model.Composites.FirstOrDefault(composite => composite.IsDeclared && composite.LayoutName == this.rootName);
         foreach (GeneratedComposite composite in this.model.Composites)
         {
@@ -110,6 +123,49 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.ReadOnlySpan{byte}, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
         writer.Line("public static " + name + " " + method + "(global::System.ReadOnlyMemory<byte> source, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
         writer.Line("    => " + method + "(source.Span, variables, options);");
+        if (this.request.Surface == GenerationSurface.Full)
+        {
+            this.EmitBufferedParseOverloads(writer, composite);
+        }
+
+        if (isRoot)
+        {
+            writer.Line();
+            writer.Line("/// <summary>Reads the root declaration (<c>" + composite.LayoutName + "</c>); see " + Cref(method + "(global::System.ReadOnlySpan{byte}, " + VariablesCref + ", global::CStructSharp.ReadOptions)") + ".</summary>");
+            writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
+            writer.Line(ReadOptionsDoc);
+            writer.Line("/// <returns>The parsed value.</returns>");
+            writer.Line("public static " + name + " Parse(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null) => " + method + "(source, null, options);");
+            writer.Line();
+            writer.Line("/// <inheritdoc cref=\"Parse(global::System.ReadOnlySpan{byte}, global::CStructSharp.ReadOptions)\"/>");
+            writer.Line("public static " + name + " Parse(byte[] source, global::CStructSharp.ReadOptions? options = null) => " + method + "(source, null, options);");
+            writer.Line();
+            writer.Line("/// <inheritdoc cref=\"Parse(global::System.ReadOnlySpan{byte}, global::CStructSharp.ReadOptions)\"/>");
+            writer.Line("public static " + name + " Parse(global::System.ReadOnlyMemory<byte> source, global::CStructSharp.ReadOptions? options = null) => " + method + "(source.Span, null, options);");
+            if (this.request.Surface == GenerationSurface.Full)
+            {
+                this.EmitBufferedRootOverloads(writer, composite, method);
+            }
+        }
+
+        this.EmitTryParse(writer, composite, isRoot);
+        if (this.request.Surface == GenerationSurface.Full)
+        {
+            this.EmitRecords(writer, composite, isRoot);
+        }
+    }
+
+    /// <summary>
+    ///     Emits the readers for input that is not already one block of memory: a sequence of segments, a stream, and an
+    ///     awaitable stream, with the struct that runs the span reader on each buffered copy. The full surface only.
+    /// </summary>
+    /// <param name="writer">The generated source destination.</param>
+    /// <param name="composite">The composite whose buffered readers are emitted.</param>
+    private void EmitBufferedParseOverloads(SourceWriter writer, GeneratedComposite composite)
+    {
+        string name = composite.Name;
+        string method = "Parse" + name;
+        string reader = composite.BufferedReaderName;
         writer.Line();
         writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from a sequence of segments: a single segment is read in place, several are copied into a pooled buffer - first the total read budget plus one byte - that grows while the reader needs bytes past it, so the result is the span form's for the whole sequence.</summary>");
         writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
@@ -165,33 +221,24 @@ internal sealed partial class LayoutEmitter
         writer.Line("throw;");
         writer.Close();
         writer.Close();
-        if (isRoot)
-        {
-            writer.Line();
-            writer.Line("/// <summary>Reads the root declaration (<c>" + composite.LayoutName + "</c>); see " + Cref(method + "(global::System.ReadOnlySpan{byte}, " + VariablesCref + ", global::CStructSharp.ReadOptions)") + ".</summary>");
-            writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
-            writer.Line(ReadOptionsDoc);
-            writer.Line("/// <returns>The parsed value.</returns>");
-            writer.Line("public static " + name + " Parse(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null) => " + method + "(source, null, options);");
-            writer.Line();
-            writer.Line("/// <inheritdoc cref=\"Parse(global::System.ReadOnlySpan{byte}, global::CStructSharp.ReadOptions)\"/>");
-            writer.Line("public static " + name + " Parse(byte[] source, global::CStructSharp.ReadOptions? options = null) => " + method + "(source, null, options);");
-            writer.Line();
-            writer.Line("/// <inheritdoc cref=\"Parse(global::System.ReadOnlySpan{byte}, global::CStructSharp.ReadOptions)\"/>");
-            writer.Line("public static " + name + " Parse(global::System.ReadOnlyMemory<byte> source, global::CStructSharp.ReadOptions? options = null) => " + method + "(source.Span, null, options);");
-            writer.Line();
-            writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.Buffers.ReadOnlySequence{byte}, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
-            writer.Line("public static " + name + " Parse(global::System.Buffers.ReadOnlySequence<byte> source, global::CStructSharp.ReadOptions? options = null) => " + method + "(source, null, options);");
-            writer.Line();
-            writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.IO.Stream, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
-            writer.Line("public static " + name + " Parse(global::System.IO.Stream stream, global::CStructSharp.ReadOptions? options = null) => " + method + "(stream, null, options);");
-            writer.Line();
-            writer.Line("/// <inheritdoc cref=\"" + method + "Async(global::System.IO.Stream, " + VariablesCref + ", global::CStructSharp.ReadOptions, global::System.Threading.CancellationToken)\"/>");
-            writer.Line("public static global::System.Threading.Tasks.ValueTask<" + name + "> ParseAsync(global::System.IO.Stream stream, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default) => " + method + "Async(stream, null, options, cancellationToken);");
-        }
+    }
 
-        this.EmitTryParse(writer, composite, isRoot);
-        this.EmitRecords(writer, composite, isRoot);
+    /// <summary>Emits the unnamed root forms of the sequence, stream, and awaitable-stream readers. The full surface only.</summary>
+    /// <param name="writer">The generated source destination.</param>
+    /// <param name="composite">The root composite.</param>
+    /// <param name="method">The name of the typed span reader (<c>Parse&lt;Name&gt;</c>) the cross-references name.</param>
+    private void EmitBufferedRootOverloads(SourceWriter writer, GeneratedComposite composite, string method)
+    {
+        string name = composite.Name;
+        writer.Line();
+        writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.Buffers.ReadOnlySequence{byte}, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
+        writer.Line("public static " + name + " Parse(global::System.Buffers.ReadOnlySequence<byte> source, global::CStructSharp.ReadOptions? options = null) => " + method + "(source, null, options);");
+        writer.Line();
+        writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.IO.Stream, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
+        writer.Line("public static " + name + " Parse(global::System.IO.Stream stream, global::CStructSharp.ReadOptions? options = null) => " + method + "(stream, null, options);");
+        writer.Line();
+        writer.Line("/// <inheritdoc cref=\"" + method + "Async(global::System.IO.Stream, " + VariablesCref + ", global::CStructSharp.ReadOptions, global::System.Threading.CancellationToken)\"/>");
+        writer.Line("public static global::System.Threading.Tasks.ValueTask<" + name + "> ParseAsync(global::System.IO.Stream stream, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default) => " + method + "Async(stream, null, options, cancellationToken);");
     }
 
     /// <summary>
@@ -214,6 +261,14 @@ internal sealed partial class LayoutEmitter
             ("global::System.Buffers.ReadOnlySequence<byte>", "source", "the sequence"),
             ("global::System.IO.Stream", "stream", "the stream (left at its origin after a failure)"),
         ];
+
+        // Outside the full surface only the span form exists: an array converts to a span implicitly, and the other
+        // inputs would repeat the same two methods per composite.
+        if (this.request.Surface != GenerationSurface.Full)
+        {
+            inputs = inputs.Take(1).ToArray();
+        }
+
         foreach ((string type, string parameter, string kind) in inputs)
         {
             writer.Line();

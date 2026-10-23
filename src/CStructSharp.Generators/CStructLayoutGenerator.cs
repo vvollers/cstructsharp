@@ -99,6 +99,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         string? root = null;
         bool keepNames = false;
         bool views = true;
+        GenerationSurface surface = GenerationSurface.Full;
         foreach (KeyValuePair<string, TypedConstant> named in attribute.NamedArguments)
         {
             switch (named.Key)
@@ -114,6 +115,9 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
                 break;
             case "Views":
                 views = named.Value.Value is not false;
+                break;
+            case "Surface":
+                surface = named.Value.Value is int value && Enum.IsDefined(typeof(GenerationSurface), value) ? (GenerationSurface)value : GenerationSurface.Full;
                 break;
             }
         }
@@ -151,6 +155,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             LayoutSettings.FromAttribute(attribute),
             keepNames,
             views,
+            surface,
             SourceSpan.From(attributeLocation),
             definitionSpan,
             literalShape,
@@ -224,6 +229,12 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         if (!LanguageVersionIsAtLeast12(request.LanguageVersion))
         {
             context.ReportDiagnostic(Diagnostic.Create(GeneratorDiagnostics.LanguageVersion, request.AttributeSpan.ToLocation(), request.LanguageVersion));
+            return;
+        }
+
+        if (request.Surface == GenerationSurface.Views && !request.Views)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(GeneratorDiagnostics.SurfaceNeedsViews, request.AttributeSpan.ToLocation(), request.ClassName));
             return;
         }
 

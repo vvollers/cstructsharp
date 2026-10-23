@@ -121,8 +121,20 @@ internal sealed partial class LayoutEmitter
         writer.Open(this.request.Accessibility + " static partial class " + this.request.ClassName);
         this.EmitFrame(writer);
         this.EmitTypes(writer);
-        this.EmitReaders(writer);
-        this.EmitWriters(writer);
+        if (this.request.Surface == GenerationSurface.Views)
+        {
+            this.EmitSettingConstants(writer);
+        }
+        else
+        {
+            this.EmitReaders(writer);
+        }
+
+        if (this.request.Surface == GenerationSurface.Full)
+        {
+            this.EmitWriters(writer);
+        }
+
         this.EmitOperations(writer);
         this.EmitViews(writer);
         writer.Close();
@@ -153,19 +165,43 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <summary>The layout text the members of this class were generated from.</summary>");
         writer.Line("public const string Definition = " + SourceWriter.Literal(this.definition) + ";");
         writer.Line();
-        writer.Line("/// <summary>The declaration the plain <see cref=\"Parse\"/> and <see cref=\"Serialize\"/> methods operate on.</summary>");
+        writer.Line(this.request.Surface switch
+        {
+            GenerationSurface.Full => "/// <summary>The declaration the plain <see cref=\"Parse\"/> and <see cref=\"Serialize\"/> methods operate on.</summary>",
+            GenerationSurface.Reader => "/// <summary>The declaration the plain <see cref=\"Parse\"/> methods operate on.</summary>",
+            _ => "/// <summary>The declaration whose view the generated <c>Offsets</c> constants describe.</summary>",
+        });
         writer.Line("public const string RootName = " + SourceWriter.Literal(this.rootName) + ";");
         writer.Line();
-        writer.Line("private static readonly global::System.Lazy<global::CStructSharp.CStruct> LayoutInstance = new(CreateLayout, global::System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);");
-        writer.Line();
-        writer.Line("/// <summary>The runtime <see cref=\"global::CStructSharp.CStruct\"/> for the same definition and options, built on first use: introspection, JSON, memory images, and the parity oracle.</summary>");
-        writer.Line("public static global::CStructSharp.CStruct Layout => LayoutInstance.Value;");
-        writer.Line();
+        if (this.request.Surface == GenerationSurface.Full)
+        {
+            this.EmitLayoutProperty(writer);
+        }
+
         if (this.request.Settings.Codecs.Count > 0)
         {
             this.EmitCodecInstances(writer);
         }
 
+        if (this.request.Surface == GenerationSurface.Full)
+        {
+            this.EmitCreateLayout(writer);
+        }
+    }
+
+    /// <summary>The lazily built runtime <c>CStruct</c> and the <c>Layout</c> property that exposes it (the full surface only).</summary>
+    private void EmitLayoutProperty(SourceWriter writer)
+    {
+        writer.Line("private static readonly global::System.Lazy<global::CStructSharp.CStruct> LayoutInstance = new(CreateLayout, global::System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);");
+        writer.Line();
+        writer.Line("/// <summary>The runtime <see cref=\"global::CStructSharp.CStruct\"/> for the same definition and options, built on first use: introspection, JSON, memory images, and the parity oracle.</summary>");
+        writer.Line("public static global::CStructSharp.CStruct Layout => LayoutInstance.Value;");
+        writer.Line();
+    }
+
+    /// <summary>The method that builds the runtime <c>CStruct</c> with the attribute's options (the full surface only).</summary>
+    private void EmitCreateLayout(SourceWriter writer)
+    {
         writer.Open("private static global::CStructSharp.CStruct CreateLayout()");
         writer.Line("var options = new global::CStructSharp.CStructCompilationOptions");
         writer.Line("{");

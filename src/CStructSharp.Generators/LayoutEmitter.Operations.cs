@@ -19,7 +19,8 @@ internal sealed partial class LayoutEmitter
     private void EmitOperations(SourceWriter writer)
     {
         GeneratedComposite? root = this.model.Composites.FirstOrDefault(composite => composite.LayoutName == this.rootName);
-        if (root is not null)
+        bool full = this.request.Surface == GenerationSurface.Full;
+        if (root is not null && full)
         {
             this.EmitGeneratedInterface(writer, root);
             this.EmitPathOperations(writer, root);
@@ -31,7 +32,10 @@ internal sealed partial class LayoutEmitter
             var paths = new List<StaticMember>();
             CollectStaticMembers(root, string.Empty, 0, paths, 0);
             this.EmitOffsets(writer, root, paths);
-            this.EmitUpdateSetters(writer, root, paths);
+            if (full)
+            {
+                this.EmitUpdateSetters(writer, root, paths);
+            }
         }
     }
 

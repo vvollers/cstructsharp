@@ -74,5 +74,9 @@ public sealed class CStructLayoutAttribute : Attribute
     public bool KeepNames { get; set; }
 
     /// <summary>Gets or sets whether a zero-allocation <c>ref struct</c> view is generated per composite.</summary>
+    /// <remarks>It must stay <see langword="true"/> with <see cref="GeneratedSurface.Views"/>, whose only output is the views.</remarks>
     public bool Views { get; set; } = true;
+
+    /// <summary>Gets or sets how much code is generated; the default, <see cref="GeneratedSurface.Full"/>, generates everything.</summary>
+    public GeneratedSurface Surface { get; set; } = GeneratedSurface.Full;
 }

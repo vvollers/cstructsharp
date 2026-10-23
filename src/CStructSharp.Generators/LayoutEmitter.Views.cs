@@ -42,8 +42,17 @@ internal sealed partial class LayoutEmitter
         int? size = composite.Composite.Symbol.FixedSize;
         writer.Line("/// <summary>");
         writer.Line("///     A zero-allocation view of one <c>" + composite.LayoutName + "</c> over its bytes: each statically placed member decodes");
-        writer.Line("///     directly from the span when read; a member the view does not expose (runtime-sized, conditional, or placed after one)");
-        writer.Line("///     is reached through <see cref=\"ToObject\"/>. A view cannot leave the method that created it.");
+        if (this.request.Surface == GenerationSurface.Views)
+        {
+            writer.Line("///     directly from the span when read; a member the view does not expose (conditional, or placed after a member of unknown size)");
+            writer.Line("///     is not available with this surface. A view cannot leave the method that created it.");
+        }
+        else
+        {
+            writer.Line("///     directly from the span when read; a member the view does not expose (runtime-sized, conditional, or placed after one)");
+            writer.Line("///     is reached through <see cref=\"ToObject\"/>. A view cannot leave the method that created it.");
+        }
+
         writer.Line("/// </summary>");
         writer.Open("public readonly ref struct " + name);
         writer.Line("private readonly global::System.ReadOnlySpan<byte> source;");
@@ -51,7 +60,7 @@ internal sealed partial class LayoutEmitter
         writer.Line();
         writer.Line("/// <summary>Creates a view over <paramref name=\"source\"/>, whose first byte is the value's first byte" + (size is not null ? "; the source must hold the value's " + Int(size.Value) + " bytes" : string.Empty) + ".</summary>");
         writer.Line("/// <param name=\"source\">The bytes, from the value's start; more may follow (pointer targets, the rest of the input).</param>");
-        writer.Line("/// <param name=\"options\">The read options <see cref=\"ToObject\"/> uses; <see langword=\"null\"/> uses the documented defaults.</param>");
+        writer.Line("/// <param name=\"options\">The read options " + (this.request.Surface == GenerationSurface.Views ? "text members use" : "<see cref=\"ToObject\"/> uses") + "; <see langword=\"null\"/> uses the documented defaults.</param>");
         writer.Open("public " + name + "(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null)");
         if (size is { } fixedSize)
         {
@@ -85,6 +94,34 @@ internal sealed partial class LayoutEmitter
             this.EmitViewMember(writer, composite, member);
         }
 
+        if (this.request.Surface != GenerationSurface.Views)
+        {
+            this.EmitViewToObject(writer, composite);
+        }
+
+        if (size is { } stride && this.request.Surface == GenerationSurface.Full)
+        {
+            writer.Line();
+            writer.Line("/// <summary>Views over the records of <paramref name=\"source\"/> - one <c>" + composite.LayoutName + "</c> of " + Int(stride) + " bytes after another until the source ends - for <c>foreach</c>, allocating nothing. Trailing bytes shorter than one record fail on the step that meets them; each record is its own region (a stored absolute pointer address counts from the record's first byte).</summary>");
+            writer.Line("/// <param name=\"source\">The bytes of the records, with nothing else after them.</param>");
+            writer.Line("/// <param name=\"options\">The read options each view's " + (this.request.Surface == GenerationSurface.Views ? "text members use" : "<see cref=\"ToObject\"/> uses") + "; <see langword=\"null\"/> uses the documented defaults.</param>");
+            writer.Line("/// <returns>The enumeration.</returns>");
+            writer.Line("public static " + name + "Enumerable Enumerate(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null) => new " + name + "Enumerable(source, options);");
+        }
+
+        writer.Close();
+        if (size is { } recordSize && this.request.Surface == GenerationSurface.Full)
+        {
+            this.EmitViewEnumerator(writer, composite, recordSize);
+        }
+    }
+
+    /// <summary>Emits <c>ToObject()</c>, which reads the whole value with the generated reader (every surface except <c>Views</c>).</summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="composite">The composite.</param>
+    private void EmitViewToObject(SourceWriter writer, GeneratedComposite composite)
+    {
+        string layout = SourceWriter.Literal(composite.LayoutName);
         writer.Line();
         writer.Line("/// <summary>Reads the whole value with the generated reader (every member, runtime-sized ones included).</summary>");
         writer.Line(VariablesDoc);
@@ -99,21 +136,6 @@ internal sealed partial class LayoutEmitter
         writer.Line("throw;");
         writer.Close();
         writer.Close();
-        if (size is { } stride)
-        {
-            writer.Line();
-            writer.Line("/// <summary>Views over the records of <paramref name=\"source\"/> - one <c>" + composite.LayoutName + "</c> of " + Int(stride) + " bytes after another until the source ends - for <c>foreach</c>, allocating nothing. Trailing bytes shorter than one record fail on the step that meets them; each record is its own region (a stored absolute pointer address counts from the record's first byte).</summary>");
-            writer.Line("/// <param name=\"source\">The bytes of the records, with nothing else after them.</param>");
-            writer.Line("/// <param name=\"options\">The read options each view's <see cref=\"ToObject\"/> uses; <see langword=\"null\"/> uses the documented defaults.</param>");
-            writer.Line("/// <returns>The enumeration.</returns>");
-            writer.Line("public static " + name + "Enumerable Enumerate(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null) => new " + name + "Enumerable(source, options);");
-        }
-
-        writer.Close();
-        if (size is { } recordSize)
-        {
-            this.EmitViewEnumerator(writer, composite, recordSize);
-        }
     }
 
     /// <summary>

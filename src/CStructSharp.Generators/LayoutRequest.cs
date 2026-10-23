@@ -28,6 +28,7 @@ internal sealed record LayoutRequest(
     LayoutSettings Settings,
     bool KeepNames,
     bool Views,
+    GenerationSurface Surface,
     SourceSpan AttributeSpan,
     SourceSpan? DefinitionSpan,
     DefinitionLiteralShape DefinitionLiteral,
