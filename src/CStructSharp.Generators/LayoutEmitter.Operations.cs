@@ -16,6 +16,8 @@ using static CStructSharp.Generators.Emit;
 /// </summary>
 internal sealed partial class LayoutEmitter
 {
+    /// <summary>Emits the operations the surface keeps: the full surface's interface, path operations and setters, and every surface's constants.</summary>
+    /// <param name="writer">The output.</param>
     private void EmitOperations(SourceWriter writer)
     {
         GeneratedComposite? root = this.model.Composites.FirstOrDefault(composite => composite.LayoutName == this.rootName);

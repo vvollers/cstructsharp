@@ -8,6 +8,8 @@ using static CStructSharp.Generators.Emit;
 /// <summary>The types: one C# enum per layout enum, one class per struct or union, properties typed per §1.4.</summary>
 internal sealed partial class LayoutEmitter
 {
+    /// <summary>Emits the layout's enums, and the class of every struct and union unless the surface is views only.</summary>
+    /// <param name="writer">The output.</param>
     private void EmitTypes(SourceWriter writer)
     {
         foreach (GeneratedEnum generatedEnum in this.model.Enums)

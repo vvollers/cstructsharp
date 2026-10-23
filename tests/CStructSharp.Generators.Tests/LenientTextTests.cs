@@ -48,6 +48,10 @@ public class LenientTextTests
         assembly = GeneratorRunner.Run(Consumer).AssertClean().Load();
     }
 
+    /// <summary>Reads the root with the generated reader and unwraps a failure it throws.</summary>
+    /// <param name="bytes">The input.</param>
+    /// <param name="options">The read options.</param>
+    /// <returns>The parsed root.</returns>
     private static object Parse(byte[] bytes, ReadOptions? options)
     {
         MethodInfo parse = assembly.GetType("Demo.TextLayout")!.GetMethods().Single(method => method.Name == "Parse" && method.GetParameters()[0].ParameterType == typeof(byte[]));

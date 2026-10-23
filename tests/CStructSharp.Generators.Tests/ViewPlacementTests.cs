@@ -139,6 +139,9 @@ public class ViewPlacementTests
         }
     }
 
+    /// <summary>The runtime layout of a generated class.</summary>
+    /// <param name="layout">The class name without its <c>Layout</c> suffix.</param>
+    /// <returns>The runtime layout.</returns>
     private static CStruct Runtime(string layout) => (CStruct)assembly.GetType("Demo." + layout + "Layout")!.GetProperty("Layout")!.GetValue(null)!;
 
     /// <summary>The generated reader's value of a layout's root, as a dynamic bag of properties.</summary>
@@ -156,6 +159,10 @@ public class ViewPlacementTests
         }
     }
 
+    /// <summary>Reads a property of a generated object by name.</summary>
+    /// <param name="value">The object.</param>
+    /// <param name="name">The property name.</param>
+    /// <returns>The property value.</returns>
     private static object Property(object value, string name) => value.GetType().GetProperty(name)!.GetValue(value)!;
 
     /// <summary>Members after a runtime-sized array read at the computed offset, and the array reads by count, element, and bulk copy.</summary>

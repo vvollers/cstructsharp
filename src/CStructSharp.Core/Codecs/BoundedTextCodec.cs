@@ -103,8 +103,16 @@ internal static partial class BoundedTextCodec
         return index >= 0 ? (byte)(index + 128) : throw new EncoderFallbackException("Character is not representable in CP437.");
     }
 
+    /// <summary>The strict encoding of a bounded text type.</summary>
+    /// <param name="type">The text type spelling that selects the encoding.</param>
+    /// <returns>The encoding, which throws on invalid text.</returns>
     private static Encoding GetEncoding(string type) => GetEncoding(type, lenient: false);
 
+    /// <summary>The encoding of a bounded text type, strict or reading each invalid sequence as U+FFFD.</summary>
+    /// <param name="type">The text type spelling that selects the encoding.</param>
+    /// <param name="lenient">Whether invalid sequences become U+FFFD instead of throwing.</param>
+    /// <returns>The shared encoding instance.</returns>
+    /// <exception cref="ArgumentException">The type spelling is not a bounded text type.</exception>
     private static Encoding GetEncoding(string type, bool lenient) => type switch
     {
         "utf8" => lenient ? PrimitiveCodecs.LenientUtf8Encoding : PrimitiveCodecs.StrictUtf8Encoding,
