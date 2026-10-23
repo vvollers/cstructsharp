@@ -233,10 +233,11 @@ internal interface IReadCursor
     /// <summary>Reads a byte-counted text field through the shared reader in <see cref="PrimitiveCodecs"/>.</summary>
     /// <param name="byteCount">The field's extent in bytes.</param>
     /// <param name="type">The bounded-text type spelling, such as <c>utf8</c>.</param>
+    /// <param name="lenient">Whether invalid text is read as U+FFFD instead of failing (<see cref="ReadOptions.InvalidText"/>).</param>
     /// <returns>The decoded text.</returns>
     /// <exception cref="CStructReadException">The input ends early or the bytes are invalid text.</exception>
     /// <exception cref="CStructReadLimitException">The extent or the total exceeds its budget.</exception>
-    string ReadBoundedText(int byteCount, string type);
+    string ReadBoundedText(int byteCount, string type, bool lenient);
 
     /// <summary>Writes the final position back to a caller's stream that the cursor reads from memory; otherwise nothing.</summary>
     void FlushPosition();

@@ -466,7 +466,7 @@ internal static partial class ReadEngine
                 case ReadOpCode.ReadCharacter:
                 case ReadOpCode.ReadWideCharacter:
                 case ReadOpCode.ReadTerminatedText:
-                    last = ReadCodecValue(ref cursor, program.Codecs[step.A].Primitive, scratch);
+                    last = ReadCodecValue(ref cursor, program.Codecs[step.A].Primitive, scratch, state.LenientText);
                     Store(destination, program, field, last);
                     break;
 
@@ -484,7 +484,7 @@ internal static partial class ReadEngine
                     break;
 
                 case ReadOpCode.ReadCodecArray:
-                    Store(destination, program, field, ReadCodecArray(ref cursor, program.Codecs[step.A].Primitive, count, scratch));
+                    Store(destination, program, field, ReadCodecArray(ref cursor, program.Codecs[step.A].Primitive, count, scratch, state.LenientText));
                     break;
 
                 case ReadOpCode.ReadCharArray:
@@ -539,7 +539,7 @@ internal static partial class ReadEngine
                     break;
 
                 case ReadOpCode.ReadBoundedText:
-                    Store(destination, program, field, state.FixedText(cursor.ReadBoundedText(count, program.Fields[field].TypeSpelling)));
+                    Store(destination, program, field, state.FixedText(cursor.ReadBoundedText(count, program.Fields[field].TypeSpelling, state.LenientText)));
                     break;
 
                 case ReadOpCode.ReadEnumArray:

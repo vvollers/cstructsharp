@@ -210,7 +210,7 @@ internal static partial class ReadEngine
             // A debug read records the target's members under the target's path, `value` after the pointer's.
             return state.Debug is { } debug ? ReadRecordedPointerComposite(ref cursor, ref state, target, debug.Target) : ReadPointerComposite(ref cursor, ref state, target);
         case ReadPointerTargetKind.Terminated:
-            return ReadCodecValue(ref cursor, target.Codec.Primitive, scratch);
+            return ReadCodecValue(ref cursor, target.Codec.Primitive, scratch, state.LenientText);
         case ReadPointerTargetKind.Value:
             return ReadTargetCodecValue(ref cursor, ref state, target, "Compiled pointer target has no reader: ", scratch);
         case ReadPointerTargetKind.NoReader:
@@ -236,7 +236,7 @@ internal static partial class ReadEngine
     {
         if (!target.Codec.Primitive.IsCustom)
         {
-            return ReadCodecValue(ref cursor, target.Codec.Primitive, scratch);
+            return ReadCodecValue(ref cursor, target.Codec.Primitive, scratch, state.LenientText);
         }
 
         return cursor.ReadCustom(state.Layout.Codecs.CustomCodecOf(target.Codec.CodecId)) ??
@@ -309,7 +309,7 @@ internal static partial class ReadEngine
                 CompiledField element = target.Element!;
                 if (element.IsWideCharElement)
                 {
-                    PrimitiveCodecs.ValidateWideText(text, state.Layout.GetWideCharacterEncoding(element));
+                    text = PrimitiveCodecs.CheckWideText(text, state.Layout.GetWideCharacterEncoding(element), state.LenientText);
                 }
 
                 return text;

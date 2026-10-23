@@ -132,7 +132,7 @@ internal readonly struct StreamReadCursor : IReadCursor
     public string ReadTerminatedString(Encoding encoding, char terminator) => PrimitiveCodecs.ReadIntoString(this.stream, encoding, terminator);
 
     /// <inheritdoc/>
-    public string ReadBoundedText(int byteCount, string type) => PrimitiveCodecs.ReadBoundedText(this.stream, byteCount, type);
+    public string ReadBoundedText(int byteCount, string type, bool lenient) => PrimitiveCodecs.ReadBoundedText(this.stream, byteCount, type, lenient);
 
     /// <inheritdoc/>
     public void FlushPosition() => this.stream.FlushPosition();

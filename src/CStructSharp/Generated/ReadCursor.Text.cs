@@ -60,7 +60,7 @@ public ref partial struct ReadCursor
         string text;
         try
         {
-            text = Codec.DecodeWideCharacters(bytes, littleEndian);
+            text = Codec.DecodeWideCharacters(bytes, littleEndian, this.settings.LenientText);
         }
         catch (CStructReadException exception)
         {
@@ -81,7 +81,7 @@ public ref partial struct ReadCursor
         ReadOnlySpan<byte> bytes = this.TakeBoundedText(count, member, memberType);
         try
         {
-            return Codec.DecodeBoundedText(bytes, encoding, this.settings.TrimFixedText);
+            return Codec.DecodeBoundedText(bytes, encoding, this.settings.TrimFixedText, this.settings.LenientText);
         }
         catch (CStructReadException exception)
         {
@@ -109,7 +109,7 @@ public ref partial struct ReadCursor
         // (PrimitiveCodecs.TryReadWholeTerminated, shared with the engine's memory cursor); any other string goes chunk by
         // chunk, which reports its failure.
         const int Chunk = Codecs.PrimitiveCodecs.TerminatedStringReadChunkSize;
-        System.Text.Encoding strict = Codecs.PrimitiveCodecs.StrictEncodingOf(encoding);
+        System.Text.Encoding strict = this.settings.LenientText ? Codecs.PrimitiveCodecs.LenientEncodingOf(encoding) : Codecs.PrimitiveCodecs.StrictEncodingOf(encoding);
         int unitSize = encoding is TerminatedTextEncoding.Utf16LittleEndian or TerminatedTextEncoding.Utf16BigEndian ? 2 : 1;
         Span<byte> terminatorBytes = stackalloc byte[4];
         int terminatorLength = Codecs.PrimitiveCodecs.EncodeTerminator(strict, terminator, terminatorBytes);

@@ -278,7 +278,7 @@ internal static class CursorDifferential
         case CursorOperation.Terminated:
             return Quote(cursor.ReadTerminatedString(TerminatedForms[step.A].Encoding, TerminatedForms[step.A].Terminator));
         case CursorOperation.Bounded:
-            return Quote(cursor.ReadBoundedText(step.A, BoundedTypes[step.B]));
+            return Quote(cursor.ReadBoundedText(step.A, BoundedTypes[step.B], false));
         case CursorOperation.IsShortBy:
             return cursor.IsShortBy(step.A) ? "short" : "not short";
         case CursorOperation.SpanWithinBudget:

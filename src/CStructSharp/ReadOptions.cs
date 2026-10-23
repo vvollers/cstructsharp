@@ -117,6 +117,17 @@ public sealed record ReadOptions
     public bool TrimFixedText { get; init; }
 
     /// <summary>
+    ///     Gets what a read does with text that is not valid in its encoding: <see cref="InvalidTextHandling.Fail"/>
+    ///     (the default) reports the field, <see cref="InvalidTextHandling.Replace"/> reads each invalid sequence as
+    ///     U+FFFD and continues. It applies to <c>utf8</c> and UTF-16 buffers, <c>wchar[N]</c>, and terminated strings;
+    ///     see <see cref="InvalidTextHandling"/>. Writing is unaffected: text that cannot be encoded still fails.
+    /// </summary>
+    public InvalidTextHandling InvalidText { get; init; }
+
+    /// <summary>Gets whether invalid text is replaced instead of failing, as the readers test it.</summary>
+    internal bool LenientText => this.InvalidText == InvalidTextHandling.Replace;
+
+    /// <summary>
     ///     Gets the signed base position added with checked arithmetic to non-null relative pointer offsets
     ///     before their target stream range is validated.
     /// </summary>

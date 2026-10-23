@@ -793,15 +793,16 @@ public static class Codec
     /// <param name="source">The buffer's bytes.</param>
     /// <param name="encoding">The layout's encoding name.</param>
     /// <param name="trimTrailingNuls">Whether to apply <c>ReadOptions.TrimFixedText</c>.</param>
+    /// <param name="lenient">Whether invalid text is read as U+FFFD instead of failing (<c>ReadOptions.InvalidText</c>).</param>
     /// <returns>The decoded value.</returns>
-    /// <exception cref="CStructReadException">The bytes are not valid in the encoding.</exception>
-    internal static string DecodeBoundedText(ReadOnlySpan<byte> source, string encoding, bool trimTrailingNuls)
+    /// <exception cref="CStructReadException">The bytes are not valid in the encoding and <paramref name="lenient"/> is false.</exception>
+    internal static string DecodeBoundedText(ReadOnlySpan<byte> source, string encoding, bool trimTrailingNuls, bool lenient = false)
     {
         ArgumentNullException.ThrowIfNull(encoding);
         string text;
         try
         {
-            text = BoundedTextCodec.Decode(encoding, source);
+            text = BoundedTextCodec.Decode(encoding, source, lenient);
         }
         catch (System.Text.DecoderFallbackException exception)
         {
@@ -859,19 +860,25 @@ public static class Codec
     /// <exception cref="CStructReadException">The code units are not valid UTF-16.</exception>
     public static string DecodeWideText(ReadOnlySpan<byte> source, bool littleEndian, ReadOptions? options)
     {
-        string text = DecodeWideCharacters(source, littleEndian);
+        string text = DecodeWideCharacters(source, littleEndian, options?.LenientText ?? false);
         return TrimsFixedText(options) ? text.TrimEnd('\0') : text;
     }
 
     /// <summary>Decodes complete wide-character units directly on success, retaining the original encoder failure for invalid UTF-16.</summary>
     /// <param name="source">Borrowed code-unit bytes; an unmatched final byte is ignored, as by <see cref="DecodeWideText"/>.</param>
     /// <param name="littleEndian">The code units' byte order.</param>
+    /// <param name="lenient">Whether an unpaired surrogate is read as U+FFFD instead of failing.</param>
     /// <returns>The owned, validated characters, including trailing NULs.</returns>
     /// <exception cref="CStructReadException">A code-unit sequence is invalid; the inner exception is the original encoder failure.</exception>
-    internal static string DecodeWideCharacters(ReadOnlySpan<byte> source, bool littleEndian)
+    internal static string DecodeWideCharacters(ReadOnlySpan<byte> source, bool littleEndian, bool lenient = false)
     {
         System.Text.Encoding encoding = littleEndian ? PrimitiveCodecs.StrictUtf16LittleEndianEncoding : PrimitiveCodecs.StrictUtf16BigEndianEncoding;
         source = source[..(source.Length / 2 * 2)];
+        if (lenient)
+        {
+            return (littleEndian ? PrimitiveCodecs.LenientUtf16LittleEndianEncoding : PrimitiveCodecs.LenientUtf16BigEndianEncoding).GetString(source);
+        }
+
         try
         {
             return encoding.GetString(source);

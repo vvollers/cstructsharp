@@ -146,7 +146,7 @@ internal static partial class ReadEngine
         case ReadOpCode.DebugBoundedText:
             {
                 long start = cursor.Position;
-                string text = state.FixedText(cursor.ReadBoundedText(count, program.Fields[field].TypeSpelling));
+                string text = state.FixedText(cursor.ReadBoundedText(count, program.Fields[field].TypeSpelling, state.LenientText));
                 debug.Record(start, cursor.Position, debug.Member, text, program.Fields[field].DisplayTypeSpelling);
                 Store(destination, program, field, text);
                 return last;
@@ -177,7 +177,7 @@ internal static partial class ReadEngine
             {
                 CompiledField member = program.Fields[field];
                 string text = state.FixedText(new string(RecordCharacters(ref cursor, debug, member, program.Codecs[step.A].Primitive, count, scratch)));
-                PrimitiveCodecs.ValidateWideText(text, state.Layout.GetWideCharacterEncoding(member));
+                text = PrimitiveCodecs.CheckWideText(text, state.Layout.GetWideCharacterEncoding(member), state.LenientText);
                 Store(destination, program, field, text);
                 return last;
             }
@@ -686,7 +686,7 @@ internal static partial class ReadEngine
             string text = state.FixedText(new string(characters, start, rowSize));
             if (member.IsWideCharElement)
             {
-                PrimitiveCodecs.ValidateWideText(text, state.Layout.GetWideCharacterEncoding(member));
+                text = PrimitiveCodecs.CheckWideText(text, state.Layout.GetWideCharacterEncoding(member), state.LenientText);
             }
 
             rows.Add(text);

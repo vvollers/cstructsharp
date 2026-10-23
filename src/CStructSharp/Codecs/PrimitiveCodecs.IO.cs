@@ -36,6 +36,17 @@ internal static partial class PrimitiveCodecs
         _ => StrictUtf16BigEndianEncoding,
     };
 
+    /// <summary>The shared lenient encoding of a terminated-text kind, which reads each invalid sequence as U+FFFD.</summary>
+    /// <param name="encoding">The terminated-text encoding kind.</param>
+    /// <returns>The shared immutable encoding instance.</returns>
+    public static Encoding LenientEncodingOf(TerminatedTextEncoding encoding) => encoding switch
+    {
+        TerminatedTextEncoding.Ascii => LenientAsciiEncoding,
+        TerminatedTextEncoding.Utf8 => LenientUtf8Encoding,
+        TerminatedTextEncoding.Utf16LittleEndian => LenientUtf16LittleEndianEncoding,
+        _ => LenientUtf16BigEndianEncoding,
+    };
+
     /// <summary>
     ///     Encodes a terminated string's terminator: an ASCII terminator directly (one byte, or one UTF-16 code unit in the
     ///     encoding's byte order), any other through the strict encoding.
@@ -118,6 +129,42 @@ internal static partial class PrimitiveCodecs
         return true;
     }
 
+    /// <summary>
+    ///     Applies the text policy to decoded wide characters: with <paramref name="lenient"/> each unpaired surrogate becomes
+    ///     U+FFFD; otherwise the text is validated and a lone surrogate fails.
+    /// </summary>
+    /// <param name="text">The decoded text.</param>
+    /// <param name="strictEncoding">A strict UTF-16 encoding, which throws on an invalid sequence.</param>
+    /// <param name="lenient">Whether invalid sequences are replaced instead of failing.</param>
+    /// <returns>The text, with unpaired surrogates replaced when <paramref name="lenient"/>.</returns>
+    /// <exception cref="CStructReadException">The text is not valid UTF-16 and <paramref name="lenient"/> is false.</exception>
+    public static string CheckWideText(string text, Encoding strictEncoding, bool lenient)
+    {
+        if (!lenient)
+        {
+            ValidateWideText(text, strictEncoding);
+            return text;
+        }
+
+        char[]? replaced = null;
+        for (int index = 0; index < text.Length; index++)
+        {
+            char current = text[index];
+            bool paired = char.IsHighSurrogate(current) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1]);
+            if (paired)
+            {
+                index++;
+            }
+            else if (char.IsSurrogate(current))
+            {
+                replaced ??= text.ToCharArray();
+                replaced[index] = '\uFFFD';
+            }
+        }
+
+        return replaced is null ? text : new string(replaced);
+    }
+
     /// <summary>Checks that decoded wide characters form valid UTF-16 (no unpaired surrogate), as every read requires.</summary>
     /// <param name="text">The decoded text.</param>
     /// <param name="strictEncoding">A strict UTF-16 encoding, which throws on an invalid sequence.</param>
@@ -138,15 +185,16 @@ internal static partial class PrimitiveCodecs
     /// <param name="stream">The source stream, positioned at the first text byte.</param>
     /// <param name="byteCount">The fixed extent in bytes (not characters) to read and decode.</param>
     /// <param name="type">The bounded-text codec name that selects the decoding, such as <c>utf8</c>.</param>
+    /// <param name="lenient">Whether invalid text is read as U+FFFD instead of failing (<c>ReadOptions.InvalidText</c>).</param>
     /// <returns>The decoded text, including any embedded NUL characters.</returns>
     /// <exception cref="CStructReadLimitException">
     ///     <paramref name="byteCount"/> exceeds the per-string byte budget of a <see cref="ReadBudgetStream"/>.
     /// </exception>
     /// <exception cref="CStructReadException">The stream ends early or the bytes are invalid text.</exception>
-    public static string ReadBoundedText(Stream stream, int byteCount, string type)
+    public static string ReadBoundedText(Stream stream, int byteCount, string type, bool lenient = false)
     {
         var source = new StreamTextSource(stream);
-        return ReadBoundedText(ref source, byteCount, type);
+        return ReadBoundedText(ref source, byteCount, type, lenient);
     }
 
     /// <summary>
@@ -157,10 +205,11 @@ internal static partial class PrimitiveCodecs
     /// <param name="source">The source, positioned at the first text byte; it advances past the bytes read.</param>
     /// <param name="byteCount">The fixed extent in bytes (not characters) to read and decode.</param>
     /// <param name="type">The bounded-text codec name that selects the decoding, such as <c>utf8</c>.</param>
+    /// <param name="lenient">Whether invalid text is read as U+FFFD instead of failing (<c>ReadOptions.InvalidText</c>).</param>
     /// <returns>The decoded text, including any embedded NUL characters.</returns>
     /// <exception cref="CStructReadLimitException"><paramref name="byteCount"/> exceeds the source's string limit.</exception>
     /// <exception cref="CStructReadException">The source ends early or the bytes are invalid text.</exception>
-    public static string ReadBoundedText<TSource>(ref TSource source, int byteCount, string type)
+    public static string ReadBoundedText<TSource>(ref TSource source, int byteCount, string type, bool lenient = false)
         where TSource : struct, ITextReadSource
     {
         if (source.StringByteLimit is long limit && byteCount > limit)
@@ -172,7 +221,7 @@ internal static partial class PrimitiveCodecs
         try
         {
             source.ReadExactly(bytes);
-            return BoundedTextCodec.Decode(type, bytes);
+            return BoundedTextCodec.Decode(type, bytes, lenient);
         }
         catch (EndOfStreamException exception)
         {

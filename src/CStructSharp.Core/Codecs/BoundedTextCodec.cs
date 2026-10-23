@@ -27,11 +27,19 @@ internal static partial class BoundedTextCodec
     /// <param name="bytes">The field's complete bytes, including any padding or terminator bytes.</param>
     /// <returns>The decoded text; any BOM and embedded NUL characters are kept.</returns>
     /// <exception cref="DecoderFallbackException">The bytes are not valid in the strict encoding.</exception>
-    public static string Decode(string type, byte[] bytes)
+    public static string Decode(string type, byte[] bytes) => Decode(type, bytes, lenient: false);
+
+    /// <summary>Decodes a complete field, reading invalid sequences as U+FFFD instead of failing when <paramref name="lenient"/>.</summary>
+    /// <param name="type">The text type spelling that selects the encoding.</param>
+    /// <param name="bytes">The field's complete bytes, including any padding or terminator bytes.</param>
+    /// <param name="lenient">Whether invalid sequences become U+FFFD.</param>
+    /// <returns>The decoded text; any BOM and embedded NUL characters are kept.</returns>
+    /// <exception cref="DecoderFallbackException">The bytes are invalid and <paramref name="lenient"/> is false.</exception>
+    public static string Decode(string type, byte[] bytes, bool lenient)
     {
         if (type != "cp437")
         {
-            return GetEncoding(type).GetString(bytes);
+            return GetEncoding(type, lenient).GetString(bytes);
         }
 
         var chars = new char[bytes.Length];
@@ -95,12 +103,14 @@ internal static partial class BoundedTextCodec
         return index >= 0 ? (byte)(index + 128) : throw new EncoderFallbackException("Character is not representable in CP437.");
     }
 
-    private static Encoding GetEncoding(string type) => type switch
+    private static Encoding GetEncoding(string type) => GetEncoding(type, lenient: false);
+
+    private static Encoding GetEncoding(string type, bool lenient) => type switch
     {
-        "utf8" => PrimitiveCodecs.StrictUtf8Encoding,
+        "utf8" => lenient ? PrimitiveCodecs.LenientUtf8Encoding : PrimitiveCodecs.StrictUtf8Encoding,
         "latin1" => Latin1,
-        "utf16le" => PrimitiveCodecs.StrictUtf16LittleEndianEncoding,
-        "utf16be" => PrimitiveCodecs.StrictUtf16BigEndianEncoding,
+        "utf16le" => lenient ? PrimitiveCodecs.LenientUtf16LittleEndianEncoding : PrimitiveCodecs.StrictUtf16LittleEndianEncoding,
+        "utf16be" => lenient ? PrimitiveCodecs.LenientUtf16BigEndianEncoding : PrimitiveCodecs.StrictUtf16BigEndianEncoding,
         _ => throw new ArgumentException("Unknown bounded text encoding.", nameof(type)),
     };
 }

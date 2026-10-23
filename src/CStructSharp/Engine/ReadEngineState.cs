@@ -44,6 +44,7 @@ internal struct ReadEngineState
         this.MaxArrayElements = options.MaxArrayElements;
         this.MaxNestingDepth = options.MaxNestingDepth;
         this.TrimFixedText = options.TrimFixedText;
+        this.LenientText = options.LenientText;
 
         // A debug parse takes no static read plan: every value is read, and recorded, alone.
         this.NoFastPaths = options.ExecutionPath == ExecutionPath.NoFastPaths || debug is not null;
@@ -80,6 +81,9 @@ internal struct ReadEngineState
 
     /// <summary>Gets whether fixed-capacity text drops its trailing NUL padding (<see cref="ReadOptions.TrimFixedText"/>).</summary>
     public bool TrimFixedText { get; }
+
+    /// <summary>Gets whether text that is invalid in its encoding is replaced instead of failing (<see cref="ReadOptions.InvalidText"/>).</summary>
+    public bool LenientText { get; }
 
     /// <summary>
     ///     Gets whether the read must avoid the static read plans and block reads

@@ -28,10 +28,11 @@ internal static partial class ReadEngine
     /// <param name="cursor">The operation's cursor.</param>
     /// <param name="codec">The value's codec.</param>
     /// <param name="scratch">A buffer of at least 16 bytes for fixed-size values.</param>
+    /// <param name="lenientText">Whether a terminated string with invalid text is read as U+FFFD instead of failing.</param>
     /// <returns>The decoded value.</returns>
     /// <exception cref="CStructReadException">The input ends early or holds an invalid value.</exception>
     /// <exception cref="CStructReadLimitException">The bytes exceed a budget.</exception>
-    internal static object ReadCodecValue<TCursor>(ref TCursor cursor, PrimitiveCodec codec, Span<byte> scratch)
+    internal static object ReadCodecValue<TCursor>(ref TCursor cursor, PrimitiveCodec codec, Span<byte> scratch, bool lenientText = false)
         where TCursor : struct, IReadCursor
     {
         bool littleEndian = codec.LittleEndian;
@@ -91,11 +92,15 @@ internal static partial class ReadEngine
         case PrimitiveCodecKind.SLeb128_64:
             return unchecked((long)ReadLeb128(ref cursor, 64, true));
         case PrimitiveCodecKind.TerminatedAscii:
-            return cursor.ReadTerminatedString(PrimitiveCodecs.StrictAsciiEncoding, codec.Terminator);
+            return cursor.ReadTerminatedString(lenientText ? PrimitiveCodecs.LenientAsciiEncoding : PrimitiveCodecs.StrictAsciiEncoding, codec.Terminator);
         case PrimitiveCodecKind.TerminatedUtf8:
-            return cursor.ReadTerminatedString(PrimitiveCodecs.StrictUtf8Encoding, codec.Terminator);
+            return cursor.ReadTerminatedString(lenientText ? PrimitiveCodecs.LenientUtf8Encoding : PrimitiveCodecs.StrictUtf8Encoding, codec.Terminator);
         case PrimitiveCodecKind.TerminatedUtf16:
-            return cursor.ReadTerminatedString(littleEndian ? PrimitiveCodecs.StrictUtf16LittleEndianEncoding : PrimitiveCodecs.StrictUtf16BigEndianEncoding, codec.Terminator);
+            return cursor.ReadTerminatedString(
+                lenientText
+                    ? (littleEndian ? PrimitiveCodecs.LenientUtf16LittleEndianEncoding : PrimitiveCodecs.LenientUtf16BigEndianEncoding)
+                    : (littleEndian ? PrimitiveCodecs.StrictUtf16LittleEndianEncoding : PrimitiveCodecs.StrictUtf16BigEndianEncoding),
+                codec.Terminator);
         default:
             if (!codec.IsFixedWidthNumeric)
             {
@@ -195,14 +200,15 @@ internal static partial class ReadEngine
     /// <param name="codec">The element codec.</param>
     /// <param name="count">The element count.</param>
     /// <param name="scratch">A buffer for fixed-size elements.</param>
+    /// <param name="lenientText">Whether terminated strings with invalid text are read as U+FFFD instead of failing.</param>
     /// <returns>The elements.</returns>
-    private static List<object?> ReadCodecArray<TCursor>(ref TCursor cursor, PrimitiveCodec codec, int count, Span<byte> scratch)
+    private static List<object?> ReadCodecArray<TCursor>(ref TCursor cursor, PrimitiveCodec codec, int count, Span<byte> scratch, bool lenientText)
         where TCursor : struct, IReadCursor
     {
         var elements = new List<object?>(count);
         for (int index = 0; index < count; index++)
         {
-            elements.Add(ReadCodecValue(ref cursor, codec, scratch));
+            elements.Add(ReadCodecValue(ref cursor, codec, scratch, lenientText));
         }
 
         return elements;
@@ -264,12 +270,11 @@ internal static partial class ReadEngine
         // must still consume and fail at the original code unit; physical streams retain their read callbacks.
         if (!state.NoFastPaths && count <= int.MaxValue / 2 && cursor.TryReadSpanWithinBudget(count * 2, out ReadOnlySpan<byte> bytes))
         {
-            return state.FixedText(Codec.DecodeWideCharacters(bytes, codec.LittleEndian));
+            return state.FixedText(Codec.DecodeWideCharacters(bytes, codec.LittleEndian, state.LenientText));
         }
 
         string text = state.FixedText(ReadCharacters(ref cursor, codec, count, scratch));
-        PrimitiveCodecs.ValidateWideText(text, state.Layout.GetWideCharacterEncoding(member));
-        return text;
+        return PrimitiveCodecs.CheckWideText(text, state.Layout.GetWideCharacterEncoding(member), state.LenientText);
     }
 
     /// <summary>

@@ -112,7 +112,7 @@ internal struct PlantedReadCursor : IReadCursor
     public string ReadTerminatedString(Encoding encoding, char terminator) => this.inner.ReadTerminatedString(encoding, terminator);
 
     /// <inheritdoc/>
-    public string ReadBoundedText(int byteCount, string type) => this.inner.ReadBoundedText(byteCount, type);
+    public string ReadBoundedText(int byteCount, string type, bool lenient) => this.inner.ReadBoundedText(byteCount, type, lenient);
 
     /// <inheritdoc/>
     public readonly void FlushPosition() => this.inner.FlushPosition();

@@ -24,6 +24,21 @@ internal static partial class PrimitiveCodecs
     /// <summary>Little-endian UTF-16 without a byte order mark that throws on invalid code units.</summary>
     public static readonly Encoding StrictUtf16LittleEndianEncoding = new UnicodeEncoding(false, false, true);
 
+    /// <summary>ASCII that reads each byte outside 0 to 127 as U+FFFD, for <c>ReadOptions.InvalidText = Replace</c>.</summary>
+    public static readonly Encoding LenientAsciiEncoding = Encoding.GetEncoding(
+        Encoding.ASCII.CodePage,
+        EncoderFallback.ExceptionFallback,
+        new DecoderReplacementFallback("\uFFFD"));
+
+    /// <summary>UTF-8 without a byte order mark that reads each invalid byte sequence as U+FFFD.</summary>
+    public static readonly Encoding LenientUtf8Encoding = new UTF8Encoding(false, false);
+
+    /// <summary>Big-endian UTF-16 without a byte order mark that reads each unpaired surrogate as U+FFFD.</summary>
+    public static readonly Encoding LenientUtf16BigEndianEncoding = new UnicodeEncoding(true, false, false);
+
+    /// <summary>Little-endian UTF-16 without a byte order mark that reads each unpaired surrogate as U+FFFD.</summary>
+    public static readonly Encoding LenientUtf16LittleEndianEncoding = new UnicodeEncoding(false, false, false);
+
     /// <summary>Returns whether a primitive handler consumes bytes until a terminator instead of having a fixed footprint.</summary>
     /// <param name="typeName">The resolved primitive type name, such as <c>cstring</c> or <c>uint32</c>.</param>
     /// <returns><see langword="true"/> for a zero- or newline-terminated string codec.</returns>

@@ -21,7 +21,8 @@ internal readonly record struct ReadOperationSettings(
     bool TrimFixedText = false,
     System.Threading.CancellationToken CancellationToken = default,
     ExecutionPath ExecutionPath = ExecutionPath.Fastest,
-    long ContinuedInputLength = Streams.BufferedInput.WholeInput)
+    long ContinuedInputLength = Streams.BufferedInput.WholeInput,
+    bool LenientText = false)
 {
     // MaxPointerTargetBytes is stored as a value and a flag rather than a long? (16 bytes with padding): the flag packs
     // beside the bool members, which keeps the struct - copied into every read's state and cursor - at the 72 bytes it
@@ -99,7 +100,8 @@ internal readonly record struct ReadOperationSettings(
             options.TrimFixedText,
             options.CancellationToken,
             options.ExecutionPath,
-            options.ContinuedInputLength);
+            options.ContinuedInputLength,
+            options.LenientText);
     }
 
     /// <summary>Maps already-snapshotted update traversal choices into the same read operation settings.</summary>
