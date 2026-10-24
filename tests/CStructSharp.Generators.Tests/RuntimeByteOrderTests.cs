@@ -223,6 +223,7 @@ public class RuntimeByteOrderTests
     public void DynamicLayout_ReadsBothOrdersLikeTheRuntime(bool little)
     {
         Encoding utf16 = little ? Encoding.Unicode : Encoding.BigEndianUnicode;
+
         // The bytes of a 16-bit and a 32-bit number in the byte order under test.
         byte[] Number16(ushort value) => little ? [(byte)value, (byte)(value >> 8)] : [(byte)(value >> 8), (byte)value];
         byte[] Number32(uint value) => little ? [(byte)value, (byte)(value >> 8), (byte)(value >> 16), (byte)(value >> 24)] : [(byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value];
