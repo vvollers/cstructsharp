@@ -43,7 +43,7 @@ internal sealed partial class LayoutEmitter
     {
         // Alignment only constrains the start in an aligned layout; a packed layout places members by size alone.
         writer.Open("if (cursor.TryTakeFixed(" + Int(plan.Size) + ", " + Int(this.request.Settings.Aligned ? plan.Alignment : 1) + ", " + plan.ChargedBytes.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", " + Int(plan.NestingLevels) + ", " + Int(plan.MaximumArrayCount) + ", out global::System.ReadOnlySpan<byte> fixedBytes))");
-        writer.Line("return Read" + composite.Name + "Fixed(fixedBytes, cursor.TrimFixedText);");
+        writer.Line("return Read" + composite.Name + "Fixed(fixedBytes, cursor.TrimFixedText" + (this.HasRuntimeByteOrder ? ", cursor.LittleEndian" : string.Empty) + ");");
         writer.Close();
     }
 
@@ -57,16 +57,26 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from exactly its " + Int(plan.Size) + " bytes, each member at its constant offset (reached only through <c>ReadCursor.TryTakeFixed</c>).</summary>");
         writer.Line("/// <param name=\"source\">The struct's bytes.</param>");
         writer.Line("/// <param name=\"trimFixedText\">Whether fixed-capacity text drops its trailing NUL padding.</param>");
+        if (this.HasRuntimeByteOrder)
+        {
+            writer.Line(this.OrderParameterDoc);
+        }
+
         writer.Line("/// <returns>The value.</returns>");
-        writer.Open("private static " + name + " Read" + name + "Fixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)");
+        writer.Open("private static " + name + " Read" + name + "Fixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText" + this.TrailingOrderParameter + ")");
         writer.Line("var value = new " + name + "();");
-        writer.Line("Fill" + name + "Fixed(source, trimFixedText, value);");
+        writer.Line("Fill" + name + "Fixed(source, trimFixedText" + this.TrailingOrderArgument + ", value);");
         writer.Line("return value;");
         writer.Close();
         writer.Line();
         writer.Line("/// <summary>Decodes one <c>" + composite.LayoutName + "</c> from exactly its " + Int(plan.Size) + " bytes into a value just constructed, each member at its constant offset.</summary>");
         writer.Line("/// <param name=\"source\">The struct's bytes.</param>");
         writer.Line("/// <param name=\"trimFixedText\">Whether fixed-capacity text drops its trailing NUL padding.</param>");
+        if (this.HasRuntimeByteOrder)
+        {
+            writer.Line(this.OrderParameterDoc);
+        }
+
         writer.Line("/// <param name=\"value\">A new value, whose nested struct members are the new values its constructor created; they are filled in place.</param>");
 
         // Fixed leaf helpers expose constant offsets when inlined into their parent; array loops stay separate.
@@ -75,7 +85,7 @@ internal sealed partial class LayoutEmitter
             writer.Line("[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
         }
 
-        writer.Open("private static void Fill" + name + "Fixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText, " + name + " value)");
+        writer.Open("private static void Fill" + name + "Fixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText" + this.TrailingOrderParameter + ", " + name + " value)");
         var scope = new ReaderScope(this, composite);
 
         // Without a constructor of the consumer's, the property initializers alone decide what a new value holds.
@@ -119,7 +129,7 @@ internal sealed partial class LayoutEmitter
                 // The value's constructor created this nested value (its property initializer): decode into it
                 // instead of replacing it with another new one.
                 int size = nested.Composite.Symbol.FixedSize ?? throw new InvalidOperationException("Fixed composite without a size: " + nested.Name);
-                writer.Line("Fill" + nested.Name + "Fixed(source.Slice(" + Int(offset) + ", " + Int(size) + "), trimFixedText, " + property + ");");
+                writer.Line("Fill" + nested.Name + "Fixed(source.Slice(" + Int(offset) + ", " + Int(size) + "), trimFixedText" + this.TrailingOrderArgument + ", " + property + ");");
                 return;
             }
 
@@ -143,7 +153,7 @@ internal sealed partial class LayoutEmitter
             // the array is allocated without zeroing.
             writer.Line("var elements = " + UninitializedArray(elementType, Int(count)) + ";");
             writer.Line("global::System.ReadOnlySpan<byte> bytes = source.Slice(" + Int(offset) + ", " + Int(count * field.Codec.Size) + ");");
-            writer.Line(BulkDecode(field.Codec, elementType, "bytes", "elements"));
+            writer.Line(BulkDecode(field.Codec, elementType, "bytes", "elements", this.EndianOf(field)));
         }
         else
         {
@@ -164,11 +174,11 @@ internal sealed partial class LayoutEmitter
         if (member.Composite is { } nested)
         {
             int size = nested.Composite.Symbol.FixedSize ?? throw new InvalidOperationException("Fixed composite without a size: " + nested.Name);
-            return "Read" + nested.Name + "Fixed(" + source + ".Slice(" + offset + ", " + Int(size) + "), trimFixedText)";
+            return "Read" + nested.Name + "Fixed(" + source + ".Slice(" + offset + ", " + Int(size) + "), trimFixedText" + this.TrailingOrderArgument + ")";
         }
 
         string slice = source + ".Slice(" + offset + ", " + Int(field.Codec.Size) + ")";
-        return member.Enum is not null ? "(" + ElementType(member.TypeName, 1) + ")" + NumericDecode(field.Codec, slice) : NumericDecode(field.Codec, slice);
+        return member.Enum is not null ? "(" + ElementType(member.TypeName, 1) + ")" + NumericDecode(field.Codec, slice, this.EndianOf(field)) : NumericDecode(field.Codec, slice, this.EndianOf(field));
     }
 
     /// <summary>

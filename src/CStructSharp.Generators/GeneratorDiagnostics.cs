@@ -83,6 +83,16 @@ internal static class GeneratorDiagnostics
         isEnabledByDefault: true,
         description: "CStructSharpSurface takes Full, Reader or Views; CStructSharpBitfieldPacking SysV or Msvc; CStructSharpBitfieldAllocation LowBitFirst or HighBitFirst; CStructSharpPointerSize 1, 2, 4 or 8; CStructSharpCLongWidth 32 or 64; the flag properties true or false.");
 
+    /// <summary>CSG013 (error): <c>RuntimeByteOrder</c> cannot be generated for this layout or surface.</summary>
+    public static readonly DiagnosticDescriptor RuntimeByteOrderUnsupported = new(
+        "CSG013",
+        "RuntimeByteOrder is not supported here",
+        "'{0}' sets RuntimeByteOrder, which {1}",
+        Category,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "RuntimeByteOrder needs a surface that only reads (Reader, Parser or Views) and a layout whose bitfields sit in the same place in both byte orders.");
+
     /// <summary>CSG100 (error): a mapped type is not partial or lacks a parameterless constructor.</summary>
     public static readonly DiagnosticDescriptor MappedNotPartial = new(
         "CSG100",

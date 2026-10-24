@@ -22,6 +22,7 @@ list cannot drift from what ships.
 | [CSG010](#csg010---c-12-or-later-is-required) | Error | C# 12 or later is required |
 | [CSG011](#csg011---the-views-surface-needs-views) | Error | The Views surface needs views |
 | [CSG012](#csg012---a-cstructsharp-project-property-is-not-valid) | Warning | A CStructSharp project property is not valid |
+| [CSG013](#csg013---runtimebyteorder-is-not-supported-here) | Error | RuntimeByteOrder is not supported here |
 | [CSG100](#csg100---mapped-type-must-be-partial-with-a-parameterless-constructor) | Error | Mapped type must be partial with a parameterless constructor |
 | [CSG101](#csg101---mapped-member-type-is-not-mapped) | Error | Mapped member type is not mapped |
 | [CSG102](#csg102---mapped-member-has-no-layout-counterpart) | Warning | Mapped member has no layout counterpart |
@@ -112,6 +113,16 @@ default applies.
 **Fix.** Use a valid value: `Full`, `Reader`, `Parser` or `Views` for `CStructSharpSurface`; `SysV` or `Msvc` for
 `CStructSharpBitfieldPacking`; `LowBitFirst` or `HighBitFirst` for `CStructSharpBitfieldAllocation`; `1`, `2`, `4` or
 `8` for `CStructSharpPointerSize`; `32` or `64` for `CStructSharpCLongWidth`; `true` or `false` for the flag properties.
+
+## CSG013 - RuntimeByteOrder is not supported here
+
+**Cause.** `RuntimeByteOrder = true` (or the project's `CStructSharpRuntimeByteOrder`) cannot be generated: the layout uses
+the full surface, which writes and so encodes one byte order, or a bitfield sits in a different place when the layout is
+compiled big-endian than when it is compiled little-endian, or the layout does not compile in the opposite order. An error;
+the message names the reason and, for a bitfield, the field.
+
+**Fix.** Use `GeneratedSurface.Reader`, `Parser` or `Views`, and give the bitfield members an order that does not move them
+(declare them with the same storage type, or separate runs with an ordinary member), or keep two layouts, one per order.
 
 ## CSG100 - Mapped type must be partial with a parameterless constructor
 

@@ -72,6 +72,7 @@ default of each option the attribute does not name; an option the attribute name
 | `CStructSharpSurface` | `Surface` | `Full`, `Reader`, `Parser`, `Views` |
 | `CStructSharpViews` | `Views` | `true`, `false` |
 | `CStructSharpEnumerators` | `Enumerators` | `true`, `false` |
+| `CStructSharpRuntimeByteOrder` | `RuntimeByteOrder` | `true`, `false` |
 | `CStructSharpKeepNames` | `KeepNames` | `true`, `false` |
 | `CStructSharpAligned` | `Aligned` | `true`, `false` |
 | `CStructSharpLittleEndian` | `LittleEndian` | `true`, `false` |
@@ -84,6 +85,28 @@ default of each option the attribute does not name; an option the attribute name
 With `CStructSharpSurface` set to `Reader`, a layout that needs writers or `Layout` says `Surface = GeneratedSurface.Full`
 on its own attribute. `Defined` and `Codecs` are per layout and have no project default. A value that does not parse is
 reported as [CSG012](diagnostics.md#csg012---a-cstructsharp-project-property-is-not-valid) and ignored.
+
+## One layout for both byte orders
+
+Some formats come in two byte orders and say which in a field (a magic number, a flag). Without help that is two
+layouts that differ only in `LittleEndian`, and code that picks one. `RuntimeByteOrder = true` generates one layout whose
+neutral values - those spelled without a `<` or `>` suffix - are decoded in the order the caller gives when it reads:
+
+```csharp
+[CStructLayout("struct entry { uint32 inode; uint16 record_length; uint16 name_length; };",
+    Root = "entry", Surface = GeneratedSurface.Parser, RuntimeByteOrder = true)]
+internal static partial class DirectoryEntryLayout { }
+
+Entry entry = DirectoryEntryLayout.Parse(bytes, littleEndian: magic == LittleMagic);
+var view = new DirectoryEntryLayout.EntryView(bytes, littleEndian);   // views take it after the source
+```
+
+Every `Parse`, `Parse<Name>`, `TryParse` and view constructor (and `Enumerate`) takes `bool littleEndian` after the source;
+a value with an explicit suffix (`uint32<`) keeps its order whatever the caller says, and `LittleEndian` on the attribute
+is not used. It needs a surface that only reads (`Reader`, `Parser` or `Views`), because a writer encodes one order, and a
+layout whose bitfields sit in the same place in both orders: a bitfield run that the compiler places differently in a
+big-endian layout cannot share one placement and is reported as
+[CSG013](diagnostics.md#csg013---runtimebyteorder-is-not-supported-here) with the field that moves.
 
 ## What the numbers mean
 

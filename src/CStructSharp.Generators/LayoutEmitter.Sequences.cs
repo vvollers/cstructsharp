@@ -169,6 +169,11 @@ internal sealed partial class LayoutEmitter
         writer.Open("public readonly ref struct " + view + "Enumerable");
         writer.Line("private readonly global::System.ReadOnlySpan<byte> source;");
         writer.Line("private readonly global::CStructSharp.ReadOptions? options;");
+        if (this.HasRuntimeByteOrder)
+        {
+            writer.Line("private readonly bool littleEndian;");
+        }
+
         if (carry)
         {
             writer.Line(variablesField);
@@ -177,15 +182,21 @@ internal sealed partial class LayoutEmitter
         writer.Line();
         writer.Line("/// <summary>Creates the enumeration over <paramref name=\"source\"/>.</summary>");
         writer.Line("/// <param name=\"source\">The bytes of the records, with nothing else after them.</param>");
+        this.EmitOrderDoc(writer);
         writer.Line("/// <param name=\"options\">The read options " + this.OptionsUse + ".</param>");
         if (carry)
         {
             writer.Line("/// <param name=\"variables\">The values the layout's free identifiers have, or <see langword=\"null\"/>.</param>");
         }
 
-        writer.Open("public " + view + "Enumerable(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options" + variablesParameter + ")");
+        writer.Open("public " + view + "Enumerable(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + "global::CStructSharp.ReadOptions? options" + variablesParameter + ")");
         writer.Line("this.source = source;");
         writer.Line("this.options = options;");
+        if (this.HasRuntimeByteOrder)
+        {
+            writer.Line("this.littleEndian = littleEndian;");
+        }
+
         if (carry)
         {
             writer.Line("this.variables = variables;");
@@ -195,13 +206,18 @@ internal sealed partial class LayoutEmitter
         writer.Line();
         writer.Line("/// <summary>The enumerator <c>foreach</c> uses.</summary>");
         writer.Line("/// <returns>An enumerator before the first record.</returns>");
-        writer.Line("public " + view + "Enumerator GetEnumerator() => new " + view + "Enumerator(this.source, this.options" + this.VariablesArgument + ");");
+        writer.Line("public " + view + "Enumerator GetEnumerator() => new " + view + "Enumerator(this.source, " + this.ViewOrderPrefix + "this.options" + this.VariablesArgument + ");");
         writer.Close();
         writer.Line();
         writer.Line("/// <summary>Walks consecutive <c>" + composite.LayoutName + "</c> records of " + stride + " bytes; trailing bytes shorter than one record fail on the step that meets them, with the record's index in the path.</summary>");
         writer.Open("public ref struct " + view + "Enumerator");
         writer.Line("private readonly global::System.ReadOnlySpan<byte> source;");
         writer.Line("private readonly global::CStructSharp.ReadOptions? options;");
+        if (this.HasRuntimeByteOrder)
+        {
+            writer.Line("private readonly bool littleEndian;");
+        }
+
         if (carry)
         {
             writer.Line(variablesField);
@@ -212,15 +228,21 @@ internal sealed partial class LayoutEmitter
         writer.Line();
         writer.Line("/// <summary>Creates an enumerator before the first record of <paramref name=\"source\"/>.</summary>");
         writer.Line("/// <param name=\"source\">The bytes of the records, with nothing else after them.</param>");
+        this.EmitOrderDoc(writer);
         writer.Line("/// <param name=\"options\">The read options " + this.OptionsUse + ".</param>");
         if (carry)
         {
             writer.Line("/// <param name=\"variables\">The values the layout's free identifiers have, or <see langword=\"null\"/>.</param>");
         }
 
-        writer.Open("public " + view + "Enumerator(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options" + variablesParameter + ")");
+        writer.Open("public " + view + "Enumerator(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + "global::CStructSharp.ReadOptions? options" + variablesParameter + ")");
         writer.Line("this.source = source;");
         writer.Line("this.options = options;");
+        if (this.HasRuntimeByteOrder)
+        {
+            writer.Line("this.littleEndian = littleEndian;");
+        }
+
         if (carry)
         {
             writer.Line("this.variables = variables;");
@@ -231,7 +253,7 @@ internal sealed partial class LayoutEmitter
         writer.Close();
         writer.Line();
         writer.Line("/// <summary>Gets the view of the current record.</summary>");
-        writer.Line("public readonly " + view + " Current => new " + view + "(this.source.Slice(this.offset), this.options" + this.VariablesArgument + ");");
+        writer.Line("public readonly " + view + " Current => new " + view + "(this.source.Slice(this.offset), " + this.ViewOrderPrefix + "this.options" + this.VariablesArgument + ");");
         writer.Line();
         writer.Line("/// <summary>Advances to the next record.</summary>");
         writer.Line("/// <returns><see langword=\"false\"/> when the source ends exactly after the last record.</returns>");

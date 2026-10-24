@@ -25,6 +25,7 @@ internal sealed partial class LayoutEmitter
             return;
         }
 
+        this.UseRuntimeOrder("this.littleEndian");
         foreach (GeneratedComposite composite in this.model.Composites)
         {
             writer.Line();
@@ -33,6 +34,9 @@ internal sealed partial class LayoutEmitter
     }
 
     private static string ViewName(GeneratedComposite composite) => composite.Name + "View";
+
+    /// <summary>What a view passes to a nested view or enumerator between the source and the options when the byte order is chosen at read time: its own order, or nothing.</summary>
+    private string ViewOrderPrefix => this.HasRuntimeByteOrder ? "this.littleEndian, " : string.Empty;
 
     /// <summary>Whether views of fixed-size structs get a <c>foreach</c> enumerator: always on the full surface, otherwise when the layout asks for it.</summary>
     private bool EmitsEnumerators => this.request.Surface == GenerationSurface.Full || this.request.Enumerators;
@@ -77,6 +81,11 @@ internal sealed partial class LayoutEmitter
         writer.Open("public readonly ref struct " + name);
         writer.Line("private readonly global::System.ReadOnlySpan<byte> source;");
         writer.Line("private readonly global::CStructSharp.ReadOptions? options;");
+        if (this.HasRuntimeByteOrder)
+        {
+            writer.Line("private readonly bool littleEndian;");
+        }
+
         if (this.ViewsCarryVariables)
         {
             writer.Line("private readonly " + VariablesType + " variables;");
@@ -85,13 +94,14 @@ internal sealed partial class LayoutEmitter
         writer.Line();
         writer.Line("/// <summary>Creates a view over <paramref name=\"source\"/>, whose first byte is the value's first byte" + (size is not null ? "; the source must hold the value's " + Int(size.Value) + " bytes" : string.Empty) + ".</summary>");
         writer.Line("/// <param name=\"source\">The bytes, from the value's start; more may follow (pointer targets, the rest of the input).</param>");
+        this.EmitOrderDoc(writer);
         writer.Line("/// <param name=\"options\">The read options " + (this.request.Surface == GenerationSurface.Views ? "text members use" : "<see cref=\"ToObject\"/> uses") + "; <see langword=\"null\"/> uses the documented defaults.</param>");
         if (this.ViewsCarryVariables)
         {
             writer.Line("/// <param name=\"variables\">The values the layout's free identifiers have where a count needs them, or <see langword=\"null\"/>.</param>");
         }
 
-        writer.Open("public " + name + "(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null" + (this.ViewsCarryVariables ? ", " + VariablesType + " variables = null" : string.Empty) + ")");
+        writer.Open("public " + name + "(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + "global::CStructSharp.ReadOptions? options = null" + (this.ViewsCarryVariables ? ", " + VariablesType + " variables = null" : string.Empty) + ")");
         if (size is { } fixedSize)
         {
             // The runtime's short-read text for a source that cannot hold the value. The failure is built in a local
@@ -103,6 +113,11 @@ internal sealed partial class LayoutEmitter
 
         writer.Line("this.source = source;");
         writer.Line("this.options = options;");
+        if (this.HasRuntimeByteOrder)
+        {
+            writer.Line("this.littleEndian = littleEndian;");
+        }
+
         if (this.ViewsCarryVariables)
         {
             writer.Line("this.variables = variables;");
@@ -144,7 +159,7 @@ internal sealed partial class LayoutEmitter
             writer.Line("/// <param name=\"source\">The bytes of the records, with nothing else after them.</param>");
             writer.Line("/// <param name=\"options\">The read options each view's " + (this.request.Surface == GenerationSurface.Views ? "text members use" : "<see cref=\"ToObject\"/> uses") + "; <see langword=\"null\"/> uses the documented defaults.</param>");
             writer.Line("/// <returns>The enumeration.</returns>");
-            writer.Line("public static " + name + "Enumerable Enumerate(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null" + (this.ViewsCarryVariables ? ", " + VariablesType + " variables = null" : string.Empty) + ") => new " + name + "Enumerable(source, options" + this.VariablesArgument.Replace("this.variables", "variables") + ");");
+            writer.Line("public static " + name + "Enumerable Enumerate(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + "global::CStructSharp.ReadOptions? options = null" + (this.ViewsCarryVariables ? ", " + VariablesType + " variables = null" : string.Empty) + ") => new " + name + "Enumerable(source, " + this.OrderArgument + "options" + this.VariablesArgument.Replace("this.variables", "variables") + ");");
         }
 
         writer.Close();
@@ -165,7 +180,7 @@ internal sealed partial class LayoutEmitter
         writer.Line(VariablesDoc);
         writer.Line("/// <returns>The value.</returns>");
         writer.Open("public " + composite.Name + " ToObject(" + VariablesType + " variables = null)");
-        writer.Line("var cursor = new " + Cursor + "(this.source, this.options, " + layout + ");");
+        writer.Line("var cursor = new " + Cursor + "(this.source, this.options, " + layout + (this.HasRuntimeByteOrder ? ", this.littleEndian" : string.Empty) + ");");
         writer.Open("try");
         writer.Line("return Read" + composite.Name + "(ref cursor, " + (this.ViewsCarryVariables ? "variables ?? this.variables" : "variables") + ", null, null);");
         writer.Close();
@@ -210,7 +225,7 @@ internal sealed partial class LayoutEmitter
             string cast = "(" + member.TypeName + ")" + (member.Enum is not null ? "(" + member.Enum.UnderlyingType + ")" : string.Empty);
             writer.Line();
             writer.Line(summary);
-            writer.Line("public " + member.TypeName + " " + member.PropertyName + " => " + cast + CodecClass + ".ExtractBits(" + CodecClass + ".ReadUnsigned(" + Slice(at, Int(unitSize)) + ", " + Bool(littleEndian) + "), " + CodecClass + ".BitfieldShift(" + Int(field.BitOffset) + ", " + Int(field.BitSize) + ", " + Int(unitSize * 8) + ", HighBitFirst), " + Int(field.BitSize) + ");");
+            writer.Line("public " + member.TypeName + " " + member.PropertyName + " => " + cast + CodecClass + ".ExtractBits(" + CodecClass + ".ReadUnsigned(" + Slice(at, Int(unitSize)) + ", " + this.EndianExpression(field, littleEndian) + "), " + CodecClass + ".BitfieldShift(" + Int(field.BitOffset) + ", " + Int(field.BitSize) + ", " + Int(unitSize * 8) + ", HighBitFirst), " + Int(field.BitSize) + ");");
             return;
         }
 
@@ -268,7 +283,7 @@ internal sealed partial class LayoutEmitter
             string addressName = plan.Unique(member.PropertyName + "Address");
             writer.Line();
             writer.Line("/// <summary>The stored address of <c>" + DescribeDeclaration(field) + "</c> at " + slot.Where + (this.request.Surface == GenerationSurface.Views ? "." : " (the target is read by <see cref=\"ToObject\"/>).") + "</summary>");
-            writer.Line("public long " + addressName + " => (long)" + CodecClass + ".ReadUnsigned(" + slice(at, "PointerSize") + ", LittleEndian);");
+            writer.Line("public long " + addressName + " => (long)" + CodecClass + ".ReadUnsigned(" + slice(at, "PointerSize") + ", " + this.PointerEndian + ");");
             return;
         }
 
@@ -291,7 +306,7 @@ internal sealed partial class LayoutEmitter
                 nestedSource = plan.TakeRestName + "(" + at + ", " + Int(nestedSize) + ", " + SourceWriter.Literal(field.Name) + ", " + SourceWriter.Literal(field.DisplayTypeSpelling) + ")";
             }
 
-            writer.Line("public " + ViewName(nested) + " " + member.PropertyName + " => new(" + nestedSource + ", this.options" + this.VariablesArgument + ");");
+            writer.Line("public " + ViewName(nested) + " " + member.PropertyName + " => new(" + nestedSource + ", " + this.ViewOrderPrefix + "this.options" + this.VariablesArgument + ");");
             return;
         }
 
@@ -300,7 +315,7 @@ internal sealed partial class LayoutEmitter
             PrimitiveCodec storage = PrimitiveCodec.Resolve(member.Enum.Compiled.Integer.StorageType, field.Codec.LittleEndian);
             writer.Line();
             writer.Line(summary);
-            writer.Line("public " + member.TypeName + " " + member.PropertyName + " => (" + member.TypeName + ")" + NumericDecode(storage, slice(at, Int(storage.Size))) + ";");
+            writer.Line("public " + member.TypeName + " " + member.PropertyName + " => (" + member.TypeName + ")" + NumericDecode(storage, slice(at, Int(storage.Size)), this.EndianOf(field)) + ";");
             return;
         }
 
@@ -308,7 +323,7 @@ internal sealed partial class LayoutEmitter
         {
             writer.Line();
             writer.Line(summary);
-            writer.Line("public " + member.TypeName + " " + member.PropertyName + " => " + ScalarDecode(field.Codec, slice(at, Int(field.Codec.Size))) + ";");
+            writer.Line("public " + member.TypeName + " " + member.PropertyName + " => " + ScalarDecode(field.Codec, slice(at, Int(field.Codec.Size)), this.EndianOf(field)) + ";");
             return;
         }
 
@@ -387,7 +402,7 @@ internal sealed partial class LayoutEmitter
             writer.Line("public global::System.ReadOnlySpan<byte> " + bytesName + " => " + slice(at, length) + ";");
             writer.Line();
             writer.Line("/// <summary><c>" + DescribeDeclaration(field) + "</c> as text (trailing NULs kept unless the options set <c>TrimFixedText</c>, as the reader does); allocates the string.</summary>");
-            string littleEndian = Bool(field.ExplicitWideCharacterEncoding is null ? this.request.Settings.LittleEndian : field.Codec.LittleEndian);
+            string littleEndian = this.WideEndian(field);
             writer.Line("public string " + property + " => " + (field.IsWideCharElement
                                                                     ? CodecClass + ".DecodeWideText(" + bytesName + ", " + littleEndian + ", this.options)"
                                                                     : CodecClass + ".DecodeFixedText(" + bytesName + ", " + CodecClass + ".TrimsFixedText(this.options))") + ";");
@@ -422,7 +437,7 @@ internal sealed partial class LayoutEmitter
         string elementSlice = fixedCount is not null && !slot.IsDynamic
                                   ? "this.source.Slice(" + at + " + index * " + Int(element.Size) + ", " + Int(element.Size) + ")"
                                   : slice(at + " + (long)index * " + Int(element.Size), Int(element.Size));
-        writer.Line("return " + (member.Enum is not null ? "(" + elementType + ")" + NumericDecode(element, elementSlice) : ScalarDecode(element, elementSlice)) + ";");
+        writer.Line("return " + (member.Enum is not null ? "(" + elementType + ")" + NumericDecode(element, elementSlice, this.EndianOf(field)) : ScalarDecode(element, elementSlice, this.EndianOf(field))) + ";");
         writer.Close();
         writer.Line();
         writer.Line("/// <summary>Decodes every element of <c>" + DescribeDeclaration(field) + "</c> into <paramref name=\"destination\"/> in one pass.</summary>");
@@ -441,7 +456,7 @@ internal sealed partial class LayoutEmitter
                             ? "global::System.Runtime.InteropServices.MemoryMarshal.Cast<" + elementType + ", " + member.Enum.UnderlyingType + ">(output)"
                             : "output";
         writer.Line("global::System.ReadOnlySpan<byte> bytes = " + (fixedCount is null ? slice(at, "(long)length * " + Int(element.Size)) : bytesName) + ";");
-        writer.Line(CopyDecode(element, member.Enum is not null ? member.Enum.UnderlyingType : elementType, target));
+        writer.Line(CopyDecode(element, member.Enum is not null ? member.Enum.UnderlyingType : elementType, target, this.EndianOf(field)));
         writer.Close();
     }
 
@@ -500,11 +515,11 @@ internal sealed partial class LayoutEmitter
         if (slot.IsDynamic || fixedCount is null)
         {
             plan.TakeRestName ??= plan.Unique("TakeRest");
-            writer.Line("return new(" + plan.TakeRestName + "(" + at + " + (long)index * " + Int(stride) + ", " + Int(stride) + ", " + name + ", " + typeName + "), this.options" + this.VariablesArgument + ");");
+            writer.Line("return new(" + plan.TakeRestName + "(" + at + " + (long)index * " + Int(stride) + ", " + Int(stride) + ", " + name + ", " + typeName + "), " + this.ViewOrderPrefix + "this.options" + this.VariablesArgument + ");");
         }
         else
         {
-            writer.Line("return new(this.source.Slice(" + at + " + index * " + Int(stride) + "), this.options" + this.VariablesArgument + ");");
+            writer.Line("return new(this.source.Slice(" + at + " + index * " + Int(stride) + "), " + this.ViewOrderPrefix + "this.options" + this.VariablesArgument + ");");
         }
 
         writer.Close();
@@ -514,8 +529,9 @@ internal sealed partial class LayoutEmitter
     /// <param name="codec">The element codec.</param>
     /// <param name="elementType">The C# element type of the destination (an enum's underlying type for an enum array).</param>
     /// <param name="destination">The expression of the destination span.</param>
+    /// <param name="endian">The C# expression of the byte order when it is chosen at run time, or <see langword="null"/> for the codec's own.</param>
     /// <returns>The statement.</returns>
-    private static string CopyDecode(PrimitiveCodec codec, string elementType, string destination)
+    private static string CopyDecode(PrimitiveCodec codec, string elementType, string destination, string? endian = null)
     {
         // An sbyte span cannot be passed where BulkDecode copies through a byte array constructor, so it is viewed as bytes.
         if (codec.Kind == PrimitiveCodecKind.Int8)
@@ -523,7 +539,7 @@ internal sealed partial class LayoutEmitter
             return "bytes.CopyTo(global::System.Runtime.InteropServices.MemoryMarshal.AsBytes(" + destination + "));";
         }
 
-        return BulkDecode(codec, elementType, "bytes", destination);
+        return BulkDecode(codec, elementType, "bytes", destination, endian);
     }
 
     /// <summary>Emits the bytes and the string of an encoded text array (<c>utf8</c>, <c>latin1</c>, <c>cp437</c>, <c>utf16le</c>, <c>utf16be</c>), decoded by the reader's own text read.</summary>
@@ -561,11 +577,12 @@ internal sealed partial class LayoutEmitter
     /// <summary>The expression decoding one fixed-width scalar (numeric, identifier, or fixed point) from a span of its size.</summary>
     /// <param name="codec">The codec.</param>
     /// <param name="span">An expression for exactly the value's bytes.</param>
+    /// <param name="endian">The C# expression of the byte order when it is chosen at run time, or <see langword="null"/> for the codec's own.</param>
     /// <returns>The decode expression.</returns>
-    private static string ScalarDecode(PrimitiveCodec codec, string span) => codec.Kind switch
+    private static string ScalarDecode(PrimitiveCodec codec, string span, string? endian = null) => codec.Kind switch
     {
         PrimitiveCodecKind.Uuid => CodecClass + ".ReadGuid(" + span + ", true)",
         PrimitiveCodecKind.Guid => CodecClass + ".ReadGuid(" + span + ", false)",
-        _ => FixedPoint(codec.Kind) is not null ? FixedPointDecode(codec, span) : NumericDecode(codec, span),
+        _ => FixedPoint(codec.Kind) is not null ? FixedPointDecode(codec, span, endian) : NumericDecode(codec, span, endian),
     };
 }

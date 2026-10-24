@@ -77,7 +77,7 @@ internal sealed partial class LayoutEmitter
             bool directRows = bulk && field.Array.Dimensions.Length > 1;
             if (directRows)
             {
-                EmitNumericRows(writer, field, elementType, inUnion, member, memberType);
+                this.EmitNumericRows(writer, field, elementType, inUnion, member, memberType);
             }
             else if (bulk)
             {
@@ -90,7 +90,7 @@ internal sealed partial class LayoutEmitter
                 // block reader for a multidimensional one, the per-element loop inside a union.
                 string take = inUnion ? "TakeElements" : field.Array.Dimensions.Length > 1 ? "TakeInBlocks" : "TakeArray";
                 writer.Line("global::System.ReadOnlySpan<byte> bytes = cursor." + take + "(count, " + Int(codec.Size) + ", " + member + ", " + memberType + ");");
-                writer.Line(BulkDecode(codec, elementType, "bytes", "elements"));
+                writer.Line(BulkDecode(codec, elementType, "bytes", "elements", this.EndianOf(field)));
                 writer.Close();
             }
             else if (!inUnion && this.deferredPointers.TryGetValue(field, out DeferredPointer? deferred))
@@ -133,7 +133,7 @@ internal sealed partial class LayoutEmitter
     /// <param name="inUnion">Whether the field uses per-element union accounting.</param>
     /// <param name="member">The member-name expression for failures.</param>
     /// <param name="memberType">The member-type expression for failures.</param>
-    private static void EmitNumericRows(SourceWriter writer, CompiledField field, string elementType, bool inUnion, string member, string memberType)
+    private void EmitNumericRows(SourceWriter writer, CompiledField field, string elementType, bool inUnion, string member, string memberType)
     {
         int outer = field.Array.Dimensions[0].FixedCount ?? throw new InvalidOperationException("Multidimensional array without a fixed outer dimension.");
         string suffix = string.Concat(System.Linq.Enumerable.Repeat("[]", field.Array.Dimensions.Length - 1));
@@ -144,7 +144,7 @@ internal sealed partial class LayoutEmitter
         string take = inUnion ? "TakeElements" : "TakeInBlocks";
         writer.Line("global::System.ReadOnlySpan<byte> bytes = cursor." + take + "(count, " + Int(field.Codec.Size) + ", " + member + ", " + memberType + ");");
         writer.Line("int byteOffset = 0;");
-        EmitNumericRowLevel(writer, field, elementType, 1, "elements");
+        this.EmitNumericRowLevel(writer, field, elementType, 1, "elements");
         writer.Close();
     }
 
@@ -154,7 +154,7 @@ internal sealed partial class LayoutEmitter
     /// <param name="elementType">The numeric element's C# type.</param>
     /// <param name="dimension">The dimension allocated inside the parent's element loop.</param>
     /// <param name="parent">The local holding the parent reference array.</param>
-    private static void EmitNumericRowLevel(SourceWriter writer, CompiledField field, string elementType, int dimension, string parent)
+    private void EmitNumericRowLevel(SourceWriter writer, CompiledField field, string elementType, int dimension, string parent)
     {
         int length = field.Array.Dimensions[dimension].FixedCount ?? throw new InvalidOperationException("Multidimensional array without a fixed inner dimension.");
         string index = "rowIndex" + Int(dimension);
@@ -165,14 +165,14 @@ internal sealed partial class LayoutEmitter
             // No partially decoded row escapes: bulk decoding overwrites every element before publication.
             writer.Line("var " + row + " = " + UninitializedArray(elementType, Int(length)) + ";");
             string byteLength = row + ".Length * " + Int(field.Codec.Size);
-            writer.Line(BulkDecode(field.Codec, elementType, "bytes.Slice(byteOffset, " + byteLength + ")", row));
+            writer.Line(BulkDecode(field.Codec, elementType, "bytes.Slice(byteOffset, " + byteLength + ")", row, this.EndianOf(field)));
             writer.Line("byteOffset += " + byteLength + ";");
         }
         else
         {
             string suffix = string.Concat(System.Linq.Enumerable.Repeat("[]", field.Array.Dimensions.Length - dimension - 1));
             writer.Line("var " + row + " = new " + elementType + "[" + Int(length) + "]" + suffix + ";");
-            EmitNumericRowLevel(writer, field, elementType, dimension + 1, row);
+            this.EmitNumericRowLevel(writer, field, elementType, dimension + 1, row);
         }
 
         writer.Line(parent + "[" + index + "] = " + row + ";");
@@ -191,7 +191,7 @@ internal sealed partial class LayoutEmitter
     private void EmitCharacterArray(SourceWriter writer, CompiledField field, string property, string member, string memberType)
     {
         bool wide = field.IsWideCharElement;
-        string littleEndian = Bool(field.ExplicitWideCharacterEncoding is null ? this.request.Settings.LittleEndian : field.Codec.LittleEndian);
+        string littleEndian = this.WideEndian(field);
         string readRow = wide
                              ? "cursor.TakeWideText(rowLength, " + littleEndian + ", " + member + ", " + memberType + ")"
                              : "cursor.TakeFixedText(rowLength, " + member + ", " + memberType + ")";
@@ -252,7 +252,7 @@ internal sealed partial class LayoutEmitter
     {
         string name = PrimitiveCatalog.CanonicalNames[field.TerminatedCodecId];
         PrimitiveCodec codec = PrimitiveCodec.Resolve(name, this.request.Settings.LittleEndian);
-        return "cursor.TakeTerminatedString(" + TerminatedEncoding(codec) + ", " + CharLiteral(codec.Terminator) + ", " + member + ", " + memberType + ")";
+        return "cursor.TakeTerminatedString(" + this.TerminatedEncoding(codec, name) + ", " + CharLiteral(codec.Terminator) + ", " + member + ", " + memberType + ")";
     }
 
     /// <summary>Registers the pointer reader a field needs; the readers are emitted once per (type, depth) after the composites.</summary>
@@ -297,7 +297,7 @@ internal sealed partial class LayoutEmitter
 
         writer.Line("/// <summary>Reads a <c>" + declaration + "</c> pointer: the address, then the target when pointers are followed.</summary>");
         writer.Open("private static " + type + " Read" + PointerReaderName(field) + "(ref " + Cursor + " cursor, " + VariablesType + " variables, " + countParameter + "string? member, string? memberType)");
-        writer.Line("long address = cursor.TakePointerAddress(PointerSize, LittleEndian, member ?? " + SourceWriter.Literal(field.Name) + ", memberType);");
+        writer.Line("long address = cursor.TakePointerAddress(PointerSize, " + this.PointerEndian + ", member ?? " + SourceWriter.Literal(field.Name) + ", memberType);");
         writer.Line("return Follow" + PointerReaderName(field) + "(ref cursor, variables, address, " + countArgument + "member, memberType);");
         writer.Close();
         writer.Line();
@@ -371,7 +371,7 @@ internal sealed partial class LayoutEmitter
         CompiledField element = field.CountedElement(this.request.Settings.PointerSize);
         if (element.IsCharElement || element.IsWideCharElement)
         {
-            string littleEndian = Bool(element.ExplicitWideCharacterEncoding is null ? this.request.Settings.LittleEndian : element.Codec.LittleEndian);
+            string littleEndian = this.WideEndian(element);
             return element.IsWideCharElement
                        ? "cursor.TakeWideText(count, " + littleEndian + ", " + member + ", " + memberType + ")"
                        : "cursor.TakeFixedText(count, " + member + ", " + memberType + ")";
@@ -383,7 +383,7 @@ internal sealed partial class LayoutEmitter
         {
             writer.Open("if (count > 0)");
             writer.Line("global::System.ReadOnlySpan<byte> bytes = cursor.TakeArray(count, " + Int(element.Codec.Size) + ", " + member + ", " + memberType + ");");
-            writer.Line(BulkDecode(element.Codec, elementType, "bytes", "elements"));
+            writer.Line(BulkDecode(element.Codec, elementType, "bytes", "elements", this.EndianOf(element)));
             writer.Close();
             return "elements";
         }
@@ -418,10 +418,10 @@ internal sealed partial class LayoutEmitter
         {
             // An enum target is stored as its integer type.
             PrimitiveCodec storage = PrimitiveCodec.Resolve(shape.Enum.Compiled.Integer.StorageType, this.request.Settings.LittleEndian);
-            return "(" + shape.Enum.Name + ")" + NumericRead(storage, member, memberType);
+            return "(" + shape.Enum.Name + ")" + NumericRead(storage, member, memberType, this.EndianOfName(shape.Enum.Compiled.Integer.StorageType));
         }
 
         PrimitiveCodec target = PrimitiveCodec.Resolve(field.Type.Symbol.Name, this.request.Settings.LittleEndian);
-        return this.PrimitiveRead(target, field.Type.Symbol.Name, member, memberType);
+        return this.PrimitiveRead(target, field.Type.Symbol.Name, member, memberType, field.Type.Symbol.Name);
     }
 }

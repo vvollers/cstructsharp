@@ -87,6 +87,21 @@ public sealed class CStructLayoutAttribute : Attribute
     /// </remarks>
     public bool Enumerators { get; set; }
 
+    /// <summary>Gets or sets whether the byte order of neutral values (those spelled without a <c>&lt;</c> or <c>&gt;</c> suffix) is chosen when a value is read instead of when the layout is compiled.</summary>
+    /// <remarks>
+    ///     <para>
+    ///         One layout then reads both byte orders: every <c>Parse</c> and <c>TryParse</c> takes a <c>bool littleEndian</c> after the source, a
+    ///         view's constructor and <c>Enumerate</c> take it after the source too, and <see cref="LittleEndian"/> is not used. It replaces a pair of
+    ///         layouts that differ only in <see cref="LittleEndian"/>. A field with an explicit suffix keeps its order.
+    ///     </para>
+    ///     <para>
+    ///         It needs a surface that only reads (<see cref="GeneratedSurface.Reader"/>, <see cref="GeneratedSurface.Parser"/> or
+    ///         <see cref="GeneratedSurface.Views"/>), and a layout whose bitfields sit in the same place in both byte orders;
+    ///         anything else is reported as CSG013.
+    ///     </para>
+    /// </remarks>
+    public bool RuntimeByteOrder { get; set; }
+
     /// <summary>Gets or sets how much code is generated; the default, <see cref="GeneratedSurface.Full"/>, generates everything.</summary>
     public GeneratedSurface Surface { get; set; } = GeneratedSurface.Full;
 }

@@ -118,6 +118,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         bool keepNames = false;
         bool views = true;
         bool enumerators = false;
+        bool runtimeByteOrder = false;
         GenerationSurface surface = GenerationSurface.Full;
         var explicitArguments = new List<string>();
         foreach (KeyValuePair<string, TypedConstant> named in attribute.NamedArguments)
@@ -141,6 +142,9 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
                 break;
             case "Views":
                 views = named.Value.Value is not false;
+                break;
+            case "RuntimeByteOrder":
+                runtimeByteOrder = named.Value.Value is true;
                 break;
             case "Enumerators":
                 enumerators = named.Value.Value is true;
@@ -185,6 +189,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             keepNames,
             views,
             enumerators,
+            runtimeByteOrder,
             surface,
             SourceSpan.From(attributeLocation),
             definitionSpan,
@@ -315,6 +320,12 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             return;
         }
 
+        if (request.RuntimeByteOrder && RuntimeByteOrderProblem(request, definition, codecs, compilation) is { } problem)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(GeneratorDiagnostics.RuntimeByteOrderUnsupported, request.AttributeSpan.ToLocation(), request.ClassName, problem));
+            return;
+        }
+
         string rootName = compilation.DefaultRoot;
         if (request.Root is not null)
         {
@@ -340,6 +351,64 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         }
 
         context.AddSource(request.HintName, SourceText.From(emitter.Emit(), System.Text.Encoding.UTF8));
+    }
+
+    /// <summary>
+    ///     Why <c>RuntimeByteOrder</c> cannot be generated for a layout, or <see langword="null"/> when it can: the surface
+    ///     writes (the full surface), or the layout places a field differently in the two byte orders (a bitfield run
+    ///     whose storage unit moves), so one placement could not serve both.
+    /// </summary>
+    /// <param name="request">The attribute's settings.</param>
+    /// <param name="definition">The layout text.</param>
+    /// <param name="codecs">The parsed codec declarations.</param>
+    /// <param name="compilation">The layout compiled with the attribute's byte order.</param>
+    /// <returns>The reason, or <see langword="null"/>.</returns>
+    private static string? RuntimeByteOrderProblem(LayoutRequest request, string definition, List<CustomCodecDescriptor> codecs, LayoutCompilation compilation)
+    {
+        if (request.Surface == GenerationSurface.Full)
+        {
+            return "needs a surface that only reads: use GeneratedSurface.Reader, Parser or Views (the full surface writes, and a writer encodes one order)";
+        }
+
+        LayoutSettings other = request.Settings with { LittleEndian = !request.Settings.LittleEndian };
+        LayoutCompilation alternate;
+        try
+        {
+            alternate = other.Compile(definition, other.CodecCatalog(codecs));
+        }
+        catch (Exception exception) when (exception is CStructException or ArgumentException)
+        {
+            return "needs a layout that also compiles with the opposite byte order: " + exception.Message;
+        }
+
+        var left = new Dictionary<string, CompiledCompositeType>(StringComparer.Ordinal);
+        foreach (CompiledTypeSymbol symbol in compilation.CompiledModel.Composites.Values)
+        {
+            if (symbol.Definition is CompiledCompositeType composite && !left.ContainsKey(symbol.Name))
+            {
+                left[symbol.Name] = composite;
+            }
+        }
+
+        foreach (CompiledTypeSymbol symbol in alternate.CompiledModel.Composites.Values)
+        {
+            if (symbol.Definition is not CompiledCompositeType other2 || !left.TryGetValue(symbol.Name, out CompiledCompositeType? first) || first.Fields.Length != other2.Fields.Length)
+            {
+                return "needs both byte orders to compile to the same structs";
+            }
+
+            for (int index = 0; index < first.Fields.Length; index++)
+            {
+                CompiledField a = first.Fields[index];
+                CompiledField b = other2.Fields[index];
+                if (a.FixedOffset != b.FixedOffset || a.BitOffset != b.BitOffset || a.BitUnitSize != b.BitUnitSize || a.BitRunBits != b.BitRunBits || a.FixedStorageSize != b.FixedStorageSize || a.Alignment != b.Alignment)
+                {
+                    return "needs a layout whose fields sit in the same place in both byte orders, but '" + symbol.Name + "." + a.Name + "' (a bitfield) moves; give the bitfield storage an explicit order or use two layouts";
+                }
+            }
+        }
+
+        return null;
     }
 
     /// <summary>Whether the consuming project's C# version is 12 or later, which the generated code needs.</summary>

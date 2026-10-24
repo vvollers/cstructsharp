@@ -28,6 +28,7 @@ public ref partial struct ReadCursor
     private readonly ReadOnlySpan<byte> source;
     private readonly ReadOperationSettings settings;
     private readonly string? path;
+    private readonly bool bigEndian;
     private int position;
     private long bytesRead;
     private int nestingDepth;
@@ -47,6 +48,28 @@ public ref partial struct ReadCursor
         this.path = path;
     }
 
+    /// <summary>Creates a cursor at the start of <paramref name="source"/> that reads neutral values in the given byte order, for a layout generated with <c>RuntimeByteOrder</c>.</summary>
+    /// <param name="source">The bytes to read; offset 0 is coordinate zero for addresses and diagnostics.</param>
+    /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+    /// <param name="path">The path the operation reads, reported by every failure as the runtime does.</param>
+    /// <param name="littleEndian">Whether neutral values (those the layout spells without a suffix) are little-endian.</param>
+    public ReadCursor(ReadOnlySpan<byte> source, ReadOptions? options, string? path, bool littleEndian)
+        : this(source, options, path)
+    {
+        this.bigEndian = !littleEndian;
+    }
+
+    /// <summary>Creates a cursor at the start of <paramref name="source"/> with its limits as a <see cref="ReadLimits"/> value that reads neutral values in the given byte order, for a layout generated with <c>RuntimeByteOrder</c>.</summary>
+    /// <param name="source">The bytes to read; offset 0 is coordinate zero for addresses and diagnostics.</param>
+    /// <param name="limits">The limits of the read; pointers keep the default policy.</param>
+    /// <param name="path">The path the operation reads, reported by every failure as the runtime does.</param>
+    /// <param name="littleEndian">Whether neutral values (those the layout spells without a suffix) are little-endian.</param>
+    public ReadCursor(ReadOnlySpan<byte> source, in ReadLimits limits, string? path, bool littleEndian)
+        : this(source, in limits, path)
+    {
+        this.bigEndian = !littleEndian;
+    }
+
     /// <summary>Creates a cursor at the start of <paramref name="source"/> whose limits are a <see cref="ReadLimits"/> value, so no <see cref="ReadOptions"/> object is needed.</summary>
     /// <param name="source">The bytes to read; offset 0 is coordinate zero for addresses and diagnostics.</param>
     /// <param name="limits">The limits of the read; pointers keep the default policy.</param>
@@ -57,6 +80,9 @@ public ref partial struct ReadCursor
         this.settings = ReadOperationSettings.SnapshotReadLimits(in limits);
         this.path = path;
     }
+
+    /// <summary>Gets whether neutral values are read little-endian: always for a cursor made without a byte order, the chosen order for a layout generated with <c>RuntimeByteOrder</c>.</summary>
+    public readonly bool LittleEndian => !this.bigEndian;
 
     /// <summary>Gets or sets the offset of the next byte to read.</summary>
     public int Position

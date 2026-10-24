@@ -70,7 +70,7 @@ internal sealed partial class LayoutEmitter
         }
 
         string pointerType = ElementType(generated.TypeName, field.Array.Kind == CompiledArrayKind.Scalar ? 0 : field.Array.Dimensions.Length == 0 ? 1 : field.Array.Dimensions.Length);
-        return "new " + pointerType + "(cursor.TakePointerAddress(PointerSize, LittleEndian, " + member + ", " + memberType + "), " + Int(field.PointerDepth) + ")";
+        return "new " + pointerType + "(cursor.TakePointerAddress(PointerSize, " + this.PointerEndian + ", " + member + ", " + memberType + "), " + Int(field.PointerDepth) + ")";
     }
 
     /// <summary>

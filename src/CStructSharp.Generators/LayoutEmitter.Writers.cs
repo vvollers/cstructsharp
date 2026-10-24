@@ -863,7 +863,7 @@ internal sealed partial class LayoutEmitter
         case PrimitiveCodecKind.TerminatedAscii:
         case PrimitiveCodecKind.TerminatedUtf8:
         case PrimitiveCodecKind.TerminatedUtf16:
-            writer.Line("cursor.WriteTerminatedString(" + TerminatedEncoding(codec) + ", " + CharLiteral(codec.Terminator) + ", " + access + ", " + member + ", " + memberType + ");");
+            writer.Line("cursor.WriteTerminatedString(" + this.TerminatedEncoding(codec) + ", " + CharLiteral(codec.Terminator) + ", " + access + ", " + member + ", " + memberType + ");");
             return;
         case PrimitiveCodecKind.Uuid:
             writer.Line(CodecClass + ".WriteGuid(cursor.Reserve(16, " + member + ", " + memberType + "), " + access + ", true);");
@@ -945,6 +945,6 @@ internal sealed partial class LayoutEmitter
     {
         string name = PrimitiveCatalog.CanonicalNames[field.TerminatedCodecId];
         PrimitiveCodec codec = PrimitiveCodec.Resolve(name, this.request.Settings.LittleEndian);
-        return "cursor.WriteTerminatedString(" + TerminatedEncoding(codec) + ", " + CharLiteral(codec.Terminator) + ", " + access + ", " + member + ", " + memberType + ");";
+        return "cursor.WriteTerminatedString(" + this.TerminatedEncoding(codec) + ", " + CharLiteral(codec.Terminator) + ", " + access + ", " + member + ", " + memberType + ");";
     }
 }

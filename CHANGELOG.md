@@ -40,6 +40,14 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   `Parse` and `Parse<Name>` over a span has an overload that takes it, so a reader that parses many small records no
   longer allocates a `ReadOptions` (88 bytes) per call. `ReadLimits.From(options)` and `ToOptions()` convert between the
   two; the pointer policy keeps its defaults.
+- **Run-time byte order.** `[CStructLayout(RuntimeByteOrder = true)]` (project default `CStructSharpRuntimeByteOrder`)
+  generates one layout that reads both byte orders: every `Parse`, `Parse<Name>` and `TryParse`, and every view
+  constructor and `Enumerate`, takes a `bool littleEndian` after the source, and a neutral value (one spelled without
+  a `<` or `>` suffix) is decoded in that order, including bitfield storage, fixed-point values, wide characters,
+  terminated UTF-16 strings and pointer addresses, while an explicit suffix keeps its own. It replaces a pair of
+  layouts that differ only in `LittleEndian`. It needs a reader surface and a layout whose bitfields sit in the same
+  place in both orders; anything else is the new error CSG013. `ReadCursor.LittleEndian` exposes the order to generated
+  code.
 
 ## 0.13.0 — 2026-10-24
 
