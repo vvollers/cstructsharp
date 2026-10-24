@@ -162,17 +162,21 @@ internal sealed partial class LayoutEmitter
     /// <summary>The members every generated class has: the definition, the runtime layout, and the root name.</summary>
     private void EmitFrame(SourceWriter writer)
     {
-        writer.Line("/// <summary>The layout text the members of this class were generated from.</summary>");
-        writer.Line("public const string Definition = " + SourceWriter.Literal(this.definition) + ";");
-        writer.Line();
-        writer.Line(this.request.Surface switch
+        if (this.request.Surface != GenerationSurface.Parser)
         {
-            GenerationSurface.Full => "/// <summary>The declaration the plain <see cref=\"Parse\"/> and <see cref=\"Serialize\"/> methods operate on.</summary>",
-            GenerationSurface.Reader => "/// <summary>The declaration the plain <see cref=\"Parse\"/> methods operate on.</summary>",
-            _ => "/// <summary>The declaration whose view the generated <c>Offsets</c> constants describe.</summary>",
-        });
-        writer.Line("public const string RootName = " + SourceWriter.Literal(this.rootName) + ";");
-        writer.Line();
+            writer.Line("/// <summary>The layout text the members of this class were generated from.</summary>");
+            writer.Line("public const string Definition = " + SourceWriter.Literal(this.definition) + ";");
+            writer.Line();
+            writer.Line(this.request.Surface switch
+            {
+                GenerationSurface.Full => "/// <summary>The declaration the plain <see cref=\"Parse\"/> and <see cref=\"Serialize\"/> methods operate on.</summary>",
+                GenerationSurface.Reader => "/// <summary>The declaration the plain <see cref=\"Parse\"/> methods operate on.</summary>",
+                _ => "/// <summary>The declaration whose view the generated <c>Offsets</c> constants describe.</summary>",
+            });
+            writer.Line("public const string RootName = " + SourceWriter.Literal(this.rootName) + ";");
+            writer.Line();
+        }
+
         if (this.request.Surface == GenerationSurface.Full)
         {
             this.EmitLayoutProperty(writer);

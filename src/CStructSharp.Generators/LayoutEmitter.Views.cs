@@ -34,6 +34,12 @@ internal sealed partial class LayoutEmitter
 
     private static string ViewName(GeneratedComposite composite) => composite.Name + "View";
 
+    /// <summary>Whether views of fixed-size structs get a <c>foreach</c> enumerator: always on the full surface, otherwise when the layout asks for it.</summary>
+    private bool EmitsEnumerators => this.request.Surface == GenerationSurface.Full || this.request.Enumerators;
+
+    /// <summary>What a view's read options are used for: the whole-value reader, or (on the views surface, which has none) the text members.</summary>
+    private string OptionsUse => this.request.Surface == GenerationSurface.Views ? "each view's text members use" : "each view's <c>ToObject</c> uses";
+
     /// <summary>Emits the view of one composite: a <c>ref struct</c> over its bytes whose statically placed members decode on access.</summary>
     /// <param name="writer">The output.</param>
     /// <param name="composite">The composite.</param>
@@ -106,7 +112,7 @@ internal sealed partial class LayoutEmitter
             this.EmitViewToObject(writer, composite);
         }
 
-        if (size is { } stride && this.request.Surface == GenerationSurface.Full)
+        if (size is { } stride && this.EmitsEnumerators)
         {
             writer.Line();
             writer.Line("/// <summary>Views over the records of <paramref name=\"source\"/> - one <c>" + composite.LayoutName + "</c> of " + Int(stride) + " bytes after another until the source ends - for <c>foreach</c>, allocating nothing. Trailing bytes shorter than one record fail on the step that meets them; each record is its own region (a stored absolute pointer address counts from the record's first byte).</summary>");
@@ -117,7 +123,7 @@ internal sealed partial class LayoutEmitter
         }
 
         writer.Close();
-        if (size is { } recordSize && this.request.Surface == GenerationSurface.Full)
+        if (size is { } recordSize && this.EmitsEnumerators)
         {
             this.EmitViewEnumerator(writer, composite, recordSize);
         }

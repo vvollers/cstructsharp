@@ -35,6 +35,7 @@ hundreds of layouts of which it reads only a few members each pays for code it n
 | --- | --- | --- |
 | `GeneratedSurface.Full` (default) | Everything: typed classes, every reader, `TryParse`, `Records`, `Serialize`/`Write`, `Update`, path operations, `Layout`, `Sizes`, `Offsets`, views | Nothing |
 | `GeneratedSurface.Reader` | Typed classes, `Parse` and `TryParse` over a span, an array or a `ReadOnlyMemory<byte>`, `Sizes`, `Offsets`, views | Writers, `Update`, sequence, stream and asynchronous readers, `Records`, path operations, `Layout`, the view enumerators |
+| `GeneratedSurface.Parser` | Typed classes, one span `Parse` per declaration and the unnamed root `Parse`, `Sizes`, `Offsets`, views | Everything the reader surface leaves out, `TryParse`, the array and `ReadOnlyMemory` overloads, `Definition`, `RootName` |
 | `GeneratedSurface.Views` | Views, `Sizes`, `Offsets`, and the layout's enums | The typed classes and every reader, so a view has no `ToObject()` |
 
 ```csharp
@@ -43,6 +44,10 @@ internal static partial class WordLayout { }
 
 uint value = new WordLayout.WordView(bytes).Value;
 ```
+
+The `Parser` surface suits a project that parses with `Parse(span, options)` everywhere: a `byte[]` converts to the span,
+and a caller that wants `TryParse` or the memory forms chooses `Reader`. The view enumerator (`RootView.Enumerate`) is part of
+the full surface; on the smaller ones `Enumerators = true` adds it, because it costs extra code for every fixed-size struct.
 
 For the layout in the generator's tests the reader surface is less than half the full output and the views surface less
 than a sixth. All three read the same values with the same failures; the smaller ones simply have fewer ways in. A
@@ -64,8 +69,9 @@ default of each option the attribute does not name; an option the attribute name
 
 | Property | Sets the default of | Values |
 | --- | --- | --- |
-| `CStructSharpSurface` | `Surface` | `Full`, `Reader`, `Views` |
+| `CStructSharpSurface` | `Surface` | `Full`, `Reader`, `Parser`, `Views` |
 | `CStructSharpViews` | `Views` | `true`, `false` |
+| `CStructSharpEnumerators` | `Enumerators` | `true`, `false` |
 | `CStructSharpKeepNames` | `KeepNames` | `true`, `false` |
 | `CStructSharpAligned` | `Aligned` | `true`, `false` |
 | `CStructSharpLittleEndian` | `LittleEndian` | `true`, `false` |

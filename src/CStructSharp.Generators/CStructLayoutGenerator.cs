@@ -117,6 +117,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         string? root = null;
         bool keepNames = false;
         bool views = true;
+        bool enumerators = false;
         GenerationSurface surface = GenerationSurface.Full;
         var explicitArguments = new List<string>();
         foreach (KeyValuePair<string, TypedConstant> named in attribute.NamedArguments)
@@ -140,6 +141,9 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
                 break;
             case "Views":
                 views = named.Value.Value is not false;
+                break;
+            case "Enumerators":
+                enumerators = named.Value.Value is true;
                 break;
             case "Surface":
                 surface = named.Value.Value is int value && Enum.IsDefined(typeof(GenerationSurface), value) ? (GenerationSurface)value : GenerationSurface.Full;
@@ -180,6 +184,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             LayoutSettings.FromAttribute(attribute),
             keepNames,
             views,
+            enumerators,
             surface,
             SourceSpan.From(attributeLocation),
             definitionSpan,

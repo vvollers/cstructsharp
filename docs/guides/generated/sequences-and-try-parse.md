@@ -75,7 +75,9 @@ sequences as `StructValue`s, with the same rules and the same failure texts.
 
 A loop that reads one field from each of a million records should not create a million objects.
 `Wire.HeaderView.Enumerate(bytes)` returns a `foreach`-able enumeration whose `Current` is a `HeaderView` over the
-next record - a [view](views-and-zero-allocation.md), so nothing is allocated for it either.
+next record - a [view](views-and-zero-allocation.md), so nothing is allocated for it either. The full surface always
+generates the enumerator; on the `Reader`, `Parser` and `Views` surfaces add `Enumerators = true` to the attribute (see
+[Generate less](choosing-runtime-or-generated.md#generate-less)).
 
 `foreach` does not require `IEnumerable<T>`. It requires a `GetEnumerator()` method whose result has `MoveNext()`
 and `Current`, and it is happy for both to be `ref struct`s - types that live on the stack and cannot escape the

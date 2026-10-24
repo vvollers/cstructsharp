@@ -115,6 +115,12 @@ internal sealed partial class LayoutEmitter
         writer.Line("throw;");
         writer.Close();
         writer.Close();
+        if (this.request.Surface == GenerationSurface.Parser)
+        {
+            this.EmitParserRoot(writer, composite, isRoot, method);
+            return;
+        }
+
         writer.Line();
         writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.ReadOnlySpan{byte}, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
         writer.Line("public static " + name + " " + method + "(byte[] source, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
@@ -153,6 +159,26 @@ internal sealed partial class LayoutEmitter
         {
             this.EmitRecords(writer, composite, isRoot);
         }
+    }
+
+    /// <summary>Emits the one unnamed root overload the <c>Parser</c> surface keeps beside <c>Parse&lt;Name&gt;</c>.</summary>
+    /// <param name="writer">The generated source destination.</param>
+    /// <param name="composite">The composite whose typed reader was just emitted.</param>
+    /// <param name="isRoot">Whether the composite is the root declaration.</param>
+    /// <param name="method">The name of the typed span reader (<c>Parse&lt;Name&gt;</c>).</param>
+    private void EmitParserRoot(SourceWriter writer, GeneratedComposite composite, bool isRoot, string method)
+    {
+        if (!isRoot)
+        {
+            return;
+        }
+
+        writer.Line();
+        writer.Line("/// <summary>Reads the root declaration (<c>" + composite.LayoutName + "</c>); see " + Cref(method + "(global::System.ReadOnlySpan{byte}, " + VariablesCref + ", global::CStructSharp.ReadOptions)") + ".</summary>");
+        writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
+        writer.Line(ReadOptionsDoc);
+        writer.Line("/// <returns>The parsed value.</returns>");
+        writer.Line("public static " + composite.Name + " Parse(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null) => " + method + "(source, null, options);");
     }
 
     /// <summary>

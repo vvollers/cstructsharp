@@ -109,7 +109,7 @@ and `CStructSharpViews` properties.
 for example `<CStructSharpSurface>Tiny</CStructSharpSurface>`. A warning: the property is ignored and the library's
 default applies.
 
-**Fix.** Use a valid value: `Full`, `Reader` or `Views` for `CStructSharpSurface`; `SysV` or `Msvc` for
+**Fix.** Use a valid value: `Full`, `Reader`, `Parser` or `Views` for `CStructSharpSurface`; `SysV` or `Msvc` for
 `CStructSharpBitfieldPacking`; `LowBitFirst` or `HighBitFirst` for `CStructSharpBitfieldAllocation`; `1`, `2`, `4` or
 `8` for `CStructSharpPointerSize`; `32` or `64` for `CStructSharpCLongWidth`; `true` or `false` for the flag properties.
 

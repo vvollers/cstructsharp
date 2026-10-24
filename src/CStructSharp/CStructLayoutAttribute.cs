@@ -79,6 +79,14 @@ public sealed class CStructLayoutAttribute : Attribute
     /// <remarks>It must stay <see langword="true"/> with <see cref="GeneratedSurface.Views"/>, whose only output is the views.</remarks>
     public bool Views { get; set; } = true;
 
+    /// <summary>Gets or sets whether each view of a fixed-size struct gets a <c>foreach</c> enumerator over consecutive records.</summary>
+    /// <remarks>
+    ///     The full surface always has the enumerator. The <see cref="GeneratedSurface.Reader"/>, <see cref="GeneratedSurface.Parser"/>
+    ///     and <see cref="GeneratedSurface.Views"/> surfaces leave it out unless this is <see langword="true"/>, because it adds
+    ///     code to every fixed-size struct. It needs <see cref="Views"/>.
+    /// </remarks>
+    public bool Enumerators { get; set; }
+
     /// <summary>Gets or sets how much code is generated; the default, <see cref="GeneratedSurface.Full"/>, generates everything.</summary>
     public GeneratedSurface Surface { get; set; } = GeneratedSurface.Full;
 }

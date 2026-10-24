@@ -18,6 +18,15 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   `<CStructSharpSurface>Reader</CStructSharpSurface>` once instead of editing every attribute, and a new layout cannot
   silently grow to the full surface. The new warning CSG012 reports a property value that does not parse, which is then
   ignored. The analyzer and `[CStructMapped]` layout resolution see the same defaults.
+- **A smaller reader surface.** `GeneratedSurface.Parser` generates the typed classes, one `Parse<Name>` over a
+  `ReadOnlySpan<byte>` per declaration and the unnamed root `Parse`, the `Sizes` and `Offsets` constants and the views,
+  and leaves out `TryParse`, the array and `ReadOnlyMemory` overloads, and the `Definition` and `RootName` constants. A
+  project that parses with `Parse(span, options)` everywhere generates about 45% less than with the `Reader` surface for a
+  small layout.
+- **View enumerators on every surface.** `Enumerators = true` (project default `CStructSharpEnumerators`) gives the views
+  of fixed-size structs on the `Reader`, `Parser` and `Views` surfaces the same allocation-free `foreach` enumerator
+  (`RootView.Enumerate`) that the full surface always has; it is off by default there because it adds code to every
+  fixed-size struct.
 
 ## 0.13.0 — 2026-10-24
 

@@ -169,7 +169,7 @@ internal sealed partial class LayoutEmitter
         writer.Line();
         writer.Line("/// <summary>Creates the enumeration over <paramref name=\"source\"/>.</summary>");
         writer.Line("/// <param name=\"source\">The bytes of the records, with nothing else after them.</param>");
-        writer.Line("/// <param name=\"options\">The read options each view's <c>ToObject</c> uses.</param>");
+        writer.Line("/// <param name=\"options\">The read options " + this.OptionsUse + ".</param>");
         writer.Open("public " + view + "Enumerable(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options)");
         writer.Line("this.source = source;");
         writer.Line("this.options = options;");
@@ -189,7 +189,7 @@ internal sealed partial class LayoutEmitter
         writer.Line();
         writer.Line("/// <summary>Creates an enumerator before the first record of <paramref name=\"source\"/>.</summary>");
         writer.Line("/// <param name=\"source\">The bytes of the records, with nothing else after them.</param>");
-        writer.Line("/// <param name=\"options\">The read options each view's <c>ToObject</c> uses.</param>");
+        writer.Line("/// <param name=\"options\">The read options " + this.OptionsUse + ".</param>");
         writer.Open("public " + view + "Enumerator(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options)");
         writer.Line("this.source = source;");
         writer.Line("this.options = options;");

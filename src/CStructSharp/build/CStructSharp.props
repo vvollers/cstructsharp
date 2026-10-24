@@ -15,6 +15,7 @@
     <!-- Project-wide defaults for the [CStructLayout] options; an option the attribute names keeps the attribute's value. -->
     <CompilerVisibleProperty Include="CStructSharpSurface" />
     <CompilerVisibleProperty Include="CStructSharpViews" />
+    <CompilerVisibleProperty Include="CStructSharpEnumerators" />
     <CompilerVisibleProperty Include="CStructSharpKeepNames" />
     <CompilerVisibleProperty Include="CStructSharpAligned" />
     <CompilerVisibleProperty Include="CStructSharpLittleEndian" />

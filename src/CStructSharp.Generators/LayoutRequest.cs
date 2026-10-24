@@ -28,6 +28,7 @@ internal sealed record LayoutRequest(
     LayoutSettings Settings,
     bool KeepNames,
     bool Views,
+    bool Enumerators,
     GenerationSurface Surface,
     SourceSpan AttributeSpan,
     SourceSpan? DefinitionSpan,
@@ -69,6 +70,7 @@ internal sealed record LayoutRequest(
             Settings = settings,
             KeepNames = Named("KeepNames") ? this.KeepNames : defaults.KeepNames ?? this.KeepNames,
             Views = Named("Views") ? this.Views : defaults.Views ?? this.Views,
+            Enumerators = Named("Enumerators") ? this.Enumerators : defaults.Enumerators ?? this.Enumerators,
             Surface = Named("Surface") ? this.Surface : defaults.Surface ?? this.Surface,
         };
     }
