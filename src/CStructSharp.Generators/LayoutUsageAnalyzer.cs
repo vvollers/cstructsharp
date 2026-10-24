@@ -313,7 +313,7 @@ public sealed class LayoutUsageAnalyzer : DiagnosticAnalyzer
 
             if (advice.Count > 0)
             {
-                context.ReportDiagnostic(Diagnostic.Create(GeneratorDiagnostics.LayoutOvergenerates, location, layout.Name, string.Join(" and ", use.Names.OrderBy(name => name, StringComparer.Ordinal).Take(4)), string.Join(", ", advice)));
+                context.ReportDiagnostic(Diagnostic.Create(GeneratorDiagnostics.LayoutOvergenerates, location, layout.Name, string.Join(" and ", use.Names.Distinct().OrderBy(name => name, StringComparer.Ordinal).Take(4)), string.Join(", ", advice)));
             }
         }
     }

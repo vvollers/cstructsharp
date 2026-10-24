@@ -108,6 +108,7 @@ public class LayoutUsageAnalyzerTests
                 {
                     ReadOnlySpan<byte> span = bytes;
                     _ = OnlyParse.Parse(span);
+                    _ = OnlyParse.Parse(span);
                     _ = TryToo.Parse(span);
                     _ = TryToo.TryParse(span, out var value);
                     _ = UsesLayout.Layout;
@@ -118,6 +119,7 @@ public class LayoutUsageAnalyzerTests
             }
             """");
         Dictionary<string, string> messages = diagnostics.Where(diagnostic => diagnostic.Id == "CSG017").ToDictionary(diagnostic => diagnostic.GetMessage().Split('\'')[1], diagnostic => diagnostic.GetMessage());
+        StringAssert.Contains(messages["OnlyParse"], "used only through Parse;", "a member used twice is named once");
         StringAssert.Contains(messages["OnlyParse"], "Surface = GeneratedSurface.Parser");
         StringAssert.Contains(messages["OnlyParse"], "Views = false");
         StringAssert.Contains(messages["TryToo"], "Surface = GeneratedSurface.Reader");
