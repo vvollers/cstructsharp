@@ -8,6 +8,11 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ## Unreleased
 
+## 0.13.0 — 2026-10-24
+
+This minor release lets a project choose how much code the generator writes, makes generated views reach far more
+members, and adds an option to read invalid text without failing. The changes are additive: no existing API changed.
+
 ### Added
 
 - **Generate less code.** `[CStructLayout(Surface = ...)]` chooses how much the generator writes. `GeneratedSurface.Full`
@@ -29,13 +34,27 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   `ptr_address` next to a pointer `ptr`) takes a trailing underscore, and a count that names a member of a nested struct
   whose view has no property for it hides the array instead of generating code that does not compile. A nested view at a
   computed offset keeps the bytes after it, as one at a constant offset does, so its pointer targets resolve alike.
-  The element count of a runtime-sized array is checked without building a read cursor unless it fails, which makes a
-  loop over `Name(i)` about three times faster; the new `ReadCursor.ArrayLimit(ReadOptions?)` supports it.
 - **Read invalid text without failing.** `ReadOptions.InvalidText = InvalidTextHandling.Replace` reads each invalid UTF-8
   sequence, unpaired UTF-16 surrogate and non-ASCII byte of an ASCII string as U+FFFD and continues, for `utf8` and UTF-16
   buffers, `wchar[N]` and terminated strings, in the runtime, in generated readers and in generated views. The default,
   `Fail`, is unchanged, and lengths, offsets and read budgets are the same either way. The option is managed API only:
   the browser bridge does not expose it.
+
+### Performance
+
+- A generated view checks the element count of a runtime-sized array against the array limit without building a read
+  cursor unless the count fails, and skips the exception handler when the count is only a view property. A loop over
+  `Name(i)` is about four times faster, and the count call itself about twice as fast. The new public
+  `ReadCursor.ArrayLimit(ReadOptions?)` supports this; it is additive. Reading the bytes once or calling
+  `Copy<Name>To` remains the fastest way to visit every element.
+
+### Documentation and tooling
+
+- The views guide explains which view members exist, how derived member names are chosen, and how to loop over a
+  runtime-sized array without paying for the count on every element.
+- The documentation lint tool `markdownlint-cli2` moves to 0.24.0, which resolves two high `markdown-it` advisories, and
+  the audit exception that no longer matched an advisory is removed. Dependabot updates for the frontend, documentation
+  and benchmark dependencies are applied.
 
 ## 0.12.1 — 2026-10-04
 
