@@ -109,24 +109,40 @@ internal sealed partial class LayoutEmitter
         writer.Line("return value;");
         writer.Close();
 
+        bool constrained = !field.Constraints.IsDefaultOrEmpty;
         writer.Line();
         writer.Line("/// <summary>Reads " + valueDoc + ": from the struct's bytes when the cursor can hand them over, otherwise member by member, which reports any failure.</summary>");
         writer.Line("/// <param name=\"cursor\">The cursor at the struct's first byte.</param>");
-        writer.Line("/// <param name=\"value\">The value; assigned even when a condition is not satisfied.</param>");
-        writer.Line("/// <param name=\"failure\">The first condition that is not satisfied, or <see langword=\"null\"/>.</param>");
-        writer.Line("/// <returns><see langword=\"false\"/> when a condition stopped the read.</returns>");
-        writer.Open("private static bool ReadValue(ref " + Cursor + " cursor, out " + type + " value, out global::CStructSharp.Diagnostics.CStructConstraintException? failure)");
-        writer.Line("failure = null;");
-        writer.Open("if (" + this.TakeFixedCall(plan) + ")");
-        writer.Line("value = " + fixedDecode + ";");
-        this.EmitScalarConstraints(writer, field, scope, size, true);
-        writer.Line("return true;");
-        writer.Close();
-        writer.Line("value = ReadMembers(ref cursor);");
-        writer.Line("return true;");
-        writer.Close();
+        if (constrained)
+        {
+            writer.Line("/// <param name=\"value\">The value; assigned even when a condition is not satisfied.</param>");
+            writer.Line("/// <param name=\"failure\">The first condition that is not satisfied, or <see langword=\"null\"/>.</param>");
+            writer.Line("/// <returns><see langword=\"false\"/> when a condition stopped the read.</returns>");
+            writer.Open("private static bool ReadValue(ref " + Cursor + " cursor, out " + type + " value, out global::CStructSharp.Diagnostics.CStructConstraintException? failure)");
+            writer.Line("failure = null;");
+            writer.Open("if (" + this.TakeFixedCall(plan) + ")");
+            writer.Line("value = " + fixedDecode + ";");
+            this.EmitScalarConstraints(writer, field, scope, size, true);
+            writer.Line("return true;");
+            writer.Close();
+            writer.Line("value = ReadMembers(ref cursor);");
+            writer.Line("return true;");
+            writer.Close();
+        }
+        else
+        {
+            // Nothing to check after the bytes are decoded, so the reader returns the value itself and has no failure to carry.
+            writer.Line("/// <returns>" + char.ToUpperInvariant(valueDoc[0]) + valueDoc.Substring(1) + ".</returns>");
+            writer.Line("[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
+            writer.Open("private static " + type + " ReadValue(ref " + Cursor + " cursor)");
+            writer.Open("if (" + this.TakeFixedCall(plan) + ")");
+            writer.Line("return " + fixedDecode + ";");
+            writer.Close();
+            writer.Line("return ReadMembers(ref cursor);");
+            writer.Close();
+        }
 
-        this.EmitScalarParse(writer, layout, type, valueDoc, Limits, tryForms, Failure);
+        this.EmitScalarParse(writer, layout, type, valueDoc, Limits, tryForms, Failure, constrained);
     }
 
     /// <summary>Emits the <c>@expect</c> and <c>@supports</c> checks of the scalar's member after its value is in the local <c>value</c>.</summary>
@@ -158,7 +174,8 @@ internal sealed partial class LayoutEmitter
     /// <param name="limits">The <c>ReadLimits</c> type name.</param>
     /// <param name="tryForms">Whether the non-throwing forms are emitted.</param>
     /// <param name="failureType">The base failure type.</param>
-    private void EmitScalarParse(SourceWriter writer, string layout, string type, string valueDoc, string limits, bool tryForms, string failureType)
+    /// <param name="constrained">Whether the reader carries a constraint failure (<c>ReadValue</c> returns a flag) or returns the value alone.</param>
+    private void EmitScalarParse(SourceWriter writer, string layout, string type, string valueDoc, string limits, bool tryForms, string failureType, bool constrained)
     {
         string orderParameter = this.OrderParameter;
         string orderArgument = this.CursorOrderArgument;
@@ -176,10 +193,18 @@ internal sealed partial class LayoutEmitter
             writer.Open("public static " + type + " Parse(global::System.ReadOnlySpan<byte> source, " + parameters[form] + ")");
             writer.Line("var cursor = new " + Cursor + "(" + sources[form] + ");");
             writer.Open("try");
-            writer.Open("if (!ReadValue(ref cursor, out " + type + " value, out var failure))");
-            writer.Line("throw failure!;");
-            writer.Close();
-            writer.Line("return value;");
+            if (constrained)
+            {
+                writer.Open("if (!ReadValue(ref cursor, out " + type + " value, out var failure))");
+                writer.Line("throw failure!;");
+                writer.Close();
+                writer.Line("return value;");
+            }
+            else
+            {
+                writer.Line("return ReadValue(ref cursor);");
+            }
+
             writer.Close();
             writer.Open("catch (" + failureType + " exception)");
             writer.Line("cursor.Complete(exception);");
@@ -209,14 +234,24 @@ internal sealed partial class LayoutEmitter
             writer.Open("public static bool TryParse(global::System.ReadOnlySpan<byte> source, " + tryParameters + ")");
             writer.Line("var cursor = new " + Cursor + "(" + sources[form] + ");");
             writer.Open("try");
-            writer.Open("if (ReadValue(ref cursor, out value, out var stopped))");
-            writer.Line("failure = null;");
-            writer.Line("return true;");
-            writer.Close();
-            writer.Line("cursor.Complete(stopped!);");
-            writer.Line("value = default;");
-            writer.Line("failure = stopped;");
-            writer.Line("return false;");
+            if (constrained)
+            {
+                writer.Open("if (ReadValue(ref cursor, out value, out var stopped))");
+                writer.Line("failure = null;");
+                writer.Line("return true;");
+                writer.Close();
+                writer.Line("cursor.Complete(stopped!);");
+                writer.Line("value = default;");
+                writer.Line("failure = stopped;");
+                writer.Line("return false;");
+            }
+            else
+            {
+                writer.Line("value = ReadValue(ref cursor);");
+                writer.Line("failure = null;");
+                writer.Line("return true;");
+            }
+
             writer.Close();
             writer.Open("catch (" + failureType + " exception)");
             writer.Line("cursor.Complete(exception);");

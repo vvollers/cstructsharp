@@ -23,19 +23,15 @@ namespace Demo
 
         /// <summary>Reads the value of <c>uint32 value</c>: from the struct's bytes when the cursor can hand them over, otherwise member by member, which reports any failure.</summary>
         /// <param name="cursor">The cursor at the struct's first byte.</param>
-        /// <param name="value">The value; assigned even when a condition is not satisfied.</param>
-        /// <param name="failure">The first condition that is not satisfied, or <see langword="null"/>.</param>
-        /// <returns><see langword="false"/> when a condition stopped the read.</returns>
-        private static bool ReadValue(ref global::CStructSharp.Generated.ReadCursor cursor, out uint value, out global::CStructSharp.Diagnostics.CStructConstraintException? failure)
+        /// <returns>The value of <c>uint32 value</c>.</returns>
+        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private static uint ReadValue(ref global::CStructSharp.Generated.ReadCursor cursor)
         {
-            failure = null;
             if (cursor.TryTakeFixed(4, 1, 4, 1, 0, out global::System.ReadOnlySpan<byte> fixedBytes))
             {
-                value = global::CStructSharp.Generated.Codec.ReadUInt32(fixedBytes, true);
-                return true;
+                return global::CStructSharp.Generated.Codec.ReadUInt32(fixedBytes, true);
             }
-            value = ReadMembers(ref cursor);
-            return true;
+            return ReadMembers(ref cursor);
         }
 
         /// <summary>Reads the value of <c>uint32 value</c> from the start of <paramref name="source"/>; the same value, and the same failures, as the runtime's <c>Parse</c> of the struct.</summary>
@@ -47,11 +43,7 @@ namespace Demo
             var cursor = new global::CStructSharp.Generated.ReadCursor(source, options, "word");
             try
             {
-                if (!ReadValue(ref cursor, out uint value, out var failure))
-                {
-                    throw failure!;
-                }
-                return value;
+                return ReadValue(ref cursor);
             }
             catch (global::CStructSharp.Diagnostics.CStructException exception)
             {
@@ -69,11 +61,7 @@ namespace Demo
             var cursor = new global::CStructSharp.Generated.ReadCursor(source, in limits, "word");
             try
             {
-                if (!ReadValue(ref cursor, out uint value, out var failure))
-                {
-                    throw failure!;
-                }
-                return value;
+                return ReadValue(ref cursor);
             }
             catch (global::CStructSharp.Diagnostics.CStructException exception)
             {
