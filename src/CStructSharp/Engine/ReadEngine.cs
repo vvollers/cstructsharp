@@ -471,7 +471,7 @@ internal static partial class ReadEngine
                     break;
 
                 case ReadOpCode.ReadEnum:
-                    last = ValueDecoding.CreateEnumValue(program.Enums[step.B], ReadCodecValue(ref cursor, program.Codecs[step.A].Primitive, scratch));
+                    last = ValueDecoding.CreateEnumValue(program.Enums[step.B], ReadCodecValue(ref cursor, program.Codecs[step.A].Primitive, scratch, state.LenientText));
                     Store(destination, program, field, last);
                     break;
 
@@ -547,7 +547,7 @@ internal static partial class ReadEngine
                     break;
 
                 case ReadOpCode.SkipElements:
-                    SkipElements(ref cursor, program.Codecs[step.A].Primitive, count, scratch);
+                    SkipElements(ref cursor, program.Codecs[step.A].Primitive, count, scratch, state.LenientText);
                     break;
 
                 case ReadOpCode.ReadStruct:

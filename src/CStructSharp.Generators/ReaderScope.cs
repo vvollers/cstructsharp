@@ -50,7 +50,12 @@ internal sealed class ReaderScope
     /// <summary>Makes a member's value visible to later expressions as the runtime's variable capture does.</summary>
     /// <param name="member">The member just read or written.</param>
     /// <param name="access">The C# expression that reads the member's value in the generated code.</param>
-    public void Publish(GeneratedMember member, string access)
+    /// <param name="exposes">
+    ///     For a view: whether a member of a nested struct has the property the access names. A nested member the view
+    ///     does not expose is published as undefined, so an expression that names it hides its array instead of
+    ///     referring to a property that does not exist; <see langword="null"/> publishes every member (the reader).
+    /// </param>
+    public void Publish(GeneratedMember member, string access, Func<GeneratedMember, bool>? exposes = null)
     {
         string? expression = AsOperand(member, access);
         if (expression is not null)
@@ -61,7 +66,7 @@ internal sealed class ReaderScope
         if (member.Composite is { IsUnion: false } nested && member.Field.PointerDepth == 0 && member.Field.Array.Kind == CompiledArrayKind.Scalar)
         {
             string? guard = member.IsConditional ? FlagAccess(member, access) : null;
-            this.PublishNested(nested, member.LayoutName, access, guard, 0);
+            this.PublishNested(nested, member.LayoutName, access, guard, 0, exposes, false);
         }
     }
 
@@ -70,7 +75,7 @@ internal sealed class ReaderScope
     ///     and under their bare names (the last value read wins), except that a conditional composite's own member
     ///     names are restored after the nested read and so never take a nested value.
     /// </summary>
-    private void PublishNested(GeneratedComposite nested, string qualifiedPrefix, string access, string? guard, int depth)
+    private void PublishNested(GeneratedComposite nested, string qualifiedPrefix, string access, string? guard, int depth, Func<GeneratedMember, bool>? exposes, bool hidden)
     {
         if (depth > 8)
         {
@@ -80,10 +85,18 @@ internal sealed class ReaderScope
         foreach (GeneratedMember inner in nested.Members)
         {
             string innerAccess = access + "." + inner.PropertyName;
+
+            // Everything inside a nested struct the view does not expose is hidden with it. The name is still written, as
+            // undefined, so an earlier member of the same bare name does not stand in for the value the reader would use.
+            bool innerHidden = hidden || (exposes is not null && !exposes(inner));
             string? qualified = AsOperand(inner, innerAccess);
             if (qualified is not null)
             {
-                if (guard is not null)
+                if (innerHidden)
+                {
+                    qualified = "global::CStructSharp.Generated.Expressions.Undefined(" + SourceWriter.Literal(inner.LayoutName) + ")";
+                }
+                else if (guard is not null)
                 {
                     // The nested struct itself sits in a conditional arm: its members exist only when it was read.
                     qualified = "(" + guard + " ? " + qualified + " : global::CStructSharp.Generated.Expressions.Undefined(" + SourceWriter.Literal(inner.LayoutName) + "))";
@@ -98,7 +111,7 @@ internal sealed class ReaderScope
 
             if (inner.Composite is { IsUnion: false } deeper && inner.Field.PointerDepth == 0 && inner.Field.Array.Kind == CompiledArrayKind.Scalar && !inner.IsConditional)
             {
-                this.PublishNested(deeper, qualifiedPrefix + "." + inner.LayoutName, innerAccess, guard, depth + 1);
+                this.PublishNested(deeper, qualifiedPrefix + "." + inner.LayoutName, innerAccess, guard, depth + 1, exposes, innerHidden);
             }
         }
     }

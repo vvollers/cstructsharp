@@ -59,6 +59,37 @@ public class InvalidTextHandlingTests
         }
     }
 
+    /// <summary>
+    ///     A terminated string is replaced on every read that walks over it, not only on <c>Parse</c>: the length of the string
+    ///     itself, the offset of a field after it, and a debug read of an array of them.
+    /// </summary>
+    [TestMethod]
+    public void ReplacementReachesPathOperationsAndDebugReads()
+    {
+        var single = new CStruct("struct root { cstring name; uint8 tail; };", aligned: false);
+        byte[] bytes = [0x61, 0x80, 0x62, 0x00, 7];
+        using (var strict = new MemoryStream(bytes))
+        {
+            Assert.Throws<CStructReadException>(() => single.GetArrayLength(strict, "root.name"));
+        }
+
+        using (var stream = new MemoryStream(bytes))
+        {
+            Assert.AreEqual(3, single.GetArrayLength(stream, "root.name", options: Lenient));
+        }
+
+        Assert.Throws<CStructReadException>(() => single.ResolveAddress(bytes, "root.tail"));
+        Assert.AreEqual(4L, single.ResolveAddress(bytes, "root.tail", options: Lenient));
+
+        var many = new CStruct("struct root { cstring names[2]; uint8 tail; };", aligned: false);
+        byte[] table = [0x61, 0x80, 0x00, 0x62, 0xFF, 0x00, 9];
+        Assert.Throws<CStructReadException>(() => many.ParseWithDebug(table, "root"));
+        dynamic read = many.ParseWithDebug(table, "root", options: Lenient).Value;
+        Assert.AreEqual("a�", (string)read.names[0]);
+        Assert.AreEqual("b�", (string)read.names[1]);
+        Assert.AreEqual((byte)9, (byte)read.tail);
+    }
+
     /// <summary>Valid text reads the same under both settings, and text types that cannot be invalid are untouched.</summary>
     [TestMethod]
     public void ValidText_IsTheSameUnderBothSettings()

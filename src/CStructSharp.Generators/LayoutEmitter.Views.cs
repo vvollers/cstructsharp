@@ -218,9 +218,10 @@ internal sealed partial class LayoutEmitter
         string at = slot.At;
         if (field.PointerDepth > 0)
         {
+            string addressName = plan.Unique(member.PropertyName + "Address");
             writer.Line();
             writer.Line("/// <summary>The stored address of <c>" + DescribeDeclaration(field) + "</c> at " + slot.Where + (this.request.Surface == GenerationSurface.Views ? "." : " (the target is read by <see cref=\"ToObject\"/>).") + "</summary>");
-            writer.Line("public long " + member.PropertyName + "Address => (long)" + CodecClass + ".ReadUnsigned(" + slice(at, "PointerSize") + ", LittleEndian);");
+            writer.Line("public long " + addressName + " => (long)" + CodecClass + ".ReadUnsigned(" + slice(at, "PointerSize") + ", LittleEndian);");
             return;
         }
 
@@ -233,7 +234,17 @@ internal sealed partial class LayoutEmitter
 
             writer.Line();
             writer.Line("/// <summary>A view of <c>" + DescribeDeclaration(field) + "</c> at " + slot.Where + ".</summary>");
-            writer.Line("public " + ViewName(nested) + " " + member.PropertyName + " => new(" + (slot.IsDynamic ? slice(at, Int(nestedSize)) : "this.source.Slice(" + at + ")") + ", this.options);");
+
+            // Both placements hand the nested view the rest of the source, so its pointer targets resolve the same way; at a
+            // computed offset the member's own bytes are still checked first.
+            string nestedSource = "this.source.Slice(" + at + ")";
+            if (slot.IsDynamic)
+            {
+                plan.TakeRestName ??= plan.Unique("TakeRest");
+                nestedSource = plan.TakeRestName + "(" + at + ", " + Int(nestedSize) + ", " + SourceWriter.Literal(field.Name) + ", " + SourceWriter.Literal(field.DisplayTypeSpelling) + ")";
+            }
+
+            writer.Line("public " + ViewName(nested) + " " + member.PropertyName + " => new(" + nestedSource + ", this.options);");
             return;
         }
 
@@ -310,9 +321,10 @@ internal sealed partial class LayoutEmitter
         string property = member.PropertyName;
         string count = fixedCount is { } fixedValue ? Int(fixedValue) : runtimeCount!.Value.Method + "()";
 
-        // The slice of a fixed character or numeric array keeps its established name (a clash is a CSG003 error); every
-        // other bytes member is new, so a clash only renames it.
-        bool established = fixedCount is not null && (field.IsCharacterArray || (!BoundedTextCodec.IsType(field.TypeSpelling) && (field.Codec.IsFixedWidthNumeric || member.Enum is not null)));
+        // The slice of a fixed character or numeric array at a build-time offset keeps its established name (a clash is a
+        // CSG003 error). CSG003 does not see a member placed at a computed offset, and every other bytes member is new, so a
+        // clash only renames it.
+        bool established = fixedCount is not null && !slot.IsDynamic && (field.IsCharacterArray || (!BoundedTextCodec.IsType(field.TypeSpelling) && (field.Codec.IsFixedWidthNumeric || member.Enum is not null)));
         string bytesName = established ? property + "Bytes" : plan.Unique(property + "Bytes");
         if (runtimeCount is { } computed && plan.WrittenCounts.Add(computed.Method))
         {
@@ -325,13 +337,13 @@ internal sealed partial class LayoutEmitter
             string length = fixedCount is { } c ? Int(c * width) : "(long)" + count + " * " + Int(width);
             writer.Line();
             writer.Line("/// <summary>The bytes of <c>" + DescribeDeclaration(field) + "</c> at " + slot.Where + ".</summary>");
-            writer.Line("public global::System.ReadOnlySpan<byte> " + property + "Bytes => " + slice(at, length) + ";");
+            writer.Line("public global::System.ReadOnlySpan<byte> " + bytesName + " => " + slice(at, length) + ";");
             writer.Line();
             writer.Line("/// <summary><c>" + DescribeDeclaration(field) + "</c> as text (trailing NULs kept unless the options set <c>TrimFixedText</c>, as the reader does); allocates the string.</summary>");
             string littleEndian = Bool(field.ExplicitWideCharacterEncoding is null ? this.request.Settings.LittleEndian : field.Codec.LittleEndian);
             writer.Line("public string " + property + " => " + (field.IsWideCharElement
-                                                                    ? CodecClass + ".DecodeWideText(" + property + "Bytes, " + littleEndian + ", this.options)"
-                                                                    : CodecClass + ".DecodeFixedText(" + property + "Bytes, " + CodecClass + ".TrimsFixedText(this.options))") + ";");
+                                                                    ? CodecClass + ".DecodeWideText(" + bytesName + ", " + littleEndian + ", this.options)"
+                                                                    : CodecClass + ".DecodeFixedText(" + bytesName + ", " + CodecClass + ".TrimsFixedText(this.options))") + ";");
             return;
         }
 
@@ -351,7 +363,7 @@ internal sealed partial class LayoutEmitter
         string byteLength = fixedCount is { } n ? Int(n * element.Size) : "(long)" + count + " * " + Int(element.Size);
         writer.Line();
         writer.Line("/// <summary>The bytes of <c>" + DescribeDeclaration(field) + "</c> at " + slot.Where + ".</summary>");
-        writer.Line("public global::System.ReadOnlySpan<byte> " + property + "Bytes => " + slice(at, byteLength) + ";");
+        writer.Line("public global::System.ReadOnlySpan<byte> " + bytesName + " => " + slice(at, byteLength) + ";");
         writer.Line();
         writer.Line("/// <summary>One element of <c>" + DescribeDeclaration(field) + "</c>.</summary>");
         writer.Line("/// <param name=\"index\">The element index.</param>");
@@ -374,10 +386,14 @@ internal sealed partial class LayoutEmitter
         writer.Open("if (destination.Length < length)");
         writer.Line("throw new global::System.ArgumentException(\"The destination is shorter than the array.\", nameof(destination));");
         writer.Close();
+
+        // Only the array's own elements are decoded: the decode helpers fill the whole span they are given, and the
+        // destination may be longer. A runtime-sized array slices from the length just computed instead of counting again.
+        writer.Line("global::System.Span<" + elementType + "> output = destination.Slice(0, length);");
         string target = member.Enum is not null
-                            ? "global::System.Runtime.InteropServices.MemoryMarshal.Cast<" + elementType + ", " + member.Enum.UnderlyingType + ">(destination)"
-                            : "destination";
-        writer.Line("global::System.ReadOnlySpan<byte> bytes = " + property + "Bytes;");
+                            ? "global::System.Runtime.InteropServices.MemoryMarshal.Cast<" + elementType + ", " + member.Enum.UnderlyingType + ">(output)"
+                            : "output";
+        writer.Line("global::System.ReadOnlySpan<byte> bytes = " + (fixedCount is null ? slice(at, "(long)length * " + Int(element.Size)) : bytesName) + ";");
         writer.Line(CopyDecode(element, member.Enum is not null ? member.Enum.UnderlyingType : elementType, target));
         writer.Close();
     }
@@ -412,12 +428,12 @@ internal sealed partial class LayoutEmitter
         string property = member.PropertyName;
         writer.Line();
         writer.Line("/// <summary>The bytes of <c>" + DescribeDeclaration(field) + "</c> at " + slot.Where + ".</summary>");
-        writer.Line("public global::System.ReadOnlySpan<byte> " + property + "Bytes => " + slice(slot.At, fixedCount is { } n ? Int(n) : count) + ";");
+        writer.Line("public global::System.ReadOnlySpan<byte> " + bytesName + " => " + slice(slot.At, fixedCount is { } n ? Int(n) : count) + ";");
         writer.Line();
         writer.Line("/// <summary><c>" + DescribeDeclaration(field) + "</c> decoded as the reader does (strictly, unless the options say otherwise; trailing NULs kept unless the options set <c>TrimFixedText</c>); allocates the string.</summary>");
         writer.Open("public string " + property);
         writer.Open("get");
-        writer.Line("global::System.ReadOnlySpan<byte> bytes = " + property + "Bytes;");
+        writer.Line("global::System.ReadOnlySpan<byte> bytes = " + bytesName + ";");
         writer.Line("var cursor = new " + Cursor + "(bytes, this.options, " + SourceWriter.Literal(field.Name) + ");");
         writer.Open("try");
         writer.Line("return cursor.TakeEncodedText(bytes.Length, " + SourceWriter.Literal(field.TypeSpelling) + ", " + SourceWriter.Literal(field.Name) + ", " + SourceWriter.Literal(field.DisplayTypeSpelling) + ");");

@@ -505,7 +505,7 @@ internal static partial class ReadEngine
                 }
 
                 cursor.Position = target.Address;
-                return ((string)ReadCodecValue(ref cursor, PrimitiveCodec.Resolve(field.DisplayTypeSpelling, field.LayoutLittleEndian), scratch)).Length;
+                return ((string)ReadCodecValue(ref cursor, PrimitiveCodec.Resolve(field.DisplayTypeSpelling, field.LayoutLittleEndian), scratch, state.LenientText)).Length;
             }
 
             if (field.Array.Kind == CompiledArrayKind.Scalar && field.Codec.IsTerminatedText)
@@ -516,7 +516,7 @@ internal static partial class ReadEngine
                 }
 
                 cursor.Position = target.Address;
-                return ((string)ReadCodecValue(ref cursor, field.Codec, scratch)).Length;
+                return ((string)ReadCodecValue(ref cursor, field.Codec, scratch, state.LenientText)).Length;
             }
 
             throw new CStructPathException("Path does not resolve to an array or string: " + path);

@@ -205,7 +205,7 @@ internal static partial class ReadEngine
         switch (target.Kind)
         {
         case ReadPointerTargetKind.Enum:
-            return ValueDecoding.CreateEnumValue(target.Enum!, ReadCodecValue(ref cursor, target.Codec.Primitive, scratch));
+            return ValueDecoding.CreateEnumValue(target.Enum!, ReadCodecValue(ref cursor, target.Codec.Primitive, scratch, state.LenientText));
         case ReadPointerTargetKind.Composite:
             // A debug read records the target's members under the target's path, `value` after the pointer's.
             return state.Debug is { } debug ? ReadRecordedPointerComposite(ref cursor, ref state, target, debug.Target) : ReadPointerComposite(ref cursor, ref state, target);
@@ -300,7 +300,7 @@ internal static partial class ReadEngine
                 for (int index = 0; index < count; index++)
                 {
                     long start = valueRecorder is null ? 0 : cursor.Position;
-                    object character = ReadCodecValue(ref cursor, codec, scratch);
+                    object character = ReadCodecValue(ref cursor, codec, scratch, state.LenientText);
                     valueRecorder?.Record(start, cursor.Position, path, character, typeName);
                     characters[index] = (char)character;
                 }
@@ -337,7 +337,7 @@ internal static partial class ReadEngine
 
                     long start = valueRecorder is null ? 0 : cursor.Position;
                     object value = target.Kind == ReadPointerTargetKind.CountedEnums
-                                       ? ValueDecoding.CreateEnumValue(target.Enum!, ReadCodecValue(ref cursor, codec, scratch))
+                                       ? ValueDecoding.CreateEnumValue(target.Enum!, ReadCodecValue(ref cursor, codec, scratch, state.LenientText))
                                        : ReadTargetCodecValue(ref cursor, ref state, target, "Counted target has no reader: ", scratch);
                     valueRecorder?.Record(start, cursor.Position, path, value is EnumValueResult number ? number.Value : value, typeName);
                     values.Add(value);

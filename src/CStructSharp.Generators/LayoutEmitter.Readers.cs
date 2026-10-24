@@ -262,11 +262,11 @@ internal sealed partial class LayoutEmitter
             ("global::System.IO.Stream", "stream", "the stream (left at its origin after a failure)"),
         ];
 
-        // Outside the full surface only the span form exists: an array converts to a span implicitly, and the other
-        // inputs would repeat the same two methods per composite.
+        // Outside the full surface the sequence and stream forms do not exist. The array form stays beside the span and
+        // memory forms: a byte[] converts to both of those, so without its own overload a call would be ambiguous.
         if (this.request.Surface != GenerationSurface.Full)
         {
-            inputs = inputs.Take(1).ToArray();
+            inputs = inputs.Take(3).ToArray();
         }
 
         foreach ((string type, string parameter, string kind) in inputs)

@@ -32,7 +32,7 @@ internal static partial class ReadEngine
     /// <returns>The decoded value.</returns>
     /// <exception cref="CStructReadException">The input ends early or holds an invalid value.</exception>
     /// <exception cref="CStructReadLimitException">The bytes exceed a budget.</exception>
-    internal static object ReadCodecValue<TCursor>(ref TCursor cursor, PrimitiveCodec codec, Span<byte> scratch, bool lenientText = false)
+    internal static object ReadCodecValue<TCursor>(ref TCursor cursor, PrimitiveCodec codec, Span<byte> scratch, bool lenientText)
         where TCursor : struct, IReadCursor
     {
         bool littleEndian = codec.LittleEndian;
@@ -297,7 +297,7 @@ internal static partial class ReadEngine
         char[] characters = new char[count];
         for (int index = 0; index < count; index++)
         {
-            characters[index] = (char)ReadCodecValue(ref cursor, codec, scratch);
+            characters[index] = (char)ReadCodecValue(ref cursor, codec, scratch, state.LenientText);
         }
 
         return CharacterRows(ref state, member, characters);
@@ -443,7 +443,7 @@ internal static partial class ReadEngine
         char[] characters = new char[count];
         for (int index = 0; index < count; index++)
         {
-            characters[index] = (char)ReadCodecValue(ref cursor, codec, scratch);
+            characters[index] = (char)ReadCodecValue(ref cursor, codec, scratch, false);
         }
 
         return new string(characters);
@@ -463,7 +463,7 @@ internal static partial class ReadEngine
         var elements = new List<object?>(count);
         for (int index = 0; index < count; index++)
         {
-            elements.Add(ValueDecoding.CreateEnumValue(enumType, ReadCodecValue(ref cursor, codec, scratch)));
+            elements.Add(ValueDecoding.CreateEnumValue(enumType, ReadCodecValue(ref cursor, codec, scratch, false)));
         }
 
         return elements;
@@ -478,7 +478,8 @@ internal static partial class ReadEngine
     /// <param name="codec">The element codec.</param>
     /// <param name="count">The element count.</param>
     /// <param name="scratch">A scratch buffer.</param>
-    private static void SkipElements<TCursor>(ref TCursor cursor, PrimitiveCodec codec, int count, Span<byte> scratch)
+    /// <param name="lenientText">Whether a terminated string with invalid text is skipped as U+FFFD instead of failing.</param>
+    private static void SkipElements<TCursor>(ref TCursor cursor, PrimitiveCodec codec, int count, Span<byte> scratch, bool lenientText)
         where TCursor : struct, IReadCursor
     {
         for (int index = 0; index < count; index++)
@@ -489,7 +490,7 @@ internal static partial class ReadEngine
             }
             else
             {
-                _ = ReadCodecValue(ref cursor, codec, scratch);
+                _ = ReadCodecValue(ref cursor, codec, scratch, lenientText);
             }
         }
     }
@@ -560,7 +561,7 @@ internal static partial class ReadEngine
         }
         else
         {
-            unit = codec.IsFixedWidthNumeric ? codec.ReadNumeric(cursor.ReadFixed(scratch[..codec.Size])) : ReadCodecValue(ref cursor, codec, scratch);
+            unit = codec.IsFixedWidthNumeric ? codec.ReadNumeric(cursor.ReadFixed(scratch[..codec.Size])) : ReadCodecValue(ref cursor, codec, scratch, state.LenientText);
         }
 
         long end = cursor.Position;

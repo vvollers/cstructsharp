@@ -65,9 +65,10 @@ public class SurfaceTests
         object parsed = surfaced.GetMethod("Parse", [typeof(byte[]), typeof(ReadOptions)])!.Invoke(null, [Bytes, null])!;
         ParityComparer.AssertSame(runtime.Parse(Bytes, "root"), parsed, "root", strict: true);
 
-        // The sequence and stream forms of the typed reader are gone, the memory forms stay; TryParse takes a span only.
+        // The sequence and stream forms of the typed reader are gone, the memory forms stay; TryParse takes a span, an array, and a memory.
         Assert.IsEmpty(surfaced.GetMethods().Where(method => method.Name == "ParseRoot" && method.GetParameters()[0].ParameterType.Name is "Stream" or "ReadOnlySequence`1"));
-        Assert.IsTrue(surfaced.GetMethods().Where(method => method.Name == "TryParse").All(method => method.GetParameters()[0].ParameterType.Name == "ReadOnlySpan`1"));
+        string[] tryInputs = [.. surfaced.GetMethods().Where(method => method.Name == "TryParse").Select(method => method.GetParameters()[0].ParameterType.Name).Distinct().Order()];
+        CollectionAssert.AreEqual(new[] { "Byte[]", "ReadOnlyMemory`1", "ReadOnlySpan`1" }, tryInputs);
         Assert.IsNull(surfaced.GetNestedType("RootView")!.GetMethod("Enumerate"));
         object[] readings = (object[])assembly.GetType("Demo.Probe")!.GetMethod("Read")!.Invoke(null, [Bytes])!;
         Assert.AreEqual((byte)7, readings[0]);

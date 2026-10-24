@@ -73,6 +73,9 @@ internal sealed partial class LayoutEmitter
         /// <summary>Gets or sets the name of the checked-slice helper, chosen so that no member of the view has it.</summary>
         public string TakeName { get; set; } = "Take";
 
+        /// <summary>Gets or sets the name of the helper that checks a slice and returns the rest of the source, or <see langword="null"/> when no member needs it.</summary>
+        public string? TakeRestName { get; set; }
+
         /// <summary>Claims a name for a helper or a derived member, adding underscores until no member of the view has it.</summary>
         /// <param name="name">The wanted name.</param>
         /// <returns>The claimed name, which no later claim returns again.</returns>
@@ -157,7 +160,8 @@ internal sealed partial class LayoutEmitter
             end = this.EndOf(plan, scope, field, member, start);
             if (member is not null && plan.Slots.ContainsKey(field) && this.ViewPublishes(member))
             {
-                scope.Publish(member, "this." + member.PropertyName);
+                // A nested struct's own members are published only where its view has a property for them.
+                scope.Publish(member, "this." + member.PropertyName, this.NestedViewExposes);
             }
         }
 
@@ -196,6 +200,15 @@ internal sealed partial class LayoutEmitter
 
         return member.Composite is null && (field.BitSize > 0 || member.Enum is not null || field.Codec.IsFixedWidthNumeric || field.Codec.IsIdentifier || field.Codec.IsFixedPoint);
     }
+
+    /// <summary>
+    ///     Whether the view of a fixed-size nested struct has a property named like this member, of the member's type: it
+    ///     must be a kind <see cref="ViewPublishes"/> accepts and sit at an offset the compiler fixed, which is where the
+    ///     nested view places it.
+    /// </summary>
+    /// <param name="member">A member of the nested struct.</param>
+    /// <returns>Whether <c>this.Nested.Property</c> exists in the generated view.</returns>
+    private bool NestedViewExposes(GeneratedMember member) => member.Field.FixedOffset is not null && this.ViewPublishes(member);
 
     /// <summary>The C# expression of the offset just after a field, or <see langword="null"/> when its size depends on data the plan cannot step over.</summary>
     /// <param name="plan">The plan, which learns the count of a runtime-sized array.</param>
@@ -308,6 +321,21 @@ internal sealed partial class LayoutEmitter
         writer.Close();
         writer.Line("return this.source.Slice((int)offset, (int)length);");
         writer.Close();
+
+        if (plan.TakeRestName is { } rest)
+        {
+            writer.Line();
+            writer.Line("/// <summary>Checks that the source holds a member, as the checked slice does, and returns everything from its first byte, so a nested view still sees the bytes after it (pointer targets).</summary>");
+            writer.Line("/// <param name=\"offset\">The first byte.</param>");
+            writer.Line("/// <param name=\"length\">The number of bytes the member needs.</param>");
+            writer.Line("/// <param name=\"member\">The member, for the failure.</param>");
+            writer.Line("/// <param name=\"memberType\">The member's type, for the failure.</param>");
+            writer.Line("/// <returns>The source from <paramref name=\"offset\"/> to its end.</returns>");
+            writer.Open("private global::System.ReadOnlySpan<byte> " + rest + "(long offset, long length, string member, string memberType)");
+            writer.Line("_ = " + plan.TakeName + "(offset, length, member, memberType);");
+            writer.Line("return this.source.Slice((int)offset);");
+            writer.Close();
+        }
     }
 
     /// <summary>Emits the method that counts the elements of one runtime-sized array with the reader's own checks.</summary>

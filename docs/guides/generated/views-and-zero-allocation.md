@@ -49,7 +49,7 @@ and returns plain values.
 
 A view has an accessor for every member it can place: scalars, bitfields, enums, a pointer's stored address, a nested
 struct (as a nested view), an array of numbers (`Values(int index)`, `ValuesBytes`, and `CopyValuesTo(Span<uint>)`
-to decode every element in one pass), text (`NameBytes`, and `Name` when a string is wanted - that one allocates the
+to decode the array's elements in one pass into the start of a destination at least that long), text (`NameBytes`, and `Name` when a string is wanted - that one allocates the
 string), and a custom codec's value (`ColourBytes`, and `Colour`, which the codec boxes).
 
 An array whose length comes from an earlier member (`uint32 entries[count]`) is exposed the same way, with
@@ -66,10 +66,13 @@ struct table { uint32 count; uint64 origin; uint32 entries[count]; uint32 checks
 without the array a `Table` object would allocate for them.
 
 Members it does not expose are the ones whose position the view cannot compute: a terminated string, a conditional
-member, an array whose length needs a caller variable or a value that is not read yet, a pointer's target, a struct
+member, an array whose length needs a caller variable, a value that is not read yet, or a member of a nested struct whose
+view has no property for it (a `char`, an `int48`, an `int128` or a pointer), a pointer's target, a struct
 with a variable size, a bitfield whose storage the compiler placed after the data, and everything placed after one of
 those. For those, `ToObject()` runs the full reader, or `Parse` does from the start. A member after a runtime-sized
-array that is named like one of the view's own members (`bytes`, `to_object`) stays hidden rather than breaking the build.
+array that is named like one of the view's own members (`bytes`, `to_object`) stays hidden rather than breaking the build,
+and a derived member (`DataBytes` for `data`, `PtrAddress` for a pointer `ptr`) that would take the name of one of the
+layout's own members gets a trailing underscore instead (`DataBytes_`).
 
 ## When a view is the wrong tool
 

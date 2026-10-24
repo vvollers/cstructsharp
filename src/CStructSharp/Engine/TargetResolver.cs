@@ -724,7 +724,7 @@ internal static partial class TargetResolver
         }
         else if (field.Enum is { } enm && field.BitSize == 0)
         {
-            object storage = ReadEngine.ReadCodecValue(ref cursor, field.Codec, scratch);
+            object storage = ReadEngine.ReadCodecValue(ref cursor, field.Codec, scratch, state.LenientText);
             CaptureValue(ref state, member, enm.Integer.FromStorageValue(storage));
             return false;
         }
@@ -794,7 +794,7 @@ internal static partial class TargetResolver
         where TCursor : struct, IReadCursor
         => field.Codec.IsCustom
                ? cursor.ReadCustom(state.Layout.Codecs.CustomCodecOf(field.CodecId))
-               : ReadEngine.ReadCodecValue(ref cursor, field.Codec, scratch);
+               : ReadEngine.ReadCodecValue(ref cursor, field.Codec, scratch, state.LenientText);
 
     /// <summary>Rejects a nesting depth the options do not allow.</summary>
     /// <param name="state">The operation's state.</param>

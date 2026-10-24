@@ -72,6 +72,24 @@ public class ViewPlacementTests
         [CStructLayout("struct late { uint8 n; uint8 items[n]; uint8 bytes[2]; uint8 to_object; };", Root = "late")]
         public static partial class LateLayout { }
 
+        [CStructLayout("struct hdr { char n; uint8 pad; }; struct pkt { hdr h; uint8 data[h.n]; uint32 tail; };", Root = "pkt")]
+        public static partial class NestedCharCountLayout { }
+
+        [CStructLayout("struct hdr { int48 n; uint8 pad; }; struct pkt { hdr h; uint8 data[h.n]; uint32 tail; };", Root = "pkt")]
+        public static partial class NestedWideCountLayout { }
+
+        [CStructLayout("struct hdr { uint8 n; uint8 pad; }; struct pkt { hdr h; uint8 data[h.n]; uint32 tail; };", Root = "pkt")]
+        public static partial class NestedCountLayout { }
+
+        [CStructLayout("struct clash { uint8 n; uint8 data[n]; uint32 data_bytes; uint32 vals[2]; uint32 vals_bytes; utf8 name[n]; uint32 name_bytes; };", Root = "clash")]
+        public static partial class ClashLayout { }
+
+        [CStructLayout("struct pointers { uint8 n; uint8 data[n]; uint8 *ptr; uint32 ptr_address; };", Root = "pointers", PointerSize = 2)]
+        public static partial class PointerClashLayout { }
+
+        [CStructLayout("struct leaf { uint8 id; uint8 *target; }; struct holder { uint8 n; uint8 xs[n]; leaf l; };", Root = "holder", PointerSize = 2)]
+        public static partial class HolderLayout { }
+
         public static class Probe
         {
             public static object[] Table(byte[] bytes)
@@ -104,6 +122,54 @@ public class ViewPlacementTests
             {
                 var view = new Demo.PaintLayout.PaintView(bytes);
                 return new object[] { view.Head, view.Colour, view.ColourBytes.Length, view.Tail };
+            }
+
+            public static object[] NestedCount(byte[] bytes)
+            {
+                var view = new Demo.NestedCountLayout.PktView(bytes);
+                return new object[] { view.CountOfData(), view.Data(1), view.Tail };
+            }
+
+            public static object[] Clash(byte[] bytes)
+            {
+                var view = new Demo.ClashLayout.ClashView(bytes);
+                return new object[] { view.CountOfData(), view.DataBytes_.Length, view.DataBytes, view.Vals(1), view.ValsBytes_.Length, view.ValsBytes, view.Name, view.NameBytes_.Length, view.NameBytes };
+            }
+
+            public static object[] PointerClash(byte[] bytes)
+            {
+                var view = new Demo.PointerClashLayout.PointersView(bytes);
+                return new object[] { view.PtrAddress_, view.PtrAddress };
+            }
+
+            public static uint[] CopyTableLonger(byte[] bytes)
+            {
+                var view = new Demo.TableLayout.TableView(bytes);
+                uint[] buffer = new uint[8];
+                view.CopyEntriesTo(buffer);
+                return buffer;
+            }
+
+            public static ushort[] CopyChainLonger(byte[] bytes)
+            {
+                var view = new Demo.ChainLayout.ChainView(bytes);
+                ushort[] buffer = new ushort[6];
+                view.CopyATo(buffer);
+                return buffer;
+            }
+
+            public static uint[] CopyFixedAfterArrayLonger(byte[] bytes)
+            {
+                var view = new Demo.ClashLayout.ClashView(bytes);
+                uint[] buffer = new uint[5];
+                view.CopyValsTo(buffer);
+                return buffer;
+            }
+
+            public static object[] Holder(byte[] bytes)
+            {
+                var view = new Demo.HolderLayout.HolderView(bytes);
+                return new object[] { view.L.ToObject().Id };
             }
 
             public static object[] Late(byte[] bytes)
@@ -302,5 +368,106 @@ public class ViewPlacementTests
         Assert.IsNull(view.GetProperty("ToObject_"));
         Assert.IsNotNull(view.GetMethod("CountOfItems"));
         Assert.IsNotNull(view.GetMethod("ToObject"));
+    }
+
+    /// <summary>A count that names a member of a nested struct the nested view cannot expose hides the array instead of breaking the build.</summary>
+    [TestMethod]
+    public void CountNamingAnUnexposedNestedMember_HidesTheArray()
+    {
+        foreach (string layout in new[] { "NestedCharCount", "NestedWideCount" })
+        {
+            Type view = assembly.GetType("Demo." + layout + "Layout")!.GetNestedType("PktView")!;
+            Assert.IsNotNull(view.GetProperty("H"), layout);
+            Assert.IsNull(view.GetMethod("CountOfData"), layout);
+            Assert.IsNull(view.GetProperty("Tail"), layout);
+        }
+    }
+
+    /// <summary>A count that names an exposed member of a nested struct is evaluated by the view like the reader's.</summary>
+    [TestMethod]
+    public void CountNamingAnExposedNestedMember_PlacesTheArray()
+    {
+        byte[] bytes = [2, 0, 5, 6, 1, 2, 3, 4];
+        object[] readings = Probe("NestedCount", bytes);
+        object parsed = Parsed("NestedCount", bytes);
+        Assert.AreEqual(2, readings[0]);
+        Assert.AreEqual((byte)6, readings[1]);
+        Assert.AreEqual(Property(parsed, "Tail"), readings[2]);
+    }
+
+    /// <summary>The bytes of <c>clash</c>: n = 2, data, data_bytes, vals[2], vals_bytes, name, name_bytes.</summary>
+    private static byte[] ClashBytes() =>
+    [
+        2, 0x0A, 0x0B,
+        .. BitConverter.GetBytes(11u),
+        .. BitConverter.GetBytes(21u), .. BitConverter.GetBytes(22u),
+        .. BitConverter.GetBytes(33u),
+        (byte)'h', (byte)'i',
+        .. BitConverter.GetBytes(44u),
+    ];
+
+    /// <summary>A derived bytes member never takes the name of a member of the layout, whatever the member's placement.</summary>
+    [TestMethod]
+    public void DerivedBytesMembers_AvoidTheLayoutsOwnNames()
+    {
+        byte[] bytes = ClashBytes();
+        object[] readings = Probe("Clash", bytes);
+        object parsed = Parsed("Clash", bytes);
+        Assert.AreEqual(2, readings[0]);
+        Assert.AreEqual(2, readings[1]);
+        Assert.AreEqual(Property(parsed, "DataBytes"), readings[2]);
+        Assert.AreEqual(22u, readings[3]);
+        Assert.AreEqual(8, readings[4]);
+        Assert.AreEqual(Property(parsed, "ValsBytes"), readings[5]);
+        Assert.AreEqual("hi", readings[6]);
+        Assert.AreEqual(2, readings[7]);
+        Assert.AreEqual(Property(parsed, "NameBytes"), readings[8]);
+    }
+
+    /// <summary>A stored pointer address never takes the name of a member of the layout.</summary>
+    [TestMethod]
+    public void PointerAddress_AvoidsTheLayoutsOwnNames()
+    {
+        byte[] bytes = [1, 7, 0x34, 0x12, 0x78, 0x56, 0x34, 0x12];
+        object[] readings = Probe("PointerClash", bytes);
+        Assert.AreEqual(0x1234L, readings[0]);
+        Assert.AreEqual(0x12345678u, readings[1]);
+    }
+
+    /// <summary>A destination longer than the array is filled with the array's elements only; the rest is left alone.</summary>
+    [TestMethod]
+    public void CopyTo_AcceptsALongerDestination()
+    {
+        // count 3, skip, origin, entries 10 20 30, checksum, tag, tail.
+        byte[] table = [3, 0, 0, 0, 9, 9, 9, 9, 1, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 20, 0, 0, 0, 30, 0, 0, 0, 0xFE, 0xCA, 0, 0, 2, 5, 6];
+        CollectionAssert.AreEqual(new uint[] { 10, 20, 30, 0, 0, 0, 0, 0 }, (uint[])Call("CopyTableLonger", table));
+
+        // n 2, a = 0x0102 0x0304 (big-endian), m 0, last.
+        byte[] chain = [2, 1, 2, 3, 4, 0, 0x5A];
+        CollectionAssert.AreEqual(new ushort[] { 0x0102, 0x0304, 0, 0, 0, 0 }, (ushort[])Call("CopyChainLonger", chain));
+
+        CollectionAssert.AreEqual(new uint[] { 21, 22, 0, 0, 0 }, (uint[])Call("CopyFixedAfterArrayLonger", ClashBytes()));
+    }
+
+    /// <summary>A nested view at a computed offset keeps the bytes after it, so its pointer targets read like those of a nested view at a constant offset.</summary>
+    [TestMethod]
+    public void NestedViewAtAComputedOffset_SeesTheBytesAfterIt()
+    {
+        // n 1, xs = 9, leaf (id 4, target address 3), then the target byte after the leaf.
+        byte[] bytes = [1, 9, 4, 3, 0, 0x55];
+        Assert.AreEqual((byte)4, Probe("Holder", bytes)[0]);
+    }
+
+    /// <summary>Calls a probe method that returns something other than an object array.</summary>
+    private static object Call(string method, byte[] bytes)
+    {
+        try
+        {
+            return assembly.GetType("Demo.Probe")!.GetMethod(method)!.Invoke(null, [bytes])!;
+        }
+        catch (TargetInvocationException exception)
+        {
+            throw exception.InnerException!;
+        }
     }
 }

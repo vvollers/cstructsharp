@@ -2335,8 +2335,9 @@ namespace Demo
                 {
                     throw new global::System.ArgumentException("The destination is shorter than the array.", nameof(destination));
                 }
+                global::System.Span<byte> output = destination.Slice(0, length);
                 global::System.ReadOnlySpan<byte> bytes = PrBytes;
-                bytes.CopyTo(destination);
+                bytes.CopyTo(output);
             }
 
             /// <summary>Reads the whole value with the generated reader (every member, runtime-sized ones included).</summary>

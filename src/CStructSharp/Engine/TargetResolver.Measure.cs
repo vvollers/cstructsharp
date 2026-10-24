@@ -73,7 +73,7 @@ internal static partial class TargetResolver
         if (field.Array.Kind == CompiledArrayKind.Scalar && field.Codec.IsTerminatedText)
         {
             cursor.Position = fieldStart;
-            _ = ReadEngine.ReadCodecValue(ref cursor, field.Codec, scratch);
+            _ = ReadEngine.ReadCodecValue(ref cursor, field.Codec, scratch, state.LenientText);
             return cursor.Position;
         }
 
@@ -90,7 +90,7 @@ internal static partial class TargetResolver
             }
 
             cursor.Position = fieldStart;
-            _ = ReadEngine.ReadCodecValue(ref cursor, PrimitiveCodec.Resolve(field.DisplayTypeSpelling, field.LayoutLittleEndian), scratch);
+            _ = ReadEngine.ReadCodecValue(ref cursor, PrimitiveCodec.Resolve(field.DisplayTypeSpelling, field.LayoutLittleEndian), scratch, state.LenientText);
             return cursor.Position;
         }
 

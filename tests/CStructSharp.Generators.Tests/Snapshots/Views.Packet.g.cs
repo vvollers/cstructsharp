@@ -1740,8 +1740,9 @@ namespace Demo
                 {
                     throw new global::System.ArgumentException("The destination is shorter than the array.", nameof(destination));
                 }
+                global::System.Span<uint> output = destination.Slice(0, length);
                 global::System.ReadOnlySpan<byte> bytes = ValuesBytes;
-                global::CStructSharp.Generated.Codec.DecodeIntegers<uint>(bytes, destination, false);
+                global::CStructSharp.Generated.Codec.DecodeIntegers<uint>(bytes, output, false);
             }
 
             /// <summary>The stored address of <c>uint16 *link</c> at offset 16 (the target is read by <see cref="ToObject"/>).</summary>
@@ -1921,8 +1922,9 @@ namespace Demo
                 {
                     throw new global::System.ArgumentException("The destination is shorter than the array.", nameof(destination));
                 }
-                global::System.ReadOnlySpan<byte> bytes = DataBytes;
-                bytes.CopyTo(destination);
+                global::System.Span<byte> output = destination.Slice(0, length);
+                global::System.ReadOnlySpan<byte> bytes = Take(25, (long)length * 1, "data", "uint8");
+                bytes.CopyTo(output);
             }
 
             /// <summary><c>uint8 tail</c> at a run-time offset.</summary>

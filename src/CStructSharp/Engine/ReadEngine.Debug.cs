@@ -166,7 +166,7 @@ internal static partial class ReadEngine
 
         case ReadOpCode.DebugCodecArray:
         case ReadOpCode.DebugSkipElements:
-            Store(destination, program, field, RecordCodecElements(ref cursor, debug, program.Fields[field], program.Codecs[step.A].Primitive, count, scratch));
+            Store(destination, program, field, RecordCodecElements(ref cursor, debug, program.Fields[field], program.Codecs[step.A].Primitive, count, scratch, state.LenientText));
             return last;
 
         case ReadOpCode.DebugCharArray:
@@ -391,8 +391,9 @@ internal static partial class ReadEngine
     /// <param name="codec">The element codec.</param>
     /// <param name="count">The element count.</param>
     /// <param name="scratch">A buffer of at least 16 bytes.</param>
+    /// <param name="lenientText">Whether a terminated string with invalid text is read as U+FFFD instead of failing.</param>
     /// <returns>The elements.</returns>
-    private static List<object?> RecordCodecElements<TCursor>(ref TCursor cursor, DebugRecorder debug, CompiledField member, PrimitiveCodec codec, int count, Span<byte> scratch)
+    private static List<object?> RecordCodecElements<TCursor>(ref TCursor cursor, DebugRecorder debug, CompiledField member, PrimitiveCodec codec, int count, Span<byte> scratch, bool lenientText)
         where TCursor : struct, IReadCursor
     {
         var elements = new List<object?>(count);
@@ -401,7 +402,7 @@ internal static partial class ReadEngine
         for (int index = 0; index < count; index++)
         {
             long start = cursor.Position;
-            object value = codec.IsFixedWidthNumeric ? codec.ReadNumeric(cursor.ReadFixed(scratch[..codec.Size])) : ReadCodecValue(ref cursor, codec, scratch);
+            object value = codec.IsFixedWidthNumeric ? codec.ReadNumeric(cursor.ReadFixed(scratch[..codec.Size])) : ReadCodecValue(ref cursor, codec, scratch, lenientText);
             debug.Record(start, cursor.Position, path, value, typeName);
             elements.Add(value);
         }
@@ -427,7 +428,7 @@ internal static partial class ReadEngine
         for (int index = 0; index < count; index++)
         {
             long start = cursor.Position;
-            object character = ReadCodecValue(ref cursor, codec, scratch);
+            object character = ReadCodecValue(ref cursor, codec, scratch, false);
             debug.Record(start, cursor.Position, path, character, typeName);
             characters[index] = (char)character;
         }
@@ -454,7 +455,7 @@ internal static partial class ReadEngine
         for (int index = 0; index < count; index++)
         {
             long start = cursor.Position;
-            EnumValueResult value = ValueDecoding.CreateEnumValue(enumType, ReadCodecValue(ref cursor, codec, scratch));
+            EnumValueResult value = ValueDecoding.CreateEnumValue(enumType, ReadCodecValue(ref cursor, codec, scratch, false));
             debug.Record(start, cursor.Position, path, value.Value, typeName);
             elements.Add(value);
         }
