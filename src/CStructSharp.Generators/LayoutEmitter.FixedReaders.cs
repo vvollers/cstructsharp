@@ -54,12 +54,13 @@ internal sealed partial class LayoutEmitter
             writer.Line("int fixedStart = cursor.Position;");
         }
 
-        // Alignment only constrains the start in an aligned layout; a packed layout places members by size alone.
-        writer.Open("if (cursor.TryTakeFixed(" + Int(plan.Size) + ", " + Int(this.request.Settings.Aligned ? plan.Alignment : 1) + ", " + plan.ChargedBytes.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", " + Int(plan.NestingLevels) + ", " + Int(plan.MaximumArrayCount) + ", out global::System.ReadOnlySpan<byte> fixedBytes))");
+        writer.Open("if (" + this.TakeFixedCall(plan) + ")");
         if (constrained)
         {
             writer.Line("var fixedValue = Read" + composite.Name + "Fixed(fixedBytes, cursor.TrimFixedText" + (this.HasRuntimeByteOrder ? ", cursor.LittleEndian" : string.Empty) + ");");
-            writer.Line("Check" + composite.Name + "Constraints(ref cursor, variables, " + (this.UsesValueTypes ? "in " : string.Empty) + "fixedValue, fixedStart);");
+            writer.Open("if (!TryCheck" + composite.Name + "Constraints(ref cursor, variables, " + (this.UsesValueTypes ? "in " : string.Empty) + "fixedValue, fixedStart, out var constraintFailure))");
+            writer.Line("throw constraintFailure!;");
+            writer.Close();
             writer.Line("return fixedValue;");
         }
         else
@@ -81,12 +82,15 @@ internal sealed partial class LayoutEmitter
     private void EmitFixedConstraintCheck(SourceWriter writer, GeneratedComposite composite)
     {
         string name = composite.Name;
-        writer.Line("/// <summary>Checks the <c>@expect</c> and <c>@supports</c> conditions of a <c>" + composite.LayoutName + "</c> that its fixed reader just decoded, in field order, failing as the member-by-member reader would.</summary>");
+        writer.Line("/// <summary>Checks the <c>@expect</c> and <c>@supports</c> conditions of a <c>" + composite.LayoutName + "</c> that its fixed reader just decoded, in field order, failing as the member-by-member reader would: the failure comes back instead of being thrown.</summary>");
         writer.Line("/// <param name=\"cursor\">The cursor, which sits after the struct.</param>");
         writer.Line(VariablesDoc);
         writer.Line("/// <param name=\"value\">The decoded value.</param>");
         writer.Line("/// <param name=\"start\">The position of the struct's first byte.</param>");
-        writer.Open("private static void Check" + name + "Constraints(ref " + Cursor + " cursor, " + VariablesType + " variables, " + (this.UsesValueTypes ? "in " : string.Empty) + name + " value, int start)");
+        writer.Line("/// <param name=\"failure\">The first condition that is not satisfied (its position is attached when it leaves the operation), or <see langword=\"null\"/>; null as well when violations are being collected.</param>");
+        writer.Line("/// <returns><see langword=\"false\"/> when a condition stopped the check.</returns>");
+        writer.Open("private static bool TryCheck" + name + "Constraints(ref " + Cursor + " cursor, " + VariablesType + " variables, " + (this.UsesValueTypes ? "in " : string.Empty) + name + " value, int start, out global::CStructSharp.Diagnostics.CStructConstraintException? failure)");
+        writer.Line("failure = null;");
         var scope = new ReaderScope(this, composite);
         foreach (CompiledField field in composite.Composite.Fields)
         {
@@ -100,10 +104,59 @@ internal sealed partial class LayoutEmitter
             int end = (field.FixedOffset ?? 0) + (field.FixedStorageSize ?? 0);
             foreach (CompiledConstraint constraint in field.Constraints)
             {
-                EmitConstraintBlock(writer, field, constraint, scope.Expressions.Emit(constraint.Expression), SourceWriter.Literal(field.Name), SourceWriter.Literal(field.DisplayTypeSpelling), "start + " + Int(end));
+                EmitConstraintBlock(writer, field, constraint, scope.Expressions.Emit(constraint.Expression), SourceWriter.Literal(field.Name), SourceWriter.Literal(field.DisplayTypeSpelling), "start + " + Int(end), returnsFailure: true);
             }
         }
 
+        writer.Line("return true;");
+        writer.Close();
+    }
+
+    /// <summary>
+    ///     The call that hands over a fixed composite's bytes when the member-by-member reader would read exactly those bytes
+    ///     without a failure. Alignment only constrains the start in an aligned layout; a packed layout places members by size alone.
+    /// </summary>
+    /// <param name="plan">The fixed plan of the composite.</param>
+    /// <returns>The C# expression, which declares <c>fixedBytes</c>.</returns>
+    private string TakeFixedCall(FixedPlan plan)
+        => "cursor.TryTakeFixed(" + Int(plan.Size) + ", " + Int(this.request.Settings.Aligned ? plan.Alignment : 1) + ", " + plan.ChargedBytes.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", " + Int(plan.NestingLevels) + ", " + Int(plan.MaximumArrayCount) + ", out global::System.ReadOnlySpan<byte> fixedBytes)";
+
+    /// <summary>
+    ///     Emits the body of a non-throwing span reader for a fixed composite with <c>@expect</c> or <c>@supports</c> conditions:
+    ///     the fixed reader decodes it and the constraint pass returns the first failure, so a value that breaks a condition costs
+    ///     an allocation, not an exception. Input the fixed reader does not take (too short, over a limit, misaligned) goes
+    ///     through the member-by-member reader, which reports the failure the way it always has, and is caught.
+    /// </summary>
+    /// <param name="writer">The output, inside the method.</param>
+    /// <param name="composite">A constrained composite that has a fixed reader.</param>
+    /// <param name="plan">Its fixed plan.</param>
+    /// <param name="cursorCreation">The C# statement that declares <c>cursor</c> over the span.</param>
+    private void EmitFixedTryBody(SourceWriter writer, GeneratedComposite composite, FixedPlan plan, string cursorCreation)
+    {
+        string name = composite.Name;
+        writer.Line(cursorCreation);
+        writer.Open("try");
+        writer.Open("if (" + this.TakeFixedCall(plan) + ")");
+        writer.Line("var fixedValue = Read" + name + "Fixed(fixedBytes, cursor.TrimFixedText" + (this.HasRuntimeByteOrder ? ", cursor.LittleEndian" : string.Empty) + ");");
+        writer.Open("if (!TryCheck" + name + "Constraints(ref cursor, variables, " + (this.UsesValueTypes ? "in " : string.Empty) + "fixedValue, 0, out var constraintFailure))");
+        writer.Line("cursor.Complete(constraintFailure!);");
+        writer.Line("value = " + (this.UsesValueTypes ? "default;" : "null;"));
+        writer.Line("failure = constraintFailure;");
+        writer.Line("return false;");
+        writer.Close();
+        writer.Line("value = fixedValue;");
+        writer.Line("failure = null;");
+        writer.Line("return true;");
+        writer.Close();
+        writer.Line("value = Read" + name + "Members(ref cursor, variables, null, null);");
+        writer.Line("failure = null;");
+        writer.Line("return true;");
+        writer.Close();
+        writer.Open("catch (global::CStructSharp.Diagnostics.CStructException exception)");
+        writer.Line("cursor.Complete(exception);");
+        writer.Line(this.UsesValueTypes ? "value = default;" : "value = null;");
+        writer.Line("failure = exception;");
+        writer.Line("return false;");
         writer.Close();
     }
 

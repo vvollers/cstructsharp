@@ -21,6 +21,11 @@ public ref partial struct ReadCursor
     /// <returns>The <see cref="ReadOptions.MaxArrayElements"/> limit.</returns>
     public static int ArrayLimit(ReadOptions? options) => (options ?? ReadOptions.Default).MaxArrayElements;
 
+    /// <summary>Gets whether an exception is the failure of a layout expression (a division by zero, an overflow) rather than another error, so generated code can treat an unevaluable condition as not satisfied.</summary>
+    /// <param name="exception">The exception an expression raised.</param>
+    /// <returns>Whether it is an expression failure.</returns>
+    public static bool IsExpressionFailure(Exception exception) => LayoutExpressionEvaluator.IsExpressionFailure(exception);
+
     /// <summary>A layout failure (an offset assertion that does not hold) at the current position, with the runtime's context.</summary>
     /// <param name="message">The diagnostic.</param>
     /// <param name="member">The layout field.</param>
@@ -77,21 +82,49 @@ public ref partial struct ReadCursor
     /// <exception cref="CStructConstraintException">The read does not collect violations.</exception>
     public void ConstraintViolated(ConstraintKind kind, string constraint, string field, string? member, string? memberType, string? label = null, int reportAt = -1)
     {
+        if (this.RejectConstraint(kind, constraint, field, member, memberType, label, reportAt, out CStructConstraintException? failure))
+        {
+            throw failure;
+        }
+    }
+
+    /// <summary>
+    ///     Reports a field whose value does not satisfy an <c>@expect</c> or <c>@supports</c> condition without throwing: the form
+    ///     for a check that returns its failure (a non-throwing <c>TryParse</c> or <c>TryValidate</c>). When the read collects
+    ///     violations (<see cref="ReadOptions.ConstraintViolations"/>) the failure is added to the collection and the check goes on.
+    /// </summary>
+    /// <param name="kind">Whether the data is malformed or unsupported.</param>
+    /// <param name="constraint">The condition as written in the layout.</param>
+    /// <param name="field">The field's layout name.</param>
+    /// <param name="member">The layout field, for the diagnostics.</param>
+    /// <param name="memberType">The field's type spelling.</param>
+    /// <param name="label">The constraint's label, or <see langword="null"/> when the layout gave it none.</param>
+    /// <param name="reportAt">The source offset to report when it is not the cursor's own, or -1 for the cursor's position.</param>
+    /// <param name="failure">
+    ///     The failure when the method returns <see langword="true"/>: its position is not attached yet (pass it to
+    ///     <see cref="Complete"/> before handing it out, as a catch block does for a thrown one).
+    /// </param>
+    /// <returns><see langword="true"/> when the check must stop with <paramref name="failure"/>; <see langword="false"/> when the failure was collected and the check goes on.</returns>
+    public bool RejectConstraint(ConstraintKind kind, string constraint, string field, string? member, string? memberType, string? label, int reportAt, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out CStructConstraintException? failure)
+    {
         CStructConstraintException exception = this.FailConstraint(kind, constraint, field, member, memberType, label);
         if (this.settings.ConstraintViolations is not { } violations)
         {
-            // Thrown: the cursor stands where the failure is reported, and its position is attached at the operation boundary (Complete),
+            // Stopping: the cursor stands where the failure is reported, and its position is attached at the operation boundary (Complete),
             // where the runtime attaches it (a pointer target's failure reports the position after the pointer).
             if (reportAt >= 0)
             {
                 this.position = reportAt;
             }
 
-            throw exception;
+            failure = exception;
+            return true;
         }
 
         exception.AttachContext(null, (reportAt >= 0 ? reportAt : this.position) + this.settings.OffsetBase);
         violations.Add(exception);
+        failure = null;
+        return false;
     }
 
     /// <summary>A read failure at the current position with the runtime's context and a lower-level cause.</summary>

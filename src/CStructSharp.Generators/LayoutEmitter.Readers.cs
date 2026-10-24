@@ -124,6 +124,7 @@ internal sealed partial class LayoutEmitter
         writer.Close();
         writer.Close();
         this.EmitLimitsParse(writer, composite, isRoot, method);
+        this.EmitMatches(writer, composite, isRoot);
         if (this.request.Surface == GenerationSurface.Parser)
         {
             this.EmitParserRoot(writer, composite, isRoot, method);
@@ -229,16 +230,24 @@ internal sealed partial class LayoutEmitter
         writer.Line(VariablesDoc);
         writer.Line("/// <returns>Whether the read succeeded.</returns>");
         writer.Open("public static bool Try" + method + "(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + maybeNull + "out " + name + " value, out " + Failure + "? failure, in " + Limits + " limits, " + VariablesType + " variables = null)");
-        writer.Open("try");
-        writer.Line("value = " + method + "(source, " + this.OrderArgument + "in limits, variables);");
-        writer.Line("failure = null;");
-        writer.Line("return true;");
-        writer.Close();
-        writer.Open("catch (" + Failure + " exception)");
-        writer.Line(this.UsesValueTypes ? "value = default;" : "value = null;");
-        writer.Line("failure = exception;");
-        writer.Line("return false;");
-        writer.Close();
+        if (this.ReturnsConstraintFailure(composite) is { } limitsPlan)
+        {
+            this.EmitFixedTryBody(writer, composite, limitsPlan, "var cursor = new " + Cursor + "(source, in limits, " + SourceWriter.Literal(composite.LayoutName) + this.CursorOrderArgument + ");");
+        }
+        else
+        {
+            writer.Open("try");
+            writer.Line("value = " + method + "(source, " + this.OrderArgument + "in limits, variables);");
+            writer.Line("failure = null;");
+            writer.Line("return true;");
+            writer.Close();
+            writer.Open("catch (" + Failure + " exception)");
+            writer.Line(this.UsesValueTypes ? "value = default;" : "value = null;");
+            writer.Line("failure = exception;");
+            writer.Line("return false;");
+            writer.Close();
+        }
+
         writer.Close();
         if (isRoot)
         {
@@ -400,16 +409,30 @@ internal sealed partial class LayoutEmitter
             writer.Line(ReadOptionsDoc);
             writer.Line("/// <returns>Whether the read succeeded.</returns>");
             writer.Open("public static bool Try" + method + "(" + type + " " + parameter + ", " + this.OrderParameter + MaybeNull + "out " + name + " value, out " + Failure + "? failure, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
-            writer.Open("try");
-            writer.Line("value = " + method + "(" + parameter + ", " + this.OrderArgument + "variables, options);");
-            writer.Line("failure = null;");
-            writer.Line("return true;");
-            writer.Close();
-            writer.Open("catch (" + Failure + " exception)");
-            writer.Line(this.UsesValueTypes ? "value = default;" : "value = null;");
-            writer.Line("failure = exception;");
-            writer.Line("return false;");
-            writer.Close();
+            if (this.ReturnsConstraintFailure(composite) is { } fixedPlan && type == "global::System.ReadOnlySpan<byte>")
+            {
+                this.EmitFixedTryBody(writer, composite, fixedPlan, "var cursor = new " + Cursor + "(source, options, " + SourceWriter.Literal(composite.LayoutName) + this.CursorOrderArgument + ");");
+            }
+            else if (this.ReturnsConstraintFailure(composite) is not null && type is "byte[]" or "global::System.ReadOnlyMemory<byte>")
+            {
+                // The array and memory forms hand their bytes to the span form, so they share its non-throwing check.
+                string bytes = type == "byte[]" ? "new global::System.ReadOnlySpan<byte>(source ?? throw new global::System.ArgumentNullException(nameof(source)))" : "source.Span";
+                writer.Line("return Try" + method + "(" + bytes + ", " + this.OrderArgument + "out value, out failure, variables, options);");
+            }
+            else
+            {
+                writer.Open("try");
+                writer.Line("value = " + method + "(" + parameter + ", " + this.OrderArgument + "variables, options);");
+                writer.Line("failure = null;");
+                writer.Line("return true;");
+                writer.Close();
+                writer.Open("catch (" + Failure + " exception)");
+                writer.Line(this.UsesValueTypes ? "value = default;" : "value = null;");
+                writer.Line("failure = exception;");
+                writer.Line("return false;");
+                writer.Close();
+            }
+
             writer.Close();
             writer.Line();
             writer.Line("/// <inheritdoc cref=\"Try" + method + "(" + type.Replace('<', '{').Replace('>', '}') + ", " + this.OrderCref + "out " + name + ", out " + Failure.Replace('<', '{').Replace('>', '}') + "?, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
@@ -425,6 +448,15 @@ internal sealed partial class LayoutEmitter
             }
         }
     }
+
+    /// <summary>
+    ///     The fixed plan of a composite whose non-throwing readers return a constraint failure instead of throwing it: one with
+    ///     <c>@expect</c> or <c>@supports</c> conditions that is read by its fixed reader.
+    /// </summary>
+    /// <param name="composite">The composite.</param>
+    /// <returns>Its fixed plan, or <see langword="null"/> when its non-throwing readers catch the throwing one.</returns>
+    private FixedPlan? ReturnsConstraintFailure(GeneratedComposite composite)
+        => composite.Composite.HasConstraints ? this.FixedPlanOf(composite, 0) : null;
 
     /// <summary>
     ///     One composite's reader, entered with the cursor at the composite's first byte. A composite with a fixed reader
@@ -771,7 +803,11 @@ internal sealed partial class LayoutEmitter
     ///     The C# expression of the cursor position to report when the check fails, or <see langword="null"/> to report the
     ///     cursor's own (a constraint pass that runs after a whole struct was read reports the end of the checked field).
     /// </param>
-    private static void EmitConstraintBlock(SourceWriter writer, CompiledField field, CompiledConstraint constraint, string code, string member, string memberType, string? failurePosition)
+    /// <param name="returnsFailure">
+    ///     Whether the check sits in a method that returns <see langword="false"/> with an <c>out</c> parameter <c>failure</c>
+    ///     instead of throwing, so a non-throwing caller gets the failure back; otherwise the check throws (or collects).
+    /// </param>
+    private static void EmitConstraintBlock(SourceWriter writer, CompiledField field, CompiledConstraint constraint, string code, string member, string memberType, string? failurePosition, bool returnsFailure = false)
     {
         string context = "constraint '" + constraint.Text + "' of " + field.Name;
         string kind = constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "Malformed" : "Unsupported";
@@ -801,7 +837,18 @@ internal sealed partial class LayoutEmitter
 
         // The failure throws, or is collected when the read gathers violations (ReadOptions.ConstraintViolations), and then the read goes on:
         // so the position a constraint pass reports is an argument, not a move of the cursor.
-        writer.Line("cursor.ConstraintViolated(global::CStructSharp.Diagnostics.ConstraintKind." + kind + ", " + SourceWriter.Literal(constraint.Text) + ", " + SourceWriter.Literal(field.Name) + ", " + member + ", " + memberType + ", " + (constraint.Label is null ? "null" : SourceWriter.Literal(constraint.Label)) + (failurePosition is null ? string.Empty : ", " + failurePosition) + ");");
+        string arguments = "global::CStructSharp.Diagnostics.ConstraintKind." + kind + ", " + SourceWriter.Literal(constraint.Text) + ", " + SourceWriter.Literal(field.Name) + ", " + member + ", " + memberType + ", " + (constraint.Label is null ? "null" : SourceWriter.Literal(constraint.Label));
+        if (returnsFailure)
+        {
+            writer.Open("if (cursor.RejectConstraint(" + arguments + ", " + (failurePosition ?? "-1") + ", out failure))");
+            writer.Line("return false;");
+            writer.Close();
+        }
+        else
+        {
+            writer.Line("cursor.ConstraintViolated(" + arguments + (failurePosition is null ? string.Empty : ", " + failurePosition) + ");");
+        }
+
         writer.Close();
         writer.Close();
     }

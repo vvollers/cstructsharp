@@ -189,33 +189,59 @@ internal sealed partial class LayoutEmitter
         }
 
         string name = plan.Unique("Validate");
+        string checks = plan.Unique("ValidateChecks");
         string layout = SourceWriter.Literal(composite.LayoutName);
+        string orderArgument = this.HasRuntimeByteOrder ? ", this.littleEndian" : string.Empty;
+        string variablesLine = this.ViewsCarryVariables ? "global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = this.variables;" : NoVariables;
         writer.Line();
         writer.Line("/// <summary>Checks the <c>@expect</c> and <c>@supports</c> conditions of this struct's members, in declaration order, with the reader's failures; a view never checks them on its own.</summary>");
         writer.Line("/// <param name=\"violations\">When given, receives every condition a member breaks and the check goes on (see <see cref=\"global::CStructSharp.ReadOptions.ConstraintViolations\"/>), instead of the first one throwing.</param>");
         writer.Line("/// <exception cref=\"global::CStructSharp.Diagnostics.CStructConstraintException\">A member's value does not satisfy a condition and <paramref name=\"violations\"/> is not given.</exception>");
         writer.Open("public void " + name + "(global::System.Collections.Generic.ICollection<global::CStructSharp.Diagnostics.CStructConstraintException>? violations = null)");
-        if (this.ViewsCarryVariables)
-        {
-            writer.Line("global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = this.variables;");
-        }
-        else
-        {
-            writer.Line(NoVariables);
-        }
-
-        writer.Line("var cursor = new " + Cursor + "(this.source, violations is null ? this.options : (this.options ?? new global::CStructSharp.ReadOptions()) with { ConstraintViolations = violations }, " + layout + (this.HasRuntimeByteOrder ? ", this.littleEndian" : string.Empty) + ");");
+        writer.Line(variablesLine);
+        writer.Line("var cursor = new " + Cursor + "(this.source, violations is null ? this.options : (this.options ?? new global::CStructSharp.ReadOptions()) with { ConstraintViolations = violations }, " + layout + orderArgument + ");");
         writer.Open("try");
-        foreach ((CompiledField field, CompiledConstraint constraint, string code, string? end) in plan.Checks)
-        {
-            EmitConstraintBlock(writer, field, constraint, code, SourceWriter.Literal(field.Name), SourceWriter.Literal(field.DisplayTypeSpelling), end);
-        }
-
+        writer.Open("if (!this." + checks + "(ref cursor, variables, out var failure))");
+        writer.Line("throw failure!;");
+        writer.Close();
         writer.Close();
         writer.Open("catch (global::CStructSharp.Diagnostics.CStructException exception)");
         writer.Line("cursor.Complete(exception);");
         writer.Line("throw;");
         writer.Close();
+        writer.Close();
+        writer.Line();
+        writer.Line("/// <summary>Checks the <c>@expect</c> and <c>@supports</c> conditions of this struct's members like <see cref=\"" + name + "\"/>, but returns the failure instead of throwing it: a constraint that is not satisfied allocates the failure and nothing is thrown.</summary>");
+        writer.Line("/// <param name=\"failure\">The first condition that is not satisfied, or the failure of a condition that could not be evaluated; <see langword=\"null\"/> when every condition holds.</param>");
+        writer.Line("/// <returns>Whether every condition holds.</returns>");
+        writer.Open("public bool Try" + name + "([global::System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out global::CStructSharp.Diagnostics.CStructException? failure)");
+        writer.Line(variablesLine);
+        writer.Line("var cursor = new " + Cursor + "(this.source, this.options, " + layout + orderArgument + ");");
+        writer.Open("try");
+        writer.Open("if (this." + checks + "(ref cursor, variables, out var stopped))");
+        writer.Line("failure = null;");
+        writer.Line("return true;");
+        writer.Close();
+        writer.Line("cursor.Complete(stopped!);");
+        writer.Line("failure = stopped;");
+        writer.Line("return false;");
+        writer.Close();
+        writer.Open("catch (global::CStructSharp.Diagnostics.CStructException exception)");
+        writer.Line("cursor.Complete(exception);");
+        writer.Line("failure = exception;");
+        writer.Line("return false;");
+        writer.Close();
+        writer.Close();
+        writer.Line();
+        writer.Line("/// <summary>Runs the checks of <see cref=\"" + name + "\"/> in declaration order; a condition that is not satisfied stops them with its failure unless the read collects violations.</summary>");
+        writer.Open("private bool " + checks + "(ref " + Cursor + " cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, out global::CStructSharp.Diagnostics.CStructConstraintException? failure)");
+        writer.Line("failure = null;");
+        foreach ((CompiledField field, CompiledConstraint constraint, string code, string? end) in plan.Checks)
+        {
+            EmitConstraintBlock(writer, field, constraint, code, SourceWriter.Literal(field.Name), SourceWriter.Literal(field.DisplayTypeSpelling), end, returnsFailure: true);
+        }
+
+        writer.Line("return true;");
         writer.Close();
     }
 

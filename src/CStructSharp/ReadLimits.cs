@@ -44,11 +44,18 @@ public readonly record struct ReadLimits
     /// <summary>The default nesting depth limit, shared with <see cref="ReadOptions.MaxNestingDepth"/>.</summary>
     internal const int DefaultMaxNestingDepth = 256;
 
+    /// <summary>The greatest <see cref="OffsetBase"/>: 2^48 - 1.</summary>
+    public const long MaxOffsetBase = (1L << 48) - 1;
+
     private readonly int arrayElementsOffset;
     private readonly long stringBytesOffset;
     private readonly long totalBytesOffset;
     private readonly int nestingDepthOffset;
     private readonly bool lenientText;
+
+    // The offset base is 48 bits (a ushort and a uint) so that it fits the padding this struct already has: it stays at 40 bytes.
+    private readonly uint offsetBaseLow;
+    private readonly ushort offsetBaseHigh;
 
     /// <summary>Gets the greatest number of elements a single traversed array field may contain; see <see cref="ReadOptions.MaxArrayElements"/>.</summary>
     public int MaxArrayElements
@@ -97,12 +104,36 @@ public readonly record struct ReadLimits
     /// <summary>Gets the token a long read observes; see <see cref="ReadOptions.CancellationToken"/>.</summary>
     public CancellationToken CancellationToken { get; init; }
 
-    /// <summary>Gets the position of the source's first byte in the larger input; added to every failure's offset. See <see cref="ReadOptions.OffsetBase"/>.</summary>
-    /// <exception cref="System.ArgumentOutOfRangeException">A read with a negative value fails with this before any byte is read.</exception>
-    public long OffsetBase { get; init; }
+    /// <summary>
+    ///     Gets the position of the source's first byte in the larger input it was cut from, added to the offset every failure
+    ///     reports; see <see cref="ReadOptions.OffsetBase"/>. At most <see cref="MaxOffsetBase"/> (2^48 - 1, about 281 TB), which keeps this value at
+    ///     40 bytes.
+    /// </summary>
+    /// <exception cref="System.ArgumentOutOfRangeException">The value is negative or greater than <see cref="MaxOffsetBase"/>.</exception>
+    public long OffsetBase
+    {
+        get => ((long)this.offsetBaseHigh << 32) | this.offsetBaseLow;
+        init
+        {
+            ValidateOffsetBase(value);
+            this.offsetBaseHigh = (ushort)(value >> 32);
+            this.offsetBaseLow = (uint)value;
+        }
+    }
 
     /// <summary>Gets whether invalid text is replaced instead of failing, as the readers test it.</summary>
     internal bool LenientText => this.lenientText;
+
+    /// <summary>Rejects an offset base that cannot be stored or reported.</summary>
+    /// <param name="value">The offset base.</param>
+    /// <exception cref="System.ArgumentOutOfRangeException">The value is negative or greater than <see cref="MaxOffsetBase"/>.</exception>
+    internal static void ValidateOffsetBase(long value)
+    {
+        if ((ulong)value > MaxOffsetBase)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(value), value, "The offset base must be between 0 and 2^48 - 1.");
+        }
+    }
 
     /// <summary>Copies the limits of a <see cref="ReadOptions"/>, dropping its pointer policy.</summary>
     /// <param name="options">The options, or <see langword="null"/> for the defaults.</param>

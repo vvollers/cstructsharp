@@ -107,6 +107,26 @@ public class ConstraintReportingTests
         Assert.AreEqual(5L, ReadLimits.From(new ReadOptions { OffsetBase = 5 }).OffsetBase);
     }
 
+    /// <summary>The offset base takes every value up to 2^48 - 1 in both option types, refuses the rest when it is set, and equal options compare equal.</summary>
+    [TestMethod]
+    public void OffsetBase_HasTheDocumentedRange_AndOptionsStayComparable()
+    {
+        long largest = ReadLimits.MaxOffsetBase;
+        Assert.AreEqual((1L << 48) - 1, largest);
+        Assert.AreEqual(largest, new ReadLimits { OffsetBase = largest }.OffsetBase);
+        Assert.AreEqual(largest, new ReadOptions { OffsetBase = largest }.OffsetBase);
+        Assert.AreEqual((1L << 32) + 5, new ReadLimits { OffsetBase = (1L << 32) + 5 }.OffsetBase);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new ReadLimits { OffsetBase = largest + 1 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new ReadLimits { OffsetBase = -1 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new ReadOptions { OffsetBase = largest + 1 });
+
+        var violations = new List<CStructConstraintException>();
+        Assert.AreEqual(new ReadOptions { OffsetBase = 9, ConstraintViolations = violations }, new ReadOptions { OffsetBase = 9, ConstraintViolations = violations });
+        Assert.AreNotEqual(new ReadOptions { OffsetBase = 9 }, new ReadOptions { OffsetBase = 10 });
+        Assert.AreEqual(new ReadOptions(), new ReadOptions { OffsetBase = 0 });
+        Assert.AreEqual(9L, (new ReadOptions { OffsetBase = 9 } with { TrimFixedText = true }).OffsetBase);
+    }
+
     /// <summary>A read that collects violations reports every broken condition in field order, with the member, path, offset and label of a thrown failure, and returns the value.</summary>
     [TestMethod]
     public void CollectedViolations_ListEveryFailureInFieldOrder()

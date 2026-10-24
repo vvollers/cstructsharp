@@ -53,7 +53,7 @@ internal readonly record struct ReadOperationSettings(
     /// </summary>
     public bool HasValidLimits =>
         !this.CancellationToken.IsCancellationRequested && this.MaxPointerDepth >= 0 && this.maxPointerTargetBytes >= 0 &&
-        this.MaxArrayElements >= 0 && this.MaxStringBytes >= 0 && this.MaxTotalBytesRead >= 0 && this.MaxNestingDepth > 0 && this.OffsetBase >= 0;
+        this.MaxArrayElements >= 0 && this.MaxStringBytes >= 0 && this.MaxTotalBytesRead >= 0 && this.MaxNestingDepth > 0;
 
     /// <summary>
     ///     Returns whether these limits admit a read the compiled engine would complete at structure depth
@@ -205,11 +205,6 @@ internal readonly record struct ReadOperationSettings(
         if (options.MaxNestingDepth <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(options), "Maximum nesting depth must be greater than zero.");
-        }
-
-        if (options.OffsetBase < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(options), "The offset base cannot be negative.");
         }
     }
 }

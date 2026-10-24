@@ -34,6 +34,10 @@ public sealed record ReadOptions
     // instance is allocated by every read that builds its own options, and a wider field would grow it past 88 bytes.
     private readonly bool lenientText;
 
+    // The members few reads set - the offset base, the violation collection and the buffered-input continuation - share one
+    // reference that stays null for an ordinary read, so none of them grows an instance past 88 bytes.
+    private readonly ReadExtras? extras;
+
     /// <summary>Creates the default bounded read and pointer policy.</summary>
     public ReadOptions()
     {
@@ -52,7 +56,11 @@ public sealed record ReadOptions
     ///     A reader that needs a byte past the handed part then raises the internal signal that makes the buffered form
     ///     read more of the input and run the operation again (<see cref="Streams.BufferedInput"/>).
     /// </summary>
-    internal long ContinuedInputLength { get; init; }
+    internal long ContinuedInputLength
+    {
+        get => this.extras?.ContinuedInputLength ?? 0;
+        init => this.extras = ReadExtras.Normalize((this.extras ?? ReadExtras.None) with { ContinuedInputLength = value });
+    }
 
     /// <summary>Gets whether pointer addresses are stream positions or offsets from <see cref="Origin"/>.</summary>
     public PointerAddressingMode AddressingMode { get; init; } = PointerAddressingMode.Absolute;
@@ -148,14 +156,23 @@ public sealed record ReadOptions
     public long Origin { get; init; }
 
     /// <summary>
-    ///     Gets the position of the source's first byte in the larger input it was cut from (an image, a file), added to
-    ///     the <see cref="CStructSharp.Diagnostics.CStructException.Offset"/> every failure of a span, array or memory read
-    ///     reports and to the offset in its message, so a failure names where the bytes are in the evidence rather than
-    ///     in the buffer. It changes nothing else: positions, addresses and pointer targets still count from the buffer's
-    ///     first byte, and a stream read reports stream positions already. The default is 0.
+    ///     Gets the position of the source's first byte in the larger input it was cut from (an image, a file; for a stream
+    ///     read by a generated reader, the stream's position at the call), added to the
+    ///     <see cref="CStructSharp.Diagnostics.CStructException.Offset"/> every failure of a span, array, memory or generated stream read
+    ///     reports and to the offset in its message, so a failure names where the bytes are in the evidence rather than in the
+    ///     buffer. It changes nothing else: positions, addresses and pointer targets still count from the buffer's first byte, and
+    ///     the runtime layout's stream readers report absolute stream positions already and ignore it. The default is 0.
     /// </summary>
-    /// <exception cref="System.ArgumentOutOfRangeException">A read with a negative value fails with this before any byte is read.</exception>
-    public long OffsetBase { get; init; }
+    /// <exception cref="System.ArgumentOutOfRangeException">The value is negative or greater than 2^48 - 1 (<see cref="ReadLimits.MaxOffsetBase"/>).</exception>
+    public long OffsetBase
+    {
+        get => this.extras?.OffsetBase ?? 0;
+        init
+        {
+            ReadLimits.ValidateOffsetBase(value);
+            this.extras = ReadExtras.Normalize((this.extras ?? ReadExtras.None) with { OffsetBase = value });
+        }
+    }
 
     /// <summary>
     ///     Gets the collection that receives every <c>@expect</c> and <c>@supports</c> failure instead of the first one
@@ -171,7 +188,11 @@ public sealed record ReadOptions
     ///     next); the collection then holds the failures found up to that read failure, which is thrown as usual.
     ///     The collection is not thread-safe and is added to in place: use one per read.
     /// </remarks>
-    public System.Collections.Generic.ICollection<CStructSharp.Diagnostics.CStructConstraintException>? ConstraintViolations { get; init; }
+    public System.Collections.Generic.ICollection<CStructSharp.Diagnostics.CStructConstraintException>? ConstraintViolations
+    {
+        get => this.extras?.ConstraintViolations;
+        init => this.extras = ReadExtras.Normalize((this.extras ?? ReadExtras.None) with { ConstraintViolations = value });
+    }
 
     /// <summary>
     ///     Gets the token a long read observes: it is checked when a composite or a pointer target is entered, per
@@ -180,4 +201,19 @@ public sealed record ReadOptions
     ///     <c>TryReadValue</c> lets it through). Never checked per primitive, so a small read costs nothing for it.
     /// </summary>
     public System.Threading.CancellationToken CancellationToken { get; init; }
+
+    /// <summary>The members few reads set, kept behind one reference so an ordinary instance does not carry them.</summary>
+    /// <param name="OffsetBase">The position of the source's first byte in the larger input.</param>
+    /// <param name="ConstraintViolations">The collection that receives constraint failures, or <see langword="null"/>.</param>
+    /// <param name="ContinuedInputLength">What the buffered input forms record when the bytes are the first part of a longer input.</param>
+    private sealed record ReadExtras(long OffsetBase, System.Collections.Generic.ICollection<CStructSharp.Diagnostics.CStructConstraintException>? ConstraintViolations, long ContinuedInputLength)
+    {
+        /// <summary>The extras of an ordinary read: nothing set.</summary>
+        public static readonly ReadExtras None = new(0, null, 0);
+
+        /// <summary>Returns <see langword="null"/> for extras with nothing set, so equal options store the same thing.</summary>
+        /// <param name="value">The extras.</param>
+        /// <returns>The extras, or <see langword="null"/> when they equal <see cref="None"/>.</returns>
+        public static ReadExtras? Normalize(ReadExtras value) => value == None ? null : value;
+    }
 }
