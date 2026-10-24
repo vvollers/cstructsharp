@@ -2,6 +2,7 @@ namespace CStructSharp.Tests;
 
 using CStructSharp;
 using CStructSharp.Diagnostics;
+using CStructSharp.Reading;
 
 /// <summary>
 ///     Where collected constraint violations and the offset base meet the reads that move or buffer their input: a record
@@ -47,9 +48,11 @@ public class ConstraintReportingFollowUpTests
         var layout = new CStruct(Record);
         byte[] data = [9, 9, 9, 1, 2];
 
+        // Reads the records from the stream with the given offset base and returns the offset of the failure that is thrown.
         long? Thrown(long offsetBase) => Assert.Throws<CStructConstraintException>(() => layout.ParseMany(new MemoryStream(data) { Position = 3 }, "r", options: new ReadOptions { OffsetBase = offsetBase }).ToList()).Offset;
         Assert.AreEqual(Thrown(0), Thrown(1000));
 
+        // Reads the same records collecting violations and returns the offset of the first collected violation.
         long? Collected(long offsetBase)
         {
             var found = new List<CStructConstraintException>();
@@ -69,9 +72,11 @@ public class ConstraintReportingFollowUpTests
         var layout = new CStruct("struct s { uint8 pad; uint8 a @expect(a == 1); };");
         byte[] data = [0, 2];
 
+        // Reads the stream asynchronously with the given offset base and returns the offset of the thrown failure.
         async Task<long?> Async(long offsetBase) => (await Assert.ThrowsAsync<CStructConstraintException>(async () => await layout.ParseAsync(new MemoryStream(data), "s", options: new ReadOptions { OffsetBase = offsetBase }))).Offset;
         Assert.AreEqual(await Async(0), await Async(1000));
 
+        // Reads the same stream synchronously, throwing or collecting, and returns the failure offset.
         long? Sync(long offsetBase, bool collect)
         {
             var found = new List<CStructConstraintException>();
@@ -124,6 +129,8 @@ public class ConstraintReportingFollowUpTests
 
         // The pointer's target lies at 100, past the 65 bytes the first buffer holds, so the buffered forms read again.
         byte[] bytes = [1, 100, 0, 0, 0, 0, 0, 0, 0, 5, .. new byte[200]];
+
+        // Parses the bytes as a span and returns how many violations were collected.
         int Spanned()
         {
             var found = new List<CStructConstraintException>();
@@ -144,5 +151,42 @@ public class ConstraintReportingFollowUpTests
         var unseekable = new List<CStructConstraintException>();
         _ = await layout.ParseAsync(new AsyncStreamBufferTests.NonSeekableStream(bytes), "far", options: new ReadOptions { MaxTotalBytesRead = 64, ConstraintViolations = unseekable });
         Assert.AreEqual(1, unseekable.Count, "stream that cannot seek");
+    }
+
+    /// <summary>
+    ///     A violation scope behaves as the caller's collection for everything but what it tracks: it reads, counts, copies, removes and
+    ///     clears through to the target, and a rollback takes back only what the scope itself forwarded.
+    /// </summary>
+    [TestMethod]
+    public void ViolationScope_ForwardsToTheCallersCollectionAndRollsBackItsOwn()
+    {
+        var target = new List<CStructConstraintException>();
+        var own = CStructConstraintException.FromFacts(ConstraintKind.Malformed, "a == 1", "a", null);
+        var before = CStructConstraintException.FromFacts(ConstraintKind.Malformed, "b == 1", "b", "b.label");
+        target.Add(before);
+        var scope = new ViolationScope(target);
+
+        scope.Rollback();
+        Assert.AreEqual(1, target.Count, "a rollback with nothing forwarded changes nothing");
+
+        scope.Add(own);
+        Assert.AreEqual(2, scope.Count);
+        Assert.IsFalse(scope.IsReadOnly);
+        Assert.IsTrue(scope.Contains(own));
+        var copy = new CStructConstraintException[2];
+        scope.CopyTo(copy, 0);
+        CollectionAssert.AreEqual(new[] { before, own }, copy);
+        Assert.AreEqual(2, scope.Cast<CStructConstraintException>().Count());
+        Assert.AreEqual(2, ((System.Collections.IEnumerable)scope).Cast<object>().Count());
+
+        scope.Rollback();
+        CollectionAssert.AreEqual(new[] { before }, target, "only the violation this scope forwarded is taken back");
+
+        scope.Add(own);
+        Assert.IsTrue(scope.Remove(own));
+        Assert.IsFalse(scope.Remove(own));
+        scope.Add(own);
+        scope.Clear();
+        Assert.AreEqual(0, target.Count);
     }
 }

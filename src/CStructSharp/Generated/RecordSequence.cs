@@ -161,6 +161,15 @@ public static class RecordSequence
         }
     }
 
+    /// <summary>Walks the records of one buffer lazily, one per step, reusing one violation scope for the whole enumeration.</summary>
+    /// <typeparam name="T">The record type.</typeparam>
+    /// <param name="source">The bytes of the records.</param>
+    /// <param name="size">The fixed size of one record, or <see langword="null"/> when each record is measured by reading it.</param>
+    /// <param name="layoutName">The layout name that qualifies a violation's path with the record's index.</param>
+    /// <param name="shift">The position of the buffer's first byte in the larger input, added to every reported offset.</param>
+    /// <param name="options">The read options, or <see langword="null"/> for the defaults.</param>
+    /// <param name="read">Reads one record from the cursor.</param>
+    /// <returns>The records in order; a failure ends the enumeration when it is thrown.</returns>
     private static IEnumerable<T> Enumerate<T>(ReadOnlyMemory<byte> source, int? size, string layoutName, long shift, ReadOptions? options, RecordReader<T> read)
     {
         ViolationScope? scope = null;
