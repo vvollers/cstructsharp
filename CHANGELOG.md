@@ -6,10 +6,10 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 onward, each version uses these headings in this order and omits the empty ones: *Breaking changes* (each with its
 migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and tooling*.
 
-## Unreleased
+## 0.15.0 — 2026-10-24
 
 This release adds the diagnostics a project needs to report what a read found (labels, every broken constraint, offsets in the
-image), exception-free ways to recognise and check a format, and the remaining shapes of generated code: value types that
+image), exception-free ways to recognize and check a format, and the remaining shapes of generated code: value types that
 hold arrays of structs and enums, `Auto`, and a scalar form for one-field layouts. It has one source-breaking change in
 the generated-code helpers: see *Breaking changes*.
 
