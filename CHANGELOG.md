@@ -8,6 +8,12 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ## Unreleased
 
+## 0.14.0 — 2026-10-24
+
+This minor release adds field constraints (`@expect` and `@supports`), run-time byte order, value-type structs, a
+`ReadLimits` value, and project-wide generator defaults. It has one source-breaking change: a call that passes the
+`default` literal as the options argument of a generated `Parse` no longer compiles; see *Breaking changes*.
+
 ### Breaking changes
 
 - **Breaking (source):** every generated `Parse`, `Parse<Name>` and `TryParse` over a span has a new overload that takes
@@ -80,6 +86,17 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   CSG014 with the member that does not fit. The members of a value-type struct are public fields (an array is read in
   place and no property copies it), a struct may be at most 1,024 bytes, and the generated fixed reader fills it
   without zeroing it first; a value type saves allocation rather than time.
+
+### Performance
+
+- A fixed struct with field constraints is decoded through its fixed-offset plan, with each condition checked right after
+  its field, instead of member by member; this includes the fields of its anonymous struct members. A whole root with
+  constraints on its own fields, read from memory, is decoded and checked without the engine, and a constrained root is
+  serialized by the direct fixed-root writer (a write checks nothing). In a micro-benchmark of a 28-byte header, a parse
+  with one constraint that names its own field went from about 278 to 160 ns, and constrained
+  serialization from about 164 to 66 ns, the cost of an unconstrained one. A layout without constraints is unchanged.
+- A static plan binds the slot of each captured field once per layout and caches whether the field is an integer, instead
+  of looking both up on every read.
 
 ## 0.13.0 — 2026-10-24
 
