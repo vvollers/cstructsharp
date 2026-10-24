@@ -29,4 +29,14 @@ public enum GeneratedShape
     ///     <c>AsSpan()</c>; code that needs more (the array type itself, the <c>default</c> of a missing value) names its shape.
     /// </summary>
     Auto = 2,
+
+    /// <summary>
+    ///     No type at all: a layout whose root struct holds exactly one number, enum or identifier at offset 0 generates a static
+    ///     <c>Parse</c> that returns that value (a <c>uint</c>, an enum, a <see cref="System.Guid"/>) and, on the
+    ///     <see cref="GeneratedSurface.Reader"/> surface, <c>TryParse</c>; failures, limits and constraints are the struct's. It
+    ///     needs the <see cref="GeneratedSurface.Reader"/> or <see cref="GeneratedSurface.Parser"/> surface and generates no view.
+    ///     Any other layout is reported as CSG015. It is for the hundreds of one-field layouts a project reads (a stored word, a
+    ///     magic number), each of which would otherwise cost a class and three readers.
+    /// </summary>
+    Scalar = 3,
 }

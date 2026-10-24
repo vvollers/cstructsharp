@@ -11,4 +11,7 @@ internal enum GenerationShape
 
     /// <summary>A value type when the layout and surface qualify, otherwise a class, without a report.</summary>
     Auto = 2,
+
+    /// <summary>A static <c>Parse</c> that returns the one value of a one-member layout, and no type.</summary>
+    Scalar = 3,
 }

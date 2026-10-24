@@ -103,6 +103,16 @@ internal static class GeneratorDiagnostics
         isEnabledByDefault: true,
         description: "Shape = Struct needs the Reader or Parser surface and a layout that is fixed in size: numbers, enums, bitfields, nested structs, text and fixed one-dimensional arrays of numbers.");
 
+    /// <summary>CSG015 (error): <c>Shape = Scalar</c> cannot be generated for this layout or surface.</summary>
+    public static readonly DiagnosticDescriptor ScalarShapeUnsupported = new(
+        "CSG015",
+        "A scalar shape is not supported here",
+        "'{0}' sets Shape = Scalar, which {1}",
+        Category,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "Shape = Scalar needs the Reader or Parser surface and a layout of one struct whose only member is a number, an enum or an identifier at offset 0.");
+
     /// <summary>CSG100 (error): a mapped type is not partial or lacks a parameterless constructor.</summary>
     public static readonly DiagnosticDescriptor MappedNotPartial = new(
         "CSG100",

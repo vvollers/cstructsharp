@@ -103,6 +103,12 @@ internal sealed partial class LayoutEmitter
             this.diagnostics.Add(Diagnostic.Create(GeneratorDiagnostics.ValueShapeUnsupported, this.request.AttributeSpan.ToLocation(), this.request.ClassName, problem));
         }
 
+        if (this.request.Shape == GenerationShape.Scalar && this.ScalarProblem() is { } scalarProblem)
+        {
+            this.hasErrors = true;
+            this.diagnostics.Add(Diagnostic.Create(GeneratorDiagnostics.ScalarShapeUnsupported, this.request.AttributeSpan.ToLocation(), this.request.ClassName, scalarProblem));
+        }
+
         return this.diagnostics;
     }
 
@@ -159,14 +165,22 @@ internal sealed partial class LayoutEmitter
         writer.Line("[global::System.CodeDom.Compiler.GeneratedCode(\"CStructSharp\", " + SourceWriter.Literal(GeneratorVersion) + ")]");
         writer.Open(this.request.Accessibility + " static partial class " + this.request.ClassName);
         this.EmitFrame(writer);
-        this.EmitTypes(writer);
-        if (this.request.Surface == GenerationSurface.Views)
+        bool scalar = this.UsesScalarShape;
+        if (scalar)
         {
-            this.EmitSettingConstants(writer);
+            this.EmitScalar(writer);
         }
         else
         {
-            this.EmitReaders(writer);
+            this.EmitTypes(writer);
+            if (this.request.Surface == GenerationSurface.Views)
+            {
+                this.EmitSettingConstants(writer);
+            }
+            else
+            {
+                this.EmitReaders(writer);
+            }
         }
 
         if (this.request.Surface == GenerationSurface.Full)
@@ -175,7 +189,11 @@ internal sealed partial class LayoutEmitter
         }
 
         this.EmitOperations(writer);
-        this.EmitViews(writer);
+        if (!scalar)
+        {
+            this.EmitViews(writer);
+        }
+
         writer.Close();
 
         for (int index = 0; index < this.request.ContainingTypes.Count; index++)

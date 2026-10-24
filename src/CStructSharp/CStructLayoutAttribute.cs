@@ -102,7 +102,7 @@ public sealed class CStructLayoutAttribute : Attribute
     /// </remarks>
     public bool RuntimeByteOrder { get; set; }
 
-    /// <summary>Gets or sets whether each struct and union of the layout becomes a class (the default), a value type, or a value type only where the layout qualifies; see <see cref="GeneratedShape"/>.</summary>
+    /// <summary>Gets or sets whether each struct and union of the layout becomes a class (the default), a value type, a value type only where the layout qualifies, or just the value of a one-member layout; see <see cref="GeneratedShape"/>.</summary>
     public GeneratedShape Shape { get; set; } = GeneratedShape.Class;
 
     /// <summary>
