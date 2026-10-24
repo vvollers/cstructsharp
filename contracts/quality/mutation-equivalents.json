@@ -544,10 +544,10 @@
   },
   {
    "pattern": "Generated/ReadCursor.cs",
-   "sourceSha256": "239d2f8a14da9521ae2d570ce55532e5f57dd060f0bfd8e253bd901fe9ba6f74",
+   "sourceSha256": "5577679231f3d36af9115ace1683ecd63cfc37ae0ab1e79719be0800a40c7dde",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": "count < 0",
-     "location": {"start":{"line":225,"column":13},"end":{"line":225,"column":23}},
+     "location": {"start":{"line":233,"column":13},"end":{"line":233,"column":23}},
      "reason": "Only count zero newly reaches budget arithmetic. bytesRead starts at zero and only accepted charges update it, so it never exceeds the nonnegative fixed limit. Adding zero cannot overflow or fail the limit check and reassigns the same value; position is unchanged. Negative counts still return early." }
    ]
   },
@@ -925,7 +925,7 @@
   },
   {
    "pattern": "Generated/ReadCursor.Failures.cs",
-   "sourceSha256": "9e06382119155304a6eb59554e3b19ab2672e7be93d3486f22da5ab7e2887521",
+   "sourceSha256": "f7ac2767867dfee2646945a647b9da162d2bfe953f5109c36d75dd068e68c364",
    "mutants": [
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?new CStructReadException(message) :new CStructReadException(message, cause))",
      "location": {"start":{"line":138,"column":25},"end":{"line":138,"column":117}},
