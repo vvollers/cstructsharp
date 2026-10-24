@@ -310,25 +310,25 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/CompiledField.cs",
-   "sourceSha256": "bd2e8b5c7ee9925239da03050733e17747e296d7b37efb50812deff3534f9789",
+   "sourceSha256": "5fe442c6f1d7bbbd01c304dc5aa0bf03e111af3a6f10460cae8dd28b1593cb27",
    "mutants": [
     { "mutatorName": "Remove checked expression", "replacement": "elementSize * remainingCount",
-     "location": {"start":{"line":496,"column":43},"end":{"line":496,"column":80}},
+     "location": {"start":{"line":518,"column":43},"end":{"line":518,"column":80}},
      "reason": "This multiplication is reached only when peeling a multidimensional field with a known nonnegative element size. Multidimensional dimensions have dependency-free fixed counts; LayoutCompilation.Model and CompileSyntheticRootField already checked the complete count and element-size product when constructing such a field. All production SelectArrayElement callers are the read/address and write path resolvers, which first reject indices outside the current dimension. A reachable peeled dimension therefore has a positive outer count, so its remaining byte extent cannot exceed its already validated parent's extent. A zero outer count cannot be indexed; variable-sized elements skip this multiplication entirely. Repeated peeling preserves the bound, and pointer-target views are scalar. Removing only this checked wrapper cannot change a supported result; the separate checked total-count calculations remain required, including for arrays of variable-sized records." }
    ]
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/CompiledCompositeType.cs",
-   "sourceSha256": "1f09b85f2a5fc4ae9c35c972a101a4fb91e90bf61677affac7f6744d364eca05",
+   "sourceSha256": "38360aa25b42b1bdc33bd7017a9ce293e997c30d7dc32a90bd5c1bc8431a8a72",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":199,"column":13},"end":{"line":199,"column":20}},
+     "location": {"start":{"line":203,"column":13},"end":{"line":203,"column":20}},
      "reason": "CollectShapeNames follows only promoted anonymous by-value composites. LayoutCompilation.Model rejects recursive by-value declarations before exposing the compiled model; pointer edges are not promoted composites. The active visiting set therefore never contains a valid child being entered. Its defensive cycle return is unreachable for compiled layouts." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":211,"column":17},"end":{"line":211,"column":26}},
+     "location": {"start":{"line":215,"column":17},"end":{"line":215,"column":26}},
      "reason": "PromotedFields contains only declarations matching Struct with an empty name. Without this continue, the subsequent ordinary-name branch still rejects name.Length equal to zero. Recursive collection already occurred and no empty name is added, so the final shape is identical." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":221,"column":9},"end":{"line":221,"column":31}},
+     "location": {"start":{"line":225,"column":9},"end":{"line":225,"column":31}},
      "reason": "CollectShapeNames visits a finite acyclic graph of promoted by-value composites and deduplicates output names in the separate seen set. Leaving a completed composite in visiting can only skip a later traversal of that identical composite; its entire reachable name sequence was already visited and every name is already in seen. Thus neither final names nor their first-occurrence order changes. The visiting set is private to one BuildShape call." }
    ]
   },
@@ -544,10 +544,10 @@
   },
   {
    "pattern": "Generated/ReadCursor.cs",
-   "sourceSha256": "36f4565d4ab9ebe264a35cef4d57efbe836ea11cbd9c3cedf7e61dd53c21568f",
+   "sourceSha256": "239d2f8a14da9521ae2d570ce55532e5f57dd060f0bfd8e253bd901fe9ba6f74",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": "count < 0",
-     "location": {"start":{"line":188,"column":13},"end":{"line":188,"column":23}},
+     "location": {"start":{"line":225,"column":13},"end":{"line":225,"column":23}},
      "reason": "Only count zero newly reaches budget arithmetic. bytesRead starts at zero and only accepted charges update it, so it never exceeds the nonnegative fixed limit. Adding zero cannot overflow or fail the limit check and reassigns the same value; position is unchanged. Negative counts still return early." }
    ]
   },
@@ -706,22 +706,22 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Parsing/LayoutParser.Members.cs",
-   "sourceSha256": "0d1222e6abbe849ea5705d70c719f1d3d927dfc2a891a45a4f8401117b52d3e5",
+   "sourceSha256": "3b034b82a7922f4f5e9a8a8060210fb1992af2ff50c79ee03e5655615b6af493",
    "mutants": [
     { "mutatorName": "Boolean mutation", "replacement": "true",
-     "location": {"start":{"line":396,"column":20},"end":{"line":396,"column":25}},
+     "location": {"start":{"line":398,"column":20},"end":{"line":398,"column":25}},
      "reason": "When the star is missing, TryStartFunctionPointer restores the cursor to its opening parenthesis and returns false. The sole caller then finds no array, bit-width, placement or comma suffix at that parenthesis and fails ExpectToken for a semicolon there; temporary field construction performs no validation. Returning true instead takes the caller directly to the same ExpectToken at the identical cursor. Both paths throw the same syntax error before returning any field or changing parser-visible state." },
     { "mutatorName": "Boolean mutation", "replacement": "true",
-     "location": {"start":{"line":404,"column":20},"end":{"line":404,"column":25}},
+     "location": {"start":{"line":406,"column":20},"end":{"line":406,"column":25}},
      "reason": "Failed function-signature recognition restores the cursor to the original opening parenthesis and clears name. The sole caller accepts a true result only by first requiring a semicolon at that cursor, which fails. The original false path cannot consume the parenthesis as an array, bit-width, placement or comma suffix and reaches the same semicolon check after non-validating temporary field construction. Thus the same error and location are produced; no opaque pointer field escapes either path." },
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?words[0].SourceOffset :-1)",
-     "location": {"start":{"line":474,"column":68},"end":{"line":474,"column":112}},
+     "location": {"start":{"line":478,"column":68},"end":{"line":478,"column":112}},
      "reason": "BuildTypeIdentifier is private and has one call site in ParseFieldDeclaration. That caller rejects words.Count == 0 before parsing suffixes, and no subsequent operation changes the local words list before this call. The source-offset conditional therefore always selects words[0].SourceOffset; forcing its true arm is equivalent." },
     { "mutatorName": "Equality mutation", "replacement": "words.Count >= 0",
-     "location": {"start":{"line":474,"column":68},"end":{"line":474,"column":83}},
+     "location": {"start":{"line":478,"column":68},"end":{"line":478,"column":83}},
      "reason": "BuildTypeIdentifier is private and has one call site in ParseFieldDeclaration. That caller rejects an empty words list, and the list is not changed between the guard and this call. Both words.Count > 0 and words.Count >= 0 are true for every reachable invocation, preserving the first word's source offset." },
     { "mutatorName": "UnaryMinusExpression to UnaryPlusExpression mutation", "replacement": "+1",
-     "location": {"start":{"line":474,"column":110},"end":{"line":474,"column":112}},
+     "location": {"start":{"line":478,"column":110},"end":{"line":478,"column":112}},
      "reason": "BuildTypeIdentifier's sole private caller rejects an empty words list before invoking it. The fallback -1 source offset is therefore unreachable; changing only that fallback to +1 cannot change a returned identifier or diagnostic." }
    ]
   },
@@ -754,7 +754,7 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.Capture.cs",
-   "sourceSha256": "e8d2554608c07884e442c3c1955bc076c0d79958f2bbc48d79a7f08304bf3e93",
+   "sourceSha256": "fc587eb7ed29065e521b654f7f396d713c3e9700d96e16208fabe22f25aee5b4",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":118,"column":9},"end":{"line":118,"column":77}},
@@ -763,49 +763,49 @@
      "location": {"start":{"line":99,"column":17},"end":{"line":99,"column":73}},
      "reason": "DeclaredValues retains enum source expressions, but EvaluateEnumDeclaration has already validated and frozen the members and CreateQualifiedMemberDefinitions has published literal Enum.Member definitions. Runtime enum reads/writes use the compiled integer table, not these source expressions. A data field whose name appears only in an enum initializer cannot influence the enum. Other runtime references and define dependencies are collected independently. Omitting this static-only capture source leaves enum validation, values, sizes, names and runtime expressions unchanged." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":167,"column":17},"end":{"line":167,"column":41}},
+     "location": {"start":{"line":172,"column":17},"end":{"line":172,"column":41}},
      "reason": "The executable calls accepted in layout dimensions are sizeof and offsetof, folded during compilation. Their callee identifiers name operators, not input variables. Unsupported expression calls fail compilation before a usable layout is returned. A field literally named sizeof or offsetof can still be captured if used as an ordinary identifier elsewhere, because that separate use is collected. Omitting the call target from this capture-only traversal does not remove call validation, folding or any runtime dependency." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":170,"column":21},"end":{"line":170,"column":44}},
+     "location": {"start":{"line":175,"column":21},"end":{"line":175,"column":44}},
      "reason": "Accepted sizeof/offsetof arguments are validated type/member names and are folded to a literal before a dimension executes. They do not refer to input-field values; unsupported call forms fail during compilation. Array arithmetic outside the call is still walked normally, and any ordinary runtime use of the same spelling is collected separately. Removing only argument capture bookkeeping preserves call validation, type/member lookup, folded sizes and all data-dependent expressions." },
     { "mutatorName": "Logical mutation", "replacement": "expression is null || ReferenceEquals(expression, NoneExpr.Instance) && expression is Literal",
-     "location": {"start":{"line":134,"column":13},"end":{"line":134,"column":106}},
+     "location": {"start":{"line":139,"column":13},"end":{"line":139,"column":106}},
      "reason": "This only sends NoneExpr and Literal leaves through the traversal instead of the fast return. Neither matches any traversal switch arm, so each is pushed and popped without adding a reference. The collected identifier set is identical; only temporary stack allocation/work can differ." },
     { "mutatorName": "Logical mutation", "replacement": "expression is null && ReferenceEquals(expression, NoneExpr.Instance)",
-     "location": {"start":{"line":134,"column":13},"end":{"line":134,"column":81}},
+     "location": {"start":{"line":139,"column":13},"end":{"line":139,"column":81}},
      "reason": "This sends null and NoneExpr through the traversal; Literal still returns early. Stack.Push accepts null and the switch has no null or NoneExpr arm, so traversal adds no identifiers and finishes with the same empty pending stack. No expression dependency changes." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":136,"column":13},"end":{"line":136,"column":20}},
+     "location": {"start":{"line":141,"column":13},"end":{"line":141,"column":20}},
      "reason": "Removing this leaf fast return only traverses null, NoneExpr and Literal. None matches an identifier or child-bearing expression arm; the stack accepts the item, pops it and is empty again. The referenced set and all later capture decisions remain unchanged." },
     { "mutatorName": "CoalesceAssignmentExpression to SimpleAssignmentExpression mutation", "replacement": "pending = new Stack<Expr>()",
-     "location": {"start":{"line":145,"column":9},"end":{"line":145,"column":38}},
+     "location": {"start":{"line":150,"column":9},"end":{"line":150,"column":38}},
      "reason": "Every completed traversal drains pending to zero; early-return paths never add to it, and it is private to this collection pass. Replacing the reusable empty stack with another empty stack therefore visits the same expressions and collects the same identifiers, at an extra allocation cost only." }
    ]
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.Composites.cs",
-   "sourceSha256": "92489328f27e7f90fd731bf62a832e8f1461f12360fa733835232eb6477542ff",
+   "sourceSha256": "64d60105acd5d84a93257b03815026021dd49b1a1f822cee5387e2deba87f477",
    "mutants": [
     { "mutatorName": "Remove checked expression", "replacement": "field.PointerDepth + type.PointerDepth",
-     "location": {"start":{"line":194,"column":36},"end":{"line":194,"column":83}},
+     "location": {"start":{"line":231,"column":36},"end":{"line":231,"column":83}},
      "reason": "The two nonnegative depths count pointer stars in the field declarator and its finite typedef chain. Cyclic aliases have already been rejected, so the chain cannot reuse a declaration's stars. Their sum is bounded by the number of characters in the single validated layout string, whose Length is an Int32; the source also contains the required non-star declaration characters. Built-in/custom symbols add no pointer stars. This sum cannot overflow for a layout accepted through the string-based compiler, even with an increased source-length option." },
     { "mutatorName": "Logical mutation", "replacement": "arrayCount.Count > 0 || arrayCount.Any(ExpressionEvaluator.ContainsCall)",
-     "location": {"start":{"line":217,"column":21},"end":{"line":217,"column":93}},
+     "location": {"start":{"line":254,"column":21},"end":{"line":254,"column":93}},
      "reason": "The extra path handles nonempty dimensions without calls. FoldCalls returns leaves unchanged and rebuilds unary/binary/conditional nodes with identical operators and children; there are no calls to resolve. Such dimensions were already compiled and validated by NormalizeStructExpressions. The unsized sentinel takes the unchanged direct arm and remains the exact sentinel. Empty scalar dimensions still skip the block. Equivalent expression objects/cache work may be added, but array kind, counts, dependencies, validation and runtime results are unchanged." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":228,"column":29},"end":{"line":228,"column":77}},
+     "location": {"start":{"line":265,"column":29},"end":{"line":265,"column":77}},
      "reason": "The folded dimension is subsequently passed to CompileArrayShape, whose single- and multidimensional paths call GetDependencies and hence the same cached GetProgram before evaluation or returning the compiled model. Only an unsized sentinel bypasses that compilation, and the unchanged outer guard already skips it. Eager compilation here therefore duplicates required construction-time compilation later; removing it changes no accepted expression, limit, diagnostic or runtime count." },
     { "mutatorName": "Linq method mutation (Any() to All())", "replacement": "call.Arguments.All",
-     "location": {"start":{"line":88,"column":68},"end":{"line":88,"column":86}},
+     "location": {"start":{"line":125,"column":68},"end":{"line":125,"column":86}},
      "reason": "The preceding guard admits only sizeof and offsetof calls. ParsePostfix parses every argument of these built-ins through ParseTypeArgument, which returns an Identifier or rejects the syntax; arithmetic arguments cannot reach FoldCalls. The unchanged arity check short-circuits for zero or otherwise incorrect argument counts. For the remaining one or two Identifier arguments, the non-Identifier predicate is false for every element, so both Any and All are false. Folding therefore accepts the same parsed calls and retains the same arity/type diagnostics." },
     { "mutatorName": "Equality mutation", "replacement": "arrayCount.Count >= 0",
-     "location": {"start":{"line":217,"column":21},"end":{"line":217,"column":41}},
+     "location": {"start":{"line":254,"column":21},"end":{"line":254,"column":41}},
      "reason": "Only an empty array-dimension list changes the left predicate. The unchanged right operand is Any(ContainsCall), which returns false without invoking the predicate for that empty list. The combined condition remains false and no folding or compilation occurs; nonempty lists follow the identical path." }
    ]
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.Normalization.cs",
-   "sourceSha256": "b3ccda5ca6bcaa5614cca151b88bbbfb9dee9a27602464e81cdd5adc9f212858",
+   "sourceSha256": "a91e2a5eb80c7ab17e922358cd7565e2ce52a5496dccdb527d23b81b76c495f5",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": "remainingDeclarations-- >= 0",
      "location": {"start":{"line":181,"column":16},"end":{"line":181,"column":43}},
@@ -826,7 +826,7 @@
      "location": {"start":{"line":369,"column":17},"end":{"line":369,"column":61}},
      "reason": "RejectNonIntegerConstants is the immediate next call, and its first operation is expressionEvaluator.GetDependencies(dimension). That method obtains the same GetProgram used by Compile, so compilation and all syntax-tree limits still run before constant validation or evaluation, with no intervening state change. The same cached program, dependencies and exceptions result. This removes only a redundant cache warm-up, not dimension validation." },
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?Array.Empty<ConditionalBranch>() :field.BranchConditions.Select(item =>\n                        new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray())",
-     "location": {"start":{"line":430,"column":40},"end":{"line":431,"column":145}},
+     "location": {"start":{"line":431,"column":40},"end":{"line":432,"column":145}},
      "reason": "Only the empty branch list changes arms. Selecting and materializing an empty list produces another empty branch array without invoking the projection, so NormalizeConditionalGroup is not called and a null normalizedGroups value is never accessed. All consumers inspect branch contents/counts, not array reference identity. Nonempty lists execute the identical projection in both versions. No condition, selector, arm or field visibility changes." }
    ]
   },
@@ -925,10 +925,10 @@
   },
   {
    "pattern": "Generated/ReadCursor.Failures.cs",
-   "sourceSha256": "89fa3db741e59437e4822ad300be59213fe5bbdba8a211ff1bf26854e7286006",
+   "sourceSha256": "8fde840190d7d06313106efe9e9e368990a06b8c5155fbb29820f242aed504df",
    "mutants": [
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?new CStructReadException(message) :new CStructReadException(message, cause))",
-     "location": {"start":{"line":55,"column":25},"end":{"line":55,"column":117}},
+     "location": {"start":{"line":69,"column":25},"end":{"line":69,"column":117}},
      "reason": "Only a null cause changes constructor selection. Both CStructReadException overloads delegate to the same protected constructor with ReadFailed, the same message and a null inner exception. The same Attach call follows, preserving category, message, field, path and offset." }
    ]
   },
