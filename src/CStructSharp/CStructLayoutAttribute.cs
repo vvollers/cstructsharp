@@ -108,7 +108,7 @@ public sealed class CStructLayoutAttribute : Attribute
     /// <summary>
     ///     Gets or sets the largest struct, in bytes, that a value-type shape (<see cref="GeneratedShape.Struct"/>, or
     ///     <see cref="GeneratedShape.Auto"/> where it applies) may generate; a bigger struct is copied into every return value and
-    ///     variable, so the default of 1,024 keeps it a class. The value must be between 1 and 65,536; <see cref="GeneratedShape.Struct"/>
+    ///     variable, so the default of 1,024 keeps it a class (a large value also lives on the stack, which a deeply nested caller can overflow). The value must be between 1 and 65,536; <see cref="GeneratedShape.Struct"/>
     ///     with another value is reported as CSG014, and <see cref="GeneratedShape.Auto"/> keeps the class. The project default is the
     ///     build property <c>CStructSharpMaxValueBytes</c>.
     /// </summary>

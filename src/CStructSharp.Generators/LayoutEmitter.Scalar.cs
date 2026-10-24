@@ -17,12 +17,29 @@ internal sealed partial class LayoutEmitter
     /// <summary>Gets a value indicating whether the layout generates a scalar reader instead of types.</summary>
     private bool UsesScalarShape => this.request.Shape == GenerationShape.Scalar && this.ScalarProblem() is null;
 
+    // The answer of ScalarProblem, which walks the model; computed once, after the model is built.
+    private string? scalarProblem;
+    private bool scalarProblemKnown;
+
     /// <summary>
     ///     Why the layout cannot be a scalar, or <see langword="null"/> when it can: the surface has no readers, or the layout is
     ///     not one struct whose one member is a number, enum or identifier at offset 0 that fills the struct.
     /// </summary>
     /// <returns>The reason, as the end of the sentence "'Class' sets Shape = Scalar, which ...", or <see langword="null"/>.</returns>
     private string? ScalarProblem()
+    {
+        if (!this.scalarProblemKnown)
+        {
+            this.scalarProblem = this.FindScalarProblem();
+            this.scalarProblemKnown = true;
+        }
+
+        return this.scalarProblem;
+    }
+
+    /// <summary>Checks the model for the reason <see cref="ScalarProblem"/> reports.</summary>
+    /// <returns>The reason, or <see langword="null"/> when the layout can be a scalar.</returns>
+    private string? FindScalarProblem()
     {
         if (this.request.Surface is not (GenerationSurface.Reader or GenerationSurface.Parser))
         {

@@ -18,7 +18,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 /// <param name="Enumerators">The default for <c>Enumerators</c>, or <see langword="null"/>.</param>
 /// <param name="RuntimeByteOrder">The default for <c>RuntimeByteOrder</c>, or <see langword="null"/>.</param>
 /// <param name="Shape">The default shape (<c>Class</c>, <c>Struct</c> or <c>Auto</c>), or <see langword="null"/> for the library's.</param>
-/// <param name="MaxValueBytes">The default largest value-type struct in bytes (1 to 65,536), or <see langword="null"/> for the library\'s.</param>
+/// <param name="MaxValueBytes">The default largest value-type struct in bytes (1 to 65,536), or <see langword="null"/> for the library's.</param>
 /// <param name="KeepNames">The default for <c>KeepNames</c>, or <see langword="null"/>.</param>
 /// <param name="Aligned">The default for <c>Aligned</c>, or <see langword="null"/>.</param>
 /// <param name="LittleEndian">The default for <c>LittleEndian</c>, or <see langword="null"/>.</param>

@@ -60,6 +60,11 @@ the generated-code helpers: see *Breaking changes*.
   a broken condition as a failure value instead of throwing it and catching it: no exception is raised for a value that breaks a
   constraint. A source too short for the struct, a limit and a layout that is not of fixed size still throw and are caught.
 
+### Fixed
+
+- `Matches` decodes a member only when a condition names it exactly, so a condition on `flagMask` no longer requires the bytes
+  of a member `flag`.
+
 ### Documentation and tooling
 
 - The field-constraints, options, errors, generated-code and diagnostics pages describe labels, collected violations, offset

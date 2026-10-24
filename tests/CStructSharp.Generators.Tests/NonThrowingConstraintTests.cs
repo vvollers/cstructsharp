@@ -326,6 +326,17 @@ public class NonThrowingConstraintTests
         Assert.IsFalse((bool)matches.Invoke(null, [bigEndian, true])!);
     }
 
+    /// <summary>A condition on <c>flagMask</c> must not pull in the member <c>flag</c>, whose local name is a prefix of it, and so demand its bytes.</summary>
+    [TestMethod]
+    public void Matches_DecodesOnlyTheMembersAConditionNames()
+    {
+        const string Source = "using CStructSharp;\n\nnamespace Demo;\n\n[CStructLayout(\"struct s { uint8 flagMask @expect(flagMask == 1); uint8 pad; uint8 flag; };\", Root = \"s\", Surface = GeneratedSurface.Parser, Views = false)]\npublic static partial class Prefixed { }\n\npublic static class PrefixedCalls { public static bool Check(byte[] bytes) => Prefixed.Matches(bytes); }\n";
+        MethodInfo check = GeneratorRunner.Run(Source).AssertClean().Load().GetType("Demo.PrefixedCalls")!.GetMethod("Check")!;
+        Assert.IsTrue((bool)check.Invoke(null, [new byte[] { 1 }])!, "one byte holds everything the condition reads");
+        Assert.IsFalse((bool)check.Invoke(null, [new byte[] { 2 }])!);
+        Assert.IsFalse((bool)check.Invoke(null, [Array.Empty<byte>()])!);
+    }
+
     /// <summary>The members that break an <c>@expect</c> condition when the runtime reads the bytes and collects the failures; empty when the read cannot start.</summary>
     /// <param name="layout">The runtime layout.</param>
     /// <param name="bytes">The bytes.</param>

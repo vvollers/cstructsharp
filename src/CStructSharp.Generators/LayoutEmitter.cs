@@ -83,18 +83,10 @@ internal sealed partial class LayoutEmitter
         this.BuildModel();
         if (this.request.Shape == GenerationShape.Auto && !this.hasErrors && this.ValueTypeProblem() is null)
         {
-            // The layout qualifies, so the value shape is taken, unless the names it reserves (the inline array container) collide
-            // with the layout's own: then the class is kept, without a report.
-            int reported = this.diagnostics.Count;
-            this.usesValueTypes = true;
-            this.BuildModel();
-            if (this.hasErrors)
-            {
-                this.diagnostics.RemoveRange(reported, this.diagnostics.Count - reported);
-                this.hasErrors = false;
-                this.usesValueTypes = false;
-                this.BuildModel();
-            }
+            // The layout qualifies, so the value shape is taken, unless the one name it reserves in addition (the inline array container)
+            // collides with the layout's own: then the class is kept, without a report. The model is the same for both shapes apart
+            // from that reserved name, so it is built again only when a name could collide.
+            this.usesValueTypes = !this.NamesInlineArraysContainer();
         }
 
         if (this.request.Shape == GenerationShape.Struct && this.ValueTypeProblem() is { } problem)
@@ -112,9 +104,17 @@ internal sealed partial class LayoutEmitter
         return this.diagnostics;
     }
 
+    /// <summary>Whether the class or a generated type of the model carries the name a value-type class reserves for its inline array container.</summary>
+    /// <returns><see langword="true"/> when a value-type class could not be generated without a name collision.</returns>
+    private bool NamesInlineArraysContainer()
+        => this.request.ClassName == InlineArraysClass
+           || this.model.Composites.Any(composite => composite.Name == InlineArraysClass)
+           || this.model.Enums.Any(generatedEnum => generatedEnum.Name == InlineArraysClass);
+
     /// <summary>Builds the type model for the current shape and reports the name collisions it finds.</summary>
     private void BuildModel()
     {
+        this.scalarProblemKnown = false;
         var taken = new Dictionary<string, string>(System.StringComparer.Ordinal)
         {
             [this.request.ClassName] = "the containing class",

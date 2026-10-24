@@ -137,7 +137,7 @@ struct are public fields, not properties, so `entry.Signature[3]` reads in place
 The shape needs the `Reader` or `Parser` surface, because a writer, `Update` and `Records` need classes, and a layout of
 fixed size: numbers, enums, bitfields, nested structs, text and one-dimensional fixed arrays of numbers, enums and
 structs (each an inline array, filled in place), in structs of at most `MaxValueBytes` bytes (1,024 unless the attribute
-or `CStructSharpMaxValueBytes` says more, up to 65,536). A union, a conditional member, a pointer, a runtime-sized or
+or `CStructSharpMaxValueBytes` says more, up to 65,536). A large cap is copied on every return and assignment and lives on the stack, so a deeply nested or recursive caller can overflow it; raise the cap only for structs you hold briefly. A union, a conditional member, a pointer, a runtime-sized or
 multidimensional array, a custom codec, a terminated string and a bigger struct are reported as
 [CSG014](diagnostics.md#csg014---a-value-type-shape-is-not-supported-here) with the member that does not fit. The shape works
 with `RuntimeByteOrder`, bitfields and `@expect` constraints.

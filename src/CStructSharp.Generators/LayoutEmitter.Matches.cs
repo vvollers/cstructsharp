@@ -78,7 +78,7 @@ internal sealed partial class LayoutEmitter
         }
 
         // Only the members a condition names are decoded, and the source must hold the furthest of them.
-        List<(GeneratedMember Member, ViewSlot Slot)> used = decoded.Where(entry => conditions.Any(condition => condition.Code.Contains("m_" + entry.Member.PropertyName, StringComparison.Ordinal))).ToList();
+        List<(GeneratedMember Member, ViewSlot Slot)> used = decoded.Where(entry => conditions.Any(condition => NamesLocal(condition.Code, "m_" + entry.Member.PropertyName))).ToList();
         int needed = used.Count == 0 ? 0 : used.Max(entry => entry.Slot.Constant!.Value + DecodedSize(entry.Member.Field, entry.Member));
         string name = composite.Name;
         writer.Line();
@@ -138,6 +138,30 @@ internal sealed partial class LayoutEmitter
 
         this.runtimeOrder = savedOrder;
     }
+
+    /// <summary>Whether generated code uses a local by its whole name, so that <c>m_Flag</c> is not found in <c>m_FlagMask</c>.</summary>
+    /// <param name="code">The C# expression.</param>
+    /// <param name="local">The local's name.</param>
+    /// <returns><see langword="true"/> when the name occurs delimited by non-identifier characters.</returns>
+    private static bool NamesLocal(string code, string local)
+    {
+        for (int index = code.IndexOf(local, StringComparison.Ordinal); index >= 0; index = code.IndexOf(local, index + 1, StringComparison.Ordinal))
+        {
+            int end = index + local.Length;
+            bool startsName = index == 0 || !IsIdentifierPart(code[index - 1]);
+            if (startsName && (end == code.Length || !IsIdentifierPart(code[end])))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Whether a character can continue a C# identifier.</summary>
+    /// <param name="character">The character.</param>
+    /// <returns>Whether it is a letter, digit or underscore.</returns>
+    private static bool IsIdentifierPart(char character) => char.IsLetterOrDigit(character) || character == '_';
 
     /// <summary>The bytes one decoded member occupies: the bitfield's storage unit, the enum's storage or the number's width.</summary>
     /// <param name="field">The field.</param>
