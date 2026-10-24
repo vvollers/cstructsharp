@@ -47,6 +47,17 @@ public ref partial struct ReadCursor
         this.path = path;
     }
 
+    /// <summary>Creates a cursor at the start of <paramref name="source"/> whose limits are a <see cref="ReadLimits"/> value, so no <see cref="ReadOptions"/> object is needed.</summary>
+    /// <param name="source">The bytes to read; offset 0 is coordinate zero for addresses and diagnostics.</param>
+    /// <param name="limits">The limits of the read; pointers keep the default policy.</param>
+    /// <param name="path">The path the operation reads, reported by every failure as the runtime does.</param>
+    public ReadCursor(ReadOnlySpan<byte> source, in ReadLimits limits, string? path = null)
+    {
+        this.source = source;
+        this.settings = ReadOperationSettings.SnapshotReadLimits(in limits);
+        this.path = path;
+    }
+
     /// <summary>Gets or sets the offset of the next byte to read.</summary>
     public int Position
     {

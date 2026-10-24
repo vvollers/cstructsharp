@@ -104,6 +104,29 @@ internal readonly record struct ReadOperationSettings(
             options.LenientText);
     }
 
+    /// <summary>Builds the settings of a read governed by <see cref="ReadLimits"/>: its limits, and the default pointer policy.</summary>
+    /// <param name="limits">The limits of the read.</param>
+    /// <returns>The settings.</returns>
+    public static ReadOperationSettings SnapshotReadLimits(in ReadLimits limits)
+    {
+        ReadOptions defaults = ReadOptions.Default;
+        return new ReadOperationSettings(
+            defaults.AddressingMode,
+            defaults.DereferencePointers,
+            defaults.MaxPointerDepth,
+            defaults.MaxPointerTargetBytes,
+            limits.MaxArrayElements,
+            limits.MaxStringBytes,
+            limits.MaxTotalBytesRead,
+            limits.MaxNestingDepth,
+            defaults.Origin,
+            limits.TrimFixedText,
+            limits.CancellationToken,
+            defaults.ExecutionPath,
+            defaults.ContinuedInputLength,
+            limits.LenientText);
+    }
+
     /// <summary>Maps already-snapshotted update traversal choices into the same read operation settings.</summary>
     /// <param name="options">The update options whose traversal limits bound the reads an update performs.</param>
     /// <returns>Read settings built from the traversal limits; fixed text is never trimmed.</returns>

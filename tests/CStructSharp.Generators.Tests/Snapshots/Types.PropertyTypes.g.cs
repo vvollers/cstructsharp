@@ -243,6 +243,31 @@ namespace Demo
             }
         }
 
+        /// <summary>Reads one <c>inner</c> from the start of <paramref name="source"/> under limits given as a value: the same value and failures as the overload that takes <c>ReadOptions</c>, with no options object to allocate. Pointers keep the default policy.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="limits">The limits of the read.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <returns>The parsed value.</returns>
+        public static Inner ParseInner(global::System.ReadOnlySpan<byte> source, in global::CStructSharp.ReadLimits limits, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null)
+        {
+            var cursor = new global::CStructSharp.Generated.ReadCursor(source, in limits, "inner");
+            try
+            {
+                return ReadInner(ref cursor, variables, null, null);
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                cursor.Complete(exception);
+                throw;
+            }
+        }
+
+        /// <summary>Reads the root declaration (<c>inner</c>) under limits given as a value; see <see cref="ParseInner(global::System.ReadOnlySpan{byte}, in global::CStructSharp.ReadLimits, global::System.Collections.Generic.IReadOnlyDictionary{string, int})"/>.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="limits">The limits of the read.</param>
+        /// <returns>The parsed value.</returns>
+        public static Inner Parse(global::System.ReadOnlySpan<byte> source, in global::CStructSharp.ReadLimits limits) => ParseInner(source, in limits, null);
+
         /// <inheritdoc cref="ParseInner(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
         public static Inner ParseInner(byte[] source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
             => ParseInner(new global::System.ReadOnlySpan<byte>(source ?? throw new global::System.ArgumentNullException(nameof(source))), variables, options);
@@ -585,6 +610,25 @@ namespace Demo
         public static Root ParseRoot(global::System.ReadOnlySpan<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
         {
             var cursor = new global::CStructSharp.Generated.ReadCursor(source, options, "root");
+            try
+            {
+                return ReadRoot(ref cursor, variables, null, null);
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                cursor.Complete(exception);
+                throw;
+            }
+        }
+
+        /// <summary>Reads one <c>root</c> from the start of <paramref name="source"/> under limits given as a value: the same value and failures as the overload that takes <c>ReadOptions</c>, with no options object to allocate. Pointers keep the default policy.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="limits">The limits of the read.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <returns>The parsed value.</returns>
+        public static Root ParseRoot(global::System.ReadOnlySpan<byte> source, in global::CStructSharp.ReadLimits limits, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null)
+        {
+            var cursor = new global::CStructSharp.Generated.ReadCursor(source, in limits, "root");
             try
             {
                 return ReadRoot(ref cursor, variables, null, null);

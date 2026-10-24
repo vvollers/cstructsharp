@@ -115,6 +115,7 @@ internal sealed partial class LayoutEmitter
         writer.Line("throw;");
         writer.Close();
         writer.Close();
+        this.EmitLimitsParse(writer, composite, isRoot, method);
         if (this.request.Surface == GenerationSurface.Parser)
         {
             this.EmitParserRoot(writer, composite, isRoot, method);
@@ -158,6 +159,45 @@ internal sealed partial class LayoutEmitter
         if (this.request.Surface == GenerationSurface.Full)
         {
             this.EmitRecords(writer, composite, isRoot);
+        }
+    }
+
+    /// <summary>
+    ///     Emits the overloads that take the limits as a <c>ReadLimits</c> value: a read governed by them allocates no
+    ///     <c>ReadOptions</c> object, which matters for a reader that parses many small records.
+    /// </summary>
+    /// <param name="writer">The generated source destination.</param>
+    /// <param name="composite">The composite whose typed reader was just emitted.</param>
+    /// <param name="isRoot">Whether the composite is the root declaration.</param>
+    /// <param name="method">The name of the typed span reader (<c>Parse&lt;Name&gt;</c>).</param>
+    private void EmitLimitsParse(SourceWriter writer, GeneratedComposite composite, bool isRoot, string method)
+    {
+        string name = composite.Name;
+        const string Limits = "global::CStructSharp.ReadLimits";
+        writer.Line();
+        writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from the start of <paramref name=\"source\"/> under limits given as a value: the same value and failures as the overload that takes <c>ReadOptions</c>, with no options object to allocate. Pointers keep the default policy.</summary>");
+        writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
+        writer.Line("/// <param name=\"limits\">The limits of the read.</param>");
+        writer.Line(VariablesDoc);
+        writer.Line("/// <returns>The parsed value.</returns>");
+        writer.Open("public static " + name + " " + method + "(global::System.ReadOnlySpan<byte> source, in " + Limits + " limits, " + VariablesType + " variables = null)");
+        writer.Line("var cursor = new " + Cursor + "(source, in limits, " + SourceWriter.Literal(composite.LayoutName) + ");");
+        writer.Open("try");
+        writer.Line("return Read" + name + "(ref cursor, variables, null, null);");
+        writer.Close();
+        writer.Open("catch (global::CStructSharp.Diagnostics.CStructException exception)");
+        writer.Line("cursor.Complete(exception);");
+        writer.Line("throw;");
+        writer.Close();
+        writer.Close();
+        if (isRoot)
+        {
+            writer.Line();
+            writer.Line("/// <summary>Reads the root declaration (<c>" + composite.LayoutName + "</c>) under limits given as a value; see " + Cref(method + "(global::System.ReadOnlySpan{byte}, in " + Limits + ", " + VariablesCref + ")") + ".</summary>");
+            writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
+            writer.Line("/// <param name=\"limits\">The limits of the read.</param>");
+            writer.Line("/// <returns>The parsed value.</returns>");
+            writer.Line("public static " + name + " Parse(global::System.ReadOnlySpan<byte> source, in " + Limits + " limits) => " + method + "(source, in limits, null);");
         }
     }
 

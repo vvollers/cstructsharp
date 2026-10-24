@@ -35,6 +35,11 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   `#define` the caller may override, the layout's views (and their enumerators) take the values as an optional third
   argument and evaluate the count with them as the reader does; such an array, and the members after it, were hidden
   before. `ToObject()` reads with the variables the view carries.
+- **Limits as a value.** The new `ReadLimits` struct holds the array, string, total-byte and nesting limits,
+  `TrimFixedText`, `InvalidText` and the cancellation token (its zeroed value has the defaults), and every generated
+  `Parse` and `Parse<Name>` over a span has an overload that takes it, so a reader that parses many small records no
+  longer allocates a `ReadOptions` (88 bytes) per call. `ReadLimits.From(options)` and `ToOptions()` convert between the
+  two; the pointer policy keeps its defaults.
 
 ## 0.13.0 — 2026-10-24
 

@@ -23,6 +23,7 @@ public class PublicApiSurfaceTests
         "CStructSharp.ICStructMapped`1",
         "CStructSharp.InvalidTextHandling",
         "CStructSharp.MappedTypes",
+        "CStructSharp.ReadLimits",
         "CStructSharp.Codecs.ICustomCodec",
         "CStructSharp.Diagnostics.CStructErrorCode",
         "CStructSharp.Diagnostics.CStructException",
