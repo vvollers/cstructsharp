@@ -93,6 +93,9 @@ the generated-code helpers: see *Breaking changes*.
 
 - The field-constraints, options, errors, generated-code and diagnostics pages describe labels, collected violations, offset
   bases, `Matches`, the shapes and CSG015 to CSG017.
+- The README introduces field constraints and the generator's surface, shape, byte-order and `Matches` options; the language
+  index links the field-constraints page, the generated-code overview lists the options, and the browser notes say how a
+  constraint failure reaches JavaScript.
 
 
 ## 0.14.0 — 2026-10-24

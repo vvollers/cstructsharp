@@ -24,7 +24,8 @@ This series teaches that path, one idea per page:
 9. [Mapped classes](mapped-classes.md) - `[CStructMapped]` for your own types.
 10. [Diagnostics](diagnostics.md) - every CSG message, its cause, and its fix.
 11. [How it works](how-it-works.md) - the pipeline from attribute to code.
-12. [Runtime or generated?](choosing-runtime-or-generated.md) - a decision table.
+12. [Runtime or generated?](choosing-runtime-or-generated.md) - a decision table, plus how to generate less code (`Surface`),
+    value-type structs (`Shape`), run-time byte order, and project-wide defaults.
 
 ## Compile time and run time
 
@@ -59,6 +60,12 @@ offsets, the same alignment decisions, the same expression semantics), and write
 - a `readonly ref struct` view (`Wire.HeaderView`) that decodes members on demand without allocating;
 - `Wire.Sizes`, `Wire.Offsets`, and typed `Wire.Update` setters for the members whose position is fixed;
 - `Wire.Layout`, the runtime `CStruct` for the same text, for anything the generated code does not do.
+
+That list is the default, `GeneratedSurface.Full`. A project that only reads can ask for less (`Surface`), for structs that
+allocate nothing (`Shape`) or for one layout that reads both byte orders (`RuntimeByteOrder`), and can set those choices once
+for every layout with build properties; [Runtime or generated?](choosing-runtime-or-generated.md) lists them. A layout with
+`@expect` or `@supports` [constraints](../../language/field-constraints.md) also gets `Matches`, which recognizes a format
+without building a value.
 
 The generated reader and the runtime reader produce the same values and the same failures for the same bytes;
 the parity tests in the repository check that on every fixture the runtime is tested with.

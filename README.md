@@ -207,6 +207,10 @@ Wire.Header header = Wire.Parse(bytes);   // header.Kind == 2, header.Length == 
 byte[] again = Wire.Serialize(header);
 ```
 
+A layout whose fields carry `@expect` conditions can also answer "is this the format?" without an exception:
+`Wire.Matches(bytes)` decodes only the fields the conditions name, and `Wire.TryParse(bytes, out var header, out var failure)`
+returns a broken condition or a short input as a value.
+
 Every stream form has an awaitable twin - `await layout.ParseAsync(file, "header", cancellationToken: token)` reads
 the bytes while the thread is free and decodes them with the same reader - and a file of records is `foreach`
 over `Wire.Records(bytes)` or `layout.ParseMany(bytes, "header")`, one record per step.
@@ -237,6 +241,11 @@ a browser to build protocol tools, file inspectors, and binary editors.
   Choose packed or aligned layout, refine alignment with `@align(N)`, reserve bits with unnamed bitfields, and
   assert expected field offsets with `@N`. Type widths follow portable rules, and pointer width is configured
   explicitly, so the format's interpretation stays independent of the host process.
+- **State what a valid value is.** Write `@expect(magic == 0xEF53)` or `@supports(version <= 1)` after a field, and a read
+  that finds another value fails with a malformed or unsupported error that names the field, the condition, and the offset.
+  A constraint can carry a label, a read can collect every broken constraint instead of stopping at the first, and offsets
+  can be reported in the larger file the bytes were cut from; see
+  [field constraints](https://vvollers.github.io/cstructsharp/docs/language/field-constraints.html).
 - **Navigate beyond sequential records.** Describe stored pointers, pointer arrays, and multiple levels of
   indirection, and give a pointer its element count with `@count(len)`, even when `len` is stored after it. Read
   targets using absolute or relative addressing, or inspect stored addresses without following them. Select nested
@@ -246,6 +255,11 @@ a browser to build protocol tools, file inspectors, and binary editors.
   in-place setters, and size and offset constants at build time - the same parser, the same placement, and the
   same failure texts as the runtime, checked by a parity suite over every fixture. `[CStructMapped]` generates
   the mapping into your own classes, with no reflection, so trimmed and Native AOT publishes need no conventions.
+  A project chooses how much is generated: a smaller `Surface` (`Reader`, `Parser`, `Views`), value-type structs that
+  allocate nothing (`Shape`), one layout that reads both byte orders (`RuntimeByteOrder`), and a `Matches(bytes)` that
+  recognizes a format without building a value or throwing. Build properties such as `CStructSharpSurface` set the
+  defaults for every layout; see
+  [runtime or generated](https://vvollers.github.io/cstructsharp/docs/guides/generated/choosing-runtime-or-generated.html).
 - **Streams and pipelines.** `ParseAsync`, `WriteAsync`, and `UpdateAsync` read and write with `ReadAsync`/`WriteAsync`
   and a `CancellationToken` that is checked at every boundary; `ReadOnlySequence<byte>` input reads a `PipeReader`'s
   buffer in place; `ParseMany` and the generated `Records` walk one record after another lazily, and `TryParse`,

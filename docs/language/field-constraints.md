@@ -143,6 +143,13 @@ union u { uint8 a @expect(a == 1); uint16 b; };   // layout error: a constraint 
 struct s { uint8 _ @expect(1); };                  // layout error: padding has no name
 ```
 
+## In JavaScript and the browser
+
+The layout text, including its constraints, works unchanged in Node.js and the browser. A value that breaks a constraint
+fails the read with the code `read-failed`, and the message names the field and the condition. Collecting every broken
+condition (`ReadOptions.ConstraintViolations`), the offset base and `Matches` are managed C# API; the browser bridge does
+not expose them.
+
 ## Check yourself
 
 1. A header says `uint8 version @supports(version == 1)` and the bytes hold `2`. Is the file malformed?

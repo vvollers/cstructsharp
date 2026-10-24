@@ -64,6 +64,7 @@ After the tutorial, choose a reference by task:
 - [Structs, unions, enums, and typedefs](structs-unions-enums-typedefs.md) for declarations.
 - [Arrays, character buffers, and strings](arrays-and-strings.md) for fixed and runtime-sized data.
 - [Layout, alignment, and padding](layout-alignment-and-padding.md) for exact offsets.
+- [Field constraints](field-constraints.md) for `@expect` and `@supports` conditions on a field's value.
 - [Paths and selection](paths-and-selection.md) for reading or updating nested data.
 - [Limits and diagnostics](limits-and-diagnostics.md) for safe failure handling.
 - [Complete grammar](grammar.md) for the full Portable binary layout grammar.

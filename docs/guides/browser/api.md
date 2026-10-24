@@ -147,7 +147,8 @@ release ZIP. Mixing assets can produce incompatible results.
 
 ## Diagnose a failure
 
-For `read-failed`, compare the input byte count with the layout widths. For `invalid-path`, check case and spelling.
+For `read-failed`, compare the input byte count with the layout widths; a value that breaks an `@expect` or `@supports`
+[constraint](../../language/field-constraints.md) is reported the same way, with the field and the condition in the message. For `invalid-path`, check case and spelling.
 For a limit error, check the format's required size before raising the limit. `resource-exhausted` means the
 WebAssembly memory ran out, usually during a very large debug parse; narrow the root, parse without debug ranges, or
 pass `signal` so the parse runs in a worker (see [memory after a large parse](large-data.md#memory-after-a-large-parse)).
