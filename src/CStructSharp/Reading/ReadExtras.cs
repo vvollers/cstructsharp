@@ -19,5 +19,6 @@ internal sealed record ReadExtras(long OffsetBase, ICollection<CStructConstraint
     /// <summary>Returns <see langword="null"/> for extras with nothing set, so equal options store the same thing.</summary>
     /// <param name="value">The extras.</param>
     /// <returns>The extras, or <see langword="null"/> when they equal <see cref="None"/>.</returns>
-    public static ReadExtras? Normalize(ReadExtras value) => value == None ? null : value;
+    public static ReadExtras? Normalize(ReadExtras value)
+        => value.OffsetBase == 0 && value.ConstraintViolations is null && value.ContinuedInputLength == 0 ? null : value;
 }

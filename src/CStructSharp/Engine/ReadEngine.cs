@@ -359,7 +359,7 @@ internal static partial class ReadEngine
                         if (state.Slots.Evaluate(program.Expressions[step.A], program.ExpressionContexts[step.A], ExpressionFailureDomain.Read) == 0)
                         {
                             CompiledConstraint failed = constrained.Constraints[step.B];
-                            var violation = new CStructConstraintException(failed.Kind, failed.Text, ReadFailures.ConstraintNotSatisfied(failed.Kind, constrained.Name, failed.Text, failed.Label), failed.Label);
+                            var violation = CStructConstraintException.FromFacts(failed.Kind, failed.Text, constrained.Name, failed.Label);
                             if (state.ConstraintViolations is null)
                             {
                                 throw violation;

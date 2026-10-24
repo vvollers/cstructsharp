@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -131,29 +132,81 @@ public sealed class LayoutUsageAnalyzer : DiagnosticAnalyzer
         return true;
     }
 
-    /// <summary>Collects every layout class declared in source from a namespace, with the nested ones.</summary>
+    /// <summary>
+    ///     Collects every layout class declared in source from a namespace, with the nested ones, in the same walk that looks for a
+    ///     <c>[CStructMapped]</c> class. A type whose declaration has no attribute list cannot carry either attribute, so only the
+    ///     others have their attributes bound.
+    /// </summary>
     /// <param name="scope">The namespace or type to search.</param>
     /// <param name="attribute">The <c>[CStructLayout]</c> attribute type.</param>
+    /// <param name="mapped">The <c>[CStructMapped]</c> attribute type, or <see langword="null"/> when the compilation has none.</param>
     /// <param name="layouts">The classes found.</param>
-    private static void Collect(INamespaceOrTypeSymbol scope, INamedTypeSymbol attribute, List<INamedTypeSymbol> layouts)
+    /// <returns><see langword="true"/> when a mapped class was found, which ends the walk: the layouts are then not analyzed.</returns>
+    private static bool Collect(INamespaceOrTypeSymbol scope, INamedTypeSymbol attribute, INamedTypeSymbol? mapped, List<INamedTypeSymbol> layouts)
     {
         foreach (ISymbol member in scope.GetMembers())
         {
             switch (member)
             {
             case INamespaceSymbol nested:
-                Collect(nested, attribute, layouts);
-                break;
-            case INamedTypeSymbol type:
-                if (type.Locations.Any(location => location.IsInSource) && type.GetAttributes().Any(candidate => SymbolEqualityComparer.Default.Equals(candidate.AttributeClass, attribute)))
+                if (Collect(nested, attribute, mapped, layouts))
                 {
-                    layouts.Add(type);
+                    return true;
                 }
 
-                Collect(type, attribute, layouts);
+                break;
+            case INamedTypeSymbol type:
+                if (HasAttributeList(type))
+                {
+                    bool isLayout = false;
+                    foreach (AttributeData data in type.GetAttributes())
+                    {
+                        if (mapped is not null && SymbolEqualityComparer.Default.Equals(data.AttributeClass, mapped))
+                        {
+                            return true;
+                        }
+
+                        isLayout |= SymbolEqualityComparer.Default.Equals(data.AttributeClass, attribute);
+                    }
+
+                    if (isLayout && type.Locations.Any(location => location.IsInSource))
+                    {
+                        layouts.Add(type);
+                    }
+                }
+
+                if (Collect(type, attribute, mapped, layouts))
+                {
+                    return true;
+                }
+
                 break;
             }
         }
+
+        return false;
+    }
+
+    /// <summary>Whether a type's declaration has an attribute list; a type without syntax (from metadata) is taken to have one.</summary>
+    /// <param name="type">The type.</param>
+    /// <returns><see langword="false"/> only when every declaration of the type has no attribute list.</returns>
+    private static bool HasAttributeList(INamedTypeSymbol type)
+    {
+        ImmutableArray<SyntaxReference> references = type.DeclaringSyntaxReferences;
+        if (references.IsEmpty)
+        {
+            return true;
+        }
+
+        foreach (SyntaxReference reference in references)
+        {
+            if (reference.GetSyntax() is BaseTypeDeclarationSyntax { AttributeLists.Count: > 0 } or DelegateDeclarationSyntax { AttributeLists.Count: > 0 })
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>Starts the analysis of one compilation: finds the layouts, records what the code references, and reports at the end.</summary>
@@ -175,10 +228,14 @@ public sealed class LayoutUsageAnalyzer : DiagnosticAnalyzer
         }
 
         var layouts = new List<INamedTypeSymbol>();
-        Collect(compilation.Assembly.GlobalNamespace, attribute, layouts);
-        layouts.RemoveAll(IsExternallyVisible);
         INamedTypeSymbol? mapped = compilation.GetTypeByMetadataName(MappedAttribute);
-        if (layouts.Count == 0 || (mapped is not null && HasMappedClass(compilation.Assembly.GlobalNamespace, mapped)))
+        if (Collect(compilation.Assembly.GlobalNamespace, attribute, mapped, layouts))
+        {
+            return;
+        }
+
+        layouts.RemoveAll(IsExternallyVisible);
+        if (layouts.Count == 0)
         {
             return;
         }
@@ -198,23 +255,6 @@ public sealed class LayoutUsageAnalyzer : DiagnosticAnalyzer
         var usage = new ConcurrentDictionary<INamedTypeSymbol, LayoutUse>(SymbolEqualityComparer.Default);
         start.RegisterSyntaxNodeAction(context => RecordReference(context, byName, usage), SyntaxKind.IdentifierName);
         start.RegisterCompilationEndAction(end => Report(end, layouts, usage, attribute, defaults));
-    }
-
-    /// <summary>Whether any class in the namespace carries <c>[CStructMapped]</c>.</summary>
-    /// <param name="scope">The namespace or type to search.</param>
-    /// <param name="mapped">The attribute type.</param>
-    /// <returns>Whether a mapped class exists.</returns>
-    private static bool HasMappedClass(INamespaceOrTypeSymbol scope, INamedTypeSymbol mapped)
-    {
-        foreach (ISymbol member in scope.GetMembers())
-        {
-            if (member is INamespaceSymbol nested ? HasMappedClass(nested, mapped) : member is INamedTypeSymbol type && (type.GetAttributes().Any(candidate => SymbolEqualityComparer.Default.Equals(candidate.AttributeClass, mapped)) || HasMappedClass(type, mapped)))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /// <summary>Records one identifier that names a layout class: which member of it the code goes on to use, or that the class is referenced as a whole.</summary>
@@ -249,14 +289,14 @@ public sealed class LayoutUsageAnalyzer : DiagnosticAnalyzer
 
         SymbolInfo info = context.SemanticModel.GetSymbolInfo(member, context.CancellationToken);
         ISymbol? symbol = info.Symbol ?? info.CandidateSymbols.FirstOrDefault();
-        use.Members.Add(SurfaceMask(symbol));
+        use.Narrow(SurfaceMask(symbol));
         if (symbol is INamedTypeSymbol { Name: var viewName } && viewName.EndsWith("View", StringComparison.Ordinal))
         {
             // Only ever set: a concurrent action that names another member must not write the flag back to false.
             use.UsedViews = true;
         }
 
-        use.Names.Add(member.Identifier.ValueText);
+        _ = use.Names.TryAdd(member.Identifier.ValueText, 0);
     }
 
     /// <summary>Reports the layouts nothing references and the layouts that generate more than the code uses.</summary>
@@ -297,7 +337,7 @@ public sealed class LayoutUsageAnalyzer : DiagnosticAnalyzer
             }
 
             int declared = RankOf(surface);
-            int common = use.Members.Aggregate(0b1111, (all, mask) => all & mask);
+            int common = use.Surfaces;
             int needed = 0;
             while (needed < 3 && ((common >> needed) & 1) == 0)
             {
@@ -319,7 +359,7 @@ public sealed class LayoutUsageAnalyzer : DiagnosticAnalyzer
 
             if (advice.Count > 0)
             {
-                context.ReportDiagnostic(Diagnostic.Create(GeneratorDiagnostics.LayoutOvergenerates, location, layout.Name, string.Join(" and ", use.Names.Distinct().OrderBy(name => name, StringComparer.Ordinal).Take(4)), string.Join(", ", advice)));
+                context.ReportDiagnostic(Diagnostic.Create(GeneratorDiagnostics.LayoutOvergenerates, location, layout.Name, string.Join(" and ", use.Names.Keys.OrderBy(name => name, StringComparer.Ordinal).Take(4)), string.Join(", ", advice)));
             }
         }
     }
@@ -330,11 +370,25 @@ public sealed class LayoutUsageAnalyzer : DiagnosticAnalyzer
         private volatile bool wholeType;
         private volatile bool usedViews;
 
-        /// <summary>Gets the masks of the surfaces that generate each member used.</summary>
-        public ConcurrentBag<int> Members { get; } = new();
+        private int surfaces = 0b1111;
+
+        /// <summary>Gets the surfaces that generate every member used so far: the intersection of the members' masks.</summary>
+        public int Surfaces => Volatile.Read(ref this.surfaces);
 
         /// <summary>Gets the names of the members used.</summary>
-        public ConcurrentBag<string> Names { get; } = new();
+        public ConcurrentDictionary<string, byte> Names { get; } = new(StringComparer.Ordinal);
+
+        /// <summary>Narrows the surfaces to those that also generate a member.</summary>
+        /// <param name="mask">The member's surface mask.</param>
+        public void Narrow(int mask)
+        {
+            int seen;
+            do
+            {
+                seen = Volatile.Read(ref this.surfaces);
+            }
+            while ((seen & mask) != seen && Interlocked.CompareExchange(ref this.surfaces, seen & mask, seen) != seen);
+        }
 
         /// <summary>Gets or sets whether the class is named as a whole (<c>typeof</c>, <c>nameof</c>, <c>using static</c>), so its use cannot be attributed to members.</summary>
         public bool WholeType

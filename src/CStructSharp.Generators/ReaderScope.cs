@@ -71,6 +71,21 @@ internal sealed class ReaderScope
     }
 
     /// <summary>
+    ///     Makes a member's name, and the names of a nested struct's scalars, undefined: for code that cannot supply the member's
+    ///     value (a check on a struct's bytes decodes only some members), so that an expression naming it fails visibly instead of
+    ///     being taken for a caller's variable of that name.
+    /// </summary>
+    /// <param name="member">The member the code cannot supply.</param>
+    public void PublishUndefined(GeneratedMember member)
+    {
+        this.Publish(member, "undefined", static _ => false);
+        if (AsOperand(member, "undefined") is not null)
+        {
+            this.visible[member.LayoutName] = "global::CStructSharp.Generated.Expressions.Undefined(" + SourceWriter.Literal(member.LayoutName) + ")";
+        }
+    }
+
+    /// <summary>
     ///     A nested struct's scalars, as the runtime publishes them: qualified (<c>hdr.n</c>, through several levels)
     ///     and under their bare names (the last value read wins), except that a conditional composite's own member
     ///     names are restored after the nested read and so never take a nested value.

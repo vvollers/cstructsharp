@@ -29,10 +29,6 @@ public ref partial struct ReadCursor
     private readonly ReadOperationSettings settings;
     private readonly string? path;
     private readonly bool bigEndian;
-
-    // The offset base of a read governed by ReadLimits, which has no options object to carry it in the settings; a read governed by
-    // ReadOptions has it in the settings, and this stays zero.
-    private readonly long limitsOffsetBase;
     private int position;
     private long bytesRead;
     private int nestingDepth;
@@ -83,7 +79,6 @@ public ref partial struct ReadCursor
         this.source = source;
         this.settings = ReadOperationSettings.SnapshotReadLimits(in limits);
         this.path = path;
-        this.limitsOffsetBase = limits.OffsetBase;
     }
 
     /// <summary>Gets whether neutral values are read little-endian: always for a cursor made without a byte order, the chosen order for a layout generated with <c>RuntimeByteOrder</c>.</summary>
@@ -120,8 +115,8 @@ public ref partial struct ReadCursor
     /// <summary>Gets the origin relative pointers are measured from.</summary>
     public readonly long Origin => this.settings.Origin;
 
-    /// <summary>Gets the position of the source's first byte in the larger input: from the options, or from the limits the read was given.</summary>
-    private readonly long OffsetBase => this.settings.OffsetBase + this.limitsOffsetBase;
+    /// <summary>Gets the position of the source's first byte in the larger input, from the options or the limits the read was given.</summary>
+    private readonly long OffsetBase => this.settings.OffsetBase;
 
     /// <summary>Gets whether pointers are followed.</summary>
     public readonly bool DereferencePointers => this.settings.DereferencePointers;

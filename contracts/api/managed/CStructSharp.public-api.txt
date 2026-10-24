@@ -309,6 +309,7 @@ namespace CStructSharp.Diagnostics
         public string Constraint { get; }
         public CStructSharp.Diagnostics.ConstraintKind Kind { get; }
         public string? Label { get; }
+        public override string Message { get; }
     }
     public enum CStructErrorCode
     {

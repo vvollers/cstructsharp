@@ -57,4 +57,32 @@ public class ReviewFollowUpTests
     {
         _ = GeneratorRunner.Run(Header + "[CStructLayout(\"struct s { uint16 m @expect(m == 1 ||\\n        m == 2); };\", Root = \"s\", Surface = GeneratedSurface.Parser)]\npublic static partial class Lines { }\n").AssertClean();
     }
+
+    /// <summary>
+    ///     A fixed class-shaped struct is checked on its bytes before it is built; a value type, which is not allocated, and a
+    ///     condition that names more than scalar members keep the pass over the value.
+    /// </summary>
+    [TestMethod]
+    public void ClassShapedFixedStruct_ChecksItsBytesBeforeBuildingTheValue()
+    {
+        const string Scalars = "struct fx { uint32 a @expect(a != 0); uint32 b @expect(b > a); };";
+        GeneratorResult classShape = GeneratorRunner.Run(Header + "[CStructLayout(\"" + Scalars + "\", Root = \"fx\", Surface = GeneratedSurface.Reader)]\npublic static partial class ClassFx { }\n").AssertClean();
+        StringAssert.Contains(classShape.Source, "TryCheckFxConstraintsOfBytes");
+
+        GeneratorResult valueShape = GeneratorRunner.Run(Header + "[CStructLayout(\"" + Scalars + "\", Root = \"fx\", Surface = GeneratedSurface.Reader, Shape = GeneratedShape.Struct)]\npublic static partial class ValueFx { }\n").AssertClean();
+        Assert.IsFalse(valueShape.Source.Contains("TryCheckFxConstraintsOfBytes", System.StringComparison.Ordinal));
+
+        GeneratorResult nested = GeneratorRunner.Run(Header + "[CStructLayout(\"struct inner { uint8 x; }; struct fx { uint8 a; inner part; uint8 b @expect(b > part.x); };\", Root = \"fx\", Surface = GeneratedSurface.Reader)]\npublic static partial class NestedFx { }\n").AssertClean();
+        Assert.IsFalse(nested.Source.Contains("ConstraintsOfBytes", System.StringComparison.Ordinal));
+    }
+
+    /// <summary>A condition that names a member of a nested struct is not evaluated by <c>Matches</c>: the name is not mistaken for a caller's variable, which would fail every probe.</summary>
+    [TestMethod]
+    public void Matches_DoesNotTakeANestedMemberForAVariable()
+    {
+        const string Source = "using CStructSharp;\n\nnamespace Demo;\n\n[CStructLayout(\"struct inner { uint8 x; }; struct fx { uint8 a @expect(a == 1); inner part; uint8 b @expect(b > part.x); };\", Root = \"fx\", Surface = GeneratedSurface.Parser, Views = false)]\npublic static partial class NestedMatches { }\n\npublic static class NestedCalls { public static bool Check(byte[] bytes) => NestedMatches.Matches(bytes); }\n";
+        System.Reflection.MethodInfo check = GeneratorRunner.Run(Source).AssertClean().Load().GetType("Demo.NestedCalls")!.GetMethod("Check")!;
+        Assert.IsTrue((bool)check.Invoke(null, [new byte[] { 1, 5, 9 }])!, "the condition on part.x is not evaluated, so a matching a decides");
+        Assert.IsFalse((bool)check.Invoke(null, [new byte[] { 2, 5, 9 }])!);
+    }
 }

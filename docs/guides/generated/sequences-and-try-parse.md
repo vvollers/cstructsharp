@@ -33,8 +33,11 @@ its origin after a failure, so another layout can be tried at the same place.
 For most layouts `TryParse` runs `Parse` and catches what it throws, which keeps the same text and the same behavior but costs
 an exception for each failure. A struct of fixed size with [constraints](../../language/field-constraints.md) does better: its
 `TryParse` decodes the bytes and checks the conditions itself, so a value that breaks one is returned as `failure` and nothing
-is thrown. A source that is too short, a read limit and a cancelled token are not constraints and still go the long way
-(short and limit failures are caught, cancellation passes through). A generated view of such a struct has the matching
+is thrown. When the generated type is a class and the conditions name only plain numeric members at fixed offsets, the conditions
+are checked on the bytes before the object is built, so a rejected input allocates no value. A source shorter than the struct is
+returned as a failure too ("Not enough bytes: needed 12, available 6"), naming the struct's size rather than the member the bytes
+run out in. A read limit and a cancelled token are not constraints and still go the long way (limit failures are caught,
+cancellation passes through). A generated view of such a struct has the matching
 `TryValidate(out failure)`, and with `@expect` conditions on members at fixed offsets the layout has `Matches`:
 
 ```csharp

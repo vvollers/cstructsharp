@@ -131,6 +131,10 @@ internal readonly record struct ReadOperationSettings(
             TrimFixedText = limits.TrimFixedText,
             CancellationToken = limits.CancellationToken,
             LenientText = limits.LenientText,
+
+            // The offset base is the one rarely set member a ReadLimits carries; it goes behind the shared reference like the options'
+            // own, so a cursor over limits is no larger and a read without a base allocates nothing.
+            Extras = limits.OffsetBase == 0 ? null : new ReadExtras(limits.OffsetBase, null, 0),
         };
 
     /// <summary>Maps already-snapshotted update traversal choices into the same read operation settings.</summary>

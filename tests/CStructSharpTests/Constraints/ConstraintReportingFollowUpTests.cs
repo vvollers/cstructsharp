@@ -89,6 +89,20 @@ public class ConstraintReportingFollowUpTests
         Assert.AreEqual(Sync(0, true), Sync(1000, true));
     }
 
+    /// <summary>The message of a collected violation is composed on first use and carries the field, the condition and the position facts.</summary>
+    [TestMethod]
+    public void CollectedViolation_ComposesItsMessageFromItsFacts()
+    {
+        var layout = new CStruct(Record);
+        var found = new List<CStructConstraintException>();
+        _ = layout.ParseMany(new byte[] { 1, 2 }, "r", options: new ReadOptions { ConstraintViolations = found }).ToList();
+
+        string message = found.Single().Message;
+        StringAssert.Contains(message, "Invalid value for 'a': it must satisfy 'a == 1'");
+        StringAssert.Contains(message, "offset 2");
+        Assert.AreEqual(message, found.Single().Message, "the message is the same each time it is read");
+    }
+
     /// <summary>Violations collected by an operation on a path (a nested struct read by its path) carry the operation's path.</summary>
     [TestMethod]
     public void PathRead_CollectedViolationsCarryThePath()

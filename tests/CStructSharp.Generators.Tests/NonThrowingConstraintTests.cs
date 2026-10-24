@@ -223,16 +223,22 @@ public class NonThrowingConstraintTests
         Assert.AreEqual(ConstraintKind.Unsupported, ((CStructConstraintException)failure!).Kind);
     }
 
-    /// <summary>A source the fixed reader cannot take still fails with the runtime's failure (through the member reader, which throws and is caught).</summary>
+    /// <summary>
+    ///     A source shorter than the struct fails with the same kind of failure as the runtime's, built without an exception: it names
+    ///     the struct's size and the bytes available, not the member the bytes run out in.
+    /// </summary>
     [TestMethod]
-    public void TryParse_ReportsAShortSourceLikeTheRuntime()
+    public void TryParse_ReportsAShortSourceWithoutAnException()
     {
         byte[] shortBytes = [1, 0, 0, 0, 2, 0];
         CStructException expected = RuntimeFailure(shortBytes)!;
-        (bool ok, CStructException? failure) = Call<(bool, CStructException?)>("FixedSpan", out _, shortBytes);
+        (bool ok, CStructException? failure) = Call<(bool, CStructException?)>("FixedSpan", out int exceptions, shortBytes);
         Assert.IsFalse(ok);
+        Assert.AreEqual(0, exceptions);
         Assert.AreEqual(expected.GetType(), failure!.GetType());
-        Assert.AreEqual(expected.Message, failure.Message);
+        StringAssert.Contains(failure.Message, "needed 12, available 6");
+        Assert.AreEqual(0L, failure.Offset);
+        Assert.AreEqual("fx", failure.Path);
     }
 
     /// <summary>With a run-time byte order the non-throwing form decodes in the order it is given.</summary>

@@ -43,17 +43,28 @@ internal sealed partial class LayoutEmitter
         var conditions = new List<MatchCondition>();
         foreach (CompiledField field in composite.Composite.Fields)
         {
-            if (scope.Member(field) is not { } member || !plan.Slots.TryGetValue(field, out ViewSlot? slot) || slot.Constant is null)
+            if (scope.Member(field) is not { } member)
             {
                 continue;
             }
 
+            if (!plan.Slots.TryGetValue(field, out ViewSlot? slot) || slot.Constant is null)
+            {
+                scope.PublishUndefined(member);
+                continue;
+            }
+
             // The member is visible to its own conditions and to the later ones, as in the reader; only a scalar number, enum,
-            // identifier or bitfield is decoded here.
+            // identifier or bitfield is decoded here. Any other member is undefined, so that a condition that names it is not
+            // evaluated (a name no member supplies would be taken for a caller's variable).
             if (member.Composite is null && this.ViewPublishes(member))
             {
                 scope.Publish(member, "m_" + member.PropertyName);
                 decoded.Add((member, slot));
+            }
+            else
+            {
+                scope.PublishUndefined(member);
             }
 
             foreach (CompiledConstraint constraint in field.Constraints)
@@ -100,27 +111,29 @@ internal sealed partial class LayoutEmitter
             writer.Line("var m_" + member.PropertyName + " = " + this.MatchDecode(member, "source.Slice(" + Int(slot.Constant!.Value) + ", " + Int(DecodedSize(member.Field, member)) + ")") + ";");
         }
 
+        // The conditions that can fail to evaluate (a division by zero, an overflow) share one handler, opened at the first of them:
+        // the handler returns false for any of them, so one exception region covers the rest instead of one region per condition.
+        bool guarded = false;
         foreach (MatchCondition condition in conditions)
         {
             writer.Line("// @expect(" + SingleLine(condition.Constraint.Text) + ")");
-            if (CannotFail(condition.Constraint.Expression, condition.Code))
-            {
-                writer.Line("if (" + condition.Code + " == 0)");
-                writer.Line("{");
-                writer.Line("    return false;");
-                writer.Line("}");
-            }
-            else
+            if (!guarded && !CannotFail(condition.Constraint.Expression, condition.Code))
             {
                 writer.Open("try");
-                writer.Open("if (" + condition.Code + " == 0)");
-                writer.Line("return false;");
-                writer.Close();
-                writer.Close();
-                writer.Open("catch (global::System.Exception exception) when (" + Cursor + ".IsExpressionFailure(exception))");
-                writer.Line("return false;");
-                writer.Close();
+                guarded = true;
             }
+
+            writer.Open("if (" + condition.Code + " == 0)");
+            writer.Line("return false;");
+            writer.Close();
+        }
+
+        if (guarded)
+        {
+            writer.Close();
+            writer.Open("catch (global::System.Exception exception) when (" + Cursor + ".IsExpressionFailure(exception))");
+            writer.Line("return false;");
+            writer.Close();
         }
 
         writer.Line("return true;");

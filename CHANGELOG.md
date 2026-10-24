@@ -58,7 +58,11 @@ the generated-code helpers: see *Breaking changes*.
 
 - The generated `TryParse` of a fixed-size struct with constraints, and the constraint pass behind `Parse` and the views, return
   a broken condition as a failure value instead of throwing it and catching it: no exception is raised for a value that breaks a
-  constraint. A source too short for the struct, a limit and a layout that is not of fixed size still throw and are caught.
+  constraint. A limit and a layout that is not of fixed size still throw and are caught.
+- The generated `TryParse` of a fixed-size struct returns a source shorter than the struct as a failure without raising an
+  exception. Its message names the struct's size and the bytes available ("Not enough bytes: needed 12, available 6") instead
+  of the member the bytes ran out in. When a limit or cancellation would also have stopped the read, the short-input failure is
+  reported first.
 
 ### Fixed
 
@@ -76,6 +80,14 @@ the generated-code helpers: see *Breaking changes*.
   of failing with CS0261.
 - A condition written across several lines no longer leaves code outside its comment in the generated file.
 - CSG017 no longer advises `Views = false` together with the Views surface, and records a used view without a data race.
+
+### Performance
+
+- Generated `TryParse` of a fixed class-shaped struct checks its constraints on the bytes before building the object, so a
+  rejected input allocates no value. `CStructConstraintException` composes its message on first use, so a returned or collected
+  violation that is never printed costs no string formatting. `ReadCursor` is one field smaller, one `ViolationScope` serves a
+  whole record enumeration, `Matches` shares one `try`/`catch` across its conditions, and the layout-usage analyzer walks each
+  declaration once. Allocations of the existing parse benchmarks are unchanged.
 
 ### Documentation and tooling
 

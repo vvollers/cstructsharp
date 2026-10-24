@@ -35,6 +35,7 @@ internal sealed partial class LayoutEmitter
                 {
                     writer.Line();
                     this.EmitFixedConstraintCheck(writer, composite);
+                    this.EmitFixedBytesConstraintCheck(writer, composite);
                 }
             }
         }
@@ -124,8 +125,9 @@ internal sealed partial class LayoutEmitter
     /// <summary>
     ///     Emits the body of a non-throwing span reader for a fixed composite with <c>@expect</c> or <c>@supports</c> conditions:
     ///     the fixed reader decodes it and the constraint pass returns the first failure, so a value that breaks a condition costs
-    ///     an allocation, not an exception. Input the fixed reader does not take (too short, over a limit, misaligned) goes
-    ///     through the member-by-member reader, which reports the failure the way it always has, and is caught.
+    ///     an allocation, not an exception. A source shorter than the struct reports its short read without an exception too; input
+    ///     the fixed reader does not take otherwise (over a limit, misaligned) goes through the member-by-member reader, which
+    ///     reports the failure the way it always has, and is caught.
     /// </summary>
     /// <param name="writer">The output, inside the method.</param>
     /// <param name="composite">A constrained composite that has a fixed reader.</param>
@@ -135,16 +137,43 @@ internal sealed partial class LayoutEmitter
     {
         string name = composite.Name;
         writer.Line(cursorCreation);
-        writer.Open("try");
-        writer.Open("if (" + this.TakeFixedCall(plan) + ")");
-        writer.Line("var fixedValue = Read" + name + "Fixed(fixedBytes, cursor.TrimFixedText" + (this.HasRuntimeByteOrder ? ", cursor.LittleEndian" : string.Empty) + ");");
-        writer.Open("if (!TryCheck" + name + "Constraints(ref cursor, variables, " + (this.UsesValueTypes ? "in " : string.Empty) + "fixedValue, 0, out var constraintFailure))");
-        writer.Line("cursor.Complete(constraintFailure!);");
-        writer.Line("value = " + (this.UsesValueTypes ? "default;" : "null;"));
-        writer.Line("failure = constraintFailure;");
+
+        // A source shorter than the struct is the common miss of a probe ("is this the format?"): its failure is built here, without
+        // the exception the member-by-member reader would throw and this method would catch. It names the struct and the bytes
+        // needed and available, not the member the bytes run out in.
+        writer.Open("if (source.Length < " + Int(plan.Size) + ")");
+        writer.Line("var shortFailure = cursor.Fail(" + Cursor + ".ShortReadText(" + Int(plan.Size) + ", source.Length), null, null);");
+        writer.Line("cursor.Complete(shortFailure);");
+        writer.Line(this.UsesValueTypes ? "value = default;" : "value = null;");
+        writer.Line("failure = shortFailure;");
         writer.Line("return false;");
         writer.Close();
-        writer.Line("value = fixedValue;");
+        writer.Open("try");
+        writer.Open("if (" + this.TakeFixedCall(plan) + ")");
+        string fixedRead = "Read" + name + "Fixed(fixedBytes, cursor.TrimFixedText" + (this.HasRuntimeByteOrder ? ", cursor.LittleEndian" : string.Empty) + ")";
+        if (this.BytesCheckOf(composite) is not null)
+        {
+            // The conditions are checked on the bytes, so input that breaks one never has its value built.
+            writer.Open("if (!TryCheck" + name + "ConstraintsOfBytes(ref cursor, variables, fixedBytes, " + (this.HasRuntimeByteOrder ? "cursor.LittleEndian, " : string.Empty) + "0, out var bytesFailure))");
+            writer.Line("cursor.Complete(bytesFailure!);");
+            writer.Line("value = null;");
+            writer.Line("failure = bytesFailure;");
+            writer.Line("return false;");
+            writer.Close();
+            writer.Line("value = " + fixedRead + ";");
+        }
+        else
+        {
+            writer.Line("var fixedValue = " + fixedRead + ";");
+            writer.Open("if (!TryCheck" + name + "Constraints(ref cursor, variables, " + (this.UsesValueTypes ? "in " : string.Empty) + "fixedValue, 0, out var constraintFailure))");
+            writer.Line("cursor.Complete(constraintFailure!);");
+            writer.Line("value = " + (this.UsesValueTypes ? "default;" : "null;"));
+            writer.Line("failure = constraintFailure;");
+            writer.Line("return false;");
+            writer.Close();
+            writer.Line("value = fixedValue;");
+        }
+
         writer.Line("failure = null;");
         writer.Line("return true;");
         writer.Close();

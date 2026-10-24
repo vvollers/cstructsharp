@@ -59,7 +59,7 @@ public ref partial struct ReadCursor
     /// <returns>The exception to throw.</returns>
     public readonly CStructConstraintException FailConstraint(ConstraintKind kind, string constraint, string field, string? member, string? memberType, string? label = null)
     {
-        var exception = new CStructConstraintException(kind, constraint, ReadFailures.ConstraintNotSatisfied(kind, field, constraint, label), label);
+        var exception = CStructConstraintException.FromFacts(kind, constraint, field, label);
         this.Attach(exception, member, memberType);
         return exception;
     }
