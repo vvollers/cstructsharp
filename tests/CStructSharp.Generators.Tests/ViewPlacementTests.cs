@@ -1,6 +1,7 @@
 namespace CStructSharp.Generators.Tests;
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using CStructSharp;
@@ -62,6 +63,9 @@ public class ViewPlacementTests
 
         [CStructLayout("struct free { uint8 head; uint8 data[N]; uint8 behind; };", Root = "free")]
         public static partial class FreeLayout { }
+
+        [CStructLayout("#define N 2\nstruct sized { uint8 data[N]; uint8 tail; };", Root = "sized")]
+        public static partial class SizedLayout { }
 
         [CStructLayout("struct paint { uint8 head; rgb colour; uint8 tail; };", Root = "paint", Codecs = new[] { "rgb:3:1" })]
         public static partial class PaintLayout
@@ -205,6 +209,25 @@ public class ViewPlacementTests
                 return new object[] { view.CountOfB() };
             }
 
+            public static object[] Free(byte[] bytes)
+            {
+                var view = new Demo.FreeLayout.FreeView(bytes, null, new Dictionary<string, int> { ["N"] = 3 });
+                return new object[] { view.Head, view.CountOfData(), view.Data(2), view.Behind };
+            }
+
+            public static object[] FreeWithoutVariables(byte[] bytes)
+            {
+                var view = new Demo.FreeLayout.FreeView(bytes);
+                return new object[] { view.CountOfData() };
+            }
+
+            public static object[] Sized(byte[] bytes)
+            {
+                var plain = new Demo.SizedLayout.SizedView(bytes);
+                var wide = new Demo.SizedLayout.SizedView(bytes, null, new Dictionary<string, int> { ["N"] = 3 });
+                return new object[] { plain.CountOfData(), plain.Tail, wide.CountOfData(), wide.Tail, wide.ToObject().Data.Length };
+            }
+
             public static object[] Late(byte[] bytes)
             {
                 var view = new Demo.LateLayout.LateView(bytes);
@@ -251,6 +274,20 @@ public class ViewPlacementTests
         try
         {
             return parse.Invoke(null, [bytes, null])!;
+        }
+        catch (TargetInvocationException exception)
+        {
+            throw exception.InnerException!;
+        }
+    }
+
+    /// <summary>The generated reader's value of a layout's root with caller variables.</summary>
+    private static object Parsed(string layout, byte[] bytes, IReadOnlyDictionary<string, int> variables)
+    {
+        MethodInfo parse = assembly.GetType("Demo." + layout + "Layout")!.GetMethods().Single(method => method.Name == "Parse" + layout && method.GetParameters() is [{ ParameterType: { } first }, ..] && first == typeof(byte[]));
+        try
+        {
+            return parse.Invoke(null, [bytes, variables, null])!;
         }
         catch (TargetInvocationException exception)
         {
@@ -370,15 +407,38 @@ public class ViewPlacementTests
         Assert.AreEqual(reader.InnerException?.GetType(), view.InnerException?.GetType());
     }
 
-    /// <summary>A member whose count needs a caller variable, and everything after it, is not exposed: it would always fail.</summary>
+    /// <summary>A count that needs a caller variable is exposed: the view takes the variables, evaluates the count with them like the reader, and finds the members after the array.</summary>
     [TestMethod]
-    public void CountNeedingACallerVariable_ExposesNothingAfterIt()
+    public void CountNeedingACallerVariable_UsesTheVariablesTheViewWasGiven()
     {
+        byte[] bytes = [1, 10, 20, 30, 99];
+        object[] readings = Probe("Free", bytes);
+        Assert.AreEqual((byte)1, readings[0]);
+        Assert.AreEqual(3, readings[1]);
+        Assert.AreEqual((byte)30, readings[2]);
+        Assert.AreEqual((byte)99, readings[3]);
+        var variables = new Dictionary<string, int> { ["N"] = 3 };
+        ParityComparer.AssertSame(Runtime("Free").Parse(bytes, "free", variables), Parsed("Free", bytes, variables), "free", strict: true);
+
+        // Without the variable the count fails as the reader's does: the identifier is undefined.
         Type view = assembly.GetType("Demo.FreeLayout")!.GetNestedType("FreeView")!;
-        Assert.IsNotNull(view.GetProperty("Head"));
-        Assert.IsNull(view.GetProperty("Behind"));
-        Assert.IsNull(view.GetMethod("CountOfData"));
-        Assert.IsNull(view.GetMethod("Data"));
+        Assert.IsNotNull(view.GetMethod("CountOfData"));
+        CStructException reader = Assert.Throws<CStructReadException>(() => Runtime("Free").Parse(bytes, "free"));
+        CStructException missing = Assert.Throws<CStructReadException>(() => Probe("FreeWithoutVariables", bytes));
+        Assert.AreEqual(FailureText(reader), FailureText(missing));
+    }
+
+    /// <summary>A define's default applies to a view made without variables, a caller's value overrides it, and <c>ToObject</c> reads with the variables the view carries.</summary>
+    [TestMethod]
+    public void DefineOverride_AppliesToTheViewAndItsToObject()
+    {
+        byte[] bytes = [1, 2, 3, 4];
+        object[] readings = Probe("Sized", bytes);
+        Assert.AreEqual(2, readings[0]);
+        Assert.AreEqual((byte)3, readings[1]);
+        Assert.AreEqual(3, readings[2]);
+        Assert.AreEqual((byte)4, readings[3]);
+        Assert.AreEqual(3, readings[4], "ToObject reads with the view's variables");
     }
 
     /// <summary>A fixed-size custom codec member reads through the codec instance and also exposes its stored bytes.</summary>

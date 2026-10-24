@@ -37,6 +37,16 @@ internal sealed partial class LayoutEmitter
     /// <summary>Whether views of fixed-size structs get a <c>foreach</c> enumerator: always on the full surface, otherwise when the layout asks for it.</summary>
     private bool EmitsEnumerators => this.request.Surface == GenerationSurface.Full || this.request.Enumerators;
 
+    /// <summary>The arguments that follow the options when a view hands its caller variables on to a nested view or enumerator: empty unless the layout's views carry variables.</summary>
+    private string VariablesArgument => this.ViewsCarryVariables ? ", this.variables" : string.Empty;
+
+    /// <summary>
+    ///     Whether the views of this layout carry the caller's variables: some view evaluates a count that reads a caller
+    ///     variable, or a define the caller may override, so every view of the layout accepts the variables and passes them
+    ///     to the views nested in it.
+    /// </summary>
+    private bool ViewsCarryVariables => this.viewsCarryVariables ??= this.request.Views && this.model.Composites.Any(composite => this.PlanView(composite).UsesVariables);
+
     /// <summary>What a view's read options are used for: the whole-value reader, or (on the views surface, which has none) the text members.</summary>
     private string OptionsUse => this.request.Surface == GenerationSurface.Views ? "each view's text members use" : "each view's <c>ToObject</c> uses";
 
@@ -67,11 +77,21 @@ internal sealed partial class LayoutEmitter
         writer.Open("public readonly ref struct " + name);
         writer.Line("private readonly global::System.ReadOnlySpan<byte> source;");
         writer.Line("private readonly global::CStructSharp.ReadOptions? options;");
+        if (this.ViewsCarryVariables)
+        {
+            writer.Line("private readonly " + VariablesType + " variables;");
+        }
+
         writer.Line();
         writer.Line("/// <summary>Creates a view over <paramref name=\"source\"/>, whose first byte is the value's first byte" + (size is not null ? "; the source must hold the value's " + Int(size.Value) + " bytes" : string.Empty) + ".</summary>");
         writer.Line("/// <param name=\"source\">The bytes, from the value's start; more may follow (pointer targets, the rest of the input).</param>");
         writer.Line("/// <param name=\"options\">The read options " + (this.request.Surface == GenerationSurface.Views ? "text members use" : "<see cref=\"ToObject\"/> uses") + "; <see langword=\"null\"/> uses the documented defaults.</param>");
-        writer.Open("public " + name + "(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null)");
+        if (this.ViewsCarryVariables)
+        {
+            writer.Line("/// <param name=\"variables\">The values the layout's free identifiers have where a count needs them, or <see langword=\"null\"/>.</param>");
+        }
+
+        writer.Open("public " + name + "(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null" + (this.ViewsCarryVariables ? ", " + VariablesType + " variables = null" : string.Empty) + ")");
         if (size is { } fixedSize)
         {
             // The runtime's short-read text for a source that cannot hold the value. The failure is built in a local
@@ -83,6 +103,11 @@ internal sealed partial class LayoutEmitter
 
         writer.Line("this.source = source;");
         writer.Line("this.options = options;");
+        if (this.ViewsCarryVariables)
+        {
+            writer.Line("this.variables = variables;");
+        }
+
         if (size is { } checkedSize)
         {
             writer.Line();
@@ -119,7 +144,7 @@ internal sealed partial class LayoutEmitter
             writer.Line("/// <param name=\"source\">The bytes of the records, with nothing else after them.</param>");
             writer.Line("/// <param name=\"options\">The read options each view's " + (this.request.Surface == GenerationSurface.Views ? "text members use" : "<see cref=\"ToObject\"/> uses") + "; <see langword=\"null\"/> uses the documented defaults.</param>");
             writer.Line("/// <returns>The enumeration.</returns>");
-            writer.Line("public static " + name + "Enumerable Enumerate(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null) => new " + name + "Enumerable(source, options);");
+            writer.Line("public static " + name + "Enumerable Enumerate(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null" + (this.ViewsCarryVariables ? ", " + VariablesType + " variables = null" : string.Empty) + ") => new " + name + "Enumerable(source, options" + this.VariablesArgument.Replace("this.variables", "variables") + ");");
         }
 
         writer.Close();
@@ -142,7 +167,7 @@ internal sealed partial class LayoutEmitter
         writer.Open("public " + composite.Name + " ToObject(" + VariablesType + " variables = null)");
         writer.Line("var cursor = new " + Cursor + "(this.source, this.options, " + layout + ");");
         writer.Open("try");
-        writer.Line("return Read" + composite.Name + "(ref cursor, variables, null, null);");
+        writer.Line("return Read" + composite.Name + "(ref cursor, " + (this.ViewsCarryVariables ? "variables ?? this.variables" : "variables") + ", null, null);");
         writer.Close();
         writer.Open("catch (global::CStructSharp.Diagnostics.CStructException exception)");
         writer.Line("cursor.Complete(exception);");
@@ -266,7 +291,7 @@ internal sealed partial class LayoutEmitter
                 nestedSource = plan.TakeRestName + "(" + at + ", " + Int(nestedSize) + ", " + SourceWriter.Literal(field.Name) + ", " + SourceWriter.Literal(field.DisplayTypeSpelling) + ")";
             }
 
-            writer.Line("public " + ViewName(nested) + " " + member.PropertyName + " => new(" + nestedSource + ", this.options);");
+            writer.Line("public " + ViewName(nested) + " " + member.PropertyName + " => new(" + nestedSource + ", this.options" + this.VariablesArgument + ");");
             return;
         }
 
@@ -475,11 +500,11 @@ internal sealed partial class LayoutEmitter
         if (slot.IsDynamic || fixedCount is null)
         {
             plan.TakeRestName ??= plan.Unique("TakeRest");
-            writer.Line("return new(" + plan.TakeRestName + "(" + at + " + (long)index * " + Int(stride) + ", " + Int(stride) + ", " + name + ", " + typeName + "), this.options);");
+            writer.Line("return new(" + plan.TakeRestName + "(" + at + " + (long)index * " + Int(stride) + ", " + Int(stride) + ", " + name + ", " + typeName + "), this.options" + this.VariablesArgument + ");");
         }
         else
         {
-            writer.Line("return new(this.source.Slice(" + at + " + index * " + Int(stride) + "), this.options);");
+            writer.Line("return new(this.source.Slice(" + at + " + index * " + Int(stride) + "), this.options" + this.VariablesArgument + ");");
         }
 
         writer.Close();

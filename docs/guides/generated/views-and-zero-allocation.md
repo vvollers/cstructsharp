@@ -72,12 +72,18 @@ struct table { uint32 count; uint64 origin; uint32 entries[count]; uint32 checks
 `view.Checksum` finds `checksum` after the `count` entries; `view.CopyEntriesTo(destination)` copies the entries
 without the array a `Table` object would allocate for them.
 
+When a count uses a name the layout does not define (`uint8 data[N]`), or a `#define` the caller may override, the layout's
+views take the values as a third constructor argument: `new TableView(bytes, options, new Dictionary<string, int> { ["N"] = 3 })`.
+The view evaluates the count with them exactly as `Parse` does (a name without a value fails with the reader's message),
+passes them to the views nested in it and to its enumerator, and `ToObject()` reads with them unless it is given others.
+Only a layout with such a count has the extra argument.
+
 Every call that needs the length evaluates the count again, because a view keeps no state. That is cheap for one
 read (`Checksum`, `CopyEntriesTo`), but `Entries(i)` in a loop pays it for every element. To visit all elements, read
 `EntriesBytes` once, or call `CopyEntriesTo` into a span you own, and loop over that.
 
 Members it does not expose are the ones whose position the view cannot compute: a terminated string, a conditional
-member, an array whose length needs a caller variable, a value that is not read yet, or a member of a nested struct whose
+member, a value that is not read yet, or a member of a nested struct whose
 view has no property for it (a `char`, an `int48`, an `int128` or a pointer), a pointer's target, a struct
 with a variable size, a bitfield whose storage the compiler placed after the data, and everything placed after one of
 those. For those, `ToObject()` runs the full reader, or `Parse` does from the start. A member after a runtime-sized

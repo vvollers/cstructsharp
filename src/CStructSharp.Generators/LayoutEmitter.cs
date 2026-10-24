@@ -24,6 +24,9 @@ internal sealed partial class LayoutEmitter
     private GeneratedModel model = null!;
     private bool hasErrors;
 
+    // Whether the views carry the caller's variables, decided once from the placement of every view (null until asked).
+    private bool? viewsCarryVariables;
+
     /// <summary>Prepares one attributed class; call <see cref="Validate"/> before <c>Emit</c>.</summary>
     /// <param name="request">The attributed class's configuration and source locations.</param>
     /// <param name="compilation">The compiled layout the generated members describe.</param>

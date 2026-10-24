@@ -14,7 +14,7 @@ using static CStructSharp.Generators.Emit;
 /// </summary>
 internal sealed partial class LayoutEmitter
 {
-    /// <summary>The type of the caller variables a view evaluates expressions with: always none, so a free variable hides its member.</summary>
+    /// <summary>The caller variables a view without variables evaluates expressions with: none, so the defines keep their defaults.</summary>
     private const string NoVariables = "global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null;";
 
     /// <summary>How a view reaches the first byte of one member.</summary>
@@ -64,6 +64,9 @@ internal sealed partial class LayoutEmitter
 
         /// <summary>Gets the count methods already written with their member, so the rest are written after the members.</summary>
         public HashSet<string> WrittenCounts { get; } = new(StringComparer.Ordinal);
+
+        /// <summary>Gets or sets a value indicating whether a count the view evaluates reads a caller variable (or a define a caller may override), so the layout's views carry the variables.</summary>
+        public bool UsesVariables { get; set; }
 
         /// <summary>Gets a value indicating whether any member is read at a computed offset, so the view needs its slicing helper.</summary>
         public bool NeedsTake => this.OffsetMethods.Count > 0 || this.Counts.Count > 0;
@@ -245,14 +248,25 @@ internal sealed partial class LayoutEmitter
             return null;
         }
 
+        // A caller variable (or a define the caller may override) is read from the variables the view was created with.
+        if (VariableUse.IsMatch(code))
+        {
+            plan.UsesVariables = true;
+        }
+
         string count = plan.Unique("CountOf" + member.PropertyName);
         plan.Counts[field] = (count, code, ExpressionEmitter.IsInt32Literal(expression));
         return Add(start, "(long)" + count + "() * " + Int(element) + "L");
     }
 
-    /// <summary>An expression that names a caller variable with no default, or a member that is not read yet, which a view cannot supply.</summary>
+    /// <summary>An expression that names a member that is not read yet, which a view cannot supply.</summary>
     private static readonly System.Text.RegularExpressions.Regex UnresolvableInView = new(
-        "Expressions\\.Variable\\(variables, \"[^\"]*\"\\)|Expressions\\.Undefined\\(",
+        "Expressions\\.Undefined\\(",
+        System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    /// <summary>An expression that reads the caller's variables: a variable, one with a define's default, or an optional one.</summary>
+    private static readonly System.Text.RegularExpressions.Regex VariableUse = new(
+        "Expressions\\.(Try)?Variable\\(variables, ",
         System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
     /// <summary>
@@ -391,7 +405,7 @@ internal sealed partial class LayoutEmitter
         }
         else
         {
-            writer.Line(NoVariables);
+            writer.Line(this.ViewsCarryVariables ? "global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = this.variables;" : NoVariables);
             writer.Line("global::System.Int128 countValue;");
             writer.Open("try");
             writer.Line("countValue = " + count.Code + ";");

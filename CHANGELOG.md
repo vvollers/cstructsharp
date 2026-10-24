@@ -31,6 +31,10 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   `Entries(i)`, a nested view of element `i` at the element's stride, plus `EntriesBytes`; structs with bitfields work as
   elements (`view.Entries(i).Compressed`), the members after a runtime-sized array of structs find their offset, and
   an element past the source fails with the reader's short-read message naming the array.
+- **Views take caller variables.** When a runtime-sized array's count uses a name the layout does not define, or a
+  `#define` the caller may override, the layout's views (and their enumerators) take the values as an optional third
+  argument and evaluate the count with them as the reader does; such an array, and the members after it, were hidden
+  before. `ToObject()` reads with the variables the view carries.
 
 ## 0.13.0 — 2026-10-24
 
