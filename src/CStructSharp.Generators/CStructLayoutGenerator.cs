@@ -27,13 +27,25 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
+        IncrementalValueProvider<LayoutDefaults> defaults = DefaultsProvider(context);
         IncrementalValuesProvider<LayoutRequest> requests = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 AttributeMetadataName,
                 static (node, _) => node is ClassDeclarationSyntax,
                 static (syntaxContext, cancellation) => CreateRequest(syntaxContext, cancellation))
             .Where(static request => request is not null)
-            .Select(static (request, _) => request!);
+            .Select(static (request, _) => request!)
+            .Combine(defaults)
+            .Select(static (pair, _) => pair.Left.WithDefaults(pair.Right));
+
+        // A project property that does not parse is reported once, where the project can see it, and then ignored.
+        context.RegisterSourceOutput(defaults, static (productionContext, projectDefaults) =>
+        {
+            foreach (string invalid in projectDefaults.Invalid)
+            {
+                productionContext.ReportDiagnostic(Diagnostic.Create(GeneratorDiagnostics.InvalidProjectDefault, Location.None, "CStructSharp" + invalid.Substring(0, invalid.IndexOf('=')), invalid.Substring(invalid.IndexOf('=') + 1)));
+            }
+        });
 
         // A layout file is any AdditionalFile named *.cstruct, or one the build marks with CStructSharpLayout=true
         // (the package's build props mark every .cstruct file; a project can mark others). The file provider is part of
@@ -59,6 +71,12 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
                 }
             });
     }
+
+    /// <summary>The project's defaults for the attribute options, read from the build's <c>CStructSharp*</c> properties.</summary>
+    /// <param name="context">The generator's initialization context.</param>
+    /// <returns>The defaults; value equality keeps an unchanged set from re-running generation.</returns>
+    internal static IncrementalValueProvider<LayoutDefaults> DefaultsProvider(IncrementalGeneratorInitializationContext context)
+        => context.AnalyzerConfigOptionsProvider.Select(static (provider, _) => LayoutDefaults.From(provider.GlobalOptions));
 
     /// <summary>Recognizes a layout by its .cstruct suffix or explicit AdditionalFiles metadata without reading its bytes.</summary>
     /// <param name="file">The compiler-owned additional file.</param>
@@ -100,8 +118,15 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         bool keepNames = false;
         bool views = true;
         GenerationSurface surface = GenerationSurface.Full;
+        var explicitArguments = new List<string>();
         foreach (KeyValuePair<string, TypedConstant> named in attribute.NamedArguments)
         {
+            // CLongWidth = 0 means "the library default", so it names nothing and a project default may apply.
+            if (named.Key != "CLongWidth" || named.Value.Value is int and not 0)
+            {
+                explicitArguments.Add(named.Key);
+            }
+
             switch (named.Key)
             {
             case "File":
@@ -161,7 +186,8 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             literalShape,
             ((CSharpParseOptions)declaration.SyntaxTree.Options).LanguageVersion.ToDisplayString(),
             TypesWithConstructors(symbol),
-            ConsumerDeclaredTypes(symbol));
+            ConsumerDeclaredTypes(symbol),
+            new EquatableArray<string>(explicitArguments.ToArray()));
     }
 
     /// <summary>

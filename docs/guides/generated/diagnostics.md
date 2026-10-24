@@ -21,6 +21,7 @@ list cannot drift from what ships.
 | [CSG006](#csg006---custom-codec-declaration-is-invalid) | Error | Custom codec declaration is invalid |
 | [CSG010](#csg010---c-12-or-later-is-required) | Error | C# 12 or later is required |
 | [CSG011](#csg011---the-views-surface-needs-views) | Error | The Views surface needs views |
+| [CSG012](#csg012---a-cstructsharp-project-property-is-not-valid) | Warning | A CStructSharp project property is not valid |
 | [CSG100](#csg100---mapped-type-must-be-partial-with-a-parameterless-constructor) | Error | Mapped type must be partial with a parameterless constructor |
 | [CSG101](#csg101---mapped-member-type-is-not-mapped) | Error | Mapped member type is not mapped |
 | [CSG102](#csg102---mapped-member-has-no-layout-counterpart) | Warning | Mapped member has no layout counterpart |
@@ -96,9 +97,21 @@ expressions, static abstract interface members). An error.
 ## CSG011 - The Views surface needs views
 
 **Cause.** `Surface = GeneratedSurface.Views` generates only views, and `Views = false` turns views off, so together they
-would generate nothing. An error.
+would generate nothing. An error. Either value may come from the attribute or from the project's `CStructSharpSurface`
+and `CStructSharpViews` properties.
 
 **Fix.** Remove `Views = false`, or choose `GeneratedSurface.Reader` or `GeneratedSurface.Full`.
+
+## CSG012 - A CStructSharp project property is not valid
+
+**Cause.** One of the `CStructSharp*` build properties that set a project-wide default (see
+[Project defaults](choosing-runtime-or-generated.md#project-defaults)) has a value the generator does not understand,
+for example `<CStructSharpSurface>Tiny</CStructSharpSurface>`. A warning: the property is ignored and the library's
+default applies.
+
+**Fix.** Use a valid value: `Full`, `Reader` or `Views` for `CStructSharpSurface`; `SysV` or `Msvc` for
+`CStructSharpBitfieldPacking`; `LowBitFirst` or `HighBitFirst` for `CStructSharpBitfieldAllocation`; `1`, `2`, `4` or
+`8` for `CStructSharpPointerSize`; `32` or `64` for `CStructSharpCLongWidth`; `true` or `false` for the flag properties.
 
 ## CSG100 - Mapped type must be partial with a parameterless constructor
 

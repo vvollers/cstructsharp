@@ -6,3 +6,4 @@
 Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
 CSG011 | CStructSharp | Error | The Views surface needs views
+CSG012 | CStructSharp | Warning | A CStructSharp project property is not valid

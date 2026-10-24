@@ -12,6 +12,17 @@
 
   <ItemGroup>
     <CompilerVisibleProperty Include="DisableCStructSharpGenerator" />
+    <!-- Project-wide defaults for the [CStructLayout] options; an option the attribute names keeps the attribute's value. -->
+    <CompilerVisibleProperty Include="CStructSharpSurface" />
+    <CompilerVisibleProperty Include="CStructSharpViews" />
+    <CompilerVisibleProperty Include="CStructSharpKeepNames" />
+    <CompilerVisibleProperty Include="CStructSharpAligned" />
+    <CompilerVisibleProperty Include="CStructSharpLittleEndian" />
+    <CompilerVisibleProperty Include="CStructSharpPointerSize" />
+    <CompilerVisibleProperty Include="CStructSharpBitfieldPacking" />
+    <CompilerVisibleProperty Include="CStructSharpBitfieldAllocation" />
+    <CompilerVisibleProperty Include="CStructSharpCLongWidth" />
+    <CompilerVisibleProperty Include="CStructSharpDefaultEnumStorage" />
     <!-- CSG300 warns about `dynamic` over a parsed value only where the runtime cannot bind it. -->
     <CompilerVisibleProperty Include="PublishAot" />
     <CompilerVisibleProperty Include="PublishTrimmed" />

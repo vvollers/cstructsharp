@@ -11,7 +11,9 @@ using System;
 /// <remarks>
 ///     The layout is the constructor argument or, with <see cref="File"/>, a <c>.cstruct</c> file the project lists
 ///     as an <c>AdditionalFiles</c> item. The other properties mirror the <see cref="CStruct"/> constructor and
-///     <see cref="CStructCompilationOptions"/>.
+///     <see cref="CStructCompilationOptions"/>. An option this attribute does not name takes the project's default from the
+///     matching <c>CStructSharp*</c> build property (<c>CStructSharpSurface</c> for <see cref="Surface"/>, and so on), then
+///     the library's.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
 public sealed class CStructLayoutAttribute : Attribute

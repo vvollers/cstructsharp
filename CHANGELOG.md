@@ -8,6 +8,17 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ## Unreleased
 
+### Added
+
+- **Project-wide defaults for the generator.** The build properties `CStructSharpSurface`, `CStructSharpViews`,
+  `CStructSharpKeepNames`, `CStructSharpAligned`, `CStructSharpLittleEndian`, `CStructSharpPointerSize`,
+  `CStructSharpBitfieldPacking`, `CStructSharpBitfieldAllocation`, `CStructSharpCLongWidth` and
+  `CStructSharpDefaultEnumStorage` set the default of each `[CStructLayout]` option the attribute does not name; an
+  option the attribute names keeps its own value. A project of hundreds of layouts sets
+  `<CStructSharpSurface>Reader</CStructSharpSurface>` once instead of editing every attribute, and a new layout cannot
+  silently grow to the full surface. The new warning CSG012 reports a property value that does not parse, which is then
+  ignored. The analyzer and `[CStructMapped]` layout resolution see the same defaults.
+
 ## 0.13.0 — 2026-10-24
 
 This minor release lets a project choose how much code the generator writes, makes generated views reach far more

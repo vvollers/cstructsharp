@@ -49,6 +49,36 @@ than a sixth. All three read the same values with the same failures; the smaller
 `[CStructMapped]` class and any code that uses `Layout`, `Serialize` or `Update` need the full surface, and `Views`
 cannot be combined with `Views = false` (see [CSG011](diagnostics.md#csg011---the-views-surface-needs-views)).
 
+## Project defaults
+
+A project with hundreds of layouts should not repeat the same options on every attribute. Build properties set the
+default of each option the attribute does not name; an option the attribute names always keeps its own value:
+
+```xml
+<PropertyGroup>
+  <CStructSharpSurface>Reader</CStructSharpSurface>
+  <CStructSharpViews>false</CStructSharpViews>
+  <CStructSharpLittleEndian>false</CStructSharpLittleEndian>
+</PropertyGroup>
+```
+
+| Property | Sets the default of | Values |
+| --- | --- | --- |
+| `CStructSharpSurface` | `Surface` | `Full`, `Reader`, `Views` |
+| `CStructSharpViews` | `Views` | `true`, `false` |
+| `CStructSharpKeepNames` | `KeepNames` | `true`, `false` |
+| `CStructSharpAligned` | `Aligned` | `true`, `false` |
+| `CStructSharpLittleEndian` | `LittleEndian` | `true`, `false` |
+| `CStructSharpPointerSize` | `PointerSize` | `1`, `2`, `4`, `8` |
+| `CStructSharpBitfieldPacking` | `BitfieldPacking` | `SysV`, `Msvc` |
+| `CStructSharpBitfieldAllocation` | `BitfieldAllocation` | `LowBitFirst`, `HighBitFirst` |
+| `CStructSharpCLongWidth` | `CLongWidth` | `32`, `64` |
+| `CStructSharpDefaultEnumStorage` | `DefaultEnumStorage` | a type spelling such as `uint32` |
+
+With `CStructSharpSurface` set to `Reader`, a layout that needs writers or `Layout` says `Surface = GeneratedSurface.Full`
+on its own attribute. `Defined` and `Codecs` are per layout and have no project default. A value that does not parse is
+reported as [CSG012](diagnostics.md#csg012---a-cstructsharp-project-property-is-not-valid) and ignored.
+
 ## What the numbers mean
 
 The [performance page](../performance.md) has a "Generated" table measured with `GeneratedBenchmarks`. For the

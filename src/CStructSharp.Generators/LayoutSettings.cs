@@ -64,6 +64,27 @@ internal sealed record LayoutSettings(
         return settings;
     }
 
+    /// <summary>These settings with the project's defaults under every option the attribute did not name.</summary>
+    /// <param name="defaults">The project defaults.</param>
+    /// <param name="named">Whether the attribute named an option (by its attribute property name); a named option keeps this instance's value.</param>
+    /// <returns>The effective settings.</returns>
+    public LayoutSettings WithDefaults(LayoutDefaults defaults, Func<string, bool> named)
+    {
+        LayoutSettings project = defaults.BaseSettings();
+        return project with
+        {
+            Aligned = named("Aligned") ? this.Aligned : project.Aligned,
+            LittleEndian = named("LittleEndian") ? this.LittleEndian : project.LittleEndian,
+            PointerSize = named("PointerSize") ? this.PointerSize : project.PointerSize,
+            BitfieldPacking = named("BitfieldPacking") ? this.BitfieldPacking : project.BitfieldPacking,
+            BitfieldAllocation = named("BitfieldAllocation") ? this.BitfieldAllocation : project.BitfieldAllocation,
+            CLongWidth = named("CLongWidth") ? this.CLongWidth : project.CLongWidth,
+            DefaultEnumStorage = named("DefaultEnumStorage") ? this.DefaultEnumStorage : project.DefaultEnumStorage,
+            Defined = this.Defined,
+            Codecs = this.Codecs,
+        };
+    }
+
     /// <summary>A defined-symbol set as the compilation options take it.</summary>
     /// <param name="defined">The symbol names.</param>
     /// <returns>The set, compared ordinally.</returns>

@@ -46,6 +46,8 @@ public sealed class CStructMappedGenerator : IIncrementalGenerator
                 static (syntaxContext, cancellation) => CStructLayoutGenerator.CreateRequestForMapping(syntaxContext, cancellation))
             .Where(static request => request is not null)
             .Select(static (request, _) => request!)
+            .Combine(CStructLayoutGenerator.DefaultsProvider(context))
+            .Select(static (pair, _) => pair.Left.WithDefaults(pair.Right))
             .Collect()
             .Select(static (requests, _) => new LayoutCompositeIndex(requests));
 
