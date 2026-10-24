@@ -23,7 +23,7 @@ list cannot drift from what ships.
 | [CSG011](#csg011---the-views-surface-needs-views) | Error | The Views surface needs views |
 | [CSG012](#csg012---a-cstructsharp-project-property-is-not-valid) | Warning | A CStructSharp project property is not valid |
 | [CSG013](#csg013---runtimebyteorder-is-not-supported-here) | Error | RuntimeByteOrder is not supported here |
-| [CSG014](#csg014---shape-struct-is-not-supported-here) | Error | Shape = Struct is not supported here |
+| [CSG014](#csg014---a-value-type-shape-is-not-supported-here) | Error | A value-type shape is not supported here |
 | [CSG100](#csg100---mapped-type-must-be-partial-with-a-parameterless-constructor) | Error | Mapped type must be partial with a parameterless constructor |
 | [CSG101](#csg101---mapped-member-type-is-not-mapped) | Error | Mapped member type is not mapped |
 | [CSG102](#csg102---mapped-member-has-no-layout-counterpart) | Warning | Mapped member has no layout counterpart |
@@ -125,7 +125,7 @@ the message names the reason and, for a bitfield, the field.
 **Fix.** Use `GeneratedSurface.Reader`, `Parser` or `Views`, and give the bitfield members an order that does not move them
 (declare them with the same storage type, or separate runs with an ordinary member), or keep two layouts, one per order.
 
-## CSG014 - Shape = Struct is not supported here
+## CSG014 - A value-type shape is not supported here
 
 **Cause.** `Shape = GeneratedShape.Struct` (or the project's `CStructSharpShape`) cannot be generated for this layout: the
 surface is `Full` (its writers, `Update` setters and `Records` need classes) or `Views` (which generates no type), or a

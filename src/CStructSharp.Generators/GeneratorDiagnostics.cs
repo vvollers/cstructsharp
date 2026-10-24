@@ -96,7 +96,7 @@ internal static class GeneratorDiagnostics
     /// <summary>CSG014 (error): <c>Shape = Struct</c> cannot be generated for this layout or surface.</summary>
     public static readonly DiagnosticDescriptor ValueShapeUnsupported = new(
         "CSG014",
-        "Shape = Struct is not supported here",
+        "A value-type shape is not supported here",
         "'{0}' sets Shape = Struct, which {1}",
         Category,
         DiagnosticSeverity.Error,

@@ -131,7 +131,7 @@ of a fixed length stored inside the struct, with an indexer, `AsSpan()`, `ToArra
 a writer, `Update` and `Records` need classes, and a layout of fixed size: numbers, enums, bitfields, nested structs, text
 and one-dimensional fixed arrays of numbers. A union, a conditional member, a pointer, a runtime-sized or multidimensional
 array, an array of structs or enums, a custom codec and a terminated string are reported as
-[CSG014](diagnostics.md#csg014---shape--struct-is-not-supported-here) with the member that does not fit. The shape works
+[CSG014](diagnostics.md#csg014---a-value-type-shape-is-not-supported-here) with the member that does not fit. The shape works
 with `RuntimeByteOrder`, bitfields and `@expect` constraints.
 
 ## What the numbers mean

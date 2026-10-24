@@ -52,8 +52,10 @@ internal sealed record LayoutDefaults(
     {
         var invalid = new List<string>();
 
+        // The trimmed text of a CStructSharp build property, or null when it is missing or empty.
         string? Text(string name) => options.TryGetValue("build_property.CStructSharp" + name, out string? value) && !string.IsNullOrWhiteSpace(value) ? value!.Trim() : null;
 
+        // A true/false property; a value that does not parse is recorded and ignored.
         bool? Flag(string name)
         {
             if (Text(name) is not { } text)
@@ -70,6 +72,7 @@ internal sealed record LayoutDefaults(
             return null;
         }
 
+        // A numeric property restricted to the allowed values; anything else is recorded and ignored.
         int? Number(string name, params int[] allowed)
         {
             if (Text(name) is not { } text)
@@ -86,6 +89,7 @@ internal sealed record LayoutDefaults(
             return null;
         }
 
+        // A property that names one of the members, compared without regard to case; anything else is recorded and ignored.
         string? Member(string name, params string[] members)
         {
             if (Text(name) is not { } text)

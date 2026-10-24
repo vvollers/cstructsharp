@@ -1018,6 +1018,11 @@ internal sealed partial class LayoutEmitter
         return this.PrimitiveRead(field, member, memberType);
     }
 
+    /// <summary>The expression that reads one primitive of a field at the cursor, in the field's own byte order unless the layout chooses it at read time.</summary>
+    /// <param name="field">The field.</param>
+    /// <param name="member">The member-name expression for failures.</param>
+    /// <param name="memberType">The member-type expression for failures.</param>
+    /// <returns>The read expression.</returns>
     private string PrimitiveRead(CompiledField field, string member, string memberType)
         => this.PrimitiveRead(field.Codec, field.Type.Symbol.Name, member, memberType, field.CodecName);
 

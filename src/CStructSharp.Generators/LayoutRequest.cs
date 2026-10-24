@@ -53,6 +53,7 @@ internal sealed record LayoutRequest(
             return this;
         }
 
+        // Whether the attribute named this option, so the project's default must not replace it.
         bool Named(string name)
         {
             foreach (string argument in this.ExplicitArguments)

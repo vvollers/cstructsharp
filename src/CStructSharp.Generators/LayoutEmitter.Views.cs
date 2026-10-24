@@ -18,6 +18,8 @@ using static CStructSharp.Generators.Emit;
 /// </summary>
 internal sealed partial class LayoutEmitter
 {
+    /// <summary>Emits the view of every composite, unless views are switched off.</summary>
+    /// <param name="writer">The output.</param>
     private void EmitViews(SourceWriter writer)
     {
         if (!this.request.Views)
