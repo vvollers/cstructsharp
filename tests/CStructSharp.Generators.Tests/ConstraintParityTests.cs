@@ -141,6 +141,7 @@ public class ConstraintParityTests
     public void ViewValidate_ChecksTheConditionsItCanEvaluate()
     {
         MethodInfo validate = assembly.GetType("Demo.ViewProbe")!.GetMethod("Validate")!;
+        // Runs the view's Validate over the bytes and rethrows the failure it raised.
         void Run(byte[] bytes)
         {
             try

@@ -17,6 +17,7 @@ public class PublicApiSurfaceTests
         "CStructSharp.CStructMappedAttribute",
         "CStructSharp.CStructMemberAttribute",
         "CStructSharp.FieldAccessor`1",
+        "CStructSharp.GeneratedShape",
         "CStructSharp.GeneratedSurface",
         "CStructSharp.ICStructFixedMapped`1",
         "CStructSharp.ICStructGenerated`1",
