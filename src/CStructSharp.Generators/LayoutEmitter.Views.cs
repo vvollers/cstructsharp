@@ -205,9 +205,9 @@ internal sealed partial class LayoutEmitter
 
         writer.Line("var cursor = new " + Cursor + "(this.source, this.options, " + layout + (this.HasRuntimeByteOrder ? ", this.littleEndian" : string.Empty) + ");");
         writer.Open("try");
-        foreach ((CompiledField field, CompiledConstraint constraint, string code) in plan.Checks)
+        foreach ((CompiledField field, CompiledConstraint constraint, string code, string? end) in plan.Checks)
         {
-            EmitConstraintBlock(writer, field, constraint, code, SourceWriter.Literal(field.Name), SourceWriter.Literal(field.DisplayTypeSpelling), null);
+            EmitConstraintBlock(writer, field, constraint, code, SourceWriter.Literal(field.Name), SourceWriter.Literal(field.DisplayTypeSpelling), end);
         }
 
         writer.Close();

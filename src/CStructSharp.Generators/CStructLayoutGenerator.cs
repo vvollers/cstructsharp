@@ -12,6 +12,9 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using CStructElement = CStructSharp.Syntax.CStructElement;
+using Struct = CStructSharp.Syntax.Struct;
+using Typedef = CStructSharp.Syntax.Typedef;
 
 /// <summary>
 ///     The incremental source generator behind <c>[CStructLayout]</c>: for every attributed <c>static partial</c>
@@ -124,8 +127,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         var explicitArguments = new List<string>();
         foreach (KeyValuePair<string, TypedConstant> named in attribute.NamedArguments)
         {
-            // CLongWidth = 0 means "the library default", so it names nothing and a project default may apply.
-            if (named.Key != "CLongWidth" || named.Value.Value is int and not 0)
+            if (LayoutDefaults.NamesOption(named))
             {
                 explicitArguments.Add(named.Key);
             }
@@ -386,34 +388,99 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             return "needs a layout that also compiles with the opposite byte order: " + exception.Message;
         }
 
-        var left = new Dictionary<string, CompiledCompositeType>(StringComparer.Ordinal);
-        foreach (CompiledTypeSymbol symbol in compilation.CompiledModel.Composites.Values)
+        // Both compilations parse the same text, so their declarations line up in source order; pairing by walk position
+        // (not by name) keeps anonymous bodies, which all share the empty name, and repeated member names apart.
+        var pairs = new List<(Struct Left, Struct Right)>();
+        ImmutableArray<KeyValuePair<string, CStructElement>> leftDeclarations = compilation.CompiledModel.OrderedDeclarations;
+        ImmutableArray<KeyValuePair<string, CStructElement>> rightDeclarations = alternate.CompiledModel.OrderedDeclarations;
+        if (leftDeclarations.Length != rightDeclarations.Length)
         {
-            if (symbol.Definition is CompiledCompositeType composite && !left.ContainsKey(symbol.Name))
-            {
-                left[symbol.Name] = composite;
-            }
+            return "needs both byte orders to compile to the same structs";
         }
 
-        foreach (CompiledTypeSymbol symbol in alternate.CompiledModel.Composites.Values)
+        for (int index = 0; index < leftDeclarations.Length; index++)
         {
-            if (symbol.Definition is not CompiledCompositeType other2 || !left.TryGetValue(symbol.Name, out CompiledCompositeType? first) || first.Fields.Length != other2.Fields.Length)
+            if (!PairComposites(leftDeclarations[index].Value, rightDeclarations[index].Value, pairs))
             {
                 return "needs both byte orders to compile to the same structs";
             }
+        }
 
-            for (int index = 0; index < first.Fields.Length; index++)
+        foreach ((Struct leftStruct, Struct rightStruct) in pairs)
+        {
+            if (compilation.CompiledModel.Composites.TryGetValue(leftStruct, out CompiledTypeSymbol? leftSymbol) && leftSymbol.Definition is CompiledCompositeType first &&
+                alternate.CompiledModel.Composites.TryGetValue(rightStruct, out CompiledTypeSymbol? rightSymbol) && rightSymbol.Definition is CompiledCompositeType second)
             {
-                CompiledField a = first.Fields[index];
-                CompiledField b = other2.Fields[index];
-                if (a.FixedOffset != b.FixedOffset || a.BitOffset != b.BitOffset || a.BitUnitSize != b.BitUnitSize || a.BitRunBits != b.BitRunBits || a.FixedStorageSize != b.FixedStorageSize || a.Alignment != b.Alignment)
+                if (first.Fields.Length != second.Fields.Length)
                 {
-                    return "needs a layout whose fields sit in the same place in both byte orders, but '" + symbol.Name + "." + a.Name + "' (a bitfield) moves; give the bitfield storage an explicit order or use two layouts";
+                    return "needs both byte orders to compile to the same structs";
                 }
+
+                for (int index = 0; index < first.Fields.Length; index++)
+                {
+                    CompiledField a = first.Fields[index];
+                    CompiledField b = second.Fields[index];
+                    if (a.FixedOffset != b.FixedOffset || a.BitOffset != b.BitOffset || a.BitUnitSize != b.BitUnitSize || a.BitRunBits != b.BitRunBits || a.FixedStorageSize != b.FixedStorageSize || a.Alignment != b.Alignment)
+                    {
+                        return "needs a layout whose fields sit in the same place in both byte orders, but '" + leftSymbol.Name + "." + a.Name + "' (a bitfield) moves; give the bitfield storage an explicit order or use two layouts";
+                    }
+                }
+            }
+            else
+            {
+                return "needs both byte orders to compile to the same structs";
             }
         }
 
         return null;
+    }
+
+    /// <summary>
+    ///     Pairs the struct and union declarations of one top-level declaration in two compilations of the same text,
+    ///     walking both in step through typedef bodies and nested members.
+    /// </summary>
+    /// <param name="left">The declaration of the first compilation.</param>
+    /// <param name="right">The declaration at the same position of the second compilation.</param>
+    /// <param name="pairs">Receives each struct or union with its counterpart, outer ones first.</param>
+    /// <returns>Whether the two declarations have the same shape.</returns>
+    private static bool PairComposites(CStructElement left, CStructElement right, List<(Struct Left, Struct Right)> pairs)
+    {
+        Struct? leftBody = left is Typedef { Struct: { } leftTypedef } ? leftTypedef : left as Struct;
+        Struct? rightBody = right is Typedef { Struct: { } rightTypedef } ? rightTypedef : right as Struct;
+        if (leftBody is null || rightBody is null)
+        {
+            // Enums and aliases of a plain type hold no composite; they only need to be the same kind of declaration.
+            return leftBody is null && rightBody is null;
+        }
+
+        return PairBodies(leftBody, rightBody, pairs);
+    }
+
+    /// <summary>Pairs a struct or union with its counterpart and then their nested composite members, in declaration order.</summary>
+    /// <param name="left">The body in the first compilation.</param>
+    /// <param name="right">The body in the second compilation.</param>
+    /// <param name="pairs">Receives each pair, this one first.</param>
+    /// <returns>Whether both bodies have the same members.</returns>
+    private static bool PairBodies(Struct left, Struct right, List<(Struct Left, Struct Right)> pairs)
+    {
+        if (left.Fields.Count != right.Fields.Count)
+        {
+            return false;
+        }
+
+        pairs.Add((left, right));
+        for (int index = 0; index < left.Fields.Count; index++)
+        {
+            if (left.Fields[index] is Struct leftNested)
+            {
+                if (right.Fields[index] is not Struct rightNested || !PairBodies(leftNested, rightNested, pairs))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     /// <summary>Whether the consuming project's C# version is 12 or later, which the generated code needs.</summary>

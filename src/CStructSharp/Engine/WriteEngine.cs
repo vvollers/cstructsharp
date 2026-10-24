@@ -279,7 +279,7 @@ internal static partial class WriteEngine
     private static bool TryWriteStaticPlan<TDestination>(ref TDestination destination, ref WriteEngineState state, CompiledCompositeType composite, object data, bool promoted)
         where TDestination : struct, IWriteDestination
     {
-        if (state.UpdateSemantics || state.NoFastPaths || composite.StaticPlan is not { SupportsWrite: true } plan || plan.Size > BlockSize.Bytes ||
+        if (state.UpdateSemantics || state.NoFastPaths || composite.LayoutPlan is not { SupportsWrite: true } plan || plan.Size > BlockSize.Bytes ||
             state.StructureDepth + plan.NestingDepth - (promoted ? 1 : 0) > state.MaxNestingDepth || plan.MaximumArrayCount > state.MaxArrayElements)
         {
             return false;

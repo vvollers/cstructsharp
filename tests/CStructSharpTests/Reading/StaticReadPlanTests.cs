@@ -95,6 +95,111 @@ public class StaticReadPlanTests
     }
 
     /// <summary>
+    ///     A condition on a member of an anonymous (promoted) struct, or of a nested struct, is checked by every runtime read:
+    ///     the layout plan decodes such a struct for a write but <see cref="CompiledCompositeType.StaticPlan"/> hides it from reads.
+    /// </summary>
+    /// <param name="definition">A layout whose only constraint sits below the root.</param>
+    [TestMethod]
+    [DataRow("struct root { struct { uint8 v @expect(v < 4); }; uint8 b; };")]
+    [DataRow("struct root { struct { struct { uint8 v @expect(v < 4); }; }; uint8 b; };")]
+    [DataRow("struct inner { uint8 v @expect(v < 4); }; struct root { inner i; uint8 b; };")]
+    [DataRow("struct inner { uint8 v @expect(v < 4); }; struct root { inner i[1]; uint8 b; };")]
+    public void ConditionBelowTheRoot_IsCheckedByEveryRuntimeRead_AndKeepsTheWritePlan(string definition)
+    {
+        var layout = new CStruct(definition);
+        var composite = (CompiledCompositeType)layout.CompiledModel.Symbols["root"].Symbol.Definition!;
+        Assert.IsNull(composite.StaticPlan, "a read must not use a plan that checks nothing");
+        Assert.IsTrue(composite.LayoutPlan is { HasConstraints: true, SupportsWrite: true }, "a write keeps the fixed plan");
+
+        byte[] good = [1, 9];
+        byte[] bad = [200, 9];
+        Assert.IsNotNull(layout.Parse(good, "root"));
+        Assert.AreEqual("v < 4", Assert.Throws<CStructConstraintException>(() => layout.Parse(bad, "root")).Constraint);
+        Assert.AreEqual("v < 4", Assert.Throws<CStructConstraintException>(() => layout.Parse(bad, "root", options: new ReadOptions { ExecutionPath = ExecutionPath.NoFastPaths })).Constraint);
+        Assert.AreEqual("v < 4", Assert.Throws<CStructConstraintException>(() => layout.ReadValue<StructValue>(bad, "root")).Constraint);
+        Assert.AreEqual("v < 4", Assert.Throws<CStructConstraintException>(() => layout.Parse(new MemoryStream(bad), "root")).Constraint);
+    }
+
+    /// <summary>A struct with its own conditions is written through the fixed plan, byte for byte as the member-by-member writer does, and conditions are not checked on a write.</summary>
+    [TestMethod]
+    public void ConstrainedStruct_WritesThroughThePlan_WithoutCheckingConditions()
+    {
+        var layout = new CStruct("struct root { uint16 a @expect(a != 0); uint8 b @supports(b < 4); };");
+        var composite = (CompiledCompositeType)layout.CompiledModel.Symbols["root"].Symbol.Definition!;
+        Assert.IsNull(composite.StaticPlan);
+        Assert.IsTrue(composite.LayoutPlan is { HasConstraints: true, SupportsWrite: true });
+
+        var value = new Dictionary<string, object?> { ["a"] = (ushort)0, ["b"] = (byte)200 };
+        byte[] expected = [0, 0, 200];
+        CollectionAssert.AreEqual(expected, layout.Serialize("root", value));
+    }
+
+    /// <summary>
+    ///     A fixed struct whose own fields carry conditions reads through the plan with the conditions checked right after
+    ///     their field: for every byte changed and every truncation, the outcome (value, failure, member, offset, final stream
+    ///     position) is the member-by-member reader's.
+    /// </summary>
+    /// <param name="definition">A layout whose root has conditions on its own fields.</param>
+    /// <param name="goodHex">Bytes that satisfy every condition.</param>
+    [TestMethod]
+    [DataRow("struct root { uint32 magic @expect(magic == 0xCAFEBABE); uint16 version @supports(version <= 2); uint16 flags; uint32 length @expect(length < 4096); uint8 kind @expect(kind != 0); uint8 tag[3]; };", "BE BA FE CA 02 00 00 00 10 00 00 00 01 41 42 43")]
+    [DataRow("struct root { uint8 a; uint8 b @expect(b > a) @supports(b < 100); uint16 c @expect(c == a + b); };", "01 05 06 00")]
+    [DataRow("enum k : uint8 { x = 1, y = 2 }; struct root { k e @expect(e != 0); char name[4]; uint8 z @expect(z != 1); };", "01 61 62 63 64 02")]
+    [DataRow("struct root { uint8 d; uint8 q @expect(100 / d > 1); uint8 r[3]; };", "04 00 01 02 03")]
+    [DataRow("struct root { uint64 wide @expect(wide != 0) @expect(wide < 0x100000000); int16 signed @expect(signed >= -5); };", "05 00 00 00 00 00 00 00 FB FF")]
+    public void FixedRootWithConditions_ReadsThroughThePlanLikeTheMemberByMemberReader(string definition, string goodHex)
+    {
+        var layout = new CStruct(definition);
+        var composite = (CompiledCompositeType)layout.CompiledModel.Symbols["root"].Symbol.Definition!;
+        Assert.IsNull(composite.StaticPlan);
+        Assert.IsTrue(composite.LayoutPlan is { HasConstraints: true, ConstraintsAreDirect: true });
+
+        byte[] good = Convert.FromHexString(goodHex.Replace(" ", string.Empty, StringComparison.Ordinal));
+        AssertSameOutcome(layout, good, null, "good");
+        for (int length = 0; length < good.Length; length++)
+        {
+            AssertSameOutcome(layout, good[..length], null, "truncated to " + length);
+        }
+
+        AssertSameOutcome(layout, [.. good, 0xEE, 0xEE], null, "trailing bytes");
+        foreach (ReadOptions options in new[]
+        {
+            new ReadOptions { MaxArrayElements = 2 },
+            new ReadOptions { MaxTotalBytesRead = 3 },
+            new ReadOptions { MaxNestingDepth = 1 },
+            new ReadOptions { TrimFixedText = true },
+        })
+        {
+            AssertSameOutcome(layout, good, options, "limits " + options.MaxArrayElements + "/" + options.MaxTotalBytesRead + "/" + options.MaxNestingDepth);
+        }
+
+        for (int index = 0; index < good.Length; index++)
+        {
+            foreach (byte changed in new byte[] { 0, 1, 2, 0x7F, 0x80, 0xFF })
+            {
+                byte[] bytes = (byte[])good.Clone();
+                bytes[index] = changed;
+                AssertSameOutcome(layout, bytes, null, "byte " + index + " = " + changed);
+            }
+        }
+    }
+
+    /// <summary>A promoted or nested struct with conditions keeps the whole struct on the member-by-member reader; a nested struct array of constrained elements too.</summary>
+    [TestMethod]
+    public void ForeignConditions_KeepTheStructOffTheCheckedPlan()
+    {
+        foreach (string definition in new[]
+        {
+            "struct root { struct { uint8 v @expect(v < 4); }; uint8 b @expect(b != 0); };",
+            "struct inner { uint8 v @expect(v < 4); }; struct root { inner i; uint8 b @expect(b != 0); };",
+        })
+        {
+            var composite = (CompiledCompositeType)new CStruct(definition).CompiledModel.Symbols["root"].Symbol.Definition!;
+            Assert.IsTrue(composite.LayoutPlan is { HasConstraints: true, ConstraintsAreDirect: false }, definition);
+        }
+    }
+
+    /// <summary>
     ///     A struct's plan reuses the cached plan of each nested struct, and a chain of nested structs has a plan down to
     ///     nesting level 64 (the outermost struct is level 0) and none beyond it.
     /// </summary>

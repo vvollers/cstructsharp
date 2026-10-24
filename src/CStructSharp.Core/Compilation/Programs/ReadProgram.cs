@@ -54,6 +54,7 @@ internal sealed class ReadProgram
         this.PointerTargets = parts.PointerTargets;
         this.DefersPointers = parts.DefersPointers;
         (this.ScalarRunLengths, this.ScalarRunBytes) = FindScalarRuns(parts.Steps, parts.Codecs);
+        (this.ConstraintSteps, this.CoversConstraints) = FindConstraintSteps(parts.Steps, parts.Fields);
     }
 
     /// <summary>Gets what the program reads.</summary>
@@ -155,6 +156,16 @@ internal sealed class ReadProgram
     /// </summary>
     internal int[] ScalarRunLengths { get; }
 
+    /// <summary>
+    ///     Gets, indexed like <see cref="Fields"/>, the <see cref="ReadOpCode.CheckConstraint"/> steps that follow each member
+    ///     in order (<see langword="null"/> for a member without conditions), so a read that decodes the members another way
+    ///     can still run the same checks.
+    /// </summary>
+    internal ReadStep[]?[] ConstraintSteps { get; }
+
+    /// <summary>Gets a value indicating whether the program holds a check step for every condition of every member it reads, so <see cref="ConstraintSteps"/> is complete.</summary>
+    internal bool CoversConstraints { get; }
+
     /// <summary>Gets, per step, the total size in bytes of the scalar run that starts at it (<see cref="ScalarRunLengths"/>).</summary>
     internal int[] ScalarRunBytes { get; }
 
@@ -167,6 +178,41 @@ internal sealed class ReadProgram
     /// <param name="field">The member's index.</param>
     /// <returns>The slot, or -1 when the member's value is dropped (unnamed padding, a promoted member, a <c>#define</c>).</returns>
     public int GetShapeSlot(int field) => this.ShapeSlots[field];
+
+    /// <summary>Groups the condition checks of a program by member and tests that none is missing.</summary>
+    /// <param name="steps">The program's steps.</param>
+    /// <param name="fields">The program's members.</param>
+    /// <returns>The check steps per member, and whether every declared condition has one.</returns>
+    private static (ReadStep[]?[] Steps, bool Complete) FindConstraintSteps(ReadStep[] steps, CompiledField[] fields)
+    {
+        var grouped = new ReadStep[]?[fields.Length];
+        foreach (ReadStep step in steps)
+        {
+            if (step.Op == ReadOpCode.CheckConstraint)
+            {
+                ReadStep[]? existing = grouped[step.Field];
+                if (existing is null)
+                {
+                    grouped[step.Field] = [step];
+                }
+                else
+                {
+                    System.Array.Resize(ref existing, existing.Length + 1);
+                    existing[^1] = step;
+                    grouped[step.Field] = existing;
+                }
+            }
+        }
+
+        bool complete = true;
+        for (int index = 0; index < fields.Length; index++)
+        {
+            int declared = fields[index].Constraints.IsDefaultOrEmpty ? 0 : fields[index].Constraints.Length;
+            complete &= declared == (grouped[index]?.Length ?? 0);
+        }
+
+        return (grouped, complete);
+    }
 
     /// <summary>Measures the scalar runs of a step array, from the last step backwards so each run extends the next one.</summary>
     /// <param name="steps">The steps.</param>

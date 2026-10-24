@@ -69,13 +69,19 @@ the same failure for the same bytes.
   generated `Parse` and `TryParse` check every constraint of every struct they read, including the elements of an array
   of structs, a pointer's target and the fields of a selected `if`/`switch` arm. A field that is never read (an unselected
   arm) is not checked, and a selected read of one field (`ReadValue<int>(bytes, "root.field")`) reads only that field.
-- **Fast paths.** The runtime reads a struct with a constraint member by member, so no fast path can skip the check. The
-  generated reader keeps its fixed-offset reader for such a struct (when everything else about it is fixed) and checks the
-  conditions in field order right after decoding, with the same failure and offset; a struct that contains a struct with
-  a constraint is read member by member. A layout without constraints pays nothing.
+- **Fast paths.** The runtime decodes a fixed struct whose own fields carry constraints through its fixed-offset plan and
+  evaluates each field's conditions right after that field, in field order, with the same failure and offset as the
+  member-by-member reader. A struct that contains a struct with a constraint, or whose anonymous struct or union member
+  has one, is read member by member, and so is a read whose limits or input the plan does not cover. The generated reader
+  keeps its fixed-offset reader for such a struct (when everything else about it is fixed) and checks the conditions in
+  field order right after decoding, with the same failure and offset; a struct that contains a struct with a constraint,
+  or whose anonymous struct or union member has one, is read member by member there too. A layout without constraints
+  pays nothing, and a write of a struct with constraints keeps its fixed-offset writer because it checks nothing.
 - **Generated views.** A view decodes lazily and never checks on its own. `Validate()` checks the conditions of the
-  view's struct that the view can evaluate (it reads the members they name through the view's properties) and throws the
-  reader's failure; a condition that names a member the view does not expose is left to `Parse`.
+  view's struct that the view can evaluate (it reads the members they name through the view's properties), including those
+  of the members of an anonymous struct or union and of the members after it, and throws the reader's failure with the
+  reader's `Offset`, the end of the failing field; a condition that names a member the view does not expose is left to
+  `Parse`.
 - **Writes.** A constraint describes what a read accepts, so a write does not check it: `Serialize` and `Update` write
   any value the field's type holds. Check the value before writing, or read it back.
 

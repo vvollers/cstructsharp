@@ -2,6 +2,7 @@ namespace CStructSharp.Generators;
 
 using System;
 using System.Collections.Generic;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 
 /// <summary>
@@ -44,6 +45,15 @@ internal sealed record LayoutDefaults(
 {
     /// <summary>No project defaults: every option keeps the library's value.</summary>
     public static LayoutDefaults None { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, EquatableArray<string>.Empty);
+
+    /// <summary>
+    ///     Whether an attribute's named argument names its option, so that a project default must not replace it.
+    ///     <c>CLongWidth = 0</c> means "the library default", so it names nothing.
+    /// </summary>
+    /// <param name="argument">The named argument of a <c>[CStructLayout]</c> attribute.</param>
+    /// <returns>Whether the argument is an explicit choice.</returns>
+    public static bool NamesOption(KeyValuePair<string, TypedConstant> argument)
+        => argument.Key != "CLongWidth" || argument.Value.Value is int and not 0;
 
     /// <summary>Reads the defaults from the build's global analyzer options.</summary>
     /// <param name="options">The options MSBuild hands to the compiler (the <c>CompilerVisibleProperty</c> values).</param>

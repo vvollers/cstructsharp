@@ -50,4 +50,10 @@ internal sealed class StaticReadOperation
 
     /// <summary>Gets the fixed element count of an array step, or 0 for a scalar step.</summary>
     public int Count { get; }
+
+    /// <summary>
+    ///     Gets the index of the field among the plan's root composite's own fields (the index the root's read program
+    ///     uses), or -1 for a step of a flattened promoted member or a nested plan. Set once while the plan is built.
+    /// </summary>
+    public int MemberIndex { get; internal set; } = -1;
 }

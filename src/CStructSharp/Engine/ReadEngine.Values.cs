@@ -521,7 +521,7 @@ internal static partial class ReadEngine
             {
                 cursor.ThrowIfCancellationRequested();
                 var value = new StructValue(composite.Shape);
-                RunStaticPlan(ref cursor, ref state, plan, bytes.Slice(index * plan.Size, plan.Size), value);
+                RunStaticPlan(ref cursor, ref state, plan, bytes.Slice(index * plan.Size, plan.Size), value, default(NoPlanChecks));
                 elements.Add(value);
             }
 
@@ -664,14 +664,17 @@ internal static partial class ReadEngine
     ///     captures and qualified publications a later expression may read.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type, which carries the cancellation token.</typeparam>
+    /// <typeparam name="TChecks">The checks run after each operation.</typeparam>
     /// <param name="cursor">The operation's cursor; the plan's bytes are already consumed.</param>
     /// <param name="state">The operation's state.</param>
     /// <param name="plan">The composite's plan.</param>
     /// <param name="bytes">Exactly the composite's bytes.</param>
     /// <param name="destination">The composite's new value.</param>
+    /// <param name="checks">What runs after each operation: <see cref="NoPlanChecks"/> (nothing, compiled away) or the root's conditions.</param>
     /// <param name="completeSlots">The nested value's owned slots, or null for an incrementally constructed outer value; every slot is filled before the result escapes.</param>
-    private static void RunStaticPlan<TCursor>(ref TCursor cursor, ref ReadEngineState state, StaticReadPlan plan, ReadOnlySpan<byte> bytes, StructValue destination, object?[]? completeSlots = null)
+    private static void RunStaticPlan<TCursor, TChecks>(ref TCursor cursor, ref ReadEngineState state, StaticReadPlan plan, ReadOnlySpan<byte> bytes, StructValue destination, TChecks checks, object?[]? completeSlots = null)
         where TCursor : struct, IReadCursor
+        where TChecks : struct, IPlanChecks
     {
         state.EnterStructure(ref cursor);
         try
@@ -733,7 +736,7 @@ internal static partial class ReadEngine
                             state.QualifiedPrefix = outer is null ? field.QualifiedPrefix : outer + field.QualifiedPrefix;
                         }
 
-                        RunStaticPlan(ref cursor, ref state, operation.NestedPlan!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), nested, slots);
+                        RunStaticPlan(ref cursor, ref state, operation.NestedPlan!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), nested, default(NoPlanChecks), slots);
                         state.QualifiedPrefix = outer;
                         break;
                     }
@@ -751,12 +754,14 @@ internal static partial class ReadEngine
                             object?[] slots = shape.Count == 0 ? Array.Empty<object?>() : new object?[shape.Count];
                             var nested = new StructValue(shape, slots);
                             elements.Add(nested);
-                            RunStaticPlan(ref cursor, ref state, nestedPlan, bytes.Slice(offset, nestedPlan.Size), nested, slots);
+                            RunStaticPlan(ref cursor, ref state, nestedPlan, bytes.Slice(offset, nestedPlan.Size), nested, default(NoPlanChecks), slots);
                         }
 
                         break;
                     }
                 }
+
+                checks.After(ref cursor, ref state, operation);
             }
         }
         finally

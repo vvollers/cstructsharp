@@ -69,7 +69,7 @@ internal sealed partial class LayoutEmitter
     private static readonly string[] ReservedMembers =
     [
         "Layout", "RootName", "Definition", "Parse", "ParseAsync", "TryParse", "Serialize", "Write", "WriteAsync", "ParseWithDebug", "ResolveAddress", "GetArrayLength", "UpdatePath",
-        "InlineArrays", "Sizes", "Offsets", "Update", "CreateCodecs", "CodecInstances", "LayoutInstance", "CreateLayout", "ToStructValue", "ToMapped", "SerializeMapped", "ParseMapped", "ReadValue", "TryReadValue", "Records", "RecordsAsync",
+        "Sizes", "Offsets", "Update", "CreateCodecs", "CodecInstances", "LayoutInstance", "CreateLayout", "ToStructValue", "ToMapped", "SerializeMapped", "ParseMapped", "ReadValue", "TryReadValue", "Records", "RecordsAsync",
     ];
 
     private static string GeneratorVersion => typeof(LayoutEmitter).Assembly.GetName().Version?.ToString() ?? "0.0.0.0";
@@ -87,8 +87,15 @@ internal sealed partial class LayoutEmitter
             taken[reserved] = "the generated " + reserved + " member";
         }
 
+        // The inline-array container exists only in a value-type class, so only such a class keeps the name for itself.
+        bool reservesInlineArrays = this.UsesValueTypes;
+        if (reservesInlineArrays)
+        {
+            taken[InlineArraysClass] = "the generated " + InlineArraysClass + " member";
+        }
+
         // A C# type cannot have a member with its own name: a class named like a generated member cannot be generated into.
-        if (System.Array.IndexOf(ReservedMembers, this.request.ClassName) >= 0)
+        if (System.Array.IndexOf(ReservedMembers, this.request.ClassName) >= 0 || (reservesInlineArrays && this.request.ClassName == InlineArraysClass))
         {
             this.Error(GeneratorDiagnostics.NameCollision, "The class '" + this.request.ClassName + "' is named like the generated " + this.request.ClassName + " member, which C# does not allow; rename the class.");
         }

@@ -50,8 +50,16 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
     {
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.EnableConcurrentExecution();
-        context.RegisterOperationAction(this.AnalyzeInvocation, OperationKind.Invocation);
-        context.RegisterOperationAction(AnalyzeConversion, OperationKind.Conversion);
+
+        // The project defaults are the same for every invocation of a compilation, so they are read once per compilation.
+        context.RegisterCompilationStartAction(start =>
+        {
+            LayoutDefaults defaults = LayoutDefaults.From(start.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
+
+            // Analyzes one invocation with the compilation's defaults.
+            start.RegisterOperationAction(operation => this.AnalyzeInvocation(operation, defaults), OperationKind.Invocation);
+            start.RegisterOperationAction(AnalyzeConversion, OperationKind.Conversion);
+        });
     }
 
     /// <summary>
@@ -59,7 +67,8 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
     ///     when that layout is visible.
     /// </summary>
     /// <param name="context">The invocation being analyzed.</param>
-    private void AnalyzeInvocation(OperationAnalysisContext context)
+    /// <param name="defaults">The project's defaults for the options a <c>[CStructLayout]</c> attribute does not name.</param>
+    private void AnalyzeInvocation(OperationAnalysisContext context, LayoutDefaults defaults)
     {
         var invocation = (IInvocationOperation)context.Operation;
         IMethodSymbol method = invocation.TargetMethod;
@@ -76,7 +85,7 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        LayoutCompilation? layout = invocation.Instance is { } instance ? this.ResolveLayout(instance, LayoutDefaults.From(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions)) : null;
+        LayoutCompilation? layout = invocation.Instance is { } instance ? this.ResolveLayout(instance, defaults) : null;
         if (layout is null)
         {
             return;
@@ -316,7 +325,7 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
             if (attribute.AttributeClass?.ToDisplayString() == "CStructSharp.CStructLayoutAttribute")
             {
                 string? text = attribute.ConstructorArguments.Length == 1 ? attribute.ConstructorArguments[0].Value as string : null;
-                var named = new HashSet<string>(attribute.NamedArguments.Where(argument => argument.Key != "CLongWidth" || argument.Value.Value is int and not 0).Select(argument => argument.Key), StringComparer.Ordinal);
+                var named = new HashSet<string>(attribute.NamedArguments.Where(LayoutDefaults.NamesOption).Select(argument => argument.Key), StringComparer.Ordinal);
                 return (text, LayoutSettings.FromAttribute(attribute).WithDefaults(defaults, named.Contains));
             }
         }

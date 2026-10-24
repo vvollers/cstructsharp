@@ -808,6 +808,11 @@ internal sealed partial class LayoutEmitter
         writer.Close();
     }
 
+    /// <summary>A call in emitted expression code that can throw: checked arithmetic, a shift, or a checked conversion.</summary>
+    private static readonly System.Text.RegularExpressions.Regex FallibleCall = new(
+        "Expressions\\.(Add|Subtract|Multiply|Divide|Modulo|Negate|ShiftLeft|ShiftRight|FromUInt128|OutOfRangeConstant|OutOfRangeLiteral)\\(",
+        System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
     /// <summary>
     ///     Whether evaluating a condition cannot raise an expression failure: its tree uses only comparisons, logical and
     ///     bitwise operators and <c>?:</c> (no arithmetic that can overflow, divide by zero or shift out of range) and the
@@ -819,6 +824,14 @@ internal sealed partial class LayoutEmitter
     private static bool CannotFail(Syntax.Expr expression, string code)
     {
         if (code.Contains("Expressions.Undefined(") || code.Contains("Expressions.NotAnInteger(") || System.Text.RegularExpressions.Regex.IsMatch(code, "Expressions\\.Variable\\(variables, \"[^\"]*\"\\)"))
+        {
+            return false;
+        }
+
+        // An identifier is only a name in the tree; the emitted code shows what it stands for. A dependent #define expands to
+        // its own expression (which can divide by zero or overflow) and a 128-bit unsigned member or an out-of-range
+        // constant converts with a check, so any such call keeps the handler.
+        if (FallibleCall.IsMatch(code))
         {
             return false;
         }

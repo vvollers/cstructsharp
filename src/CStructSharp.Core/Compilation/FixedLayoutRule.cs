@@ -19,8 +19,8 @@ internal static class FixedLayoutRule
     /// <param name="composite">The compiled composite.</param>
     /// <param name="allowConstraints">
     ///     Whether a composite with <c>@expect</c> or <c>@supports</c> conditions still qualifies: the generated fixed reader
-    ///     decodes it and then checks the conditions in a separate pass, but the runtime's static plan and the other fast
-    ///     paths cannot, and so leave it to the member-by-member reader.
+    ///     decodes it and then checks the conditions in a separate pass, and the runtime's layout plan keeps it for writes
+    ///     (flagging it so no read uses it); the other fast paths cannot check conditions and leave it to the member-by-member reader.
     /// </param>
     /// <returns>Whether the composite itself qualifies; each member still needs <see cref="IsFixedMember"/>.</returns>
     public static bool IsFixedComposite(CompiledCompositeType composite, bool allowConstraints = false)

@@ -17,8 +17,11 @@ using System.Threading;
 ///         <see cref="ReadOptions"/>.
 ///     </para>
 ///     <para>
-///         Every limit means what it means on <see cref="ReadOptions"/>, and an unusable value (a negative limit, a
-///         nesting depth below one) fails the read before any payload is read, as it does there.
+///         Every limit means what it means on <see cref="ReadOptions"/>, and a generated reader enforces it exactly as it
+///         enforces the same limit on <see cref="ReadOptions"/>: a read that reaches an unusable value (a negative limit, a
+///         nesting depth below one) fails with <see cref="Diagnostics.CStructReadLimitException"/>, while a read that never
+///         meets that limit (a negative array limit and a record without arrays) is not affected. Only the runtime entry
+///         points (<c>CStruct.Parse</c> and the like) reject such a value up front with <see cref="System.ArgumentOutOfRangeException"/>.
 ///     </para>
 ///     <para>
 ///         A call that passes the <see langword="default"/> literal (<c>Parse(bytes, default)</c>) is ambiguous between the

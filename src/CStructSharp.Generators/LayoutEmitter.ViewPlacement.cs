@@ -62,8 +62,8 @@ internal sealed partial class LayoutEmitter
         /// <summary>Gets the count method name and the translated count expression of every runtime-sized array the view can place.</summary>
         public Dictionary<CompiledField, (string Method, string Code, bool IsLiteral)> Counts { get; } = new(ReferenceEqualityComparer.Instance);
 
-        /// <summary>Gets the <c>@expect</c> and <c>@supports</c> checks <c>Validate()</c> runs: the field, the condition and its C# expression over the view's members.</summary>
-        public List<(CompiledField Field, CompiledConstraint Constraint, string Code)> Checks { get; } = new();
+        /// <summary>Gets the <c>@expect</c> and <c>@supports</c> checks <c>Validate()</c> runs: the field, the condition, its C# expression over the view's members and the <see cref="int"/> expression of the offset just after the field (<see langword="null"/> when its size is not known).</summary>
+        public List<(CompiledField Field, CompiledConstraint Constraint, string Code, string? End)> Checks { get; } = new();
 
         /// <summary>Gets the offset methods to emit: the method name and the C# expression of its result.</summary>
         public List<(string Name, string Expression)> OffsetMethods { get; } = new();
@@ -158,7 +158,27 @@ internal sealed partial class LayoutEmitter
         string? end = "0L";
         foreach (CompiledField field in composite.Composite.Fields)
         {
-            if (end is null || !PlacesInSequence(field))
+            if (end is null)
+            {
+                break;
+            }
+
+            if (field.IsUnnamed && field.IsInlineComposite)
+            {
+                // An anonymous struct or union with a build-time offset and size is stepped over, so the members after it
+                // keep their checks; its own members were placed above and are published and checked in declaration order.
+                if (field.ConditionalBranches.Length > 0 || field.FixedOffset is not { } innerOffset || field.FixedStorageSize is not { } innerSize ||
+                    field.Type.Symbol.Definition is not CompiledCompositeType inline)
+                {
+                    break;
+                }
+
+                this.PublishAnonymousMembers(plan, scope, byField, inline, 0);
+                end = Int(innerOffset + innerSize) + "L";
+                continue;
+            }
+
+            if (!PlacesInSequence(field))
             {
                 break;
             }
@@ -182,34 +202,80 @@ internal sealed partial class LayoutEmitter
             }
 
             end = this.EndOf(plan, scope, field, member, start);
-            if (member is not null && plan.Slots.ContainsKey(field) && this.ViewPublishes(member))
-            {
-                // A nested struct's own members are published only where its view has a property for them.
-                scope.Publish(member, "this." + member.PropertyName, this.NestedViewExposes);
-            }
-
-            // A condition can name the field itself and the members before it, which are published by now.
-            if (member is not null && plan.Slots.ContainsKey(field) && !field.Constraints.IsDefaultOrEmpty)
-            {
-                foreach (CompiledConstraint constraint in field.Constraints)
-                {
-                    string code = scope.Expressions.Emit(constraint.Expression);
-                    if (UnresolvableInView.IsMatch(code))
-                    {
-                        continue;
-                    }
-
-                    if (VariableUse.IsMatch(code))
-                    {
-                        plan.UsesVariables = true;
-                    }
-
-                    plan.Checks.Add((field, constraint, code));
-                }
-            }
+            this.PublishAndCheck(plan, scope, field, member);
         }
 
         return plan;
+    }
+
+    /// <summary>Publishes a placed member to the expression scope and records its <c>@expect</c> and <c>@supports</c> checks for <c>Validate()</c>.</summary>
+    /// <param name="plan">The plan, which gains the checks.</param>
+    /// <param name="scope">The expression scope of the members before the field.</param>
+    /// <param name="field">The field, in declaration order.</param>
+    /// <param name="member">The field's generated member, or <see langword="null"/> for padding.</param>
+    private void PublishAndCheck(ViewPlan plan, ReaderScope scope, CompiledField field, GeneratedMember? member)
+    {
+        if (member is null || !plan.Slots.ContainsKey(field))
+        {
+            return;
+        }
+
+        if (this.ViewPublishes(member))
+        {
+            // A nested struct's own members are published only where its view has a property for them.
+            scope.Publish(member, "this." + member.PropertyName, this.NestedViewExposes);
+        }
+
+        // A condition can name the field itself and the members before it, which are published by now.
+        if (field.Constraints.IsDefaultOrEmpty)
+        {
+            return;
+        }
+
+        // The reader reports the end of the failing field, so Validate() moves its cursor there before it throws.
+        ViewSlot slot = plan.Slots[field];
+        int? size = field.BitSize > 0 ? field.BitUnitSize ?? field.BitStorageSize ?? field.Codec.Size : field.FixedStorageSize;
+        string? end = size is not { } bytes ? null : slot.Constant is { } constant ? Int(constant + bytes) : "(int)(" + slot.At + " + " + Int(bytes) + "L)";
+        foreach (CompiledConstraint constraint in field.Constraints)
+        {
+            string code = scope.Expressions.Emit(constraint.Expression);
+            if (UnresolvableInView.IsMatch(code))
+            {
+                continue;
+            }
+
+            if (VariableUse.IsMatch(code))
+            {
+                plan.UsesVariables = true;
+            }
+
+            plan.Checks.Add((field, constraint, code, end));
+        }
+    }
+
+    /// <summary>Publishes and checks the members an anonymous struct or union promotes into its parent, in declaration order, descending into anonymous members of its own.</summary>
+    /// <param name="plan">The plan, which gains the checks.</param>
+    /// <param name="scope">The expression scope of the members before the anonymous member.</param>
+    /// <param name="byField">The generated member of each field of the view's composite, promoted ones included.</param>
+    /// <param name="holder">The anonymous composite.</param>
+    /// <param name="depth">The number of anonymous levels entered, which stops a cyclic definition.</param>
+    private void PublishAnonymousMembers(ViewPlan plan, ReaderScope scope, Dictionary<CompiledField, GeneratedMember> byField, CompiledCompositeType holder, int depth)
+    {
+        foreach (CompiledField inner in holder.Fields)
+        {
+            if (inner.IsUnnamed && inner.IsInlineComposite)
+            {
+                if (depth < FixedLayoutRule.MaximumNestingDepth && inner.Type.Symbol.Definition is CompiledCompositeType deeper)
+                {
+                    this.PublishAnonymousMembers(plan, scope, byField, deeper, depth + 1);
+                }
+
+                continue;
+            }
+
+            byField.TryGetValue(inner, out GeneratedMember? member);
+            this.PublishAndCheck(plan, scope, inner, member);
+        }
     }
 
     /// <summary>Whether the sequential placement can step over this field: a plain unconditional member that is not a bitfield, an anonymous composite, or an explicitly aligned one.</summary>

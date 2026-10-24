@@ -8,6 +8,13 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ## Unreleased
 
+### Breaking changes
+
+- **Breaking (source):** every generated `Parse`, `Parse<Name>` and `TryParse` over a span has a new overload that takes
+  `in ReadLimits`, so a call that passes the `default` literal as the options argument (`Parse(bytes, default)`) no longer
+  compiles (CS0121: `default` converts to both `ReadOptions?` and `ReadLimits`). Migration: pass `null` (the defaults),
+  `new ReadLimits()`, or name the argument (`Parse(bytes, options: default)`).
+
 ### Added
 
 - **Project-wide defaults for the generator.** The build properties `CStructSharpSurface`, `CStructSharpViews`,
@@ -55,8 +62,10 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   evaluates to zero. A value outside `@expect` is malformed data and one outside `@supports` is unsupported data; the
   new `CStructConstraintException` (a `CStructReadException` with the code `ReadFailed`) carries `Kind`
   (`ConstraintKind.Malformed` or `Unsupported`), the `Constraint` text, the field and the offset. The runtime layout,
-  every generated reader and a generated view's new `Validate()` report the same failure; a struct with a constraint
-  is read member by member, so no fast path can skip it, and writes ignore constraints. A constraint on a union member,
+  every generated reader and a generated view's new `Validate()` report the same failure. A fixed struct with
+  constraints on its own fields is decoded by its fixed-offset plan with each condition checked right after its field,
+  so no fast path can skip one (a constraint in a nested or anonymous member keeps the struct on the member-by-member
+  reader), and writes ignore constraints. A constraint on a union member,
   padding or an unnamed bitfield is a layout error. A generated reader keeps its fixed-offset reader for a struct with
   constraints and checks them in field order after decoding, and a condition that cannot fail (comparisons, logical
   and bitwise operators) is evaluated without an exception handler.
