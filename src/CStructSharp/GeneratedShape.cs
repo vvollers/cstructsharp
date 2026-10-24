@@ -20,4 +20,13 @@ public enum GeneratedShape
     ///     anything else is reported as CSG014.
     /// </summary>
     Struct = 1,
+
+    /// <summary>
+    ///     A <see cref="Struct"/> when the layout and surface qualify for one, otherwise a <see cref="Class"/>, decided for the
+    ///     whole layout class: nothing is reported when it does not qualify. It lets a project set one shape for every layout
+    ///     (<c>CStructSharpShape</c>) and take the value type where there is one. The members of both shapes that consumer code can
+    ///     share are the scalars, text, nested values and, for a fixed array of numbers, the index, <c>Length</c> and
+    ///     <c>AsSpan()</c>; code that needs more (the array type itself, the <c>default</c> of a missing value) names its shape.
+    /// </summary>
+    Auto = 2,
 }

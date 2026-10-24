@@ -17,7 +17,8 @@ using Microsoft.CodeAnalysis.Diagnostics;
 /// <param name="Views">The default for <c>Views</c>, or <see langword="null"/>.</param>
 /// <param name="Enumerators">The default for <c>Enumerators</c>, or <see langword="null"/>.</param>
 /// <param name="RuntimeByteOrder">The default for <c>RuntimeByteOrder</c>, or <see langword="null"/>.</param>
-/// <param name="ValueTypes">The default shape: <see langword="true"/> for <c>Struct</c>, <see langword="false"/> for <c>Class</c>, or <see langword="null"/>.</param>
+/// <param name="Shape">The default shape (<c>Class</c>, <c>Struct</c> or <c>Auto</c>), or <see langword="null"/> for the library's.</param>
+/// <param name="MaxValueBytes">The default largest value-type struct in bytes (1 to 65,536), or <see langword="null"/> for the library\'s.</param>
 /// <param name="KeepNames">The default for <c>KeepNames</c>, or <see langword="null"/>.</param>
 /// <param name="Aligned">The default for <c>Aligned</c>, or <see langword="null"/>.</param>
 /// <param name="LittleEndian">The default for <c>LittleEndian</c>, or <see langword="null"/>.</param>
@@ -32,7 +33,8 @@ internal sealed record LayoutDefaults(
     bool? Views,
     bool? Enumerators,
     bool? RuntimeByteOrder,
-    bool? ValueTypes,
+    GenerationShape? Shape,
+    int? MaxValueBytes,
     bool? KeepNames,
     bool? Aligned,
     bool? LittleEndian,
@@ -44,7 +46,7 @@ internal sealed record LayoutDefaults(
     EquatableArray<string> Invalid)
 {
     /// <summary>No project defaults: every option keeps the library's value.</summary>
-    public static LayoutDefaults None { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, EquatableArray<string>.Empty);
+    public static LayoutDefaults None { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, EquatableArray<string>.Empty);
 
     /// <summary>
     ///     Whether an attribute's named argument names its option, so that a project default must not replace it.
@@ -119,6 +121,23 @@ internal sealed record LayoutDefaults(
             return null;
         }
 
+        // A whole-number property within a range; anything else is recorded and ignored.
+        int? Range(string name, int minimum, int maximum)
+        {
+            if (Text(name) is not { } text)
+            {
+                return null;
+            }
+
+            if (int.TryParse(text, out int parsed) && parsed >= minimum && parsed <= maximum)
+            {
+                return parsed;
+            }
+
+            invalid.Add(name + "=" + text);
+            return null;
+        }
+
         GenerationSurface? surface = Member("Surface", "Full", "Reader", "Views", "Parser") switch
         {
             "Full" => GenerationSurface.Full,
@@ -133,7 +152,8 @@ internal sealed record LayoutDefaults(
             Flag("Views"),
             Flag("Enumerators"),
             Flag("RuntimeByteOrder"),
-            Member("Shape", "Class", "Struct") switch { "Struct" => true, "Class" => false, _ => null },
+            Member("Shape", "Class", "Struct", "Auto") switch { "Struct" => GenerationShape.Struct, "Class" => GenerationShape.Class, "Auto" => GenerationShape.Auto, _ => null },
+            Range("MaxValueBytes", 1, 65536),
             Flag("KeepNames"),
             Flag("Aligned"),
             Flag("LittleEndian"),

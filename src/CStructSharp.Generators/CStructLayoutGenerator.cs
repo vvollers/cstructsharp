@@ -122,7 +122,8 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         bool views = true;
         bool enumerators = false;
         bool runtimeByteOrder = false;
-        bool valueTypes = false;
+        GenerationShape shape = GenerationShape.Class;
+        int maxValueBytes = 1024;
         GenerationSurface surface = GenerationSurface.Full;
         var explicitArguments = new List<string>();
         foreach (KeyValuePair<string, TypedConstant> named in attribute.NamedArguments)
@@ -147,7 +148,10 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
                 views = named.Value.Value is not false;
                 break;
             case "Shape":
-                valueTypes = named.Value.Value is int shape && shape == 1;
+                shape = named.Value.Value is int shapeValue && System.Enum.IsDefined(typeof(GenerationShape), shapeValue) ? (GenerationShape)shapeValue : GenerationShape.Class;
+                break;
+            case "MaxValueBytes":
+                maxValueBytes = named.Value.Value is int bytes ? bytes : 1024;
                 break;
             case "RuntimeByteOrder":
                 runtimeByteOrder = named.Value.Value is true;
@@ -196,7 +200,8 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             views,
             enumerators,
             runtimeByteOrder,
-            valueTypes,
+            shape,
+            maxValueBytes,
             surface,
             SourceSpan.From(attributeLocation),
             definitionSpan,

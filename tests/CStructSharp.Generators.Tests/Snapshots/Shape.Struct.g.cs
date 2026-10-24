@@ -18,13 +18,13 @@ namespace Demo
             {
                 private byte element0;
 
-                /// <summary>Gets the number of elements.</summary>
-                public const int Length = 4;
+                /// <summary>Gets the number of elements, as an array's <c>Length</c> is, so code that reads either shape compiles.</summary>
+                public readonly int Length => 4;
 
                 /// <summary>Views the elements as a span over this value's own storage.</summary>
                 /// <returns>A span of every element; it is valid as long as this value is.</returns>
                 [global::System.Diagnostics.CodeAnalysis.UnscopedRef]
-                public global::System.Span<byte> AsSpan() => global::System.Runtime.InteropServices.MemoryMarshal.CreateSpan(ref this.element0, Length);
+                public global::System.Span<byte> AsSpan() => global::System.Runtime.InteropServices.MemoryMarshal.CreateSpan(ref this.element0, 4);
 
                 /// <summary>Copies the elements into a new array.</summary>
                 /// <returns>The array.</returns>

@@ -222,8 +222,9 @@ internal static class Emit
     /// <param name="bytes">An expression for exactly the array's bytes.</param>
     /// <param name="elements">The expression holding the destination array.</param>
     /// <param name="endian">The C# expression of the byte order when it is chosen at run time, or <see langword="null"/> for the codec's own.</param>
+    /// <param name="elementsAreSpan">Whether <paramref name="elements"/> converts to a span (an inline array) rather than being an array.</param>
     /// <returns>The decode statement.</returns>
-    public static string BulkDecode(PrimitiveCodec codec, string elementType, string bytes, string elements, string? endian = null)
+    public static string BulkDecode(PrimitiveCodec codec, string elementType, string bytes, string elements, string? endian = null, bool elementsAreSpan = false)
     {
         string le = endian ?? Bool(codec.LittleEndian);
         return codec.Kind switch
@@ -231,7 +232,7 @@ internal static class Emit
             PrimitiveCodecKind.UInt8 => bytes + ".CopyTo(" + elements + ");",
 
             // An explicit writable span avoids C# 14 preferring the ReadOnlySpan overload for an array.
-            PrimitiveCodecKind.Int8 => bytes + ".CopyTo(global::System.Runtime.InteropServices.MemoryMarshal.AsBytes<sbyte>(new global::System.Span<sbyte>(" + elements + ")));",
+            PrimitiveCodecKind.Int8 => bytes + ".CopyTo(global::System.Runtime.InteropServices.MemoryMarshal.AsBytes<sbyte>(" + (elementsAreSpan ? "(global::System.Span<sbyte>)" + elements : "new global::System.Span<sbyte>(" + elements + ")") + "));",
             PrimitiveCodecKind.Bool => CodecClass + ".DecodeBooleans(" + bytes + ", " + elements + ");",
             PrimitiveCodecKind.Int24 => CodecClass + ".DecodeInt24(" + bytes + ", " + elements + ", " + le + ");",
             PrimitiveCodecKind.UInt24 => CodecClass + ".DecodeUInt24(" + bytes + ", " + elements + ", " + le + ");",

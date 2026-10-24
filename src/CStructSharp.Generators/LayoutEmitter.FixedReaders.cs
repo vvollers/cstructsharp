@@ -289,8 +289,30 @@ internal sealed partial class LayoutEmitter
         if (this.InlineArrayOf(member) is not null)
         {
             // A value-type layout keeps the array in a field of the struct: decode straight into it.
-            writer.Line("global::System.ReadOnlySpan<byte> bytes = source.Slice(" + Int(offset) + ", " + Int(count * field.Codec.Size) + ");");
-            writer.Line(BulkDecode(field.Codec, elementType, "bytes", property, this.EndianOf(field)));
+            if (member.Composite is { } element)
+            {
+                // Each struct of the array is filled in place at its stride.
+                int elementSize = element.Composite.Symbol.FixedSize ?? throw new InvalidOperationException("Fixed composite without a size: " + element.Name);
+                int elementStride = field.FixedElementSize ?? throw new InvalidOperationException("Fixed array without an element size: " + field.Name);
+                writer.Open("for (int index = 0; index < " + Int(count) + "; index++)");
+                writer.Line("Fill" + element.Name + "Fixed(source.Slice(" + Int(offset) + " + index * " + Int(elementStride) + ", " + Int(elementSize) + "), trimFixedText" + this.TrailingOrderArgument + ", ref " + property + "[index]);");
+                writer.Close();
+            }
+            else
+            {
+                writer.Line("global::System.ReadOnlySpan<byte> bytes = source.Slice(" + Int(offset) + ", " + Int(count * field.Codec.Size) + ");");
+                if (member.Enum is not null)
+                {
+                    // An enum's elements are its stored numbers: decode into the same storage, viewed as the underlying type.
+                    string underlying = member.Enum.UnderlyingType;
+                    writer.Line(BulkDecode(field.Codec, underlying, "bytes", "global::System.Runtime.InteropServices.MemoryMarshal.Cast<" + elementType + ", " + underlying + ">((global::System.Span<" + elementType + ">)" + property + ")", this.EndianOf(field)));
+                }
+                else
+                {
+                    writer.Line(BulkDecode(field.Codec, elementType, "bytes", property, this.EndianOf(field), elementsAreSpan: true));
+                }
+            }
+
             writer.Close();
             return;
         }

@@ -15,17 +15,17 @@ using static CStructSharp.Generators.Emit;
 /// </summary>
 internal sealed partial class LayoutEmitter
 {
-    /// <summary>
-    ///     The largest struct, in bytes, that can be a value type: a bigger one is copied (into the returned value and into
-    ///     every variable that holds it) at a cost a class does not have, so it stays a class or a view.
-    /// </summary>
-    private const int MaximumValueTypeBytes = 1024;
+    /// <summary>The greatest value <c>MaxValueBytes</c> may take.</summary>
+    private const int MaximumValueTypeBytesLimit = 65536;
 
     /// <summary>The nested class that holds the generated inline array types.</summary>
     private const string InlineArraysClass = "InlineArrays";
 
+    // Whether the layout's structs are emitted as value types, decided by Validate: Struct asks for it, Auto takes it when the layout qualifies.
+    private bool usesValueTypes;
+
     /// <summary>Gets a value indicating whether the layout's structs are emitted as value types.</summary>
-    private bool UsesValueTypes => this.request.ValueTypes && this.request.Surface is GenerationSurface.Reader or GenerationSurface.Parser;
+    private bool UsesValueTypes => this.usesValueTypes;
 
     /// <summary>
     ///     Why the layout cannot be generated as value types, or <see langword="null"/> when it can: the surface writes or
@@ -43,6 +43,14 @@ internal sealed partial class LayoutEmitter
         if (this.request.Surface == GenerationSurface.Views)
         {
             return "has nothing to shape on the Views surface, which generates no struct or class";
+        }
+
+        // The cap on a struct, in bytes: a bigger one is copied (into the returned value and into every variable that holds it)
+        // at a cost a class does not have, so it stays a class or a view.
+        int cap = this.request.MaxValueBytes;
+        if (cap < 1 || cap > MaximumValueTypeBytesLimit)
+        {
+            return "needs MaxValueBytes between 1 and " + MaximumValueTypeBytesLimit.ToString(CultureInfo.InvariantCulture) + ", but it is " + cap.ToString(CultureInfo.InvariantCulture);
         }
 
         foreach (GeneratedComposite composite in this.model.Composites)
@@ -65,9 +73,9 @@ internal sealed partial class LayoutEmitter
                 return "needs fixed-size structs, but '" + composite.LayoutName + "' has a size that depends on its data";
             }
 
-            if (size > MaximumValueTypeBytes)
+            if (size > cap)
             {
-                return "needs structs of at most " + MaximumValueTypeBytes.ToString(CultureInfo.InvariantCulture) + " bytes, but '" + composite.LayoutName + "' is " + size.ToString(CultureInfo.InvariantCulture) + " bytes (a value that large is copied on every return and assignment; keep it a class or read it through a view)";
+                return "needs structs of at most " + cap.ToString(CultureInfo.InvariantCulture) + " bytes, but '" + composite.LayoutName + "' is " + size.ToString(CultureInfo.InvariantCulture) + " bytes (a value that large is copied on every return and assignment; keep it a class or read it through a view)";
             }
         }
 
@@ -115,17 +123,18 @@ internal sealed partial class LayoutEmitter
             return null;
         }
 
-        if (member.Composite is not null || member.Enum is not null)
-        {
-            return "it is an array of " + (member.Composite is not null ? "structs" : "enums") + " (only arrays of numbers are supported)";
-        }
-
         if (count < 1)
         {
             return "it is an array of zero elements";
         }
 
-        return field.Codec.IsFixedWidthNumeric && field.Codec.Kind != PrimitiveCodecKind.Int8 ? null : "it is an array of " + field.TypeSpelling + " (only arrays of numbers are supported)";
+        // An array of structs or enums is an inline array of them, filled element by element in its field.
+        if (member.Composite is not null || member.Enum is not null)
+        {
+            return null;
+        }
+
+        return field.Codec.IsFixedWidthNumeric ? null : "it is an array of " + field.TypeSpelling + " (only arrays of numbers are supported)";
     }
 
     /// <summary>The inline array type that holds a member's array when the layout is emitted as value types, or <see langword="null"/> for any other member.</summary>
@@ -139,10 +148,12 @@ internal sealed partial class LayoutEmitter
         }
 
         CompiledField field = member.Field;
-        bool numericArray = field.PointerDepth == 0 && field.Array.Kind == CompiledArrayKind.Fixed && field.Array.Dimensions.Length == 1 && field.Array.FixedCount is > 0
-                            && member.Composite is null && member.Enum is null && !field.IsCharacterArray && !BoundedTextCodec.IsType(field.TypeSpelling)
-                            && field.Codec.IsFixedWidthNumeric;
-        return numericArray ? InlineArraysClass + "." + InlineArrayName(ElementType(member.TypeName, 1), field.Array.FixedCount!.Value) : null;
+        bool fixedArray = field.PointerDepth == 0 && field.Array.Kind == CompiledArrayKind.Fixed && field.Array.Dimensions.Length == 1 && field.Array.FixedCount is > 0
+                          && !field.IsCharacterArray && !BoundedTextCodec.IsType(field.TypeSpelling);
+
+        // Numbers, enums (stored as their numbers) and structs (value types of the layout) fill an inline array.
+        bool inlineElement = member.Composite is not null || field.Codec.IsFixedWidthNumeric;
+        return fixedArray && inlineElement ? InlineArraysClass + "." + InlineArrayName(ElementType(member.TypeName, 1), field.Array.FixedCount!.Value) : null;
     }
 
     /// <summary>The name of the inline array type of an element type and length: <c>ByteArray4</c>, <c>UInt16Array3</c>.</summary>
@@ -212,13 +223,13 @@ internal sealed partial class LayoutEmitter
             writer.Open("public struct " + type.Key);
             writer.Line("private " + type.Value.Element + " element0;");
             writer.Line();
-            writer.Line("/// <summary>Gets the number of elements.</summary>");
-            writer.Line("public const int Length = " + length + ";");
+            writer.Line("/// <summary>Gets the number of elements, as an array's <c>Length</c> is, so code that reads either shape compiles.</summary>");
+            writer.Line("public readonly int Length => " + length + ";");
             writer.Line();
             writer.Line("/// <summary>Views the elements as a span over this value's own storage.</summary>");
             writer.Line("/// <returns>A span of every element; it is valid as long as this value is.</returns>");
             writer.Line("[global::System.Diagnostics.CodeAnalysis.UnscopedRef]");
-            writer.Line("public global::System.Span<" + type.Value.Element + "> AsSpan() => global::System.Runtime.InteropServices.MemoryMarshal.CreateSpan(ref this.element0, Length);");
+            writer.Line("public global::System.Span<" + type.Value.Element + "> AsSpan() => global::System.Runtime.InteropServices.MemoryMarshal.CreateSpan(ref this.element0, " + length + ");");
             writer.Line();
             writer.Line("/// <summary>Copies the elements into a new array.</summary>");
             writer.Line("/// <returns>The array.</returns>");

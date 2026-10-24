@@ -130,7 +130,7 @@ public class ValueTypeShapeTests
         Assert.IsTrue(assembly.GetType("Demo.ReaderRec+Inner")!.IsValueType);
         Type signature = rec.GetField("Sig")!.FieldType;
         Assert.AreEqual("ByteArray4", signature.Name);
-        Assert.AreEqual(4, (int)signature.GetField("Length")!.GetValue(null)!);
+        Assert.AreEqual(4, (int)signature.GetProperty("Length")!.GetValue(Activator.CreateInstance(signature))!);
         Assert.AreEqual("UInt16Array3", rec.GetField("Vals")!.FieldType.Name);
         Assert.AreEqual(typeof(string), rec.GetField("Name")!.FieldType);
     }
@@ -210,8 +210,10 @@ public class ValueTypeShapeTests
     [DataRow("\"struct s { uint8 t; if (t) { uint8 v; } };\", Shape = GeneratedShape.Struct, Surface = GeneratedSurface.Reader", "conditional")]
     [DataRow("\"struct s { uint8 *p; };\", Shape = GeneratedShape.Struct, Surface = GeneratedSurface.Reader", "pointer")]
     [DataRow("\"struct s { cstring name; };\", Shape = GeneratedShape.Struct, Surface = GeneratedSurface.Reader", "fixed size")]
-    [DataRow("\"struct e { uint8 a; }; struct s { e items[2]; };\", Root = \"s\", Shape = GeneratedShape.Struct, Surface = GeneratedSurface.Reader", "array of structs")]
-    [DataRow("\"struct s { int8 v[2]; };\", Shape = GeneratedShape.Struct, Surface = GeneratedSurface.Reader", "only arrays of numbers")]
+    [DataRow("\"union w { uint8 a; uint16 b; }; struct s { w items[2]; };\", Root = \"s\", Shape = GeneratedShape.Struct, Surface = GeneratedSurface.Reader", "union")]
+    [DataRow("\"struct e { uint8 n; uint8 v[n]; }; struct s { e items[2]; };\", Root = \"s\", Shape = GeneratedShape.Struct, Surface = GeneratedSurface.Reader", "single fixed count")]
+    [DataRow("\"struct s { float32 v[0]; };\", Shape = GeneratedShape.Struct, Surface = GeneratedSurface.Reader", "zero elements")]
+    [DataRow("\"struct s { uint8 v; };\", Shape = GeneratedShape.Struct, Surface = GeneratedSurface.Reader, MaxValueBytes = 0", "MaxValueBytes between 1")]
     [DataRow("\"struct s { uint8 m[2][2]; };\", Shape = GeneratedShape.Struct, Surface = GeneratedSurface.Reader", "single fixed count")]
     [DataRow("\"struct s { uint8 buf[1025]; };\", Shape = GeneratedShape.Struct, Surface = GeneratedSurface.Reader", "at most 1024 bytes")]
     public void Unsupported_IsRefusedWithCSG014(string attribute, string reason)

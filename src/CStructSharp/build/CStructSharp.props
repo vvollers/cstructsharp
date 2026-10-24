@@ -18,6 +18,7 @@
     <CompilerVisibleProperty Include="CStructSharpEnumerators" />
     <CompilerVisibleProperty Include="CStructSharpRuntimeByteOrder" />
     <CompilerVisibleProperty Include="CStructSharpShape" />
+    <CompilerVisibleProperty Include="CStructSharpMaxValueBytes" />
     <CompilerVisibleProperty Include="CStructSharpKeepNames" />
     <CompilerVisibleProperty Include="CStructSharpAligned" />
     <CompilerVisibleProperty Include="CStructSharpLittleEndian" />

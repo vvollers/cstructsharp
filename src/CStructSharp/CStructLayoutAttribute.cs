@@ -102,8 +102,17 @@ public sealed class CStructLayoutAttribute : Attribute
     /// </remarks>
     public bool RuntimeByteOrder { get; set; }
 
-    /// <summary>Gets or sets whether each struct and union of the layout becomes a class (the default) or a value type; see <see cref="GeneratedShape"/>.</summary>
+    /// <summary>Gets or sets whether each struct and union of the layout becomes a class (the default), a value type, or a value type only where the layout qualifies; see <see cref="GeneratedShape"/>.</summary>
     public GeneratedShape Shape { get; set; } = GeneratedShape.Class;
+
+    /// <summary>
+    ///     Gets or sets the largest struct, in bytes, that a value-type shape (<see cref="GeneratedShape.Struct"/>, or
+    ///     <see cref="GeneratedShape.Auto"/> where it applies) may generate; a bigger struct is copied into every return value and
+    ///     variable, so the default of 1,024 keeps it a class. The value must be between 1 and 65,536; <see cref="GeneratedShape.Struct"/>
+    ///     with another value is reported as CSG014, and <see cref="GeneratedShape.Auto"/> keeps the class. The project default is the
+    ///     build property <c>CStructSharpMaxValueBytes</c>.
+    /// </summary>
+    public int MaxValueBytes { get; set; } = 1024;
 
     /// <summary>Gets or sets how much code is generated; the default, <see cref="GeneratedSurface.Full"/>, generates everything.</summary>
     public GeneratedSurface Surface { get; set; } = GeneratedSurface.Full;

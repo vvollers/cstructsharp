@@ -87,7 +87,7 @@ internal sealed partial class LayoutEmitter
                 decodedInPlace = true;
                 writer.Open("if (count > 0)");
                 writer.Line("global::System.ReadOnlySpan<byte> bytes = cursor.TakeArray(count, " + Int(codec.Size) + ", " + member + ", " + memberType + ");");
-                writer.Line(BulkDecode(codec, elementType, "bytes", property, this.EndianOf(field)));
+                writer.Line(BulkDecode(codec, elementType, "bytes", property, this.EndianOf(field), elementsAreSpan: true));
                 writer.Close();
             }
             else if (bulk)
@@ -102,6 +102,15 @@ internal sealed partial class LayoutEmitter
                 string take = inUnion ? "TakeElements" : field.Array.Dimensions.Length > 1 ? "TakeInBlocks" : "TakeArray";
                 writer.Line("global::System.ReadOnlySpan<byte> bytes = cursor." + take + "(count, " + Int(codec.Size) + ", " + member + ", " + memberType + ");");
                 writer.Line(BulkDecode(codec, elementType, "bytes", "elements", this.EndianOf(field)));
+                writer.Close();
+            }
+            else if (this.InlineArrayOf(generated) is not null)
+            {
+                // An array of structs or enums in a value-type layout lives in the struct's own inline array: each element is read
+                // straight into its slot, so no array is allocated.
+                decodedInPlace = true;
+                writer.Open("for (int index = 0; index < count; index++)");
+                writer.Line(property + "[index] = " + this.ScalarRead(field, generated, member, memberType) + ";");
                 writer.Close();
             }
             else if (!inUnion && this.deferredPointers.TryGetValue(field, out DeferredPointer? deferred))

@@ -78,6 +78,37 @@ internal sealed partial class LayoutEmitter
     /// <returns>The diagnostics found, empty when the class can be generated.</returns>
     public IReadOnlyList<Diagnostic> Validate()
     {
+        // Struct asks for value types on a surface that has types; Auto asks only once the layout is known to qualify (below).
+        this.usesValueTypes = this.request.Shape == GenerationShape.Struct && this.request.Surface is GenerationSurface.Reader or GenerationSurface.Parser;
+        this.BuildModel();
+        if (this.request.Shape == GenerationShape.Auto && !this.hasErrors && this.ValueTypeProblem() is null)
+        {
+            // The layout qualifies, so the value shape is taken, unless the names it reserves (the inline array container) collide
+            // with the layout's own: then the class is kept, without a report.
+            int reported = this.diagnostics.Count;
+            this.usesValueTypes = true;
+            this.BuildModel();
+            if (this.hasErrors)
+            {
+                this.diagnostics.RemoveRange(reported, this.diagnostics.Count - reported);
+                this.hasErrors = false;
+                this.usesValueTypes = false;
+                this.BuildModel();
+            }
+        }
+
+        if (this.request.Shape == GenerationShape.Struct && this.ValueTypeProblem() is { } problem)
+        {
+            this.hasErrors = true;
+            this.diagnostics.Add(Diagnostic.Create(GeneratorDiagnostics.ValueShapeUnsupported, this.request.AttributeSpan.ToLocation(), this.request.ClassName, problem));
+        }
+
+        return this.diagnostics;
+    }
+
+    /// <summary>Builds the type model for the current shape and reports the name collisions it finds.</summary>
+    private void BuildModel()
+    {
         var taken = new Dictionary<string, string>(System.StringComparer.Ordinal)
         {
             [this.request.ClassName] = "the containing class",
@@ -105,14 +136,6 @@ internal sealed partial class LayoutEmitter
         {
             this.Error(GeneratorDiagnostics.NameCollision, collision);
         }
-
-        if (this.request.ValueTypes && this.ValueTypeProblem() is { } problem)
-        {
-            this.hasErrors = true;
-            this.diagnostics.Add(Diagnostic.Create(GeneratorDiagnostics.ValueShapeUnsupported, this.request.AttributeSpan.ToLocation(), this.request.ClassName, problem));
-        }
-
-        return this.diagnostics;
     }
 
     /// <summary>The complete generated file.</summary>
