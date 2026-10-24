@@ -102,6 +102,9 @@ public sealed class CStructLayoutAttribute : Attribute
     /// </remarks>
     public bool RuntimeByteOrder { get; set; }
 
+    /// <summary>Gets or sets whether each struct and union of the layout becomes a class (the default) or a value type; see <see cref="GeneratedShape"/>.</summary>
+    public GeneratedShape Shape { get; set; } = GeneratedShape.Class;
+
     /// <summary>Gets or sets how much code is generated; the default, <see cref="GeneratedSurface.Full"/>, generates everything.</summary>
     public GeneratedSurface Surface { get; set; } = GeneratedSurface.Full;
 }

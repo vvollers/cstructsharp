@@ -23,6 +23,11 @@ internal sealed partial class LayoutEmitter
             return;
         }
 
+        if (this.UsesValueTypes)
+        {
+            this.EmitInlineArrayTypes(writer);
+        }
+
         foreach (GeneratedComposite composite in this.model.Composites)
         {
             writer.Line();
@@ -71,7 +76,7 @@ internal sealed partial class LayoutEmitter
     {
         string kind = composite.IsUnion ? "union" : "struct";
         writer.Line("/// <summary>The layout " + kind + " <c>" + composite.LayoutName + "</c>" + (composite.IsDeclared ? string.Empty : " (declared inline)") + ".</summary>");
-        writer.Open("public sealed partial class " + composite.Name);
+        writer.Open(this.UsesValueTypes ? "public partial struct " + composite.Name : "public sealed partial class " + composite.Name);
         bool first = true;
         if (composite.IsUnion)
         {
@@ -104,7 +109,7 @@ internal sealed partial class LayoutEmitter
             }
 
             writer.Line("/// <summary><c>" + DescribeDeclaration(member.Field) + "</c>.</summary>");
-            writer.Line("public " + member.TypeName + " " + member.PropertyName + " { get; set; }" + Initializer(member));
+            writer.Line("public " + (this.InlineArrayOf(member) ?? member.TypeName) + " " + member.PropertyName + " { get; set; }" + (this.UsesValueTypes ? string.Empty : Initializer(member)));
         }
 
         writer.Close();

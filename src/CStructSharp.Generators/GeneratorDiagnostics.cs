@@ -93,6 +93,16 @@ internal static class GeneratorDiagnostics
         isEnabledByDefault: true,
         description: "RuntimeByteOrder needs a surface that only reads (Reader, Parser or Views) and a layout whose bitfields sit in the same place in both byte orders.");
 
+    /// <summary>CSG014 (error): <c>Shape = Struct</c> cannot be generated for this layout or surface.</summary>
+    public static readonly DiagnosticDescriptor ValueShapeUnsupported = new(
+        "CSG014",
+        "Shape = Struct is not supported here",
+        "'{0}' sets Shape = Struct, which {1}",
+        Category,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "Shape = Struct needs the Reader or Parser surface and a layout that is fixed in size: numbers, enums, bitfields, nested structs, text and fixed one-dimensional arrays of numbers.");
+
     /// <summary>CSG100 (error): a mapped type is not partial or lacks a parameterless constructor.</summary>
     public static readonly DiagnosticDescriptor MappedNotPartial = new(
         "CSG100",

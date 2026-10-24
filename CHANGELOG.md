@@ -57,6 +57,13 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   every generated reader and a generated view's new `Validate()` report the same failure; a struct with a constraint
   is read member by member, so no fast path can skip it, and writes ignore constraints. A constraint on a union member,
   padding or an unnamed bitfield is a layout error.
+- **Value-type structs.** `[CStructLayout(Shape = GeneratedShape.Struct)]` (project default `CStructSharpShape`) generates
+  every struct of a fixed-size layout as a C# `struct` instead of a class, so a read allocates nothing for the value and
+  the value can be stored, returned and used across `await`. A fixed array of numbers becomes a generated inline array
+  (`InlineArrays.ByteArray4`, with an indexer, `AsSpan()`, `ToArray()` and `Length`); text stays a `string`. It needs the
+  `Reader` or `Parser` surface and a layout without a union, conditional member, pointer, runtime-sized or
+  multidimensional array, array of structs or enums, custom codec or terminated string; anything else is the new error
+  CSG014 with the member that does not fit.
 
 ## 0.13.0 — 2026-10-24
 

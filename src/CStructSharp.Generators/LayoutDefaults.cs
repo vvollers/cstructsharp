@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 
 /// <summary>
 ///     The project-wide defaults for the <c>[CStructLayout]</c> options, read from the build properties
-///     <c>CStructSharpSurface</c>, <c>CStructSharpViews</c>, <c>CStructSharpEnumerators</c>, <c>CStructSharpRuntimeByteOrder</c>, <c>CStructSharpKeepNames</c>, <c>CStructSharpAligned</c>,
+///     <c>CStructSharpSurface</c>, <c>CStructSharpViews</c>, <c>CStructSharpEnumerators</c>, <c>CStructSharpRuntimeByteOrder</c>, <c>CStructSharpShape</c>, <c>CStructSharpKeepNames</c>, <c>CStructSharpAligned</c>,
 ///     <c>CStructSharpLittleEndian</c>, <c>CStructSharpPointerSize</c>, <c>CStructSharpBitfieldPacking</c>,
 ///     <c>CStructSharpBitfieldAllocation</c>, <c>CStructSharpCLongWidth</c> and <c>CStructSharpDefaultEnumStorage</c>.
 ///     An option the attribute names keeps the attribute's value; every other option takes the project's default, and
@@ -16,6 +16,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 /// <param name="Views">The default for <c>Views</c>, or <see langword="null"/>.</param>
 /// <param name="Enumerators">The default for <c>Enumerators</c>, or <see langword="null"/>.</param>
 /// <param name="RuntimeByteOrder">The default for <c>RuntimeByteOrder</c>, or <see langword="null"/>.</param>
+/// <param name="ValueTypes">The default shape: <see langword="true"/> for <c>Struct</c>, <see langword="false"/> for <c>Class</c>, or <see langword="null"/>.</param>
 /// <param name="KeepNames">The default for <c>KeepNames</c>, or <see langword="null"/>.</param>
 /// <param name="Aligned">The default for <c>Aligned</c>, or <see langword="null"/>.</param>
 /// <param name="LittleEndian">The default for <c>LittleEndian</c>, or <see langword="null"/>.</param>
@@ -30,6 +31,7 @@ internal sealed record LayoutDefaults(
     bool? Views,
     bool? Enumerators,
     bool? RuntimeByteOrder,
+    bool? ValueTypes,
     bool? KeepNames,
     bool? Aligned,
     bool? LittleEndian,
@@ -41,7 +43,7 @@ internal sealed record LayoutDefaults(
     EquatableArray<string> Invalid)
 {
     /// <summary>No project defaults: every option keeps the library's value.</summary>
-    public static LayoutDefaults None { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, EquatableArray<string>.Empty);
+    public static LayoutDefaults None { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, EquatableArray<string>.Empty);
 
     /// <summary>Reads the defaults from the build's global analyzer options.</summary>
     /// <param name="options">The options MSBuild hands to the compiler (the <c>CompilerVisibleProperty</c> values).</param>
@@ -117,6 +119,7 @@ internal sealed record LayoutDefaults(
             Flag("Views"),
             Flag("Enumerators"),
             Flag("RuntimeByteOrder"),
+            Member("Shape", "Class", "Struct") switch { "Struct" => true, "Class" => false, _ => null },
             Flag("KeepNames"),
             Flag("Aligned"),
             Flag("LittleEndian"),

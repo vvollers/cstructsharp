@@ -69,7 +69,7 @@ internal sealed partial class LayoutEmitter
     private static readonly string[] ReservedMembers =
     [
         "Layout", "RootName", "Definition", "Parse", "ParseAsync", "TryParse", "Serialize", "Write", "WriteAsync", "ParseWithDebug", "ResolveAddress", "GetArrayLength", "UpdatePath",
-        "Sizes", "Offsets", "Update", "CreateCodecs", "CodecInstances", "LayoutInstance", "CreateLayout", "ToStructValue", "ToMapped", "SerializeMapped", "ParseMapped", "ReadValue", "TryReadValue", "Records", "RecordsAsync",
+        "InlineArrays", "Sizes", "Offsets", "Update", "CreateCodecs", "CodecInstances", "LayoutInstance", "CreateLayout", "ToStructValue", "ToMapped", "SerializeMapped", "ParseMapped", "ReadValue", "TryReadValue", "Records", "RecordsAsync",
     ];
 
     private static string GeneratorVersion => typeof(LayoutEmitter).Assembly.GetName().Version?.ToString() ?? "0.0.0.0";
@@ -97,6 +97,12 @@ internal sealed partial class LayoutEmitter
         foreach (string collision in this.model.Collisions)
         {
             this.Error(GeneratorDiagnostics.NameCollision, collision);
+        }
+
+        if (this.request.ValueTypes && this.ValueTypeProblem() is { } problem)
+        {
+            this.hasErrors = true;
+            this.diagnostics.Add(Diagnostic.Create(GeneratorDiagnostics.ValueShapeUnsupported, this.request.AttributeSpan.ToLocation(), this.request.ClassName, problem));
         }
 
         return this.diagnostics;

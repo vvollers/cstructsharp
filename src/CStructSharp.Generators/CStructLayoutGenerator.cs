@@ -119,6 +119,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         bool views = true;
         bool enumerators = false;
         bool runtimeByteOrder = false;
+        bool valueTypes = false;
         GenerationSurface surface = GenerationSurface.Full;
         var explicitArguments = new List<string>();
         foreach (KeyValuePair<string, TypedConstant> named in attribute.NamedArguments)
@@ -142,6 +143,9 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
                 break;
             case "Views":
                 views = named.Value.Value is not false;
+                break;
+            case "Shape":
+                valueTypes = named.Value.Value is int shape && shape == 1;
                 break;
             case "RuntimeByteOrder":
                 runtimeByteOrder = named.Value.Value is true;
@@ -190,6 +194,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             views,
             enumerators,
             runtimeByteOrder,
+            valueTypes,
             surface,
             SourceSpan.From(attributeLocation),
             definitionSpan,

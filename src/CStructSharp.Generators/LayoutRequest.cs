@@ -30,6 +30,7 @@ internal sealed record LayoutRequest(
     bool Views,
     bool Enumerators,
     bool RuntimeByteOrder,
+    bool ValueTypes,
     GenerationSurface Surface,
     SourceSpan AttributeSpan,
     SourceSpan? DefinitionSpan,
@@ -73,6 +74,7 @@ internal sealed record LayoutRequest(
             Views = Named("Views") ? this.Views : defaults.Views ?? this.Views,
             Enumerators = Named("Enumerators") ? this.Enumerators : defaults.Enumerators ?? this.Enumerators,
             RuntimeByteOrder = Named("RuntimeByteOrder") ? this.RuntimeByteOrder : defaults.RuntimeByteOrder ?? this.RuntimeByteOrder,
+            ValueTypes = Named("Shape") ? this.ValueTypes : defaults.ValueTypes ?? this.ValueTypes,
             Surface = Named("Surface") ? this.Surface : defaults.Surface ?? this.Surface,
         };
     }

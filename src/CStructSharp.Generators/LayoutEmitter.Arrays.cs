@@ -79,6 +79,15 @@ internal sealed partial class LayoutEmitter
             {
                 this.EmitNumericRows(writer, field, elementType, inUnion, member, memberType);
             }
+            else if (bulk && this.InlineArrayOf(generated) is { } inlineType)
+            {
+                // A value-type layout keeps the array inside its struct: the bulk decode fills the inline array's own storage.
+                writer.Line(inlineType + " elements = default;");
+                writer.Open("if (count > 0)");
+                writer.Line("global::System.ReadOnlySpan<byte> bytes = cursor.TakeArray(count, " + Int(codec.Size) + ", " + member + ", " + memberType + ");");
+                writer.Line(BulkDecode(codec, elementType, "bytes", "elements", this.EndianOf(field)));
+                writer.Close();
+            }
             else if (bulk)
             {
                 // The bulk decode overwrites every element or throws while the array is still local, so the array

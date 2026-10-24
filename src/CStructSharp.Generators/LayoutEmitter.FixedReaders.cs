@@ -65,7 +65,7 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <returns>The value.</returns>");
         writer.Open("private static " + name + " Read" + name + "Fixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText" + this.TrailingOrderParameter + ")");
         writer.Line("var value = new " + name + "();");
-        writer.Line("Fill" + name + "Fixed(source, trimFixedText" + this.TrailingOrderArgument + ", value);");
+        writer.Line("Fill" + name + "Fixed(source, trimFixedText" + this.TrailingOrderArgument + ", " + (this.UsesValueTypes ? "ref " : string.Empty) + "value);");
         writer.Line("return value;");
         writer.Close();
         writer.Line();
@@ -85,11 +85,11 @@ internal sealed partial class LayoutEmitter
             writer.Line("[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
         }
 
-        writer.Open("private static void Fill" + name + "Fixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText" + this.TrailingOrderParameter + ", " + name + " value)");
+        writer.Open("private static void Fill" + name + "Fixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText" + this.TrailingOrderParameter + ", " + (this.UsesValueTypes ? "ref " : string.Empty) + name + " value)");
         var scope = new ReaderScope(this, composite);
 
         // Without a constructor of the consumer's, the property initializers alone decide what a new value holds.
-        bool nestedValuesAreNew = !this.request.TypesWithConstructors.Contains(name);
+        bool nestedValuesAreNew = !this.UsesValueTypes && !this.request.TypesWithConstructors.Contains(name);
         foreach (CompiledField field in composite.Composite.Fields)
         {
             GeneratedMember member = scope.Member(field) ?? throw new InvalidOperationException("No generated member for field " + field.Name);
@@ -151,7 +151,7 @@ internal sealed partial class LayoutEmitter
         {
             // The bulk decode the member-by-member reader applies to the same bytes; it overwrites every element, so
             // the array is allocated without zeroing.
-            writer.Line("var elements = " + UninitializedArray(elementType, Int(count)) + ";");
+            writer.Line(this.InlineArrayOf(member) is { } inlineType ? inlineType + " elements = default;" : "var elements = " + UninitializedArray(elementType, Int(count)) + ";");
             writer.Line("global::System.ReadOnlySpan<byte> bytes = source.Slice(" + Int(offset) + ", " + Int(count * field.Codec.Size) + ");");
             writer.Line(BulkDecode(field.Codec, elementType, "bytes", "elements", this.EndianOf(field)));
         }

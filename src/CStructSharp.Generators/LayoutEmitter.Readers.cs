@@ -364,7 +364,7 @@ internal sealed partial class LayoutEmitter
             writer.Line("return true;");
             writer.Close();
             writer.Open("catch (" + Failure + " exception)");
-            writer.Line("value = null;");
+            writer.Line(this.UsesValueTypes ? "value = default;" : "value = null;");
             writer.Line("failure = exception;");
             writer.Line("return false;");
             writer.Close();
