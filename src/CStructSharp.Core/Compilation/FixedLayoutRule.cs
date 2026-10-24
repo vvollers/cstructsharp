@@ -17,9 +17,14 @@ internal static class FixedLayoutRule
     ///     reader checks those).
     /// </summary>
     /// <param name="composite">The compiled composite.</param>
+    /// <param name="allowConstraints">
+    ///     Whether a composite with <c>@expect</c> or <c>@supports</c> conditions still qualifies: the generated fixed reader
+    ///     decodes it and then checks the conditions in a separate pass, but the runtime's static plan and the other fast
+    ///     paths cannot, and so leave it to the member-by-member reader.
+    /// </param>
     /// <returns>Whether the composite itself qualifies; each member still needs <see cref="IsFixedMember"/>.</returns>
-    public static bool IsFixedComposite(CompiledCompositeType composite)
-        => !composite.IsUnion && composite.Symbol.FixedSize is not null && !composite.HasDirectConditionalFields && !composite.HasConstraints;
+    public static bool IsFixedComposite(CompiledCompositeType composite, bool allowConstraints = false)
+        => !composite.IsUnion && composite.Symbol.FixedSize is not null && !composite.HasDirectConditionalFields && (allowConstraints || !composite.HasConstraints);
 
     /// <summary>
     ///     Returns whether a member can be read by offset: placed at a build-time offset (so the layout already checked

@@ -20,14 +20,26 @@ using System.Threading;
 ///         Every limit means what it means on <see cref="ReadOptions"/>, and an unusable value (a negative limit, a
 ///         nesting depth below one) fails the read before any payload is read, as it does there.
 ///     </para>
+///     <para>
+///         A call that passes the <see langword="default"/> literal (<c>Parse(bytes, default)</c>) is ambiguous between the
+///         <see cref="ReadOptions"/> and the <see cref="ReadLimits"/> overload; write <c>null</c> or <c>new ReadLimits()</c>.
+///         Views and the stream and sequence readers take <see cref="ReadOptions"/>, because a view's <c>ToObject()</c> and a
+///         stream read need the pointer policy and the buffering that only the options carry.
+///     </para>
 /// </remarks>
 public readonly record struct ReadLimits
 {
-    // Each numeric limit is stored as its difference from the default, so that the zeroed value is the default one.
-    private const int DefaultMaxArrayElements = 1_000_000;
-    private const long DefaultMaxStringBytes = 16 * 1024 * 1024;
-    private const long DefaultMaxTotalBytesRead = 64 * 1024 * 1024;
-    private const int DefaultMaxNestingDepth = 256;
+    /// <summary>The default array element limit, shared with <see cref="ReadOptions.MaxArrayElements"/>; each numeric limit is stored as its difference from its default, so the zeroed value is the default one.</summary>
+    internal const int DefaultMaxArrayElements = 1_000_000;
+
+    /// <summary>The default string byte limit, shared with <see cref="ReadOptions.MaxStringBytes"/>.</summary>
+    internal const long DefaultMaxStringBytes = 16 * 1024 * 1024;
+
+    /// <summary>The default total byte limit, shared with <see cref="ReadOptions.MaxTotalBytesRead"/>.</summary>
+    internal const long DefaultMaxTotalBytesRead = 64 * 1024 * 1024;
+
+    /// <summary>The default nesting depth limit, shared with <see cref="ReadOptions.MaxNestingDepth"/>.</summary>
+    internal const int DefaultMaxNestingDepth = 256;
 
     private readonly int arrayElementsOffset;
     private readonly long stringBytesOffset;

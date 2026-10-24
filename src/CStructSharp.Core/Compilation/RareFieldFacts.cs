@@ -9,7 +9,7 @@ using System.Collections.Immutable;
 ///     share the object.
 /// </summary>
 /// <param name="elements">The one-dimensional array shape of a counted pointer target, fixed or counted at run time; <see langword="null"/> for a field that only has constraints.</param>
-internal sealed class CountedPointerTarget(CompiledArrayShape? elements)
+internal sealed class RareFieldFacts(CompiledArrayShape? elements)
 {
     /// <summary>The target's element count strategy, or <see langword="null"/> when the field has no <c>@count</c>.</summary>
     public CompiledArrayShape? Elements { get; } = elements;

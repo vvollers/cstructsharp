@@ -310,7 +310,7 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/CompiledField.cs",
-   "sourceSha256": "5fe442c6f1d7bbbd01c304dc5aa0bf03e111af3a6f10460cae8dd28b1593cb27",
+   "sourceSha256": "bfb7d372e774e777c0a675fe3df61cd48c03fd3ac9c4ecc789a8d4cb6f1d3c5c",
    "mutants": [
     { "mutatorName": "Remove checked expression", "replacement": "elementSize * remainingCount",
      "location": {"start":{"line":518,"column":43},"end":{"line":518,"column":80}},

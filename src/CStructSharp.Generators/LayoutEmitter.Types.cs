@@ -109,7 +109,9 @@ internal sealed partial class LayoutEmitter
             }
 
             writer.Line("/// <summary><c>" + DescribeDeclaration(member.Field) + "</c>.</summary>");
-            writer.Line("public " + (this.InlineArrayOf(member) ?? member.TypeName) + " " + member.PropertyName + " { get; set; }" + (this.UsesValueTypes ? string.Empty : Initializer(member)));
+            writer.Line(this.UsesValueTypes
+                            ? "public " + (this.InlineArrayOf(member) ?? member.TypeName) + " " + member.PropertyName + ";"
+                            : "public " + member.TypeName + " " + member.PropertyName + " { get; set; }" + Initializer(member));
         }
 
         writer.Close();

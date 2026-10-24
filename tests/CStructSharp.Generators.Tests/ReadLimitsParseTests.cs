@@ -35,6 +35,12 @@ public class ReadLimitsParseTests
             public static object Optioned(byte[] bytes, int maxArray, bool trim)
                 => Demo.Reader.Parse(bytes, new ReadOptions { MaxArrayElements = maxArray, TrimFixedText = trim });
 
+            public static object[] TryLimited(byte[] bytes, int maxArray)
+            {
+                bool ok = Demo.Reader.TryParse(bytes, out var value, out var failure, new ReadLimits { MaxArrayElements = maxArray });
+                return new object[] { ok, value!, failure! };
+            }
+
             public static object NamedLimited(byte[] bytes)
                 => Demo.Reader.ParseHdr(bytes, default);
 
@@ -136,5 +142,18 @@ public class ReadLimitsParseTests
         long withLimits = (long)Call("AllocatedWithLimits", bytes, Rounds);
         long withOptions = (long)Call("AllocatedWithOptions", bytes, Rounds);
         Assert.IsGreaterThanOrEqualTo(Rounds * 80L, withOptions - withLimits, $"limits {withLimits} bytes, options {withOptions} bytes for {Rounds} reads");
+    }
+
+    /// <summary>The non-throwing form under limits returns the value on success and the exception the throwing form raises on failure.</summary>
+    [TestMethod]
+    public void TryParseWithLimits_ReturnsTheFailureInsteadOfThrowing()
+    {
+        byte[] bytes = [3, 1, 0, 2, 0, 3, 0, (byte)'a', (byte)'b', (byte)'c', 9, 0, 0, 0];
+        object[] good = (object[])Call("TryLimited", bytes, 10);
+        Assert.IsTrue((bool)good[0]);
+        Assert.IsNotNull(good[1]);
+        object[] bad = (object[])Call("TryLimited", bytes, 2);
+        Assert.IsFalse((bool)bad[0]);
+        Assert.IsInstanceOfType<CStructReadLimitException>(bad[2]);
     }
 }

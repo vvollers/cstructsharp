@@ -210,6 +210,48 @@ internal sealed partial class LayoutEmitter
             writer.Line("/// <returns>The parsed value.</returns>");
             writer.Line("public static " + name + " Parse(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + "in " + Limits + " limits) => " + method + "(source, " + this.OrderArgument + "in limits, null);");
         }
+
+        if (this.request.Surface is GenerationSurface.Parser)
+        {
+            return;
+        }
+
+        // The non-throwing form: the failure the throwing form would have raised comes back instead.
+        const string Failure = "global::CStructSharp.Diagnostics.CStructException";
+        string maybeNull = this.UsesValueTypes ? string.Empty : "[global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] ";
+        writer.Line();
+        writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> under limits given as a value without throwing for a read, path, or limit failure: <see langword=\"false\"/> and the failure instead. Cancellation and argument errors throw as in " + Cref(method + "(global::System.ReadOnlySpan{byte}, " + this.OrderCref + "in " + Limits + ", " + VariablesCref + ")") + ".</summary>");
+        writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
+        this.EmitOrderDoc(writer);
+        writer.Line("/// <param name=\"value\">The parsed value, or the default when the read failed.</param>");
+        writer.Line("/// <param name=\"failure\">The failure the throwing form would have raised, or <see langword=\"null\"/>.</param>");
+        writer.Line("/// <param name=\"limits\">The limits of the read.</param>");
+        writer.Line(VariablesDoc);
+        writer.Line("/// <returns>Whether the read succeeded.</returns>");
+        writer.Open("public static bool Try" + method + "(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + maybeNull + "out " + name + " value, out " + Failure + "? failure, in " + Limits + " limits, " + VariablesType + " variables = null)");
+        writer.Open("try");
+        writer.Line("value = " + method + "(source, " + this.OrderArgument + "in limits, variables);");
+        writer.Line("failure = null;");
+        writer.Line("return true;");
+        writer.Close();
+        writer.Open("catch (" + Failure + " exception)");
+        writer.Line(this.UsesValueTypes ? "value = default;" : "value = null;");
+        writer.Line("failure = exception;");
+        writer.Line("return false;");
+        writer.Close();
+        writer.Close();
+        if (isRoot)
+        {
+            writer.Line();
+            writer.Line("/// <summary>Reads the root declaration (<c>" + composite.LayoutName + "</c>) under limits given as a value without throwing; see " + Cref("Try" + method + "(global::System.ReadOnlySpan{byte}, " + this.OrderCref + "out " + name + ", out " + Failure + "?, in " + Limits + ", " + VariablesCref + ")") + ".</summary>");
+            writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
+            this.EmitOrderDoc(writer);
+            writer.Line("/// <param name=\"value\">The parsed value, or the default when the read failed.</param>");
+            writer.Line("/// <param name=\"failure\">The failure the throwing form would have raised, or <see langword=\"null\"/>.</param>");
+            writer.Line("/// <param name=\"limits\">The limits of the read.</param>");
+            writer.Line("/// <returns>Whether the read succeeded.</returns>");
+            writer.Line("public static bool TryParse(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + maybeNull + "out " + name + " value, out " + Failure + "? failure, in " + Limits + " limits) => Try" + method + "(source, " + this.OrderArgument + "out value, out failure, in limits, null);");
+        }
     }
 
     /// <summary>Emits the one unnamed root overload the <c>Parser</c> surface keeps beside <c>Parse&lt;Name&gt;</c>.</summary>
@@ -709,21 +751,94 @@ internal sealed partial class LayoutEmitter
 
         foreach (CompiledConstraint constraint in field.Constraints)
         {
-            string context = "constraint '" + constraint.Text + "' of " + field.Name;
-            string kind = constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "Malformed" : "Unsupported";
-            writer.Line("// @" + (constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "expect" : "supports") + "(" + constraint.Text + ")");
-            writer.Open(string.Empty);
+            EmitConstraintBlock(writer, field, constraint, scope.Expressions.Emit(constraint.Expression), member, memberType, null);
+        }
+    }
+
+    /// <summary>
+    ///     Emits the check of one condition for a reader, a fixed reader's constraint pass or a view's <c>Validate()</c>:
+    ///     the expression is evaluated in the 128-bit domain and a zero result is a constraint failure. An expression that
+    ///     cannot fail (comparisons of already-read values, logical and bitwise operators) is evaluated without an exception
+    ///     handler; any other is wrapped so its failure is the read's expression failure.
+    /// </summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="field">The constrained field.</param>
+    /// <param name="constraint">The condition.</param>
+    /// <param name="code">The C# expression of the condition, from the expression emitter.</param>
+    /// <param name="member">The member-name expression for failures.</param>
+    /// <param name="memberType">The member-type expression for failures.</param>
+    /// <param name="failurePosition">
+    ///     The C# expression of the cursor position to report when the check fails, or <see langword="null"/> to report the
+    ///     cursor's own (a constraint pass that runs after a whole struct was read reports the end of the checked field).
+    /// </param>
+    private static void EmitConstraintBlock(SourceWriter writer, CompiledField field, CompiledConstraint constraint, string code, string member, string memberType, string? failurePosition)
+    {
+        string context = "constraint '" + constraint.Text + "' of " + field.Name;
+        string kind = constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "Malformed" : "Unsupported";
+        writer.Line("// @" + (constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "expect" : "supports") + "(" + constraint.Text + ")");
+        writer.Open(string.Empty);
+        if (CannotFail(constraint.Expression, code))
+        {
+            writer.Line("global::System.Int128 constraintValue = " + code + ";");
+        }
+        else
+        {
             writer.Line("global::System.Int128 constraintValue;");
             writer.Open("try");
-            writer.Line("constraintValue = " + scope.Expressions.Emit(constraint.Expression) + ";");
+            writer.Line("constraintValue = " + code + ";");
             writer.Close();
             writer.Open("catch (global::System.Exception expressionFailure)");
+            if (failurePosition is not null)
+            {
+                writer.Line("cursor.Position = " + failurePosition + ";");
+            }
+
             writer.Line("throw cursor.FailExpression(expressionFailure, " + SourceWriter.Literal(context) + ", " + member + ", " + memberType + ");");
             writer.Close();
-            writer.Open("if (constraintValue == 0)");
-            writer.Line("throw cursor.FailConstraint(global::CStructSharp.Diagnostics.ConstraintKind." + kind + ", " + SourceWriter.Literal(constraint.Text) + ", " + SourceWriter.Literal(field.Name) + ", " + member + ", " + memberType + ");");
-            writer.Close();
-            writer.Close();
+        }
+
+        writer.Open("if (constraintValue == 0)");
+        if (failurePosition is not null)
+        {
+            writer.Line("cursor.Position = " + failurePosition + ";");
+        }
+
+        writer.Line("throw cursor.FailConstraint(global::CStructSharp.Diagnostics.ConstraintKind." + kind + ", " + SourceWriter.Literal(constraint.Text) + ", " + SourceWriter.Literal(field.Name) + ", " + member + ", " + memberType + ");");
+        writer.Close();
+        writer.Close();
+    }
+
+    /// <summary>
+    ///     Whether evaluating a condition cannot raise an expression failure: its tree uses only comparisons, logical and
+    ///     bitwise operators and <c>?:</c> (no arithmetic that can overflow, divide by zero or shift out of range) and the
+    ///     emitted code reads only values that exist (no undefined, non-integer or caller-supplied identifier).
+    /// </summary>
+    /// <param name="expression">The condition.</param>
+    /// <param name="code">The C# expression emitted for it.</param>
+    /// <returns>Whether the evaluation needs no exception handler.</returns>
+    private static bool CannotFail(Syntax.Expr expression, string code)
+    {
+        if (code.Contains("Expressions.Undefined(") || code.Contains("Expressions.NotAnInteger(") || System.Text.RegularExpressions.Regex.IsMatch(code, "Expressions\\.Variable\\(variables, \"[^\"]*\"\\)"))
+        {
+            return false;
+        }
+
+        switch (expression)
+        {
+        case Syntax.Literal:
+        case Syntax.Identifier:
+            return true;
+        case Syntax.UnaryOp unary:
+            return unary.Type is Syntax.UnaryOperatorType.LogicalNot or Syntax.UnaryOperatorType.Complement && CannotFail(unary.Expr, string.Empty);
+        case Syntax.BinaryOp binary:
+            return binary.Type is Syntax.BinaryOperatorType.LogicalAnd or Syntax.BinaryOperatorType.LogicalOr or Syntax.BinaryOperatorType.Equal or Syntax.BinaryOperatorType.NotEqual
+                       or Syntax.BinaryOperatorType.Less or Syntax.BinaryOperatorType.LessOrEqual or Syntax.BinaryOperatorType.Greater or Syntax.BinaryOperatorType.GreaterOrEqual
+                       or Syntax.BinaryOperatorType.And or Syntax.BinaryOperatorType.Or or Syntax.BinaryOperatorType.Xor
+                   && CannotFail(binary.Left, string.Empty) && CannotFail(binary.Right, string.Empty);
+        case Syntax.ConditionalExpr conditional:
+            return CannotFail(conditional.Condition, string.Empty) && CannotFail(conditional.WhenTrue, string.Empty) && CannotFail(conditional.WhenFalse, string.Empty);
+        default:
+            return false;
         }
     }
 

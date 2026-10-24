@@ -77,7 +77,8 @@ A loop that reads one field from each of a million records should not create a m
 `Wire.HeaderView.Enumerate(bytes)` returns a `foreach`-able enumeration whose `Current` is a `HeaderView` over the
 next record - a [view](views-and-zero-allocation.md), so nothing is allocated for it either. The full surface always
 generates the enumerator; on the `Reader`, `Parser` and `Views` surfaces add `Enumerators = true` to the attribute (see
-[Generate less](choosing-runtime-or-generated.md#generate-less)).
+[Generate less](choosing-runtime-or-generated.md#generate-less)); there `Enumerate` returns the enumerator itself, which is
+its own `foreach` source, so the loop reads the same.
 
 `foreach` does not require `IEnumerable<T>`. It requires a `GetEnumerator()` method whose result has `MoveNext()`
 and `Current`, and it is happy for both to be `ref struct`s - types that live on the stack and cannot escape the

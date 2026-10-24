@@ -26,7 +26,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - **View enumerators on every surface.** `Enumerators = true` (project default `CStructSharpEnumerators`) gives the views
   of fixed-size structs on the `Reader`, `Parser` and `Views` surfaces the same allocation-free `foreach` enumerator
   (`RootView.Enumerate`) that the full surface always has; it is off by default there because it adds code to every
-  fixed-size struct.
+  fixed-size struct. On those surfaces `Enumerate` returns the enumerator itself (`RootViewEnumerator`, its own `foreach`
+  source), one generated type instead of two.
 - **Views over arrays of structs.** A view exposes an array of fixed-size structs or unions, fixed or runtime-sized, as
   `Entries(i)`, a nested view of element `i` at the element's stride, plus `EntriesBytes`; structs with bitfields work as
   elements (`view.Entries(i).Compressed`), the members after a runtime-sized array of structs find their offset, and
@@ -39,7 +40,7 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   `TrimFixedText`, `InvalidText` and the cancellation token (its zeroed value has the defaults), and every generated
   `Parse` and `Parse<Name>` over a span has an overload that takes it, so a reader that parses many small records no
   longer allocates a `ReadOptions` (88 bytes) per call. `ReadLimits.From(options)` and `ToOptions()` convert between the
-  two; the pointer policy keeps its defaults.
+  two; the pointer policy keeps its defaults. The non-throwing `TryParse` forms take limits too.
 - **Run-time byte order.** `[CStructLayout(RuntimeByteOrder = true)]` (project default `CStructSharpRuntimeByteOrder`)
   generates one layout that reads both byte orders: every `Parse`, `Parse<Name>` and `TryParse`, and every view
   constructor and `Enumerate`, takes a `bool littleEndian` after the source, and a neutral value (one spelled without
@@ -56,14 +57,18 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   (`ConstraintKind.Malformed` or `Unsupported`), the `Constraint` text, the field and the offset. The runtime layout,
   every generated reader and a generated view's new `Validate()` report the same failure; a struct with a constraint
   is read member by member, so no fast path can skip it, and writes ignore constraints. A constraint on a union member,
-  padding or an unnamed bitfield is a layout error.
+  padding or an unnamed bitfield is a layout error. A generated reader keeps its fixed-offset reader for a struct with
+  constraints and checks them in field order after decoding, and a condition that cannot fail (comparisons, logical
+  and bitwise operators) is evaluated without an exception handler.
 - **Value-type structs.** `[CStructLayout(Shape = GeneratedShape.Struct)]` (project default `CStructSharpShape`) generates
   every struct of a fixed-size layout as a C# `struct` instead of a class, so a read allocates nothing for the value and
   the value can be stored, returned and used across `await`. A fixed array of numbers becomes a generated inline array
   (`InlineArrays.ByteArray4`, with an indexer, `AsSpan()`, `ToArray()` and `Length`); text stays a `string`. It needs the
   `Reader` or `Parser` surface and a layout without a union, conditional member, pointer, runtime-sized or
   multidimensional array, array of structs or enums, custom codec or terminated string; anything else is the new error
-  CSG014 with the member that does not fit.
+  CSG014 with the member that does not fit. The members of a value-type struct are public fields (an array is read in
+  place and no property copies it), a struct may be at most 1,024 bytes, and the generated fixed reader fills it
+  without zeroing it first; a value type saves allocation rather than time.
 
 ## 0.13.0 — 2026-10-24
 

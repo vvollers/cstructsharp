@@ -17,6 +17,9 @@ internal sealed partial class LayoutEmitter
     /// <summary>The caller variables a view without variables evaluates expressions with: none, so the defines keep their defaults.</summary>
     private const string NoVariables = "global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null;";
 
+    // The plan of each view, made on first use.
+    private readonly Dictionary<GeneratedComposite, ViewPlan> viewPlans = new(ReferenceEqualityComparer.Instance);
+
     /// <summary>How a view reaches the first byte of one member.</summary>
     private sealed class ViewSlot
     {
@@ -95,6 +98,20 @@ internal sealed partial class LayoutEmitter
 
             return name;
         }
+    }
+
+    /// <summary>The plan of a composite's view, made once: deciding whether the layout's views carry variables plans them, and emitting each view then reuses its plan.</summary>
+    /// <param name="composite">The struct or union the view reads.</param>
+    /// <returns>The plan, which emitting the view goes on to use up.</returns>
+    private ViewPlan PlannedView(GeneratedComposite composite)
+    {
+        if (!this.viewPlans.TryGetValue(composite, out ViewPlan? plan))
+        {
+            plan = this.PlanView(composite);
+            this.viewPlans[composite] = plan;
+        }
+
+        return plan;
     }
 
     /// <summary>Places the members of one composite's view: constants where the compiler knows the offset, computed offsets after a runtime-sized array.</summary>

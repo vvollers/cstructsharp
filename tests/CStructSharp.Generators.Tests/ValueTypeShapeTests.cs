@@ -34,6 +34,9 @@ public class ValueTypeShapeTests
         [CStructLayout("struct leaf { uint16 x; }; struct bits { uint8 lo:4; uint8 hi:4; leaf tail; };", Root = "bits", Shape = GeneratedShape.Struct, Surface = GeneratedSurface.Reader, RuntimeByteOrder = true)]
         public static partial class BitsLayout { }
 
+        [CStructLayout("struct checked { uint8 magic @expect(magic == 7); uint8 sig[4]; uint16 tail @supports(tail < 10); };", Root = "checked", Shape = GeneratedShape.Struct, Surface = GeneratedSurface.Reader)]
+        public static partial class CheckedLayout { }
+
         public static class Probe
         {
             public static object ParseReader(byte[] bytes) => Demo.ReaderRec.Parse(bytes);
@@ -46,6 +49,8 @@ public class ValueTypeShapeTests
                 value = parsed;
                 return ok;
             }
+
+            public static object ParseChecked(byte[] bytes) => Demo.CheckedLayout.Parse(bytes);
 
             public static object ParseBits(byte[] bytes, bool little) => Demo.BitsLayout.Parse(bytes, little);
 
@@ -103,7 +108,7 @@ public class ValueTypeShapeTests
     /// <returns>The value.</returns>
     private static object Property(object value, string name)
     {
-        object? result = value.GetType().GetProperty(name)!.GetValue(value);
+        object? result = value.GetType().GetField(name)!.GetValue(value);
         MethodInfo? toArray = result?.GetType().GetMethod("ToArray", Type.EmptyTypes);
         return toArray is not null ? toArray.Invoke(result, null)! : result!;
     }
@@ -123,11 +128,11 @@ public class ValueTypeShapeTests
         Type rec = assembly.GetType("Demo.ReaderRec+Rec")!;
         Assert.IsTrue(rec.IsValueType);
         Assert.IsTrue(assembly.GetType("Demo.ReaderRec+Inner")!.IsValueType);
-        Type signature = rec.GetProperty("Sig")!.PropertyType;
+        Type signature = rec.GetField("Sig")!.FieldType;
         Assert.AreEqual("ByteArray4", signature.Name);
         Assert.AreEqual(4, (int)signature.GetField("Length")!.GetValue(null)!);
-        Assert.AreEqual("UInt16Array3", rec.GetProperty("Vals")!.PropertyType.Name);
-        Assert.AreEqual(typeof(string), rec.GetProperty("Name")!.PropertyType);
+        Assert.AreEqual("UInt16Array3", rec.GetField("Vals")!.FieldType.Name);
+        Assert.AreEqual(typeof(string), rec.GetField("Name")!.FieldType);
     }
 
     /// <summary>Every member of the value equals what the runtime layout reads, on the reader and parser surfaces and through TryParse.</summary>
@@ -208,6 +213,7 @@ public class ValueTypeShapeTests
     [DataRow("\"struct e { uint8 a; }; struct s { e items[2]; };\", Root = \"s\", Shape = GeneratedShape.Struct, Surface = GeneratedSurface.Reader", "array of structs")]
     [DataRow("\"struct s { int8 v[2]; };\", Shape = GeneratedShape.Struct, Surface = GeneratedSurface.Reader", "only arrays of numbers")]
     [DataRow("\"struct s { uint8 m[2][2]; };\", Shape = GeneratedShape.Struct, Surface = GeneratedSurface.Reader", "single fixed count")]
+    [DataRow("\"struct s { uint8 buf[1025]; };\", Shape = GeneratedShape.Struct, Surface = GeneratedSurface.Reader", "at most 1024 bytes")]
     public void Unsupported_IsRefusedWithCSG014(string attribute, string reason)
     {
         GeneratorResult result = GeneratorRunner.Run("using CStructSharp;\n\nnamespace Demo;\n\n[CStructLayout(" + attribute + ")]\npublic static partial class Refused { }\n");
@@ -224,5 +230,22 @@ public class ValueTypeShapeTests
         GeneratorResult result = GeneratorRunner.Run(Source, globalOptions: new System.Collections.Generic.Dictionary<string, string> { ["build_property.CStructSharpShape"] = "Struct" }).AssertClean();
         Assert.IsTrue(result.Load().GetType("Demo.Shaped+A")!.IsValueType);
         Assert.IsFalse(GeneratorRunner.Run(Source).AssertClean().Load().GetType("Demo.Shaped+A")!.IsValueType);
+    }
+
+    /// <summary>A value-type struct with conditions and an inline array reads, checks and fails like the runtime.</summary>
+    [TestMethod]
+    public void ValueTypeWithConstraintsAndInlineArray_ChecksAfterDecoding()
+    {
+        var runtime = new CStruct("struct checked { uint8 magic @expect(magic == 7); uint8 sig[4]; uint16 tail @supports(tail < 10); };");
+        object ok = Call("ParseChecked", new byte[] { 7, 1, 2, 3, 4, 5, 0 });
+        CollectionAssert.AreEqual(new byte[] { 1, 2, 3, 4 }, (byte[])Property(ok, "Sig"));
+        Assert.AreEqual(5, Whole(Property(ok, "Tail")));
+        foreach (byte[] bad in new[] { new byte[] { 8, 1, 2, 3, 4, 5, 0 }, new byte[] { 7, 1, 2, 3, 4, 50, 0 } })
+        {
+            var expected = Assert.Throws<CStructSharp.Diagnostics.CStructConstraintException>(() => runtime.Parse(bad, "checked"));
+            var actual = Assert.Throws<CStructSharp.Diagnostics.CStructConstraintException>(() => Call("ParseChecked", bad));
+            Assert.AreEqual(expected.Message, actual.Message);
+            Assert.AreEqual(expected.Kind, actual.Kind);
+        }
     }
 }

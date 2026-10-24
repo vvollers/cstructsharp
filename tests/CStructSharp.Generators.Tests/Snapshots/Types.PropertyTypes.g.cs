@@ -268,6 +268,37 @@ namespace Demo
         /// <returns>The parsed value.</returns>
         public static Inner Parse(global::System.ReadOnlySpan<byte> source, in global::CStructSharp.ReadLimits limits) => ParseInner(source, in limits, null);
 
+        /// <summary>Reads one <c>inner</c> under limits given as a value without throwing for a read, path, or limit failure: <see langword="false"/> and the failure instead. Cancellation and argument errors throw as in <see cref="ParseInner(global::System.ReadOnlySpan{byte}, in global::CStructSharp.ReadLimits, global::System.Collections.Generic.IReadOnlyDictionary{string, int})"/>.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="value">The parsed value, or the default when the read failed.</param>
+        /// <param name="failure">The failure the throwing form would have raised, or <see langword="null"/>.</param>
+        /// <param name="limits">The limits of the read.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <returns>Whether the read succeeded.</returns>
+        public static bool TryParseInner(global::System.ReadOnlySpan<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Inner value, out global::CStructSharp.Diagnostics.CStructException? failure, in global::CStructSharp.ReadLimits limits, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null)
+        {
+            try
+            {
+                value = ParseInner(source, in limits, variables);
+                failure = null;
+                return true;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                value = null;
+                failure = exception;
+                return false;
+            }
+        }
+
+        /// <summary>Reads the root declaration (<c>inner</c>) under limits given as a value without throwing; see <see cref="TryParseInner(global::System.ReadOnlySpan{byte}, out Inner, out global::CStructSharp.Diagnostics.CStructException?, in global::CStructSharp.ReadLimits, global::System.Collections.Generic.IReadOnlyDictionary{string, int})"/>.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="value">The parsed value, or the default when the read failed.</param>
+        /// <param name="failure">The failure the throwing form would have raised, or <see langword="null"/>.</param>
+        /// <param name="limits">The limits of the read.</param>
+        /// <returns>Whether the read succeeded.</returns>
+        public static bool TryParse(global::System.ReadOnlySpan<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Inner value, out global::CStructSharp.Diagnostics.CStructException? failure, in global::CStructSharp.ReadLimits limits) => TryParseInner(source, out value, out failure, in limits, null);
+
         /// <inheritdoc cref="ParseInner(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
         public static Inner ParseInner(byte[] source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
             => ParseInner(new global::System.ReadOnlySpan<byte>(source ?? throw new global::System.ArgumentNullException(nameof(source))), variables, options);
@@ -637,6 +668,29 @@ namespace Demo
             {
                 cursor.Complete(exception);
                 throw;
+            }
+        }
+
+        /// <summary>Reads one <c>root</c> under limits given as a value without throwing for a read, path, or limit failure: <see langword="false"/> and the failure instead. Cancellation and argument errors throw as in <see cref="ParseRoot(global::System.ReadOnlySpan{byte}, in global::CStructSharp.ReadLimits, global::System.Collections.Generic.IReadOnlyDictionary{string, int})"/>.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="value">The parsed value, or the default when the read failed.</param>
+        /// <param name="failure">The failure the throwing form would have raised, or <see langword="null"/>.</param>
+        /// <param name="limits">The limits of the read.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <returns>Whether the read succeeded.</returns>
+        public static bool TryParseRoot(global::System.ReadOnlySpan<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, out global::CStructSharp.Diagnostics.CStructException? failure, in global::CStructSharp.ReadLimits limits, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null)
+        {
+            try
+            {
+                value = ParseRoot(source, in limits, variables);
+                failure = null;
+                return true;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                value = null;
+                failure = exception;
+                return false;
             }
         }
 

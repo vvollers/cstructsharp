@@ -75,17 +75,19 @@ internal sealed partial class LayoutEmitter
             string elementType = ElementType(generated.TypeName, field.Array.Dimensions.Length == 0 ? 1 : field.Array.Dimensions.Length);
             bool bulk = field.PointerDepth == 0 && generated.Composite is null && generated.Enum is null && field.Name.Length > 0 && codec.IsFixedWidthNumeric;
             bool directRows = bulk && field.Array.Dimensions.Length > 1;
+            bool decodedInPlace = false;
             if (directRows)
             {
                 this.EmitNumericRows(writer, field, elementType, inUnion, member, memberType);
             }
-            else if (bulk && this.InlineArrayOf(generated) is { } inlineType)
+            else if (bulk && this.InlineArrayOf(generated) is not null)
             {
-                // A value-type layout keeps the array inside its struct: the bulk decode fills the inline array's own storage.
-                writer.Line(inlineType + " elements = default;");
+                // A value-type layout keeps the array inside its struct, in a field: the bulk decode fills that storage
+                // directly, so no local array is zeroed and nothing is copied afterwards.
+                decodedInPlace = true;
                 writer.Open("if (count > 0)");
                 writer.Line("global::System.ReadOnlySpan<byte> bytes = cursor.TakeArray(count, " + Int(codec.Size) + ", " + member + ", " + memberType + ");");
-                writer.Line(BulkDecode(codec, elementType, "bytes", "elements", this.EndianOf(field)));
+                writer.Line(BulkDecode(codec, elementType, "bytes", property, this.EndianOf(field)));
                 writer.Close();
             }
             else if (bulk)
@@ -122,7 +124,10 @@ internal sealed partial class LayoutEmitter
                 writer.Close();
             }
 
-            writer.Line(property + " = " + (directRows ? "elements" : Reshape("elements", field.Array.Dimensions, elementType)) + ";");
+            if (!decodedInPlace)
+            {
+                writer.Line(property + " = " + (directRows ? "elements" : Reshape("elements", field.Array.Dimensions, elementType)) + ";");
+            }
         }
 
         if (field.Array.Kind == CompiledArrayKind.Terminated)

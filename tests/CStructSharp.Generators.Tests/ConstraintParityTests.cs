@@ -31,7 +31,7 @@ public class ConstraintParityTests
         [CStructLayout("@LAYOUT@", Root = "sb", Surface = GeneratedSurface.Parser)]
         public static partial class ParserSb { }
 
-        [CStructLayout("struct fixedlike { uint32 a @expect(a != 0); uint32 b; };", Root = "fixedlike", Surface = GeneratedSurface.Reader)]
+        [CStructLayout("struct fixedlike { uint32 a @expect(a != 0); uint32 b @expect(b > a) @supports(b < 100); uint32 c; };", Root = "fixedlike", Surface = GeneratedSurface.Reader)]
         public static partial class FixedLike { }
 
         [CStructLayout("struct pair { uint32 a @expect(a != 0) @supports(a < 10); uint32 b @expect(b > a); uint8 n @expect(n <= LIMIT); uint8 v[n]; uint8 tail @expect(tail == n); };", Root = "pair", Surface = GeneratedSurface.Views)]
@@ -41,6 +41,9 @@ public class ConstraintParityTests
         {
             public static void Validate(byte[] bytes) => new Demo.ViewsPair.PairView(bytes, null, new System.Collections.Generic.Dictionary<string, int> { ["LIMIT"] = 3 }).Validate();
         }
+
+        [CStructLayout("struct leaf { uint8 id @expect(id != 0); }; struct holder { leaf *target; };", Root = "holder", Surface = GeneratedSurface.Reader, PointerSize = 2)]
+        public static partial class PointerHolder { }
 
         public static class ParserProbe
         {
@@ -164,15 +167,82 @@ public class ConstraintParityTests
         Assert.AreEqual("tail == n", Assert.Throws<CStructConstraintException>(() => Run([1, 0, 0, 0, 2, 0, 0, 0, 2, 5, 6, 9])).Constraint);
     }
 
-    /// <summary>A struct with a condition has no fixed reader, so even a layout of two plain integers checks it.</summary>
+    /// <summary>A fixed struct with conditions keeps its fixed reader and checks the conditions after decoding, failing with the runtime's message and offset.</summary>
     [TestMethod]
-    public void ConstrainedStruct_NeverTakesTheFixedReader()
+    public void ConstrainedFixedStruct_KeepsTheFixedReader_AndFailsLikeTheRuntime()
     {
-        object failure = Read("FixedLike", [0, 0, 0, 0, 1, 0, 0, 0]);
-        Assert.IsInstanceOfType<CStructConstraintException>(failure);
-        Assert.IsNotNull(Read("FixedLike", [1, 0, 0, 0, 0, 0, 0, 0]).GetType().GetProperty("A"));
-        string source = GeneratorRunner.Run("using CStructSharp;\nnamespace Demo;\n[CStructLayout(\"struct fixedlike { uint32 a @expect(a != 0); uint32 b; };\", Root = \"fixedlike\", Surface = GeneratedSurface.Reader)]\npublic static partial class L { }\n").AssertClean().Source;
-        Assert.DoesNotContain("ReadFixedlikeFixed", source);
-        StringAssert.Contains(source, "FailConstraint");
+        const string Definition = "struct fixedlike { uint32 a @expect(a != 0); uint32 b @expect(b > a) @supports(b < 100); uint32 c; };";
+        var runtime = new CStruct(Definition);
+        (string Name, byte[] Bytes)[] inputs =
+        [
+            ("ok", [1, 0, 0, 0, 2, 0, 0, 0, 9, 0, 0, 0]),
+            ("first", [0, 0, 0, 0, 2, 0, 0, 0, 9, 0, 0, 0]),
+            ("second", [5, 0, 0, 0, 2, 0, 0, 0, 9, 0, 0, 0]),
+            ("unsupported", [1, 0, 0, 0, 200, 0, 0, 0, 9, 0, 0, 0]),
+        ];
+        foreach ((string name, byte[] bytes) in inputs)
+        {
+            object expected;
+            try
+            {
+                expected = runtime.Parse(bytes, "fixedlike");
+            }
+            catch (CStructException exception)
+            {
+                expected = exception;
+            }
+
+            object actual = Read("FixedLike", bytes);
+            if (expected is CStructException expectedFailure)
+            {
+                var actualFailure = (CStructException)actual;
+                Assert.AreEqual(expectedFailure.Message, actualFailure.Message, name);
+                Assert.AreEqual(expectedFailure.Offset, actualFailure.Offset, name);
+            }
+            else
+            {
+                Assert.IsNotInstanceOfType<Exception>(actual, name);
+            }
+        }
+
+        string source = GeneratorRunner.Run("using CStructSharp;\nnamespace Demo;\n[CStructLayout(\"" + Definition + "\", Root = \"fixedlike\", Surface = GeneratedSurface.Reader)]\npublic static partial class L { }\n").AssertClean().Source;
+        StringAssert.Contains(source, "ReadFixedlikeFixed");
+        StringAssert.Contains(source, "CheckFixedlikeConstraints");
+    }
+
+    /// <summary>A struct whose nested struct has conditions is read member by member, so the nested conditions are never bypassed.</summary>
+    [TestMethod]
+    public void NestedConstraints_KeepTheParentOffTheFixedReader()
+    {
+        string source = GeneratorRunner.Run("using CStructSharp;\nnamespace Demo;\n[CStructLayout(\"struct inner { uint8 v @expect(v != 0); }; struct outer { inner i; uint8 w; };\", Root = \"outer\", Surface = GeneratedSurface.Reader)]\npublic static partial class L { }\n").AssertClean().Source;
+        Assert.DoesNotContain("ReadOuterFixed", source);
+        StringAssert.Contains(source, "ReadInnerFixed");
+    }
+
+    /// <summary>A condition inside a pointer's target is checked when the target is followed, with the runtime's failure.</summary>
+    [TestMethod]
+    public void ConstraintInAPointerTarget_FailsLikeTheRuntime()
+    {
+        const string Definition = "struct leaf { uint8 id @expect(id != 0); }; struct holder { leaf *target; };";
+        var runtime = new CStruct(Definition, pointerSize: 2);
+        byte[] good = [2, 0, 7];
+        byte[] bad = [2, 0, 0];
+        Assert.IsNotNull(runtime.Parse(good, "holder"));
+        CStructConstraintException expected = Assert.Throws<CStructConstraintException>(() => runtime.Parse(bad, "holder"));
+        object actual = Read("PointerHolder", bad);
+        var actualFailure = Assert.IsInstanceOfType<CStructConstraintException>(actual);
+        Assert.AreEqual(expected.Message, actualFailure.Message);
+        Assert.IsNotInstanceOfType<Exception>(Read("PointerHolder", good));
+    }
+
+    /// <summary>A condition that cannot fail is evaluated without an exception handler, and one that can (a division) keeps it.</summary>
+    [TestMethod]
+    public void ConditionsThatCannotFail_NeedNoExceptionHandler()
+    {
+        // Generates a reader whose second field carries the given condition and returns the emitted source.
+        string Generate(string field) => GeneratorRunner.Run("using CStructSharp;\nnamespace Demo;\n[CStructLayout(\"struct s { uint8 a; uint8 b @expect(" + field + "); };\", Root = \"s\", Surface = GeneratedSurface.Reader)]\npublic static partial class L { }\n").AssertClean().Source;
+        Assert.DoesNotContain("catch (global::System.Exception expressionFailure)", Generate("b != 0 && b > a || (b & 1) == 0"));
+        StringAssert.Contains(Generate("100 / b > 1"), "catch (global::System.Exception expressionFailure)");
+        StringAssert.Contains(Generate("b + a < 300"), "catch (global::System.Exception expressionFailure)");
     }
 }

@@ -162,53 +162,61 @@ internal sealed partial class LayoutEmitter
         string layout = SourceWriter.Literal(composite.LayoutName);
         string stride = size.ToString(CultureInfo.InvariantCulture);
         writer.Line();
-        writer.Line("/// <summary>The records " + Cref(view + ".Enumerate") + " walks: a <c>foreach</c> source whose enumerator yields one " + Cref(view) + " per <c>" + composite.LayoutName + "</c>, allocating nothing.</summary>");
         bool carry = this.ViewsCarryVariables;
+        bool merged = this.request.Surface != GenerationSurface.Full;
         string variablesField = carry ? "private readonly " + VariablesType + " variables;" : null!;
         string variablesParameter = carry ? ", " + VariablesType + " variables" : string.Empty;
-        writer.Open("public readonly ref struct " + view + "Enumerable");
-        writer.Line("private readonly global::System.ReadOnlySpan<byte> source;");
-        writer.Line("private readonly global::CStructSharp.ReadOptions? options;");
-        if (this.HasRuntimeByteOrder)
+
+        // The full surface keeps a separate enumerable beside the enumerator; the smaller surfaces fold both into the one
+        // enumerator, whose GetEnumerator returns itself, so a record view costs one generated type less.
+        if (!merged)
         {
-            writer.Line("private readonly bool littleEndian;");
+            writer.Line("/// <summary>The records " + Cref(view + ".Enumerate") + " walks: a <c>foreach</c> source whose enumerator yields one " + Cref(view) + " per <c>" + composite.LayoutName + "</c>, allocating nothing.</summary>");
+            writer.Open("public readonly ref struct " + view + "Enumerable");
+            writer.Line("private readonly global::System.ReadOnlySpan<byte> source;");
+            writer.Line("private readonly global::CStructSharp.ReadOptions? options;");
+            if (this.HasRuntimeByteOrder)
+            {
+                writer.Line("private readonly bool littleEndian;");
+            }
+
+            if (carry)
+            {
+                writer.Line(variablesField);
+            }
+
+            writer.Line();
+            writer.Line("/// <summary>Creates the enumeration over <paramref name=\"source\"/>.</summary>");
+            writer.Line("/// <param name=\"source\">The bytes of the records, with nothing else after them.</param>");
+            this.EmitOrderDoc(writer);
+            writer.Line("/// <param name=\"options\">The read options " + this.OptionsUse + ".</param>");
+            if (carry)
+            {
+                writer.Line("/// <param name=\"variables\">The values the layout's free identifiers have, or <see langword=\"null\"/>.</param>");
+            }
+
+            writer.Open("public " + view + "Enumerable(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + "global::CStructSharp.ReadOptions? options" + variablesParameter + ")");
+            writer.Line("this.source = source;");
+            writer.Line("this.options = options;");
+            if (this.HasRuntimeByteOrder)
+            {
+                writer.Line("this.littleEndian = littleEndian;");
+            }
+
+            if (carry)
+            {
+                writer.Line("this.variables = variables;");
+            }
+
+            writer.Close();
+            writer.Line();
+            writer.Line("/// <summary>The enumerator <c>foreach</c> uses.</summary>");
+            writer.Line("/// <returns>An enumerator before the first record.</returns>");
+            writer.Line("public " + view + "Enumerator GetEnumerator() => new " + view + "Enumerator(this.source, " + this.ViewOrderPrefix + "this.options" + this.VariablesArgument + ");");
+            writer.Close();
+            writer.Line();
         }
 
-        if (carry)
-        {
-            writer.Line(variablesField);
-        }
-
-        writer.Line();
-        writer.Line("/// <summary>Creates the enumeration over <paramref name=\"source\"/>.</summary>");
-        writer.Line("/// <param name=\"source\">The bytes of the records, with nothing else after them.</param>");
-        this.EmitOrderDoc(writer);
-        writer.Line("/// <param name=\"options\">The read options " + this.OptionsUse + ".</param>");
-        if (carry)
-        {
-            writer.Line("/// <param name=\"variables\">The values the layout's free identifiers have, or <see langword=\"null\"/>.</param>");
-        }
-
-        writer.Open("public " + view + "Enumerable(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + "global::CStructSharp.ReadOptions? options" + variablesParameter + ")");
-        writer.Line("this.source = source;");
-        writer.Line("this.options = options;");
-        if (this.HasRuntimeByteOrder)
-        {
-            writer.Line("this.littleEndian = littleEndian;");
-        }
-
-        if (carry)
-        {
-            writer.Line("this.variables = variables;");
-        }
-
-        writer.Close();
-        writer.Line();
-        writer.Line("/// <summary>The enumerator <c>foreach</c> uses.</summary>");
-        writer.Line("/// <returns>An enumerator before the first record.</returns>");
-        writer.Line("public " + view + "Enumerator GetEnumerator() => new " + view + "Enumerator(this.source, " + this.ViewOrderPrefix + "this.options" + this.VariablesArgument + ");");
-        writer.Close();
-        writer.Line();
         writer.Line("/// <summary>Walks consecutive <c>" + composite.LayoutName + "</c> records of " + stride + " bytes; trailing bytes shorter than one record fail on the step that meets them, with the record's index in the path.</summary>");
         writer.Open("public ref struct " + view + "Enumerator");
         writer.Line("private readonly global::System.ReadOnlySpan<byte> source;");
@@ -251,6 +259,14 @@ internal sealed partial class LayoutEmitter
         writer.Line("this.offset = 0;");
         writer.Line("this.index = -1;");
         writer.Close();
+        if (merged)
+        {
+            writer.Line();
+            writer.Line("/// <summary>Returns this enumerator, so the value " + Cref(view + ".Enumerate") + " returns is its own <c>foreach</c> source.</summary>");
+            writer.Line("/// <returns>A copy of this enumerator, before the first record.</returns>");
+            writer.Line("public readonly " + view + "Enumerator GetEnumerator() => this;");
+        }
+
         writer.Line();
         writer.Line("/// <summary>Gets the view of the current record.</summary>");
         writer.Line("public readonly " + view + " Current => new " + view + "(this.source.Slice(this.offset), " + this.ViewOrderPrefix + "this.options" + this.VariablesArgument + ");");

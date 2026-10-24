@@ -8,13 +8,19 @@ using CStructSharp.Compilation;
 using static CStructSharp.Generators.Emit;
 
 /// <summary>
-///     <c>Shape = Struct</c>: every struct of the layout becomes a C# <c>struct</c> whose members are properties, so a read
+///     <c>Shape = Struct</c>: every struct of the layout becomes a C# <c>struct</c> whose members are public fields, so a read
 ///     allocates no object for the value. A fixed one-dimensional array of numbers is a generated inline array type
 ///     (<c>InlineArrays.ByteArray4</c>), so it needs no <c>T[]</c> either. Only layouts whose every member has a fixed
 ///     size and no reference-typed or data-dependent shape qualify; the others are reported as CSG014.
 /// </summary>
 internal sealed partial class LayoutEmitter
 {
+    /// <summary>
+    ///     The largest struct, in bytes, that can be a value type: a bigger one is copied (into the returned value and into
+    ///     every variable that holds it) at a cost a class does not have, so it stays a class or a view.
+    /// </summary>
+    private const int MaximumValueTypeBytes = 1024;
+
     /// <summary>The nested class that holds the generated inline array types.</summary>
     private const string InlineArraysClass = "InlineArrays";
 
@@ -54,9 +60,14 @@ internal sealed partial class LayoutEmitter
                 }
             }
 
-            if (composite.Composite.Symbol.FixedSize is null)
+            if (composite.Composite.Symbol.FixedSize is not { } size)
             {
                 return "needs fixed-size structs, but '" + composite.LayoutName + "' has a size that depends on its data";
+            }
+
+            if (size > MaximumValueTypeBytes)
+            {
+                return "needs structs of at most " + MaximumValueTypeBytes.ToString(CultureInfo.InvariantCulture) + " bytes, but '" + composite.LayoutName + "' is " + size.ToString(CultureInfo.InvariantCulture) + " bytes (a value that large is copied on every return and assignment; keep it a class or read it through a view)";
             }
         }
 

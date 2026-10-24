@@ -51,7 +51,7 @@ internal sealed partial class LayoutEmitter
     ///     variable, or a define the caller may override, so every view of the layout accepts the variables and passes them
     ///     to the views nested in it.
     /// </summary>
-    private bool ViewsCarryVariables => this.viewsCarryVariables ??= this.request.Views && this.model.Composites.Any(composite => this.PlanView(composite).UsesVariables);
+    private bool ViewsCarryVariables => this.viewsCarryVariables ??= this.request.Views && this.model.Composites.Any(composite => this.PlannedView(composite).UsesVariables);
 
     /// <summary>What a view's read options are used for: the whole-value reader, or (on the views surface, which has none) the text members.</summary>
     private string OptionsUse => this.request.Surface == GenerationSurface.Views ? "each view's text members use" : "each view's <c>ToObject</c> uses";
@@ -141,7 +141,7 @@ internal sealed partial class LayoutEmitter
         writer.Line();
         writer.Line("/// <summary>Gets the value's bytes" + (size is not null ? " (its " + Int(size.Value) + " bytes)" : ": the whole source, as the value's extent depends on its contents") + ".</summary>");
         writer.Line("public global::System.ReadOnlySpan<byte> Bytes => this.source" + (size is { } bytes ? ".Slice(0, " + Int(bytes) + ")" : string.Empty) + ";");
-        ViewPlan plan = this.PlanView(composite);
+        ViewPlan plan = this.PlannedView(composite);
         foreach (GeneratedMember member in composite.Members)
         {
             this.EmitViewMember(writer, composite, member, plan);
@@ -162,7 +162,8 @@ internal sealed partial class LayoutEmitter
             writer.Line("/// <param name=\"source\">The bytes of the records, with nothing else after them.</param>");
             writer.Line("/// <param name=\"options\">The read options each view's " + (this.request.Surface == GenerationSurface.Views ? "text members use" : "<see cref=\"ToObject\"/> uses") + "; <see langword=\"null\"/> uses the documented defaults.</param>");
             writer.Line("/// <returns>The enumeration.</returns>");
-            writer.Line("public static " + name + "Enumerable Enumerate(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + "global::CStructSharp.ReadOptions? options = null" + (this.ViewsCarryVariables ? ", " + VariablesType + " variables = null" : string.Empty) + ") => new " + name + "Enumerable(source, " + this.OrderArgument + "options" + this.VariablesArgument.Replace("this.variables", "variables") + ");");
+            string enumeration = this.request.Surface == GenerationSurface.Full ? name + "Enumerable" : name + "Enumerator";
+            writer.Line("public static " + enumeration + " Enumerate(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + "global::CStructSharp.ReadOptions? options = null" + (this.ViewsCarryVariables ? ", " + VariablesType + " variables = null" : string.Empty) + ") => new " + enumeration + "(source, " + this.OrderArgument + "options" + this.VariablesArgument.Replace("this.variables", "variables") + ");");
         }
 
         writer.Close();
@@ -206,22 +207,7 @@ internal sealed partial class LayoutEmitter
         writer.Open("try");
         foreach ((CompiledField field, CompiledConstraint constraint, string code) in plan.Checks)
         {
-            string member = SourceWriter.Literal(field.Name);
-            string memberType = SourceWriter.Literal(field.DisplayTypeSpelling);
-            string kind = constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "Malformed" : "Unsupported";
-            writer.Line("// @" + (constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "expect" : "supports") + "(" + constraint.Text + ")");
-            writer.Open(string.Empty);
-            writer.Line("global::System.Int128 constraintValue;");
-            writer.Open("try");
-            writer.Line("constraintValue = " + code + ";");
-            writer.Close();
-            writer.Open("catch (global::System.Exception expressionFailure)");
-            writer.Line("throw cursor.FailExpression(expressionFailure, " + SourceWriter.Literal("constraint '" + constraint.Text + "' of " + field.Name) + ", " + member + ", " + memberType + ");");
-            writer.Close();
-            writer.Open("if (constraintValue == 0)");
-            writer.Line("throw cursor.FailConstraint(global::CStructSharp.Diagnostics.ConstraintKind." + kind + ", " + SourceWriter.Literal(constraint.Text) + ", " + member + ", " + member + ", " + memberType + ");");
-            writer.Close();
-            writer.Close();
+            EmitConstraintBlock(writer, field, constraint, code, SourceWriter.Literal(field.Name), SourceWriter.Literal(field.DisplayTypeSpelling), null);
         }
 
         writer.Close();

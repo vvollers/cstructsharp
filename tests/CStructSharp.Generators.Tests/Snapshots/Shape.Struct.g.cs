@@ -36,29 +36,29 @@ namespace Demo
         public partial struct Inner
         {
             /// <summary><c>uint16 a</c>.</summary>
-            public ushort A { get; set; }
+            public ushort A;
         }
 
         /// <summary>The layout struct <c>rec</c>.</summary>
         public partial struct Rec
         {
             /// <summary><c>uint32 id</c>.</summary>
-            public uint Id { get; set; }
+            public uint Id;
 
             /// <summary><c>inner nested</c>.</summary>
-            public Inner Nested { get; set; }
+            public Inner Nested;
 
             /// <summary><c>uint8 sig[4]</c>.</summary>
-            public InlineArrays.ByteArray4 Sig { get; set; }
+            public InlineArrays.ByteArray4 Sig;
 
             /// <summary><c>char name[2]</c>.</summary>
-            public string Name { get; set; }
+            public string Name;
 
             /// <summary><c>uint8 flags : 3</c>.</summary>
-            public byte Flags { get; set; }
+            public byte Flags;
 
             /// <summary><c>uint8 level : 5</c>.</summary>
-            public byte Level { get; set; }
+            public byte Level;
         }
 
         private const bool Aligned = false;
@@ -208,13 +208,11 @@ namespace Demo
                 int count;
                 count = 4;
                 cursor.RequireArrayLength(count, "sig", "uint8");
-                InlineArrays.ByteArray4 elements = default;
                 if (count > 0)
                 {
                     global::System.ReadOnlySpan<byte> bytes = cursor.TakeArray(count, 1, "sig", "uint8");
-                    bytes.CopyTo(elements);
+                    bytes.CopyTo(value.Sig);
                 }
-                value.Sig = elements;
                 placement.CompleteField(cursor.Position);
             }
             // char name[2]
@@ -270,7 +268,8 @@ namespace Demo
         /// <returns>The value.</returns>
         private static Inner ReadInnerFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
         {
-            var value = new Inner();
+            Inner value;
+            global::System.Runtime.CompilerServices.Unsafe.SkipInit(out value);
             FillInnerFixed(source, trimFixedText, ref value);
             return value;
         }

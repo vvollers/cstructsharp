@@ -13,7 +13,7 @@ public enum GeneratedShape
     Class = 0,
 
     /// <summary>
-    ///     A <see langword="struct"/> with settable properties. A fixed array of numbers is a generated inline array type
+    ///     A <see langword="struct"/> of at most 1,024 bytes whose members are public fields. A fixed array of numbers is a generated inline array type
     ///     (<c>InlineArrays.ByteArray4</c>, with <c>AsSpan()</c>, <c>ToArray()</c> and an indexer) instead of a <c>T[]</c>.
     ///     It needs the <see cref="GeneratedSurface.Reader"/> or <see cref="GeneratedSurface.Parser"/> surface and a layout
     ///     that is fixed in size, with no union, conditional member, pointer, runtime-sized array or terminated string;

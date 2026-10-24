@@ -69,8 +69,10 @@ the same failure for the same bytes.
   generated `Parse` and `TryParse` check every constraint of every struct they read, including the elements of an array
   of structs, a pointer's target and the fields of a selected `if`/`switch` arm. A field that is never read (an unselected
   arm) is not checked, and a selected read of one field (`ReadValue<int>(bytes, "root.field")`) reads only that field.
-- **Fast paths.** A struct with a constraint is read member by member, never through the fixed-offset fast paths, so the
-  check cannot be skipped. A layout without constraints pays nothing.
+- **Fast paths.** The runtime reads a struct with a constraint member by member, so no fast path can skip the check. The
+  generated reader keeps its fixed-offset reader for such a struct (when everything else about it is fixed) and checks the
+  conditions in field order right after decoding, with the same failure and offset; a struct that contains a struct with
+  a constraint is read member by member. A layout without constraints pays nothing.
 - **Generated views.** A view decodes lazily and never checks on its own. `Validate()` checks the conditions of the
   view's struct that the view can evaluate (it reads the members they name through the view's properties) and throws the
   reader's failure; a condition that names a member the view does not expose is left to `Parse`.
@@ -91,15 +93,15 @@ struct s { uint8 _ @expect(1); };                  // layout error: padding has 
 ## Check yourself
 
 1. A header says `uint8 version @supports(version == 1)` and the bytes hold `2`. Is the file malformed?
-2. Why does a struct with a constraint skip the fixed-offset fast path?
+2. Why can the generated reader still use its fixed-offset reader for a struct with constraints?
 3. Does `Serialize` reject a value that violates a constraint?
 
 <details>
 <summary>Answers</summary>
 
 1. Not necessarily: `@supports` reports `ConstraintKind.Unsupported`. The same value under `@expect` would be malformed.
-2. The fast path decodes every field without evaluating anything; it would let an invalid value through, so the struct is
-   read member by member.
+2. It decodes the whole struct first and then checks the conditions in field order, so an invalid value never leaves the
+   reader, and the failure is the one a member-by-member read would raise.
 3. No. A constraint checks what a read accepts; a write encodes the value as given.
 
 </details>

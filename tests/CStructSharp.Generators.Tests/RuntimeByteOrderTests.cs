@@ -24,7 +24,9 @@ public class RuntimeByteOrderTests
 
     private const string Consumer = """"
         using System;
+        using System.Buffers;
         using CStructSharp;
+        using CStructSharp.Codecs;
 
         namespace Demo;
 
@@ -43,6 +45,38 @@ public class RuntimeByteOrderTests
         [CStructLayout("struct leaf { uint8 id; }; struct holder { leaf *target; };", Root = "holder", RuntimeByteOrder = true, Surface = GeneratedSurface.Reader, PointerSize = 2)]
         public static partial class ReaderPointers { }
 
+        [CStructLayout("struct leaf { uint16 id; }; struct table { leaf *items[2]; };", Root = "table", RuntimeByteOrder = true, Surface = GeneratedSurface.Reader, PointerSize = 2)]
+        public static partial class ReaderPointerArrays { }
+
+        public sealed class Rgb : ICustomCodec
+        {
+            public string Name => "rgb";
+            public int? FixedSize => 3;
+            public int Alignment => 1;
+
+            public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesConsumed)
+            {
+                value = null;
+                bytesConsumed = 0;
+                if (source.Length < 3) return OperationStatus.NeedMoreData;
+                value = (source[0] << 16) | (source[1] << 8) | source[2];
+                bytesConsumed = 3;
+                return OperationStatus.Done;
+            }
+
+            public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)
+            {
+                bytesWritten = 0;
+                return OperationStatus.InvalidData;
+            }
+        }
+
+        [CStructLayout("struct paint { uint16 n; rgb colour; uint16 m; };", Root = "paint", RuntimeByteOrder = true, Surface = GeneratedSurface.Reader, Codecs = new[] { "rgb:3:1" })]
+        public static partial class ReaderPaint
+        {
+            private static partial System.Collections.Generic.IReadOnlyList<ICustomCodec> CreateCodecs() => new ICustomCodec[] { new Rgb() };
+        }
+
         public static class Probe
         {
             public static object ParseFx(byte[] bytes, bool little) => Demo.ReaderFx.Parse(bytes, little);
@@ -54,6 +88,10 @@ public class RuntimeByteOrderTests
             public static object ParseDy(byte[] bytes, bool little) => Demo.ReaderDy.Parse(bytes, little);
 
             public static object ParsePointers(byte[] bytes, bool little) => Demo.ReaderPointers.Parse(bytes, little);
+
+            public static object ParsePointerArrays(byte[] bytes, bool little) => Demo.ReaderPointerArrays.Parse(bytes, little);
+
+            public static object ParsePaint(byte[] bytes, bool little) => Demo.ReaderPaint.Parse(bytes, little);
 
             public static object[] TryFx(byte[] bytes, bool little)
             {
@@ -274,5 +312,35 @@ public class RuntimeByteOrderTests
         GeneratorResult result = GeneratorRunner.Run(Source, globalOptions: new System.Collections.Generic.Dictionary<string, string> { ["build_property.CStructSharpRuntimeByteOrder"] = "true" }).AssertClean();
         StringAssert.Contains(result.Source, "bool littleEndian");
         Assert.DoesNotContain("bool littleEndian", GeneratorRunner.Run(Source).AssertClean().Source);
+    }
+
+    /// <summary>An array of pointers reads each stored address in the chosen order.</summary>
+    /// <param name="little">The byte order.</param>
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public void PointerArrays_ReadInTheChosenOrder(bool little)
+    {
+        // The bytes of a 16-bit number in the byte order under test.
+        byte[] Number16(ushort value) => little ? [(byte)value, (byte)(value >> 8)] : [(byte)(value >> 8), (byte)value];
+        byte[] bytes = [.. Number16(4), .. Number16(6), .. Number16(0x1234), .. Number16(0x5678)];
+        StructValue expected = Runtime("struct leaf { uint16 id; }; struct table { leaf *items[2]; };", little, pointerSize: 2).Parse(bytes, "table");
+        ParityComparer.AssertSame(expected, Call("ParsePointerArrays", bytes, little), "table", strict: false);
+    }
+
+    /// <summary>A custom codec member reads its bytes the same in both orders while the neutral members around it follow the chosen one.</summary>
+    /// <param name="little">The byte order.</param>
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public void CustomCodec_IsOrderIndependent_AndNeutralMembersFollowTheOrder(bool little)
+    {
+        // The bytes of a 16-bit number in the byte order under test.
+        byte[] Number16(ushort value) => little ? [(byte)value, (byte)(value >> 8)] : [(byte)(value >> 8), (byte)value];
+        byte[] bytes = [.. Number16(0x0102), 0x10, 0x20, 0x30, .. Number16(0x0304)];
+        object paint = Call("ParsePaint", bytes, little);
+        Assert.AreEqual((ushort)0x0102, paint.GetType().GetProperty("N")!.GetValue(paint));
+        Assert.AreEqual((ushort)0x0304, paint.GetType().GetProperty("M")!.GetValue(paint));
+        Assert.AreEqual(0x102030, paint.GetType().GetProperty("Colour")!.GetValue(paint));
     }
 }

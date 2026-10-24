@@ -84,7 +84,9 @@ default of each option the attribute does not name; an option the attribute name
 | `CStructSharpDefaultEnumStorage` | `DefaultEnumStorage` | a type spelling such as `uint32` |
 
 With `CStructSharpSurface` set to `Reader`, a layout that needs writers or `Layout` says `Surface = GeneratedSurface.Full`
-on its own attribute. `Defined` and `Codecs` are per layout and have no project default. A value that does not parse is
+on its own attribute. A default that a surface cannot honor is an error for every layout that uses that surface: with the
+default surface (`Full`), `CStructSharpShape=Struct` is CSG014 and `CStructSharpRuntimeByteOrder=true` is CSG013 for every layout,
+so set `CStructSharpSurface` in the same property group. `Defined` and `Codecs` are per layout and have no project default. A value that does not parse is
 reported as [CSG012](diagnostics.md#csg012---a-cstructsharp-project-property-is-not-valid) and ignored.
 
 ## One layout for both byte orders
@@ -126,13 +128,21 @@ bool sameMagic = entry.Signature.AsSpan().SequenceEqual(magic); // the array liv
 ```
 
 A fixed array of numbers is a generated *inline array* (`InlineArrays.ByteArray4`, `UInt16Array3`, ...): a value-type array
-of a fixed length stored inside the struct, with an indexer, `AsSpan()`, `ToArray()` and `Length`. Text (`char[N]`,
-`utf8[N]`, ...) is still a `string`, which allocates when read. The shape needs the `Reader` or `Parser` surface, because
-a writer, `Update` and `Records` need classes, and a layout of fixed size: numbers, enums, bitfields, nested structs, text
-and one-dimensional fixed arrays of numbers. A union, a conditional member, a pointer, a runtime-sized or multidimensional
-array, an array of structs or enums, a custom codec and a terminated string are reported as
+of a fixed length stored inside the struct, with an indexer, `AsSpan()`, `ToArray()` and `Length`. The members of a value-type
+struct are public fields, not properties, so `entry.Signature[3]` reads in place instead of copying the array. Text
+(`char[N]`, `utf8[N]`, ...) is still a `string`, which allocates when read.
+
+The shape needs the `Reader` or `Parser` surface, because a writer, `Update` and `Records` need classes, and a layout of
+fixed size: numbers, enums, bitfields, nested structs, text and one-dimensional fixed arrays of numbers, in structs of at
+most 1,024 bytes. A union, a conditional member, a pointer, a runtime-sized or multidimensional array, an array of structs
+or enums, a custom codec, a terminated string and a bigger struct are reported as
 [CSG014](diagnostics.md#csg014---a-value-type-shape-is-not-supported-here) with the member that does not fit. The shape works
 with `RuntimeByteOrder`, bitfields and `@expect` constraints.
+
+What a value type saves is allocation, not time: it is copied when it is returned, so a struct of a kilobyte reads about as
+fast as the class (a few tens of nanoseconds slower in a measurement of a 1,000-byte array) and a small one reads at about the
+same speed, with no object for the garbage collector to track. That is also why the shape stops at 1,024 bytes: a bigger value
+is copied on every return and assignment, and a class or a [view](views-and-zero-allocation.md) is the better tool.
 
 ## What the numbers mean
 
