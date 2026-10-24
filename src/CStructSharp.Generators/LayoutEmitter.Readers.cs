@@ -49,7 +49,11 @@ internal sealed partial class LayoutEmitter
     {
         writer.Line();
         writer.Line("private const bool Aligned = " + Bool(this.request.Settings.Aligned) + ";");
-        writer.Line("private const bool LittleEndian = " + Bool(this.request.Settings.LittleEndian) + ";");
+        if (!this.HasRuntimeByteOrder)
+        {
+            writer.Line("private const bool LittleEndian = " + Bool(this.request.Settings.LittleEndian) + ";");
+        }
+
         writer.Line("private const int PointerSize = " + this.request.Settings.PointerSize.ToString(CultureInfo.InvariantCulture) + ";");
         writer.Line("private const bool HighBitFirst = " + Bool(this.compilation.HighBitFirst) + ";");
         writer.Line("private const global::CStructSharp.BitfieldPacking Packing = global::CStructSharp.BitfieldPacking." + this.request.Settings.BitfieldPacking + ";");
@@ -69,14 +73,17 @@ internal sealed partial class LayoutEmitter
             }
         }
 
+        this.UseRuntimeOrder("cursor.LittleEndian");
         foreach (GeneratedComposite composite in this.model.Composites)
         {
             writer.Line();
             this.EmitCompositeReader(writer, composite);
         }
 
+        this.UseRuntimeOrder("littleEndian");
         this.EmitFixedReaders(writer);
         this.EmitBitfieldLeafReaders(writer);
+        this.UseRuntimeOrder("cursor.LittleEndian");
         this.EmitPointerReaders(writer);
         writer.Line();
         writer.Line("/// <summary>Groups a flat element array into rows of <paramref name=\"inner\"/> elements (one nesting level of a multidimensional array).</summary>");
@@ -102,11 +109,12 @@ internal sealed partial class LayoutEmitter
         writer.Line();
         writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from the start of <paramref name=\"source\"/> with the generated reader; the same value, and the same failures, as the runtime's <c>Parse</c>.</summary>");
         writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
+        this.EmitOrderDoc(writer);
         writer.Line(VariablesDoc);
         writer.Line(ReadOptionsDoc);
         writer.Line("/// <returns>The parsed value.</returns>");
-        writer.Open("public static " + name + " " + method + "(global::System.ReadOnlySpan<byte> source, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
-        writer.Line("var cursor = new " + Cursor + "(source, options, " + SourceWriter.Literal(composite.LayoutName) + ");");
+        writer.Open("public static " + name + " " + method + "(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
+        writer.Line("var cursor = new " + Cursor + "(source, options, " + SourceWriter.Literal(composite.LayoutName) + this.CursorOrderArgument + ");");
         writer.Open("try");
         writer.Line("return Read" + name + "(ref cursor, variables, null, null);");
         writer.Close();
@@ -115,14 +123,21 @@ internal sealed partial class LayoutEmitter
         writer.Line("throw;");
         writer.Close();
         writer.Close();
+        this.EmitLimitsParse(writer, composite, isRoot, method);
+        if (this.request.Surface == GenerationSurface.Parser)
+        {
+            this.EmitParserRoot(writer, composite, isRoot, method);
+            return;
+        }
+
         writer.Line();
-        writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.ReadOnlySpan{byte}, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
-        writer.Line("public static " + name + " " + method + "(byte[] source, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
-        writer.Line("    => " + method + "(new global::System.ReadOnlySpan<byte>(source ?? throw new global::System.ArgumentNullException(nameof(source))), variables, options);");
+        writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.ReadOnlySpan{byte}, " + this.OrderCref + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
+        writer.Line("public static " + name + " " + method + "(byte[] source, " + this.OrderParameter + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
+        writer.Line("    => " + method + "(new global::System.ReadOnlySpan<byte>(source ?? throw new global::System.ArgumentNullException(nameof(source))), " + this.OrderArgument + "variables, options);");
         writer.Line();
-        writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.ReadOnlySpan{byte}, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
-        writer.Line("public static " + name + " " + method + "(global::System.ReadOnlyMemory<byte> source, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
-        writer.Line("    => " + method + "(source.Span, variables, options);");
+        writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.ReadOnlySpan{byte}, " + this.OrderCref + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
+        writer.Line("public static " + name + " " + method + "(global::System.ReadOnlyMemory<byte> source, " + this.OrderParameter + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
+        writer.Line("    => " + method + "(source.Span, " + this.OrderArgument + "variables, options);");
         if (this.request.Surface == GenerationSurface.Full)
         {
             this.EmitBufferedParseOverloads(writer, composite);
@@ -131,17 +146,18 @@ internal sealed partial class LayoutEmitter
         if (isRoot)
         {
             writer.Line();
-            writer.Line("/// <summary>Reads the root declaration (<c>" + composite.LayoutName + "</c>); see " + Cref(method + "(global::System.ReadOnlySpan{byte}, " + VariablesCref + ", global::CStructSharp.ReadOptions)") + ".</summary>");
+            writer.Line("/// <summary>Reads the root declaration (<c>" + composite.LayoutName + "</c>); see " + Cref(method + "(global::System.ReadOnlySpan{byte}, " + this.OrderCref + VariablesCref + ", global::CStructSharp.ReadOptions)") + ".</summary>");
             writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
+            this.EmitOrderDoc(writer);
             writer.Line(ReadOptionsDoc);
             writer.Line("/// <returns>The parsed value.</returns>");
-            writer.Line("public static " + name + " Parse(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null) => " + method + "(source, null, options);");
+            writer.Line("public static " + name + " Parse(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + "global::CStructSharp.ReadOptions? options = null) => " + method + "(source, " + this.OrderArgument + "null, options);");
             writer.Line();
-            writer.Line("/// <inheritdoc cref=\"Parse(global::System.ReadOnlySpan{byte}, global::CStructSharp.ReadOptions)\"/>");
-            writer.Line("public static " + name + " Parse(byte[] source, global::CStructSharp.ReadOptions? options = null) => " + method + "(source, null, options);");
+            writer.Line("/// <inheritdoc cref=\"Parse(global::System.ReadOnlySpan{byte}, " + this.OrderCref + "global::CStructSharp.ReadOptions)\"/>");
+            writer.Line("public static " + name + " Parse(byte[] source, " + this.OrderParameter + "global::CStructSharp.ReadOptions? options = null) => " + method + "(source, " + this.OrderArgument + "null, options);");
             writer.Line();
-            writer.Line("/// <inheritdoc cref=\"Parse(global::System.ReadOnlySpan{byte}, global::CStructSharp.ReadOptions)\"/>");
-            writer.Line("public static " + name + " Parse(global::System.ReadOnlyMemory<byte> source, global::CStructSharp.ReadOptions? options = null) => " + method + "(source.Span, null, options);");
+            writer.Line("/// <inheritdoc cref=\"Parse(global::System.ReadOnlySpan{byte}, " + this.OrderCref + "global::CStructSharp.ReadOptions)\"/>");
+            writer.Line("public static " + name + " Parse(global::System.ReadOnlyMemory<byte> source, " + this.OrderParameter + "global::CStructSharp.ReadOptions? options = null) => " + method + "(source.Span, " + this.OrderArgument + "null, options);");
             if (this.request.Surface == GenerationSurface.Full)
             {
                 this.EmitBufferedRootOverloads(writer, composite, method);
@@ -153,6 +169,110 @@ internal sealed partial class LayoutEmitter
         {
             this.EmitRecords(writer, composite, isRoot);
         }
+    }
+
+    /// <summary>
+    ///     Emits the overloads that take the limits as a <c>ReadLimits</c> value: a read governed by them allocates no
+    ///     <c>ReadOptions</c> object, which matters for a reader that parses many small records.
+    /// </summary>
+    /// <param name="writer">The generated source destination.</param>
+    /// <param name="composite">The composite whose typed reader was just emitted.</param>
+    /// <param name="isRoot">Whether the composite is the root declaration.</param>
+    /// <param name="method">The name of the typed span reader (<c>Parse&lt;Name&gt;</c>).</param>
+    private void EmitLimitsParse(SourceWriter writer, GeneratedComposite composite, bool isRoot, string method)
+    {
+        string name = composite.Name;
+        const string Limits = "global::CStructSharp.ReadLimits";
+        writer.Line();
+        writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from the start of <paramref name=\"source\"/> under limits given as a value: the same value and failures as the overload that takes <c>ReadOptions</c>, with no options object to allocate. Pointers keep the default policy.</summary>");
+        writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
+        this.EmitOrderDoc(writer);
+        writer.Line("/// <param name=\"limits\">The limits of the read.</param>");
+        writer.Line(VariablesDoc);
+        writer.Line("/// <returns>The parsed value.</returns>");
+        writer.Open("public static " + name + " " + method + "(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + "in " + Limits + " limits, " + VariablesType + " variables = null)");
+        writer.Line("var cursor = new " + Cursor + "(source, in limits, " + SourceWriter.Literal(composite.LayoutName) + this.CursorOrderArgument + ");");
+        writer.Open("try");
+        writer.Line("return Read" + name + "(ref cursor, variables, null, null);");
+        writer.Close();
+        writer.Open("catch (global::CStructSharp.Diagnostics.CStructException exception)");
+        writer.Line("cursor.Complete(exception);");
+        writer.Line("throw;");
+        writer.Close();
+        writer.Close();
+        if (isRoot)
+        {
+            writer.Line();
+            writer.Line("/// <summary>Reads the root declaration (<c>" + composite.LayoutName + "</c>) under limits given as a value; see " + Cref(method + "(global::System.ReadOnlySpan{byte}, " + this.OrderCref + "in " + Limits + ", " + VariablesCref + ")") + ".</summary>");
+            writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
+            this.EmitOrderDoc(writer);
+            writer.Line("/// <param name=\"limits\">The limits of the read.</param>");
+            writer.Line("/// <returns>The parsed value.</returns>");
+            writer.Line("public static " + name + " Parse(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + "in " + Limits + " limits) => " + method + "(source, " + this.OrderArgument + "in limits, null);");
+        }
+
+        if (this.request.Surface is GenerationSurface.Parser)
+        {
+            return;
+        }
+
+        // The non-throwing form: the failure the throwing form would have raised comes back instead.
+        const string Failure = "global::CStructSharp.Diagnostics.CStructException";
+        string maybeNull = this.UsesValueTypes ? string.Empty : "[global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] ";
+        writer.Line();
+        writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> under limits given as a value without throwing for a read, path, or limit failure: <see langword=\"false\"/> and the failure instead. Cancellation and argument errors throw as in " + Cref(method + "(global::System.ReadOnlySpan{byte}, " + this.OrderCref + "in " + Limits + ", " + VariablesCref + ")") + ".</summary>");
+        writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
+        this.EmitOrderDoc(writer);
+        writer.Line("/// <param name=\"value\">The parsed value, or the default when the read failed.</param>");
+        writer.Line("/// <param name=\"failure\">The failure the throwing form would have raised, or <see langword=\"null\"/>.</param>");
+        writer.Line("/// <param name=\"limits\">The limits of the read.</param>");
+        writer.Line(VariablesDoc);
+        writer.Line("/// <returns>Whether the read succeeded.</returns>");
+        writer.Open("public static bool Try" + method + "(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + maybeNull + "out " + name + " value, out " + Failure + "? failure, in " + Limits + " limits, " + VariablesType + " variables = null)");
+        writer.Open("try");
+        writer.Line("value = " + method + "(source, " + this.OrderArgument + "in limits, variables);");
+        writer.Line("failure = null;");
+        writer.Line("return true;");
+        writer.Close();
+        writer.Open("catch (" + Failure + " exception)");
+        writer.Line(this.UsesValueTypes ? "value = default;" : "value = null;");
+        writer.Line("failure = exception;");
+        writer.Line("return false;");
+        writer.Close();
+        writer.Close();
+        if (isRoot)
+        {
+            writer.Line();
+            writer.Line("/// <summary>Reads the root declaration (<c>" + composite.LayoutName + "</c>) under limits given as a value without throwing; see " + Cref("Try" + method + "(global::System.ReadOnlySpan{byte}, " + this.OrderCref + "out " + name + ", out " + Failure + "?, in " + Limits + ", " + VariablesCref + ")") + ".</summary>");
+            writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
+            this.EmitOrderDoc(writer);
+            writer.Line("/// <param name=\"value\">The parsed value, or the default when the read failed.</param>");
+            writer.Line("/// <param name=\"failure\">The failure the throwing form would have raised, or <see langword=\"null\"/>.</param>");
+            writer.Line("/// <param name=\"limits\">The limits of the read.</param>");
+            writer.Line("/// <returns>Whether the read succeeded.</returns>");
+            writer.Line("public static bool TryParse(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + maybeNull + "out " + name + " value, out " + Failure + "? failure, in " + Limits + " limits) => Try" + method + "(source, " + this.OrderArgument + "out value, out failure, in limits, null);");
+        }
+    }
+
+    /// <summary>Emits the one unnamed root overload the <c>Parser</c> surface keeps beside <c>Parse&lt;Name&gt;</c>.</summary>
+    /// <param name="writer">The generated source destination.</param>
+    /// <param name="composite">The composite whose typed reader was just emitted.</param>
+    /// <param name="isRoot">Whether the composite is the root declaration.</param>
+    /// <param name="method">The name of the typed span reader (<c>Parse&lt;Name&gt;</c>).</param>
+    private void EmitParserRoot(SourceWriter writer, GeneratedComposite composite, bool isRoot, string method)
+    {
+        if (!isRoot)
+        {
+            return;
+        }
+
+        writer.Line();
+        writer.Line("/// <summary>Reads the root declaration (<c>" + composite.LayoutName + "</c>); see " + Cref(method + "(global::System.ReadOnlySpan{byte}, " + this.OrderCref + VariablesCref + ", global::CStructSharp.ReadOptions)") + ".</summary>");
+        writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
+        this.EmitOrderDoc(writer);
+        writer.Line(ReadOptionsDoc);
+        writer.Line("/// <returns>The parsed value.</returns>");
+        writer.Line("public static " + composite.Name + " Parse(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + "global::CStructSharp.ReadOptions? options = null) => " + method + "(source, " + this.OrderArgument + "null, options);");
     }
 
     /// <summary>
@@ -279,29 +399,29 @@ internal sealed partial class LayoutEmitter
             writer.Line(VariablesDoc);
             writer.Line(ReadOptionsDoc);
             writer.Line("/// <returns>Whether the read succeeded.</returns>");
-            writer.Open("public static bool Try" + method + "(" + type + " " + parameter + ", " + MaybeNull + "out " + name + " value, out " + Failure + "? failure, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
+            writer.Open("public static bool Try" + method + "(" + type + " " + parameter + ", " + this.OrderParameter + MaybeNull + "out " + name + " value, out " + Failure + "? failure, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
             writer.Open("try");
-            writer.Line("value = " + method + "(" + parameter + ", variables, options);");
+            writer.Line("value = " + method + "(" + parameter + ", " + this.OrderArgument + "variables, options);");
             writer.Line("failure = null;");
             writer.Line("return true;");
             writer.Close();
             writer.Open("catch (" + Failure + " exception)");
-            writer.Line("value = null;");
+            writer.Line(this.UsesValueTypes ? "value = default;" : "value = null;");
             writer.Line("failure = exception;");
             writer.Line("return false;");
             writer.Close();
             writer.Close();
             writer.Line();
-            writer.Line("/// <inheritdoc cref=\"Try" + method + "(" + type.Replace('<', '{').Replace('>', '}') + ", out " + name + ", out " + Failure.Replace('<', '{').Replace('>', '}') + "?, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
-            writer.Line("public static bool Try" + method + "(" + type + " " + parameter + ", " + MaybeNull + "out " + name + " value, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null) => Try" + method + "(" + parameter + ", out value, out _, variables, options);");
+            writer.Line("/// <inheritdoc cref=\"Try" + method + "(" + type.Replace('<', '{').Replace('>', '}') + ", " + this.OrderCref + "out " + name + ", out " + Failure.Replace('<', '{').Replace('>', '}') + "?, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
+            writer.Line("public static bool Try" + method + "(" + type + " " + parameter + ", " + this.OrderParameter + MaybeNull + "out " + name + " value, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null) => Try" + method + "(" + parameter + ", " + this.OrderArgument + "out value, out _, variables, options);");
             if (isRoot)
             {
                 writer.Line();
-                writer.Line("/// <inheritdoc cref=\"Try" + method + "(" + type.Replace('<', '{').Replace('>', '}') + ", out " + name + ", out " + Failure.Replace('<', '{').Replace('>', '}') + "?, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
-                writer.Line("public static bool TryParse(" + type + " " + parameter + ", " + MaybeNull + "out " + name + " value, out " + Failure + "? failure, global::CStructSharp.ReadOptions? options = null) => Try" + method + "(" + parameter + ", out value, out failure, null, options);");
+                writer.Line("/// <inheritdoc cref=\"Try" + method + "(" + type.Replace('<', '{').Replace('>', '}') + ", " + this.OrderCref + "out " + name + ", out " + Failure.Replace('<', '{').Replace('>', '}') + "?, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
+                writer.Line("public static bool TryParse(" + type + " " + parameter + ", " + this.OrderParameter + MaybeNull + "out " + name + " value, out " + Failure + "? failure, global::CStructSharp.ReadOptions? options = null) => Try" + method + "(" + parameter + ", " + this.OrderArgument + "out value, out failure, null, options);");
                 writer.Line();
-                writer.Line("/// <inheritdoc cref=\"Try" + method + "(" + type.Replace('<', '{').Replace('>', '}') + ", out " + name + ", out " + Failure.Replace('<', '{').Replace('>', '}') + "?, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
-                writer.Line("public static bool TryParse(" + type + " " + parameter + ", " + MaybeNull + "out " + name + " value, global::CStructSharp.ReadOptions? options = null) => Try" + method + "(" + parameter + ", out value, out _, null, options);");
+                writer.Line("/// <inheritdoc cref=\"Try" + method + "(" + type.Replace('<', '{').Replace('>', '}') + ", " + this.OrderCref + "out " + name + ", out " + Failure.Replace('<', '{').Replace('>', '}') + "?, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
+                writer.Line("public static bool TryParse(" + type + " " + parameter + ", " + this.OrderParameter + MaybeNull + "out " + name + " value, global::CStructSharp.ReadOptions? options = null) => Try" + method + "(" + parameter + ", " + this.OrderArgument + "out value, out _, null, options);");
             }
         }
     }
@@ -555,6 +675,7 @@ internal sealed partial class LayoutEmitter
         if (field.BitSize > 0)
         {
             this.EmitBitfield(writer, field, scope, target, inUnion, member, memberType, placement);
+            this.EmitConstraints(writer, field, scope, member, memberType);
             CloseBlock(writer, openBlock);
             return;
         }
@@ -599,6 +720,8 @@ internal sealed partial class LayoutEmitter
             {
                 writer.Line(target + "." + generated.HasFlagName + " = true;");
             }
+
+            this.EmitConstraints(writer, field, scope, member, memberType);
         }
 
         if (!inUnion)
@@ -607,6 +730,129 @@ internal sealed partial class LayoutEmitter
         }
 
         CloseBlock(writer, openBlock);
+    }
+
+    /// <summary>
+    ///     Emits the checks of a field's <c>@expect</c> and <c>@supports</c> conditions, right after its value was read and
+    ///     published, so a condition can name the field and the fields before it: an expression that fails to evaluate is
+    ///     the read's expression failure, and a value outside the condition is a constraint failure.
+    /// </summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="field">The field just read.</param>
+    /// <param name="scope">The expression scope, which has published the field.</param>
+    /// <param name="member">The member-name expression for failures.</param>
+    /// <param name="memberType">The member-type expression for failures.</param>
+    private void EmitConstraints(SourceWriter writer, CompiledField field, ReaderScope scope, string member, string memberType)
+    {
+        if (field.Constraints.IsDefaultOrEmpty)
+        {
+            return;
+        }
+
+        foreach (CompiledConstraint constraint in field.Constraints)
+        {
+            EmitConstraintBlock(writer, field, constraint, scope.Expressions.Emit(constraint.Expression), member, memberType, null);
+        }
+    }
+
+    /// <summary>
+    ///     Emits the check of one condition for a reader, a fixed reader's constraint pass or a view's <c>Validate()</c>:
+    ///     the expression is evaluated in the 128-bit domain and a zero result is a constraint failure. An expression that
+    ///     cannot fail (comparisons of already-read values, logical and bitwise operators) is evaluated without an exception
+    ///     handler; any other is wrapped so its failure is the read's expression failure.
+    /// </summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="field">The constrained field.</param>
+    /// <param name="constraint">The condition.</param>
+    /// <param name="code">The C# expression of the condition, from the expression emitter.</param>
+    /// <param name="member">The member-name expression for failures.</param>
+    /// <param name="memberType">The member-type expression for failures.</param>
+    /// <param name="failurePosition">
+    ///     The C# expression of the cursor position to report when the check fails, or <see langword="null"/> to report the
+    ///     cursor's own (a constraint pass that runs after a whole struct was read reports the end of the checked field).
+    /// </param>
+    private static void EmitConstraintBlock(SourceWriter writer, CompiledField field, CompiledConstraint constraint, string code, string member, string memberType, string? failurePosition)
+    {
+        string context = "constraint '" + constraint.Text + "' of " + field.Name;
+        string kind = constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "Malformed" : "Unsupported";
+        writer.Line("// @" + (constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "expect" : "supports") + "(" + constraint.Text + ")");
+        writer.Open(string.Empty);
+        if (CannotFail(constraint.Expression, code))
+        {
+            writer.Line("global::System.Int128 constraintValue = " + code + ";");
+        }
+        else
+        {
+            writer.Line("global::System.Int128 constraintValue;");
+            writer.Open("try");
+            writer.Line("constraintValue = " + code + ";");
+            writer.Close();
+            writer.Open("catch (global::System.Exception expressionFailure)");
+            if (failurePosition is not null)
+            {
+                writer.Line("cursor.Position = " + failurePosition + ";");
+            }
+
+            writer.Line("throw cursor.FailExpression(expressionFailure, " + SourceWriter.Literal(context) + ", " + member + ", " + memberType + ");");
+            writer.Close();
+        }
+
+        writer.Open("if (constraintValue == 0)");
+        if (failurePosition is not null)
+        {
+            writer.Line("cursor.Position = " + failurePosition + ";");
+        }
+
+        writer.Line("throw cursor.FailConstraint(global::CStructSharp.Diagnostics.ConstraintKind." + kind + ", " + SourceWriter.Literal(constraint.Text) + ", " + SourceWriter.Literal(field.Name) + ", " + member + ", " + memberType + ");");
+        writer.Close();
+        writer.Close();
+    }
+
+    /// <summary>A call in emitted expression code that can throw: checked arithmetic, a shift, or a checked conversion.</summary>
+    private static readonly System.Text.RegularExpressions.Regex FallibleCall = new(
+        "Expressions\\.(Add|Subtract|Multiply|Divide|Modulo|Negate|ShiftLeft|ShiftRight|FromUInt128|OutOfRangeConstant|OutOfRangeLiteral)\\(",
+        System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    /// <summary>
+    ///     Whether evaluating a condition cannot raise an expression failure: its tree uses only comparisons, logical and
+    ///     bitwise operators and <c>?:</c> (no arithmetic that can overflow, divide by zero or shift out of range) and the
+    ///     emitted code reads only values that exist (no undefined, non-integer or caller-supplied identifier).
+    /// </summary>
+    /// <param name="expression">The condition.</param>
+    /// <param name="code">The C# expression emitted for it.</param>
+    /// <returns>Whether the evaluation needs no exception handler.</returns>
+    private static bool CannotFail(Syntax.Expr expression, string code)
+    {
+        if (code.Contains("Expressions.Undefined(") || code.Contains("Expressions.NotAnInteger(") || System.Text.RegularExpressions.Regex.IsMatch(code, "Expressions\\.Variable\\(variables, \"[^\"]*\"\\)"))
+        {
+            return false;
+        }
+
+        // An identifier is only a name in the tree; the emitted code shows what it stands for. A dependent #define expands to
+        // its own expression (which can divide by zero or overflow) and a 128-bit unsigned member or an out-of-range
+        // constant converts with a check, so any such call keeps the handler.
+        if (FallibleCall.IsMatch(code))
+        {
+            return false;
+        }
+
+        switch (expression)
+        {
+        case Syntax.Literal:
+        case Syntax.Identifier:
+            return true;
+        case Syntax.UnaryOp unary:
+            return unary.Type is Syntax.UnaryOperatorType.LogicalNot or Syntax.UnaryOperatorType.Complement && CannotFail(unary.Expr, string.Empty);
+        case Syntax.BinaryOp binary:
+            return binary.Type is Syntax.BinaryOperatorType.LogicalAnd or Syntax.BinaryOperatorType.LogicalOr or Syntax.BinaryOperatorType.Equal or Syntax.BinaryOperatorType.NotEqual
+                       or Syntax.BinaryOperatorType.Less or Syntax.BinaryOperatorType.LessOrEqual or Syntax.BinaryOperatorType.Greater or Syntax.BinaryOperatorType.GreaterOrEqual
+                       or Syntax.BinaryOperatorType.And or Syntax.BinaryOperatorType.Or or Syntax.BinaryOperatorType.Xor
+                   && CannotFail(binary.Left, string.Empty) && CannotFail(binary.Right, string.Empty);
+        case Syntax.ConditionalExpr conditional:
+            return CannotFail(conditional.Condition, string.Empty) && CannotFail(conditional.WhenTrue, string.Empty) && CannotFail(conditional.WhenFalse, string.Empty);
+        default:
+            return false;
+        }
     }
 
     /// <summary>
@@ -714,11 +960,11 @@ internal sealed partial class LayoutEmitter
         }
         else
         {
-            writer.Line("var slot = " + placement + ".AdvanceToBitfield(" + Int(declaredSize) + ", " + Int(field.Alignment) + ", " + Int(field.BitSize) + ", " + Int(field.BitRunBits) + ", " + Bool(littleEndian) + ", " + member + ");");
+            writer.Line("var slot = " + placement + ".AdvanceToBitfield(" + Int(declaredSize) + ", " + Int(field.Alignment) + ", " + Int(field.BitSize) + ", " + Int(field.BitRunBits) + ", " + this.EndianExpression(field, littleEndian) + ", " + member + ");");
             writer.Line("cursor.Seek(slot.UnitStart, " + member + ", " + memberType + ");");
         }
 
-        writer.Line("ulong unit = " + CodecClass + ".ReadUnsigned(cursor.Take(slot.UnitSize, " + member + ", " + memberType + "), " + Bool(littleEndian) + ");");
+        writer.Line("ulong unit = " + CodecClass + ".ReadUnsigned(cursor.Take(slot.UnitSize, " + member + ", " + memberType + "), " + this.EndianExpression(field, littleEndian) + ");");
         writer.Open("if (slot.BitOffset + " + Int(field.BitSize) + " > slot.UnitSize * 8)");
         writer.Line("throw cursor.Fail(" + SourceWriter.Literal(LayoutFailures.BitfieldExceedsUnit(field.Name)) + ", " + member + ", " + memberType + ");");
         writer.Close();
@@ -894,29 +1140,36 @@ internal sealed partial class LayoutEmitter
 
         if (generated.Enum is not null)
         {
-            return "(" + generated.Enum.Name + ")" + NumericRead(field.Codec, member, memberType);
+            return "(" + generated.Enum.Name + ")" + NumericRead(field.Codec, member, memberType, this.EndianOf(field));
         }
 
         return this.PrimitiveRead(field, member, memberType);
     }
 
+    /// <summary>The expression that reads one primitive of a field at the cursor, in the field's own byte order unless the layout chooses it at read time.</summary>
+    /// <param name="field">The field.</param>
+    /// <param name="member">The member-name expression for failures.</param>
+    /// <param name="memberType">The member-type expression for failures.</param>
+    /// <returns>The read expression.</returns>
     private string PrimitiveRead(CompiledField field, string member, string memberType)
-        => this.PrimitiveRead(field.Codec, field.Type.Symbol.Name, member, memberType);
+        => this.PrimitiveRead(field.Codec, field.Type.Symbol.Name, member, memberType, field.CodecName);
 
     /// <summary>The expression that reads one primitive at the cursor: text, an identifier, a LEB128 or fixed-point number, a custom codec's value, or a fixed-width numeric.</summary>
     /// <param name="codec">The codec.</param>
     /// <param name="typeName">The layout type name, which selects a custom codec's instance.</param>
     /// <param name="member">The member-name expression for failures.</param>
     /// <param name="memberType">The member-type expression for failures.</param>
+    /// <param name="codecName">The field's codec spelling, which decides whether its byte order is chosen at read time; <see langword="null"/> keeps the codec's own order.</param>
     /// <returns>The read expression.</returns>
-    private string PrimitiveRead(PrimitiveCodec codec, string typeName, string member, string memberType)
+    private string PrimitiveRead(PrimitiveCodec codec, string typeName, string member, string memberType, string? codecName = null)
     {
+        string? endian = this.EndianOfName(codecName);
         switch (codec.Kind)
         {
         case PrimitiveCodecKind.TerminatedAscii:
         case PrimitiveCodecKind.TerminatedUtf8:
         case PrimitiveCodecKind.TerminatedUtf16:
-            return "cursor.TakeTerminatedString(" + TerminatedEncoding(codec) + ", " + CharLiteral(codec.Terminator) + ", " + member + ", " + memberType + ")";
+            return "cursor.TakeTerminatedString(" + this.TerminatedEncoding(codec, codecName) + ", " + CharLiteral(codec.Terminator) + ", " + member + ", " + memberType + ")";
         case PrimitiveCodecKind.Uuid:
             return "cursor.TakeGuid(true, " + member + ", " + memberType + ")";
         case PrimitiveCodecKind.Guid:
@@ -933,21 +1186,30 @@ internal sealed partial class LayoutEmitter
         case PrimitiveCodecKind.UFixed16_16:
         case PrimitiveCodecKind.Fixed2_30:
         case PrimitiveCodecKind.UFixed8_8:
-            return FixedPointDecode(codec, "cursor.Take(" + Int(codec.Size) + ", " + member + ", " + memberType + ")");
+            return FixedPointDecode(codec, "cursor.Take(" + Int(codec.Size) + ", " + member + ", " + memberType + ")", endian);
         case PrimitiveCodecKind.Custom:
             return "cursor.TakeCustom(CodecInstances.Value[" + Int(this.CodecIndex(typeName)) + "], " + member + ", " + memberType + ")";
         default:
-            return NumericRead(codec, member, memberType);
+            return NumericRead(codec, member, memberType, endian);
         }
     }
 
     /// <summary>The expression that decodes one fixed-width numeric value (including the single-byte character units and wide integers).</summary>
-    private static string NumericRead(PrimitiveCodec codec, string member, string memberType)
-        => NumericDecode(codec, "cursor.Take(" + Int(codec.Size) + ", " + member + ", " + memberType + ")");
+    private static string NumericRead(PrimitiveCodec codec, string member, string memberType, string? endian = null)
+        => NumericDecode(codec, "cursor.Take(" + Int(codec.Size) + ", " + member + ", " + memberType + ")", endian);
 
-    private static string TerminatedEncoding(PrimitiveCodec codec)
+    /// <summary>The terminated-string encoding of a codec: fixed by the codec, or (for a neutral UTF-16 spelling when the byte order is chosen at read time) picked by the run-time order.</summary>
+    /// <param name="codec">The terminated-string codec.</param>
+    /// <param name="codecName">The codec spelling, which decides whether the order is chosen at read time.</param>
+    /// <returns>The C# expression of the <c>TerminatedTextEncoding</c>.</returns>
+    private string TerminatedEncoding(PrimitiveCodec codec, string? codecName = null)
     {
         const string T = "global::CStructSharp.Generated.TerminatedTextEncoding.";
+        if (codec.Kind == PrimitiveCodecKind.TerminatedUtf16 && this.EndianOfName(codecName) is { } endian)
+        {
+            return "(" + endian + " ? " + T + "Utf16LittleEndian : " + T + "Utf16BigEndian)";
+        }
+
         return codec.Kind switch
         {
             PrimitiveCodecKind.TerminatedAscii => T + "Ascii",

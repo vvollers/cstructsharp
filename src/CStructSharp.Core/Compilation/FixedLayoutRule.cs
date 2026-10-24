@@ -12,13 +12,19 @@ internal static class FixedLayoutRule
     public const int MaximumNestingDepth = 64;
 
     /// <summary>
-    ///     Returns whether a composite can have a fixed layout: a struct (not a union) with a fixed size and no
-    ///     conditional members of its own.
+    ///     Returns whether a composite can have a fixed layout: a struct (not a union) with a fixed size, no
+    ///     conditional members of its own, and no <c>@expect</c> or <c>@supports</c> condition (only the member-by-member
+    ///     reader checks those).
     /// </summary>
     /// <param name="composite">The compiled composite.</param>
+    /// <param name="allowConstraints">
+    ///     Whether a composite with <c>@expect</c> or <c>@supports</c> conditions still qualifies: the generated fixed reader
+    ///     decodes it and then checks the conditions in a separate pass, and the runtime's layout plan keeps it for writes
+    ///     (flagging it so no read uses it); the other fast paths cannot check conditions and leave it to the member-by-member reader.
+    /// </param>
     /// <returns>Whether the composite itself qualifies; each member still needs <see cref="IsFixedMember"/>.</returns>
-    public static bool IsFixedComposite(CompiledCompositeType composite)
-        => !composite.IsUnion && composite.Symbol.FixedSize is not null && !composite.HasDirectConditionalFields;
+    public static bool IsFixedComposite(CompiledCompositeType composite, bool allowConstraints = false)
+        => !composite.IsUnion && composite.Symbol.FixedSize is not null && !composite.HasDirectConditionalFields && (allowConstraints || !composite.HasConstraints);
 
     /// <summary>
     ///     Returns whether a member can be read by offset: placed at a build-time offset (so the layout already checked

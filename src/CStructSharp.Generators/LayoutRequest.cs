@@ -28,14 +28,58 @@ internal sealed record LayoutRequest(
     LayoutSettings Settings,
     bool KeepNames,
     bool Views,
+    bool Enumerators,
+    bool RuntimeByteOrder,
+    bool ValueTypes,
     GenerationSurface Surface,
     SourceSpan AttributeSpan,
     SourceSpan? DefinitionSpan,
     DefinitionLiteralShape DefinitionLiteral,
     string LanguageVersion,
     EquatableArray<string> TypesWithConstructors,
-    EquatableArray<string> ConsumerDeclaredTypes)
+    EquatableArray<string> ConsumerDeclaredTypes,
+    EquatableArray<string> ExplicitArguments)
 {
+    /// <summary>
+    ///     Applies the project's defaults to every option the attribute did not name: the attribute's own arguments
+    ///     (<see cref="ExplicitArguments"/>) always win, then the project's, then the library's.
+    /// </summary>
+    /// <param name="defaults">The project defaults read from the build properties.</param>
+    /// <returns>The request with the effective options; this instance when the project sets none.</returns>
+    public LayoutRequest WithDefaults(LayoutDefaults defaults)
+    {
+        if (defaults == LayoutDefaults.None)
+        {
+            return this;
+        }
+
+        // Whether the attribute named this option, so the project's default must not replace it.
+        bool Named(string name)
+        {
+            foreach (string argument in this.ExplicitArguments)
+            {
+                if (argument == name)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        LayoutSettings settings = this.Settings.WithDefaults(defaults, Named);
+        return this with
+        {
+            Settings = settings,
+            KeepNames = Named("KeepNames") ? this.KeepNames : defaults.KeepNames ?? this.KeepNames,
+            Views = Named("Views") ? this.Views : defaults.Views ?? this.Views,
+            Enumerators = Named("Enumerators") ? this.Enumerators : defaults.Enumerators ?? this.Enumerators,
+            RuntimeByteOrder = Named("RuntimeByteOrder") ? this.RuntimeByteOrder : defaults.RuntimeByteOrder ?? this.RuntimeByteOrder,
+            ValueTypes = Named("Shape") ? this.ValueTypes : defaults.ValueTypes ?? this.ValueTypes,
+            Surface = Named("Surface") ? this.Surface : defaults.Surface ?? this.Surface,
+        };
+    }
+
     /// <summary>The generated file's hint name: unique per attributed class.</summary>
     public string HintName
     {

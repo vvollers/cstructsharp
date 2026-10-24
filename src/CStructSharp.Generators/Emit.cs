@@ -102,9 +102,10 @@ internal static class Emit
     /// <summary>The expression decoding one fixed-width numeric (including one-byte characters and wide integers).</summary>
     /// <param name="codec">The codec.</param>
     /// <param name="span">An expression for exactly the value's bytes.</param>
+    /// <param name="endian">The C# expression of the byte order when it is chosen at run time, or <see langword="null"/> for the codec's own.</param>
     /// <returns>The decode expression.</returns>
     /// <exception cref="InvalidOperationException">The codec is not a fixed-width numeric.</exception>
-    public static string NumericDecode(PrimitiveCodec codec, string span)
+    public static string NumericDecode(PrimitiveCodec codec, string span, string? endian = null)
     {
         if (IsPlainByte(codec.Kind))
         {
@@ -117,7 +118,7 @@ internal static class Emit
             PrimitiveCodecKind.Bool => span + "[0] != 0",
             PrimitiveCodecKind.Char => "(char)" + span + "[0]",
             _ => NumericSuffix(codec.Kind) is { } suffix
-                     ? CodecClass + ".Read" + suffix + "(" + span + ", " + Bool(codec.LittleEndian) + ")"
+                     ? CodecClass + ".Read" + suffix + "(" + span + ", " + (endian ?? Bool(codec.LittleEndian)) + ")"
                      : throw new InvalidOperationException("Codec is not a fixed-width numeric: " + codec.Kind),
         };
     }
@@ -161,12 +162,13 @@ internal static class Emit
     /// <summary>The expression decoding one fixed-point value.</summary>
     /// <param name="codec">A fixed-point codec.</param>
     /// <param name="span">An expression for exactly the value's bytes.</param>
+    /// <param name="endian">The C# expression of the byte order when it is chosen at run time, or <see langword="null"/> for the codec's own.</param>
     /// <returns>The decode expression.</returns>
     /// <exception cref="InvalidOperationException">The codec is not fixed point.</exception>
-    public static string FixedPointDecode(PrimitiveCodec codec, string span)
+    public static string FixedPointDecode(PrimitiveCodec codec, string span, string? endian = null)
     {
         (int width, int fraction, bool signed) = FixedPoint(codec.Kind) ?? throw new InvalidOperationException("Codec is not fixed point: " + codec.Kind);
-        return CodecClass + ".DecodeFixedPoint(" + CodecClass + (signed ? ".ReadInt" : ".ReadUInt") + Int(width) + "(" + span + ", " + Bool(codec.LittleEndian) + "), " + Int(fraction) + ")";
+        return CodecClass + ".DecodeFixedPoint(" + CodecClass + (signed ? ".ReadInt" : ".ReadUInt") + Int(width) + "(" + span + ", " + (endian ?? Bool(codec.LittleEndian)) + "), " + Int(fraction) + ")";
     }
 
     /// <summary>
@@ -219,10 +221,11 @@ internal static class Emit
     /// <param name="elementType">The C# element type.</param>
     /// <param name="bytes">An expression for exactly the array's bytes.</param>
     /// <param name="elements">The expression holding the destination array.</param>
+    /// <param name="endian">The C# expression of the byte order when it is chosen at run time, or <see langword="null"/> for the codec's own.</param>
     /// <returns>The decode statement.</returns>
-    public static string BulkDecode(PrimitiveCodec codec, string elementType, string bytes, string elements)
+    public static string BulkDecode(PrimitiveCodec codec, string elementType, string bytes, string elements, string? endian = null)
     {
-        string le = Bool(codec.LittleEndian);
+        string le = endian ?? Bool(codec.LittleEndian);
         return codec.Kind switch
         {
             PrimitiveCodecKind.UInt8 => bytes + ".CopyTo(" + elements + ");",

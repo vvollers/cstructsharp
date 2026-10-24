@@ -117,6 +117,11 @@ internal sealed partial class LayoutCompilation
 
         AddReferences(field.BitSizeExpression, ref referenced, ref pending);
         AddReferences(field.PointerCountExpression, ref referenced, ref pending);
+        foreach (FieldConstraint constraint in field.Constraints)
+        {
+            AddReferences(constraint.Expression, ref referenced, ref pending);
+        }
+
         IReadOnlyList<ConditionalBranch> branches = field.BranchConditions;
         for (int index = 0; index < branches.Count; index++)
         {

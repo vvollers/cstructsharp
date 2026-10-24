@@ -68,6 +68,7 @@ internal sealed class WriteProgramBuilder : ProgramBuilder<WriteStep, WriteProgr
         StructuralStep.Seek => this.Emit(WriteOpCode.Seek, field, a, b),
         StructuralStep.Align => this.Emit(WriteOpCode.Align, field, a, b),
         StructuralStep.CheckOffset => this.Emit(WriteOpCode.CheckOffset, field, a, b),
+        StructuralStep.CheckConstraint => -1,
         StructuralStep.FinishPlaced => this.Emit(WriteOpCode.FinishPlaced, field, a, b),
         _ => this.Emit(WriteOpCode.FinishComposite, field, a, b),
     };

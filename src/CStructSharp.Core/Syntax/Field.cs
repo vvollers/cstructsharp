@@ -120,6 +120,12 @@ internal class Field : CStructElement
     /// </summary>
     internal Expr? PointerCountExpression { get; init; }
 
+    /// <summary>
+    ///     The <c>@expect(...)</c> and <c>@supports(...)</c> conditions written after this declarator, in order; empty when
+    ///     there are none.
+    /// </summary>
+    internal System.Collections.Immutable.ImmutableArray<FieldConstraint> Constraints { get; init; } = System.Collections.Immutable.ImmutableArray<FieldConstraint>.Empty;
+
     /// <summary>The width expression for an evaluated width: none for 0 without a <c>:</c>, otherwise the literal.</summary>
     /// <param name="bitSize">The width in bits.</param>
     /// <param name="hasBitfieldDeclarator">Whether the declarator carries a <c>: width</c> (a <c>: 0</c> separator does).</param>

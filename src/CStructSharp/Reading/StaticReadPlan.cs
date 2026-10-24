@@ -20,9 +20,12 @@ internal sealed class StaticReadPlan
     /// <param name="operations">Named field reads at offsets relative to the composite start.</param>
     /// <param name="hasUnnamedPadding">Whether omitted padding needs explicit zero writes and budget checks.</param>
     /// <param name="maximumPaddingArrayCount">The largest omitted padding array's total element count, or zero.</param>
-    public StaticReadPlan(int size, StaticReadOperation[] operations, bool hasUnnamedPadding, int maximumPaddingArrayCount)
+    /// <param name="hasConstraints">Whether the composite, a promoted member or a nested struct carries an <c>@expect</c> or <c>@supports</c> condition.</param>
+    public StaticReadPlan(int size, StaticReadOperation[] operations, bool hasUnnamedPadding, int maximumPaddingArrayCount, bool hasConstraints)
     {
         this.Size = size;
+        this.HasConstraints = hasConstraints;
+        this.HasNestedOperations = System.Array.Exists(operations, operation => operation.NestedPlan is not null);
         this.Operations = operations;
         int depth = 1;
         int arrayCount = maximumPaddingArrayCount;
@@ -84,6 +87,16 @@ internal sealed class StaticReadPlan
         this.ChargedAlignedBytes = checked((int)(chargedAligned + (size - lastFieldEnd)));
     }
 
+    /// <summary>
+    ///     Whether the composite, a promoted member or a nested struct carries an <c>@expect</c> or <c>@supports</c> condition.
+    ///     The plan decodes such a composite correctly but evaluates no condition, so only a write may use it:
+    ///     <see cref="CompiledCompositeType.StaticPlan"/> hides it from every read.
+    /// </summary>
+    public bool HasConstraints { get; }
+
+    /// <summary>Whether any operation reads a nested struct (or an array of them), whose members a condition could name.</summary>
+    public bool HasNestedOperations { get; }
+
     /// <summary>Whether every field has a span writer; character buffers and unnamed padding are written member by member.</summary>
     public bool SupportsWrite { get; }
 
@@ -111,12 +124,15 @@ internal sealed class StaticReadPlan
     /// </summary>
     public StaticReadOperation[] Operations { get; }
 
-    /// <summary>Builds the plan for <paramref name="composite"/>, or returns null when any member must be read member by member.</summary>
+    /// <summary>
+    ///     Builds the plan for <paramref name="composite"/>, or returns null when any member must be read member by member.
+    ///     A composite with conditions still gets a plan, flagged by <see cref="HasConstraints"/>, so a write keeps its fast path.
+    /// </summary>
     /// <param name="composite">The compiled composite whose offsets are relative to its own start.</param>
     /// <returns>A fixed-offset read plan, or null when the composite is read member by member.</returns>
     public static StaticReadPlan? TryBuild(CompiledCompositeType composite)
     {
-        if (!FixedLayoutRule.IsFixedComposite(composite) || composite.Symbol.FixedSize is not int size)
+        if (!FixedLayoutRule.IsFixedComposite(composite, allowConstraints: true) || composite.Symbol.FixedSize is not int size)
         {
             return null;
         }
@@ -124,8 +140,9 @@ internal sealed class StaticReadPlan
         var operations = new List<StaticReadOperation>();
         bool hasUnnamedPadding = false;
         int maximumPaddingArrayCount = 0;
-        return TryAppend(composite, composite.Shape, 0, operations, 0, ref hasUnnamedPadding, ref maximumPaddingArrayCount)
-            ? new StaticReadPlan(size, operations.ToArray(), hasUnnamedPadding, maximumPaddingArrayCount)
+        bool hasConstraints = false;
+        return TryAppend(composite, composite.Shape, 0, operations, 0, System.Array.Empty<int>(), ref hasUnnamedPadding, ref maximumPaddingArrayCount, ref hasConstraints)
+            ? new StaticReadPlan(size, operations.ToArray(), hasUnnamedPadding, maximumPaddingArrayCount, hasConstraints)
             : null;
     }
 
@@ -135,18 +152,25 @@ internal sealed class StaticReadPlan
     /// <param name="baseOffset">The composite start in bytes relative to the plan's root.</param>
     /// <param name="operations">The operation list extended on success; discarded by callers on failure.</param>
     /// <param name="depth">The number of enclosing composite levels.</param>
+    /// <param name="holderPath">The member indexes of the anonymous structs between the plan's root and <paramref name="composite"/>.</param>
     /// <param name="hasUnnamedPadding">Set when this flattened operation list omits explicit padding.</param>
     /// <param name="maximumPaddingArrayCount">Tracks array limits for omitted storage in this flattened operation list.</param>
+    /// <param name="hasConstraints">Set when this composite or any promoted member flattened into it carries a condition.</param>
     /// <returns>Whether every field can be read through a fixed operation.</returns>
-    private static bool TryAppend(CompiledCompositeType composite, StructShape shape, int baseOffset, List<StaticReadOperation> operations, int depth, ref bool hasUnnamedPadding, ref int maximumPaddingArrayCount)
+    private static bool TryAppend(CompiledCompositeType composite, StructShape shape, int baseOffset, List<StaticReadOperation> operations, int depth, int[] holderPath, ref bool hasUnnamedPadding, ref int maximumPaddingArrayCount, ref bool hasConstraints)
     {
         if (depth > FixedLayoutRule.MaximumNestingDepth || composite.HasDirectConditionalFields)
         {
             return false;
         }
 
+        // A promoted member is flattened into the parent's operations, so its conditions are the parent's too.
+        hasConstraints |= composite.HasConstraints;
+
+        int memberIndex = -1;
         foreach (CompiledField field in composite.Fields)
         {
+            memberIndex++;
             Field declaration = field.Declaration;
             if (!FixedLayoutRule.IsFixedMember(field) || field.FixedOffset is not int offset)
             {
@@ -172,7 +196,7 @@ internal sealed class StaticReadPlan
             {
                 // An anonymous promoted member reads its fields into the parent's own slots.
                 if (field.Type.Symbol.Definition is not CompiledCompositeType promoted || promoted.Symbol.Declaration is Struct { IsUnion: true } ||
-                    !TryAppend(promoted, shape, absoluteOffset, operations, depth + 1, ref hasUnnamedPadding, ref maximumPaddingArrayCount))
+                    !TryAppend(promoted, shape, absoluteOffset, operations, depth + 1, [.. holderPath, memberIndex], ref hasUnnamedPadding, ref maximumPaddingArrayCount, ref hasConstraints))
                 {
                     return false;
                 }
@@ -192,11 +216,13 @@ internal sealed class StaticReadPlan
                     // The nested struct's own cached plan: built once per composite, shared by every struct that holds it.
                     if (field.Type.Symbol.Definition is not CompiledCompositeType nested ||
                         nested.Symbol.Declaration is not Struct { IsUnion: false } nestedDeclaration || nested.Symbol.FixedSize is not int nestedSize ||
-                        nested.StaticPlan is not { } nestedPlan || depth + nestedPlan.NestingDepth > FixedLayoutRule.MaximumNestingDepth)
+                        nested.LayoutPlan is not { } nestedPlan || depth + nestedPlan.NestingDepth > FixedLayoutRule.MaximumNestingDepth)
                     {
                         return false;
                     }
 
+                    // The nested plan may be flagged; its conditions belong to this plan as well.
+                    hasConstraints |= nestedPlan.HasConstraints;
                     if (field.Array.Kind == CompiledArrayKind.Scalar)
                     {
                         operations.Add(new StaticReadOperation(StaticReadKind.Nested, slot, absoluteOffset, field, nestedDeclaration, nested, nestedPlan));
@@ -257,6 +283,10 @@ internal sealed class StaticReadPlan
 
                 break;
             }
+
+            // The read program of the composite that declares the field holds its checks, found by this index and path.
+            operations[^1].MemberIndex = memberIndex;
+            operations[^1].HolderPath = holderPath;
         }
 
         return true;

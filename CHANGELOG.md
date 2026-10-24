@@ -8,6 +8,96 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ## Unreleased
 
+## 0.14.0 — 2026-10-24
+
+This minor release adds field constraints (`@expect` and `@supports`), run-time byte order, value-type structs, a
+`ReadLimits` value, and project-wide generator defaults. It has one source-breaking change: a call that passes the
+`default` literal as the options argument of a generated `Parse` no longer compiles; see *Breaking changes*.
+
+### Breaking changes
+
+- **Breaking (source):** every generated `Parse`, `Parse<Name>` and `TryParse` over a span has a new overload that takes
+  `in ReadLimits`, so a call that passes the `default` literal as the options argument (`Parse(bytes, default)`) no longer
+  compiles (CS0121: `default` converts to both `ReadOptions?` and `ReadLimits`). Migration: pass `null` (the defaults),
+  `new ReadLimits()`, or name the argument (`Parse(bytes, options: default)`).
+
+### Added
+
+- **Project-wide defaults for the generator.** The build properties `CStructSharpSurface`, `CStructSharpViews`,
+  `CStructSharpKeepNames`, `CStructSharpAligned`, `CStructSharpLittleEndian`, `CStructSharpPointerSize`,
+  `CStructSharpBitfieldPacking`, `CStructSharpBitfieldAllocation`, `CStructSharpCLongWidth` and
+  `CStructSharpDefaultEnumStorage` set the default of each `[CStructLayout]` option the attribute does not name; an
+  option the attribute names keeps its own value. A project of hundreds of layouts sets
+  `<CStructSharpSurface>Reader</CStructSharpSurface>` once instead of editing every attribute, and a new layout cannot
+  silently grow to the full surface. The new warning CSG012 reports a property value that does not parse, which is then
+  ignored. The analyzer and `[CStructMapped]` layout resolution see the same defaults.
+- **A smaller reader surface.** `GeneratedSurface.Parser` generates the typed classes, one `Parse<Name>` over a
+  `ReadOnlySpan<byte>` per declaration and the unnamed root `Parse`, the `Sizes` and `Offsets` constants and the views,
+  and leaves out `TryParse`, the array and `ReadOnlyMemory` overloads, and the `Definition` and `RootName` constants. A
+  project that parses with `Parse(span, options)` everywhere generates about 45% less than with the `Reader` surface for a
+  small layout.
+- **View enumerators on every surface.** `Enumerators = true` (project default `CStructSharpEnumerators`) gives the views
+  of fixed-size structs on the `Reader`, `Parser` and `Views` surfaces the same allocation-free `foreach` enumerator
+  (`RootView.Enumerate`) that the full surface always has; it is off by default there because it adds code to every
+  fixed-size struct. On those surfaces `Enumerate` returns the enumerator itself (`RootViewEnumerator`, its own `foreach`
+  source), one generated type instead of two.
+- **Views over arrays of structs.** A view exposes an array of fixed-size structs or unions, fixed or runtime-sized, as
+  `Entries(i)`, a nested view of element `i` at the element's stride, plus `EntriesBytes`; structs with bitfields work as
+  elements (`view.Entries(i).Compressed`), the members after a runtime-sized array of structs find their offset, and
+  an element past the source fails with the reader's short-read message naming the array.
+- **Views take caller variables.** When a runtime-sized array's count uses a name the layout does not define, or a
+  `#define` the caller may override, the layout's views (and their enumerators) take the values as an optional third
+  argument and evaluate the count with them as the reader does; such an array, and the members after it, were hidden
+  before. `ToObject()` reads with the variables the view carries.
+- **Limits as a value.** The new `ReadLimits` struct holds the array, string, total-byte and nesting limits,
+  `TrimFixedText`, `InvalidText` and the cancellation token (its zeroed value has the defaults), and every generated
+  `Parse` and `Parse<Name>` over a span has an overload that takes it, so a reader that parses many small records no
+  longer allocates a `ReadOptions` (88 bytes) per call. `ReadLimits.From(options)` and `ToOptions()` convert between the
+  two; the pointer policy keeps its defaults. The non-throwing `TryParse` forms take limits too.
+- **Run-time byte order.** `[CStructLayout(RuntimeByteOrder = true)]` (project default `CStructSharpRuntimeByteOrder`)
+  generates one layout that reads both byte orders: every `Parse`, `Parse<Name>` and `TryParse`, and every view
+  constructor and `Enumerate`, takes a `bool littleEndian` after the source, and a neutral value (one spelled without
+  a `<` or `>` suffix) is decoded in that order, including bitfield storage, fixed-point values, wide characters,
+  terminated UTF-16 strings and pointer addresses, while an explicit suffix keeps its own. It replaces a pair of
+  layouts that differ only in `LittleEndian`. It needs a reader surface and a layout whose bitfields sit in the same
+  place in both orders; anything else is the new error CSG013. `ReadCursor.LittleEndian` exposes the order to generated
+  code.
+- **Field constraints in the layout language.** A declarator can carry `@expect(condition)` and `@supports(condition)`
+  suffixes (any number, in any order among the other suffixes): the condition is an integer expression that may name the
+  field itself, earlier fields, `#define` constants, enum members and caller variables, and a read fails when it
+  evaluates to zero. A value outside `@expect` is malformed data and one outside `@supports` is unsupported data; the
+  new `CStructConstraintException` (a `CStructReadException` with the code `ReadFailed`) carries `Kind`
+  (`ConstraintKind.Malformed` or `Unsupported`), the `Constraint` text, the field and the offset. The runtime layout,
+  every generated reader and a generated view's new `Validate()` report the same failure. A fixed struct with
+  constraints on its own or its anonymous struct members' fields is decoded by its fixed-offset plan with each condition checked right after its field,
+  so no fast path can skip one (a constraint in a nested struct or an anonymous union keeps the struct on the member-by-member
+  reader), and writes ignore constraints and keep the fixed-offset writer. A whole root read from memory is decoded
+  directly and its conditions checked without the engine; a failing condition re-reads the root through the engine, which
+  raises the failure. A constraint on a union member,
+  padding or an unnamed bitfield is a layout error. A generated reader keeps its fixed-offset reader for a struct with
+  constraints and checks them in field order after decoding, and a condition that cannot fail (comparisons, logical
+  and bitwise operators) is evaluated without an exception handler.
+- **Value-type structs.** `[CStructLayout(Shape = GeneratedShape.Struct)]` (project default `CStructSharpShape`) generates
+  every struct of a fixed-size layout as a C# `struct` instead of a class, so a read allocates nothing for the value and
+  the value can be stored, returned and used across `await`. A fixed array of numbers becomes a generated inline array
+  (`InlineArrays.ByteArray4`, with an indexer, `AsSpan()`, `ToArray()` and `Length`); text stays a `string`. It needs the
+  `Reader` or `Parser` surface and a layout without a union, conditional member, pointer, runtime-sized or
+  multidimensional array, array of structs or enums, custom codec or terminated string; anything else is the new error
+  CSG014 with the member that does not fit. The members of a value-type struct are public fields (an array is read in
+  place and no property copies it), a struct may be at most 1,024 bytes, and the generated fixed reader fills it
+  without zeroing it first; a value type saves allocation rather than time.
+
+### Performance
+
+- A fixed struct with field constraints is decoded through its fixed-offset plan, with each condition checked right after
+  its field, instead of member by member; this includes the fields of its anonymous struct members. A whole root with
+  constraints on its own fields, read from memory, is decoded and checked without the engine, and a constrained root is
+  serialized by the direct fixed-root writer (a write checks nothing). In a micro-benchmark of a 28-byte header, a parse
+  with one constraint that names its own field went from about 278 to 160 ns, and constrained
+  serialization from about 164 to 66 ns, the cost of an unconstrained one. A layout without constraints is unchanged.
+- A static plan binds the slot of each captured field once per layout and caches whether the field is an integer, instead
+  of looking both up on every read.
+
 ## 0.13.0 — 2026-10-24
 
 This minor release lets a project choose how much code the generator writes, makes generated views reach far more

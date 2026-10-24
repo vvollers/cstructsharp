@@ -150,6 +150,17 @@ internal abstract class StructProgramCompiler<TBuilder>
                 return reason;
             }
 
+            // A condition is checked right after its member was read, with every value up to this member captured.
+            if (builder.ChecksConstraints && !field.Constraints.IsDefaultOrEmpty)
+            {
+                for (int ordinal = 0; ordinal < field.Constraints.Length; ordinal++)
+                {
+                    CompiledConstraint constraint = field.Constraints[ordinal];
+                    int expression = builder.AddExpression(constraint.Expression, "constraint '" + constraint.Text + "' of " + field.Name);
+                    builder.EmitStructural(StructuralStep.CheckConstraint, index, expression, ordinal);
+                }
+            }
+
             if (builder.Scope is { } mapped && mapped.HasEffect(index))
             {
                 builder.EmitStructural(StructuralStep.CompleteMember, index, 0, 0);

@@ -31,6 +31,11 @@ internal sealed partial class LayoutEmitter
             {
                 writer.Line();
                 this.EmitFixedReader(writer, composite, plan);
+                if (composite.Composite.HasConstraints)
+                {
+                    writer.Line();
+                    this.EmitFixedConstraintCheck(writer, composite);
+                }
             }
         }
     }
@@ -41,9 +46,64 @@ internal sealed partial class LayoutEmitter
     /// <param name="plan">The fixed plan of the composite.</param>
     private void EmitFixedReaderShortcut(SourceWriter writer, GeneratedComposite composite, FixedPlan plan)
     {
+        // A struct with conditions decodes through its fixed reader and is then checked in field order; a failure reports
+        // the position the member-by-member reader would have stopped at.
+        bool constrained = composite.Composite.HasConstraints;
+        if (constrained)
+        {
+            writer.Line("int fixedStart = cursor.Position;");
+        }
+
         // Alignment only constrains the start in an aligned layout; a packed layout places members by size alone.
         writer.Open("if (cursor.TryTakeFixed(" + Int(plan.Size) + ", " + Int(this.request.Settings.Aligned ? plan.Alignment : 1) + ", " + plan.ChargedBytes.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", " + Int(plan.NestingLevels) + ", " + Int(plan.MaximumArrayCount) + ", out global::System.ReadOnlySpan<byte> fixedBytes))");
-        writer.Line("return Read" + composite.Name + "Fixed(fixedBytes, cursor.TrimFixedText);");
+        if (constrained)
+        {
+            writer.Line("var fixedValue = Read" + composite.Name + "Fixed(fixedBytes, cursor.TrimFixedText" + (this.HasRuntimeByteOrder ? ", cursor.LittleEndian" : string.Empty) + ");");
+            writer.Line("Check" + composite.Name + "Constraints(ref cursor, variables, " + (this.UsesValueTypes ? "in " : string.Empty) + "fixedValue, fixedStart);");
+            writer.Line("return fixedValue;");
+        }
+        else
+        {
+            writer.Line("return Read" + composite.Name + "Fixed(fixedBytes, cursor.TrimFixedText" + (this.HasRuntimeByteOrder ? ", cursor.LittleEndian" : string.Empty) + ");");
+        }
+
+        writer.Close();
+    }
+
+    /// <summary>
+    ///     Emits the constraint pass of a fixed struct that has <c>@expect</c> or <c>@supports</c> conditions: the members
+    ///     are published in declaration order, as the member-by-member reader publishes them, so a condition sees the
+    ///     same values and fails the same way, and the cursor is moved to the end of the failing field first so the failure
+    ///     reports the same offset.
+    /// </summary>
+    /// <param name="writer">The generated source destination.</param>
+    /// <param name="composite">A constrained composite with a fixed reader.</param>
+    private void EmitFixedConstraintCheck(SourceWriter writer, GeneratedComposite composite)
+    {
+        string name = composite.Name;
+        writer.Line("/// <summary>Checks the <c>@expect</c> and <c>@supports</c> conditions of a <c>" + composite.LayoutName + "</c> that its fixed reader just decoded, in field order, failing as the member-by-member reader would.</summary>");
+        writer.Line("/// <param name=\"cursor\">The cursor, which sits after the struct.</param>");
+        writer.Line(VariablesDoc);
+        writer.Line("/// <param name=\"value\">The decoded value.</param>");
+        writer.Line("/// <param name=\"start\">The position of the struct's first byte.</param>");
+        writer.Open("private static void Check" + name + "Constraints(ref " + Cursor + " cursor, " + VariablesType + " variables, " + (this.UsesValueTypes ? "in " : string.Empty) + name + " value, int start)");
+        var scope = new ReaderScope(this, composite);
+        foreach (CompiledField field in composite.Composite.Fields)
+        {
+            GeneratedMember member = scope.Member(field) ?? throw new InvalidOperationException("No generated member for field " + field.Name);
+            scope.Publish(member, "value." + member.PropertyName);
+            if (field.Constraints.IsDefaultOrEmpty)
+            {
+                continue;
+            }
+
+            int end = (field.FixedOffset ?? 0) + (field.FixedStorageSize ?? 0);
+            foreach (CompiledConstraint constraint in field.Constraints)
+            {
+                EmitConstraintBlock(writer, field, constraint, scope.Expressions.Emit(constraint.Expression), SourceWriter.Literal(field.Name), SourceWriter.Literal(field.DisplayTypeSpelling), "start + " + Int(end));
+            }
+        }
+
         writer.Close();
     }
 
@@ -57,16 +117,52 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from exactly its " + Int(plan.Size) + " bytes, each member at its constant offset (reached only through <c>ReadCursor.TryTakeFixed</c>).</summary>");
         writer.Line("/// <param name=\"source\">The struct's bytes.</param>");
         writer.Line("/// <param name=\"trimFixedText\">Whether fixed-capacity text drops its trailing NUL padding.</param>");
+        if (this.HasRuntimeByteOrder)
+        {
+            writer.Line(this.OrderParameterDoc);
+        }
+
         writer.Line("/// <returns>The value.</returns>");
-        writer.Open("private static " + name + " Read" + name + "Fixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)");
-        writer.Line("var value = new " + name + "();");
-        writer.Line("Fill" + name + "Fixed(source, trimFixedText, value);");
+        writer.Open("private static " + name + " Read" + name + "Fixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText" + this.TrailingOrderParameter + ")");
+        if (this.UsesValueTypes)
+        {
+            // The fixed reader assigns every member of the struct, so the value need not be zeroed first.
+            writer.Line(name + " value;");
+            writer.Line("global::System.Runtime.CompilerServices.Unsafe.SkipInit(out value);");
+        }
+        else
+        {
+            writer.Line("var value = new " + name + "();");
+        }
+
+        if (this.HasRuntimeByteOrder && InlineFixedMembers(composite, plan))
+        {
+            // A small struct is filled by an inlined helper, so passing the order as a constant on each branch lets the JIT
+            // drop the per-member byte-order test: the order is decided once per struct, not once per field.
+            string reference = this.UsesValueTypes ? "ref " : string.Empty;
+            writer.Open("if (littleEndian)");
+            writer.Line("Fill" + name + "Fixed(source, trimFixedText, true, " + reference + "value);");
+            writer.Close();
+            writer.Open("else");
+            writer.Line("Fill" + name + "Fixed(source, trimFixedText, false, " + reference + "value);");
+            writer.Close();
+        }
+        else
+        {
+            writer.Line("Fill" + name + "Fixed(source, trimFixedText" + this.TrailingOrderArgument + ", " + (this.UsesValueTypes ? "ref " : string.Empty) + "value);");
+        }
+
         writer.Line("return value;");
         writer.Close();
         writer.Line();
         writer.Line("/// <summary>Decodes one <c>" + composite.LayoutName + "</c> from exactly its " + Int(plan.Size) + " bytes into a value just constructed, each member at its constant offset.</summary>");
         writer.Line("/// <param name=\"source\">The struct's bytes.</param>");
         writer.Line("/// <param name=\"trimFixedText\">Whether fixed-capacity text drops its trailing NUL padding.</param>");
+        if (this.HasRuntimeByteOrder)
+        {
+            writer.Line(this.OrderParameterDoc);
+        }
+
         writer.Line("/// <param name=\"value\">A new value, whose nested struct members are the new values its constructor created; they are filled in place.</param>");
 
         // Fixed leaf helpers expose constant offsets when inlined into their parent; array loops stay separate.
@@ -75,11 +171,11 @@ internal sealed partial class LayoutEmitter
             writer.Line("[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
         }
 
-        writer.Open("private static void Fill" + name + "Fixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText, " + name + " value)");
+        writer.Open("private static void Fill" + name + "Fixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText" + this.TrailingOrderParameter + ", " + (this.UsesValueTypes ? "ref " : string.Empty) + name + " value)");
         var scope = new ReaderScope(this, composite);
 
         // Without a constructor of the consumer's, the property initializers alone decide what a new value holds.
-        bool nestedValuesAreNew = !this.request.TypesWithConstructors.Contains(name);
+        bool nestedValuesAreNew = !this.UsesValueTypes && !this.request.TypesWithConstructors.Contains(name);
         foreach (CompiledField field in composite.Composite.Fields)
         {
             GeneratedMember member = scope.Member(field) ?? throw new InvalidOperationException("No generated member for field " + field.Name);
@@ -114,12 +210,12 @@ internal sealed partial class LayoutEmitter
         writer.Line("// " + DescribeDeclaration(field));
         if (field.Array.Kind == CompiledArrayKind.Scalar)
         {
-            if (nestedValuesAreNew && member.Composite is { } nested && field.PointerDepth == 0)
+            if ((nestedValuesAreNew || this.UsesValueTypes) && member.Composite is { } nested && field.PointerDepth == 0)
             {
-                // The value's constructor created this nested value (its property initializer): decode into it
-                // instead of replacing it with another new one.
+                // The value's constructor created this nested value (its property initializer), or the nested struct is a
+                // field of a value type: decode into it instead of replacing it with another new one.
                 int size = nested.Composite.Symbol.FixedSize ?? throw new InvalidOperationException("Fixed composite without a size: " + nested.Name);
-                writer.Line("Fill" + nested.Name + "Fixed(source.Slice(" + Int(offset) + ", " + Int(size) + "), trimFixedText, " + property + ");");
+                writer.Line("Fill" + nested.Name + "Fixed(source.Slice(" + Int(offset) + ", " + Int(size) + "), trimFixedText" + this.TrailingOrderArgument + ", " + (this.UsesValueTypes ? "ref " : string.Empty) + property + ");");
                 return;
             }
 
@@ -137,13 +233,22 @@ internal sealed partial class LayoutEmitter
 
         string elementType = ElementType(member.TypeName, 1);
         writer.Open(string.Empty);
+        if (this.InlineArrayOf(member) is not null)
+        {
+            // A value-type layout keeps the array in a field of the struct: decode straight into it.
+            writer.Line("global::System.ReadOnlySpan<byte> bytes = source.Slice(" + Int(offset) + ", " + Int(count * field.Codec.Size) + ");");
+            writer.Line(BulkDecode(field.Codec, elementType, "bytes", property, this.EndianOf(field)));
+            writer.Close();
+            return;
+        }
+
         if (member.Composite is null && member.Enum is null)
         {
             // The bulk decode the member-by-member reader applies to the same bytes; it overwrites every element, so
             // the array is allocated without zeroing.
             writer.Line("var elements = " + UninitializedArray(elementType, Int(count)) + ";");
             writer.Line("global::System.ReadOnlySpan<byte> bytes = source.Slice(" + Int(offset) + ", " + Int(count * field.Codec.Size) + ");");
-            writer.Line(BulkDecode(field.Codec, elementType, "bytes", "elements"));
+            writer.Line(BulkDecode(field.Codec, elementType, "bytes", "elements", this.EndianOf(field)));
         }
         else
         {
@@ -164,11 +269,11 @@ internal sealed partial class LayoutEmitter
         if (member.Composite is { } nested)
         {
             int size = nested.Composite.Symbol.FixedSize ?? throw new InvalidOperationException("Fixed composite without a size: " + nested.Name);
-            return "Read" + nested.Name + "Fixed(" + source + ".Slice(" + offset + ", " + Int(size) + "), trimFixedText)";
+            return "Read" + nested.Name + "Fixed(" + source + ".Slice(" + offset + ", " + Int(size) + "), trimFixedText" + this.TrailingOrderArgument + ")";
         }
 
         string slice = source + ".Slice(" + offset + ", " + Int(field.Codec.Size) + ")";
-        return member.Enum is not null ? "(" + ElementType(member.TypeName, 1) + ")" + NumericDecode(field.Codec, slice) : NumericDecode(field.Codec, slice);
+        return member.Enum is not null ? "(" + ElementType(member.TypeName, 1) + ")" + NumericDecode(field.Codec, slice, this.EndianOf(field)) : NumericDecode(field.Codec, slice, this.EndianOf(field));
     }
 
     /// <summary>
@@ -197,7 +302,7 @@ internal sealed partial class LayoutEmitter
     private FixedPlan? BuildFixedPlan(GeneratedComposite composite, int depth)
     {
         CompiledCompositeType compiled = composite.Composite;
-        if (!FixedLayoutRule.IsFixedComposite(compiled) || compiled.Symbol.FixedSize is not int size)
+        if (!FixedLayoutRule.IsFixedComposite(compiled, allowConstraints: true) || compiled.Symbol.FixedSize is not int size)
         {
             return null;
         }
@@ -224,7 +329,8 @@ internal sealed partial class LayoutEmitter
 
             if (member.Composite is { } nested)
             {
-                if (nested.IsUnion || this.FixedPlanOf(nested, depth + 1) is not { } nestedPlan || (!scalar && field.FixedElementSize != nestedPlan.Size))
+                // A nested struct's conditions are checked by its own reader, which a parent's fixed decode bypasses.
+                if (nested.IsUnion || nested.Composite.HasConstraints || this.FixedPlanOf(nested, depth + 1) is not { } nestedPlan || (!scalar && field.FixedElementSize != nestedPlan.Size))
                 {
                     return null;
                 }

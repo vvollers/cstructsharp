@@ -16,8 +16,11 @@ internal sealed partial class CompiledCompositeType
     // thread sees either nothing (and builds the same plan itself) or a complete result, never "built" without a plan.
     private object? staticPlanState;
 
-    /// <summary>The span read plan when every member is statically placed; null otherwise. Built on first use.</summary>
-    public StaticReadPlan? StaticPlan
+    /// <summary>
+    ///     The span layout plan when every member is statically placed, whether or not the composite carries conditions;
+    ///     null otherwise. Built on first use. A write or a nested plan may use it as is; a read must use <see cref="StaticPlan"/>.
+    /// </summary>
+    public StaticReadPlan? LayoutPlan
     {
         get
         {
@@ -32,6 +35,12 @@ internal sealed partial class CompiledCompositeType
             return state as StaticReadPlan;
         }
     }
+
+    /// <summary>
+    ///     The span read plan when every member is statically placed and no <c>@expect</c> or <c>@supports</c> condition
+    ///     applies to it (a plan decodes but evaluates none); null otherwise, which reads member by member.
+    /// </summary>
+    public StaticReadPlan? StaticPlan => this.LayoutPlan is { HasConstraints: false } plan ? plan : null;
 
     /// <summary>
     ///     The layout fingerprint of this composite (see <see cref="Compilation.LayoutFingerprint"/>), which a mapped

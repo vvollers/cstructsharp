@@ -316,7 +316,7 @@ internal sealed partial class LayoutParser
 
         List<Expr?> dimensions = this.ParseArrayDimensions();
         Expr? bitSize = this.TryParseBitSize();
-        (Expr? alignmentOverride, Expr? offsetAssertion, Expr? pointerCount) = this.ParseDeclaratorSuffixes();
+        DeclaratorSuffixes suffixes = this.ParseDeclaratorSuffixes();
 
         bool firstDeclaratorIsAnonymous = words.Count == 1 && bitSize is not null;
         Identifier typeIdentifier = firstDeclaratorIsAnonymous ? new Identifier(words[0].Name) { SourceOffset = words[0].SourceOffset, } : BuildTypeIdentifier(words);
@@ -338,9 +338,10 @@ internal sealed partial class LayoutParser
                 firstPointerDepth,
                 dimensions,
                 bitSize,
-                alignmentOverride,
-                offsetAssertion,
-                pointerCount),
+                suffixes.AlignmentOverride,
+                suffixes.OffsetAssertion,
+                suffixes.PointerCount,
+                suffixes.Constraints),
         };
 
         while (this.TryToken(','))
@@ -348,7 +349,7 @@ internal sealed partial class LayoutParser
             List<Identifier> declaratorWords = this.ParseQualifiedWords();
             List<Expr?> declaratorDimensions = this.ParseArrayDimensions();
             Expr? declaratorBitSize = this.TryParseBitSize();
-            (Expr? declaratorAlignment, Expr? declaratorOffset, Expr? declaratorCount) = this.ParseDeclaratorSuffixes();
+            DeclaratorSuffixes declaratorSuffixes = this.ParseDeclaratorSuffixes();
             if (declaratorWords.Count == 0 && declaratorBitSize is null)
             {
                 throw new CStructLayoutException(
@@ -369,9 +370,10 @@ internal sealed partial class LayoutParser
                     pointerDepth,
                     declaratorDimensions,
                     declaratorBitSize,
-                    declaratorAlignment,
-                    declaratorOffset,
-                    declaratorCount));
+                    declaratorSuffixes.AlignmentOverride,
+                    declaratorSuffixes.OffsetAssertion,
+                    declaratorSuffixes.PointerCount,
+                    declaratorSuffixes.Constraints));
         }
 
         this.ExpectToken(';');
@@ -432,7 +434,8 @@ internal sealed partial class LayoutParser
         Expr? bitSize,
         Expr? alignmentOverride,
         Expr? offsetAssertion,
-        Expr? pointerCount = null)
+        Expr? pointerCount = null,
+        System.Collections.Immutable.ImmutableArray<FieldConstraint> constraints = default)
     {
         // `_` is the conventional name of a reserved/padding field (dissect headers use it, several times per
         // struct). Such a field is unnamed, like an anonymous bitfield: read and skipped, written as zeroes, never
@@ -448,6 +451,7 @@ internal sealed partial class LayoutParser
             offsetAssertion)
         {
             PointerCountExpression = pointerCount,
+            Constraints = constraints.IsDefault ? System.Collections.Immutable.ImmutableArray<FieldConstraint>.Empty : constraints,
         };
     }
 
@@ -587,16 +591,24 @@ internal sealed partial class LayoutParser
 
     /// <summary>
     ///     A declarator carries at most one trailing placement suffix - <c>@align(N)</c> (alignment override)
-    ///     or <c>@N</c> (offset assertion) - and at most one <c>@count(N)</c> pointer element count, in either
-    ///     order. The named forms are tried first because an offset assertion may itself start with a name.
+    ///     or <c>@N</c> (offset assertion) - at most one <c>@count(N)</c> pointer element count, and any number of
+    ///     <c>@expect(condition)</c> and <c>@supports(condition)</c> constraints, in any order. The named forms are tried
+    ///     first because an offset assertion may itself start with a name.
     /// </summary>
-    private (Expr? AlignmentOverride, Expr? OffsetAssertion, Expr? PointerCount) ParseDeclaratorSuffixes()
+    private DeclaratorSuffixes ParseDeclaratorSuffixes()
     {
         Expr? alignment = null;
         Expr? offset = null;
         Expr? count = null;
+        List<FieldConstraint>? constraints = null;
         while (!this.AtEnd && this.source[this.position] == '@')
         {
+            if (this.TryParseConstraint() is { } constraint)
+            {
+                (constraints ??= []).Add(constraint);
+                continue;
+            }
+
             if (this.TryParseNamedSuffix("@count") is { } parsedCount)
             {
                 if (count is not null)
@@ -623,7 +635,55 @@ internal sealed partial class LayoutParser
             }
         }
 
-        return (alignment, offset, count);
+        return new DeclaratorSuffixes(alignment, offset, count, constraints is null ? System.Collections.Immutable.ImmutableArray<FieldConstraint>.Empty : constraints.ToImmutableArray());
+    }
+
+    /// <summary>The suffixes one declarator carries after its name, array dimensions and bit width.</summary>
+    /// <param name="AlignmentOverride">The <c>@align(N)</c> expression.</param>
+    /// <param name="OffsetAssertion">The <c>@N</c> expression.</param>
+    /// <param name="PointerCount">The <c>@count(N)</c> expression.</param>
+    /// <param name="Constraints">The <c>@expect</c> and <c>@supports</c> conditions, in order.</param>
+    private sealed record DeclaratorSuffixes(Expr? AlignmentOverride, Expr? OffsetAssertion, Expr? PointerCount, System.Collections.Immutable.ImmutableArray<FieldConstraint> Constraints);
+
+    /// <summary>
+    ///     <c>@expect(condition)</c> or <c>@supports(condition)</c> when present; otherwise the cursor is unchanged. The text
+    ///     of the condition, as written, is kept for the failure message.
+    /// </summary>
+    /// <returns>The constraint, or <see langword="null"/> when the next suffix is another kind.</returns>
+    private FieldConstraint? TryParseConstraint()
+    {
+        CStructSharp.Diagnostics.ConstraintKind kind;
+        string keyword;
+        if (this.StartsWith("@expect"))
+        {
+            kind = CStructSharp.Diagnostics.ConstraintKind.Malformed;
+            keyword = "@expect";
+        }
+        else if (this.StartsWith("@supports"))
+        {
+            kind = CStructSharp.Diagnostics.ConstraintKind.Unsupported;
+            keyword = "@supports";
+        }
+        else
+        {
+            return null;
+        }
+
+        int start = this.position;
+        this.position += keyword.Length;
+        this.SkipTrivia();
+        if (!this.TryToken('('))
+        {
+            this.position = start;
+            return null;
+        }
+
+        int textStart = this.position;
+        Expr expression = this.ParseExpr();
+        int textEnd = this.position;
+        this.ExpectToken(')');
+        string text = this.source.Substring(textStart, textEnd - textStart).Trim();
+        return new FieldConstraint(kind, expression, text);
     }
 
     /// <summary>

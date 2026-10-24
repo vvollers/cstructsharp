@@ -17,6 +17,9 @@ internal interface IStructProgramBuilder
     /// <summary>Gets or sets the composite's conditional scope in slot terms, or <see langword="null"/> when it has none.</summary>
     ConditionalScopeSlots? Scope { get; set; }
 
+    /// <summary>Gets a value indicating whether the program checks the members' <c>@expect</c> and <c>@supports</c> conditions: a read program does, a write program does not.</summary>
+    bool ChecksConstraints { get; }
+
     /// <summary>Gets the slot table the programs index.</summary>
     SlotTable Table { get; }
 
@@ -24,6 +27,12 @@ internal interface IStructProgramBuilder
     /// <param name="branch">The compiled branch.</param>
     /// <returns>The branch's index.</returns>
     int AddBranch(CompiledConditionalBranch branch);
+
+    /// <summary>Compiles an expression against the slot table and adds it with the context its failures name.</summary>
+    /// <param name="expression">The expression.</param>
+    /// <param name="context">What is evaluated, such as <c>constraint 'n &lt;= 4'</c>.</param>
+    /// <returns>The expression's index.</returns>
+    int AddExpression(Syntax.Expr expression, string context);
 
     /// <summary>Appends a structural step as the builder's own opcode of the same name.</summary>
     /// <param name="step">The step.</param>

@@ -68,10 +68,40 @@ internal static class GeneratorDiagnostics
     public static readonly DiagnosticDescriptor SurfaceNeedsViews = new(
         "CSG011",
         "The Views surface needs views",
-        "'{0}' sets Surface = GeneratedSurface.Views and Views = false, which together generate nothing; remove Views = false or choose another surface",
+        "'{0}' uses Surface = GeneratedSurface.Views with Views = false (from the attribute or the project's CStructSharpViews), which together generate nothing; remove Views = false or choose another surface",
         Category,
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    /// <summary>CSG012 (warning): a <c>CStructSharp*</c> project property has a value the generator does not understand and is ignored.</summary>
+    public static readonly DiagnosticDescriptor InvalidProjectDefault = new(
+        "CSG012",
+        "A CStructSharp project property is not valid",
+        "The build property {0} has the value '{1}', which is not valid; it is ignored and the library's default applies",
+        Category,
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "CStructSharpSurface takes Full, Reader or Views; CStructSharpBitfieldPacking SysV or Msvc; CStructSharpBitfieldAllocation LowBitFirst or HighBitFirst; CStructSharpPointerSize 1, 2, 4 or 8; CStructSharpCLongWidth 32 or 64; the flag properties true or false.");
+
+    /// <summary>CSG013 (error): <c>RuntimeByteOrder</c> cannot be generated for this layout or surface.</summary>
+    public static readonly DiagnosticDescriptor RuntimeByteOrderUnsupported = new(
+        "CSG013",
+        "RuntimeByteOrder is not supported here",
+        "'{0}' sets RuntimeByteOrder, which {1}",
+        Category,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "RuntimeByteOrder needs a surface that only reads (Reader, Parser or Views) and a layout whose bitfields sit in the same place in both byte orders.");
+
+    /// <summary>CSG014 (error): <c>Shape = Struct</c> cannot be generated for this layout or surface.</summary>
+    public static readonly DiagnosticDescriptor ValueShapeUnsupported = new(
+        "CSG014",
+        "A value-type shape is not supported here",
+        "'{0}' sets Shape = Struct, which {1}",
+        Category,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "Shape = Struct needs the Reader or Parser surface and a layout that is fixed in size: numbers, enums, bitfields, nested structs, text and fixed one-dimensional arrays of numbers.");
 
     /// <summary>CSG100 (error): a mapped type is not partial or lacks a parameterless constructor.</summary>
     public static readonly DiagnosticDescriptor MappedNotPartial = new(

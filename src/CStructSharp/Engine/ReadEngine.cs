@@ -209,14 +209,25 @@ internal static partial class ReadEngine
     private static void ReadComposite<TCursor>(ref TCursor cursor, ref ReadEngineState state, ReadProgram program, StructValue value)
         where TCursor : struct, IReadCursor
     {
-        if (!state.NoFastPaths && program.Composite!.StaticPlan is { } plan && state.CoversPlan(plan))
+        // A plan with conditions runs only when the programs have a check for each; the plan then evaluates
+        // them right after the field they follow, exactly where the member-by-member reader would.
+        if (!state.NoFastPaths && program.Composite!.LayoutPlan is { } plan && (!plan.HasConstraints || PlanConditions.Covers(program, plan)) && state.CoversPlan(plan))
         {
             byte[]? rented = null;
             try
             {
+                long start = plan.HasConstraints ? cursor.Position : 0;
                 if (TryStage(ref cursor, plan.Size, out ReadOnlySpan<byte> bytes, out rented))
                 {
-                    RunStaticPlan(ref cursor, ref state, plan, bytes, value);
+                    if (plan.HasConstraints)
+                    {
+                        RunStaticPlan(ref cursor, ref state, plan, bytes, value, new RootPlanChecks(program, start));
+                    }
+                    else
+                    {
+                        RunStaticPlan(ref cursor, ref state, plan, bytes, value, default(NoPlanChecks));
+                    }
+
                     return;
                 }
             }
@@ -338,6 +349,19 @@ internal static partial class ReadEngine
                 case ReadOpCode.CheckFixedCount:
                     count = CheckCount(step.A, program.Fields[field], state.MaxArrayElements);
                     break;
+
+                case ReadOpCode.CheckConstraint:
+                    {
+                        // The condition is not satisfied when it evaluates to zero; the failure names the field and quotes the condition.
+                        CompiledField constrained = program.Fields[field];
+                        if (state.Slots.Evaluate(program.Expressions[step.A], program.ExpressionContexts[step.A], ExpressionFailureDomain.Read) == 0)
+                        {
+                            CompiledConstraint failed = constrained.Constraints[step.B];
+                            throw new CStructConstraintException(failed.Kind, failed.Text, ReadFailures.ConstraintNotSatisfied(failed.Kind, constrained.Name, failed.Text));
+                        }
+
+                        break;
+                    }
 
                 case ReadOpCode.EvaluateCount:
                     count = CheckCount(

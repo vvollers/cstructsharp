@@ -47,6 +47,9 @@ internal abstract class ProgramBuilder<TStep, TProgram> : IStructProgramBuilder
     /// <summary>Gets or sets a value indicating whether the members are placed by a runtime placement cursor (a struct with bitfields).</summary>
     public bool UsesPlacementCursor { get; set; }
 
+    /// <summary>Gets a value indicating whether the program checks the members' constraints; a read program does.</summary>
+    public virtual bool ChecksConstraints => false;
+
     /// <summary>Gets or sets the composite's conditional scope in slot terms.</summary>
     public ConditionalScopeSlots? Scope { get; set; }
 

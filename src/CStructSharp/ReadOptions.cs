@@ -84,13 +84,13 @@ public sealed record ReadOptions
     }
 
     /// <summary>Gets the greatest number of elements a single traversed array field may contain.</summary>
-    public int MaxArrayElements { get; init; } = 1_000_000;
+    public int MaxArrayElements { get; init; } = ReadLimits.DefaultMaxArrayElements;
 
     /// <summary>
     ///     Gets the greatest encoded-byte length permitted for one terminated string field, including its
     ///     complete encoded terminator.
     /// </summary>
-    public long MaxStringBytes { get; init; } = 16 * 1024 * 1024;
+    public long MaxStringBytes { get; init; } = ReadLimits.DefaultMaxStringBytes;
 
     /// <summary>
     ///     Gets the greatest total bytes one public read-like operation may consume. Each byte a read consumes counts
@@ -106,10 +106,10 @@ public sealed record ReadOptions
     ///     so it succeeds with a budget of 3 and fails with <see cref="Diagnostics.CStructReadLimitException"/> at 2. The
     ///     runtime and the generated readers charge the same bytes on every input form.
     /// </remarks>
-    public long MaxTotalBytesRead { get; init; } = 64 * 1024 * 1024;
+    public long MaxTotalBytesRead { get; init; } = ReadLimits.DefaultMaxTotalBytesRead;
 
     /// <summary>Gets the greatest active struct depth permitted during one read-like operation.</summary>
-    public int MaxNestingDepth { get; init; } = 256;
+    public int MaxNestingDepth { get; init; } = ReadLimits.DefaultMaxNestingDepth;
 
     /// <summary>
     ///     Gets whether fixed-capacity text - <c>char[N]</c>, <c>wchar[N]</c>, and bounded encoded buffers such as

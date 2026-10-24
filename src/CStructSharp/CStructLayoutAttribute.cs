@@ -11,7 +11,9 @@ using System;
 /// <remarks>
 ///     The layout is the constructor argument or, with <see cref="File"/>, a <c>.cstruct</c> file the project lists
 ///     as an <c>AdditionalFiles</c> item. The other properties mirror the <see cref="CStruct"/> constructor and
-///     <see cref="CStructCompilationOptions"/>.
+///     <see cref="CStructCompilationOptions"/>. An option this attribute does not name takes the project's default from the
+///     matching <c>CStructSharp*</c> build property (<c>CStructSharpSurface</c> for <see cref="Surface"/>, and so on), then
+///     the library's.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
 public sealed class CStructLayoutAttribute : Attribute
@@ -76,6 +78,32 @@ public sealed class CStructLayoutAttribute : Attribute
     /// <summary>Gets or sets whether a zero-allocation <c>ref struct</c> view is generated per composite.</summary>
     /// <remarks>It must stay <see langword="true"/> with <see cref="GeneratedSurface.Views"/>, whose only output is the views.</remarks>
     public bool Views { get; set; } = true;
+
+    /// <summary>Gets or sets whether each view of a fixed-size struct gets a <c>foreach</c> enumerator over consecutive records.</summary>
+    /// <remarks>
+    ///     The full surface always has the enumerator. The <see cref="GeneratedSurface.Reader"/>, <see cref="GeneratedSurface.Parser"/>
+    ///     and <see cref="GeneratedSurface.Views"/> surfaces leave it out unless this is <see langword="true"/>, because it adds
+    ///     code to every fixed-size struct. It needs <see cref="Views"/>.
+    /// </remarks>
+    public bool Enumerators { get; set; }
+
+    /// <summary>Gets or sets whether the byte order of neutral values (those spelled without a <c>&lt;</c> or <c>&gt;</c> suffix) is chosen when a value is read instead of when the layout is compiled.</summary>
+    /// <remarks>
+    ///     <para>
+    ///         One layout then reads both byte orders: every <c>Parse</c> and <c>TryParse</c> takes a <c>bool littleEndian</c> after the source, a
+    ///         view's constructor and <c>Enumerate</c> take it after the source too, and <see cref="LittleEndian"/> is not used. It replaces a pair of
+    ///         layouts that differ only in <see cref="LittleEndian"/>. A field with an explicit suffix keeps its order.
+    ///     </para>
+    ///     <para>
+    ///         It needs a surface that only reads (<see cref="GeneratedSurface.Reader"/>, <see cref="GeneratedSurface.Parser"/> or
+    ///         <see cref="GeneratedSurface.Views"/>), and a layout whose bitfields sit in the same place in both byte orders;
+    ///         anything else is reported as CSG013.
+    ///     </para>
+    /// </remarks>
+    public bool RuntimeByteOrder { get; set; }
+
+    /// <summary>Gets or sets whether each struct and union of the layout becomes a class (the default) or a value type; see <see cref="GeneratedShape"/>.</summary>
+    public GeneratedShape Shape { get; set; } = GeneratedShape.Class;
 
     /// <summary>Gets or sets how much code is generated; the default, <see cref="GeneratedSurface.Full"/>, generates everything.</summary>
     public GeneratedSurface Surface { get; set; } = GeneratedSurface.Full;

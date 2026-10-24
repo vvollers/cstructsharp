@@ -62,6 +62,7 @@ internal static class LayoutFingerprint
                 .Append(field.IsConditional ? "?" : string.Empty)
                 .Append(field.AssertedOffset is int asserted ? "!" + asserted.ToString(CultureInfo.InvariantCulture) : string.Empty)
                 .Append(field.HasCountedTarget ? "#" : string.Empty)
+                .Append(Constraints(field))
                 .Append(composite.PromotedFields.Contains(field) ? "^" : string.Empty);
             if (field.Enum is { } enumeration)
             {
@@ -85,6 +86,25 @@ internal static class LayoutFingerprint
         }
 
         text.Append('}');
+    }
+
+    /// <summary>The field's constraints, kind and text, which decide what a read accepts.</summary>
+    /// <param name="field">The field.</param>
+    /// <returns>An empty text for a field without constraints.</returns>
+    private static string Constraints(CompiledField field)
+    {
+        if (field.Constraints.IsDefaultOrEmpty)
+        {
+            return string.Empty;
+        }
+
+        var constraints = new StringBuilder();
+        foreach (CompiledConstraint constraint in field.Constraints)
+        {
+            constraints.Append(constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "{expect:" : "{supports:").Append(constraint.Text).Append('}');
+        }
+
+        return constraints.ToString();
     }
 
     /// <summary>Every dimension's fixed count, outermost first, with <c>-</c> for a runtime-sized one.</summary>

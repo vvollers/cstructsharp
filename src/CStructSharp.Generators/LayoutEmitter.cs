@@ -24,6 +24,9 @@ internal sealed partial class LayoutEmitter
     private GeneratedModel model = null!;
     private bool hasErrors;
 
+    // Whether the views carry the caller's variables, decided once from the placement of every view (null until asked).
+    private bool? viewsCarryVariables;
+
     /// <summary>Prepares one attributed class; call <see cref="Validate"/> before <c>Emit</c>.</summary>
     /// <param name="request">The attributed class's configuration and source locations.</param>
     /// <param name="compilation">The compiled layout the generated members describe.</param>
@@ -84,8 +87,15 @@ internal sealed partial class LayoutEmitter
             taken[reserved] = "the generated " + reserved + " member";
         }
 
+        // The inline-array container exists only in a value-type class, so only such a class keeps the name for itself.
+        bool reservesInlineArrays = this.UsesValueTypes;
+        if (reservesInlineArrays)
+        {
+            taken[InlineArraysClass] = "the generated " + InlineArraysClass + " member";
+        }
+
         // A C# type cannot have a member with its own name: a class named like a generated member cannot be generated into.
-        if (System.Array.IndexOf(ReservedMembers, this.request.ClassName) >= 0)
+        if (System.Array.IndexOf(ReservedMembers, this.request.ClassName) >= 0 || (reservesInlineArrays && this.request.ClassName == InlineArraysClass))
         {
             this.Error(GeneratorDiagnostics.NameCollision, "The class '" + this.request.ClassName + "' is named like the generated " + this.request.ClassName + " member, which C# does not allow; rename the class.");
         }
@@ -94,6 +104,12 @@ internal sealed partial class LayoutEmitter
         foreach (string collision in this.model.Collisions)
         {
             this.Error(GeneratorDiagnostics.NameCollision, collision);
+        }
+
+        if (this.request.ValueTypes && this.ValueTypeProblem() is { } problem)
+        {
+            this.hasErrors = true;
+            this.diagnostics.Add(Diagnostic.Create(GeneratorDiagnostics.ValueShapeUnsupported, this.request.AttributeSpan.ToLocation(), this.request.ClassName, problem));
         }
 
         return this.diagnostics;
@@ -162,17 +178,21 @@ internal sealed partial class LayoutEmitter
     /// <summary>The members every generated class has: the definition, the runtime layout, and the root name.</summary>
     private void EmitFrame(SourceWriter writer)
     {
-        writer.Line("/// <summary>The layout text the members of this class were generated from.</summary>");
-        writer.Line("public const string Definition = " + SourceWriter.Literal(this.definition) + ";");
-        writer.Line();
-        writer.Line(this.request.Surface switch
+        if (this.request.Surface != GenerationSurface.Parser)
         {
-            GenerationSurface.Full => "/// <summary>The declaration the plain <see cref=\"Parse\"/> and <see cref=\"Serialize\"/> methods operate on.</summary>",
-            GenerationSurface.Reader => "/// <summary>The declaration the plain <see cref=\"Parse\"/> methods operate on.</summary>",
-            _ => "/// <summary>The declaration whose view the generated <c>Offsets</c> constants describe.</summary>",
-        });
-        writer.Line("public const string RootName = " + SourceWriter.Literal(this.rootName) + ";");
-        writer.Line();
+            writer.Line("/// <summary>The layout text the members of this class were generated from.</summary>");
+            writer.Line("public const string Definition = " + SourceWriter.Literal(this.definition) + ";");
+            writer.Line();
+            writer.Line(this.request.Surface switch
+            {
+                GenerationSurface.Full => "/// <summary>The declaration the plain <see cref=\"Parse\"/> and <see cref=\"Serialize\"/> methods operate on.</summary>",
+                GenerationSurface.Reader => "/// <summary>The declaration the plain <see cref=\"Parse\"/> methods operate on.</summary>",
+                _ => "/// <summary>The declaration whose view the generated <c>Offsets</c> constants describe.</summary>",
+            });
+            writer.Line("public const string RootName = " + SourceWriter.Literal(this.rootName) + ";");
+            writer.Line();
+        }
+
         if (this.request.Surface == GenerationSurface.Full)
         {
             this.EmitLayoutProperty(writer);

@@ -11,4 +11,7 @@ internal enum GenerationSurface
 
     /// <summary>Views, constants, and enums only.</summary>
     Views = 2,
+
+    /// <summary>Typed classes, the span <c>Parse</c> of each composite and the root, constants, and views.</summary>
+    Parser = 3,
 }

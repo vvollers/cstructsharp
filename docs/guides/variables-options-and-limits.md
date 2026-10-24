@@ -105,6 +105,23 @@ found, its inherited write limits apply to the replacement.
 These are safety ceilings, not a promise that every value below them is appropriate for your application. For a
 network message expected to contain at most 100 items, set a limit near 100 rather than relying on one million.
 
+## Pass the limits as a value
+
+`ReadOptions` is an object, so a program that builds one for every record it parses allocates 88 bytes each time. When the
+only thing that changes is a limit, the generated `Parse` has an overload that takes the limits as a value:
+
+```csharp
+var limits = new ReadLimits { MaxArrayElements = 4096, MaxTotalBytesRead = 512 };
+Header header = Wire.Parse(bytes, limits);         // no ReadOptions object is created
+Entry entry = Wire.ParseEntry(bytes, in limits);   // the named reader of any declaration
+```
+
+`ReadLimits` holds the array, string, total-byte and nesting limits, `TrimFixedText`, `InvalidText` and the cancellation
+token, with the meaning and the defaults they have on `ReadOptions`; a `default(ReadLimits)` has the default limits.
+It does not hold the pointer policy, which keeps its defaults, so a read that follows pointers with another policy uses
+`ReadOptions`. `ReadLimits.From(options)` and `limits.ToOptions()` convert between the two. The overload exists on every
+generated surface that has a reader; views and the stream and sequence forms take `ReadOptions`.
+
 ## Choose a policy for the quiet cases
 
 Three options change behavior rather than a limit. The first two default to the permissive choice, and the third to the strict one:

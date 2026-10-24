@@ -427,6 +427,7 @@ internal sealed partial class LayoutCompilation
                     field.OffsetAssertionExpression)
                 {
                     PointerCountExpression = field.PointerCountExpression,
+                    Constraints = field.Constraints,
                     BranchConditions = field.BranchConditions.Count == 0 ? Array.Empty<ConditionalBranch>() : field.BranchConditions.Select(item =>
                         new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray(),
                 });

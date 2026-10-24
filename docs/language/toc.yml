@@ -19,6 +19,8 @@ items:
   href: compilation-and-operations.md
 - name: Expressions, defines, and variables
   href: expressions-defines-and-variables.md
+- name: Field constraints
+  href: field-constraints.md
 - name: Layout, alignment, and padding
   href: layout-alignment-and-padding.md
 - name: Characters and strings

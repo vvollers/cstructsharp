@@ -77,7 +77,7 @@ internal sealed partial class LayoutEmitter
     private void EmitBitfieldLeafShortcut(SourceWriter writer, GeneratedComposite composite, BitfieldLeafPlan plan)
     {
         writer.Open("if (cursor.TryTakeFixed(" + Int(plan.Size) + ", " + Int(this.request.Settings.Aligned ? plan.Alignment : 1) + ", " + plan.ChargedBytes.ToString(CultureInfo.InvariantCulture) + ", 1, 0, out global::System.ReadOnlySpan<byte> bitfieldBytes))");
-        writer.Line("return Read" + composite.Name + "Bitfields(bitfieldBytes);");
+        writer.Line("return Read" + composite.Name + "Bitfields(bitfieldBytes" + (this.HasRuntimeByteOrder ? ", cursor.LittleEndian" : string.Empty) + ");");
         writer.Close();
     }
 
@@ -95,11 +95,16 @@ internal sealed partial class LayoutEmitter
             writer.Line();
             writer.Line("/// <summary>Decodes a complete bitfield leaf after the cursor validated its extent and every repeated read charge.</summary>");
             writer.Line("/// <param name=\"source\">The complete leaf's borrowed bytes.</param>");
+            if (this.HasRuntimeByteOrder)
+            {
+                writer.Line(this.OrderParameterDoc);
+            }
+
             writer.Line("/// <returns>A new owned leaf with every declared value.</returns>");
-            writer.Open("private static " + composite.Name + " Read" + composite.Name + "Bitfields(global::System.ReadOnlySpan<byte> source)");
+            writer.Open("private static " + composite.Name + " Read" + composite.Name + "Bitfields(global::System.ReadOnlySpan<byte> source" + this.TrailingOrderParameter + ")");
             writer.Line("var value = new " + composite.Name + "();");
             var scope = new ReaderScope(this, composite);
-            var units = new Dictionary<(int Offset, int Size, bool LittleEndian), string>();
+            var units = new Dictionary<(int Offset, int Size, string LittleEndian), string>();
             foreach (CompiledField field in composite.Composite.Fields)
             {
                 if (field.IsZeroWidthBitfield || field.IsUnnamed)
@@ -110,12 +115,13 @@ internal sealed partial class LayoutEmitter
                 int offset = field.FixedOffset!.Value;
                 int size = field.BitUnitSize!.Value;
                 bool littleEndian = field.BitStorageIsLittleEndian ?? true;
-                var key = (offset, size, littleEndian);
+                string order = this.EndianExpression(field, littleEndian);
+                var key = (offset, size, order);
                 if (!units.TryGetValue(key, out string? unit))
                 {
                     unit = "unit" + Int(units.Count);
                     units.Add(key, unit);
-                    writer.Line("ulong " + unit + " = " + CodecClass + ".ReadUnsigned(source.Slice(" + Int(offset) + ", " + Int(size) + "), " + Bool(littleEndian) + ");");
+                    writer.Line("ulong " + unit + " = " + CodecClass + ".ReadUnsigned(source.Slice(" + Int(offset) + ", " + Int(size) + "), " + order + ");");
                 }
 
                 GeneratedMember member = scope.Member(field)!;

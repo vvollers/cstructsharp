@@ -44,6 +44,20 @@ public ref partial struct ReadCursor
     public readonly CStructReadException Fail(string message, string? member, string? memberType)
         => this.Fail(message, member, memberType, null);
 
+    /// <summary>The failure of a field whose value does not satisfy an <c>@expect</c> or <c>@supports</c> condition, with the runtime's context.</summary>
+    /// <param name="kind">Whether the data is malformed or unsupported.</param>
+    /// <param name="constraint">The condition as written in the layout.</param>
+    /// <param name="field">The field's layout name.</param>
+    /// <param name="member">The layout field, for the diagnostics.</param>
+    /// <param name="memberType">The field's type spelling.</param>
+    /// <returns>The exception to throw.</returns>
+    public readonly CStructConstraintException FailConstraint(ConstraintKind kind, string constraint, string field, string? member, string? memberType)
+    {
+        var exception = new CStructConstraintException(kind, constraint, ReadFailures.ConstraintNotSatisfied(kind, field, constraint));
+        this.Attach(exception, member, memberType);
+        return exception;
+    }
+
     /// <summary>A read failure at the current position with the runtime's context and a lower-level cause.</summary>
     /// <param name="message">The diagnostic.</param>
     /// <param name="member">The layout field, or <see langword="null"/> when none applies.</param>

@@ -50,8 +50,16 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
     {
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.EnableConcurrentExecution();
-        context.RegisterOperationAction(this.AnalyzeInvocation, OperationKind.Invocation);
-        context.RegisterOperationAction(AnalyzeConversion, OperationKind.Conversion);
+
+        // The project defaults are the same for every invocation of a compilation, so they are read once per compilation.
+        context.RegisterCompilationStartAction(start =>
+        {
+            LayoutDefaults defaults = LayoutDefaults.From(start.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
+
+            // Analyzes one invocation with the compilation's defaults.
+            start.RegisterOperationAction(operation => this.AnalyzeInvocation(operation, defaults), OperationKind.Invocation);
+            start.RegisterOperationAction(AnalyzeConversion, OperationKind.Conversion);
+        });
     }
 
     /// <summary>
@@ -59,7 +67,8 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
     ///     when that layout is visible.
     /// </summary>
     /// <param name="context">The invocation being analyzed.</param>
-    private void AnalyzeInvocation(OperationAnalysisContext context)
+    /// <param name="defaults">The project's defaults for the options a <c>[CStructLayout]</c> attribute does not name.</param>
+    private void AnalyzeInvocation(OperationAnalysisContext context, LayoutDefaults defaults)
     {
         var invocation = (IInvocationOperation)context.Operation;
         IMethodSymbol method = invocation.TargetMethod;
@@ -76,7 +85,7 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        LayoutCompilation? layout = invocation.Instance is { } instance ? this.ResolveLayout(instance) : null;
+        LayoutCompilation? layout = invocation.Instance is { } instance ? this.ResolveLayout(instance, defaults) : null;
         if (layout is null)
         {
             return;
@@ -177,8 +186,9 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
 
     /// <summary>The compiled layout the receiver plainly refers to, or <see langword="null"/> when it is not visible.</summary>
     /// <param name="receiver">The <c>CStruct</c> instance a path method is called on.</param>
+    /// <param name="defaults">The project's defaults for a <c>[CStructLayout]</c> class's unnamed options.</param>
     /// <returns>The layout, compiled with the settings it was built with, or <see langword="null"/>.</returns>
-    private LayoutCompilation? ResolveLayout(IOperation receiver)
+    private LayoutCompilation? ResolveLayout(IOperation receiver, LayoutDefaults defaults)
     {
         (string? text, LayoutSettings? settings) = receiver switch
         {
@@ -186,7 +196,7 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
             IInvocationOperation factory when IsGetOrCompile(factory.TargetMethod) => CallLayout(factory.Arguments),
             ILocalReferenceOperation local => InitializerLayout(local.Local, receiver.SemanticModel),
             IFieldReferenceOperation field => InitializerLayout(field.Field, receiver.SemanticModel),
-            IPropertyReferenceOperation { Property.Name: "Layout" } property when property.Property.ContainingType is { } owner => AttributeLayout(owner),
+            IPropertyReferenceOperation { Property.Name: "Layout" } property when property.Property.ContainingType is { } owner => AttributeLayout(owner, defaults),
             _ => (null, null),
         };
         if (text is null || settings is null)
@@ -306,15 +316,17 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
 
     /// <summary>The inline layout text and settings of a <c>[CStructLayout]</c> class (a layout file is not read here).</summary>
     /// <param name="owner">The attributed class.</param>
+    /// <param name="defaults">The project's defaults for the options the attribute does not name.</param>
     /// <returns>The text and settings, or <see langword="null"/>s when the class has no inline layout.</returns>
-    private static (string? Text, LayoutSettings? Settings) AttributeLayout(INamedTypeSymbol owner)
+    private static (string? Text, LayoutSettings? Settings) AttributeLayout(INamedTypeSymbol owner, LayoutDefaults defaults)
     {
         foreach (AttributeData attribute in owner.GetAttributes())
         {
             if (attribute.AttributeClass?.ToDisplayString() == "CStructSharp.CStructLayoutAttribute")
             {
                 string? text = attribute.ConstructorArguments.Length == 1 ? attribute.ConstructorArguments[0].Value as string : null;
-                return (text, LayoutSettings.FromAttribute(attribute));
+                var named = new HashSet<string>(attribute.NamedArguments.Where(LayoutDefaults.NamesOption).Select(argument => argument.Key), StringComparer.Ordinal);
+                return (text, LayoutSettings.FromAttribute(attribute).WithDefaults(defaults, named.Contains));
             }
         }
 

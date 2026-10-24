@@ -260,6 +260,11 @@ internal sealed partial class LayoutCompilation
                 builder.Append(" @count(").Append(ExpressionPrinter.Print(field.PointerCountExpression)).Append(')');
             }
 
+            foreach (FieldConstraint constraint in field.Constraints)
+            {
+                builder.Append(constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? " @expect(" : " @supports(").Append(constraint.Text).Append(')');
+            }
+
             builder.AppendLine(";");
         }
 

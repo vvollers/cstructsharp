@@ -24,6 +24,9 @@ internal readonly record struct ReadOperationSettings(
     long ContinuedInputLength = Streams.BufferedInput.WholeInput,
     bool LenientText = false)
 {
+    /// <summary>The settings of the default <see cref="ReadOptions"/>, which a read governed by <see cref="ReadLimits"/> takes its pointer policy from; built once.</summary>
+    private static readonly ReadOperationSettings DefaultPolicy = SnapshotReadOptions(null);
+
     // MaxPointerTargetBytes is stored as a value and a flag rather than a long? (16 bytes with padding): the flag packs
     // beside the bool members, which keeps the struct - copied into every read's state and cursor - at the 72 bytes it
     // has without ContinuedInputLength. The value is 0 when the flag is unset, so member-wise equality matches the
@@ -103,6 +106,21 @@ internal readonly record struct ReadOperationSettings(
             options.ContinuedInputLength,
             options.LenientText);
     }
+
+    /// <summary>Builds the settings of a read governed by <see cref="ReadLimits"/>: its limits, and the default pointer policy.</summary>
+    /// <param name="limits">The limits of the read.</param>
+    /// <returns>The settings.</returns>
+    public static ReadOperationSettings SnapshotReadLimits(in ReadLimits limits)
+        => DefaultPolicy with
+        {
+            MaxArrayElements = limits.MaxArrayElements,
+            MaxStringBytes = limits.MaxStringBytes,
+            MaxTotalBytesRead = limits.MaxTotalBytesRead,
+            MaxNestingDepth = limits.MaxNestingDepth,
+            TrimFixedText = limits.TrimFixedText,
+            CancellationToken = limits.CancellationToken,
+            LenientText = limits.LenientText,
+        };
 
     /// <summary>Maps already-snapshotted update traversal choices into the same read operation settings.</summary>
     /// <param name="options">The update options whose traversal limits bound the reads an update performs.</param>

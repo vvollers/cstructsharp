@@ -29,4 +29,13 @@ public enum GeneratedSurface
     ///     has no <c>ToObject</c> method. A member a view cannot expose is not available at all with this surface.
     /// </summary>
     Views = 2,
+
+    /// <summary>
+    ///     The smallest reader: typed classes, one <c>Parse&lt;Name&gt;</c> over a <see cref="System.ReadOnlySpan{T}"/>
+    ///     for every struct and union, the unnamed root <c>Parse</c>, size and offset constants, and views (unless
+    ///     <see cref="CStructLayoutAttribute.Views"/> is off). There is no <c>TryParse</c>, no array or
+    ///     <see cref="System.ReadOnlyMemory{T}"/> overload (a <c>byte[]</c> converts to the span), and no
+    ///     <c>Definition</c> or <c>RootName</c> constant, besides everything the <see cref="Reader"/> surface leaves out.
+    /// </summary>
+    Parser = 3,
 }

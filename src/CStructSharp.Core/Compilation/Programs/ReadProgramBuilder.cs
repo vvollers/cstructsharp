@@ -33,6 +33,9 @@ internal sealed class ReadProgramBuilder : ProgramBuilder<ReadStep, ReadProgram>
     /// <summary>Gets or sets a value indicating whether the members are a union's views, each read from the union's first byte.</summary>
     public bool UnionMembers { get; set; }
 
+    /// <inheritdoc/>
+    public override bool ChecksConstraints => true;
+
     /// <summary>Appends a step.</summary>
     /// <param name="op">The operation.</param>
     /// <param name="field">The member, or -1.</param>
@@ -59,6 +62,7 @@ internal sealed class ReadProgramBuilder : ProgramBuilder<ReadStep, ReadProgram>
         StructuralStep.Seek => this.Emit(ReadOpCode.Seek, field, a, b),
         StructuralStep.Align => this.Emit(ReadOpCode.Align, field, a, b),
         StructuralStep.CheckOffset => this.Emit(ReadOpCode.CheckOffset, field, a, b),
+        StructuralStep.CheckConstraint => this.Emit(ReadOpCode.CheckConstraint, field, a, b),
         StructuralStep.FinishPlaced => this.Emit(ReadOpCode.FinishPlaced, field, a, b),
         _ => this.Emit(ReadOpCode.FinishComposite, field, a, b),
     };

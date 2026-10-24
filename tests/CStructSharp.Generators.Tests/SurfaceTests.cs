@@ -24,6 +24,7 @@ public class SurfaceTests
                 var header = root.Header;
                 return new object[] { root.Magic, header.Length, (int)header.Tag, header.Level, header.Name, header.Values(1), root.Id, Demo.Surfaced.Sizes.Root };
             }
+
         }
         """;
 
@@ -32,9 +33,10 @@ public class SurfaceTests
 
     /// <summary>Generates one layout with a surface.</summary>
     /// <param name="arguments">The attribute arguments after the definition.</param>
+    /// <param name="extra">More consumer source after the probe, such as a class that calls the generated members.</param>
     /// <returns>The generator result.</returns>
-    private static GeneratorResult Generate(string arguments)
-        => GeneratorRunner.Run("using CStructSharp;\n\nnamespace Demo;\n\n[CStructLayout(\"" + Definition + "\", Root = \"root\"" + arguments + ")]\npublic static partial class Surfaced { }\n\n" + Probe + "\n");
+    private static GeneratorResult Generate(string arguments, string extra = "")
+        => GeneratorRunner.Run("using CStructSharp;\n\nnamespace Demo;\n\n[CStructLayout(\"" + Definition + "\", Root = \"root\"" + arguments + ")]\npublic static partial class Surfaced { }\n\n" + Probe + "\n" + extra);
 
     /// <summary>The members of the generated class: public static methods and properties, and the nested types.</summary>
     /// <param name="type">The generated class.</param>
@@ -69,7 +71,7 @@ public class SurfaceTests
         Assert.IsEmpty(surfaced.GetMethods().Where(method => method.Name == "ParseRoot" && method.GetParameters()[0].ParameterType.Name is "Stream" or "ReadOnlySequence`1"));
         string[] tryInputs = [.. surfaced.GetMethods().Where(method => method.Name == "TryParse").Select(method => method.GetParameters()[0].ParameterType.Name).Distinct().Order()];
         CollectionAssert.AreEqual(new[] { "Byte[]", "ReadOnlyMemory`1", "ReadOnlySpan`1" }, tryInputs);
-        Assert.IsNull(surfaced.GetNestedType("RootView")!.GetMethod("Enumerate"));
+        Assert.IsNull(surfaced.GetNestedType("RootView")!.GetMethod("Enumerate"), "the enumerator is opt-in outside the full surface");
         object[] readings = (object[])assembly.GetType("Demo.Probe")!.GetMethod("Read")!.Invoke(null, [Bytes])!;
         Assert.AreEqual((byte)7, readings[0]);
         Assert.AreEqual((ushort)0x0102, readings[1]);
@@ -95,6 +97,7 @@ public class SurfaceTests
         }
 
         Assert.IsNull(surfaced.GetNestedType("RootView")!.GetMethod("ToObject"));
+        Assert.IsNull(surfaced.GetNestedType("RootView")!.GetMethod("Enumerate"), "the enumerator is opt-in outside the full surface");
         object[] readings = (object[])assembly.GetType("Demo.Probe")!.GetMethod("Read")!.Invoke(null, [Bytes])!;
         Assert.AreEqual((byte)7, readings[0]);
         Assert.AreEqual((ushort)0x0102, readings[1]);
@@ -104,6 +107,52 @@ public class SurfaceTests
         Assert.AreEqual(9u, readings[5]);
         Assert.AreEqual(0x12345678u, readings[6]);
         Assert.AreEqual(21, readings[7]);
+    }
+
+    /// <summary>The parser surface reads the runtime layout's values through one span <c>Parse</c> per declaration and drops everything else, including <c>TryParse</c>, the array and memory overloads, and the definition constants.</summary>
+    [TestMethod]
+    public void ParserSurface_KeepsOneSpanParse_AndDropsTheRest()
+    {
+        const string ParserProbe = "public static class ParserProbe { public static object Parse(byte[] bytes) => Demo.Surfaced.Parse(bytes); }\n";
+        GeneratorResult result = Generate(", Surface = GeneratedSurface.Parser", ParserProbe).AssertClean();
+        Snapshot.Match("Surface.Parser", result.Source);
+        Assembly assembly = result.Load();
+        Type surfaced = assembly.GetType("Demo.Surfaced")!;
+        string[] names = Names(surfaced);
+        foreach (string present in new[] { "Parse", "ParseRoot", "ParseHdr", "Sizes", "Offsets", "Root", "RootView", "Kind" })
+        {
+            CollectionAssert.Contains(names, present);
+        }
+
+        foreach (string absent in new[] { "TryParse", "TryParseRoot", "Definition", "RootName", "Serialize", "Layout", "Update", "ParseAsync", "RecordsRoot" })
+        {
+            CollectionAssert.DoesNotContain(names, absent);
+        }
+
+        // One input form: the span. A byte[] converts to it at the call site.
+        string[] inputs = [.. surfaced.GetMethods().Where(method => method.Name is "Parse" or "ParseRoot" or "ParseHdr").Select(method => method.GetParameters()[0].ParameterType.Name).Distinct()];
+        CollectionAssert.AreEqual(new[] { "ReadOnlySpan`1" }, inputs);
+        var runtime = new CStruct(Definition.Replace("\\n", "\n", StringComparison.Ordinal));
+        object parsed = assembly.GetType("Demo.ParserProbe")!.GetMethod("Parse")!.Invoke(null, [Bytes])!;
+        ParityComparer.AssertSame(runtime.Parse(Bytes, "root"), parsed, "root", strict: true);
+    }
+
+    /// <summary>The view enumerator is always on the full surface and opt-in with <c>Enumerators = true</c> on the smaller ones, where it walks consecutive records without allocating.</summary>
+    /// <param name="surface">The surface.</param>
+    /// <param name="option">The attribute argument that turns the enumerator on, or nothing for the full surface.</param>
+    [TestMethod]
+    [DataRow("Full", "")]
+    [DataRow("Reader", ", Enumerators = true")]
+    [DataRow("Parser", ", Enumerators = true")]
+    [DataRow("Views", ", Enumerators = true")]
+    public void Enumerators_AreOptInOutsideTheFullSurface(string surface, string option)
+    {
+        const string SumProbe = "public static class SumProbe { public static int SumMagic(byte[] bytes) { int sum = 0; foreach (var record in Demo.Surfaced.RootView.Enumerate(bytes)) { sum += record.Magic; } return sum; } }\n";
+        GeneratorResult result = Generate(", Surface = GeneratedSurface." + surface + option, SumProbe).AssertClean();
+        Assembly assembly = result.Load();
+        Assert.AreEqual(14, assembly.GetType("Demo.SumProbe")!.GetMethod("SumMagic")!.Invoke(null, new object[] { Bytes.Concat(Bytes).ToArray() }));
+        string without = Generate(", Surface = GeneratedSurface." + surface).Load().GetType("Demo.Surfaced")!.GetNestedType("RootView")!.GetMethod("Enumerate") is null ? "absent" : "present";
+        Assert.AreEqual(surface == "Full" ? "present" : "absent", without);
     }
 
     /// <summary>The full surface is the default and keeps every member the smaller surfaces drop.</summary>
@@ -127,6 +176,8 @@ public class SurfaceTests
         int full = Generate(string.Empty).Source.Length;
         int reader = Generate(", Surface = GeneratedSurface.Reader").Source.Length;
         int views = Generate(", Surface = GeneratedSurface.Views").Source.Length;
+        int parser = Generate(", Surface = GeneratedSurface.Parser").Source.Length;
+        Assert.IsLessThan(reader, parser, $"parser {parser} of reader {reader}");
         Assert.IsLessThan(full / 2, reader, $"reader {reader} of full {full}");
         Assert.IsLessThan(full / 6, views, $"views {views} of full {full}");
     }

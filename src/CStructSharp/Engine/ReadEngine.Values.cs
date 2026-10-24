@@ -521,7 +521,7 @@ internal static partial class ReadEngine
             {
                 cursor.ThrowIfCancellationRequested();
                 var value = new StructValue(composite.Shape);
-                RunStaticPlan(ref cursor, ref state, plan, bytes.Slice(index * plan.Size, plan.Size), value);
+                RunStaticPlan(ref cursor, ref state, plan, bytes.Slice(index * plan.Size, plan.Size), value, default(NoPlanChecks));
                 elements.Add(value);
             }
 
@@ -664,14 +664,17 @@ internal static partial class ReadEngine
     ///     captures and qualified publications a later expression may read.
     /// </summary>
     /// <typeparam name="TCursor">The cursor type, which carries the cancellation token.</typeparam>
+    /// <typeparam name="TChecks">The checks run after each operation.</typeparam>
     /// <param name="cursor">The operation's cursor; the plan's bytes are already consumed.</param>
     /// <param name="state">The operation's state.</param>
     /// <param name="plan">The composite's plan.</param>
     /// <param name="bytes">Exactly the composite's bytes.</param>
     /// <param name="destination">The composite's new value.</param>
+    /// <param name="checks">What runs after each operation: <see cref="NoPlanChecks"/> (nothing, compiled away) or the root's conditions.</param>
     /// <param name="completeSlots">The nested value's owned slots, or null for an incrementally constructed outer value; every slot is filled before the result escapes.</param>
-    private static void RunStaticPlan<TCursor>(ref TCursor cursor, ref ReadEngineState state, StaticReadPlan plan, ReadOnlySpan<byte> bytes, StructValue destination, object?[]? completeSlots = null)
+    private static void RunStaticPlan<TCursor, TChecks>(ref TCursor cursor, ref ReadEngineState state, StaticReadPlan plan, ReadOnlySpan<byte> bytes, StructValue destination, TChecks checks, object?[]? completeSlots = null)
         where TCursor : struct, IReadCursor
+        where TChecks : struct, IPlanChecks
     {
         state.EnterStructure(ref cursor);
         try
@@ -685,7 +688,7 @@ internal static partial class ReadEngine
                     {
                         object value = field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size));
                         StoreStaticSlot(destination, completeSlots, operation.Slot, value);
-                        CaptureStatic(ref state, field, value);
+                        CaptureStatic(ref state, operation, value);
                         break;
                     }
 
@@ -693,7 +696,7 @@ internal static partial class ReadEngine
                     {
                         EnumValueResult value = ValueDecoding.CreateEnumValue(field.Enum!, field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size)));
                         StoreStaticSlot(destination, completeSlots, operation.Slot, value);
-                        CaptureStatic(ref state, field, value);
+                        CaptureStatic(ref state, operation, value);
                         break;
                     }
 
@@ -702,7 +705,7 @@ internal static partial class ReadEngine
                         CheckPlanCount(operation.Count, state.MaxArrayElements);
                         string text = state.FixedText(ValueDecoding.ReadLatin1Characters(bytes.Slice(operation.Offset, operation.Count)));
                         StoreStaticSlot(destination, completeSlots, operation.Slot, text);
-                        CaptureStatic(ref state, field, text);
+                        CaptureStatic(ref state, operation, text);
                         break;
                     }
 
@@ -717,7 +720,7 @@ internal static partial class ReadEngine
 
                         IList<object?> values = PrimitiveArrayReader.Decode(bytes.Slice(operation.Offset, operation.Count * field.Codec.Size), field.Codec, operation.Count);
                         StoreStaticSlot(destination, completeSlots, operation.Slot, values);
-                        CaptureStatic(ref state, field, values);
+                        CaptureStatic(ref state, operation, values);
                         break;
                     }
 
@@ -733,7 +736,8 @@ internal static partial class ReadEngine
                             state.QualifiedPrefix = outer is null ? field.QualifiedPrefix : outer + field.QualifiedPrefix;
                         }
 
-                        RunStaticPlan(ref cursor, ref state, operation.NestedPlan!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), nested, slots);
+                        RunStaticPlan(ref cursor, ref state, operation.NestedPlan!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), nested, default(NoPlanChecks), slots);
+
                         state.QualifiedPrefix = outer;
                         break;
                     }
@@ -751,12 +755,14 @@ internal static partial class ReadEngine
                             object?[] slots = shape.Count == 0 ? Array.Empty<object?>() : new object?[shape.Count];
                             var nested = new StructValue(shape, slots);
                             elements.Add(nested);
-                            RunStaticPlan(ref cursor, ref state, nestedPlan, bytes.Slice(offset, nestedPlan.Size), nested, slots);
+                            RunStaticPlan(ref cursor, ref state, nestedPlan, bytes.Slice(offset, nestedPlan.Size), nested, default(NoPlanChecks), slots);
                         }
 
                         break;
                     }
                 }
+
+                checks.After(ref cursor, ref state, operation);
             }
         }
         finally
@@ -801,26 +807,29 @@ internal static partial class ReadEngine
     ///     rule, and publishes it under the active qualified prefix.
     /// </summary>
     /// <param name="state">The operation's state.</param>
-    /// <param name="field">The field read.</param>
+    /// <param name="operation">The static operation that read the field.</param>
     /// <param name="value">The value read.</param>
-    private static void CaptureStatic(ref ReadEngineState state, CompiledField field, object? value)
+    private static void CaptureStatic(ref ReadEngineState state, StaticReadOperation operation, object? value)
     {
+        CompiledField field = operation.Field;
         if (!field.CapturesLayoutVariable)
         {
             return;
         }
 
-        string name = field.Declaration.Name.Name;
-        SlotValue captured = LayoutVariableCapture.ToSlotValue(field, value);
+        SlotValue captured = operation.ToSlotValue(value);
         SlotTable table = state.Slots.Table;
-        if (table.TryGetSlot(name, out int slot))
+
+        // The slot is looked up by name once per operation and table, not on every read.
+        int slot = operation.GetCaptureSlot(table);
+        if (slot >= 0)
         {
             state.Slots.Set(slot, captured);
         }
 
         if (state.QualifiedPrefix is not null)
         {
-            state.PublishQualified(table.ReadPrograms.GetQualifiedTargets(name), captured);
+            state.PublishQualified(table.ReadPrograms.GetQualifiedTargets(field.Declaration.Name.Name), captured);
         }
     }
 }

@@ -12,6 +12,9 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using CStructElement = CStructSharp.Syntax.CStructElement;
+using Struct = CStructSharp.Syntax.Struct;
+using Typedef = CStructSharp.Syntax.Typedef;
 
 /// <summary>
 ///     The incremental source generator behind <c>[CStructLayout]</c>: for every attributed <c>static partial</c>
@@ -27,13 +30,25 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
+        IncrementalValueProvider<LayoutDefaults> defaults = DefaultsProvider(context);
         IncrementalValuesProvider<LayoutRequest> requests = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 AttributeMetadataName,
                 static (node, _) => node is ClassDeclarationSyntax,
                 static (syntaxContext, cancellation) => CreateRequest(syntaxContext, cancellation))
             .Where(static request => request is not null)
-            .Select(static (request, _) => request!);
+            .Select(static (request, _) => request!)
+            .Combine(defaults)
+            .Select(static (pair, _) => pair.Left.WithDefaults(pair.Right));
+
+        // A project property that does not parse is reported once, where the project can see it, and then ignored.
+        context.RegisterSourceOutput(defaults, static (productionContext, projectDefaults) =>
+        {
+            foreach (string invalid in projectDefaults.Invalid)
+            {
+                productionContext.ReportDiagnostic(Diagnostic.Create(GeneratorDiagnostics.InvalidProjectDefault, Location.None, "CStructSharp" + invalid.Substring(0, invalid.IndexOf('=')), invalid.Substring(invalid.IndexOf('=') + 1)));
+            }
+        });
 
         // A layout file is any AdditionalFile named *.cstruct, or one the build marks with CStructSharpLayout=true
         // (the package's build props mark every .cstruct file; a project can mark others). The file provider is part of
@@ -59,6 +74,12 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
                 }
             });
     }
+
+    /// <summary>The project's defaults for the attribute options, read from the build's <c>CStructSharp*</c> properties.</summary>
+    /// <param name="context">The generator's initialization context.</param>
+    /// <returns>The defaults; value equality keeps an unchanged set from re-running generation.</returns>
+    internal static IncrementalValueProvider<LayoutDefaults> DefaultsProvider(IncrementalGeneratorInitializationContext context)
+        => context.AnalyzerConfigOptionsProvider.Select(static (provider, _) => LayoutDefaults.From(provider.GlobalOptions));
 
     /// <summary>Recognizes a layout by its .cstruct suffix or explicit AdditionalFiles metadata without reading its bytes.</summary>
     /// <param name="file">The compiler-owned additional file.</param>
@@ -99,9 +120,18 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         string? root = null;
         bool keepNames = false;
         bool views = true;
+        bool enumerators = false;
+        bool runtimeByteOrder = false;
+        bool valueTypes = false;
         GenerationSurface surface = GenerationSurface.Full;
+        var explicitArguments = new List<string>();
         foreach (KeyValuePair<string, TypedConstant> named in attribute.NamedArguments)
         {
+            if (LayoutDefaults.NamesOption(named))
+            {
+                explicitArguments.Add(named.Key);
+            }
+
             switch (named.Key)
             {
             case "File":
@@ -115,6 +145,15 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
                 break;
             case "Views":
                 views = named.Value.Value is not false;
+                break;
+            case "Shape":
+                valueTypes = named.Value.Value is int shape && shape == 1;
+                break;
+            case "RuntimeByteOrder":
+                runtimeByteOrder = named.Value.Value is true;
+                break;
+            case "Enumerators":
+                enumerators = named.Value.Value is true;
                 break;
             case "Surface":
                 surface = named.Value.Value is int value && Enum.IsDefined(typeof(GenerationSurface), value) ? (GenerationSurface)value : GenerationSurface.Full;
@@ -155,13 +194,17 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             LayoutSettings.FromAttribute(attribute),
             keepNames,
             views,
+            enumerators,
+            runtimeByteOrder,
+            valueTypes,
             surface,
             SourceSpan.From(attributeLocation),
             definitionSpan,
             literalShape,
             ((CSharpParseOptions)declaration.SyntaxTree.Options).LanguageVersion.ToDisplayString(),
             TypesWithConstructors(symbol),
-            ConsumerDeclaredTypes(symbol));
+            ConsumerDeclaredTypes(symbol),
+            new EquatableArray<string>(explicitArguments.ToArray()));
     }
 
     /// <summary>
@@ -284,6 +327,12 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             return;
         }
 
+        if (request.RuntimeByteOrder && RuntimeByteOrderProblem(request, definition, codecs, compilation) is { } problem)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(GeneratorDiagnostics.RuntimeByteOrderUnsupported, request.AttributeSpan.ToLocation(), request.ClassName, problem));
+            return;
+        }
+
         string rootName = compilation.DefaultRoot;
         if (request.Root is not null)
         {
@@ -309,6 +358,129 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         }
 
         context.AddSource(request.HintName, SourceText.From(emitter.Emit(), System.Text.Encoding.UTF8));
+    }
+
+    /// <summary>
+    ///     Why <c>RuntimeByteOrder</c> cannot be generated for a layout, or <see langword="null"/> when it can: the surface
+    ///     writes (the full surface), or the layout places a field differently in the two byte orders (a bitfield run
+    ///     whose storage unit moves), so one placement could not serve both.
+    /// </summary>
+    /// <param name="request">The attribute's settings.</param>
+    /// <param name="definition">The layout text.</param>
+    /// <param name="codecs">The parsed codec declarations.</param>
+    /// <param name="compilation">The layout compiled with the attribute's byte order.</param>
+    /// <returns>The reason, or <see langword="null"/>.</returns>
+    private static string? RuntimeByteOrderProblem(LayoutRequest request, string definition, List<CustomCodecDescriptor> codecs, LayoutCompilation compilation)
+    {
+        if (request.Surface == GenerationSurface.Full)
+        {
+            return "needs a surface that only reads: use GeneratedSurface.Reader, Parser or Views (the full surface writes, and a writer encodes one order)";
+        }
+
+        LayoutSettings other = request.Settings with { LittleEndian = !request.Settings.LittleEndian };
+        LayoutCompilation alternate;
+        try
+        {
+            alternate = other.Compile(definition, other.CodecCatalog(codecs));
+        }
+        catch (Exception exception) when (exception is CStructException or ArgumentException)
+        {
+            return "needs a layout that also compiles with the opposite byte order: " + exception.Message;
+        }
+
+        // Both compilations parse the same text, so their declarations line up in source order; pairing by walk position
+        // (not by name) keeps anonymous bodies, which all share the empty name, and repeated member names apart.
+        var pairs = new List<(Struct Left, Struct Right)>();
+        ImmutableArray<KeyValuePair<string, CStructElement>> leftDeclarations = compilation.CompiledModel.OrderedDeclarations;
+        ImmutableArray<KeyValuePair<string, CStructElement>> rightDeclarations = alternate.CompiledModel.OrderedDeclarations;
+        if (leftDeclarations.Length != rightDeclarations.Length)
+        {
+            return "needs both byte orders to compile to the same structs";
+        }
+
+        for (int index = 0; index < leftDeclarations.Length; index++)
+        {
+            if (!PairComposites(leftDeclarations[index].Value, rightDeclarations[index].Value, pairs))
+            {
+                return "needs both byte orders to compile to the same structs";
+            }
+        }
+
+        foreach ((Struct leftStruct, Struct rightStruct) in pairs)
+        {
+            if (compilation.CompiledModel.Composites.TryGetValue(leftStruct, out CompiledTypeSymbol? leftSymbol) && leftSymbol.Definition is CompiledCompositeType first &&
+                alternate.CompiledModel.Composites.TryGetValue(rightStruct, out CompiledTypeSymbol? rightSymbol) && rightSymbol.Definition is CompiledCompositeType second)
+            {
+                if (first.Fields.Length != second.Fields.Length)
+                {
+                    return "needs both byte orders to compile to the same structs";
+                }
+
+                for (int index = 0; index < first.Fields.Length; index++)
+                {
+                    CompiledField a = first.Fields[index];
+                    CompiledField b = second.Fields[index];
+                    if (a.FixedOffset != b.FixedOffset || a.BitOffset != b.BitOffset || a.BitUnitSize != b.BitUnitSize || a.BitRunBits != b.BitRunBits || a.FixedStorageSize != b.FixedStorageSize || a.Alignment != b.Alignment)
+                    {
+                        return "needs a layout whose fields sit in the same place in both byte orders, but '" + leftSymbol.Name + "." + a.Name + "' (a bitfield) moves; give the bitfield storage an explicit order or use two layouts";
+                    }
+                }
+            }
+            else
+            {
+                return "needs both byte orders to compile to the same structs";
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    ///     Pairs the struct and union declarations of one top-level declaration in two compilations of the same text,
+    ///     walking both in step through typedef bodies and nested members.
+    /// </summary>
+    /// <param name="left">The declaration of the first compilation.</param>
+    /// <param name="right">The declaration at the same position of the second compilation.</param>
+    /// <param name="pairs">Receives each struct or union with its counterpart, outer ones first.</param>
+    /// <returns>Whether the two declarations have the same shape.</returns>
+    private static bool PairComposites(CStructElement left, CStructElement right, List<(Struct Left, Struct Right)> pairs)
+    {
+        Struct? leftBody = left is Typedef { Struct: { } leftTypedef } ? leftTypedef : left as Struct;
+        Struct? rightBody = right is Typedef { Struct: { } rightTypedef } ? rightTypedef : right as Struct;
+        if (leftBody is null || rightBody is null)
+        {
+            // Enums and aliases of a plain type hold no composite; they only need to be the same kind of declaration.
+            return leftBody is null && rightBody is null;
+        }
+
+        return PairBodies(leftBody, rightBody, pairs);
+    }
+
+    /// <summary>Pairs a struct or union with its counterpart and then their nested composite members, in declaration order.</summary>
+    /// <param name="left">The body in the first compilation.</param>
+    /// <param name="right">The body in the second compilation.</param>
+    /// <param name="pairs">Receives each pair, this one first.</param>
+    /// <returns>Whether both bodies have the same members.</returns>
+    private static bool PairBodies(Struct left, Struct right, List<(Struct Left, Struct Right)> pairs)
+    {
+        if (left.Fields.Count != right.Fields.Count)
+        {
+            return false;
+        }
+
+        pairs.Add((left, right));
+        for (int index = 0; index < left.Fields.Count; index++)
+        {
+            if (left.Fields[index] is Struct leftNested)
+            {
+                if (right.Fields[index] is not Struct rightNested || !PairBodies(leftNested, rightNested, pairs))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     /// <summary>Whether the consuming project's C# version is 12 or later, which the generated code needs.</summary>

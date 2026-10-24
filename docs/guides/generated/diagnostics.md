@@ -21,6 +21,9 @@ list cannot drift from what ships.
 | [CSG006](#csg006---custom-codec-declaration-is-invalid) | Error | Custom codec declaration is invalid |
 | [CSG010](#csg010---c-12-or-later-is-required) | Error | C# 12 or later is required |
 | [CSG011](#csg011---the-views-surface-needs-views) | Error | The Views surface needs views |
+| [CSG012](#csg012---a-cstructsharp-project-property-is-not-valid) | Warning | A CStructSharp project property is not valid |
+| [CSG013](#csg013---runtimebyteorder-is-not-supported-here) | Error | RuntimeByteOrder is not supported here |
+| [CSG014](#csg014---a-value-type-shape-is-not-supported-here) | Error | A value-type shape is not supported here |
 | [CSG100](#csg100---mapped-type-must-be-partial-with-a-parameterless-constructor) | Error | Mapped type must be partial with a parameterless constructor |
 | [CSG101](#csg101---mapped-member-type-is-not-mapped) | Error | Mapped member type is not mapped |
 | [CSG102](#csg102---mapped-member-has-no-layout-counterpart) | Warning | Mapped member has no layout counterpart |
@@ -96,9 +99,42 @@ expressions, static abstract interface members). An error.
 ## CSG011 - The Views surface needs views
 
 **Cause.** `Surface = GeneratedSurface.Views` generates only views, and `Views = false` turns views off, so together they
-would generate nothing. An error.
+would generate nothing. An error. Either value may come from the attribute or from the project's `CStructSharpSurface`
+and `CStructSharpViews` properties.
 
 **Fix.** Remove `Views = false`, or choose `GeneratedSurface.Reader` or `GeneratedSurface.Full`.
+
+## CSG012 - A CStructSharp project property is not valid
+
+**Cause.** One of the `CStructSharp*` build properties that set a project-wide default (see
+[Project defaults](choosing-runtime-or-generated.md#project-defaults)) has a value the generator does not understand,
+for example `<CStructSharpSurface>Tiny</CStructSharpSurface>`. A warning: the property is ignored and the library's
+default applies.
+
+**Fix.** Use a valid value: `Full`, `Reader`, `Parser` or `Views` for `CStructSharpSurface`; `SysV` or `Msvc` for
+`CStructSharpBitfieldPacking`; `LowBitFirst` or `HighBitFirst` for `CStructSharpBitfieldAllocation`; `1`, `2`, `4` or
+`8` for `CStructSharpPointerSize`; `32` or `64` for `CStructSharpCLongWidth`; `true` or `false` for the flag properties.
+
+## CSG013 - RuntimeByteOrder is not supported here
+
+**Cause.** `RuntimeByteOrder = true` (or the project's `CStructSharpRuntimeByteOrder`) cannot be generated: the layout uses
+the full surface, which writes and so encodes one byte order, or a bitfield sits in a different place when the layout is
+compiled big-endian than when it is compiled little-endian, or the layout does not compile in the opposite order. An error;
+the message names the reason and, for a bitfield, the field.
+
+**Fix.** Use `GeneratedSurface.Reader`, `Parser` or `Views`, and give the bitfield members an order that does not move them
+(declare them with the same storage type, or separate runs with an ordinary member), or keep two layouts, one per order.
+
+## CSG014 - A value-type shape is not supported here
+
+**Cause.** `Shape = GeneratedShape.Struct` (or the project's `CStructSharpShape`) cannot be generated for this layout: the
+surface is `Full` (its writers, `Update` setters and `Records` need classes) or `Views` (which generates no type), or a
+struct holds something a value type cannot: a union, a conditional member, a pointer, a runtime-sized or multidimensional
+array, an array of structs or enums, an array of `int8`, a custom codec or a terminated string. An error; the message names
+the member and the reason.
+
+**Fix.** Use `GeneratedSurface.Reader` or `Parser`, change the layout so every struct is fixed in size with the shapes listed
+above, or keep `Shape = GeneratedShape.Class` for that layout.
 
 ## CSG100 - Mapped type must be partial with a parameterless constructor
 

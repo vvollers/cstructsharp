@@ -6,8 +6,10 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using CStructSharp.Compilation;
+using CStructSharp.Compilation.Programs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Engine;
+using CStructSharp.Expressions;
 using CStructSharp.Reading;
 using CStructSharp.Syntax;
 using CStructSharp.Values;
@@ -60,6 +62,15 @@ public sealed partial class CStruct
 
         // The engine validates the limits and observes a cancelled token before reading; leave both to it.
         // Otherwise these are the preconditions under which it runs this plan for a root at offset zero.
+        // A root with conditions is read directly only when it holds no nested struct, whose members a condition could name;
+        // TryCheckRootConstraints then runs them over the decoded value.
+        if (plan.HasConstraints && plan.HasNestedOperations)
+        {
+            composite = null;
+            plan = null;
+            return false;
+        }
+
         settings = ReadOperationSettings.SnapshotReadOptions(options);
         return settings.HasValidLimits && plan.Size <= source.Length && settings.CoversPlan(plan);
     }
@@ -88,8 +99,76 @@ public sealed partial class CStruct
         }
 
         result = this.ReadPlannedRoot(source, composite, plan, settings);
+        if (plan.HasConstraints && !this.PassesRootConstraints(composite, plan, result))
+        {
+            // The engine re-reads the root and raises the failure with its member, path and offset.
+            result = null;
+            consumed = 0;
+            return false;
+        }
+
         consumed = plan.Size;
         return true;
+    }
+
+    /// <summary>
+    ///     Evaluates the <c>@expect</c> and <c>@supports</c> conditions of a directly read root's fields (including anonymous members), in field
+    ///     order: each field's value is captured as the engine captures it, then its conditions run, so a condition sees
+    ///     the fields up to its own and nothing else. Nothing is raised here; a condition that fails or cannot be
+    ///     evaluated sends the call back to the engine, whose failure carries the member, path and offset.
+    /// </summary>
+    /// <param name="composite">The root composite, whose read program holds the compiled conditions.</param>
+    /// <param name="plan">The root's plan, which holds no nested struct.</param>
+    /// <param name="value">The decoded root.</param>
+    /// <returns>Whether every condition holds.</returns>
+    private bool PassesRootConstraints(CompiledCompositeType composite, StaticReadPlan plan, StructValue value)
+    {
+        SlotTable table = this.compilation.SlotTable;
+        ReadProgram program = table.ReadPrograms.GetComposite(this.compilation, composite);
+        if (!PlanConditions.Covers(program, plan))
+        {
+            return false;
+        }
+
+        VariableSlots slots = VariableSlots.Create(table, (IReadOnlyDictionary<string, int>?)null);
+        try
+        {
+            foreach (StaticReadOperation operation in plan.Operations)
+            {
+                CompiledField field = operation.Field;
+                if (field.CapturesLayoutVariable)
+                {
+                    int slot = operation.GetCaptureSlot(table);
+                    if (slot >= 0 && value.TryGetSlot(operation.Slot, out object? decoded))
+                    {
+                        slots.Set(slot, operation.ToSlotValue(decoded));
+                    }
+                }
+
+                if (operation.HasConstraints)
+                {
+                    // The conditions are compiled into the program of the composite that declares the field.
+                    ReadProgram owner = PlanConditions.Declaring(program, operation);
+                    foreach (ReadStep step in owner.ConstraintSteps[operation.MemberIndex]!)
+                    {
+                        if (slots.Evaluate(owner.Expressions[step.A], owner.ExpressionContexts[step.A], ExpressionFailureDomain.Read) == 0)
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
+        catch (CStructException)
+        {
+            return false;
+        }
+        finally
+        {
+            slots.Dispose();
+        }
     }
 
     /// <summary>Runs a root's static plan over its bytes, once <see cref="CanReadFixedRoot"/> allowed it.</summary>
@@ -235,13 +314,20 @@ public sealed partial class CStruct
             return false;
         }
 
-        if (MappedTypes.FindFixedReader<T>(composite.Fingerprint) is { } direct && direct(source[..plan.Size], settings.TrimFixedText, out T? mapped))
+        // The mapped class's reader decodes without a StructValue to evaluate conditions on, so a root with conditions takes the plan.
+        if (!plan.HasConstraints && MappedTypes.FindFixedReader<T>(composite.Fingerprint) is { } direct && direct(source[..plan.Size], settings.TrimFixedText, out T? mapped))
         {
             value = mapped;
             return true;
         }
 
         StructValue root = this.ReadPlannedRoot(source, composite, plan, settings);
+        if (plan.HasConstraints && !this.PassesRootConstraints(composite, plan, root))
+        {
+            value = default!;
+            return false;
+        }
+
         if (root is T typed)
         {
             value = typed;
@@ -320,7 +406,7 @@ public sealed partial class CStruct
         }
 
         composite = this.compiledSizeQueries.GetCompiledComposite(body);
-        plan = composite.StaticPlan;
+        plan = composite.LayoutPlan;
         return plan is not null;
     }
 
