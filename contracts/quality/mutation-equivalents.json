@@ -19,7 +19,7 @@
   },
   {
    "pattern": "CStructValueReader.cs",
-   "sourceSha256": "9905c2de4b42a698a603db3d14da1dfdb5fd607623dc68ef3d6c812a454c8aad",
+   "sourceSha256": "38de28a40256f833acee8de1f1193308444aacb83af40a9a2c7a0261f01695cb",
    "mutants": [
     { "mutatorName": "Linq method mutation (Single() to SingleOrDefault())", "replacement": "values.Values.SingleOrDefault",
      "location": {"start":{"line":36,"column":20},"end":{"line":36,"column":40}},
@@ -613,10 +613,10 @@
   },
   {
    "pattern": "Generated/RecordSequence.cs",
-   "sourceSha256": "ac1dc783158365d7bc46224e020a4c41cb3e286c95a5e941a139be0a41d9ef88",
+   "sourceSha256": "0c1134c4318b0b22044a0102df50d42207ee325d00077edcee7098e717427b04",
    "mutants": [
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?(options ?? new ReadOptions()) with { CancellationToken = token, } :options)",
-     "location": {"start":{"line":411,"column":12},"end":{"line":411,"column":110}},
+     "location": {"start":{"line":430,"column":12},"end":{"line":430,"column":110}},
      "reason": "When the linked token can cancel, this already takes the clone branch. Otherwise neither input token can cancel: cloning the sealed ReadOptions preserves every setting and assigns the same non-cancellable token; null denotes the same default settings as new ReadOptions. The documented read settings are unchanged. The extra descriptor allocation and descriptor reference identity are not record-reading results." }
    ]
   },
@@ -706,7 +706,7 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Parsing/LayoutParser.Members.cs",
-   "sourceSha256": "3b034b82a7922f4f5e9a8a8060210fb1992af2ff50c79ee03e5655615b6af493",
+   "sourceSha256": "cd58a1131602a7356077c80dab090239691c2b7c4199fca77aec23f496816d6c",
    "mutants": [
     { "mutatorName": "Boolean mutation", "replacement": "true",
      "location": {"start":{"line":398,"column":20},"end":{"line":398,"column":25}},
@@ -784,7 +784,7 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.Composites.cs",
-   "sourceSha256": "64d60105acd5d84a93257b03815026021dd49b1a1f822cee5387e2deba87f477",
+   "sourceSha256": "a12a239f59253d71d71d8ad383e2f3fc4cfa4c1b31f729a74dc3a65dfea5705d",
    "mutants": [
     { "mutatorName": "Remove checked expression", "replacement": "field.PointerDepth + type.PointerDepth",
      "location": {"start":{"line":231,"column":36},"end":{"line":231,"column":83}},
@@ -925,10 +925,10 @@
   },
   {
    "pattern": "Generated/ReadCursor.Failures.cs",
-   "sourceSha256": "8fde840190d7d06313106efe9e9e368990a06b8c5155fbb29820f242aed504df",
+   "sourceSha256": "9e06382119155304a6eb59554e3b19ab2672e7be93d3486f22da5ab7e2887521",
    "mutants": [
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?new CStructReadException(message) :new CStructReadException(message, cause))",
-     "location": {"start":{"line":69,"column":25},"end":{"line":69,"column":117}},
+     "location": {"start":{"line":138,"column":25},"end":{"line":138,"column":117}},
      "reason": "Only a null cause changes constructor selection. Both CStructReadException overloads delegate to the same protected constructor with ReadFailed, the same message and a null inner exception. The same Attach call follows, preserving category, message, field, path and offset." }
    ]
   },

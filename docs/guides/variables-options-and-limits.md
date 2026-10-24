@@ -116,11 +116,32 @@ Header header = Wire.Parse(bytes, limits);         // no ReadOptions object is c
 Entry entry = Wire.ParseEntry(bytes, in limits);   // the named reader of any declaration
 ```
 
-`ReadLimits` holds the array, string, total-byte and nesting limits, `TrimFixedText`, `InvalidText` and the cancellation
+`ReadLimits` holds the array, string, total-byte and nesting limits, `TrimFixedText`, `InvalidText`, `OffsetBase` and the cancellation
 token, with the meaning and the defaults they have on `ReadOptions`; a `default(ReadLimits)` has the default limits.
 It does not hold the pointer policy, which keeps its defaults, so a read that follows pointers with another policy uses
 `ReadOptions`. `ReadLimits.From(options)` and `limits.ToOptions()` convert between the two. The overload exists on every
 generated surface that has a reader; views and the stream and sequence forms take `ReadOptions`.
+
+## Report offsets in the larger input
+
+A failure reports `Offset`, the position where the read stopped. For a span that is a position in *the span*, but a program
+that reads a header out of an image reads it into a buffer first, and the position it wants in a report is the one in the
+image. `ReadOptions.OffsetBase` and `ReadLimits.OffsetBase` give the position of the buffer's first byte in the larger
+input, and it is added to the `Offset` of every failure of a span, array or memory read and to the offset in its message:
+
+```csharp
+byte[] sector = ReadSector(image, 0x1BE0);
+var limits = new ReadLimits { OffsetBase = 0x1BE0 };
+if (!Wire.TryParse(sector, out Header? header, out CStructException? failure, in limits))
+{
+    Console.WriteLine(failure!.Message);   // "... (field 'magic', in 'header', offset 7136)": 0x1BE0 + 2
+}
+```
+
+It changes nothing else: positions, pointer addresses and `Origin` still count from the buffer's first byte. It is at most
+2^48 - 1 (`ReadLimits.MaxOffsetBase`), so that `ReadLimits` stays as small as it is; a negative or larger value is an
+`ArgumentOutOfRangeException` when it is set. The runtime layout's stream readers report absolute stream positions already
+and ignore it; the generated stream readers count from the stream's position at the call, so they add it.
 
 ## Choose a policy for the quiet cases
 

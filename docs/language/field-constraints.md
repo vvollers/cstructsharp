@@ -50,6 +50,23 @@ A field may carry several constraints; they are checked in the order written and
 uint8 v @expect(v > 1) @supports(v < 5) @expect(v != 3);
 ```
 
+## Give a constraint a label
+
+A condition is for the machine and its message is for a person, but a program that sorts failures (a report, a log filter,
+a test) needs a name it can match. Write the name as a quoted string after the condition, inside the parentheses:
+
+```c
+struct superblock {
+    uint16 magic @expect(magic == 0xEF53, "ext.superblock_magic");
+    uint32 rev_level @supports(rev_level <= 1, "ext.revision");
+};
+```
+
+The label is carried by `CStructConstraintException.Label` (`null` for a constraint without one) and the message ends
+with it in brackets, `... holds. [ext.revision]`. It has no effect on the check. A label is not empty, stays on one line,
+and writes a quote or a backslash as `\"` or `\\`; `ToDefinition()` prints it back, so a layout rebuilt from its text
+reports the same labels.
+
 ## What a failure looks like
 
 A value outside a condition throws `CStructConstraintException`, a `CStructReadException` with the code `ReadFailed`:
@@ -62,6 +79,27 @@ Unsupported value for 'rev_level': this layout supports only values for which 'r
 `Kind` says malformed or unsupported, `Constraint` holds the condition as written, and `Member`, `Path` and `Offset`
 are those of every read failure. The runtime layout, the generated readers and a generated view's `Validate()` report
 the same failure for the same bytes.
+
+## Collect every failure instead of the first
+
+A read stops at the first value outside a condition. To list *every* inconsistent field of a header in one pass, give the
+read a collection:
+
+```csharp
+var violations = new List<CStructConstraintException>();
+StructValue header = layout.Parse(bytes, "superblock", null, new ReadOptions { ConstraintViolations = violations });
+foreach (CStructConstraintException violation in violations)
+{
+    Console.WriteLine($"{violation.Label ?? violation.Member}: {violation.Message}");
+}
+```
+
+Each broken condition is added to the collection, in field order, with the member, path, offset and label a thrown failure
+has, and the read continues with the value as read. The collection stays empty when every condition holds. Only constraints
+are collected: a short read, a limit or a condition that cannot be evaluated still ends the read with its exception, and a
+value that breaks a condition may break what depends on it (a count that is too large fails the array limit next), so the
+collection then holds the failures found up to that point. The same option is read by the generated readers and by a
+generated view's `Validate(violations)`. The collection is added to in place and is not thread-safe: use one per read.
 
 ## Where a constraint is checked
 
@@ -84,6 +122,13 @@ the same failure for the same bytes.
   of the members of an anonymous struct or union and of the members after it, and throws the reader's failure with the
   reader's `Offset`, the end of the failing field; a condition that names a member the view does not expose is left to
   `Parse`.
+- **Without throwing.** An exception costs far more than the check it reports (it captures a stack trace and unwinds), so
+  code that probes many inputs for a format should not use one as its answer. The generated `TryParse` of a fixed-size struct
+  with constraints, the constraint pass behind it, and a generated view's `TryValidate(out failure)` return a broken condition
+  as a failure value and throw nothing. `Matches(bytes)` goes further: it decodes only the members the `@expect` conditions
+  name, straight from their offsets, builds no value, and answers yes or no. A source that is too short for the struct, or a
+  limit, still fails with an exception that `TryParse` catches. See
+  [TryParse](../guides/generated/sequences-and-try-parse.md#trying-without-an-exception).
 - **Writes.** A constraint describes what a read accepts, so a write does not check it: `Serialize` and `Update` write
   any value the field's type holds. Check the value before writing, or read it back.
 

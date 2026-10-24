@@ -21,18 +21,18 @@ internal readonly record struct ReadOperationSettings(
     bool TrimFixedText = false,
     System.Threading.CancellationToken CancellationToken = default,
     ExecutionPath ExecutionPath = ExecutionPath.Fastest,
-    long ContinuedInputLength = Streams.BufferedInput.WholeInput,
-    bool LenientText = false,
-    long OffsetBase = 0,
-    System.Collections.Generic.ICollection<CStructSharp.Diagnostics.CStructConstraintException>? ConstraintViolations = null)
+    ReadExtras? Extras = null,
+    bool LenientText = false)
 {
     /// <summary>The settings of the default <see cref="ReadOptions"/>, which a read governed by <see cref="ReadLimits"/> takes its pointer policy from; built once.</summary>
     private static readonly ReadOperationSettings DefaultPolicy = SnapshotReadOptions(null);
 
     // MaxPointerTargetBytes is stored as a value and a flag rather than a long? (16 bytes with padding): the flag packs
-    // beside the bool members, which keeps the struct - copied into every read's state and cursor - at the 72 bytes it
-    // has without ContinuedInputLength. The value is 0 when the flag is unset, so member-wise equality matches the
-    // nullable's and the limit checks test the value alone.
+    // beside the bool members, which keeps the struct - copied into every read's state and cursor - at 72 bytes. That size
+    // matters: one more field (even a long) measured 50% slower for a 19 ns generated parse, and the rarely set members
+    // (offset base, violation collection, buffered-input continuation) therefore share the one reference, Extras, which is
+    // the options' own object and null for an ordinary read. The value is 0 when the flag is unset, so member-wise equality
+    // matches the nullable's and the limit checks test the value alone.
     private readonly long maxPointerTargetBytes = MaxPointerTargetBytes.GetValueOrDefault();
     private readonly bool hasMaxPointerTargetBytes = MaxPointerTargetBytes.HasValue;
 
@@ -46,6 +46,15 @@ internal readonly record struct ReadOperationSettings(
             this.maxPointerTargetBytes = value.GetValueOrDefault();
         }
     }
+
+    /// <summary>Gets what the buffered input forms record: <see cref="Streams.BufferedInput.WholeInput"/> (zero) unless the bytes are the first part of a longer input.</summary>
+    public long ContinuedInputLength => this.Extras?.ContinuedInputLength ?? Streams.BufferedInput.WholeInput;
+
+    /// <summary>Gets the position of the source's first byte in the larger input, added to a failure's offset; zero when none was given.</summary>
+    public long OffsetBase => this.Extras?.OffsetBase ?? 0;
+
+    /// <summary>Gets the collection that receives constraint failures instead of the first one ending the read, or <see langword="null"/>.</summary>
+    public System.Collections.Generic.ICollection<CStructSharp.Diagnostics.CStructConstraintException>? ConstraintViolations => this.Extras?.ConstraintViolations;
 
     /// <summary>
     ///     Gets whether every limit is usable and the operation is not already cancelled. When this is false the compiled
@@ -105,10 +114,8 @@ internal readonly record struct ReadOperationSettings(
             options.TrimFixedText,
             options.CancellationToken,
             options.ExecutionPath,
-            options.ContinuedInputLength,
-            options.LenientText,
-            options.OffsetBase,
-            options.ConstraintViolations);
+            options.Extras,
+            options.LenientText);
     }
 
     /// <summary>Builds the settings of a read governed by <see cref="ReadLimits"/>: its limits, and the default pointer policy.</summary>
@@ -124,7 +131,6 @@ internal readonly record struct ReadOperationSettings(
             TrimFixedText = limits.TrimFixedText,
             CancellationToken = limits.CancellationToken,
             LenientText = limits.LenientText,
-            OffsetBase = limits.OffsetBase,
         };
 
     /// <summary>Maps already-snapshotted update traversal choices into the same read operation settings.</summary>

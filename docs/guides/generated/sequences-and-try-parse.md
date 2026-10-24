@@ -28,6 +28,27 @@ the `CStructException` family. What it lets through is just as precise: an `Oper
 work says nothing about the bytes) and argument errors (a null stream is a bug in the caller). A stream is left at
 its origin after a failure, so another layout can be tried at the same place.
 
+### Trying without an exception
+
+For most layouts `TryParse` runs `Parse` and catches what it throws, which keeps the same text and the same behavior but costs
+an exception for each failure. A struct of fixed size with [constraints](../../language/field-constraints.md) does better: its
+`TryParse` decodes the bytes and checks the conditions itself, so a value that breaks one is returned as `failure` and nothing
+is thrown. A source that is too short, a read limit and a cancelled token are not constraints and still go the long way
+(short and limit failures are caught, cancellation passes through). A generated view of such a struct has the matching
+`TryValidate(out failure)`, and with `@expect` conditions on members at fixed offsets the layout has `Matches`:
+
+```csharp
+// Which of two layouts is this? Neither question builds an object or throws.
+if (ExtSuperblock.Matches(bytes)) { ... }          // decodes only the fields @expect names
+else if (ReiserSuperblock.Matches(bytes)) { ... }
+```
+
+`Matches(source)` is true when the source holds the bytes the evaluated conditions read and none of them is broken. It
+evaluates `@expect` conditions only (an unsupported value is still recognized), skips a condition on a member that follows a
+runtime-sized array or sits in a conditional arm or a nested struct, and treats a source that is too short or a condition
+that cannot be evaluated as no match. A match therefore says "this looks like the format", not "a read succeeds": call
+`TryParse` next.
+
 Every composite has the five input kinds - span, array, memory, `ReadOnlySequence<byte>`, stream - as
 `TryParse<Name>`, and the root has them as `TryParse`. The interface `ICStructGenerated<TSelf>` exposes the span
 form, so generic code can parse any generated root without knowing its class.

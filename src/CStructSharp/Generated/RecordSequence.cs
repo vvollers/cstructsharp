@@ -168,6 +168,14 @@ public static class RecordSequence
         }
     }
 
+    /// <summary>The records of a stream whose record has a fixed size: each is read from its own buffer, the trailing-bytes check names the record, and every failure carries the stream coordinates.</summary>
+    /// <param name="stream">The readable stream whose current position is the first record's start.</param>
+    /// <param name="size">The record's fixed size in bytes.</param>
+    /// <param name="layoutName">The record's layout name, for the trailing-bytes failure.</param>
+    /// <param name="options">The read options each record is read with.</param>
+    /// <param name="read">Reads one record.</param>
+    /// <typeparam name="T">The record type.</typeparam>
+    /// <returns>The records, read as they are enumerated.</returns>
     private static IEnumerable<T> FixedFromStream<T>(Stream stream, int size, string layoutName, ReadOptions? options, RecordReader<T> read)
     {
         byte[] buffer = ArrayPool<byte>.Shared.Rent(Math.Max(size, 1));
@@ -200,6 +208,15 @@ public static class RecordSequence
         }
     }
 
+    /// <summary>The records of a stream whose record has a fixed size, read with <see cref="Stream.ReadAsync(Memory{byte}, CancellationToken)"/>: the rules of <see cref="FixedFromStream{T}"/>.</summary>
+    /// <param name="stream">The readable stream whose current position is the first record's start.</param>
+    /// <param name="size">The record's fixed size in bytes.</param>
+    /// <param name="layoutName">The record's layout name, for the trailing-bytes failure.</param>
+    /// <param name="options">The read options each record is read with.</param>
+    /// <param name="read">Reads one record.</param>
+    /// <param name="cancellationToken">Ends the enumeration while it waits for bytes or between records.</param>
+    /// <typeparam name="T">The record type.</typeparam>
+    /// <returns>The records, read as they are enumerated.</returns>
     private static async IAsyncEnumerable<T> FixedFromStreamAsync<T>(Stream stream, int size, string layoutName, ReadOptions? options, RecordReader<T> read, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         CancellationToken token = AsyncStreamBuffer.Link(options, cancellationToken, out CancellationTokenSource? linked);

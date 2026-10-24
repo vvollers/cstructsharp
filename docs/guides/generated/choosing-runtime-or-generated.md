@@ -73,7 +73,8 @@ default of each option the attribute does not name; an option the attribute name
 | `CStructSharpViews` | `Views` | `true`, `false` |
 | `CStructSharpEnumerators` | `Enumerators` | `true`, `false` |
 | `CStructSharpRuntimeByteOrder` | `RuntimeByteOrder` | `true`, `false` |
-| `CStructSharpShape` | `Shape` | `Class`, `Struct` |
+| `CStructSharpShape` | `Shape` | `Class`, `Struct`, `Auto` |
+| `CStructSharpMaxValueBytes` | `MaxValueBytes` | `1` to `65536` |
 | `CStructSharpKeepNames` | `KeepNames` | `true`, `false` |
 | `CStructSharpAligned` | `Aligned` | `true`, `false` |
 | `CStructSharpLittleEndian` | `LittleEndian` | `true`, `false` |
@@ -86,7 +87,8 @@ default of each option the attribute does not name; an option the attribute name
 With `CStructSharpSurface` set to `Reader`, a layout that needs writers or `Layout` says `Surface = GeneratedSurface.Full`
 on its own attribute. A default that a surface cannot honor is an error for every layout that uses that surface: with the
 default surface (`Full`), `CStructSharpShape=Struct` is CSG014 and `CStructSharpRuntimeByteOrder=true` is CSG013 for every layout,
-so set `CStructSharpSurface` in the same property group. `Defined` and `Codecs` are per layout and have no project default. A value that does not parse is
+so set `CStructSharpSurface` in the same property group. `CStructSharpShape=Auto` is the value-type default that does not
+break a project of mixed layouts: each layout takes a value type where it qualifies and stays a class where it does not. `Defined` and `Codecs` are per layout and have no project default. A value that does not parse is
 reported as [CSG012](diagnostics.md#csg012---a-cstructsharp-project-property-is-not-valid) and ignored.
 
 ## One layout for both byte orders
@@ -133,16 +135,58 @@ struct are public fields, not properties, so `entry.Signature[3]` reads in place
 (`char[N]`, `utf8[N]`, ...) is still a `string`, which allocates when read.
 
 The shape needs the `Reader` or `Parser` surface, because a writer, `Update` and `Records` need classes, and a layout of
-fixed size: numbers, enums, bitfields, nested structs, text and one-dimensional fixed arrays of numbers, in structs of at
-most 1,024 bytes. A union, a conditional member, a pointer, a runtime-sized or multidimensional array, an array of structs
-or enums, a custom codec, a terminated string and a bigger struct are reported as
+fixed size: numbers, enums, bitfields, nested structs, text and one-dimensional fixed arrays of numbers, enums and
+structs (each an inline array, filled in place), in structs of at most `MaxValueBytes` bytes (1,024 unless the attribute
+or `CStructSharpMaxValueBytes` says more, up to 65,536). A union, a conditional member, a pointer, a runtime-sized or
+multidimensional array, a custom codec, a terminated string and a bigger struct are reported as
 [CSG014](diagnostics.md#csg014---a-value-type-shape-is-not-supported-here) with the member that does not fit. The shape works
 with `RuntimeByteOrder`, bitfields and `@expect` constraints.
+
+`Shape = GeneratedShape.Auto` asks for the value type only where it fits: the layout becomes structs when it qualifies, and
+classes when it does not (a runtime-sized array, a union, the `Full` surface), with nothing reported. It lets one project
+setting cover a mixed set of layouts. Code that must compile against either shape uses what both have: scalar members, text,
+nested values, and for a fixed array its index, `Length` and `AsSpan()`; code that needs more names its shape. A view of a
+value-type layout converts to the struct with `ToObject()`, which returns the struct itself and allocates nothing, so a lazy
+view and a value combine without another method.
 
 What a value type saves is allocation, not time: it is copied when it is returned, so a struct of a kilobyte reads about as
 fast as the class (a few tens of nanoseconds slower in a measurement of a 1,000-byte array) and a small one reads at about the
 same speed, with no object for the garbage collector to track. That is also why the shape stops at 1,024 bytes: a bigger value
 is copied on every return and assignment, and a class or a [view](views-and-zero-allocation.md) is the better tool.
+
+## Just the value of a one-field layout
+
+A format has many tiny layouts: a stored word, a magic number, an identifier. Each would be a class, a fixed reader, a
+member-by-member reader and their overloads, to return one number. `Shape = GeneratedShape.Scalar` generates a static `Parse`
+that returns the value itself, and nothing else:
+
+```csharp
+[CStructLayout("struct word { uint32 value @expect(value != 0, \"word.nonzero\"); };",
+    Root = "word", Surface = GeneratedSurface.Reader, Shape = GeneratedShape.Scalar)]
+internal static partial class WordLayout { }
+
+uint word = WordLayout.Parse(bytes);                                // the number, not an object
+bool ok = WordLayout.TryParse(bytes, out uint value, out var failure);  // a broken condition costs no exception
+```
+
+The layout is one struct whose only member is a number, an enum or an identifier (`guid`, `uuid`) at offset 0 that fills the
+struct. `Parse` takes `ReadOptions` or `ReadLimits`, and a `bool littleEndian` first when the layout has `RuntimeByteOrder`;
+it reads, limits, cancels and fails as the struct's reader does, and checks its constraints. The enums of the layout are
+still generated (an enum member returns the enum), and `Sizes` and `Offsets` stay. No view, class or per-struct reader is
+generated, so a one-field layout costs a few short methods (about half the source of the class form, 69 lines against 116 without
+comments) and no type, which matters when a project has hundreds of them. It needs the `Reader` or `Parser` surface (the `TryParse` forms are on `Reader`); any other layout is
+[CSG015](diagnostics.md#csg015---a-scalar-shape-is-not-supported-here).
+
+## Find what a project generates and never uses
+
+Two analyzer suggestions (severity Info; raise them in an `.editorconfig` with `dotnet_diagnostic.CSG016.severity = warning`)
+point at generated code nothing needs. [CSG016](diagnostics.md#csg016---a-generated-layout-is-never-used) names a layout class
+that no code references. [CSG017](diagnostics.md#csg017---a-generated-layout-generates-more-than-its-uses-need) names a layout
+whose uses all fit a smaller surface, or that generates views nobody names, and says which `Surface` or `Views = false` to
+write. The analysis sees one compilation, so it reports a class only when no other assembly can see it, and stays quiet when
+a friend assembly may use it (`InternalsVisibleTo`; set `CStructSharpAnalyzeWithFriends` to `true` to analyze anyway and
+accept that a use from a test project looks like no use), when a `[CStructMapped]` class may resolve layouts, and for a
+layout that is referenced as a whole (`typeof`, `nameof`, `using static`).
 
 ## What the numbers mean
 

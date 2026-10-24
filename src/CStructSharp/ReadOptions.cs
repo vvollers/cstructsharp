@@ -36,12 +36,15 @@ public sealed record ReadOptions
 
     // The members few reads set - the offset base, the violation collection and the buffered-input continuation - share one
     // reference that stays null for an ordinary read, so none of them grows an instance past 88 bytes.
-    private readonly ReadExtras? extras;
+    private readonly Reading.ReadExtras? extras;
 
     /// <summary>Creates the default bounded read and pointer policy.</summary>
     public ReadOptions()
     {
     }
+
+    /// <summary>Gets the members few reads set (offset base, violation collection, buffered-input continuation), or <see langword="null"/> when none is.</summary>
+    internal Reading.ReadExtras? Extras => this.extras;
 
     /// <summary>Gets the shared default options an operation uses when the caller passes none.</summary>
     internal static ReadOptions Default { get; } = new();
@@ -59,7 +62,7 @@ public sealed record ReadOptions
     internal long ContinuedInputLength
     {
         get => this.extras?.ContinuedInputLength ?? 0;
-        init => this.extras = ReadExtras.Normalize((this.extras ?? ReadExtras.None) with { ContinuedInputLength = value });
+        init => this.extras = Reading.ReadExtras.Normalize((this.extras ?? Reading.ReadExtras.None) with { ContinuedInputLength = value });
     }
 
     /// <summary>Gets whether pointer addresses are stream positions or offsets from <see cref="Origin"/>.</summary>
@@ -170,7 +173,7 @@ public sealed record ReadOptions
         init
         {
             ReadLimits.ValidateOffsetBase(value);
-            this.extras = ReadExtras.Normalize((this.extras ?? ReadExtras.None) with { OffsetBase = value });
+            this.extras = Reading.ReadExtras.Normalize((this.extras ?? Reading.ReadExtras.None) with { OffsetBase = value });
         }
     }
 
@@ -191,7 +194,7 @@ public sealed record ReadOptions
     public System.Collections.Generic.ICollection<CStructSharp.Diagnostics.CStructConstraintException>? ConstraintViolations
     {
         get => this.extras?.ConstraintViolations;
-        init => this.extras = ReadExtras.Normalize((this.extras ?? ReadExtras.None) with { ConstraintViolations = value });
+        init => this.extras = Reading.ReadExtras.Normalize((this.extras ?? Reading.ReadExtras.None) with { ConstraintViolations = value });
     }
 
     /// <summary>
@@ -201,19 +204,4 @@ public sealed record ReadOptions
     ///     <c>TryReadValue</c> lets it through). Never checked per primitive, so a small read costs nothing for it.
     /// </summary>
     public System.Threading.CancellationToken CancellationToken { get; init; }
-
-    /// <summary>The members few reads set, kept behind one reference so an ordinary instance does not carry them.</summary>
-    /// <param name="OffsetBase">The position of the source's first byte in the larger input.</param>
-    /// <param name="ConstraintViolations">The collection that receives constraint failures, or <see langword="null"/>.</param>
-    /// <param name="ContinuedInputLength">What the buffered input forms record when the bytes are the first part of a longer input.</param>
-    private sealed record ReadExtras(long OffsetBase, System.Collections.Generic.ICollection<CStructSharp.Diagnostics.CStructConstraintException>? ConstraintViolations, long ContinuedInputLength)
-    {
-        /// <summary>The extras of an ordinary read: nothing set.</summary>
-        public static readonly ReadExtras None = new(0, null, 0);
-
-        /// <summary>Returns <see langword="null"/> for extras with nothing set, so equal options store the same thing.</summary>
-        /// <param name="value">The extras.</param>
-        /// <returns>The extras, or <see langword="null"/> when they equal <see cref="None"/>.</returns>
-        public static ReadExtras? Normalize(ReadExtras value) => value == None ? null : value;
-    }
 }

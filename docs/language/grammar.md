@@ -104,7 +104,7 @@ declarator-suffixes
                  = { pointer-count | placement-suffix | constraint } ;
 placement-suffix = alignment-override | offset-assertion ;
 pointer-count    = "@count", "(", expression, ")" ;
-constraint       = ( "@expect" | "@supports" ), "(", expression, ")" ;
+constraint       = ( "@expect" | "@supports" ), "(", expression, [ ",", string-literal ], ")" ;
 alignment-override
                  = "@align", "(", expression, ")" ;
 offset-assertion = "@", expression ;
@@ -215,7 +215,8 @@ declarator may also carry one `@count(N)` suffix, before or after its placement 
 target `N` consecutive values instead of one. `N` may name a field declared after the pointer. See
 [counted pointer targets](pointers-and-addressing.md#counted-pointer-targets). Any declarator may also carry any number of
 `@expect(condition)` and `@supports(condition)` constraints, in any order among the other suffixes: the condition is an
-expression that may name the field and the fields before it, and a read fails with a malformed (`@expect`) or unsupported
+expression that may name the field and the fields before it, optionally followed by a comma and a quoted label, and a read
+fails with a malformed (`@expect`) or unsupported
 (`@supports`) failure when it evaluates to zero. See [field constraints](field-constraints.md). A
 `struct`/`union` declaration may itself carry `[ alignment-override ]` immediately before its opening brace,
 clamping every one of that composite's own fields' alignment to at most `N` (matching `#pragma pack(N)` semantics)

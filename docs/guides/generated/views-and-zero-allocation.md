@@ -91,6 +91,12 @@ array that is named like one of the view's own members (`bytes`, `to_object`) st
 and a derived member (`DataBytes` for `data`, `PtrAddress` for a pointer `ptr`) that would take the name of one of the
 layout's own members gets a trailing underscore instead (`DataBytes_`).
 
+A struct with `@expect` or `@supports` conditions gets `Validate()` on its view: it checks the conditions of the members the view
+exposes and throws the reader's failure. `Validate(violations)` collects every broken condition into a list and goes on
+(see [collect every failure](../../language/field-constraints.md#collect-every-failure-instead-of-the-first)), and
+`TryValidate(out failure)` returns the failure and throws nothing. For a layout generated as value types
+(`Shape = Struct`), `ToObject()` returns the generated struct itself, with no allocation.
+
 ## When a view is the wrong tool
 
 - You need most of the members anyway and keep them around: parse once into an object.

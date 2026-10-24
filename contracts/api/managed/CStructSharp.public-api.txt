@@ -130,6 +130,7 @@ namespace CStructSharp
         public string? File { get; set; }
         public bool KeepNames { get; set; }
         public bool LittleEndian { get; set; }
+        public int MaxValueBytes { get; set; }
         public int PointerSize { get; set; }
         public string? Root { get; set; }
         public bool RuntimeByteOrder { get; set; }
@@ -160,6 +161,8 @@ namespace CStructSharp
     {
         Class = 0,
         Struct = 1,
+        Auto = 2,
+        Scalar = 3,
     }
     public enum GeneratedSurface
     {
@@ -214,12 +217,14 @@ namespace CStructSharp
     }
     public readonly struct ReadLimits : System.IEquatable<CStructSharp.ReadLimits>
     {
+        public const long MaxOffsetBase = 281474976710655;
         public System.Threading.CancellationToken CancellationToken { get; init; }
         public CStructSharp.InvalidTextHandling InvalidText { get; init; }
         public int MaxArrayElements { get; init; }
         public int MaxNestingDepth { get; init; }
         public long MaxStringBytes { get; init; }
         public long MaxTotalBytesRead { get; init; }
+        public long OffsetBase { get; init; }
         public bool TrimFixedText { get; init; }
         public CStructSharp.ReadOptions ToOptions() { }
         public static CStructSharp.ReadLimits From(CStructSharp.ReadOptions? options) { }
@@ -229,6 +234,7 @@ namespace CStructSharp
         public ReadOptions() { }
         public CStructSharp.PointerAddressingMode AddressingMode { get; init; }
         public System.Threading.CancellationToken CancellationToken { get; init; }
+        public System.Collections.Generic.ICollection<CStructSharp.Diagnostics.CStructConstraintException>? ConstraintViolations { get; init; }
         public bool DereferencePointers { get; init; }
         public CStructSharp.InvalidTextHandling InvalidText { get; init; }
         public int MaxArrayElements { get; init; }
@@ -237,6 +243,7 @@ namespace CStructSharp
         public long? MaxPointerTargetBytes { get; init; }
         public long MaxStringBytes { get; init; }
         public long MaxTotalBytesRead { get; init; }
+        public long OffsetBase { get; init; }
         public long Origin { get; init; }
         public bool TrimFixedText { get; init; }
     }
@@ -298,9 +305,10 @@ namespace CStructSharp.Diagnostics
 {
     public sealed class CStructConstraintException : CStructSharp.Diagnostics.CStructReadException
     {
-        public CStructConstraintException(CStructSharp.Diagnostics.ConstraintKind kind, string constraint, string message) { }
+        public CStructConstraintException(CStructSharp.Diagnostics.ConstraintKind kind, string constraint, string message, string? label = null) { }
         public string Constraint { get; }
         public CStructSharp.Diagnostics.ConstraintKind Kind { get; }
+        public string? Label { get; }
     }
     public enum CStructErrorCode
     {
@@ -527,6 +535,7 @@ namespace CStructSharp.Generated
         public int Position { get; set; }
         public bool TrimFixedText { get; }
         public void Complete(CStructSharp.Diagnostics.CStructException exception) { }
+        public void ConstraintViolated(CStructSharp.Diagnostics.ConstraintKind kind, string constraint, string field, string? member, string? memberType, string? label = null, int reportAt = -1) { }
         public int CountTerminated(int elementSize, string fieldName, string member, string? memberType) { }
         public int CountToEnd(int elementSize, string fieldName, string member, string? memberType) { }
         public void EnterComposite(string member, string? memberType) { }
@@ -537,10 +546,11 @@ namespace CStructSharp.Generated
         public void ExitUnion() { }
         public CStructSharp.Diagnostics.CStructReadException Fail(string message, string? member, string? memberType) { }
         public CStructSharp.Diagnostics.CStructReadException Fail(string message, string? member, string? memberType, System.Exception? cause) { }
-        public CStructSharp.Diagnostics.CStructConstraintException FailConstraint(CStructSharp.Diagnostics.ConstraintKind kind, string constraint, string field, string? member, string? memberType) { }
+        public CStructSharp.Diagnostics.CStructConstraintException FailConstraint(CStructSharp.Diagnostics.ConstraintKind kind, string constraint, string field, string? member, string? memberType, string? label = null) { }
         public System.Exception FailExpression(System.Exception exception, string context, string? member, string? memberType) { }
         public CStructSharp.Diagnostics.CStructLayoutException FailLayout(string message, string? member, string? memberType) { }
         public System.ReadOnlySpan<byte> Peek(int count, string member, string? memberType) { }
+        public bool RejectConstraint(CStructSharp.Diagnostics.ConstraintKind kind, string constraint, string field, string? member, string? memberType, string? label, int reportAt, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out CStructSharp.Diagnostics.CStructConstraintException? failure) { }
         public int RequireArrayLength(System.Int128 count, string member, string? memberType) { }
         public void Seek(long position, string? member, string? memberType) { }
         public void Skip(int count, string member, string? memberType) { }
@@ -559,6 +569,7 @@ namespace CStructSharp.Generated
         public string TakeWideText(int count, bool littleEndian, string member, string? memberType) { }
         public bool TryTakeFixed(int size, int alignment, long chargedBytes, int nestingLevels, int maximumArrayCount, out System.ReadOnlySpan<byte> bytes) { }
         public static int ArrayLimit(CStructSharp.ReadOptions? options) { }
+        public static bool IsExpressionFailure(System.Exception exception) { }
         public static TResult ReadSequence<TReader, TResult>(System.Buffers.ReadOnlySequence<byte> source, TReader reader, CStructSharp.ReadOptions? options)
             where TReader :  struct, CStructSharp.Generated.IBufferedReader<TResult> { }
         public static TResult ReadStream<TReader, TResult>(System.IO.Stream stream, TReader reader, CStructSharp.ReadOptions? options)
@@ -571,12 +582,12 @@ namespace CStructSharp.Generated
     public static class RecordSequence
     {
         public static void Complete(CStructSharp.Diagnostics.CStructException failure, int index, long offset) { }
-        public static CStructSharp.Diagnostics.CStructReadException Empty(string layoutName, int index, long offset) { }
+        public static CStructSharp.Diagnostics.CStructReadException Empty(string layoutName, int index, long offset, long offsetBase = 0) { }
         public static System.Collections.Generic.IEnumerable<T> FromMemory<T>(System.ReadOnlyMemory<byte> source, int? size, string layoutName, CStructSharp.ReadOptions? options, CStructSharp.Generated.RecordReader<T> read) { }
         public static System.Collections.Generic.IEnumerable<T> FromSequence<T>(System.Buffers.ReadOnlySequence<byte> source, int? size, string layoutName, CStructSharp.ReadOptions? options, CStructSharp.Generated.RecordReader<T> read) { }
         public static System.Collections.Generic.IEnumerable<T> FromStream<T>(System.IO.Stream stream, int? size, string layoutName, CStructSharp.ReadOptions? options, CStructSharp.Generated.RecordReader<T> read) { }
         public static System.Collections.Generic.IAsyncEnumerable<T> FromStreamAsync<T>(System.IO.Stream stream, int? size, string layoutName, CStructSharp.ReadOptions? options, CStructSharp.Generated.RecordReader<T> read, System.Threading.CancellationToken cancellationToken = default) { }
-        public static CStructSharp.Diagnostics.CStructReadException Partial(long remaining, int size, string layoutName, int index, long offset) { }
+        public static CStructSharp.Diagnostics.CStructReadException Partial(long remaining, int size, string layoutName, int index, long offset, long offsetBase = 0) { }
     }
     public enum TerminatedTextEncoding
     {

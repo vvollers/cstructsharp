@@ -56,6 +56,17 @@ form would have raised. A generated layout class has `TryParse(input, out value)
 `TryGet<T>(path, out value, out failure)` and `GetOrDefault<T>(path, fallback)`, which tell an absent member (a
 `CStructPathException`) from an unconvertible one (a `CStructReadException`) without a `catch`.
 
+### Failures that are expected data
+
+A constraint (`@expect`, `@supports`) turns "the bytes are not this format" into a failure with a kind, a field and a
+condition. A reader that tries one layout after another should not pay an exception for each miss: a generated layout's
+`Matches(bytes)` answers "does this look like the format?" without building a value or throwing, and `TryParse` and a view's
+`TryValidate` return a broken constraint as a value. `ReadOptions.ConstraintViolations` collects every broken condition of
+one read instead of stopping at the first, `CStructConstraintException.Label` carries the name a layout gave a constraint,
+and `OffsetBase` makes the offsets of a failure positions in the image rather than in the buffer. See
+[field constraints](../language/field-constraints.md) and [report offsets in the larger
+input](variables-options-and-limits.md#report-offsets-in-the-larger-input).
+
 ## Know what can be recovered
 
 | Operation | Expected failure behavior |

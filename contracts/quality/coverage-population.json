@@ -3,7 +3,7 @@
   "compileTimeDeclarations": [
     {
       "source": "src/CStructSharp/CStructLayoutAttribute.cs",
-      "sha256": "f99610668dc671d202fe7f8654f8a256849003ef9b2585d3ad18e68163e42e41",
+      "sha256": "a8dabc7394565493489c1d0d7c7cf74e7daba1f72831a10557461f18cb2bec56",
       "requiredTests": ["EachOption_HasASnapshot_AndTakesEffect"],
       "reason": "Generator configuration metadata: constructors only store arguments and properties only hold settings. Roslyn reads the declaration without executing these accessors."
     },

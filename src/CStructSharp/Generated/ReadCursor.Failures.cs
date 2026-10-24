@@ -121,7 +121,7 @@ public ref partial struct ReadCursor
             return true;
         }
 
-        exception.AttachContext(null, (reportAt >= 0 ? reportAt : this.position) + this.settings.OffsetBase);
+        exception.AttachContext(null, (reportAt >= 0 ? reportAt : this.position) + this.OffsetBase);
         violations.Add(exception);
         failure = null;
         return false;
@@ -184,7 +184,7 @@ public ref partial struct ReadCursor
     public readonly void Complete(CStructException exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
-        exception.AttachContext(this.path, this.position + this.settings.OffsetBase);
+        exception.AttachContext(this.path, this.position + this.OffsetBase);
     }
 
     /// <summary>Attaches field and path context while leaving the final offset for the operation boundary.</summary>

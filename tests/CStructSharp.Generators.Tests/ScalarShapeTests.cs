@@ -214,6 +214,8 @@ public class ScalarShapeTests
 
         int thrown = 0;
         int thread = Environment.CurrentManagedThreadId;
+
+        // Counts the exceptions raised on the test thread, caught or not.
         void Count(object? sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
         {
             if (Environment.CurrentManagedThreadId == thread)

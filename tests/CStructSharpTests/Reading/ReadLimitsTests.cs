@@ -70,6 +70,16 @@ public class ReadLimitsTests
         Assert.AreNotEqual(default, limits);
     }
 
+    /// <summary>
+    ///     The settings copied into every read's cursor stay at 72 bytes: measured, one more field (even a long) made a 19 ns generated
+    ///     parse 50% slower, so a rarely set member goes into <c>ReadExtras</c>, behind the one reference.
+    /// </summary>
+    [TestMethod]
+    public void ReadOperationSettings_StayAtTheMeasuredSize()
+    {
+        Assert.IsLessThanOrEqualTo(72, Unsafe.SizeOf<CStructSharp.Reading.ReadOperationSettings>());
+    }
+
     /// <summary>The value is passed by value to every read, so it stays small.</summary>
     [TestMethod]
     public void IsSmall()

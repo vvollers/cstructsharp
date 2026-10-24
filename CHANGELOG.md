@@ -8,6 +8,64 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ## Unreleased
 
+This release adds the diagnostics a project needs to report what a read found (labels, every broken constraint, offsets in the
+image), exception-free ways to recognise and check a format, and the remaining shapes of generated code: value types that
+hold arrays of structs and enums, `Auto`, and a scalar form for one-field layouts. It has one source-breaking change in
+the generated-code helpers: see *Breaking changes*.
+
+### Breaking changes
+
+- **Breaking (source, generated code):** the `Length` of a generated inline array (`InlineArrays.ByteArray4`) is an instance
+  property, as an array's is, not a `const`, so `ByteArray4.Length` no longer compiles; write `entry.Signature.Length`. Four
+  helpers that generated code calls gained a trailing optional parameter: `ReadCursor.FailConstraint` and the
+  `CStructConstraintException` constructor take a constraint label, and `RecordSequence.Partial` and `Empty` take the offset
+  base. A call compiled against 0.14 must be rebuilt (the generator regenerates it); source that passes the arguments by position
+  is unchanged.
+
+### Added
+
+- **Constraint labels.** `@expect(condition, "label")` and `@supports(condition, "label")` give a constraint a stable name that
+  `CStructConstraintException.Label` carries and the message ends with in brackets, so a program that sorts failures matches a
+  name instead of a message. A label is part of the layout text and survives `ToDefinition()`.
+- **Every broken constraint of a read.** `ReadOptions.ConstraintViolations` takes a collection that receives each broken
+  `@expect` and `@supports` condition, in field order and with the member, path, offset and label of a thrown failure, while
+  the read continues. The runtime layout, the generated readers, the fixed-struct constraint pass and a view's new
+  `Validate(violations)` all honor it. Any other failure still ends the read.
+- **Offsets in the larger input.** `ReadOptions.OffsetBase` and `ReadLimits.OffsetBase` (at most 2^48 - 1) give the position of
+  the source's first byte in the image or file it was cut from; it is added to the `Offset`, and the offset in the message, of
+  every failure and collected violation of a span, array, memory or generated stream read. The runtime layout's stream readers
+  report absolute positions already and ignore it.
+- **Recognition without exceptions.** A generated layout with `@expect` conditions has a static `Matches(bytes)` (and
+  `Matches<Name>`): it decodes only the members the conditions name, at their build-time offsets, builds no value and throws
+  nothing, so a probe that asks "is this the format?" costs a few loads. A generated view of such a struct has
+  `TryValidate(out failure)`.
+- **`Shape = GeneratedShape.Auto`** (project default `CStructSharpShape=Auto`) generates value types where the layout
+  qualifies and classes where it does not, with nothing reported, so one setting covers a project of mixed layouts. The inline
+  array's `Length` and `AsSpan()` and an array's are the same spelling, so code that reads either shape compiles. A view of a
+  value-type layout converts to the struct with `ToObject()` without allocating (tested; no new method).
+- **Wider value types.** A value-type layout holds fixed arrays of structs, of enums and of `int8` as inline arrays filled in
+  place, and the size cap is `MaxValueBytes` (default 1,024; 1 to 65,536; project default `CStructSharpMaxValueBytes`).
+- **`Shape = GeneratedShape.Scalar`** generates, for a layout whose only member is a number, an enum or an identifier at offset
+  0, a static `Parse` (and `TryParse` on the reader surface) that returns the value and no type: about half the generated
+  source of the class form for a one-field layout (69 lines against 116, comments excluded), with the same limits, failures,
+  byte order option and constraints. Anything else is the new error CSG015.
+- **Analyzer suggestions CSG016 and CSG017** (Info) report a `[CStructLayout]` class that no code references and one that
+  generates a larger surface or more views than the members it uses need, with the options to write. They stay silent where a
+  friend assembly or a `[CStructMapped]` class may use the layout, and a test checks the table of what each surface generates
+  against the generator.
+
+### Changed
+
+- The generated `TryParse` of a fixed-size struct with constraints, and the constraint pass behind `Parse` and the views, return
+  a broken condition as a failure value instead of throwing it and catching it: no exception is raised for a value that breaks a
+  constraint. A source too short for the struct, a limit and a layout that is not of fixed size still throw and are caught.
+
+### Documentation and tooling
+
+- The field-constraints, options, errors, generated-code and diagnostics pages describe labels, collected violations, offset
+  bases, `Matches`, the shapes and CSG015 to CSG017.
+
+
 ## 0.14.0 — 2026-10-24
 
 This minor release adds field constraints (`@expect` and `@supports`), run-time byte order, value-type structs, a
