@@ -140,8 +140,9 @@ if (!Wire.TryParse(sector, out Header? header, out CStructException? failure, in
 
 It changes nothing else: positions, pointer addresses and `Origin` still count from the buffer's first byte. It is at most
 2^48 - 1 (`ReadLimits.MaxOffsetBase`), so that `ReadLimits` stays as small as it is; a negative or larger value is an
-`ArgumentOutOfRangeException` when it is set. The runtime layout's stream readers report absolute stream positions already
-and ignore it; the generated stream readers count from the stream's position at the call, so they add it.
+`ArgumentOutOfRangeException` when it is set. The runtime layout's stream readers and the record sequences over a stream
+(`ParseMany`, `Records`) report absolute stream positions already and ignore it; the generated `Parse` of a stream counts
+from the stream's position at the call, so it adds it.
 
 ## Choose a policy for the quiet cases
 

@@ -75,9 +75,33 @@ internal static class BufferedInput
     /// <param name="continuedLength">
     ///     <see cref="WholeInput"/>, the whole input's length in bytes, or <see cref="UnknownLength"/>.
     /// </param>
+    /// <param name="trackViolations">
+    ///     Whether a collection of constraint violations in the options is wrapped so that <see cref="Rollback"/> can take back what
+    ///     an abandoned run added; false for a caller that scopes the violations itself.
+    /// </param>
     /// <returns><paramref name="options"/> itself for a whole input; otherwise a copy that records the continuation.</returns>
-    public static ReadOptions? Continue(ReadOptions? options, long continuedLength)
-        => continuedLength == WholeInput ? options : (options ?? ReadOptions.Default) with { ContinuedInputLength = continuedLength, };
+    public static ReadOptions? Continue(ReadOptions? options, long continuedLength, bool trackViolations = true)
+    {
+        if (continuedLength == WholeInput)
+        {
+            return options;
+        }
+
+        ReadOptions continued = (options ?? ReadOptions.Default) with { ContinuedInputLength = continuedLength, };
+        return trackViolations && continued.ConstraintViolations is { } violations ? continued with { ConstraintViolations = new ViolationScope(violations), } : continued;
+    }
+
+    /// <summary>The options of a read of a caller's stream: without an offset base, because the offsets of such a read are the stream's own positions.</summary>
+    /// <param name="options">The options, or <see langword="null"/>.</param>
+    /// <returns><paramref name="options"/> itself when it has no offset base; otherwise a copy without it.</returns>
+    public static ReadOptions? WithoutOffsetBase(ReadOptions? options) => options is { OffsetBase: not 0 } ? options with { OffsetBase = 0, } : options;
+
+    /// <summary>
+    ///     Takes back the constraint violations an abandoned run added to the caller's collection: a run over a buffer that came
+    ///     up short is read again from the start, and would add them again.
+    /// </summary>
+    /// <param name="attempt">The options the abandoned run was given (from <see cref="Continue"/>).</param>
+    public static void Rollback(ReadOptions? attempt) => (attempt?.ConstraintViolations as ViolationScope)?.Rollback();
 
     /// <summary>The first buffer length: the budget plus one byte, but never more than the input or one array.</summary>
     /// <param name="options">The read options that supply the budget, or <see langword="null"/>.</param>
@@ -185,12 +209,14 @@ internal static class BufferedInput
             {
                 source.Slice(0, length).CopyTo(buffer);
                 bool complete = length >= total;
+                ReadOptions? attempt = complete ? options : Continue(options, total);
                 try
                 {
-                    return reader.Read(new ReadOnlySpan<byte>(buffer, 0, length), complete ? options : Continue(options, total), out consumed);
+                    return reader.Read(new ReadOnlySpan<byte>(buffer, 0, length), attempt, out consumed);
                 }
                 catch (BufferedInputShortfallException shortfall) when (!complete)
                 {
+                    Rollback(attempt);
                     needed = shortfall.NeededLength;
                 }
             }
@@ -245,12 +271,14 @@ internal static class BufferedInput
     public static TResult ReadPartialSequence<TReader, TResult>(ReadOnlySequence<byte> source, ReadOptions? options, TReader reader, byte[] buffer, int length, long continuation)
         where TReader : struct, IBufferedReader<TResult>
     {
+        ReadOptions? attempt = Continue(options, continuation);
         try
         {
-            return reader.Read(new ReadOnlySpan<byte>(buffer, 0, length), Continue(options, continuation), out _);
+            return reader.Read(new ReadOnlySpan<byte>(buffer, 0, length), attempt, out _);
         }
         catch (BufferedInputShortfallException shortfall)
         {
+            Rollback(attempt);
             return ResumeSequence<TReader, TResult>(source, options, reader, length, shortfall.NeededLength, out _);
         }
     }
@@ -351,12 +379,14 @@ internal static class BufferedInput
             while (true)
             {
                 long needed;
+                ReadOptions? attempt = Continue(options, continuation);
                 try
                 {
-                    return reader.Read(new ReadOnlySpan<byte>(owned, 0, length), Continue(options, continuation), out consumed);
+                    return reader.Read(new ReadOnlySpan<byte>(owned, 0, length), attempt, out consumed);
                 }
                 catch (BufferedInputShortfallException shortfall) when (continuation != WholeInput)
                 {
+                    Rollback(attempt);
                     needed = shortfall.NeededLength;
                 }
 
@@ -401,14 +431,16 @@ internal static class BufferedInput
         where TReader : struct, IBufferedReader<TResult>
     {
         bool owned = true;
+        ReadOptions? attempt = Continue(options, continuation);
         try
         {
-            value = reader.Read(new ReadOnlySpan<byte>(buffer, 0, length), Continue(options, continuation), out consumed);
+            value = reader.Read(new ReadOnlySpan<byte>(buffer, 0, length), attempt, out consumed);
             growth = default;
             return true;
         }
         catch (BufferedInputShortfallException shortfall) when (continuation != WholeInput)
         {
+            Rollback(attempt);
             owned = false;
             growth = GrowStreamAsync(stream, origin, buffer, length, shortfall.NeededLength, options?.CancellationToken ?? default);
             value = default;

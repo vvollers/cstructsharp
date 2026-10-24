@@ -60,6 +60,11 @@ internal sealed partial class LayoutEmitter
                 return "cannot hold the union '" + composite.LayoutName + "' (an untagged union has no value-type form)";
             }
 
+            if (this.request.ConsumerDeclaredClasses.Contains(composite.Name))
+            {
+                return "cannot extend the class '" + composite.Name + "' that the code declares for '" + composite.LayoutName + "' (a partial declaration keeps one kind; declare it as a struct, or keep the class shape)";
+            }
+
             foreach (GeneratedMember member in composite.Members)
             {
                 if (ValueTypeMemberProblem(member) is { } problem)

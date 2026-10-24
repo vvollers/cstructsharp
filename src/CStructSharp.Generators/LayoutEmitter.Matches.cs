@@ -102,7 +102,7 @@ internal sealed partial class LayoutEmitter
 
         foreach (MatchCondition condition in conditions)
         {
-            writer.Line("// @expect(" + condition.Constraint.Text + ")");
+            writer.Line("// @expect(" + SingleLine(condition.Constraint.Text) + ")");
             if (CannotFail(condition.Constraint.Expression, condition.Code))
             {
                 writer.Line("if (" + condition.Code + " == 0)");

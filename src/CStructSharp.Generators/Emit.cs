@@ -11,6 +11,13 @@ using CStructSharp.Codecs;
 /// </summary>
 internal static class Emit
 {
+    /// <summary>Collapses the line breaks of a text (and the indentation around them) to single spaces, so it can sit in a one-line <c>//</c> comment without leaving code behind.</summary>
+    /// <param name="text">The text, for example a constraint written across several lines.</param>
+    /// <returns>The text on one line; unchanged when it has no line break.</returns>
+    public static string SingleLine(string text) => text.IndexOfAny(LineBreaks) < 0 ? text : System.Text.RegularExpressions.Regex.Replace(text, @"\s*[\r\n]+\s*", " ");
+
+    private static readonly char[] LineBreaks = ['\r', '\n'];
+
     /// <summary>The generated-support class whose static methods decode and encode primitives.</summary>
     public const string CodecClass = "global::CStructSharp.Generated.Codec";
 

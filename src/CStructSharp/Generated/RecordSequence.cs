@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using CStructSharp.Diagnostics;
+using CStructSharp.Reading;
 using CStructSharp.Streams;
 
 /// <summary>
@@ -130,13 +131,32 @@ public static class RecordSequence
             throw Partial(source.Length - offset, fixedSize, layoutName, index, shift + offset, options?.OffsetBase ?? 0);
         }
 
-        T record = read(source, offset, index, shift, options, out consumed);
+        T record = options?.ConstraintViolations is null ? read(source, offset, index, shift, options, out consumed) : ReadCollecting(source, offset, index, shift, options, read, out consumed);
         if (consumed <= 0)
         {
             throw Empty(layoutName, index, shift + offset, options?.OffsetBase ?? 0);
         }
 
         return record;
+    }
+
+    /// <summary>
+    ///     One record read while the caller collects constraint violations: each violation of the record gets the record's index
+    ///     and input position, as a thrown failure of it does (<see cref="Complete"/>), and the violations of a run that is abandoned
+    ///     because the window ended inside the record are taken back, since the record is read again.
+    /// </summary>
+    private static T ReadCollecting<T>(ReadOnlyMemory<byte> source, int offset, int index, long shift, ReadOptions options, RecordReader<T> read, out int consumed)
+    {
+        var scope = new ViolationScope(options.ConstraintViolations!, index, shift + offset);
+        try
+        {
+            return read(source, offset, index, shift, options with { ConstraintViolations = scope, }, out consumed);
+        }
+        catch (BufferedInputShortfallException)
+        {
+            scope.Rollback();
+            throw;
+        }
     }
 
     private static IEnumerable<T> Enumerate<T>(ReadOnlyMemory<byte> source, int? size, string layoutName, long shift, ReadOptions? options, RecordReader<T> read)
@@ -178,6 +198,7 @@ public static class RecordSequence
     /// <returns>The records, read as they are enumerated.</returns>
     private static IEnumerable<T> FixedFromStream<T>(Stream stream, int size, string layoutName, ReadOptions? options, RecordReader<T> read)
     {
+        options = BufferedInput.WithoutOffsetBase(options);
         byte[] buffer = ArrayPool<byte>.Shared.Rent(Math.Max(size, 1));
         try
         {
@@ -219,6 +240,7 @@ public static class RecordSequence
     /// <returns>The records, read as they are enumerated.</returns>
     private static async IAsyncEnumerable<T> FixedFromStreamAsync<T>(Stream stream, int size, string layoutName, ReadOptions? options, RecordReader<T> read, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        options = BufferedInput.WithoutOffsetBase(options);
         CancellationToken token = AsyncStreamBuffer.Link(options, cancellationToken, out CancellationTokenSource? linked);
         using (linked)
         {
@@ -264,6 +286,7 @@ public static class RecordSequence
     /// </summary>
     private static IEnumerable<T> Windowed<T>(Stream stream, string layoutName, ReadOptions? options, RecordReader<T> read)
     {
+        options = BufferedInput.WithoutOffsetBase(options);
         long origin = stream.Position;
         long consumedTotal = 0;
         int index = 0;
@@ -291,7 +314,7 @@ public static class RecordSequence
                     {
                         // The options record that the input continues past the window, once per window: a record at the window's
                         // start knows how far (the stream's remaining length), a later one does not, and refills from its start.
-                        record = ReadOne(new ReadOnlyMemory<byte>(window, 0, length), offset, index, start, null, layoutName, complete ? options : offset == 0 ? head ??= BufferedInput.Continue(options, left) : partial ??= Continued(options), read, out consumed);
+                        record = ReadOne(new ReadOnlyMemory<byte>(window, 0, length), offset, index, start, null, layoutName, complete ? options : offset == 0 ? head ??= BufferedInput.Continue(options, left, trackViolations: false) : partial ??= Continued(options), read, out consumed);
                     }
                     catch (BufferedInputShortfallException shortfall) when (!complete)
                     {
@@ -344,6 +367,7 @@ public static class RecordSequence
     /// <returns>The records, read as they are enumerated.</returns>
     private static async IAsyncEnumerable<T> WindowedAsync<T>(Stream stream, string layoutName, ReadOptions? options, RecordReader<T> read, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        options = BufferedInput.WithoutOffsetBase(options);
         CancellationToken token = AsyncStreamBuffer.Link(options, cancellationToken, out CancellationTokenSource? linked);
         using (linked)
         {
@@ -375,7 +399,7 @@ public static class RecordSequence
                         {
                             // The options record that the input continues past the window, once per window: a record at the window's
                             // start knows how far (the stream's remaining length), a later one does not, and refills from its start.
-                            record = ReadOne(new ReadOnlyMemory<byte>(window, 0, length), offset, index, start, null, layoutName, complete ? effective : offset == 0 ? head ??= BufferedInput.Continue(effective, left) : partial ??= Continued(effective), read, out consumed);
+                            record = ReadOne(new ReadOnlyMemory<byte>(window, 0, length), offset, index, start, null, layoutName, complete ? effective : offset == 0 ? head ??= BufferedInput.Continue(effective, left, trackViolations: false) : partial ??= Continued(effective), read, out consumed);
                         }
                         catch (BufferedInputShortfallException shortfall) when (!complete)
                         {
@@ -423,7 +447,7 @@ public static class RecordSequence
     /// </summary>
     /// <param name="options">The options records are read with.</param>
     /// <returns>A copy that records the continuation.</returns>
-    private static ReadOptions? Continued(ReadOptions? options) => BufferedInput.Continue(options, BufferedInput.UnknownLength);
+    private static ReadOptions? Continued(ReadOptions? options) => BufferedInput.Continue(options, BufferedInput.UnknownLength, trackViolations: false);
 
     /// <summary>The options a record is read with: the linked token in place of the options' own when one can cancel.</summary>
     private static ReadOptions? Effective(ReadOptions? options, CancellationToken token)

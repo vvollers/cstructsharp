@@ -811,7 +811,7 @@ internal sealed partial class LayoutEmitter
     {
         string context = "constraint '" + constraint.Text + "' of " + field.Name;
         string kind = constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "Malformed" : "Unsupported";
-        writer.Line("// @" + (constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "expect" : "supports") + "(" + constraint.Text + ")");
+        writer.Line("// @" + (constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "expect" : "supports") + "(" + SingleLine(constraint.Text) + ")");
         writer.Open(string.Empty);
         if (CannotFail(constraint.Expression, code))
         {

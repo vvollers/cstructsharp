@@ -11,6 +11,8 @@ namespace CStructSharp.Generators;
 ///     an instance constructor in a partial declaration. The generated class of such a composite may not hold the new
 ///     nested values its property initializers create once construction ends, so its fixed reader replaces them
 ///     instead of decoding into them.
+///     <c>ConsumerDeclaredClasses</c> names those nested types that the consumer declared as classes, which a value-type shape
+///     cannot extend (a partial declaration must keep one kind).
 ///     <c>ConsumerDeclaredTypes</c> also includes partial declarations with an implicit constructor: their instance
 ///     initializers may run caller code, so reader-only bitfield shortcuts leave those classes on the original path.
 /// </remarks>
@@ -39,6 +41,7 @@ internal sealed record LayoutRequest(
     string LanguageVersion,
     EquatableArray<string> TypesWithConstructors,
     EquatableArray<string> ConsumerDeclaredTypes,
+    EquatableArray<string> ConsumerDeclaredClasses,
     EquatableArray<string> ExplicitArguments)
 {
     /// <summary>

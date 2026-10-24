@@ -139,10 +139,7 @@ internal static partial class ReadEngine
     private static StructValue Run<TCursor>(ref TCursor cursor, ref ReadEngineState state, ReadProgram program, IReadOnlyList<PathSegment> segments, Stream? stream, out bool selected)
         where TCursor : struct, IReadCursor
     {
-        if (state.ConstraintViolations is not null)
-        {
-            state.ConstraintPath = ExceptionContext.FormatPath(segments);
-        }
+        state.PrepareViolations(segments, stream is not null);
 
         try
         {

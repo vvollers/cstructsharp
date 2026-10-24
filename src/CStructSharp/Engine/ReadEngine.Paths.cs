@@ -382,6 +382,7 @@ internal static partial class ReadEngine
     private static object? RunValue<TCursor>(ref TCursor cursor, ref ReadEngineState state, IReadOnlyList<PathSegment> segments, ReadProgram? root, Stream? stream)
         where TCursor : struct, IReadCursor
     {
+        state.PrepareViolations(segments, stream is not null);
         try
         {
             try
@@ -428,6 +429,7 @@ internal static partial class ReadEngine
     private static object RunComposite<TCursor>(ref TCursor cursor, ref ReadEngineState state, IReadOnlyList<PathSegment> segments, Stream? stream)
         where TCursor : struct, IReadCursor
     {
+        state.PrepareViolations(segments, stream is not null);
         try
         {
             try

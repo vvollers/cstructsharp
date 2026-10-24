@@ -189,6 +189,7 @@ internal sealed partial class LayoutEmitter
         }
 
         string name = plan.Unique("Validate");
+        string tryName = plan.Unique("Try" + name);
         string checks = plan.Unique("ValidateChecks");
         string layout = SourceWriter.Literal(composite.LayoutName);
         string orderArgument = this.HasRuntimeByteOrder ? ", this.littleEndian" : string.Empty;
@@ -214,7 +215,7 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <summary>Checks the <c>@expect</c> and <c>@supports</c> conditions of this struct's members like <see cref=\"" + name + "\"/>, but returns the failure instead of throwing it: a constraint that is not satisfied allocates the failure and nothing is thrown.</summary>");
         writer.Line("/// <param name=\"failure\">The first condition that is not satisfied, or the failure of a condition that could not be evaluated; <see langword=\"null\"/> when every condition holds.</param>");
         writer.Line("/// <returns>Whether every condition holds.</returns>");
-        writer.Open("public bool Try" + name + "([global::System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out global::CStructSharp.Diagnostics.CStructException? failure)");
+        writer.Open("public bool " + tryName + "([global::System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out global::CStructSharp.Diagnostics.CStructException? failure)");
         writer.Line(variablesLine);
         writer.Line("var cursor = new " + Cursor + "(this.source, this.options, " + layout + orderArgument + ");");
         writer.Open("try");

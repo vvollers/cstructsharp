@@ -209,6 +209,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             ((CSharpParseOptions)declaration.SyntaxTree.Options).LanguageVersion.ToDisplayString(),
             TypesWithConstructors(symbol),
             ConsumerDeclaredTypes(symbol),
+            ConsumerDeclaredClasses(symbol),
             new EquatableArray<string>(explicitArguments.ToArray()));
     }
 
@@ -234,6 +235,14 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
     {
         // Every nested type in this input compilation comes from consumer source, not this generator's output.
         return new EquatableArray<string>(symbol.GetTypeMembers().Select(type => type.Name).ToArray());
+    }
+
+    /// <summary>The nested types of the attributed class that the consumer declared as classes.</summary>
+    /// <param name="symbol">The attributed class before generated source is added.</param>
+    /// <returns>Their names, in declaration order.</returns>
+    private static EquatableArray<string> ConsumerDeclaredClasses(INamedTypeSymbol symbol)
+    {
+        return new EquatableArray<string>(symbol.GetTypeMembers().Where(type => type.TypeKind == TypeKind.Class).Select(type => type.Name).ToArray());
     }
 
     /// <summary>

@@ -78,6 +78,25 @@ public class LayoutUsageAnalyzerTests
         Assert.AreEqual(DiagnosticSeverity.Info, diagnostics.First(diagnostic => diagnostic.Id == "CSG016").Severity);
     }
 
+    /// <summary>A layout used only through members every surface has is advised the Views surface, and not also <c>Views = false</c>, which that surface cannot combine with.</summary>
+    /// <returns>A task that completes after the diagnostics are checked.</returns>
+    [TestMethod]
+    public async Task Overgeneration_NeverAdvisesViewsFalseWithTheViewsSurface()
+    {
+        IReadOnlyList<Diagnostic> diagnostics = await Analyze(Header + """"
+            [CStructLayout("struct root { uint32 a; };", Root = "root")]
+            internal static partial class DefinitionOnly { }
+
+            public static class Program
+            {
+                public static string Use() => DefinitionOnly.Definition;
+            }
+            """");
+        string message = diagnostics.Single(diagnostic => diagnostic.Id == "CSG017").GetMessage();
+        StringAssert.Contains(message, "Surface = GeneratedSurface.Views");
+        StringAssert.DoesNotMatch(message, new System.Text.RegularExpressions.Regex("Views = false"));
+    }
+
     /// <summary>A layout that generates more than its uses need says which surface and whether the views are dead weight.</summary>
     /// <returns>A task that completes after the diagnostics are checked.</returns>
     [TestMethod]

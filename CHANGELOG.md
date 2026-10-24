@@ -34,7 +34,7 @@ the generated-code helpers: see *Breaking changes*.
 - **Offsets in the larger input.** `ReadOptions.OffsetBase` and `ReadLimits.OffsetBase` (at most 2^48 - 1) give the position of
   the source's first byte in the image or file it was cut from; it is added to the `Offset`, and the offset in the message, of
   every failure and collected violation of a span, array, memory or generated stream read. The runtime layout's stream readers
-  report absolute positions already and ignore it.
+  and the record sequences over a stream report absolute positions already and ignore it.
 - **Recognition without exceptions.** A generated layout with `@expect` conditions has a static `Matches(bytes)` (and
   `Matches<Name>`): it decodes only the members the conditions name, at their build-time offsets, builds no value and throws
   nothing, so a probe that asks "is this the format?" costs a few loads. A generated view of such a struct has
@@ -64,6 +64,18 @@ the generated-code helpers: see *Breaking changes*.
 
 - `Matches` decodes a member only when a condition names it exactly, so a condition on `flagMask` no longer requires the bytes
   of a member `flag`.
+- Collected constraint violations (`ReadOptions.ConstraintViolations`) of a record sequence carry the record's index in their
+  path and its position in the input, like a thrown failure; a buffered read that has to run again over more of its input
+  reports each violation once; a violation of a read by path carries the path.
+- A runtime async read of a stream, and the record sequences over a stream, no longer add `OffsetBase` to positions that
+  are the stream's own already.
+- A fixed array of an `int8` enum in a value-type layout compiles.
+- A layout with a struct named `matches` (or `matches_<name>`) next to conditions, or a view member `try_validate`, is
+  reported as CSG003 or renamed instead of failing to compile inside the generated file.
+- `Shape = Auto` keeps the class for a type the code declares as a class, and `Shape = Struct` reports it as CSG014, instead
+  of failing with CS0261.
+- A condition written across several lines no longer leaves code outside its comment in the generated file.
+- CSG017 no longer advises `Views = false` together with the Views surface, and records a used view without a data race.
 
 ### Documentation and tooling
 

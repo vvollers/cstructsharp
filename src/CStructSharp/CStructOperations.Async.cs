@@ -364,14 +364,17 @@ public sealed partial class CStruct
         out ValueTask<(byte[] Buffer, int Length, int Capacity)> growth)
     {
         bool owned = true;
+        ReadOptions? attempt = BufferedInput.Continue(effective, continuation);
         try
         {
-            result = this.RunOverBuffer(stream, origin, buffer, 0, length, BufferedInput.Continue(effective, continuation), operation, finish, restoreOrigin);
+            result = this.RunOverBuffer(stream, origin, buffer, 0, length, attempt, operation, finish, restoreOrigin);
             growth = default;
             return true;
         }
         catch (BufferedInputShortfallException shortfall)
         {
+            BufferedInput.Rollback(attempt);
+
             // The effective options carry the operation's token whenever it can be cancelled.
             owned = false;
             growth = BufferedInput.GrowStreamAsync(stream, origin, buffer, length, shortfall.NeededLength, effective?.CancellationToken ?? default);
@@ -445,6 +448,8 @@ public sealed partial class CStruct
         Func<TResult, long, TResult> finish,
         bool restoreOrigin)
     {
+        // A failure of a stream read reports the stream's own positions (shifted below), so the options' offset base does not apply.
+        effective = BufferedInput.WithoutOffsetBase(effective);
         try
         {
             TResult result = RunRegion(new ReadOnlySpan<byte>(buffer, offset, length), operation, effective, out long consumed);

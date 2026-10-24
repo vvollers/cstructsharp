@@ -305,7 +305,7 @@ internal sealed partial class LayoutEmitter
                 {
                     // An enum's elements are its stored numbers: decode into the same storage, viewed as the underlying type.
                     string underlying = member.Enum.UnderlyingType;
-                    writer.Line(BulkDecode(field.Codec, underlying, "bytes", "global::System.Runtime.InteropServices.MemoryMarshal.Cast<" + elementType + ", " + underlying + ">((global::System.Span<" + elementType + ">)" + property + ")", this.EndianOf(field)));
+                    writer.Line(BulkDecode(field.Codec, underlying, "bytes", "global::System.Runtime.InteropServices.MemoryMarshal.Cast<" + elementType + ", " + underlying + ">((global::System.Span<" + elementType + ">)" + property + ")", this.EndianOf(field), elementsAreSpan: true));
                 }
                 else
                 {

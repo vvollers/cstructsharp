@@ -250,7 +250,12 @@ public sealed class LayoutUsageAnalyzer : DiagnosticAnalyzer
         SymbolInfo info = context.SemanticModel.GetSymbolInfo(member, context.CancellationToken);
         ISymbol? symbol = info.Symbol ?? info.CandidateSymbols.FirstOrDefault();
         use.Members.Add(SurfaceMask(symbol));
-        use.UsedViews |= symbol is INamedTypeSymbol { Name: var viewName } && viewName.EndsWith("View", StringComparison.Ordinal);
+        if (symbol is INamedTypeSymbol { Name: var viewName } && viewName.EndsWith("View", StringComparison.Ordinal))
+        {
+            // Only ever set: a concurrent action that names another member must not write the flag back to false.
+            use.UsedViews = true;
+        }
+
         use.Names.Add(member.Identifier.ValueText);
     }
 
@@ -306,7 +311,8 @@ public sealed class LayoutUsageAnalyzer : DiagnosticAnalyzer
             }
 
             // A view is used by name; the views of a layout that no code names are generated for nothing.
-            if (views && !use.UsedViews && surface != GenerationSurface.Views)
+            // The Views surface exists for views, so Views = false is not advised next to it (nor for a layout that already has it).
+            if (views && !use.UsedViews && Math.Min(needed, declared) != 0)
             {
                 advice.Add("Views = false");
             }

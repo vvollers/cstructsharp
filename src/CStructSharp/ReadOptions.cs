@@ -164,7 +164,7 @@ public sealed record ReadOptions
     ///     <see cref="CStructSharp.Diagnostics.CStructException.Offset"/> every failure of a span, array, memory or generated stream read
     ///     reports and to the offset in its message, so a failure names where the bytes are in the evidence rather than in the
     ///     buffer. It changes nothing else: positions, addresses and pointer targets still count from the buffer's first byte, and
-    ///     the runtime layout's stream readers report absolute stream positions already and ignore it. The default is 0.
+    ///     the runtime layout's stream readers and the record sequences over a stream report absolute stream positions already and ignore it. The default is 0.
     /// </summary>
     /// <exception cref="System.ArgumentOutOfRangeException">The value is negative or greater than 2^48 - 1 (<see cref="ReadLimits.MaxOffsetBase"/>).</exception>
     public long OffsetBase

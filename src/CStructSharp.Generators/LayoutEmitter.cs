@@ -142,6 +142,39 @@ internal sealed partial class LayoutEmitter
         {
             this.Error(GeneratorDiagnostics.NameCollision, collision);
         }
+
+        this.ReportMatchesCollisions();
+    }
+
+    /// <summary>
+    ///     Reports a generated type (or the class itself) named like a <c>Matches</c> method the layout generates, which C# would
+    ///     reject inside the generated file: <c>Matches</c> for the root and <c>Matches&lt;Name&gt;</c> for each struct with conditions.
+    /// </summary>
+    private void ReportMatchesCollisions()
+    {
+        if (this.request.Surface == GenerationSurface.Views || this.request.Shape == GenerationShape.Scalar)
+        {
+            return;
+        }
+
+        var typeNames = new HashSet<string>(this.model.Composites.Select(composite => composite.Name).Concat(this.model.Enums.Select(generatedEnum => generatedEnum.Name)), System.StringComparer.Ordinal)
+        {
+            this.request.ClassName,
+        };
+        foreach (GeneratedComposite composite in this.model.Composites)
+        {
+            if (!composite.IsDeclared || composite.IsUnion || !composite.Composite.HasConstraints)
+            {
+                continue;
+            }
+
+            string method = "Matches" + composite.Name;
+            bool isRoot = composite.LayoutName == this.rootName;
+            if (typeNames.Contains(method) || (isRoot && typeNames.Contains("Matches")))
+            {
+                this.Error(GeneratorDiagnostics.NameCollision, "'" + composite.LayoutName + "' has conditions, so a method '" + (typeNames.Contains(method) ? method : "Matches") + "' is generated, which a type of the layout is also named; rename it or use [CStructLayout(KeepNames = ...)].");
+            }
+        }
     }
 
     /// <summary>The complete generated file.</summary>

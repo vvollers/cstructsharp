@@ -1,6 +1,8 @@
 namespace CStructSharp.Engine;
 
 using System;
+using System.Collections.Generic;
+using CStructSharp.Addressing;
 using CStructSharp.Compilation.Programs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
@@ -89,7 +91,7 @@ internal struct ReadEngineState
     public bool LenientText { get; }
 
     /// <summary>Gets the position of the source's first byte in the larger input, added to every offset a failure of a memory read reports (<see cref="ReadOptions.OffsetBase"/>).</summary>
-    public long OffsetBase { get; }
+    public long OffsetBase { get; private set; }
 
     /// <summary>Gets the collection that receives constraint failures instead of the first one ending the read, or <see langword="null"/> (<see cref="ReadOptions.ConstraintViolations"/>).</summary>
     public System.Collections.Generic.ICollection<CStructSharp.Diagnostics.CStructConstraintException>? ConstraintViolations { get; }
@@ -177,6 +179,27 @@ internal struct ReadEngineState
     /// <param name="localBase">The base of the frame's saved values.</param>
     public void CompleteMember(ConditionalScopeSlots scope, int member, int localBase)
         => FrameArena.CompleteMember(ref this.arena, this.Slots, scope, member, localBase);
+
+    /// <summary>
+    ///     Prepares an operation to collect constraint violations (<see cref="ConstraintViolations"/>): they report the operation's
+    ///     path, and an operation that reads a caller's stream reports the stream's own positions, so it takes no offset base.
+    ///     Does nothing for an operation that collects none.
+    /// </summary>
+    /// <param name="segments">The operation's parsed path.</param>
+    /// <param name="streamed">Whether the operation reads a caller's stream.</param>
+    public void PrepareViolations(IReadOnlyList<PathSegment> segments, bool streamed)
+    {
+        if (this.ConstraintViolations is null)
+        {
+            return;
+        }
+
+        this.ConstraintPath = ExceptionContext.FormatPath(segments);
+        if (streamed)
+        {
+            this.OffsetBase = 0;
+        }
+    }
 
     /// <summary>Adds a constraint failure to <see cref="ConstraintViolations"/> with the operation's path and its position in the larger input.</summary>
     /// <param name="violation">The failure, not thrown; its field is already recorded.</param>
