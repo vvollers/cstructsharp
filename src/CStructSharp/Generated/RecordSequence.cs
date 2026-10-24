@@ -87,11 +87,12 @@ public static class RecordSequence
     /// <param name="layoutName">The record's layout name.</param>
     /// <param name="index">The record's index.</param>
     /// <param name="offset">Where the bytes start, in the input's coordinates.</param>
+    /// <param name="offsetBase">The position of the input's first byte in the larger input it was cut from (<see cref="ReadOptions.OffsetBase"/>), added to the offset reported.</param>
     /// <returns>The exception to throw.</returns>
-    public static CStructReadException Partial(long remaining, int size, string layoutName, int index, long offset)
+    public static CStructReadException Partial(long remaining, int size, string layoutName, int index, long offset, long offsetBase = 0)
     {
         var failure = new CStructReadException(ReadFailures.ToEndRemainder(remaining, size, layoutName));
-        failure.AttachContext(Prefix(index) + "." + layoutName, offset);
+        failure.AttachContext(Prefix(index) + "." + layoutName, offset + offsetBase);
         return failure;
     }
 
@@ -99,11 +100,12 @@ public static class RecordSequence
     /// <param name="layoutName">The record's layout name.</param>
     /// <param name="index">The record's index.</param>
     /// <param name="offset">Where the record starts, in the input's coordinates.</param>
+    /// <param name="offsetBase">The position of the input's first byte in the larger input it was cut from (<see cref="ReadOptions.OffsetBase"/>), added to the offset reported.</param>
     /// <returns>The exception to throw.</returns>
-    public static CStructReadException Empty(string layoutName, int index, long offset)
+    public static CStructReadException Empty(string layoutName, int index, long offset, long offsetBase = 0)
     {
         var failure = new CStructReadException("Record " + index.ToString(CultureInfo.InvariantCulture) + " of '" + layoutName + "' occupies no bytes; a sequence of records needs a root that reads at least one byte.");
-        failure.AttachContext(Prefix(index) + "." + layoutName, offset);
+        failure.AttachContext(Prefix(index) + "." + layoutName, offset + offsetBase);
         return failure;
     }
 
@@ -125,13 +127,13 @@ public static class RecordSequence
     {
         if (size is { } fixedSize && source.Length - offset < fixedSize)
         {
-            throw Partial(source.Length - offset, fixedSize, layoutName, index, shift + offset);
+            throw Partial(source.Length - offset, fixedSize, layoutName, index, shift + offset, options?.OffsetBase ?? 0);
         }
 
         T record = read(source, offset, index, shift, options, out consumed);
         if (consumed <= 0)
         {
-            throw Empty(layoutName, index, shift + offset);
+            throw Empty(layoutName, index, shift + offset, options?.OffsetBase ?? 0);
         }
 
         return record;
@@ -184,7 +186,7 @@ public static class RecordSequence
 
                 if (got < size)
                 {
-                    throw Partial(got, size, layoutName, index, origin + consumedTotal);
+                    throw Partial(got, size, layoutName, index, origin + consumedTotal, options?.OffsetBase ?? 0);
                 }
 
                 T record = ReadOne(new ReadOnlyMemory<byte>(buffer, 0, size), 0, index, origin + consumedTotal, size, layoutName, options, read, out _);
@@ -220,7 +222,7 @@ public static class RecordSequence
 
                     if (got < size)
                     {
-                        throw Partial(got, size, layoutName, index, origin + consumedTotal);
+                        throw Partial(got, size, layoutName, index, origin + consumedTotal, options?.OffsetBase ?? 0);
                     }
 
                     T record = ReadOne(new ReadOnlyMemory<byte>(buffer, 0, size), 0, index, origin + consumedTotal, size, layoutName, effective, read, out _);

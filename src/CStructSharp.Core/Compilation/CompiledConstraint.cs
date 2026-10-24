@@ -10,4 +10,5 @@ using CStructSharp.Syntax;
 /// <param name="Kind">Whether a failure means malformed or unsupported data.</param>
 /// <param name="Expression">The condition.</param>
 /// <param name="Text">The condition as written, quoted by the failure message.</param>
-internal sealed record CompiledConstraint(CStructSharp.Diagnostics.ConstraintKind Kind, Expr Expression, string Text);
+/// <param name="Label">The label written after the condition, carried by the failure; <see langword="null"/> when none.</param>
+internal sealed record CompiledConstraint(CStructSharp.Diagnostics.ConstraintKind Kind, Expr Expression, string Text, string? Label = null);

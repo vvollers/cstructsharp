@@ -192,8 +192,9 @@ internal sealed partial class LayoutEmitter
         string layout = SourceWriter.Literal(composite.LayoutName);
         writer.Line();
         writer.Line("/// <summary>Checks the <c>@expect</c> and <c>@supports</c> conditions of this struct's members, in declaration order, with the reader's failures; a view never checks them on its own.</summary>");
-        writer.Line("/// <exception cref=\"global::CStructSharp.Diagnostics.CStructConstraintException\">A member's value does not satisfy a condition.</exception>");
-        writer.Open("public void " + name + "()");
+        writer.Line("/// <param name=\"violations\">When given, receives every condition a member breaks and the check goes on (see <see cref=\"global::CStructSharp.ReadOptions.ConstraintViolations\"/>), instead of the first one throwing.</param>");
+        writer.Line("/// <exception cref=\"global::CStructSharp.Diagnostics.CStructConstraintException\">A member's value does not satisfy a condition and <paramref name=\"violations\"/> is not given.</exception>");
+        writer.Open("public void " + name + "(global::System.Collections.Generic.ICollection<global::CStructSharp.Diagnostics.CStructConstraintException>? violations = null)");
         if (this.ViewsCarryVariables)
         {
             writer.Line("global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = this.variables;");
@@ -203,7 +204,7 @@ internal sealed partial class LayoutEmitter
             writer.Line(NoVariables);
         }
 
-        writer.Line("var cursor = new " + Cursor + "(this.source, this.options, " + layout + (this.HasRuntimeByteOrder ? ", this.littleEndian" : string.Empty) + ");");
+        writer.Line("var cursor = new " + Cursor + "(this.source, violations is null ? this.options : (this.options ?? new global::CStructSharp.ReadOptions()) with { ConstraintViolations = violations }, " + layout + (this.HasRuntimeByteOrder ? ", this.littleEndian" : string.Empty) + ");");
         writer.Open("try");
         foreach ((CompiledField field, CompiledConstraint constraint, string code, string? end) in plan.Checks)
         {

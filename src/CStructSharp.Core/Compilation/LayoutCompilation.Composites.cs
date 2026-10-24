@@ -95,7 +95,7 @@ internal sealed partial class LayoutCompilation
         {
             Expr folded = ExpressionEvaluator.ContainsCall(constraint.Expression) ? this.FoldCalls(constraint.Expression, field.Name.Name, context) : constraint.Expression;
             this.expressionEvaluator.Compile(folded);
-            builder.Add(new CompiledConstraint(constraint.Kind, folded, constraint.Text));
+            builder.Add(new CompiledConstraint(constraint.Kind, folded, constraint.Text, constraint.Label));
         }
 
         return builder.MoveToImmutable();

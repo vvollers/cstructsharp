@@ -1026,7 +1026,7 @@ namespace Demo
                         }
                         if (this.source.Length - next < 1)
                         {
-                            throw global::CStructSharp.Generated.RecordSequence.Partial(this.source.Length - next, 1, "root", this.index + 1, next);
+                            throw global::CStructSharp.Generated.RecordSequence.Partial(this.source.Length - next, 1, "root", this.index + 1, next, this.options?.OffsetBase ?? 0);
                         }
                         this.offset = next;
                         this.index++;

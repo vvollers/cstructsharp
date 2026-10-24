@@ -276,7 +276,7 @@ public sealed partial class CStruct
         }
         catch (CStructException exception)
         {
-            ExceptionContext.Attach(exception, segments, position);
+            ExceptionContext.Attach(exception, segments, position + (options?.OffsetBase ?? 0));
             throw;
         }
     }

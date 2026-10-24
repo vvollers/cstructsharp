@@ -45,6 +45,9 @@ internal struct ReadEngineState
         this.MaxNestingDepth = options.MaxNestingDepth;
         this.TrimFixedText = options.TrimFixedText;
         this.LenientText = options.LenientText;
+        this.OffsetBase = options.OffsetBase;
+        this.ConstraintViolations = options.ConstraintViolations;
+        this.ConstraintPath = null;
 
         // A debug parse takes no static read plan: every value is read, and recorded, alone.
         this.NoFastPaths = options.ExecutionPath == ExecutionPath.NoFastPaths || debug is not null;
@@ -84,6 +87,15 @@ internal struct ReadEngineState
 
     /// <summary>Gets whether text that is invalid in its encoding is replaced instead of failing (<see cref="ReadOptions.InvalidText"/>).</summary>
     public bool LenientText { get; }
+
+    /// <summary>Gets the position of the source's first byte in the larger input, added to every offset a failure of a memory read reports (<see cref="ReadOptions.OffsetBase"/>).</summary>
+    public long OffsetBase { get; }
+
+    /// <summary>Gets the collection that receives constraint failures instead of the first one ending the read, or <see langword="null"/> (<see cref="ReadOptions.ConstraintViolations"/>).</summary>
+    public System.Collections.Generic.ICollection<CStructSharp.Diagnostics.CStructConstraintException>? ConstraintViolations { get; }
+
+    /// <summary>Gets or sets the path a collected constraint failure reports, set by the operation that collects them; <see langword="null"/> reports none.</summary>
+    public string? ConstraintPath { get; set; }
 
     /// <summary>
     ///     Gets whether the read must avoid the static read plans and block reads
@@ -165,6 +177,15 @@ internal struct ReadEngineState
     /// <param name="localBase">The base of the frame's saved values.</param>
     public void CompleteMember(ConditionalScopeSlots scope, int member, int localBase)
         => FrameArena.CompleteMember(ref this.arena, this.Slots, scope, member, localBase);
+
+    /// <summary>Adds a constraint failure to <see cref="ConstraintViolations"/> with the operation's path and its position in the larger input.</summary>
+    /// <param name="violation">The failure, not thrown; its field is already recorded.</param>
+    /// <param name="position">Where the read stood, in bytes from the source's first byte.</param>
+    public readonly void CollectConstraint(CStructSharp.Diagnostics.CStructConstraintException violation, long position)
+    {
+        violation.AttachContext(this.ConstraintPath, position + this.OffsetBase);
+        this.ConstraintViolations!.Add(violation);
+    }
 
     /// <summary>
     ///     Saves every variable slot as the innermost union's entry values, in the locals stack after the current

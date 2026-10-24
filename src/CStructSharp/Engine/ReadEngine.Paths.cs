@@ -413,7 +413,7 @@ internal static partial class ReadEngine
         }
         catch (CStructException exception)
         {
-            AttachContext(exception, segments, ref cursor, stream);
+            AttachContext(exception, segments, ref cursor, stream, state.OffsetBase);
             throw;
         }
     }
@@ -443,7 +443,7 @@ internal static partial class ReadEngine
         }
         catch (CStructException exception)
         {
-            AttachContext(exception, segments, ref cursor, stream);
+            AttachContext(exception, segments, ref cursor, stream, state.OffsetBase);
             throw;
         }
     }
@@ -523,7 +523,7 @@ internal static partial class ReadEngine
         }
         catch (CStructException exception)
         {
-            AttachContext(exception, segments, ref cursor, null);
+            AttachContext(exception, segments, ref cursor, null, state.OffsetBase);
             throw;
         }
         finally
@@ -553,7 +553,7 @@ internal static partial class ReadEngine
         }
         catch (CStructException exception)
         {
-            AttachContext(exception, segments, ref cursor, null);
+            AttachContext(exception, segments, ref cursor, null, state.OffsetBase);
             throw;
         }
     }
@@ -568,7 +568,8 @@ internal static partial class ReadEngine
     /// <param name="segments">The parsed path.</param>
     /// <param name="cursor">The operation's cursor.</param>
     /// <param name="stream">The caller's stream, or <see langword="null"/> to report the cursor's position.</param>
-    private static void AttachContext<TCursor>(CStructException exception, IReadOnlyList<PathSegment> segments, ref TCursor cursor, Stream? stream)
+    /// <param name="offsetBase">The position of the source's first byte in the larger input, added to a cursor position (<see cref="ReadOptions.OffsetBase"/>).</param>
+    private static void AttachContext<TCursor>(CStructException exception, IReadOnlyList<PathSegment> segments, ref TCursor cursor, Stream? stream, long offsetBase)
         where TCursor : struct, IReadCursor
     {
         if (stream is not null)
@@ -588,7 +589,7 @@ internal static partial class ReadEngine
             position = null;
         }
 
-        exception.AttachContext(ExceptionContext.FormatPath(segments), position);
+        exception.AttachContext(ExceptionContext.FormatPath(segments), position + offsetBase);
     }
 
     /// <summary>

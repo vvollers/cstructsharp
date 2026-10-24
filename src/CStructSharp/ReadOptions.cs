@@ -148,6 +148,32 @@ public sealed record ReadOptions
     public long Origin { get; init; }
 
     /// <summary>
+    ///     Gets the position of the source's first byte in the larger input it was cut from (an image, a file), added to
+    ///     the <see cref="CStructSharp.Diagnostics.CStructException.Offset"/> every failure of a span, array or memory read
+    ///     reports and to the offset in its message, so a failure names where the bytes are in the evidence rather than
+    ///     in the buffer. It changes nothing else: positions, addresses and pointer targets still count from the buffer's
+    ///     first byte, and a stream read reports stream positions already. The default is 0.
+    /// </summary>
+    /// <exception cref="System.ArgumentOutOfRangeException">A read with a negative value fails with this before any byte is read.</exception>
+    public long OffsetBase { get; init; }
+
+    /// <summary>
+    ///     Gets the collection that receives every <c>@expect</c> and <c>@supports</c> failure instead of the first one
+    ///     ending the read: when it is set, a field whose value breaks a constraint adds a
+    ///     <see cref="CStructSharp.Diagnostics.CStructConstraintException"/> (not thrown, with the member, path and offset
+    ///     of a thrown one) and the read continues with the value as read, so one pass reports every inconsistent field
+    ///     of a header. Any other failure (a short read, a limit, an expression that cannot be evaluated) still ends the read
+    ///     with its exception, and a read that completes with an empty collection satisfied every constraint. Constraints are
+    ///     checked in field order, so the list is in field order. <see langword="null"/>, the default, throws the first.
+    /// </summary>
+    /// <remarks>
+    ///     A value that breaks a constraint may break what depends on it (a count that is too large fails the array limit
+    ///     next); the collection then holds the failures found up to that read failure, which is thrown as usual.
+    ///     The collection is not thread-safe and is added to in place: use one per read.
+    /// </remarks>
+    public System.Collections.Generic.ICollection<CStructSharp.Diagnostics.CStructConstraintException>? ConstraintViolations { get; init; }
+
+    /// <summary>
     ///     Gets the token a long read observes: it is checked when a composite or a pointer target is entered, per
     ///     block of a primitive array, per element of a composite array, and per chunk of a terminated string, and
     ///     a cancelled token ends the operation with <see cref="OperationCanceledException"/> (not a read failure:

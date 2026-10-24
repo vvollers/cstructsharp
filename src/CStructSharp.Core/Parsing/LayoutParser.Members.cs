@@ -681,9 +681,61 @@ internal sealed partial class LayoutParser
         int textStart = this.position;
         Expr expression = this.ParseExpr();
         int textEnd = this.position;
+        string? label = this.TryToken(',') ? this.ParseConstraintLabel() : null;
         this.ExpectToken(')');
         string text = this.source.Substring(textStart, textEnd - textStart).Trim();
-        return new FieldConstraint(kind, expression, text);
+        return new FieldConstraint(kind, expression, text, label);
+    }
+
+    /// <summary>
+    ///     The label of a constraint: a double-quoted string after the condition, in which <c>\"</c> and <c>\\</c> stand for a
+    ///     quote and a backslash. It may not be empty or contain a line break.
+    /// </summary>
+    /// <returns>The label's text without the quotes.</returns>
+    /// <exception cref="CStructLayoutException">The label is missing, empty, unterminated or has an unknown escape.</exception>
+    private string ParseConstraintLabel()
+    {
+        this.SkipTrivia();
+        if (this.AtEnd || this.source[this.position] != '"')
+        {
+            throw new CStructLayoutException(SyntaxErrorPrefix + "A constraint label must be a double-quoted string after the condition.");
+        }
+
+        this.position++;
+        var label = new StringBuilder();
+        while (true)
+        {
+            if (this.AtEnd || this.source[this.position] is '\n' or '\r')
+            {
+                throw new CStructLayoutException(SyntaxErrorPrefix + "A constraint label is not terminated before the end of the line.");
+            }
+
+            char character = this.source[this.position++];
+            if (character == '"')
+            {
+                break;
+            }
+
+            if (character == '\\')
+            {
+                if (this.AtEnd || this.source[this.position] is not ('"' or '\\'))
+                {
+                    throw new CStructLayoutException(SyntaxErrorPrefix + "A constraint label allows only the escapes \\\" and \\\\.");
+                }
+
+                character = this.source[this.position++];
+            }
+
+            label.Append(character);
+        }
+
+        if (label.Length == 0)
+        {
+            throw new CStructLayoutException(SyntaxErrorPrefix + "A constraint label cannot be empty.");
+        }
+
+        this.SkipTrivia();
+        return label.ToString();
     }
 
     /// <summary>

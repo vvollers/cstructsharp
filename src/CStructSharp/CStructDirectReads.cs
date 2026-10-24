@@ -342,7 +342,7 @@ public sealed partial class CStruct
         catch (CStructException exception)
         {
             // The engine attaches the formatted path and the stream position after the root, its size.
-            exception.AttachContext(path, plan.Size);
+            exception.AttachContext(path, plan.Size + settings.OffsetBase);
             throw;
         }
     }

@@ -50,12 +50,48 @@ public ref partial struct ReadCursor
     /// <param name="field">The field's layout name.</param>
     /// <param name="member">The layout field, for the diagnostics.</param>
     /// <param name="memberType">The field's type spelling.</param>
+    /// <param name="label">The constraint's label, or <see langword="null"/> when the layout gave it none.</param>
     /// <returns>The exception to throw.</returns>
-    public readonly CStructConstraintException FailConstraint(ConstraintKind kind, string constraint, string field, string? member, string? memberType)
+    public readonly CStructConstraintException FailConstraint(ConstraintKind kind, string constraint, string field, string? member, string? memberType, string? label = null)
     {
-        var exception = new CStructConstraintException(kind, constraint, ReadFailures.ConstraintNotSatisfied(kind, field, constraint));
+        var exception = new CStructConstraintException(kind, constraint, ReadFailures.ConstraintNotSatisfied(kind, field, constraint, label), label);
         this.Attach(exception, member, memberType);
         return exception;
+    }
+
+    /// <summary>
+    ///     Reports a field whose value does not satisfy an <c>@expect</c> or <c>@supports</c> condition: throws the failure, or, when
+    ///     the read collects violations (<see cref="ReadOptions.ConstraintViolations"/>), adds it to the collection and returns so
+    ///     the read continues.
+    /// </summary>
+    /// <param name="kind">Whether the data is malformed or unsupported.</param>
+    /// <param name="constraint">The condition as written in the layout.</param>
+    /// <param name="field">The field's layout name.</param>
+    /// <param name="member">The layout field, for the diagnostics.</param>
+    /// <param name="memberType">The field's type spelling.</param>
+    /// <param name="label">The constraint's label, or <see langword="null"/> when the layout gave it none.</param>
+    /// <param name="reportAt">
+    ///     The source offset to report when it is not the cursor's own (a constraint pass that runs after the whole struct was
+    ///     read reports the end of the checked field), or -1 for the cursor's position.
+    /// </param>
+    /// <exception cref="CStructConstraintException">The read does not collect violations.</exception>
+    public void ConstraintViolated(ConstraintKind kind, string constraint, string field, string? member, string? memberType, string? label = null, int reportAt = -1)
+    {
+        CStructConstraintException exception = this.FailConstraint(kind, constraint, field, member, memberType, label);
+        if (this.settings.ConstraintViolations is not { } violations)
+        {
+            // Thrown: the cursor stands where the failure is reported, and its position is attached at the operation boundary (Complete),
+            // where the runtime attaches it (a pointer target's failure reports the position after the pointer).
+            if (reportAt >= 0)
+            {
+                this.position = reportAt;
+            }
+
+            throw exception;
+        }
+
+        exception.AttachContext(null, (reportAt >= 0 ? reportAt : this.position) + this.settings.OffsetBase);
+        violations.Add(exception);
     }
 
     /// <summary>A read failure at the current position with the runtime's context and a lower-level cause.</summary>
@@ -115,7 +151,7 @@ public ref partial struct ReadCursor
     public readonly void Complete(CStructException exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
-        exception.AttachContext(this.path, this.position);
+        exception.AttachContext(this.path, this.position + this.settings.OffsetBase);
     }
 
     /// <summary>Attaches field and path context while leaving the final offset for the operation boundary.</summary>

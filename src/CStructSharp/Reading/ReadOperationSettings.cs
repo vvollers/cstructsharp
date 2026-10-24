@@ -22,7 +22,9 @@ internal readonly record struct ReadOperationSettings(
     System.Threading.CancellationToken CancellationToken = default,
     ExecutionPath ExecutionPath = ExecutionPath.Fastest,
     long ContinuedInputLength = Streams.BufferedInput.WholeInput,
-    bool LenientText = false)
+    bool LenientText = false,
+    long OffsetBase = 0,
+    System.Collections.Generic.ICollection<CStructSharp.Diagnostics.CStructConstraintException>? ConstraintViolations = null)
 {
     /// <summary>The settings of the default <see cref="ReadOptions"/>, which a read governed by <see cref="ReadLimits"/> takes its pointer policy from; built once.</summary>
     private static readonly ReadOperationSettings DefaultPolicy = SnapshotReadOptions(null);
@@ -51,7 +53,7 @@ internal readonly record struct ReadOperationSettings(
     /// </summary>
     public bool HasValidLimits =>
         !this.CancellationToken.IsCancellationRequested && this.MaxPointerDepth >= 0 && this.maxPointerTargetBytes >= 0 &&
-        this.MaxArrayElements >= 0 && this.MaxStringBytes >= 0 && this.MaxTotalBytesRead >= 0 && this.MaxNestingDepth > 0;
+        this.MaxArrayElements >= 0 && this.MaxStringBytes >= 0 && this.MaxTotalBytesRead >= 0 && this.MaxNestingDepth > 0 && this.OffsetBase >= 0;
 
     /// <summary>
     ///     Returns whether these limits admit a read the compiled engine would complete at structure depth
@@ -104,7 +106,9 @@ internal readonly record struct ReadOperationSettings(
             options.CancellationToken,
             options.ExecutionPath,
             options.ContinuedInputLength,
-            options.LenientText);
+            options.LenientText,
+            options.OffsetBase,
+            options.ConstraintViolations);
     }
 
     /// <summary>Builds the settings of a read governed by <see cref="ReadLimits"/>: its limits, and the default pointer policy.</summary>
@@ -120,6 +124,7 @@ internal readonly record struct ReadOperationSettings(
             TrimFixedText = limits.TrimFixedText,
             CancellationToken = limits.CancellationToken,
             LenientText = limits.LenientText,
+            OffsetBase = limits.OffsetBase,
         };
 
     /// <summary>Maps already-snapshotted update traversal choices into the same read operation settings.</summary>
@@ -200,6 +205,11 @@ internal readonly record struct ReadOperationSettings(
         if (options.MaxNestingDepth <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(options), "Maximum nesting depth must be greater than zero.");
+        }
+
+        if (options.OffsetBase < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), "The offset base cannot be negative.");
         }
     }
 }

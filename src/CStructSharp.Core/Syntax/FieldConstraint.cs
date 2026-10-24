@@ -8,4 +8,5 @@ namespace CStructSharp.Syntax;
 /// <param name="Kind">Whether a failure means the data is malformed or unsupported.</param>
 /// <param name="Expression">The condition; zero means it is not satisfied.</param>
 /// <param name="Text">The condition as written in the layout (trimmed), which every failure message quotes.</param>
-internal sealed record FieldConstraint(CStructSharp.Diagnostics.ConstraintKind Kind, Expr Expression, string Text);
+/// <param name="Label">The optional label written after the condition (<c>@expect(magic == 0xEF53, "ext.magic")</c>): a stable name or wording a caller can match, carried by every failure; <see langword="null"/> when none was written.</param>
+internal sealed record FieldConstraint(CStructSharp.Diagnostics.ConstraintKind Kind, Expr Expression, string Text, string? Label = null);

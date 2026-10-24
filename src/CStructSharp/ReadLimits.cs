@@ -97,6 +97,10 @@ public readonly record struct ReadLimits
     /// <summary>Gets the token a long read observes; see <see cref="ReadOptions.CancellationToken"/>.</summary>
     public CancellationToken CancellationToken { get; init; }
 
+    /// <summary>Gets the position of the source's first byte in the larger input; added to every failure's offset. See <see cref="ReadOptions.OffsetBase"/>.</summary>
+    /// <exception cref="System.ArgumentOutOfRangeException">A read with a negative value fails with this before any byte is read.</exception>
+    public long OffsetBase { get; init; }
+
     /// <summary>Gets whether invalid text is replaced instead of failing, as the readers test it.</summary>
     internal bool LenientText => this.lenientText;
 
@@ -119,6 +123,7 @@ public readonly record struct ReadLimits
             TrimFixedText = options.TrimFixedText,
             InvalidText = options.InvalidText,
             CancellationToken = options.CancellationToken,
+            OffsetBase = options.OffsetBase,
         };
     }
 
@@ -133,5 +138,6 @@ public readonly record struct ReadLimits
         TrimFixedText = this.TrimFixedText,
         InvalidText = this.InvalidText,
         CancellationToken = this.CancellationToken,
+        OffsetBase = this.OffsetBase,
     };
 }

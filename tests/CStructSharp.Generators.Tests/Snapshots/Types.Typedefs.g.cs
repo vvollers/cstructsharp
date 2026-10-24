@@ -2267,7 +2267,7 @@ namespace Demo
                 }
                 if (this.source.Length - next < 1)
                 {
-                    throw global::CStructSharp.Generated.RecordSequence.Partial(this.source.Length - next, 1, "X", this.index + 1, next);
+                    throw global::CStructSharp.Generated.RecordSequence.Partial(this.source.Length - next, 1, "X", this.index + 1, next, this.options?.OffsetBase ?? 0);
                 }
                 this.offset = next;
                 this.index++;
@@ -2391,7 +2391,7 @@ namespace Demo
                 }
                 if (this.source.Length - next < 2)
                 {
-                    throw global::CStructSharp.Generated.RecordSequence.Partial(this.source.Length - next, 2, "Anon", this.index + 1, next);
+                    throw global::CStructSharp.Generated.RecordSequence.Partial(this.source.Length - next, 2, "Anon", this.index + 1, next, this.options?.OffsetBase ?? 0);
                 }
                 this.offset = next;
                 this.index++;
@@ -2557,7 +2557,7 @@ namespace Demo
                 }
                 if (this.source.Length - next < 16)
                 {
-                    throw global::CStructSharp.Generated.RecordSequence.Partial(this.source.Length - next, 16, "root", this.index + 1, next);
+                    throw global::CStructSharp.Generated.RecordSequence.Partial(this.source.Length - next, 16, "root", this.index + 1, next, this.options?.OffsetBase ?? 0);
                 }
                 this.offset = next;
                 this.index++;

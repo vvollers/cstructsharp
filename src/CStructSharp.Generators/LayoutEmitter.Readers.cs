@@ -798,12 +798,10 @@ internal sealed partial class LayoutEmitter
         }
 
         writer.Open("if (constraintValue == 0)");
-        if (failurePosition is not null)
-        {
-            writer.Line("cursor.Position = " + failurePosition + ";");
-        }
 
-        writer.Line("throw cursor.FailConstraint(global::CStructSharp.Diagnostics.ConstraintKind." + kind + ", " + SourceWriter.Literal(constraint.Text) + ", " + SourceWriter.Literal(field.Name) + ", " + member + ", " + memberType + ");");
+        // The failure throws, or is collected when the read gathers violations (ReadOptions.ConstraintViolations), and then the read goes on:
+        // so the position a constraint pass reports is an argument, not a move of the cursor.
+        writer.Line("cursor.ConstraintViolated(global::CStructSharp.Diagnostics.ConstraintKind." + kind + ", " + SourceWriter.Literal(constraint.Text) + ", " + SourceWriter.Literal(field.Name) + ", " + member + ", " + memberType + ", " + (constraint.Label is null ? "null" : SourceWriter.Literal(constraint.Label)) + (failurePosition is null ? string.Empty : ", " + failurePosition) + ");");
         writer.Close();
         writer.Close();
     }

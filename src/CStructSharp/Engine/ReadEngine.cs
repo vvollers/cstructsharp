@@ -139,6 +139,11 @@ internal static partial class ReadEngine
     private static StructValue Run<TCursor>(ref TCursor cursor, ref ReadEngineState state, ReadProgram program, IReadOnlyList<PathSegment> segments, Stream? stream, out bool selected)
         where TCursor : struct, IReadCursor
     {
+        if (state.ConstraintViolations is not null)
+        {
+            state.ConstraintPath = ExceptionContext.FormatPath(segments);
+        }
+
         try
         {
             try
@@ -154,7 +159,7 @@ internal static partial class ReadEngine
         {
             if (stream is null)
             {
-                ExceptionContext.Attach(exception, segments, cursor.Position);
+                ExceptionContext.Attach(exception, segments, cursor.Position + state.OffsetBase);
             }
             else
             {
@@ -357,7 +362,15 @@ internal static partial class ReadEngine
                         if (state.Slots.Evaluate(program.Expressions[step.A], program.ExpressionContexts[step.A], ExpressionFailureDomain.Read) == 0)
                         {
                             CompiledConstraint failed = constrained.Constraints[step.B];
-                            throw new CStructConstraintException(failed.Kind, failed.Text, ReadFailures.ConstraintNotSatisfied(failed.Kind, constrained.Name, failed.Text));
+                            var violation = new CStructConstraintException(failed.Kind, failed.Text, ReadFailures.ConstraintNotSatisfied(failed.Kind, constrained.Name, failed.Text, failed.Label), failed.Label);
+                            if (state.ConstraintViolations is null)
+                            {
+                                throw violation;
+                            }
+
+                            // A read that collects violations records the failure at the cursor and goes on with the value as read.
+                            violation.AttachMember(constrained.Name, constrained.DisplayTypeSpelling);
+                            state.CollectConstraint(violation, cursor.Position);
                         }
 
                         break;

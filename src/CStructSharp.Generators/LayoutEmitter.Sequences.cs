@@ -279,7 +279,7 @@ internal sealed partial class LayoutEmitter
         writer.Line("return false;");
         writer.Close();
         writer.Open("if (this.source.Length - next < " + stride + ")");
-        writer.Line("throw " + Sequence + ".Partial(this.source.Length - next, " + stride + ", " + layout + ", this.index + 1, next);");
+        writer.Line("throw " + Sequence + ".Partial(this.source.Length - next, " + stride + ", " + layout + ", this.index + 1, next, this.options?.OffsetBase ?? 0);");
         writer.Close();
         writer.Line("this.offset = next;");
         writer.Line("this.index++;");

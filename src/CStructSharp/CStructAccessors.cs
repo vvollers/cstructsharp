@@ -151,7 +151,7 @@ public sealed partial class CStruct
         {
             // The generated view's failure for a source that cannot hold the value.
             var failure = new CStructReadException(ReadFailures.ShortRead(plan.Size, source.Length));
-            failure.AttachContext(root, 0);
+            failure.AttachContext(root, options?.OffsetBase ?? 0);
             throw failure;
         }
 

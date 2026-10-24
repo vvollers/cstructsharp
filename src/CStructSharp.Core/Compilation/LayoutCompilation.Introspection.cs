@@ -262,7 +262,7 @@ internal sealed partial class LayoutCompilation
 
             foreach (FieldConstraint constraint in field.Constraints)
             {
-                builder.Append(constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? " @expect(" : " @supports(").Append(constraint.Text).Append(')');
+                builder.Append(constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? " @expect(" : " @supports(").Append(constraint.Text).Append(ConstraintLabels.Suffix(constraint.Label)).Append(')');
             }
 
             builder.AppendLine(";");

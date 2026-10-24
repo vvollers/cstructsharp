@@ -2,6 +2,7 @@ namespace CStructSharp.Compilation;
 
 using System.Globalization;
 using System.Text;
+using CStructSharp.Syntax;
 
 /// <summary>
 ///     A 64-bit summary of everything that decides where the members of a compiled struct sit and how their bytes
@@ -101,7 +102,7 @@ internal static class LayoutFingerprint
         var constraints = new StringBuilder();
         foreach (CompiledConstraint constraint in field.Constraints)
         {
-            constraints.Append(constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "{expect:" : "{supports:").Append(constraint.Text).Append('}');
+            constraints.Append(constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "{expect:" : "{supports:").Append(constraint.Text).Append(ConstraintLabels.Suffix(constraint.Label)).Append('}');
         }
 
         return constraints.ToString();

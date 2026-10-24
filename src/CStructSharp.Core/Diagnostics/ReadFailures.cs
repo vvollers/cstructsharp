@@ -252,9 +252,13 @@ internal static class ReadFailures
     /// <param name="kind">Whether the data is malformed or unsupported.</param>
     /// <param name="field">The field's name.</param>
     /// <param name="constraint">The condition as written in the layout.</param>
+    /// <param name="label">The constraint's label, which the message ends with in brackets, or <see langword="null"/> when it has none.</param>
     /// <returns>The diagnostic.</returns>
-    public static string ConstraintNotSatisfied(ConstraintKind kind, string field, string constraint)
-        => kind == ConstraintKind.Malformed
-               ? "Invalid value for '" + field + "': it must satisfy '" + constraint + "'."
-               : "Unsupported value for '" + field + "': this layout supports only values for which '" + constraint + "' holds.";
+    public static string ConstraintNotSatisfied(ConstraintKind kind, string field, string constraint, string? label = null)
+    {
+        string text = kind == ConstraintKind.Malformed
+                          ? "Invalid value for '" + field + "': it must satisfy '" + constraint + "'."
+                          : "Unsupported value for '" + field + "': this layout supports only values for which '" + constraint + "' holds.";
+        return label is null ? text : text + " [" + label + "]";
+    }
 }
