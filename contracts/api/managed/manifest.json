@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed",
-  "baselineRevision": 63,
+  "baselineRevision": 64,
   "packageVersion": "0.12.2",
   "assembly": "CStructSharp.dll",
   "exportedTypes": 90,
@@ -12,22 +12,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed/CStructSharp.public-api.txt",
-    "lines": 1097,
-    "normalizedSha256": "3FAC62E2F127A5E1D17A86F01068A4AADA67CAD60185B6B55365C88F8A84A436"
+    "lines": 1098,
+    "normalizedSha256": "C09A7BD2A88D3DE18D217135A3C7F7AD810DF379B05769A2DBB0565A9C58531E"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "DCCBC6030D2B0CDDE6D011EDF3784C051D5034AA92B80E037055D795BCE56E76",
+      "normalizedSha256": "02D654F87BB2A6F148470AC265611C0F555BE5972180FA4176E4B19A58C51741",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "A47F84C120CCBC645AF4B0E342017D1CDCCFCCACD14742227A83C96816CF08D8",
+      "normalizedSha256": "F165BB694272C6C7E2E452909898CABD9FF23D8B28C2B640A139E13AC551F6D1",
       "aotCompatible": true
     }
   ],
@@ -406,12 +406,18 @@
     },
     {
       "revision": 63,
-      "kind": "additive",
       "date": "2026-10-23",
       "packageVersion": "0.12.2",
-      "combinedSha256": "D710F186FD471A3883A8E7A3E7AAA72CEDF50635B65FC0CBE0CE0DADC488EC7F",
-      "rationale": "Add GeneratedSurface and CStructLayoutAttribute.Surface to generate only readers or only views, and InvalidTextHandling and ReadOptions.InvalidText to read invalid text as U+FFFD.",
-      "releaseImpact": "Additive: every default keeps the current behavior (full generated surface, invalid text fails)."
+      "combinedSha256": "D710F186FD471A3883A8E7A3E7AAA72CEDF50635B65FC0CBE0CE0DADC488EC7F"
+    },
+    {
+      "revision": 64,
+      "kind": "additive",
+      "date": "2026-10-24",
+      "packageVersion": "0.12.2",
+      "combinedSha256": "582DEC42EFDEEC2DD6DB22E0F50E43DFB6049B085B3306C13FCF23675C744284",
+      "rationale": "ReadCursor.ArrayLimit lets a generated view check a runtime-sized array's count against the array limit without building a cursor on the success path.",
+      "releaseImpact": "None; generated code uses it, and existing callers are unaffected."
     }
   ]
 }

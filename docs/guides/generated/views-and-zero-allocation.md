@@ -65,6 +65,10 @@ struct table { uint32 count; uint64 origin; uint32 entries[count]; uint32 checks
 `view.Checksum` finds `checksum` after the `count` entries; `view.CopyEntriesTo(destination)` copies the entries
 without the array a `Table` object would allocate for them.
 
+Every call that needs the length evaluates the count again, because a view keeps no state. That is cheap for one
+read (`Checksum`, `CopyEntriesTo`), but `Entries(i)` in a loop pays it for every element. To visit all elements, read
+`EntriesBytes` once, or call `CopyEntriesTo` into a span you own, and loop over that.
+
 Members it does not expose are the ones whose position the view cannot compute: a terminated string, a conditional
 member, an array whose length needs a caller variable, a value that is not read yet, or a member of a nested struct whose
 view has no property for it (a `char`, an `int48`, an `int128` or a pointer), a pointer's target, a struct

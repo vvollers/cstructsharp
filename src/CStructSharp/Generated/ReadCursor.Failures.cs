@@ -13,6 +13,14 @@ public ref partial struct ReadCursor
     /// <returns>The message.</returns>
     public static string ShortReadText(long needed, long available) => ReadFailures.ShortRead(needed, available);
 
+    /// <summary>
+    ///     The most elements an array may have under <paramref name="options"/>, for a generated view that checks a
+    ///     computed count against the limit itself and builds a cursor only to report a failure.
+    /// </summary>
+    /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+    /// <returns>The <see cref="ReadOptions.MaxArrayElements"/> limit.</returns>
+    public static int ArrayLimit(ReadOptions? options) => (options ?? ReadOptions.Default).MaxArrayElements;
+
     /// <summary>A layout failure (an offset assertion that does not hold) at the current position, with the runtime's context.</summary>
     /// <param name="message">The diagnostic.</param>
     /// <param name="member">The layout field.</param>

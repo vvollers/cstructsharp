@@ -328,7 +328,7 @@ internal sealed partial class LayoutEmitter
         string bytesName = established ? property + "Bytes" : plan.Unique(property + "Bytes");
         if (runtimeCount is { } computed && plan.WrittenCounts.Add(computed.Method))
         {
-            this.EmitCountMethod(writer, member, computed, "public");
+            this.EmitCountMethod(writer, member, computed, plan);
         }
 
         if (field.IsCharacterArray)

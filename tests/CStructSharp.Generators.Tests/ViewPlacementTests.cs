@@ -90,6 +90,15 @@ public class ViewPlacementTests
         [CStructLayout("struct leaf { uint8 id; uint8 *target; }; struct holder { uint8 n; uint8 xs[n]; leaf l; };", Root = "holder", PointerSize = 2)]
         public static partial class HolderLayout { }
 
+        [CStructLayout("struct signed { int8 n; uint8 data[n]; uint8 tail; };", Root = "signed")]
+        public static partial class NegativeCountLayout { }
+
+        [CStructLayout("struct divided { uint8 d; uint8 data[100 / d]; uint8 tail; };", Root = "divided")]
+        public static partial class DividedCountLayout { }
+
+        [CStructLayout("struct nested { uint8 m; uint8 a[m]; uint8 n; uint8 b[n]; };", Root = "nested")]
+        public static partial class CountAfterArrayLayout { }
+
         public static class Probe
         {
             public static object[] Table(byte[] bytes)
@@ -170,6 +179,30 @@ public class ViewPlacementTests
             {
                 var view = new Demo.HolderLayout.HolderView(bytes);
                 return new object[] { view.L.ToObject().Id };
+            }
+
+            public static object[] NegativeCount(byte[] bytes)
+            {
+                var view = new Demo.NegativeCountLayout.SignedView(bytes);
+                return new object[] { view.CountOfData() };
+            }
+
+            public static object[] DividedCount(byte[] bytes)
+            {
+                var view = new Demo.DividedCountLayout.DividedView(bytes);
+                return new object[] { view.CountOfData() };
+            }
+
+            public static object[] LimitedCount(byte[] bytes)
+            {
+                var view = new Demo.TableLayout.TableView(bytes, new ReadOptions { MaxArrayElements = 2 });
+                return new object[] { view.CountOfEntries() };
+            }
+
+            public static object[] CountAfterArray(byte[] bytes)
+            {
+                var view = new Demo.CountAfterArrayLayout.NestedView(bytes);
+                return new object[] { view.CountOfB() };
             }
 
             public static object[] Late(byte[] bytes)
@@ -456,6 +489,53 @@ public class ViewPlacementTests
         // n 1, xs = 9, leaf (id 4, target address 3), then the target byte after the leaf.
         byte[] bytes = [1, 9, 4, 3, 0, 0x55];
         Assert.AreEqual((byte)4, Probe("Holder", bytes)[0]);
+    }
+
+    /// <summary>A negative count, a count expression that fails, and a count over a custom array limit each fail in the view with the reader's own message, type, and member.</summary>
+    [TestMethod]
+    public void CountFailures_MatchTheReader()
+    {
+        (string Layout, string Probe, string Root, byte[] Bytes)[] cases =
+        [
+            ("NegativeCount", "NegativeCount", "signed", [0xFF, 1, 2]),
+            ("DividedCount", "DividedCount", "divided", [0, 1, 2]),
+        ];
+        foreach ((string layout, string probe, string root, byte[] bytes) in cases)
+        {
+            CStructException reader = Assert.Throws<CStructReadException>(() => Runtime(layout).Parse(bytes, root));
+            CStructException view = Assert.Throws<CStructReadException>(() => Probe(probe, bytes));
+            Assert.AreEqual(FailureText(reader), FailureText(view), layout);
+            Assert.AreEqual(reader.Member, view.Member, layout);
+        }
+
+        // count 3 over a limit of 2.
+        byte[] table = [3, 0, 0, 0, 9, 9, 9, 9, 1, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 20, 0, 0, 0, 30, 0, 0, 0, 0xFE, 0xCA, 0, 0, 2, 5, 6];
+        var limited = new ReadOptions { MaxArrayElements = 2 };
+        CStructException readerLimit = Assert.Throws<CStructReadLimitException>(() => Runtime("Table").Parse(table, "table", options: limited));
+        CStructException viewLimit = Assert.Throws<CStructReadLimitException>(() => Probe("LimitedCount", table));
+        Assert.AreEqual(FailureText(readerLimit), FailureText(viewLimit));
+        Assert.AreEqual(readerLimit.Member, viewLimit.Member);
+    }
+
+    /// <summary>A count that is a member at a computed offset, on a source that ends before it, fails with the reader's exception type and text.</summary>
+    [TestMethod]
+    public void CountMemberPastTheSource_FailsLikeTheReader()
+    {
+        // m 2, a = 1 2, then the source ends where n should be.
+        byte[] bytes = [2, 1, 2];
+        CStructException reader = Assert.Throws<CStructReadException>(() => Runtime("CountAfterArray").Parse(bytes, "nested"));
+        CStructException view = Assert.Throws<CStructReadException>(() => Probe("CountAfterArray", bytes));
+        StringAssert.Contains(reader.Message, "Not enough bytes");
+        StringAssert.Contains(view.Message, "Not enough bytes");
+        Assert.AreEqual(reader.Member, view.Member);
+        Assert.AreEqual(2, Probe("CountAfterArray", [2, 1, 2, 2, 7, 8])[0]);
+    }
+
+    /// <summary>A failure's message without the trailing field, path and offset context, which differs between a view and a whole-value read.</summary>
+    private static string FailureText(CStructException exception)
+    {
+        int context = exception.Message.IndexOf(" (field", StringComparison.Ordinal);
+        return context < 0 ? exception.Message : exception.Message[..context];
     }
 
     /// <summary>Calls a probe method that returns something other than an object array.</summary>

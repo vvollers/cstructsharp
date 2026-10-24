@@ -29,6 +29,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   `ptr_address` next to a pointer `ptr`) takes a trailing underscore, and a count that names a member of a nested struct
   whose view has no property for it hides the array instead of generating code that does not compile. A nested view at a
   computed offset keeps the bytes after it, as one at a constant offset does, so its pointer targets resolve alike.
+  The element count of a runtime-sized array is checked without building a read cursor unless it fails, which makes a
+  loop over `Name(i)` about three times faster; the new `ReadCursor.ArrayLimit(ReadOptions?)` supports it.
 - **Read invalid text without failing.** `ReadOptions.InvalidText = InvalidTextHandling.Replace` reads each invalid UTF-8
   sequence, unpaired UTF-16 surrogate and non-ASCII byte of an ASCII string as U+FFFD and continues, for `utf8` and UTF-16
   buffers, `wchar[N]` and terminated strings, in the runtime, in generated readers and in generated views. The default,

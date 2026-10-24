@@ -1593,32 +1593,46 @@ namespace Demo
             /// <returns>The number of elements.</returns>
             public int CountOfData()
             {
-                global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null;
+                global::System.Int128 countValue = ((global::System.Int128)this.N);
+                if (countValue < 0 || countValue > global::CStructSharp.Generated.ReadCursor.ArrayLimit(this.options))
+                {
+                    throw CountFailureOfData(null, countValue);
+                }
+                return (int)countValue;
+            }
+
+            /// <summary>Builds the failure of the count of <c>uint8 data[...]</c> with the reader's text and context: the expression's own failure, a negative count, or a count over the array limit.</summary>
+            /// <param name="expressionFailure">The exception the count expression raised, or <see langword="null"/> when it produced a count.</param>
+            /// <param name="countValue">The count the expression produced.</param>
+            /// <returns>The exception to throw.</returns>
+            private global::System.Exception CountFailureOfData(global::System.Exception? expressionFailure, global::System.Int128 countValue)
+            {
                 var cursor = new global::CStructSharp.Generated.ReadCursor(this.source, this.options, "data");
+                if (expressionFailure is not null)
+                {
+                    global::System.Exception raised = cursor.FailExpression(expressionFailure, "array length for data", "data", "uint8");
+                    if (raised is global::CStructSharp.Diagnostics.CStructException known)
+                    {
+                        cursor.Complete(known);
+                    }
+                    return raised;
+                }
+                if (countValue < 0)
+                {
+                    global::CStructSharp.Diagnostics.CStructException negative = cursor.Fail("Array length cannot be negative: data", "data", "uint8");
+                    cursor.Complete(negative);
+                    return negative;
+                }
                 try
                 {
-                    int count;
-                    global::System.Int128 countValue;
-                    try
-                    {
-                        countValue = ((global::System.Int128)this.N);
-                    }
-                    catch (global::System.Exception expressionFailure)
-                    {
-                        throw cursor.FailExpression(expressionFailure, "array length for data", "data", "uint8");
-                    }
-                    if (countValue < 0)
-                    {
-                        throw cursor.Fail("Array length cannot be negative: data", "data", "uint8");
-                    }
-                    count = cursor.RequireArrayLength(countValue, "data", "uint8");
-                    return count;
+                    _ = cursor.RequireArrayLength(countValue, "data", "uint8");
                 }
-                catch (global::CStructSharp.Diagnostics.CStructException exception)
+                catch (global::CStructSharp.Diagnostics.CStructException limit)
                 {
-                    cursor.Complete(exception);
-                    throw;
+                    cursor.Complete(limit);
+                    return limit;
                 }
+                return new global::System.InvalidOperationException("The count is within the array limit.");
             }
 
             /// <summary>The bytes of <c>uint8 data[...]</c> at offset 1.</summary>

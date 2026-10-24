@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
 using static CStructSharp.Generators.Emit;
 
 /// <summary>
@@ -254,6 +255,14 @@ internal sealed partial class LayoutEmitter
         "Expressions\\.Variable\\(variables, \"[^\"]*\"\\)|Expressions\\.Undefined\\(",
         System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
+    /// <summary>
+    ///     A count expression that is only the widened value of a view property (<c>((Int128)this.N)</c>, or through
+    ///     nested views), which cannot raise a layout-expression failure. Anything else keeps the failure wrapper.
+    /// </summary>
+    private static readonly System.Text.RegularExpressions.Regex PlainPropertyCount = new(
+        "^\\(\\(global::System\\.Int128\\)this(\\.[A-Za-z_][A-Za-z0-9_]*)+\\)$",
+        System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
     /// <summary>The sum of two offset expressions, folded when both are literals.</summary>
     /// <param name="left">The first expression.</param>
     /// <param name="right">The second expression.</param>
@@ -287,7 +296,7 @@ internal sealed partial class LayoutEmitter
             if (plan.WrittenCounts.Add(count.Value.Method))
             {
                 GeneratedMember member = composite.Members.First(candidate => ReferenceEquals(candidate.Field, count.Key));
-                this.EmitCountMethod(writer, member, count.Value, "public");
+                this.EmitCountMethod(writer, member, count.Value, plan);
             }
         }
 
@@ -338,29 +347,93 @@ internal sealed partial class LayoutEmitter
         }
     }
 
-    /// <summary>Emits the method that counts the elements of one runtime-sized array with the reader's own checks.</summary>
+    /// <summary>
+    ///     Emits the method that counts the elements of one runtime-sized array with the reader's own checks. The count is
+    ///     evaluated and compared with the array limit directly; the cursor that builds the reader's failure is created
+    ///     only by a separate method that a failing count calls, so a count that succeeds allocates and copies nothing.
+    /// </summary>
     /// <param name="writer">The output.</param>
     /// <param name="member">The array member.</param>
     /// <param name="count">The method name and the translated count expression.</param>
-    /// <param name="accessibility">The method's accessibility.</param>
-    private void EmitCountMethod(SourceWriter writer, GeneratedMember member, (string Method, string Code, bool IsLiteral) count, string accessibility)
+    /// <param name="plan">The view plan, which names the failure method.</param>
+    private void EmitCountMethod(SourceWriter writer, GeneratedMember member, (string Method, string Code, bool IsLiteral) count, ViewPlan plan)
     {
         CompiledField field = member.Field;
+        string name = SourceWriter.Literal(field.Name);
+        string typeName = SourceWriter.Literal(field.DisplayTypeSpelling);
         writer.Line();
         writer.Line("/// <summary>The element count of <c>" + DescribeDeclaration(field) + "</c>, evaluated from the members before it with the reader's limits and failures.</summary>");
         writer.Line("/// <returns>The number of elements.</returns>");
-        writer.Open(accessibility + " int " + count.Method + "()");
-        writer.Line(NoVariables);
-        writer.Line("var cursor = new " + Cursor + "(this.source, this.options, " + SourceWriter.Literal(field.Name) + ");");
+        writer.Open("public int " + count.Method + "()");
+        if (count.IsLiteral)
+        {
+            // A constant cannot fail except against the limit, which the cursor reports.
+            writer.Line("var cursor = new " + Cursor + "(this.source, this.options, " + name + ");");
+            writer.Open("try");
+            writer.Line("int count;");
+            EmitCountCode(writer, field.Name, count.Code, true, "array length for " + field.Name, name, typeName, validatedCountIsReturned: true);
+            writer.Line("return count;");
+            writer.Close();
+            writer.Open("catch (global::CStructSharp.Diagnostics.CStructException exception)");
+            writer.Line("cursor.Complete(exception);");
+            writer.Line("throw;");
+            writer.Close();
+            writer.Close();
+            return;
+        }
+
+        string failure = plan.Unique("CountFailureOf" + member.PropertyName);
+        if (PlainPropertyCount.IsMatch(count.Code))
+        {
+            // Reading a view property raises no expression failure (a short source fails with its own exception, which
+            // the property read already completes), so no handler is needed and the method has no exception region.
+            writer.Line("global::System.Int128 countValue = " + count.Code + ";");
+        }
+        else
+        {
+            writer.Line(NoVariables);
+            writer.Line("global::System.Int128 countValue;");
+            writer.Open("try");
+            writer.Line("countValue = " + count.Code + ";");
+            writer.Close();
+            writer.Open("catch (global::System.Exception expressionFailure)");
+            writer.Line("throw " + failure + "(expressionFailure, 0);");
+            writer.Close();
+        }
+
+        writer.Open("if (countValue < 0 || countValue > " + Cursor + ".ArrayLimit(this.options))");
+        writer.Line("throw " + failure + "(null, countValue);");
+        writer.Close();
+        writer.Line("return (int)countValue;");
+        writer.Close();
+
+        writer.Line();
+        writer.Line("/// <summary>Builds the failure of the count of <c>" + DescribeDeclaration(field) + "</c> with the reader's text and context: the expression's own failure, a negative count, or a count over the array limit.</summary>");
+        writer.Line("/// <param name=\"expressionFailure\">The exception the count expression raised, or <see langword=\"null\"/> when it produced a count.</param>");
+        writer.Line("/// <param name=\"countValue\">The count the expression produced.</param>");
+        writer.Line("/// <returns>The exception to throw.</returns>");
+        writer.Open("private global::System.Exception " + failure + "(global::System.Exception? expressionFailure, global::System.Int128 countValue)");
+        writer.Line("var cursor = new " + Cursor + "(this.source, this.options, " + name + ");");
+        writer.Open("if (expressionFailure is not null)");
+        writer.Line("global::System.Exception raised = cursor.FailExpression(expressionFailure, " + SourceWriter.Literal("array length for " + field.Name) + ", " + name + ", " + typeName + ");");
+        writer.Open("if (raised is global::CStructSharp.Diagnostics.CStructException known)");
+        writer.Line("cursor.Complete(known);");
+        writer.Close();
+        writer.Line("return raised;");
+        writer.Close();
+        writer.Open("if (countValue < 0)");
+        writer.Line("global::CStructSharp.Diagnostics.CStructException negative = cursor.Fail(" + SourceWriter.Literal(LayoutFailures.NegativeArrayLength(field.Name)) + ", " + name + ", " + typeName + ");");
+        writer.Line("cursor.Complete(negative);");
+        writer.Line("return negative;");
+        writer.Close();
         writer.Open("try");
-        writer.Line("int count;");
-        EmitCountCode(writer, field.Name, count.Code, count.IsLiteral, "array length for " + field.Name, SourceWriter.Literal(field.Name), SourceWriter.Literal(field.DisplayTypeSpelling), validatedCountIsReturned: true);
-        writer.Line("return count;");
+        writer.Line("_ = cursor.RequireArrayLength(countValue, " + name + ", " + typeName + ");");
         writer.Close();
-        writer.Open("catch (global::CStructSharp.Diagnostics.CStructException exception)");
-        writer.Line("cursor.Complete(exception);");
-        writer.Line("throw;");
+        writer.Open("catch (global::CStructSharp.Diagnostics.CStructException limit)");
+        writer.Line("cursor.Complete(limit);");
+        writer.Line("return limit;");
         writer.Close();
+        writer.Line("return new global::System.InvalidOperationException(\"The count is within the array limit.\");");
         writer.Close();
     }
 }
