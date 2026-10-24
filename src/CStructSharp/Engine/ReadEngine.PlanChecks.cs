@@ -34,7 +34,8 @@ internal static partial class ReadEngine
     }
 
     /// <summary>
-    ///     The conditions of the root composite's own fields, checked in field order right after each field's operation:
+    ///     The conditions of a plan's composite and of the anonymous members flattened into it, checked in field order right
+    ///     after each field's operation:
     ///     the member-by-member reader's <see cref="ReadOpCode.CheckConstraint"/> steps, run over the decoded values.
     /// </summary>
     private readonly struct RootPlanChecks : IPlanChecks
@@ -43,7 +44,7 @@ internal static partial class ReadEngine
         private readonly long start;
 
         /// <summary>Creates the checks of one root read.</summary>
-        /// <param name="program">The root composite's read program, which holds the compiled conditions.</param>
+        /// <param name="program">The read program of the composite the plan reads, which holds the compiled conditions.</param>
         /// <param name="start">The absolute position of the composite's first byte.</param>
         public RootPlanChecks(ReadProgram program, long start)
         {
@@ -56,7 +57,7 @@ internal static partial class ReadEngine
         public void After<TCursor>(ref TCursor cursor, ref ReadEngineState state, StaticReadOperation operation)
             where TCursor : struct, IReadCursor
         {
-            if (operation.MemberIndex >= 0)
+            if (operation.HasConstraints)
             {
                 this.Check(ref cursor, ref state, operation);
             }
@@ -76,12 +77,13 @@ internal static partial class ReadEngine
             where TCursor : struct, IReadCursor
         {
             CompiledField field = operation.Field;
-            ReadStep[] steps = this.program.ConstraintSteps[operation.MemberIndex]!;
+            ReadProgram owner = PlanConditions.Declaring(this.program, operation);
+            ReadStep[] steps = owner.ConstraintSteps[operation.MemberIndex]!;
             try
             {
                 foreach (ReadStep step in steps)
                 {
-                    if (state.Slots.Evaluate(this.program.Expressions[step.A], this.program.ExpressionContexts[step.A], ExpressionFailureDomain.Read) == 0)
+                    if (state.Slots.Evaluate(owner.Expressions[step.A], owner.ExpressionContexts[step.A], ExpressionFailureDomain.Read) == 0)
                     {
                         CompiledConstraint failed = field.Constraints[step.B];
                         throw new CStructConstraintException(failed.Kind, failed.Text, ReadFailures.ConstraintNotSatisfied(failed.Kind, field.Name, failed.Text));

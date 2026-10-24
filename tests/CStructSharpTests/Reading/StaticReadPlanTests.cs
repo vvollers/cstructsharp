@@ -148,11 +148,37 @@ public class StaticReadPlanTests
     [DataRow("struct root { uint8 d; uint8 q @expect(100 / d > 1); uint8 r[3]; };", "04 00 01 02 03")]
     [DataRow("struct root { uint64 wide @expect(wide != 0) @expect(wide < 0x100000000); int16 signed @expect(signed >= -5); };", "05 00 00 00 00 00 00 00 FB FF")]
     public void FixedRootWithConditions_ReadsThroughThePlanLikeTheMemberByMemberReader(string definition, string goodHex)
+        => SweepConditions(definition, goodHex);
+
+    /// <summary>
+    ///     Conditions of anonymous members, nested structs and struct arrays are checked by the plan too, in the order of
+    ///     the member-by-member reader and with its failure, member and offset: the same sweep as for a root's own fields.
+    /// </summary>
+    /// <param name="definition">A layout whose root has conditions below its own fields.</param>
+    /// <param name="goodHex">Bytes that satisfy every condition.</param>
+    [TestMethod]
+    [DataRow("struct inner { uint8 v @expect(v < 4); uint8 w @expect(w != v); }; struct root { inner i; uint8 b @expect(b != 0); };", "01 02 05")]
+    [DataRow("struct root { uint8 a @expect(a != 0); struct { uint8 v @expect(v < 4); uint8 w; }; uint8 tail @expect(tail != v); };", "01 02 03 05")]
+    [DataRow("struct el { uint8 k @expect(k != 0); }; struct root { el items[3]; uint8 tail @expect(tail > 0); };", "01 02 03 04")]
+    [DataRow("struct leaf { uint8 x @expect(x != 0); }; struct mid { leaf l; uint8 y @expect(y > 1); }; struct root { uint8 a; mid m[2]; uint8 z @expect(z != a); };", "01 05 02 06 03 02")]
+    [DataRow("struct inner { struct { uint8 v @expect(v < 4); }; uint8 w @expect(w > v); }; struct root { inner i; uint8 n @expect(n != 0); uint8 data[2]; };", "01 02 03 07 08")]
+    [DataRow("struct el { uint16 k @expect(k != 0); uint8 c[2]; }; struct root { uint8 n; el items[2]; };", "01 01 00 41 42 02 00 43 44")]
+    public void ConditionsBelowTheRoot_ReadThroughThePlanLikeTheMemberByMemberReader(string definition, string goodHex)
+    {
+        var composite = (CompiledCompositeType)new CStruct(definition).CompiledModel.Symbols["root"].Symbol.Definition!;
+        Assert.IsTrue(composite.LayoutPlan is { HasConstraints: true }, definition);
+        SweepConditions(definition, goodHex);
+    }
+
+    /// <summary>Reads a layout's root from good bytes, every truncation, limits and every changed byte through all read paths and compares the outcomes.</summary>
+    /// <param name="definition">The layout.</param>
+    /// <param name="goodHex">Bytes that satisfy every condition.</param>
+    private static void SweepConditions(string definition, string goodHex)
     {
         var layout = new CStruct(definition);
         var composite = (CompiledCompositeType)layout.CompiledModel.Symbols["root"].Symbol.Definition!;
         Assert.IsNull(composite.StaticPlan);
-        Assert.IsTrue(composite.LayoutPlan is { HasConstraints: true, ConstraintsAreDirect: true });
+        Assert.IsTrue(composite.LayoutPlan is { HasConstraints: true });
 
         byte[] good = Convert.FromHexString(goodHex.Replace(" ", string.Empty, StringComparison.Ordinal));
 
@@ -218,21 +244,6 @@ public class StaticReadPlanTests
         Assert.AreEqual("a != 0", Assert.Throws<CStructConstraintException>(() => layout.ReadValue<StructValue>(bad, "root")).Constraint);
         Assert.AreEqual("a != 0", Assert.Throws<CStructConstraintException>(() => layout.ReadValue<IDictionary<string, object?>>(bad, "root")).Constraint);
         Assert.AreEqual("b < 4", Assert.Throws<CStructConstraintException>(() => layout.Parse([1, 0, 9, 7, 8], "root")).Constraint);
-    }
-
-    /// <summary>A promoted or nested struct with conditions keeps the whole struct on the member-by-member reader; a nested struct array of constrained elements too.</summary>
-    [TestMethod]
-    public void ForeignConditions_KeepTheStructOffTheCheckedPlan()
-    {
-        foreach (string definition in new[]
-        {
-            "struct root { struct { uint8 v @expect(v < 4); }; uint8 b @expect(b != 0); };",
-            "struct inner { uint8 v @expect(v < 4); }; struct root { inner i; uint8 b @expect(b != 0); };",
-        })
-        {
-            var composite = (CompiledCompositeType)new CStruct(definition).CompiledModel.Symbols["root"].Symbol.Definition!;
-            Assert.IsTrue(composite.LayoutPlan is { HasConstraints: true, ConstraintsAreDirect: false }, definition);
-        }
     }
 
     /// <summary>

@@ -69,10 +69,11 @@ the same failure for the same bytes.
   generated `Parse` and `TryParse` check every constraint of every struct they read, including the elements of an array
   of structs, a pointer's target and the fields of a selected `if`/`switch` arm. A field that is never read (an unselected
   arm) is not checked, and a selected read of one field (`ReadValue<int>(bytes, "root.field")`) reads only that field.
-- **Fast paths.** The runtime decodes a fixed struct whose own fields carry constraints through its fixed-offset plan and
-  evaluates each field's conditions right after that field, in field order, with the same failure and offset as the
-  member-by-member reader. A whole root read from memory (`Parse(bytes, "root")`) is decoded and checked directly; when a
-  condition fails, the root is read again through the engine, which raises the failure. A struct that contains a struct with a constraint, or whose anonymous struct or union member
+- **Fast paths.** The runtime decodes a fixed struct whose own fields, or whose anonymous struct members' fields, carry
+  constraints through its fixed-offset plan and evaluates each field's conditions right after that field, in field
+  order, with the same failure and offset as the member-by-member reader. A whole root read from memory
+  (`Parse(bytes, "root")`) is decoded and checked directly; when a condition fails, the root is read again through the
+  engine, which raises the failure. A struct that contains a struct with a constraint, or whose anonymous union member
   has one, is read member by member, and so is a read whose limits or input the plan does not cover. The generated reader
   keeps its fixed-offset reader for such a struct (when everything else about it is fixed) and checks the conditions in
   field order right after decoding, with the same failure and offset; a struct that contains a struct with a constraint,

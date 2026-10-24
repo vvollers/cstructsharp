@@ -20,10 +20,13 @@ using CStructSharp.Expressions;
 ///         <b>Values.</b> A member's value is stored in slot <see cref="GetShapeSlot"/> of the frame's value, whose layout is
 ///         <see cref="Shape"/>; a member without a slot (unnamed padding) is read and dropped.
 ///     </para>
-///     <para>Immutable after construction and shared by every thread; the arrays must not be modified.</para>
+///     <para>Immutable after construction (apart from <see cref="PlanChecksVerdict"/>, a cached decision) and shared by every thread; the arrays must not be modified.</para>
 /// </remarks>
 internal sealed class ReadProgram
 {
+    // The only mutable state of the program: a cached decision that depends on nothing but the program itself.
+    private int planChecksVerdict;
+
     /// <summary>Creates a program from its compiled parts.</summary>
     /// <param name="kind">What the program reads.</param>
     /// <param name="name">The composite's name, or the root's name.</param>
@@ -55,6 +58,7 @@ internal sealed class ReadProgram
         this.DefersPointers = parts.DefersPointers;
         (this.ScalarRunLengths, this.ScalarRunBytes) = FindScalarRuns(parts.Steps, parts.Codecs);
         (this.ConstraintSteps, this.CoversConstraints) = FindConstraintSteps(parts.Steps, parts.Fields);
+        this.NestedByField = FindNestedByField(parts.Steps, parts.Fields.Length, parts.Nested);
     }
 
     /// <summary>Gets what the program reads.</summary>
@@ -163,6 +167,23 @@ internal sealed class ReadProgram
     /// </summary>
     internal ReadStep[]?[] ConstraintSteps { get; }
 
+    /// <summary>
+    ///     Gets, indexed like <see cref="Fields"/>, the program of the struct, anonymous struct or struct array a member reads
+    ///     (<see langword="null"/> for any other member, and for a debug program's variants of these steps), so a read that
+    ///     decodes a nested struct another way can still find the checks of the struct's own members.
+    /// </summary>
+    internal ReadProgram?[] NestedByField { get; }
+
+    /// <summary>
+    ///     Gets or sets what a static plan's checks decided for this composite: 0 not yet decided, 1 every condition of the
+    ///     plan has a check step reachable from this program, 2 some condition has none. A benign race: every thread decides alike.
+    /// </summary>
+    internal int PlanChecksVerdict
+    {
+        get => System.Threading.Volatile.Read(ref this.planChecksVerdict);
+        set => System.Threading.Volatile.Write(ref this.planChecksVerdict, value);
+    }
+
     /// <summary>Gets a value indicating whether the program holds a check step for every condition of every member it reads, so <see cref="ConstraintSteps"/> is complete.</summary>
     internal bool CoversConstraints { get; }
 
@@ -178,6 +199,25 @@ internal sealed class ReadProgram
     /// <param name="field">The member's index.</param>
     /// <returns>The slot, or -1 when the member's value is dropped (unnamed padding, a promoted member, a <c>#define</c>).</returns>
     public int GetShapeSlot(int field) => this.ShapeSlots[field];
+
+    /// <summary>Maps each member that reads a nested struct to the nested program.</summary>
+    /// <param name="steps">The program's steps.</param>
+    /// <param name="fieldCount">The number of members.</param>
+    /// <param name="nested">The nested programs the steps index.</param>
+    /// <returns>The nested program of each member, or null.</returns>
+    private static ReadProgram?[] FindNestedByField(ReadStep[] steps, int fieldCount, ReadProgram[] nested)
+    {
+        var result = new ReadProgram?[fieldCount];
+        foreach (ReadStep step in steps)
+        {
+            if (step.Op is ReadOpCode.ReadStruct or ReadOpCode.ReadPromotedStruct or ReadOpCode.ReadStructArray or ReadOpCode.ReadStructElements)
+            {
+                result[step.Field] = nested[step.A];
+            }
+        }
+
+        return result;
+    }
 
     /// <summary>Groups the condition checks of a program by member and tests that none is missing.</summary>
     /// <param name="steps">The program's steps.</param>

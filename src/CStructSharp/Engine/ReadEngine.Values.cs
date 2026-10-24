@@ -737,6 +737,7 @@ internal static partial class ReadEngine
                         }
 
                         RunStaticPlan(ref cursor, ref state, operation.NestedPlan!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), nested, default(NoPlanChecks), slots);
+
                         state.QualifiedPrefix = outer;
                         break;
                     }
@@ -816,7 +817,7 @@ internal static partial class ReadEngine
             return;
         }
 
-        SlotValue captured = LayoutVariableCapture.ToSlotValue(field, value);
+        SlotValue captured = operation.ToSlotValue(value);
         SlotTable table = state.Slots.Table;
 
         // The slot is looked up by name once per operation and table, not on every read.

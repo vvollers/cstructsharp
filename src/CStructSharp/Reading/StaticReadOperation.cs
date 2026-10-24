@@ -3,14 +3,21 @@ namespace CStructSharp.Reading;
 using System.Threading;
 using CStructSharp.Compilation;
 using CStructSharp.Compilation.Programs;
+using CStructSharp.Expressions;
 using CStructSharp.Syntax;
 
 /// <summary>One step of a <see cref="StaticReadPlan"/>.</summary>
 internal sealed class StaticReadOperation
 {
+    // Marks a reason not yet looked up: the reason itself may legitimately be null (the field is an integer).
+    private const string ReasonUnknown = "\0unknown";
+
     // The slot the field's captured value goes to in one slot table, found once. One reference, replaced whole, so a
     // reader never sees a table with another table's slot; a layout has one table, so it is bound once in practice.
     private CaptureBinding? captureBinding;
+
+    // Why the field is not an integer, found once: the answer depends on the compiled field alone, and a capture asks per read.
+    private string? notANumberReason = ReasonUnknown;
 
     /// <summary>Creates one fixed-offset read step.</summary>
     /// <param name="kind">How the step decodes its bytes.</param>
@@ -58,10 +65,35 @@ internal sealed class StaticReadOperation
     public int Count { get; }
 
     /// <summary>
-    ///     Gets the index of the field among the plan's root composite's own fields (the index the root's read program
-    ///     uses), or -1 for a step of a flattened promoted member or a nested plan. Set once while the plan is built.
+    ///     Gets the index of the field among the members of the composite that declares it (the index that composite's read
+    ///     program uses). For a field of an anonymous member flattened into the plan, <see cref="HolderPath"/> names that
+    ///     member's chain. Set once while the plan is built.
     /// </summary>
-    public int MemberIndex { get; internal set; } = -1;
+    public int MemberIndex { get; internal set; }
+
+    /// <summary>
+    ///     Gets the member indexes, from the plan's root composite inward, of the anonymous structs the field was flattened
+    ///     out of; empty for a member the root composite declares itself. Set once while the plan is built.
+    /// </summary>
+    public int[] HolderPath { get; internal set; } = System.Array.Empty<int>();
+
+    /// <summary>Gets a value indicating whether the field carries an <c>@expect</c> or <c>@supports</c> condition.</summary>
+    public bool HasConstraints => !this.Field.Constraints.IsDefaultOrEmpty;
+
+    /// <summary>Converts the value this operation read into the slot value its layout variable holds (<see cref="LayoutVariableCapture"/>).</summary>
+    /// <param name="value">The decoded value.</param>
+    /// <returns>The slot value.</returns>
+    public SlotValue ToSlotValue(object? value)
+    {
+        string? reason = Volatile.Read(ref this.notANumberReason);
+        if (ReferenceEquals(reason, ReasonUnknown))
+        {
+            reason = this.Field.NotANumberReason;
+            Volatile.Write(ref this.notANumberReason, reason);
+        }
+
+        return reason is null ? LayoutVariableCapture.ToSlotValue(value) : LayoutVariableCapture.ToSlotValue(this.Field, value);
+    }
 
     /// <summary>Returns the slot of the field's captured value in <paramref name="table"/>, or -1 when the table has none.</summary>
     /// <param name="table">The slot table of the read in progress.</param>

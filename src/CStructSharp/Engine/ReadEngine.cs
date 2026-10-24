@@ -209,9 +209,9 @@ internal static partial class ReadEngine
     private static void ReadComposite<TCursor>(ref TCursor cursor, ref ReadEngineState state, ReadProgram program, StructValue value)
         where TCursor : struct, IReadCursor
     {
-        // A plan with conditions runs only when they are the root's own and its program has a check for each; the plan then
-        // evaluates them right after the field they follow, exactly where the member-by-member reader would.
-        if (!state.NoFastPaths && program.Composite!.LayoutPlan is { } plan && (!plan.HasConstraints || (plan.ConstraintsAreDirect && program.CoversConstraints)) && state.CoversPlan(plan))
+        // A plan with conditions runs only when the programs have a check for each; the plan then evaluates
+        // them right after the field they follow, exactly where the member-by-member reader would.
+        if (!state.NoFastPaths && program.Composite!.LayoutPlan is { } plan && (!plan.HasConstraints || PlanConditions.Covers(program, plan)) && state.CoversPlan(plan))
         {
             byte[]? rented = null;
             try
