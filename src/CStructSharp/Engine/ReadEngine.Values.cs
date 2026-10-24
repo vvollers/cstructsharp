@@ -688,7 +688,7 @@ internal static partial class ReadEngine
                     {
                         object value = field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size));
                         StoreStaticSlot(destination, completeSlots, operation.Slot, value);
-                        CaptureStatic(ref state, field, value);
+                        CaptureStatic(ref state, operation, value);
                         break;
                     }
 
@@ -696,7 +696,7 @@ internal static partial class ReadEngine
                     {
                         EnumValueResult value = ValueDecoding.CreateEnumValue(field.Enum!, field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size)));
                         StoreStaticSlot(destination, completeSlots, operation.Slot, value);
-                        CaptureStatic(ref state, field, value);
+                        CaptureStatic(ref state, operation, value);
                         break;
                     }
 
@@ -705,7 +705,7 @@ internal static partial class ReadEngine
                         CheckPlanCount(operation.Count, state.MaxArrayElements);
                         string text = state.FixedText(ValueDecoding.ReadLatin1Characters(bytes.Slice(operation.Offset, operation.Count)));
                         StoreStaticSlot(destination, completeSlots, operation.Slot, text);
-                        CaptureStatic(ref state, field, text);
+                        CaptureStatic(ref state, operation, text);
                         break;
                     }
 
@@ -720,7 +720,7 @@ internal static partial class ReadEngine
 
                         IList<object?> values = PrimitiveArrayReader.Decode(bytes.Slice(operation.Offset, operation.Count * field.Codec.Size), field.Codec, operation.Count);
                         StoreStaticSlot(destination, completeSlots, operation.Slot, values);
-                        CaptureStatic(ref state, field, values);
+                        CaptureStatic(ref state, operation, values);
                         break;
                     }
 
@@ -806,26 +806,29 @@ internal static partial class ReadEngine
     ///     rule, and publishes it under the active qualified prefix.
     /// </summary>
     /// <param name="state">The operation's state.</param>
-    /// <param name="field">The field read.</param>
+    /// <param name="operation">The static operation that read the field.</param>
     /// <param name="value">The value read.</param>
-    private static void CaptureStatic(ref ReadEngineState state, CompiledField field, object? value)
+    private static void CaptureStatic(ref ReadEngineState state, StaticReadOperation operation, object? value)
     {
+        CompiledField field = operation.Field;
         if (!field.CapturesLayoutVariable)
         {
             return;
         }
 
-        string name = field.Declaration.Name.Name;
         SlotValue captured = LayoutVariableCapture.ToSlotValue(field, value);
         SlotTable table = state.Slots.Table;
-        if (table.TryGetSlot(name, out int slot))
+
+        // The slot is looked up by name once per operation and table, not on every read.
+        int slot = operation.GetCaptureSlot(table);
+        if (slot >= 0)
         {
             state.Slots.Set(slot, captured);
         }
 
         if (state.QualifiedPrefix is not null)
         {
-            state.PublishQualified(table.ReadPrograms.GetQualifiedTargets(name), captured);
+            state.PublishQualified(table.ReadPrograms.GetQualifiedTargets(field.Declaration.Name.Name), captured);
         }
     }
 }

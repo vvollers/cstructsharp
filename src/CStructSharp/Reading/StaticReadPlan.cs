@@ -27,6 +27,7 @@ internal sealed class StaticReadPlan
         this.Size = size;
         this.HasConstraints = hasConstraints;
         this.ConstraintsAreDirect = !hasForeignConstraints;
+        this.HasNestedOperations = System.Array.Exists(operations, operation => operation.NestedPlan is not null);
         this.Operations = operations;
         int depth = 1;
         int arrayCount = maximumPaddingArrayCount;
@@ -101,6 +102,9 @@ internal sealed class StaticReadPlan
     ///     promoted member or a nested struct keeps the struct on the member-by-member reader.
     /// </summary>
     public bool ConstraintsAreDirect { get; }
+
+    /// <summary>Whether any operation reads a nested struct (or an array of them), whose members a condition could name.</summary>
+    public bool HasNestedOperations { get; }
 
     /// <summary>Whether every field has a span writer; character buffers and unnamed padding are written member by member.</summary>
     public bool SupportsWrite { get; }

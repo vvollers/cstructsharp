@@ -1,11 +1,17 @@
 namespace CStructSharp.Reading;
 
+using System.Threading;
 using CStructSharp.Compilation;
+using CStructSharp.Compilation.Programs;
 using CStructSharp.Syntax;
 
 /// <summary>One step of a <see cref="StaticReadPlan"/>.</summary>
 internal sealed class StaticReadOperation
 {
+    // The slot the field's captured value goes to in one slot table, found once. One reference, replaced whole, so a
+    // reader never sees a table with another table's slot; a layout has one table, so it is bound once in practice.
+    private CaptureBinding? captureBinding;
+
     /// <summary>Creates one fixed-offset read step.</summary>
     /// <param name="kind">How the step decodes its bytes.</param>
     /// <param name="slot">The index of the result slot the value fills in the struct's shape.</param>
@@ -56,4 +62,24 @@ internal sealed class StaticReadOperation
     ///     uses), or -1 for a step of a flattened promoted member or a nested plan. Set once while the plan is built.
     /// </summary>
     public int MemberIndex { get; internal set; } = -1;
+
+    /// <summary>Returns the slot of the field's captured value in <paramref name="table"/>, or -1 when the table has none.</summary>
+    /// <param name="table">The slot table of the read in progress.</param>
+    /// <returns>The slot index, found by name on the first call for a table.</returns>
+    public int GetCaptureSlot(SlotTable table)
+    {
+        CaptureBinding? binding = Volatile.Read(ref this.captureBinding);
+        if (binding is null || !ReferenceEquals(binding.Table, table))
+        {
+            binding = new CaptureBinding(table, table.TryGetSlot(this.Field.Declaration.Name.Name, out int slot) ? slot : -1);
+            Volatile.Write(ref this.captureBinding, binding);
+        }
+
+        return binding.Slot;
+    }
+
+    /// <summary>A slot table and the slot a name has in it.</summary>
+    /// <param name="Table">The table.</param>
+    /// <param name="Slot">The slot, or -1.</param>
+    private sealed record CaptureBinding(SlotTable Table, int Slot);
 }

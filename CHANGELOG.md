@@ -65,7 +65,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   every generated reader and a generated view's new `Validate()` report the same failure. A fixed struct with
   constraints on its own fields is decoded by its fixed-offset plan with each condition checked right after its field,
   so no fast path can skip one (a constraint in a nested or anonymous member keeps the struct on the member-by-member
-  reader), and writes ignore constraints. A constraint on a union member,
+  reader), and writes ignore constraints and keep the fixed-offset writer. A whole root read from memory is decoded
+  directly and its conditions checked without the engine; a failing condition re-reads the root through the engine, which
+  raises the failure. A constraint on a union member,
   padding or an unnamed bitfield is a layout error. A generated reader keeps its fixed-offset reader for a struct with
   constraints and checks them in field order after decoding, and a condition that cannot fail (comparisons, logical
   and bitwise operators) is evaluated without an exception handler.

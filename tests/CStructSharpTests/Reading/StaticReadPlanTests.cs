@@ -155,9 +155,23 @@ public class StaticReadPlanTests
         Assert.IsTrue(composite.LayoutPlan is { HasConstraints: true, ConstraintsAreDirect: true });
 
         byte[] good = Convert.FromHexString(goodHex.Replace(" ", string.Empty, StringComparison.Ordinal));
+
+        // The span read of a root takes the direct path, a call with variables takes the engine's plan, and NoFastPaths
+        // reads member by member: all three agree on every input.
+        void AssertAllPathsAgree(byte[] bytes, string label)
+        {
+            OperationOutcome direct = OperationOutcome.Of(() => layout.Parse(bytes, "root"));
+            OperationOutcome enginePlan = OperationOutcome.Of(() => layout.Parse(bytes, "root", new Dictionary<string, int>()));
+            OperationOutcome memberByMember = OperationOutcome.Of(() => layout.Parse(bytes, "root", options: ExecutionPaths.NoFastPaths((ReadOptions?)null)));
+            OperationOutcome.AssertSame(memberByMember, direct, label + " / direct");
+            OperationOutcome.AssertSame(memberByMember, enginePlan, label + " / engine plan");
+        }
+
+        AssertAllPathsAgree(good, "good");
         AssertSameOutcome(layout, good, null, "good");
         for (int length = 0; length < good.Length; length++)
         {
+            AssertAllPathsAgree(good[..length], "truncated to " + length);
             AssertSameOutcome(layout, good[..length], null, "truncated to " + length);
         }
 
@@ -179,9 +193,31 @@ public class StaticReadPlanTests
             {
                 byte[] bytes = (byte[])good.Clone();
                 bytes[index] = changed;
+                AssertAllPathsAgree(bytes, "byte " + index + " = " + changed);
                 AssertSameOutcome(layout, bytes, null, "byte " + index + " = " + changed);
             }
         }
+    }
+
+    /// <summary>
+    ///     A constrained root is serialized by the direct fixed-root writer with the bytes of the member-by-member writer,
+    ///     and a typed read of it checks the conditions: a value that fails raises the engine's failure, not a converted value.
+    /// </summary>
+    [TestMethod]
+    public void ConstrainedRoot_WritesDirectlyAndTypedReadsCheckTheConditions()
+    {
+        var layout = new CStruct("struct root { uint16 a @expect(a != 0); uint8 b @supports(b < 4); uint8 c[2]; };");
+        byte[] good = [1, 0, 2, 7, 8];
+        byte[] bad = [0, 0, 2, 7, 8];
+
+        StructValue value = layout.Parse(good, "root");
+        CollectionAssert.AreEqual(layout.Serialize("root", value, options: ExecutionPaths.NoFastPaths((WriteOptions?)null)), layout.Serialize("root", value));
+        CollectionAssert.AreEqual(good, layout.Serialize("root", value));
+
+        Assert.IsNotNull(layout.ReadValue<StructValue>(good, "root"));
+        Assert.AreEqual("a != 0", Assert.Throws<CStructConstraintException>(() => layout.ReadValue<StructValue>(bad, "root")).Constraint);
+        Assert.AreEqual("a != 0", Assert.Throws<CStructConstraintException>(() => layout.ReadValue<IDictionary<string, object?>>(bad, "root")).Constraint);
+        Assert.AreEqual("b < 4", Assert.Throws<CStructConstraintException>(() => layout.Parse([1, 0, 9, 7, 8], "root")).Constraint);
     }
 
     /// <summary>A promoted or nested struct with conditions keeps the whole struct on the member-by-member reader; a nested struct array of constrained elements too.</summary>
