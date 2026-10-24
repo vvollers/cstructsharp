@@ -226,6 +226,7 @@ public class RuntimeByteOrderTests
 
         // The bytes of a 16-bit and a 32-bit number in the byte order under test.
         byte[] Number16(ushort value) => little ? [(byte)value, (byte)(value >> 8)] : [(byte)(value >> 8), (byte)value];
+
         // The bytes of a 32-bit number in the same order.
         byte[] Number32(uint value) => little ? [(byte)value, (byte)(value >> 8), (byte)(value >> 16), (byte)(value >> 24)] : [(byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value];
         byte[] bytes = [.. Number16(2), .. Number32(0x01020304), .. Number32(7), .. utf16.GetBytes("Hi"), .. utf16.GetBytes("OK"), 0, 0, .. Number16(0xABCD)];
