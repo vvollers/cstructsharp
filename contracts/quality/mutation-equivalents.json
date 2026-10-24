@@ -385,10 +385,10 @@
   },
   {
    "pattern": "Generated/Codec.cs",
-   "sourceSha256": "97caa8ee7e2f63079efd7c9501334cf304e78b29c07db1973cb9122a79e9256c",
+   "sourceSha256": "3574887d299fb5b724c0ec492cc991c2af9b4a00b0f005c4ce7b5b21b5476ff2",
    "mutants": [
     { "mutatorName": "Block removal mutation", "replacement": "{}",
-     "location": {"start":{"line":827,"column":9},"end":{"line":829,"column":10}},
+     "location": {"start":{"line":828,"column":9},"end":{"line":830,"column":10}},
      "reason": "For supported one-byte encoding units (ASCII/UTF-8 NUL or newline terminators), the encoded terminator has one byte and the first encoding boundary is offset zero. Both production callers calculate alignmentOffset modulo unitSize, which is zero when unitSize is one. Removing this vectorized IndexOf fast path therefore falls through to a loop comparing that same byte at every index from zero, returning the same first match or minus one. Two-byte encodings already use the loop and are unchanged. This is an optimization-only change for supported terminator inputs, not a claim about malformed helper arguments." },
     { "mutatorName": "OrAssignmentExpression to ExclusiveOrAssignmentExpression mutation", "replacement": "value ^= (ulong)source[index] << shift",
      "location": {"start":{"line":91,"column":13},"end":{"line":91,"column":51}},
@@ -415,13 +415,13 @@
      "location": {"start":{"line":613,"column":13},"end":{"line":613,"column":26}},
      "reason": "ExtractBits receives unit as ulong. Both right-shift operators zero-fill the same unsigned bits with the same shift-count masking before the unchanged bit mask is applied." },
     { "mutatorName": "Bitwise mutation", "replacement": "value >>> 8",
-     "location": {"start":{"line":904,"column":33},"end":{"line":904,"column":43}},
+     "location": {"start":{"line":911,"column":33},"end":{"line":911,"column":43}},
      "reason": "WriteUInt24Unchecked's value is uint, so >> and >>> both zero-fill before conversion to the middle output byte. The same eight low bits are written." },
     { "mutatorName": "Bitwise mutation", "replacement": "value >>> 16",
-     "location": {"start":{"line":906,"column":52},"end":{"line":906,"column":63}},
+     "location": {"start":{"line":913,"column":52},"end":{"line":913,"column":63}},
      "reason": "WriteUInt24Unchecked's value is uint, so >> and >>> both zero-fill before conversion to the high output byte. The byte-order-dependent destination index and written byte are unchanged." },
     { "mutatorName": "Bitwise mutation", "replacement": "value >>> shift",
-     "location": {"start":{"line":914,"column":41},"end":{"line":914,"column":55}},
+     "location": {"start":{"line":921,"column":41},"end":{"line":921,"column":55}},
      "reason": "WriteUInt48Unchecked's value is ulong. Both shift operators zero-fill this unsigned operand, preserving all six extracted bytes for either byte order." }
    ]
   },
@@ -925,10 +925,10 @@
   },
   {
    "pattern": "Generated/ReadCursor.Failures.cs",
-   "sourceSha256": "5e95501d329b18f1529e9211c1668d4d7e31d8274cfe0f49a743070e3632435b",
+   "sourceSha256": "89fa3db741e59437e4822ad300be59213fe5bbdba8a211ff1bf26854e7286006",
    "mutants": [
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?new CStructReadException(message) :new CStructReadException(message, cause))",
-     "location": {"start":{"line":47,"column":25},"end":{"line":47,"column":117}},
+     "location": {"start":{"line":55,"column":25},"end":{"line":55,"column":117}},
      "reason": "Only a null cause changes constructor selection. Both CStructReadException overloads delegate to the same protected constructor with ReadFailed, the same message and a null inner exception. The same Attach call follows, preserving category, message, field, path and offset." }
    ]
   },
@@ -943,7 +943,7 @@
   },
   {
    "pattern": "Generated/ReadCursor.Text.cs",
-   "sourceSha256": "8a5ab2c98b3eea5a8fbfa11ca1eab3d194d52cde74daeaea99e5e4ed930ad6ea",
+   "sourceSha256": "ef815c190b782849ff14632da82ddf3e85ac078824281485416fd6adce695eb6",
    "mutants": [
     { "mutatorName": "Arithmetic mutation", "replacement": "unitSize + (encodedByteCount % unitSize)",
      "location": {"start":{"line":176,"column":42},"end":{"line":176,"column":82}},
@@ -958,10 +958,10 @@
   },
   {
    "pattern": "Codecs/PrimitiveCodecs.IO.cs",
-   "sourceSha256": "f437cf8f7c176c8be07fe5db2580d09f4bd4608d425b5fe90a4cb80c8eee573a",
+   "sourceSha256": "3048cf11cbc4bac7338e9430006a23f7c4f1685d04c9bd069dc1634e778e73a1",
    "mutants": [
     { "mutatorName": "Remove checked expression", "replacement": "(long)valueBytes + terminatorBytes",
-     "location": {"start":{"line":335,"column":37},"end":{"line":335,"column":80}},
+     "location": {"start":{"line":384,"column":37},"end":{"line":384,"column":80}},
      "reason": "Both Encoding.GetByteCount results are nonnegative Int32 values. The left operand is widened to Int64 before addition, so their sum is at most 2 * Int32.MaxValue, far below Int64.MaxValue. Removing checked from this sum cannot change overflow behavior, budget validation or the later allocation." }
    ]
   },
