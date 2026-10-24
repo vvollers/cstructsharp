@@ -48,6 +48,15 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   layouts that differ only in `LittleEndian`. It needs a reader surface and a layout whose bitfields sit in the same
   place in both orders; anything else is the new error CSG013. `ReadCursor.LittleEndian` exposes the order to generated
   code.
+- **Field constraints in the layout language.** A declarator can carry `@expect(condition)` and `@supports(condition)`
+  suffixes (any number, in any order among the other suffixes): the condition is an integer expression that may name the
+  field itself, earlier fields, `#define` constants, enum members and caller variables, and a read fails when it
+  evaluates to zero. A value outside `@expect` is malformed data and one outside `@supports` is unsupported data; the
+  new `CStructConstraintException` (a `CStructReadException` with the code `ReadFailed`) carries `Kind`
+  (`ConstraintKind.Malformed` or `Unsupported`), the `Constraint` text, the field and the offset. The runtime layout,
+  every generated reader and a generated view's new `Validate()` report the same failure; a struct with a constraint
+  is read member by member, so no fast path can skip it, and writes ignore constraints. A constraint on a union member,
+  padding or an unnamed bitfield is a layout error.
 
 ## 0.13.0 — 2026-10-24
 

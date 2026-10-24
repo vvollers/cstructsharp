@@ -339,6 +339,19 @@ internal static partial class ReadEngine
                     count = CheckCount(step.A, program.Fields[field], state.MaxArrayElements);
                     break;
 
+                case ReadOpCode.CheckConstraint:
+                    {
+                        // The condition is not satisfied when it evaluates to zero; the failure names the field and quotes the condition.
+                        CompiledField constrained = program.Fields[field];
+                        if (state.Slots.Evaluate(program.Expressions[step.A], program.ExpressionContexts[step.A], ExpressionFailureDomain.Read) == 0)
+                        {
+                            CompiledConstraint failed = constrained.Constraints[step.B];
+                            throw new CStructConstraintException(failed.Kind, failed.Text, ReadFailures.ConstraintNotSatisfied(failed.Kind, constrained.Name, failed.Text));
+                        }
+
+                        break;
+                    }
+
                 case ReadOpCode.EvaluateCount:
                     count = CheckCount(
                         state.Slots.Evaluate(program.Expressions[step.A], program.ExpressionContexts[step.A], ExpressionFailureDomain.Read),

@@ -247,4 +247,14 @@ internal static class ReadFailures
     /// <param name="typeSpelling">The member's type as the layout spells it.</param>
     /// <returns>The failure message.</returns>
     public static string NoValueHandler(string typeSpelling) => "No handler for field type " + typeSpelling;
+
+    /// <summary>The text of a field whose value does not satisfy an <c>@expect</c> or <c>@supports</c> constraint.</summary>
+    /// <param name="kind">Whether the data is malformed or unsupported.</param>
+    /// <param name="field">The field's name.</param>
+    /// <param name="constraint">The condition as written in the layout.</param>
+    /// <returns>The diagnostic.</returns>
+    public static string ConstraintNotSatisfied(ConstraintKind kind, string field, string constraint)
+        => kind == ConstraintKind.Malformed
+               ? "Invalid value for '" + field + "': it must satisfy '" + constraint + "'."
+               : "Unsupported value for '" + field + "': this layout supports only values for which '" + constraint + "' holds.";
 }

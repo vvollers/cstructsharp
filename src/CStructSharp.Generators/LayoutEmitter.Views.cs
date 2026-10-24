@@ -146,6 +146,7 @@ internal sealed partial class LayoutEmitter
         }
 
         this.EmitViewHelpers(writer, composite, plan);
+        this.EmitViewValidate(writer, composite, plan);
 
         if (this.request.Surface != GenerationSurface.Views)
         {
@@ -167,6 +168,66 @@ internal sealed partial class LayoutEmitter
         {
             this.EmitViewEnumerator(writer, composite, recordSize);
         }
+    }
+
+    /// <summary>
+    ///     Emits <c>Validate()</c> for a struct whose members carry <c>@expect</c> or <c>@supports</c> conditions: it checks
+    ///     every condition the view can evaluate - one that names a member the view does not expose is left to the reader -
+    ///     in declaration order, with the reader's failures. A view reads lazily and never checks on its own.
+    /// </summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="composite">The composite.</param>
+    /// <param name="plan">The view plan, which collected the checks.</param>
+    private void EmitViewValidate(SourceWriter writer, GeneratedComposite composite, ViewPlan plan)
+    {
+        if (plan.Checks.Count == 0)
+        {
+            return;
+        }
+
+        string name = plan.Unique("Validate");
+        string layout = SourceWriter.Literal(composite.LayoutName);
+        writer.Line();
+        writer.Line("/// <summary>Checks the <c>@expect</c> and <c>@supports</c> conditions of this struct's members, in declaration order, with the reader's failures; a view never checks them on its own.</summary>");
+        writer.Line("/// <exception cref=\"global::CStructSharp.Diagnostics.CStructConstraintException\">A member's value does not satisfy a condition.</exception>");
+        writer.Open("public void " + name + "()");
+        if (this.ViewsCarryVariables)
+        {
+            writer.Line("global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = this.variables;");
+        }
+        else
+        {
+            writer.Line(NoVariables);
+        }
+
+        writer.Line("var cursor = new " + Cursor + "(this.source, this.options, " + layout + (this.HasRuntimeByteOrder ? ", this.littleEndian" : string.Empty) + ");");
+        writer.Open("try");
+        foreach ((CompiledField field, CompiledConstraint constraint, string code) in plan.Checks)
+        {
+            string member = SourceWriter.Literal(field.Name);
+            string memberType = SourceWriter.Literal(field.DisplayTypeSpelling);
+            string kind = constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "Malformed" : "Unsupported";
+            writer.Line("// @" + (constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "expect" : "supports") + "(" + constraint.Text + ")");
+            writer.Open(string.Empty);
+            writer.Line("global::System.Int128 constraintValue;");
+            writer.Open("try");
+            writer.Line("constraintValue = " + code + ";");
+            writer.Close();
+            writer.Open("catch (global::System.Exception expressionFailure)");
+            writer.Line("throw cursor.FailExpression(expressionFailure, " + SourceWriter.Literal("constraint '" + constraint.Text + "' of " + field.Name) + ", " + member + ", " + memberType + ");");
+            writer.Close();
+            writer.Open("if (constraintValue == 0)");
+            writer.Line("throw cursor.FailConstraint(global::CStructSharp.Diagnostics.ConstraintKind." + kind + ", " + SourceWriter.Literal(constraint.Text) + ", " + member + ", " + member + ", " + memberType + ");");
+            writer.Close();
+            writer.Close();
+        }
+
+        writer.Close();
+        writer.Open("catch (global::CStructSharp.Diagnostics.CStructException exception)");
+        writer.Line("cursor.Complete(exception);");
+        writer.Line("throw;");
+        writer.Close();
+        writer.Close();
     }
 
     /// <summary>Emits <c>ToObject()</c>, which reads the whole value with the generated reader (every surface except <c>Views</c>).</summary>

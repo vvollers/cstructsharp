@@ -26,6 +26,7 @@ internal sealed partial class CompiledCompositeType : CompiledType
     {
         this.Fields = fields;
         this.HasDirectConditionalFields = fields.Any(field => field.IsConditional);
+        this.HasConstraints = fields.Any(field => !field.Constraints.IsDefaultOrEmpty);
         foreach (CompiledField field in fields)
         {
             foreach (CompiledConditionalBranch branch in field.ConditionalBranches)
@@ -58,6 +59,9 @@ internal sealed partial class CompiledCompositeType : CompiledType
 
     /// <summary>Whether every member starts at the composite's own address.</summary>
     public bool IsUnion => this.Symbol.Kind == CompiledTypeKind.Union;
+
+    /// <summary>Whether any member of this composite (not of a nested one) carries an <c>@expect</c> or <c>@supports</c> condition, which only the member-by-member reader checks.</summary>
+    public bool HasConstraints { get; }
 
     /// <summary>Gets a value indicating whether a member at this level is an <c>if</c>/<c>switch</c> arm.</summary>
     public bool HasDirectConditionalFields { get; }

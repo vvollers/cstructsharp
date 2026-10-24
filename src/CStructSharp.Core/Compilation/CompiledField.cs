@@ -221,11 +221,17 @@ internal sealed class CompiledField
     public CompiledArrayShape? PointerElements
     {
         get => this.countedTarget?.Elements;
-        internal init => this.countedTarget = value is null ? null : new CountedPointerTarget(value);
+        internal init
+        {
+            if (value is not null)
+            {
+                this.countedTarget = new CountedPointerTarget(value) { Constraints = this.countedTarget?.Constraints ?? ImmutableArray<CompiledConstraint>.Empty, };
+            }
+        }
     }
 
     /// <summary>Whether the pointer's final target is an array counted by <c>@count(N)</c>.</summary>
-    public bool HasCountedTarget => this.countedTarget is not null;
+    public bool HasCountedTarget => this.countedTarget?.Elements is not null;
 
     /// <summary>
     ///     Whether a struct reader follows this pointer field after the struct's last field instead of in place: every
@@ -278,6 +284,22 @@ internal sealed class CompiledField
     ///     layout is built; <see langword="null"/> without one. See <see cref="OffsetAssertion"/>.
     /// </summary>
     public int? AssertedOffset { get; init; }
+
+    /// <summary>
+    ///     The field's <c>@expect</c> and <c>@supports</c> conditions in declaration order; empty for most fields. A read
+    ///     checks them right after the field's value is read, so a constraint can name the field and the fields before it.
+    /// </summary>
+    public ImmutableArray<CompiledConstraint> Constraints
+    {
+        get => this.countedTarget?.Constraints ?? ImmutableArray<CompiledConstraint>.Empty;
+        init
+        {
+            if (!value.IsDefaultOrEmpty)
+            {
+                (this.countedTarget ??= new CountedPointerTarget(null)).Constraints = value;
+            }
+        }
+    }
 
     /// <summary>
     ///     The size in bytes of the field's whole storage (all array elements), or <see langword="null"/> when it
@@ -530,7 +552,7 @@ internal sealed class CompiledField
     /// <exception cref="InvalidOperationException">The field has no counted target.</exception>
     public CompiledField CountedElement(int pointerSize)
     {
-        CountedPointerTarget target = this.countedTarget ?? throw new InvalidOperationException("The field has no counted target: " + this.Name);
+        CountedPointerTarget target = this.countedTarget is { Elements: not null, } counted ? counted : throw new InvalidOperationException("The field has no counted target: " + this.Name);
 
         // A benign race may create the view twice; both are equal.
         return target.Element ??= this.SelectPointerTarget(0, null, pointerSize);

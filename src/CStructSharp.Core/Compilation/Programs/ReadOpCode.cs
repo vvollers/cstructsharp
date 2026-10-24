@@ -46,6 +46,13 @@ internal enum ReadOpCode : byte
     CheckOffset,
 
     /// <summary>
+    ///     Checks one constraint of the member just read: expression <c>A</c> (<see cref="ReadProgram.Expressions"/>) is
+    ///     evaluated with the slots and must not be zero, otherwise the read fails with the member's constraint number <c>B</c>
+    ///     (<see cref="CompiledField.Constraints"/>).
+    /// </summary>
+    CheckConstraint,
+
+    /// <summary>
     ///     Sets the count register to the fixed element count <c>A</c> - every element of every dimension of a
     ///     multidimensional array - and checks it against the array element limit.
     /// </summary>

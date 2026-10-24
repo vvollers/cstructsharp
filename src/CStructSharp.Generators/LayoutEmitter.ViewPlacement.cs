@@ -59,6 +59,9 @@ internal sealed partial class LayoutEmitter
         /// <summary>Gets the count method name and the translated count expression of every runtime-sized array the view can place.</summary>
         public Dictionary<CompiledField, (string Method, string Code, bool IsLiteral)> Counts { get; } = new(ReferenceEqualityComparer.Instance);
 
+        /// <summary>Gets the <c>@expect</c> and <c>@supports</c> checks <c>Validate()</c> runs: the field, the condition and its C# expression over the view's members.</summary>
+        public List<(CompiledField Field, CompiledConstraint Constraint, string Code)> Checks { get; } = new();
+
         /// <summary>Gets the offset methods to emit: the method name and the C# expression of its result.</summary>
         public List<(string Name, string Expression)> OffsetMethods { get; } = new();
 
@@ -166,6 +169,26 @@ internal sealed partial class LayoutEmitter
             {
                 // A nested struct's own members are published only where its view has a property for them.
                 scope.Publish(member, "this." + member.PropertyName, this.NestedViewExposes);
+            }
+
+            // A condition can name the field itself and the members before it, which are published by now.
+            if (member is not null && plan.Slots.ContainsKey(field) && !field.Constraints.IsDefaultOrEmpty)
+            {
+                foreach (CompiledConstraint constraint in field.Constraints)
+                {
+                    string code = scope.Expressions.Emit(constraint.Expression);
+                    if (UnresolvableInView.IsMatch(code))
+                    {
+                        continue;
+                    }
+
+                    if (VariableUse.IsMatch(code))
+                    {
+                        plan.UsesVariables = true;
+                    }
+
+                    plan.Checks.Add((field, constraint, code));
+                }
             }
         }
 

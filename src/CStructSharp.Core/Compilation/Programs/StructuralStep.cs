@@ -37,6 +37,12 @@ internal enum StructuralStep
     /// <summary>Checks a member's <c>@N</c> offset assertion at run time (<c>CheckOffset</c>).</summary>
     CheckOffset,
 
+    /// <summary>
+    ///     Checks one <c>@expect</c> or <c>@supports</c> condition of a member right after its value was read
+    ///     (<c>CheckConstraint</c>); a write program has no such step, because a condition describes what a read accepts.
+    /// </summary>
+    CheckConstraint,
+
     /// <summary>Ends a struct whose members the runtime placement cursor placed (<c>FinishPlaced</c>).</summary>
     FinishPlaced,
 

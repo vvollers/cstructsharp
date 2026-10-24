@@ -65,6 +65,43 @@ internal sealed partial class LayoutCompilation
         => field.BitStorageSize.HasValue && !field.IsZeroWidthBitfield && !field.IsConditional;
 
     /// <summary>
+    ///     Compiles a field's <c>@expect</c> and <c>@supports</c> conditions: each expression has its <c>sizeof</c> and
+    ///     <c>offsetof</c> calls folded and is compiled once, so a condition that cannot be evaluated is a layout error.
+    /// </summary>
+    /// <param name="strct">The struct or union that declares the field.</param>
+    /// <param name="field">The field declaration.</param>
+    /// <param name="context">The compilation state of the composite.</param>
+    /// <returns>The compiled conditions in declaration order; empty when the field has none.</returns>
+    /// <exception cref="CStructLayoutException">The field is a union member or has no name, or a condition does not compile.</exception>
+    private ImmutableArray<CompiledConstraint> CompileConstraints(Struct strct, Field field, CompositeCompilationContext context)
+    {
+        if (field.Constraints.IsDefaultOrEmpty)
+        {
+            return ImmutableArray<CompiledConstraint>.Empty;
+        }
+
+        if (strct.IsUnion)
+        {
+            throw new CStructLayoutException("An @expect or @supports constraint is not supported on a union member: " + field.Name.Name);
+        }
+
+        if (field.Name.Name.Length == 0)
+        {
+            throw new CStructLayoutException("An @expect or @supports constraint needs a named field, not padding or an unnamed bitfield.");
+        }
+
+        ImmutableArray<CompiledConstraint>.Builder builder = ImmutableArray.CreateBuilder<CompiledConstraint>(field.Constraints.Length);
+        foreach (FieldConstraint constraint in field.Constraints)
+        {
+            Expr folded = ExpressionEvaluator.ContainsCall(constraint.Expression) ? this.FoldCalls(constraint.Expression, field.Name.Name, context) : constraint.Expression;
+            this.expressionEvaluator.Compile(folded);
+            builder.Add(new CompiledConstraint(constraint.Kind, folded, constraint.Text));
+        }
+
+        return builder.MoveToImmutable();
+    }
+
+    /// <summary>
     ///     Replaces every <c>sizeof(T)</c> and <c>offsetof(T, f)</c> in an expression with its literal value. T may be
     ///     a primitive, typedef, enum, or composite (compiled on demand, so it must be complete and fixed-size); a
     ///     pointer type has the pointer width.
@@ -340,6 +377,7 @@ internal sealed partial class LayoutCompilation
                                                   "offset assertion for " + field.Name.Name),
                                               field.Name.Name);
 
+                ImmutableArray<CompiledConstraint> constraints = this.CompileConstraints(strct, field, context);
                 var compiledField = new CompiledField(
                     field,
                     effectiveField,
@@ -359,6 +397,7 @@ internal sealed partial class LayoutCompilation
                 {
                     PointerElements = pointerElements,
                     AssertedOffset = assertedOffset,
+                    Constraints = constraints,
                     CapturesLayoutVariable = context.References.Captures(field.Name.Name),
                     HasQualifiedPrefix = context.References.PublishesQualified(field.Name.Name, type, pointerDepth, arrayShape),
                 };

@@ -633,6 +633,7 @@ internal sealed partial class LayoutEmitter
         if (field.BitSize > 0)
         {
             this.EmitBitfield(writer, field, scope, target, inUnion, member, memberType, placement);
+            this.EmitConstraints(writer, field, scope, member, memberType);
             CloseBlock(writer, openBlock);
             return;
         }
@@ -677,6 +678,8 @@ internal sealed partial class LayoutEmitter
             {
                 writer.Line(target + "." + generated.HasFlagName + " = true;");
             }
+
+            this.EmitConstraints(writer, field, scope, member, memberType);
         }
 
         if (!inUnion)
@@ -685,6 +688,43 @@ internal sealed partial class LayoutEmitter
         }
 
         CloseBlock(writer, openBlock);
+    }
+
+    /// <summary>
+    ///     Emits the checks of a field's <c>@expect</c> and <c>@supports</c> conditions, right after its value was read and
+    ///     published, so a condition can name the field and the fields before it: an expression that fails to evaluate is
+    ///     the read's expression failure, and a value outside the condition is a constraint failure.
+    /// </summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="field">The field just read.</param>
+    /// <param name="scope">The expression scope, which has published the field.</param>
+    /// <param name="member">The member-name expression for failures.</param>
+    /// <param name="memberType">The member-type expression for failures.</param>
+    private void EmitConstraints(SourceWriter writer, CompiledField field, ReaderScope scope, string member, string memberType)
+    {
+        if (field.Constraints.IsDefaultOrEmpty)
+        {
+            return;
+        }
+
+        foreach (CompiledConstraint constraint in field.Constraints)
+        {
+            string context = "constraint '" + constraint.Text + "' of " + field.Name;
+            string kind = constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "Malformed" : "Unsupported";
+            writer.Line("// @" + (constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "expect" : "supports") + "(" + constraint.Text + ")");
+            writer.Open(string.Empty);
+            writer.Line("global::System.Int128 constraintValue;");
+            writer.Open("try");
+            writer.Line("constraintValue = " + scope.Expressions.Emit(constraint.Expression) + ";");
+            writer.Close();
+            writer.Open("catch (global::System.Exception expressionFailure)");
+            writer.Line("throw cursor.FailExpression(expressionFailure, " + SourceWriter.Literal(context) + ", " + member + ", " + memberType + ");");
+            writer.Close();
+            writer.Open("if (constraintValue == 0)");
+            writer.Line("throw cursor.FailConstraint(global::CStructSharp.Diagnostics.ConstraintKind." + kind + ", " + SourceWriter.Literal(constraint.Text) + ", " + SourceWriter.Literal(field.Name) + ", " + member + ", " + memberType + ");");
+            writer.Close();
+            writer.Close();
+        }
     }
 
     /// <summary>

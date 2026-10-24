@@ -267,6 +267,11 @@ for reads, address lookups, and lengths; `CStructWriteException` for serializati
 unexpectedly becomes huge or negative, check the supplied variable, byte order of any upstream count, and the
 expression before increasing a safety limit.
 
+## Checking a value with a constraint
+
+The same expressions state which values a field may hold: `uint16 magic @expect(magic == 0xEF53);` fails the read when
+the condition evaluates to zero. See [field constraints](field-constraints.md).
+
 ## Comparisons and short-circuit predicates
 
 For worked conditional examples, see [Choose fields with if and switch](../guides/conditional-fields.md).
