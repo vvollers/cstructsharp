@@ -52,6 +52,13 @@ struct (as a nested view), an array of numbers (`Values(int index)`, `ValuesByte
 to decode the array's elements in one pass into the start of a destination at least that long), text (`NameBytes`, and `Name` when a string is wanted - that one allocates the
 string), and a custom codec's value (`ColourBytes`, and `Colour`, which the codec boxes).
 
+An array of fixed-size structs (or unions) gives one nested view per element: `view.Entries(i)` is the view of element `i`
+at a stride of the element's size (the padded size in an aligned layout), and `view.EntriesBytes` holds the elements one
+after the other. An element struct with bitfields works the same way, so `chunk entries[count]` with
+`struct chunk { uint32 offset:31; uint32 compressed:1; }` reads `view.Entries(i).Compressed` without building any object;
+a runtime-sized one also has `CountOfEntries()`, and an element past the source fails with the reader's short-read
+message naming the array.
+
 An array whose length comes from an earlier member (`uint32 entries[count]`) is exposed the same way, with
 `CountOfEntries()` for its length. The view evaluates the count from the members before it with the reader's own limits
 and failures, so a hostile count fails exactly as it does in `Parse`. Members placed after such an array are exposed

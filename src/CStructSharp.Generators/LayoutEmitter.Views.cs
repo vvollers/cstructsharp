@@ -195,8 +195,24 @@ internal sealed partial class LayoutEmitter
             return;
         }
 
-        if (field.PointerDepth > 0 || member.Composite is not null || field.Array.Dimensions.Length != 1)
+        if (field.PointerDepth > 0 || field.Array.Dimensions.Length != 1)
         {
+            return;
+        }
+
+        if (member.Composite is not null)
+        {
+            // An array of fixed-size structs (or unions): one nested view per element, at a stride of the element's size.
+            if (field.Array.Kind == CompiledArrayKind.Fixed && field.Array.FixedCount is { } elements)
+            {
+                this.EmitViewStructArray(writer, member, slot, plan, Slice, elements, null);
+            }
+            else if (field.Array.Kind == CompiledArrayKind.Runtime && plan.Counts.TryGetValue(field, out (string Method, string Code, bool IsLiteral) structCount))
+            {
+                // A computed length may run past the source, so a runtime-sized array always slices through the checked take.
+                this.EmitViewStructArray(writer, member, slot, plan, (start, length) => plan.TakeName + "(" + start + ", " + length + ", " + name + ", " + typeName + ")", null, structCount);
+            }
+
             return;
         }
 
@@ -401,6 +417,71 @@ internal sealed partial class LayoutEmitter
                             : "output";
         writer.Line("global::System.ReadOnlySpan<byte> bytes = " + (fixedCount is null ? slice(at, "(long)length * " + Int(element.Size)) : bytesName) + ";");
         writer.Line(CopyDecode(element, member.Enum is not null ? member.Enum.UnderlyingType : elementType, target));
+        writer.Close();
+    }
+
+    /// <summary>
+    ///     Emits an array of fixed-size structs (or unions): its bytes, and one nested view per element at a stride of the
+    ///     element's size, so <c>Entries(i).Field</c> reads a member of one element without building any object. A
+    ///     runtime-sized array also has its element count.
+    /// </summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="member">The array member.</param>
+    /// <param name="slot">Where the array starts.</param>
+    /// <param name="plan">The view plan.</param>
+    /// <param name="slice">Builds the expression for the bytes at an offset and length.</param>
+    /// <param name="fixedCount">The element count when the layout fixes it, or <see langword="null"/>.</param>
+    /// <param name="runtimeCount">The count method and expression of a runtime-sized array.</param>
+    private void EmitViewStructArray(SourceWriter writer, GeneratedMember member, ViewSlot slot, ViewPlan plan, Func<string, string, string> slice, int? fixedCount, (string Method, string Code, bool IsLiteral)? runtimeCount)
+    {
+        CompiledField field = member.Field;
+        if (member.Composite!.Composite.Symbol.FixedSize is not { } elementSize)
+        {
+            return;
+        }
+
+        int stride = field.FixedElementSize ?? elementSize;
+        if (stride <= 0)
+        {
+            return;
+        }
+
+        string at = slot.At;
+        string property = member.PropertyName;
+        string count = fixedCount is { } fixedValue ? Int(fixedValue) : runtimeCount!.Value.Method + "()";
+        string bytesName = plan.Unique(property + "Bytes");
+        string name = SourceWriter.Literal(field.Name);
+        string typeName = SourceWriter.Literal(field.DisplayTypeSpelling);
+        if (runtimeCount is { } computed && plan.WrittenCounts.Add(computed.Method))
+        {
+            this.EmitCountMethod(writer, member, computed, plan);
+        }
+
+        string byteLength = fixedCount is { } n ? Int(n * stride) : "(long)" + count + " * " + Int(stride);
+        writer.Line();
+        writer.Line("/// <summary>The bytes of <c>" + DescribeDeclaration(field) + "</c> at " + slot.Where + ", every element after the other.</summary>");
+        writer.Line("public global::System.ReadOnlySpan<byte> " + bytesName + " => " + slice(at, byteLength) + ";");
+        writer.Line();
+        writer.Line("/// <summary>A view of one element of <c>" + DescribeDeclaration(field) + "</c>, which is " + Int(stride) + " bytes after the previous one.</summary>");
+        writer.Line("/// <param name=\"index\">The element index.</param>");
+        writer.Line("/// <returns>The element's view.</returns>");
+        writer.Open("public " + ViewName(member.Composite) + " " + property + "(int index)");
+        writer.Open("if ((uint)index >= " + (fixedCount is { } limit ? Int(limit) + "u" : "(uint)" + count) + ")");
+        writer.Line("throw new global::System.ArgumentOutOfRangeException(nameof(index));");
+        writer.Close();
+
+        // Every element view gets the rest of the source, as a single nested view does, so its pointer targets resolve alike.
+        // A runtime-sized array may run past the source, so its elements are checked (and a failure names the array).
+        if (slot.IsDynamic || fixedCount is null)
+        {
+            plan.TakeRestName ??= plan.Unique("TakeRest");
+            writer.Line("return new(" + plan.TakeRestName + "(" + at + " + (long)index * " + Int(stride) + ", " + Int(stride) + ", " + name + ", " + typeName + "), this.options);");
+        }
+        else
+        {
+            writer.Line("return new(this.source.Slice(" + at + " + index * " + Int(stride) + "), this.options);");
+        }
+
         writer.Close();
     }
 

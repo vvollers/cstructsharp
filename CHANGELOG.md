@@ -27,6 +27,10 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   of fixed-size structs on the `Reader`, `Parser` and `Views` surfaces the same allocation-free `foreach` enumerator
   (`RootView.Enumerate`) that the full surface always has; it is off by default there because it adds code to every
   fixed-size struct.
+- **Views over arrays of structs.** A view exposes an array of fixed-size structs or unions, fixed or runtime-sized, as
+  `Entries(i)`, a nested view of element `i` at the element's stride, plus `EntriesBytes`; structs with bitfields work as
+  elements (`view.Entries(i).Compressed`), the members after a runtime-sized array of structs find their offset, and
+  an element past the source fails with the reader's short-read message naming the array.
 
 ## 0.13.0 — 2026-10-24
 
