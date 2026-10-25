@@ -49,7 +49,8 @@ else if (ReiserSuperblock.Matches(bytes)) { ... }
 `Matches(source)` is true when the source holds the bytes the evaluated conditions read and none of them is broken. It
 evaluates `@expect` conditions only (an unsupported value is still recognized), skips a condition on a member that follows a
 runtime-sized array or sits in a conditional arm or a nested struct, and treats a source that is too short or a condition
-that cannot be evaluated as no match. A match therefore says "this looks like the format", not "a read succeeds": call
+that cannot be evaluated as no match. A condition that names a caller variable you did not pass in `variables` is a mistake in
+the call, not a property of the bytes, so `Matches` throws an `ArgumentException` for it. A match therefore says "this looks like the format", not "a read succeeds": call
 `TryParse` next.
 
 The `Views` surface has `Matches` too, as static methods of the layout class: recognizing a format is the question to ask before making a

@@ -19,7 +19,7 @@ public sealed partial class CStruct
     /// <summary>
     ///     Tells whether <paramref name="source"/> looks like a <paramref name="declaration"/> without reading it: it decodes only the numbers
     ///     and enums at build-time offsets that the declaration's <c>@expect</c> conditions name (its <c>@magic</c> conditions alone when it has
-    ///     any), builds no value, and answers <see langword="false"/> instead of throwing for a source that is too short or a condition that
+    ///     any that can be evaluated), builds no value, and answers <see langword="false"/> instead of throwing for a source that is too short or a condition that
     ///     cannot be evaluated. It is the runtime counterpart of the <c>Matches</c> method of a generated layout and has the same limits:
     ///     a condition on a member after a runtime-sized member, inside an array, a conditional arm or a nested struct is not evaluated,
     ///     <c>@supports</c> conditions are not checked (an unsupported value is still recognized), and a match is not a promise that
@@ -30,6 +30,7 @@ public sealed partial class CStruct
     /// <param name="variables">Optional integer layout variables, which override a layout <c>#define</c> of the same name; the dictionary is not changed.</param>
     /// <returns><see langword="true"/> when every condition that could be evaluated holds.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="declaration"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">A condition names a variable that <paramref name="variables"/> does not supply (and the layout does not define); a missing variable is a call error, not a mismatch.</exception>
     /// <exception cref="CStructPathException"><paramref name="declaration"/> is unknown or is not a struct.</exception>
     /// <exception cref="CStructLayoutException">The struct has no condition that <c>Matches</c> can evaluate (the generated layouts have no <c>Matches</c> method then).</exception>
     public bool Matches(string declaration, ReadOnlySpan<byte> source, IReadOnlyDictionary<string, int>? variables = null)
@@ -38,20 +39,6 @@ public sealed partial class CStruct
         if (composite.IsUnion || !composite.HasConstraints)
         {
             throw new CStructLayoutException("'" + declaration + "' has no @expect or @magic condition for Matches to check.");
-        }
-
-        // A struct with @magic conditions is recognized by them alone; any other struct by its @expect conditions.
-        bool magicOnly = composite.HasMagic;
-        var conditions = new List<CompiledConstraint>();
-        foreach (CompiledField field in composite.Fields)
-        {
-            foreach (CompiledConstraint constraint in field.Constraints)
-            {
-                if (magicOnly ? constraint.IsMagic : constraint.Kind == ConstraintKind.Malformed)
-                {
-                    conditions.Add(constraint);
-                }
-            }
         }
 
         // A condition is evaluated only when everything it names is known: a layout constant, a caller variable, a member decoded from its
@@ -65,16 +52,13 @@ public sealed partial class CStruct
             }
         }
 
-        var evaluated = new List<CompiledConstraint>();
+        // The @magic conditions that can be evaluated decide alone; a struct without one (its magic sits in a conditional arm, say)
+        // is recognized by its @expect conditions.
         var needed = new HashSet<string>(StringComparer.Ordinal);
-        foreach (CompiledConstraint condition in conditions)
+        List<CompiledConstraint> evaluated = this.Evaluable(composite, magic: true, needed);
+        if (evaluated.Count == 0)
         {
-            IReadOnlyCollection<string> names = this.compilation.ExpressionEvaluator.GetDependencies(condition.Expression);
-            if (names.All(name => !composite.FieldsByName.ContainsKey(name) || Decodable(composite.FieldsByName[name]) || HasByteMatch(composite, name)))
-            {
-                evaluated.Add(condition);
-                needed.UnionWith(names);
-            }
+            evaluated = this.Evaluable(composite, magic: false, needed);
         }
 
         if (evaluated.Count == 0)
@@ -125,12 +109,46 @@ public sealed partial class CStruct
                 }
             }
         }
+        catch (KeyNotFoundException exception)
+        {
+            // Every member the conditions name was decoded above, so an unknown name is a variable the caller left out.
+            throw new ArgumentException("A condition of Matches names a variable that 'variables' does not supply. " + exception.Message, nameof(variables), exception);
+        }
         catch (Exception exception) when (LayoutExpressionEvaluator.IsExpressionFailure(exception))
         {
             return false;
         }
 
         return true;
+    }
+
+    /// <summary>Selects the conditions of one kind that <c>Matches</c> can evaluate and records the names they use.</summary>
+    /// <param name="composite">The struct.</param>
+    /// <param name="magic"><see langword="true"/> for the <c>@magic</c> conditions, <see langword="false"/> for the <c>@expect</c> ones.</param>
+    /// <param name="needed">Receives the names the selected conditions read.</param>
+    /// <returns>The conditions whose members are all numbers or enums at build-time offsets, byte comparisons, layout constants or caller variables.</returns>
+    private List<CompiledConstraint> Evaluable(CompiledCompositeType composite, bool magic, HashSet<string> needed)
+    {
+        var selected = new List<CompiledConstraint>();
+        foreach (CompiledField field in composite.Fields)
+        {
+            foreach (CompiledConstraint constraint in field.Constraints)
+            {
+                if (magic ? !constraint.IsMagic : constraint.Kind != ConstraintKind.Malformed)
+                {
+                    continue;
+                }
+
+                IReadOnlyCollection<string> names = this.compilation.ExpressionEvaluator.GetDependencies(constraint.Expression);
+                if (names.All(name => !composite.FieldsByName.ContainsKey(name) || Decodable(composite.FieldsByName[name]) || HasByteMatch(composite, name)))
+                {
+                    selected.Add(constraint);
+                    needed.UnionWith(names);
+                }
+            }
+        }
+
+        return selected;
     }
 
     /// <summary>Whether a member is a number or enum at a build-time offset, which <see cref="Matches(string, ReadOnlySpan{byte}, IReadOnlyDictionary{string, int}?)"/> can decode.</summary>

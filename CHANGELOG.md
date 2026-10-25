@@ -6,7 +6,7 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 onward, each version uses these headings in this order and omits the empty ones: *Breaking changes* (each with its
 migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and tooling*.
 
-## Unreleased
+## 0.16.0 — 2026-10-25
 
 ### Breaking changes
 
@@ -35,6 +35,10 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   example a hand-written `const int EXT_MAGIC` in its own part of the partial class, no longer compiles. Migration: delete the
   hand-written constant and use the generated one. A `#define` named like a generated member or type is reported as `CSG003`.
 
+- **Breaking (behavior):** the generated `Matches` throws an `ArgumentException` when a condition names a caller variable that
+  `variables` does not supply; 0.15 answered `false`. Migration: pass the variables the layout's conditions use. A missing
+  variable is a mistake in the call, so it no longer looks like "not this format".
+
 ### Added
 
 - **Constraint messages.** `@expect(condition, "label", "message")` and `@supports(condition, "label", "message")` carry the
@@ -56,9 +60,10 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   that has one (several are all required). `CSG020` (warning) reports a magic that follows a variable-size member. The portable
   language contract is revision 5, and older engines and npm versions reject a layout that uses the suffix. Migration for a
   signature currently written `@expect`: its failure becomes unsupported instead of malformed, the reported offset and the order of
-  collected violations follow the new check order, and `Matches` ignores that struct's `@expect` conditions. Deviation from the
-  plan's pre-read of a fixed-offset magic: the readers hold back earlier conditions instead, so one rule serves the runtime,
-  generated and view readers; a struct with a magic is read member by member, not through the static plan.
+  collected violations follow the new check order, and `Matches` ignores that struct's `@expect` conditions (unless none of its `@magic`
+  conditions can be evaluated, as for a magic inside an `if` arm). The readers hold back the conditions of earlier members until the
+  magic has passed, so one rule serves the runtime, generated and view readers; a struct with a magic is read member by member, not
+  through the static plan.
 - **Byte-string comparisons in constraints.** A condition can compare a fixed-size `uint8` or `char` array with a byte string of
   the same length: `uint8 oem[8] @expect(oem == "NTFS    ")`, `uint8 sig[4] @magic(sig == b"\x7fELF")`, also `!=`, combined
   with `&&`, `||` and `!`. The comparison is on the array's raw bytes (`TrimFixedText` does not change it), generated readers use a
@@ -69,7 +74,7 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 - **`Matches` on views and runtime layouts.** The `Views` surface generates `Matches` and `Matches<Name>` like the reader surfaces, and
   `CStruct.Matches(declaration, source, variables)` answers the same question for a layout compiled at run time: it evaluates the
   `@expect` conditions (the `@magic` conditions alone when the struct has any) of members at build-time offsets, never throws for
-  short or wrong input, and throws `CStructLayoutException` for a struct with no condition it can evaluate.
+  short or wrong input (a condition that names a caller variable `variables` does not supply is an `ArgumentException`, in the generated `Matches` too), and throws `CStructLayoutException` for a struct with no condition it can evaluate.
 - **Unread members.** `CSG023` (info) lists the members of a `Reader` or `Parser` layout that no code in the project reads, to guide which
   bytes to declare as `_` padding. It has the same limits as `CSG016` and `CSG017`: it needs a class no other assembly can see.
 - **Shape suggestions.** `CSG021` and `CSG022` (info) say when a layout generated as classes on the `Reader` or `Parser` surface qualifies

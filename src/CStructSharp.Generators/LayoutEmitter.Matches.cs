@@ -9,7 +9,7 @@ using CStructSharp.Diagnostics;
 using static CStructSharp.Generators.Emit;
 
 /// <summary>
-///     <c>Matches</c>: a static, non-throwing recognition check for a struct with <c>@expect</c> or <c>@magic</c> conditions (a struct with <c>@magic</c> conditions is recognized by them alone). It decodes only
+///     <c>Matches</c>: a static, non-throwing recognition check for a struct with <c>@expect</c> or <c>@magic</c> conditions (a struct with an evaluable <c>@magic</c> condition is recognized by those alone). It decodes only
 ///     the members the conditions name, each at its build-time offset straight from the bytes, so a probe that asks "is this
 ///     the format?" builds no value, reads nothing else and throws nothing.
 /// </summary>
@@ -40,8 +40,11 @@ internal sealed partial class LayoutEmitter
         string? savedOrder = this.runtimeOrder;
         this.UseRuntimeOrder("littleEndian");
         var decoded = new List<(GeneratedMember Member, ViewSlot Slot)>();
-        var conditions = new List<MatchCondition>();
-        bool magicOnly = composite.Composite.HasMagic;
+
+        // The evaluable @magic and @expect conditions are kept apart: the magic ones decide alone when any can be evaluated,
+        // otherwise the @expect ones do (a struct whose only magic sits in a conditional arm is still recognizable by its @expect).
+        var magicConditions = new List<MatchCondition>();
+        var expectConditions = new List<MatchCondition>();
         var arrays = new List<(string Access, int End)>();
         foreach (CompiledField field in composite.Composite.Fields)
         {
@@ -83,8 +86,7 @@ internal sealed partial class LayoutEmitter
 
             foreach (CompiledConstraint constraint in field.Constraints)
             {
-                // A struct with @magic conditions is recognized by them alone; any other struct by its @expect conditions.
-                if (magicOnly ? !constraint.IsMagic : constraint.Kind != ConstraintKind.Malformed)
+                if (!constraint.IsMagic && constraint.Kind != ConstraintKind.Malformed)
                 {
                     continue;
                 }
@@ -92,11 +94,12 @@ internal sealed partial class LayoutEmitter
                 string code = scope.Expressions.Emit(constraint.Expression);
                 if (!UnresolvableInView.IsMatch(code))
                 {
-                    conditions.Add(new MatchCondition(constraint, code));
+                    (constraint.IsMagic ? magicConditions : expectConditions).Add(new MatchCondition(constraint, code));
                 }
             }
         }
 
+        List<MatchCondition> conditions = magicConditions.Count > 0 ? magicConditions : expectConditions;
         if (conditions.Count == 0)
         {
             this.runtimeOrder = savedOrder;
@@ -116,11 +119,12 @@ internal sealed partial class LayoutEmitter
 
         string name = composite.Name;
         writer.Line();
-        writer.Line("/// <summary>Whether <paramref name=\"source\"/> satisfies the <c>@expect</c> conditions of a <c>" + composite.LayoutName + "</c> that it can evaluate from members at build-time offsets: it decodes only the members the conditions name, builds no value, and does not throw for a source that is too short or a condition that cannot be evaluated (they do not match). A struct with <c>@magic</c> conditions is checked against those alone. A condition on a member after a runtime-sized array, in a conditional arm or in a nested struct is not evaluated, and <c>@supports</c> conditions are not checked (an unsupported value is still recognized), so a match is not a promise that a read succeeds.</summary>");
+        writer.Line("/// <summary>Whether <paramref name=\"source\"/> satisfies the <c>@expect</c> conditions of a <c>" + composite.LayoutName + "</c> that it can evaluate from members at build-time offsets: it decodes only the members the conditions name, builds no value, and does not throw for a source that is too short or a condition that cannot be evaluated (they do not match). A struct with an evaluable <c>@magic</c> condition is checked against those alone. A variable that a condition names and <paramref name=\"variables\"/> does not supply is an <see cref=\"global::System.ArgumentException\"/>, not a mismatch. A condition on a member after a runtime-sized array, in a conditional arm or in a nested struct is not evaluated, and <c>@supports</c> conditions are not checked (an unsupported value is still recognized), so a match is not a promise that a read succeeds.</summary>");
         writer.Line("/// <param name=\"source\">The bytes; offset 0 is the struct's first byte.</param>");
         this.EmitOrderDoc(writer);
         writer.Line(VariablesDoc);
         writer.Line("/// <returns><see langword=\"true\"/> when every condition evaluated holds.</returns>");
+        writer.Line("/// <exception cref=\"global::System.ArgumentException\">A condition names a variable that <paramref name=\"variables\"/> does not supply.</exception>");
         writer.Open("public static bool Matches" + name + "(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + VariablesType + " variables = null)");
         if (needed > 0)
         {
@@ -154,6 +158,11 @@ internal sealed partial class LayoutEmitter
         if (guarded)
         {
             writer.Close();
+
+            // A variable the caller did not supply is a call error, not a mismatch: it must not make every source "not this format".
+            writer.Open("catch (global::System.Collections.Generic.KeyNotFoundException exception)");
+            writer.Line("throw new global::System.ArgumentException(\"A condition of Matches names a variable that 'variables' does not supply. \" + exception.Message, \"variables\", exception);");
+            writer.Close();
             writer.Open("catch (global::System.Exception exception) when (" + Cursor + ".IsExpressionFailure(exception))");
             writer.Line("return false;");
             writer.Close();
@@ -169,6 +178,7 @@ internal sealed partial class LayoutEmitter
             this.EmitOrderDoc(writer);
             writer.Line(VariablesDoc);
             writer.Line("/// <returns><see langword=\"true\"/> when every condition evaluated holds.</returns>");
+            writer.Line("/// <exception cref=\"global::System.ArgumentException\">A condition names a variable that <paramref name=\"variables\"/> does not supply.</exception>");
             writer.Line("public static bool Matches(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + VariablesType + " variables = null) => Matches" + name + "(source, " + this.OrderArgument + "variables);");
         }
 

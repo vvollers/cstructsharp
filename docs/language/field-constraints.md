@@ -51,8 +51,9 @@ struct superblock {
    with a short-read error if the bytes end before the magic. When the magic holds, the held-back conditions run next, then the
    later ones, each in declaration order. If a magic sits inside an `if` or `switch` arm, the struct keeps declaration order.
 2. **It fails as `ConstraintKind.Unsupported`.** The bytes are not malformed; they are simply not this format.
-3. **`Matches` evaluates the magic alone.** A struct with at least one `@magic` is recognized by its magic conditions, and its
-   `@expect` conditions are ignored by `Matches`. A struct without a magic is recognized by its `@expect` conditions as before.
+3. **`Matches` evaluates the magic alone.** A struct with at least one `@magic` that `Matches` can evaluate is recognized by its
+   magic conditions, and its `@expect` conditions are ignored by `Matches`. A struct whose magic cannot be evaluated (it sits inside
+   an `if` arm, for example) and a struct without a magic are recognized by their `@expect` conditions.
    Several `@magic` conditions on one struct are all required.
 
 The failure's `Offset` is the end of the member whose check ran, so it can differ from the position reported for the same

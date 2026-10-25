@@ -35,7 +35,7 @@ public class MatchesRuntimeTests
         Assert.IsFalse(layout.Matches("h", new byte[] { 0x7F, 0x45, 0x4C }));
     }
 
-    /// <summary>A condition may name a caller variable and a layout constant; a variable that is not supplied cannot be evaluated, which does not match.</summary>
+    /// <summary>A condition may name a caller variable and a layout constant; a variable that is not supplied is a call error.</summary>
     [TestMethod]
     public void Variables_AndConstants()
     {
@@ -43,7 +43,7 @@ public class MatchesRuntimeTests
         var variables = new Dictionary<string, int> { ["BAD"] = 3 };
         Assert.IsTrue(layout.Matches("h", new byte[] { 2 }, variables));
         Assert.IsFalse(layout.Matches("h", new byte[] { 3 }, variables));
-        Assert.IsFalse(layout.Matches("h", new byte[] { 2 }), "BAD is not supplied");
+        Assert.Throws<ArgumentException>(() => layout.Matches("h", new byte[] { 2 }), "BAD is not supplied");
         Assert.IsFalse(layout.Matches("h", new byte[] { 11 }, variables));
     }
 
@@ -64,5 +64,38 @@ public class MatchesRuntimeTests
         Assert.Throws<CStructLayoutException>(() => layout.Matches("plain", new byte[] { 1 }));
         Assert.Throws<CStructLayoutException>(() => layout.Matches("late", new byte[] { 0, 1 }));
         Assert.Throws<CStructPathException>(() => layout.Matches("missing", new byte[] { 1 }));
+    }
+
+    /// <summary>A magic that cannot be evaluated (in a conditional arm) leaves the fixed <c>@expect</c> to decide.</summary>
+    [TestMethod]
+    public void UnevaluableMagic_FallsBackToExpect()
+    {
+        var layout = new CStruct("struct h { uint8 kind @expect(kind == 1); if (kind == 1) { uint8 sig @magic(sig == 7); } };");
+        Assert.IsTrue(layout.Matches("h", new byte[] { 1, 0 }));
+        Assert.IsFalse(layout.Matches("h", new byte[] { 2, 7 }));
+    }
+
+    /// <summary>A char array is compared with its trailing spaces, so a NUL-padded value is not "NTFS    ", with or without trimming.</summary>
+    [TestMethod]
+    public void SpacePaddedText_IsComparedExactly()
+    {
+        var layout = new CStruct("struct b { char oem[8] @expect(oem == \"NTFS    \"); };");
+        byte[] exact = { (byte)'N', (byte)'T', (byte)'F', (byte)'S', 32, 32, 32, 32 };
+        byte[] nulPadded = { (byte)'N', (byte)'T', (byte)'F', (byte)'S', 0, 0, 0, 0 };
+        Assert.IsTrue(layout.Matches("b", exact));
+        Assert.IsFalse(layout.Matches("b", nulPadded));
+        layout.Parse(exact, "b", null, new ReadOptions { TrimFixedText = true });
+        Assert.Throws<CStructConstraintException>(() => layout.Parse(nulPadded, "b", null, new ReadOptions { TrimFixedText = true }));
+        Assert.Throws<CStructConstraintException>(() => layout.Parse(nulPadded, "b"));
+    }
+
+    /// <summary>A char array with bytes above 0x7F compares by byte value.</summary>
+    [TestMethod]
+    public void HighBytesInText_AreComparedByValue()
+    {
+        var layout = new CStruct("struct h { char s[2] @expect(s == \"\\xE9A\"); };");
+        Assert.IsTrue(layout.Matches("h", new byte[] { 0xE9, 0x41 }));
+        layout.Parse(new byte[] { 0xE9, 0x41 }, "h");
+        Assert.Throws<CStructConstraintException>(() => layout.Parse(new byte[] { 0xE8, 0x41 }, "h"));
     }
 }
