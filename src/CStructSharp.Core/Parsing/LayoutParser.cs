@@ -62,6 +62,9 @@ internal sealed partial class LayoutParser
     /// <summary>Set when an expression named a qualified member (<c>Enum.Member</c>), so the compiler publishes those names.</summary>
     private bool usesQualifiedIdentifiers;
 
+    // Whether a quoted byte string is an expression term: only inside a constraint condition.
+    private bool allowByteStrings;
+
     private LayoutParser(string source, IReadOnlySet<string>? definedNames = null, string? defaultEnumStorage = null)
     {
         this.source = source;

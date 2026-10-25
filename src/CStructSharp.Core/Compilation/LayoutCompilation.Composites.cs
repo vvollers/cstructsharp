@@ -65,15 +65,92 @@ internal sealed partial class LayoutCompilation
         => field.BitStorageSize.HasValue && !field.IsZeroWidthBitfield && !field.IsConditional;
 
     /// <summary>
+    ///     Replaces each comparison of a field with a byte string by the hidden value its reader publishes, after checking that the
+    ///     field is the constrained field itself and a fixed-size <c>uint8</c> or <c>char</c> array of the string's length.
+    /// </summary>
+    /// <param name="expression">The condition as parsed.</param>
+    /// <param name="fieldName">The constrained field.</param>
+    /// <param name="byteArrayLength">The field's element count when it is a fixed-size one-dimensional <c>uint8</c> or <c>char</c> array; otherwise <see langword="null"/>.</param>
+    /// <param name="isText">Whether the array is a <c>char</c> array (shown to the user as text).</param>
+    /// <param name="matches">The comparisons found, created on first use.</param>
+    /// <returns>The condition, unchanged when it has no byte comparison.</returns>
+    /// <exception cref="CStructLayoutException">A comparison names another field, or a field that is not such an array, or the lengths differ.</exception>
+    private static Expr LowerByteComparisons(Expr expression, string fieldName, int? byteArrayLength, bool isText, ref List<ByteMatch>? matches)
+    {
+        switch (expression)
+        {
+        case ByteEquals comparison:
+            {
+                if (comparison.Field != fieldName)
+                {
+                    throw new CStructLayoutException("A byte comparison must name the field it constrains ('" + fieldName + "'), not '" + comparison.Field + "'.");
+                }
+
+                if (byteArrayLength is not { } length)
+                {
+                    throw new CStructLayoutException("A byte comparison needs a fixed-size uint8 or char array, which '" + fieldName + "' is not.");
+                }
+
+                if (comparison.Bytes.Length != length)
+                {
+                    throw new CStructLayoutException("The byte string has " + comparison.Bytes.Length + " bytes but '" + fieldName + "' (" + (isText ? "char" : "uint8") + "[" + length + "]) has " + length + ".");
+                }
+
+                matches ??= [];
+                bool known = false;
+                foreach (ByteMatch existing in matches)
+                {
+                    known |= existing.SlotName == comparison.SlotName;
+                }
+
+                if (!known)
+                {
+                    matches.Add(new ByteMatch(comparison.SlotName, comparison.Bytes));
+                }
+
+                return comparison.Lowered();
+            }
+
+        case UnaryOp unary:
+            {
+                Expr operand = LowerByteComparisons(unary.Expr, fieldName, byteArrayLength, isText, ref matches);
+                return ReferenceEquals(operand, unary.Expr) ? unary : new UnaryOp(unary.Type, operand);
+            }
+
+        case BinaryOp binary:
+            {
+                Expr left = LowerByteComparisons(binary.Left, fieldName, byteArrayLength, isText, ref matches);
+                Expr right = LowerByteComparisons(binary.Right, fieldName, byteArrayLength, isText, ref matches);
+                return ReferenceEquals(left, binary.Left) && ReferenceEquals(right, binary.Right) ? binary : new BinaryOp(binary.Type, left, right);
+            }
+
+        case ConditionalExpr conditional:
+            {
+                Expr condition = LowerByteComparisons(conditional.Condition, fieldName, byteArrayLength, isText, ref matches);
+                Expr whenTrue = LowerByteComparisons(conditional.WhenTrue, fieldName, byteArrayLength, isText, ref matches);
+                Expr whenFalse = LowerByteComparisons(conditional.WhenFalse, fieldName, byteArrayLength, isText, ref matches);
+                return ReferenceEquals(condition, conditional.Condition) && ReferenceEquals(whenTrue, conditional.WhenTrue) && ReferenceEquals(whenFalse, conditional.WhenFalse)
+                           ? conditional
+                           : new ConditionalExpr(condition, whenTrue, whenFalse);
+            }
+
+        default:
+            return expression;
+        }
+    }
+
+    /// <summary>
     ///     Compiles a field's <c>@expect</c> and <c>@supports</c> conditions: each expression has its <c>sizeof</c> and
     ///     <c>offsetof</c> calls folded and is compiled once, so a condition that cannot be evaluated is a layout error.
     /// </summary>
     /// <param name="strct">The struct or union that declares the field.</param>
     /// <param name="field">The field declaration.</param>
     /// <param name="context">The compilation state of the composite.</param>
+    /// <param name="byteArrayLength">The element count when the field is a fixed-size one-dimensional <c>uint8</c> or <c>char</c> array, which a condition may compare with a byte string; otherwise <see langword="null"/>.</param>
+    /// <param name="byteArrayIsText">Whether such an array is a <c>char</c> array.</param>
     /// <returns>The compiled conditions in declaration order; empty when the field has none.</returns>
     /// <exception cref="CStructLayoutException">The field is a union member or has no name, or a condition does not compile.</exception>
-    private ImmutableArray<CompiledConstraint> CompileConstraints(Struct strct, Field field, CompositeCompilationContext context)
+    private ImmutableArray<CompiledConstraint> CompileConstraints(Struct strct, Field field, CompositeCompilationContext context, int? byteArrayLength, bool byteArrayIsText)
     {
         if (field.Constraints.IsDefaultOrEmpty)
         {
@@ -93,9 +170,12 @@ internal sealed partial class LayoutCompilation
         ImmutableArray<CompiledConstraint>.Builder builder = ImmutableArray.CreateBuilder<CompiledConstraint>(field.Constraints.Length);
         foreach (FieldConstraint constraint in field.Constraints)
         {
-            Expr folded = ExpressionEvaluator.ContainsCall(constraint.Expression) ? this.FoldCalls(constraint.Expression, field.Name.Name, context) : constraint.Expression;
+            // A comparison with a byte string becomes a read of the hidden value the field's reader publishes.
+            List<ByteMatch>? matches = null;
+            Expr lowered = LowerByteComparisons(constraint.Expression, field.Name.Name, byteArrayLength, byteArrayIsText, ref matches);
+            Expr folded = ExpressionEvaluator.ContainsCall(lowered) ? this.FoldCalls(lowered, field.Name.Name, context) : lowered;
             this.expressionEvaluator.Compile(folded);
-            builder.Add(new CompiledConstraint(constraint.Kind, folded, constraint.Text, constraint.Label, constraint.Description, constraint.IsMagic));
+            builder.Add(new CompiledConstraint(constraint.Kind, folded, constraint.Text, constraint.Label, constraint.Description, constraint.IsMagic, matches is null ? default : matches.ToImmutableArray()));
         }
 
         return builder.MoveToImmutable();
@@ -377,7 +457,10 @@ internal sealed partial class LayoutCompilation
                                                   "offset assertion for " + field.Name.Name),
                                               field.Name.Name);
 
-                ImmutableArray<CompiledConstraint> constraints = this.CompileConstraints(strct, field, context);
+                // A comparison with a byte string needs a fixed-size, one-dimensional uint8 or char array.
+                bool byteArray = pointerDepth == 0 && type.Symbol.Kind == CompiledTypeKind.Primitive && !type.Symbol.IsCustomCodec &&
+                                 type.TerminalName is "uint8" or "char" && arrayShape.Kind == CompiledArrayKind.Fixed && arrayShape.Dimensions.Length == 1;
+                ImmutableArray<CompiledConstraint> constraints = this.CompileConstraints(strct, field, context, byteArray ? arrayShape.FixedCount : null, type.TerminalName == "char");
                 var compiledField = new CompiledField(
                     field,
                     effectiveField,

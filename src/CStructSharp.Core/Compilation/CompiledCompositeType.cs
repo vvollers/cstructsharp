@@ -27,6 +27,7 @@ internal sealed partial class CompiledCompositeType : CompiledType
         this.Fields = fields;
         this.HasDirectConditionalFields = fields.Any(field => field.IsConditional);
         this.HasConstraints = fields.Any(field => !field.Constraints.IsDefaultOrEmpty);
+        this.HasByteMatches = fields.Any(field => !field.Constraints.IsDefaultOrEmpty && field.Constraints.Any(constraint => !constraint.ByteMatches.IsDefaultOrEmpty));
         this.HasMagic = fields.Any(field => !field.Constraints.IsDefaultOrEmpty && field.Constraints.Any(constraint => constraint.IsMagic));
         foreach (CompiledField field in fields)
         {
@@ -66,6 +67,12 @@ internal sealed partial class CompiledCompositeType : CompiledType
 
     /// <summary>Whether any member of this composite carries an <c>@magic</c> condition, so the composite checks its conditions in the order of <see cref="ConstraintSchedule"/> and <c>Matches</c> evaluates only the magic ones.</summary>
     public bool HasMagic { get; }
+
+    /// <summary>
+    ///     Gets a value indicating whether a condition of one of the fields compares an array with a byte string. The static read
+    ///     plans decode scalars only, so such a struct is read member by member, where the reader publishes the comparison's result.
+    /// </summary>
+    public bool HasByteMatches { get; }
 
     /// <summary>Gets a value indicating whether a member at this level is an <c>if</c>/<c>switch</c> arm.</summary>
     public bool HasDirectConditionalFields { get; }

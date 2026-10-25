@@ -60,6 +60,37 @@ condition written with `@expect`; with collected violations (`ReadOptions.Constr
 The analyzer warns ([CSG020](../guides/generated/diagnostics.md#csg020---a-magic-follows-a-variable-size-member)) about a magic that follows a
 variable-size member, because `Matches` cannot evaluate it there.
 
+## Compare an array or text with a byte string
+
+A signature is usually not a number but a short run of bytes: `NTFS    ` in a boot sector, `\x7fELF` at the start of an ELF file.
+A condition may compare such a field with a **byte string**, a quoted literal that stands for those bytes:
+
+```c
+struct boot {
+    uint8 jump[3];
+    uint8 oem[8]  @expect(oem == "NTFS    ", "ntfs.oem", "Not an NTFS volume.");
+    uint32 sectors;
+};
+struct elf_ident {
+    uint8 magic[4] @magic(magic == b"\x7fELF", "elf.magic");
+};
+```
+
+- **Where.** The field must be the one the suffix is on, a fixed-size one-dimensional `uint8` or `char` array, and the string
+  must have exactly as many bytes as the array has elements. `==` is true when every byte is equal, `!=` when at least one
+  differs. The comparison is a condition on its own, so it combines with the other operators:
+  `@expect(fs == "FAT" || (fs == "EXT" && kind == 2))`. Any other use of an array in a condition (`oem[0]`, `oem < "A"`,
+  `oem + 1`, an array with a runtime size, a `uint16` array) is a layout error.
+- **Two spellings.** `"NTFS    "` holds one byte per character, so its characters are U+0000 to U+00FF. `b"\x7fELF"` holds
+  ASCII characters and escapes only. Both mean the same bytes. The escapes are `\\`, `\"`, `\0`, `\n`, `\r`, `\t` and `\xHH`
+  (two hexadecimal digits). A string holds 1 to 256 bytes.
+- **Bytes, not decoded text.** A `char` array compares its raw bytes, so `ReadOptions.TrimFixedText` (which drops trailing NUL
+  characters from the value) does not change the answer, and neither does the byte order of the layout.
+- **No copy.** A generated reader compares the array's bytes in place with a span comparison; it allocates nothing for the
+  comparison. `Matches` can use a byte-string `@magic` (or `@expect`) like any other condition.
+
+An older engine or npm version that does not know byte strings rejects a layout that uses them.
+
 ## What a condition can name
 
 A condition is evaluated right after its field is read, so it can name:

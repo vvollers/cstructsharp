@@ -142,6 +142,19 @@ public class ConstraintAnalyzerTests
         StringAssert.Contains(only.GetMessage(), "'late.magic'");
     }
 
+    /// <summary>A byte-string comparison is not mistaken for an unsatisfiable condition or a reused label.</summary>
+    /// <returns>A task that completes after the diagnostics are checked.</returns>
+    [TestMethod]
+    public async Task ByteStringComparison_ReportsNothing()
+    {
+        IReadOnlyList<Diagnostic> diagnostics = await Analyze(Header + """"
+            [CStructLayout("struct boot { uint8 oem[8] @expect(oem == \"NTFS    \", \"oem\") @expect(oem != \"XXXXXXXX\", \"oem.other\"); };")]
+            public static partial class Boot { }
+            """");
+
+        Assert.IsEmpty(diagnostics, string.Join("\n", diagnostics));
+    }
+
     /// <summary>Runs the analyzer over a consumer source.</summary>
     /// <param name="source">The consumer source.</param>
     /// <returns>The analyzer diagnostics in source order.</returns>

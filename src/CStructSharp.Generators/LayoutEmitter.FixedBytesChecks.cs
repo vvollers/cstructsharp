@@ -74,6 +74,12 @@ internal sealed partial class LayoutEmitter
                     scope.PublishUndefined(member);
                 }
 
+                if (!field.ByteMatches.IsEmpty)
+                {
+                    // The array's bytes are at a build-time offset in the struct's bytes, or the pass over the value does the check.
+                    scope.PublishByteMatches(member, plan.Slots.TryGetValue(field, out ViewSlot? arraySlot) && arraySlot.Constant is not null && field.FixedStorageSize is not null ? "bytes" : null, rawBytes: true);
+                }
+
                 foreach (CompiledConstraint constraint in field.Constraints)
                 {
                     string code = scope.Expressions.Emit(constraint.Expression);
@@ -124,6 +130,7 @@ internal sealed partial class LayoutEmitter
             writer.Line("var m_" + member.PropertyName + " = " + this.MatchDecode(member, "bytes.Slice(" + Int(slot.Constant!.Value) + ", " + Int(DecodedSize(member.Field, member)) + ")") + ";");
         }
 
+        ViewPlan plan = this.PlannedView(composite);
         var scope = new ReaderScope(this, composite);
         var decodedFields = new HashSet<CompiledField>(check.Decoded.Select(entry => entry.Member.Field), ReferenceEqualityComparer.Instance);
         ConstraintSchedule schedule = ConstraintSchedule.Create(composite.Composite.Fields);
@@ -139,6 +146,11 @@ internal sealed partial class LayoutEmitter
             else
             {
                 scope.PublishUndefined(member);
+            }
+
+            if (!field.ByteMatches.IsEmpty)
+            {
+                scope.PublishByteMatches(member, "bytes.Slice(" + Int(plan.Slots[field].Constant!.Value) + ", " + Int(field.FixedStorageSize ?? 0) + ")", rawBytes: true);
             }
 
             EmitPassConstraints(writer, composite.Composite.Fields, schedule, held, index, scope);

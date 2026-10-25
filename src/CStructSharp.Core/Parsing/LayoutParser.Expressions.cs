@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Numerics;
 using System.Text;
 using CStructSharp.Codecs;
@@ -59,7 +60,7 @@ internal sealed partial class LayoutParser
         while (this.TryBinaryOperator(level, out BinaryOperatorType type))
         {
             Expr right = this.ParseBinary(level + 1);
-            left = new BinaryOp(type, left, right);
+            left = left is BytesLiteral || right is BytesLiteral ? CompareBytes(type, left, right) : new BinaryOp(type, left, right);
         }
 
         return left;
@@ -222,6 +223,138 @@ operand:
         return new Identifier(builder.ToString());
     }
 
+    /// <summary>
+    ///     Pairs a byte string with the field it is compared with: <c>oem == "NTFS    "</c> becomes a <see cref="ByteEquals"/>.
+    ///     A byte string has no other use, so any other operator or operand is a layout error.
+    /// </summary>
+    /// <param name="type">The operator written between the operands.</param>
+    /// <param name="left">The left operand; a byte string or a field name.</param>
+    /// <param name="right">The right operand; a byte string or a field name.</param>
+    /// <returns>The comparison.</returns>
+    /// <exception cref="CStructLayoutException">The operator is not <c>==</c> or <c>!=</c>, or the other operand is not a plain field name.</exception>
+    private static Expr CompareBytes(BinaryOperatorType type, Expr left, Expr right)
+    {
+        BytesLiteral? literal = left as BytesLiteral ?? right as BytesLiteral;
+        Expr other = left is BytesLiteral ? right : left;
+        if (type is not (BinaryOperatorType.Equal or BinaryOperatorType.NotEqual) || other is not Identifier { PointerDepth: 0 } field || field.Name.IndexOf('.') >= 0)
+        {
+            throw new CStructLayoutException(SyntaxErrorPrefix + "A byte string can only be compared with == or != to the name of a fixed-size uint8 or char array field, as in oem == \"NTFS    \".");
+        }
+
+        return new ByteEquals(field.Name, literal!.Bytes, type == BinaryOperatorType.NotEqual);
+    }
+
+    /// <summary>Whether an expression still holds a byte string that no comparison consumed.</summary>
+    /// <param name="expression">The expression.</param>
+    /// <returns>Whether it holds one.</returns>
+    private static bool ContainsBytesLiteral(Expr expression) => expression switch
+    {
+        BytesLiteral => true,
+        UnaryOp unary => ContainsBytesLiteral(unary.Expr),
+        BinaryOp binary => ContainsBytesLiteral(binary.Left) || ContainsBytesLiteral(binary.Right),
+        ConditionalExpr conditional => ContainsBytesLiteral(conditional.Condition) || ContainsBytesLiteral(conditional.WhenTrue) || ContainsBytesLiteral(conditional.WhenFalse),
+        Call call => ContainsBytesLiteral(call.Expr) || call.Arguments.Any(ContainsBytesLiteral),
+        _ => false,
+    };
+
+    /// <summary>
+    ///     A byte string of a constraint condition, <c>"..."</c> (one byte per character, U+0000 through U+00FF) or
+    ///     <c>b"..."</c> (ASCII only): <c>\\</c>, <c>\"</c>, <c>\0</c>, <c>\n</c>, <c>\r</c>, <c>\t</c> and <c>\xHH</c> are the escapes. Only a constraint
+    ///     condition may hold one.
+    /// </summary>
+    /// <returns>The byte string, or <see langword="null"/> when none starts here or byte strings are not allowed here.</returns>
+    /// <exception cref="CStructLayoutException">The string is empty, too long, not terminated, or has an unknown escape or a character outside its range.</exception>
+    private BytesLiteral? TryParseByteString()
+    {
+        if (!this.allowByteStrings)
+        {
+            return null;
+        }
+
+        this.SkipTrivia();
+        bool asciiOnly = !this.AtEnd && this.source[this.position] == 'b' && this.position + 1 < this.source.Length && this.source[this.position + 1] == '"';
+        if (this.AtEnd || (this.source[this.position] != '"' && !asciiOnly))
+        {
+            return null;
+        }
+
+        this.position += asciiOnly ? 2 : 1;
+        var bytes = new List<byte>();
+        while (true)
+        {
+            if (this.AtEnd || this.source[this.position] is '\n' or '\r')
+            {
+                throw new CStructLayoutException(SyntaxErrorPrefix + "A byte string is not terminated before the end of the line.");
+            }
+
+            char current = this.source[this.position++];
+            if (current == '"')
+            {
+                break;
+            }
+
+            if (current != '\\')
+            {
+                bytes.Add(ByteOf(current, asciiOnly));
+                continue;
+            }
+
+            if (this.AtEnd)
+            {
+                throw new CStructLayoutException(SyntaxErrorPrefix + "A byte string is not terminated before the end of the line.");
+            }
+
+            char escape = this.source[this.position++];
+            switch (escape)
+            {
+            case '\\' or '"':
+                bytes.Add((byte)escape);
+                break;
+            case '0':
+                bytes.Add(0);
+                break;
+            case 'n':
+                bytes.Add((byte)'\n');
+                break;
+            case 'r':
+                bytes.Add((byte)'\r');
+                break;
+            case 't':
+                bytes.Add((byte)'\t');
+                break;
+            case 'x' when this.position + 1 < this.source.Length && DigitValue(this.source[this.position], 16) >= 0 && DigitValue(this.source[this.position + 1], 16) >= 0:
+                bytes.Add((byte)((DigitValue(this.source[this.position], 16) << 4) | DigitValue(this.source[this.position + 1], 16)));
+                this.position += 2;
+                break;
+            default:
+                throw new CStructLayoutException(SyntaxErrorPrefix + "A byte string has an unknown escape: \\" + escape + " (use \\\\, \\\", \\0, \\n, \\r, \\t or \\xHH).");
+            }
+        }
+
+        if (bytes.Count == 0 || bytes.Count > BytesLiteral.MaximumLength)
+        {
+            throw new CStructLayoutException(SyntaxErrorPrefix + "A byte string holds 1 to " + BytesLiteral.MaximumLength + " bytes.");
+        }
+
+        this.SkipTrivia();
+        return new BytesLiteral(bytes.ToArray());
+    }
+
+    /// <summary>The byte one character of a byte string stands for.</summary>
+    /// <param name="character">The character.</param>
+    /// <param name="asciiOnly">Whether the string is a <c>b"..."</c> string, which holds ASCII only.</param>
+    /// <returns>The byte.</returns>
+    /// <exception cref="CStructLayoutException">The character does not fit a byte, or is not ASCII in a <c>b"..."</c> string.</exception>
+    private static byte ByteOf(char character, bool asciiOnly)
+    {
+        if (character > (asciiOnly ? 0x7F : 0xFF))
+        {
+            throw new CStructLayoutException(SyntaxErrorPrefix + "A byte string holds " + (asciiOnly ? "ASCII characters only (use \\xHH for other bytes)" : "characters U+0000 through U+00FF only") + ": U+" + ((int)character).ToString("X4", System.Globalization.CultureInfo.InvariantCulture) + ".");
+        }
+
+        return (byte)character;
+    }
+
     /// <summary>A parenthesized expression, an identifier, or an integer literal (which skips leading trivia itself).</summary>
     private Expr ParseTerm()
     {
@@ -230,6 +363,11 @@ operand:
             Expr inner = this.ParseExpr();
             this.ExpectToken(')');
             return inner;
+        }
+
+        if (this.TryParseByteString() is { } byteString)
+        {
+            return byteString;
         }
 
         Identifier? identifier = this.TryParseIdentifier();

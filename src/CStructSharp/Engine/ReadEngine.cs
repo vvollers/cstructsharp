@@ -625,6 +625,15 @@ internal static partial class ReadEngine
                     captureSkipped = false;
                     break;
 
+                case ReadOpCode.CaptureBytesMatch:
+                    {
+                        // The array was just stored in its member; 1 when it holds exactly the byte string (see BytesMatch).
+                        int shapeSlot = program.GetShapeSlot(field);
+                        bool equal = shapeSlot >= 0 && BytesMatch.Equal(destination.StoredSlot(shapeSlot), program.ByteStrings[step.B]);
+                        state.Slots.Set(step.A, SlotValue.FromLiteral(equal ? Int128.One : Int128.Zero));
+                        break;
+                    }
+
                 case ReadOpCode.CaptureNotANumberIfElements:
                     // A capture is taken per element, so an empty array captures (and publishes) nothing.
                     captureSkipped = count == 0;

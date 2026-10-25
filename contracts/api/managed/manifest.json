@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed",
-  "baselineRevision": 69,
+  "baselineRevision": 70,
   "packageVersion": "0.15.0",
   "assembly": "CStructSharp.dll",
   "exportedTypes": 96,
@@ -12,22 +12,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed/CStructSharp.public-api.txt",
-    "lines": 1167,
-    "normalizedSha256": "45A4252816171264E66D1B466E6506187A315B66698E03B569954A3532EE55C2"
+    "lines": 1169,
+    "normalizedSha256": "7DAC1BB40DF1DFD05F4EC935122D6521173044D0738A6C914283FF3A2B4404DA"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "8EB3751647B58DA43B83090EE648F7619750BEC15497AFA964E13B7E45D0EFB4",
+      "normalizedSha256": "192C1908448E335AFB4B23CDB8704B99BD387592A2B3D412C862F9ED4EA5547D",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "FE15477762D755B38D161897EA3048E48308A0D82DD607B0032DB53A5496BCFB",
+      "normalizedSha256": "7D1C567E69CDC6821AE561A354F0709D923E2A3B8B2768158E93F0D21ED98138",
       "aotCompatible": true
     }
   ],
@@ -442,12 +442,18 @@
     },
     {
       "revision": 69,
+      "date": "2026-10-25",
+      "packageVersion": "0.15.0",
+      "combinedSha256": "FA4164FBF7E7AACD2D05BFE5055E3F5F47F6DAB0F0516C7AF1F5AEB7B8F0AD36"
+    },
+    {
+      "revision": 70,
       "kind": "additive",
       "date": "2026-10-25",
       "packageVersion": "0.15.0",
-      "combinedSha256": "FA4164FBF7E7AACD2D05BFE5055E3F5F47F6DAB0F0516C7AF1F5AEB7B8F0AD36",
-      "rationale": "ConstraintPolicy, ReadOptions.Constraints and ReadLimits.Constraints let one read skip the layout's constraints.",
-      "releaseImpact": "Additive; ReadLimits stays 40 bytes and the default policy Enforce changes nothing for existing reads."
+      "combinedSha256": "B2D8D2A69E45171002F4B14F7E8E0A79E62BC728F12E93590DC98FAF4E32E02C",
+      "rationale": "Byte-string comparisons in constraints: the generated-code helpers Expressions.BytesEqual and Expressions.TextEquals.",
+      "releaseImpact": "Additive members of the advanced Expressions surface; no existing call changes."
     }
   ]
 }

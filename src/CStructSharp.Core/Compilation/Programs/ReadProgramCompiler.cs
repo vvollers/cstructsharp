@@ -917,6 +917,19 @@ internal sealed class ReadProgramCompiler : StructProgramCompiler<ReadProgramBui
     private void EmitCapture(ReadProgramBuilder builder, int index)
     {
         CompiledField field = builder.Fields[index];
+
+        // The results of the member's comparisons with byte strings, for the conditions that name them.
+        if (!field.Constraints.IsDefaultOrEmpty)
+        {
+            foreach (ByteMatch match in field.ByteMatches)
+            {
+                if (this.cache.Table.TryGetSlot(match.SlotName, out int matchSlot))
+                {
+                    builder.Emit(ReadOpCode.CaptureBytesMatch, index, matchSlot, builder.AddByteString(match.Bytes));
+                }
+            }
+        }
+
         if (!field.CapturesLayoutVariable || field.Name.Length == 0 || field.Composite is not null ||
             !this.cache.Table.TryGetSlot(field.Name, out int slot))
         {

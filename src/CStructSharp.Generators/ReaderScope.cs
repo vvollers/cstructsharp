@@ -63,10 +63,45 @@ internal sealed class ReaderScope
             this.visible[member.LayoutName] = expression;
         }
 
+        // The reader's value is the array or text itself, so the byte comparisons its conditions make are published with it.
+        if (exposes is null)
+        {
+            this.PublishByteMatches(member, access, rawBytes: false);
+        }
+
         if (member.Composite is { IsUnion: false } nested && member.Field.PointerDepth == 0 && member.Field.Array.Kind == CompiledArrayKind.Scalar)
         {
             string? guard = member.IsConditional ? FlagAccess(member, access) : null;
             this.PublishNested(nested, member.LayoutName, access, guard, 0, exposes, false);
+        }
+    }
+
+    /// <summary>
+    ///     Makes the results of a member's comparisons with byte strings (<c>oem == "NTFS    "</c>) visible to its constraints: each
+    ///     hidden value is 1 when the member's bytes equal the string. The reader publishes the member's decoded value (a
+    ///     <c>byte[]</c> or a <c>string</c>, compared the way the engine compares it); a view, a bytes-first check or
+    ///     <c>Matches</c> has the member's raw bytes.
+    /// </summary>
+    /// <param name="member">The member just read.</param>
+    /// <param name="access">The C# expression of the member's decoded value, or of its raw bytes when <paramref name="rawBytes"/> is set; <see langword="null"/> when the code cannot supply either, which makes the results undefined.</param>
+    /// <param name="rawBytes">Whether <paramref name="access"/> is the member's raw bytes (a span) rather than its decoded value.</param>
+    public void PublishByteMatches(GeneratedMember member, string? access, bool rawBytes)
+    {
+        foreach (ByteMatch match in member.Field.ByteMatches)
+        {
+            if (access is null)
+            {
+                this.visible[match.SlotName] = "global::CStructSharp.Generated.Expressions.Undefined(" + SourceWriter.Literal(match.SlotName) + ")";
+                continue;
+            }
+
+            string literal = "new byte[] { " + string.Join(", ", System.Linq.Enumerable.Select(match.Bytes, value => "0x" + value.ToString("X2", System.Globalization.CultureInfo.InvariantCulture))) + " }";
+            string call = "global::CStructSharp.Generated.Expressions." + (!rawBytes && member.Field.IsCharElement ? "TextEquals(" : "BytesEqual(") + access + ", " + literal + ")";
+
+            // A conditional member has a value only when its arm was selected; otherwise the name is undefined.
+            this.visible[match.SlotName] = rawBytes || !member.IsConditional
+                                               ? call
+                                               : "(" + FlagAccess(member, access) + " ? " + call + " : global::CStructSharp.Generated.Expressions.Undefined(" + SourceWriter.Literal(match.SlotName) + "))";
         }
     }
 
@@ -79,6 +114,11 @@ internal sealed class ReaderScope
     public void PublishUndefined(GeneratedMember member)
     {
         this.Publish(member, "undefined", static _ => false);
+        foreach (ByteMatch match in member.Field.ByteMatches)
+        {
+            this.visible[match.SlotName] = "global::CStructSharp.Generated.Expressions.Undefined(" + SourceWriter.Literal(match.SlotName) + ")";
+        }
+
         if (AsOperand(member, "undefined") is not null)
         {
             this.visible[member.LayoutName] = "global::CStructSharp.Generated.Expressions.Undefined(" + SourceWriter.Literal(member.LayoutName) + ")";

@@ -687,7 +687,22 @@ internal sealed partial class LayoutParser
         }
 
         int textStart = this.position;
-        Expr expression = this.ParseExpr();
+        this.allowByteStrings = true;
+        Expr expression;
+        try
+        {
+            expression = this.ParseExpr();
+        }
+        finally
+        {
+            this.allowByteStrings = false;
+        }
+
+        if (ContainsBytesLiteral(expression))
+        {
+            throw new CStructLayoutException(SyntaxErrorPrefix + "A byte string can only be compared with == or != to the name of a fixed-size uint8 or char array field, as in oem == \"NTFS    \".");
+        }
+
         int textEnd = this.position;
         string? label = this.TryToken(',') ? this.ParseConstraintString("label", "after the condition") : null;
         string? description = label is not null && this.TryToken(',') ? this.ParseConstraintString("message", "after the label") : null;

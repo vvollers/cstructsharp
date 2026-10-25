@@ -123,7 +123,7 @@ accepted forms.
 
 Portable integer expressions do not include:
 
-- floating-point, string, or character literals;
+- floating-point, string, or character literals, except the byte strings of a [constraint](field-constraints.md#compare-an-array-or-text-with-a-byte-string);
 - casts or `sizeof`; or
 - C's implicit integer-promotion rules.
 

@@ -22,6 +22,7 @@ internal sealed class ProgramTables
     private readonly List<string> prefixes = [];
     private readonly List<QualifiedTarget[]> qualifiedTargets = [];
     private readonly List<UnusableVariable> unusables = [];
+    private readonly List<byte[]> byteStrings = [];
     private readonly List<ProgramBranch> branches = [];
     private readonly ReadProgram.ConditionalGroup?[] groups;
     private readonly SlotTable table;
@@ -58,6 +59,23 @@ internal sealed class ProgramTables
     /// <param name="targets">The targets.</param>
     /// <returns>The targets' index.</returns>
     public int AddQualifiedTargets(QualifiedTarget[] targets) => IndexOfReference(this.qualifiedTargets, targets);
+
+    /// <summary>Adds the byte string a bytes-match capture compares an array with.</summary>
+    /// <param name="bytes">The bytes; shared, not copied.</param>
+    /// <returns>The string's index.</returns>
+    public int AddByteString(byte[] bytes)
+    {
+        for (int index = 0; index < this.byteStrings.Count; index++)
+        {
+            if (this.byteStrings[index].AsSpan().SequenceEqual(bytes))
+            {
+                return index;
+            }
+        }
+
+        this.byteStrings.Add(bytes);
+        return this.byteStrings.Count - 1;
+    }
 
     /// <summary>Adds the unusable value a not-a-number capture stores.</summary>
     /// <param name="reason">What the member holds, as the phrase after "is".</param>
@@ -128,6 +146,10 @@ internal sealed class ProgramTables
     /// <summary>Returns the publication targets collected so far.</summary>
     /// <returns>A new array.</returns>
     public QualifiedTarget[][] QualifiedTargets() => this.qualifiedTargets.ToArray();
+
+    /// <summary>Returns the byte strings collected so far.</summary>
+    /// <returns>A new array.</returns>
+    public byte[][] ByteStrings() => this.byteStrings.ToArray();
 
     /// <summary>Returns the not-a-number values collected so far.</summary>
     /// <returns>A new array.</returns>

@@ -395,6 +395,11 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
     /// <param name="value">The member value.</param>
     internal void StoreSlot(int index, object? value) => this.SetSlot(index, value);
 
+    /// <summary>The value stored in a slot, for the compiled engine reading back a member it just stored.</summary>
+    /// <param name="index">The member's slot index in this value's shape.</param>
+    /// <returns>The stored value, or <see langword="null"/> when the slot has not been set.</returns>
+    internal object? StoredSlot(int index) => ReferenceEquals(this.slots[index], Unset) ? null : this.slots[index];
+
     /// <summary>Slot write for bound call sites.</summary>
     private object? SetSlot(int index, object? value)
     {

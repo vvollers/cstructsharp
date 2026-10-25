@@ -214,6 +214,42 @@ internal sealed class CompiledField
     public bool CapturesLayoutVariable { get; init; }
 
     /// <summary>
+    ///     The comparisons of this field's bytes with byte strings that its constraints make, without repeats; empty for almost every
+    ///     field. A reader publishes each result right after reading the field (see <see cref="ByteMatch"/>).
+    /// </summary>
+    public ImmutableArray<ByteMatch> ByteMatches
+    {
+        get
+        {
+            ImmutableArray<ByteMatch>.Builder? matches = null;
+            foreach (CompiledConstraint constraint in this.Constraints)
+            {
+                if (constraint.ByteMatches.IsDefaultOrEmpty)
+                {
+                    continue;
+                }
+
+                foreach (ByteMatch match in constraint.ByteMatches)
+                {
+                    matches ??= ImmutableArray.CreateBuilder<ByteMatch>();
+                    bool known = false;
+                    foreach (ByteMatch existing in matches)
+                    {
+                        known |= existing.SlotName == match.SlotName;
+                    }
+
+                    if (!known)
+                    {
+                        matches.Add(match);
+                    }
+                }
+            }
+
+            return matches is null ? ImmutableArray<ByteMatch>.Empty : matches.ToImmutable();
+        }
+    }
+
+    /// <summary>
     ///     The element count of the pointer's final target, from a <c>@count(N)</c> suffix: the target is N
     ///     consecutive values of the pointed-to type, read as an array. <see langword="null"/> for a pointer to one
     ///     value and for every non-pointer field. Derived views (pointer levels, placement) keep it.

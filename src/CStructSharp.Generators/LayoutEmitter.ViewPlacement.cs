@@ -284,6 +284,12 @@ internal sealed partial class LayoutEmitter
             return;
         }
 
+        // A comparison with a byte string reads the array's bytes, which the view exposes for an array at a build-time offset.
+        if (!field.ByteMatches.IsEmpty)
+        {
+            scope.PublishByteMatches(member, plan.Slots[field].Constant is not null && field.Array.Kind == CompiledArrayKind.Fixed ? "this." + member.PropertyName + "Bytes" : null, rawBytes: true);
+        }
+
         // The reader reports the end of the failing field, so Validate() moves its cursor there before it throws.
         ViewSlot slot = plan.Slots[field];
         int? size = field.BitSize > 0 ? field.BitUnitSize ?? field.BitStorageSize ?? field.Codec.Size : field.FixedStorageSize;

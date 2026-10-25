@@ -105,6 +105,8 @@ declarator-suffixes
 placement-suffix = alignment-override | offset-assertion ;
 pointer-count    = "@count", "(", expression, ")" ;
 constraint       = ( "@expect" | "@supports" | "@magic" ), "(", expression, [ ",", string-literal, [ ",", string-literal ] ], ")" ;
+byte-comparison  = identifier, ( "==" | "!=" ), byte-string | byte-string, ( "==" | "!=" ), identifier ;
+byte-string      = [ "b" ], '"', { byte-character | ( "\\", escape ) }, '"' ;
 alignment-override
                  = "@align", "(", expression, ")" ;
 offset-assertion = "@", expression ;
@@ -121,7 +123,7 @@ shift            = additive, { ( "<<" | ">>" ), additive } ;
 additive         = multiplicative, { ( "+" | "-" ), multiplicative } ;
 multiplicative   = unary, { ( "*" | "/" | "%" ), unary } ;
 unary            = { "-" | "~" | "!" }, primary ;
-primary          = literal | qualified-name | size-call | "(", expression, ")" ;
+primary          = literal | qualified-name | size-call | byte-comparison | "(", expression, ")" ;
 qualified-name   = identifier, { ".", identifier } ;
 size-call        = "sizeof", "(", type-spelling, ")" | "offsetof", "(", type-spelling, ",", identifier, ")" ;
 type-spelling    = identifier, { identifier }, pointer-stars ;
@@ -301,6 +303,8 @@ The table explains each production and links to the page that defines its additi
 | `declarator-suffixes` | The optional trailing suffixes of a declarator: at most one placement suffix, at most one pointer count and any number of constraints, in any order |
 | `placement-suffix` | At most one trailing alignment override or offset assertion per declarator |
 | `constraint` | A condition the field's value must satisfy: `@expect` (a value outside it is malformed), `@supports` (the layout does not support it) or `@magic` (the bytes are not this format; checked first); any number per declarator, checked after the field is read; see [field constraints](field-constraints.md) |
+| `byte-comparison` | Only inside a constraint's condition: a fixed-size `uint8` or `char` array field compared with a byte string of the same length; evaluates to 1 or 0 and may be combined with `&&`, `\|\|` and `!` |
+| `byte-string` | `"..."` (one byte per character, U+0000 to U+00FF) or `b"..."` (ASCII only), with the escapes `\\`, `\"`, `\0`, `\n`, `\r`, `\t` and `\xHH`; one to 256 bytes |
 | `pointer-count` | `@count(N)`: the number of consecutive elements a pointer's final target holds |
 | `alignment-override` | An explicit per-declarator alignment override, effective only when `aligned: true` |
 | `offset-assertion` | An explicit per-declarator byte-offset assertion, checked when statically computable |

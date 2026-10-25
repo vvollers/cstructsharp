@@ -46,6 +46,13 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   collected violations follow the new check order, and `Matches` ignores that struct's `@expect` conditions. Deviation from the
   plan's pre-read of a fixed-offset magic: the readers hold back earlier conditions instead, so one rule serves the runtime,
   generated and view readers; a struct with a magic is read member by member, not through the static plan.
+- **Byte-string comparisons in constraints.** A condition can compare a fixed-size `uint8` or `char` array with a byte string of
+  the same length: `uint8 oem[8] @expect(oem == "NTFS    ")`, `uint8 sig[4] @magic(sig == b"\x7fELF")`, also `!=`, combined
+  with `&&`, `||` and `!`. The comparison is on the array's raw bytes (`TrimFixedText` does not change it), generated readers use a
+  span comparison with no allocation, and `Matches` and a view's `Validate` evaluate it. Any other use of an array in a condition
+  is still a layout error. The portable language contract is revision 5, and older engines reject a layout that uses byte
+  strings. Public API: `Expressions.BytesEqual` and `Expressions.TextEquals`, the helpers generated code calls. A struct with a
+  byte-string condition is read member by member in the runtime engine (the static plan decodes scalars only).
 - **Format exceptions from generated readers.** `[CStructLayout(ConstraintFailures = ConstraintFailureMode.FormatExceptions)]`, or
   the build property `CStructSharpConstraintFailures`, makes the throwing generated entry points (`Parse` for every input kind,
   `Records`, a view's `Validate` and `ToObject`) throw `InvalidDataException` for `@expect` and `NotSupportedException` for

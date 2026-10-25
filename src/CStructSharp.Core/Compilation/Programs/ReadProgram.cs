@@ -50,6 +50,7 @@ internal sealed class ReadProgram
         this.Prefixes = parts.Prefixes;
         this.QualifiedTargets = parts.QualifiedTargets;
         this.Unusables = parts.Unusables;
+        this.ByteStrings = parts.ByteStrings;
         this.Groups = parts.Groups;
         this.Branches = parts.Branches;
         this.Scope = parts.Scope;
@@ -136,6 +137,9 @@ internal sealed class ReadProgram
 
     /// <summary>Gets the unusable values not-a-number captures store, one per capturing member, indexed by a capture's <c>B</c>.</summary>
     public UnusableVariable[] Unusables { get; }
+
+    /// <summary>Gets the byte strings that <see cref="ReadOpCode.CaptureBytesMatch"/> steps compare a member with, indexed by the step's <c>B</c>.</summary>
+    public byte[][] ByteStrings { get; }
 
     /// <summary>Gets the conditional groups of the composite, indexed by <see cref="ProgramBranch.Group"/>.</summary>
     public ConditionalGroup[] Groups { get; }
@@ -295,6 +299,7 @@ internal sealed class ReadProgram
     /// <param name="Prefixes">The qualified prefixes.</param>
     /// <param name="QualifiedTargets">The publication targets.</param>
     /// <param name="Unusables">The not-a-number values.</param>
+    /// <param name="ByteStrings">The byte strings of bytes-match captures.</param>
     /// <param name="Groups">The conditional groups.</param>
     /// <param name="Branches">The conditional branches.</param>
     /// <param name="Scope">The conditional scope, or <see langword="null"/>.</param>
@@ -313,6 +318,7 @@ internal sealed class ReadProgram
         string[] Prefixes,
         QualifiedTarget[][] QualifiedTargets,
         UnusableVariable[] Unusables,
+        byte[][] ByteStrings,
         ConditionalGroup[] Groups,
         ProgramBranch[] Branches,
         ConditionalScopeSlots? Scope,

@@ -483,6 +483,7 @@ namespace CStructSharp.Generated
     {
         public static System.Int128 Add(System.Int128 left, System.Int128 right) { }
         public static System.Int128 And(System.Int128 left, System.Int128 right) { }
+        public static int BytesEqual(System.ReadOnlySpan<byte> value, System.ReadOnlySpan<byte> expected) { }
         public static System.Int128 Complement(System.Int128 value) { }
         public static System.Int128 Divide(System.Int128 left, System.Int128 right) { }
         public static System.Int128 Equal(System.Int128 left, System.Int128 right) { }
@@ -505,6 +506,7 @@ namespace CStructSharp.Generated
         public static System.Int128 ShiftLeft(System.Int128 value, System.Int128 count) { }
         public static System.Int128 ShiftRight(System.Int128 value, System.Int128 count) { }
         public static System.Int128 Subtract(System.Int128 left, System.Int128 right) { }
+        public static int TextEquals(string? value, System.ReadOnlySpan<byte> expected) { }
         public static bool TryVariable(System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string name, out int value) { }
         public static System.Int128 Undefined(string name) { }
         public static System.Int128 Variable(System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string name) { }

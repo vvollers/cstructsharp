@@ -81,6 +81,11 @@ internal sealed class ReadProgramBuilder : ProgramBuilder<ReadStep, ReadProgram>
     /// <returns>The value's index.</returns>
     public int AddUnusable(string reason) => this.Tables.AddUnusable(reason);
 
+    /// <summary>Adds a byte string a <see cref="ReadOpCode.CaptureBytesMatch"/> step compares with.</summary>
+    /// <param name="bytes">The bytes.</param>
+    /// <returns>The string's index.</returns>
+    public int AddByteString(byte[] bytes) => this.Tables.AddByteString(bytes);
+
     /// <summary>Freezes the program.</summary>
     /// <param name="kind">What the program reads.</param>
     /// <param name="name">The composite's or root's name.</param>
@@ -105,6 +110,7 @@ internal sealed class ReadProgramBuilder : ProgramBuilder<ReadStep, ReadProgram>
                 this.Tables.Prefixes(),
                 this.Tables.QualifiedTargets(),
                 this.Tables.Unusables(),
+                this.Tables.ByteStrings(),
                 this.Tables.Groups(),
                 this.Tables.Branches(),
                 this.Scope,

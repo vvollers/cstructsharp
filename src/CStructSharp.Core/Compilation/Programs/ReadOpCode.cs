@@ -311,6 +311,13 @@ internal enum ReadOpCode : byte
     CaptureNotANumber,
 
     /// <summary>
+    ///     Stores in slot <c>A</c> whether the member just read, a fixed <c>uint8</c> or <c>char</c> array, holds exactly the byte string
+    ///     <c>B</c> (<see cref="ReadProgram.ByteStrings"/>): 1 when it does, 0 when it does not. The conditions that compare
+    ///     the member with a byte string read the slot.
+    /// </summary>
+    CaptureBytesMatch,
+
+    /// <summary>
     ///     <see cref="CaptureNotANumber"/> for an array whose count the data decides: applied only when the count
     ///     register is above zero, because an array is captured per element and an empty array captures nothing.
     /// </summary>

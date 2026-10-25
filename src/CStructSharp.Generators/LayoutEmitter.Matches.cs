@@ -42,6 +42,7 @@ internal sealed partial class LayoutEmitter
         var decoded = new List<(GeneratedMember Member, ViewSlot Slot)>();
         var conditions = new List<MatchCondition>();
         bool magicOnly = composite.Composite.HasMagic;
+        var arrays = new List<(string Access, int End)>();
         foreach (CompiledField field in composite.Composite.Fields)
         {
             if (scope.Member(field) is not { } member)
@@ -66,6 +67,18 @@ internal sealed partial class LayoutEmitter
             else
             {
                 scope.PublishUndefined(member);
+            }
+
+            // A comparison with a byte string reads the array's bytes where they are.
+            if (!field.ByteMatches.IsEmpty)
+            {
+                bool placed = field.Array.Kind == CompiledArrayKind.Fixed && field.FixedStorageSize is not null;
+                string? bytes = placed ? "source.Slice(" + Int(slot.Constant.Value) + ", " + Int(field.FixedStorageSize!.Value) + ")" : null;
+                scope.PublishByteMatches(member, bytes, rawBytes: true);
+                if (bytes is not null)
+                {
+                    arrays.Add((bytes, slot.Constant.Value + field.FixedStorageSize!.Value));
+                }
             }
 
             foreach (CompiledConstraint constraint in field.Constraints)
@@ -93,6 +106,14 @@ internal sealed partial class LayoutEmitter
         // Only the members a condition names are decoded, and the source must hold the furthest of them.
         List<(GeneratedMember Member, ViewSlot Slot)> used = decoded.Where(entry => conditions.Any(condition => NamesLocal(condition.Code, "m_" + entry.Member.PropertyName))).ToList();
         int needed = used.Count == 0 ? 0 : used.Max(entry => entry.Slot.Constant!.Value + DecodedSize(entry.Member.Field, entry.Member));
+        foreach ((string access, int end) in arrays)
+        {
+            if (conditions.Any(condition => condition.Code.Contains(access)))
+            {
+                needed = Math.Max(needed, end);
+            }
+        }
+
         string name = composite.Name;
         writer.Line();
         writer.Line("/// <summary>Whether <paramref name=\"source\"/> satisfies the <c>@expect</c> conditions of a <c>" + composite.LayoutName + "</c> that it can evaluate from members at build-time offsets: it decodes only the members the conditions name, builds no value, and does not throw for a source that is too short or a condition that cannot be evaluated (they do not match). A struct with <c>@magic</c> conditions is checked against those alone. A condition on a member after a runtime-sized array, in a conditional arm or in a nested struct is not evaluated, and <c>@supports</c> conditions are not checked (an unsupported value is still recognized), so a match is not a promise that a read succeeds.</summary>");

@@ -19,6 +19,37 @@ using CStructSharp.Syntax;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class Expressions
 {
+    /// <summary>The value of a constraint's <c>array == "bytes"</c> for an array that is available as bytes: whether it holds exactly those bytes.</summary>
+    /// <param name="value">The array's bytes.</param>
+    /// <param name="expected">The byte string written in the constraint; as long as the array.</param>
+    /// <returns>1 when the bytes are equal, 0 otherwise.</returns>
+    public static int BytesEqual(ReadOnlySpan<byte> value, ReadOnlySpan<byte> expected) => value.SequenceEqual(expected) ? 1 : 0;
+
+    /// <summary>
+    ///     The value of a constraint's <c>name == "text"</c> for a <c>char</c> array that was read as a string. The comparison is on the
+    ///     array's raw bytes: a read that trims trailing NULs (<c>TrimFixedText</c>) is compared as if it had not.
+    /// </summary>
+    /// <param name="value">The text the reader stored, one character per byte, possibly without its trailing NUL padding.</param>
+    /// <param name="expected">The byte string written in the constraint; as long as the array.</param>
+    /// <returns>1 when the array's bytes are equal to the byte string, 0 otherwise.</returns>
+    public static int TextEquals(string? value, ReadOnlySpan<byte> expected)
+    {
+        if (value is null || value.Length > expected.Length)
+        {
+            return 0;
+        }
+
+        for (int index = 0; index < expected.Length; index++)
+        {
+            if (index < value.Length ? value[index] != expected[index] : expected[index] != 0)
+            {
+                return 0;
+            }
+        }
+
+        return 1;
+    }
+
     /// <summary>Checked addition.</summary>
     /// <param name="left">The left operand.</param>
     /// <param name="right">The right operand.</param>

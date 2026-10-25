@@ -147,6 +147,13 @@ internal sealed partial class LayoutCompilation
             return;
         }
 
+        // A byte comparison reads a hidden value its field's reader publishes; the array's own name is not referenced.
+        if (expression is ByteEquals comparison)
+        {
+            (referenced ??= new HashSet<string>(StringComparer.Ordinal)).Add(comparison.SlotName);
+            return;
+        }
+
         pending ??= new Stack<Expr>();
         pending.Push(expression);
         while (pending.Count > 0)
@@ -155,6 +162,9 @@ internal sealed partial class LayoutCompilation
             {
             case Identifier identifier:
                 (referenced ??= new HashSet<string>(StringComparer.Ordinal)).Add(identifier.Name);
+                break;
+            case ByteEquals bytes:
+                (referenced ??= new HashSet<string>(StringComparer.Ordinal)).Add(bytes.SlotName);
                 break;
             case UnaryOp unary:
                 pending.Push(unary.Expr);

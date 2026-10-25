@@ -55,7 +55,7 @@ internal static class PlanConditions
     {
         // A struct with @magic conditions checks them in the order of its ConstraintSchedule, which the plan's per-operation checks do
         // not follow, so it keeps the member-by-member reader.
-        if (!program.CoversConstraints || program.Composite is { HasMagic: true })
+        if (!program.CoversConstraints || program.Composite is { HasMagic: true } or { HasByteMatches: true })
         {
             return false;
         }
@@ -67,7 +67,7 @@ internal static class PlanConditions
             foreach (int holder in operation.HolderPath)
             {
                 declaring = declaring.NestedByField[holder];
-                if (declaring is null || !declaring.CoversConstraints || declaring.Composite is { HasMagic: true })
+                if (declaring is null || !declaring.CoversConstraints || declaring.Composite is { HasMagic: true } or { HasByteMatches: true })
                 {
                     return false;
                 }
