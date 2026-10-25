@@ -322,14 +322,14 @@ public class TypeEmissionTests
         bytes[^1] = 2;
         Assembly fixedAssembly = fixedResult.Load();
         Type fixedLayout = fixedAssembly.GetType("Demo.FixedArrays")!;
-        MethodInfo fixedParse = fixedLayout.GetMethod("Parse", [typeof(byte[]), typeof(ReadOptions)])!;
-        object fixedRoot = fixedParse.Invoke(null, [bytes, null])!;
+        MethodInfo fixedParse = fixedLayout.GetMethod("Parse", [typeof(byte[]), typeof(IReadOnlyDictionary<string, int>), typeof(ReadOptions)])!;
+        object fixedRoot = fixedParse.Invoke(null, [bytes, null, null])!;
         var values = (uint[])fixedRoot.GetType().GetProperty("Values")!.GetValue(fixedRoot)!;
         CollectionAssert.AreEqual(Enumerable.Range(0, 1024).Select(index => 0x10000000u + (uint)index).ToArray(), values);
         Assert.AreEqual("Red,Green", string.Join(",", ((Array)fixedRoot.GetType().GetProperty("Shades")!.GetValue(fixedRoot)!).Cast<object>()));
 
         // A short input takes the member-by-member reader, which fails without returning a partial array.
-        var shortRead = Assert.Throws<TargetInvocationException>(() => fixedParse.Invoke(null, [bytes.AsSpan(0, 4000).ToArray(), null]));
+        var shortRead = Assert.Throws<TargetInvocationException>(() => fixedParse.Invoke(null, [bytes.AsSpan(0, 4000).ToArray(), null, null]));
         Assert.IsInstanceOfType<CStructSharp.Diagnostics.CStructReadException>(shortRead.InnerException);
 
         GeneratorResult countedResult = GeneratorRunner.Run(Header + """
@@ -348,7 +348,7 @@ public class TypeEmissionTests
         }
 
         Type countedLayout = countedResult.Load().GetType("Demo.CountedArrays")!;
-        object countedRoot = countedLayout.GetMethod("Parse", [typeof(byte[]), typeof(ReadOptions)])!.Invoke(null, [counted, null])!;
+        object countedRoot = countedLayout.GetMethod("Parse", [typeof(byte[]), typeof(IReadOnlyDictionary<string, int>), typeof(ReadOptions)])!.Invoke(null, [counted, null, null])!;
         var countedValues = (ushort[])countedRoot.GetType().GetProperty("Counted")!.GetValue(countedRoot)!;
         CollectionAssert.AreEqual(Enumerable.Range(0, 1500).Select(index => (ushort)(index * 3)).ToArray(), countedValues);
     }

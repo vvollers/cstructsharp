@@ -57,7 +57,7 @@ public class LenientTextTests
         MethodInfo parse = assembly.GetType("Demo.TextLayout")!.GetMethods().Single(method => method.Name == "Parse" && method.GetParameters()[0].ParameterType == typeof(byte[]));
         try
         {
-            return parse.Invoke(null, [bytes, options])!;
+            return parse.Invoke(null, [bytes, null, options])!;
         }
         catch (TargetInvocationException exception)
         {

@@ -150,15 +150,16 @@ internal sealed partial class LayoutEmitter
             writer.Line("/// <summary>Reads the root declaration (<c>" + composite.LayoutName + "</c>); see " + Cref(method + "(global::System.ReadOnlySpan{byte}, " + this.OrderCref + VariablesCref + ", global::CStructSharp.ReadOptions)") + ".</summary>");
             writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
             this.EmitOrderDoc(writer);
+            writer.Line(VariablesDoc);
             writer.Line(ReadOptionsDoc);
             writer.Line("/// <returns>The parsed value.</returns>");
-            writer.Line("public static " + name + " Parse(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + "global::CStructSharp.ReadOptions? options = null) => " + method + "(source, " + this.OrderArgument + "null, options);");
+            writer.Line("public static " + name + " Parse(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null) => " + method + "(source, " + this.OrderArgument + "variables, options);");
             writer.Line();
-            writer.Line("/// <inheritdoc cref=\"Parse(global::System.ReadOnlySpan{byte}, " + this.OrderCref + "global::CStructSharp.ReadOptions)\"/>");
-            writer.Line("public static " + name + " Parse(byte[] source, " + this.OrderParameter + "global::CStructSharp.ReadOptions? options = null) => " + method + "(source, " + this.OrderArgument + "null, options);");
+            writer.Line("/// <inheritdoc cref=\"Parse(global::System.ReadOnlySpan{byte}, " + this.OrderCref + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
+            writer.Line("public static " + name + " Parse(byte[] source, " + this.OrderParameter + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null) => " + method + "(source, " + this.OrderArgument + "variables, options);");
             writer.Line();
-            writer.Line("/// <inheritdoc cref=\"Parse(global::System.ReadOnlySpan{byte}, " + this.OrderCref + "global::CStructSharp.ReadOptions)\"/>");
-            writer.Line("public static " + name + " Parse(global::System.ReadOnlyMemory<byte> source, " + this.OrderParameter + "global::CStructSharp.ReadOptions? options = null) => " + method + "(source.Span, " + this.OrderArgument + "null, options);");
+            writer.Line("/// <inheritdoc cref=\"Parse(global::System.ReadOnlySpan{byte}, " + this.OrderCref + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
+            writer.Line("public static " + name + " Parse(global::System.ReadOnlyMemory<byte> source, " + this.OrderParameter + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null) => " + method + "(source.Span, " + this.OrderArgument + "variables, options);");
             if (this.request.Surface == GenerationSurface.Full)
             {
                 this.EmitBufferedRootOverloads(writer, composite, method);
@@ -245,8 +246,9 @@ internal sealed partial class LayoutEmitter
             writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
             this.EmitOrderDoc(writer);
             writer.Line("/// <param name=\"limits\">The limits of the read.</param>");
+            writer.Line(VariablesDoc);
             writer.Line("/// <returns>The parsed value.</returns>");
-            writer.Line("public static " + name + " Parse(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + "in " + Limits + " limits) => " + method + "(source, " + this.OrderArgument + "in limits, null);");
+            writer.Line("public static " + name + " Parse(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + "in " + Limits + " limits, " + VariablesType + " variables = null) => " + method + "(source, " + this.OrderArgument + "in limits, variables);");
         }
 
         if (this.request.Surface is GenerationSurface.Parser)
@@ -296,8 +298,9 @@ internal sealed partial class LayoutEmitter
             writer.Line("/// <param name=\"value\">The parsed value, or the default when the read failed.</param>");
             writer.Line("/// <param name=\"failure\">The failure the throwing form would have raised, or <see langword=\"null\"/>.</param>");
             writer.Line("/// <param name=\"limits\">The limits of the read.</param>");
+            writer.Line(VariablesDoc);
             writer.Line("/// <returns>Whether the read succeeded.</returns>");
-            writer.Line("public static bool TryParse(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + maybeNull + "out " + name + " value, out " + Failure + "? failure, in " + Limits + " limits) => Try" + method + "(source, " + this.OrderArgument + "out value, out failure, in limits, null);");
+            writer.Line("public static bool TryParse(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + maybeNull + "out " + name + " value, out " + Failure + "? failure, in " + Limits + " limits, " + VariablesType + " variables = null) => Try" + method + "(source, " + this.OrderArgument + "out value, out failure, in limits, variables);");
         }
     }
 
@@ -317,9 +320,10 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <summary>Reads the root declaration (<c>" + composite.LayoutName + "</c>); see " + Cref(method + "(global::System.ReadOnlySpan{byte}, " + this.OrderCref + VariablesCref + ", global::CStructSharp.ReadOptions)") + ".</summary>");
         writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
         this.EmitOrderDoc(writer);
+        writer.Line(VariablesDoc);
         writer.Line(ReadOptionsDoc);
         writer.Line("/// <returns>The parsed value.</returns>");
-        writer.Line("public static " + composite.Name + " Parse(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + "global::CStructSharp.ReadOptions? options = null) => " + method + "(source, " + this.OrderArgument + "null, options);");
+        writer.Line("public static " + composite.Name + " Parse(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null) => " + method + "(source, " + this.OrderArgument + "variables, options);");
     }
 
     /// <summary>
@@ -399,13 +403,13 @@ internal sealed partial class LayoutEmitter
         string name = composite.Name;
         writer.Line();
         writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.Buffers.ReadOnlySequence{byte}, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
-        writer.Line("public static " + name + " Parse(global::System.Buffers.ReadOnlySequence<byte> source, global::CStructSharp.ReadOptions? options = null) => " + method + "(source, null, options);");
+        writer.Line("public static " + name + " Parse(global::System.Buffers.ReadOnlySequence<byte> source, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null) => " + method + "(source, variables, options);");
         writer.Line();
         writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.IO.Stream, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
-        writer.Line("public static " + name + " Parse(global::System.IO.Stream stream, global::CStructSharp.ReadOptions? options = null) => " + method + "(stream, null, options);");
+        writer.Line("public static " + name + " Parse(global::System.IO.Stream stream, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null) => " + method + "(stream, variables, options);");
         writer.Line();
         writer.Line("/// <inheritdoc cref=\"" + method + "Async(global::System.IO.Stream, " + VariablesCref + ", global::CStructSharp.ReadOptions, global::System.Threading.CancellationToken)\"/>");
-        writer.Line("public static global::System.Threading.Tasks.ValueTask<" + name + "> ParseAsync(global::System.IO.Stream stream, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default) => " + method + "Async(stream, null, options, cancellationToken);");
+        writer.Line("public static global::System.Threading.Tasks.ValueTask<" + name + "> ParseAsync(global::System.IO.Stream stream, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default) => " + method + "Async(stream, variables, options, cancellationToken);");
     }
 
     /// <summary>
@@ -480,10 +484,10 @@ internal sealed partial class LayoutEmitter
             {
                 writer.Line();
                 writer.Line("/// <inheritdoc cref=\"Try" + method + "(" + type.Replace('<', '{').Replace('>', '}') + ", " + this.OrderCref + "out " + name + ", out " + Failure.Replace('<', '{').Replace('>', '}') + "?, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
-                writer.Line("public static bool TryParse(" + type + " " + parameter + ", " + this.OrderParameter + MaybeNull + "out " + name + " value, out " + Failure + "? failure, global::CStructSharp.ReadOptions? options = null) => Try" + method + "(" + parameter + ", " + this.OrderArgument + "out value, out failure, null, options);");
+                writer.Line("public static bool TryParse(" + type + " " + parameter + ", " + this.OrderParameter + MaybeNull + "out " + name + " value, out " + Failure + "? failure, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null) => Try" + method + "(" + parameter + ", " + this.OrderArgument + "out value, out failure, variables, options);");
                 writer.Line();
                 writer.Line("/// <inheritdoc cref=\"Try" + method + "(" + type.Replace('<', '{').Replace('>', '}') + ", " + this.OrderCref + "out " + name + ", out " + Failure.Replace('<', '{').Replace('>', '}') + "?, " + VariablesCref + ", global::CStructSharp.ReadOptions)\"/>");
-                writer.Line("public static bool TryParse(" + type + " " + parameter + ", " + this.OrderParameter + MaybeNull + "out " + name + " value, global::CStructSharp.ReadOptions? options = null) => Try" + method + "(" + parameter + ", " + this.OrderArgument + "out value, out _, null, options);");
+                writer.Line("public static bool TryParse(" + type + " " + parameter + ", " + this.OrderParameter + MaybeNull + "out " + name + " value, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null) => Try" + method + "(" + parameter + ", " + this.OrderArgument + "out value, out _, variables, options);");
             }
         }
     }

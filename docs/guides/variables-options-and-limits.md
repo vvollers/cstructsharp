@@ -27,6 +27,12 @@ Pass a read-only integer dictionary to every operation that needs the count:
 
 [!code-csharp[Read and measure a runtime-sized payload](../examples/Program.cs#language-tutorial-runtime-payload)]
 
+A generated reader takes the dictionary as its `variables` argument, which comes before the options on the unnamed root
+`Parse` as on `Parse<Name>`: `Wire.Parse(bytes, variables)`, `Wire.Parse(bytes, variables, options)`, and with limits as a value
+`Wire.Parse(bytes, in limits, variables)`. Write `Wire.Parse(bytes, null, options)` (or `options: options`) to pass only
+the options. `Wire.Parse(bytes, default)` does not compile: `default` could be the variables or the limits, so name the argument
+(`default(ReadLimits)` or `(IReadOnlyDictionary<string, int>?)null`).
+
 The operation copies the entries before it evaluates the layout. A caller value overrides a layout `#define` with
 the same name for that operation, but CStructSharp does not change the dictionary.
 

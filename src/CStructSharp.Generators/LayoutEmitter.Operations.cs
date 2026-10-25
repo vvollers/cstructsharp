@@ -57,10 +57,10 @@ internal sealed partial class LayoutEmitter
         writer.Line("static string " + contract + ".RootName => " + owner + ".RootName;");
         writer.Line();
         writer.Line("/// <inheritdoc/>");
-        writer.Line("static " + name + " " + contract + ".Parse(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options) => " + owner + ".Parse(source, options);");
+        writer.Line("static " + name + " " + contract + ".Parse(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options) => " + owner + ".Parse(source, null, options);");
         writer.Line();
         writer.Line("/// <inheritdoc/>");
-        writer.Line("static bool " + contract + ".TryParse(global::System.ReadOnlySpan<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out " + name + " value, out global::CStructSharp.Diagnostics.CStructException? failure, global::CStructSharp.ReadOptions? options) => " + owner + ".TryParse(source, out value, out failure, options);");
+        writer.Line("static bool " + contract + ".TryParse(global::System.ReadOnlySpan<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out " + name + " value, out global::CStructSharp.Diagnostics.CStructException? failure, global::CStructSharp.ReadOptions? options) => " + owner + ".TryParse(source, out value, out failure, null, options);");
         writer.Line();
         writer.Line("/// <inheritdoc/>");
         writer.Line("static int " + contract + ".Serialize(" + name + " value, global::System.Span<byte> destination, global::CStructSharp.WriteOptions? options) => " + owner + ".Serialize(value, destination, options);");

@@ -47,7 +47,7 @@ public class OptionSnapshotTests
             break;
         case "BigEndian":
             Assert.IsFalse(layout.IsLittleEndian);
-            Assert.AreEqual((ushort)0x0102, root.GetProperty("A")!.GetValue(options.GetMethod("Parse", [typeof(byte[]), typeof(ReadOptions)])!.Invoke(null, [new byte[] { 1, 2, 0, 0, 0, 0, 0 }, null])));
+            Assert.AreEqual((ushort)0x0102, root.GetProperty("A")!.GetValue(options.GetMethod("Parse", [typeof(byte[]), typeof(IReadOnlyDictionary<string, int>), typeof(ReadOptions)])!.Invoke(null, [new byte[] { 1, 2, 0, 0, 0, 0, 0 }, null, null])));
             break;
         case "Pointer2":
             Assert.AreEqual(2, layout.PointerSize);
@@ -57,7 +57,7 @@ public class OptionSnapshotTests
             break;
         case "HighBitFirst":
             Assert.AreEqual(BitfieldAllocation.HighBitFirst, layout.CompilationOptions.BitfieldAllocation);
-            Assert.AreEqual((byte)0b101, root.GetProperty("BC")!.GetValue(options.GetMethod("Parse", [typeof(byte[]), typeof(ReadOptions)])!.Invoke(null, [new byte[] { 0, 0, 0b1010_0000, 0, 0, 0, 0 }, null])));
+            Assert.AreEqual((byte)0b101, root.GetProperty("BC")!.GetValue(options.GetMethod("Parse", [typeof(byte[]), typeof(IReadOnlyDictionary<string, int>), typeof(ReadOptions)])!.Invoke(null, [new byte[] { 0, 0, 0b1010_0000, 0, 0, 0, 0 }, null, null])));
             break;
         case "CLong32":
             Assert.AreEqual(32, layout.CompilationOptions.CLongWidth);

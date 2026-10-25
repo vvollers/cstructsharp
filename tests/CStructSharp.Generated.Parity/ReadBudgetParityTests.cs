@@ -129,18 +129,18 @@ public class ReadBudgetParityTests
     /// <param name="parseAsync">The async stream form.</param>
     /// <returns>The byte-array, sequence, memory-stream, chunked-stream, async, forward-only stream and forward-only async forms, in that order.</returns>
     private static Action<byte[], ReadOptions>[] Forms<T>(
-        Func<byte[], ReadOptions?, T> array,
-        Func<ReadOnlySequence<byte>, ReadOptions?, T> sequence,
-        Func<Stream, ReadOptions?, T> stream,
-        Func<Stream, ReadOptions?, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<T>> parseAsync) =>
+        Func<byte[], IReadOnlyDictionary<string, int>?, ReadOptions?, T> array,
+        Func<ReadOnlySequence<byte>, IReadOnlyDictionary<string, int>?, ReadOptions?, T> sequence,
+        Func<Stream, IReadOnlyDictionary<string, int>?, ReadOptions?, T> stream,
+        Func<Stream, IReadOnlyDictionary<string, int>?, ReadOptions?, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<T>> parseAsync) =>
     [
-        (data, options) => array(data, options),
-        (data, options) => sequence(Segmented(data), options),
-        (data, options) => stream(new MemoryStream(data), options),
-        (data, options) => stream(new ChunkedStream(data), options),
-        (data, options) => parseAsync(new ChunkedStream(data), options, default).AsTask().GetAwaiter().GetResult(),
-        (data, options) => stream(new ChunkedStream(data, seekable: false), options),
-        (data, options) => parseAsync(new ChunkedStream(data, seekable: false), options, default).AsTask().GetAwaiter().GetResult(),
+        (data, options) => array(data, null, options),
+        (data, options) => sequence(Segmented(data), null, options),
+        (data, options) => stream(new MemoryStream(data), null, options),
+        (data, options) => stream(new ChunkedStream(data), null, options),
+        (data, options) => parseAsync(new ChunkedStream(data), null, options, default).AsTask().GetAwaiter().GetResult(),
+        (data, options) => stream(new ChunkedStream(data, seekable: false), null, options),
+        (data, options) => parseAsync(new ChunkedStream(data, seekable: false), null, options, default).AsTask().GetAwaiter().GetResult(),
     ];
 
     /// <summary>Splits bytes into a sequence of two-byte segments, so a reader cannot take them as one span.</summary>

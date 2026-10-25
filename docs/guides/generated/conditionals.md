@@ -58,7 +58,8 @@ variable or outer value of the same name until the member is read, as at runtime
 ## Caller variables
 
 A selector may use a name the layout does not define. The `variables` argument of `Parse<Name>` supplies it
-(`Messages.ParseMessage(bytes, new Dictionary<string, int> { ["MODE"] = 1 })`), with the runtime's precedence: a
+(`Messages.ParseMessage(bytes, new Dictionary<string, int> { ["MODE"] = 1 })`; the root form takes it too:
+`Messages.Parse(bytes, new Dictionary<string, int> { ["MODE"] = 1 })`), with the runtime's precedence: a
 caller variable overrides a `#define` of the same name, and a define that depends on it is recomputed.
 
 ## Writing

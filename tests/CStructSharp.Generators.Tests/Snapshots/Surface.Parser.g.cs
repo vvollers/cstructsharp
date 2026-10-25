@@ -137,14 +137,16 @@ namespace Demo
         /// <summary>Reads the root declaration (<c>root</c>) under limits given as a value; see <see cref="ParseRoot(global::System.ReadOnlySpan{byte}, in global::CStructSharp.ReadLimits, global::System.Collections.Generic.IReadOnlyDictionary{string, int})"/>.</summary>
         /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
         /// <param name="limits">The limits of the read.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
         /// <returns>The parsed value.</returns>
-        public static Root Parse(global::System.ReadOnlySpan<byte> source, in global::CStructSharp.ReadLimits limits) => ParseRoot(source, in limits, null);
+        public static Root Parse(global::System.ReadOnlySpan<byte> source, in global::CStructSharp.ReadLimits limits, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null) => ParseRoot(source, in limits, variables);
 
         /// <summary>Reads the root declaration (<c>root</c>); see <see cref="ParseRoot(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
         /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
         /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
         /// <returns>The parsed value.</returns>
-        public static Root Parse(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null) => ParseRoot(source, null, options);
+        public static Root Parse(global::System.ReadOnlySpan<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => ParseRoot(source, variables, options);
 
         /// <summary>Reads one <c>hdr</c> at the cursor's position.</summary>
         [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]

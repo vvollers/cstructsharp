@@ -83,7 +83,7 @@ public class FormatExceptionTests
             {
                 "Reader" => Catch(() => FixedReader.Parse(bytes)),
                 "ReaderLimits" => Catch(() => FixedReader.Parse(bytes, new ReadLimits { OffsetBase = 40 })),
-                "ReaderOptions" => Catch(() => FixedReader.Parse(bytes, new ReadOptions { OffsetBase = 40 })),
+                "ReaderOptions" => Catch(() => FixedReader.Parse(bytes, null, new ReadOptions { OffsetBase = 40 })),
                 "Parser" => Catch(() => FixedParser.Parse(bytes)),
                 "Full" => Catch(() => FixedFull.Parse(bytes)),
                 "Struct" => Catch(() => FixedValue.Parse(bytes)),

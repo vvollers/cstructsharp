@@ -200,7 +200,7 @@ public class GeneratedBenchmarks
     /// <returns>The generated root.</returns>
     [Benchmark]
     [BenchmarkCategory("Impact", "ArrayU32")]
-    public ArrayU32Layout.Root Generated_ArrayU32_Parse() => ArrayU32Layout.Parse(this.arrayU32.Bytes, this.arrayU32.ReadOptions);
+    public ArrayU32Layout.Root Generated_ArrayU32_Parse() => ArrayU32Layout.Parse(this.arrayU32.Bytes, null, this.arrayU32.ReadOptions);
 
     /// <summary>Reads every element through the generated view.</summary>
     /// <returns>The sum of the elements.</returns>

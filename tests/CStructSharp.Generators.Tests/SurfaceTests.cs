@@ -64,7 +64,7 @@ public class SurfaceTests
         }
 
         var runtime = new CStruct(Definition.Replace("\\n", "\n", StringComparison.Ordinal));
-        object parsed = surfaced.GetMethod("Parse", [typeof(byte[]), typeof(ReadOptions)])!.Invoke(null, [Bytes, null])!;
+        object parsed = surfaced.GetMethod("Parse", [typeof(byte[]), typeof(IReadOnlyDictionary<string, int>), typeof(ReadOptions)])!.Invoke(null, [Bytes, null, null])!;
         ParityComparer.AssertSame(runtime.Parse(Bytes, "root"), parsed, "root", strict: true);
 
         // The sequence and stream forms of the typed reader are gone, the memory forms stay; TryParse takes a span, an array, and a memory.

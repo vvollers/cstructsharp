@@ -270,10 +270,10 @@ public class ViewPlacementTests
     private static object Parsed(string layout, byte[] bytes)
     {
         Type type = assembly.GetType("Demo." + layout + "Layout")!;
-        MethodInfo parse = type.GetMethods().Single(method => method.Name == "Parse" && method.GetParameters() is [{ ParameterType: { } first }, _] && first == typeof(byte[]));
+        MethodInfo parse = type.GetMethods().Single(method => method.Name == "Parse" && method.GetParameters() is [{ ParameterType: { } first }, _, _] && first == typeof(byte[]));
         try
         {
-            return parse.Invoke(null, [bytes, null])!;
+            return parse.Invoke(null, [bytes, null, null])!;
         }
         catch (TargetInvocationException exception)
         {

@@ -151,8 +151,8 @@ public class ViewTests
             Assert.IsInstanceOfType<OperationCanceledException>(Assert.Throws<TargetInvocationException>(() => tryParse.Invoke(null, cancelledAttempt)).InnerException, inputType.Name + ": cancellation passes through");
         }
 
-        MethodInfo tryParseSpanShort = packet.GetMethods().Single(method => method.Name == "TryParse" && method.GetParameters().Length == 3 && method.GetParameters()[0].ParameterType == typeof(byte[]));
-        object?[] rootForm = [bytes, null, null];
+        MethodInfo tryParseSpanShort = packet.GetMethods().Single(method => method.Name == "TryParse" && method.GetParameters().Length == 4 && method.GetParameters()[0].ParameterType == typeof(byte[]) && method.GetParameters()[1].IsOut);
+        object?[] rootForm = [bytes, null, null, null];
         Assert.IsTrue((bool)tryParseSpanShort.Invoke(null, rootForm)!);
         Assert.IsNotNull(rootForm[1]);
 

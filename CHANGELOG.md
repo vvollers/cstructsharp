@@ -14,6 +14,14 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   parameter after `label`, so the old four-parameter constructor no longer exists. Source that calls it is unchanged; code
   compiled against 0.15 must be recompiled.
 
+- **Breaking (source):** the unnamed root readers of generated layouts (`Parse` and `TryParse` for the span, array, memory,
+  sequence and stream forms, and `ParseAsync`) take `variables` before `options`, so a layout with caller variables can be
+  parsed from the root form: `Parse(source, [order], variables = null, options = null)`. A call that passes the options
+  positionally as the second argument, `Wire.Parse(bytes, options)`, no longer compiles. Migration: name the argument,
+  `Wire.Parse(bytes, options: options)`, or pass `null` first, `Wire.Parse(bytes, null, options)`. The limits forms are
+  `Parse(source, [order], in limits, variables = null)` and `TryParse(source, [order], out value, out failure, in limits, variables = null)`.
+  `Wire.Parse(bytes, default)` is ambiguous between the variables and the limits and does not compile; write `default(ReadLimits)`.
+
 ### Added
 
 - **Constraint messages.** `@expect(condition, "label", "message")` and `@supports(condition, "label", "message")` carry the

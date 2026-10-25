@@ -99,14 +99,14 @@ public class ProjectDefaultsTests
             public static partial class Own { }
             """;
         var assembly = GeneratorRunner.Run(Source, globalOptions: Options(("CStructSharpConstraintFailures", "formatexceptions"))).AssertClean().Load();
-        var plain = Assert.ThrowsExactly<TargetInvocationException>(() => assembly.GetType("Demo.Plain")!.GetMethod("Parse", [typeof(byte[]), typeof(ReadOptions)])!.Invoke(null, [new byte[] { 0 }, null]));
+        var plain = Assert.ThrowsExactly<TargetInvocationException>(() => assembly.GetType("Demo.Plain")!.GetMethod("Parse", [typeof(byte[]), typeof(IReadOnlyDictionary<string, int>), typeof(ReadOptions)])!.Invoke(null, [new byte[] { 0 }, null, null]));
         Assert.IsInstanceOfType<System.IO.InvalidDataException>(plain.InnerException);
-        var own = Assert.ThrowsExactly<TargetInvocationException>(() => assembly.GetType("Demo.Own")!.GetMethod("Parse", [typeof(byte[]), typeof(ReadOptions)])!.Invoke(null, [new byte[] { 0 }, null]));
+        var own = Assert.ThrowsExactly<TargetInvocationException>(() => assembly.GetType("Demo.Own")!.GetMethod("Parse", [typeof(byte[]), typeof(IReadOnlyDictionary<string, int>), typeof(ReadOptions)])!.Invoke(null, [new byte[] { 0 }, null, null]));
         Assert.IsInstanceOfType<CStructSharp.Diagnostics.CStructConstraintException>(own.InnerException);
 
         // Without the property the default stays the constraint exception.
         var unchanged = GeneratorRunner.Run(Source).AssertClean().Load();
-        var constraint = Assert.ThrowsExactly<TargetInvocationException>(() => unchanged.GetType("Demo.Plain")!.GetMethod("Parse", [typeof(byte[]), typeof(ReadOptions)])!.Invoke(null, [new byte[] { 0 }, null]));
+        var constraint = Assert.ThrowsExactly<TargetInvocationException>(() => unchanged.GetType("Demo.Plain")!.GetMethod("Parse", [typeof(byte[]), typeof(IReadOnlyDictionary<string, int>), typeof(ReadOptions)])!.Invoke(null, [new byte[] { 0 }, null, null]));
         Assert.IsInstanceOfType<CStructSharp.Diagnostics.CStructConstraintException>(constraint.InnerException);
 
         GeneratorResult typo = GeneratorRunner.Run(Source, globalOptions: Options(("CStructSharpConstraintFailures", "Format")));

@@ -147,14 +147,16 @@ namespace Demo
         /// <summary>Reads the root declaration (<c>rec</c>) under limits given as a value; see <see cref="ParseRec(global::System.ReadOnlySpan{byte}, in global::CStructSharp.ReadLimits, global::System.Collections.Generic.IReadOnlyDictionary{string, int})"/>.</summary>
         /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
         /// <param name="limits">The limits of the read.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
         /// <returns>The parsed value.</returns>
-        public static Rec Parse(global::System.ReadOnlySpan<byte> source, in global::CStructSharp.ReadLimits limits) => ParseRec(source, in limits, null);
+        public static Rec Parse(global::System.ReadOnlySpan<byte> source, in global::CStructSharp.ReadLimits limits, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null) => ParseRec(source, in limits, variables);
 
         /// <summary>Reads the root declaration (<c>rec</c>); see <see cref="ParseRec(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
         /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
         /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
         /// <returns>The parsed value.</returns>
-        public static Rec Parse(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null) => ParseRec(source, null, options);
+        public static Rec Parse(global::System.ReadOnlySpan<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => ParseRec(source, variables, options);
 
         /// <summary>Reads one <c>inner</c> at the cursor's position.</summary>
         private static Inner ReadInner(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)

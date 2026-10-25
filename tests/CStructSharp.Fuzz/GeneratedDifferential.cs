@@ -29,19 +29,19 @@ internal static class GeneratedDifferential
             "binary",
             input,
             () => BinaryLayout.Layout.Serialize("root", BinaryLayout.Layout.Parse(input.AsSpan(), "root", options: readOptions), options: writeOptions),
-            () => BinaryLayout.Serialize(BinaryLayout.Parse(input.AsSpan(), readOptions), writeOptions));
+            () => BinaryLayout.Serialize(BinaryLayout.Parse(input.AsSpan(), null, readOptions), writeOptions));
         Compare(
             output,
             "path",
             input,
             () => PathLayout.Layout.Serialize("root", PathLayout.Layout.Parse(input.AsSpan(), "root", options: readOptions), options: writeOptions),
-            () => PathLayout.Serialize(PathLayout.Parse(input.AsSpan(), readOptions), writeOptions));
+            () => PathLayout.Serialize(PathLayout.Parse(input.AsSpan(), null, readOptions), writeOptions));
         Compare(
             output,
             "pointer-union",
             input,
             () => PointerUnionLayout.Layout.Serialize("node", PointerUnionLayout.Layout.Parse(input.AsSpan(), "node", options: readOptions), options: writeOptions),
-            () => PointerUnionLayout.Serialize(PointerUnionLayout.Parse(input.AsSpan(), readOptions), writeOptions));
+            () => PointerUnionLayout.Serialize(PointerUnionLayout.Parse(input.AsSpan(), null, readOptions), writeOptions));
     }
 
     /// <summary>

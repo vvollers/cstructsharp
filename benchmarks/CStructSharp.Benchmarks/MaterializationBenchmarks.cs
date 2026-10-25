@@ -57,7 +57,7 @@ public class MaterializationBenchmarks
         this.bigMatrixLayout = FixtureCase.CompileLike(typeof(MaterializedBigMatrix));
         this.runtimeMatrix = this.matrixLayout.Parse(this.large, "root");
         this.runtimeText = this.textLayout.Parse(this.text, "root", options: this.trimmed);
-        this.generatedText = MaterializedText.Parse(this.text, this.trimmed);
+        this.generatedText = MaterializedText.Parse(this.text, null, this.trimmed);
         RequireBytes(this.text, this.Runtime_Text_Serialize());
         RequireBytes(this.text, this.Generated_Text_Serialize());
         this.smallValue = MaterializedSmallMatrix.Parse(this.small);
@@ -71,7 +71,7 @@ public class MaterializationBenchmarks
         RequireBytes(this.large, this.matrixLayout.Serialize("root", this.runtimeMatrix));
         foreach (ReadOptions options in new[] { new ReadOptions(), this.trimmed })
         {
-            MaterializedText.Root generated = MaterializedText.Parse(this.text, options);
+            MaterializedText.Root generated = MaterializedText.Parse(this.text, null, options);
             StructValue runtime = this.textLayout.Parse(this.text, "root", options: options);
             if (generated.Name != runtime.Get<string>("name") || generated.Utf != runtime.Get<string>("utf") ||
                 generated.Oem != runtime.Get<string>("oem") || generated.Wide != runtime.Get<string>("wide"))
@@ -158,7 +158,7 @@ public class MaterializationBenchmarks
     /// <summary>Parses the same complete input with trailing-NUL trimming.</summary>
     /// <returns>The owned text record without trailing NUL characters.</returns>
     [Benchmark]
-    public MaterializedText.Root Generated_TextTrimmed_Parse() => MaterializedText.Parse(this.text, this.trimmed);
+    public MaterializedText.Root Generated_TextTrimmed_Parse() => MaterializedText.Parse(this.text, null, this.trimmed);
 
     /// <summary>Parses the same text through the runtime for shared-decoder comparison.</summary>
     /// <returns>The complete owned dynamic record.</returns>

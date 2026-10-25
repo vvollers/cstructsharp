@@ -45,7 +45,7 @@ internal static partial class WordLayout { }
 uint value = new WordLayout.WordView(bytes).Value;
 ```
 
-The `Parser` surface suits a project that parses with `Parse(span, options)` everywhere: a `byte[]` converts to the span,
+The `Parser` surface suits a project that parses with `Parse(span, variables, options)` everywhere: a `byte[]` converts to the span,
 and a caller that wants `TryParse` or the memory forms chooses `Reader`. The view enumerator (`RootView.Enumerate`) is part of
 the full surface; on the smaller ones `Enumerators = true` adds it, because it costs extra code for every fixed-size struct.
 

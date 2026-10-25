@@ -77,37 +77,37 @@ public class ConstraintPolicyTests
             {
                 switch (surface)
                 {
-                case "Reader": return FixedReader.Parse(bytes, Skip).B.ToString();
+                case "Reader": return FixedReader.Parse(bytes, null, Skip).B.ToString();
                 case "ReaderLimits": return FixedReader.Parse(bytes, SkipLimits).B.ToString();
                 case "ReaderSpanLimits": return FixedReader.Parse(new ReadOnlySpan<byte>(bytes), in SkipLimits).B.ToString();
-                case "Parser": return FixedParser.Parse(bytes, Skip).B.ToString();
-                case "Full": return FixedFull.Parse(bytes, Skip).B.ToString();
-                case "Struct": return FixedValue.Parse(bytes, Skip).B.ToString();
+                case "Parser": return FixedParser.Parse(bytes, null, Skip).B.ToString();
+                case "Full": return FixedFull.Parse(bytes, null, Skip).B.ToString();
+                case "Struct": return FixedValue.Parse(bytes, null, Skip).B.ToString();
                 case "StructLimits": return FixedValue.Parse(bytes, SkipLimits).B.ToString();
-                case "Order": return FixedOrder.Parse(bytes, true, Skip).B.ToString();
+                case "Order": return FixedOrder.Parse(bytes, true, null, Skip).B.ToString();
                 case "OrderLimits": return FixedOrder.Parse(bytes, true, SkipLimits).B.ToString();
-                case "Stream": return FixedFull.Parse(new MemoryStream(bytes), Skip).B.ToString();
-                case "Sequence": return FixedFull.Parse(new ReadOnlySequence<byte>(bytes), Skip).B.ToString();
-                case "Async": return FixedFull.ParseAsync(new MemoryStream(bytes), Skip).AsTask().GetAwaiter().GetResult().B.ToString();
+                case "Stream": return FixedFull.Parse(new MemoryStream(bytes), null, Skip).B.ToString();
+                case "Sequence": return FixedFull.Parse(new ReadOnlySequence<byte>(bytes), null, Skip).B.ToString();
+                case "Async": return FixedFull.ParseAsync(new MemoryStream(bytes), null, Skip).AsTask().GetAwaiter().GetResult().B.ToString();
                 case "Records": return FixedFull.Records(bytes, Skip).Single().B.ToString();
                 case "RecordsStream": return FixedFull.Records(new MemoryStream(bytes), Skip).Single().B.ToString();
                 case "ViewObject": return new FixedFull.FxView(bytes, Skip).ToObject().B.ToString();
                 case "ViewValidate": new FixedViews.FxView(bytes, Skip).Validate(); return "valid";
                 case "ViewTryValidate": return new FixedViews.FxView(bytes, Skip).TryValidate(out CStructException? viewFailure).ToString() + (viewFailure is null);
-                case "TryParse": return FixedFull.TryParse(bytes, out FixedFull.Fx? tried, out CStructException? triedFailure, Skip).ToString() + (triedFailure is null) + tried!.B;
+                case "TryParse": return FixedFull.TryParse(bytes, out FixedFull.Fx? tried, out CStructException? triedFailure, null, Skip).ToString() + (triedFailure is null) + tried!.B;
                 case "TryParseLimits": return FixedReader.TryParse(new ReadOnlySpan<byte>(bytes), out FixedReader.Fx? limited, out CStructException? limitedFailure, SkipLimits).ToString() + (limitedFailure is null);
-                case "TryParseStruct": return FixedValue.TryParse(bytes, out FixedValue.Fx structValue, out CStructException? structFailure, Skip).ToString() + (structFailure is null) + structValue.B;
-                case "VariableSpan": return VariableFull.Parse(bytes, Skip).Tail.ToString();
+                case "TryParseStruct": return FixedValue.TryParse(bytes, out FixedValue.Fx structValue, out CStructException? structFailure, null, Skip).ToString() + (structFailure is null) + structValue.B;
+                case "VariableSpan": return VariableFull.Parse(bytes, null, Skip).Tail.ToString();
                 case "VariableLimits": return VariableFull.Parse(bytes, SkipLimits).Tail.ToString();
-                case "VariableStream": return VariableFull.Parse(new MemoryStream(bytes), Skip).Tail.ToString();
+                case "VariableStream": return VariableFull.Parse(new MemoryStream(bytes), null, Skip).Tail.ToString();
                 case "VariableRecords": return VariableFull.Records(bytes, Skip).Single().Tail.ToString();
                 case "Scalar": return OneScalar.Parse(bytes, Skip).ToString();
                 case "ScalarLimits": return OneScalar.Parse(bytes, SkipLimits).ToString();
                 case "ScalarTry": return OneScalar.TryParse(bytes, out uint scalar, out CStructException? scalarFailure, SkipLimits).ToString() + (scalarFailure is null) + scalar;
                 case "Matches": return FixedFull.Matches(bytes).ToString();
-                case "Collecting": return FixedFull.Parse(bytes, new ReadOptions { Constraints = ConstraintPolicy.Skip, ConstraintViolations = new List<CStructConstraintException>() }).B.ToString();
+                case "Collecting": return FixedFull.Parse(bytes, null, new ReadOptions { Constraints = ConstraintPolicy.Skip, ConstraintViolations = new List<CStructConstraintException>() }).B.ToString();
                 case "CollectingValidate": new FixedFull.FxView(bytes, Skip).Validate(new List<CStructConstraintException>()); return "valid";
-                case "NotSkipped": return FixedFull.Parse(bytes, new ReadOptions { Constraints = ConstraintPolicy.Enforce }).B.ToString();
+                case "NotSkipped": return FixedFull.Parse(bytes, null, new ReadOptions { Constraints = ConstraintPolicy.Enforce }).B.ToString();
                 case "NotSkippedLimits": return FixedFull.Parse(bytes, new ReadLimits()).B.ToString();
                 default: throw new ArgumentException(surface);
                 }

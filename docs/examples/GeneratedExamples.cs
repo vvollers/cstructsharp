@@ -103,7 +103,7 @@ internal static partial class Program
         Equal(Samples.Color.Green, sample.Colour);
         Equal(Samples.Perms.Read | Samples.Perms.Write | Samples.Perms.Execute, sample.Mode);
 
-        Samples.Sample trimmed = Samples.Parse(bytes, new ReadOptions { TrimFixedText = true });
+        Samples.Sample trimmed = Samples.Parse(bytes, null, new ReadOptions { TrimFixedText = true });
         Equal("png", trimmed.Name);
 
         // A value the enum does not name is kept as the number: the C# enum is a byte underneath.
@@ -173,7 +173,7 @@ internal static partial class Program
         True(list.Head.Value.Next.Value.Next.IsNull, "the chain ends with a stored zero");
 
         // Addresses only: the stored numbers, no targets.
-        Lists.List addresses = Lists.Parse(bytes, new ReadOptions { DereferencePointers = false });
+        Lists.List addresses = Lists.Parse(bytes, null, new ReadOptions { DereferencePointers = false });
         True(!addresses.Head.IsDereferenced, "not followed");
 
         // The budgets are the runtime's, with the runtime's messages: the runtime layout fails the same way.
@@ -190,7 +190,7 @@ internal static partial class Program
 
         try
         {
-            _ = Lists.Parse(bytes, limited);
+            _ = Lists.Parse(bytes, null, limited);
             True(false, "the depth limit must apply");
         }
         catch (CStructReadLimitException error)
@@ -310,7 +310,7 @@ internal static partial class Program
         // Cancellation is not a failure: it throws through TryParse as it does through Parse.
         using var cancelled = new CancellationTokenSource();
         cancelled.Cancel();
-        Throws<OperationCanceledException>(() => Wire.TryParse(bytes, out _, new ReadOptions { CancellationToken = cancelled.Token }));
+        Throws<OperationCanceledException>(() => Wire.TryParse(bytes, out _, null, new ReadOptions { CancellationToken = cancelled.Token }));
 
         // The runtime's TryReadValue<T> is the same idea for a path; TryGet and GetOrDefault are its members' twins.
         True(Wire.Layout.TryReadValue(bytes, "header.length", out uint length) && length == 6, "typed path read");

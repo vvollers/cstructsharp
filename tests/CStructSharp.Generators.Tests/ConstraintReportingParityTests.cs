@@ -54,28 +54,28 @@ public class ConstraintReportingParityTests
             public static string[] FullHeader(byte[] bytes, long offsetBase)
             {
                 var found = new List<CStructConstraintException>();
-                FullHdr.Parse(bytes, new ReadOptions { ConstraintViolations = found, OffsetBase = offsetBase });
+                FullHdr.Parse(bytes, null, new ReadOptions { ConstraintViolations = found, OffsetBase = offsetBase });
                 return Describe(found);
             }
 
             public static string[] ParserHeader(byte[] bytes, long offsetBase)
             {
                 var found = new List<CStructConstraintException>();
-                ParserHdr.Parse(bytes, new ReadOptions { ConstraintViolations = found, OffsetBase = offsetBase });
+                ParserHdr.Parse(bytes, null, new ReadOptions { ConstraintViolations = found, OffsetBase = offsetBase });
                 return Describe(found);
             }
 
             public static string[] FixedRoot(byte[] bytes, long offsetBase)
             {
                 var found = new List<CStructConstraintException>();
-                FixedFx.Parse(bytes, new ReadOptions { ConstraintViolations = found, OffsetBase = offsetBase });
+                FixedFx.Parse(bytes, null, new ReadOptions { ConstraintViolations = found, OffsetBase = offsetBase });
                 return Describe(found);
             }
 
             public static string[] Outer(byte[] bytes, long offsetBase)
             {
                 var found = new List<CStructConstraintException>();
-                OuterFx.Parse(bytes, new ReadOptions { ConstraintViolations = found, OffsetBase = offsetBase });
+                OuterFx.Parse(bytes, null, new ReadOptions { ConstraintViolations = found, OffsetBase = offsetBase });
                 return Describe(found);
             }
 
@@ -99,7 +99,7 @@ public class ConstraintReportingParityTests
                 }
             }
 
-            public static CStructException? ThrownByOptions(byte[] bytes, long offsetBase) => Thrown(() => ParserHdr.Parse(bytes, new ReadOptions { OffsetBase = offsetBase }));
+            public static CStructException? ThrownByOptions(byte[] bytes, long offsetBase) => Thrown(() => ParserHdr.Parse(bytes, null, new ReadOptions { OffsetBase = offsetBase }));
 
             public static CStructException? ThrownByLimits(byte[] bytes, long offsetBase) => Thrown(() => ParserHdr.Parse(bytes, new ReadLimits { OffsetBase = offsetBase }));
 

@@ -33,7 +33,7 @@ public class ReadLimitsParseTests
                 => Demo.Reader.Parse(bytes, new ReadLimits { MaxArrayElements = maxArray, TrimFixedText = trim });
 
             public static object Optioned(byte[] bytes, int maxArray, bool trim)
-                => Demo.Reader.Parse(bytes, new ReadOptions { MaxArrayElements = maxArray, TrimFixedText = trim });
+                => Demo.Reader.Parse(bytes, null, new ReadOptions { MaxArrayElements = maxArray, TrimFixedText = trim });
 
             public static object[] TryLimited(byte[] bytes, int maxArray)
             {
@@ -48,7 +48,7 @@ public class ReadLimitsParseTests
                 => Demo.Reader.Parse(bytes, new ReadLimits { MaxNestingDepth = depth });
 
             public static object OptionedDepth(byte[] bytes, int depth)
-                => Demo.Reader.Parse(bytes, new ReadOptions { MaxNestingDepth = depth });
+                => Demo.Reader.Parse(bytes, null, new ReadOptions { MaxNestingDepth = depth });
 
             public static long AllocatedWithLimits(byte[] bytes, int rounds)
             {
@@ -61,9 +61,9 @@ public class ReadLimitsParseTests
 
             public static long AllocatedWithOptions(byte[] bytes, int rounds)
             {
-                for (int i = 0; i < 200; i++) { _ = Demo.Parser.Parse(bytes, new ReadOptions { MaxArrayElements = 100 }); }
+                for (int i = 0; i < 200; i++) { _ = Demo.Parser.Parse(bytes, null, new ReadOptions { MaxArrayElements = 100 }); }
                 long before = GC.GetAllocatedBytesForCurrentThread();
-                for (int i = 0; i < rounds; i++) { _ = Demo.Parser.Parse(bytes, new ReadOptions { MaxArrayElements = 100 }); }
+                for (int i = 0; i < rounds; i++) { _ = Demo.Parser.Parse(bytes, null, new ReadOptions { MaxArrayElements = 100 }); }
                 return GC.GetAllocatedBytesForCurrentThread() - before;
             }
         }

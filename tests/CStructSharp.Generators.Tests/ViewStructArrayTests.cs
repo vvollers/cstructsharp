@@ -163,8 +163,8 @@ public class ViewStructArrayTests
     /// <returns>The value.</returns>
     private static object ParseHolder(byte[] bytes)
     {
-        MethodInfo parse = assembly.GetType("Demo.HolderLayout")!.GetMethod("Parse", [typeof(byte[]), typeof(ReadOptions)])!;
-        return parse.Invoke(null, [bytes, null])!;
+        MethodInfo parse = assembly.GetType("Demo.HolderLayout")!.GetMethod("Parse", [typeof(byte[]), typeof(IReadOnlyDictionary<string, int>), typeof(ReadOptions)])!;
+        return parse.Invoke(null, [bytes, null, null])!;
     }
 
     /// <summary>In an aligned layout the stride of an element is its padded size, and the member after the array is rounded up.</summary>

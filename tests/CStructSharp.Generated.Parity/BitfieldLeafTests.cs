@@ -78,18 +78,18 @@ public class BitfieldLeafTests
     public void UnionAndNesting_PreserveRepeatedChargesAndLimits()
     {
         byte[] bytes = [0xB3, 0xA7];
-        BitfieldLeafLayouts.Overlap.Root value = BitfieldLeafLayouts.Overlap.Parse(bytes, new ReadOptions { MaxTotalBytesRead = 10 });
+        BitfieldLeafLayouts.Overlap.Root value = BitfieldLeafLayouts.Overlap.Parse(bytes, null, new ReadOptions { MaxTotalBytesRead = 10 });
         Assert.AreNotSame(value.First, value.Second);
         CollectionAssert.AreEqual(bytes, value.RawStorage);
         ParityComparer.AssertSame(BitfieldLeafLayouts.Overlap.Layout.ReadValue(bytes, "root"), value, "root", strict: true);
 
         // Raw storage charges two bytes, then each of the two leaves rereads its two-byte unit twice.
-        CStructReadLimitException budget = Assert.Throws<CStructReadLimitException>(() => BitfieldLeafLayouts.Overlap.Parse(bytes, new ReadOptions { MaxTotalBytesRead = 9 }));
+        CStructReadLimitException budget = Assert.Throws<CStructReadLimitException>(() => BitfieldLeafLayouts.Overlap.Parse(bytes, null, new ReadOptions { MaxTotalBytesRead = 9 }));
         Assert.AreEqual("b", budget.Member);
         Assert.AreEqual(0L, budget.Offset);
 
         // The parent remains incremental, so the child still enters its original nesting checkpoint.
-        CStructReadLimitException nesting = Assert.Throws<CStructReadLimitException>(() => BitfieldLeafLayouts.Packed.Parse(Filled(14), new ReadOptions { MaxNestingDepth = 1 }));
+        CStructReadLimitException nesting = Assert.Throws<CStructReadLimitException>(() => BitfieldLeafLayouts.Packed.Parse(Filled(14), null, new ReadOptions { MaxNestingDepth = 1 }));
         Assert.AreEqual("items", nesting.Member);
         Assert.AreEqual(0L, nesting.Offset);
     }
@@ -117,7 +117,7 @@ public class BitfieldLeafTests
             BitfieldLeafLayouts.Parent.Root.Constructing = cancellation.Cancel;
 
             // Cancellation during the parent constructor is observed when entering the child.
-            OperationCanceledException failure = Assert.Throws<OperationCanceledException>(() => BitfieldLeafLayouts.Parent.Parse(bytes, new ReadOptions { CancellationToken = cancellation.Token }));
+            OperationCanceledException failure = Assert.Throws<OperationCanceledException>(() => BitfieldLeafLayouts.Parent.Parse(bytes, null, new ReadOptions { CancellationToken = cancellation.Token }));
             Assert.AreEqual(cancellation.Token, failure.CancellationToken);
         }
         finally
@@ -137,7 +137,7 @@ public class BitfieldLeafTests
         };
         try
         {
-            BitfieldLeafLayouts.Constructor.Rec value = BitfieldLeafLayouts.Constructor.Parse(bytes, new ReadOptions { CancellationToken = leafCancellation.Token });
+            BitfieldLeafLayouts.Constructor.Rec value = BitfieldLeafLayouts.Constructor.Parse(bytes, null, new ReadOptions { CancellationToken = leafCancellation.Token });
             Assert.AreEqual(1, leafCalls);
             Assert.AreEqual((byte)5, value.A);
             Assert.AreEqual((byte)6, value.B);
@@ -188,7 +188,7 @@ public class BitfieldLeafTests
         };
         try
         {
-            BitfieldLeafLayouts.Initializer.Rec value = BitfieldLeafLayouts.Initializer.Parse(bytes, new ReadOptions { CancellationToken = cancellation.Token });
+            BitfieldLeafLayouts.Initializer.Rec value = BitfieldLeafLayouts.Initializer.Parse(bytes, null, new ReadOptions { CancellationToken = cancellation.Token });
             Assert.AreEqual(1, calls);
             Assert.AreEqual(42, value.Initialized);
             Assert.AreEqual((byte)5, value.A);

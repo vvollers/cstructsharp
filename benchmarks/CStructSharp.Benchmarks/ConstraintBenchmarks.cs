@@ -68,7 +68,7 @@ public class ConstraintBenchmarks
     /// <returns>The superblock.</returns>
     [Benchmark]
     [BenchmarkCategory("Impact", "Constraints")]
-    public ExtSuperblockLayout.Sb Ext_Parse_Options() => ExtSuperblockLayout.Parse(this.record, this.options);
+    public ExtSuperblockLayout.Sb Ext_Parse_Options() => ExtSuperblockLayout.Parse(this.record, null, this.options);
 
     /// <summary>Generated <c>Parse</c> of the same superblock declared without constraints.</summary>
     /// <returns>The superblock.</returns>

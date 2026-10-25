@@ -74,7 +74,7 @@ public class MultidimensionalArrayTests
         byte[] bytes = MixedBytes();
 
         // Adapt the generated result to the common failure comparator without reflection.
-        Func<byte[], ReadOptions?, object> parse = static (data, options) => MultidimensionalArrayLayouts.Mixed.Parse(data, options);
+        Func<byte[], ReadOptions?, object> parse = static (data, options) => MultidimensionalArrayLayouts.Mixed.Parse(data, null, options);
         for (int length = 0; length < bytes.Length; length++)
         {
             AssertFailureContract(ArrayLayout.Mixed, parse, bytes[..length], null);
@@ -87,13 +87,13 @@ public class MultidimensionalArrayTests
 
         AssertFailureContract(ArrayLayout.Mixed, parse, bytes, new ReadOptions { MaxArrayElements = 5 });
         AssertFailureContract(ArrayLayout.Mixed, parse, bytes, new ReadOptions { MaxArrayElements = 11 });
-        MultidimensionalArrayLayouts.Mixed.Parse(bytes, new ReadOptions { MaxArrayElements = 12, MaxTotalBytesRead = bytes.Length });
+        MultidimensionalArrayLayouts.Mixed.Parse(bytes, null, new ReadOptions { MaxArrayElements = 12, MaxTotalBytesRead = bytes.Length });
 
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
         // A cancelled parse must not publish a partial row graph and must preserve the supplied token.
-        OperationCanceledException failure = Assert.Throws<OperationCanceledException>(() => MultidimensionalArrayLayouts.Mixed.Parse(bytes, new ReadOptions { CancellationToken = cancellation.Token }));
+        OperationCanceledException failure = Assert.Throws<OperationCanceledException>(() => MultidimensionalArrayLayouts.Mixed.Parse(bytes, null, new ReadOptions { CancellationToken = cancellation.Token }));
         Assert.AreEqual(cancellation.Token, failure.CancellationToken);
     }
 
@@ -108,13 +108,13 @@ public class MultidimensionalArrayTests
         CollectionAssert.AreEqual(bytes[1..13], value.Content.RawStorage);
 
         // Use the same compiled layout for both paths while varying the exact first failing read.
-        Func<byte[], ReadOptions?, object> parse = static (data, options) => MultidimensionalArrayLayouts.Union.Parse(data, options);
+        Func<byte[], ReadOptions?, object> parse = static (data, options) => MultidimensionalArrayLayouts.Union.Parse(data, null, options);
         for (int budget = 0; budget < 38; budget++)
         {
             AssertFailureContract(ArrayLayout.Union, parse, bytes, new ReadOptions { MaxTotalBytesRead = budget });
         }
 
-        MultidimensionalArrayLayouts.Union.Parse(bytes, new ReadOptions { MaxTotalBytesRead = 38 });
+        MultidimensionalArrayLayouts.Union.Parse(bytes, null, new ReadOptions { MaxTotalBytesRead = 38 });
         for (int length = 0; length < bytes.Length; length++)
         {
             AssertFailureContract(ArrayLayout.Union, parse, bytes[..length], null);
@@ -144,7 +144,7 @@ public class MultidimensionalArrayTests
         ParityComparer.AssertSame(MultidimensionalArrayLayouts.Block.Layout.Parse(bytes, "root"), parsed, "root", strict: true);
 
         // The original whole-field block reader remains the failure oracle, independent of row lengths.
-        Func<byte[], ReadOptions?, object> parse = static (data, options) => MultidimensionalArrayLayouts.Block.Parse(data, options);
+        Func<byte[], ReadOptions?, object> parse = static (data, options) => MultidimensionalArrayLayouts.Block.Parse(data, null, options);
         foreach (int length in new[] { 1, 32770, 65535, 65536, 65537, 65538, 65539 })
         {
             AssertFailureContract(ArrayLayout.Block, parse, bytes[..length], null);

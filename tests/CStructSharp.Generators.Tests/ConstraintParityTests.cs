@@ -71,10 +71,10 @@ public class ConstraintParityTests
     {
         MethodInfo parse = type == "ParserSb"
                                ? assembly.GetType("Demo.ParserProbe")!.GetMethod("Parse")!
-                               : assembly.GetType("Demo." + type)!.GetMethods().First(method => method.Name == "Parse" && method.GetParameters().Length == 2 && method.GetParameters()[0].ParameterType == typeof(byte[]) && method.GetParameters()[1].ParameterType == typeof(ReadOptions));
+                               : assembly.GetType("Demo." + type)!.GetMethods().First(method => method.Name == "Parse" && method.GetParameters().Length == 3 && method.GetParameters()[0].ParameterType == typeof(byte[]) && method.GetParameters()[2].ParameterType == typeof(ReadOptions));
         try
         {
-            return parse.Invoke(null, type == "ParserSb" ? [bytes] : [bytes, null])!;
+            return parse.Invoke(null, type == "ParserSb" ? [bytes] : [bytes, null, null])!;
         }
         catch (TargetInvocationException exception)
         {
