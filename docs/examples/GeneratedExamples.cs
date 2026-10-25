@@ -83,6 +83,7 @@ internal static partial class Program
     #endregion
 
     #region generated-arrays-strings-enums
+    /// <summary>Reads arrays, text and enums through the generated reader, with and without read options.</summary>
     private static void GeneratedArraysStringsEnums()
     {
         byte[] bytes =
@@ -161,6 +162,7 @@ internal static partial class Program
     #endregion
 
     #region generated-pointers
+    /// <summary>Follows or keeps pointer addresses through the generated reader.</summary>
     private static void GeneratedPointers()
     {
         // list.head → offset 1; node { value 10, next → 3 }; node { value 20, next null }.
@@ -289,6 +291,7 @@ internal static partial class Program
     #endregion
 
     #region recipe-try-parse
+    /// <summary>Shows the forms of TryParse and what each reports.</summary>
     private static void TryParseForms()
     {
         byte[] bytes = [0x02, 0x00, 0x06, 0x00, 0x00, 0x00];
@@ -322,6 +325,7 @@ internal static partial class Program
 
     #region recipe-recognize-format-class
     // A magic names the format: it is checked first, and Matches answers from it alone. The #define becomes the constant Disk.EXT_MAGIC.
+    /// <summary>A layout whose magic names the format and whose #define is a constant of the class.</summary>
     [CStructLayout("#define EXT_MAGIC 0xEF53\nstruct superblock { uint32 inodes; uint16 magic @magic(magic == EXT_MAGIC, \"ext.magic\", \"not an ext superblock\"); uint16 state @expect(state <= 2, \"ext.state\"); };", Root = "superblock", Surface = GeneratedSurface.Reader)]
     public static partial class Disk
     {
@@ -329,6 +333,7 @@ internal static partial class Program
     #endregion
 
     #region recipe-recognize-format
+    /// <summary>Recognizes a format by its magic with Matches, and reads the failure of a wrong magic.</summary>
     private static void RecognizeFormat()
     {
         byte[] ext = [0x10, 0x00, 0x00, 0x00, 0x53, 0xEF, 0x01, 0x00];
@@ -354,6 +359,7 @@ internal static partial class Program
     #endregion
 
     #region generated-async
+    /// <summary>Reads and writes through the asynchronous forms of the generated layout.</summary>
     private static async Task GeneratedAsync()
     {
         // ParseAsync and WriteAsync on the layout class: the same reader and writer, with the bytes moved by

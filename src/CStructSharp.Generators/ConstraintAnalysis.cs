@@ -320,6 +320,8 @@ internal static class ConstraintAnalysis
     {
         private readonly List<(BigInteger Low, BigInteger High)> intervals;
 
+        /// <summary>Wraps intervals that are already sorted, disjoint and inclusive.</summary>
+        /// <param name="intervals">The intervals; the set takes ownership.</param>
         private IntervalSet(List<(BigInteger Low, BigInteger High)> intervals) => this.intervals = intervals;
 
         /// <summary>Gets a value indicating whether the set holds no integer.</summary>

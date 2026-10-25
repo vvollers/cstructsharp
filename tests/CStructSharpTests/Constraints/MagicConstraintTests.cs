@@ -17,6 +17,11 @@ public class MagicConstraintTests
     // The same members after a runtime-sized array, so the struct is read member by member.
     private const string Variable = "struct vb { uint8 n; uint8 pad[n]; uint32 blocks @expect(blocks > 0, \"blocks\"); uint16 magic @magic(magic == 0xEF53, \"magic\"); uint16 rev @expect(rev < 2, \"rev\"); };";
 
+    /// <summary>The 8 bytes of a fixed-size superblock: blocks, magic and revision, little-endian.</summary>
+    /// <param name="blocks">The block count.</param>
+    /// <param name="magic">The magic number.</param>
+    /// <param name="rev">The revision.</param>
+    /// <returns>The bytes.</returns>
     private static byte[] Fixed16(uint blocks, ushort magic, ushort rev) => [.. BitConverter.GetBytes(blocks), .. BitConverter.GetBytes(magic), .. BitConverter.GetBytes(rev)];
 
     /// <summary>The definition prints the suffix, the constraint is unsupported-kind, and the label and message are kept.</summary>

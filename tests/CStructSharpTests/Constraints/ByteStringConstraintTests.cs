@@ -13,6 +13,10 @@ public class ByteStringConstraintTests
 {
     private const string Boot = "struct boot { uint8 oem[8] @expect(oem == \"NTFS    \", \"ntfs.oem\"); uint32 sectors; };";
 
+    /// <summary>Latin-1 bytes of a text followed by more bytes.</summary>
+    /// <param name="text">The text, one byte per character.</param>
+    /// <param name="tail">The bytes after it.</param>
+    /// <returns>The concatenation.</returns>
     private static byte[] Bytes(string text, params byte[] tail) => [.. Encoding.Latin1.GetBytes(text), .. tail];
 
     /// <summary>Equal bytes pass, any different byte fails with the label and the unsupported/malformed kind of the suffix.</summary>

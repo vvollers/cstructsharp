@@ -18,6 +18,9 @@ internal sealed class ConstraintSchedule
 
     private readonly ImmutableArray<Entry>[] after;
 
+    /// <summary>Wraps the checks that run after each member.</summary>
+    /// <param name="after">For each member index, the checks released once that member has been read.</param>
+    /// <param name="reordersConstraints">Whether the order differs from declaration order.</param>
     private ConstraintSchedule(ImmutableArray<Entry>[] after, bool reordersConstraints)
     {
         this.after = after;

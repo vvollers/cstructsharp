@@ -65,6 +65,10 @@ internal sealed partial class LayoutParser
     // Whether a quoted byte string is an expression term: only inside a constraint condition.
     private bool allowByteStrings;
 
+    /// <summary>Creates a parser over one layout text.</summary>
+    /// <param name="source">The layout text.</param>
+    /// <param name="definedNames">Names the caller defines (as the <c>Defined</c> option), which the text may use before declaring them.</param>
+    /// <param name="defaultEnumStorage">The storage type of an enum that names none, or <see langword="null"/> for the layout default.</param>
     private LayoutParser(string source, IReadOnlySet<string>? definedNames = null, string? defaultEnumStorage = null)
     {
         this.source = source;
