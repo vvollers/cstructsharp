@@ -26,7 +26,8 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          global-json-file: global.json
+          # An exact version skips the aka.ms redirect of dotnet-install, which points at a retired storage account (HTTP 409).
+          dotnet-version: 10.0.403
 
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
