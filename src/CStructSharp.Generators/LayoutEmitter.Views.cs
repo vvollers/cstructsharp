@@ -237,9 +237,10 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <summary>Runs the checks of <see cref=\"" + name + "\"/> in declaration order; a condition that is not satisfied stops them with its failure unless the read collects violations.</summary>");
         writer.Open("private bool " + checks + "(ref " + Cursor + " cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, out global::CStructSharp.Diagnostics.CStructConstraintException? failure)");
         writer.Line("failure = null;");
+        EmitSkipGuard(writer);
         foreach ((CompiledField field, CompiledConstraint constraint, string code, string? end) in plan.Checks)
         {
-            EmitConstraintBlock(writer, field, constraint, code, SourceWriter.Literal(field.Name), SourceWriter.Literal(field.DisplayTypeSpelling), end, returnsFailure: true);
+            EmitConstraintBlock(writer, field, constraint, code, SourceWriter.Literal(field.Name), SourceWriter.Literal(field.DisplayTypeSpelling), end, returnsFailure: true, guarded: false);
         }
 
         writer.Line("return true;");

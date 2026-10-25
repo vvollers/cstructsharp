@@ -7,6 +7,9 @@ using CStructSharp.Expressions;
 /// <summary>Failures: the runtime's exceptions and texts, with the field, path and position context every read failure carries.</summary>
 public ref partial struct ReadCursor
 {
+    /// <summary>Gets whether the read evaluates no constraint (<see cref="ReadOptions.Constraints"/> is <see cref="ConstraintPolicy.Skip"/>): a generated constraint check returns before it evaluates a condition.</summary>
+    public readonly bool SkipsConstraints => this.settings.SkipConstraints;
+
     /// <summary>The runtime's short-read text, for a generated view that finds its source shorter than the value.</summary>
     /// <param name="needed">The bytes the value needs.</param>
     /// <param name="available">The bytes the source has.</param>

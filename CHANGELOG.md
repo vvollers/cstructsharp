@@ -20,6 +20,11 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   wording of a failure in the layout. `CStructConstraintException.Description` returns it (`null` when absent), it replaces the
   generated sentence in `Message` (which still ends with the label in brackets and the position facts), and `ToDefinition()`
   prints it back. A message follows a label.
+- **Reads without constraints.** `ReadOptions.Constraints` and `ReadLimits.Constraints` take a `ConstraintPolicy`: the default
+  `Enforce` evaluates the `@expect` and `@supports` conditions, `Skip` evaluates and collects none, so a layout that states its header
+  rules can be read leniently at another site with one visible argument. The runtime layout, every generated reader and a view's
+  `Validate` honor it; `Matches` takes no read settings and still evaluates. `Skip` together with `ConstraintViolations` is an
+  `ArgumentException` when the read starts. `ReadLimits` is still 40 bytes: the policy shares a byte with `InvalidText`.
 - **Format exceptions from generated readers.** `[CStructLayout(ConstraintFailures = ConstraintFailureMode.FormatExceptions)]`, or
   the build property `CStructSharpConstraintFailures`, makes the throwing generated entry points (`Parse` for every input kind,
   `Records`, a view's `Validate` and `ToObject`) throw `InvalidDataException` for `@expect` and `NotSupportedException` for

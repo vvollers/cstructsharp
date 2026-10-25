@@ -99,7 +99,7 @@ public sealed partial class CStruct
         }
 
         result = this.ReadPlannedRoot(source, composite, plan, settings);
-        if (plan.HasConstraints && !this.PassesRootConstraints(composite, plan, result))
+        if (plan.HasConstraints && !settings.SkipConstraints && !this.PassesRootConstraints(composite, plan, result))
         {
             // The engine re-reads the root and raises the failure with its member, path and offset.
             result = null;
@@ -315,14 +315,14 @@ public sealed partial class CStruct
         }
 
         // The mapped class's reader decodes without a StructValue to evaluate conditions on, so a root with conditions takes the plan.
-        if (!plan.HasConstraints && MappedTypes.FindFixedReader<T>(composite.Fingerprint) is { } direct && direct(source[..plan.Size], settings.TrimFixedText, out T? mapped))
+        if ((!plan.HasConstraints || settings.SkipConstraints) && MappedTypes.FindFixedReader<T>(composite.Fingerprint) is { } direct && direct(source[..plan.Size], settings.TrimFixedText, out T? mapped))
         {
             value = mapped;
             return true;
         }
 
         StructValue root = this.ReadPlannedRoot(source, composite, plan, settings);
-        if (plan.HasConstraints && !this.PassesRootConstraints(composite, plan, root))
+        if (plan.HasConstraints && !settings.SkipConstraints && !this.PassesRootConstraints(composite, plan, root))
         {
             value = default!;
             return false;

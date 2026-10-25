@@ -56,6 +56,9 @@ internal readonly record struct ReadOperationSettings(
     /// <summary>Gets the collection that receives constraint failures instead of the first one ending the read, or <see langword="null"/>.</summary>
     public System.Collections.Generic.ICollection<CStructSharp.Diagnostics.CStructConstraintException>? ConstraintViolations => this.Extras?.ConstraintViolations;
 
+    /// <summary>Gets whether the read evaluates no constraint (<see cref="ReadOptions.Constraints"/> is <see cref="ConstraintPolicy.Skip"/>).</summary>
+    public bool SkipConstraints => this.Extras is { SkipConstraints: true };
+
     /// <summary>
     ///     Gets whether every limit is usable and the operation is not already cancelled. When this is false the compiled
     ///     engine reports the problem (<see cref="ValidateSettings"/>), so a fast path must leave the call to it.
@@ -98,9 +101,13 @@ internal readonly record struct ReadOperationSettings(
     /// <summary>Copies every read choice before variable enumeration, stream access, or another caller callback.</summary>
     /// <param name="options">The caller's read options, or null for <see cref="ReadOptions.Default"/>.</param>
     /// <returns>The settings captured from the options at this moment.</returns>
+    /// <exception cref="ArgumentException">The options both skip the constraints and collect their violations.</exception>
     public static ReadOperationSettings SnapshotReadOptions(ReadOptions? options)
     {
         options ??= ReadOptions.Default;
+
+        // Only a read with extras (an offset base, a violation collection, a constraint policy) can be contradictory.
+        options.Extras?.ThrowIfContradictory();
         return new ReadOperationSettings(
             options.AddressingMode,
             options.DereferencePointers,
@@ -132,9 +139,11 @@ internal readonly record struct ReadOperationSettings(
             CancellationToken = limits.CancellationToken,
             LenientText = limits.LenientText,
 
-            // The offset base is the one rarely set member a ReadLimits carries; it goes behind the shared reference like the options'
-            // own, so a cursor over limits is no larger and a read without a base allocates nothing.
-            Extras = limits.OffsetBase == 0 ? null : new ReadExtras(limits.OffsetBase, null, 0),
+            // The offset base and the constraint policy are the rarely set members a ReadLimits carries; they go behind the shared
+            // reference like the options' own, so a cursor over limits is no larger and a read with neither allocates nothing.
+            Extras = limits.OffsetBase == 0
+                         ? (limits.Constraints == ConstraintPolicy.Skip ? ReadExtras.SkipOnly : null)
+                         : new ReadExtras(limits.OffsetBase, null, 0, limits.Constraints == ConstraintPolicy.Skip),
         };
 
     /// <summary>Maps already-snapshotted update traversal choices into the same read operation settings.</summary>

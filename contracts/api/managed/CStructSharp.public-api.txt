@@ -156,6 +156,11 @@ namespace CStructSharp
         Constraint = 0,
         FormatExceptions = 1,
     }
+    public enum ConstraintPolicy
+    {
+        Enforce = 0,
+        Skip = 1,
+    }
     public sealed class FieldAccessor<T>
     {
         public string Path { get; }
@@ -225,6 +230,7 @@ namespace CStructSharp
     {
         public const long MaxOffsetBase = 281474976710655;
         public System.Threading.CancellationToken CancellationToken { get; init; }
+        public CStructSharp.ConstraintPolicy Constraints { get; init; }
         public CStructSharp.InvalidTextHandling InvalidText { get; init; }
         public int MaxArrayElements { get; init; }
         public int MaxNestingDepth { get; init; }
@@ -241,6 +247,7 @@ namespace CStructSharp
         public CStructSharp.PointerAddressingMode AddressingMode { get; init; }
         public System.Threading.CancellationToken CancellationToken { get; init; }
         public System.Collections.Generic.ICollection<CStructSharp.Diagnostics.CStructConstraintException>? ConstraintViolations { get; init; }
+        public CStructSharp.ConstraintPolicy Constraints { get; init; }
         public bool DereferencePointers { get; init; }
         public CStructSharp.InvalidTextHandling InvalidText { get; init; }
         public int MaxArrayElements { get; init; }
@@ -541,6 +548,7 @@ namespace CStructSharp.Generated
         public long Origin { get; }
         public string? Path { get; }
         public int Position { get; set; }
+        public bool SkipsConstraints { get; }
         public bool TrimFixedText { get; }
         public void Complete(CStructSharp.Diagnostics.CStructException exception) { }
         public void ConstraintViolated(CStructSharp.Diagnostics.ConstraintKind kind, string constraint, string field, string? member, string? memberType, string? label = null, int reportAt = -1) { }

@@ -146,7 +146,7 @@ mode belongs to the generated code, so the same layout text throws the same type
 
 ## Collect every failure instead of the first
 
-A read stops at the first value outside a condition. To list *every* inconsistent field of a header in one pass, give the
+A read stops at the first value outside a condition (unless it [skips the constraints](#read-without-evaluating-the-constraints)). To list *every* inconsistent field of a header in one pass, give the
 read a collection:
 
 ```csharp
@@ -164,6 +164,33 @@ are collected: a short read, a limit or a condition that cannot be evaluated sti
 value that breaks a condition may break what depends on it (a count that is too large fails the array limit next), so the
 collection then holds the failures found up to that point. The same option is read by the generated readers and by a
 generated view's `Validate(violations)`. The collection is added to in place and is not thread-safe: use one per read.
+
+## Read without evaluating the constraints
+
+A layout that states its header rules is sometimes read at a second place that does not want them: a scan that lists what is
+on a damaged disk, a lenient pass over data another reader already validated, a tool that shows the bytes of an invalid
+header. Pass the policy with the read instead of keeping a second copy of the layout:
+
+```csharp
+// Strict: the first broken condition throws. Lenient: no condition is evaluated and nothing is collected.
+StructValue strict = layout.Parse(bytes, "superblock");
+StructValue lenient = layout.Parse(bytes, "superblock", null, new ReadOptions { Constraints = ConstraintPolicy.Skip });
+
+Superblock quick = Ext.Parse(bytes, new ReadLimits { Constraints = ConstraintPolicy.Skip });   // generated, no options object
+```
+
+`ConstraintPolicy.Skip` is a setting of one read on `ReadOptions` and `ReadLimits` (the default is `Enforce`). The runtime layout,
+every generated `Parse`, the sequence, stream and record readers, `TryParse` and a view's `Validate`, `TryValidate` and
+`ToObject` honor it. A skipped condition is not evaluated at all, so one that names a caller variable the read does not supply
+(or divides by zero) does not fail either. Three things to know:
+
+- It skips every condition of the read, including one that later code relies on. A bound such as `n @expect(n <= 16)` that
+  guards a shift or an index is not checked, so the reader meets the bad value itself and fails (or not) as it would for a layout
+  without constraints.
+- It cannot be combined with `ConstraintViolations`, which asks for the conditions to be evaluated and collected. A read
+  that sets both fails with `ArgumentException` when it starts.
+- `Matches` takes no read settings and always evaluates its conditions: it answers "is this the format?", which is a different
+  question from "read it anyway".
 
 ## Where a constraint is checked
 
@@ -222,6 +249,7 @@ not expose them.
 2. Why can the generated reader still use its fixed-offset reader for a struct with constraints?
 3. Does `Serialize` reject a value that violates a constraint?
 4. With `ConstraintFailures = FormatExceptions`, what does `TryParse` return for a value that breaks an `@expect`?
+5. A read sets `Constraints = ConstraintPolicy.Skip` and a `ConstraintViolations` list. What happens?
 
 <details>
 <summary>Answers</summary>
@@ -231,5 +259,6 @@ not expose them.
    reader, and the failure is the one a member-by-member read would raise.
 3. No. A constraint checks what a read accepts; a write encodes the value as given.
 4. `false` and the `CStructConstraintException` itself: only the throwing entry points use the format exceptions.
+5. The read fails with `ArgumentException` before it reads a byte: skipping evaluates nothing, so there is nothing to collect.
 
 </details>

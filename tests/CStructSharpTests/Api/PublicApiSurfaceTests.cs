@@ -16,6 +16,8 @@ public class PublicApiSurfaceTests
         "CStructSharp.CStructLayoutAttribute",
         "CStructSharp.CStructMappedAttribute",
         "CStructSharp.CStructMemberAttribute",
+        "CStructSharp.ConstraintFailureMode",
+        "CStructSharp.ConstraintPolicy",
         "CStructSharp.FieldAccessor`1",
         "CStructSharp.GeneratedShape",
         "CStructSharp.GeneratedSurface",

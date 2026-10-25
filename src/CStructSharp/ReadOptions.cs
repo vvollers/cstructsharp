@@ -1,5 +1,6 @@
 namespace CStructSharp;
 
+using System;
 using System.Runtime.CompilerServices;
 
 /// <summary>Lists how pointer addresses in the input stream should be interpreted.</summary>
@@ -195,6 +196,28 @@ public sealed record ReadOptions
     {
         get => this.extras?.ConstraintViolations;
         init => this.extras = Reading.ReadExtras.Normalize((this.extras ?? Reading.ReadExtras.None) with { ConstraintViolations = value });
+    }
+
+    /// <summary>
+    ///     Gets whether the read evaluates the <c>@expect</c> and <c>@supports</c> constraints of its layout. The default,
+    ///     <see cref="ConstraintPolicy.Enforce"/>, evaluates them (and collects them when <see cref="ConstraintViolations"/> is set);
+    ///     <see cref="ConstraintPolicy.Skip"/> evaluates none and collects nothing. Setting <see cref="ConstraintPolicy.Skip"/> together
+    ///     with <see cref="ConstraintViolations"/> is contradictory and fails with <see cref="ArgumentException"/> when the read starts.
+    /// </summary>
+    /// <remarks>See <see cref="ConstraintPolicy"/>: a skipped condition may be one that later code relies on.</remarks>
+    /// <exception cref="ArgumentOutOfRangeException">The value is not a member of <see cref="ConstraintPolicy"/>.</exception>
+    public ConstraintPolicy Constraints
+    {
+        get => this.extras is { SkipConstraints: true } ? ConstraintPolicy.Skip : ConstraintPolicy.Enforce;
+        init
+        {
+            if (!Enum.IsDefined(value))
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), value, "Not a member of ConstraintPolicy.");
+            }
+
+            this.extras = Reading.ReadExtras.Normalize((this.extras ?? Reading.ReadExtras.None) with { SkipConstraints = value == ConstraintPolicy.Skip });
+        }
     }
 
     /// <summary>

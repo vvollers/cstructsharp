@@ -92,6 +92,7 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <returns><see langword=\"false\"/> when a condition stopped the check.</returns>");
         writer.Open("private static bool TryCheck" + name + "Constraints(ref " + Cursor + " cursor, " + VariablesType + " variables, " + (this.UsesValueTypes ? "in " : string.Empty) + name + " value, int start, out global::CStructSharp.Diagnostics.CStructConstraintException? failure)");
         writer.Line("failure = null;");
+        EmitSkipGuard(writer);
         var scope = new ReaderScope(this, composite);
         foreach (CompiledField field in composite.Composite.Fields)
         {
@@ -105,7 +106,7 @@ internal sealed partial class LayoutEmitter
             int end = (field.FixedOffset ?? 0) + (field.FixedStorageSize ?? 0);
             foreach (CompiledConstraint constraint in field.Constraints)
             {
-                EmitConstraintBlock(writer, field, constraint, scope.Expressions.Emit(constraint.Expression), SourceWriter.Literal(field.Name), SourceWriter.Literal(field.DisplayTypeSpelling), "start + " + Int(end), returnsFailure: true);
+                EmitConstraintBlock(writer, field, constraint, scope.Expressions.Emit(constraint.Expression), SourceWriter.Literal(field.Name), SourceWriter.Literal(field.DisplayTypeSpelling), "start + " + Int(end), returnsFailure: true, guarded: false);
             }
         }
 

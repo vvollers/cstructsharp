@@ -213,15 +213,17 @@ internal static partial class ReadEngine
     {
         // A plan with conditions runs only when the programs have a check for each; the plan then evaluates
         // them right after the field they follow, exactly where the member-by-member reader would.
-        if (!state.NoFastPaths && program.Composite!.LayoutPlan is { } plan && (!plan.HasConstraints || PlanConditions.Covers(program, plan)) && state.CoversPlan(plan))
+        // A read that skips its constraints runs the plan as one without any.
+        if (!state.NoFastPaths && program.Composite!.LayoutPlan is { } plan && (!plan.HasConstraints || state.SkipConstraints || PlanConditions.Covers(program, plan)) && state.CoversPlan(plan))
         {
             byte[]? rented = null;
             try
             {
-                long start = plan.HasConstraints ? cursor.Position : 0;
+                bool checks = plan.HasConstraints && !state.SkipConstraints;
+                long start = checks ? cursor.Position : 0;
                 if (TryStage(ref cursor, plan.Size, out ReadOnlySpan<byte> bytes, out rented))
                 {
-                    if (plan.HasConstraints)
+                    if (checks)
                     {
                         RunStaticPlan(ref cursor, ref state, plan, bytes, value, new RootPlanChecks(program, start));
                     }
@@ -356,7 +358,7 @@ internal static partial class ReadEngine
                     {
                         // The condition is not satisfied when it evaluates to zero; the failure names the field and quotes the condition.
                         CompiledField constrained = program.Fields[field];
-                        if (state.Slots.Evaluate(program.Expressions[step.A], program.ExpressionContexts[step.A], ExpressionFailureDomain.Read) == 0)
+                        if (!state.SkipConstraints && state.Slots.Evaluate(program.Expressions[step.A], program.ExpressionContexts[step.A], ExpressionFailureDomain.Read) == 0)
                         {
                             CompiledConstraint failed = constrained.Constraints[step.B];
                             var violation = CStructConstraintException.FromFacts(failed.Kind, failed.Text, constrained.Name, failed.Label, failed.Description);

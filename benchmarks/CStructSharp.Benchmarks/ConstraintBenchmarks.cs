@@ -19,6 +19,7 @@ public class ConstraintBenchmarks
 
     private byte[] record = null!;
     private byte[] records256 = null!;
+    private byte[] variableRecord = null!;
     private MemoryStream stream = null!;
     private ReadOptions options = null!;
     private ReadLimits limits;
@@ -41,6 +42,11 @@ public class ConstraintBenchmarks
             this.record.CopyTo(this.records256, index * RecordSize);
         }
 
+        this.variableRecord = new byte[4 + 2 + 1 + 4 + 4];
+        BinaryPrimitives.WriteUInt32LittleEndian(this.variableRecord.AsSpan(0), 8192);
+        BinaryPrimitives.WriteUInt16LittleEndian(this.variableRecord.AsSpan(4), 0xEF53);
+        this.variableRecord[6] = 4;
+        BinaryPrimitives.WriteUInt32LittleEndian(this.variableRecord.AsSpan(11), 1);
         this.stream = new MemoryStream(this.record, 0, this.record.Length, writable: false, publiclyVisible: false);
         this.options = new ReadOptions { MaxArrayElements = 1000 };
         this.limits = new ReadLimits { MaxArrayElements = 1000 };
@@ -111,4 +117,16 @@ public class ConstraintBenchmarks
         this.stream.Position = 0;
         return ExtSuperblockLayout.Parse(this.stream);
     }
+
+    /// <summary>Generated <c>Parse</c> of a constrained record with a runtime-sized array: the member-by-member reader checks each condition as it goes.</summary>
+    /// <returns>The record.</returns>
+    [Benchmark]
+    [BenchmarkCategory("Impact", "Constraints")]
+    public ExtVariableLayout.Vx Var_Parse() => ExtVariableLayout.Parse(this.variableRecord);
+
+    /// <summary>The same record read under a <see cref="ReadLimits"/>.</summary>
+    /// <returns>The record.</returns>
+    [Benchmark]
+    [BenchmarkCategory("Impact", "Constraints")]
+    public ExtVariableLayout.Vx Var_Parse_Limits() => ExtVariableLayout.Parse(this.variableRecord, this.limits);
 }

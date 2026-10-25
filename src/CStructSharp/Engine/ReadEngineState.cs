@@ -49,6 +49,7 @@ internal struct ReadEngineState
         this.LenientText = options.LenientText;
         this.OffsetBase = options.OffsetBase;
         this.ConstraintViolations = options.ConstraintViolations;
+        this.SkipConstraints = options.SkipConstraints;
         this.ConstraintPath = null;
 
         // A debug parse takes no static read plan: every value is read, and recorded, alone.
@@ -95,6 +96,9 @@ internal struct ReadEngineState
 
     /// <summary>Gets the collection that receives constraint failures instead of the first one ending the read, or <see langword="null"/> (<see cref="ReadOptions.ConstraintViolations"/>).</summary>
     public System.Collections.Generic.ICollection<CStructSharp.Diagnostics.CStructConstraintException>? ConstraintViolations { get; }
+
+    /// <summary>Gets whether the read evaluates no constraint (<see cref="ReadOptions.Constraints"/>).</summary>
+    public bool SkipConstraints { get; }
 
     /// <summary>Gets or sets the path a collected constraint failure reports, set by the operation that collects them; <see langword="null"/> reports none.</summary>
     public string? ConstraintPath { get; set; }

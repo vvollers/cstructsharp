@@ -44,6 +44,10 @@ public readonly record struct ReadLimits
     /// <summary>The default nesting depth limit, shared with <see cref="ReadOptions.MaxNestingDepth"/>.</summary>
     internal const int DefaultMaxNestingDepth = 256;
 
+    // The bits of the flags byte.
+    private const byte LenientBit = 1;
+    private const byte SkipBit = 2;
+
     /// <summary>The greatest <see cref="OffsetBase"/>: 2^48 - 1.</summary>
     public const long MaxOffsetBase = (1L << 48) - 1;
 
@@ -51,7 +55,9 @@ public readonly record struct ReadLimits
     private readonly long stringBytesOffset;
     private readonly long totalBytesOffset;
     private readonly int nestingDepthOffset;
-    private readonly bool lenientText;
+
+    // The two one-bit settings share one byte (LenientBit, SkipBit) so that the constraint policy fits the padding-free layout: the struct stays at 40 bytes.
+    private readonly byte flags;
 
     // The offset base is 48 bits (a ushort and a uint) so that it fits the padding this struct already has: it stays at 40 bytes.
     private readonly uint offsetBaseLow;
@@ -92,12 +98,28 @@ public readonly record struct ReadLimits
     /// <exception cref="System.ArgumentOutOfRangeException">The value is not a member of <see cref="InvalidTextHandling"/>.</exception>
     public InvalidTextHandling InvalidText
     {
-        get => this.lenientText ? InvalidTextHandling.Replace : InvalidTextHandling.Fail;
-        init => this.lenientText = value switch
+        get => (this.flags & LenientBit) != 0 ? InvalidTextHandling.Replace : InvalidTextHandling.Fail;
+        init => this.flags = value switch
         {
-            InvalidTextHandling.Fail => false,
-            InvalidTextHandling.Replace => true,
+            InvalidTextHandling.Fail => (byte)(this.flags & ~LenientBit),
+            InvalidTextHandling.Replace => (byte)(this.flags | LenientBit),
             _ => throw new System.ArgumentOutOfRangeException(nameof(value), value, "Not a member of InvalidTextHandling."),
+        };
+    }
+
+    /// <summary>
+    ///     Gets whether the read evaluates the <c>@expect</c> and <c>@supports</c> constraints of its layout; see
+    ///     <see cref="ReadOptions.Constraints"/> and <see cref="ConstraintPolicy"/>. The default, <see cref="ConstraintPolicy.Enforce"/>, evaluates them.
+    /// </summary>
+    /// <exception cref="System.ArgumentOutOfRangeException">The value is not a member of <see cref="ConstraintPolicy"/>.</exception>
+    public ConstraintPolicy Constraints
+    {
+        get => (this.flags & SkipBit) != 0 ? ConstraintPolicy.Skip : ConstraintPolicy.Enforce;
+        init => this.flags = value switch
+        {
+            ConstraintPolicy.Enforce => (byte)(this.flags & ~SkipBit),
+            ConstraintPolicy.Skip => (byte)(this.flags | SkipBit),
+            _ => throw new System.ArgumentOutOfRangeException(nameof(value), value, "Not a member of ConstraintPolicy."),
         };
     }
 
@@ -122,7 +144,7 @@ public readonly record struct ReadLimits
     }
 
     /// <summary>Gets whether invalid text is replaced instead of failing, as the readers test it.</summary>
-    internal bool LenientText => this.lenientText;
+    internal bool LenientText => (this.flags & LenientBit) != 0;
 
     /// <summary>Rejects an offset base that cannot be stored or reported.</summary>
     /// <param name="value">The offset base.</param>
@@ -155,6 +177,7 @@ public readonly record struct ReadLimits
             InvalidText = options.InvalidText,
             CancellationToken = options.CancellationToken,
             OffsetBase = options.OffsetBase,
+            Constraints = options.Constraints,
         };
     }
 
@@ -170,5 +193,6 @@ public readonly record struct ReadLimits
         InvalidText = this.InvalidText,
         CancellationToken = this.CancellationToken,
         OffsetBase = this.OffsetBase,
+        Constraints = this.Constraints,
     };
 }

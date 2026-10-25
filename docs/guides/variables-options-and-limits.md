@@ -116,8 +116,8 @@ Header header = Wire.Parse(bytes, limits);         // no ReadOptions object is c
 Entry entry = Wire.ParseEntry(bytes, in limits);   // the named reader of any declaration
 ```
 
-`ReadLimits` holds the array, string, total-byte and nesting limits, `TrimFixedText`, `InvalidText`, `OffsetBase` and the cancellation
-token, with the meaning and the defaults they have on `ReadOptions`; a `default(ReadLimits)` has the default limits.
+`ReadLimits` holds the array, string, total-byte and nesting limits, `TrimFixedText`, `InvalidText`, `OffsetBase`, the constraint
+`Constraints` policy and the cancellation token, with the meaning and the defaults they have on `ReadOptions`; a `default(ReadLimits)` has the default limits.
 It does not hold the pointer policy, which keeps its defaults, so a read that follows pointers with another policy uses
 `ReadOptions`. `ReadLimits.From(options)` and `limits.ToOptions()` convert between the two. The overload exists on every
 generated surface that has a reader; views and the stream and sequence forms take `ReadOptions`.
@@ -146,7 +146,7 @@ from the stream's position at the call, so it adds it.
 
 ## Choose a policy for the quiet cases
 
-Three options change behavior rather than a limit. The first two default to the permissive choice, and the third to the strict one:
+Four options change behavior rather than a limit. The first two default to the permissive choice, and the third to the strict one:
 
 - `ReadOptions.TrimFixedText` (default `false`): fixed-capacity text such as `char name[8]`, `wchar[N]`, or a
   bounded `utf8 name[N]` buffer keeps its NUL padding when read, so `61 62 00 00` is `"ab\0\0"`. Set the option to
@@ -154,6 +154,10 @@ Three options change behavior rather than a limit. The first two default to the 
 - `ReadOptions.InvalidText` (default `Fail`): text that is not valid in its encoding - malformed UTF-8, an unpaired
   UTF-16 surrogate, a non-ASCII byte in a `cstring` - fails the read at its field. `InvalidTextHandling.Replace` reads each
   invalid sequence as U+FFFD and continues; see [invalid text](strings-and-encodings.md#invalid-text).
+- `ReadOptions.Constraints` and `ReadLimits.Constraints` (default `ConstraintPolicy.Enforce`): the read evaluates the
+  `@expect` and `@supports` conditions of its layout. `ConstraintPolicy.Skip` evaluates none and collects none, so a layout that
+  states its header rules can still be read where those rules are not wanted; see
+  [read without the constraints](../language/field-constraints.md#read-without-evaluating-the-constraints).
 - `WriteOptions.UnknownMembers` (default `Ignore`): a supplied value may carry members the struct does not declare
   and they are skipped. `UnknownMemberPolicy.Reject` fails the write before any byte is written -
   `'bogus' is not a member of 'root' (WriteOptions.UnknownMembers is Reject). The layout declares: kind, tail.` -

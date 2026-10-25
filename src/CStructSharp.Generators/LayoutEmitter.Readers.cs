@@ -827,6 +827,19 @@ internal sealed partial class LayoutEmitter
     }
 
     /// <summary>
+    ///     Emits the first statement of a constraint-check function: a read that skips its constraints
+    ///     (<c>ReadOptions.Constraints</c>) returns success before any condition is evaluated. One test per call of the function, not
+    ///     per condition.
+    /// </summary>
+    /// <param name="writer">The output, inside the function that declares <c>cursor</c> and has set <c>failure</c> to <see langword="null"/>.</param>
+    private static void EmitSkipGuard(SourceWriter writer)
+    {
+        writer.Open("if (cursor.SkipsConstraints)");
+        writer.Line("return true;");
+        writer.Close();
+    }
+
+    /// <summary>
     ///     Emits the check of one condition for a reader, a fixed reader's constraint pass or a view's <c>Validate()</c>:
     ///     the expression is evaluated in the 128-bit domain and a zero result is a constraint failure. An expression that
     ///     cannot fail (comparisons of already-read values, logical and bitwise operators) is evaluated without an exception
@@ -846,12 +859,19 @@ internal sealed partial class LayoutEmitter
     ///     Whether the check sits in a method that returns <see langword="false"/> with an <c>out</c> parameter <c>failure</c>
     ///     instead of throwing, so a non-throwing caller gets the failure back; otherwise the check throws (or collects).
     /// </param>
-    private static void EmitConstraintBlock(SourceWriter writer, CompiledField field, CompiledConstraint constraint, string code, string member, string memberType, string? failurePosition, bool returnsFailure = false)
+    /// <param name="guarded">
+    ///     Whether the block tests <c>cursor.SkipsConstraints</c> itself; a check function that tested it once at its start
+    ///     (<see cref="EmitSkipGuard"/>) passes <see langword="false"/>.
+    /// </param>
+    private static void EmitConstraintBlock(SourceWriter writer, CompiledField field, CompiledConstraint constraint, string code, string member, string memberType, string? failurePosition, bool returnsFailure = false, bool guarded = true)
     {
         string context = "constraint '" + constraint.Text + "' of " + field.Name;
         string kind = constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "Malformed" : "Unsupported";
         writer.Line("// @" + (constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "expect" : "supports") + "(" + SingleLine(constraint.Text) + ")");
-        writer.Open(string.Empty);
+
+        // A read that skips its constraints (ReadOptions.Constraints) evaluates none: a check function tests that once at its start,
+        // and every other check tests it before it evaluates the condition.
+        writer.Open(guarded ? "if (!cursor.SkipsConstraints)" : string.Empty);
         if (CannotFail(constraint.Expression, code))
         {
             writer.Line("global::System.Int128 constraintValue = " + code + ";");
