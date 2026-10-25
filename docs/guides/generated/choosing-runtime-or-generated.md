@@ -191,7 +191,8 @@ layout that is referenced as a whole (`typeof`, `nameof`, `using static`).
 
 ## Find a cheaper shape
 
-Two more suggestions look at the layout instead of the code that uses it.
+Two more suggestions look at the layout instead of the code that uses it. (A third, [CSG023](diagnostics.md#csg023---members-of-a-generated-layout-are-never-read),
+lists the members of a read-only layout that no code reads, to guide which bytes to declare as `_` padding.)
 [CSG021](diagnostics.md#csg021---a-layout-qualifies-for-the-scalar-shape) says a layout generated as classes is one number at offset 0
 and could be a [scalar](#just-the-value-of-a-one-field-layout); [CSG022](diagnostics.md#csg022---a-layout-qualifies-for-value-type-shapes)
 says every struct is fixed in size and could be a [value type](#value-types-instead-of-classes). Both need the `Reader` or `Parser`

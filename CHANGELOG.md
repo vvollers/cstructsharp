@@ -61,6 +61,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   is still a layout error. The portable language contract is revision 5, and older engines reject a layout that uses byte
   strings. Public API: `Expressions.BytesEqual` and `Expressions.TextEquals`, the helpers generated code calls. A struct with a
   byte-string condition is read member by member in the runtime engine (the static plan decodes scalars only).
+- **Unread members.** `CSG023` (info) lists the members of a `Reader` or `Parser` layout that no code in the project reads, to guide which
+  bytes to declare as `_` padding. It has the same limits as `CSG016` and `CSG017`: it needs a class no other assembly can see.
 - **Shape suggestions.** `CSG021` and `CSG022` (info) say when a layout generated as classes on the `Reader` or `Parser` surface qualifies
   for `Shape = Scalar` (one number at offset 0) or `Shape = Struct` (every struct is fixed in size and fits a value type). A layout that sets
   `Shape` is not reported. Raise the severity in an `.editorconfig` or set the rule to `none` to silence it.

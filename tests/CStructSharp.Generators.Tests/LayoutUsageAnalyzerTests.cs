@@ -40,6 +40,38 @@ public class LayoutUsageAnalyzerTests
         return diagnostics.OrderBy(diagnostic => diagnostic.Location.SourceSpan.Start).ToList();
     }
 
+    /// <summary>A read-only layout lists the members no code reads; a member that is read, a conditional presence flag and a layout that writes are not listed.</summary>
+    /// <returns>A task that completes after the diagnostics are checked.</returns>
+    [TestMethod]
+    public async Task UnreadMembers_AreListed_ForAReadOnlyLayout()
+    {
+        IReadOnlyList<Diagnostic> diagnostics = await Analyze(Header + """"
+            [CStructLayout("struct root { uint8 kind; uint8 reserved[3]; uint8 present; uint8 extra @expect(present != 2); uint32 length; };", Root = "root", Surface = GeneratedSurface.Parser, Views = false)]
+            internal static partial class Header { }
+
+            [CStructLayout("struct root { uint8 kind; uint8 reserved[3]; };", Root = "root", Views = false)]
+            internal static partial class Writer { }
+
+            public static class Program
+            {
+                public static uint Use(byte[] bytes)
+                {
+                    Header.Root root = Header.Parse(bytes);
+                    return root.Length + root.Kind;
+                }
+
+                public static int Write(byte[] bytes) => Writer.Serialize(Writer.Parse(bytes)).Length;
+            }
+            """");
+        Diagnostic unread = Assert.ContainsSingle(diagnostics.Where(diagnostic => diagnostic.Id == "CSG023"), string.Join("\n", diagnostics));
+        StringAssert.Contains(unread.GetMessage(), "'Header'");
+        StringAssert.Contains(unread.GetMessage(), "Root.Reserved");
+        StringAssert.Contains(unread.GetMessage(), "Root.Present");
+        StringAssert.Contains(unread.GetMessage(), "Root.Extra");
+        Assert.IsFalse(unread.GetMessage().Contains("Root.Length", StringComparison.Ordinal) || unread.GetMessage().Contains("Root.Kind", StringComparison.Ordinal), unread.GetMessage());
+        Assert.AreEqual(DiagnosticSeverity.Info, unread.Severity);
+    }
+
     /// <summary>A layout class nothing names is reported once; a used one, a public one and one used by name only are not.</summary>
     /// <returns>A task that completes after the diagnostics are checked.</returns>
     [TestMethod]

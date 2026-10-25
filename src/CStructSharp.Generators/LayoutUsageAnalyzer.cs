@@ -10,11 +10,12 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Operations;
 
 /// <summary>
 ///     Finds what a project generates and never uses: a <c>[CStructLayout]</c> class that nothing references (CSG016), and one that
 ///     generates more than the members that are used need (CSG017: a smaller <c>Surface</c>, or <c>Views = false</c> when no view
-///     is used). Both are suggestions (severity Info; raise them in an <c>.editorconfig</c>). The analysis sees one compilation, so
+///     is used), and the members of a read-only layout that no code reads (CSG023). All are suggestions (severity Info; raise them in an <c>.editorconfig</c>). The analysis sees one compilation, so
 ///     it reports only a layout class that no other assembly can see, and stays silent when a friend assembly may use it
 ///     (<c>InternalsVisibleTo</c>, unless <c>CStructSharpAnalyzeWithFriends</c> is <c>true</c>), when <c>[CStructMapped]</c> classes
 ///     may resolve layouts through it, and for a layout that is referenced as a whole (<c>typeof</c>, <c>nameof</c>,
@@ -29,7 +30,7 @@ public sealed class LayoutUsageAnalyzer : DiagnosticAnalyzer
 
     /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
-        ImmutableArray.Create(GeneratorDiagnostics.LayoutUnused, GeneratorDiagnostics.LayoutOvergenerates);
+        ImmutableArray.Create(GeneratorDiagnostics.LayoutUnused, GeneratorDiagnostics.LayoutOvergenerates, GeneratorDiagnostics.LayoutMembersUnread);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -254,7 +255,9 @@ public sealed class LayoutUsageAnalyzer : DiagnosticAnalyzer
 
         var usage = new ConcurrentDictionary<INamedTypeSymbol, LayoutUse>(SymbolEqualityComparer.Default);
         start.RegisterSyntaxNodeAction(context => RecordReference(context, byName, usage), SyntaxKind.IdentifierName);
-        start.RegisterCompilationEndAction(end => Report(end, layouts, usage, attribute, defaults));
+        var read = new ConcurrentDictionary<ISymbol, byte>(SymbolEqualityComparer.Default);
+        start.RegisterOperationAction(context => RecordMemberRead(context, read), OperationKind.PropertyReference, OperationKind.FieldReference);
+        start.RegisterCompilationEndAction(end => Report(end, layouts, usage, read, attribute, defaults));
     }
 
     /// <summary>Records one identifier that names a layout class: which member of it the code goes on to use, or that the class is referenced as a whole.</summary>
@@ -299,13 +302,71 @@ public sealed class LayoutUsageAnalyzer : DiagnosticAnalyzer
         _ = use.Names.TryAdd(member.Identifier.ValueText, 0);
     }
 
+    /// <summary>Records a property or field that code reads (a pure assignment target is not a read).</summary>
+    /// <param name="context">The reference's operation context.</param>
+    /// <param name="read">The members read so far.</param>
+    private static void RecordMemberRead(OperationAnalysisContext context, ConcurrentDictionary<ISymbol, byte> read)
+    {
+        ISymbol member = context.Operation switch
+        {
+            IPropertyReferenceOperation property => property.Property,
+            IFieldReferenceOperation field => field.Field,
+            _ => throw new InvalidOperationException("Unexpected operation " + context.Operation.Kind),
+        };
+        if (member.ContainingType?.ContainingType is null || (context.Operation.Parent is ISimpleAssignmentOperation assignment && assignment.Target == context.Operation))
+        {
+            return;
+        }
+
+        _ = read.TryAdd(member.OriginalDefinition, 0);
+    }
+
+    /// <summary>
+    ///     The names of the generated members of a layout class that code never read, as <c>Type.Member</c>: the public properties and
+    ///     fields of its generated classes and structs, without the flags that tell whether a conditional member is present.
+    /// </summary>
+    /// <param name="layout">The layout class.</param>
+    /// <param name="read">The members code reads.</param>
+    /// <returns>The unread names in declaration order.</returns>
+    private static List<string> UnreadMembers(INamedTypeSymbol layout, ConcurrentDictionary<ISymbol, byte> read)
+    {
+        var unread = new List<string>();
+        foreach (INamedTypeSymbol type in layout.GetTypeMembers())
+        {
+            if (type.TypeKind is not (TypeKind.Class or TypeKind.Struct) || type.Name is "InlineArrays" or "Sizes" or "Offsets" || type.Name.EndsWith("View", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            ImmutableArray<ISymbol> members = type.GetMembers();
+            foreach (ISymbol member in members)
+            {
+                if (member is not (IPropertySymbol or IFieldSymbol) || member.IsStatic || member.IsImplicitlyDeclared || member.DeclaredAccessibility != Accessibility.Public || read.ContainsKey(member.OriginalDefinition))
+                {
+                    continue;
+                }
+
+                // HasX only reports whether a conditional member X is present; it is not a member of the layout.
+                if (member.Name.StartsWith("Has", StringComparison.Ordinal) && members.Any(other => other.Name == member.Name.Substring(3)))
+                {
+                    continue;
+                }
+
+                unread.Add(type.Name + "." + member.Name);
+            }
+        }
+
+        return unread;
+    }
+
     /// <summary>Reports the layouts nothing references and the layouts that generate more than the code uses.</summary>
     /// <param name="context">The compilation-end context.</param>
     /// <param name="layouts">The layout classes the assembly keeps to itself.</param>
     /// <param name="usage">What the code uses of each.</param>
+    /// <param name="read">The properties and fields code reads.</param>
     /// <param name="attribute">The <c>[CStructLayout]</c> attribute type.</param>
     /// <param name="defaults">The project defaults for the options an attribute does not name.</param>
-    private static void Report(CompilationAnalysisContext context, List<INamedTypeSymbol> layouts, ConcurrentDictionary<INamedTypeSymbol, LayoutUse> usage, INamedTypeSymbol attribute, LayoutDefaults defaults)
+    private static void Report(CompilationAnalysisContext context, List<INamedTypeSymbol> layouts, ConcurrentDictionary<INamedTypeSymbol, LayoutUse> usage, ConcurrentDictionary<ISymbol, byte> read, INamedTypeSymbol attribute, LayoutDefaults defaults)
     {
         foreach (INamedTypeSymbol layout in layouts)
         {
@@ -355,6 +416,17 @@ public sealed class LayoutUsageAnalyzer : DiagnosticAnalyzer
             if (views && !use.UsedViews && Math.Min(needed, declared) != 0)
             {
                 advice.Add("Views = false");
+            }
+
+            // A layout that also writes (Full) uses every member when it serializes, so only a read-only layout is checked.
+            if (surface is GenerationSurface.Reader or GenerationSurface.Parser)
+            {
+                List<string> unread = UnreadMembers(layout, read);
+                if (unread.Count > 0)
+                {
+                    string listed = string.Join(", ", unread.Take(8)) + (unread.Count > 8 ? " and " + (unread.Count - 8) + " more" : string.Empty);
+                    context.ReportDiagnostic(Diagnostic.Create(GeneratorDiagnostics.LayoutMembersUnread, location, layout.Name, listed));
+                }
             }
 
             if (advice.Count > 0)

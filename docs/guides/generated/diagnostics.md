@@ -32,6 +32,7 @@ list cannot drift from what ships.
 | [CSG020](#csg020---a-magic-follows-a-variable-size-member) | Warning | A magic follows a variable-size member |
 | [CSG021](#csg021---a-layout-qualifies-for-the-scalar-shape) | Info | A layout qualifies for the scalar shape |
 | [CSG022](#csg022---a-layout-qualifies-for-value-type-shapes) | Info | A layout qualifies for value-type shapes |
+| [CSG023](#csg023---members-of-a-generated-layout-are-never-read) | Info | Members of a generated layout are never read |
 | [CSG100](#csg100---mapped-type-must-be-partial-with-a-parameterless-constructor) | Error | Mapped type must be partial with a parameterless constructor |
 | [CSG101](#csg101---mapped-member-type-is-not-mapped) | Error | Mapped member type is not mapped |
 | [CSG102](#csg102---mapped-member-has-no-layout-counterpart) | Warning | Mapped member has no layout counterpart |
@@ -233,6 +234,23 @@ The layout class 'Pair' qualifies for Shape = GeneratedShape.Struct: its structs
 
 **Fix.** Set `Shape = GeneratedShape.Struct`, or `GeneratedShape.Auto` to take value types wherever a layout qualifies. A value type is
 copied when it is assigned or returned, so keep a large struct a class; ignore the suggestion when the code needs reference semantics.
+
+## CSG023 - Members of a generated layout are never read
+
+**Cause.** A layout on the `Reader` or `Parser` surface generates a property for every named member, but no code in the project reads some
+of them: reserved fields, unknown fields, flags nobody checks. Reported as info, once per class, with the first eight names as
+`Type.Member`. A write to a property is not a read, and a layout that also writes (the `Full` surface serializes every member) is not
+checked. Like [CSG016](#csg016---a-generated-layout-is-never-used) it needs a class that no other assembly can see and stays quiet when a
+friend assembly or a `[CStructMapped]` class may use it.
+
+```text
+The layout class 'Header' generates members that no code reads: Root.Reserved, Root.Present; declare bytes you do not need as '_' padding in the layout
+```
+
+**Fix.** For bytes the code will never need, rename the member to `_` in the layout: it is then [padding](../../language/structs-unions-enums-typedefs.md#padding-fields),
+read and skipped, with no property. Leave a member alone when the layout documents a format you want to keep complete, when a condition
+in the layout names it (a name used by an `@expect` or an array length is still needed by the reader even if no code reads the property),
+or when it is read only by code the analyzer cannot see (reflection, another assembly).
 
 ## CSG100 - Mapped type must be partial with a parameterless constructor
 

@@ -133,6 +133,17 @@ internal static class GeneratorDiagnostics
         isEnabledByDefault: true,
         description: "Every struct of the layout is fixed in size and holds only numbers, enums, bitfields, nested structs, text and fixed one-dimensional arrays, on the Reader or Parser surface. Shape = Struct (or Auto) generates them as structs.");
 
+    /// <summary>CSG023 (info): members of a generated layout that no code reads.</summary>
+    public static readonly DiagnosticDescriptor LayoutMembersUnread = new(
+        "CSG023",
+        "Members of a generated layout are never read",
+        "The layout class '{0}' generates members that no code reads: {1}; declare bytes you do not need as '_' padding in the layout",
+        Category,
+        DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "The suggestion is made for a Reader or Parser layout that no other assembly can see and whose uses are all visible. A member declared as '_' is read and skipped without a property, which also avoids decoding and storing it.",
+        customTags: WellKnownDiagnosticTags.CompilationEnd);
+
     /// <summary>CSG016 (info): a <c>[CStructLayout]</c> class that no code references.</summary>
     public static readonly DiagnosticDescriptor LayoutUnused = new(
         "CSG016",

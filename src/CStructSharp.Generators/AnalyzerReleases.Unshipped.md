@@ -17,3 +17,4 @@ CSG019 | CStructSharp | Info | A constraint label names different conditions
 CSG020 | CStructSharp | Warning | A magic follows a variable-size member
 CSG021 | CStructSharp | Info | A layout qualifies for the scalar shape
 CSG022 | CStructSharp | Info | A layout qualifies for value-type shapes
+CSG023 | CStructSharp | Info | Members of a generated layout are never read
