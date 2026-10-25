@@ -44,7 +44,7 @@ await main(() => {
   if (exportResult.status !== 0) throw new Error("Recipe generation failed.");
   const recipesDirectory = path.join(repositoryRoot, "docs/examples/recipes");
   const recipes = fs.readdirSync(recipesDirectory).filter((name) => name.endsWith(".cs")).sort();
-  if (recipes.length !== 40) throw new Error("Expected all 40 recipes.");
+  if (recipes.length !== 41) throw new Error("Expected all 41 recipes.");
   const starter = path.join(repositoryRoot, "docs/examples/starter");
   // The starter is the first C# block of the "Read your first value in C#" section; earlier sections may show
   // other C# snippets (such as the complete language example), which are not the starter program.
