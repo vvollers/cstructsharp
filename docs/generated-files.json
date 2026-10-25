@@ -63,6 +63,8 @@
   "examples/recipes/preserve-enum.md",
   "examples/recipes/preserve-union.cs",
   "examples/recipes/preserve-union.md",
+  "examples/recipes/recognize-format.cs",
+  "examples/recipes/recognize-format.md",
   "examples/recipes/record-sequence.cs",
   "examples/recipes/record-sequence.md",
   "examples/recipes/relative-pointer.cs",

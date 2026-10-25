@@ -38,6 +38,7 @@ internal static partial class Program
 
         ("record-sequence", () => RecordSequence().GetAwaiter().GetResult()),
         ("try-parse", TryParseForms),
+        ("recognize-format", RecognizeFormat),
         ("generated-async", () => GeneratedAsync().GetAwaiter().GetResult()),
         ("inspect-ranges", InspectRanges),
         ("follow-pointer", FollowPointer),

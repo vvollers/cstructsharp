@@ -38,6 +38,7 @@ const support = [
   [/\bPoint[> ]/, between("    public sealed class Point", "    #endregion")],
   // The generated-code recipes carry their [CStructLayout]/[CStructMapped] classes; the package's generator fills them in.
   [/\bWire\./, generatedRegion("generated-first-layout-class")],
+  [/\bDisk\./, generatedRegion("recipe-recognize-format-class")],
   [/\bSamples\./, generatedRegion("generated-arrays-strings-enums-class")],
   [/\b(?:HeaderRecord|SampleRecord)\b/, generatedRegion("generated-mapped-classes-class")],
 ];

@@ -320,6 +320,39 @@ internal static partial class Program
     }
     #endregion
 
+    #region recipe-recognize-format-class
+    // A magic names the format: it is checked first, and Matches answers from it alone. The #define becomes the constant Disk.EXT_MAGIC.
+    [CStructLayout("#define EXT_MAGIC 0xEF53\nstruct superblock { uint32 inodes; uint16 magic @magic(magic == EXT_MAGIC, \"ext.magic\", \"not an ext superblock\"); uint16 state @expect(state <= 2, \"ext.state\"); };", Root = "superblock", Surface = GeneratedSurface.Reader)]
+    public static partial class Disk
+    {
+    }
+    #endregion
+
+    #region recipe-recognize-format
+    private static void RecognizeFormat()
+    {
+        byte[] ext = [0x10, 0x00, 0x00, 0x00, 0x53, 0xEF, 0x01, 0x00];
+        byte[] other = [0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00];
+
+        // Matches decodes only the magic: no value is built and nothing is thrown, for wrong or short input alike.
+        True(Disk.Matches(ext), "the magic is there");
+        True(!Disk.Matches(other), "the magic is wrong");
+        True(!Disk.Matches(ext.AsSpan(0, 5)), "the magic is cut off");
+        Equal(0xEF53, Disk.EXT_MAGIC);
+
+        // A broken magic is reported with the label and message the layout gave it.
+        True(!Disk.TryParse(other, out _, out CStructException? failure), "the read stops at the magic");
+        var constraint = (CStructConstraintException)failure!;
+        Equal("ext.magic", constraint.Label);
+        Equal("not an ext superblock", constraint.Description);
+
+        // A layout compiled at run time answers the same question.
+        var layout = new CStruct(Disk.Definition);
+        True(layout.Matches("superblock", ext), "same answer at run time");
+        True(!layout.Matches("superblock", other), "same answer at run time");
+    }
+    #endregion
+
     #region generated-async
     private static async Task GeneratedAsync()
     {

@@ -6,9 +6,9 @@ description: Find the tested recipe catalog, the complete recipe programs, and t
 # Executable examples
 
 The examples in this section are programs that the documentation build runs and checks. The
-[tested recipe catalog](../guides/recipes/index.md) is the one place to choose one of the <!-- facts:recipe-count:start -->40<!-- facts:recipe-count:end -->
+[tested recipe catalog](../guides/recipes/index.md) is the one place to choose one of the <!-- facts:recipe-count:start -->41<!-- facts:recipe-count:end -->
 recipes: it lists each task with its difficulty and the result it checks, and shows how to run one recipe or all of
-them from the repository root; a run of all of them ends with <!-- facts:scenario-count:start -->`PASS all 58 scenarios`<!-- facts:scenario-count:end -->. Each
+them from the repository root; a run of all of them ends with <!-- facts:scenario-count:start -->`PASS all 59 scenarios`<!-- facts:scenario-count:end -->. Each
 recipe links to its complete program, with its imports, helper methods, and types, ready to copy into a console
 project.
 
