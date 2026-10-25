@@ -247,13 +247,13 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Parsing/LayoutParser.cs",
-   "sourceSha256": "e2ca9774c4757d2760c6acc6430d8ed291ce9b3fb94a4a7cfb5f765556fac984",
+   "sourceSha256": "f5211262d8d70cc6c925791706470cc476016a4aad371ee084b595ecd2d25b6e",
    "mutants": [
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?3 :2)",
-     "location": {"start":{"line":447,"column":38},"end":{"line":447,"column":84}},
+     "location": {"start":{"line":454,"column":38},"end":{"line":454,"column":84}},
      "reason": "IsLineContinuation recognizes only backslash-LF and backslash-CRLF. Advancing two characters already matches LF. For CRLF it leaves the cursor on LF; the next SkipWhitespace iteration recognizes that character as whitespace and advances once, reaching the same position as the original three-character step. There is no callback or published intermediate position inside this loop, and neither path can read beyond the source. This proof does not apply to SkipRestOfLine, where a remaining LF ends the scan." },
     { "mutatorName": "Equality mutation", "replacement": "this.hoisted.Count >= 0",
-     "location": {"start":{"line":466,"column":13},"end":{"line":466,"column":35}},
+     "location": {"start":{"line":473,"column":13},"end":{"line":473,"column":35}},
      "reason": "FlushHoisted receives a private parser destination list and an index saved before a struct, union or typedef appends its declarations. With no hoisted declarations, that index is still valid, InsertRange receives an empty list and Clear clears an already empty list. No destination enumerator is alive or exposed while parsing. The additional empty-list operations leave the same declaration order and failures; nonempty hoisted lists already enter the original branch." }
    ]
   },

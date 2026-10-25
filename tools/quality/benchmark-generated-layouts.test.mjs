@@ -106,6 +106,10 @@ function readFixture(id) {
   };
 }
 
+// Layouts that ConstraintBenchmarks measures only through their generated readers (enforcing, limits, views, Matches, streams).
+// No benchmark compares them with a runtime layout, so there is no second copy of the definition that could drift.
+const generatedOnly = new Set(["ExtSuperblockLayout", "ExtSuperblockStructLayout", "ExtVariableLayout", "PlainSuperblockLayout"]);
+
 const layoutFiles = fs.readdirSync(layoutDirectory).filter((file) => file.endsWith(".cs")).sort();
 const usage = readBenchmarkUsage();
 
@@ -119,7 +123,7 @@ for (const file of layoutFiles) {
     const fixtures = usage.matching.get(layout.className);
     if (!fixtures) {
       assert.ok(
-        usage.compiledLike.has(layout.className),
+        usage.compiledLike.has(layout.className) || generatedOnly.has(layout.className),
         `${layout.className} is neither checked against a fixture (FixtureCase.LoadMatching) nor compiled from its own attribute ` +
           "(FixtureCase.CompileLike); a generated-versus-runtime comparison over it could measure two different layouts.",
       );
