@@ -79,10 +79,10 @@ namespace Demo
 
         /// <summary>Reads one <c>hdr</c> from the start of <paramref name="source"/> under limits given as a value: the same value and failures as the overload that takes <c>ReadOptions</c>, with no options object to allocate. Pointers keep the default policy.</summary>
         /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
-        /// <param name="limits">The limits of the read.</param>
         /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="limits">The limits of the read.</param>
         /// <returns>The parsed value.</returns>
-        public static Hdr ParseHdr(global::System.ReadOnlySpan<byte> source, in global::CStructSharp.ReadLimits limits, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null)
+        public static Hdr ParseHdr(global::System.ReadOnlySpan<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, in global::CStructSharp.ReadLimits limits)
         {
             var cursor = new global::CStructSharp.Generated.ReadCursor(source, in limits, "hdr");
             try
@@ -95,6 +95,12 @@ namespace Demo
                 throw;
             }
         }
+
+        /// <summary>Reads one <c>hdr</c> under limits given as a value, without caller variables; see <see cref="ParseHdr(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, in global::CStructSharp.ReadLimits)"/>.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="limits">The limits of the read.</param>
+        /// <returns>The parsed value.</returns>
+        public static Hdr ParseHdr(global::System.ReadOnlySpan<byte> source, in global::CStructSharp.ReadLimits limits) => ParseHdr(source, null, in limits);
 
         /// <summary>Reads one <c>root</c> from the start of <paramref name="source"/> with the generated reader; the same value, and the same failures, as the runtime's <c>Parse</c>.</summary>
         /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
@@ -117,10 +123,10 @@ namespace Demo
 
         /// <summary>Reads one <c>root</c> from the start of <paramref name="source"/> under limits given as a value: the same value and failures as the overload that takes <c>ReadOptions</c>, with no options object to allocate. Pointers keep the default policy.</summary>
         /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
-        /// <param name="limits">The limits of the read.</param>
         /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="limits">The limits of the read.</param>
         /// <returns>The parsed value.</returns>
-        public static Root ParseRoot(global::System.ReadOnlySpan<byte> source, in global::CStructSharp.ReadLimits limits, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null)
+        public static Root ParseRoot(global::System.ReadOnlySpan<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, in global::CStructSharp.ReadLimits limits)
         {
             var cursor = new global::CStructSharp.Generated.ReadCursor(source, in limits, "root");
             try
@@ -134,12 +140,24 @@ namespace Demo
             }
         }
 
-        /// <summary>Reads the root declaration (<c>root</c>) under limits given as a value; see <see cref="ParseRoot(global::System.ReadOnlySpan{byte}, in global::CStructSharp.ReadLimits, global::System.Collections.Generic.IReadOnlyDictionary{string, int})"/>.</summary>
+        /// <summary>Reads one <c>root</c> under limits given as a value, without caller variables; see <see cref="ParseRoot(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, in global::CStructSharp.ReadLimits)"/>.</summary>
         /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
         /// <param name="limits">The limits of the read.</param>
-        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
         /// <returns>The parsed value.</returns>
-        public static Root Parse(global::System.ReadOnlySpan<byte> source, in global::CStructSharp.ReadLimits limits, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null) => ParseRoot(source, in limits, variables);
+        public static Root ParseRoot(global::System.ReadOnlySpan<byte> source, in global::CStructSharp.ReadLimits limits) => ParseRoot(source, null, in limits);
+
+        /// <summary>Reads the root declaration (<c>root</c>) under limits given as a value; see <see cref="ParseRoot(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, in global::CStructSharp.ReadLimits)"/>.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="limits">The limits of the read.</param>
+        /// <returns>The parsed value.</returns>
+        public static Root Parse(global::System.ReadOnlySpan<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, in global::CStructSharp.ReadLimits limits) => ParseRoot(source, variables, in limits);
+
+        /// <summary>Reads the root declaration (<c>root</c>) under limits given as a value, without caller variables.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="limits">The limits of the read.</param>
+        /// <returns>The parsed value.</returns>
+        public static Root Parse(global::System.ReadOnlySpan<byte> source, in global::CStructSharp.ReadLimits limits) => ParseRoot(source, null, in limits);
 
         /// <summary>Reads the root declaration (<c>root</c>); see <see cref="ParseRoot(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
         /// <param name="source">The bytes; offset 0 is coordinate zero.</param>

@@ -18,9 +18,17 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   sequence and stream forms, and `ParseAsync`) take `variables` before `options`, so a layout with caller variables can be
   parsed from the root form: `Parse(source, [order], variables = null, options = null)`. A call that passes the options
   positionally as the second argument, `Wire.Parse(bytes, options)`, no longer compiles. Migration: name the argument,
-  `Wire.Parse(bytes, options: options)`, or pass `null` first, `Wire.Parse(bytes, null, options)`. The limits forms are
-  `Parse(source, [order], in limits, variables = null)` and `TryParse(source, [order], out value, out failure, in limits, variables = null)`.
-  `Wire.Parse(bytes, default)` is ambiguous between the variables and the limits and does not compile; write `default(ReadLimits)`.
+  `Wire.Parse(bytes, options: options)`, or pass `null` first, `Wire.Parse(bytes, null, options)`. The limits forms
+  take `variables` too (see the next entry). `Wire.Parse(bytes, default)` is ambiguous between the variables and the limits and does not compile; write `default(ReadLimits)`.
+
+- **Breaking (source):** the `ReadLimits` forms of the generated readers (`Parse<Name>`, `TryParse<Name>`, and the unnamed root
+  `Parse` and `TryParse`) take the caller variables before the limits, like the `ReadOptions` forms:
+  `Parse<Name>(source, [order], variables, in limits)` and `TryParse<Name>(source, [order], out value, out failure, variables, in limits)`.
+  `variables` is required there (pass `null` for none); a read with limits and no variables keeps the shorter forms
+  `Parse<Name>(source, [order], in limits)` and `TryParse<Name>(source, [order], out value, out failure, in limits)`, so a call that
+  passes only the limits is unchanged. Migration: a call that passed variables after the limits,
+  `Wire.ParseEntry(bytes, in limits, variables)`, swaps the two arguments, `Wire.ParseEntry(bytes, variables, in limits)`. The two argument
+  types differ, so a stale call fails to compile and never binds to another overload.
 
 ### Added
 
@@ -53,6 +61,11 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   is still a layout error. The portable language contract is revision 5, and older engines reject a layout that uses byte
   strings. Public API: `Expressions.BytesEqual` and `Expressions.TextEquals`, the helpers generated code calls. A struct with a
   byte-string condition is read member by member in the runtime engine (the static plan decodes scalars only).
+- **`#define` constants.** The integer `#define`s of a layout are `public const` members of the generated class under their layout
+  names: `int` when the value fits, otherwise `long`; a define that depends on a caller variable, a text define and a value beyond 64 bits
+  are not emitted. A define named like a generated member or type is `CSG003`; a constant that has the same name as a member you wrote
+  in your own part of the partial class is a C# compile error (rename one of them), which is the only way this addition can
+  affect existing code.
 - **Format exceptions from generated readers.** `[CStructLayout(ConstraintFailures = ConstraintFailureMode.FormatExceptions)]`, or
   the build property `CStructSharpConstraintFailures`, makes the throwing generated entry points (`Parse` for every input kind,
   `Records`, a view's `Validate` and `ToObject`) throw `InvalidDataException` for `@expect` and `NotSupportedException` for

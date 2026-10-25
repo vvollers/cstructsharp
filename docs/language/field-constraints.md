@@ -62,7 +62,7 @@ variable-size member, because `Matches` cannot evaluate it there.
 
 ## Compare an array or text with a byte string
 
-A signature is usually not a number but a short run of bytes: `NTFS    ` in a boot sector, `\x7fELF` at the start of an ELF file.
+A signature is usually not a number but a short run of bytes: the text `NTFS` padded with four spaces in a boot sector, `\x7fELF` at the start of an ELF file.
 A condition may compare such a field with a **byte string**, a quoted literal that stands for those bytes:
 
 ```c

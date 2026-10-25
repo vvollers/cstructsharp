@@ -34,6 +34,12 @@ the input because the header has no padding and no value that a write would norm
 paths, introspection, the memory-analysis API - is available through it, and `Wire.Sizes.Header` is the same
 number `GetStructSizeInBytes("header")` reports, computed at build time.
 
+The layout's integer `#define`s become constants of the same class. With `#define WIRE_MAGIC 0xCAFE` in the layout text,
+`Wire.WIRE_MAGIC` is a `const int` (a `const long` when the value does not fit 32 bits), so code that checks a header can use the
+layout's name for the number instead of repeating it. A `#define` whose value names a caller variable has no fixed value and gets no
+constant, and one whose name a generated member already uses (`Parse`, a generated type) is the
+[CSG003](diagnostics.md#csg003---generated-name-collision) error.
+
 ## The generated file, line by line
 
 Turn on `EmitCompilerGeneratedFiles` (see [where the generated files are](index.md#where-the-generated-files-are))

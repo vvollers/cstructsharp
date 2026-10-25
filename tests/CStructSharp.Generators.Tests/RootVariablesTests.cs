@@ -5,7 +5,7 @@ using System.Reflection;
 
 /// <summary>
 ///     The unnamed root readers take the caller <c>variables</c> the named readers take: <c>Parse(source, [order], variables, options)</c>
-///     and <c>Parse(source, [order], in limits, variables)</c>, on every input kind that has a root form.
+///     and <c>Parse(source, [order], variables, in limits)</c>, on every input kind that has a root form.
 /// </summary>
 [TestClass]
 public class RootVariablesTests
@@ -58,15 +58,15 @@ public class RootVariablesTests
                 case "Sequence": return Full.Parse(new ReadOnlySequence<byte>(bytes), Two).Payload.Length.ToString();
                 case "Stream": return Full.Parse(new MemoryStream(bytes), Two).Payload.Length.ToString();
                 case "Async": return Full.ParseAsync(new MemoryStream(bytes), Two).AsTask().GetAwaiter().GetResult().Payload.Length.ToString();
-                case "Limits": return Full.Parse(new ReadOnlySpan<byte>(bytes), in wide, Two).Payload.Length.ToString();
-                case "LimitsTooTight": return Full.Parse(new ReadOnlySpan<byte>(bytes), in limits, new Dictionary<string, int> { ["COUNT"] = 2 }).Payload.Length.ToString();
-                case "TryLimits": return Full.TryParse(new ReadOnlySpan<byte>(bytes), out Full.Packet? tried, out CStructException? failure, in wide, Two).ToString() + (failure is null) + tried!.Payload.Length;
+                case "Limits": return Full.Parse(new ReadOnlySpan<byte>(bytes), Two, in wide).Payload.Length.ToString();
+                case "LimitsTooTight": return Full.Parse(new ReadOnlySpan<byte>(bytes), new Dictionary<string, int> { ["COUNT"] = 2 }, in limits).Payload.Length.ToString();
+                case "TryLimits": return Full.TryParse(new ReadOnlySpan<byte>(bytes), out Full.Packet? tried, out CStructException? failure, Two, in wide).ToString() + (failure is null) + tried!.Payload.Length;
                 case "Try": return Full.TryParse(bytes, out Full.Packet? value, out CStructException? valueFailure, Two).ToString() + (valueFailure is null) + value!.Payload.Length;
                 case "TryNoFailure": return Full.TryParse(bytes, out Full.Packet? other, Two).ToString() + other!.Payload.Length;
                 case "NoVariables": return Full.Parse(bytes).Payload.Length.ToString();
                 case "ParserRoot": return Parser.Parse(new ReadOnlySpan<byte>(bytes), Two).Payload.Length.ToString();
                 case "OrderRoot": return Order.Parse(new ReadOnlySpan<byte>(bytes), true, Two).Payload.Length.ToString();
-                case "OrderLimits": return Order.Parse(new ReadOnlySpan<byte>(bytes), false, in wide, Two).Payload.Length.ToString();
+                case "OrderLimits": return Order.Parse(new ReadOnlySpan<byte>(bytes), false, Two, in wide).Payload.Length.ToString();
                 default: throw new ArgumentException(form);
                 }
             }

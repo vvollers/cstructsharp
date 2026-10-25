@@ -246,7 +246,7 @@ public class ReaderParityTests
         Type generated = assembly.GetType("Parity." + className)!;
         var runtime = (CStruct)generated.GetProperty("Layout")!.GetValue(null)!;
         IReadOnlyDictionary<string, int>? variables = fixtureVariables.Count == 0 ? null : fixtureVariables;
-        MethodInfo parse = generated.GetMethods().Single(method => method.Name == "Parse" + PascalRoot(root, generated) && method.GetParameters()[0].ParameterType == typeof(ReadOnlySpan<byte>) && method.GetParameters()[1].ParameterType != typeof(ReadLimits).MakeByRefType());
+        MethodInfo parse = generated.GetMethods().Single(method => method.Name == "Parse" + PascalRoot(root, generated) && method.GetParameters()[0].ParameterType == typeof(ReadOnlySpan<byte>) && !method.GetParameters().Any(parameter => parameter.ParameterType == typeof(ReadLimits).MakeByRefType()));
 
         if (expectedError is not null)
         {

@@ -68,7 +68,8 @@ another extension, or one outside the project, needs `<AdditionalFiles Include="
 `ChunkType`), a generated type is named like the containing class, the class itself is named like a generated
 member (`Layout`, `Parse`, `Update`, ...), a conditional member's `Has<Member>` flag or a fixed array's view slice
 `<Member>Bytes` is spelled by another member, or a member the view exposes is named `bytes` or `to_object` (the
-view's own `Bytes` and `ToObject`). An error, because C# cannot compile the result.
+view's own `Bytes` and `ToObject`), or an integer `#define` (which becomes a constant of the class under its own name) is named like a
+generated member or type. An error, because C# cannot compile the result.
 
 **Fix.** Rename the identifier in the layout, rename the class, use `[CStructLayout(KeepNames = true)]` to keep
 the C spellings, or `Views = false` when only a view member collides.

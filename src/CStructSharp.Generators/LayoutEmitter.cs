@@ -137,6 +137,22 @@ internal sealed partial class LayoutEmitter
             this.Error(GeneratorDiagnostics.NameCollision, "The class '" + this.request.ClassName + "' is named like the generated " + this.request.ClassName + " member, which C# does not allow; rename the class.");
         }
 
+        // A #define with a fixed integer value becomes a constant of the class, so its name is claimed before the types' names.
+        if (this.request.Shape != GenerationShape.Scalar)
+        {
+            foreach (DefineConstant constant in this.DefineConstants())
+            {
+                if (taken.TryGetValue(constant.Name, out string? owner))
+                {
+                    this.Error(GeneratorDiagnostics.NameCollision, "The #define '" + constant.LayoutName + "' would be generated as the constant '" + constant.Name + "', which is already " + owner + "; rename the #define or the declaration in the layout.");
+                }
+                else
+                {
+                    taken[constant.Name] = "generated for the #define '" + constant.LayoutName + "'";
+                }
+            }
+        }
+
         this.model = GeneratedModel.Build(this.compilation, this.request.KeepNames, taken, this.request.Views);
         foreach (string collision in this.model.Collisions)
         {
@@ -252,6 +268,7 @@ internal sealed partial class LayoutEmitter
     /// <summary>The members every generated class has: the definition, the runtime layout, and the root name.</summary>
     private void EmitFrame(SourceWriter writer)
     {
+        this.EmitDefineConstants(writer);
         if (this.request.Surface != GenerationSurface.Parser)
         {
             writer.Line("/// <summary>The layout text the members of this class were generated from.</summary>");

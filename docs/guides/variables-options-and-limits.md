@@ -29,7 +29,8 @@ Pass a read-only integer dictionary to every operation that needs the count:
 
 A generated reader takes the dictionary as its `variables` argument, which comes before the options on the unnamed root
 `Parse` as on `Parse<Name>`: `Wire.Parse(bytes, variables)`, `Wire.Parse(bytes, variables, options)`, and with limits as a value
-`Wire.Parse(bytes, in limits, variables)`. Write `Wire.Parse(bytes, null, options)` (or `options: options`) to pass only
+`Wire.Parse(bytes, variables, in limits)`, which is the order of `Parse(bytes, variables, options)`; a read with limits and no variables is
+`Wire.Parse(bytes, in limits)`. The named readers and the `TryParse` forms follow the same order. Write `Wire.Parse(bytes, null, options)` (or `options: options`) to pass only
 the options. `Wire.Parse(bytes, default)` does not compile: `default` could be the variables or the limits, so name the argument
 (`default(ReadLimits)` or `(IReadOnlyDictionary<string, int>?)null`).
 

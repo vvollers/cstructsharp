@@ -218,7 +218,8 @@ internal sealed partial class LayoutEmitter
 
     /// <summary>
     ///     Emits the overloads that take the limits as a <c>ReadLimits</c> value: a read governed by them allocates no
-    ///     <c>ReadOptions</c> object, which matters for a reader that parses many small records.
+    ///     <c>ReadOptions</c> object, which matters for a reader that parses many small records. Each form comes with the caller
+    ///     variables before the limits, as in the <c>ReadOptions</c> overloads, and a shorter one for a layout read without variables.
     /// </summary>
     /// <param name="writer">The generated source destination.</param>
     /// <param name="composite">The composite whose typed reader was just emitted.</param>
@@ -228,14 +229,15 @@ internal sealed partial class LayoutEmitter
     {
         string name = composite.Name;
         const string Limits = "global::CStructSharp.ReadLimits";
+        string withVariables = "(global::System.ReadOnlySpan{byte}, " + this.OrderCref + VariablesCref + ", in " + Limits + ")";
         writer.Line();
         writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from the start of <paramref name=\"source\"/> under limits given as a value: the same value and failures as the overload that takes <c>ReadOptions</c>, with no options object to allocate. Pointers keep the default policy.</summary>");
         writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
         this.EmitOrderDoc(writer);
+        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
         writer.Line("/// <param name=\"limits\">The limits of the read.</param>");
-        writer.Line(VariablesDoc);
         writer.Line("/// <returns>The parsed value.</returns>");
-        writer.Open("public static " + name + " " + method + "(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + "in " + Limits + " limits, " + VariablesType + " variables = null)");
+        writer.Open("public static " + name + " " + method + "(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + VariablesType + " variables, in " + Limits + " limits)");
         writer.Line("var cursor = new " + Cursor + "(source, in limits, " + SourceWriter.Literal(composite.LayoutName) + this.CursorOrderArgument + ");");
         writer.Open("try");
         writer.Line("return Read" + name + "(ref cursor, variables, null, null);");
@@ -245,16 +247,30 @@ internal sealed partial class LayoutEmitter
         this.EmitRethrow(writer);
         writer.Close();
         writer.Close();
+        writer.Line();
+        writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> under limits given as a value, without caller variables; see " + Cref(method + withVariables) + ".</summary>");
+        writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
+        this.EmitOrderDoc(writer);
+        writer.Line("/// <param name=\"limits\">The limits of the read.</param>");
+        writer.Line("/// <returns>The parsed value.</returns>");
+        writer.Line("public static " + name + " " + method + "(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + "in " + Limits + " limits) => " + method + "(source, " + this.OrderArgument + "null, in limits);");
         if (isRoot)
         {
             writer.Line();
-            writer.Line("/// <summary>Reads the root declaration (<c>" + composite.LayoutName + "</c>) under limits given as a value; see " + Cref(method + "(global::System.ReadOnlySpan{byte}, " + this.OrderCref + "in " + Limits + ", " + VariablesCref + ")") + ".</summary>");
+            writer.Line("/// <summary>Reads the root declaration (<c>" + composite.LayoutName + "</c>) under limits given as a value; see " + Cref(method + withVariables) + ".</summary>");
+            writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
+            this.EmitOrderDoc(writer);
+            writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+            writer.Line("/// <param name=\"limits\">The limits of the read.</param>");
+            writer.Line("/// <returns>The parsed value.</returns>");
+            writer.Line("public static " + name + " Parse(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + VariablesType + " variables, in " + Limits + " limits) => " + method + "(source, " + this.OrderArgument + "variables, in limits);");
+            writer.Line();
+            writer.Line("/// <summary>Reads the root declaration (<c>" + composite.LayoutName + "</c>) under limits given as a value, without caller variables.</summary>");
             writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
             this.EmitOrderDoc(writer);
             writer.Line("/// <param name=\"limits\">The limits of the read.</param>");
-            writer.Line(VariablesDoc);
             writer.Line("/// <returns>The parsed value.</returns>");
-            writer.Line("public static " + name + " Parse(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + "in " + Limits + " limits, " + VariablesType + " variables = null) => " + method + "(source, " + this.OrderArgument + "in limits, variables);");
+            writer.Line("public static " + name + " Parse(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + "in " + Limits + " limits) => " + method + "(source, " + this.OrderArgument + "null, in limits);");
         }
 
         if (this.request.Surface is GenerationSurface.Parser)
@@ -265,16 +281,17 @@ internal sealed partial class LayoutEmitter
         // The non-throwing form: the failure the throwing form would have raised comes back instead.
         const string Failure = "global::CStructSharp.Diagnostics.CStructException";
         string maybeNull = this.UsesValueTypes ? string.Empty : "[global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] ";
+        string tryWithVariables = "(global::System.ReadOnlySpan{byte}, " + this.OrderCref + "out " + name + ", out " + Failure + "?, " + VariablesCref + ", in " + Limits + ")";
         writer.Line();
-        writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> under limits given as a value without throwing for a read, path, or limit failure: <see langword=\"false\"/> and the failure instead. Cancellation and argument errors throw as in " + Cref(method + "(global::System.ReadOnlySpan{byte}, " + this.OrderCref + "in " + Limits + ", " + VariablesCref + ")") + ".</summary>");
+        writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> under limits given as a value without throwing for a read, path, or limit failure: <see langword=\"false\"/> and the failure instead. Cancellation and argument errors throw as in " + Cref(method + withVariables) + ".</summary>");
         writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
         this.EmitOrderDoc(writer);
         writer.Line("/// <param name=\"value\">The parsed value, or the default when the read failed.</param>");
         writer.Line("/// <param name=\"failure\">The failure the throwing form would have raised, or <see langword=\"null\"/>.</param>");
+        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
         writer.Line("/// <param name=\"limits\">The limits of the read.</param>");
-        writer.Line(VariablesDoc);
         writer.Line("/// <returns>Whether the read succeeded.</returns>");
-        writer.Open("public static bool Try" + method + "(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + maybeNull + "out " + name + " value, out " + Failure + "? failure, in " + Limits + " limits, " + VariablesType + " variables = null)");
+        writer.Open("public static bool Try" + method + "(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + maybeNull + "out " + name + " value, out " + Failure + "? failure, " + VariablesType + " variables, in " + Limits + " limits)");
         if (this.ReturnsConstraintFailure(composite) is { } limitsPlan)
         {
             this.EmitFixedTryBody(writer, composite, limitsPlan, "var cursor = new " + Cursor + "(source, in limits, " + SourceWriter.Literal(composite.LayoutName) + this.CursorOrderArgument + ");");
@@ -282,7 +299,7 @@ internal sealed partial class LayoutEmitter
         else
         {
             writer.Open("try");
-            writer.Line("value = " + method + "(source, " + this.OrderArgument + "in limits, variables);");
+            writer.Line("value = " + method + "(source, " + this.OrderArgument + "variables, in limits);");
             writer.Line("failure = null;");
             writer.Line("return true;");
             writer.Close();
@@ -295,18 +312,36 @@ internal sealed partial class LayoutEmitter
         }
 
         writer.Close();
+        writer.Line();
+        writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> under limits given as a value without throwing and without caller variables; see " + Cref("Try" + method + tryWithVariables) + ".</summary>");
+        writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
+        this.EmitOrderDoc(writer);
+        writer.Line("/// <param name=\"value\">The parsed value, or the default when the read failed.</param>");
+        writer.Line("/// <param name=\"failure\">The failure the throwing form would have raised, or <see langword=\"null\"/>.</param>");
+        writer.Line("/// <param name=\"limits\">The limits of the read.</param>");
+        writer.Line("/// <returns>Whether the read succeeded.</returns>");
+        writer.Line("public static bool Try" + method + "(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + maybeNull + "out " + name + " value, out " + Failure + "? failure, in " + Limits + " limits) => Try" + method + "(source, " + this.OrderArgument + "out value, out failure, null, in limits);");
         if (isRoot)
         {
             writer.Line();
-            writer.Line("/// <summary>Reads the root declaration (<c>" + composite.LayoutName + "</c>) under limits given as a value without throwing; see " + Cref("Try" + method + "(global::System.ReadOnlySpan{byte}, " + this.OrderCref + "out " + name + ", out " + Failure + "?, in " + Limits + ", " + VariablesCref + ")") + ".</summary>");
+            writer.Line("/// <summary>Reads the root declaration (<c>" + composite.LayoutName + "</c>) under limits given as a value without throwing; see " + Cref("Try" + method + tryWithVariables) + ".</summary>");
+            writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
+            this.EmitOrderDoc(writer);
+            writer.Line("/// <param name=\"value\">The parsed value, or the default when the read failed.</param>");
+            writer.Line("/// <param name=\"failure\">The failure the throwing form would have raised, or <see langword=\"null\"/>.</param>");
+            writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+            writer.Line("/// <param name=\"limits\">The limits of the read.</param>");
+            writer.Line("/// <returns>Whether the read succeeded.</returns>");
+            writer.Line("public static bool TryParse(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + maybeNull + "out " + name + " value, out " + Failure + "? failure, " + VariablesType + " variables, in " + Limits + " limits) => Try" + method + "(source, " + this.OrderArgument + "out value, out failure, variables, in limits);");
+            writer.Line();
+            writer.Line("/// <summary>Reads the root declaration (<c>" + composite.LayoutName + "</c>) under limits given as a value without throwing and without caller variables.</summary>");
             writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
             this.EmitOrderDoc(writer);
             writer.Line("/// <param name=\"value\">The parsed value, or the default when the read failed.</param>");
             writer.Line("/// <param name=\"failure\">The failure the throwing form would have raised, or <see langword=\"null\"/>.</param>");
             writer.Line("/// <param name=\"limits\">The limits of the read.</param>");
-            writer.Line(VariablesDoc);
             writer.Line("/// <returns>Whether the read succeeded.</returns>");
-            writer.Line("public static bool TryParse(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + maybeNull + "out " + name + " value, out " + Failure + "? failure, in " + Limits + " limits, " + VariablesType + " variables = null) => Try" + method + "(source, " + this.OrderArgument + "out value, out failure, in limits, variables);");
+            writer.Line("public static bool TryParse(global::System.ReadOnlySpan<byte> source, " + this.OrderParameter + maybeNull + "out " + name + " value, out " + Failure + "? failure, in " + Limits + " limits) => Try" + method + "(source, " + this.OrderArgument + "out value, out failure, null, in limits);");
         }
     }
 
