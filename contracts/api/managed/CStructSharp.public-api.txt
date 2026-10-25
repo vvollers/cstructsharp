@@ -37,6 +37,7 @@ namespace CStructSharp
         public System.Threading.Tasks.ValueTask<int> GetArrayLengthAsync(System.IO.Stream stream, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public int GetStructAlignmentInBytes(string name) { }
         public int GetStructSizeInBytes(string name) { }
+        public bool Matches(string declaration, System.ReadOnlySpan<byte> source, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null) { }
         public CStructSharp.Values.StructValue Parse(System.Buffers.ReadOnlySequence<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.StructValue Parse(System.IO.Stream stream, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.StructValue Parse(System.ReadOnlyMemory<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }

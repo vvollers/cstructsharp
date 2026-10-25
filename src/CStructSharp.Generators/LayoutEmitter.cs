@@ -192,7 +192,7 @@ internal sealed partial class LayoutEmitter
     /// </summary>
     private void ReportMatchesCollisions()
     {
-        if (this.request.Surface == GenerationSurface.Views || this.request.Shape == GenerationShape.Scalar)
+        if (this.request.Shape == GenerationShape.Scalar)
         {
             return;
         }
@@ -249,6 +249,7 @@ internal sealed partial class LayoutEmitter
             if (this.request.Surface == GenerationSurface.Views)
             {
                 this.EmitSettingConstants(writer);
+                this.EmitViewMatches(writer);
             }
             else
             {

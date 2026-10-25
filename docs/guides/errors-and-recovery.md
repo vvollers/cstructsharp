@@ -60,7 +60,7 @@ form would have raised. A generated layout class has `TryParse(input, out value)
 
 A constraint (`@expect`, `@supports`) turns "the bytes are not this format" into a failure with a kind, a field and a
 condition. A reader that tries one layout after another should not pay an exception for each miss: a generated layout's
-`Matches(bytes)` answers "does this look like the format?" without building a value or throwing, and `TryParse` and a view's
+`Matches(bytes)` (on a runtime layout `layout.Matches("name", bytes)`) answers "does this look like the format?" without building a value or throwing, and `TryParse` and a view's
 `TryValidate` return a broken constraint as a value. `ReadOptions.ConstraintViolations` collects every broken condition of
 one read instead of stopping at the first, `CStructConstraintException.Label` carries the name a layout gave a constraint
 and `Description` the message it gave it, a generated reader set to `ConstraintFailures = FormatExceptions` throws

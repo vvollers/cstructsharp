@@ -175,6 +175,23 @@ internal sealed partial class LayoutEmitter
         this.runtimeOrder = savedOrder;
     }
 
+    /// <summary>
+    ///     Emits <c>Matches</c> for the Views surface, which has no readers to put it beside: recognizing a format is the first thing to do
+    ///     with bytes before making a view of them.
+    /// </summary>
+    /// <param name="writer">The generated source destination.</param>
+    private void EmitViewMatches(SourceWriter writer)
+    {
+        GeneratedComposite? root = this.model.Composites.FirstOrDefault(composite => composite.IsDeclared && composite.LayoutName == this.rootName);
+        foreach (GeneratedComposite composite in this.model.Composites)
+        {
+            if (composite.IsDeclared)
+            {
+                this.EmitMatches(writer, composite, composite == root);
+            }
+        }
+    }
+
     /// <summary>Whether generated code uses a local by its whole name, so that <c>m_Flag</c> is not found in <c>m_FlagMask</c>.</summary>
     /// <param name="code">The C# expression.</param>
     /// <param name="local">The local's name.</param>

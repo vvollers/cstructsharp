@@ -250,7 +250,7 @@ every generated `Parse`, the sequence, stream and record readers, `TryParse` and
   without constraints.
 - It cannot be combined with `ConstraintViolations`, which asks for the conditions to be evaluated and collected. A read
   that sets both fails with `ArgumentException` when it starts.
-- `Matches` takes no read settings and always evaluates its conditions: it answers "is this the format?", which is a different
+- `Matches` (generated, on every surface that has types or views, and `CStruct.Matches(declaration, source, variables)` on a runtime layout) takes no read settings and always evaluates its conditions: it answers "is this the format?", which is a different
   question from "read it anyway".
 
 ## Mistakes the compiler can find

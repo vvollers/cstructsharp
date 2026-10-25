@@ -61,6 +61,10 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   is still a layout error. The portable language contract is revision 5, and older engines reject a layout that uses byte
   strings. Public API: `Expressions.BytesEqual` and `Expressions.TextEquals`, the helpers generated code calls. A struct with a
   byte-string condition is read member by member in the runtime engine (the static plan decodes scalars only).
+- **`Matches` on views and runtime layouts.** The `Views` surface generates `Matches` and `Matches<Name>` like the reader surfaces, and
+  `CStruct.Matches(declaration, source, variables)` answers the same question for a layout compiled at run time: it evaluates the
+  `@expect` conditions (the `@magic` conditions alone when the struct has any) of members at build-time offsets, never throws for
+  short or wrong input, and throws `CStructLayoutException` for a struct with no condition it can evaluate.
 - **Unread members.** `CSG023` (info) lists the members of a `Reader` or `Parser` layout that no code in the project reads, to guide which
   bytes to declare as `_` padding. It has the same limits as `CSG016` and `CSG017`: it needs a class no other assembly can see.
 - **Shape suggestions.** `CSG021` and `CSG022` (info) say when a layout generated as classes on the `Reader` or `Parser` surface qualifies

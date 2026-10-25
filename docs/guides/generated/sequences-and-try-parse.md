@@ -52,6 +52,16 @@ runtime-sized array or sits in a conditional arm or a nested struct, and treats 
 that cannot be evaluated as no match. A match therefore says "this looks like the format", not "a read succeeds": call
 `TryParse` next.
 
+The `Views` surface has `Matches` too, as static methods of the layout class: recognizing a format is the question to ask before making a
+view of the bytes. A layout that is compiled at run time answers the same question with `CStruct.Matches(declaration, bytes, variables)`,
+which decodes the same members and returns the same answers; it throws `CStructLayoutException` for a struct with no condition it can
+evaluate (the generated layouts have no `Matches` method then).
+
+```csharp
+var layout = new CStruct("struct sb { uint32 inodes; uint16 magic @expect(magic == 0xEF53); };");
+bool looksLikeExt = layout.Matches("sb", bytes);   // no value is built, nothing is thrown for short or wrong input
+```
+
 Every composite has the five input kinds - span, array, memory, `ReadOnlySequence<byte>`, stream - as
 `TryParse<Name>`, and the root has them as `TryParse`. The interface `ICStructGenerated<TSelf>` exposes the span
 form, so generic code can parse any generated root without knowing its class.

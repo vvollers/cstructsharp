@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed",
-  "baselineRevision": 70,
+  "baselineRevision": 71,
   "packageVersion": "0.15.0",
   "assembly": "CStructSharp.dll",
   "exportedTypes": 96,
@@ -12,22 +12,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed/CStructSharp.public-api.txt",
-    "lines": 1169,
-    "normalizedSha256": "7DAC1BB40DF1DFD05F4EC935122D6521173044D0738A6C914283FF3A2B4404DA"
+    "lines": 1170,
+    "normalizedSha256": "3C9D6A52274CAE49F862A46F0AE2E033A299BEB7CD3CAB0B35C89282E72003CF"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "192C1908448E335AFB4B23CDB8704B99BD387592A2B3D412C862F9ED4EA5547D",
+      "normalizedSha256": "EBDFCC632CFC49AF402E1C7AE2564B149AABAA6520831132100E0511437774E8",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "7D1C567E69CDC6821AE561A354F0709D923E2A3B8B2768158E93F0D21ED98138",
+      "normalizedSha256": "380F5B7A97C92CE6C5A2C84511065160DC7A5320E0A7ED12BED5FDCA622C38AB",
       "aotCompatible": true
     }
   ],
@@ -448,12 +448,18 @@
     },
     {
       "revision": 70,
+      "date": "2026-10-25",
+      "packageVersion": "0.15.0",
+      "combinedSha256": "B2D8D2A69E45171002F4B14F7E8E0A79E62BC728F12E93590DC98FAF4E32E02C"
+    },
+    {
+      "revision": 71,
       "kind": "additive",
       "date": "2026-10-25",
       "packageVersion": "0.15.0",
-      "combinedSha256": "B2D8D2A69E45171002F4B14F7E8E0A79E62BC728F12E93590DC98FAF4E32E02C",
-      "rationale": "Byte-string comparisons in constraints: the generated-code helpers Expressions.BytesEqual and Expressions.TextEquals.",
-      "releaseImpact": "Additive members of the advanced Expressions surface; no existing call changes."
+      "combinedSha256": "34BD7EAE6E23F63ADCD1B6C49353B7E2820838757753BE9EE67F4374F961DBC2",
+      "rationale": "CStruct.Matches recognizes a declaration by its @expect/@magic conditions on members at build-time offsets, as the generated Matches does",
+      "releaseImpact": "New public instance method on CStruct; no existing member changes"
     }
   ]
 }

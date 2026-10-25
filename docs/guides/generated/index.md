@@ -65,7 +65,7 @@ That list is the default, `GeneratedSurface.Full`. A project that only reads can
 allocate nothing (`Shape`) or for one layout that reads both byte orders (`RuntimeByteOrder`), and can set those choices once
 for every layout with build properties; [Runtime or generated?](choosing-runtime-or-generated.md) lists them. A layout with
 `@expect` or `@supports` [constraints](../../language/field-constraints.md) also gets `Matches`, which recognizes a format
-without building a value.
+without building a value (on every surface, `Views` included).
 
 The generated reader and the runtime reader produce the same values and the same failures for the same bytes;
 the parity tests in the repository check that on every fixture the runtime is tested with.
