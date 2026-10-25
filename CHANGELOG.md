@@ -33,6 +33,10 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   rules can be read leniently at another site with one visible argument. The runtime layout, every generated reader and a view's
   `Validate` honor it; `Matches` takes no read settings and still evaluates. `Skip` together with `ConstraintViolations` is an
   `ArgumentException` when the read starts. `ReadLimits` is still 40 bytes: the policy shares a byte with `InvalidText`.
+- **Constraint diagnostics.** The analyzer reports `CSG018` (warning) when the conditions on one integer member exclude every value
+  its type can hold, such as `uint8 big @expect(big > 300)` or `@expect(kind == 1) @expect(kind == 2)`, and `CSG019` (info) when
+  one constraint label names different conditions in a layout. Both are certain-only: a condition the analysis cannot reduce
+  is never reported.
 - **Format exceptions from generated readers.** `[CStructLayout(ConstraintFailures = ConstraintFailureMode.FormatExceptions)]`, or
   the build property `CStructSharpConstraintFailures`, makes the throwing generated entry points (`Parse` for every input kind,
   `Records`, a view's `Validate` and `ToObject`) throw `InvalidDataException` for `@expect` and `NotSupportedException` for

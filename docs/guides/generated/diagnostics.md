@@ -27,6 +27,8 @@ list cannot drift from what ships.
 | [CSG015](#csg015---a-scalar-shape-is-not-supported-here) | Error | A scalar shape is not supported here |
 | [CSG016](#csg016---a-generated-layout-is-never-used) | Info | A generated layout is never used |
 | [CSG017](#csg017---a-generated-layout-generates-more-than-its-uses-need) | Info | A generated layout generates more than its uses need |
+| [CSG018](#csg018---the-conditions-on-a-member-can-never-hold) | Warning | The conditions on a member can never hold |
+| [CSG019](#csg019---a-constraint-label-names-different-conditions) | Info | A constraint label names different conditions |
 | [CSG100](#csg100---mapped-type-must-be-partial-with-a-parameterless-constructor) | Error | Mapped type must be partial with a parameterless constructor |
 | [CSG101](#csg101---mapped-member-type-is-not-mapped) | Error | Mapped member type is not mapped |
 | [CSG102](#csg102---mapped-member-has-no-layout-counterpart) | Warning | Mapped member has no layout counterpart |
@@ -169,6 +171,29 @@ The layout class 'Header' is used only through Parse; generate less with Surface
 
 **Fix.** Write the suggested options on the attribute, or set them as [project defaults](choosing-runtime-or-generated.md#project-defaults).
 A call with a `byte[]` argument needs the `Reader` surface (the array overload); passing a `ReadOnlySpan<byte>` needs only `Parser`.
+
+## CSG018 - The conditions on a member can never hold
+
+**Cause.** The `@expect` and `@supports` conditions of one member exclude every value its type can hold, so every read of the
+layout fails at that member. The analyzer compares the member with constants and `#define`d integers and combines the
+comparisons with `&&`, `||` and `!`; a bound outside the type is the simplest case. It reports only what it can prove: a condition
+that uses another member, a mask or arithmetic on the member is not reduced, and a layout that does not compile is left to CSG001.
+Reported as a warning at the layout text, for a `[CStructLayout]` attribute and for a literal passed to `new CStruct` or
+`CStruct.GetOrCompile`.
+
+```text
+The conditions on 'a.big' can never hold: 'big > LIMIT' holds for no value of uint8 (0 to 255), so every read of this layout fails
+```
+
+**Fix.** Correct the bound (a `uint8` is at most 255), or merge conditions that were meant as alternatives into one `||` condition.
+
+## CSG019 - A constraint label names different conditions
+
+**Cause.** Two constraints of one layout carry the same label but test different conditions, for example the magic numbers of two
+structs in one file under `"xfs.magic"`. A label is what a report shows to say which constraint failed, so a repeated label makes
+two failures look alike. Reported as info; repeating the same condition under one label is not reported.
+
+**Fix.** Give each condition its own label (`"xfs.sb.magic"`, `"xfs.agf.magic"`), or keep one label only where the condition is the same.
 
 ## CSG100 - Mapped type must be partial with a parameterless constructor
 

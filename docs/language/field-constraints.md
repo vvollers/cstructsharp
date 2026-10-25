@@ -192,6 +192,15 @@ every generated `Parse`, the sequence, stream and record readers, `TryParse` and
 - `Matches` takes no read settings and always evaluates its conditions: it answers "is this the format?", which is a different
   question from "read it anyway".
 
+## Mistakes the compiler can find
+
+The analyzer reads the constraints in a `[CStructLayout]` attribute or a `new CStruct("...")` literal when you build. It warns
+([CSG018](../guides/generated/diagnostics.md#csg018---the-conditions-on-a-member-can-never-hold)) when the conditions on one
+integer member cannot be true together, for example `uint8 kind @expect(kind == 1) @expect(kind == 2)` or a bound above the type's
+maximum, because every read would fail there. It also notes
+([CSG019](../guides/generated/diagnostics.md#csg019---a-constraint-label-names-different-conditions)) when one label names two
+different conditions, since a report could not tell them apart. It only reports what it can prove.
+
 ## Where a constraint is checked
 
 - **Reads.** `Parse`, `ParseMany`, `ReadValue`, `TryReadValue`, stream and asynchronous reads, the debug read and the

@@ -12,3 +12,5 @@ CSG014 | CStructSharp | Error | A value-type shape is not supported here
 CSG015 | CStructSharp | Error | A scalar shape is not supported here
 CSG016 | CStructSharp | Info | A generated layout is never used
 CSG017 | CStructSharp | Info | A generated layout generates more than its uses need
+CSG018 | CStructSharp | Warning | The conditions on a member can never hold
+CSG019 | CStructSharp | Info | A constraint label names different conditions

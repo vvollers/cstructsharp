@@ -43,7 +43,12 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
 
     /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
-        ImmutableArray.Create(GeneratorDiagnostics.PathUnresolved, GeneratorDiagnostics.ParseNotStruct, GeneratorDiagnostics.DynamicUnderAot);
+        ImmutableArray.Create(
+            GeneratorDiagnostics.PathUnresolved,
+            GeneratorDiagnostics.ParseNotStruct,
+            GeneratorDiagnostics.DynamicUnderAot,
+            GeneratorDiagnostics.ConstraintUnsatisfiable,
+            GeneratorDiagnostics.ConstraintLabelReused);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -59,6 +64,10 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
             // Analyzes one invocation with the compilation's defaults.
             start.RegisterOperationAction(operation => this.AnalyzeInvocation(operation, defaults), OperationKind.Invocation);
             start.RegisterOperationAction(AnalyzeConversion, OperationKind.Conversion);
+
+            // Analyzes the conditions of a layout written as an attribute or as the literal of a new CStruct.
+            start.RegisterSymbolAction(symbol => this.AnalyzeLayoutClass(symbol, defaults), SymbolKind.NamedType);
+            start.RegisterOperationAction(this.AnalyzeLayoutConstruction, OperationKind.ObjectCreation, OperationKind.Invocation);
         });
     }
 
@@ -119,6 +128,79 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
         if (failure is not null)
         {
             context.ReportDiagnostic(Diagnostic.Create(GeneratorDiagnostics.PathUnresolved, pathArgument.Syntax.GetLocation(), path, failure));
+        }
+    }
+
+    /// <summary>CSG018 and CSG019 for the inline layout text of a <c>[CStructLayout]</c> class.</summary>
+    /// <param name="context">The class being analyzed.</param>
+    /// <param name="defaults">The project's defaults for the options the attribute does not name.</param>
+    private void AnalyzeLayoutClass(SymbolAnalysisContext context, LayoutDefaults defaults)
+    {
+        var owner = (INamedTypeSymbol)context.Symbol;
+        foreach (AttributeData attribute in owner.GetAttributes())
+        {
+            if (attribute.AttributeClass?.ToDisplayString() != "CStructSharp.CStructLayoutAttribute" ||
+                attribute.ConstructorArguments.Length != 1 || attribute.ConstructorArguments[0].Value is not string text)
+            {
+                continue;
+            }
+
+            var named = new HashSet<string>(attribute.NamedArguments.Where(LayoutDefaults.NamesOption).Select(argument => argument.Key), StringComparer.Ordinal);
+            LayoutSettings settings = LayoutSettings.FromAttribute(attribute).WithDefaults(defaults, named.Contains);
+            Location location = attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken).GetLocation() ?? owner.Locations.FirstOrDefault() ?? Location.None;
+            this.ReportConstraintFindings(text, settings, location, report => context.ReportDiagnostic(report));
+        }
+    }
+
+    /// <summary>CSG018 and CSG019 for a layout literal passed to <c>new CStruct(...)</c> or <c>CStruct.GetOrCompile(...)</c>.</summary>
+    /// <param name="context">The creation or invocation.</param>
+    private void AnalyzeLayoutConstruction(OperationAnalysisContext context)
+    {
+        ImmutableArray<IArgumentOperation> arguments;
+        switch (context.Operation)
+        {
+        case IObjectCreationOperation creation when creation.Type?.ToDisplayString() == "CStructSharp.CStruct":
+            arguments = creation.Arguments;
+            break;
+        case IInvocationOperation factory when IsGetOrCompile(factory.TargetMethod):
+            arguments = factory.Arguments;
+            break;
+        default:
+            return;
+        }
+
+        (string? text, LayoutSettings? settings) = CallLayout(arguments);
+        if (text is null || settings is null)
+        {
+            return;
+        }
+
+        IArgumentOperation literal = arguments.First(argument => argument.Parameter?.Name == "layout");
+        this.ReportConstraintFindings(text, settings, literal.Syntax.GetLocation(), report => context.ReportDiagnostic(report));
+    }
+
+    /// <summary>Compiles a layout text and reports what the constraint analysis finds in it.</summary>
+    /// <param name="text">The layout text.</param>
+    /// <param name="settings">The settings it is compiled with.</param>
+    /// <param name="location">Where the text is written.</param>
+    /// <param name="report">Receives each diagnostic.</param>
+    private void ReportConstraintFindings(string text, LayoutSettings settings, Location location, Action<Diagnostic> report)
+    {
+        if (!text.Contains("@expect", StringComparison.Ordinal) && !text.Contains("@supports", StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        LayoutCompilation? layout = this.layouts.GetOrAdd((text, settings), key => Compile(key.Text, key.Settings));
+        if (layout is null)
+        {
+            return;
+        }
+
+        foreach (ConstraintAnalysis.Finding finding in ConstraintAnalysis.Analyze(layout))
+        {
+            DiagnosticDescriptor descriptor = finding.Kind == ConstraintAnalysis.FindingKind.Unsatisfiable ? GeneratorDiagnostics.ConstraintUnsatisfiable : GeneratorDiagnostics.ConstraintLabelReused;
+            report(Diagnostic.Create(descriptor, location, finding.Subject, finding.Detail));
         }
     }
 
