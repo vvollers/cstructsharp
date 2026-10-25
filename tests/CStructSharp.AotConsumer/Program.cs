@@ -99,7 +99,7 @@ Check(Shapes.ToMapped<MappedRecord>(generated).Origin.X == -2, "generated to map
 var options = new ReadOptions { MaxTotalBytesRead = 1024, } with { TrimFixedText = true, };
 Check(options.MaxTotalBytesRead == 1024 && options.TrimFixedText, "options with");
 using var recordStream = new MemoryStream(recordBytes, 0, recordBytes.Length, writable: false, publiclyVisible: false);
-Shapes.Record awaited = await Shapes.ParseAsync(recordStream, options);
+Shapes.Record awaited = await Shapes.ParseAsync(recordStream, options: options);
 Check(awaited.Tag == 7 && recordStream.Position == recordBytes.Length, "generated ParseAsync");
 StructValue awaitedRuntime = await records.ParseAsync(new MemoryStream(recordBytes), "record");
 Check(awaitedRuntime.Get<byte>("tag") == 7, "runtime ParseAsync");
