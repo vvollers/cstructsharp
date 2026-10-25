@@ -30,6 +30,11 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   `Wire.ParseEntry(bytes, in limits, variables)`, swaps the two arguments, `Wire.ParseEntry(bytes, variables, in limits)`. The two argument
   types differ, so a stale call fails to compile and never binds to another overload.
 
+- **Breaking (source, only for a project that declares the same name):** the integer `#define`s of a generated layout are now
+  `public const` members of the generated class (see *Added*). A class that already declares a member with the same name, for
+  example a hand-written `const int EXT_MAGIC` in its own part of the partial class, no longer compiles. Migration: delete the
+  hand-written constant and use the generated one. A `#define` named like a generated member or type is reported as `CSG003`.
+
 ### Added
 
 - **Constraint messages.** `@expect(condition, "label", "message")` and `@supports(condition, "label", "message")` carry the
