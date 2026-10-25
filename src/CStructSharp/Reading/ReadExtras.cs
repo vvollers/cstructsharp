@@ -29,6 +29,7 @@ internal sealed record ReadExtras(long OffsetBase, ICollection<CStructConstraint
 
     /// <summary>Rejects the contradictory request to skip the constraints and collect their violations in the same read.</summary>
     /// <exception cref="ArgumentException">The extras set both <see cref="SkipConstraints"/> and <see cref="ConstraintViolations"/>.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void ThrowIfContradictory()
     {
         if (this.SkipConstraints && this.ConstraintViolations is not null)

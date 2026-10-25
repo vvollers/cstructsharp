@@ -19,6 +19,10 @@ using static CStructSharp.Generators.Emit;
 internal sealed partial class LayoutEmitter
 {
     private const string Cursor = "global::CStructSharp.Generated.ReadCursor";
+
+    /// <summary>The local that holds, in a member-by-member reader, whether the read evaluates its constraints.</summary>
+    private const string EnforceConstraints = "enforceConstraints";
+
     private const string VariablesType = "global::System.Collections.Generic.IReadOnlyDictionary<string, int>?";
 
     // The variables parameter's type as a cref names it: generic arguments in braces, no nullable marker.
@@ -589,6 +593,14 @@ internal sealed partial class LayoutEmitter
 
         writer.Line("cursor.EnterComposite(member ?? " + SourceWriter.Literal(composite.LayoutName) + ", memberType);");
         writer.Line("var value = new " + name + "();");
+
+        // The member-by-member reader tests the constraint policy once: the cursor is passed by reference and changes as members are
+        // taken, so a test of it at every condition is a load each time.
+        if (composite.Composite.HasConstraints && !composite.IsUnion)
+        {
+            writer.Line("bool " + EnforceConstraints + " = !cursor.SkipsConstraints;");
+        }
+
         var scope = new ReaderScope(this, composite);
         this.decidedGroups.Clear();
         this.deferredPointers.Clear();
@@ -886,7 +898,7 @@ internal sealed partial class LayoutEmitter
         {
             foreach (CompiledConstraint constraint in field.Constraints)
             {
-                EmitConstraintBlock(writer, field, constraint, scope.Expressions.Emit(constraint.Expression), member, memberType, null);
+                EmitConstraintBlock(writer, field, constraint, scope.Expressions.Emit(constraint.Expression), member, memberType, null, guard: EnforceConstraints);
             }
 
             return;
@@ -901,7 +913,7 @@ internal sealed partial class LayoutEmitter
         {
             HeldConstraint held = this.heldConstraints[(entry.Field, entry.Ordinal)];
             CompiledField owner = this.scheduleFields[entry.Field];
-            EmitConstraintBlock(writer, owner, owner.Constraints[entry.Ordinal], held.Code, held.Member, held.MemberType, null);
+            EmitConstraintBlock(writer, owner, owner.Constraints[entry.Ordinal], held.Code, held.Member, held.MemberType, null, guard: EnforceConstraints);
         }
     }
 
@@ -932,7 +944,7 @@ internal sealed partial class LayoutEmitter
         foreach (ConstraintSchedule.Entry entry in schedule.After(index))
         {
             CompiledField owner = fields[entry.Field];
-            EmitConstraintBlock(writer, owner, owner.Constraints[entry.Ordinal], held[(entry.Field, entry.Ordinal)], SourceWriter.Literal(owner.Name), SourceWriter.Literal(owner.DisplayTypeSpelling), "start + " + Int(end), returnsFailure: true, guarded: false);
+            EmitConstraintBlock(writer, owner, owner.Constraints[entry.Ordinal], held[(entry.Field, entry.Ordinal)], SourceWriter.Literal(owner.Name), SourceWriter.Literal(owner.DisplayTypeSpelling), "start + " + Int(end), returnsFailure: true, guard: null);
         }
     }
 
@@ -975,19 +987,20 @@ internal sealed partial class LayoutEmitter
     ///     Whether the check sits in a method that returns <see langword="false"/> with an <c>out</c> parameter <c>failure</c>
     ///     instead of throwing, so a non-throwing caller gets the failure back; otherwise the check throws (or collects).
     /// </param>
-    /// <param name="guarded">
-    ///     Whether the block tests <c>cursor.SkipsConstraints</c> itself; a check function that tested it once at its start
-    ///     (<see cref="EmitSkipGuard"/>) passes <see langword="false"/>.
+    /// <param name="guard">
+    ///     The C# condition under which the block evaluates its condition, which is how a read that skips its constraints evaluates none:
+    ///     the default tests the cursor; the member-by-member reader passes a local it set once at its start, and a check that its
+    ///     caller (or <see cref="EmitSkipGuard"/>) already guarded passes <see langword="null"/>.
     /// </param>
-    private static void EmitConstraintBlock(SourceWriter writer, CompiledField field, CompiledConstraint constraint, string code, string member, string memberType, string? failurePosition, bool returnsFailure = false, bool guarded = true)
+    private static void EmitConstraintBlock(SourceWriter writer, CompiledField field, CompiledConstraint constraint, string code, string member, string memberType, string? failurePosition, bool returnsFailure = false, string? guard = "!cursor.SkipsConstraints")
     {
         string context = "constraint '" + constraint.Text + "' of " + field.Name;
         string kind = constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "Malformed" : "Unsupported";
         writer.Line("// @" + constraint.Keyword + "(" + SingleLine(constraint.Text) + ")");
 
-        // A read that skips its constraints (ReadOptions.Constraints) evaluates none: a check function tests that once at its start,
+        // A read that skips its constraints (ReadOptions.Constraints) evaluates none: the caller of a check function tests that once,
         // and every other check tests it before it evaluates the condition.
-        writer.Open(guarded ? "if (!cursor.SkipsConstraints)" : string.Empty);
+        writer.Open(guard is null ? string.Empty : "if (" + guard + ")");
         if (CannotFail(constraint.Expression, code))
         {
             writer.Line("global::System.Int128 constraintValue = " + code + ";");

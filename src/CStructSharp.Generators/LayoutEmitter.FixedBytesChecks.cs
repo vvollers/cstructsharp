@@ -122,7 +122,6 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <returns><see langword=\"false\"/> when a condition stopped the check.</returns>");
         writer.Open("private static bool TryCheck" + name + "ConstraintsOfBytes(ref " + Cursor + " cursor, " + VariablesType + " variables, global::System.ReadOnlySpan<byte> bytes, " + this.OrderParameter + "int start, out global::CStructSharp.Diagnostics.CStructConstraintException? failure)");
         writer.Line("failure = null;");
-        EmitSkipGuard(writer);
         string? savedOrder = this.runtimeOrder;
         this.UseRuntimeOrder("littleEndian");
         foreach ((GeneratedMember member, ViewSlot slot) in check.Decoded)

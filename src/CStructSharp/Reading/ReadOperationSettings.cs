@@ -106,8 +106,14 @@ internal readonly record struct ReadOperationSettings(
     {
         options ??= ReadOptions.Default;
 
-        // Only a read with extras (an offset base, a violation collection, a constraint policy) can be contradictory.
-        options.Extras?.ThrowIfContradictory();
+        // Only a read with extras (an offset base, a violation collection, a constraint policy) can be contradictory; the reference is
+        // loaded once, for the check and for the settings.
+        ReadExtras? extras = options.Extras;
+        if (extras is not null)
+        {
+            extras.ThrowIfContradictory();
+        }
+
         return new ReadOperationSettings(
             options.AddressingMode,
             options.DereferencePointers,
@@ -121,7 +127,7 @@ internal readonly record struct ReadOperationSettings(
             options.TrimFixedText,
             options.CancellationToken,
             options.ExecutionPath,
-            options.Extras,
+            extras,
             options.LenientText);
     }
 

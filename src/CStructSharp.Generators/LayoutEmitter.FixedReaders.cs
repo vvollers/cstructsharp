@@ -59,7 +59,7 @@ internal sealed partial class LayoutEmitter
         if (constrained)
         {
             writer.Line("var fixedValue = Read" + composite.Name + "Fixed(fixedBytes, cursor.TrimFixedText" + (this.HasRuntimeByteOrder ? ", cursor.LittleEndian" : string.Empty) + ");");
-            writer.Open("if (!TryCheck" + composite.Name + "Constraints(ref cursor, variables, " + (this.UsesValueTypes ? "in " : string.Empty) + "fixedValue, fixedStart, out var constraintFailure))");
+            writer.Open("if (!cursor.SkipsConstraints && !TryCheck" + composite.Name + "Constraints(ref cursor, variables, " + (this.UsesValueTypes ? "in " : string.Empty) + "fixedValue, fixedStart, out var constraintFailure))");
             writer.Line("throw constraintFailure!;");
             writer.Close();
             writer.Line("return fixedValue;");
@@ -92,7 +92,6 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <returns><see langword=\"false\"/> when a condition stopped the check.</returns>");
         writer.Open("private static bool TryCheck" + name + "Constraints(ref " + Cursor + " cursor, " + VariablesType + " variables, " + (this.UsesValueTypes ? "in " : string.Empty) + name + " value, int start, out global::CStructSharp.Diagnostics.CStructConstraintException? failure)");
         writer.Line("failure = null;");
-        EmitSkipGuard(writer);
         var scope = new ReaderScope(this, composite);
         ConstraintSchedule schedule = ConstraintSchedule.Create(composite.Composite.Fields);
         var held = new Dictionary<(int Field, int Ordinal), string>();
@@ -149,7 +148,7 @@ internal sealed partial class LayoutEmitter
         if (this.BytesCheckOf(composite) is not null)
         {
             // The conditions are checked on the bytes, so input that breaks one never has its value built.
-            writer.Open("if (!TryCheck" + name + "ConstraintsOfBytes(ref cursor, variables, fixedBytes, " + (this.HasRuntimeByteOrder ? "cursor.LittleEndian, " : string.Empty) + "0, out var bytesFailure))");
+            writer.Open("if (!cursor.SkipsConstraints && !TryCheck" + name + "ConstraintsOfBytes(ref cursor, variables, fixedBytes, " + (this.HasRuntimeByteOrder ? "cursor.LittleEndian, " : string.Empty) + "0, out var bytesFailure))");
             writer.Line("cursor.Complete(bytesFailure!);");
             writer.Line("value = null;");
             writer.Line("failure = bytesFailure;");
@@ -160,7 +159,7 @@ internal sealed partial class LayoutEmitter
         else
         {
             writer.Line("var fixedValue = " + fixedRead + ";");
-            writer.Open("if (!TryCheck" + name + "Constraints(ref cursor, variables, " + (this.UsesValueTypes ? "in " : string.Empty) + "fixedValue, 0, out var constraintFailure))");
+            writer.Open("if (!cursor.SkipsConstraints && !TryCheck" + name + "Constraints(ref cursor, variables, " + (this.UsesValueTypes ? "in " : string.Empty) + "fixedValue, 0, out var constraintFailure))");
             writer.Line("cursor.Complete(constraintFailure!);");
             writer.Line("value = " + (this.UsesValueTypes ? "default;" : "null;"));
             writer.Line("failure = constraintFailure;");

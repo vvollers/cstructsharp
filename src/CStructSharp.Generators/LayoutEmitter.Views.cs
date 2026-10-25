@@ -240,7 +240,7 @@ internal sealed partial class LayoutEmitter
         EmitSkipGuard(writer);
         foreach ((CompiledField field, CompiledConstraint constraint, string code, string? end) in plan.Checks)
         {
-            EmitConstraintBlock(writer, field, constraint, code, SourceWriter.Literal(field.Name), SourceWriter.Literal(field.DisplayTypeSpelling), end, returnsFailure: true, guarded: false);
+            EmitConstraintBlock(writer, field, constraint, code, SourceWriter.Literal(field.Name), SourceWriter.Literal(field.DisplayTypeSpelling), end, returnsFailure: true, guard: null);
         }
 
         writer.Line("return true;");
