@@ -681,33 +681,36 @@ internal sealed partial class LayoutParser
         int textStart = this.position;
         Expr expression = this.ParseExpr();
         int textEnd = this.position;
-        string? label = this.TryToken(',') ? this.ParseConstraintLabel() : null;
+        string? label = this.TryToken(',') ? this.ParseConstraintString("label", "after the condition") : null;
+        string? description = label is not null && this.TryToken(',') ? this.ParseConstraintString("message", "after the label") : null;
         this.ExpectToken(')');
         string text = this.source.Substring(textStart, textEnd - textStart).Trim();
-        return new FieldConstraint(kind, expression, text, label);
+        return new FieldConstraint(kind, expression, text, label, description);
     }
 
     /// <summary>
-    ///     The label of a constraint: a double-quoted string after the condition, in which <c>\"</c> and <c>\\</c> stand for a
+    ///     A quoted string of a constraint, its label or its message: a double-quoted string, in which <c>\"</c> and <c>\\</c> stand for a
     ///     quote and a backslash. It may not be empty or contain a line break.
     /// </summary>
-    /// <returns>The label's text without the quotes.</returns>
-    /// <exception cref="CStructLayoutException">The label is missing, empty, unterminated or has an unknown escape.</exception>
-    private string ParseConstraintLabel()
+    /// <param name="what">What the string is called in a layout error: <c>label</c> or <c>message</c>.</param>
+    /// <param name="where">Where the string must stand, for the error that reports a missing one.</param>
+    /// <returns>The string's text without the quotes.</returns>
+    /// <exception cref="CStructLayoutException">The string is missing, empty, unterminated or has an unknown escape.</exception>
+    private string ParseConstraintString(string what, string where)
     {
         this.SkipTrivia();
         if (this.AtEnd || this.source[this.position] != '"')
         {
-            throw new CStructLayoutException(SyntaxErrorPrefix + "A constraint label must be a double-quoted string after the condition.");
+            throw new CStructLayoutException(SyntaxErrorPrefix + "A constraint " + what + " must be a double-quoted string " + where + ".");
         }
 
         this.position++;
-        var label = new StringBuilder();
+        var text = new StringBuilder();
         while (true)
         {
             if (this.AtEnd || this.source[this.position] is '\n' or '\r')
             {
-                throw new CStructLayoutException(SyntaxErrorPrefix + "A constraint label is not terminated before the end of the line.");
+                throw new CStructLayoutException(SyntaxErrorPrefix + "A constraint " + what + " is not terminated before the end of the line.");
             }
 
             char character = this.source[this.position++];
@@ -720,22 +723,22 @@ internal sealed partial class LayoutParser
             {
                 if (this.AtEnd || this.source[this.position] is not ('"' or '\\'))
                 {
-                    throw new CStructLayoutException(SyntaxErrorPrefix + "A constraint label allows only the escapes \\\" and \\\\.");
+                    throw new CStructLayoutException(SyntaxErrorPrefix + "A constraint " + what + " allows only the escapes \\\" and \\\\.");
                 }
 
                 character = this.source[this.position++];
             }
 
-            label.Append(character);
+            text.Append(character);
         }
 
-        if (label.Length == 0)
+        if (text.Length == 0)
         {
-            throw new CStructLayoutException(SyntaxErrorPrefix + "A constraint label cannot be empty.");
+            throw new CStructLayoutException(SyntaxErrorPrefix + "A constraint " + what + " cannot be empty.");
         }
 
         this.SkipTrivia();
-        return label.ToString();
+        return text.ToString();
     }
 
     /// <summary>

@@ -67,6 +67,29 @@ with it in brackets, `... holds. [ext.revision]`. It has no effect on the check.
 and writes a quote or a backslash as `\"` or `\\`; `ToDefinition()` prints it back, so a layout rebuilt from its text
 reports the same labels.
 
+## Give a failure its own message
+
+The sentence a failure reports is generated from the condition: `Invalid value for 'magic': it must satisfy 'magic == 0xEF53'.`
+A program that shows the failure to a person often needs its own wording (and the rule and its wording then live in one place:
+the layout). Write the wording as a second quoted string, after the label:
+
+```c
+struct superblock {
+    uint16 magic @expect(magic == 0xEF53, "ext.magic", "The superblock does not carry the ext magic number.");
+    uint32 rev_level @supports(rev_level <= 1, "ext.revision", "Only ext revisions 0 and 1 are supported.");
+};
+```
+
+The message is carried by `CStructConstraintException.Description` (`null` for a constraint without one). It replaces the
+generated sentence in `Message`, which still ends with the label in brackets and the position facts:
+
+```text
+The superblock does not carry the ext magic number. [ext.magic] (field 'magic', in 'superblock', offset 2)
+```
+
+A message follows a label (a constraint cannot have a message without one), is not empty, stays on one line, and writes a
+quote or a backslash as `\"` or `\\`, like a label. `ToDefinition()` prints it back.
+
 ## What a failure looks like
 
 A value outside a condition throws `CStructConstraintException`, a `CStructReadException` with the code `ReadFailed`:
@@ -79,6 +102,47 @@ Unsupported value for 'rev_level': this layout supports only values for which 'r
 `Kind` says malformed or unsupported, `Constraint` holds the condition as written, and `Member`, `Path` and `Offset`
 are those of every read failure. The runtime layout, the generated readers and a generated view's `Validate()` report
 the same failure for the same bytes.
+
+## Throw .NET format exceptions from a generated reader
+
+An application that maps "the file is damaged" and "the file uses something this reader does not do" to the exceptions of
+the .NET base class library can ask the generated reader to throw those directly. Set `ConstraintFailures` on the layout, or
+the `CStructSharpConstraintFailures` build property for the whole project:
+
+```csharp
+[CStructLayout("struct superblock { uint16 magic @expect(magic == 0xEF53, \"ext.magic\", \"Not an ext superblock.\"); uint32 rev_level @supports(rev_level <= 1, \"ext.revision\"); };",
+    Root = "superblock", ConstraintFailures = ConstraintFailureMode.FormatExceptions)]
+public static partial class Ext { }
+```
+
+| `ConstraintFailureMode` | A failed `@expect` throws | A failed `@supports` throws |
+| --- | --- | --- |
+| `Constraint` (default) | `CStructConstraintException` | `CStructConstraintException` |
+| `FormatExceptions` | `System.IO.InvalidDataException` | `System.NotSupportedException` |
+
+The format exception has the constraint failure's message, and the `CStructConstraintException` is its `InnerException`, so the
+label, kind, member, path and offset are still there:
+
+```csharp
+try
+{
+    Ext.Parse(bytes);
+}
+catch (InvalidDataException exception) when (exception.InnerException is CStructConstraintException failure)
+{
+    Console.WriteLine($"{failure.Label} at offset {failure.Offset}: {exception.Message}");
+}
+```
+
+The mode changes only what the **throwing** generated entry points raise: `Parse` and `Parse<Name>` for every input (span, array,
+memory, `ReadLimits`, sequence, stream and the awaitable stream form), the record enumerators (`Records`) and a view's `Validate`
+and `ToObject`. It is applied once, where the failure leaves the generated method, so a failure inside nested reads is still the
+constraint exception that the reader's own code sees. `TryParse`, `TryValidate` and `Matches` already return failures as
+values and do not change (`TryParse` hands back the `CStructConstraintException`), and so do the violations a read collects.
+Failures that are not constraints (a short read, a limit) keep their types.
+
+A layout read through the runtime engine (`CStruct.Parse`) or in the browser always throws `CStructConstraintException`: the
+mode belongs to the generated code, so the same layout text throws the same type on both paths only in the default mode.
 
 ## Collect every failure instead of the first
 
@@ -146,7 +210,9 @@ struct s { uint8 _ @expect(1); };                  // layout error: padding has 
 ## In JavaScript and the browser
 
 The layout text, including its constraints, works unchanged in Node.js and the browser. A value that breaks a constraint
-fails the read with the code `read-failed`, and the message names the field and the condition. Collecting every broken
+fails the read with the code `read-failed`, and the message names the field and the condition (or is the layout's own message
+when the constraint has one, followed by the label and the position). `ConstraintFailures` is a generated-code option and has
+no effect there. Collecting every broken
 condition (`ReadOptions.ConstraintViolations`), the offset base and `Matches` are managed C# API; the browser bridge does
 not expose them.
 
@@ -155,6 +221,7 @@ not expose them.
 1. A header says `uint8 version @supports(version == 1)` and the bytes hold `2`. Is the file malformed?
 2. Why can the generated reader still use its fixed-offset reader for a struct with constraints?
 3. Does `Serialize` reject a value that violates a constraint?
+4. With `ConstraintFailures = FormatExceptions`, what does `TryParse` return for a value that breaks an `@expect`?
 
 <details>
 <summary>Answers</summary>
@@ -163,5 +230,6 @@ not expose them.
 2. It decodes the whole struct first and then checks the conditions in field order, so an invalid value never leaves the
    reader, and the failure is the one a member-by-member read would raise.
 3. No. A constraint checks what a read accepts; a write encodes the value as given.
+4. `false` and the `CStructConstraintException` itself: only the throwing entry points use the format exceptions.
 
 </details>

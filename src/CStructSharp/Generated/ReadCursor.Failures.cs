@@ -14,6 +14,35 @@ public ref partial struct ReadCursor
     public static string ShortReadText(long needed, long available) => ReadFailures.ShortRead(needed, available);
 
     /// <summary>
+    ///     The format exception a generated reader throws for a constraint failure when its layout selects
+    ///     <see cref="ConstraintFailureMode.FormatExceptions"/>: <see cref="InvalidDataException"/> for <c>@expect</c> and
+    ///     <see cref="NotSupportedException"/> for <c>@supports</c>, with the same message and the failure as the inner exception.
+    ///     Called at the outermost entry point only, after <see cref="Complete"/> attached the position.
+    /// </summary>
+    /// <param name="failure">The constraint failure that is leaving the operation.</param>
+    /// <returns>The exception to throw instead of <paramref name="failure"/>.</returns>
+    public static Exception FormatFailure(CStructConstraintException failure)
+    {
+        ArgumentNullException.ThrowIfNull(failure);
+        return failure.Kind == ConstraintKind.Malformed
+                   ? new System.IO.InvalidDataException(failure.Message, failure)
+                   : new NotSupportedException(failure.Message, failure);
+    }
+
+    /// <summary>
+    ///     Recognizes the exception <see cref="FormatFailure"/> made, so a non-throwing form that runs the throwing reader can hand
+    ///     back the original <see cref="CStructConstraintException"/> as its failure value.
+    /// </summary>
+    /// <param name="exception">An exception thrown by a generated reader.</param>
+    /// <param name="failure">The constraint failure the exception wraps, when the method returns <see langword="true"/>.</param>
+    /// <returns>Whether <paramref name="exception"/> is a format exception wrapping a constraint failure.</returns>
+    public static bool IsFormatFailure(Exception exception, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out CStructConstraintException? failure)
+    {
+        failure = exception is System.IO.InvalidDataException or NotSupportedException ? exception.InnerException as CStructConstraintException : null;
+        return failure is not null;
+    }
+
+    /// <summary>
     ///     The most elements an array may have under <paramref name="options"/>, for a generated view that checks a
     ///     computed count against the limit itself and builds a cursor only to report a failure.
     /// </summary>
@@ -58,8 +87,20 @@ public ref partial struct ReadCursor
     /// <param name="label">The constraint's label, or <see langword="null"/> when the layout gave it none.</param>
     /// <returns>The exception to throw.</returns>
     public readonly CStructConstraintException FailConstraint(ConstraintKind kind, string constraint, string field, string? member, string? memberType, string? label = null)
+        => this.FailConstraint(kind, constraint, field, member, memberType, label, null);
+
+    /// <summary>The failure of a field whose value does not satisfy a condition that carries the layout's own message, with the runtime's context.</summary>
+    /// <param name="kind">Whether the data is malformed or unsupported.</param>
+    /// <param name="constraint">The condition as written in the layout.</param>
+    /// <param name="field">The field's layout name.</param>
+    /// <param name="member">The layout field, for the diagnostics.</param>
+    /// <param name="memberType">The field's type spelling.</param>
+    /// <param name="label">The constraint's label, or <see langword="null"/> when the layout gave it none.</param>
+    /// <param name="description">The constraint's message, which replaces the generated sentence, or <see langword="null"/> when the layout gave it none.</param>
+    /// <returns>The exception to throw.</returns>
+    public readonly CStructConstraintException FailConstraint(ConstraintKind kind, string constraint, string field, string? member, string? memberType, string? label, string? description)
     {
-        var exception = CStructConstraintException.FromFacts(kind, constraint, field, label);
+        var exception = CStructConstraintException.FromFacts(kind, constraint, field, label, description);
         this.Attach(exception, member, memberType);
         return exception;
     }
@@ -88,6 +129,24 @@ public ref partial struct ReadCursor
         }
     }
 
+    /// <summary>Reports a violated condition that carries the layout's own message, like the form without one: throws the failure, or collects it and returns.</summary>
+    /// <param name="kind">Whether the data is malformed or unsupported.</param>
+    /// <param name="constraint">The condition as written in the layout.</param>
+    /// <param name="field">The field's layout name.</param>
+    /// <param name="member">The layout field, for the diagnostics.</param>
+    /// <param name="memberType">The field's type spelling.</param>
+    /// <param name="label">The constraint's label, or <see langword="null"/>.</param>
+    /// <param name="description">The constraint's message, which replaces the generated sentence.</param>
+    /// <param name="reportAt">The source offset to report when it is not the cursor's own, or -1 for the cursor's position.</param>
+    /// <exception cref="CStructConstraintException">The read does not collect violations.</exception>
+    public void ConstraintViolated(ConstraintKind kind, string constraint, string field, string? member, string? memberType, string? label, string? description, int reportAt = -1)
+    {
+        if (this.RejectConstraint(kind, constraint, field, member, memberType, label, description, reportAt, out CStructConstraintException? failure))
+        {
+            throw failure;
+        }
+    }
+
     /// <summary>
     ///     Reports a field whose value does not satisfy an <c>@expect</c> or <c>@supports</c> condition without throwing: the form
     ///     for a check that returns its failure (a non-throwing <c>TryParse</c> or <c>TryValidate</c>). When the read collects
@@ -106,8 +165,22 @@ public ref partial struct ReadCursor
     /// </param>
     /// <returns><see langword="true"/> when the check must stop with <paramref name="failure"/>; <see langword="false"/> when the failure was collected and the check goes on.</returns>
     public bool RejectConstraint(ConstraintKind kind, string constraint, string field, string? member, string? memberType, string? label, int reportAt, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out CStructConstraintException? failure)
+        => this.RejectConstraint(kind, constraint, field, member, memberType, label, null, reportAt, out failure);
+
+    /// <summary>Reports a violated condition that carries the layout's own message without throwing, like the form without one.</summary>
+    /// <param name="kind">Whether the data is malformed or unsupported.</param>
+    /// <param name="constraint">The condition as written in the layout.</param>
+    /// <param name="field">The field's layout name.</param>
+    /// <param name="member">The layout field, for the diagnostics.</param>
+    /// <param name="memberType">The field's type spelling.</param>
+    /// <param name="label">The constraint's label, or <see langword="null"/>.</param>
+    /// <param name="description">The constraint's message, which replaces the generated sentence, or <see langword="null"/>.</param>
+    /// <param name="reportAt">The source offset to report when it is not the cursor's own, or -1 for the cursor's position.</param>
+    /// <param name="failure">The failure when the method returns <see langword="true"/>; pass it to <see cref="Complete"/> before handing it out.</param>
+    /// <returns><see langword="true"/> when the check must stop with <paramref name="failure"/>; <see langword="false"/> when the failure was collected.</returns>
+    public bool RejectConstraint(ConstraintKind kind, string constraint, string field, string? member, string? memberType, string? label, string? description, int reportAt, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out CStructConstraintException? failure)
     {
-        CStructConstraintException exception = this.FailConstraint(kind, constraint, field, member, memberType, label);
+        CStructConstraintException exception = this.FailConstraint(kind, constraint, field, member, memberType, label, description);
         if (this.settings.ConstraintViolations is not { } violations)
         {
             // Stopping: the cursor stands where the failure is reported, and its position is attached at the operation boundary (Complete),

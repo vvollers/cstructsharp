@@ -135,7 +135,7 @@ internal sealed partial class LayoutEmitter
         writer.Open("catch (global::CStructSharp.Diagnostics.CStructException exception)");
         writer.Line("cursor.Complete(exception);");
         writer.Line(Sequence + ".Complete(exception, index, shift + offset);");
-        writer.Line("throw;");
+        this.EmitRethrow(writer);
         writer.Close();
         writer.Close();
     }

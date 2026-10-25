@@ -116,4 +116,13 @@ public sealed class CStructLayoutAttribute : Attribute
 
     /// <summary>Gets or sets how much code is generated; the default, <see cref="GeneratedSurface.Full"/>, generates everything.</summary>
     public GeneratedSurface Surface { get; set; } = GeneratedSurface.Full;
+
+    /// <summary>
+    ///     Gets or sets the exception type the generated readers throw for a field that breaks an <c>@expect</c> or <c>@supports</c>
+    ///     constraint. The default, <see cref="ConstraintFailureMode.Constraint"/>, throws
+    ///     <see cref="Diagnostics.CStructConstraintException"/>; <see cref="ConstraintFailureMode.FormatExceptions"/> throws
+    ///     <see cref="System.IO.InvalidDataException"/> (<c>@expect</c>) or <see cref="System.NotSupportedException"/> (<c>@supports</c>)
+    ///     with the constraint failure as the inner exception. The project default is the build property <c>CStructSharpConstraintFailures</c>.
+    /// </summary>
+    public ConstraintFailureMode ConstraintFailures { get; set; } = ConstraintFailureMode.Constraint;
 }

@@ -86,7 +86,7 @@ internal static partial class ReadEngine
                     if (state.Slots.Evaluate(owner.Expressions[step.A], owner.ExpressionContexts[step.A], ExpressionFailureDomain.Read) == 0)
                     {
                         CompiledConstraint failed = field.Constraints[step.B];
-                        var violation = CStructConstraintException.FromFacts(failed.Kind, failed.Text, field.Name, failed.Label);
+                        var violation = CStructConstraintException.FromFacts(failed.Kind, failed.Text, field.Name, failed.Label, failed.Description);
                         if (state.ConstraintViolations is null)
                         {
                             throw violation;

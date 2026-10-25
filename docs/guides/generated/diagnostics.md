@@ -117,7 +117,7 @@ default applies.
 **Fix.** Use a valid value: `Full`, `Reader`, `Parser` or `Views` for `CStructSharpSurface`; `SysV` or `Msvc` for
 `CStructSharpBitfieldPacking`; `LowBitFirst` or `HighBitFirst` for `CStructSharpBitfieldAllocation`; `1`, `2`, `4` or
 `8` for `CStructSharpPointerSize`; `32` or `64` for `CStructSharpCLongWidth`; `Class`, `Struct` or `Auto` for
-`CStructSharpShape`; a whole number from 1 to 65536 for `CStructSharpMaxValueBytes`; `true` or `false` for the flag properties.
+`CStructSharpShape`; `Constraint` or `FormatExceptions` for `CStructSharpConstraintFailures`; a whole number from 1 to 65536 for `CStructSharpMaxValueBytes`; `true` or `false` for the flag properties.
 
 ## CSG013 - RuntimeByteOrder is not supported here
 

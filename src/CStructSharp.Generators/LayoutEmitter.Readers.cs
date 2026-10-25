@@ -120,7 +120,7 @@ internal sealed partial class LayoutEmitter
         writer.Close();
         writer.Open("catch (global::CStructSharp.Diagnostics.CStructException exception)");
         writer.Line("cursor.Complete(exception);");
-        writer.Line("throw;");
+        this.EmitRethrow(writer);
         writer.Close();
         writer.Close();
         this.EmitLimitsParse(writer, composite, isRoot, method);
@@ -173,6 +173,43 @@ internal sealed partial class LayoutEmitter
     }
 
     /// <summary>
+    ///     Ends the catch block of a throwing entry point whose cursor just completed <c>exception</c>: a constraint failure of a layout
+    ///     in <c>FormatExceptions</c> mode leaves as its format exception (once, at this outermost entry point, so the nested readers and
+    ///     the non-throwing forms still see the constraint failure); everything else is rethrown unchanged.
+    /// </summary>
+    /// <param name="writer">The output, inside the catch block that declares <c>exception</c>.</param>
+    private void EmitRethrow(SourceWriter writer)
+    {
+        if (this.request.FormatConstraintFailures)
+        {
+            writer.Open("if (exception is global::CStructSharp.Diagnostics.CStructConstraintException constraintFailure)");
+            writer.Line("throw " + Cursor + ".FormatFailure(constraintFailure);");
+            writer.Close();
+        }
+
+        writer.Line("throw;");
+    }
+
+    /// <summary>
+    ///     Emits, after the catch block of a non-throwing form that runs the throwing reader, the clause that turns the format exception
+    ///     of <c>FormatExceptions</c> mode back into the constraint failure the form returns. Nothing in the default mode.
+    /// </summary>
+    /// <param name="writer">The output, after the catch block; the form declares <c>value</c> and <c>failure</c>.</param>
+    private void EmitFormatFailureCatch(SourceWriter writer)
+    {
+        if (!this.request.FormatConstraintFailures)
+        {
+            return;
+        }
+
+        writer.Open("catch (global::System.Exception formatted) when (" + Cursor + ".IsFormatFailure(formatted, out var constraintFailure))");
+        writer.Line(this.UsesValueTypes ? "value = default;" : "value = null;");
+        writer.Line("failure = constraintFailure;");
+        writer.Line("return false;");
+        writer.Close();
+    }
+
+    /// <summary>
     ///     Emits the overloads that take the limits as a <c>ReadLimits</c> value: a read governed by them allocates no
     ///     <c>ReadOptions</c> object, which matters for a reader that parses many small records.
     /// </summary>
@@ -198,7 +235,7 @@ internal sealed partial class LayoutEmitter
         writer.Close();
         writer.Open("catch (global::CStructSharp.Diagnostics.CStructException exception)");
         writer.Line("cursor.Complete(exception);");
-        writer.Line("throw;");
+        this.EmitRethrow(writer);
         writer.Close();
         writer.Close();
         if (isRoot)
@@ -246,6 +283,7 @@ internal sealed partial class LayoutEmitter
             writer.Line("failure = exception;");
             writer.Line("return false;");
             writer.Close();
+            this.EmitFormatFailureCatch(writer);
         }
 
         writer.Close();
@@ -347,7 +385,7 @@ internal sealed partial class LayoutEmitter
         writer.Close();
         writer.Open("catch (global::CStructSharp.Diagnostics.CStructException exception)");
         writer.Line("cursor.Complete(exception);");
-        writer.Line("throw;");
+        this.EmitRethrow(writer);
         writer.Close();
         writer.Close();
     }
@@ -431,6 +469,7 @@ internal sealed partial class LayoutEmitter
                 writer.Line("failure = exception;");
                 writer.Line("return false;");
                 writer.Close();
+                this.EmitFormatFailureCatch(writer);
             }
 
             writer.Close();
@@ -837,7 +876,13 @@ internal sealed partial class LayoutEmitter
 
         // The failure throws, or is collected when the read gathers violations (ReadOptions.ConstraintViolations), and then the read goes on:
         // so the position a constraint pass reports is an argument, not a move of the cursor.
+        // A constraint with a message of its own passes it after the label, to the overloads that take one; the others keep the shorter calls.
         string arguments = "global::CStructSharp.Diagnostics.ConstraintKind." + kind + ", " + SourceWriter.Literal(constraint.Text) + ", " + SourceWriter.Literal(field.Name) + ", " + member + ", " + memberType + ", " + (constraint.Label is null ? "null" : SourceWriter.Literal(constraint.Label));
+        if (constraint.Description is not null)
+        {
+            arguments += ", " + SourceWriter.Literal(constraint.Description);
+        }
+
         if (returnsFailure)
         {
             writer.Open("if (cursor.RejectConstraint(" + arguments + ", " + (failurePosition ?? "-1") + ", out failure))");

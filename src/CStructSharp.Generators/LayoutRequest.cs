@@ -35,6 +35,7 @@ internal sealed record LayoutRequest(
     GenerationShape Shape,
     int MaxValueBytes,
     GenerationSurface Surface,
+    bool FormatConstraintFailures,
     SourceSpan AttributeSpan,
     SourceSpan? DefinitionSpan,
     DefinitionLiteralShape DefinitionLiteral,
@@ -82,6 +83,7 @@ internal sealed record LayoutRequest(
             Shape = Named("Shape") ? this.Shape : defaults.Shape ?? this.Shape,
             MaxValueBytes = Named("MaxValueBytes") ? this.MaxValueBytes : defaults.MaxValueBytes ?? this.MaxValueBytes,
             Surface = Named("Surface") ? this.Surface : defaults.Surface ?? this.Surface,
+            FormatConstraintFailures = Named("ConstraintFailures") ? this.FormatConstraintFailures : defaults.FormatConstraintFailures ?? this.FormatConstraintFailures,
         };
     }
 

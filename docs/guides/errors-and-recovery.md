@@ -62,8 +62,10 @@ A constraint (`@expect`, `@supports`) turns "the bytes are not this format" into
 condition. A reader that tries one layout after another should not pay an exception for each miss: a generated layout's
 `Matches(bytes)` answers "does this look like the format?" without building a value or throwing, and `TryParse` and a view's
 `TryValidate` return a broken constraint as a value. `ReadOptions.ConstraintViolations` collects every broken condition of
-one read instead of stopping at the first, `CStructConstraintException.Label` carries the name a layout gave a constraint,
-and `OffsetBase` makes the offsets of a failure positions in the image rather than in the buffer. See
+one read instead of stopping at the first, `CStructConstraintException.Label` carries the name a layout gave a constraint
+and `Description` the message it gave it, a generated reader set to `ConstraintFailures = FormatExceptions` throws
+`InvalidDataException` (`@expect`) and `NotSupportedException` (`@supports`) with the constraint failure inside, and
+`OffsetBase` makes the offsets of a failure positions in the image rather than in the buffer. See
 [field constraints](../language/field-constraints.md) and [report offsets in the larger
 input](variables-options-and-limits.md#report-offsets-in-the-larger-input).
 

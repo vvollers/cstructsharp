@@ -19,12 +19,14 @@ public sealed class CStructConstraintException : CStructReadException
     /// <param name="constraint">The condition as written in the layout.</param>
     /// <param name="message">The diagnostic naming the field and the condition.</param>
     /// <param name="label">The label the layout gave the constraint, or <see langword="null"/> when it has none.</param>
-    public CStructConstraintException(ConstraintKind kind, string constraint, string message, string? label = null)
+    /// <param name="description">The message the layout gave the constraint, or <see langword="null"/> when it has none; see <see cref="Description"/>.</param>
+    public CStructConstraintException(ConstraintKind kind, string constraint, string message, string? label = null, string? description = null)
         : base(message)
     {
         this.Kind = kind;
         this.Constraint = constraint;
         this.Label = label;
+        this.Description = description;
         this.text = message;
     }
 
@@ -40,8 +42,15 @@ public sealed class CStructConstraintException : CStructReadException
     /// </summary>
     public string? Label { get; }
 
-    /// <summary>Gets the diagnostic naming the field and the condition, with the position facts a failure carries.</summary>
-    public override string Message => this.Compose(this.text ??= ReadFailures.ConstraintNotSatisfied(this.Kind, this.field!, this.Constraint, this.Label));
+    /// <summary>
+    ///     Gets the message the layout gave the constraint (<c>@expect(magic == 0xEF53, "ext.magic", "Not an ext superblock")</c>);
+    ///     <see langword="null"/> when the constraint has none. When present it replaces the generated sentence in <see cref="Message"/>,
+    ///     which then still ends with the position facts and the <see cref="Label"/> in brackets.
+    /// </summary>
+    public string? Description { get; }
+
+    /// <summary>Gets the diagnostic naming the field and the condition (or the layout's own message), with the position facts a failure carries.</summary>
+    public override string Message => this.Compose(this.text ??= ReadFailures.ConstraintNotSatisfied(this.Kind, this.field!, this.Constraint, this.Label, this.Description));
 
     /// <summary>
     ///     Creates the failure of a field that breaks a condition without composing its message: the reader that finds the failure
@@ -52,8 +61,9 @@ public sealed class CStructConstraintException : CStructReadException
     /// <param name="constraint">The condition as written in the layout.</param>
     /// <param name="field">The name of the field whose value breaks the condition.</param>
     /// <param name="label">The label the layout gave the constraint, or <see langword="null"/> when it has none.</param>
+    /// <param name="description">The message the layout gave the constraint, or <see langword="null"/> when it has none.</param>
     /// <returns>The failure.</returns>
-    internal static CStructConstraintException FromFacts(ConstraintKind kind, string constraint, string field, string? label)
-        => new(kind, constraint, string.Empty, label) { field = field, text = null, };
+    internal static CStructConstraintException FromFacts(ConstraintKind kind, string constraint, string field, string? label, string? description = null)
+        => new(kind, constraint, string.Empty, label, description) { field = field, text = null, };
 }
 #pragma warning restore RCS1194

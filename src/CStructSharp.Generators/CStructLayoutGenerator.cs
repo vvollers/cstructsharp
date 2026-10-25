@@ -124,6 +124,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         bool runtimeByteOrder = false;
         GenerationShape shape = GenerationShape.Class;
         int maxValueBytes = 1024;
+        bool formatConstraintFailures = false;
         GenerationSurface surface = GenerationSurface.Full;
         var explicitArguments = new List<string>();
         foreach (KeyValuePair<string, TypedConstant> named in attribute.NamedArguments)
@@ -152,6 +153,9 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
                 break;
             case "MaxValueBytes":
                 maxValueBytes = named.Value.Value is int bytes ? bytes : 1024;
+                break;
+            case "ConstraintFailures":
+                formatConstraintFailures = named.Value.Value is 1;
                 break;
             case "RuntimeByteOrder":
                 runtimeByteOrder = named.Value.Value is true;
@@ -203,6 +207,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             shape,
             maxValueBytes,
             surface,
+            formatConstraintFailures,
             SourceSpan.From(attributeLocation),
             definitionSpan,
             literalShape,

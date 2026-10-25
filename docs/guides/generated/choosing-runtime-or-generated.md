@@ -75,6 +75,7 @@ default of each option the attribute does not name; an option the attribute name
 | `CStructSharpRuntimeByteOrder` | `RuntimeByteOrder` | `true`, `false` |
 | `CStructSharpShape` | `Shape` | `Class`, `Struct`, `Auto` |
 | `CStructSharpMaxValueBytes` | `MaxValueBytes` | `1` to `65536` |
+| `CStructSharpConstraintFailures` | `ConstraintFailures` | `Constraint`, `FormatExceptions` |
 | `CStructSharpKeepNames` | `KeepNames` | `true`, `false` |
 | `CStructSharpAligned` | `Aligned` | `true`, `false` |
 | `CStructSharpLittleEndian` | `LittleEndian` | `true`, `false` |

@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 
 /// <summary>
 ///     The project-wide defaults for the <c>[CStructLayout]</c> options, read from the build properties
-///     <c>CStructSharpSurface</c>, <c>CStructSharpViews</c>, <c>CStructSharpEnumerators</c>, <c>CStructSharpRuntimeByteOrder</c>, <c>CStructSharpShape</c>, <c>CStructSharpKeepNames</c>, <c>CStructSharpAligned</c>,
+///     <c>CStructSharpSurface</c>, <c>CStructSharpViews</c>, <c>CStructSharpEnumerators</c>, <c>CStructSharpRuntimeByteOrder</c>, <c>CStructSharpShape</c>, <c>CStructSharpConstraintFailures</c>, <c>CStructSharpKeepNames</c>, <c>CStructSharpAligned</c>,
 ///     <c>CStructSharpLittleEndian</c>, <c>CStructSharpPointerSize</c>, <c>CStructSharpBitfieldPacking</c>,
 ///     <c>CStructSharpBitfieldAllocation</c>, <c>CStructSharpCLongWidth</c> and <c>CStructSharpDefaultEnumStorage</c>.
 ///     An option the attribute names keeps the attribute's value; every other option takes the project's default, and
@@ -19,6 +19,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 /// <param name="RuntimeByteOrder">The default for <c>RuntimeByteOrder</c>, or <see langword="null"/>.</param>
 /// <param name="Shape">The default shape (<c>Class</c>, <c>Struct</c> or <c>Auto</c>), or <see langword="null"/> for the library's.</param>
 /// <param name="MaxValueBytes">The default largest value-type struct in bytes (1 to 65,536), or <see langword="null"/> for the library's.</param>
+/// <param name="FormatConstraintFailures">The default for <c>ConstraintFailures</c> (<see langword="true"/> for <c>FormatExceptions</c>), or <see langword="null"/>.</param>
 /// <param name="KeepNames">The default for <c>KeepNames</c>, or <see langword="null"/>.</param>
 /// <param name="Aligned">The default for <c>Aligned</c>, or <see langword="null"/>.</param>
 /// <param name="LittleEndian">The default for <c>LittleEndian</c>, or <see langword="null"/>.</param>
@@ -35,6 +36,7 @@ internal sealed record LayoutDefaults(
     bool? RuntimeByteOrder,
     GenerationShape? Shape,
     int? MaxValueBytes,
+    bool? FormatConstraintFailures,
     bool? KeepNames,
     bool? Aligned,
     bool? LittleEndian,
@@ -46,7 +48,7 @@ internal sealed record LayoutDefaults(
     EquatableArray<string> Invalid)
 {
     /// <summary>No project defaults: every option keeps the library's value.</summary>
-    public static LayoutDefaults None { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, EquatableArray<string>.Empty);
+    public static LayoutDefaults None { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, EquatableArray<string>.Empty);
 
     /// <summary>
     ///     Whether an attribute's named argument names its option, so that a project default must not replace it.
@@ -154,6 +156,7 @@ internal sealed record LayoutDefaults(
             Flag("RuntimeByteOrder"),
             Member("Shape", "Class", "Struct", "Auto") switch { "Struct" => GenerationShape.Struct, "Class" => GenerationShape.Class, "Auto" => GenerationShape.Auto, _ => null },
             Range("MaxValueBytes", 1, 65536),
+            Member("ConstraintFailures", "Constraint", "FormatExceptions") switch { "FormatExceptions" => true, "Constraint" => false, _ => null },
             Flag("KeepNames"),
             Flag("Aligned"),
             Flag("LittleEndian"),

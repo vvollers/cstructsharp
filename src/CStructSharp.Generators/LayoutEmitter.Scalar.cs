@@ -225,7 +225,7 @@ internal sealed partial class LayoutEmitter
             writer.Close();
             writer.Open("catch (" + failureType + " exception)");
             writer.Line("cursor.Complete(exception);");
-            writer.Line("throw;");
+            this.EmitRethrow(writer);
             writer.Close();
             writer.Close();
         }

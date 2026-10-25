@@ -6,6 +6,26 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 onward, each version uses these headings in this order and omits the empty ones: *Breaking changes* (each with its
 migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and tooling*.
 
+## Unreleased
+
+### Breaking changes
+
+- **Breaking (binary only):** the `CStructConstraintException` constructor gained a trailing `string? description = null`
+  parameter after `label`, so the old four-parameter constructor no longer exists. Source that calls it is unchanged; code
+  compiled against 0.15 must be recompiled.
+
+### Added
+
+- **Constraint messages.** `@expect(condition, "label", "message")` and `@supports(condition, "label", "message")` carry the
+  wording of a failure in the layout. `CStructConstraintException.Description` returns it (`null` when absent), it replaces the
+  generated sentence in `Message` (which still ends with the label in brackets and the position facts), and `ToDefinition()`
+  prints it back. A message follows a label.
+- **Format exceptions from generated readers.** `[CStructLayout(ConstraintFailures = ConstraintFailureMode.FormatExceptions)]`, or
+  the build property `CStructSharpConstraintFailures`, makes the throwing generated entry points (`Parse` for every input kind,
+  `Records`, a view's `Validate` and `ToObject`) throw `InvalidDataException` for `@expect` and `NotSupportedException` for
+  `@supports`, with the `CStructConstraintException` as `InnerException`. The default stays `Constraint`; `TryParse`,
+  `TryValidate`, `Matches`, collected violations and the runtime and browser engines still use `CStructConstraintException`.
+
 ## 0.15.0 — 2026-10-24
 
 This release adds the diagnostics a project needs to report what a read found (labels, every broken constraint, offsets in the

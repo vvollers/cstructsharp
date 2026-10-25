@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed",
-  "baselineRevision": 67,
-  "packageVersion": "0.14.0",
+  "baselineRevision": 68,
+  "packageVersion": "0.15.0",
   "assembly": "CStructSharp.dll",
-  "exportedTypes": 94,
+  "exportedTypes": 95,
   "generator": {
     "package": "PublicApiGenerator.Tool",
     "version": "11.5.4",
@@ -12,22 +12,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed/CStructSharp.public-api.txt",
-    "lines": 1147,
-    "normalizedSha256": "6DDB19DE61A8AD7916FF7812835EF1AF1B9C93B612FFEAEE8A1A3819A6EEBC0D"
+    "lines": 1159,
+    "normalizedSha256": "1F28598C50B202158F6D4659B14EFAC783EFFFF420CB084F081807196249C6EF"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "D5481D331F9D823425AC3C8A34272398595035A8D5E57EAFA3C23663D26792DF",
+      "normalizedSha256": "1447CD1D52B6F4EBEB4DD45E343B0B6D61E13A4E109CF3AFB09620CBBFC6A7A1",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "A9CE873C490007ADFCE5761F85D4E4C9E0144E497539D76B008CBCC60FB67772",
+      "normalizedSha256": "F549EC8879936B32CD683F2EC1521411422E8903D2D6DD692C08302CB304312C",
       "aotCompatible": true
     }
   ],
@@ -430,12 +430,18 @@
     },
     {
       "revision": 67,
-      "kind": "additive",
       "date": "2026-10-24",
       "packageVersion": "0.14.0",
-      "combinedSha256": "79629794DE574681569C50A96EE03B88C566D1FA9956EDEDBA8C6945049B313D",
-      "rationale": "CStructConstraintException overrides Message so a failure created from its facts composes the text on first use.",
-      "releaseImpact": "No signature changes; the text of every constraint failure is unchanged."
+      "combinedSha256": "79629794DE574681569C50A96EE03B88C566D1FA9956EDEDBA8C6945049B313D"
+    },
+    {
+      "revision": 68,
+      "kind": "breaking",
+      "date": "2026-10-25",
+      "packageVersion": "0.15.0",
+      "combinedSha256": "3CC26AB3B523C6A93F4369F18A5FB4F11B9CBF3C6DE3148E3F62458C44CBCC71",
+      "rationale": "Constraint messages and format exceptions: CStructConstraintException gains Description (its constructor gains a description parameter), ConstraintFailureMode and CStructLayoutAttribute.ConstraintFailures are added, ReadCursor gains FormatFailure, IsFormatFailure and description overloads of the constraint failure methods.",
+      "releaseImpact": "Binary break only: code compiled against the old CStructConstraintException constructor must be recompiled; source is unchanged."
     }
   ]
 }

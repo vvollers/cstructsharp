@@ -87,6 +87,33 @@ public class ProjectDefaultsTests
         Assert.IsTrue(own.IsLittleEndian);
     }
 
+    /// <summary>The constraint failure mode comes from the project and the attribute's own choice wins; a value the generator does not know is reported as CSG012.</summary>
+    [TestMethod]
+    public void ConstraintFailures_DefaultToTheProject_AndTheAttributeWins()
+    {
+        const string Source = Header + """
+            [CStructLayout("struct root { uint8 a @expect(a == 1, \"root.a\", \"A must be one.\"); };", Surface = GeneratedSurface.Reader)]
+            public static partial class Plain { }
+
+            [CStructLayout("struct root { uint8 a @expect(a == 1, \"root.a\", \"A must be one.\"); };", Surface = GeneratedSurface.Reader, ConstraintFailures = ConstraintFailureMode.Constraint)]
+            public static partial class Own { }
+            """;
+        var assembly = GeneratorRunner.Run(Source, globalOptions: Options(("CStructSharpConstraintFailures", "formatexceptions"))).AssertClean().Load();
+        var plain = Assert.ThrowsExactly<TargetInvocationException>(() => assembly.GetType("Demo.Plain")!.GetMethod("Parse", [typeof(byte[]), typeof(ReadOptions)])!.Invoke(null, [new byte[] { 0 }, null]));
+        Assert.IsInstanceOfType<System.IO.InvalidDataException>(plain.InnerException);
+        var own = Assert.ThrowsExactly<TargetInvocationException>(() => assembly.GetType("Demo.Own")!.GetMethod("Parse", [typeof(byte[]), typeof(ReadOptions)])!.Invoke(null, [new byte[] { 0 }, null]));
+        Assert.IsInstanceOfType<CStructSharp.Diagnostics.CStructConstraintException>(own.InnerException);
+
+        // Without the property the default stays the constraint exception.
+        var unchanged = GeneratorRunner.Run(Source).AssertClean().Load();
+        var constraint = Assert.ThrowsExactly<TargetInvocationException>(() => unchanged.GetType("Demo.Plain")!.GetMethod("Parse", [typeof(byte[]), typeof(ReadOptions)])!.Invoke(null, [new byte[] { 0 }, null]));
+        Assert.IsInstanceOfType<CStructSharp.Diagnostics.CStructConstraintException>(constraint.InnerException);
+
+        GeneratorResult typo = GeneratorRunner.Run(Source, globalOptions: Options(("CStructSharpConstraintFailures", "Format")));
+        Assert.AreEqual(1, typo.DiagnosticsWithId("CSG012").Count);
+        StringAssert.Contains(typo.DiagnosticsWithId("CSG012")[0].GetMessage(), "CStructSharpConstraintFailures");
+    }
+
     /// <summary>A value the generator does not understand is reported once as CSG012, ignored, and generation continues with the library's default.</summary>
     [TestMethod]
     public void InvalidProperty_ReportsCSG012_AndIsIgnored()

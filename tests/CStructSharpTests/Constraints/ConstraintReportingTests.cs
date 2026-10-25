@@ -70,6 +70,66 @@ public class ConstraintReportingTests
         Assert.Throws<CStructLayoutException>(() => new CStruct("struct s { uint8 a @expect(a == 1, ); };"));
     }
 
+    /// <summary>A message after the label replaces the generated sentence, keeps the label in brackets and the position facts, and is carried by <c>Description</c>.</summary>
+    [TestMethod]
+    public void Description_ReplacesTheGeneratedSentence()
+    {
+        var layout = new CStruct("struct s { uint16 magic @expect(magic == 0xEF53, \"ext.magic\", \"Not an ext superblock.\"); uint8 rev @supports(rev <= 1, \"ext.rev\", \"Revision \\\"rev\\\" is too new.\"); uint8 z @expect(z == 0, \"s.z\"); };");
+        CStructConstraintException malformed = Assert.Throws<CStructConstraintException>(() => layout.Parse(new byte[] { 1, 2, 0, 0 }, "s"));
+        Assert.AreEqual("Not an ext superblock.", malformed.Description);
+        Assert.AreEqual("ext.magic", malformed.Label);
+        Assert.AreEqual(ConstraintKind.Malformed, malformed.Kind);
+        Assert.AreEqual("magic == 0xEF53", malformed.Constraint);
+        StringAssert.StartsWith(malformed.Message, "Not an ext superblock. [ext.magic] (field 'magic'");
+        StringAssert.Contains(malformed.Message, "offset 2");
+
+        CStructConstraintException unsupported = Assert.Throws<CStructConstraintException>(() => layout.Parse(new byte[] { 0x53, 0xEF, 9, 0 }, "s"));
+        Assert.AreEqual("Revision \"rev\" is too new.", unsupported.Description);
+        Assert.AreEqual(ConstraintKind.Unsupported, unsupported.Kind);
+
+        CStructConstraintException generated = Assert.Throws<CStructConstraintException>(() => layout.Parse(new byte[] { 0x53, 0xEF, 0, 4 }, "s"));
+        Assert.IsNull(generated.Description);
+        StringAssert.Contains(generated.Message, "Invalid value for 'z'");
+    }
+
+    /// <summary>The message is part of the layout's text: it survives <c>ToDefinition</c>, and layouts that differ only in a message are different layouts.</summary>
+    [TestMethod]
+    public void Description_RoundTripsAndChangesTheDefinition()
+    {
+        var layout = new CStruct("struct s { uint8 a @expect(a == 1, \"x\", \"say \\\"one\\\" \\\\ please\"); };");
+        string definition = layout.ToDefinition();
+        StringAssert.Contains(definition, "@expect(a == 1, \"x\", \"say \\\"one\\\" \\\\ please\")");
+        CStructConstraintException failure = Assert.Throws<CStructConstraintException>(() => new CStruct(definition).Parse(new byte[] { 2 }, "s"));
+        Assert.AreEqual("say \"one\" \\ please", failure.Description);
+
+        var other = new CStruct("struct s { uint8 a @expect(a == 1, \"x\", \"different\"); };");
+        var none = new CStruct("struct s { uint8 a @expect(a == 1, \"x\"); };");
+        Assert.AreNotEqual(layout.ToDefinition(), other.ToDefinition());
+        Assert.AreNotEqual(layout.ToDefinition(), none.ToDefinition());
+    }
+
+    /// <summary>A message that is empty, unterminated, escaped wrongly, not a string or given without a label is a layout error.</summary>
+    [TestMethod]
+    public void MalformedDescriptions_AreLayoutErrors()
+    {
+        Assert.Throws<CStructLayoutException>(() => new CStruct("struct s { uint8 a @expect(a == 1, \"l\", \"\"); };"));
+        Assert.Throws<CStructLayoutException>(() => new CStruct("struct s { uint8 a @expect(a == 1, \"l\", \"open); };"));
+        Assert.Throws<CStructLayoutException>(() => new CStruct("struct s { uint8 a @expect(a == 1, \"l\", \"bad\\n\"); };"));
+        Assert.Throws<CStructLayoutException>(() => new CStruct("struct s { uint8 a @expect(a == 1, \"l\", message); };"));
+        Assert.Throws<CStructLayoutException>(() => new CStruct("struct s { uint8 a @expect(a == 1, \"l\", ); };"));
+        Assert.Throws<CStructLayoutException>(() => new CStruct("struct s { uint8 a @expect(a == 1, \"l\", \"m\", \"extra\"); };"));
+    }
+
+    /// <summary>The message also reaches a violation collected from a read that gathers them.</summary>
+    [TestMethod]
+    public void Description_ReachesCollectedViolations()
+    {
+        var layout = new CStruct("struct s { uint8 a @expect(a == 1, \"s.a\", \"A is wrong.\"); uint8 b @expect(b == 1, \"s.b\"); };");
+        var violations = new List<CStructConstraintException>();
+        layout.Parse(new byte[] { 0, 0 }, "s", null, new ReadOptions { ConstraintViolations = violations });
+        CollectionAssert.AreEqual(new[] { "A is wrong.", null }, violations.Select(violation => violation.Description).ToArray());
+    }
+
     /// <summary>With an offset base a failure reports where the bytes are in the larger input, in its property and in its message.</summary>
     [TestMethod]
     public void OffsetBase_MovesEveryFailureIntoTheLargerInput()

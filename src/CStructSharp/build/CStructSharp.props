@@ -19,6 +19,7 @@
     <CompilerVisibleProperty Include="CStructSharpRuntimeByteOrder" />
     <CompilerVisibleProperty Include="CStructSharpShape" />
     <CompilerVisibleProperty Include="CStructSharpMaxValueBytes" />
+    <CompilerVisibleProperty Include="CStructSharpConstraintFailures" />
     <CompilerVisibleProperty Include="CStructSharpAnalyzeWithFriends" />
     <CompilerVisibleProperty Include="CStructSharpKeepNames" />
     <CompilerVisibleProperty Include="CStructSharpAligned" />
