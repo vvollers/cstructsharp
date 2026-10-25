@@ -189,6 +189,14 @@ a friend assembly may use it (`InternalsVisibleTo`; set `CStructSharpAnalyzeWith
 accept that a use from a test project looks like no use), when a `[CStructMapped]` class may resolve layouts, and for a
 layout that is referenced as a whole (`typeof`, `nameof`, `using static`).
 
+## Find a cheaper shape
+
+Two more suggestions look at the layout instead of the code that uses it.
+[CSG021](diagnostics.md#csg021---a-layout-qualifies-for-the-scalar-shape) says a layout generated as classes is one number at offset 0
+and could be a [scalar](#just-the-value-of-a-one-field-layout); [CSG022](diagnostics.md#csg022---a-layout-qualifies-for-value-type-shapes)
+says every struct is fixed in size and could be a [value type](#value-types-instead-of-classes). Both need the `Reader` or `Parser`
+surface and are not reported for a layout that sets `Shape`.
+
 ## What the numbers mean
 
 The [performance page](../performance.md) has a "Generated" table measured with `GeneratedBenchmarks`. For the

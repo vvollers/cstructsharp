@@ -101,7 +101,31 @@ internal sealed partial class LayoutEmitter
             this.diagnostics.Add(Diagnostic.Create(GeneratorDiagnostics.ScalarShapeUnsupported, this.request.AttributeSpan.ToLocation(), this.request.ClassName, scalarProblem));
         }
 
+        this.SuggestShape();
         return this.diagnostics;
+    }
+
+    /// <summary>
+    ///     Suggests the cheapest shape for a layout generated as classes: <c>Scalar</c> when the layout is one number (CSG021), else
+    ///     <c>Struct</c> when every struct could be a value type (CSG022). Only a Reader or Parser surface can take either shape, and a
+    ///     layout that chose a shape is not second-guessed.
+    /// </summary>
+    private void SuggestShape()
+    {
+        if (this.hasErrors || this.request.Shape != GenerationShape.Class || this.request.Surface is not (GenerationSurface.Reader or GenerationSurface.Parser))
+        {
+            return;
+        }
+
+        if (this.ScalarProblem() is null)
+        {
+            CompiledField member = this.model.Composites[0].Members[0].Field;
+            this.diagnostics.Add(Diagnostic.Create(GeneratorDiagnostics.QualifiesForScalar, this.request.AttributeSpan.ToLocation(), this.request.ClassName, member.DisplayTypeSpelling));
+        }
+        else if (this.ValueTypeProblem() is null)
+        {
+            this.diagnostics.Add(Diagnostic.Create(GeneratorDiagnostics.QualifiesForStruct, this.request.AttributeSpan.ToLocation(), this.request.ClassName));
+        }
     }
 
     /// <summary>Whether the class or a generated type of the model carries the name a value-type class reserves for its inline array container.</summary>

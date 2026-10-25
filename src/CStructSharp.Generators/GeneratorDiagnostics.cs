@@ -113,6 +113,26 @@ internal static class GeneratorDiagnostics
         isEnabledByDefault: true,
         description: "Shape = Scalar needs the Reader or Parser surface and a layout of one struct whose only member is a number, an enum or an identifier at offset 0.");
 
+    /// <summary>CSG021 (info): a layout generated as classes could be generated as a scalar.</summary>
+    public static readonly DiagnosticDescriptor QualifiesForScalar = new(
+        "CSG021",
+        "A layout qualifies for the scalar shape",
+        "The layout class '{0}' qualifies for Shape = GeneratedShape.Scalar: Parse can return the {1} itself and no type needs to be generated",
+        Category,
+        DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "The layout is one struct with one number, enum or identifier at offset 0 that fills the struct, on the Reader or Parser surface. Shape = Scalar generates a static Parse that returns the value and nothing else.");
+
+    /// <summary>CSG022 (info): a layout generated as classes could be generated as value types.</summary>
+    public static readonly DiagnosticDescriptor QualifiesForStruct = new(
+        "CSG022",
+        "A layout qualifies for value-type shapes",
+        "The layout class '{0}' qualifies for Shape = GeneratedShape.Struct: its structs are fixed in size and can be value types, so a read allocates no object",
+        Category,
+        DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "Every struct of the layout is fixed in size and holds only numbers, enums, bitfields, nested structs, text and fixed one-dimensional arrays, on the Reader or Parser surface. Shape = Struct (or Auto) generates them as structs.");
+
     /// <summary>CSG016 (info): a <c>[CStructLayout]</c> class that no code references.</summary>
     public static readonly DiagnosticDescriptor LayoutUnused = new(
         "CSG016",

@@ -30,6 +30,8 @@ list cannot drift from what ships.
 | [CSG018](#csg018---the-conditions-on-a-member-can-never-hold) | Warning | The conditions on a member can never hold |
 | [CSG019](#csg019---a-constraint-label-names-different-conditions) | Info | A constraint label names different conditions |
 | [CSG020](#csg020---a-magic-follows-a-variable-size-member) | Warning | A magic follows a variable-size member |
+| [CSG021](#csg021---a-layout-qualifies-for-the-scalar-shape) | Info | A layout qualifies for the scalar shape |
+| [CSG022](#csg022---a-layout-qualifies-for-value-type-shapes) | Info | A layout qualifies for value-type shapes |
 | [CSG100](#csg100---mapped-type-must-be-partial-with-a-parameterless-constructor) | Error | Mapped type must be partial with a parameterless constructor |
 | [CSG101](#csg101---mapped-member-type-is-not-mapped) | Error | Mapped member type is not mapped |
 | [CSG102](#csg102---mapped-member-has-no-layout-counterpart) | Warning | Mapped member has no layout counterpart |
@@ -205,6 +207,32 @@ been read, with the conditions of the members in front of it held back until the
 only members at known offsets), and the members before it have to be read before the format is recognized. Reported as a warning.
 
 **Fix.** Move the magic member to the front of the struct, or before the first variable-size member.
+
+## CSG021 - A layout qualifies for the scalar shape
+
+**Cause.** A layout generated as classes (the default `Shape`) on the `Reader` or `Parser` surface is one struct with one number, enum
+or identifier at offset 0 that fills the struct, such as a magic number. A scalar `Parse` returns that value directly, so no class
+exists to allocate. Reported as info, once per class; a layout that sets `Shape` is not second-guessed.
+
+```text
+The layout class 'Magic' qualifies for Shape = GeneratedShape.Scalar: Parse can return the ushort itself and no type needs to be generated
+```
+
+**Fix.** Set `Shape = GeneratedShape.Scalar` (the caller then uses the value, not a `.A` member), or ignore the suggestion when you want the
+struct type. See [value types](choosing-runtime-or-generated.md#value-types-instead-of-classes) and [just the value](choosing-runtime-or-generated.md#just-the-value-of-a-one-field-layout).
+
+## CSG022 - A layout qualifies for value-type shapes
+
+**Cause.** Every struct of the layout, on the `Reader` or `Parser` surface, is fixed in size and holds only numbers, enums,
+bitfields, nested structs, text and fixed one-dimensional arrays, and is no larger than `MaxValueBytes`. Generating them as `struct`
+values means a read allocates no object. Reported as info, once per class, and not when `CSG021` applies.
+
+```text
+The layout class 'Pair' qualifies for Shape = GeneratedShape.Struct: its structs are fixed in size and can be value types, so a read allocates no object
+```
+
+**Fix.** Set `Shape = GeneratedShape.Struct`, or `GeneratedShape.Auto` to take value types wherever a layout qualifies. A value type is
+copied when it is assigned or returned, so keep a large struct a class; ignore the suggestion when the code needs reference semantics.
 
 ## CSG100 - Mapped type must be partial with a parameterless constructor
 

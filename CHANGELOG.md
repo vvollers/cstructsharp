@@ -61,6 +61,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   is still a layout error. The portable language contract is revision 5, and older engines reject a layout that uses byte
   strings. Public API: `Expressions.BytesEqual` and `Expressions.TextEquals`, the helpers generated code calls. A struct with a
   byte-string condition is read member by member in the runtime engine (the static plan decodes scalars only).
+- **Shape suggestions.** `CSG021` and `CSG022` (info) say when a layout generated as classes on the `Reader` or `Parser` surface qualifies
+  for `Shape = Scalar` (one number at offset 0) or `Shape = Struct` (every struct is fixed in size and fits a value type). A layout that sets
+  `Shape` is not reported. Raise the severity in an `.editorconfig` or set the rule to `none` to silence it.
 - **`#define` constants.** The integer `#define`s of a layout are `public const` members of the generated class under their layout
   names: `int` when the value fits, otherwise `long`; a define that depends on a caller variable, a text define and a value beyond 64 bits
   are not emitted. A define named like a generated member or type is `CSG003`; a constant that has the same name as a member you wrote

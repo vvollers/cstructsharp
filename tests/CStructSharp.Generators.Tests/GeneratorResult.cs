@@ -23,7 +23,10 @@ internal sealed class GeneratorResult
         GeneratorDriverRunResult runResult)
     {
         this.GeneratedSources = generatedSources;
-        this.GeneratorDiagnostics = generatorDiagnostics;
+
+        // The shape suggestions (CSG021, CSG022) are advice about a valid layout; a test that asks for a clean run is not about them.
+        this.AllDiagnostics = generatorDiagnostics;
+        this.GeneratorDiagnostics = [.. generatorDiagnostics.Where(diagnostic => diagnostic.Id is not ("CSG021" or "CSG022"))];
         this.Output = output;
         this.RunResult = runResult;
     }
@@ -31,7 +34,10 @@ internal sealed class GeneratorResult
     /// <summary>Gets the hint name and text of every generated source, in generator output order.</summary>
     public IReadOnlyList<(string HintName, string Source)> GeneratedSources { get; }
 
-    /// <summary>Gets the diagnostics the generators reported, excluding compiler diagnostics of the output.</summary>
+    /// <summary>Gets every diagnostic the generators reported, the shape suggestions included.</summary>
+    public ImmutableArray<Diagnostic> AllDiagnostics { get; }
+
+    /// <summary>Gets the diagnostics the generators reported other than the shape suggestions (CSG021, CSG022), excluding compiler diagnostics of the output.</summary>
     public ImmutableArray<Diagnostic> GeneratorDiagnostics { get; }
 
     /// <summary>Gets the consumer compilation with the generated sources added.</summary>
@@ -48,7 +54,7 @@ internal sealed class GeneratorResult
     /// <summary>The generator diagnostics of one id.</summary>
     /// <param name="id">The diagnostic id to match exactly, such as <c>CSS001</c>.</param>
     /// <returns>The matching diagnostics in reporting order; empty when none match.</returns>
-    public IReadOnlyList<Diagnostic> DiagnosticsWithId(string id) => [.. this.GeneratorDiagnostics.Where(diagnostic => diagnostic.Id == id)];
+    public IReadOnlyList<Diagnostic> DiagnosticsWithId(string id) => [.. this.AllDiagnostics.Where(diagnostic => diagnostic.Id == id)];
 
     /// <summary>Fails the test when the generator reported anything or the consumer compilation (with the generated code) has errors.</summary>
     /// <returns>This result, so a test can chain further checks.</returns>
