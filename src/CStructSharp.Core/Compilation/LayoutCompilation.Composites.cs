@@ -82,12 +82,12 @@ internal sealed partial class LayoutCompilation
 
         if (strct.IsUnion)
         {
-            throw new CStructLayoutException("An @expect or @supports constraint is not supported on a union member: " + field.Name.Name);
+            throw new CStructLayoutException("An @expect, @supports or @magic constraint is not supported on a union member: " + field.Name.Name);
         }
 
         if (field.Name.Name.Length == 0)
         {
-            throw new CStructLayoutException("An @expect or @supports constraint needs a named field, not padding or an unnamed bitfield.");
+            throw new CStructLayoutException("An @expect, @supports or @magic constraint needs a named field, not padding or an unnamed bitfield.");
         }
 
         ImmutableArray<CompiledConstraint>.Builder builder = ImmutableArray.CreateBuilder<CompiledConstraint>(field.Constraints.Length);
@@ -95,7 +95,7 @@ internal sealed partial class LayoutCompilation
         {
             Expr folded = ExpressionEvaluator.ContainsCall(constraint.Expression) ? this.FoldCalls(constraint.Expression, field.Name.Name, context) : constraint.Expression;
             this.expressionEvaluator.Compile(folded);
-            builder.Add(new CompiledConstraint(constraint.Kind, folded, constraint.Text, constraint.Label, constraint.Description));
+            builder.Add(new CompiledConstraint(constraint.Kind, folded, constraint.Text, constraint.Label, constraint.Description, constraint.IsMagic));
         }
 
         return builder.MoveToImmutable();

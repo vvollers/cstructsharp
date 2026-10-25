@@ -123,6 +123,25 @@ public class ConstraintAnalyzerTests
         StringAssert.Contains(only.GetMessage(), "uint3 (0 to 7)");
     }
 
+    /// <summary>A magic after a variable-size member is CSG020; one at a fixed offset is not.</summary>
+    /// <returns>A task that completes after the diagnostics are checked.</returns>
+    [TestMethod]
+    public async Task Csg020_ReportsAMagicAfterAVariableSizeMember()
+    {
+        IReadOnlyList<Diagnostic> diagnostics = await Analyze(Header + """"
+            [CStructLayout("struct late { uint8 n; uint8 data[n]; uint16 magic @magic(magic == 0xEF53, \"late.magic\"); };")]
+            public static partial class Late { }
+
+            [CStructLayout("struct early { uint16 magic @magic(magic == 0xEF53, \"early.magic\"); uint8 n; uint8 data[n]; };")]
+            public static partial class Early { }
+            """");
+
+        Diagnostic only = Assert.ContainsSingle(diagnostics, string.Join("\n", diagnostics));
+        Assert.AreEqual("CSG020", only.Id);
+        Assert.AreEqual(DiagnosticSeverity.Warning, only.Severity);
+        StringAssert.Contains(only.GetMessage(), "'late.magic'");
+    }
+
     /// <summary>Runs the analyzer over a consumer source.</summary>
     /// <param name="source">The consumer source.</param>
     /// <returns>The analyzer diagnostics in source order.</returns>

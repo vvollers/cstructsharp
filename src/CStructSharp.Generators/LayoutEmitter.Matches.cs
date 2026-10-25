@@ -9,13 +9,13 @@ using CStructSharp.Diagnostics;
 using static CStructSharp.Generators.Emit;
 
 /// <summary>
-///     <c>Matches</c>: a static, non-throwing recognition check for a struct with <c>@expect</c> conditions. It decodes only
+///     <c>Matches</c>: a static, non-throwing recognition check for a struct with <c>@expect</c> or <c>@magic</c> conditions (a struct with <c>@magic</c> conditions is recognized by them alone). It decodes only
 ///     the members the conditions name, each at its build-time offset straight from the bytes, so a probe that asks "is this
 ///     the format?" builds no value, reads nothing else and throws nothing.
 /// </summary>
 internal sealed partial class LayoutEmitter
 {
-    /// <summary>One <c>@expect</c> condition <c>Matches</c> evaluates.</summary>
+    /// <summary>One <c>@expect</c> or <c>@magic</c> condition <c>Matches</c> evaluates.</summary>
     /// <param name="Constraint">The condition.</param>
     /// <param name="Code">Its C# expression over the decoded members.</param>
     private sealed record MatchCondition(CompiledConstraint Constraint, string Code);
@@ -41,6 +41,7 @@ internal sealed partial class LayoutEmitter
         this.UseRuntimeOrder("littleEndian");
         var decoded = new List<(GeneratedMember Member, ViewSlot Slot)>();
         var conditions = new List<MatchCondition>();
+        bool magicOnly = composite.Composite.HasMagic;
         foreach (CompiledField field in composite.Composite.Fields)
         {
             if (scope.Member(field) is not { } member)
@@ -69,7 +70,8 @@ internal sealed partial class LayoutEmitter
 
             foreach (CompiledConstraint constraint in field.Constraints)
             {
-                if (constraint.Kind != ConstraintKind.Malformed)
+                // A struct with @magic conditions is recognized by them alone; any other struct by its @expect conditions.
+                if (magicOnly ? !constraint.IsMagic : constraint.Kind != ConstraintKind.Malformed)
                 {
                     continue;
                 }
@@ -93,7 +95,7 @@ internal sealed partial class LayoutEmitter
         int needed = used.Count == 0 ? 0 : used.Max(entry => entry.Slot.Constant!.Value + DecodedSize(entry.Member.Field, entry.Member));
         string name = composite.Name;
         writer.Line();
-        writer.Line("/// <summary>Whether <paramref name=\"source\"/> satisfies the <c>@expect</c> conditions of a <c>" + composite.LayoutName + "</c> that it can evaluate from members at build-time offsets: it decodes only the members the conditions name, builds no value, and does not throw for a source that is too short or a condition that cannot be evaluated (they do not match). A condition on a member after a runtime-sized array, in a conditional arm or in a nested struct is not evaluated, and <c>@supports</c> conditions are not checked (an unsupported value is still recognized), so a match is not a promise that a read succeeds.</summary>");
+        writer.Line("/// <summary>Whether <paramref name=\"source\"/> satisfies the <c>@expect</c> conditions of a <c>" + composite.LayoutName + "</c> that it can evaluate from members at build-time offsets: it decodes only the members the conditions name, builds no value, and does not throw for a source that is too short or a condition that cannot be evaluated (they do not match). A struct with <c>@magic</c> conditions is checked against those alone. A condition on a member after a runtime-sized array, in a conditional arm or in a nested struct is not evaluated, and <c>@supports</c> conditions are not checked (an unsupported value is still recognized), so a match is not a promise that a read succeeds.</summary>");
         writer.Line("/// <param name=\"source\">The bytes; offset 0 is the struct's first byte.</param>");
         this.EmitOrderDoc(writer);
         writer.Line(VariablesDoc);
@@ -116,7 +118,7 @@ internal sealed partial class LayoutEmitter
         bool guarded = false;
         foreach (MatchCondition condition in conditions)
         {
-            writer.Line("// @expect(" + SingleLine(condition.Constraint.Text) + ")");
+            writer.Line("// @" + condition.Constraint.Keyword + "(" + SingleLine(condition.Constraint.Text) + ")");
             if (!guarded && !CannotFail(condition.Constraint.Expression, condition.Code))
             {
                 writer.Open("try");

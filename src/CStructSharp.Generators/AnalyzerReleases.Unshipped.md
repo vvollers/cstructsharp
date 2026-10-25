@@ -14,3 +14,4 @@ CSG016 | CStructSharp | Info | A generated layout is never used
 CSG017 | CStructSharp | Info | A generated layout generates more than its uses need
 CSG018 | CStructSharp | Warning | The conditions on a member can never hold
 CSG019 | CStructSharp | Info | A constraint label names different conditions
+CSG020 | CStructSharp | Warning | A magic follows a variable-size member

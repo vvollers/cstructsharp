@@ -104,7 +104,7 @@ declarator-suffixes
                  = { pointer-count | placement-suffix | constraint } ;
 placement-suffix = alignment-override | offset-assertion ;
 pointer-count    = "@count", "(", expression, ")" ;
-constraint       = ( "@expect" | "@supports" ), "(", expression, [ ",", string-literal, [ ",", string-literal ] ], ")" ;
+constraint       = ( "@expect" | "@supports" | "@magic" ), "(", expression, [ ",", string-literal, [ ",", string-literal ] ], ")" ;
 alignment-override
                  = "@align", "(", expression, ")" ;
 offset-assertion = "@", expression ;
@@ -214,11 +214,11 @@ every operation that reaches the field checks it. It is not supported on a bitfi
 declarator may also carry one `@count(N)` suffix, before or after its placement suffix; it makes the pointer's final
 target `N` consecutive values instead of one. `N` may name a field declared after the pointer. See
 [counted pointer targets](pointers-and-addressing.md#counted-pointer-targets). Any declarator may also carry any number of
-`@expect(condition)` and `@supports(condition)` constraints, in any order among the other suffixes: the condition is an
+`@expect(condition)`, `@supports(condition)` and `@magic(condition)` constraints, in any order among the other suffixes: the condition is an
 expression that may name the field and the fields before it, optionally followed by a comma and a quoted label and, after the
 label, a comma and a quoted message that a failure reports instead of the generated sentence, and a read
 fails with a malformed (`@expect`) or unsupported
-(`@supports`) failure when it evaluates to zero. See [field constraints](field-constraints.md). A
+(`@supports`, `@magic`) failure when it evaluates to zero. See [field constraints](field-constraints.md). A
 `struct`/`union` declaration may itself carry `[ alignment-override ]` immediately before its opening brace,
 clamping every one of that composite's own fields' alignment to at most `N` (matching `#pragma pack(N)` semantics)
 unless a field carries its own explicit `@align(N)`, which always wins outright instead of being further clamped;
@@ -300,7 +300,7 @@ The table explains each production and links to the page that defines its additi
 | `bit-width` | One named nonzero portable bit slice, or unnamed reserved padding for `anonymous-bitfield` |
 | `declarator-suffixes` | The optional trailing suffixes of a declarator: at most one placement suffix, at most one pointer count and any number of constraints, in any order |
 | `placement-suffix` | At most one trailing alignment override or offset assertion per declarator |
-| `constraint` | A condition the field's value must satisfy: `@expect` (a value outside it is malformed) or `@supports` (the layout does not support it); any number per declarator, checked after the field is read; see [field constraints](field-constraints.md) |
+| `constraint` | A condition the field's value must satisfy: `@expect` (a value outside it is malformed), `@supports` (the layout does not support it) or `@magic` (the bytes are not this format; checked first); any number per declarator, checked after the field is read; see [field constraints](field-constraints.md) |
 | `pointer-count` | `@count(N)`: the number of consecutive elements a pointer's final target holds |
 | `alignment-override` | An explicit per-declarator alignment override, effective only when `aligned: true` |
 | `offset-assertion` | An explicit per-declarator byte-offset assertion, checked when statically computable |

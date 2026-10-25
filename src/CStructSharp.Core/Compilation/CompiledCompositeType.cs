@@ -27,6 +27,7 @@ internal sealed partial class CompiledCompositeType : CompiledType
         this.Fields = fields;
         this.HasDirectConditionalFields = fields.Any(field => field.IsConditional);
         this.HasConstraints = fields.Any(field => !field.Constraints.IsDefaultOrEmpty);
+        this.HasMagic = fields.Any(field => !field.Constraints.IsDefaultOrEmpty && field.Constraints.Any(constraint => constraint.IsMagic));
         foreach (CompiledField field in fields)
         {
             foreach (CompiledConditionalBranch branch in field.ConditionalBranches)
@@ -62,6 +63,9 @@ internal sealed partial class CompiledCompositeType : CompiledType
 
     /// <summary>Whether any member of this composite (not of a nested one) carries an <c>@expect</c> or <c>@supports</c> condition, which only the member-by-member reader checks.</summary>
     public bool HasConstraints { get; }
+
+    /// <summary>Whether any member of this composite carries an <c>@magic</c> condition, so the composite checks its conditions in the order of <see cref="ConstraintSchedule"/> and <c>Matches</c> evaluates only the magic ones.</summary>
+    public bool HasMagic { get; }
 
     /// <summary>Gets a value indicating whether a member at this level is an <c>if</c>/<c>switch</c> arm.</summary>
     public bool HasDirectConditionalFields { get; }

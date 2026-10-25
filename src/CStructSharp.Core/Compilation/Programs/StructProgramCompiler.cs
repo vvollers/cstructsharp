@@ -131,6 +131,10 @@ internal abstract class StructProgramCompiler<TBuilder>
         placement = new Placement(this.Compilation.Aligned);
         var selections = new List<int>();
         CompiledField[] fields = builder.Fields;
+
+        // The conditions are checked in the schedule's order: the declaration order, unless the struct has @magic conditions,
+        // which come first (the schedule says which checks wait for them).
+        ConstraintSchedule schedule = ConstraintSchedule.Create(fields);
         for (int index = 0; index < fields.Length; index++)
         {
             CompiledField field = fields[index];
@@ -150,14 +154,16 @@ internal abstract class StructProgramCompiler<TBuilder>
                 return reason;
             }
 
-            // A condition is checked right after its member was read, with every value up to this member captured.
-            if (builder.ChecksConstraints && !field.Constraints.IsDefaultOrEmpty)
+            // A condition is checked right after its member was read, with every value up to this member captured; a held-back
+            // condition of an earlier member is checked after the last @magic member (see ConstraintSchedule).
+            if (builder.ChecksConstraints)
             {
-                for (int ordinal = 0; ordinal < field.Constraints.Length; ordinal++)
+                foreach (ConstraintSchedule.Entry entry in schedule.After(index))
                 {
-                    CompiledConstraint constraint = field.Constraints[ordinal];
-                    int expression = builder.AddExpression(constraint.Expression, "constraint '" + constraint.Text + "' of " + field.Name);
-                    builder.EmitStructural(StructuralStep.CheckConstraint, index, expression, ordinal);
+                    CompiledField owner = fields[entry.Field];
+                    CompiledConstraint constraint = owner.Constraints[entry.Ordinal];
+                    int expression = builder.AddExpression(constraint.Expression, "constraint '" + constraint.Text + "' of " + owner.Name);
+                    builder.EmitStructural(StructuralStep.CheckConstraint, entry.Field, expression, entry.Ordinal);
                 }
             }
 

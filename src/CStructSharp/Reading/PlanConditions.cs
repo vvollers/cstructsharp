@@ -53,7 +53,9 @@ internal static class PlanConditions
     /// <returns>Whether every reachable program covers its conditions and no nested struct carries one.</returns>
     private static bool Reaches(ReadProgram program, StaticReadPlan plan)
     {
-        if (!program.CoversConstraints)
+        // A struct with @magic conditions checks them in the order of its ConstraintSchedule, which the plan's per-operation checks do
+        // not follow, so it keeps the member-by-member reader.
+        if (!program.CoversConstraints || program.Composite is { HasMagic: true })
         {
             return false;
         }
@@ -65,7 +67,7 @@ internal static class PlanConditions
             foreach (int holder in operation.HolderPath)
             {
                 declaring = declaring.NestedByField[holder];
-                if (declaring is null || !declaring.CoversConstraints)
+                if (declaring is null || !declaring.CoversConstraints || declaring.Composite is { HasMagic: true })
                 {
                     return false;
                 }

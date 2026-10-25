@@ -25,6 +25,9 @@ internal static class ConstraintAnalysis
 
         /// <summary>One label names conditions that differ (CSG019).</summary>
         LabelReused,
+
+        /// <summary>A <c>@magic</c> sits after a variable-size member (CSG020).</summary>
+        MagicAfterVariableSize,
     }
 
     /// <summary>Runs every check over a compiled layout.</summary>
@@ -55,6 +58,11 @@ internal static class ConstraintAnalysis
 
                         uses.Add((where, constraint.Text));
                     }
+                }
+
+                if (!composite.IsUnion && field.FixedOffset is null && field.Constraints.Any(constraint => constraint.IsMagic))
+                {
+                    findings.Add(new Finding(FindingKind.MagicAfterVariableSize, where, "a @magic is only checked first, and only recognized by Matches, when its member is at a fixed offset"));
                 }
 
                 if (Unsatisfiable(layout, field) is { } reason)

@@ -102,7 +102,7 @@ internal static class LayoutFingerprint
         var constraints = new StringBuilder();
         foreach (CompiledConstraint constraint in field.Constraints)
         {
-            constraints.Append(constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "{expect:" : "{supports:").Append(constraint.Text).Append(ConstraintLabels.Suffix(constraint.Label, constraint.Description)).Append('}');
+            constraints.Append("{").Append(constraint.Keyword).Append(':').Append(constraint.Text).Append(ConstraintLabels.Suffix(constraint.Label, constraint.Description)).Append('}');
         }
 
         return constraints.ToString();

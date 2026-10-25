@@ -48,7 +48,8 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
             GeneratorDiagnostics.ParseNotStruct,
             GeneratorDiagnostics.DynamicUnderAot,
             GeneratorDiagnostics.ConstraintUnsatisfiable,
-            GeneratorDiagnostics.ConstraintLabelReused);
+            GeneratorDiagnostics.ConstraintLabelReused,
+            GeneratorDiagnostics.MagicAfterVariableSize);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -186,7 +187,7 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
     /// <param name="report">Receives each diagnostic.</param>
     private void ReportConstraintFindings(string text, LayoutSettings settings, Location location, Action<Diagnostic> report)
     {
-        if (!text.Contains("@expect", StringComparison.Ordinal) && !text.Contains("@supports", StringComparison.Ordinal))
+        if (!text.Contains("@expect", StringComparison.Ordinal) && !text.Contains("@supports", StringComparison.Ordinal) && !text.Contains("@magic", StringComparison.Ordinal))
         {
             return;
         }
@@ -199,7 +200,12 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
 
         foreach (ConstraintAnalysis.Finding finding in ConstraintAnalysis.Analyze(layout))
         {
-            DiagnosticDescriptor descriptor = finding.Kind == ConstraintAnalysis.FindingKind.Unsatisfiable ? GeneratorDiagnostics.ConstraintUnsatisfiable : GeneratorDiagnostics.ConstraintLabelReused;
+            DiagnosticDescriptor descriptor = finding.Kind switch
+            {
+                ConstraintAnalysis.FindingKind.Unsatisfiable => GeneratorDiagnostics.ConstraintUnsatisfiable,
+                ConstraintAnalysis.FindingKind.MagicAfterVariableSize => GeneratorDiagnostics.MagicAfterVariableSize,
+                _ => GeneratorDiagnostics.ConstraintLabelReused,
+            };
             report(Diagnostic.Create(descriptor, location, finding.Subject, finding.Detail));
         }
     }

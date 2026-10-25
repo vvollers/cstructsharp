@@ -12,4 +12,9 @@ using CStructSharp.Syntax;
 /// <param name="Text">The condition as written, quoted by the failure message.</param>
 /// <param name="Label">The label written after the condition, carried by the failure; <see langword="null"/> when none.</param>
 /// <param name="Description">The message written after the label, which a failure reports instead of the generated sentence; <see langword="null"/> when none.</param>
-internal sealed record CompiledConstraint(CStructSharp.Diagnostics.ConstraintKind Kind, Expr Expression, string Text, string? Label = null, string? Description = null);
+/// <param name="IsMagic">Whether it was written <c>@magic</c>: checked before the other conditions of its struct, failing as <see cref="CStructSharp.Diagnostics.ConstraintKind.Unsupported"/>, and the only kind <c>Matches</c> evaluates for a struct that has one.</param>
+internal sealed record CompiledConstraint(CStructSharp.Diagnostics.ConstraintKind Kind, Expr Expression, string Text, string? Label = null, string? Description = null, bool IsMagic = false)
+{
+    /// <summary>Gets the suffix keyword the constraint was written with, without the <c>@</c>: <c>expect</c>, <c>supports</c> or <c>magic</c>.</summary>
+    public string Keyword => ConstraintLabels.Keyword(this.Kind, this.IsMagic);
+}

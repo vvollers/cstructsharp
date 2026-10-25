@@ -2,6 +2,7 @@ namespace CStructSharp.Generators;
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Globalization;
 using System.Linq;
 using CStructSharp.Codecs;
@@ -34,6 +35,11 @@ internal sealed partial class LayoutEmitter
     // declaration order (cleared per composite); the runtime defers the same fields.
     private readonly Dictionary<CompiledField, DeferredPointer> deferredPointers = new(ReferenceEqualityComparer.Instance);
     private readonly List<DeferredPointer> deferredPointerOrder = new();
+
+    // The check order and the translated conditions of the struct whose fields EmitFields is emitting (see ConstraintSchedule).
+    private ConstraintSchedule? schedule;
+    private ImmutableArray<CompiledField> scheduleFields;
+    private Dictionary<(int Field, int Ordinal), HeldConstraint>? heldConstraints;
 
     /// <summary>Emits reader entry points and per-composite readers using the compiled layout and fixed parser settings.</summary>
     /// <param name="writer">The generated source destination; emitted cursors own operation state, not caller input.</param>
@@ -614,9 +620,23 @@ internal sealed partial class LayoutEmitter
     private void EmitFields(SourceWriter writer, CompiledCompositeType composite, ReaderScope scope, string target, string placement)
     {
         EmitConditionalSlots(writer, composite, placement);
-        foreach (CompiledField field in composite.Fields)
+
+        // The conditions of this struct are checked in its schedule's order; a nested inline struct has its own, so the
+        // enclosing struct's is set aside while it is emitted.
+        (ConstraintSchedule? savedSchedule, ImmutableArray<CompiledField> savedFields, Dictionary<(int, int), HeldConstraint>? savedHeld) = (this.schedule, this.scheduleFields, this.heldConstraints);
+        this.schedule = ConstraintSchedule.Create(composite.Fields);
+        this.scheduleFields = composite.Fields;
+        this.heldConstraints = new Dictionary<(int, int), HeldConstraint>();
+        try
         {
-            this.EmitField(writer, field, composite, scope, target, inUnion: false, placement);
+            foreach (CompiledField field in composite.Fields)
+            {
+                this.EmitField(writer, field, composite, scope, target, inUnion: false, placement);
+            }
+        }
+        finally
+        {
+            (this.schedule, this.scheduleFields, this.heldConstraints) = (savedSchedule, savedFields, savedHeld);
         }
     }
 
@@ -824,11 +844,68 @@ internal sealed partial class LayoutEmitter
             return;
         }
 
-        foreach (CompiledConstraint constraint in field.Constraints)
+        // The conditions are translated now, while the scope holds exactly the names this member can see; a condition that
+        // the schedule holds back for a later @magic is written when that member is reached.
+        int index = this.scheduleFields.IsDefault ? -1 : this.scheduleFields.IndexOf(field);
+        if (index < 0 || this.schedule is null || this.heldConstraints is null)
         {
-            EmitConstraintBlock(writer, field, constraint, scope.Expressions.Emit(constraint.Expression), member, memberType, null);
+            foreach (CompiledConstraint constraint in field.Constraints)
+            {
+                EmitConstraintBlock(writer, field, constraint, scope.Expressions.Emit(constraint.Expression), member, memberType, null);
+            }
+
+            return;
+        }
+
+        for (int ordinal = 0; ordinal < field.Constraints.Length; ordinal++)
+        {
+            this.heldConstraints[(index, ordinal)] = new HeldConstraint(scope.Expressions.Emit(field.Constraints[ordinal].Expression), member, memberType);
+        }
+
+        foreach (ConstraintSchedule.Entry entry in this.schedule.After(index))
+        {
+            HeldConstraint held = this.heldConstraints[(entry.Field, entry.Ordinal)];
+            CompiledField owner = this.scheduleFields[entry.Field];
+            EmitConstraintBlock(writer, owner, owner.Constraints[entry.Ordinal], held.Code, held.Member, held.MemberType, null);
         }
     }
+
+    /// <summary>
+    ///     Emits, for one member of a constraint pass over a fixed struct (a check function that returns the failure), the checks the
+    ///     schedule puts after it. A condition is translated while the scope holds the members up to its own, and a held-back one is
+    ///     written at the member that releases it; a failure reports the end of that member, where the member-by-member reader's
+    ///     cursor stands when it checks.
+    /// </summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="fields">The struct's members in declaration order.</param>
+    /// <param name="schedule">The struct's check order.</param>
+    /// <param name="held">The translated conditions by member and ordinal, shared by the calls for one struct.</param>
+    /// <param name="index">The index of the member whose turn it is; the scope has published it.</param>
+    /// <param name="scope">The expression scope.</param>
+    private static void EmitPassConstraints(SourceWriter writer, ImmutableArray<CompiledField> fields, ConstraintSchedule schedule, Dictionary<(int Field, int Ordinal), string> held, int index, ReaderScope scope)
+    {
+        CompiledField field = fields[index];
+        if (!field.Constraints.IsDefaultOrEmpty)
+        {
+            for (int ordinal = 0; ordinal < field.Constraints.Length; ordinal++)
+            {
+                held[(index, ordinal)] = scope.Expressions.Emit(field.Constraints[ordinal].Expression);
+            }
+        }
+
+        int end = (field.FixedOffset ?? 0) + (field.FixedStorageSize ?? 0);
+        foreach (ConstraintSchedule.Entry entry in schedule.After(index))
+        {
+            CompiledField owner = fields[entry.Field];
+            EmitConstraintBlock(writer, owner, owner.Constraints[entry.Ordinal], held[(entry.Field, entry.Ordinal)], SourceWriter.Literal(owner.Name), SourceWriter.Literal(owner.DisplayTypeSpelling), "start + " + Int(end), returnsFailure: true, guarded: false);
+        }
+    }
+
+    /// <summary>A condition translated to C# at its member, to be written where the constraint schedule puts its check.</summary>
+    /// <param name="Code">The C# expression of the condition.</param>
+    /// <param name="Member">The member-name expression for failures.</param>
+    /// <param name="MemberType">The member-type expression for failures.</param>
+    private sealed record HeldConstraint(string Code, string Member, string MemberType);
 
     /// <summary>
     ///     Emits the first statement of a constraint-check function: a read that skips its constraints
@@ -871,7 +948,7 @@ internal sealed partial class LayoutEmitter
     {
         string context = "constraint '" + constraint.Text + "' of " + field.Name;
         string kind = constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "Malformed" : "Unsupported";
-        writer.Line("// @" + (constraint.Kind == CStructSharp.Diagnostics.ConstraintKind.Malformed ? "expect" : "supports") + "(" + SingleLine(constraint.Text) + ")");
+        writer.Line("// @" + constraint.Keyword + "(" + SingleLine(constraint.Text) + ")");
 
         // A read that skips its constraints (ReadOptions.Constraints) evaluates none: a check function tests that once at its start,
         // and every other check tests it before it evaluates the condition.

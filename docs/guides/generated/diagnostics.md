@@ -29,6 +29,7 @@ list cannot drift from what ships.
 | [CSG017](#csg017---a-generated-layout-generates-more-than-its-uses-need) | Info | A generated layout generates more than its uses need |
 | [CSG018](#csg018---the-conditions-on-a-member-can-never-hold) | Warning | The conditions on a member can never hold |
 | [CSG019](#csg019---a-constraint-label-names-different-conditions) | Info | A constraint label names different conditions |
+| [CSG020](#csg020---a-magic-follows-a-variable-size-member) | Warning | A magic follows a variable-size member |
 | [CSG100](#csg100---mapped-type-must-be-partial-with-a-parameterless-constructor) | Error | Mapped type must be partial with a parameterless constructor |
 | [CSG101](#csg101---mapped-member-type-is-not-mapped) | Error | Mapped member type is not mapped |
 | [CSG102](#csg102---mapped-member-has-no-layout-counterpart) | Warning | Mapped member has no layout counterpart |
@@ -194,6 +195,15 @@ structs in one file under `"xfs.magic"`. A label is what a report shows to say w
 two failures look alike. Reported as info; repeating the same condition under one label is not reported.
 
 **Fix.** Give each condition its own label (`"xfs.sb.magic"`, `"xfs.agf.magic"`), or keep one label only where the condition is the same.
+
+## CSG020 - A magic follows a variable-size member
+
+**Cause.** A member with an `@magic` condition comes after a member whose size depends on the data (a runtime-sized array,
+a string), so its offset is not known when the layout is compiled. The magic still works: it is checked as soon as its member has
+been read, with the conditions of the members in front of it held back until then. But `Matches` cannot evaluate it (it decodes
+only members at known offsets), and the members before it have to be read before the format is recognized. Reported as a warning.
+
+**Fix.** Move the magic member to the front of the struct, or before the first variable-size member.
 
 ## CSG100 - Mapped type must be partial with a parameterless constructor
 

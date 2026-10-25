@@ -94,20 +94,14 @@ internal sealed partial class LayoutEmitter
         writer.Line("failure = null;");
         EmitSkipGuard(writer);
         var scope = new ReaderScope(this, composite);
-        foreach (CompiledField field in composite.Composite.Fields)
+        ConstraintSchedule schedule = ConstraintSchedule.Create(composite.Composite.Fields);
+        var held = new Dictionary<(int Field, int Ordinal), string>();
+        for (int index = 0; index < composite.Composite.Fields.Length; index++)
         {
+            CompiledField field = composite.Composite.Fields[index];
             GeneratedMember member = scope.Member(field) ?? throw new InvalidOperationException("No generated member for field " + field.Name);
             scope.Publish(member, "value." + member.PropertyName);
-            if (field.Constraints.IsDefaultOrEmpty)
-            {
-                continue;
-            }
-
-            int end = (field.FixedOffset ?? 0) + (field.FixedStorageSize ?? 0);
-            foreach (CompiledConstraint constraint in field.Constraints)
-            {
-                EmitConstraintBlock(writer, field, constraint, scope.Expressions.Emit(constraint.Expression), SourceWriter.Literal(field.Name), SourceWriter.Literal(field.DisplayTypeSpelling), "start + " + Int(end), returnsFailure: true, guarded: false);
-            }
+            EmitPassConstraints(writer, composite.Composite.Fields, schedule, held, index, scope);
         }
 
         writer.Line("return true;");

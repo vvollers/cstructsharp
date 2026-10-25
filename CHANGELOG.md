@@ -37,6 +37,15 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   its type can hold, such as `uint8 big @expect(big > 300)` or `@expect(kind == 1) @expect(kind == 2)`, and `CSG019` (info) when
   one constraint label names different conditions in a layout. Both are certain-only: a condition the analysis cannot reduce
   is never reported.
+- **`@magic`.** `field @magic(condition, "label", "message")` marks the field that identifies a format. It is checked first for
+  its struct (the conditions of the members in front of it are held back until it has passed; a magic inside an `if` or `switch`
+  arm keeps declaration order), fails as `ConstraintKind.Unsupported`, and is the only constraint `Matches` evaluates for a struct
+  that has one (several are all required). `CSG020` (warning) reports a magic that follows a variable-size member. The portable
+  language contract is revision 5, and older engines and npm versions reject a layout that uses the suffix. Migration for a
+  signature currently written `@expect`: its failure becomes unsupported instead of malformed, the reported offset and the order of
+  collected violations follow the new check order, and `Matches` ignores that struct's `@expect` conditions. Deviation from the
+  plan's pre-read of a fixed-offset magic: the readers hold back earlier conditions instead, so one rule serves the runtime,
+  generated and view readers; a struct with a magic is read member by member, not through the static plan.
 - **Format exceptions from generated readers.** `[CStructLayout(ConstraintFailures = ConstraintFailureMode.FormatExceptions)]`, or
   the build property `CStructSharpConstraintFailures`, makes the throwing generated entry points (`Parse` for every input kind,
   `Records`, a view's `Validate` and `ToObject`) throw `InvalidDataException` for `@expect` and `NotSupportedException` for

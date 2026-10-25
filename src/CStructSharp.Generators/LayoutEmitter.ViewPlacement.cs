@@ -2,6 +2,7 @@ namespace CStructSharp.Generators;
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
@@ -205,7 +206,58 @@ internal sealed partial class LayoutEmitter
             this.PublishAndCheck(plan, scope, field, member);
         }
 
+        if (composite.Composite.HasMagic)
+        {
+            ScheduleChecks(plan, composite.Composite);
+        }
+
         return plan;
+    }
+
+    /// <summary>
+    ///     Puts a view's recorded checks in the order of the struct's <see cref="ConstraintSchedule"/>, so <c>Validate()</c> checks the
+    ///     <c>@magic</c> conditions first like a read does: the checks a magic holds back are released after the last magic and report
+    ///     the end of that member. A view that also checks the members of an anonymous struct keeps declaration order.
+    /// </summary>
+    /// <param name="plan">The plan, whose checks are in declaration order.</param>
+    /// <param name="composite">The struct the view reads.</param>
+    private static void ScheduleChecks(ViewPlan plan, CompiledCompositeType composite)
+    {
+        ImmutableArray<CompiledField> fields = composite.Fields;
+        if (plan.Checks.Any(check => fields.IndexOf(check.Field) < 0))
+        {
+            return;
+        }
+
+        ConstraintSchedule schedule = ConstraintSchedule.Create(fields);
+        if (!schedule.ReordersConstraints)
+        {
+            return;
+        }
+
+        var recorded = new Dictionary<(int Field, int Ordinal), (CompiledField Field, CompiledConstraint Constraint, string Code, string? End)>();
+        var ends = new Dictionary<int, string?>();
+        foreach ((CompiledField Field, CompiledConstraint Constraint, string Code, string? End) check in plan.Checks)
+        {
+            int owner = fields.IndexOf(check.Field);
+            recorded[(owner, check.Field.Constraints.IndexOf(check.Constraint))] = check;
+            ends[owner] = check.End;
+        }
+
+        var ordered = new List<(CompiledField Field, CompiledConstraint Constraint, string Code, string? End)>(plan.Checks.Count);
+        for (int index = 0; index < fields.Length; index++)
+        {
+            foreach (ConstraintSchedule.Entry entry in schedule.After(index))
+            {
+                if (recorded.TryGetValue((entry.Field, entry.Ordinal), out (CompiledField Field, CompiledConstraint Constraint, string Code, string? End) check))
+                {
+                    ordered.Add((check.Field, check.Constraint, check.Code, entry.Field == index || !ends.TryGetValue(index, out string? flushEnd) ? check.End : flushEnd));
+                }
+            }
+        }
+
+        plan.Checks.Clear();
+        plan.Checks.AddRange(ordered);
     }
 
     /// <summary>Publishes a placed member to the expression scope and records its <c>@expect</c> and <c>@supports</c> checks for <c>Validate()</c>.</summary>

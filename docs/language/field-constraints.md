@@ -1,6 +1,6 @@
 ---
 title: Field constraints
-description: State which values a field may hold with @expect and @supports, and what a read does with a value outside them.
+description: State which values a field may hold with @expect, @supports and @magic, and what a read does with a value outside them.
 ---
 
 # Field constraints
@@ -29,6 +29,36 @@ to zero. There are two kinds, because two different things can be wrong with a v
 
 A forensic tool needs that difference: a malformed header is evidence of damage or tampering, while an unsupported
 version is a limit of the reader.
+
+## Recognize a format with a magic
+
+Many formats start with a **magic number**: a fixed value that says "these bytes are this format" (an ext superblock holds
+`0xEF53` at offset 56; an ELF file starts with `7F 45 4C 46`). A magic is not like the other fields. If it is wrong, the other
+fields mean nothing, and a complaint about them would be misleading. `@magic` marks such a field:
+
+```c
+struct superblock {
+    uint32 inodes_count  @expect(inodes_count > 0, "ext.inodes");
+    uint16 magic         @magic(magic == 0xEF53, "ext.magic", "Not an ext volume.");
+    uint32 rev_level     @supports(rev_level <= 1, "ext.revision");
+};
+```
+
+`@magic` takes the same arguments as `@expect` (a condition, an optional label and an optional message). It differs in three ways:
+
+1. **It is checked first.** The conditions of the members in front of the magic are held back until the magic has been read and
+   found right, so garbage in an earlier field cannot hide the fact that the bytes are not this format. The read still fails
+   with a short-read error if the bytes end before the magic. When the magic holds, the held-back conditions run next, then the
+   later ones, each in declaration order. If a magic sits inside an `if` or `switch` arm, the struct keeps declaration order.
+2. **It fails as `ConstraintKind.Unsupported`.** The bytes are not malformed; they are simply not this format.
+3. **`Matches` evaluates the magic alone.** A struct with at least one `@magic` is recognized by its magic conditions, and its
+   `@expect` conditions are ignored by `Matches`. A struct without a magic is recognized by its `@expect` conditions as before.
+   Several `@magic` conditions on one struct are all required.
+
+The failure's `Offset` is the end of the member whose check ran, so it can differ from the position reported for the same
+condition written with `@expect`; with collected violations (`ReadOptions.ConstraintViolations`) the magic is listed first.
+The analyzer warns ([CSG020](../guides/generated/diagnostics.md#csg020---a-magic-follows-a-variable-size-member)) about a magic that follows a
+variable-size member, because `Matches` cannot evaluate it there.
 
 ## What a condition can name
 
@@ -234,7 +264,7 @@ different conditions, since a report could not tell them apart. It only reports 
 
 ## Where a constraint is not allowed
 
-A union member, padding (`_`) and an unnamed bitfield cannot carry a constraint: the members of a union overlap and the
+A union member, padding (`_`) and an unnamed bitfield cannot carry a constraint (`@expect`, `@supports` or `@magic`): the members of a union overlap and the
 other two have no name to quote. A condition that does not parse or names an unknown identifier at layout time is a layout
 error, reported when the layout is built.
 

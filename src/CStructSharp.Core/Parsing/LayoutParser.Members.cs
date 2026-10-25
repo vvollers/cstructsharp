@@ -592,7 +592,7 @@ internal sealed partial class LayoutParser
     /// <summary>
     ///     A declarator carries at most one trailing placement suffix - <c>@align(N)</c> (alignment override)
     ///     or <c>@N</c> (offset assertion) - at most one <c>@count(N)</c> pointer element count, and any number of
-    ///     <c>@expect(condition)</c> and <c>@supports(condition)</c> constraints, in any order. The named forms are tried
+    ///     <c>@expect(condition)</c>, <c>@supports(condition)</c> and <c>@magic(condition)</c> constraints, in any order. The named forms are tried
     ///     first because an offset assertion may itself start with a name.
     /// </summary>
     private DeclaratorSuffixes ParseDeclaratorSuffixes()
@@ -642,11 +642,11 @@ internal sealed partial class LayoutParser
     /// <param name="AlignmentOverride">The <c>@align(N)</c> expression.</param>
     /// <param name="OffsetAssertion">The <c>@N</c> expression.</param>
     /// <param name="PointerCount">The <c>@count(N)</c> expression.</param>
-    /// <param name="Constraints">The <c>@expect</c> and <c>@supports</c> conditions, in order.</param>
+    /// <param name="Constraints">The <c>@expect</c>, <c>@supports</c> and <c>@magic</c> conditions, in order.</param>
     private sealed record DeclaratorSuffixes(Expr? AlignmentOverride, Expr? OffsetAssertion, Expr? PointerCount, System.Collections.Immutable.ImmutableArray<FieldConstraint> Constraints);
 
     /// <summary>
-    ///     <c>@expect(condition)</c> or <c>@supports(condition)</c> when present; otherwise the cursor is unchanged. The text
+    ///     <c>@expect(condition)</c>, <c>@supports(condition)</c> or <c>@magic(condition)</c> when present; otherwise the cursor is unchanged. The text
     ///     of the condition, as written, is kept for the failure message.
     /// </summary>
     /// <returns>The constraint, or <see langword="null"/> when the next suffix is another kind.</returns>
@@ -654,6 +654,7 @@ internal sealed partial class LayoutParser
     {
         CStructSharp.Diagnostics.ConstraintKind kind;
         string keyword;
+        bool isMagic = false;
         if (this.StartsWith("@expect"))
         {
             kind = CStructSharp.Diagnostics.ConstraintKind.Malformed;
@@ -663,6 +664,13 @@ internal sealed partial class LayoutParser
         {
             kind = CStructSharp.Diagnostics.ConstraintKind.Unsupported;
             keyword = "@supports";
+        }
+        else if (this.StartsWith("@magic"))
+        {
+            // A magic is an unsupported-kind constraint that is checked first; see CompiledConstraint.IsMagic.
+            kind = CStructSharp.Diagnostics.ConstraintKind.Unsupported;
+            keyword = "@magic";
+            isMagic = true;
         }
         else
         {
@@ -685,7 +693,7 @@ internal sealed partial class LayoutParser
         string? description = label is not null && this.TryToken(',') ? this.ParseConstraintString("message", "after the label") : null;
         this.ExpectToken(')');
         string text = this.source.Substring(textStart, textEnd - textStart).Trim();
-        return new FieldConstraint(kind, expression, text, label, description);
+        return new FieldConstraint(kind, expression, text, label, description, isMagic);
     }
 
     /// <summary>

@@ -155,6 +155,16 @@ internal static class GeneratorDiagnostics
         isEnabledByDefault: true,
         description: "A label identifies the constraint that failed, so give each condition its own, or keep one label only where the same condition is meant.");
 
+    /// <summary>CSG020 (warning): a <c>@magic</c> condition sits on a member that follows a variable-size member.</summary>
+    public static readonly DiagnosticDescriptor MagicAfterVariableSize = new(
+        "CSG020",
+        "A magic follows a variable-size member",
+        "The @magic on '{0}' follows a variable-size member: {1}, so the members in front of it are read (and their conditions held back) before it is checked",
+        Category,
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "A magic identifies the format, so put it before any member whose size depends on the data. Where that is impossible the magic still works, but it is evaluated at its member and Matches does not evaluate it.");
+
     /// <summary>CSG100 (error): a mapped type is not partial or lacks a parameterless constructor.</summary>
     public static readonly DiagnosticDescriptor MappedNotPartial = new(
         "CSG100",

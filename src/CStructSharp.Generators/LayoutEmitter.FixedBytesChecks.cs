@@ -126,8 +126,11 @@ internal sealed partial class LayoutEmitter
 
         var scope = new ReaderScope(this, composite);
         var decodedFields = new HashSet<CompiledField>(check.Decoded.Select(entry => entry.Member.Field), ReferenceEqualityComparer.Instance);
-        foreach (CompiledField field in composite.Composite.Fields)
+        ConstraintSchedule schedule = ConstraintSchedule.Create(composite.Composite.Fields);
+        var held = new Dictionary<(int Field, int Ordinal), string>();
+        for (int index = 0; index < composite.Composite.Fields.Length; index++)
         {
+            CompiledField field = composite.Composite.Fields[index];
             GeneratedMember member = scope.Member(field) ?? throw new InvalidOperationException("No generated member for field " + field.Name);
             if (decodedFields.Contains(field))
             {
@@ -138,11 +141,7 @@ internal sealed partial class LayoutEmitter
                 scope.PublishUndefined(member);
             }
 
-            int end = (field.FixedOffset ?? 0) + (field.FixedStorageSize ?? 0);
-            foreach (CompiledConstraint constraint in field.Constraints)
-            {
-                EmitConstraintBlock(writer, field, constraint, scope.Expressions.Emit(constraint.Expression), SourceWriter.Literal(field.Name), SourceWriter.Literal(field.DisplayTypeSpelling), "start + " + Int(end), returnsFailure: true, guarded: false);
-            }
+            EmitPassConstraints(writer, composite.Composite.Fields, schedule, held, index, scope);
         }
 
         this.runtimeOrder = savedOrder;
