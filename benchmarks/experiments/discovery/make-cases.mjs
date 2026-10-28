@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 /**
  * Creates serial comparison cases for immutable discovery probes. No build or measurement is started.
- * Usage: node make-cases.mjs library|client|text|transport REFERENCE_PATTERN CANDIDATE_PATTERN OUTPUT [AUTHORIZED_IMAGE]
+ * Usage: node make-cases.mjs library|client|text|transport|byte-preparation REFERENCE_PATTERN CANDIDATE_PATTERN OUTPUT [AUTHORIZED_IMAGE]
  * Patterns contain {runtime}, replaced with jit and aot; image cases are omitted unless explicitly supplied.
  */
 import fs from "node:fs";
 import path from "node:path";
 
 const [kind, referencePattern, candidatePattern, output, image] = process.argv.slice(2);
-if (!["library", "client", "text", "transport"].includes(kind) || !output) {
+if (!["library", "client", "text", "transport", "byte-preparation"].includes(kind) || !output) {
   throw new Error("Supply kind, immutable reference/candidate directory patterns and an output JSON path.");
 }
 const cases = [];
@@ -22,7 +22,9 @@ for (const runtime of ["jit", "aot"]) {
   const file = ["client", "transport"].includes(kind) ? "DiscoveryProbe.exe" : "DiscoveryLibraryProbe.exe";
   const reference = path.resolve(referencePattern.replace("{runtime}", runtime), file);
   const candidate = path.resolve(candidatePattern.replace("{runtime}", runtime), file);
-  if (kind === "text") {
+  if (kind === "byte-preparation") {
+    add(`byte-preparation-${runtime}`, candidate, ["first-bytes", "small", "1"], candidate, ["bind-bytes", "small", "100000"]);
+  } else if (kind === "text") {
     add(`text-control-${runtime}`, candidate, ["text-only", "small", "100000"], candidate, ["bytes", "small", "100000"]);
   } else if (kind === "transport") {
     for (const mode of ["credential-transport", "credential-transport-sparse"]) add(`${runtime}-${mode}`, reference, [mode, "10"], candidate, [mode, "10"]);

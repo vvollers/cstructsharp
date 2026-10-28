@@ -15,7 +15,7 @@ dotnet publish benchmarks/experiments/discovery/Probe -c Release -r win-x64 -p:N
 
 Use NativeProbe for this project: setting PublishAot globally would incorrectly apply AOT to the netstandard source-generator project. No runtime code generation is used.
 
-Repeated modes are runtime, prepared, lookup (cached planning only), plan (lookup plus execution), manual, generated and probe. Recognition scenarios are success, reject and short. fields, elementwise and coalesced compare complete two-field (small) and 32-field (large) owned results. strings and bytes include complete 16-byte raw ownership plus ASCII decoding, including NUL storage. text-only decodes an already available span as a counterexample.
+Repeated modes are runtime, prepared, lookup (cached planning only), plan (lookup plus execution), manual, generated and probe. Recognition scenarios are success, reject and short. fields, elementwise and coalesced compare complete two-field (small) and 32-field (large) owned results. bind-bytes measures repeated fresh byte-binding preparation; first-bytes measures the first binding on an already compiled schema in a fresh process. strings and bytes include complete 16-byte raw ownership plus ASCII decoding, including NUL storage. text-only decodes an already available span as a counterexample.
 
 cold includes compilation plus first matching; first-runtime compiles the layout outside timing but includes lazy preparation and first execution. preparation times only preparing an already compiled layout. first-prepared prepares outside timing and includes the first execution. Those cases run one call in each fresh process. Repeated library cases perform 50,000 untimed calls before the measured loop. Source request/byte counts exclude warmup. All returned values enter the result checksum; correctness tests independently exercise missing variables, expression limits, codec widths, unknown input and schema identity.
 
@@ -40,7 +40,7 @@ node benchmarks/experiments/discovery/make-cases.mjs library 'REFERENCE_{runtime
 pwsh -File benchmarks/experiments/discovery/compare.ps1 -Configuration artifacts/library-cases.json -Output artifacts/library-samples.jsonl -Pairs 5 -Affinity 65536
 ```
 
-The client, text and transport kinds generate their corresponding controls. Supply an authorized image as the final optional argument only for client bootstrap/cancellation cases. Use text-control binaries built from the same candidate for the text kind. Change the affinity mask to an allowed logical CPU on your machine and record it; do not reuse another machine's mask blindly.
+The client, text, transport and byte-preparation kinds generate their corresponding controls. Supply an authorized image as the final optional argument only for client bootstrap/cancellation cases. Use text-control binaries built from the same candidate for the text kind. Change the affinity mask to an allowed logical CPU on your machine and record it; do not reuse another machine's mask blindly.
 
 The runner pins itself and inherited child processes, executes one warmup pair, then five pairs in alternating order. It retains every stdout/stderr/exit code, process-wall time and executable hash, plus hardware/runtime/cache metadata. Retain DLL hashes too for JIT bundles. No build, test, source edit, profiler or other performance command may overlap a campaign. Leave the OS cache intact and disclose that condition.
 

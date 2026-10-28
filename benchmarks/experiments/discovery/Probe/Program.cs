@@ -11,6 +11,20 @@ using DiscoveryLibraryProbe;
 string mode = args.Length == 0 ? "runtime" : args[0];
 string scenario = args.Length < 2 ? "success" : args[1];
 int iterations = args.Length < 3 ? 100_000 : int.Parse(args[2], CultureInfo.InvariantCulture);
+#if PREPARED
+if (mode == "first-bytes")
+{
+    MemorySchema schema = PortableMemorySchema.Create(new CStruct("struct Text { int8 name[16]; };"), "Text");
+    long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+    long started = Stopwatch.GetTimestamp();
+    MemoryByteReader reader = schema.BindBytes("Text", "name");
+    double nanoseconds = Stopwatch.GetElapsedTime(started).TotalNanoseconds;
+    long allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+    Console.WriteLine(FormattableString.Invariant($"first-bytes: {nanoseconds:F1} ns/op, {allocatedBytes} B/op, length={reader.Length}, iterations=1"));
+    return;
+}
+#endif
+
 bool firstUse = mode is "cold" or "first-runtime";
 #if PREPARED
 firstUse |= mode is "preparation" or "first-prepared";

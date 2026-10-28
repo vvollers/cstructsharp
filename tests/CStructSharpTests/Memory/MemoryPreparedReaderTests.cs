@@ -131,6 +131,34 @@ public class MemoryPreparedReaderTests
         }
     }
 
+    /// <summary>Prepared raw arrays retain unterminated storage bits and bypass custom value interpretation explicitly.</summary>
+    [TestMethod]
+    public void PreparedByteArrays_DoNotInvokeCustomElementCodecs()
+    {
+        var codec = new TokenCodec();
+        MemoryTypeDefinition[] types = [
+            new("token", "token", MemoryTypeKind.Scalar, 1, scalarType: "token"),
+            new("array", "array", MemoryTypeKind.Array, 4, elementTypeId: "token", count: 4),
+            new("root", "root", MemoryTypeKind.Struct, 4, [new("bytes", "array", 0),]),
+        ];
+        var schema = new MemorySchema(types, options: new CStructCompilationOptions { Codecs = [codec,], });
+        var session = new MemorySession(schema);
+        byte[] bytes = [255, 254, 253, 252];
+        var region = new MemoryRegion(new ByteArrayMemorySource("raw", bytes), 0, 4);
+        MemoryByteReader reader = schema.BindBytes("root", "bytes");
+        byte[] destination = new byte[4];
+        Assert.IsTrue(reader.Read(session, region, destination, new MemoryAccessContext()).IsComplete);
+        Assert.AreEqual(0, codec.Reads);
+        CollectionAssert.AreEqual(bytes, destination);
+        Assert.IsTrue(reader.TryReadBuffer(bytes, new MemoryAccessContext(), out ReadOnlySpan<byte> borrowed));
+        CollectionAssert.AreEqual(bytes, borrowed.ToArray());
+
+        // Raw evidence succeeds although interpreting the first element invokes a rejecting codec.
+        Assert.IsFalse(schema.Bind<object>("root", "bytes[0]").TryRead(session, region, out _, out MemoryReadFailure? failure));
+        Assert.AreEqual(MemoryReadFailureKind.InvalidValue, failure!.Kind);
+        Assert.AreEqual(1, codec.Reads);
+    }
+
     /// <summary>Binding does not invoke an object-shaped custom decoder, and custom rejection retains addressed diagnostics.</summary>
     [TestMethod]
     public void CustomCodecs_KeepCallbacksAtReadTime()

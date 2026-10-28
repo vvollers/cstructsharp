@@ -63,6 +63,7 @@ internal sealed class Workload
 
         // This pure gate recognizes only the stored scalar; it says nothing about object liveness.
         this.probe = new MemoryFieldProbe<ulong>("header.tag", header.Bind<ulong>("Header", "tag"), static value => value == 0xFEDCBA9876543210);
+
         // The read set receives the same ordered paths as the individual-field control.
         this.readSet = new MemoryReadSet(schema, "Fields", this.fields.Select(field => field.Selection.Path));
         this.text = schema.BindBytes("Fields", "text");
@@ -92,6 +93,8 @@ internal sealed class Workload
             return this.matcher.Matches(this.bytes) ? 1UL : 0;
         case "probe":
             return this.probe.Evaluate(this.bytes, this.context) == MemoryProbeOutcome.Match ? 1UL : 0;
+        case "bind-bytes":
+            return (ulong)this.session.Schema.BindBytes("Fields", "text").Length;
         case "lookup":
             return (ulong)this.layout.PrepareMatcher("Header").Rules.Count;
         case "plan":
