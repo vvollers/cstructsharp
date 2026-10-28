@@ -8,6 +8,8 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ## Unreleased
 
+## 0.17.0 — 2026-10-28
+
 ### Breaking changes
 
 - **Breaking (source and binary):** custom `MemorySession` pointer resolvers receive `(PointerRequest, MemoryAccessContext)`.
