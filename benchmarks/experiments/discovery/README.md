@@ -1,6 +1,6 @@
 # Reproduce discovery comparisons
 
-Build reference and candidate executables before timing. Use the SDK from global.json. Retain the exact source revisions, package versions, dotnet --info, source patches and executable/DLL hashes. Never rebuild a measured directory. Output belongs in ignored artifacts/ and agentdocs/, not in this directory.
+Build reference and candidate executables before timing. Use the SDK from global.json. Retain the exact source revisions, package versions, dotnet --info, source patches and executable/DLL hashes. Never rebuild a measured directory. Output belongs in ignored artifacts/, not in this directory.
 
 ## Library probes
 

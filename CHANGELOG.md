@@ -45,6 +45,9 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
   and Native AOT controls covering preparation, complete results, sparse coverage, allocations and retained memory.
 - Documented supported measurements, regressions and rejected reverse-reference and shared-filter experiments in
   `PERFORMANCE.md` and the discovery benchmark guide.
+- Kept the published measurement guides reproducible without dependencies on ignored local execution notes.
+- Refreshed the Explorer catalog for 25 added managed tests while preserving all 2,263 existing entries and 160
+  runnable inputs.
 
 ## 0.17.0 — 2026-10-28
 
