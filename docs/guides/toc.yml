@@ -75,5 +75,7 @@ items:
     href: memory-traversal.md
   - name: Create and patch offline memory
     href: memory-updates.md
+  - name: Bounded discovery over sparse memory
+    href: memory-discovery.md
   - name: Memory budgets and source contracts
     href: memory-reliability.md

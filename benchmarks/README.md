@@ -434,3 +434,5 @@ measuring run: if any of them moves more than 10 % against the other side of the
 Release builds only; record `dotnet --info`/`process.versions`/CPU in every result (the converters and JS harness do
 this); warm up before measuring; never compare means alone — the contracts store medians, allocations, and RSD, and a
 case with RSD above 0.35 is reported as unstable instead of gated. Run nothing else on the machine while measuring.
+
+The [discovery comparison probes](experiments/discovery/README.md) cover prepared recognition, validity-aware probes, selected snapshots and complete client discovery. See [supported measurements](../PERFORMANCE.md) for JIT/AOT gains, counterexamples and regressions.

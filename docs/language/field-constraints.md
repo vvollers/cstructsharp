@@ -333,3 +333,5 @@ not expose them.
 5. The read fails with `ArgumentException` before it reads a byte: skipping evaluates nothing, so there is nothing to collect.
 
 </details>
+
+Managed runtime recognition can be prepared with `CStruct.PrepareMatcher`. Its immutable `Rules` describe checked and excluded conditions; execution uses the same recognition selection and expression semantics as runtime `Matches`. See [bounded discovery](../guides/memory-discovery.md).

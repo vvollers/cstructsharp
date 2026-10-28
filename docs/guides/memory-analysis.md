@@ -186,3 +186,5 @@ tree, a corrupt cycle, a missing page, and an offline patch. It needs no externa
 - **Page**: the unit in which an operating system maps memory, commonly 4096 bytes.
 - **Sentinel**: a special list node whose address marks the end of a circular list; it holds no data item.
 - **Virtual address**: the address a process uses; the operating system maps it to physical memory or to nothing.
+
+See [bounded discovery](memory-discovery.md) for prepared recognition, buffer probes, sparse transport, selective snapshots and streaming graph exploration.

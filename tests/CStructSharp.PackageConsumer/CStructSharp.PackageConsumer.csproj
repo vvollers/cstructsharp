@@ -19,6 +19,7 @@
   <ItemGroup>
     <!-- The memory-analysis guide examples, compiled against the installed package instead of the core project. -->
     <Compile Include="../../docs/examples/memory-analysis/Program.cs" Link="MemoryAnalysis/Program.cs" />
+    <Compile Include="../../docs/examples/memory-analysis/DiscoveryExamples.cs" Link="MemoryAnalysis/DiscoveryExamples.cs" />
     <Compile Include="../../docs/examples/memory-analysis/MemoryTutorialExamples.cs" Link="MemoryAnalysis/MemoryTutorialExamples.cs" />
   </ItemGroup>
 

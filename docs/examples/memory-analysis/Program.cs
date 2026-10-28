@@ -30,6 +30,7 @@ internal static class Program
     internal static void Main()
     {
         CStructSharp.Docs.Examples.MemoryTutorialExamples.Run();
+        DiscoveryExamples.Run();
         Console.WriteLine("Memory guide examples passed.");
 
         // Step 1: metadata describes the task layout; a 40 KiB byte array plays the role of the capture file.

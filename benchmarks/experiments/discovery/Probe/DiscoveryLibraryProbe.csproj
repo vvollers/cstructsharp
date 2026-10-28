@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsAotCompatible>true</IsAotCompatible>
+    <PublishAot Condition="'$(NativeProbe)' == 'true'">true</PublishAot>
+    <DefineConstants Condition="'$(ReferenceLibrary)' == ''">$(DefineConstants);PREPARED</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Condition="'$(ReferenceLibrary)' == ''" Include="../../../../src/CStructSharp/CStructSharp.csproj" GlobalPropertiesToRemove="PublishAot;RuntimeIdentifier;SelfContained" />
+    <Reference Condition="'$(ReferenceLibrary)' != ''" Include="CStructSharp"><HintPath>$(ReferenceLibrary)</HintPath></Reference>
+    <ProjectReference Include="../../../../src/CStructSharp.Generators/CStructSharp.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="PublishAot;RuntimeIdentifier;SelfContained" />
+  </ItemGroup>
+</Project>
