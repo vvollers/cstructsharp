@@ -2,10 +2,10 @@ namespace CStructSharp;
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
+using CStructSharp.Compilation.Programs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
 using CStructSharp.Syntax;
@@ -34,92 +34,78 @@ public sealed partial class CStruct
     /// <exception cref="CStructPathException"><paramref name="declaration"/> is unknown or is not a struct.</exception>
     /// <exception cref="CStructLayoutException">The struct has no condition that <c>Matches</c> can evaluate (the generated layouts have no <c>Matches</c> method then).</exception>
     public bool Matches(string declaration, ReadOnlySpan<byte> source, IReadOnlyDictionary<string, int>? variables = null)
+        => this.PrepareMatcher(declaration).Matches(source, variables);
+
+    /// <summary>Prepares recognition once, retaining selected conditions, offsets and typed expression slots.</summary>
+    /// <param name="declaration">Case-sensitive struct declaration name.</param>
+    /// <returns>The immutable matcher owned by this layout; inspect its rules for recognition limits.</returns>
+    /// <exception cref="ArgumentNullException">The declaration is null.</exception>
+    /// <exception cref="CStructPathException">The name is not a known struct.</exception>
+    /// <exception cref="CStructLayoutException">No condition can be evaluated by recognition.</exception>
+    public PreparedMatcher PrepareMatcher(string declaration)
+    {
+        ArgumentNullException.ThrowIfNull(declaration);
+        CompiledCompositeType composite = this.compilation.SizeQueries.GetCompiledComposite(this.compilation.GetStruct(declaration));
+        return composite.CachedMatcher ?? composite.PublishMatcher(this.CreateMatcher(declaration));
+    }
+
+    /// <summary>Binds the existing recognition selection rules to the shared expression slot evaluator.</summary>
+    /// <param name="declaration">Known struct declaration to prepare.</param>
+    /// <returns>Complete immutable recognition decisions, including excluded rules.</returns>
+    private PreparedMatcher CreateMatcher(string declaration)
     {
         CompiledCompositeType composite = this.compilation.SizeQueries.GetCompiledComposite(this.compilation.GetStruct(declaration));
-        if (composite.IsUnion || !composite.HasConstraints)
-        {
-            throw new CStructLayoutException("'" + declaration + "' has no @expect or @magic condition for Matches to check.");
-        }
-
-        // A condition is evaluated only when everything it names is known: a layout constant, a caller variable, a member decoded from its
-        // build-time offset, or a byte-string comparison on an array at one. Any other member of the struct is undefined.
-        var values = new Dictionary<string, Expr>(this.compilation.StaticLayoutVariables, StringComparer.Ordinal);
-        if (variables is not null)
-        {
-            foreach (KeyValuePair<string, int> entry in variables)
-            {
-                values[entry.Key] = new Literal(entry.Value);
-            }
-        }
-
-        // The @magic conditions that can be evaluated decide alone; a struct without one (its magic sits in a conditional arm, say)
-        // is recognized by its @expect conditions.
         var needed = new HashSet<string>(StringComparer.Ordinal);
-        List<CompiledConstraint> evaluated = this.Evaluable(composite, magic: true, needed);
-        if (evaluated.Count == 0)
+        List<CompiledConstraint> selected = this.Evaluable(composite, magic: true, needed);
+        if (selected.Count == 0)
         {
-            evaluated = this.Evaluable(composite, magic: false, needed);
+            selected = this.Evaluable(composite, magic: false, needed);
         }
 
-        if (evaluated.Count == 0)
+        if (composite.IsUnion || selected.Count == 0)
         {
             throw new CStructLayoutException("'" + declaration + "' has no condition that Matches can evaluate: its conditions name members that are not numbers or enums at build-time offsets.");
         }
 
+        SlotTable table = this.compilation.SlotTable;
+        var initial = new SlotValue[table.Count];
+        foreach (KeyValuePair<string, Expr> constant in this.compilation.StaticLayoutVariables)
+        {
+            if (table.TryGetSlot(constant.Key, out int slot))
+            {
+                initial[slot] = table.ToSlotValue(constant.Value);
+            }
+        }
+
+        var numbers = new List<PreparedMatcher.Numeric>();
+        var comparisons = new List<PreparedMatcher.Bytes>();
+        var rules = new List<MatchRule>();
         foreach (CompiledField field in composite.Fields)
         {
             if (needed.Contains(field.Name) && Decodable(field))
             {
-                int end = field.FixedOffset!.Value + field.Codec.Size;
-                if (source.Length < end)
-                {
-                    return false;
-                }
-
-                if (!TryToInt128(field.Codec.ReadNumeric(source.Slice(field.FixedOffset.Value, field.Codec.Size)), out Int128 number))
-                {
-                    return false;
-                }
-
-                values[field.Name] = new Literal(number);
+                _ = table.TryGetSlot(field.Name, out int slot);
+                numbers.Add(new PreparedMatcher.Numeric(slot, field.FixedOffset!.Value, field.Codec));
             }
 
-            foreach (ByteMatch match in field.ByteMatches)
+            foreach (ByteMatch comparison in field.ByteMatches)
             {
-                if (needed.Contains(match.SlotName))
+                if (needed.Contains(comparison.SlotName))
                 {
-                    int start = field.FixedOffset!.Value;
-                    if (source.Length < start + match.Bytes.Length)
-                    {
-                        return false;
-                    }
-
-                    values[match.SlotName] = new Literal(source.Slice(start, match.Bytes.Length).SequenceEqual(match.Bytes) ? 1 : 0);
+                    _ = table.TryGetSlot(comparison.SlotName, out int slot);
+                    comparisons.Add(new PreparedMatcher.Bytes(slot, field.FixedOffset!.Value, comparison.Bytes));
                 }
             }
-        }
 
-        try
-        {
-            foreach (CompiledConstraint condition in evaluated)
+            foreach (CompiledConstraint constraint in field.Constraints)
             {
-                if (this.compilation.ExpressionEvaluator.Evaluate(condition.Expression, values) == 0)
-                {
-                    return false;
-                }
+                bool check = selected.Contains(constraint);
+                rules.Add(new MatchRule(field.Name, constraint.Keyword, constraint.Label, check, check ? "Selected for recognition." : constraint.Keyword == "supports" ? "Supports rules are excluded from recognition." : "Excluded by magic preference or unsupported field placement."));
             }
         }
-        catch (KeyNotFoundException exception)
-        {
-            // Every member the conditions name was decoded above, so an unknown name is a variable the caller left out.
-            throw new ArgumentException("A condition of Matches names a variable that 'variables' does not supply. " + exception.Message, nameof(variables), exception);
-        }
-        catch (Exception exception) when (LayoutExpressionEvaluator.IsExpressionFailure(exception))
-        {
-            return false;
-        }
 
-        return true;
+        // Compile programs during preparation, including short-circuit and missing-variable semantics.
+        return new PreparedMatcher(table, initial, numbers.ToArray(), comparisons.ToArray(), selected.Select(condition => table.Compile(condition.Expression)).ToArray(), rules.AsReadOnly());
     }
 
     /// <summary>Selects the conditions of one kind that <c>Matches</c> can evaluate and records the names they use.</summary>
@@ -140,7 +126,10 @@ public sealed partial class CStruct
                 }
 
                 IReadOnlyCollection<string> names = this.compilation.ExpressionEvaluator.GetDependencies(constraint.Expression);
-                if (names.All(name => !composite.FieldsByName.ContainsKey(name) || Decodable(composite.FieldsByName[name]) || HasByteMatch(composite, name)))
+
+                // Hidden byte-comparison slots are fields too: an unavailable dynamic offset must
+                // not be mistaken for a caller variable just because its slot name is synthetic.
+                if (names.All(name => CanEvaluateDependency(composite, name)))
                 {
                     selected.Add(constraint);
                     needed.UnionWith(names);
@@ -149,6 +138,31 @@ public sealed partial class CStruct
         }
 
         return selected;
+    }
+
+    /// <summary>Separates true caller names from hidden byte comparisons whose source placement must be fixed.</summary>
+    /// <param name="composite">Recognized struct.</param>
+    /// <param name="name">Expression dependency.</param>
+    /// <returns>Whether recognition can supply this dependency, or it is a caller/layout variable.</returns>
+    private static bool CanEvaluateDependency(CompiledCompositeType composite, string name)
+    {
+        if (composite.FieldsByName.TryGetValue(name, out CompiledField? field))
+        {
+            return Decodable(field) || HasByteMatch(composite, name);
+        }
+
+        foreach (CompiledField member in composite.Fields)
+        {
+            foreach (ByteMatch comparison in member.ByteMatches)
+            {
+                if (comparison.SlotName == name)
+                {
+                    return member.FixedOffset is not null && !member.IsConditional;
+                }
+            }
+        }
+
+        return true;
     }
 
     /// <summary>Whether a member is a number or enum at a build-time offset, which <see cref="Matches(string, ReadOnlySpan{byte}, IReadOnlyDictionary{string, int}?)"/> can decode.</summary>
@@ -167,29 +181,5 @@ public sealed partial class CStruct
     private static bool HasByteMatch(CompiledCompositeType composite, string slotName)
     {
         return composite.Fields.Any(field => field.FixedOffset is not null && !field.IsConditional && field.ByteMatches.Any(match => match.SlotName == slotName));
-    }
-
-    /// <summary>Converts a decoded number to the expression domain.</summary>
-    /// <param name="value">The boxed value a codec read.</param>
-    /// <param name="number">The value as a 128-bit integer.</param>
-    /// <returns><see langword="false"/> when the value is not an integer.</returns>
-    private static bool TryToInt128(object value, out Int128 number)
-    {
-        if (value is bool flag)
-        {
-            number = flag ? 1 : 0;
-            return true;
-        }
-
-        try
-        {
-            number = WideIntegerConversion.ToInt128(value);
-            return true;
-        }
-        catch (Exception exception) when (exception is InvalidCastException or OverflowException)
-        {
-            number = Int128.Zero;
-            return false;
-        }
     }
 }

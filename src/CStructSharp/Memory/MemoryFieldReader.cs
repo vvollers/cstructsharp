@@ -20,6 +20,45 @@ public sealed class MemoryFieldReader<T>
     /// <summary>Gets the schema-only selection, including offset and field metadata.</summary>
     public MemoryPath Selection { get; }
 
+    /// <summary>Decodes only this fixed field from a caller-owned captured buffer, without requiring unrelated root bytes.</summary>
+    /// <remarks>This explicit buffer operation does not weaken region reads. Pointer-following paths are unsupported. Unknown bytes never decode as zero. Custom codecs retain their normal decode behavior; exceptions propagate. Caller guarantees buffer stability and lifetime.</remarks>
+    /// <param name="source">Bytes beginning at the root's logical start.</param>
+    /// <param name="context">Shared local decoding budget and cancellation; one request and the field's bytes are charged even for unavailable input.</param>
+    /// <param name="value">Exact decoded result on success; default when required bytes are absent.</param>
+    /// <param name="validity">Known-byte intervals for this exact buffer length, or null when every supplied byte is known.</param>
+    /// <returns>Whether all selected storage bytes were present and known.</returns>
+    /// <exception cref="NotSupportedException">The path follows a pointer.</exception>
+    /// <exception cref="ArgumentException">Validity describes another buffer length.</exception>
+    /// <exception cref="MemoryAccessException">The operation budget is exhausted.</exception>
+    /// <exception cref="OperationCanceledException">Cancellation was requested.</exception>
+    public bool TryReadBuffer(ReadOnlySpan<byte> source, MemoryAccessContext context, out T value, MemoryValidity? validity = null)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        if (this.Selection.Offset is not { } offset)
+        {
+            throw new NotSupportedException("A buffer field cannot follow a pointer; resolve the target explicitly.");
+        }
+
+        if (validity is not null && validity.Length != source.Length)
+        {
+            throw new ArgumentException("Validity must describe the supplied buffer.", nameof(validity));
+        }
+
+        context.Charge(null, null, this.Selection.Type.Size);
+        value = default!;
+        if (offset > source.Length || this.Selection.Type.Size > source.Length - offset
+            || (validity is not null && !validity.IsKnown((int)offset, this.Selection.Type.Size)))
+        {
+            return false;
+        }
+
+        ReadOnlySpan<byte> bytes = source.Slice((int)offset, this.Selection.Type.Size);
+        value = this.Selection.Type.Kind == MemoryTypeKind.Pointer
+            ? (T)(object)new StoredPointer(this.codec.DecodePointer(bytes), this.Selection.Type.Size)
+            : this.codec.DecodeTyped<T>(bytes, this.Selection.Field?.Signed == true);
+        return true;
+    }
+
     /// <summary>Reads one value using fresh pointer resolution and the supplied operation budget.</summary>
     /// <param name="session">Session owning the identical schema instance.</param>
     /// <param name="region">Finite root record storage.</param>

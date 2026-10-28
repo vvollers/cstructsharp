@@ -161,6 +161,19 @@ public sealed record MemoryRegion
     public bool TryReadExactly(Span<byte> destination, MemoryAccessContext context, out MemoryReadFailure? failure)
         => this.TryReadExactlyCore(destination, context, out failure, out _);
 
+    /// <summary>Copies a confirmed prefix, reporting complete input or the exact source failure.</summary>
+    /// <param name="destination">Caller-owned destination bounded by this region. Its unread suffix is unchanged.</param>
+    /// <param name="context">Shared cancellation and work budget. Both terminate by throwing.</param>
+    /// <returns>Copied prefix length and optional stop failure. Positive short reads continue.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">The destination exceeds the region.</exception>
+    /// <exception cref="MemoryAccessException">The budget is exhausted.</exception>
+    /// <exception cref="OperationCanceledException">Cancellation was requested, including for an empty destination.</exception>
+    public MemoryReadResult ReadPartial(Span<byte> destination, MemoryAccessContext context)
+    {
+        this.TryReadExactlyCore(destination, context, out MemoryReadFailure? failure, out int copied);
+        return new MemoryReadResult(copied, failure);
+    }
+
     /// <summary>Fills storage while tracking the successfully copied prefix for array partial completion.</summary>
     /// <param name="destination">Finite destination at the region's start.</param>
     /// <param name="context">Shared cancellation and budget.</param>
@@ -239,6 +252,63 @@ public sealed record MemoryRegion
         MemorySourceChecks.ThrowIfInvalidReadCount(read, destination.Length, this.Source.Id, address);
         MemorySourceChecks.ThrowIfUnavailable(read, destination.Length, this.Source.Id, address);
         return read;
+    }
+
+    /// <summary>Describes terminal backing fragments through optional static or dynamic mapping capabilities.</summary>
+    /// <remarks>Provenance is demand-driven and does not read payload bytes. Source objects and unsigned coordinates identify fragments; diagnostic labels are not identities. Changing sources do not become atomic snapshots. Patch planning retains its static-mapping rules.</remarks>
+    /// <param name="context">Shared mapping budget and cancellation, or a fresh default.</param>
+    /// <returns>Owned fragment list in logical order, retaining caller-owned source references.</returns>
+    /// <exception cref="MemoryAccessException">Mappings are absent, malformed or exceed work/depth limits.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The region exceeds an int-sized provenance request.</exception>
+    public IReadOnlyList<MemoryRegion> DescribeBacking(MemoryAccessContext? context = null)
+    {
+        context ??= new MemoryAccessContext();
+        var output = new List<MemoryRegion>();
+        this.DescribeBackingCore(output, context, 0);
+        return output.AsReadOnly();
+    }
+
+    /// <summary>Recursively validates and appends dynamic provenance without changing patch semantics.</summary>
+    /// <param name="output">Bounded operation output in logical order.</param>
+    /// <param name="context">Shared translation and traversal budget.</param>
+    /// <param name="depth">Current mapping depth.</param>
+    private void DescribeBackingCore(List<MemoryRegion> output, MemoryAccessContext context, int depth)
+    {
+        context.CheckNestingDepth(depth);
+        context.Charge(this.Source.Id, this.Address, 0);
+        if (this.Length > int.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(nameof(this.Length));
+        }
+
+        if (this.Length == 0)
+        {
+            return;
+        }
+
+        if (this.Source is not IMemoryMappingSource mapped)
+        {
+            output.Add(this);
+            return;
+        }
+
+        long remaining = this.Length;
+        foreach (MemoryRegion fragment in mapped.Describe(this.Address, (int)this.Length, context))
+        {
+            context.Charge(this.Source.Id, this.Address, 0);
+            if (fragment.Length <= 0 || fragment.Length > remaining)
+            {
+                throw new MemoryAccessException(MemoryFailure.SourceFailure, this.Source.Id, this.Address, (int)this.Length, "Provenance fragments must cover exactly the requested range.");
+            }
+
+            remaining -= fragment.Length;
+            fragment.DescribeBackingCore(output, context, depth + 1);
+        }
+
+        if (remaining != 0)
+        {
+            throw new MemoryAccessException(MemoryFailure.Unmapped, this.Source.Id, this.Address, (int)this.Length, "Provenance did not cover the requested range.");
+        }
     }
 
     /// <summary>Resolves the region through every <see cref="MappedMemorySource"/> layer into final-source fragments, in logical order.</summary>

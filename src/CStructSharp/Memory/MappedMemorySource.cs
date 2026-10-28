@@ -23,7 +23,7 @@ namespace CStructSharp.Memory;
 /// decode values, change byte order, discover hardware page tables, or take ownership of its backing sources.
 /// </para>
 /// </remarks>
-public sealed class MappedMemorySource : IMemorySource
+public sealed class MappedMemorySource : IMemoryMappingSource
 {
     private readonly MemoryMapping[] mappings;
     private readonly IMemorySource[] sources;
@@ -103,6 +103,7 @@ public sealed class MappedMemorySource : IMemorySource
     {
         MemoryRegion.ValidateRange(address, length);
         context ??= new MemoryAccessContext();
+        context.CancellationToken.ThrowIfCancellationRequested();
         var regions = new List<MemoryRegion>();
         int done = 0;
         while (done < length)

@@ -6,6 +6,22 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 headings in this order and omits the empty ones: *Breaking changes* (each with its
 migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and tooling*.
 
+## Unreleased
+
+### Added
+
+- Immutable prepared runtime recognition with checked and excluded rule reporting, typed pooled execution slots and lazy reuse by Matches.
+- Validity-aware buffer field probes, prepared raw byte-array readers, explicit partial-read prefix results, bounded sparse scan windows and coverage stop reasons.
+- Opt-in selected-field capture with independent validity and gap recovery, dynamic backing descriptions, and bounded ordered streaming graph exploration.
+
+### Fixed
+
+- Runtime recognition excludes dynamically placed byte comparisons without dereferencing an unavailable fixed offset.
+
+### Documentation and tooling
+
+- Executable sparse-discovery examples and reproducible JIT/Native AOT recognition, field, text and discovery controls.
+
 ## 0.17.0 — 2026-10-28
 
 ### Breaking changes

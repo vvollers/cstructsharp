@@ -91,8 +91,8 @@ public sealed partial class MemorySession
         {
             context ??= new MemoryAccessContext();
             MemorySelection selection = this.Resolve(region, typeId, path, context);
-            List<MemoryRegion> backing = selection.Region.FlattenMappings(context);
-            return new MemoryInspection(this.ReadCore(selection, context, 0), selection, backing.AsReadOnly());
+            IReadOnlyList<MemoryRegion> backing = selection.Region.DescribeBacking(context);
+            return new MemoryInspection(this.ReadCore(selection, context, 0), selection, backing);
         }
         catch (CStructException exception)
         {

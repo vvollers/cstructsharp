@@ -3,6 +3,14 @@ namespace CStructSharp.Memory;
 /// <summary>Schema-only path selection and explicitly owned prepared typed readers.</summary>
 public sealed partial class MemorySchema
 {
+    /// <summary>Prepares a fixed raw byte-array path without retaining captured storage.</summary>
+    /// <param name="typeId">Root type identity.</param>
+    /// <param name="path">Selected array of one-byte scalars.</param>
+    /// <returns>Reusable raw reader; text encoding and termination remain explicit caller decisions.</returns>
+    /// <exception cref="Diagnostics.CStructPathException">The path is invalid.</exception>
+    /// <exception cref="ArgumentException">The field is not a byte array.</exception>
+    public MemoryByteReader BindBytes(string typeId, string path) => new(this.Select(typeId, path));
+
     /// <summary>Prepares a path without accessing memory, including paths that require pointer reads when applied.</summary>
     /// <param name="typeId">Root type identity.</param>
     /// <param name="path">Relative member/index/pointer path; empty selects the root.</param>
