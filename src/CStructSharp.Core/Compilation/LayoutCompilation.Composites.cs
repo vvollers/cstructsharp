@@ -266,6 +266,10 @@ internal sealed partial class LayoutCompilation
     }
 
     /// <summary>Compiles one composite's fields, fixed placements, bit slices, and size strategy exactly once.</summary>
+    /// <param name="strct">Parsed composite whose members are compiled in declaration order.</param>
+    /// <param name="context">Shared type-resolution and recursion state for this compilation.</param>
+    /// <returns>The existing or newly compiled composite definition.</returns>
+    /// <exception cref="CStructLayoutException">A member, placement or referenced type is invalid.</exception>
     private CompiledCompositeType CompileComposite(
         Struct strct,
         CompositeCompilationContext context)
@@ -493,7 +497,7 @@ internal sealed partial class LayoutCompilation
                                          ? 1
                                          : fields.Max(field => field.IsZeroWidthBitfield && this.BitfieldPacking == BitfieldPacking.SysV ? 1 : field.Alignment);
             ImmutableArray<CompiledField> placedFields =
-                this.PlaceCompiledFields(strct, fields.ToImmutable(), compositeAlignment, context.SizeQueries, out int? fixedSize);
+                this.PlaceCompiledFields(strct, fields.MoveToImmutable(), compositeAlignment, context.SizeQueries, out int? fixedSize);
             symbol.CompleteLayout(compositeAlignment, fixedSize);
             var definition = new CompiledCompositeType(symbol, placedFields);
             symbol.Bind(definition);
@@ -514,6 +518,13 @@ internal sealed partial class LayoutCompilation
     ///     here, and a known <see cref="CompiledField.FixedOffset"/> tells the runtime cursor and generated code that
     ///     the check is done; any other asserted field is checked where an operation places it.
     /// </remarks>
+    /// <param name="strct">Composite whose union or sequential placement rules apply.</param>
+    /// <param name="fields">Compiled members in declaration order.</param>
+    /// <param name="compositeAlignment">Composite alignment in bytes.</param>
+    /// <param name="sizeQueries">Queries for dependent member storage extents.</param>
+    /// <param name="fixedSize">Total byte size when statically known, otherwise null.</param>
+    /// <returns>One placed member per input field, backed by the completed builder's transferred storage.</returns>
+    /// <exception cref="CStructLayoutException">A union member, offset assertion or conditional bitfield is invalid.</exception>
     private ImmutableArray<CompiledField> PlaceCompiledFields(
         Struct strct,
         ImmutableArray<CompiledField> fields,
@@ -521,6 +532,7 @@ internal sealed partial class LayoutCompilation
         CompiledSizeQueries sizeQueries,
         out int? fixedSize)
     {
+        // Both branches add exactly one entry per input field, so publication can transfer the exact-sized buffer.
         var result = ImmutableArray.CreateBuilder<CompiledField>(fields.Length);
         if (strct.IsUnion)
         {
@@ -549,7 +561,7 @@ internal sealed partial class LayoutCompilation
             }
 
             fixedSize = largest.HasValue ? ToOffset(PlacementCursor.UnionEnd(largest.Value, compositeAlignment, this.Aligned)) : null;
-            return result.ToImmutable();
+            return result.MoveToImmutable();
         }
 
         ImmutableArray<CompiledConditionalBranch>[]? branches = CompiledCompositeType.CompileConditionalBranches(fields);
@@ -610,7 +622,7 @@ internal sealed partial class LayoutCompilation
         }
 
         fixedSize = ToOffset(cursor.Finish(compositeAlignment));
-        return result.ToImmutable();
+        return result.MoveToImmutable();
     }
 
     /// <summary>
