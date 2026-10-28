@@ -6,7 +6,7 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 headings in this order and omits the empty ones: *Breaking changes* (each with its
 migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and tooling*.
 
-## Unreleased
+## 0.18.0 — 2026-10-28
 
 ### Added
 
