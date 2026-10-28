@@ -86,15 +86,84 @@ internal sealed class MemoryScalarCodec
             : PrimitiveCodecKind.None;
     }
 
+    /// <summary>Gets the natural managed result type without invoking a caller's decoder.</summary>
+    /// <param name="signedSlice">Whether the selecting bitfield requires signed extension.</param>
+    /// <returns>The exact numeric or enum type, or object for a caller-defined or nonnumeric codec.</returns>
+    internal Type ResultType(bool signedSlice)
+    {
+        CompiledField? direct = this.FindDirectField();
+        if (direct?.Enum is not null)
+        {
+            return typeof(Values.EnumValueResult);
+        }
+
+        return this.bitWidth > 0 ? signedSlice ? typeof(long) : this.bitWidth < 32 ? typeof(int) : typeof(ulong)
+            : direct is not null ? FieldAccessor<object>.NaturalType(direct.Codec) ?? typeof(object) : typeof(object);
+    }
+
+    /// <summary>Decodes a validated typed numeric selection without boxing; other codecs keep their original decoding contract.</summary>
+    /// <typeparam name="T">Exact managed result type checked at binding.</typeparam>
+    /// <param name="bytes">The scalar's complete storage bytes.</param>
+    /// <param name="signedSlice">Whether to sign-extend a bit slice.</param>
+    /// <returns>The typed value.</returns>
+    internal T DecodeTyped<T>(ReadOnlySpan<byte> bytes, bool signedSlice)
+    {
+        if (!this.resolved)
+        {
+            this.field = this.FindDirectField();
+            this.resolved = true;
+        }
+
+        if (this.field is { Enum: null, } direct && this.bitWidth == 0 && FieldAccessor<T>.NaturalType(direct.Codec) == typeof(T))
+        {
+            return FieldAccessor<T>.Decode(direct.Codec, bytes);
+        }
+
+        if (this.bitWidth > 0 && this.field is { Enum: null, } storage)
+        {
+            // Read the storage bits in its declared byte order, then mask before extending the slice's sign bit.
+            ulong bits = 0;
+            for (int index = 0; index < bytes.Length; index++)
+            {
+                int shift = (storage.Codec.LittleEndian ? index : bytes.Length - index - 1) * 8;
+                bits |= (ulong)bytes[index] << shift;
+            }
+
+            bits >>= this.bitOffset;
+            bits &= ulong.MaxValue >> (64 - this.bitWidth);
+            if (signedSlice)
+            {
+                return (T)(object)(unchecked((long)(bits << (64 - this.bitWidth))) >> (64 - this.bitWidth));
+            }
+
+            return this.bitWidth < 32 ? (T)(object)(int)bits : (T)(object)bits;
+        }
+
+        return (T)this.Decode(bytes, signedSlice);
+    }
+
+    /// <summary>Decodes stored pointer bits at every supported pointer width without following or clearing tags.</summary>
+    /// <param name="bytes">Complete pointer storage.</param>
+    /// <returns>The zero-extended stored address bits.</returns>
+    internal ulong DecodePointer(ReadOnlySpan<byte> bytes) => bytes.Length switch
+    {
+        1 => this.DecodeTyped<byte>(bytes, false),
+        2 => this.DecodeTyped<ushort>(bytes, false),
+        4 => this.DecodeTyped<uint>(bytes, false),
+        8 => this.DecodeTyped<ulong>(bytes, false),
+        _ => throw new ArgumentOutOfRangeException(nameof(bytes)),
+    };
+
     /// <summary>
     ///     Decodes a value from exactly its bytes (a slice's whole storage unit), into the value a read of the layout
     ///     returns: the codec's CLR type, an enum result, or a slice's bits as an <see cref="int"/> below 32 bits and a
     ///     <see cref="ulong"/> otherwise.
     /// </summary>
     /// <param name="bytes">The value's bytes: the scalar's size.</param>
+    /// <param name="signedSlice">Whether to sign-extend a bit slice before returning or constructing its enum value.</param>
     /// <returns>The decoded value.</returns>
     /// <exception cref="Diagnostics.CStructException">The layout's codec rejects the bytes.</exception>
-    public object Decode(ReadOnlySpan<byte> bytes)
+    public object Decode(ReadOnlySpan<byte> bytes, bool signedSlice = false)
     {
         if (!this.resolved)
         {
@@ -115,6 +184,12 @@ internal sealed class MemoryScalarCodec
 
         // The core's bitfield rule (CStruct.DecodeBitfield) with the slice allocated from the storage's low bit.
         ulong bits = BitfieldCodecTable.ExtractBitfieldValue(storage, this.bitOffset, this.bitWidth);
+        if (signedSlice)
+        {
+            long signed = unchecked((long)(bits << (64 - this.bitWidth))) >> (64 - this.bitWidth);
+            return direct.Enum is { } signedEnum ? ValueDecoding.CreateEnumValue(signedEnum, signed) : signed;
+        }
+
         object content = this.bitWidth < 32 ? (int)bits : bits;
         return direct.Enum is { } sliced ? ValueDecoding.CreateEnumValue(sliced, content) : content;
     }

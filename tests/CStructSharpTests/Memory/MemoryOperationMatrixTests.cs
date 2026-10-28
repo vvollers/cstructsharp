@@ -75,7 +75,7 @@ public class MemoryOperationMatrixTests
         int resolutions = 0;
 
         // This application's low-bit tag is removed only when selecting a target.
-        var session = new MemorySession(schema, request =>
+        var session = new MemorySession(schema, (request, context) =>
         {
             resolutions++;
             Assert.AreEqual(new StoredPointer(0x101), request.Pointer);

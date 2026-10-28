@@ -109,7 +109,10 @@ public sealed class FieldAccessor<T>
     ///     Decodes one number of the codec's own type <typeparamref name="T"/> without boxing: the JIT keeps only the
     ///     branch for <typeparamref name="T"/>, so the casts through <see cref="object"/> compile away.
     /// </summary>
-    private static T Decode(PrimitiveCodec codec, ReadOnlySpan<byte> bytes)
+    /// <param name="codec">Validated numeric codec whose natural managed type is T.</param>
+    /// <param name="bytes">At least the codec's fixed byte extent.</param>
+    /// <returns>The number without an intermediate boxed value.</returns>
+    internal static T Decode(PrimitiveCodec codec, ReadOnlySpan<byte> bytes)
     {
         bool le = codec.LittleEndian;
         if (typeof(T) == typeof(byte))

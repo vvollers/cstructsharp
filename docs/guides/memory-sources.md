@@ -86,6 +86,24 @@ The result is `0x12345678U`. `inspection.Selection.Region.Address` is the logica
 information; it is never interpreted as an integer zero, because a fabricated zero would be indistinguishable from
 a genuine one.
 
+## Exact reads and borrowed buffers
+
+Use `region.ReadExactly(destination, context)` when an operation needs a small fixed number of bytes. The destination
+starts at the region's first address and cannot exceed its finite length. Positive short reads continue until it is
+full. A missing byte raises a structured memory failure; the copied prefix remains and unread destination bytes stay
+untouched. `TryReadExactly` returns the failure as data. Both forms propagate cancellation and exhausted budgets.
+An empty destination checks cancellation and makes no source requests.
+
+`BorrowedMemorySource` exposes a `ReadOnlyMemory<byte>` at an explicit unsigned base address without copying it.
+The caller keeps its backing memory alive and stable. A read-only view does not freeze a mutable array. The source's
+generation stays zero, so caches and patches rely on that stability promise. A readable-prefix argument excludes bytes
+that were never captured; a zero-filled allocation beyond the prefix is still missing evidence.
+
+Each borrowed-buffer read charges its requested bytes as local decoding work. If an earlier image read filled the
+buffer, that acquisition is a separate operation; the borrowed source does not perform the physical read again.
+Sharing one context deliberately counts both operations. Use independent contexts when acquisition and later inspection
+have independent limits.
+
 ## Choose the amount of inspection
 
 The session offers three levels of detail for one path. Pick the cheapest one that answers your question.

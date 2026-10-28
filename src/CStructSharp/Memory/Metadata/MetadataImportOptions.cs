@@ -32,6 +32,10 @@ public sealed record MetadataImportOptions
     /// <summary>Gets the maximum number of type descriptors one import may create, bitfield storage and generated types included.</summary>
     public int MaxTypes { get; init; } = 100_000;
 
+    /// <summary>Gets the maximum field-directed planning work, including path entries/characters/steps, native members, promotion visits and by-value closure steps.</summary>
+    /// <remarks>The default is 1,000,000. This separately bounds repeated work on shared anonymous graphs; MaxTypes still bounds distinct descriptors. Full imports do not consume this budget.</remarks>
+    public int MaxProjectionWork { get; init; } = 1_000_000;
+
     /// <summary>Resolves the options an import was given and checks them before the import starts.</summary>
     /// <param name="options">The caller's options, or null for <see cref="Default"/>.</param>
     /// <returns>The validated options to import with.</returns>
@@ -41,6 +45,7 @@ public sealed record MetadataImportOptions
         options ??= Default;
         StoredPointer.ValidateWidth(options.PointerSize);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTypes, nameof(MaxTypes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxProjectionWork, nameof(MaxProjectionWork));
         return options;
     }
 }

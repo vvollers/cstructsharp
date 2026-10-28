@@ -1,5 +1,6 @@
 using CStructSharp;
 using CStructSharp.Diagnostics;
+using CStructSharp.Memory;
 using CStructSharp.Values;
 
 // The starter, exactly as the README shows it.
@@ -130,6 +131,25 @@ Check(many == 14, "runtime ParseManyAsync");
 Check(Shapes.ReadValue<MappedRecord>(recordBytes).Corners.Count == 2, "generated ReadValue<T>");
 Check(header.TryGet("length", out uint viaTryGet, out CStructException? absent) && viaTryGet == 6 && absent is null, "TryGet with failure");
 Check(header.GetOrDefault("missing", 9u) == 9, "GetOrDefault");
+
+// Bound numeric decoding and bulk destinations must remain statically compiled under Native AOT.
+// Public field-directed metadata imports must execute without dynamic code in real package/AOT consumers.
+var projectedMetadata = new CStructSharp.Memory.Metadata.IsfMetadata(System.Text.Encoding.UTF8.GetBytes("""
+{"metadata":{"format":"6.2.0"},"base_types":{"u32":{"kind":"int","size":4,"signed":false,"endian":"little"}},"user_types":{"root":{"kind":"struct","size":16,"fields":{"value":{"offset":0,"type":{"kind":"base","name":"u32"}},"next":{"offset":8,"type":{"kind":"pointer","subtype":{"kind":"struct","name":"omitted"}}}}}}}
+"""));
+var projectedImport = projectedMetadata.ImportProjection("root", ["value", "next"]);
+Check(projectedImport.Schema.GetType("isf:user:omitted").IsUnselected, "projection target identity");
+Check(projectedImport.Schema.Select(projectedImport.RootTypeId, "value").Offset == 0, "projection offset");
+
+var memorySchema = new MemorySchema([new("word", "word", MemoryTypeKind.Scalar, 4, scalarType: "uint32"),]);
+var memorySession = new MemorySession(memorySchema);
+var borrowedWord = new BorrowedMemorySource("AOT memory", new byte[] { 42, 0, 0, 0, }, 0xffff800000001000);
+var wordRegion = new MemoryRegion(borrowedWord, borrowedWord.BaseAddress, 4);
+Check(memorySchema.Bind<uint>("word").Read(memorySession, wordRegion) == 42, "bound memory scalar");
+uint[] callerValues = new uint[1];
+memorySession.ReadArray<uint>(wordRegion, "word", callerValues, mode: MemoryArrayReadMode.Bulk);
+Check(callerValues[0] == 42, "caller-owned bulk array");
+Check(!memorySchema.TryBind<int>("word", string.Empty, out _, out _), "structured wrong type");
 
 Console.WriteLine("PASS Native AOT consumer");
 return 0;

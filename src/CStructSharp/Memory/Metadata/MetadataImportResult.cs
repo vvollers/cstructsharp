@@ -2,21 +2,25 @@ namespace CStructSharp.Memory.Metadata;
 
 using CStructSharp.Compilation;
 
-/// <summary>What an importer returns: the compiled schema of every type reachable from the chosen root, that root's ID, and notes about what was kept address-only.</summary>
+/// <summary>An imported reachable or field-directed schema, its root identity and notes about address-only or invalid metadata.</summary>
 /// <remarks>
-/// An importer compiles a reachable graph starting at the type the caller named; it does not find an instance of
+/// A full import compiles a reachable graph starting at the type the caller named; it does not find an instance of
 /// that type in a capture. Use <see cref="RootTypeId"/> directly in session calls instead of guessing the
 /// importer's ID spelling (for example <c>btf:7</c> or <c>isf:user:task</c>). <see cref="Diagnostics"/> lists
 /// supported but address-only situations, such as a pointer to a function or forward declaration, which do not
 /// prevent importing the graph. An unsupported or inconsistent reachable value layout fails the import rather than
 /// producing a guessed schema, unless <see cref="MetadataImportOptions.BestEffort"/> is set: then the type becomes a
 /// same-sized <see cref="MemoryTypeKind.RawBytes"/> placeholder and <see cref="Diagnostics"/> names it.
+/// Field-directed results expose SelectedPaths and explicit projected/unselected type metadata; their validation scope is narrower.
 /// </remarks>
 /// <param name="Schema">Compiled schema of the reachable types with explicit placement.</param>
 /// <param name="RootTypeId">ID of the requested root type within <paramref name="Schema"/>.</param>
 /// <param name="Diagnostics">Importer notes: retained address-only types, and the placeholders a best-effort import made.</param>
 public sealed record MetadataImportResult(MemorySchema Schema, string RootTypeId, IReadOnlyList<string> Diagnostics)
 {
+    /// <summary>Gets the distinct requested paths for a projection, in caller order, or null for a full reachable import.</summary>
+    public IReadOnlyList<string>? SelectedPaths { get; internal init; }
+
     /// <summary>Compiles an importer's definitions into a schema and appends the schema's own notes to the importer's.</summary>
     /// <remarks>This is the shared final step of every metadata import. Compilation validates the whole graph with
     /// the options' pointer width, descriptor budget, and best-effort mode; placeholders it makes in best-effort mode

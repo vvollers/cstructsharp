@@ -19,7 +19,8 @@ using System.Buffers;
 ///         and reports the bytes it wrote, or <see cref="OperationStatus.DestinationTooSmall"/> to be offered a
 ///         larger one (a stream destination grows its scratch window; caller-owned memory cannot and the write
 ///         fails). Either method may answer <see cref="OperationStatus.InvalidData"/> - or throw - for a value it
-///         cannot decode or encode; both surface as the operation's read or write error at the field.
+///         cannot decode or encode; both surface as the operation's read or write error at the field. Cancellation propagates as
+///         <see cref="OperationCanceledException"/> rather than becoming invalid data.
 ///     </para>
 ///     <para>
 ///         Implementations must be thread-safe and are compared by reference, so keep one instance per codec: the

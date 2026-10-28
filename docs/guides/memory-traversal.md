@@ -43,9 +43,11 @@ with more `.value` steps, such as a generated `next.value.next.value...`, fails 
 
 ## Interpret a relative pointer
 
-When a path uses `.value`, the session hands the pointer to a **resolver**: a function from `PointerRequest` to
+When a path uses `.value`, the session hands the pointer to a **resolver**: a function accepting `PointerRequest` and the active `MemoryAccessContext`, returning
 `MemoryRegion`. The default resolver treats a nonzero stored `Address` as an absolute address in the same source as the pointer
-storage. Supply your own when the format specifies a different rule.
+storage. Supply your own when the format specifies a different rule. Forward the supplied context to every translation
+and source read so cancellation and byte/request limits cover the complete operation. Do not retain the context or
+create a replacement budget inside the resolver.
 
 A `PointerRequest` carries everything a resolver might need:
 
@@ -156,3 +158,12 @@ than looping. **The resolver returns a region whose `Source` is the process sour
 `Pointer.Address`; it leaves the stored value unchanged so a later serialization writes the same value.
 
 Continue with [budgets, caching, and source contracts](memory-reliability.md).
+
+## Traversing aliased source views
+
+By default a node's identity is its source object and unsigned address. An application that exposes several read views
+of the same addressed nodes can supply the optional `identity` callback to `SentinelList` or `Tree`. The callback returns
+a canonical `(Source, Address)` key and forwards the active context to any translation. Different real address spaces
+must still produce different keys. The walker compares those keys for sentinels and repeated nodes, while callbacks and
+returned nodes retain the original sources needed to read their bytes. This option does not cache data or change the
+default source identity rule.

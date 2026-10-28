@@ -43,8 +43,8 @@ MemoryAccessContext      one budget (bytes, requests, nesting, pointer steps, ca
 ambiguous outcomes, and imports share up to 256 successful core layouts within a one-million-character source budget.
 Compilation keys include the complete declaration, pointer width, byte order and core settings. Every import still
 walks its own reachable graph, validates every descriptor, and returns independent schemas and ordered diagnostics.
-Failed compilations and exceptions are not cached. Base and split tables own separate caches. ISF imports and public
-`MemorySchema` construction do not use this cross-root cache.
+Failed compilations and exceptions are not cached. Base and split tables own separate caches. ISF imports share the same bounded successful-compilation policy within their own document. Public
+`MemorySchema` construction does not use a cross-root cache.
 
 ## Find the owner of a change
 
@@ -93,3 +93,9 @@ Use the existing core codecs for primitive and bitfield operations. Changing a s
 another integer decoder. Conversely, importing a metadata format should produce descriptors rather than implement
 its own memory reader. These boundaries let one layout serve file images, translated process spaces, and synthetic
 fixtures with the same session behavior.
+
+Prepared paths live in `MemoryPath`; `MemorySchema.Selection` builds schema-only plans and typed bindings.
+`MemoryFieldReader` decodes fixed selections without intermediate regions or scalar boxing, and resolves pointer paths
+on each operation. `MemorySession.Arrays` owns caller-counted destinations and explicit bulk transport; the region's
+checked exact-read loop supplies both throwing and structured-failure forms. `BorrowedMemorySource` preserves unsigned
+buffer coordinates and an explicitly readable prefix without acquiring or owning the backing memory.

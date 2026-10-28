@@ -27,16 +27,19 @@ internal sealed class BtfImporter
     private readonly BtfMetadata table;
     private readonly int pointerSize;
     private readonly int maxTypes;
+    private readonly MetadataProjectionPlan? projection;
     private readonly HashSet<uint> building = [];
 
     /// <summary>Starts an import over a parsed table.</summary>
     /// <param name="table">The parsed BTF table.</param>
     /// <param name="options">Validated import options.</param>
-    public BtfImporter(BtfMetadata table, MetadataImportOptions options)
+    /// <param name="projection">Optional field-directed closure prepared from shallow BTF shapes.</param>
+    public BtfImporter(BtfMetadata table, MetadataImportOptions options, MetadataProjectionPlan? projection = null)
     {
         this.table = table;
         this.pointerSize = options.PointerSize;
         this.maxTypes = options.MaxTypes;
+        this.projection = projection;
     }
 
     /// <summary>What a step of the walk does.</summary>
@@ -156,8 +159,21 @@ internal sealed class BtfImporter
             this.Add(key, new(key, displayName, MemoryTypeKind.Pointer, size, elementTypeId: type.Size == 0 ? null : BtfMetadata.Id(type.Size), provenance: provenance));
             if (type.Size != 0)
             {
-                work.Push(new Step(StepKind.FinishReference, id, null));
-                work.Push(new Step(StepKind.Visit, type.Size, null));
+                string target = BtfMetadata.Id(type.Size);
+                if (this.projection is { } plan && !plan.Requires(target))
+                {
+                    if (!this.Definitions.ContainsKey(target))
+                    {
+                        this.Add(target, new(target, target, MemoryTypeKind.Incomplete, 0, provenance: "BTF projection: target deliberately unselected.") { IsUnselected = true, });
+                    }
+
+                    this.building.Remove(id);
+                }
+                else
+                {
+                    work.Push(new Step(StepKind.FinishReference, id, null));
+                    work.Push(new Step(StepKind.Visit, type.Size, null));
+                }
             }
             else
             {
@@ -206,15 +222,26 @@ internal sealed class BtfImporter
         if (composite.PayloadIndex >= composite.Type.Payload.Length)
         {
             MemoryTypeKind kind = composite.Type.Kind == BtfKind.Struct ? MemoryTypeKind.Struct : MemoryTypeKind.Union;
-            this.Add(composite.Key, new(composite.Key, composite.DisplayName, kind, composite.Size, composite.Fields, provenance: composite.Provenance));
+            this.Add(composite.Key, new(composite.Key, composite.DisplayName, kind, composite.Size, composite.Fields, provenance: composite.Provenance)
+            {
+                IsProjected = this.projection is not null,
+                UnselectedMembers = this.projection?.Unselected(composite.Key) ?? Array.Empty<string>(),
+            });
             this.building.Remove(composite.Id);
             return;
         }
 
         int index = composite.PayloadIndex;
         composite.PayloadIndex = index + 3;
-        BtfMetadata.MemberPlacement placement = this.table.ResolveMemberPlacement(composite.Type, index);
         work.Push(new Step(StepKind.ResumeComposite, composite.Id, composite));
+        string name = composite.Type.Owner.String(composite.Type.Payload[index]);
+        name = name.Length == 0 ? "__anonymous_" + (index / 3) : name;
+        if (this.projection is { } projection && !projection.Includes(composite.Key, name))
+        {
+            return;
+        }
+
+        BtfMetadata.MemberPlacement placement = this.table.ResolveMemberPlacement(composite.Type, index);
         if (placement.BitWidth is int width)
         {
             // A bitfield reads its bits from its own unsigned storage definition; the field records the signedness.

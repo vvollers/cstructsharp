@@ -24,6 +24,58 @@ internal static class MemoryTutorialExamples
         OfflinePatch();
         UnionCreation();
         CacheAndFailures();
+        PreparedReads();
+        ProjectedMetadata();
+    }
+
+    /// <summary>Checks field-directed metadata, original placement and explicit unavailable pointer targets.</summary>
+    private static void ProjectedMetadata()
+    {
+        #region memory-projection
+        var metadata = new IsfMetadata(Encoding.UTF8.GetBytes("""
+        {"metadata":{"format":"6.2.0"},"base_types":{"u32":{"kind":"int","size":4,"signed":false,"endian":"little"}},"user_types":{"Entry":{"kind":"struct","size":16,"fields":{"pid":{"offset":0,"type":{"kind":"base","name":"u32"}},"next":{"offset":8,"type":{"kind":"pointer","subtype":{"kind":"struct","name":"Other"}}}}},"Other":{"kind":"struct","size":4,"fields":{"value":{"offset":0,"type":{"kind":"base","name":"u32"}}}}}}
+        """));
+        MetadataImportResult selected = metadata.ImportProjection("Entry", ["pid", "next"]);
+        MemorySchema schema = selected.Schema;
+        Require(schema.GetType(selected.RootTypeId).Size == 16, "Projection changed record size.");
+        Require(schema.Select(selected.RootTypeId, "pid").Offset == 0, "Projection changed field placement.");
+        Require(schema.GetType("isf:user:Other").IsUnselected, "Unrequested target was imported.");
+        Require(!schema.TrySelect(selected.RootTypeId, "next.value.value", out _, out MemoryReadFailure? unavailable), "Unselected pointer target was traversed.");
+        Require(unavailable!.Kind == MemoryReadFailureKind.UnselectedType, "Projection availability was lost.");
+
+        // A wider import is a new schema; the earlier projection keeps its original decisions.
+        MetadataImportResult wider = metadata.ImportProjection("Entry", ["next.value.value"]);
+        Require(wider.Schema.Select(wider.RootTypeId, "next.value.value").Offset is null, "Pointer path has a constant offset.");
+        Require(schema.GetType("isf:user:Other").IsUnselected, "Import mutated an existing schema.");
+        #endregion
+    }
+
+    /// <summary>Checks schema-only binding, caller-owned bytes, borrowed high-address storage and structured read failure.</summary>
+    private static void PreparedReads()
+    {
+        #region memory-prepared
+        // struct Entry { uint32 pid; int8 name[4]; }; bytes are little-endian and member order fixes offsets 0 and 4.
+        var schema = new MemorySchema([
+            new("u32", "u32", MemoryTypeKind.Scalar, 4, scalarType: "uint32"),
+            new("i8", "i8", MemoryTypeKind.Scalar, 1, scalarType: "int8"),
+            new("name", "name", MemoryTypeKind.Array, 4, elementTypeId: "i8", count: 4),
+            new("Entry", "Entry", MemoryTypeKind.Struct, 8, [new("pid", "u32", 0), new("name", "name", 4),]),
+        ]);
+        var session = new MemorySession(schema);
+        MemoryFieldReader<uint> pid = schema.Bind<uint>("Entry", "pid");
+        var source = new BorrowedMemorySource("record", new byte[] { 7, 0, 0, 0, 65, 255, 0, 0, }, 0xffff800000001000);
+        var region = new MemoryRegion(source, source.BaseAddress, 8);
+        var context = new MemoryAccessContext();
+        Require(pid.Selection.Offset == 0 && pid.Read(session, region, context) == 7, "Prepared pid read failed.");
+        Span<byte> name = stackalloc byte[4];
+        session.ReadBytes(region, "Entry", "name", name, context);
+        Require(name.SequenceEqual(new byte[] { 65, 255, 0, 0, }), "Signed byte storage changed.");
+
+        // A readable prefix is evidence; the excluded suffix must not decode as zero-filled success.
+        var partial = new BorrowedMemorySource("partial", new byte[] { 7, 0, 0, 0, }, source.BaseAddress, readableLength: 2);
+        Require(!pid.TryRead(session, new MemoryRegion(partial, partial.BaseAddress, 8), out _, out MemoryReadFailure? failure), "A truncated pid succeeded.");
+        Require(failure!.MemoryFailure == MemoryFailure.MissingBytes, "Missing bytes lost their category.");
+        #endregion
     }
 
     /// <summary>Separates a field's local offset, unsigned logical address, and two physical image offsets.</summary>
@@ -252,7 +304,7 @@ internal static class MemoryTutorialExamples
         var source = new ByteArrayMemorySource("relative image", new byte[64]);
         // This format stores a byte displacement from the start of the containing Node, so the resolver
         // adds the stored bits to the container's address. The stored bits themselves are never changed.
-        var session = new MemorySession(schema, request => new MemoryRegion(
+        var session = new MemorySession(schema, (request, context) => new MemoryRegion(
             request.Container.Source,
             checked(request.Container.Address + request.Pointer.Address),
             request.TargetSize));

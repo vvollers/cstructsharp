@@ -27,7 +27,7 @@ using CStructSharp.Diagnostics;
 /// Compile once and reuse the schema across many regions and sessions; it holds no source bytes or mutable per-operation state.
 /// </para>
 /// </remarks>
-public sealed class MemorySchema
+public sealed partial class MemorySchema
 {
     /// <summary>
     ///     The greatest nesting depth accepted in a type-definition graph: by-value members and array elements, typedef
@@ -259,7 +259,12 @@ public sealed class MemorySchema
     /// <param name="diagnostics">The notes that become <see cref="Diagnostics"/>.</param>
     private static void Demote(Dictionary<string, MemoryTypeDefinition> definitions, MemoryTypeDefinition type, string reason, List<string> diagnostics)
     {
-        definitions[type.Id] = new MemoryTypeDefinition(type.Id, type.Name, MemoryTypeKind.RawBytes, type.Size, provenance: type.Provenance);
+        definitions[type.Id] = new MemoryTypeDefinition(type.Id, type.Name, MemoryTypeKind.RawBytes, type.Size, provenance: type.Provenance)
+        {
+            IsProjected = type.IsProjected,
+            IsUnselected = type.IsUnselected,
+            UnselectedMembers = type.UnselectedMembers,
+        };
         diagnostics.Add($"{type.Id}: demoted to a {type.Size}-byte raw-bytes placeholder - {reason}");
     }
 

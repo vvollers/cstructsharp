@@ -135,15 +135,93 @@ public sealed record MemoryRegion
     /// </summary>
     /// <param name="destination">The bytes to fill; it must not be longer than the region.</param>
     /// <param name="context">Shared budget charged by every underlying source read, and the cancellation token.</param>
-    /// <exception cref="MemoryAccessException">The source returned an invalid count or no bytes.</exception>
+    /// <remarks>A zero-length destination performs no transport requests but still observes cancellation. On failure a copied prefix may remain in the destination; unread bytes are untouched. The source remains caller-owned.</remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="context"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The destination exceeds this region's finite extent.</exception>
+    /// <exception cref="MemoryAccessException">The source returned an invalid count or no bytes, or the operation budget was exhausted.</exception>
     /// <exception cref="OperationCanceledException">The context's token was cancelled between reads.</exception>
-    internal void ReadExactly(Span<byte> destination, MemoryAccessContext context)
+    public void ReadExactly(Span<byte> destination, MemoryAccessContext context)
     {
-        for (int offset = 0; offset < destination.Length;)
+        if (!this.TryReadExactly(destination, context, out MemoryReadFailure? failure))
         {
-            context.CancellationToken.ThrowIfCancellationRequested();
-            offset += this.ReadAt(offset, destination[offset..], context);
+            throw failure!.ToException();
         }
+    }
+
+    /// <summary>Fills a destination, returning expected missing-byte or source failures as data.</summary>
+    /// <remarks>Positive short reads continue. A copied prefix remains on failure and the unread suffix is untouched. Empty reads check cancellation without transport. Source implementations may still throw internally; zero-byte absence does not allocate an exception.</remarks>
+    /// <param name="destination">Storage to fill from this region's start; its length cannot exceed the region.</param>
+    /// <param name="context">Shared operation budget and cancellation; exhausted budgets and cancellation always propagate.</param>
+    /// <param name="failure">Failure coordinates when false; null on success.</param>
+    /// <returns>Whether every destination byte was supplied.</returns>
+    /// <exception cref="ArgumentNullException">The context is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The destination exceeds the finite region.</exception>
+    /// <exception cref="MemoryAccessException">The operation budget is exhausted.</exception>
+    /// <exception cref="OperationCanceledException">Cancellation was requested.</exception>
+    public bool TryReadExactly(Span<byte> destination, MemoryAccessContext context, out MemoryReadFailure? failure)
+        => this.TryReadExactlyCore(destination, context, out failure, out _);
+
+    /// <summary>Fills storage while tracking the successfully copied prefix for array partial completion.</summary>
+    /// <param name="destination">Finite destination at the region's start.</param>
+    /// <param name="context">Shared cancellation and budget.</param>
+    /// <param name="failure">Structured storage failure, or null.</param>
+    /// <param name="bytesRead">Bytes confirmed by positive, valid source results before returning.</param>
+    /// <returns>Whether the whole destination was filled.</returns>
+    internal bool TryReadExactlyCore(Span<byte> destination, MemoryAccessContext context, out MemoryReadFailure? failure, out int bytesRead)
+        => this.TryReadExactlyAt(0, destination, context, out failure, out bytesRead);
+
+    /// <summary>Reads a checked subrange without allocating a temporary region for each scalar or array chunk.</summary>
+    /// <param name="offset">Byte offset from this region's start.</param>
+    /// <param name="destination">Caller-owned exact destination.</param>
+    /// <param name="context">Shared operation budget and cancellation.</param>
+    /// <param name="failure">Structured source failure, or null.</param>
+    /// <param name="bytesRead">Confirmed positive prefix length.</param>
+    /// <returns>Whether the complete destination was filled.</returns>
+    internal bool TryReadExactlyAt(long offset, Span<byte> destination, MemoryAccessContext context, out MemoryReadFailure? failure, out int bytesRead)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        if (offset > this.Length || destination.Length > this.Length - offset)
+        {
+            throw new ArgumentOutOfRangeException(nameof(destination), "Destination exceeds the region's finite extent.");
+        }
+
+        context.CancellationToken.ThrowIfCancellationRequested();
+        bytesRead = 0;
+        try
+        {
+            while (bytesRead < destination.Length)
+            {
+                context.CancellationToken.ThrowIfCancellationRequested();
+                ulong address = checked(this.Address + (ulong)offset + (ulong)bytesRead);
+                int requested = destination.Length - bytesRead;
+                int read = this.Source.Read(address, destination[bytesRead..], context);
+                string sourceId = this.Source.Id;
+                if (read < 0 || read > requested)
+                {
+                    failure = new MemoryReadFailure(MemoryReadFailureKind.UnavailableMemory, "Backing source returned an invalid read count.", SourceId: sourceId, Address: address, Length: requested, MemoryFailure: MemoryFailure.SourceFailure);
+                    return false;
+                }
+
+                // Keep diagnostic source observations in the same order as the stream's checked single-read path.
+                sourceId = this.Source.Id;
+                if (read == 0)
+                {
+                    failure = new MemoryReadFailure(MemoryReadFailureKind.UnavailableMemory, "Backing bytes are unavailable.", SourceId: sourceId, Address: address, Length: requested, MemoryFailure: MemoryFailure.MissingBytes);
+                    return false;
+                }
+
+                bytesRead += read;
+            }
+        }
+        catch (MemoryAccessException exception) when (exception.Failure != MemoryFailure.BudgetExceeded)
+        {
+            failure = MemoryReadFailure.FromAccess(exception);
+            return false;
+        }
+
+        failure = null;
+        return true;
     }
 
     /// <summary>Performs one source read at a local offset and checks the count the source returned.</summary>

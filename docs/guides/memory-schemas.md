@@ -301,6 +301,92 @@ The memory APIs reuse the core's scalar and bitfield codecs through these layout
 The generated names (`__memory_scalar`, `__bits`, `value`) are not part of the API: results and diagnostics always
 use the metadata's own names and IDs.
 
+## Prepare repeated field reads
+
+A prepared reader resolves a path against one schema before applying it to records. It keeps member, index and codec
+decisions; it keeps no bytes, addresses or operation context. Bind once for a repeated field such as `pid`, then reuse
+that reader with independent contexts. The session must hold the identical schema instance.
+
+[!code-csharp[Prepared scalar and byte reads](../examples/memory-analysis/MemoryTutorialExamples.cs#memory-prepared)]
+
+The declaration in this example has `pid` at byte offset 0 and four signed bytes at offset 4. Bytes `07 00 00 00`
+decode as the unsigned integer 7. The byte-array copy returns `41 FF 00 00` unchanged: signed element interpretation
+does not change raw storage. The final example excludes half of the integer's storage and therefore returns
+`MissingBytes`, even though a larger backing allocation exists.
+
+`schema.Select(typeId, path)` inspects a path without any memory source. Its `Offset` is the byte offset from the
+root when every step is known from the schema. A path that follows a pointer's `.value` has a null offset, because
+its target address is stored in each record. `MemoryPath.Resolve` applies the prepared decisions and returns full
+selection and containing-record metadata. Pointer targets are resolved afresh on every read.
+
+Prepared selection validates the entire schema path before reading memory. `TryResolve` uses this preparation too.
+If a path is invalid beyond a pointer step, it reports the schema failure without reading that pointer. Ordinary
+`Resolve` walks the path while accessing memory, so an earlier unavailable pointer can be reported first.
+
+Typed bindings support built-in 8-, 16-, 24-, 32- and 64-bit integers, booleans, `float32`, `float64`, enum results,
+bit slices and `StoredPointer`. The requested managed type must match: for example `uint32` binds as `uint`, and
+a signed bit slice binds as `long`. Other scalar codecs, including caller-defined codecs, bind as `object` and keep
+their ordinary decoding behavior. Binding never calls a custom decoder. An incompatible requested type is a
+`WrongType` outcome from `TryBind`; `Bind` raises its path exception.
+
+## Browse and reuse metadata
+
+`IsfMetadata.Describe(name)` returns one user type's recorded kind, byte size and direct members. Each member retains
+its original JSON type descriptor, including unsupported kinds and unresolved references. Description does not import
+those referenced types and does not validate unrelated entries. Malformed direct fields still raise a layout error.
+BTF descriptions retain numeric identities; ISF descriptions retain their user-table names and descriptor syntax.
+
+Imports from one parsed ISF document share successful scalar and bit-slice compilation through a bounded cache,
+as BTF imports do. Each root still builds and validates its own graph and ordered diagnostics. Different settings
+remain distinct. Failures and cancellation are not cached. Keep the parsed metadata alive while importing related
+roots; do not merge whole root schemas to obtain compilation reuse.
+
+## Import selected fields
+
+A field-directed import prepares only the values an operation needs. Give `ImportProjection` a root and ordinary
+session paths. ISF roots use their user-table name; BTF roots use their declared numeric type ID, including a typedef ID.
+The result keeps the original root size, member offsets and array element stride. It shares successful scalar
+compilation with other imports from the same metadata document.
+
+[!code-csharp[Field-directed metadata import](../examples/memory-analysis/MemoryTutorialExamples.cs#memory-projection)]
+
+The example's record occupies 16 bytes. `pid` stays at byte 0 and the eight-byte `next` pointer stays at byte 8.
+Input `07 00 00 00` at byte 0 still decodes as 7. The selected `next` path includes its stored address and target
+identity. It does not request the target's fields. `next.value.value` requests the target representation explicitly.
+Its final field has no constant root-relative offset because each record supplies its pointer address.
+
+Selections are combined by type identity. A terminal composite, or an empty path selecting the root, includes its
+whole by-value shape: embedded composites and arrays are included, while pointers stop at their stored address.
+An indexed path such as `items[2].pid` retains the array's original count and stride and imports the element's `pid`.
+Every element shares that projected type. If another selected path needs the same type, their fields are combined.
+A target already needed by a selected embedded value is therefore available to pointers to that identity too.
+
+Inspect these properties before presenting a projected schema as a general type description:
+
+- `MetadataImportResult.SelectedPaths` contains the distinct requested paths, or null for a full import.
+- `MemoryTypeDefinition.IsProjected` identifies composites imported with a narrower validation scope. `Fields`
+  contains the imported members; `UnselectedMembers` lists omitted immediate names in metadata order.
+- `MemoryTypeDefinition.IsUnselected` identifies a pointer target whose representation was deliberately excluded.
+  Its kind is `Incomplete`, but this marker distinguishes deliberate exclusion from a diagnosed missing or
+  forward-declared type. It does not establish whether the omitted type is defined.
+
+`TrySelect` and `TryBind` report `UnselectedMember` for a name outside a projected shape, and `UnselectedType` for
+an excluded representation. An absent projected member does not establish whether the full metadata defines that
+name. Whole-record reads return only imported members. Whole-value encoding rejects composites with omitted members
+so it cannot fill unknown storage with zeros. A selected-field `PlanUpdate` still preserves the surrounding bytes.
+
+Projection validates the selected descriptors, their containing sizes and placements, direct member names and the
+anonymous promotion candidates needed to detect ambiguity. It does not validate omitted ordinary descriptors or
+walk unrelated pointer graphs. Missing, ambiguous and malformed selected paths fail explicitly. `BestEffort` keeps
+its usual behavior for selected layouts that fail schema validation; a demoted type remains visibly projected.
+Use full `Import` when the operation needs general inspection or full reachable-graph validation.
+
+Each import owns its selected field sets. A later wider projection or full import cannot mutate an earlier schema.
+Create a new schema and matching session to read more fields. Paths have the ordinary syntax and at most 256 steps;
+`MaxTypes` bounds distinct shallow and emitted descriptors. `MaxProjectionWork` separately bounds supplied path
+entries, characters and steps, native member inspection, promotion searches and by-value closure work (default 1,000,000).
+Promotion searches memoize shared subgraphs and stop once ambiguity is established. Cancellation is observed during planning and compilation. No operation context or captured bytes are retained.
+
 ## Check your understanding
 
 1. Metadata describes `struct pair { uint8 a; uint8 b; }` with `b` at offset 0 and `a` at offset 0. The schema

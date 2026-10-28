@@ -735,6 +735,15 @@ namespace CStructSharp.Introspection
 }
 namespace CStructSharp.Memory
 {
+    public sealed class BorrowedMemorySource : CStructSharp.Memory.IMemorySource
+    {
+        public BorrowedMemorySource(string id, System.ReadOnlyMemory<byte> bytes, ulong baseAddress = 0, int? readableLength = default) { }
+        public ulong BaseAddress { get; }
+        public long Generation { get; }
+        public string Id { get; }
+        public int Length { get; }
+        public int Read(ulong address, System.Span<byte> destination, CStructSharp.Memory.MemoryAccessContext context) { }
+    }
     public sealed class ByteArrayMemorySource : CStructSharp.Memory.IMemorySource, CStructSharp.Memory.IWritableMemorySource
     {
         public ByteArrayMemorySource(string id, System.ReadOnlySpan<byte> bytes) { }
@@ -791,6 +800,11 @@ namespace CStructSharp.Memory
         public CStructSharp.Memory.MemoryRegion? LogicalRegion { get; }
         public string? SourceId { get; }
     }
+    public enum MemoryArrayReadMode
+    {
+        Elementwise = 0,
+        Bulk = 1,
+    }
     public enum MemoryFailure
     {
         Unmapped = 0,
@@ -810,6 +824,12 @@ namespace CStructSharp.Memory
         public bool Promoted { get; }
         public bool Signed { get; }
         public string TypeId { get; }
+    }
+    public sealed class MemoryFieldReader<T>
+    {
+        public CStructSharp.Memory.MemoryPath Selection { get; }
+        public T Read(CStructSharp.Memory.MemorySession session, CStructSharp.Memory.MemoryRegion region, CStructSharp.Memory.MemoryAccessContext? context = null) { }
+        public bool TryRead(CStructSharp.Memory.MemorySession session, CStructSharp.Memory.MemoryRegion region, out T value, out CStructSharp.Memory.MemoryReadFailure? failure, CStructSharp.Memory.MemoryAccessContext? context = null) { }
     }
     public sealed class MemoryInspection : System.IEquatable<CStructSharp.Memory.MemoryInspection>
     {
@@ -843,6 +863,46 @@ namespace CStructSharp.Memory
         public CStructSharp.Memory.MemoryRegion Region { get; }
         public byte[] Replacement { get; }
     }
+    public sealed class MemoryPath
+    {
+        public CStructSharp.Memory.MemoryField? Field { get; }
+        public long? Offset { get; }
+        public string? ParentTypeId { get; }
+        public string Path { get; }
+        public CStructSharp.Memory.MemoryTypeDefinition RootType { get; }
+        public CStructSharp.Memory.MemorySchema Schema { get; }
+        public CStructSharp.Memory.MemoryTypeDefinition Type { get; }
+        public CStructSharp.Memory.MemorySelection Resolve(CStructSharp.Memory.MemorySession session, CStructSharp.Memory.MemoryRegion region, CStructSharp.Memory.MemoryAccessContext? context = null) { }
+        public bool TryResolve(CStructSharp.Memory.MemorySession session, CStructSharp.Memory.MemoryRegion region, out CStructSharp.Memory.MemorySelection? selection, out CStructSharp.Memory.MemoryReadFailure? failure, CStructSharp.Memory.MemoryAccessContext? context = null) { }
+    }
+    public sealed class MemoryReadFailure : System.IEquatable<CStructSharp.Memory.MemoryReadFailure>
+    {
+        public MemoryReadFailure(CStructSharp.Memory.MemoryReadFailureKind Kind, string Message, string? Path = null, string? SourceId = null, ulong? Address = default, int Length = 0, CStructSharp.Memory.MemoryFailure? MemoryFailure = default, CStructSharp.Memory.MemoryRegion? LogicalRegion = null) { }
+        public ulong? Address { get; init; }
+        public CStructSharp.Memory.MemoryReadFailureKind Kind { get; init; }
+        public int Length { get; init; }
+        public CStructSharp.Memory.MemoryRegion? LogicalRegion { get; init; }
+        public CStructSharp.Memory.MemoryFailure? MemoryFailure { get; init; }
+        public string Message { get; init; }
+        public string? Path { get; init; }
+        public string? SourceId { get; init; }
+        public CStructSharp.Diagnostics.CStructException ToException() { }
+    }
+    public enum MemoryReadFailureKind
+    {
+        UnknownType = 0,
+        AbsentMember = 1,
+        AmbiguousMember = 2,
+        InvalidPath = 3,
+        WrongType = 4,
+        InvalidValue = 5,
+        IncompleteTarget = 6,
+        NullPointer = 7,
+        InsufficientExtent = 8,
+        UnavailableMemory = 9,
+        UnselectedMember = 10,
+        UnselectedType = 11,
+    }
     public sealed class MemoryRegion : System.IEquatable<CStructSharp.Memory.MemoryRegion>
     {
         public MemoryRegion(CStructSharp.Memory.IMemorySource source, ulong address, long length) { }
@@ -850,7 +910,9 @@ namespace CStructSharp.Memory
         public long Length { get; }
         public CStructSharp.Memory.IMemorySource Source { get; }
         public System.IO.Stream OpenRead(CStructSharp.Memory.MemoryAccessContext? context = null) { }
+        public void ReadExactly(System.Span<byte> destination, CStructSharp.Memory.MemoryAccessContext context) { }
         public CStructSharp.Memory.MemoryRegion Slice(long offset, long length) { }
+        public bool TryReadExactly(System.Span<byte> destination, CStructSharp.Memory.MemoryAccessContext context, out CStructSharp.Memory.MemoryReadFailure? failure) { }
     }
     public sealed class MemorySchema
     {
@@ -859,8 +921,12 @@ namespace CStructSharp.Memory
         public bool IsLittleEndian { get; }
         public int PointerSize { get; }
         public System.Collections.Generic.IReadOnlyDictionary<string, CStructSharp.Memory.MemoryTypeDefinition> Types { get; }
+        public CStructSharp.Memory.MemoryFieldReader<T> Bind<T>(string typeId, string path = "") { }
         public CStructSharp.Memory.MemoryField GetField(string typeId, string name) { }
         public CStructSharp.Memory.MemoryTypeDefinition GetType(string id) { }
+        public CStructSharp.Memory.MemoryPath Select(string typeId, string path = "") { }
+        public bool TryBind<T>(string typeId, string path, out CStructSharp.Memory.MemoryFieldReader<T>? reader, out CStructSharp.Memory.MemoryReadFailure? failure) { }
+        public bool TrySelect(string typeId, string path, out CStructSharp.Memory.MemoryPath? selection, out CStructSharp.Memory.MemoryReadFailure? failure) { }
     }
     public sealed class MemorySelection : System.IEquatable<CStructSharp.Memory.MemorySelection>
     {
@@ -873,13 +939,20 @@ namespace CStructSharp.Memory
     }
     public sealed class MemorySession
     {
-        public MemorySession(CStructSharp.Memory.MemorySchema schema, System.Func<CStructSharp.Memory.PointerRequest, CStructSharp.Memory.MemoryRegion>? resolver = null) { }
+        public MemorySession(CStructSharp.Memory.MemorySchema schema, System.Func<CStructSharp.Memory.PointerRequest, CStructSharp.Memory.MemoryAccessContext, CStructSharp.Memory.MemoryRegion>? resolver = null) { }
         public CStructSharp.Memory.MemorySchema Schema { get; }
         public CStructSharp.Memory.MemoryInspection Inspect(CStructSharp.Memory.MemoryRegion region, string typeId, string path = "", CStructSharp.Memory.MemoryAccessContext? context = null) { }
         public CStructSharp.Memory.MemoryPatch PlanUpdate(CStructSharp.Memory.MemoryRegion region, string typeId, string path, object? value, CStructSharp.Memory.MemoryAccessContext? context = null) { }
         public object? Read(CStructSharp.Memory.MemoryRegion region, string typeId, string path = "", CStructSharp.Memory.MemoryAccessContext? context = null) { }
+        public void ReadArray<T>(CStructSharp.Memory.MemoryRegion storage, string elementTypeId, System.Span<T> destination, CStructSharp.Memory.MemoryAccessContext? context = null, CStructSharp.Memory.MemoryArrayReadMode mode = 0, int chunkBytes = 4096)
+            where T :  unmanaged { }
+        public byte[] ReadBytes(CStructSharp.Memory.MemoryRegion region, string typeId, string path = "", CStructSharp.Memory.MemoryAccessContext? context = null) { }
+        public void ReadBytes(CStructSharp.Memory.MemoryRegion region, string typeId, string path, System.Span<byte> destination, CStructSharp.Memory.MemoryAccessContext? context = null) { }
         public CStructSharp.Memory.MemorySelection Resolve(CStructSharp.Memory.MemoryRegion region, string typeId, string path = "", CStructSharp.Memory.MemoryAccessContext? context = null) { }
         public byte[] Serialize(string typeId, object? value, CStructSharp.Memory.MemoryAccessContext? context = null) { }
+        public bool TryReadArray<T>(CStructSharp.Memory.MemoryRegion storage, string elementTypeId, System.Span<T> destination, out int elementsWritten, out CStructSharp.Memory.MemoryReadFailure? failure, CStructSharp.Memory.MemoryAccessContext? context = null, CStructSharp.Memory.MemoryArrayReadMode mode = 0, int chunkBytes = 4096)
+            where T :  unmanaged { }
+        public bool TryResolve(CStructSharp.Memory.MemoryRegion region, string typeId, string path, out CStructSharp.Memory.MemorySelection? selection, out CStructSharp.Memory.MemoryReadFailure? failure, CStructSharp.Memory.MemoryAccessContext? context = null) { }
     }
     public sealed class MemoryTypeDefinition
     {
@@ -890,11 +963,14 @@ namespace CStructSharp.Memory
         public System.Collections.Generic.IReadOnlyList<CStructSharp.Memory.MemoryField> Fields { get; }
         public string Id { get; }
         public bool? IsLittleEndian { get; }
+        public bool IsProjected { get; }
+        public bool IsUnselected { get; }
         public CStructSharp.Memory.MemoryTypeKind Kind { get; }
         public string Name { get; }
         public string? Provenance { get; }
         public string? ScalarType { get; }
         public int Size { get; }
+        public System.Collections.Generic.IReadOnlyList<string> UnselectedMembers { get; }
     }
     public enum MemoryTypeKind
     {
@@ -924,8 +1000,12 @@ namespace CStructSharp.Memory
     public static class MemoryWalker
     {
         public static ulong ContainingRecord(ulong memberAddress, ulong memberOffset) { }
-        public static CStructSharp.Memory.MemoryWalkResult SentinelList(CStructSharp.Memory.MemoryRegion sentinel, System.Func<CStructSharp.Memory.MemoryRegion, CStructSharp.Memory.MemoryAccessContext, CStructSharp.Memory.MemoryRegion> next, int maxNodes = 100000, CStructSharp.Memory.MemoryAccessContext? context = null) { }
-        public static CStructSharp.Memory.MemoryWalkResult Tree(CStructSharp.Memory.MemoryRegion root, System.Func<CStructSharp.Memory.MemoryRegion, CStructSharp.Memory.MemoryAccessContext, System.Collections.Generic.IEnumerable<CStructSharp.Memory.MemoryRegion>> children, int maxNodes = 100000, CStructSharp.Memory.MemoryAccessContext? context = null) { }
+        public static CStructSharp.Memory.MemoryWalkResult SentinelList(CStructSharp.Memory.MemoryRegion sentinel, System.Func<CStructSharp.Memory.MemoryRegion, CStructSharp.Memory.MemoryAccessContext, CStructSharp.Memory.MemoryRegion> next, int maxNodes = 100000, CStructSharp.Memory.MemoryAccessContext? context = null, [System.Runtime.CompilerServices.TupleElementNames(new string[] {
+                "Source",
+                "Address"})] System.Func<CStructSharp.Memory.MemoryRegion, CStructSharp.Memory.MemoryAccessContext, System.ValueTuple<CStructSharp.Memory.IMemorySource, ulong>>? identity = null) { }
+        public static CStructSharp.Memory.MemoryWalkResult Tree(CStructSharp.Memory.MemoryRegion root, System.Func<CStructSharp.Memory.MemoryRegion, CStructSharp.Memory.MemoryAccessContext, System.Collections.Generic.IEnumerable<CStructSharp.Memory.MemoryRegion>> children, int maxNodes = 100000, CStructSharp.Memory.MemoryAccessContext? context = null, [System.Runtime.CompilerServices.TupleElementNames(new string[] {
+                "Source",
+                "Address"})] System.Func<CStructSharp.Memory.MemoryRegion, CStructSharp.Memory.MemoryAccessContext, System.ValueTuple<CStructSharp.Memory.IMemorySource, ulong>>? identity = null) { }
     }
     public sealed class OverlayMemorySource : CStructSharp.Memory.IMemorySource, CStructSharp.Memory.IWritableMemorySource
     {
@@ -1007,6 +1087,7 @@ namespace CStructSharp.Memory.Metadata
         public CStructSharp.Memory.Metadata.BtfTypeDescription Describe(uint id, int pointerSize = 8) { }
         public uint FindType(string name) { }
         public CStructSharp.Memory.Metadata.MetadataImportResult Import(uint rootTypeId, CStructSharp.Memory.Metadata.MetadataImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public CStructSharp.Memory.Metadata.MetadataImportResult ImportProjection(uint rootTypeId, System.Collections.Generic.IEnumerable<string> selectedPaths, CStructSharp.Memory.Metadata.MetadataImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
     }
     public sealed class BtfTypeDescription : System.IEquatable<CStructSharp.Memory.Metadata.BtfTypeDescription>
     {
@@ -1020,19 +1101,38 @@ namespace CStructSharp.Memory.Metadata
         public int Size { get; init; }
         public uint? TargetTypeId { get; init; }
     }
+    public sealed class IsfMemberDescription : System.IEquatable<CStructSharp.Memory.Metadata.IsfMemberDescription>
+    {
+        public IsfMemberDescription(string Name, long Offset, string Kind, string TypeDescriptor) { }
+        public string Kind { get; init; }
+        public string Name { get; init; }
+        public long Offset { get; init; }
+        public string TypeDescriptor { get; init; }
+    }
     public sealed class IsfMetadata
     {
         public IsfMetadata(System.ReadOnlyMemory<byte> json, bool isLittleEndian = true, int maxBytes = 16777216, System.Threading.CancellationToken cancellationToken = default) { }
         public bool IsLittleEndian { get; }
         public System.Collections.Generic.IReadOnlyDictionary<string, ulong> Symbols { get; }
         public System.Collections.Generic.IReadOnlyList<string> UserTypeNames { get; }
+        public CStructSharp.Memory.Metadata.IsfTypeDescription Describe(string name) { }
         public CStructSharp.Memory.Metadata.MetadataImportResult Import(string rootName, CStructSharp.Memory.Metadata.MetadataImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public CStructSharp.Memory.Metadata.MetadataImportResult ImportProjection(string rootName, System.Collections.Generic.IEnumerable<string> selectedPaths, CStructSharp.Memory.Metadata.MetadataImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public bool TryGetSymbol(string name, out ulong address) { }
+    }
+    public sealed class IsfTypeDescription : System.IEquatable<CStructSharp.Memory.Metadata.IsfTypeDescription>
+    {
+        public IsfTypeDescription(string Name, string Kind, int Size, System.Collections.Generic.IReadOnlyList<CStructSharp.Memory.Metadata.IsfMemberDescription> Members) { }
+        public string Kind { get; init; }
+        public System.Collections.Generic.IReadOnlyList<CStructSharp.Memory.Metadata.IsfMemberDescription> Members { get; init; }
+        public string Name { get; init; }
+        public int Size { get; init; }
     }
     public sealed class MetadataImportOptions : System.IEquatable<CStructSharp.Memory.Metadata.MetadataImportOptions>
     {
         public MetadataImportOptions() { }
         public bool BestEffort { get; init; }
+        public int MaxProjectionWork { get; init; }
         public int MaxTypes { get; init; }
         public int PointerSize { get; init; }
         public static CStructSharp.Memory.Metadata.MetadataImportOptions Default { get; }
@@ -1043,6 +1143,7 @@ namespace CStructSharp.Memory.Metadata
         public System.Collections.Generic.IReadOnlyList<string> Diagnostics { get; init; }
         public string RootTypeId { get; init; }
         public CStructSharp.Memory.MemorySchema Schema { get; init; }
+        public System.Collections.Generic.IReadOnlyList<string>? SelectedPaths { get; }
     }
 }
 namespace CStructSharp.Values

@@ -36,7 +36,7 @@ using CStructSharp.Diagnostics;
 /// errors keep their .NET exception types.
 /// </para>
 /// </remarks>
-public sealed class BtfMetadata
+public sealed partial class BtfMetadata
 {
     /// <summary>
     ///     The most modifier records (typedef, const, volatile, restrict, tags) followed while resolving one type.

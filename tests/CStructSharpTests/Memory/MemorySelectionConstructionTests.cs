@@ -302,7 +302,7 @@ public class MemorySelectionConstructionTests
         var target = new TracedSource("target", 0x200, [9, 0, 0, 42,], trace);
 
         // Record the resolver boundary and permit cancellation before returning a different source's target.
-        var session = new MemorySession(schema, request =>
+        var session = new MemorySession(schema, (request, context) =>
         {
             trace.Add("resolve");
             requests.Add(request);

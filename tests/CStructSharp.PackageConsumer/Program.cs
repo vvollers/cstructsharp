@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using CStructSharp;
 using CStructSharp.Diagnostics;
+using CStructSharp.Memory;
 using CStructSharp.PackageConsumer;
 using CStructSharp.Values;
 
@@ -258,6 +259,27 @@ using (var stream = new MemoryStream(input))
         AssertEqual("root.missing", domainException.Path, "safe exception path");
     }
 }
+
+// Public field-directed metadata imports must execute without dynamic code in real package/AOT consumers.
+var projectedMetadata = new CStructSharp.Memory.Metadata.IsfMetadata(System.Text.Encoding.UTF8.GetBytes("""
+{"metadata":{"format":"6.2.0"},"base_types":{"u32":{"kind":"int","size":4,"signed":false,"endian":"little"}},"user_types":{"root":{"kind":"struct","size":16,"fields":{"value":{"offset":0,"type":{"kind":"base","name":"u32"}},"next":{"offset":8,"type":{"kind":"pointer","subtype":{"kind":"struct","name":"omitted"}}}}}}}
+"""));
+var projectedImport = projectedMetadata.ImportProjection("root", ["value", "next"]);
+if (!projectedImport.Schema.GetType("isf:user:omitted").IsUnselected || projectedImport.Schema.Select(projectedImport.RootTypeId, "value").Offset != 0)
+{
+    throw new InvalidOperationException("Packed projection availability or placement failed.");
+}
+
+// Prepared memory APIs are consumed from the actual packed assembly on both supported frameworks.
+var memorySchema = new MemorySchema([new("word", "word", MemoryTypeKind.Scalar, 4, scalarType: "uint32"),]);
+var memorySession = new MemorySession(memorySchema);
+var borrowedWord = new BorrowedMemorySource("package memory", new byte[] { 42, 0, 0, 0, }, 0xffff800000001000);
+var wordRegion = new MemoryRegion(borrowedWord, borrowedWord.BaseAddress, 4);
+AssertEqual(42U, memorySchema.Bind<uint>("word").Read(memorySession, wordRegion), "bound memory scalar");
+uint[] callerValues = new uint[1];
+memorySession.ReadArray<uint>(wordRegion, "word", callerValues, mode: MemoryArrayReadMode.Bulk);
+AssertEqual(42U, callerValues[0], "caller-owned bulk array");
+AssertEqual(false, memorySchema.TrySelect("word", "missing", out _, out _), "structured path failure");
 
 // The memory-analysis guide examples (linked from docs/examples/memory-analysis) through the installed package only.
 CStructSharp.Examples.MemoryAnalysis.Program.Main();

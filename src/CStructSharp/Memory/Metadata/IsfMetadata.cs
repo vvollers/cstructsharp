@@ -3,6 +3,7 @@ namespace CStructSharp.Memory.Metadata;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 
 /// <summary>A parsed Volatility ISF 6.2.0 document, from which the value types reachable from one user type can be imported into a <see cref="MemorySchema"/>.</summary>
@@ -50,7 +51,7 @@ using CStructSharp.Diagnostics;
 /// exception types.
 /// </para>
 /// </remarks>
-public sealed class IsfMetadata
+public sealed partial class IsfMetadata
 {
     private readonly JsonElement root;
     private readonly Lazy<Dictionary<string, JsonElement>> userTypes;
@@ -58,6 +59,9 @@ public sealed class IsfMetadata
     private readonly Lazy<Dictionary<string, JsonElement>> enums;
     private readonly Lazy<IReadOnlyList<string>> userTypeNames;
     private readonly Lazy<IReadOnlyDictionary<string, ulong>> symbols;
+
+    /// <summary>Successful scalar layouts shared across this document's imports, bounded independently of root graphs.</summary>
+    private CStructLayoutCache? layoutCache;
 
     /// <summary>Parses a UTF-8 ISF 6.2.0 document.</summary>
     /// <param name="json">The UTF-8 document.</param>
@@ -166,7 +170,61 @@ public sealed class IsfMetadata
         options = MetadataImportOptions.ValidateOrDefault(options);
         var importer = new Importer(this, options);
         string id = importer.Import(rootName, cancellationToken);
-        return MetadataImportResult.Compile(importer.Types.Values, id, importer.Diagnostics, this.IsLittleEndian, options, cancellationToken);
+
+        // Root traversal and its diagnostics remain independent; only successful compilation products are shared.
+        CStructLayoutCache cache = LazyInitializer.EnsureInitialized(ref this.layoutCache, static () => new CStructLayoutCache(256, 1024 * 1024));
+        return MetadataImportResult.Compile(importer.Types.Values, id, importer.Diagnostics, this.IsLittleEndian, options, cancellationToken, cache);
+    }
+
+    /// <summary>Describes one user type and its direct members without importing or validating referenced types.</summary>
+    /// <param name="name">Exact name in user_types, including an anonymous empty name when present.</param>
+    /// <returns>The recorded kind, size and direct descriptors in declaration order.</returns>
+    /// <exception cref="ArgumentNullException">The name is null.</exception>
+    /// <exception cref="CStructLayoutException">The type is absent or its own kind, size, fields or offsets are malformed.</exception>
+    public IsfTypeDescription Describe(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        if (!this.userTypes.Value.TryGetValue(name, out JsonElement type))
+        {
+            throw new CStructLayoutException($"ISF user type '{name}' is not in user_types.");
+        }
+
+        try
+        {
+            string kind = type.GetProperty("kind").GetString()!;
+            int size = type.GetProperty("size").GetInt32();
+            if (string.IsNullOrWhiteSpace(kind) || size < 0)
+            {
+                throw new CStructLayoutException($"ISF user type '{name}' has an invalid kind or size.");
+            }
+
+            var members = new List<IsfMemberDescription>();
+            if (type.TryGetProperty("fields", out JsonElement fields))
+            {
+                foreach (JsonProperty field in fields.EnumerateObject())
+                {
+                    long offset = field.Value.GetProperty("offset").GetInt64();
+                    JsonElement descriptor = field.Value.GetProperty("type");
+                    string memberKind = descriptor.GetProperty("kind").GetString()!;
+                    if (offset < 0 || offset > size || string.IsNullOrWhiteSpace(memberKind))
+                    {
+                        throw new CStructLayoutException($"ISF field '{name}.{field.Name}' has an invalid offset or kind.");
+                    }
+
+                    members.Add(new(field.Name, offset, memberKind, descriptor.GetRawText()));
+                }
+            }
+            else if (kind is "struct" or "union" or "class")
+            {
+                throw new CStructLayoutException($"ISF user type '{name}' has no fields table.");
+            }
+
+            return new(name, kind, size, members.AsReadOnly());
+        }
+        catch (Exception exception) when (exception is KeyNotFoundException or InvalidOperationException or FormatException or OverflowException)
+        {
+            throw new CStructLayoutException($"ISF user type '{name}' has a malformed direct description.", exception);
+        }
     }
 
     /// <summary>Indexes one top-level table by entry name.</summary>
@@ -240,16 +298,22 @@ public sealed class IsfMetadata
         private readonly IsfMetadata document;
         private readonly int pointerSize;
         private readonly int maxTypes;
+        private readonly MetadataProjectionPlan? projection;
+        private readonly ProjectionSource? projectionSource;
         private int nextId;
 
         /// <summary>Starts an import over a parsed document.</summary>
         /// <param name="document">The parsed document, whose table indexes the import reads.</param>
         /// <param name="options">Validated import options.</param>
-        internal Importer(IsfMetadata document, MetadataImportOptions options)
+        /// <param name="projection">Optional prevalidated selected field/type closure.</param>
+        /// <param name="projectionSource">Operation-local native descriptor identities used by the projection.</param>
+        internal Importer(IsfMetadata document, MetadataImportOptions options, MetadataProjectionPlan? projection = null, ProjectionSource? projectionSource = null)
         {
             this.document = document;
             this.pointerSize = options.PointerSize;
             this.maxTypes = options.MaxTypes;
+            this.projection = projection;
+            this.projectionSource = projectionSource;
         }
 
         /// <summary>What a step of the walk does.</summary>
@@ -457,7 +521,18 @@ public sealed class IsfMetadata
                 JsonElement subtype = descriptor.GetProperty("subtype");
                 string element = this.DescriptorId(subtype);
                 work.Push(new Step(StepKind.FinishReference, id, descriptor, null, element));
-                work.Push(new Step(StepKind.Descriptor, element, subtype, null, null));
+                if (kind == "pointer" && this.projection is { } plan && !plan.Requires(this.projectionSource!.Register(subtype)))
+                {
+                    if (!this.Types.ContainsKey(element))
+                    {
+                        this.Add(element, new(element, element, MemoryTypeKind.Incomplete, 0, provenance: "ISF projection: target deliberately unselected.") { IsUnselected = true, });
+                    }
+                }
+                else
+                {
+                    work.Push(new Step(StepKind.Descriptor, element, subtype, null, null));
+                }
+
                 break;
             case "function":
                 this.Add(id, new(id, "function", MemoryTypeKind.Incomplete, 0));
@@ -549,12 +624,21 @@ public sealed class IsfMetadata
         {
             if (composite.Next >= composite.Members.Length)
             {
-                this.Types[composite.Id] = new(composite.Id, composite.Name, composite.Kind, composite.Size, composite.Fields, provenance: composite.Id);
+                this.Types[composite.Id] = new(composite.Id, composite.Name, composite.Kind, composite.Size, composite.Fields, provenance: composite.Id)
+                {
+                    IsProjected = this.projection is not null,
+                    UnselectedMembers = this.projection?.Unselected(composite.Id) ?? Array.Empty<string>(),
+                };
                 return;
             }
 
             JsonProperty property = composite.Members[composite.Next++];
             work.Push(new Step(StepKind.ResumeComposite, composite.Id, default, composite, null));
+            if (this.projection is { } projection && !projection.Includes(composite.Id, property.Name))
+            {
+                return;
+            }
+
             JsonElement field = property.Value;
             JsonElement descriptor = field.GetProperty("type");
             int offset = field.GetProperty("offset").GetInt32();

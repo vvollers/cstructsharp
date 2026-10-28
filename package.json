@@ -50,6 +50,8 @@
     "vue-tsc": "^3.3.13"
   },
   "overrides": {
-    "dompurify": "^3.4.15"
+    "monaco-editor": {
+      "dompurify": "^3.4.17"
+    }
   }
 }

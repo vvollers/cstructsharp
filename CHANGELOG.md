@@ -6,6 +6,55 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 onward, each version uses these headings in this order and omits the empty ones: *Breaking changes* (each with its
 migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and tooling*.
 
+## Unreleased
+
+### Breaking changes
+
+- **Breaking (source and binary):** custom `MemorySession` pointer resolvers receive `(PointerRequest, MemoryAccessContext)`.
+  Migration: accept the second parameter and forward it to every translation or source read. Do not create a replacement
+  context or retain the context between operations. Cancellation and exhausted budgets terminate the shared operation.
+- **Breaking (binary):** `MemoryWalker.SentinelList` and `Tree` gained a trailing optional identity callback. Recompile
+  existing consumers. Source calls keep their existing source-object/address identity unless they explicitly provide the
+  callback; aliased source views can supply canonical keys while returned nodes retain their original read views.
+
+### Added
+
+- Schema-only `Select`/`TrySelect`, immutable `Bind<T>`/`TryBind<T>` scalar readers and structured selection/read failures.
+  Prepared readers retain schema decisions, resolve pointers on each operation and reject a different schema instance.
+- Public exact region reads into caller spans, including `TryReadExactly`; missing bytes preserve their source coordinates
+  and any copied prefix instead of becoming zero padding.
+- Owned and caller-owned raw byte-array reads, typed numeric destinations, stored-pointer destinations and explicitly
+  bounded caller-counted array reads. Bulk transport is opt-in and reports every complete element before unavailable bytes.
+- `BorrowedMemorySource` presents a stable caller-managed buffer at an unsigned base address without copying, including a
+  readable prefix for truncated records. Reads charge decoding work; generation stays zero and the caller guarantees stability.
+- Shallow ISF descriptions report direct member descriptors without importing referenced types.
+- BTF and ISF `ImportProjection` import selected member, index and pointer paths while preserving native sizes,
+  offsets and identities. Projected composites list omitted members; deliberately unselected pointer targets remain
+  explicit address-only identities. Whole-value writes reject omitted members; selected-field updates remain supported.
+
+### Fixed
+
+- Custom codec cancellation propagates without being wrapped as invalid data, and prepared non-throwing reads preserve
+  core read limits as terminating failures.
+- Signed enum bit slices extend the sign before constructing their enum result, consistently with signed numeric slices.
+- Web dependency locks use patched DOMPurify, Happy DOM and fast-uri releases; the shared editor's sanitizer override
+  applies directly to its dependency.
+
+### Performance
+
+- Composite compilation transfers completed field buffers without copying them, keeping conditional-layout
+  construction within its allocation budget while preserving lazy slot-table creation.
+- Fixed numeric bindings and caller-owned elementwise numeric arrays allocate no intermediate regions, selections or
+  scalar boxes when a caller supplies the operation context; regression tests cover warmed reads.
+- ISF imports share bounded successful scalar and bit-slice compilation within one metadata document. Root graphs,
+  options, validation, diagnostics and cancellation remain independent.
+
+### Documentation and tooling
+
+- Memory guides and executable examples cover prepared reads, partial completion, borrowed ownership and operation budgets.
+- A synthetic JIT/Native AOT probe separates binding, repeated reads, arrays, metadata browsing and validated field-directed
+  imports, with the restricted projection prototype retained as an explicit comparison control.
+
 ## 0.16.0 — 2026-10-25
 
 ### Breaking changes

@@ -19,7 +19,7 @@ using CStructSharp.Values;
 /// which is why it can be reused freely and why every operation takes its own <see cref="MemoryAccessContext"/>.
 /// </para>
 /// <para>
-/// The four public operations build on one another. <see cref="Resolve"/> turns a path such as
+/// The main operations build on one another. <see cref="Resolve"/> turns a path such as
 /// <c>"items[2].next.value.pid"</c> into a <see cref="MemorySelection"/>: the region, type, and field the path
 /// names. <see cref="Read"/> resolves and then decodes the selected bytes. <see cref="Inspect"/> additionally
 /// flattens mapping layers to report where the bytes physically came from. <see cref="PlanUpdate"/> resolves,
@@ -43,7 +43,7 @@ using CStructSharp.Values;
 /// exception types.
 /// </para>
 /// </remarks>
-public sealed class MemorySession
+public sealed partial class MemorySession
 {
     /// <summary>The number of distinct paths whose steps <see cref="Steps"/> keeps; later paths are split on every use.</summary>
     private const int StepCacheCapacity = 256;
@@ -54,12 +54,12 @@ public sealed class MemorySession
     /// </summary>
     private static readonly ConcurrentDictionary<string, PathStep[]> StepCache = new(StringComparer.Ordinal);
 
-    private readonly Func<PointerRequest, MemoryRegion> resolver;
+    private readonly Func<PointerRequest, MemoryAccessContext, MemoryRegion> resolver;
 
     /// <summary>Creates a session over a compiled schema, optionally with a custom pointer resolver.</summary>
     /// <param name="schema">Validated type graph that describes the records this session reads.</param>
-    /// <param name="resolver">Turns stored pointer bits into a target region; null selects absolute addressing in the pointer's own source.</param>
-    public MemorySession(MemorySchema schema, Func<PointerRequest, MemoryRegion>? resolver = null)
+    /// <param name="resolver">Turns stored pointer bits into a target region using the active operation context; null selects absolute addressing in the pointer's own source. The callback must forward this context to translation reads and must not retain it.</param>
+    public MemorySession(MemorySchema schema, Func<PointerRequest, MemoryAccessContext, MemoryRegion>? resolver = null)
     {
         ArgumentNullException.ThrowIfNull(schema);
         this.Schema = schema;
@@ -211,12 +211,12 @@ public sealed class MemorySession
                     MemoryTypeDefinition target = this.Schema.GetType(type.ElementTypeId);
                     if (target.Kind == MemoryTypeKind.Incomplete)
                     {
-                        throw new CStructPathException("Pointer target is incomplete.");
+                        throw new CStructPathException(target.IsUnselected ? "Pointer target was not selected by this projection." : "Pointer target is incomplete.");
                     }
 
                     // The resolver decides what the bits mean; the session only trusts it for TargetSize bytes.
                     context.Charge(selected.Region.Source.Id, selected.Region.Address, 0);
-                    MemoryRegion resolved = this.resolver(new PointerRequest(pointer, selected.Region, selected.Container ?? container, target.Id, target.Size, path, depth));
+                    MemoryRegion resolved = this.resolver(new PointerRequest(pointer, selected.Region, selected.Container ?? container, target.Id, target.Size, path, depth), context);
                     selected = new MemorySelection(resolved.Slice(0, target.Size), target, null, null);
                     container = selected.Region;
                     nesting = 0;
@@ -285,6 +285,7 @@ public sealed class MemorySession
                 throw new MemoryAccessException(MemoryFailure.BudgetExceeded, null, null, type.Size, "Output exceeds the byte budget.");
             }
 
+            EnsureWritableProjection(type);
             var bytes = new byte[type.Size];
             this.Encode(type, value, bytes, context, 0);
             return bytes;
@@ -368,7 +369,9 @@ public sealed class MemorySession
 
     /// <summary>The default resolver: the stored bits are an absolute address in the source the pointer was read from.</summary>
     /// <param name="request">The pointer being followed and where it was found.</param>
-    private static MemoryRegion ResolveAbsolute(PointerRequest request) => new(request.Storage.Source, request.Pointer.Address, request.TargetSize);
+    /// <param name="context">Active operation context; absolute addressing requires no translation reads.</param>
+    /// <returns>The finite target region in the pointer's source.</returns>
+    private static MemoryRegion ResolveAbsolute(PointerRequest request, MemoryAccessContext context) => new(request.Storage.Source, request.Pointer.Address, request.TargetSize);
 
     /// <summary>
     ///     Splits a path into the steps the resolution takes: each member name, then each of its indexes. The path uses the
@@ -381,7 +384,7 @@ public sealed class MemorySession
     /// <param name="path">Path text; empty means the root value.</param>
     /// <returns>The steps in order; the shared array must not be modified.</returns>
     /// <exception cref="CStructPathException">The path is malformed.</exception>
-    private static PathStep[] Steps(string path)
+    internal static PathStep[] Steps(string path)
     {
         if (StepCache.TryGetValue(path, out PathStep[]? cached))
         {
@@ -486,6 +489,23 @@ public sealed class MemorySession
         return new PrimitiveArray<T>(values);
     }
 
+    /// <summary>Rejects whole-value writes that would silently fill deliberately omitted storage.</summary>
+    /// <param name="type">Representation about to be encoded.</param>
+    /// <exception cref="CStructWriteException">The composite omits projected members.</exception>
+    /// <exception cref="CStructPathException">The type was deliberately left address-only.</exception>
+    private static void EnsureWritableProjection(MemoryTypeDefinition type)
+    {
+        if (type.IsUnselected)
+        {
+            throw new CStructPathException($"Type '{type.Id}' was not selected by this projection.");
+        }
+
+        if (type.IsProjected && type.UnselectedMembers.Count > 0)
+        {
+            throw new CStructWriteException($"Cannot encode whole projected type '{type.Id}' while members are unselected; update a selected field or import the full value shape.");
+        }
+    }
+
     /// <summary>Finds a direct member, or a member of a promoted anonymous composite, without decoding any bytes.</summary>
     /// <remarks>Promotion makes a nested anonymous struct or union's members visible at the parent level, as C
     /// does for anonymous members. All candidates are examined rather than returning the first match: two promoted
@@ -498,7 +518,7 @@ public sealed class MemorySession
     /// <returns>The selection of the member.</returns>
     /// <exception cref="CStructPathException">No member has that name, or two promoted members do.</exception>
     private MemorySelection FindMember(MemorySelection parent, string name, MemoryAccessContext context, int depth)
-        => this.TryFindMember(parent, name, context, depth) ?? throw new CStructPathException($"Member '{parent.Type.Id}.{name}' is absent.");
+        => this.TryFindMember(parent, name, context, depth) ?? throw new CStructPathException($"Member '{parent.Type.Id}.{name}' is absent{(parent.Type.IsProjected ? " from this projection" : string.Empty)}.");
 
     /// <summary>Like <see cref="FindMember"/> but returns null for an absent member, so promotion search can continue; ambiguity still throws.</summary>
     /// <param name="parent">Selection of the struct or union being searched.</param>
@@ -568,17 +588,10 @@ public sealed class MemorySession
             // The scalar's bytes go to the core codec as a span; a bit slice uses its own slice codec.
             Span<byte> bytes = type.Size <= 64 ? stackalloc byte[type.Size] : new byte[type.Size];
             selected.Region.ReadExactly(bytes, context);
-            object value = this.Schema.GetCodec(type, selected.Field, selected.ParentTypeId).Decode(bytes);
+            object value = this.Schema.GetCodec(type, selected.Field, selected.ParentTypeId).Decode(bytes, selected.Field?.Signed == true);
             if (type.Kind == MemoryTypeKind.Pointer)
             {
                 return new StoredPointer(Convert.ToUInt64(value, CultureInfo.InvariantCulture), type.Size);
-            }
-
-            if (selected.Field is { Signed: true, BitWidth: int width, })
-            {
-                // Sign-extend: if the top bit of the slice is set, the value is bits - 2^width.
-                ulong bits = Convert.ToUInt64(value, CultureInfo.InvariantCulture);
-                return (bits & (1UL << (width - 1))) == 0 ? (long)bits : (long)(new BigInteger(bits) - (BigInteger.One << width));
             }
 
             return value;
@@ -650,7 +663,7 @@ public sealed class MemorySession
             return selected.Region.ReadAll(context);
         }
 
-        throw new CStructPathException($"Cannot read incomplete type '{type.Id}' by value.");
+        throw new CStructPathException(type.IsUnselected ? $"Type '{type.Id}' was not selected by this projection." : $"Cannot read incomplete type '{type.Id}' by value.");
     }
 
     /// <summary>Materializes the core's supported plain numeric array shapes, leaving all other codecs on the general path.</summary>
@@ -717,6 +730,7 @@ public sealed class MemorySession
     /// <exception cref="CStructPathException">The type is incomplete and has no storage to write.</exception>
     private void Encode(MemoryTypeDefinition type, object? value, Span<byte> destination, MemoryAccessContext context, int depth)
     {
+        EnsureWritableProjection(type);
         context.CheckNestingDepth(depth);
         context.Charge(null, null, 0);
         if (type.Kind is MemoryTypeKind.Scalar or MemoryTypeKind.Pointer)
@@ -854,7 +868,7 @@ public sealed class MemorySession
     /// <summary>One step of a resolution: a member (or pointer accessor) name, or an array index.</summary>
     /// <param name="Member">The member or accessor name, or <see langword="null"/> for an index.</param>
     /// <param name="Index">The array index, when <paramref name="Member"/> is <see langword="null"/>.</param>
-    private readonly record struct PathStep(string? Member, int Index)
+    internal readonly record struct PathStep(string? Member, int Index)
     {
         /// <summary>Returns the step as a path spells it: the member name, or <c>[n]</c>.</summary>
         /// <returns>The step's text.</returns>

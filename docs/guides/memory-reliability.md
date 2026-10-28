@@ -150,6 +150,43 @@ itself while restoring the caller's stream position. These locks cover single op
 direct access to the stream from other code, or a whole multi-source analysis. For a consistent report, arrange a
 snapshot or application-level synchronization.
 
+## Expected unsuccessful reads
+
+`TrySelect`, `TryBind`, prepared `TryResolve` and typed `TryRead` return structured failures for expected absence.
+The failure distinguishes unknown types, missing members, ambiguity, invalid paths, incompatible result types,
+incomplete targets, null pointers, insufficient storage, rejected scalar values and unavailable memory. Memory failures
+retain their source, unsigned address, requested byte count, logical root and requested path. `ToException()` creates a
+detailed exception when a caller needs the throwing form.
+
+Common missing-member, null-pointer and zero-byte-source outcomes do not throw internally. A caller-defined source
+or codec may itself use exceptions; those implementations keep their own cost. Invalid API arguments still throw,
+cancellation remains `OperationCanceledException`, and exhausted byte, request or depth budgets remain terminating
+`MemoryAccessException` failures. A recovery loop must not turn those terminating failures into absent evidence.
+
+## Caller-owned arrays and explicit bulk transport
+
+`ReadArray<T>(storage, elementTypeId, destination, context)` reads exactly `destination.Length` elements within the
+explicit `storage` extent. That extent is separate from a fixed-size root header, so flexible arrays and pointer/count
+pairs need a caller-validated permitted region. Count times element stride is checked before staging or transport.
+A count never grants access beyond that region. Numeric values use the schema's byte order. Pointer destinations use
+`ulong` at every supported stored width and preserve tags without following pointers. Enums and custom codecs use
+the ordinary value-reading API.
+
+The default mode reads one element per transport operation. `MemoryArrayReadMode.Bulk` explicitly requests bounded
+chunks, at most `chunkBytes` bytes each. It changes source request sizes, request charges and failure boundaries;
+ordinary `MemorySession.Read` keeps its existing behavior of reading one element at a time. A translating source must handle every virtual
+page independently. Translating only the first byte cannot prove that the whole range is physically contiguous.
+
+`TryReadArray` reports `elementsWritten`. On unavailable memory it commits every complete element in the confirmed
+copied prefix, including the complete prefix of the final failed chunk. An incomplete element and all unread elements
+remain untouched. Cancellation and budget exhaustion propagate; earlier committed elements remain written. Empty
+arrays make no transport requests but still check cancellation and charge the array operation. Positive short reads
+are retried and holes never become zero-filled values.
+
+`ReadBytes` copies a declared `uint8` or `int8` array into an exact-count byte span, or returns its final owned byte
+array. It preserves raw signed storage and reads one element at a time. The owned form checks the remaining budget
+before allocating its result. All destinations and backing sources remain owned by their callers.
+
 ## Check your understanding
 
 1. A walk uses `maxNodes: 10` and a context with `maxRequests: 12`. Each node requires one traversal step and one

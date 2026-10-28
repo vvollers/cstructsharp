@@ -276,39 +276,41 @@ internal static class CustomCodecAdapter
         return null;
     }
 
-    /// <summary>Runs the codec's <see cref="ICustomCodec.Read"/>, turning an exception it throws into the read failure that names the codec.</summary>
+    /// <summary>Runs the codec's <see cref="ICustomCodec.Read"/>, preserving cancellation and categorized failures and wrapping other exceptions with the codec's name.</summary>
     /// <param name="codec">The codec.</param>
     /// <param name="source">The bytes from the value's start.</param>
     /// <param name="value">The decoded value when the status is <see cref="OperationStatus.Done"/>.</param>
     /// <param name="consumed">The byte count the codec reported.</param>
     /// <returns>The codec's status.</returns>
     /// <exception cref="CStructReadException">The codec threw.</exception>
+    /// <exception cref="OperationCanceledException">The codec cancelled the operation.</exception>
     private static OperationStatus Decode(ICustomCodec codec, ReadOnlySpan<byte> source, out object? value, out int consumed)
     {
         try
         {
             return codec.Read(source, out value, out consumed);
         }
-        catch (Exception exception) when (exception is not CStructException)
+        catch (Exception exception) when (exception is not (CStructException or OperationCanceledException))
         {
             throw new CStructReadException(ReadFailures.CustomCodecFailed(codec.Name, exception.Message), exception);
         }
     }
 
-    /// <summary>Runs the codec's <see cref="ICustomCodec.Write"/>, turning an exception it throws into the write failure that names the codec.</summary>
+    /// <summary>Runs the codec's <see cref="ICustomCodec.Write"/>, preserving cancellation and categorized failures and wrapping other exceptions with the codec's name.</summary>
     /// <param name="codec">The codec.</param>
     /// <param name="destination">The window to encode into.</param>
     /// <param name="value">The value.</param>
     /// <param name="written">The byte count the codec reported.</param>
     /// <returns>The codec's status.</returns>
     /// <exception cref="CStructWriteException">The codec threw.</exception>
+    /// <exception cref="OperationCanceledException">The codec cancelled the operation.</exception>
     private static OperationStatus Encode(ICustomCodec codec, Span<byte> destination, object value, out int written)
     {
         try
         {
             return codec.Write(destination, value, out written);
         }
-        catch (Exception exception) when (exception is not CStructException)
+        catch (Exception exception) when (exception is not (CStructException or OperationCanceledException))
         {
             throw new CStructWriteException(WriteFailures.CustomCodecFailed(codec.Name, value, exception.Message), exception);
         }

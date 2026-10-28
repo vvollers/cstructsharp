@@ -48,8 +48,9 @@ public static class MemoryWalker
     /// <param name="next">Reads one node's link and returns the next node's region, using the shared context.</param>
     /// <param name="maxNodes">Maximum number of data nodes to return.</param>
     /// <param name="context">Shared operation budget and cancellation, or null to create a default budget.</param>
+    /// <param name="identity">Optional canonical source/address key for aliased source views. The callback must preserve distinct address spaces and forward the context to any translation. Null uses source object identity and address. Returned nodes retain their original source views.</param>
     /// <returns>The data nodes visited, in order, and the reason the walk stopped.</returns>
-    public static MemoryWalkResult SentinelList(MemoryRegion sentinel, Func<MemoryRegion, MemoryAccessContext, MemoryRegion> next, int maxNodes = 100_000, MemoryAccessContext? context = null)
+    public static MemoryWalkResult SentinelList(MemoryRegion sentinel, Func<MemoryRegion, MemoryAccessContext, MemoryRegion> next, int maxNodes = 100_000, MemoryAccessContext? context = null, Func<MemoryRegion, MemoryAccessContext, (IMemorySource Source, ulong Address)>? identity = null)
     {
         ArgumentNullException.ThrowIfNull(sentinel);
         ArgumentNullException.ThrowIfNull(next);
@@ -60,17 +61,19 @@ public static class MemoryWalker
         MemoryRegion current = sentinel;
         try
         {
+            (IMemorySource Source, ulong Address) sentinelKey = identity?.Invoke(sentinel, context) ?? (sentinel.Source, sentinel.Address);
             while (true)
             {
                 // Each step is charged even when the callback itself reads nothing, so a loop cannot be free.
                 context.Charge(current.Source.Id, current.Address, 0);
                 current = next(current, context);
-                if (ReferenceEquals(current.Source, sentinel.Source) && current.Address == sentinel.Address)
+                (IMemorySource Source, ulong Address) key = identity?.Invoke(current, context) ?? (current.Source, current.Address);
+                if (SourceAddressComparer.Instance.Equals(key, sentinelKey))
                 {
                     return new MemoryWalkResult(nodes.AsReadOnly(), MemoryWalkStop.Sentinel);
                 }
 
-                if (!seen.Add((current.Source, current.Address)))
+                if (!seen.Add(key))
                 {
                     return new MemoryWalkResult(nodes.AsReadOnly(), MemoryWalkStop.RepeatedNode);
                 }
@@ -107,8 +110,9 @@ public static class MemoryWalker
     /// <param name="children">Returns the child regions of a node, using the shared context for any reads.</param>
     /// <param name="maxNodes">Maximum number of nodes to return.</param>
     /// <param name="context">Shared operation budget and cancellation, or null to create a default budget.</param>
+    /// <param name="identity">Optional canonical source/address key for aliased views; null keeps source object identity and address. Translation must use the shared context. Returned nodes retain their original source views.</param>
     /// <returns>The nodes visited, in order, and the reason the walk stopped.</returns>
-    public static MemoryWalkResult Tree(MemoryRegion root, Func<MemoryRegion, MemoryAccessContext, IEnumerable<MemoryRegion>> children, int maxNodes = 100_000, MemoryAccessContext? context = null)
+    public static MemoryWalkResult Tree(MemoryRegion root, Func<MemoryRegion, MemoryAccessContext, IEnumerable<MemoryRegion>> children, int maxNodes = 100_000, MemoryAccessContext? context = null, Func<MemoryRegion, MemoryAccessContext, (IMemorySource Source, ulong Address)>? identity = null)
     {
         ArgumentNullException.ThrowIfNull(root);
         ArgumentNullException.ThrowIfNull(children);
@@ -123,7 +127,7 @@ public static class MemoryWalker
             while (pending.TryPop(out MemoryRegion? current))
             {
                 context.Charge(current.Source.Id, current.Address, 0);
-                if (!seen.Add((current.Source, current.Address)))
+                if (!seen.Add(identity?.Invoke(current, context) ?? (current.Source, current.Address)))
                 {
                     continue;
                 }

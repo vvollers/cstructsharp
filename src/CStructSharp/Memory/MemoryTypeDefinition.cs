@@ -86,4 +86,15 @@ public sealed class MemoryTypeDefinition
 
     /// <summary>Gets the scalar's byte order, or null to inherit the schema default.</summary>
     public bool? IsLittleEndian { get; }
+
+    /// <summary>Gets whether this composite was imported with a narrower field-validation scope.</summary>
+    /// <remarks>Fields contains the union required by the selected paths. Whole-value reads return only those fields; use a full import for general inspection.</remarks>
+    public bool IsProjected { get; internal init; }
+
+    /// <summary>Gets whether this address-only identity was deliberately left outside a projection, rather than missing from the metadata.</summary>
+    /// <remarks>This marker does not establish whether the metadata defines the type: its representation was not examined. Import separately or select a pointer value path in a new projection. Existing schemas never expand implicitly.</remarks>
+    public bool IsUnselected { get; internal init; }
+
+    /// <summary>Gets immediate member names deliberately omitted from this composite, in metadata order; their descriptors have not been validated.</summary>
+    public IReadOnlyList<string> UnselectedMembers { get; internal init; } = Array.Empty<string>();
 }

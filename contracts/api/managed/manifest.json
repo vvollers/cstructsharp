@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed",
-  "baselineRevision": 71,
-  "packageVersion": "0.15.0",
+  "baselineRevision": 73,
+  "packageVersion": "0.16.0",
   "assembly": "CStructSharp.dll",
-  "exportedTypes": 96,
+  "exportedTypes": 104,
   "generator": {
     "package": "PublicApiGenerator.Tool",
     "version": "11.5.4",
@@ -12,22 +12,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed/CStructSharp.public-api.txt",
-    "lines": 1170,
-    "normalizedSha256": "3C9D6A52274CAE49F862A46F0AE2E033A299BEB7CD3CAB0B35C89282E72003CF"
+    "lines": 1271,
+    "normalizedSha256": "3A8C279165892AC23F700BE0F59E208DF418B63936D967843A800A9DFDB01EA4"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "EBDFCC632CFC49AF402E1C7AE2564B149AABAA6520831132100E0511437774E8",
+      "normalizedSha256": "9A50A6528FAD53A62F5A52529FA876856CAECA5B4D915301A388CC2F1C19926D",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "380F5B7A97C92CE6C5A2C84511065160DC7A5320E0A7ED12BED5FDCA622C38AB",
+      "normalizedSha256": "FFC60F763E50A85811744DD197EACCECE0DB5B539415C58731BACE466DEC50F2",
       "aotCompatible": true
     }
   ],
@@ -454,12 +454,24 @@
     },
     {
       "revision": 71,
-      "kind": "additive",
       "date": "2026-10-25",
       "packageVersion": "0.15.0",
-      "combinedSha256": "34BD7EAE6E23F63ADCD1B6C49353B7E2820838757753BE9EE67F4374F961DBC2",
-      "rationale": "CStruct.Matches recognizes a declaration by its @expect/@magic conditions on members at build-time offsets, as the generated Matches does",
-      "releaseImpact": "New public instance method on CStruct; no existing member changes"
+      "combinedSha256": "34BD7EAE6E23F63ADCD1B6C49353B7E2820838757753BE9EE67F4374F961DBC2"
+    },
+    {
+      "revision": 72,
+      "date": "2026-10-27",
+      "packageVersion": "0.16.0",
+      "combinedSha256": "F838BDB966F98E252C5674F3720A02A802E3AF7520580DC3DB3B780838A44954"
+    },
+    {
+      "revision": 73,
+      "kind": "additive",
+      "date": "2026-10-28",
+      "packageVersion": "0.16.0",
+      "combinedSha256": "63B0C1FB183338F86B5B4FD69E49781DB9F802A165F7718A23119A2851F56E18",
+      "rationale": "Add immutable field-directed BTF and ISF imports with explicit projection availability and bounded planning work.",
+      "releaseImpact": "Call ImportProjection with explicit session paths; inspect IsProjected, UnselectedMembers and IsUnselected; partial whole-value writes are rejected while selected-field updates remain available."
     }
   ]
 }
