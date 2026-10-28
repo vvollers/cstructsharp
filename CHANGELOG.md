@@ -10,17 +10,41 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Added
 
-- Immutable prepared runtime recognition with checked and excluded rule reporting, typed pooled execution slots and lazy reuse by Matches.
-- Validity-aware buffer field probes, prepared raw byte-array readers, explicit partial-read prefix results, bounded sparse scan windows and coverage stop reasons.
-- Opt-in selected-field capture with independent validity and gap recovery, dynamic backing descriptions, and bounded ordered streaming graph exploration.
+- `PrepareMatcher` creates an immutable recognition plan with explicit checked and excluded rules. Repeated execution
+  uses typed pooled slots, preserves expression and missing-variable behavior, and keeps execution state local.
+- Buffer field probes and prepared raw byte-array readers support allocation-free reads with explicit schema identity,
+  custom-codec, byte ownership and text-decoding policies.
+- Partial reads report the confirmed copied prefix. Bounded sparse scan windows retain later readable islands, identify
+  unknown bytes, own each candidate start once, and report coverage, cancellation and budget stop reasons.
+- Selected-field read sets capture independently readable fields with per-field validity. Opt-in coalesced reads
+  recover readable fields when a gap in the combined request is unavailable.
+- Optional memory mapping sources describe logical addresses and backing fragments on demand. Bounded streaming graph
+  traversal preserves breadth-first or depth-first order, alias identity, partial results and explicit stop reasons.
+
+### Changed
+
+- Runtime `Matches` lazily reuses its prepared recognition plan. Existing magic/expect selection, supports exclusion,
+  short-input behavior and documented dynamic-layout limits remain unchanged.
 
 ### Fixed
 
 - Runtime recognition excludes dynamically placed byte comparisons without dereferencing an unavailable fixed offset.
+- Required zero predicates reject unknown bytes even when a presentation buffer contains zero padding. Sparse scans
+  preserve readable prefixes and later islands without joining candidates across gaps or unrelated address spaces.
+
+### Performance
+
+- Repeated runtime recognition eliminates per-call dictionary and scalar-box allocations. Controlled Release measurements
+  reduced runtime matching from 893.5 to 325.7 ns on JIT and from 252.6 to 83.7 ns on Native AOT, with zero allocated bytes.
+- Read coalescing remains opt-in: larger selected-field workloads improved, while two-field controls were slower and
+  allocated more. First-use recognition costs and other regressions are reported in `PERFORMANCE.md`.
 
 ### Documentation and tooling
 
-- Executable sparse-discovery examples and reproducible JIT/Native AOT recognition, field, text and discovery controls.
+- Added the memory-discovery guide, executable sparse-discovery examples, API contracts and reproducible Release JIT
+  and Native AOT controls covering preparation, complete results, sparse coverage, allocations and retained memory.
+- Documented supported measurements, regressions and rejected reverse-reference and shared-filter experiments in
+  `PERFORMANCE.md` and the discovery benchmark guide.
 
 ## 0.17.0 — 2026-10-28
 
