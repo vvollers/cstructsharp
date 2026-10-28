@@ -2,11 +2,9 @@
 
 Notable changes to CStructSharp, newest first. Release versions and dates were reconstructed from the original
 Git history preserved before the repository history reset. Entries focus on features, fixes, and migration steps.
-Related changes are consolidated; routine formatting and benchmark bookkeeping are omitted. From the Unreleased section
-onward, each version uses these headings in this order and omits the empty ones: *Breaking changes* (each with its
+Related changes are consolidated; routine formatting and benchmark bookkeeping are omitted. Each version uses these
+headings in this order and omits the empty ones: *Breaking changes* (each with its
 migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and tooling*.
-
-## Unreleased
 
 ## 0.17.0 — 2026-10-28
 
