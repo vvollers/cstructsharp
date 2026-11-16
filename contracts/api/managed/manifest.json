@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed",
-  "baselineRevision": 77,
+  "baselineRevision": 76,
   "packageVersion": "0.18.0",
   "assembly": "CStructSharp.dll",
   "exportedTypes": 124,
@@ -13,21 +13,21 @@
   "canonical": {
     "path": "contracts/api/managed/CStructSharp.public-api.txt",
     "lines": 1430,
-    "normalizedSha256": "E4D45E50B19A3AB23FDBE505B4672512389DC80387E3846022380AC727EF6652"
+    "normalizedSha256": "9822F28D7857C63B6B31660EF84CD79A66A8860DD41262722073E49E0FBFAE2F"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "B1D7389DC6B0BCE22BBEA0AF4C86D02FEF20DFCBA286DF0F7EC4002281A4FCFA",
+      "normalizedSha256": "45F04E06D18DB365124E000593C00D790D5E4162C7D726BB0C16C7D09C5E4630",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "6C66C79C92122E6DD7F4F39CE0438A8D3FD21D61A0323B5E4B18385362253E8E",
+      "normalizedSha256": "E6C79AF222633D271885E4090D4B7BC1BFC585EE431B59BE8324EBAA83C36981",
       "aotCompatible": true
     }
   ],
@@ -478,24 +478,18 @@
     },
     {
       "revision": 75,
-      "date": "2026-11-04",
+      "date": "2026-11-16",
       "packageVersion": "0.18.0",
-      "combinedSha256": "C2884AC39B5D67E4DE2D49568744A01EAF53D4360A088623DE600ADAABA45CEA"
+      "combinedSha256": "5B21A03B4C63AB91716225141B90F2F074DFC76CC177D594FAFF53DEC3CC35FF"
     },
     {
       "revision": 76,
-      "date": "2026-11-08",
-      "packageVersion": "0.18.0",
-      "combinedSha256": "CFBB37FC0F0124F33EDDA033E80393DDAED3F00140D5C6DC622ACBE65ECFAF4F"
-    },
-    {
-      "revision": 77,
       "kind": "additive",
       "date": "2026-11-16",
       "packageVersion": "0.18.0",
-      "combinedSha256": "83CA5F370907795397B9C1F4727A3964F28CE13AD5C34D54AEF01E00D139A480",
-      "rationale": "PdbMetadata.WriteIsf takes an explicit maxTraversalSteps export limit, independent of the constructor's per-table maxRecords input limit. PdbMetadata itself is new since 0.18.0, so revision 76's targetMachine parameter is also additive for released consumers.",
-      "releaseImpact": "No released API changes. Unreleased callers that passed a CancellationToken positionally to WriteIsf pass it by name (cancellationToken:)."
+      "combinedSha256": "C11023D63BF06FE730F563B95E6AA5331B09F8B2955593EF180077013D95B293",
+      "rationale": "Memory metadata preparation: PdbMetadata reads MSF 7/CodeView PDB metadata (with an explicit targetMachine when the DBI machine is zero) and writes ISF 6.2.0 through WriteIsf with a maxTraversalSteps export limit.",
+      "releaseImpact": "No released API changes; PdbMetadata is new."
     }
   ]
 }

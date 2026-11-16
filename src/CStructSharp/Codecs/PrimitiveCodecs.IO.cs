@@ -9,10 +9,10 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Generated;
 using CStructSharp.Streams;
 
-/// <summary>
+/// <content>
 ///     Provides the strict text encodings, terminated-string read/write logic, and other primitive-type-naming
 ///     support shared by the primitive reader and writer maps that <see cref="CStruct"/> builds for itself.
-/// </summary>
+/// </content>
 internal static partial class PrimitiveCodecs
 {
     /// <summary>

@@ -4,7 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 
-/// <summary>The registry of the direct members of layout-bound mapped classes (<see cref="ICStructFixedMapped{TSelf}"/>).</summary>
+/// <content>The registry of the direct members of layout-bound mapped classes (<see cref="ICStructFixedMapped{TSelf}"/>).</content>
 public static partial class MappedTypes
 {
     private static readonly ConcurrentDictionary<Type, FixedWriterEntry> FixedWriters = new();

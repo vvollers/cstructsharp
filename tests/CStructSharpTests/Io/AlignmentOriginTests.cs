@@ -26,13 +26,13 @@ public class AlignmentOriginTests
             "nested struct and bitfields",
             "struct inner { uint16 x; uint8 y; }; struct rec { uint8 a; inner i; uint32 lo : 4; uint32 hi : 4; uint8 t; };",
             "rec.t",
-            new Dictionary<string, object?> { ["a"] = (byte)1, ["i"] = new Dictionary<string, object?> { ["x"] = (ushort)2, ["y"] = (byte)3, }, ["lo"] = 4u, ["hi"] = 5u, ["t"] = (byte)6, }
+            new Dictionary<string, object?> { ["a"] = (byte)1, ["i"] = new Dictionary<string, object?> { ["x"] = (ushort)2, ["y"] = (byte)3, }, ["lo"] = 4u, ["hi"] = 5u, ["t"] = (byte)6, },
         ],
         [
             "runtime-sized array",
             "struct rec { uint8 n; uint16 v[n]; uint8 t; uint32 w; };",
             "rec.w",
-            new Dictionary<string, object?> { ["n"] = (byte)2, ["v"] = new ushort[] { 7, 8, }, ["t"] = (byte)9, ["w"] = 0xAABBCCDDu, }
+            new Dictionary<string, object?> { ["n"] = (byte)2, ["v"] = new ushort[] { 7, 8, }, ["t"] = (byte)9, ["w"] = 0xAABBCCDDu, },
         ],
     ];
 

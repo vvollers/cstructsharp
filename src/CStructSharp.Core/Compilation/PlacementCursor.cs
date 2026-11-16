@@ -45,7 +45,11 @@ internal struct PlacementCursor
     /// <summary>Gets the position the next field starts from (before its own alignment), or <see langword="null"/> when unknown.</summary>
     public long? Current
     {
-        readonly get => this.known ? this.position : null;
+        readonly get
+        {
+            return this.known ? this.position : null;
+        }
+
         private set
         {
             this.known = value.HasValue;

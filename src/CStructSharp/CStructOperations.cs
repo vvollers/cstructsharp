@@ -11,13 +11,13 @@ using CStructSharp.Reading;
 using CStructSharp.Streams;
 using CStructSharp.Values;
 
-/// <summary>
+/// <content>
 ///     The public operations of a compiled layout. Every operation exists for a <see cref="Stream"/> (reading
 ///     starts at its current position) and for in-memory input (<see cref="ReadOnlySpan{T}"/>,
 ///     <see cref="ReadOnlyMemory{T}"/>, or a byte array, whose start is coordinate zero), with the same parameters
 ///     in the same order: the input, the root name or path, then the optional variables and options. An omitted
 ///     or <see langword="null"/> path selects the first struct or union the layout declares.
-/// </summary>
+/// </content>
 public sealed partial class CStruct
 {
     // ------------------------------------------------------------------------------------------------------ Parse

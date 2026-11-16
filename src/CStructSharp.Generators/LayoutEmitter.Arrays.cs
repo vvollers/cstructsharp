@@ -10,7 +10,7 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 using static CStructSharp.Generators.Emit;
 
-/// <summary>Array members: the element count (fixed, from an expression, to the end of the input, or terminated), the runtime's limits, and the element loop or bulk decode.</summary>
+/// <content>Array members: the element count (fixed, from an expression, to the end of the input, or terminated), the runtime's limits, and the element loop or bulk decode.</content>
 internal sealed partial class LayoutEmitter
 {
     private readonly HashSet<string> pointerReaders = new(StringComparer.Ordinal);

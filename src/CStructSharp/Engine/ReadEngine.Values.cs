@@ -13,7 +13,7 @@ using CStructSharp.Generated;
 using CStructSharp.Reading;
 using CStructSharp.Values;
 
-/// <summary>The value reads of the compiled engine: scalars through their codecs, caller codecs through their adapter, and every array shape.</summary>
+/// <content>The value reads of the compiled engine: scalars through their codecs, caller codecs through their adapter, and every array shape.</content>
 internal static partial class ReadEngine
 {
     /// <summary>

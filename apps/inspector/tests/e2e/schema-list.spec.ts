@@ -6,7 +6,7 @@ test("all detector types are listed and the filter searches extensions and names
 }) => {
   await page.goto("/");
   const list = page.getByRole("navigation", { name: "Binary format examples" }).locator("ul");
-  await expect(list.getByRole("button")).toHaveCount(185);
+  await expect(list.getByRole("button")).toHaveCount(187);
   const labels = await list.locator(".example-title").allTextContents();
   for (const extension of supportedExtensions) expect(labels).toContain(extension.toUpperCase());
   const filter = page.getByRole("searchbox", { name: "Filter file types" });
@@ -18,7 +18,7 @@ test("all detector types are listed and the filter searches extensions and names
   await filter.fill("no-such-file-type");
   await expect(page.getByText("No matching file types.")).toBeVisible();
   await page.getByRole("button", { name: "Clear file type filter" }).click();
-  await expect(list.getByRole("button")).toHaveCount(185);
+  await expect(list.getByRole("button")).toHaveCount(187);
 });
 
 test("a catalog schema can be selected before loading a file and preserves that file on selection", async ({

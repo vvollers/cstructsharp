@@ -98,13 +98,20 @@ public readonly record struct ReadLimits
     /// <exception cref="System.ArgumentOutOfRangeException">The value is not a member of <see cref="InvalidTextHandling"/>.</exception>
     public InvalidTextHandling InvalidText
     {
-        get => (this.flags & LenientBit) != 0 ? InvalidTextHandling.Replace : InvalidTextHandling.Fail;
-        init => this.flags = value switch
+        get
         {
-            InvalidTextHandling.Fail => (byte)(this.flags & ~LenientBit),
-            InvalidTextHandling.Replace => (byte)(this.flags | LenientBit),
-            _ => throw new System.ArgumentOutOfRangeException(nameof(value), value, "Not a member of InvalidTextHandling."),
-        };
+            return (this.flags & LenientBit) != 0 ? InvalidTextHandling.Replace : InvalidTextHandling.Fail;
+        }
+
+        init
+        {
+            this.flags = value switch
+            {
+                InvalidTextHandling.Fail => (byte)(this.flags & ~LenientBit),
+                InvalidTextHandling.Replace => (byte)(this.flags | LenientBit),
+                _ => throw new System.ArgumentOutOfRangeException(nameof(value), value, "Not a member of InvalidTextHandling."),
+            };
+        }
     }
 
     /// <summary>
@@ -114,13 +121,20 @@ public readonly record struct ReadLimits
     /// <exception cref="System.ArgumentOutOfRangeException">The value is not a member of <see cref="ConstraintPolicy"/>.</exception>
     public ConstraintPolicy Constraints
     {
-        get => (this.flags & SkipBit) != 0 ? ConstraintPolicy.Skip : ConstraintPolicy.Enforce;
-        init => this.flags = value switch
+        get
         {
-            ConstraintPolicy.Enforce => (byte)(this.flags & ~SkipBit),
-            ConstraintPolicy.Skip => (byte)(this.flags | SkipBit),
-            _ => throw new System.ArgumentOutOfRangeException(nameof(value), value, "Not a member of ConstraintPolicy."),
-        };
+            return (this.flags & SkipBit) != 0 ? ConstraintPolicy.Skip : ConstraintPolicy.Enforce;
+        }
+
+        init
+        {
+            this.flags = value switch
+            {
+                ConstraintPolicy.Enforce => (byte)(this.flags & ~SkipBit),
+                ConstraintPolicy.Skip => (byte)(this.flags | SkipBit),
+                _ => throw new System.ArgumentOutOfRangeException(nameof(value), value, "Not a member of ConstraintPolicy."),
+            };
+        }
     }
 
     /// <summary>Gets the token a long read observes; see <see cref="ReadOptions.CancellationToken"/>.</summary>
@@ -134,7 +148,11 @@ public readonly record struct ReadLimits
     /// <exception cref="System.ArgumentOutOfRangeException">The value is negative or greater than <see cref="MaxOffsetBase"/>.</exception>
     public long OffsetBase
     {
-        get => ((long)this.offsetBaseHigh << 32) | this.offsetBaseLow;
+        get
+        {
+            return ((long)this.offsetBaseHigh << 32) | this.offsetBaseLow;
+        }
+
         init
         {
             ValidateOffsetBase(value);

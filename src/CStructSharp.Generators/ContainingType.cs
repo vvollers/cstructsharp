@@ -3,6 +3,8 @@ namespace CStructSharp.Generators;
 using Microsoft.CodeAnalysis;
 
 /// <summary>A type that contains the attributed class, outermost first.</summary>
+/// <param name="Keyword">The declaration keyword that re-declares the type as partial; see <see cref="KeywordOf"/>.</param>
+/// <param name="Name">The type's simple name, without type parameters.</param>
 internal readonly record struct ContainingType(string Keyword, string Name)
 {
     /// <summary>

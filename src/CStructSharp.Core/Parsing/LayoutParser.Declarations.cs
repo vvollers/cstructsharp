@@ -12,7 +12,7 @@ using CStructSharp.Introspection;
 using CStructSharp.Syntax;
 using CStructSharpEnum = CStructSharp.Syntax.Enum;
 
-/// <summary>The top-level declarations: structs and unions, typedefs, and enums and flags.</summary>
+/// <content>The top-level declarations: structs and unions, typedefs, and enums and flags.</content>
 internal sealed partial class LayoutParser
 {
     /// <summary>

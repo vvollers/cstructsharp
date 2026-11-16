@@ -15,7 +15,7 @@ using CStructSharp.Reading;
 using CStructSharp.Syntax;
 using CStructSharp.Values;
 
-/// <summary>Reads natural scalar or composite values and projects them to caller-selected CLR types.</summary>
+/// <content>Reads natural scalar or composite values and projects them to caller-selected CLR types.</content>
 public sealed partial class CStruct
 {
     /// <summary>Extracts a named value, with a one-value fallback for inline typedef roots.</summary>

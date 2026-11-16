@@ -7,7 +7,7 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
 using CStructSharp.Reading;
 
-/// <summary>The checks a static read plan runs between its operations: none, or the root composite's <c>@expect</c> and <c>@supports</c> conditions.</summary>
+/// <content>The checks a static read plan runs between its operations: none, or the root composite's <c>@expect</c> and <c>@supports</c> conditions.</content>
 internal static partial class ReadEngine
 {
     /// <summary>What a static plan runs after each of its operations.</summary>

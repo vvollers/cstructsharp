@@ -223,7 +223,8 @@ public class CancellationTests
     }
 
     /// <summary>A one-byte tag codec that cancels the shared token the first time it is called.</summary>
-    private sealed class CancellingTag(CancellationTokenSource source) : ICustomCodec
+    /// <param name="cancellation">The source the codec cancels when it reads or writes.</param>
+    private sealed class CancellingTag(CancellationTokenSource cancellation) : ICustomCodec
     {
         public string Name => "tag";
 
@@ -236,15 +237,15 @@ public class CancellationTests
         public int Writes { get; set; }
 
         /// <summary>Counts the read, cancels the token, then decodes one byte.</summary>
-        /// <param name="source1">The available bytes.</param>
+        /// <param name="source">The available bytes.</param>
         /// <param name="value">Receives the decoded value.</param>
         /// <param name="bytesConsumed">Receives the bytes the value used.</param>
         /// <returns>Whether the value was decoded or needs more bytes.</returns>
-        public OperationStatus Read(ReadOnlySpan<byte> source1, out object? value, out int bytesConsumed)
+        public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesConsumed)
         {
             this.Reads++;
-            source.Cancel();
-            value = (ulong)source1[0];
+            cancellation.Cancel();
+            value = (ulong)source[0];
             bytesConsumed = 1;
             return OperationStatus.Done;
         }
@@ -257,7 +258,7 @@ public class CancellationTests
         public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)
         {
             this.Writes++;
-            source.Cancel();
+            cancellation.Cancel();
             destination[0] = (byte)Convert.ToUInt64(value, CultureInfo.InvariantCulture);
             bytesWritten = 1;
             return OperationStatus.Done;

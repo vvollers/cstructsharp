@@ -4,7 +4,7 @@ using System.Globalization;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 
-/// <summary>Imports field-directed BTF schemas while retaining native IDs and explicit projection availability.</summary>
+/// <content>Imports field-directed BTF schemas while retaining native IDs and explicit projection availability.</content>
 public sealed partial class BtfMetadata
 {
     /// <summary>Imports the union of selected paths, following embedded values and only explicitly requested pointer targets.</summary>

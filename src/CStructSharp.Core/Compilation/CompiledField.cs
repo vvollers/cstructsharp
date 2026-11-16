@@ -256,7 +256,11 @@ internal sealed class CompiledField
     /// </summary>
     public CompiledArrayShape? PointerElements
     {
-        get => this.rareFacts?.Elements;
+        get
+        {
+            return this.rareFacts?.Elements;
+        }
+
         internal init
         {
             if (value is not null)
@@ -327,7 +331,11 @@ internal sealed class CompiledField
     /// </summary>
     public ImmutableArray<CompiledConstraint> Constraints
     {
-        get => this.rareFacts?.Constraints ?? ImmutableArray<CompiledConstraint>.Empty;
+        get
+        {
+            return this.rareFacts?.Constraints ?? ImmutableArray<CompiledConstraint>.Empty;
+        }
+
         init
         {
             if (!value.IsDefaultOrEmpty)

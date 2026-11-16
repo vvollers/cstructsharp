@@ -4,7 +4,7 @@ using System;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
 
-/// <summary>Failures: the runtime's exceptions and texts, with the field, path and position context every read failure carries.</summary>
+/// <content>Failures: the runtime's exceptions and texts, with the field, path and position context every read failure carries.</content>
 public ref partial struct ReadCursor
 {
     /// <summary>Gets whether the read evaluates no constraint (<see cref="ReadOptions.Constraints"/> is <see cref="ConstraintPolicy.Skip"/>): a generated constraint check returns before it evaluates a condition.</summary>

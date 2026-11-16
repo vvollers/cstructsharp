@@ -55,7 +55,11 @@ public class TerminatedRecordExtentOverflowTests
         /// <exception cref="ArgumentOutOfRangeException">The requested position precedes the mapped buffer.</exception>
         public override long Position
         {
-            get => checked(Origin + base.Position);
+            get
+            {
+                return checked(Origin + base.Position);
+            }
+
             set
             {
                 ArgumentOutOfRangeException.ThrowIfLessThan(value, Origin);

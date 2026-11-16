@@ -8,11 +8,11 @@ using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using static CStructSharp.Generators.Emit;
 
-/// <summary>
+/// <content>
 ///     <c>Matches</c>: a static, non-throwing recognition check for a struct with <c>@expect</c> or <c>@magic</c> conditions (a struct with an evaluable <c>@magic</c> condition is recognized by those alone). It decodes only
 ///     the members the conditions name, each at its build-time offset straight from the bytes, so a probe that asks "is this
 ///     the format?" builds no value, reads nothing else and throws nothing.
-/// </summary>
+/// </content>
 internal sealed partial class LayoutEmitter
 {
     /// <summary>One <c>@expect</c> or <c>@magic</c> condition <c>Matches</c> evaluates.</summary>

@@ -180,9 +180,9 @@ public class ReadCursorTextBoundaryTests
         }
 
         // An invalid unit (a lone UTF-16 surrogate, bytes no UTF-8 or ASCII character has) before the terminator.
-        byte[] invalidPayload = kind is TerminatedTextEncoding.Utf16LittleEndian ? [0x41, 0, 0x00, 0xD8, 0, 0,]
-                              : kind is TerminatedTextEncoding.Utf16BigEndian ? [0, 0x41, 0xD8, 0x00, 0, 0,]
-                              : [0x41, 0xFF, 0,];
+        byte[] invalidPayload = kind is TerminatedTextEncoding.Utf16LittleEndian ? [0x41, 0, 0x00, 0xD8, 0, 0,] :
+                                kind is TerminatedTextEncoding.Utf16BigEndian ? [0, 0x41, 0xD8, 0x00, 0, 0,] :
+                                [0x41, 0xFF, 0,];
         int unitSize = kind is TerminatedTextEncoding.Utf16LittleEndian or TerminatedTextEncoding.Utf16BigEndian ? 2 : 1;
         byte[] invalidSource = [.. invalidPayload, 77, 78,];
         DecoderFallbackException expectedCause = Assert.Throws<DecoderFallbackException>(

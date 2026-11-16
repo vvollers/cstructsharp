@@ -1,6 +1,6 @@
 namespace CStructSharp.Memory;
 
-/// <summary>Prepared and non-throwing selection operations.</summary>
+/// <content>Prepared and non-throwing selection operations.</content>
 public sealed partial class MemorySession
 {
     /// <summary>Resolves a path while returning expected schema and memory failures as structured data.</summary>

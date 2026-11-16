@@ -4,10 +4,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using CStructSharp.Syntax;
 
-/// <summary>
+/// <content>
 ///     The integer <c>#define</c>s of a layout, emitted as <c>public const</c> members of the generated class so code that
 ///     reads a header can name the layout's constants (<c>Ext.EXT_MAGIC</c>) instead of repeating their values.
-/// </summary>
+/// </content>
 internal sealed partial class LayoutEmitter
 {
     private List<DefineConstant>? defineConstants;

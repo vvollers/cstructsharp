@@ -269,11 +269,10 @@ internal sealed class ProgramExpression
             return FastForm.Operand;
         }
 
-        return code.Length == 3 && IsOperand(code[0]) && IsOperand(code[1]) &&
-               code[2].Opcode is ExpressionOpcode.Equal or ExpressionOpcode.NotEqual or ExpressionOpcode.Less or ExpressionOpcode.LessOrEqual or
-                   ExpressionOpcode.Greater or ExpressionOpcode.GreaterOrEqual or ExpressionOpcode.And or ExpressionOpcode.Or or ExpressionOpcode.Xor
-                   ? FastForm.Binary
-                   : FastForm.None;
+        bool binary = code.Length == 3 && IsOperand(code[0]) && IsOperand(code[1]) &&
+                      code[2].Opcode is ExpressionOpcode.Equal or ExpressionOpcode.NotEqual or ExpressionOpcode.Less or ExpressionOpcode.LessOrEqual or
+                          ExpressionOpcode.Greater or ExpressionOpcode.GreaterOrEqual or ExpressionOpcode.And or ExpressionOpcode.Or or ExpressionOpcode.Xor;
+        return binary ? FastForm.Binary : FastForm.None;
     }
 
     /// <summary>Reads a literal operand, or an identifier whose slot holds a literal.</summary>

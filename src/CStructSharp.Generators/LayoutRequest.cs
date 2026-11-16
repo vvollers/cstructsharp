@@ -6,16 +6,44 @@ namespace CStructSharp.Generators;
 ///     <see cref="EquatableArray{T}"/>), so the incremental pipeline re-runs generation only when something the
 ///     output depends on changed.
 /// </summary>
-/// <remarks>
-///     <c>TypesWithConstructors</c> names the nested classes of the attributed class for which the consumer declared
-///     an instance constructor in a partial declaration. The generated class of such a composite may not hold the new
-///     nested values its property initializers create once construction ends, so its fixed reader replaces them
-///     instead of decoding into them.
-///     <c>ConsumerDeclaredClasses</c> names those nested types that the consumer declared as classes, which a value-type shape
-///     cannot extend (a partial declaration must keep one kind).
-///     <c>ConsumerDeclaredTypes</c> also includes partial declarations with an implicit constructor: their instance
-///     initializers may run caller code, so reader-only bitfield shortcuts leave those classes on the original path.
-/// </remarks>
+/// <param name="ClassName">The attributed class's simple name.</param>
+/// <param name="Namespace">The containing namespace; <see langword="null"/> for the global namespace.</param>
+/// <param name="ContainingTypes">The types that contain the attributed class, outermost first.</param>
+/// <param name="Accessibility">The attributed class's declared accessibility keyword, such as <c>public</c>.</param>
+/// <param name="IsStatic">Whether the attributed class is declared <c>static</c>.</param>
+/// <param name="IsPartial">Whether the attributed class is declared <c>partial</c>.</param>
+/// <param name="ContainersArePartial">Whether every containing type is declared <c>partial</c>.</param>
+/// <param name="Definition">The inline layout text; <see langword="null"/> when the layout comes from <paramref name="File"/>.</param>
+/// <param name="File">The project-relative path of the <c>.cstruct</c> additional file; <see langword="null"/> for an inline layout.</param>
+/// <param name="Root">The declaration the plain <c>Parse</c>/<c>Serialize</c> methods use; <see langword="null"/> for the first struct.</param>
+/// <param name="Settings">The layout settings (alignment, byte order, pointer size and the like) the attribute names.</param>
+/// <param name="KeepNames">Whether generated names keep the layout's spelling instead of becoming PascalCase.</param>
+/// <param name="Views">Whether a <c>ref struct</c> view is generated per composite.</param>
+/// <param name="Enumerators">Whether each view of a fixed-size struct gets a <c>foreach</c> enumerator over consecutive records.</param>
+/// <param name="RuntimeByteOrder">Whether the byte order of neutral values is chosen when a value is read instead of at compile time.</param>
+/// <param name="Shape">Whether composites become classes, value types, or a one-member value.</param>
+/// <param name="MaxValueBytes">The largest struct, in bytes, that a value-type shape may generate.</param>
+/// <param name="Surface">How much code is generated.</param>
+/// <param name="FormatConstraintFailures">Whether a failed constraint throws a format exception (<see cref="System.IO.InvalidDataException"/> or <see cref="System.NotSupportedException"/>) instead of the constraint exception.</param>
+/// <param name="AttributeSpan">The attribute's source location, for diagnostics.</param>
+/// <param name="DefinitionSpan">The inline definition argument's source location; <see langword="null"/> when there is none.</param>
+/// <param name="DefinitionLiteral">How the definition literal is written, to place layout errors inside it.</param>
+/// <param name="LanguageVersion">The consumer's effective C# language version, as the compiler displays it.</param>
+/// <param name="TypesWithConstructors">
+///     The nested classes of the attributed class for which the consumer declared an instance constructor in a partial
+///     declaration. The generated class of such a composite may not hold the new nested values its property
+///     initializers create once construction ends, so its fixed reader replaces them instead of decoding into them.
+/// </param>
+/// <param name="ConsumerDeclaredTypes">
+///     Every nested type the consumer declared, including partial declarations with an implicit constructor: their
+///     instance initializers may run caller code, so reader-only bitfield shortcuts leave those classes on the
+///     original path.
+/// </param>
+/// <param name="ConsumerDeclaredClasses">
+///     The nested types the consumer declared as classes, which a value-type shape cannot extend (a partial
+///     declaration must keep one kind).
+/// </param>
+/// <param name="ExplicitArguments">The named attribute arguments that choose an option, so a project default does not replace them.</param>
 internal sealed record LayoutRequest(
     string ClassName,
     string? Namespace,

@@ -120,7 +120,11 @@ public class PrimitiveTextBoundaryTests
         /// <summary>Gets or changes the cursor while counting explicit repositioning requests.</summary>
         public override long Position
         {
-            get => base.Position;
+            get
+            {
+                return base.Position;
+            }
+
             set
             {
                 this.PositionWrites++;

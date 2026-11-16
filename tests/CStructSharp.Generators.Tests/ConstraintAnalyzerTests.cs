@@ -1,6 +1,6 @@
-extern alias Generators;
-
 namespace CStructSharp.Generators.Tests;
+
+extern alias Generators;
 
 using System.Collections.Generic;
 using System.Collections.Immutable;

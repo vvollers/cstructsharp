@@ -593,7 +593,11 @@ public class UpdateAtomicityTests
 
         public override long Position
         {
-            get => this.inner.Position;
+            get
+            {
+                return this.inner.Position;
+            }
+
             set
             {
                 if (this.commitFailed)

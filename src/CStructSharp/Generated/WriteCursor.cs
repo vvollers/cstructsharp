@@ -64,7 +64,11 @@ public ref struct WriteCursor
     /// <summary>Gets or sets the offset of the next byte to write.</summary>
     public int Position
     {
-        readonly get => this.position;
+        readonly get
+        {
+            return this.position;
+        }
+
         set
         {
             if (value < 0 || value > this.length)

@@ -11,7 +11,11 @@ internal readonly struct NoStaticWriteCaptures : IStaticWriteCaptures
     /// <summary>Gets <see langword="null"/>; setting it does nothing.</summary>
     public string? QualifiedPrefix
     {
-        get => null;
+        get
+        {
+            return null;
+        }
+
         set
         {
             // No later field reads a qualified name, so the prefix is not kept.

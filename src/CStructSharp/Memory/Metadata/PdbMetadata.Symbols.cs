@@ -1,6 +1,6 @@
 namespace CStructSharp.Memory.Metadata;
 
-/// <summary>Joins original symbol coordinates to their recorded section and optional OMAP metadata.</summary>
+/// <content>Joins original symbol coordinates to their recorded section and optional OMAP metadata.</content>
 public sealed partial class PdbMetadata
 {
     private readonly Dictionary<ushort, int> symbolRecordKinds = new();

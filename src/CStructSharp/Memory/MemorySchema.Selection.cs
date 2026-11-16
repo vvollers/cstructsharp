@@ -1,6 +1,6 @@
 namespace CStructSharp.Memory;
 
-/// <summary>Schema-only path selection and explicitly owned prepared typed readers.</summary>
+/// <content>Schema-only path selection and explicitly owned prepared typed readers.</content>
 public sealed partial class MemorySchema
 {
     /// <summary>Prepares a fixed raw byte-array path without retaining captured storage.</summary>

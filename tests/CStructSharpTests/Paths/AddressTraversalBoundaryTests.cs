@@ -111,7 +111,11 @@ public class AddressTraversalBoundaryTests
         /// <exception cref="IOException">Position assignments fail once rejection is enabled.</exception>
         public override long Position
         {
-            get => base.Position;
+            get
+            {
+                return base.Position;
+            }
+
             set
             {
                 if (this.RejectPositionWrites)

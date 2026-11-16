@@ -42,10 +42,10 @@ internal static class CharacterFieldTypes
             return typeName;
         }
 
-        return typeName == WcharBigEndianType.Name ? "string>"
-               : typeName == WcharLittleEndianType.Name ? "string<"
-               : typeName == WcharType.Name ? StringType.Name
-               : CstringType.Name;
+        return typeName == WcharBigEndianType.Name ? "string>" :
+               typeName == WcharLittleEndianType.Name ? "string<" :
+               typeName == WcharType.Name ? StringType.Name :
+               CstringType.Name;
     }
 
     /// <summary>Returns whether a non-pointer field is a fixed array of narrow or wide characters.</summary>

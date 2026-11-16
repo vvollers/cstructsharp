@@ -3,7 +3,7 @@ namespace CStructSharp.Memory.Metadata;
 using System.Globalization;
 using System.Text.Json;
 
-/// <summary>Normalizes original CodeView storage descriptions into the existing ISF interchange contract.</summary>
+/// <content>Normalizes original CodeView storage descriptions into the existing ISF interchange contract.</content>
 public sealed partial class PdbMetadata
 {
     private static readonly Dictionary<uint, SimpleType> SimpleTypes = new()

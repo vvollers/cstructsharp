@@ -114,7 +114,7 @@ public class PartialMemoryReadCursorTests
     public void Core_KeepsItsSize()
     {
         // Two pointer-sized members (the region and the array), four longs, and one 8-byte group of small members.
-        Assert.AreEqual((2 * IntPtr.Size) + (4 * sizeof(long)) + 8, Unsafe.SizeOf<MemoryReadCore>());
+        Assert.AreEqual((2 * nint.Size) + (4 * sizeof(long)) + 8, Unsafe.SizeOf<MemoryReadCore>());
     }
 
     /// <summary>Reads one byte at <paramref name="position"/> from a fresh partly buffered cursor.</summary>

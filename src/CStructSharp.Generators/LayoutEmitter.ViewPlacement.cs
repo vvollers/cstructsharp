@@ -8,11 +8,11 @@ using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using static CStructSharp.Generators.Emit;
 
-/// <summary>
+/// <content>
 ///     Where a view finds each member. A member whose offset the layout compiler knows is read at a constant; a member
 ///     placed after a runtime-sized array is read at an offset the view computes from the members before it, with the
 ///     reader's own count checks. The plan also records which members the view can expose at all.
-/// </summary>
+/// </content>
 internal sealed partial class LayoutEmitter
 {
     /// <summary>The caller variables a view without variables evaluates expressions with: none, so the defines keep their defaults.</summary>

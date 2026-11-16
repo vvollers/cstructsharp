@@ -11,12 +11,12 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Reading;
 using CStructSharp.Syntax;
 
-/// <summary>
+/// <content>
 ///     Describes a fully fixed root composite (its static read plan) as JSON so the JavaScript side can
 ///     read such layouts with <c>DataView</c> alone. The description is the compiler's own operation list — offsets,
 ///     codecs, counts, nested plans, enum member tables — not a second grammar; the JavaScript executor reproduces
 ///     the JSON projection's value shapes and falls back to WebAssembly for anything the plan does not cover.
-/// </summary>
+/// </content>
 [SupportedOSPlatform("browser")]
 public partial class CStructExports
 {

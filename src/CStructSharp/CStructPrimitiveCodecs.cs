@@ -10,7 +10,7 @@ using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using CStructSharp.Reading;
 
-/// <summary>Builds the primitive writer table used by the CStruct facade.</summary>
+/// <content>Builds the primitive writer table used by the CStruct facade.</content>
 public sealed partial class CStruct
 {
     /// <summary>

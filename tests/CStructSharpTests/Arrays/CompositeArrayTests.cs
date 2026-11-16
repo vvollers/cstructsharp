@@ -151,14 +151,14 @@ public class CompositeArrayTests
         /// <summary>Consumes a complete fixed block or reports that the supplied input is too short.</summary>
         /// <param name="source">The borrowed input bytes.</param>
         /// <param name="value">A zero marker on success, otherwise null.</param>
-        /// <param name="bytesRead">The declared extent on success, otherwise zero.</param>
+        /// <param name="bytesConsumed">The declared extent on success, otherwise zero.</param>
         /// <returns>Done only when the whole fixed block is present.</returns>
-        public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesRead)
+        public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesConsumed)
         {
             this.ReadCalls++;
             bool complete = source.Length >= this.FixedSize!.Value;
             value = complete ? 0 : null;
-            bytesRead = complete ? this.FixedSize.Value : 0;
+            bytesConsumed = complete ? this.FixedSize.Value : 0;
             return complete ? OperationStatus.Done : OperationStatus.NeedMoreData;
         }
 

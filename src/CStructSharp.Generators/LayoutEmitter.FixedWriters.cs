@@ -6,14 +6,14 @@ using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using static CStructSharp.Generators.Emit;
 
-/// <summary>
+/// <content>
 ///     The fixed writers: for a struct with a fixed reader whose members also encode without a possible failure
 ///     (numbers, enums, nested fixed structs, and fixed arrays of them - not text, whose characters are validated), an
 ///     <c>Is&lt;Type&gt;FixedWritable(value)</c> check and a <c>Write&lt;Type&gt;Fixed(target, value)</c> that stores
 ///     each member at its constant offset. The composite's <c>Encode&lt;Type&gt;</c> tries them first: the check confirms that no
 ///     nested value is null and every array has its declared length, and <c>WriteCursor.TryReserveFixed</c> hands over
 ///     cleared bytes only where the member-by-member writer would write exactly them. Anything else is written member by member.
-/// </summary>
+/// </content>
 internal sealed partial class LayoutEmitter
 {
     // Whether each composite has a fixed writer, decided once.

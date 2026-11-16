@@ -6,12 +6,12 @@ using System.Linq;
 using CStructSharp.Compilation;
 using static CStructSharp.Generators.Emit;
 
-/// <summary>
+/// <content>
 ///     The constraint pass of a fixed class-shaped struct that runs on the struct's bytes, before the object is built. A
 ///     non-throwing <c>TryParse</c> of input that breaks a condition then returns the failure without having allocated the value it
 ///     would throw away. The pass decodes only the members the conditions name, as <c>Matches</c> does, and evaluates the same
 ///     condition code in the same order, so it fails with the failure (and collects the violations) of the pass over the object.
-/// </summary>
+/// </content>
 internal sealed partial class LayoutEmitter
 {
     /// <summary>The members a bytes-first pass decodes, each with its place in the struct.</summary>

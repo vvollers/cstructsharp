@@ -18,7 +18,7 @@ using CStructSharp.Streams;
 using CStructSharp.Values;
 using CStructSharp.Writing;
 
-/// <summary>The value encodings of the compiled engine's writer: numbers, codec values, enums, text, arrays, pointers and bitfields.</summary>
+/// <content>The value encodings of the compiled engine's writer: numbers, codec values, enums, text, arrays, pointers and bitfields.</content>
 internal static partial class WriteEngine
 {
     /// <summary>

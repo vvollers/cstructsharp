@@ -8,6 +8,20 @@ using System.IO;
 ///     <see cref="ContinuedInputLength"/> is <see cref="ReadOptions.ContinuedInputLength"/>: zero when the input is whole,
 ///     otherwise the length of the input the handed bytes start (or <see cref="Streams.BufferedInput.UnknownLength"/>).
 /// </remarks>
+/// <param name="AddressingMode">How pointer values map to stream positions.</param>
+/// <param name="DereferencePointers">Whether non-null pointers are followed while reading.</param>
+/// <param name="MaxPointerDepth">The most pointers followed in one chain.</param>
+/// <param name="MaxPointerTargetBytes">The largest decoded size of one pointer target in bytes; <see langword="null"/> when unrestricted.</param>
+/// <param name="MaxArrayElements">The largest element count of one array.</param>
+/// <param name="MaxStringBytes">The largest encoded length in bytes of one terminated string, terminator included.</param>
+/// <param name="MaxTotalBytesRead">The total byte budget of the operation.</param>
+/// <param name="MaxNestingDepth">The deepest struct and union nesting the read enters.</param>
+/// <param name="Origin">The signed base position added to relative pointer offsets.</param>
+/// <param name="TrimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+/// <param name="CancellationToken">The token observed at composite, pointer, array-block and string-chunk boundaries.</param>
+/// <param name="ExecutionPath">Which fast paths the read may take before the compiled engine.</param>
+/// <param name="Extras">The rarely set members (offset base, violation collection, buffered-input continuation); <see langword="null"/> for an ordinary read.</param>
+/// <param name="LenientText">Whether invalid encoded text reads as U+FFFD instead of failing the read.</param>
 internal readonly record struct ReadOperationSettings(
     PointerAddressingMode AddressingMode,
     bool DereferencePointers,
@@ -39,7 +53,11 @@ internal readonly record struct ReadOperationSettings(
     /// <summary>Gets the largest decoded size of one pointer target in bytes, or null when target sizes are unrestricted.</summary>
     public long? MaxPointerTargetBytes
     {
-        get => this.hasMaxPointerTargetBytes ? this.maxPointerTargetBytes : null;
+        get
+        {
+            return this.hasMaxPointerTargetBytes ? this.maxPointerTargetBytes : null;
+        }
+
         init
         {
             this.hasMaxPointerTargetBytes = value.HasValue;
@@ -66,24 +84,6 @@ internal readonly record struct ReadOperationSettings(
     public bool HasValidLimits =>
         !this.CancellationToken.IsCancellationRequested && this.MaxPointerDepth >= 0 && this.maxPointerTargetBytes >= 0 &&
         this.MaxArrayElements >= 0 && this.MaxStringBytes >= 0 && this.MaxTotalBytesRead >= 0 && this.MaxNestingDepth > 0;
-
-    /// <summary>
-    ///     Returns whether these limits admit a read the compiled engine would complete at structure depth
-    ///     <paramref name="structureDepth"/>: <paramref name="bytes"/> within the byte budget, the read's structs within the
-    ///     nesting limit, and its longest array within the element limit.
-    /// </summary>
-    /// <param name="bytes">The bytes the read consumes.</param>
-    /// <param name="structureDepth">The structure depth the read starts at (0 for a root).</param>
-    /// <param name="nestingDepth">The struct levels the read adds.</param>
-    /// <param name="arrayCount">The largest element count among the read's arrays.</param>
-    /// <returns>Whether the read stays within every limit.</returns>
-    public bool Covers(long bytes, int structureDepth, int nestingDepth, int arrayCount)
-        => bytes <= this.MaxTotalBytesRead && structureDepth + nestingDepth <= this.MaxNestingDepth && arrayCount <= this.MaxArrayElements;
-
-    /// <summary>Returns whether these limits admit running <paramref name="plan"/> as a root read.</summary>
-    /// <param name="plan">The static read plan.</param>
-    /// <returns>Whether the plan's bytes, nesting and arrays stay within the limits.</returns>
-    public bool CoversPlan(StaticReadPlan plan) => plan.Size <= this.MaxTotalBytesRead && PlanFits(plan, 0, this.MaxNestingDepth, this.MaxArrayElements);
 
     /// <summary>
     ///     Returns whether a static plan's structs and arrays fit the nesting and element limits when it starts at
@@ -232,4 +232,22 @@ internal readonly record struct ReadOperationSettings(
             throw new ArgumentOutOfRangeException(nameof(options), "Maximum nesting depth must be greater than zero.");
         }
     }
+
+    /// <summary>
+    ///     Returns whether these limits admit a read the compiled engine would complete at structure depth
+    ///     <paramref name="structureDepth"/>: <paramref name="bytes"/> within the byte budget, the read's structs within the
+    ///     nesting limit, and its longest array within the element limit.
+    /// </summary>
+    /// <param name="bytes">The bytes the read consumes.</param>
+    /// <param name="structureDepth">The structure depth the read starts at (0 for a root).</param>
+    /// <param name="nestingDepth">The struct levels the read adds.</param>
+    /// <param name="arrayCount">The largest element count among the read's arrays.</param>
+    /// <returns>Whether the read stays within every limit.</returns>
+    public bool Covers(long bytes, int structureDepth, int nestingDepth, int arrayCount)
+        => bytes <= this.MaxTotalBytesRead && structureDepth + nestingDepth <= this.MaxNestingDepth && arrayCount <= this.MaxArrayElements;
+
+    /// <summary>Returns whether these limits admit running <paramref name="plan"/> as a root read.</summary>
+    /// <param name="plan">The static read plan.</param>
+    /// <returns>Whether the plan's bytes, nesting and arrays stay within the limits.</returns>
+    public bool CoversPlan(StaticReadPlan plan) => plan.Size <= this.MaxTotalBytesRead && PlanFits(plan, 0, this.MaxNestingDepth, this.MaxArrayElements);
 }

@@ -229,6 +229,8 @@ internal sealed class BitfieldCodecTable
     }
 
     /// <summary>Describes the fixed-width integer storage facts needed by every bitfield executor.</summary>
+    /// <param name="ByteSize">The storage unit's width in bytes.</param>
+    /// <param name="IsLittleEndian">Whether the storage unit is read least-significant byte first.</param>
     public readonly record struct Entry(int ByteSize, bool IsLittleEndian)
     {
         /// <summary>The storage unit's width in bits, the widest bitfield it can hold.</summary>

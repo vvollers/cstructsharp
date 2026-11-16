@@ -61,7 +61,11 @@ internal sealed class SparseUpdateStream : Stream
     /// <exception cref="CStructWriteException">The value set is negative.</exception>
     public override long Position
     {
-        get => this.position;
+        get
+        {
+            return this.position;
+        }
+
         set
         {
             if (value < 0)

@@ -15,7 +15,7 @@ using CStructSharp.Parsing;
 using CStructSharp.Syntax;
 using CstructEnum = CStructSharp.Syntax.Enum;
 
-/// <summary>The composite stage: each struct and union's fields, their array shapes and <c>sizeof</c>/<c>offsetof</c> folding, and their placement.</summary>
+/// <content>The composite stage: each struct and union's fields, their array shapes and <c>sizeof</c>/<c>offsetof</c> folding, and their placement.</content>
 internal sealed partial class LayoutCompilation
 {
     /// <summary>Compiles the array strategy of a synthetic root field spelled in a path (<c>uint16[EOF]</c>).</summary>

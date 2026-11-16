@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "strykerVersion": "5.0.0",
+  "strykerVersion": "5.1.0",
   "declarations": [
     {
       "pattern": "Values/ReadAttempt.cs",

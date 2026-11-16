@@ -8,14 +8,14 @@ using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using static CStructSharp.Generators.Emit;
 
-/// <summary>
+/// <content>
 ///     The views: one <c>readonly ref struct &lt;Type&gt;View</c> per composite over the composite's bytes, with a
 ///     direct decode at a constant offset for every statically placed scalar, a nested view for a statically placed
 ///     struct, the raw bytes, one element and a bulk copy of a numeric array (fixed, or sized by earlier members), text
 ///     and custom codec members, and <c>ToObject()</c> for everything else. A member after a runtime-sized array is read at
 ///     an offset the view computes from the members before it. Nothing is allocated until a string, a custom codec value,
 ///     or <c>ToObject()</c> is asked for.
-/// </summary>
+/// </content>
 internal sealed partial class LayoutEmitter
 {
     /// <summary>Emits the view of every composite, unless views are switched off.</summary>

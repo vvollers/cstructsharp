@@ -4,7 +4,7 @@ using System;
 using CStructSharp.Diagnostics;
 using CStructSharp.Reading;
 
-/// <summary>Consuming arrays: element runs charged against the byte budget, element counts to the end or to a terminator, and the element limit.</summary>
+/// <content>Consuming arrays: element runs charged against the byte budget, element counts to the end or to a terminator, and the element limit.</content>
 public ref partial struct ReadCursor
 {
     /// <summary>
