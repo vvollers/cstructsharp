@@ -11,12 +11,12 @@ using CStructSharp.Expressions;
 using CStructSharp.Reading;
 using CStructSharp.Values;
 
-/// <summary>
+/// <content>
 ///     The pointer reads of the compiled engine, each with a fixed order of checks: the stored address, a deferred or
 ///     in-place follow, the target's value, and the deferred pointers a struct follows after its last member. The
 ///     bookkeeping (targets on the active path for cycle detection, the deferred queue) is the pooled
 ///     <see cref="PointerTraversal"/>.
-/// </summary>
+/// </content>
 internal static partial class ReadEngine
 {
     /// <summary>

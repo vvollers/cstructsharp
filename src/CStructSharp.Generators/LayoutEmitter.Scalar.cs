@@ -6,12 +6,12 @@ using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using static CStructSharp.Generators.Emit;
 
-/// <summary>
+/// <content>
 ///     <c>Shape = Scalar</c>: a layout whose root struct holds one number, enum or identifier becomes a static <c>Parse</c> that
 ///     returns that value. No class, no properties and no per-struct reader family are generated: a project with hundreds of
 ///     one-field layouts (a stored integer, a word, a magic number) writes a short method for each instead of a class and three
 ///     readers.
-/// </summary>
+/// </content>
 internal sealed partial class LayoutEmitter
 {
     /// <summary>Gets a value indicating whether the layout generates a scalar reader instead of types.</summary>

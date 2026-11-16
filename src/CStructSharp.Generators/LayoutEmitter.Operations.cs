@@ -8,12 +8,12 @@ using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using static CStructSharp.Generators.Emit;
 
-/// <summary>
+/// <content>
 ///     The operations beside reading and writing: the root class's <c>ICStructGenerated</c> implementation, the
 ///     <c>Sizes</c>/<c>Offsets</c> constants and typed <c>Update</c> setters of statically placed members, and the
 ///     path-based operations (<c>ParseWithDebug</c>, <c>ResolveAddress</c>, <c>GetArrayLength</c>, <c>Update</c>)
 ///     that run on the runtime layout.
-/// </summary>
+/// </content>
 internal sealed partial class LayoutEmitter
 {
     /// <summary>Emits the operations the surface keeps: the full surface's interface, path operations and setters, and every surface's constants.</summary>

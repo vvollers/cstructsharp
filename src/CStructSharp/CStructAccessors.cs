@@ -10,11 +10,11 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Reading;
 using CStructSharp.Syntax;
 
-/// <summary>
+/// <content>
 ///     Prepared reads: <see cref="GetAccessor{T}(string)"/> resolves a member path once into a
 ///     <see cref="FieldAccessor{T}"/>, and <see cref="CreateView(ReadOnlySpan{byte}, string?, ReadOptions?)"/> wraps
 ///     the bytes of one struct in a <see cref="StructView"/> that reads members on demand without building values.
-/// </summary>
+/// </content>
 public sealed partial class CStruct
 {
     // Accessors StructView.Get<T>(string) resolved, keyed by root, path and type; bounded for callers that build

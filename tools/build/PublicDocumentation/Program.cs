@@ -202,8 +202,9 @@ internal static class Program
             TypeDefinition definition = reader.GetTypeDefinition(handle);
             string simple = reader.GetString(definition.Name);
             TypeDefinitionHandle declaring = definition.GetDeclaringType();
-            string name = !declaring.IsNil ? NameOf(declaring) + "." + simple
-                : definition.Namespace.IsNil ? simple : reader.GetString(definition.Namespace) + "." + simple;
+            string name = !declaring.IsNil ? NameOf(declaring) + "." + simple :
+                          definition.Namespace.IsNil ? simple :
+                          reader.GetString(definition.Namespace) + "." + simple;
             names[handle] = name;
             return name;
         }

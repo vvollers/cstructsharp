@@ -4,6 +4,13 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 
 /// <summary>A location in the consumer's source, kept as values so the request record stays equatable.</summary>
+/// <param name="FilePath">The source file's path; empty for a location outside a syntax tree.</param>
+/// <param name="Start">The zero-based character offset of the span's start in the file.</param>
+/// <param name="Length">The span's length in characters.</param>
+/// <param name="StartLine">The zero-based line of the span's start.</param>
+/// <param name="StartCharacter">The zero-based character position of the span's start within its line.</param>
+/// <param name="EndLine">The zero-based line of the span's end.</param>
+/// <param name="EndCharacter">The zero-based character position of the span's end within its line.</param>
 internal readonly record struct SourceSpan(string FilePath, int Start, int Length, int StartLine, int StartCharacter, int EndLine, int EndCharacter)
 {
     /// <summary>Copies a Roslyn location's file path, character span and line positions into a value.</summary>

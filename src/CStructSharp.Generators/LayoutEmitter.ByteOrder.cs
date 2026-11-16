@@ -4,14 +4,14 @@ using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using static CStructSharp.Generators.Emit;
 
-/// <summary>
+/// <content>
 ///     Run-time byte order (<c>RuntimeByteOrder</c>): a neutral value - one the layout spells without a <c>&lt;</c> or
 ///     <c>&gt;</c> suffix - is decoded with a byte order that the caller chooses when it reads, so one layout stands for
 ///     the little- and the big-endian pair. The emitter keeps the C# expression that names the order in the code being
 ///     written (<c>cursor.LittleEndian</c> in a reader, <c>this.littleEndian</c> in a view, <c>littleEndian</c> in a
 ///     helper with a parameter of that name); every site that decodes a neutral value uses it, and every explicit value
 ///     keeps its own literal.
-/// </summary>
+/// </content>
 internal sealed partial class LayoutEmitter
 {
     /// <summary>The expression naming the run-time byte order in the code being emitted, or <see langword="null"/> when the order is fixed at build time.</summary>

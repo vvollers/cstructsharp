@@ -6,7 +6,7 @@ using System.Linq;
 using CStructSharp.Compilation;
 using static CStructSharp.Generators.Emit;
 
-/// <summary>Reader-only shortcuts for fixed bitfield leaves, with the original member reader retained for every failure.</summary>
+/// <content>Reader-only shortcuts for fixed bitfield leaves, with the original member reader retained for every failure.</content>
 internal sealed partial class LayoutEmitter
 {
     private readonly Dictionary<GeneratedComposite, BitfieldLeafPlan?> bitfieldLeafPlans = new(ReferenceEqualityComparer.Instance);

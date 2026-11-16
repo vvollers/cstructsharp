@@ -96,7 +96,11 @@ public class StreamFailureTests
         /// <summary>Gets the cursor or restores it, optionally failing to model a broken underlying source.</summary>
         public override long Position
         {
-            get => this.position;
+            get
+            {
+                return this.position;
+            }
+
             set
             {
                 this.RestoreAttempted = true;

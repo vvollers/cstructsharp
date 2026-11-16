@@ -12,10 +12,10 @@ using CStructSharp.Reading;
 using CStructSharp.Streams;
 using CStructSharp.Syntax;
 
-/// <summary>
+/// <content>
 ///     The update of the compiled engine: the path resolved by the engine's path resolver, the replacement staged by its
 ///     writer, and the layout captured and compared by its debug programs, all over the operation's variable slots.
-/// </summary>
+/// </content>
 public sealed partial class CStruct
 {
     /// <summary>The failure of an update whose terminated value changes its encoded length and so moves later fields.</summary>

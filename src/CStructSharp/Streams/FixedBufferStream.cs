@@ -10,7 +10,7 @@ using CStructSharp.Diagnostics;
 /// </summary>
 internal sealed unsafe class FixedBufferStream : Stream
 {
-    private readonly byte* buffer;
+    private readonly byte* regionStart;
     private readonly int capacity;
     private readonly bool writable;
     private long length;
@@ -42,7 +42,7 @@ internal sealed unsafe class FixedBufferStream : Stream
             throw new ArgumentOutOfRangeException(nameof(capacity));
         }
 
-        this.buffer = buffer;
+        this.regionStart = buffer;
         this.capacity = capacity;
         this.writable = writable;
         this.length = initialized ? capacity : 0;
@@ -67,7 +67,11 @@ internal sealed unsafe class FixedBufferStream : Stream
     /// <exception cref="CStructException">The value is negative or past the capacity.</exception>
     public override long Position
     {
-        get => this.position;
+        get
+        {
+            return this.position;
+        }
+
         set
         {
             if (value < 0 || value > this.capacity)
@@ -95,34 +99,34 @@ internal sealed unsafe class FixedBufferStream : Stream
     /// </returns>
     internal bool TryGetReadOnlyRegion(out byte* region, out long length)
     {
-        region = this.buffer;
+        region = this.regionStart;
         length = this.length;
         return !this.writable;
     }
 
     /// <summary>Reads initialized bytes from the current region position.</summary>
-    /// <param name="destination">The array that receives the bytes.</param>
-    /// <param name="offset">The index in <paramref name="destination"/> where the first byte is stored.</param>
+    /// <param name="buffer">The array that receives the bytes.</param>
+    /// <param name="offset">The index in <paramref name="buffer"/> where the first byte is stored.</param>
     /// <param name="count">The maximum number of bytes to read.</param>
     /// <returns>The number of bytes copied, or 0 at or past the initialized length.</returns>
-    public override int Read(byte[] destination, int offset, int count)
+    public override int Read(byte[] buffer, int offset, int count)
     {
-        StreamArgumentValidation.ValidateRange(destination, offset, count, nameof(destination));
-        return this.Read(destination.AsSpan(offset, count));
+        StreamArgumentValidation.ValidateRange(buffer, offset, count, nameof(buffer));
+        return this.Read(buffer.AsSpan(offset, count));
     }
 
     /// <summary>Reads initialized bytes from the current region position.</summary>
-    /// <param name="destination">The span to fill; at most its length in bytes is copied.</param>
+    /// <param name="buffer">The span to fill; at most its length in bytes is copied.</param>
     /// <returns>The number of bytes copied, or 0 at or past the initialized length.</returns>
-    public override int Read(Span<byte> destination)
+    public override int Read(Span<byte> buffer)
     {
-        int count = (int)Math.Min(destination.Length, Math.Max(0, this.length - this.position));
+        int count = (int)Math.Min(buffer.Length, Math.Max(0, this.length - this.position));
         if (count == 0)
         {
             return 0;
         }
 
-        new ReadOnlySpan<byte>(this.buffer + (int)this.position, count).CopyTo(destination);
+        new ReadOnlySpan<byte>(this.regionStart + (int)this.position, count).CopyTo(buffer);
         this.position += count;
         return count;
     }
@@ -177,7 +181,7 @@ internal sealed unsafe class FixedBufferStream : Stream
 
         if (value > this.length)
         {
-            new Span<byte>(this.buffer + (int)this.length, (int)(value - this.length)).Clear();
+            new Span<byte>(this.regionStart + (int)this.length, (int)(value - this.length)).Clear();
         }
 
         this.length = value;
@@ -188,36 +192,36 @@ internal sealed unsafe class FixedBufferStream : Stream
     }
 
     /// <summary>Writes into caller storage and extends the initialized prefix.</summary>
-    /// <param name="source">The array holding the bytes to write.</param>
-    /// <param name="offset">The index in <paramref name="source"/> of the first byte to write.</param>
+    /// <param name="buffer">The array holding the bytes to write.</param>
+    /// <param name="offset">The index in <paramref name="buffer"/> of the first byte to write.</param>
     /// <param name="count">The number of bytes to write.</param>
-    public override void Write(byte[] source, int offset, int count)
+    public override void Write(byte[] buffer, int offset, int count)
     {
-        StreamArgumentValidation.ValidateRange(source, offset, count, nameof(source));
-        this.Write(source.AsSpan(offset, count));
+        StreamArgumentValidation.ValidateRange(buffer, offset, count, nameof(buffer));
+        this.Write(buffer.AsSpan(offset, count));
     }
 
     /// <summary>Writes into caller storage and extends the initialized prefix.</summary>
-    /// <param name="source">
+    /// <param name="buffer">
     ///     The bytes to copy at the current position; a gap left by seeking past the length is zero-filled first.
     /// </param>
     /// <exception cref="NotSupportedException">The region is read-only.</exception>
     /// <exception cref="CStructWriteException">The bytes would run past the region's capacity.</exception>
-    public override void Write(ReadOnlySpan<byte> source)
+    public override void Write(ReadOnlySpan<byte> buffer)
     {
         this.EnsureWritable();
-        if (source.Length > this.capacity - this.position)
+        if (buffer.Length > this.capacity - this.position)
         {
             throw new CStructWriteException(WriteFailures.DestinationCapacity);
         }
 
         if (this.position > this.length)
         {
-            new Span<byte>(this.buffer + (int)this.length, (int)(this.position - this.length)).Clear();
+            new Span<byte>(this.regionStart + (int)this.length, (int)(this.position - this.length)).Clear();
         }
 
-        source.CopyTo(new Span<byte>(this.buffer + (int)this.position, source.Length));
-        this.position += source.Length;
+        buffer.CopyTo(new Span<byte>(this.regionStart + (int)this.position, buffer.Length));
+        this.position += buffer.Length;
         this.length = Math.Max(this.length, this.position);
     }
 

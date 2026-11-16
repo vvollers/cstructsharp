@@ -125,18 +125,18 @@ internal static class PrimitiveArrayReader
     /// <returns>The typed array, or <see langword="null"/> when <paramref name="elementType"/> has no typed array.</returns>
     public static IList<object?>? FromBoxed(Type elementType, IReadOnlyList<object?> values)
     {
-        return elementType == typeof(byte) ? Typed<byte>(values)
-             : elementType == typeof(sbyte) ? Typed<sbyte>(values)
-             : elementType == typeof(bool) ? Typed<bool>(values)
-             : elementType == typeof(short) ? Typed<short>(values)
-             : elementType == typeof(ushort) ? Typed<ushort>(values)
-             : elementType == typeof(int) ? Typed<int>(values)
-             : elementType == typeof(uint) ? Typed<uint>(values)
-             : elementType == typeof(long) ? Typed<long>(values)
-             : elementType == typeof(ulong) ? Typed<ulong>(values)
-             : elementType == typeof(float) ? Typed<float>(values)
-             : elementType == typeof(double) ? Typed<double>(values)
-             : null;
+        return elementType == typeof(byte) ? Typed<byte>(values) :
+               elementType == typeof(sbyte) ? Typed<sbyte>(values) :
+               elementType == typeof(bool) ? Typed<bool>(values) :
+               elementType == typeof(short) ? Typed<short>(values) :
+               elementType == typeof(ushort) ? Typed<ushort>(values) :
+               elementType == typeof(int) ? Typed<int>(values) :
+               elementType == typeof(uint) ? Typed<uint>(values) :
+               elementType == typeof(long) ? Typed<long>(values) :
+               elementType == typeof(ulong) ? Typed<ulong>(values) :
+               elementType == typeof(float) ? Typed<float>(values) :
+               elementType == typeof(double) ? Typed<double>(values) :
+               null;
 
         // Unboxes every element into a new typed array.
         static PrimitiveArray<T> Typed<T>(IReadOnlyList<object?> boxed)

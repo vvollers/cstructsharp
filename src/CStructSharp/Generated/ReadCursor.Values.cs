@@ -4,7 +4,7 @@ using System;
 using CStructSharp.Codecs;
 using CStructSharp.Diagnostics;
 
-/// <summary>Consuming single values: fixed-size composites, byte runs, caller codecs, identifiers and LEB128 integers.</summary>
+/// <content>Consuming single values: fixed-size composites, byte runs, caller codecs, identifiers and LEB128 integers.</content>
 public ref partial struct ReadCursor
 {
     /// <summary>

@@ -559,8 +559,7 @@ public class FeatureOperationMatrixTests
             ExpectedValue: -1.5);
         foreach (string type in new[] { "uuid", "guid" })
         {
-            byte[] id = Convert.FromHexString(type == "uuid"
-                ? "00112233445566778899AABBCCDDEEFF" : "33221100554477668899AABBCCDDEEFF");
+            byte[] id = Convert.FromHexString(type == "uuid" ? "00112233445566778899AABBCCDDEEFF" : "33221100554477668899AABBCCDDEEFF");
             byte[] original = [.. new byte[16], .. id, 99];
             yield return new MatrixCase(
                 type + "-array",

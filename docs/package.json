@@ -15,9 +15,9 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
-    "@playwright/test": "1.64.1",
-    "cspell": "10.4.0",
-    "markdownlint-cli2": "0.24.0"
+    "@playwright/test": "1.65.1",
+    "cspell": "10.5.1",
+    "markdownlint-cli2": "0.24.1"
   },
   "overrides": {
     "js-yaml": "5.4.2",

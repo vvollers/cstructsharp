@@ -44,7 +44,11 @@ public sealed class MemoryAccessContext
     /// <exception cref="ArgumentOutOfRangeException">The value set is zero or negative.</exception>
     public long MaxTotalBytes
     {
-        get => this.maxTotalBytes;
+        get
+        {
+            return this.maxTotalBytes;
+        }
+
         init
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
@@ -59,7 +63,11 @@ public sealed class MemoryAccessContext
     /// <exception cref="ArgumentOutOfRangeException">The value set is zero or negative.</exception>
     public int MaxRequests
     {
-        get => this.maxRequests;
+        get
+        {
+            return this.maxRequests;
+        }
+
         init
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
@@ -74,7 +82,11 @@ public sealed class MemoryAccessContext
     /// <exception cref="ArgumentOutOfRangeException">The value set is zero or negative.</exception>
     public int MaxNestingDepth
     {
-        get => this.maxNestingDepth;
+        get
+        {
+            return this.maxNestingDepth;
+        }
+
         init
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
@@ -89,7 +101,11 @@ public sealed class MemoryAccessContext
     /// <exception cref="ArgumentOutOfRangeException">The value set is zero or negative.</exception>
     public int MaxPointerDepth
     {
-        get => this.maxPointerDepth;
+        get
+        {
+            return this.maxPointerDepth;
+        }
+
         init
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);

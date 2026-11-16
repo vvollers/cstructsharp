@@ -488,9 +488,9 @@ internal sealed class WriteProgramCompiler : StructProgramCompiler<WriteProgramB
                 return Refuse(location, field, NoWriter);
             }
 
-            WriteOpCode op = field.Array.Dimensions.Length > 1 ? WriteOpCode.WriteLeaves
-                             : elements == WriteElementKind.Numeric ? WriteOpCode.WriteNumericArray
-                             : WriteOpCode.WriteElements;
+            WriteOpCode op = field.Array.Dimensions.Length > 1 ? WriteOpCode.WriteLeaves :
+                             elements == WriteElementKind.Numeric ? WriteOpCode.WriteNumericArray :
+                             WriteOpCode.WriteElements;
             builder.Emit(op, index, operand, op == WriteOpCode.WriteNumericArray ? (standalone ? 1 : 0) : (int)elements);
             return null;
         }

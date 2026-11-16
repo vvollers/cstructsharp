@@ -14,10 +14,10 @@ using CStructSharp.Streams;
 using CStructSharp.Values;
 using CStructSharp.Writing;
 
-/// <summary>
+/// <content>
 ///     Provides synchronous zero-copy memory input and caller-owned memory output entry points. Pointer coordinates
 ///     are zero-based within the supplied input or newly serialized output region.
-/// </summary>
+/// </content>
 public sealed partial class CStruct
 {
     /// <summary>

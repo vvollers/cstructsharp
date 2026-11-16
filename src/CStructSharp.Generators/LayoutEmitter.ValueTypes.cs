@@ -7,12 +7,12 @@ using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using static CStructSharp.Generators.Emit;
 
-/// <summary>
+/// <content>
 ///     <c>Shape = Struct</c>: every struct of the layout becomes a C# <c>struct</c> whose members are public fields, so a read
 ///     allocates no object for the value. A fixed one-dimensional array of numbers is a generated inline array type
 ///     (<c>InlineArrays.ByteArray4</c>), so it needs no <c>T[]</c> either. Only layouts whose every member has a fixed
 ///     size and no reference-typed or data-dependent shape qualify; the others are reported as CSG014.
-/// </summary>
+/// </content>
 internal sealed partial class LayoutEmitter
 {
     /// <summary>The greatest value <c>MaxValueBytes</c> may take.</summary>

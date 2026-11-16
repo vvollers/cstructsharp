@@ -10,10 +10,10 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
 using CStructSharp.Syntax;
 
-/// <summary>
+/// <content>
 ///     <see cref="Matches(string, ReadOnlySpan{byte}, IReadOnlyDictionary{string, int}?)"/>: the recognition check of the generated
 ///     layouts' <c>Matches</c>, for a layout that is compiled at run time.
-/// </summary>
+/// </content>
 public sealed partial class CStruct
 {
     /// <summary>

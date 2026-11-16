@@ -12,12 +12,12 @@ using CStructSharp.Expressions;
 using CStructSharp.Parsing;
 using CStructSharp.Syntax;
 
-/// <summary>
+/// <content>
 ///     Roots named by a type spelling instead of a declaration: <c>uint32</c>, <c>DWORD</c>, <c>uint64[4]</c>,
 ///     <c>uint16[N]</c>, <c>char[]</c>, <c>uint8[EOF]</c>, <c>entry[2]</c>. Each is compiled once per layout on
 ///     first use into the same root-field projection a typedef gets, so the readers and writers never see the
 ///     difference. A declared name always wins over a spelling.
-/// </summary>
+/// </content>
 public sealed partial class CStruct
 {
     private const int PathCacheCapacity = 256;

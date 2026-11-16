@@ -478,9 +478,17 @@ internal sealed class GeneratedModel
 }
 
 /// <summary>A layout enum and its C# enum.</summary>
+/// <param name="Name">The C# enum name.</param>
+/// <param name="LayoutName">The enum's name in the layout.</param>
+/// <param name="Compiled">The compiled enum with its integer codec and members.</param>
+/// <param name="UnderlyingType">The C# keyword of the backing integer type, from <c>sbyte</c> to <c>ulong</c>.</param>
+/// <param name="Members">The C# members in declaration order.</param>
 internal sealed record GeneratedEnum(string Name, string LayoutName, CompiledEnumType Compiled, string UnderlyingType, IReadOnlyList<GeneratedEnumMember> Members);
 
 /// <summary>One enum member with its value in the enum's own integer domain.</summary>
+/// <param name="Name">The C# member name.</param>
+/// <param name="LayoutName">The member's name in the layout.</param>
+/// <param name="Value">The member's mathematical value, signed or unsigned as the enum's integer type is.</param>
 internal sealed record GeneratedEnumMember(string Name, string LayoutName, System.Numerics.BigInteger Value);
 
 /// <summary>A struct or union and its C# class.</summary>
@@ -525,6 +533,12 @@ internal sealed class GeneratedComposite
 }
 
 /// <summary>One property of a generated class and the compiled field it holds.</summary>
+/// <param name="Field">The compiled field the property reads and writes.</param>
+/// <param name="PropertyName">The C# property name.</param>
+/// <param name="Composite">The generated class of the struct or union the field holds or points to; <see langword="null"/> otherwise.</param>
+/// <param name="Enum">The generated enum of an enum-typed field; <see langword="null"/> otherwise.</param>
+/// <param name="TypeName">The C# property type, such as <c>Pointer&lt;T&gt;</c>, <c>T[]</c> or <c>string</c>.</param>
+/// <param name="IsConditional">Whether the field is read only when its conditional arm is active.</param>
 internal sealed record GeneratedMember(CompiledField Field, string PropertyName, GeneratedComposite? Composite, GeneratedEnum? Enum, string TypeName, bool IsConditional)
 {
     /// <summary>Gets the member's name in the layout.</summary>

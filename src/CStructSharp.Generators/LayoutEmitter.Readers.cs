@@ -11,11 +11,11 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 using static CStructSharp.Generators.Emit;
 
-/// <summary>
+/// <content>
 ///     The readers: one <c>Read&lt;Type&gt;(ref ReadCursor, variables)</c> per composite that mirrors the runtime
 ///     reader step by step - the same placement cursor per composite, the same per-field placement, the same order
 ///     of checks and the same failure texts - plus the public <c>Parse</c> overloads that create the cursor.
-/// </summary>
+/// </content>
 internal sealed partial class LayoutEmitter
 {
     private const string Cursor = "global::CStructSharp.Generated.ReadCursor";

@@ -11,11 +11,11 @@ using CStructSharp.Reading;
 using CStructSharp.Streams;
 using CStructSharp.Values;
 
-/// <summary>
+/// <content>
 ///     The debug parse of the compiled engine: the steps only debug programs hold (<see cref="ReadProgramCache.Debug"/>),
 ///     which record every value read - its range, path, type spelling and value, in read order - and the layout capture
 ///     an update compares.
-/// </summary>
+/// </content>
 /// <remarks>
 ///     <para>
 ///         A debug program reads exactly what the ordinary program reads, with the same checks, but every array one

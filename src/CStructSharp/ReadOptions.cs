@@ -44,11 +44,11 @@ public sealed record ReadOptions
     {
     }
 
-    /// <summary>Gets the members few reads set (offset base, violation collection, buffered-input continuation), or <see langword="null"/> when none is.</summary>
-    internal Reading.ReadExtras? Extras => this.extras;
-
     /// <summary>Gets the shared default options an operation uses when the caller passes none.</summary>
     internal static ReadOptions Default { get; } = new();
+
+    /// <summary>Gets the members few reads set (offset base, violation collection, buffered-input continuation), or <see langword="null"/> when none is.</summary>
+    internal Reading.ReadExtras? Extras => this.extras;
 
     /// <summary>Gets which fast paths the read may take before the compiled engine; tests restrict it to compare them with the engine.</summary>
     internal ExecutionPath ExecutionPath { get; init; }
@@ -87,7 +87,11 @@ public sealed record ReadOptions
     public long? MaxPointerTargetBytes
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => this.hasMaxPointerTargetBytes ? this.maxPointerTargetBytes : null;
+        get
+        {
+            return this.hasMaxPointerTargetBytes ? this.maxPointerTargetBytes : null;
+        }
+
         init
         {
             this.hasMaxPointerTargetBytes = value.HasValue;
@@ -141,13 +145,20 @@ public sealed record ReadOptions
     /// <exception cref="ArgumentOutOfRangeException">The value is not a member of <see cref="InvalidTextHandling"/>.</exception>
     public InvalidTextHandling InvalidText
     {
-        get => this.lenientText ? InvalidTextHandling.Replace : InvalidTextHandling.Fail;
-        init => this.lenientText = value switch
+        get
         {
-            InvalidTextHandling.Fail => false,
-            InvalidTextHandling.Replace => true,
-            _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Not a member of InvalidTextHandling."),
-        };
+            return this.lenientText ? InvalidTextHandling.Replace : InvalidTextHandling.Fail;
+        }
+
+        init
+        {
+            this.lenientText = value switch
+            {
+                InvalidTextHandling.Fail => false,
+                InvalidTextHandling.Replace => true,
+                _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Not a member of InvalidTextHandling."),
+            };
+        }
     }
 
     /// <summary>Gets whether invalid text is replaced instead of failing, as the readers test it.</summary>
@@ -170,7 +181,11 @@ public sealed record ReadOptions
     /// <exception cref="System.ArgumentOutOfRangeException">The value is negative or greater than 2^48 - 1 (<see cref="ReadLimits.MaxOffsetBase"/>).</exception>
     public long OffsetBase
     {
-        get => this.extras?.OffsetBase ?? 0;
+        get
+        {
+            return this.extras?.OffsetBase ?? 0;
+        }
+
         init
         {
             ReadLimits.ValidateOffsetBase(value);
@@ -208,7 +223,11 @@ public sealed record ReadOptions
     /// <exception cref="ArgumentOutOfRangeException">The value is not a member of <see cref="ConstraintPolicy"/>.</exception>
     public ConstraintPolicy Constraints
     {
-        get => this.extras is { SkipConstraints: true } ? ConstraintPolicy.Skip : ConstraintPolicy.Enforce;
+        get
+        {
+            return this.extras is { SkipConstraints: true } ? ConstraintPolicy.Skip : ConstraintPolicy.Enforce;
+        }
+
         init
         {
             if (!Enum.IsDefined(value))

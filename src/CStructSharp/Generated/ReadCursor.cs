@@ -87,7 +87,11 @@ public ref partial struct ReadCursor
     /// <summary>Gets or sets the offset of the next byte to read.</summary>
     public int Position
     {
-        readonly get => this.position;
+        readonly get
+        {
+            return this.position;
+        }
+
         set
         {
             if (value < 0 || value > this.source.Length)

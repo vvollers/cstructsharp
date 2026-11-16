@@ -4,7 +4,7 @@ using System;
 using CStructSharp.Codecs;
 using CStructSharp.Diagnostics;
 
-/// <summary>Consuming text: fixed character buffers, encoded text buffers and terminated strings, with the runtime's string limit and failure texts.</summary>
+/// <content>Consuming text: fixed character buffers, encoded text buffers and terminated strings, with the runtime's string limit and failure texts.</content>
 public ref partial struct ReadCursor
 {
     /// <summary>Consumes an encoded text buffer (<c>utf8[N]</c>, ...): the string byte limit, then the bytes, with the runtime's texts.</summary>

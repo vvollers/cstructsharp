@@ -15,6 +15,9 @@ internal sealed class PositionCountingStream : MemoryStream
             return base.Position;
         }
 
-        set => base.Position = value;
+        set
+        {
+            base.Position = value;
+        }
     }
 }

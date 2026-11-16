@@ -2,7 +2,7 @@ namespace CStructSharp.Compilation;
 
 using System.Threading;
 
-/// <summary>Runtime-only lazy recognition plans; shared compiler metadata contains no runtime reader dependency.</summary>
+/// <content>Runtime-only lazy recognition plans; shared compiler metadata contains no runtime reader dependency.</content>
 internal sealed partial class CompiledCompositeType
 {
     private PreparedMatcher? matcher;

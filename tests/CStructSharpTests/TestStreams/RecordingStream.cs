@@ -64,7 +64,11 @@ internal sealed class RecordingStream : Stream
     /// </summary>
     public override long Position
     {
-        get => this.PositionReadFailure is null ? this.inner.Position : throw this.PositionReadFailure;
+        get
+        {
+            return this.PositionReadFailure is null ? this.inner.Position : throw this.PositionReadFailure;
+        }
+
         set
         {
             if (this.PositionFailure is not null)

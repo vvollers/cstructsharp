@@ -8,7 +8,7 @@ using System.Text.Json;
 using CStructSharp;
 using CStructSharp.Values;
 
-/// <summary>Contains the explicit rules that convert browser JSON input into the values the core writer accepts.</summary>
+/// <content>Contains the explicit rules that convert browser JSON input into the values the core writer accepts.</content>
 public partial class CStructExports
 {
     /// <summary>Converts browser JSON into the primitive, expando, and list values accepted by the core writer.</summary>

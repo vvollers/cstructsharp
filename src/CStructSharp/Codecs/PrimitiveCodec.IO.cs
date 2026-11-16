@@ -5,7 +5,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using CStructSharp.Generated;
 
-/// <summary>The runtime half of a primitive descriptor: reading and writing one numeric value through a span, via <see cref="Codec"/>.</summary>
+/// <content>The runtime half of a primitive descriptor: reading and writing one numeric value through a span, via <see cref="Codec"/>.</content>
 internal readonly partial record struct PrimitiveCodec
 {
     // Every one-byte value boxed once: a box cannot be modified, so readers can share them and a parsed byte, sbyte

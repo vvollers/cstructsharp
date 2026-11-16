@@ -12,7 +12,7 @@ using CStructSharp.Introspection;
 using CStructSharp.Syntax;
 using CStructSharpEnum = CStructSharp.Syntax.Enum;
 
-/// <summary>The preprocessor lines: <c>#define</c>, <c>#ifdef</c>/<c>#ifndef</c>/<c>#else</c>/<c>#endif</c>, <c>#include</c>, <c>#pragma</c>, and the line-level lexing they share.</summary>
+/// <content>The preprocessor lines: <c>#define</c>, <c>#ifdef</c>/<c>#ifndef</c>/<c>#else</c>/<c>#endif</c>, <c>#include</c>, <c>#pragma</c>, and the line-level lexing they share.</content>
 internal sealed partial class LayoutParser
 {
     /// <summary>

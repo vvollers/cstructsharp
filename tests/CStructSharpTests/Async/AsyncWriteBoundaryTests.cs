@@ -332,7 +332,11 @@ public class AsyncWriteBoundaryTests
 
         public override long Position
         {
-            get => base.Position;
+            get
+            {
+                return base.Position;
+            }
+
             set
             {
                 if (this.refusePosition)

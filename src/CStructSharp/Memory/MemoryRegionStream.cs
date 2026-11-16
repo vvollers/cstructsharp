@@ -48,7 +48,11 @@ internal sealed class MemoryRegionStream : Stream
     /// <summary>Gets or sets the local position, from zero (the region's start) to the region length (end of file).</summary>
     public override long Position
     {
-        get => this.position;
+        get
+        {
+            return this.position;
+        }
+
         set
         {
             ObjectDisposedException.ThrowIf(this.disposed, this);

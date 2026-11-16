@@ -213,7 +213,11 @@ public class ExceptionTranslatingStreamTests
 
         public override long Position
         {
-            get => this.Point == FaultPoint.PositionGet ? throw cause : this.position;
+            get
+            {
+                return this.Point == FaultPoint.PositionGet ? throw cause : this.position;
+            }
+
             set
             {
                 if (this.Point == FaultPoint.PositionSet)
