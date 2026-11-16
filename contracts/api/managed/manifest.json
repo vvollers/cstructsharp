@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed",
-  "baselineRevision": 75,
+  "baselineRevision": 76,
   "packageVersion": "0.18.0",
   "assembly": "CStructSharp.dll",
-  "exportedTypes": 123,
+  "exportedTypes": 124,
   "generator": {
     "package": "PublicApiGenerator.Tool",
     "version": "11.5.4",
@@ -12,22 +12,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed/CStructSharp.public-api.txt",
-    "lines": 1413,
-    "normalizedSha256": "C334414B441F5637211CEED1915C04CB8EB0564C0345F1B5185253E9119A5461"
+    "lines": 1430,
+    "normalizedSha256": "9822F28D7857C63B6B31660EF84CD79A66A8860DD41262722073E49E0FBFAE2F"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "49064DC87A53B52E0FAF9344CBCA55DDE26A9725D2983B5C7F8466BE357B75D9",
+      "normalizedSha256": "45F04E06D18DB365124E000593C00D790D5E4162C7D726BB0C16C7D09C5E4630",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "A45655BD92BBA4C5D1A93A8FE0077C91CC7C89EF94EE6E77C0BAFCAFF6ED413A",
+      "normalizedSha256": "E6C79AF222633D271885E4090D4B7BC1BFC585EE431B59BE8324EBAA83C36981",
       "aotCompatible": true
     }
   ],
@@ -478,12 +478,18 @@
     },
     {
       "revision": 75,
-      "kind": "breaking",
       "date": "2026-11-16",
       "packageVersion": "0.18.0",
-      "combinedSha256": "5B21A03B4C63AB91716225141B90F2F074DFC76CC177D594FAFF53DEC3CC35FF",
-      "rationale": "StyleCop.Analyzers 1.3 enforces SA1315: StructValue's IDictionary/IReadOnlyDictionary implementations now use the inherited parameter name key, matching UnionValue.",
-      "releaseImpact": "Callers that pass these StructValue arguments by name (name:) must use key: instead; positional calls are unaffected."
+      "combinedSha256": "5B21A03B4C63AB91716225141B90F2F074DFC76CC177D594FAFF53DEC3CC35FF"
+    },
+    {
+      "revision": 76,
+      "kind": "additive",
+      "date": "2026-11-16",
+      "packageVersion": "0.18.0",
+      "combinedSha256": "C11023D63BF06FE730F563B95E6AA5331B09F8B2955593EF180077013D95B293",
+      "rationale": "Memory metadata preparation: PdbMetadata reads MSF 7/CodeView PDB metadata (with an explicit targetMachine when the DBI machine is zero) and writes ISF 6.2.0 through WriteIsf with a maxTraversalSteps export limit.",
+      "releaseImpact": "No released API changes; PdbMetadata is new."
     }
   ]
 }

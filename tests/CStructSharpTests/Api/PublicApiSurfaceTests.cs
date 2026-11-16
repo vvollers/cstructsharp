@@ -117,6 +117,7 @@ public class PublicApiSurfaceTests
         "CStructSharp.Memory.Metadata.IsfTypeDescription",
         "CStructSharp.Memory.Metadata.MetadataImportOptions",
         "CStructSharp.Memory.Metadata.MetadataImportResult",
+        "CStructSharp.Memory.Metadata.PdbMetadata",
         "CStructSharp.Memory.OverlayMemorySource",
         "CStructSharp.Memory.PointerRequest",
         "CStructSharp.Memory.PortableMemorySchema",

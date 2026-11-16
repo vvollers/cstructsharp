@@ -6,7 +6,7 @@ using System.Text.Json;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 
-/// <summary>A parsed Volatility ISF 6.2.0 document, from which the value types reachable from one user type can be imported into a <see cref="MemorySchema"/>.</summary>
+/// <summary>A parsed Volatility ISF 6.1.0 or 6.2.0 document, from which the value types reachable from one user type can be imported into a <see cref="MemorySchema"/>.</summary>
 /// <remarks>
 /// <para>
 /// ISF (Intermediate Symbol Format) is the JSON metadata the Volatility 3 memory-forensics framework uses to
@@ -41,12 +41,20 @@ using CStructSharp.Diagnostics;
 /// recorded placement.
 /// </para>
 /// <para>
+/// Native profiles can flatten several aliases of the same storage into a struct's immediate field list. When their
+/// physical bits overlap, an import groups only those aliased members into a generated <see cref="MemoryTypeKind.Union"/>
+/// that the struct holds through a promoted member named <c>__overlay_{offset}</c>. Every original member path still
+/// resolves, and unrelated members keep struct semantics. A whole-value write supplies each group by its overlay name
+/// as a <see cref="Values.UnionValue"/> rather than silently choosing among conflicting fields. <see cref="Describe"/>
+/// still reports the source's original fields. Disjoint fields, including disjoint bit slices, remain plain members.
+/// </para>
+/// <para>
 /// <see cref="UserTypeNames"/>, <see cref="Symbols"/> and <see cref="TryGetSymbol"/> read the <c>user_types</c> and
 /// <c>symbols</c> tables directly. A symbol's address is reported as recorded: relocations such as kernel address space
 /// layout randomization (KASLR) are not applied, and no file is opened.
 /// </para>
 /// <para>
-/// A document that is not valid JSON, is not ISF 6.2.0, or lacks or mistypes a property the import needs throws
+/// A document that is not valid JSON, is neither ISF 6.1.0 nor 6.2.0, or lacks or mistypes a property the import needs throws
 /// <see cref="CStructLayoutException"/>, as an invalid layout declaration does. Parameter errors keep their .NET
 /// exception types.
 /// </para>
@@ -54,6 +62,7 @@ using CStructSharp.Diagnostics;
 public sealed partial class IsfMetadata
 {
     private readonly JsonElement root;
+    private readonly string format;
     private readonly Lazy<Dictionary<string, JsonElement>> userTypes;
     private readonly Lazy<Dictionary<string, JsonElement>> baseTypes;
     private readonly Lazy<Dictionary<string, JsonElement>> enums;
@@ -63,13 +72,13 @@ public sealed partial class IsfMetadata
     /// <summary>Successful scalar layouts shared across this document's imports, bounded independently of root graphs.</summary>
     private CStructLayoutCache? layoutCache;
 
-    /// <summary>Parses a UTF-8 ISF 6.2.0 document.</summary>
+    /// <summary>Parses a UTF-8 ISF 6.1.0 or 6.2.0 document.</summary>
     /// <param name="json">The UTF-8 document.</param>
     /// <param name="isLittleEndian">Byte order of the imported schemas; base types with an explicit order override it.</param>
     /// <param name="maxBytes">Maximum accepted document length in bytes. JSON nesting is limited to 256 levels, the default layout nesting limit.</param>
     /// <param name="cancellationToken">Checked before parsing.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxBytes"/> is not positive.</exception>
-    /// <exception cref="CStructLayoutException">The document exceeds its budget, is not valid JSON, or is not ISF 6.2.0.</exception>
+    /// <exception cref="CStructLayoutException">The document exceeds its budget, is not valid JSON, or declares an unsupported ISF revision.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public IsfMetadata(ReadOnlyMemory<byte> json, bool isLittleEndian = true, int maxBytes = 16 * 1024 * 1024, CancellationToken cancellationToken = default)
     {
@@ -94,11 +103,12 @@ public sealed partial class IsfMetadata
 
         if (this.root.ValueKind != JsonValueKind.Object || !this.root.TryGetProperty("metadata", out JsonElement metadata) ||
             metadata.ValueKind != JsonValueKind.Object || !metadata.TryGetProperty("format", out JsonElement format) ||
-            format.ValueKind != JsonValueKind.String || !format.ValueEquals("6.2.0"))
+            format.ValueKind != JsonValueKind.String || !(format.ValueEquals("6.1.0") || format.ValueEquals("6.2.0")))
         {
-            throw new CStructLayoutException("Only ISF format 6.2.0 is supported.");
+            throw new CStructLayoutException("Only ISF formats 6.1.0 and 6.2.0 are supported.");
         }
 
+        this.format = format.ValueEquals("6.1.0") ? "6.1.0" : "6.2.0";
         this.IsLittleEndian = isLittleEndian;
 
         // The tables are indexed on first use, so a caller that only reads symbols never indexes types and vice versa.
@@ -626,6 +636,7 @@ public sealed partial class IsfMetadata
             {
                 this.Types[composite.Id] = new(composite.Id, composite.Name, composite.Kind, composite.Size, composite.Fields, provenance: composite.Id)
                 {
+                    PreserveOverlappingViews = true,
                     IsProjected = this.projection is not null,
                     UnselectedMembers = this.projection?.Unselected(composite.Id) ?? Array.Empty<string>(),
                 };
@@ -688,14 +699,25 @@ public sealed partial class IsfMetadata
             bool isArray = descriptor.GetProperty("kind").GetString() == "array";
             int count = isArray ? descriptor.GetProperty("count").GetInt32() : 0;
             int size = isArray ? checked(count * this.Types[element].Size) : this.pointerSize;
+            bool? littleEndian = null;
 
-            // A pointer may name its own storage base type; it must agree with the supplied pointer width.
-            if (descriptor.TryGetProperty("base", out JsonElement pointerBase) && this.Types[this.ImportBase(pointerBase.GetString()!)].Size != this.pointerSize)
+            // WOW64 and explicit __ptr32 fields can coexist with native pointers in one type graph. The explicit base
+            // supplies both the stored width and the byte order; a pointer without one inherits the schema default.
+            if (!isArray && descriptor.TryGetProperty("base", out JsonElement pointerBase))
             {
-                throw new CStructLayoutException("ISF pointer base differs from the supplied pointer width.");
+                MemoryTypeDefinition storage = this.Types[this.ImportBase(pointerBase.GetString()!)];
+                if (storage.Kind != MemoryTypeKind.Scalar || storage.Size is not (1 or 2 or 4 or 8)
+                    || storage.ScalarType is not { } codec
+                    || !(codec.StartsWith("uint", StringComparison.Ordinal) || codec.StartsWith("int", StringComparison.Ordinal)))
+                {
+                    throw new CStructLayoutException("ISF pointer storage must be an integer of 1, 2, 4 or 8 bytes.");
+                }
+
+                size = storage.Size;
+                littleEndian = storage.IsLittleEndian;
             }
 
-            this.Add(id, new(id, string.Empty, isArray ? MemoryTypeKind.Array : MemoryTypeKind.Pointer, size, elementTypeId: element, count: count, provenance: "ISF 6.2.0 " + (isArray ? "array" : "pointer")));
+            this.Add(id, new(id, string.Empty, isArray ? MemoryTypeKind.Array : MemoryTypeKind.Pointer, size, elementTypeId: element, count: count, provenance: "ISF " + this.document.format + (isArray ? " array" : " pointer"), isLittleEndian: littleEndian));
         }
 
         /// <summary>Imports an enum as a scalar whose codec is a generated Portable enum declaration over an integer of the enum's size.</summary>
@@ -828,7 +850,7 @@ public sealed partial class IsfMetadata
             string id = "isf:bitfield-storage:" + scalar + (littleEndian ? ":little" : ":big");
             if (!this.Types.ContainsKey(id))
             {
-                this.Add(id, new(id, scalar, MemoryTypeKind.Scalar, size, scalarType: scalar, provenance: "ISF 6.2.0 bitfield storage", isLittleEndian: littleEndian));
+                this.Add(id, new(id, scalar, MemoryTypeKind.Scalar, size, scalarType: scalar, provenance: "ISF " + this.document.format + " bitfield storage", isLittleEndian: littleEndian));
             }
 
             return id;

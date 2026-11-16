@@ -38,3 +38,55 @@ The 16-byte text comparison includes raw ownership, ASCII decoding and all NUL c
 The recorded campaign retains library-samples.jsonl (48 cases, 480 measured samples plus 96 warmup samples), text-samples.jsonl (20 measured samples plus four warmups), immutable-manifest.json and summary JSON files. The reproduction guide generates new samples without requiring that local archive. Read-set output memory is bounded by its prepared envelope; matching scratch is pooled and operation-local. Unknown-input coverage, gap recovery, final unsigned addresses and cancellation are correctness tests, not timing claims.
 
 The repository-wide Impact screen and targeted SerializeScalar confirmation retained unstable/canary warnings. Those results are inconclusive and establish neither improvement nor equivalence. Reports remain under artifacts/perf/development/runs/2026-10-28T13-23-03-743Z-babed2 and 2026-10-28T13-25-11-044Z-83f8d1. Client complete-operation findings, rejected indexes/shared filters, sparse coverage and cancellation are in the client's PERFORMANCE.md.
+
+## Native ISF compatibility controls (4 November 2026)
+
+Windows x64, Ryzen 9 9950X, SDK 10.0.403/runtime 10.0.14, hyperfine 1.20.0.
+The reference assembly is the immutable `windows-isf-before` bundle from clean revision
+`334bb8990138cdb5071e187d4312a822a3036fc5`; the candidate contains native 6.1.0 acceptance and alias-view import.
+Both run the same independently authored, nonoverlapping 6.2.0 control: a 16-byte record with a `uint32` and
+a recursive eight-byte pointer. Each process warms 16 imports, then performs 1,000 fresh parse/import/selected-read
+operations and verifies every result, with checksum 42,000. The allocation counter covers those 1,000 operations,
+not startup or output. Process timings include startup and warmup.
+
+One process warmup precedes five measured processes in each before-JIT, after-JIT, before-AOT and after-AOT group.
+Default tiering/PGO and OS caching are retained; affinity is unrestricted. No owned build, test, UI or source edit
+overlaps timing. Allocation values are single observed counter samples, not an allocation distribution.
+
+| Build | Mean ms | Standard deviation ms | Minimum–maximum ms | Allocated B / 1,000 operations |
+| --- | ---: | ---: | ---: | ---: |
+| Reference JIT | 165.54 | 1.88 | 163.40–168.05 | 39,340,496 |
+| Candidate JIT | 165.63 | 3.34 | 161.35–169.62 | 39,180,496 |
+| Reference Native AOT | 32.78 | 4.33 | 29.43–39.42 | 39,452,000 |
+| Candidate Native AOT | 29.27 | 1.09 | 28.43–31.17 | 39,290,952 |
+
+Hyperfine reported statistical outliers. Ranges overlap; these controls establish neither a speed improvement nor
+equivalence, and do not isolate the allocation difference. Native 6.1.0/overlaid imports had no successful reference
+implementation, so their new functionality is verified separately rather than compared with a failing baseline.
+All four publications emitted no IL diagnostics. The ignored local qualification payloads and raw samples are
+`artifacts/qualification/windows-isf-perf/` and the client's `dist/windows-isf-control-performance.json`.
+
+
+## Portable native PDB preparation (4 November 2026)
+
+Windows x64, Ryzen 9 9950X, SDK 10.0.403/runtime 10.0.14, hyperfine 1.20.0.
+The ignored native-PDB consumer reads an explicitly acquired 8,571,904-byte Microsoft PDB,
+writes deterministic ISF, strictly imports seven native/WOW64 roots, then decodes and
+round-trips a complete independently exported 2,624-byte captured record. Timings include
+startup, selected metadata reads, output, imports and complete byte verification. Neither
+the original input nor recovered record values are stored in this repository.
+
+One process warmup precedes five measured fresh processes in each JIT and Native AOT group.
+Default tiering/PGO and OS caching remain enabled; affinity is unrestricted. No owned build,
+test or UI job overlaps timing.
+
+| Runtime | Mean ms | Standard deviation ms | Minimum–maximum ms |
+| --- | ---: | ---: | ---: |
+| Release JIT | 315.18 | 7.76 | 308.70–324.77 |
+| Native AOT | 69.53 | 5.37 | 66.43–79.10 |
+
+These are feature costs, not a before/after optimization or allocation comparison.
+Hyperfine flags an AOT outlier; the original samples remain intact. The native publication
+emits no IL diagnostics. Qualification source and payloads are under the ignored
+`artifacts/qualification/native-pdb/` and `artifacts/qualification/native-pdb-aot/`;
+raw timing samples are in the client's `dist/windows-native-pdb-performance.json`.

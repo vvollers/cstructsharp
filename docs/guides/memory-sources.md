@@ -71,14 +71,13 @@ nothing this record uses. The example below builds this arrangement from a `Byte
 as part of the [memory examples](../examples/memory-analysis/index.md), so the numbers in this text are checked
 against the implementation.
 
-Here is what `MappedMemorySource` does when the session asks it for four bytes at `...0ffe`:
+Here is how the finite region and `MappedMemorySource` answer the session's four-byte request at `...0ffe`:
 
-1. It looks up the mapping that contains `...0ffe` using a binary search over its sorted table. The first mapping
-   starts at `...0ffe` and is two bytes long, so it can supply at most two bytes.
-2. It asks the backing source `image` for two bytes at image offset 0 and copies them into the first half of the
-   destination.
-3. It looks up `...1000`, finds the second mapping, and asks `image` for two bytes at offset 4.
-4. It returns the four bytes in logical order. It has not reinterpreted them; byte order is the schema's business.
+1. The mapped source finds the first two-byte mapping with a binary search.
+2. It asks `image` for two bytes at image offset 0 and returns that confirmed count to the region.
+3. The region retains those two bytes and asks for the remainder at `...1000`. The mapped source finds the second
+   mapping, reads two bytes at image offset 4, and returns their count.
+4. The region now has four consecutive logical bytes. The schema interprets their byte order.
 
 The result is `0x12345678U`. `inspection.Selection.Region.Address` is the logical address, while
 `inspection.BackingRegions` identifies image ranges `(0, 2)` and `(4, 2)`. Removing the second mapping causes
@@ -93,6 +92,13 @@ starts at the region's first address and cannot exceed its finite length. Positi
 full. A missing byte raises a structured memory failure; the copied prefix remains and unread destination bytes stay
 untouched. `TryReadExactly` returns the failure as data. Both forms propagate cancellation and exhausted budgets.
 An empty destination checks cancellation and makes no source requests.
+
+The low-level `IMemorySource.Read` may return a positive short count. In particular, a mapped read stops within
+its current mapping after one backing read. Use the region APIs when a consumer needs a complete transfer.
+`ReadPartial` reports the confirmed count and the original unavailable coordinate if a later extent is missing;
+bytes from completed reads do not disappear merely because the next mapping contains a hole.
+A `CachedMemorySource` in front of a mapped source stores such a short answer with its count, so a repeated
+transfer across the same mapping boundary is answered from the cache.
 
 `BorrowedMemorySource` exposes a `ReadOnlyMemory<byte>` at an explicit unsigned base address without copying it.
 The caller keeps its backing memory alive and stable. A read-only view does not freeze a mutable array. The source's

@@ -76,7 +76,7 @@ public class MemoryIsfCoverageTests
         Assert.AreEqual(42U, values["number"]);
     }
 
-    /// <summary>Wrong versions, unsupported kinds, invalid references, and mismatched target settings fail explicitly.</summary>
+    /// <summary>Wrong versions, unsupported kinds and invalid references fail explicitly.</summary>
     [TestMethod]
     public void Isf_RejectsMalformedRepresentations()
     {
@@ -87,7 +87,6 @@ public class MemoryIsfCoverageTests
             ("\"kind\":\"class\"", "\"kind\":\"unknown\""),
             ("\"kind\":\"bool\"", "\"kind\":\"unknown\""),
             ("\"kind\":\"array\"", "\"kind\":\"unknown\""),
-            ("\"base\":\"u64\"", "\"base\":\"u32\""),
             ("\"count\":2", "\"count\":-1"),
             ("\"ZERO_0\"", "\"bad-name\""),
         })

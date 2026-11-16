@@ -151,6 +151,23 @@ memorySession.ReadArray<uint>(wordRegion, "word", callerValues, mode: MemoryArra
 Check(callerValues[0] == 42, "caller-owned bulk array");
 Check(!memorySchema.TryBind<int>("word", string.Empty, out _, out _), "structured wrong type");
 
+// Native aliases become a promoted union group: distinct scalar views and exact group storage without a runtime layout.
+var nativeMetadata = new CStructSharp.Memory.Metadata.IsfMetadata(System.Text.Encoding.UTF8.GetBytes("""
+{"metadata":{"format":"6.1.0"},"base_types":{"u16":{"kind":"int","size":2,"signed":false,"endian":"little"},"u32":{"kind":"int","size":4,"signed":false,"endian":"little"}},"user_types":{"native":{"kind":"struct","size":4,"fields":{"whole":{"offset":0,"type":{"kind":"base","name":"u32"}},"low":{"offset":0,"type":{"kind":"base","name":"u16"}}}}}}
+"""));
+var nativeImport = nativeMetadata.Import("native");
+var nativeSession = new MemorySession(nativeImport.Schema);
+byte[] nativeBytes = [0x78, 0x56, 0x34, 0x12,];
+var nativeSource = new ByteArrayMemorySource("native input", nativeBytes);
+var nativeRegion = new MemoryRegion(nativeSource, 0, nativeBytes.Length);
+var nativeValue = (IReadOnlyDictionary<string, object?>)nativeSession.Read(nativeRegion, nativeImport.RootTypeId)!;
+Check((uint)nativeValue["whole"]! == 0x12345678 && (ushort)nativeValue["low"]! == 0x5678, "native alias values");
+var nativeGroup = (UnionValue)nativeSession.Read(nativeRegion, nativeImport.RootTypeId, "__overlay_0")!;
+var nativeWhole = new Dictionary<string, object?> { ["__overlay_0"] = nativeGroup, };
+Check(nativeSession.Serialize(nativeImport.RootTypeId, nativeWhole).AsSpan().SequenceEqual(nativeBytes), "native storage round trip");
+nativeSession.PlanUpdate(nativeRegion, nativeImport.RootTypeId, "low", (ushort)0xCAFE).Commit();
+Check(nativeSource.ToArray().AsSpan().SequenceEqual(new byte[] { 0xFE, 0xCA, 0x34, 0x12, }), "native selected write");
+
 Console.WriteLine("PASS Native AOT consumer");
 return 0;
 

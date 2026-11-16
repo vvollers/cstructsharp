@@ -97,4 +97,7 @@ public sealed class MemoryTypeDefinition
 
     /// <summary>Gets immediate member names deliberately omitted from this composite, in metadata order; their descriptors have not been validated.</summary>
     public IReadOnlyList<string> UnselectedMembers { get; internal init; } = Array.Empty<string>();
+
+    /// <summary>Gets whether recorded native member aliases are grouped into promoted union views instead of failing struct validation.</summary>
+    internal bool PreserveOverlappingViews { get; init; }
 }

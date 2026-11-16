@@ -154,14 +154,30 @@ subset and fails explicitly on anything else rather than guessing a layout.
 | --- | --- | --- |
 | Compiled Portable layout | Fixed scalars, named structs/unions, typedefs, arrays, pointers, bitfields, promoted storage | No inferred native ABI; no conditional or runtime-sized projection |
 | BTF v1 | Integers, floats with core codecs, pointers, arrays, structs, unions, enum/ENUM64, qualifiers/typedefs, member bit slices, split tables | Caller supplies pointer width and root ID; no ELF extraction or symbol discovery; functions/forward declarations are address-only |
-| ISF 6.2.0 | Base integers/floats/bool, user structs/classes/unions, arrays, enums, pointers, bitfields | Caller supplies root, pointer width, and default order; no profile matching, relocations, symbol evaluation, or older schema guessing |
+| ISF 6.1.0 / 6.2.0 | Base integers/floats/bool, user structs/classes/unions, arrays, enums, pointers, bitfields; overlapping native aliases become promoted union groups; explicit pointer storage preserves mixed widths and byte order | Caller supplies root, default pointer width and order; no profile matching or older schema guessing |
+| Native MSF 7 / CodeView V70 and V80 headers | Explicit offline preparation of supported storage into ISF; native type identities, public/global image-relative symbols, OMAP and separate absolute values | No capture opening, acquisition or profile matching; unsupported encodings fail; original ages/machine and source ambiguities remain visible |
 
 BTF's magic number determines the metadata's byte order. Split BTF receives a previously loaded `BtfMetadata` as
 its base; IDs and string offsets keep their base identity. ISF respects explicit base-type endianness. Import
 follows reachable type references from the chosen root and records address-only types in `Diagnostics`.
 
+CodeView's flat `near32` and `near64` pointer kinds define four- and eight-byte storage.
+Some producers leave the separate size bits zero; the kind still determines the width.
+A nonzero size must agree with that kind. Segmented and member-pointer encodings are
+not ordinary flat addresses and are rejected. Explicit field widths do not inherit
+the database's default pointer width, including inside arrays.
+
+An original DBI machine value of zero means that the producer did not record the
+target architecture. Pass `targetMachine` to `PdbMetadata` only from explicit target
+evidence, for example `0x014C` for an independently identified x86 image. `Machine`
+and the exported `machine_type` retain the original zero; `TargetMachine` and the
+native pointer base describe the supplied ABI. Without a target the parser rejects
+the unknown case, and an explicit target cannot override a contradictory nonzero
+DBI machine. Host architecture and object-path names are not fallback evidence.
+
 The source specifications are the [Linux BTF documentation](https://docs.kernel.org/bpf/btf.html) and the
-[Volatility ISF 6.2.0 schema](https://github.com/volatilityfoundation/volatility3/blob/develop/volatility3/schemas/schema-6.2.0.json).
+[Volatility ISF 6.1.0](https://github.com/volatilityfoundation/volatility3/blob/77ff0b1932d77527f850c8ced01d85805ea7bf97/volatility3/schemas/schema-6.1.0.json)
+and [6.2.0 schemas](https://github.com/volatilityfoundation/volatility3/blob/77ff0b1932d77527f850c8ced01d85805ea7bf97/volatility3/schemas/schema-6.2.0.json).
 The tests and examples in this repository use independently authored synthetic data, not operating-system captures
 or profiles.
 
