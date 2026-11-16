@@ -288,49 +288,49 @@ public sealed partial class PdbMetadata
     {
         switch (kind)
         {
-            case 0x1400 or 0x151A:
-                // LF_BCLASS, LF_BINTERFACE: base type and its offset within the derived object.
+        case 0x1400 or 0x151A:
+            // LF_BCLASS, LF_BINTERFACE: base type and its offset within the derived object.
+            _ = reader.UInt32();
+            _ = reader.Integer();
+            return true;
+        case 0x1401 or 0x1402:
+            // LF_VBCLASS, LF_IVBCLASS: base type, virtual-base pointer type, pointer offset and table index.
+            _ = reader.UInt32();
+            _ = reader.UInt32();
+            _ = reader.Integer();
+            _ = reader.Integer();
+            return true;
+        case 0x1409:
+            // LF_VFUNCTAB: the vtable pointer's type.
+            _ = reader.UInt32();
+            return true;
+        case 0x140C:
+            // LF_VFUNCOFF: vtable pointer type and offset.
+            _ = reader.UInt32();
+            _ = reader.UInt32();
+            return true;
+        case 0x150E or 0x1510 or 0x1512:
+            // LF_STMEMBER, LF_NESTTYPE, LF_NESTTYPEEX: a type index and a name.
+            _ = reader.UInt32();
+            _ = reader.Name();
+            return true;
+        case 0x150F:
+            // LF_METHOD: overload count (the leading word), method-list index and name.
+            _ = reader.UInt32();
+            _ = reader.Name();
+            return true;
+        case 0x1511:
+            // LF_ONEMETHOD: an introducing virtual method (property 4 or 6) also records its vtable offset.
+            _ = reader.UInt32();
+            if (((attributes >> 2) & 7) is 4 or 6)
+            {
                 _ = reader.UInt32();
-                _ = reader.Integer();
-                return true;
-            case 0x1401 or 0x1402:
-                // LF_VBCLASS, LF_IVBCLASS: base type, virtual-base pointer type, pointer offset and table index.
-                _ = reader.UInt32();
-                _ = reader.UInt32();
-                _ = reader.Integer();
-                _ = reader.Integer();
-                return true;
-            case 0x1409:
-                // LF_VFUNCTAB: the vtable pointer's type.
-                _ = reader.UInt32();
-                return true;
-            case 0x140C:
-                // LF_VFUNCOFF: vtable pointer type and offset.
-                _ = reader.UInt32();
-                _ = reader.UInt32();
-                return true;
-            case 0x150E or 0x1510 or 0x1512:
-                // LF_STMEMBER, LF_NESTTYPE, LF_NESTTYPEEX: a type index and a name.
-                _ = reader.UInt32();
-                _ = reader.Name();
-                return true;
-            case 0x150F:
-                // LF_METHOD: overload count (the leading word), method-list index and name.
-                _ = reader.UInt32();
-                _ = reader.Name();
-                return true;
-            case 0x1511:
-                // LF_ONEMETHOD: an introducing virtual method (property 4 or 6) also records its vtable offset.
-                _ = reader.UInt32();
-                if (((attributes >> 2) & 7) is 4 or 6)
-                {
-                    _ = reader.UInt32();
-                }
+            }
 
-                _ = reader.Name();
-                return true;
-            default:
-                return false;
+            _ = reader.Name();
+            return true;
+        default:
+            return false;
         }
     }
 
@@ -384,77 +384,77 @@ public sealed partial class PdbMetadata
 
         switch (record.Kind)
         {
-            case 0x1001:
-                uint modified = reader.UInt32();
-                ushort flags = reader.UInt16();
-                reader.End();
-                if ((flags & ~7) != 0)
-                {
-                    throw Invalid("a modifier contains unknown qualifier bits");
-                }
+        case 0x1001:
+            uint modified = reader.UInt32();
+            ushort flags = reader.UInt16();
+            reader.End();
+            if ((flags & ~7) != 0)
+            {
+                throw Invalid("a modifier contains unknown qualifier bits");
+            }
 
-                this.WriteDescriptor(writer, modified, depth + 1, budget);
-                break;
-            case 0x1002:
-                (uint target, int width) = Pointer(record.Bytes.Span);
-                writer.WriteStartObject();
-                writer.WriteString("kind", "pointer");
-                writer.WriteString("base", width == 4 ? "__cv_pointer32" : "__cv_pointer64");
-                writer.WritePropertyName("subtype");
-                this.WriteDescriptor(writer, target, depth + 1, budget);
-                writer.WriteEndObject();
-                break;
-            case 0x1503:
-                uint element = reader.UInt32();
-                _ = reader.UInt32();
-                int bytes = reader.Size();
-                _ = reader.Name();
-                reader.End();
-                int elementSize = this.StorageSize(element, depth + 1, budget);
-                if (elementSize <= 0 || bytes % elementSize != 0)
-                {
-                    throw Invalid("an array extent is not a whole number of its recorded element type");
-                }
+            this.WriteDescriptor(writer, modified, depth + 1, budget);
+            break;
+        case 0x1002:
+            (uint target, int width) = Pointer(record.Bytes.Span);
+            writer.WriteStartObject();
+            writer.WriteString("kind", "pointer");
+            writer.WriteString("base", width == 4 ? "__cv_pointer32" : "__cv_pointer64");
+            writer.WritePropertyName("subtype");
+            this.WriteDescriptor(writer, target, depth + 1, budget);
+            writer.WriteEndObject();
+            break;
+        case 0x1503:
+            uint element = reader.UInt32();
+            _ = reader.UInt32();
+            int bytes = reader.Size();
+            _ = reader.Name();
+            reader.End();
+            int elementSize = this.StorageSize(element, depth + 1, budget);
+            if (elementSize <= 0 || bytes % elementSize != 0)
+            {
+                throw Invalid("an array extent is not a whole number of its recorded element type");
+            }
 
-                writer.WriteStartObject();
-                writer.WriteString("kind", "array");
-                writer.WriteNumber("count", bytes / elementSize);
-                writer.WritePropertyName("subtype");
-                this.WriteDescriptor(writer, element, depth + 1, budget);
-                writer.WriteEndObject();
-                break;
-            case 0x1205:
-                uint storage = reader.UInt32();
-                byte bits = reader.Byte();
-                byte position = reader.Byte();
-                reader.End();
-                int storageSize = this.StorageSize(storage, depth + 1, budget);
-                if (bits == 0 || position + bits > storageSize * 8)
-                {
-                    throw Invalid("a bitfield extends outside its recorded storage integer");
-                }
+            writer.WriteStartObject();
+            writer.WriteString("kind", "array");
+            writer.WriteNumber("count", bytes / elementSize);
+            writer.WritePropertyName("subtype");
+            this.WriteDescriptor(writer, element, depth + 1, budget);
+            writer.WriteEndObject();
+            break;
+        case 0x1205:
+            uint storage = reader.UInt32();
+            byte bits = reader.Byte();
+            byte position = reader.Byte();
+            reader.End();
+            int storageSize = this.StorageSize(storage, depth + 1, budget);
+            if (bits == 0 || position + bits > storageSize * 8)
+            {
+                throw Invalid("a bitfield extends outside its recorded storage integer");
+            }
 
-                writer.WriteStartObject();
-                writer.WriteString("kind", "bitfield");
-                writer.WriteNumber("bit_position", position);
-                writer.WriteNumber("bit_length", bits);
-                writer.WritePropertyName("type");
-                this.WriteDescriptor(writer, storage, depth + 1, budget);
-                writer.WriteEndObject();
-                break;
-            case 0x1008 or 0x1009:
-                int minimum = record.Kind == 0x1008 ? 12 : 24;
-                if (record.Bytes.Length < minimum)
-                {
-                    throw Invalid("a function description is truncated");
-                }
+            writer.WriteStartObject();
+            writer.WriteString("kind", "bitfield");
+            writer.WriteNumber("bit_position", position);
+            writer.WriteNumber("bit_length", bits);
+            writer.WritePropertyName("type");
+            this.WriteDescriptor(writer, storage, depth + 1, budget);
+            writer.WriteEndObject();
+            break;
+        case 0x1008 or 0x1009:
+            int minimum = record.Kind == 0x1008 ? 12 : 24;
+            if (record.Bytes.Length < minimum)
+            {
+                throw Invalid("a function description is truncated");
+            }
 
-                writer.WriteStartObject();
-                writer.WriteString("kind", "function");
-                writer.WriteEndObject();
-                break;
-            default:
-                throw Invalid($"storage leaf 0x{record.Kind:X4} is not supported");
+            writer.WriteStartObject();
+            writer.WriteString("kind", "function");
+            writer.WriteEndObject();
+            break;
+        default:
+            throw Invalid($"storage leaf 0x{record.Kind:X4} is not supported");
         }
     }
 

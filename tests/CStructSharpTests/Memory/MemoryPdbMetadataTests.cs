@@ -597,12 +597,12 @@ public class MemoryPdbMetadataTests
         Put32(map, 8, 0x1030);
         switch (corruption)
         {
-            case "truncated": map = map[..7]; break;
-            case "unordered": Put32(map, 8, 0x0FFF); break;
-            case "duplicate": Put32(map, 8, 0x1000); break;
-            case "wrap": Put32(map, 4, uint.MaxValue); break;
-            case "missing-original-sections": break;
-            default: throw new ArgumentException("Unknown synthetic remap corruption.", nameof(corruption));
+        case "truncated": map = map[..7]; break;
+        case "unordered": Put32(map, 8, 0x0FFF); break;
+        case "duplicate": Put32(map, 8, 0x1000); break;
+        case "wrap": Put32(map, 4, uint.MaxValue); break;
+        case "missing-original-sections": break;
+        default: throw new ArgumentException("Unknown synthetic remap corruption.", nameof(corruption));
         }
 
         Fixture fixture = CreateFixture(BasicTypes(), omap: map);
@@ -634,6 +634,274 @@ public class MemoryPdbMetadataTests
         fixture.Bytes[name] = 0xFF;
         using var input = new MemoryStream(fixture.Bytes);
         Assert.Throws<CStructLayoutException>(() => new PdbMetadata(input));
+    }
+
+    /// <summary>
+    /// Every supported storage form survives export: enums with each integral numeric encoding, modifiers, bitfields,
+    /// function pointers, nested arrays, forward-declared and enum array elements, unions, anonymous unions, wide
+    /// member offsets, field-list continuations and skipped C++ elements.
+    /// </summary>
+    [TestMethod]
+    public void RichStorageForms_ExportAndReadBack()
+    {
+        byte[][] types =
+        [
+            // 0x1000: enum constants in every integral numeric-leaf encoding CodeView defines.
+            FieldList(
+                Enumerate("Small", Leaf(5)),
+                Enumerate("Negative", Leaf(0x8000, Le(-1, 1))),
+                Enumerate("Short", Leaf(0x8001, Le(-300, 2))),
+                Enumerate("Word", Leaf(0x8002, Le(40000, 2))),
+                Enumerate("Int", Leaf(0x8003, Le(-70000, 4))),
+                Enumerate("UInt", Leaf(0x8004, Le(3_000_000_000, 4))),
+                Enumerate("Long", Leaf(0x8009, Le(-5_000_000_000, 8))),
+                Enumerate("One", Leaf(0x800A, Le(1, 8)))),
+
+            // 0x1001: const __int64, the enum's storage through a modifier.
+            Modifier(0x76, 1),
+
+            // 0x1002: an enum stored as that modifier.
+            Enum("Mode", 8, 0x1001, 0x1000),
+
+            // 0x1003: three bits starting at bit 4.
+            Bitfield(0x75, 3, 4),
+
+            // 0x1004: a function type.
+            Procedure(),
+
+            // 0x1005: pointer to function.
+            Pointer64(0x1004),
+
+            // 0x1006: two enum elements.
+            ArrayOf(0x1002, Leaf(16)),
+
+            // 0x1007: const int[2], so the outer stride needs the modifier's size.
+            ArrayOf(0x1013, Leaf(8)),
+
+            // 0x1008: int[2][2].
+            ArrayOf(0x1007, Leaf(0x8002, Le(16, 2))),
+
+            // 0x1009: one 64-bit simple pointer.
+            ArrayOf(0x0603, Leaf(8)),
+
+            // 0x100A: a forward declaration of inner.
+            Composite("inner", 0, 0, 0, forward: true),
+
+            // 0x100B: inner's members.
+            FieldList(Member("x", 0x75, 0)),
+
+            // 0x100C: the complete inner.
+            Composite("inner", 1, 0x100B, 4),
+
+            // 0x100D: elements named only by a forward declaration.
+            ArrayOf(0x100A, Leaf(8)),
+
+            // 0x100E: two overlapping union members.
+            FieldList(Member("u32", 0x75, 0), Member("u16", 0x21, 0)),
+
+            // 0x100F: the union.
+            Union("choice", 2, 0x100E, 4),
+
+            // 0x1010: the first members, then a continuation.
+            FieldList(
+                Member("mode", 0x1002, 0),
+                Member("constant", 0x1001, 8),
+                Member("flags", 0x1003, 12),
+                Member(string.Empty, 0x100F, 16),
+                Member("callback", 0x1005, 24),
+                Member("modes", 0x1006, 32),
+                Continuation(0x1011)),
+
+            // 0x1011: the remaining members, with C++ elements that hold no instance storage.
+            FieldList(
+                Member("ints", 0x1008, 48),
+                Member("pointers", 0x1009, 64),
+                Member("inners", 0x100D, 72),
+                Member("choice", 0x100F, 80),
+                MemberLeaf("far", 0x75, Leaf(0x8002, Le(84, 2))),
+                FieldLeaf(0x1401, writer =>
+                {
+                    // LF_VBCLASS: base, virtual-base pointer, pointer offset and table index.
+                    writer.Write((ushort)3);
+                    writer.Write(0x100CU);
+                    writer.Write(0x0603U);
+                    writer.Write((ushort)0);
+                    writer.Write((ushort)1);
+                }),
+                FieldLeaf(0x140C, writer =>
+                {
+                    // LF_VFUNCOFF: vtable pointer type and offset.
+                    writer.Write((ushort)0);
+                    writer.Write(0x0603U);
+                    writer.Write(0U);
+                }),
+                FieldLeaf(0x1512, writer =>
+                {
+                    // LF_NESTTYPEEX: a nested type with attributes.
+                    writer.Write((ushort)3);
+                    writer.Write(0x100CU);
+                    WriteName(writer, "Nested");
+                }),
+                FieldLeaf(0x151A, writer =>
+                {
+                    // LF_BINTERFACE: an interface base at offset zero.
+                    writer.Write((ushort)3);
+                    writer.Write(0x100CU);
+                    writer.Write((ushort)0);
+                })),
+
+            // 0x1012: the root composite.
+            Composite("rich", 11, 0x1010, 88),
+
+            // 0x1013: const int
+            Modifier(0x74, 1),
+        ];
+
+        Fixture fixture = CreateFixture(types, rootType: 0x1012);
+        using var input = new MemoryStream(fixture.Bytes);
+        var metadata = new PdbMetadata(input);
+        using var output = new MemoryStream();
+        metadata.WriteIsf(output, "fixture.pdb");
+        JsonNode profile = JsonNode.Parse(output.ToArray())!;
+
+        JsonNode mode = profile["enums"]!["Mode"]!;
+        Assert.AreEqual("__int64", mode["base"]!.GetValue<string>());
+        Assert.AreEqual(8, mode["size"]!.GetValue<int>());
+        JsonNode constants = mode["constants"]!;
+        Assert.AreEqual(5L, constants["Small"]!.GetValue<long>());
+        Assert.AreEqual(-1L, constants["Negative"]!.GetValue<long>());
+        Assert.AreEqual(-300L, constants["Short"]!.GetValue<long>());
+        Assert.AreEqual(40000L, constants["Word"]!.GetValue<long>());
+        Assert.AreEqual(-70000L, constants["Int"]!.GetValue<long>());
+        Assert.AreEqual(3_000_000_000L, constants["UInt"]!.GetValue<long>());
+        Assert.AreEqual(-5_000_000_000L, constants["Long"]!.GetValue<long>());
+        Assert.AreEqual(1L, constants["One"]!.GetValue<long>());
+
+        JsonNode fields = profile["user_types"]!["rich"]!["fields"]!;
+        Assert.AreEqual("enum", fields["mode"]!["type"]!["kind"]!.GetValue<string>());
+        Assert.AreEqual("__int64", fields["constant"]!["type"]!["name"]!.GetValue<string>());
+        Assert.AreEqual(4, fields["flags"]!["type"]!["bit_position"]!.GetValue<int>());
+        Assert.AreEqual(3, fields["flags"]!["type"]!["bit_length"]!.GetValue<int>());
+        Assert.IsTrue(fields["__anonymous_cv_3"]!["anonymous"]!.GetValue<bool>());
+        Assert.AreEqual("function", fields["callback"]!["type"]!["subtype"]!["kind"]!.GetValue<string>());
+        Assert.AreEqual(2, fields["modes"]!["type"]!["count"]!.GetValue<int>());
+        Assert.AreEqual(2, fields["ints"]!["type"]!["subtype"]!["count"]!.GetValue<int>());
+        Assert.AreEqual(1, fields["pointers"]!["type"]!["count"]!.GetValue<int>());
+        Assert.AreEqual("inner", fields["inners"]!["type"]!["subtype"]!["name"]!.GetValue<string>());
+        Assert.AreEqual("union", fields["choice"]!["type"]!["kind"]!.GetValue<string>());
+        Assert.AreEqual(84, fields["far"]!["offset"]!.GetValue<int>());
+
+        MetadataImportResult imported = new IsfMetadata(output.ToArray()).Import("rich");
+        var session = new MemorySession(imported.Schema);
+        byte[] bytes = new byte[88];
+        bytes[12] = 0x50;
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(16), 0x00030002);
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(56), 3);
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(76), 0x77);
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(80), 0x00020001);
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(84), 0xDEADBEEF);
+        var region = new MemoryRegion(new ByteArrayMemorySource("rich", bytes), 0, bytes.Length);
+        Assert.AreEqual(5, session.Read(region, imported.RootTypeId, "flags"));
+        Assert.AreEqual(3, session.Read(region, imported.RootTypeId, "ints[1][0]"));
+        Assert.AreEqual(0x77U, session.Read(region, imported.RootTypeId, "inners[1].x"));
+        Assert.AreEqual((ushort)1, session.Read(region, imported.RootTypeId, "choice.u16"));
+
+        // The anonymous union's members are promoted into the containing record.
+        Assert.AreEqual((ushort)2, session.Read(region, imported.RootTypeId, "u16"));
+        Assert.AreEqual(0x00030002U, session.Read(region, imported.RootTypeId, "u32"));
+        Assert.AreEqual(0xDEADBEEFU, session.Read(region, imported.RootTypeId, "far"));
+    }
+
+    /// <summary>Malformed or unsupported storage descriptions fail the export instead of publishing a guessed layout.</summary>
+    /// <param name="corruption">The original invariant to violate.</param>
+    [TestMethod]
+    [DataRow("numeric-leaf")]
+    [DataRow("enum-float")]
+    [DataRow("enum-record")]
+    [DataRow("enum-depth")]
+    [DataRow("enum-repeated")]
+    [DataRow("enum-member")]
+    [DataRow("struct-enumerate")]
+    [DataRow("modifier-bits")]
+    [DataRow("modifier-depth")]
+    [DataRow("array-extent")]
+    [DataRow("array-forward")]
+    [DataRow("array-function")]
+    [DataRow("storage-depth")]
+    [DataRow("bitfield-zero")]
+    [DataRow("bitfield-outside")]
+    [DataRow("function-truncated")]
+    [DataRow("storage-leaf")]
+    [DataRow("not-field-list")]
+    [DataRow("continuation-reserved")]
+    [DataRow("repeated-member")]
+    [DataRow("simple-pointer-mode")]
+    [DataRow("primitive")]
+    [DataRow("negative-offset")]
+    [DataRow("padding-zero")]
+    [DataRow("padding-inconsistent")]
+    [DataRow("unclaimed")]
+    [DataRow("unterminated-name")]
+    [DataRow("truncated-integer")]
+    public void MalformedStorage_RejectsTheExport(string corruption)
+    {
+        byte[] small = Enumerate("A", Leaf(1));
+        byte[] bad = Member("bad", 0x1000, 0);
+        byte[] record = Composite("record", 1, 0x1001, 64);
+        byte[][] types = corruption switch
+        {
+            "numeric-leaf" => [FieldList(Enumerate("A", Leaf(0x8005, Le(0x3F800000, 4)))), Enum("bad", 1, 0x74, 0x1000)],
+            "enum-float" => [FieldList(small), Enum("bad", 1, 0x40, 0x1000)],
+            "enum-record" => [FieldList(small), Enum("bad", 1, 0x1002, 0x1000), Pointer64(0x75)],
+            "enum-depth" => [FieldList(small), Enum("bad", 1, 0x1002, 0x1000), Modifier(0x1002, 0)],
+            "enum-repeated" => [FieldList(small, small), Enum("bad", 2, 0x74, 0x1000)],
+            "enum-member" => [FieldList(Member("a", 0x74, 0)), Enum("bad", 1, 0x74, 0x1000)],
+            "struct-enumerate" => [FieldList(small), Composite("record", 1, 0x1000, 4)],
+            "modifier-bits" => [Modifier(0x75, 0x10), FieldList(bad), record],
+            "modifier-depth" => [Modifier(0x1000, 0), FieldList(bad), record],
+            "array-extent" => [ArrayOf(0x75, Leaf(6)), FieldList(bad), record],
+            "array-forward" => [Composite("missing", 0, 0, 0, forward: true), ArrayOf(0x1000, Leaf(8)), FieldList(Member("bad", 0x1001, 0)), Composite("record", 1, 0x1002, 8)],
+            "array-function" => [Procedure(), ArrayOf(0x1000, Leaf(8)), FieldList(Member("bad", 0x1001, 0)), Composite("record", 1, 0x1002, 8)],
+            "storage-depth" => [Modifier(0x1000, 0), ArrayOf(0x1000, Leaf(8)), FieldList(Member("bad", 0x1001, 0)), Composite("record", 1, 0x1002, 8)],
+            "bitfield-zero" => [Bitfield(0x75, 0, 0), FieldList(bad), record],
+            "bitfield-outside" => [Bitfield(0x75, 30, 4), FieldList(bad), record],
+            "function-truncated" => [Record(0x1008, Payload(writer => writer.Write(0UL))), Pointer64(0x1000), FieldList(Member("bad", 0x1001, 0)), Composite("record", 1, 0x1002, 8)],
+            "storage-leaf" => [Record(0x1201, Payload(writer => writer.Write(0U))), FieldList(bad), record],
+            "not-field-list" => [Modifier(0x75, 0), Composite("record", 1, 0x1000, 4)],
+            "continuation-reserved" => [Record(0x1203, [.. Le(0x1404, 2), .. Le(1, 2), .. Le(0x1000, 4)]), Composite("record", 0, 0x1000, 4)],
+            "repeated-member" => [FieldList(Member("a", 0x75, 0), Member("a", 0x75, 4)), Composite("record", 2, 0x1000, 8)],
+            "simple-pointer-mode" => [FieldList(Member("bad", 0x0175, 0)), Composite("record", 1, 0x1000, 8)],
+            "primitive" => [FieldList(Member("bad", 0x0005, 0)), Composite("record", 1, 0x1000, 8)],
+            "negative-offset" => [FieldList(MemberLeaf("bad", 0x75, Leaf(0x8000, Le(-1, 1)))), Composite("record", 1, 0x1000, 8)],
+            "padding-zero" => [Record(0x1203, [.. Member("a", 0x75, 0), 0xF0, 0, 0, 0]), Composite("record", 1, 0x1000, 4)],
+            "padding-inconsistent" => [Record(0x1203, [.. Member("a", 0x75, 0), 0xF3, 0xF1, 0xF1, 0]), Composite("record", 1, 0x1000, 4)],
+            "unclaimed" => [Record(0x1002, [.. Le(0x75, 4), .. Le(12 | (8 << 13), 4), .. Le(0x01020304, 4)]), FieldList(bad), record],
+            "unterminated-name" => [Record(0x1203, Pad([.. Le(0x150D, 2), .. Le(0, 2), .. Le(0x75, 4), .. Leaf(0), .. "bad"u8])), Composite("record", 1, 0x1000, 4)],
+            "truncated-integer" => [Record(0x1203, Pad([.. Le(0x150D, 2), .. Le(0, 2), .. Le(0x75, 4), .. Le(0x8003, 2)])), Composite("record", 1, 0x1000, 4)],
+            _ => throw new ArgumentException("Unknown synthetic storage corruption.", nameof(corruption)),
+        };
+
+        // The typed global must name a real record; the last record is the containing type in every case.
+        Fixture fixture = CreateFixture(types, rootType: 0x1000U + (uint)types.Length - 1);
+        using var input = new MemoryStream(fixture.Bytes);
+        var metadata = new PdbMetadata(input);
+        using var output = new MemoryStream();
+        Assert.Throws<CStructLayoutException>(() => metadata.WriteIsf(output, "fixture.pdb"));
+    }
+
+    /// <summary>The export needs a writable destination and a bare PDB file name.</summary>
+    [TestMethod]
+    public void WriteIsf_RejectsUnwritableOutputAndPathNames()
+    {
+        Fixture fixture = CreateFixture(BasicTypes());
+        using var input = new MemoryStream(fixture.Bytes);
+        var metadata = new PdbMetadata(input);
+        using var readOnly = new MemoryStream(new byte[16], writable: false);
+        using var output = new MemoryStream();
+        Assert.Throws<ArgumentException>(() => metadata.WriteIsf(readOnly, "fixture.pdb"));
+        Assert.Throws<ArgumentException>(() => metadata.WriteIsf(output, "symbols/fixture.pdb"));
+        Assert.Throws<ArgumentException>(() => metadata.WriteIsf(output, "C:fixture.pdb"));
+        Assert.AreEqual(0L, output.Length);
     }
 
     /// <summary>Creates independently declared native storage records, including explicit 32/64-bit pointer modes.</summary>
@@ -815,6 +1083,145 @@ public class MemoryPdbMetadataTests
             write(writer);
         }));
     }
+
+    /// <summary>Frames already aligned field leaves as one LF_FIELDLIST record.</summary>
+    /// <param name="leaves">Complete field leaves in original order.</param>
+    /// <returns>A full native type record.</returns>
+    private static byte[] FieldList(params byte[][] leaves) => Record(0x1203, [.. leaves.SelectMany(leaf => leaf)]);
+
+    /// <summary>Creates an LF_INDEX leaf that continues a field list in another record.</summary>
+    /// <param name="next">Type index of the continuing LF_FIELDLIST.</param>
+    /// <returns>The unframed field leaf.</returns>
+    private static byte[] Continuation(uint next) => FieldLeaf(0x1404, writer =>
+    {
+        writer.Write((ushort)0);
+        writer.Write(next);
+    });
+
+    /// <summary>Creates an LF_ENUMERATE leaf with a public attribute word.</summary>
+    /// <param name="name">Constant name.</param>
+    /// <param name="value">The encoded numeric leaf (see <see cref="Leaf"/>).</param>
+    /// <returns>The unframed field leaf including alignment.</returns>
+    private static byte[] Enumerate(string name, byte[] value) => FieldLeaf(0x1502, writer =>
+    {
+        writer.Write((ushort)3);
+        writer.Write(value);
+        WriteName(writer, name);
+    });
+
+    /// <summary>Creates an LF_MEMBER leaf whose offset uses a caller-chosen numeric-leaf encoding.</summary>
+    /// <param name="name">Member name.</param>
+    /// <param name="type">Storage type index.</param>
+    /// <param name="offset">The encoded numeric leaf for the byte offset.</param>
+    /// <returns>The unframed field leaf including alignment.</returns>
+    private static byte[] MemberLeaf(string name, uint type, byte[] offset) => FieldLeaf(0x150D, writer =>
+    {
+        writer.Write((ushort)3);
+        writer.Write(type);
+        writer.Write(offset);
+        WriteName(writer, name);
+    });
+
+    /// <summary>Encodes a CodeView numeric leaf: a value below 0x8000 directly, or a leaf code followed by its payload.</summary>
+    /// <param name="code">The direct value, or the numeric leaf code (0x8000 and above).</param>
+    /// <param name="payload">The value bytes that follow a leaf code; empty for a direct value.</param>
+    /// <returns>The encoded leaf.</returns>
+    private static byte[] Leaf(ushort code, params byte[] payload) => [.. Le(code, 2), .. payload];
+
+    /// <summary>Encodes the low bytes of a value in little-endian order, as CodeView stores every integer.</summary>
+    /// <param name="value">The value; negative values keep their two's-complement low bytes.</param>
+    /// <param name="width">Number of bytes to write.</param>
+    /// <returns>The encoded bytes.</returns>
+    private static byte[] Le(long value, int width)
+    {
+        byte[] bytes = new byte[8];
+        BinaryPrimitives.WriteInt64LittleEndian(bytes, value);
+        return bytes[..width];
+    }
+
+    /// <summary>Creates an LF_ENUM record.</summary>
+    /// <param name="name">Enum name.</param>
+    /// <param name="count">Declared constant count.</param>
+    /// <param name="underlying">Storage type index.</param>
+    /// <param name="fields">Field-list index holding the constants.</param>
+    /// <returns>A full native type record.</returns>
+    private static byte[] Enum(string name, ushort count, uint underlying, uint fields) => Record(0x1507, Payload(writer =>
+    {
+        writer.Write(count);
+        writer.Write((ushort)0);
+        writer.Write(underlying);
+        writer.Write(fields);
+        WriteName(writer, name);
+    }));
+
+    /// <summary>Creates an LF_UNION record with a direct byte size.</summary>
+    /// <param name="name">Union name.</param>
+    /// <param name="count">Declared member count.</param>
+    /// <param name="fields">Field-list index.</param>
+    /// <param name="size">Byte extent.</param>
+    /// <returns>A full native type record.</returns>
+    private static byte[] Union(string name, ushort count, uint fields, ushort size) => Record(0x1506, Payload(writer =>
+    {
+        writer.Write(count);
+        writer.Write((ushort)0);
+        writer.Write(fields);
+        writer.Write(size);
+        WriteName(writer, name);
+    }));
+
+    /// <summary>Creates an LF_MODIFIER record.</summary>
+    /// <param name="target">Modified type index.</param>
+    /// <param name="flags">Qualifier bits: 1 const, 2 volatile, 4 unaligned.</param>
+    /// <returns>A full native type record.</returns>
+    private static byte[] Modifier(uint target, ushort flags) => Record(0x1001, Payload(writer =>
+    {
+        writer.Write(target);
+        writer.Write(flags);
+    }));
+
+    /// <summary>Creates an LF_BITFIELD record.</summary>
+    /// <param name="storage">Storage integer type index.</param>
+    /// <param name="bits">Bit length.</param>
+    /// <param name="position">First bit, counted from the least significant bit of the storage integer.</param>
+    /// <returns>A full native type record.</returns>
+    private static byte[] Bitfield(uint storage, byte bits, byte position) => Record(0x1205, Payload(writer =>
+    {
+        writer.Write(storage);
+        writer.Write(bits);
+        writer.Write(position);
+    }));
+
+    /// <summary>Creates a minimal complete LF_PROCEDURE record returning void with no arguments.</summary>
+    /// <returns>A full native type record.</returns>
+    private static byte[] Procedure() => Record(0x1008, Payload(writer =>
+    {
+        writer.Write(0x03U);
+        writer.Write((byte)0);
+        writer.Write((byte)0);
+        writer.Write((ushort)0);
+        writer.Write(0U);
+    }));
+
+    /// <summary>Creates a flat near64 LF_POINTER record with explicit eight-byte size bits.</summary>
+    /// <param name="target">Pointed-to type index.</param>
+    /// <returns>A full native type record.</returns>
+    private static byte[] Pointer64(uint target) => Record(0x1002, Payload(writer =>
+    {
+        writer.Write(target);
+        writer.Write(12U | (8U << 13));
+    }));
+
+    /// <summary>Creates an unnamed LF_ARRAY record with an unsigned int index type.</summary>
+    /// <param name="element">Element type index.</param>
+    /// <param name="size">The array's total byte size as an encoded numeric leaf.</param>
+    /// <returns>A full native type record.</returns>
+    private static byte[] ArrayOf(uint element, byte[] size) => Record(0x1503, Payload(writer =>
+    {
+        writer.Write(element);
+        writer.Write(0x75U);
+        writer.Write(size);
+        writer.Write((byte)0);
+    }));
 
     /// <summary>Frames one original CodeView type record and applies its descending leaf-padding bytes.</summary>
     /// <param name="kind">Original leaf code.</param>
