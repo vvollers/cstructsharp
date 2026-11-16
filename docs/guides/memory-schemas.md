@@ -147,11 +147,43 @@ types as pointer targets without making those targets readable, and a best-effor
 with raw-bytes placeholders.
 
 `new IsfMetadata(json)` parses the document once; `Import(rootName, options)` then compiles one root and
-everything it references, so several roots can share one parsed document. ISF import requires format `6.2.0`. It
+everything it references, so several roots can share one parsed document. ISF import accepts formats `6.1.0` and `6.2.0`. It
 supports base integers, floats and booleans, structs, classes, unions, arrays, enums, pointers, and member
 bitfields. A base type's explicit endianness overrides the schema default that the constructor's `isLittleEndian`
 sets. The constructor's `maxBytes` bounds the document (16 MiB by default; a full kernel profile is often larger,
 so pass a bigger limit for one). Relocations, profile matching, and guesses about older formats are outside its scope.
+
+### Native member aliases
+
+Native debug metadata can flatten several interpretations of the same bytes into a struct's immediate fields.
+For example, a four-byte flags integer and its individual bitfields may all be listed at byte zero. In C you would
+write such alternatives as an anonymous `union` inside the struct. ISF import does the same: members whose physical
+bits overlap are moved into a generated union, and the struct holds that union through a **promoted** member, one
+whose own members are visible directly in the parent. Members that do not overlap stay ordinary struct members.
+
+Take this ISF struct of eight bytes:
+
+```text
+a      offset 0, u32
+whole  offset 4, u32
+low    offset 4, u16
+```
+
+`whole` and `low` share bytes 4 and 5, so they become one union of four bytes. The imported struct has two members:
+`a` at offset 0 and a promoted `__overlay_4` at offset 4. The number is the group's byte offset from the start of the
+struct; a suffix is added if the struct already uses that name. The paths `a`, `whole` and `low` all keep working.
+For the input bytes `44 33 22 11 78 56 34 12`, reading `whole` gives `0x12345678`, and reading `low` gives `0x5678`.
+`IsfMetadata.Describe` still reports the original kind and fields.
+
+A whole-value read returns a `StructValue` whose keys are the original member names, as for any promoted union.
+To write a whole value, supply each group by its overlay name as a `UnionValue`: `UnionValue.FromMember("__overlay_4",
+"whole", 0x12345678U)` selects one interpretation, and a `UnionValue` read from the path `__overlay_4` reproduces
+the group's exact bytes. A dictionary that names only the aliased members is rejected rather than silently choosing
+which overlapping value wins. Writing a group never clears unrelated members such as `a`. A selected-field update
+changes only that field's bits. Disjoint bit slices sharing one integer are not aliases and stay plain members.
+
+These rules do not relax ordinary `MemorySchema` struct validation or BTF placement checks: those structs must
+still have disjoint physical bits. Bounds, by-value cycles, descriptor budgets and cancellation remain enforced.
 
 ### Symbols, type names, and forward declarations
 
@@ -194,7 +226,7 @@ Both importers take the same `MetadataImportOptions`:
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `PointerSize` | 8 | The analyzed image's pointer width in bytes. Set 4 for a 32-bit capture, even on a 64-bit host. |
+| `PointerSize` | 8 | Default target pointer width in bytes. Set 4 for a 32-bit target. An ISF pointer's explicit integer storage base overrides this default, and the schema byte order, for that pointer, so native and WOW64 widths can coexist. |
 | `BestEffort` | false | Demote a type that fails validation to a `RawBytes` placeholder instead of failing (see below). |
 | `MaxTypes` | 100,000 | The most type descriptors one import may create, bitfield storage and generated types included. |
 
@@ -202,6 +234,71 @@ An import walks the type graph with an explicit work list rather than recursion,
 not run into a depth limit. Types nested by value (a struct inside an array inside a struct, and so on) may be 256
 levels deep, the same default limit that applies to a compiled layout; a deeper graph fails with
 `CStructLayoutException`. ISF documents are likewise limited to 256 levels of JSON nesting.
+
+## Prepare native Windows PDB metadata
+
+A native **PDB** (Program Database) file stores compiler type records and symbol coordinates in an **MSF**
+(Multi-Stream File) container. Its streams can occupy discontiguous blocks. `PdbMetadata` reads the directory and
+selected metadata streams rather than loading the whole containing file.
+
+Preparation is explicit and offline. Obtain the matching PDB separately, then write an ISF profile:
+
+```csharp
+using CStructSharp.Memory.Metadata;
+
+using var input = File.OpenRead("kernel.pdb");
+var pdb = new PdbMetadata(input);
+using (var output = File.Create("kernel.json.preparing"))
+{
+    pdb.WriteIsf(output, "ntkrnlmp.pdb");
+}
+
+File.Move("kernel.json.preparing", "kernel.json", overwrite: false);
+```
+
+The caller owns both streams. Construction restores the original input position. `WriteIsf` leaves the output open;
+publish it only after success. Use the resulting JSON with `IsfMetadata` and the normal memory-schema operations.
+Neither operation opens a capture, queries a symbol server, or chooses a profile for an image.
+
+The source's `Guid`, `InformationAge` and `DbiAge` remain separate observations. The output profile records the DBI
+age and original machine identifier in `metadata.windows.pdb`. Record both age fields, the original input hash,
+any explicitly supplied target machine and the target's exact CodeView request in the application's preparation
+manifest; do not assume the age fields are equal. `Symbols` contains image-relative addresses, including
+recorded OMAP relocation. `AbsoluteSymbols` keeps absolute values separately so they are not accidentally relocated
+as memory addresses. `SymbolRecordKinds` inventories original records, including references that do not directly
+encode an image coordinate. `UnmappedSymbolCount` counts distinct names that are absolute or have no OMAP coordinate.
+
+Public and global symbols must agree on one address per name. File-local data, such as a C `static` variable, can
+repeat a name in different source files. Such a name appears in `Symbols` only when it has one address and no public
+or global symbol of that name disagrees; otherwise it is left out and explained in `Diagnostics`. A PDB without a
+symbol stream, such as a stripped or types-only file, has empty symbol tables but still provides its types.
+
+Native type names need not be unique. Distinct complete definitions retain their original type-index-qualified
+names. When a forward declaration has several complete definitions of the same extent, preparation creates an
+explicit union whose `cv_XXXXXXXX` members expose each original definition. It does not pick a layout by name.
+Different extents remain unresolved rather than acquiring an invented by-value size. Inspect `Diagnostics` and
+retain these transformations in the preparation manifest.
+
+The ISF `base_types.pointer` entry records the unsigned integer width selected by `TargetMachine`.
+Usually this comes from the original DBI machine. When that original value is zero, construction requires
+an explicit `targetMachine` from independent target evidence; `Machine` and the exported machine value
+still retain zero. A supplied target cannot override a contradictory nonzero DBI value.
+Explicit `__cv_pointer32` and `__cv_pointer64` bases remain distinct, so individual fields do not widen
+or narrow to the default address width. Flat `near32` and `near64` kinds define four and eight bytes
+even when their separate size bits are zero; a nonzero size must agree with the kind.
+
+Supported input is MSF 7 with CodeView V70 or V80 type-stream headers and the supported storage leaves:
+flat 32/64-bit pointers, integer/float storage descriptions, arrays, enums, instance members and bitfields.
+A C++ class exports its instance data members only. Methods, static members, nested types and virtual-function table entries
+have no storage in the object and are skipped. A base class does occupy bytes, but its members are not copied
+into the derived type, so those bytes remain unnamed; import the base type separately to read them.
+Segmented/member-pointer encodings and unsupported leaves fail explicitly. The constructor's `maxMetadataBytes` bounds
+retained metadata bytes and `maxRecords` bounds each input table. `WriteIsf` has a separate `maxTraversalSteps` limit
+(100,000,000 by default), shared across types, repeated field-list references, descriptors and symbols, because one
+loaded record can be visited several times. Cancellation applies to metadata reads and CPU traversal. The format references are the
+[MSF specification](https://llvm.org/docs/PDB/MsfFile.html),
+[CodeView type records](https://llvm.org/docs/PDB/CodeViewTypes.html) and
+[Microsoft's DBI section documentation](https://github.com/microsoft/pdb-rs/blob/main/docs/pdb/dbi_sections.md).
 
 ## Import BTF and split tables
 

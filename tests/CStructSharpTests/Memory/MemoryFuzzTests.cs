@@ -29,7 +29,7 @@ public class MemoryFuzzTests
             int count = random.Next(1, expected.Length - start + 1);
             byte[] actual = new byte[count];
             var budget = new MemoryAccessContext { MaxTotalBytes = count, MaxRequests = 20, };
-            Assert.AreEqual(count, mapped.Read(address + (uint)start, actual, budget));
+            new MemoryRegion(mapped, address + (uint)start, count).ReadExactly(actual, budget);
             CollectionAssert.AreEqual(expected.AsSpan(start, count).ToArray(), actual);
             Assert.AreEqual(count, budget.BytesRequested);
             Assert.AreEqual(count, mapped.Describe(address + (uint)start, count).Sum(region => region.Length));

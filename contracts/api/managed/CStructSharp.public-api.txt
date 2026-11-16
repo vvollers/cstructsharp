@@ -1287,6 +1287,23 @@ namespace CStructSharp.Memory.Metadata
         public CStructSharp.Memory.MemorySchema Schema { get; init; }
         public System.Collections.Generic.IReadOnlyList<string>? SelectedPaths { get; }
     }
+    public sealed class PdbMetadata
+    {
+        public PdbMetadata(System.IO.Stream input, int maxMetadataBytes = 67108864, int maxRecords = 1000000, System.Threading.CancellationToken cancellationToken = default, ushort? targetMachine = default) { }
+        public System.Collections.Generic.IReadOnlyDictionary<string, ulong> AbsoluteSymbols { get; }
+        public uint DbiAge { get; }
+        public System.Collections.Generic.IReadOnlyList<string> Diagnostics { get; }
+        public System.Guid Guid { get; }
+        public uint InformationAge { get; }
+        public ushort Machine { get; }
+        public int PointerSize { get; }
+        public System.Collections.Generic.IReadOnlyDictionary<ushort, int> SymbolRecordKinds { get; }
+        public System.Collections.Generic.IReadOnlyDictionary<string, ulong> Symbols { get; }
+        public ushort TargetMachine { get; }
+        public int UnmappedSymbolCount { get; }
+        public System.Collections.Generic.IReadOnlyList<string> UserTypeNames { get; }
+        public void WriteIsf(System.IO.Stream output, string pdbName, long maxTraversalSteps = 100000000, System.Threading.CancellationToken cancellationToken = default) { }
+    }
 }
 namespace CStructSharp.Values
 {

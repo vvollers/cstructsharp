@@ -3,12 +3,11 @@ namespace CStructSharp.Memory;
 /// <summary>An address space assembled from a table of mappings, each translating a logical range to a range of another source.</summary>
 /// <remarks>
 /// <para>
-/// This is the type that turns a scattered capture into something that looks like a process. A process sees
-/// consecutive pages; the capture stores them at arbitrary offsets, in one file or several. Each
-/// <see cref="MemoryMapping"/> records one placement, and this source answers a read by finding the mapping that
-/// contains the address, asking the backing source for as many bytes as that mapping can supply, and continuing
-/// with the next mapping until the request is complete. A read that crosses a boundary is therefore split and
-/// reassembled in logical order without the caller noticing.
+/// A process sees consecutive pages; the capture stores them at arbitrary offsets, in one file or several. Each
+/// <see cref="MemoryMapping"/> records one placement. A read returns the positive count supplied by one backing
+/// read within the current mapping. <see cref="MemoryRegion.ReadExactly"/> and <see cref="MemoryRegion.ReadPartial"/>
+/// continue across mappings. Returning each confirmed prefix before reading another extent lets those callers
+/// retain its validity if the next extent is absent.
 /// </para>
 /// <para>
 /// The table is sorted once at construction so each lookup is a binary search. Logical ranges must not overlap,
@@ -126,39 +125,23 @@ public sealed class MappedMemorySource : IMemoryMappingSource
         context.EnterSource();
         try
         {
-            return this.ReadMapped(address, destination, context);
+            if (destination.IsEmpty)
+            {
+                return 0;
+            }
+
+            MemoryMapping mapping = this.Find(address, context);
+            long offset = checked((long)(address - mapping.Address));
+            int count = (int)Math.Min(destination.Length, mapping.Backing.Length - offset);
+            int read = mapping.Backing.Source.Read(checked(mapping.Backing.Address + (ulong)offset), destination[..count], context);
+            MemorySourceChecks.ThrowIfInvalidReadCount(read, count, this.Id, address);
+            MemorySourceChecks.ThrowIfUnavailable(read, count, this.Id, address, "Mapped backing bytes are unavailable.");
+            return read;
         }
         finally
         {
             context.ExitSource();
         }
-    }
-
-    /// <summary>Fills the destination from successive mappings, advancing by the bytes each backing read actually returned.</summary>
-    /// <remarks>Two different events can end a backing read early, and they must be told apart. Reaching the end of
-    /// a mapping is normal: the loop looks up the next mapping and continues. A backing source returning fewer bytes
-    /// than asked is a short read: the loop asks again from the next byte. A backing source returning zero before
-    /// the mapping is exhausted means the capture is missing data, which is an error. A failure part-way through may
-    /// leave a prefix of the destination filled.</remarks>
-    private int ReadMapped(ulong address, Span<byte> destination, MemoryAccessContext context)
-    {
-        int done = 0;
-        while (done < destination.Length)
-        {
-            ulong current = checked(address + (ulong)done);
-            MemoryMapping mapping = this.Find(current, context);
-            long offset = checked((long)(current - mapping.Address));
-
-            // Ask for no more than this mapping can supply; the next iteration handles the remainder.
-            int count = (int)Math.Min(destination.Length - done, mapping.Backing.Length - offset);
-            int read = mapping.Backing.Source.Read(checked(mapping.Backing.Address + (ulong)offset), destination.Slice(done, count), context);
-            MemorySourceChecks.ThrowIfInvalidReadCount(read, count, this.Id, current);
-            MemorySourceChecks.ThrowIfUnavailable(read, count, this.Id, current, "Mapped backing bytes are unavailable.");
-
-            done += read;
-        }
-
-        return done;
     }
 
     /// <summary>Binary-searches the sorted table for the mapping containing <paramref name="address"/>, charging one lookup request.</summary>

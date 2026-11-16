@@ -6,6 +6,44 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 headings in this order and omits the empty ones: *Breaking changes* (each with its
 migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and tooling*.
 
+## Unreleased
+
+### Breaking changes
+
+- `MappedMemorySource.Read` (`IMemorySource.Read`) now returns a positive short count at a mapping boundary instead
+  of filling the whole destination from successive mappings. Migration: callers that invoke `Read` directly must
+  continue from the returned count, or use `MemoryRegion.ReadExactly` or `ReadPartial`, which assemble complete
+  transfers. Bytes from completed mappings stay confirmed when a later mapping or backing extent is missing,
+  including through nested mappings, and failures keep their original coordinates.
+
+### Added
+
+- Import native ISF 6.1.0 documents alongside 6.2.0 without changing their declared version.
+- Preserve flattened native member aliases. Only members whose physical bits overlap are grouped into a generated
+  union, held by a promoted `__overlay_{offset}` member, so every original member path still resolves and unrelated
+  members keep struct semantics. A whole-value write supplies each group as a `UnionValue`. Native descriptions keep
+  their original kind and fields. Ordinary struct validation remains strict.
+- Prepare native MSF 7/CodeView V70 and V80 Windows PDB metadata as deterministic ISF 6.2.0 with `PdbMetadata`, without
+  a debugger or network dependency. Selected stream reads and per-table record limits bound loading; `WriteIsf` has its
+  own `maxTraversalSteps` limit. Public/global/file-local image-relative addresses, absolute symbol values, both native
+  age fields and ambiguous type identities stay distinct; file-local names with several addresses are reported in
+  `Diagnostics` instead of being exported. C++ classes export their instance members and skip methods, base classes,
+  nested types, static members and vtable entries. A PDB without a symbol stream still provides its types.
+- `PdbMetadata` reads pointer storage from CodeView itself: explicit 32-bit and 64-bit pointers keep their own widths
+  (also when legacy records omit the size bits), and the ISF `pointer` base records the target machine's width. When
+  the DBI machine is zero, construction requires an explicit `targetMachine`; `Machine` keeps the original value and
+  a nonzero original machine cannot be overridden.
+- Keep every original complete type when a forward declaration has several same-extent definitions. Prepared metadata
+  exposes an explicit union of those views instead of silently selecting a definition by its display name.
+
+### Fixed
+
+- Honor an ISF pointer's explicit integer storage base independently of the default target pointer width, including
+  that base's byte order. Native and WOW64 representations can coexist in one schema and in field-directed imports
+  without widening, truncating or byte-swapping stored addresses.
+- `CachedMemorySource` stores positive short reads with their confirmed count, so repeated transfers that cross a
+  mapped boundary are answered from the cache. Eviction releases the bytes each entry actually retained.
+
 ## 0.18.0 — 2026-10-28
 
 ### Added

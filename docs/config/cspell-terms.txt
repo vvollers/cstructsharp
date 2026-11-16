@@ -111,3 +111,5 @@ ifdef
 offsetof
 PWSTR
 LINQ
+OMAP
+discontiguous

@@ -127,7 +127,10 @@ public sealed partial class MemorySchema
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
-                this.Validate(type, sharedScalars, layoutCache);
+                if (this.Validate(type, sharedScalars, layoutCache) is { } aliases)
+                {
+                    this.GroupOverlappingViews(type, aliases, definitions, sharedScalars, layoutCache);
+                }
             }
             catch (CStructLayoutException error) when (bestEffort)
             {
@@ -336,7 +339,11 @@ public sealed partial class MemorySchema
     /// <param name="sharedScalars">Constructor-local built-in codecs, or null when options may invoke caller code.</param>
     /// <exception cref="CStructLayoutException">The definition is invalid.</exception>
     /// <param name="layoutCache">Optional metadata-owned cache of successful core compilations with exact settings.</param>
-    private void Validate(MemoryTypeDefinition type, Dictionary<(string Root, bool LittleEndian), MemoryScalarCodec>? sharedScalars, CStructLayoutCache? layoutCache)
+    /// <returns>
+    /// Null for a valid definition; for a struct that may preserve recorded native aliases and has overlapping members,
+    /// the sorted physical bit intervals of its members, tagged with each member's index, for <see cref="GroupOverlappingViews"/>.
+    /// </returns>
+    private List<(long Start, long End, int Field)>? Validate(MemoryTypeDefinition type, Dictionary<(string Root, bool LittleEndian), MemoryScalarCodec>? sharedScalars, CStructLayoutCache? layoutCache)
     {
         if (!Enum.IsDefined(type.Kind))
         {
@@ -409,9 +416,10 @@ public sealed partial class MemorySchema
         }
 
         var names = new HashSet<string>(StringComparer.Ordinal);
-        var intervals = new List<(long Start, long End)>();
-        foreach (MemoryField field in type.Fields)
+        var intervals = new List<(long Start, long End, int Field)>();
+        for (int index = 0; index < type.Fields.Count; index++)
         {
+            MemoryField field = type.Fields[index];
             if (type.Kind is not (MemoryTypeKind.Struct or MemoryTypeKind.Union) || !names.Add(field.Name) || field.Name.Length == 0)
             {
                 throw new CStructLayoutException($"Invalid or duplicate member in '{type.Id}'.");
@@ -476,13 +484,13 @@ public sealed partial class MemorySchema
                     int byteIndex = littleEndian ? bit / 8 : member.Size - 1 - (bit / 8);
                     int bitsInByte = Math.Min(8 - (bit % 8), field.BitOffset.Value + width - bit);
                     long physicalBit = (((long)field.Offset + byteIndex) * 8) + (bit % 8);
-                    intervals.Add((physicalBit, physicalBit + bitsInByte));
+                    intervals.Add((physicalBit, physicalBit + bitsInByte, index));
                     bit += bitsInByte;
                 }
             }
             else
             {
-                intervals.Add((start, checked(start + length)));
+                intervals.Add((start, checked(start + length), index));
             }
 
             if (field.Promoted && member.Kind is not (MemoryTypeKind.Struct or MemoryTypeKind.Union or MemoryTypeKind.RawBytes))
@@ -496,15 +504,153 @@ public sealed partial class MemorySchema
         if (type.Kind == MemoryTypeKind.Struct)
         {
             long end = 0;
-            foreach ((long start, long nextEnd) in intervals)
+            foreach ((long start, long nextEnd, _) in intervals)
             {
                 if (start < end && nextEnd > start)
                 {
+                    if (type.PreserveOverlappingViews)
+                    {
+                        return intervals;
+                    }
+
                     throw new CStructLayoutException($"Overlapping members in struct '{type.Id}'. Use a union for overlays.");
                 }
 
                 end = Math.Max(end, nextEnd);
             }
+        }
+
+        return null;
+    }
+
+    /// <summary>Replaces each group of aliased native members with one promoted union, leaving every other member in the struct.</summary>
+    /// <remarks>
+    /// <para>
+    /// Native debug metadata can list several interpretations of the same bytes (a flags word and its bitfields, for
+    /// example) as ordinary struct members. Members are first grouped by transitive byte overlap, so each group covers
+    /// a byte range that no other member touches. A group whose physical bits really overlap becomes a generated union
+    /// <c>{struct id}::overlay@{offset}</c>, placed by a promoted member named <c>__overlay_{offset}</c> (made unique
+    /// if the struct already uses that name). Offsets are bytes from the start of the struct.
+    /// </para>
+    /// <para>
+    /// Promotion keeps every original member path valid. Only the aliased bytes acquire union semantics: writing
+    /// one interpretation clears the rest of that group, never unrelated members. A group whose members share bytes
+    /// but not bits (disjoint bitfields in one storage unit) stays as plain struct members.
+    /// </para>
+    /// </remarks>
+    /// <param name="type">The validated struct whose members overlap.</param>
+    /// <param name="bits">Its sorted physical bit intervals, tagged with member indices.</param>
+    /// <param name="definitions">The schema's definitions, updated in place with the unions and the regrouped struct.</param>
+    /// <param name="sharedScalars">Constructor-local built-in codecs, or null.</param>
+    /// <param name="layoutCache">Optional metadata-owned layout cache.</param>
+    /// <exception cref="CStructLayoutException">A generated definition fails validation.</exception>
+    private void GroupOverlappingViews(MemoryTypeDefinition type, List<(long Start, long End, int Field)> bits, Dictionary<string, MemoryTypeDefinition> definitions, Dictionary<(string Root, bool LittleEndian), MemoryScalarCodec>? sharedScalars, CStructLayoutCache? layoutCache)
+    {
+        IReadOnlyList<MemoryField> fields = type.Fields;
+
+        // Group members by transitive byte overlap: sorted by start, a member joins the open group while it starts
+        // before that group's running end.
+        int[] group = new int[fields.Count];
+        var starts = new List<int>();
+        var ends = new List<int>();
+        foreach (int index in Enumerable.Range(0, fields.Count).OrderBy(index => fields[index].Offset))
+        {
+            int start = fields[index].Offset;
+            int end = start + this.Types[fields[index].TypeId].Size;
+            if (starts.Count == 0 || start >= ends[^1])
+            {
+                starts.Add(start);
+                ends.Add(end);
+            }
+            else
+            {
+                ends[^1] = Math.Max(ends[^1], end);
+            }
+
+            group[index] = starts.Count - 1;
+        }
+
+        // The bit intervals are sorted by start, so a per-group running end finds the groups with real aliasing.
+        bool[] aliased = new bool[starts.Count];
+        long[] reached = new long[starts.Count];
+        foreach ((long start, long end, int field) in bits)
+        {
+            int owner = group[field];
+            if (start < reached[owner] && end > start)
+            {
+                aliased[owner] = true;
+            }
+
+            reached[owner] = Math.Max(reached[owner], end);
+        }
+
+        var names = new HashSet<string>(fields.Select(field => field.Name), StringComparer.Ordinal);
+        var overlays = new MemoryField?[starts.Count];
+        for (int owner = 0; owner < starts.Count; owner++)
+        {
+            if (!aliased[owner])
+            {
+                continue;
+            }
+
+            string id = $"{type.Id}::overlay@{starts[owner]}";
+            while (definitions.ContainsKey(id))
+            {
+                id += "_";
+            }
+
+            string name = $"__overlay_{starts[owner]}";
+            while (!names.Add(name))
+            {
+                name += "_";
+            }
+
+            // Union members keep their order, bit slices and promotion; offsets become relative to the group start.
+            int origin = starts[owner];
+            MemoryField[] members = Enumerable.Range(0, fields.Count).Where(index => group[index] == owner)
+                .Select(index => fields[index])
+                .Select(field => new MemoryField(field.Name, field.TypeId, field.Offset - origin, field.BitOffset, field.BitWidth, field.Signed, field.Promoted))
+                .ToArray();
+            var union = new MemoryTypeDefinition(id, name, MemoryTypeKind.Union, ends[owner] - origin, members, provenance: type.Provenance);
+            definitions.Add(id, union);
+            this.Validate(union, sharedScalars, layoutCache);
+            overlays[owner] = new MemoryField(name, id, origin, promoted: true);
+        }
+
+        // The struct keeps its unaliased members in place; each union takes the position of its first member.
+        var regrouped = new List<MemoryField>(fields.Count);
+        bool[] placed = new bool[starts.Count];
+        for (int index = 0; index < fields.Count; index++)
+        {
+            int owner = group[index];
+            if (overlays[owner] is not { } overlay)
+            {
+                regrouped.Add(fields[index]);
+            }
+            else if (!placed[owner])
+            {
+                placed[owner] = true;
+                regrouped.Add(overlay);
+            }
+        }
+
+        // The first validation registered bit-slice codecs under the original struct; the moved slices now belong to
+        // the unions, and the remaining ones are registered again below.
+        foreach ((string Type, string Field) key in this.bitLayouts.Keys.Where(key => key.Type == type.Id).ToList())
+        {
+            this.bitLayouts.Remove(key);
+        }
+
+        var grouped = new MemoryTypeDefinition(type.Id, type.Name, MemoryTypeKind.Struct, type.Size, regrouped, provenance: type.Provenance)
+        {
+            IsProjected = type.IsProjected,
+            IsUnselected = type.IsUnselected,
+            UnselectedMembers = type.UnselectedMembers,
+        };
+        definitions[type.Id] = grouped;
+        if (this.Validate(grouped, sharedScalars, layoutCache) is not null)
+        {
+            throw new CStructLayoutException($"Overlapping members in struct '{type.Id}' could not be grouped into union views.");
         }
     }
 

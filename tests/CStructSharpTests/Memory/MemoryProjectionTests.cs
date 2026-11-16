@@ -191,7 +191,9 @@ public class MemoryProjectionTests
         MetadataImportResult result = metadata.ImportProjection("root", ["pointer", "bits", "tag"], new MetadataImportOptions { PointerSize = 4, });
         Assert.IsFalse(result.Schema.GetType("isf:base:u32").IsUnselected);
         byte[] bytes = new byte[16];
-        BinaryPrimitives.WriteUInt32LittleEndian(bytes, 0xF0000001);
+
+        // The pointer's explicit storage base is big-endian u32, so the pointer is stored in that byte order.
+        BinaryPrimitives.WriteUInt32BigEndian(bytes, 0xF0000001);
         BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(4), 15);
         BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(8), 1);
         var session = new MemorySession(result.Schema);

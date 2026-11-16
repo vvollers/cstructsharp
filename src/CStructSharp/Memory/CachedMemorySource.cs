@@ -5,16 +5,18 @@ namespace CStructSharp.Memory;
 /// <para>
 /// Analyzers read the same few ranges repeatedly: the link field of every list node, the header of every page.
 /// When the backing source is a file or a remote transport, answering those repeats from memory is much cheaper.
-/// This cache stores the result of each complete read under the key <c>(address, requested length)</c> and
-/// returns it for an identical later request.
+/// This cache stores the bytes of each successful read under the key <c>(address, requested length)</c> and
+/// returns the same bytes and count for an identical later request.
 /// </para>
 /// <para>
 /// The design is deliberately simple so its behavior can be predicted. There is no page prefetch and no merging
 /// of overlapping ranges, so the cache never reads neighboring bytes that might be unavailable; reading four bytes
 /// and then two bytes at the same address are two different entries. Capacity is a retained byte count with
 /// first-in, first-out eviction; a hit does not refresh an entry's position. Requests larger than the capacity are
-/// answered but not stored, and short reads are not stored because they do not describe the whole range. A hit
-/// still charges one request (so loops remain bounded) but charges no backing bytes.
+/// answered but not stored. A positive short read, such as a mapped read that stops at a mapping boundary, is stored
+/// with its confirmed count; the caller continues from the next byte as it would without the cache. A read that
+/// fails or returns zero bytes is not stored. A hit still charges one request (so loops remain bounded) but charges
+/// no backing bytes.
 /// </para>
 /// <para>
 /// Correctness depends entirely on <see cref="IMemorySource.Generation"/>: the cache empties itself when the
@@ -55,7 +57,7 @@ public sealed class CachedMemorySource : IMemorySource
     /// <summary>Gets the backing source's generation; a change is acted on at the next read.</summary>
     public long Generation => this.source.Generation;
 
-    /// <summary>Answers from the cache when the exact range is present; otherwise reads the backing source and stores a complete result.</summary>
+    /// <summary>Answers from the cache when the exact request is present; otherwise reads the backing source and stores its positive result.</summary>
     /// <param name="address">Unsigned address in the backing source's coordinate system.</param>
     /// <param name="destination">Caller-owned destination used only during this call.</param>
     /// <param name="context">Shared operation budget and cancellation; a hit charges one request and zero bytes.</param>
@@ -94,17 +96,19 @@ public sealed class CachedMemorySource : IMemorySource
                 throw new MemoryAccessException(MemoryFailure.StaleSource, this.Id, address, destination.Length, "Backing source changed during a cached read.");
             }
 
-            // Store only complete reads that fit; evict oldest entries until this one fits.
-            if (read == destination.Length && read > 0 && read <= this.capacity)
+            // Store every positive read that fits, including a short one: its count is the backing source's own answer
+            // for this exact request in this generation (a mapped source stops at a mapping boundary, for example),
+            // so a repeat is answered with the same confirmed prefix. Evict oldest entries until this one fits.
+            if (read > 0 && read <= this.capacity)
             {
                 while (read > this.capacity - this.retained)
                 {
                     (ulong Address, int Length) oldest = this.order.Dequeue();
+                    this.retained -= this.entries[oldest].Length;
                     this.entries.Remove(oldest);
-                    this.retained -= oldest.Length;
                 }
 
-                this.entries.Add(key, destination.ToArray());
+                this.entries.Add(key, destination[..read].ToArray());
                 this.order.Enqueue(key);
                 this.retained += read;
             }

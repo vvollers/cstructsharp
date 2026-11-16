@@ -16,8 +16,8 @@ public sealed record MetadataImportOptions
     public static MetadataImportOptions Default { get; } = new();
 
     /// <summary>
-    ///     Gets the target pointer width in bytes. It describes the analyzed image, not the metadata's own word size or
-    ///     the .NET process running the import, so a 32-bit capture analyzed on a 64-bit host must say 4.
+    ///     Gets the default target pointer width in bytes, not the analyzing process's width. A 32-bit target must say 4.
+    ///     ISF pointers with an explicit integer storage base retain that base's own width, including mixed native/WOW64 records.
     /// </summary>
     public int PointerSize { get; init; } = 8;
 

@@ -17,13 +17,41 @@ public class MemorySourceContractTests
         var cache = new CachedMemorySource("cache", mapped);
         byte[] bytes = new byte[3];
         Assert.AreEqual(0L, mapped.Generation);
-        Assert.AreEqual(3, cache.Read(100, bytes, new MemoryAccessContext()));
+        new MemoryRegion(cache, 100, bytes.Length).ReadExactly(bytes, new MemoryAccessContext());
         CollectionAssert.AreEqual(new byte[] { 1, 2, 3, }, bytes);
         mutable.Write(0, new byte[] { 9, }, new MemoryAccessContext());
         Assert.AreEqual(1L, mapped.Generation);
         Assert.AreEqual(1L, mapped.Generation);
-        Assert.AreEqual(3, cache.Read(100, bytes, new MemoryAccessContext()));
+        new MemoryRegion(cache, 100, bytes.Length).ReadExactly(bytes, new MemoryAccessContext());
         CollectionAssert.AreEqual(new byte[] { 1, 2, 9, }, bytes);
+    }
+
+    /// <summary>Completed mapped bytes remain confirmed when a later mapping or backing extent is absent.</summary>
+    /// <param name="missingBacking">The logical mapping extends past its backing instead of containing a logical gap.</param>
+    /// <param name="nested">A second mapped space translates the same original unavailable coordinate.</param>
+    [TestMethod]
+    [DataRow(false, false)]
+    [DataRow(false, true)]
+    [DataRow(true, false)]
+    [DataRow(true, true)]
+    public void MappedPartialRead_PreservesConfirmedPrefixAcrossMissingExtents(bool missingBacking, bool nested)
+    {
+        var physical = new ByteArrayMemorySource("physical", missingBacking ? new byte[] { 1, 2, 3, } : new byte[] { 1, 2, 3, 4, 5, });
+        MemoryMapping[] mappings = missingBacking
+            ? [new(100, new MemoryRegion(physical, 0, 5))]
+            : [new(100, new MemoryRegion(physical, 0, 3)), new(104, new MemoryRegion(physical, 4, 1))];
+        var mapped = new MappedMemorySource("mapped", mappings);
+        MemoryRegion region = nested
+            ? new(new MappedMemorySource("outer", [new(200, new MemoryRegion(mapped, 100, 5))]), 200, 5)
+            : new(mapped, 100, 5);
+        byte[] bytes = [99, 99, 99, 99, 99];
+        MemoryReadResult result = region.ReadPartial(bytes, new MemoryAccessContext());
+        Assert.AreEqual(3, result.BytesRead);
+        Assert.IsFalse(result.IsComplete);
+        Assert.AreEqual(missingBacking ? MemoryFailure.MissingBytes : MemoryFailure.Unmapped, result.Failure!.MemoryFailure);
+        Assert.AreEqual("mapped", result.Failure.SourceId);
+        Assert.AreEqual(103UL, result.Failure.Address);
+        CollectionAssert.AreEqual(new byte[] { 1, 2, 3, 99, 99, }, bytes);
     }
 
     /// <summary>Short reads continue across a mapping, while an absent byte and malformed adapter count are distinct failures.</summary>
@@ -33,7 +61,7 @@ public class MemorySourceContractTests
         var source = new ControlledSource();
         var mapped = new MappedMemorySource("logical", [new(100, new MemoryRegion(source, 0, 4)),]);
         byte[] buffer = new byte[4];
-        Assert.AreEqual(4, mapped.Read(100, buffer, new MemoryAccessContext()));
+        new MemoryRegion(mapped, 100, buffer.Length).ReadExactly(buffer, new MemoryAccessContext());
         CollectionAssert.AreEqual(new byte[] { 1, 2, 3, 4, }, buffer);
         Assert.AreEqual(4, source.Reads);
         Assert.AreEqual(0L, mapped.Generation);
@@ -64,16 +92,20 @@ public class MemorySourceContractTests
         var source = new ControlledSource();
         var cached = new CachedMemorySource("cache", source, 1);
         byte[] bytes = new byte[2];
+
+        // A positive short read is the source's confirmed answer for this request, so a repeat is a hit.
         Assert.AreEqual(1, cached.Read(0, bytes, new MemoryAccessContext()));
         Assert.AreEqual(1, cached.Read(0, bytes, new MemoryAccessContext()));
-        Assert.AreEqual(2, source.Reads);
+        Assert.AreEqual(1, source.Reads);
+
+        // A complete read larger than the capacity bypasses storage.
         source.ReturnCount = 2;
-        cached.Read(0, bytes, new MemoryAccessContext());
-        cached.Read(0, bytes, new MemoryAccessContext());
-        Assert.AreEqual(4, source.Reads);
+        cached.Read(1, bytes, new MemoryAccessContext());
+        cached.Read(1, bytes, new MemoryAccessContext());
+        Assert.AreEqual(3, source.Reads);
         source.ReturnCount = 1;
         source.ChangeGeneration = true;
-        MemoryAccessException stale = Assert.Throws<MemoryAccessException>(() => cached.Read(0, bytes, new MemoryAccessContext()));
+        MemoryAccessException stale = Assert.Throws<MemoryAccessException>(() => cached.Read(2, bytes, new MemoryAccessContext()));
         Assert.AreEqual(MemoryFailure.StaleSource, stale.Failure);
         Assert.AreEqual(source.Generation, cached.Generation);
         source.ChangeGeneration = false;
@@ -81,6 +113,50 @@ public class MemorySourceContractTests
         Assert.AreEqual(MemoryFailure.SourceFailure, Assert.Throws<MemoryAccessException>(() => cached.Read(0, bytes, new MemoryAccessContext())).Failure);
         source.ReturnCount = -1;
         Assert.AreEqual(MemoryFailure.SourceFailure, Assert.Throws<MemoryAccessException>(() => cached.Read(0, bytes, new MemoryAccessContext())).Failure);
+    }
+
+    /// <summary>A cache over a mapped source answers repeated boundary-crossing transfers without new backing reads.</summary>
+    [TestMethod]
+    public void Cache_OverMappedSource_ReusesBoundaryCrossingReads()
+    {
+        var physical = new ByteArrayMemorySource("physical", new byte[] { 1, 2, 3, 4, 5, 6, });
+        var mapped = new MappedMemorySource("mapped", [new(100, new MemoryRegion(physical, 0, 2)), new(102, new MemoryRegion(physical, 4, 2)),]);
+        var cache = new CachedMemorySource("cache", mapped, capacity: 64);
+        var region = new MemoryRegion(cache, 100, 4);
+        byte[] bytes = new byte[4];
+
+        var first = new MemoryAccessContext();
+        region.ReadExactly(bytes, first);
+        CollectionAssert.AreEqual(new byte[] { 1, 2, 5, 6, }, bytes);
+        Assert.AreEqual(4L, first.BytesRequested);
+
+        // Both the short first segment and its continuation are cached, so a repeat charges no backing bytes.
+        Array.Clear(bytes);
+        var second = new MemoryAccessContext();
+        region.ReadExactly(bytes, second);
+        CollectionAssert.AreEqual(new byte[] { 1, 2, 5, 6, }, bytes);
+        Assert.AreEqual(0L, second.BytesRequested);
+    }
+
+    /// <summary>Eviction releases the bytes an entry actually retained, so short entries cannot exhaust the capacity.</summary>
+    [TestMethod]
+    public void Cache_EvictsShortEntriesByRetainedBytes()
+    {
+        var source = new ControlledSource();
+        var cached = new CachedMemorySource("cache", source, 2);
+        byte[] bytes = new byte[2];
+        for (ulong address = 0; address < 3; address++)
+        {
+            Assert.AreEqual(1, cached.Read(address, bytes, new MemoryAccessContext()));
+        }
+
+        // Capacity 2 holds two one-byte entries; the third evicted only the first.
+        Assert.AreEqual(3, source.Reads);
+        cached.Read(2, bytes, new MemoryAccessContext());
+        cached.Read(1, bytes, new MemoryAccessContext());
+        Assert.AreEqual(3, source.Reads);
+        cached.Read(0, bytes, new MemoryAccessContext());
+        Assert.AreEqual(4, source.Reads);
     }
 
     /// <summary>Overlays reject stale backing, check capacity before mutation, and do not leak patch byte arrays.</summary>
