@@ -2,10 +2,10 @@
   "environment": {
     "processor": "AMD Ryzen 9 9950X",
     "os": "Windows 11",
-    "runtime": ".NET 10.0.12",
+    "runtime": ".NET 10.0.15",
     "benchmarkDotNet": "0.15.8",
     "job": "default",
-    "date": "2026-10-04"
+    "date": "2026-11-16"
   },
   "sizes": {
     "FlatBuffers": 116,
@@ -17,151 +17,151 @@
   },
   "cases": {
     "DeserializeBenchmarks.CStructSharp_GeneratedParse": {
-      "medianNanoseconds": 15.478,
+      "medianNanoseconds": 18.598,
       "allocatedBytes": 184
     },
     "DeserializeBenchmarks.CStructSharp_GeneratedView": {
-      "medianNanoseconds": 8.186,
+      "medianNanoseconds": 8.524,
       "allocatedBytes": 0
     },
     "DeserializeBenchmarks.CStructSharp_RuntimeParse": {
-      "medianNanoseconds": 328.769,
+      "medianNanoseconds": 363.268,
       "allocatedBytes": 672
     },
     "DeserializeBenchmarks.CStructSharp_RuntimeParseAccessors": {
-      "medianNanoseconds": 127.138,
+      "medianNanoseconds": 134.838,
       "allocatedBytes": 672
     },
     "DeserializeBenchmarks.CStructSharp_RuntimeReadValue": {
-      "medianNanoseconds": 30.292,
+      "medianNanoseconds": 32.946,
       "allocatedBytes": 248
     },
     "DeserializeBenchmarks.CStructSharp_RuntimeView": {
-      "medianNanoseconds": 28.886,
+      "medianNanoseconds": 29.604,
       "allocatedBytes": 0
     },
     "DeserializeBenchmarks.HandWritten_BinaryPrimitives": {
-      "medianNanoseconds": 16.751,
+      "medianNanoseconds": 17.78,
       "allocatedBytes": 248
     },
     "DeserializeBenchmarks.Kaitai_Struct": {
-      "medianNanoseconds": 117.428,
+      "medianNanoseconds": 152.095,
       "allocatedBytes": 1040
     },
     "DeserializeBenchmarks.Own_FlatSharp": {
-      "medianNanoseconds": 27.783,
+      "medianNanoseconds": 31.424,
       "allocatedBytes": 240
     },
     "DeserializeBenchmarks.Own_MemoryPack": {
-      "medianNanoseconds": 31.897,
+      "medianNanoseconds": 34.521,
       "allocatedBytes": 248
     },
     "DeserializeBenchmarks.Own_MessagePack": {
-      "medianNanoseconds": 110.267,
+      "medianNanoseconds": 110.852,
       "allocatedBytes": 248
     },
     "DeserializeBenchmarks.Own_ProtobufNet": {
-      "medianNanoseconds": 226.966,
+      "medianNanoseconds": 245.871,
       "allocatedBytes": 184
     },
     "DeserializeBenchmarks.Own_SystemTextJson": {
-      "medianNanoseconds": 641.063,
+      "medianNanoseconds": 707.292,
       "allocatedBytes": 848
     },
     "DeserializeBenchmarks.Stock_BinaryReader": {
-      "medianNanoseconds": 35.811,
+      "medianNanoseconds": 39.325,
       "allocatedBytes": 248
     },
     "DeserializeBenchmarks.Stock_MarshalPtrToStructure": {
-      "medianNanoseconds": 50.095,
+      "medianNanoseconds": 53.275,
       "allocatedBytes": 128
     },
     "DeserializeBenchmarks.Stock_MemoryMarshal": {
-      "medianNanoseconds": 8.674,
+      "medianNanoseconds": 7.539,
       "allocatedBytes": 0
     },
     "SerializeBenchmarks.CStructSharp_GeneratedSerialize": {
-      "medianNanoseconds": 8.396,
+      "medianNanoseconds": 8.755,
       "allocatedBytes": 0
     },
     "SerializeBenchmarks.CStructSharp_RuntimeSerializeMapped": {
-      "medianNanoseconds": 19.824,
+      "medianNanoseconds": 20.901,
       "allocatedBytes": 0
     },
     "SerializeBenchmarks.CStructSharp_RuntimeSerializeStructValue": {
-      "medianNanoseconds": 52.924,
+      "medianNanoseconds": 55.414,
       "allocatedBytes": 0
     },
     "SerializeBenchmarks.HandWritten_BinaryPrimitives": {
-      "medianNanoseconds": 5.224,
+      "medianNanoseconds": 5.358,
       "allocatedBytes": 0
     },
     "SerializeBenchmarks.Own_FlatSharp": {
-      "medianNanoseconds": 46.073,
+      "medianNanoseconds": 47.031,
       "allocatedBytes": 0
     },
     "SerializeBenchmarks.Own_MemoryPack": {
-      "medianNanoseconds": 17.26,
+      "medianNanoseconds": 18.52,
       "allocatedBytes": 0
     },
     "SerializeBenchmarks.Own_MessagePack": {
-      "medianNanoseconds": 55.574,
+      "medianNanoseconds": 55.914,
       "allocatedBytes": 0
     },
     "SerializeBenchmarks.Own_ProtobufNet": {
-      "medianNanoseconds": 220.632,
+      "medianNanoseconds": 214.03,
       "allocatedBytes": 0
     },
     "SerializeBenchmarks.Own_SystemTextJson": {
-      "medianNanoseconds": 355.075,
+      "medianNanoseconds": 370.416,
       "allocatedBytes": 0
     },
     "SerializeBenchmarks.Stock_BinaryWriter": {
-      "medianNanoseconds": 39.966,
+      "medianNanoseconds": 40.191,
       "allocatedBytes": 0
     },
     "SerializeBenchmarks.Stock_MarshalStructureToPtr": {
-      "medianNanoseconds": 30.232,
+      "medianNanoseconds": 30.361,
       "allocatedBytes": 72
     },
     "SerializeBenchmarks.Stock_MemoryMarshal": {
-      "medianNanoseconds": 0.232,
+      "medianNanoseconds": 0.229,
       "allocatedBytes": 0
     },
     "VariableBenchmarks.Generated_Parse": {
-      "medianNanoseconds": 48.739,
+      "medianNanoseconds": 50.235,
       "allocatedBytes": 200
     },
     "VariableBenchmarks.Generated_Serialize": {
-      "medianNanoseconds": 28.647,
+      "medianNanoseconds": 27.249,
       "allocatedBytes": 0
     },
     "VariableBenchmarks.HandWritten_Read": {
-      "medianNanoseconds": 24.552,
+      "medianNanoseconds": 23.418,
       "allocatedBytes": 208
     },
     "VariableBenchmarks.HandWritten_Write": {
-      "medianNanoseconds": 8.669,
+      "medianNanoseconds": 8.283,
       "allocatedBytes": 0
     },
     "VariableBenchmarks.Runtime_Parse": {
-      "medianNanoseconds": 367.065,
+      "medianNanoseconds": 367.78,
       "allocatedBytes": 432
     },
     "VariableBenchmarks.Runtime_ParseStream": {
-      "medianNanoseconds": 530.167,
+      "medianNanoseconds": 537.689,
       "allocatedBytes": 592
     },
     "VariableBenchmarks.Runtime_ReadValueMapped": {
-      "medianNanoseconds": 531.778,
+      "medianNanoseconds": 531.041,
       "allocatedBytes": 552
     },
     "VariableBenchmarks.Runtime_SerializeMapped": {
-      "medianNanoseconds": 395.682,
+      "medianNanoseconds": 358.675,
       "allocatedBytes": 272
     },
     "VariableBenchmarks.Runtime_SerializeStructValue": {
-      "medianNanoseconds": 237.448,
+      "medianNanoseconds": 245.119,
       "allocatedBytes": 0
     }
   }
