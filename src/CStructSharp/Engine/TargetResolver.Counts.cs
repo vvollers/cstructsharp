@@ -12,7 +12,7 @@ using CStructSharp.Reading;
 using CStructSharp.Syntax;
 using CstructEnum = CStructSharp.Syntax.Enum;
 
-/// <summary>The resolver's counting half: where an element starts, how many elements an array holds, and the size of an element without a fixed size.</summary>
+/// <content>The resolver's counting half: where an element starts, how many elements an array holds, and the size of an element without a fixed size.</content>
 internal static partial class TargetResolver
 {
     /// <summary>

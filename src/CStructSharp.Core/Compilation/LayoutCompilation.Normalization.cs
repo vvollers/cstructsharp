@@ -16,7 +16,7 @@ using CStructSharp.Parsing;
 using CStructSharp.Syntax;
 using CstructEnum = CStructSharp.Syntax.Enum;
 
-/// <summary>The normalization stage: declarations with their constant expressions evaluated - case labels, typedef array shapes, enum values, qualified member constants, and <c>#define</c> values.</summary>
+/// <content>The normalization stage: declarations with their constant expressions evaluated - case labels, typedef array shapes, enum values, qualified member constants, and <c>#define</c> values.</content>
 internal sealed partial class LayoutCompilation
 {
     /// <summary>Freezes case constants without recursive traversal or changing runtime selectors.</summary>
@@ -428,16 +428,20 @@ internal sealed partial class LayoutCompilation
                 {
                     PointerCountExpression = field.PointerCountExpression,
                     Constraints = field.Constraints,
-                    BranchConditions = field.BranchConditions.Count == 0 ? Array.Empty<ConditionalBranch>() : field.BranchConditions.Select(item =>
-                        new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray(),
+                    BranchConditions = field.BranchConditions.Count == 0
+                        ? Array.Empty<ConditionalBranch>()
+                        : field.BranchConditions.Select(item =>
+                            new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray(),
                 });
         }
 
         return new Struct(strct.Name, fields.ToImmutableList(), strct.IsUnion, strct.CompositeAlignmentOverrideExpression)
         {
             Groups = strct.Groups.Length == 0 ? strct.Groups : strct.Groups.Select(group => this.NormalizeConditionalGroup(group, caseConstants, normalizedGroups!)).ToImmutableArray(),
-            BranchConditions = strct.BranchConditions.Count == 0 ? Array.Empty<ConditionalBranch>() : strct.BranchConditions.Select(item =>
-                new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray(),
+            BranchConditions = strct.BranchConditions.Count == 0
+                ? Array.Empty<ConditionalBranch>()
+                : strct.BranchConditions.Select(item =>
+                    new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray(),
         };
     }
 }

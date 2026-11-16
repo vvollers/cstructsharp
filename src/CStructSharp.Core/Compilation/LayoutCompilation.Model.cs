@@ -12,7 +12,7 @@ using CStructSharp.Expressions;
 using CStructSharp.Syntax;
 using CstructEnum = CStructSharp.Syntax.Enum;
 
-/// <summary>Builds and queries the immutable compiled layout model from validated parsed declarations.</summary>
+/// <content>Builds and queries the immutable compiled layout model from validated parsed declarations.</content>
 internal sealed partial class LayoutCompilation
 {
     private readonly CompiledLayoutModel compiledLayout;

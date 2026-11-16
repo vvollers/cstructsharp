@@ -97,8 +97,9 @@ internal sealed class MemoryScalarCodec
             return typeof(Values.EnumValueResult);
         }
 
-        return this.bitWidth > 0 ? signedSlice ? typeof(long) : this.bitWidth < 32 ? typeof(int) : typeof(ulong)
-            : direct is not null ? FieldAccessor<object>.NaturalType(direct.Codec) ?? typeof(object) : typeof(object);
+        return this.bitWidth > 0 ? (signedSlice ? typeof(long) : this.bitWidth < 32 ? typeof(int) : typeof(ulong)) :
+               direct is not null ? FieldAccessor<object>.NaturalType(direct.Codec) ?? typeof(object) :
+               typeof(object);
     }
 
     /// <summary>Decodes a validated typed numeric selection without boxing; other codecs keep their original decoding contract.</summary>

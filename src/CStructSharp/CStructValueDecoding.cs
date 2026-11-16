@@ -9,11 +9,11 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Engine;
 using CStructSharp.Values;
 
-/// <summary>
+/// <content>
 ///     The decoding rules that depend on the layout's settings, which the compiled engine's reader and its path resolver
 ///     share: how a bitfield is decoded under the layout's bit order, and the size check before a pointer target is read
 ///     under its pointer size. The rules that depend only on the field are in <see cref="ValueDecoding"/>.
-/// </summary>
+/// </content>
 public sealed partial class CStruct
 {
     /// <summary>The debug records of an ordinary read: one shared empty list, which callers only discard.</summary>

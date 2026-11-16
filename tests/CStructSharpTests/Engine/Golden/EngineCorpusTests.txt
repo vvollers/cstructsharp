@@ -1969,6 +1969,10 @@
 @hash cf1e3a7f93cb2c3a64d0b01fdc39f26a746589ea5739a5b5819649dd25551a80 17
   CStructReadLimitException 17
 
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-caf")
+@hash 90e636c867a701ec3d6bbb87f8a38f67caf8cdb0c3afce30eb5440096f935dde 39
+  ok 39
+
 @test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-cfb")
 @hash 63063c3f3f48f3da99a0c514ee2110b45d0a6b55766aced531c5ede8f7119410 17
   CStructReadException 17
@@ -2011,6 +2015,10 @@
 
 @test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-deb")
 @hash b877f24728282bd394206c228127715bb8fe0abda550660182fa6b6d11cab466 39
+  ok 39
+
+@test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-dff")
+@hash 8f6694ccd4c6bf488fe70f7194332f3727dca0a53627b38200e71c6d2e3fdd00 39
   ok 39
 
 @test InspectorSchema_ReadsAndWritesOnEverySourceAndPath("detected-dmg")

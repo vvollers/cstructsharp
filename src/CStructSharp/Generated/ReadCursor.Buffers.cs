@@ -7,11 +7,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using CStructSharp.Streams;
 
-/// <summary>
+/// <content>
 ///     The buffered input forms of a generated read: a segmented sequence or a stream is read through a pooled buffer
 ///     that grows while the span reader needs bytes past it, so the value, failures and offsets are those of the span
 ///     form over the whole input (<see cref="BufferedInput"/>).
-/// </summary>
+/// </content>
 public ref partial struct ReadCursor
 {
     /// <summary>

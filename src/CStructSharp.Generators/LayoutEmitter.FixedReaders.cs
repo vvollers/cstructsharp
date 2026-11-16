@@ -7,7 +7,7 @@ using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using static CStructSharp.Generators.Emit;
 
-/// <summary>
+/// <content>
 ///     The fixed readers: for a struct whose every member sits at an offset known at build time, a
 ///     <c>Read&lt;Type&gt;Fixed(source, trimFixedText)</c> that decodes each member at its constant offset, the
 ///     build-time counterpart of the runtime's static read plan. The composite's generated <c>Read&lt;Type&gt;</c> tries it first
@@ -15,7 +15,7 @@ using static CStructSharp.Generators.Emit;
 ///     read exactly those bytes without a failure (enough input, within the read budget and the nesting and array
 ///     limits, and on the struct's alignment); any other input takes the member-by-member reader, which reports any
 ///     failure.
-/// </summary>
+/// </content>
 internal sealed partial class LayoutEmitter
 {
     // The eligibility of each composite, decided once; null for a composite that needs the member-by-member reader.

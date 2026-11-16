@@ -3,7 +3,7 @@ namespace CStructSharp.Compilation;
 using System.Threading;
 using CStructSharp.Reading;
 
-/// <summary>The runtime half of a compiled composite: the cached span read plan and layout fingerprint.</summary>
+/// <content>The runtime half of a compiled composite: the cached span read plan and layout fingerprint.</content>
 internal sealed partial class CompiledCompositeType
 {
     // Stands for "built, and this composite has no static plan", so the cache is a single reference.

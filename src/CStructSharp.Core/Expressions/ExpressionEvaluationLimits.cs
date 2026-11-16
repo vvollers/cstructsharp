@@ -1,6 +1,8 @@
 namespace CStructSharp.Expressions;
 
 /// <summary>Holds the immutable expression resource limits captured by a compiled layout.</summary>
+/// <param name="MaximumDepth">The deepest expression nesting an evaluation accepts.</param>
+/// <param name="MaximumNodes">The most expression tokens an evaluation accepts.</param>
 internal readonly record struct ExpressionEvaluationLimits(int MaximumDepth, int MaximumNodes)
 {
     /// <summary>Creates a validated immutable snapshot of public compilation settings.</summary>

@@ -353,12 +353,15 @@ internal static class ValuePath
         return string.Join(", ", names);
     }
 
+    /// <summary>Names a container type the way a path failure message describes it.</summary>
+    /// <param name="type">The runtime type of the value the path reached.</param>
+    /// <returns><c>struct</c>, <c>union</c>, <c>pointer</c>, <c>enum value</c>, or the type name otherwise.</returns>
     private static string Describe(Type type)
     {
-        return type == typeof(StructValue) ? "struct"
-             : type == typeof(UnionValue) ? "union"
-             : type == typeof(Pointer) ? "pointer"
-             : type == typeof(EnumValueResult) ? "enum value"
-             : type.Name;
+        return type == typeof(StructValue) ? "struct" :
+               type == typeof(UnionValue) ? "union" :
+               type == typeof(Pointer) ? "pointer" :
+               type == typeof(EnumValueResult) ? "enum value" :
+               type.Name;
     }
 }

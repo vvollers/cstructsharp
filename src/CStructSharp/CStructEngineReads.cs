@@ -12,10 +12,10 @@ using CStructSharp.Reading;
 using CStructSharp.Syntax;
 using CStructSharp.Values;
 
-/// <summary>
+/// <content>
 ///     The whole-root reads, nested parses and debug parses of the compiled engine, and its capture of the layout an update
 ///     compares.
-/// </summary>
+/// </content>
 public sealed partial class CStruct
 {
     /// <summary>

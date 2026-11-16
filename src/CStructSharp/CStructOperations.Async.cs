@@ -12,7 +12,7 @@ using CStructSharp.Expressions;
 using CStructSharp.Streams;
 using CStructSharp.Values;
 
-/// <summary>
+/// <content>
 ///     The awaitable forms of the read operations. Each reads the stream into a pooled buffer with
 ///     <see cref="Stream.ReadAsync(Memory{byte}, CancellationToken)"/> - first a seekable stream up to its remaining
 ///     length, any stream up to <see cref="ReadOptions.MaxTotalBytesRead"/> plus one byte - and runs the synchronous
@@ -27,7 +27,7 @@ using CStructSharp.Values;
 ///     Because the buffered region starts at the origin, a stored absolute pointer address counts from the origin -
 ///     as in the span and memory forms - where the synchronous stream form counts from the stream's first byte; a
 ///     stream whose addresses are absolute stream positions is read from position 0 or through the synchronous form.
-/// </summary>
+/// </content>
 public sealed partial class CStruct
 {
     /// <summary>A synchronous read over borrowed bytes that the async forms run once the input is buffered.</summary>

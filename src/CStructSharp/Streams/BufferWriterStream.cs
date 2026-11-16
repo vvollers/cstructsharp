@@ -81,30 +81,30 @@ internal sealed class BufferWriterStream : Stream
     }
 
     /// <summary>Reads bytes retained in the active window for bitfield merging.</summary>
-    /// <param name="destination">The array that receives the bytes.</param>
-    /// <param name="offset">The index in <paramref name="destination"/> where the first byte is stored.</param>
+    /// <param name="buffer">The array that receives the bytes.</param>
+    /// <param name="offset">The index in <paramref name="buffer"/> where the first byte is stored.</param>
     /// <param name="count">The maximum number of bytes to read.</param>
     /// <returns>The number of bytes copied, or 0 at or past the end of the active window.</returns>
-    public override int Read(byte[] destination, int offset, int count)
+    public override int Read(byte[] buffer, int offset, int count)
     {
-        StreamArgumentValidation.ValidateRange(destination, offset, count, nameof(destination));
-        return this.Read(destination.AsSpan(offset, count));
+        StreamArgumentValidation.ValidateRange(buffer, offset, count, nameof(buffer));
+        return this.Read(buffer.AsSpan(offset, count));
     }
 
     /// <summary>Reads bytes retained in the active window for bitfield merging.</summary>
-    /// <param name="destination">The span to fill; at most its length in bytes is copied.</param>
+    /// <param name="buffer">The span to fill; at most its length in bytes is copied.</param>
     /// <returns>The number of bytes copied, or 0 at or past the end of the active window.</returns>
     /// <exception cref="ObjectDisposedException"><see cref="Complete"/> was already called.</exception>
-    public override int Read(Span<byte> destination)
+    public override int Read(Span<byte> buffer)
     {
         this.EnsureActive();
-        int count = Math.Min(destination.Length, this.windowLength - this.windowPosition);
+        int count = Math.Min(buffer.Length, this.windowLength - this.windowPosition);
         if (count <= 0)
         {
             return 0;
         }
 
-        this.window.Span.Slice(this.windowPosition, count).CopyTo(destination);
+        this.window.Span.Slice(this.windowPosition, count).CopyTo(buffer);
         this.windowPosition += count;
         return count;
     }
@@ -185,34 +185,34 @@ internal sealed class BufferWriterStream : Stream
     }
 
     /// <summary>Appends or rewrites bytes in the active uncommitted window.</summary>
-    /// <param name="source">The array holding the bytes to write.</param>
-    /// <param name="offset">The index in <paramref name="source"/> of the first byte to write.</param>
+    /// <param name="buffer">The array holding the bytes to write.</param>
+    /// <param name="offset">The index in <paramref name="buffer"/> of the first byte to write.</param>
     /// <param name="count">The number of bytes to write.</param>
-    public override void Write(byte[] source, int offset, int count)
+    public override void Write(byte[] buffer, int offset, int count)
     {
-        StreamArgumentValidation.ValidateRange(source, offset, count, nameof(source));
-        this.Write(source.AsSpan(offset, count));
+        StreamArgumentValidation.ValidateRange(buffer, offset, count, nameof(buffer));
+        this.Write(buffer.AsSpan(offset, count));
     }
 
     /// <summary>Appends or rewrites bytes in the active uncommitted window.</summary>
-    /// <param name="source">
+    /// <param name="buffer">
     ///     The bytes to copy at the current position; a gap left by seeking forward is zero-filled first.
     /// </param>
     /// <exception cref="ObjectDisposedException"><see cref="Complete"/> was already called.</exception>
     /// <exception cref="CStructWriteException">
     ///     The bytes would overwrite part of the window and then cross into output that must be committed first.
     /// </exception>
-    public override void Write(ReadOnlySpan<byte> source)
+    public override void Write(ReadOnlySpan<byte> buffer)
     {
         this.EnsureActive();
-        this.EnsureWritableRange(source.Length);
+        this.EnsureWritableRange(buffer.Length);
         if (this.windowPosition > this.windowLength)
         {
             this.window.Span.Slice(this.windowLength, this.windowPosition - this.windowLength).Clear();
         }
 
-        source.CopyTo(this.window.Span.Slice(this.windowPosition, source.Length));
-        this.windowPosition += source.Length;
+        buffer.CopyTo(this.window.Span.Slice(this.windowPosition, buffer.Length));
+        this.windowPosition += buffer.Length;
         this.windowLength = Math.Max(this.windowLength, this.windowPosition);
     }
 

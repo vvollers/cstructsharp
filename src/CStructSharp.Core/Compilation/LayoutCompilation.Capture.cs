@@ -15,7 +15,7 @@ using CStructSharp.Parsing;
 using CStructSharp.Syntax;
 using CstructEnum = CStructSharp.Syntax.Enum;
 
-/// <summary>The capture stage: which fields a layout expression can read, so a read or write publishes exactly those as layout variables, and the rule that such a field is an integer.</summary>
+/// <content>The capture stage: which fields a layout expression can read, so a read or write publishes exactly those as layout variables, and the rule that such a field is an integer.</content>
 internal sealed partial class LayoutCompilation
 {
     /// <summary>Adds a field an expression names that cannot be an integer.</summary>

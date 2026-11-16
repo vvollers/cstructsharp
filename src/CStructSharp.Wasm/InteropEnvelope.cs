@@ -6,7 +6,7 @@ using System.Globalization;
 using System.Text;
 using CStructSharp.Diagnostics;
 
-/// <summary>
+/// <content>
 ///     Writes the versioned result envelope every browser export returns, through the one
 ///     <see cref="InteropJsonWriter"/>. An envelope is one JSON object with seven members, always in this order:
 ///     <c>contractVersion</c> (<see cref="InteropContractVersion"/>), <c>operation</c> (the export's operation name),
@@ -14,7 +14,7 @@ using CStructSharp.Diagnostics;
 ///     failure), <c>debug</c> (the byte ranges of a debug parse, otherwise empty), and <c>error</c> (null on success,
 ///     the <see cref="ErrorDetailsDto"/> fields on failure). The parse exports return the envelope as UTF-8 bytes,
 ///     every other export as a string; either way it is at most <see cref="InteropLimits.MaximumResultLength"/> bytes.
-/// </summary>
+/// </content>
 public partial class CStructExports
 {
     private static readonly byte[] EnvelopeHead = Encoding.UTF8.GetBytes("{\"contractVersion\":" + InteropContractVersion.ToString(CultureInfo.InvariantCulture) + ",\"operation\":");

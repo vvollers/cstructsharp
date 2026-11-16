@@ -106,10 +106,10 @@ internal static class ReadProgramDump
     /// <param name="step">The step.</param>
     /// <returns>The name.</returns>
     private static string Member(ReadProgram program, ReadStep step)
-        => step.Field < 0 ? "-"
-           : program.Fields[step.Field].Name is { Length: > 0 } name ? name
-           : program.Fields[step.Field].IsPromotedComposite ? "(anonymous)"
-           : "(unnamed)";
+        => step.Field < 0 ? "-" :
+           program.Fields[step.Field].Name is { Length: > 0 } name ? name :
+           program.Fields[step.Field].IsPromotedComposite ? "(anonymous)" :
+           "(unnamed)";
 
     /// <summary>Describes a step's operands by their meaning.</summary>
     /// <param name="program">The program.</param>

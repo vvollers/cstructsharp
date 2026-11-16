@@ -17,12 +17,12 @@ using CStructSharp.Syntax;
 using CStructSharp.Values;
 using CStructSharp.Writing;
 
-/// <summary>
+/// <content>
 ///     Contains the writing half of <see cref="CStruct"/>: the entry points of <c>Serialize</c>, <c>Write</c> and
 ///     <c>Update</c>, which settle a write's options, variables, path and program before the compiled engine writes it
 ///     (<see cref="WriteEngine"/>), and the primitive and pointer writes the engine delegates to the layout. The value rules
 ///     every write shares are in <see cref="WriteValueRules"/>.
-/// </summary>
+/// </content>
 public sealed partial class CStruct
 {
     /// <summary>The composite a struct root or an inline-struct typedef root writes; false for scalar roots.</summary>

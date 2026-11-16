@@ -12,7 +12,7 @@ using CStructSharp.Introspection;
 using CStructSharp.Syntax;
 using CStructSharpEnum = CStructSharp.Syntax.Enum;
 
-/// <summary>The members of a struct or union: fields and their declarators and suffixes, inline composites, and <c>if</c>/<c>switch</c> groups.</summary>
+/// <content>The members of a struct or union: fields and their declarators and suffixes, inline composites, and <c>if</c>/<c>switch</c> groups.</content>
 internal sealed partial class LayoutParser
 {
     /// <summary>A struct or union body up to its closing brace, with the <c>if</c>/<c>switch</c> groups declared in it.</summary>

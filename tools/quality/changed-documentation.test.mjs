@@ -12,7 +12,8 @@ test("changed ranges retain deletion boundaries and exact added spans", () => {
 });
 
 // Run the real Roslyn checker, including a constructor, local functions and an undocumented untouched method. A local
-// function takes a plain comment, because C# does not accept XML documentation there.
+// function takes a plain comment, because C# does not accept XML documentation there. A <content> element documents
+// only a partial type's secondary declaration.
 test("C# checker detects missing XML comments only in changed declaration spans", () => {
   const source = "/// <summary>A sample.</summary>\nclass Sample {\nvoid Legacy() {}\n/// <summary>Constructs.</summary>\npublic Sample() {}\nvoid Missing() { void Local() {} }\n/// <summary>Has a documented helper.</summary>\nvoid Outer() {\n// Adds one.\nint Next(int x) => x + 1;\n}\n}";
   const entries = [
@@ -20,13 +21,16 @@ test("C# checker detects missing XML comments only in changed declaration spans"
     { file: "local.cs", source, ranges: [{ start: 8, end: 11 }] },
     { file: "failing.cs", source, ranges: [{ start: 6, end: 6 }] },
     { file: "empty.cs", source: "/// <summary>\n/// </summary>\nclass Empty {}", ranges: [{ start: 1, end: 3 }] },
+    { file: "part.cs", source: "/// <content>The reading part.</content>\npartial class Part {}", ranges: [{ start: 1, end: 2 }] },
+    { file: "whole.cs", source: "/// <content>Not a partial type.</content>\nclass Whole {}", ranges: [{ start: 1, end: 2 }] },
   ];
   const output = execFileSync("dotnet", ["run", "--file", "tools/quality/CSharpComments.cs"], {
     cwd: repositoryRoot, input: JSON.stringify({ entries }), encoding: "utf8",
   });
   const marker = "DOC-COMMENT-RESULT:";
   const issues = JSON.parse(output.split(/\r?\n/).find((line) => line.startsWith(marker)).slice(marker.length));
-  assert.equal(issues.length, 3);
+  assert.equal(issues.length, 4);
   assert.equal(issues.filter((issue) => issue.startsWith("failing.cs:6:")).length, 2);
   assert.ok(issues.some((issue) => issue.startsWith("empty.cs:3:")));
+  assert.ok(issues.some((issue) => issue.startsWith("whole.cs:2:")));
 });

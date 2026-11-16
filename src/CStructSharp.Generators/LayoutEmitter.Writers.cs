@@ -10,12 +10,12 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 using static CStructSharp.Generators.Emit;
 
-/// <summary>
+/// <content>
 ///     The writers: one <c>Encode&lt;Type&gt;(ref WriteCursor, value, variables)</c> per composite that mirrors the
 ///     runtime writer step by step - the same placement, the same validation order and texts (array length, string
 ///     capacity, value range, bitfield width), the same union and padding rules - plus the public <c>Serialize</c>
 ///     and <c>Write</c> overloads that create the cursor.
-/// </summary>
+/// </content>
 internal sealed partial class LayoutEmitter
 {
     private const string WriteCursorType = "global::CStructSharp.Generated.WriteCursor";

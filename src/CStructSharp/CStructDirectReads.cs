@@ -14,12 +14,12 @@ using CStructSharp.Reading;
 using CStructSharp.Syntax;
 using CStructSharp.Values;
 
-/// <summary>
+/// <content>
 ///     The direct read of a whole fixed-layout root from memory: <c>Parse(bytes, "header")</c> and
 ///     <c>ReadValue&lt;T&gt;(bytes, "header")</c> for a struct whose every member has a fixed offset. The compiled engine
 ///     would build the per-operation state and slots, resolve the path, and then run the same <see cref="StaticReadPlan"/>
 ///     over the same bytes; this path runs the plan straight over the span.
-/// </summary>
+/// </content>
 /// <remarks>
 ///     The direct path is taken only when it cannot behave differently from the compiled engine: no caller variables,
 ///     no debug records, valid limits that the plan is known to satisfy, and enough input. Every other call, and every

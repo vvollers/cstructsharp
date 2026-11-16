@@ -10,10 +10,10 @@ using CStructSharp.Introspection;
 using CStructSharp.Syntax;
 using CstructEnum = CStructSharp.Syntax.Enum;
 
-/// <summary>
+/// <content>
 ///     The read-only description of a compiled layout (<see cref="Layout"/>), its rendering back to Portable text
 ///     (<see cref="ToDefinition"/>), and sibling layouts compiled from the same source with one option changed.
-/// </summary>
+/// </content>
 public sealed partial class CStruct
 {
     /// <summary>

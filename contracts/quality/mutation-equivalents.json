@@ -1,6 +1,6 @@
 {
  "schemaVersion": 1,
- "strykerVersion": "5.0.0",
+ "strykerVersion": "5.1.0",
  "files": [
   {
    "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.cs",
@@ -19,7 +19,7 @@
   },
   {
    "pattern": "CStructValueReader.cs",
-   "sourceSha256": "38de28a40256f833acee8de1f1193308444aacb83af40a9a2c7a0261f01695cb",
+   "sourceSha256": "7b7f68b6147ef4a70a99411925aaf71b04bb79fbc492024bcbbf0df188249358",
    "mutants": [
     { "mutatorName": "Linq method mutation (Single() to SingleOrDefault())", "replacement": "values.Values.SingleOrDefault",
      "location": {"start":{"line":36,"column":20},"end":{"line":36,"column":40}},
@@ -58,7 +58,7 @@
   },
   {
    "pattern": "CStructPrimitiveCodecs.cs",
-   "sourceSha256": "4909575204c48d82f8df443ca962323cbf97a20d0576724e24c232edc18e86a0",
+   "sourceSha256": "835f278c89b235ea776e894ade9f1499b51b0bfae775756d1d1bd330ec2e3872",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":67,"column":13},"end":{"line":67,"column":132}},
@@ -154,7 +154,7 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.Paths.cs",
-   "sourceSha256": "ce79c7bb10786a6c6c7c9f16e9f7cb0d7bd9967b6728dbd61e8ff4c801f32675",
+   "sourceSha256": "390c9d4f38068171d8eb26e89cff8235ca2a5c1190927cf80b97085e0f25e472",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":131,"column":9},"end":{"line":131,"column":91}},
@@ -169,79 +169,79 @@
   },
   {
    "pattern": "Streams/SparseUpdateStream.cs",
-   "sourceSha256": "3baf0ee72a815f7e4278ab3c28a510f6a26016054d7e093c095ca9f89284efb9",
+   "sourceSha256": "96bfd3a1707e8f4b0abe1e6e23d1d4183a0c16a0dde6c0d7e290328ef6ff8c78",
    "mutants": [
     { "mutatorName": "Logical mutation", "replacement": "disposing || !this.disposed",
-     "location": {"start":{"line":315,"column":13},"end":{"line":315,"column":40}},
+     "location": {"start":{"line":319,"column":13},"end":{"line":319,"column":40}},
      "reason": "This sealed internal stream has no finalizer. Its only production owner is UpdateStreamCore's local using declaration; the instance does not escape, so disposal always requests managed cleanup and no operation writes after disposal. The first Dispose(true) enters the same body. On completion chunks is null or empty and rangeBytes is null; a repeated Dispose(true) can only clear an already empty map and assign the same flag, with no rental returns or baseline calls. If cleanup throws, both versions still have disposed=false and retry identically. Dispose(false) cannot be invoked by a subclass or finalizer. This changes no supported lifetime or resource ownership; the individual returns and clearing remain required." },
     { "mutatorName": "Boolean mutation", "replacement": "false",
-     "location": {"start":{"line":334,"column":29},"end":{"line":334,"column":33}},
+     "location": {"start":{"line":338,"column":29},"end":{"line":338,"column":33}},
      "reason": "The private disposed flag is read only by this cleanup guard, not by reads, writes or commits. The sealed internal stream is confined to UpdateStreamCore's using lifetime and never written after disposal. The original first cleanup still returns every rental, clears chunks and nulls rangeBytes before this assignment. Leaving the flag false merely allows a repeated cleanup to visit an empty map and null range; no resource can be returned twice and no baseline operation is added. A throwing cleanup reaches neither assignment in either version. This proof does not permit removing any actual rental return or metadata clearing." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":338,"column":9},"end":{"line":338,"column":33}},
+     "location": {"start":{"line":342,"column":9},"end":{"line":342,"column":33}},
      "reason": "SparseUpdateStream directly inherits System.IO.Stream. Stream.Dispose(bool) has an empty body on both supported runtimes (dotnet/runtime tags v8.0.0 and v10.0.0, src/libraries/System.Private.CoreLib/src/System/IO/Stream.cs). This base-qualified call cannot dispatch to a caller override or dispose the baseline. Removing it leaves all actual cleanup in the preceding derived body intact, including pooled returns, clearing, range reset and the disposed flag. Stream.Close still calls the derived Dispose(true) and suppresses finalization. This proof does not qualify removal of any derived cleanup operation." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":392,"column":25},"end":{"line":392,"column":46}},
+     "location": {"start":{"line":396,"column":25},"end":{"line":396,"column":46}},
      "reason": "This Dispose call targets only an exact private new MemoryStream(length) scratch wrapper, not the baseline, destination or a pooled page. CreateStagedRange exposes its backing byte array, which remains valid after MemoryStream disposal; the wrapper itself never escapes. After this call the wrapper is either overwritten by the next scratch stream or the iterator ends, without another read/write through that wrapper. MemoryStream owns no external handle and disposal neither returns a pooled buffer nor releases its backing array. Omitting this exact call changes no emitted bytes, stream I/O, buffer ownership or managed backing-array lifetime. The real pooled-page and contiguous-rental returns remain required." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":407,"column":13},"end":{"line":407,"column":34}},
+     "location": {"start":{"line":411,"column":13},"end":{"line":411,"column":34}},
      "reason": "This Dispose call targets only an exact private new MemoryStream(length) scratch wrapper, not the baseline, destination or a pooled page. CreateStagedRange exposes its backing byte array, which remains valid after MemoryStream disposal; the wrapper itself never escapes. After this call the wrapper is either overwritten by the next scratch stream or the iterator ends, without another read/write through that wrapper. MemoryStream owns no external handle and disposal neither returns a pooled buffer nor releases its backing array. Omitting this exact call changes no emitted bytes, stream I/O, buffer ownership or managed backing-array lifetime. The real pooled-page and contiguous-rental returns remain required." },
     { "mutatorName": "Block removal mutation", "replacement": "{}",
-     "location": {"start":{"line":359,"column":9},"end":{"line":361,"column":10}},
+     "location": {"start":{"line":363,"column":9},"end":{"line":365,"column":10}},
      "reason": "TryGetPosition returns nullable Int64. If Position throws, the original catch returns null. Removing its body still catches that exception, and Stryker 5.0.0's EndingReturnEngine appends default(long?), also null. The caller therefore retains the same attempted-offset fallback and original commit failure. Tool implementation: https://github.com/stryker-mutator/stryker-net/blob/6e77a3451bac4793e9c839c3ff4055c1b30ca3af/src/Stryker.Core/Stryker.Core/Instrumentation/EndingReturnEngine.cs." },
     { "mutatorName": "Equality mutation", "replacement": "this.rangeLength >= 0",
-     "location": {"start":{"line":415,"column":17},"end":{"line":415,"column":37}},
+     "location": {"start":{"line":419,"column":17},"end":{"line":419,"column":37}},
      "reason": "Only the empty-range case is newly admitted by rangeLength >= 0. The unchanged following bounds require address >= rangeStart and address < rangeStart + 0 simultaneously, which is impossible. The body never indexes the null buffer; the same false result and zero out value follow. Nonempty ranges behave identically." },
     { "mutatorName": "CoalesceAssignmentExpression to SimpleAssignmentExpression mutation", "replacement": "this.rangeBytes = this.pool.Rent(Math.Max(source.Length, 64))",
-     "location": {"start":{"line":449,"column":13},"end":{"line":449,"column":76}},
+     "location": {"start":{"line":453,"column":13},"end":{"line":453,"column":76}},
      "reason": "TryStageInRange is called only while chunks is null. Before its first successful write rangeLength is zero and rangeBytes is null, so assignment and null-coalescing assignment rent the same buffer. Subsequent contiguous writes have positive rangeLength; promotion sets chunks non-null and this helper is never called again. Public updates own this internal staging stream in one using scope and never write after disposal. No supported operation reaches this line with an existing range buffer." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":452,"column":17},"end":{"line":452,"column":69}},
+     "location": {"start":{"line":456,"column":17},"end":{"line":456,"column":69}},
      "reason": "On every supported entry to this initial-range branch, rangeBytes is null and the preceding Rent requests at least source.Length. The ArrayPool contract guarantees at least that capacity. Its Length < source.Length branch therefore cannot execute; removing this unreachable return does not lose a rental. This does not qualify any return on the reachable contiguous-growth or promotion paths." },
     { "mutatorName": "Boolean mutation", "replacement": "false",
-     "location": {"start":{"line":452,"column":63},"end":{"line":452,"column":67}},
+     "location": {"start":{"line":456,"column":63},"end":{"line":456,"column":67}},
      "reason": "The initial-range branch rents at least source.Length when rangeBytes is null. This is the only supported pre-write state with zero rangeLength and no chunks: later writes are positive-length or use the chunk map. ArrayPool guarantees at least the requested capacity, so the smaller-buffer branch cannot execute and changing its unreachable clearArray argument has no effect." },
     { "mutatorName": "Equality mutation", "replacement": "this.rangeLength >= 0",
-     "location": {"start":{"line":487,"column":13},"end":{"line":487,"column":33}},
+     "location": {"start":{"line":491,"column":13},"end":{"line":491,"column":33}},
      "reason": "PromoteRangeToChunks is called only after TryStageInRange returns false. That helper always handles rangeLength == 0 and returns true; only a gap outside an existing positive-length range returns false. Thus promotion always sees rangeLength > 0. Replacing > with >= leaves its copy, return and reset operations unchanged." },
     { "mutatorName": "Equality mutation", "replacement": "offset <= this.maximumWrittenExclusive",
-     "location": {"start":{"line":556,"column":20},"end":{"line":556,"column":57}},
+     "location": {"start":{"line":560,"column":20},"end":{"line":560,"column":57}},
      "reason": "The bitmap's maximumWrittenExclusive is one past its last written byte. After the last emitted run offset equals that bound. Changing the outer loop to <= enters one extra iteration, but the unchanged inner loop short-circuits and the following equality immediately yields break. It emits no extra range and performs no bitmap lookup or I/O." },
     { "mutatorName": "Equality mutation", "replacement": "offset <= this.maximumWrittenExclusive",
-     "location": {"start":{"line":558,"column":24},"end":{"line":558,"column":61}},
+     "location": {"start":{"line":562,"column":24},"end":{"line":562,"column":61}},
      "reason": "The unchanged outer loop starts this gap scan strictly below maximumWrittenExclusive. Every chunk is populated by a nonempty Write, which sets the bit at maximumWrittenExclusive - 1. The gap scan therefore encounters a written byte before reaching the exclusive bound. Changing only its < comparison to <= never evaluates IsWritten at the bound and yields identical runs." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":565,"column":21},"end":{"line":565,"column":33}},
+     "location": {"start":{"line":569,"column":21},"end":{"line":569,"column":33}},
      "reason": "Within the unchanged outer loop offset starts below maximumWrittenExclusive. The gap scan cannot pass the last written byte at maximumWrittenExclusive - 1, because Write sets that bit whenever it extends the maximum. Thus offset == maximumWrittenExclusive is false at this point on every reachable iteration; removing this defensive yield break changes no run or I/O." },
     { "mutatorName": "Equality mutation", "replacement": "this.position > this.baselineLength",
-     "location": {"start":{"line":152,"column":31},"end":{"line":152,"column":67}},
+     "location": {"start":{"line":156,"column":31},"end":{"line":156,"column":67}},
      "reason": "Changing >= to > differs only when position equals the captured baselineLength. At that exact boundary Read computes available = Math.Min(buffer.Length, baselineLength - position) = 0, never enters its loop, adds zero to position and returns zero. Empty buffers also return zero. No baseline query or read occurs on either path." },
     { "mutatorName": "Logical mutation", "replacement": "!bytes.TryGetBuffer(out ArraySegment<byte> segment) && segment.Array is null",
-     "location": {"start":{"line":366,"column":13},"end":{"line":366,"column":89}},
+     "location": {"start":{"line":370,"column":13},"end":{"line":370,"column":89}},
      "reason": "CreateStagedRange is private and receives only the exact MemoryStream instances constructed with new MemoryStream(length) in GetStagedRanges. These expandable streams expose their managed backing arrays, including the non-null empty array. TryGetBuffer therefore returns true with a non-null Array on every reachable call. Replacing OR with AND leaves the defensive branch unentered." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":368,"column":13},"end":{"line":368,"column":108}},
+     "location": {"start":{"line":372,"column":13},"end":{"line":372,"column":108}},
      "reason": "CreateStagedRange receives only private new MemoryStream(length) instances from GetStagedRanges. Their backing arrays are publicly exposable and non-null, so the defensive hidden-buffer throw is unreachable. No caller-owned stream or subclass reaches this helper." },
     { "mutatorName": "String mutation", "replacement": "\"\"",
-     "location": {"start":{"line":368,"column":49},"end":{"line":368,"column":106}},
+     "location": {"start":{"line":372,"column":49},"end":{"line":372,"column":106}},
      "reason": "The hidden-buffer diagnostic belongs to an unreachable branch: GetStagedRanges constructs every input with new MemoryStream(length), which exposes its non-null backing array. Changing only that defensive message cannot affect an emitted StagedRange or a caller-visible failure." },
     { "mutatorName": "Remove checked expression", "replacement": "(int)bytes.Length",
-     "location": {"start":{"line":371,"column":54},"end":{"line":371,"column":80}},
+     "location": {"start":{"line":375,"column":54},"end":{"line":375,"column":80}},
      "reason": "The input is an owned, expandable MemoryStream created in GetStagedRanges, never a caller subclass. Its length is bounded by its single managed array and Int32 capacity; a write beyond that supported capacity fails before CreateStagedRange. Converting its successfully constructed Length to int cannot overflow." },
     { "mutatorName": "UnaryMinusExpression to UnaryPlusExpression mutation", "replacement": "+1",
-     "location": {"start":{"line":377,"column":27},"end":{"line":377,"column":29}},
+     "location": {"start":{"line":381,"column":27},"end":{"line":381,"column":29}},
      "reason": "The initial rangeStart sentinel is never emitted. On the first written run rangeBytes is null, so the branch assigns rangeStart = start before creating the first stream. Every subsequent replacement also assigns the start before creating that stream; with no runs the final emission is skipped. Initializing the sentinel to +1 instead of -1 is unobservable." },
     { "mutatorName": "UnaryMinusExpression to UnaryPlusExpression mutation", "replacement": "+1",
-     "location": {"start":{"line":378,"column":32},"end":{"line":378,"column":34}},
+     "location": {"start":{"line":382,"column":32},"end":{"line":382,"column":34}},
      "reason": "The initial expectedAddress is ignored because rangeBytes is null and the first operand of the branch short-circuits. The first run assigns expectedAddress = start + length before any later comparison. With no runs it is never read. Changing only its initial sentinel has no effect." },
     { "mutatorName": "Remove checked expression", "replacement": "entry.Key * ChunkSize",
-     "location": {"start":{"line":383,"column":31},"end":{"line":383,"column":61}},
+     "location": {"start":{"line":387,"column":31},"end":{"line":387,"column":61}},
      "reason": "Chunk keys are created only by WriteToChunks as nonnegative address / 1024. Write validates position + buffer.Length with checked arithmetic and rejects ends beyond baselineLength before staging; promotion copies an already validated range. Therefore key * 1024 is no greater than an actual staged address and fits Int64. Removing checked from this multiplication cannot change behavior." },
     { "mutatorName": "Remove checked expression", "replacement": "chunkStart + offset",
-     "location": {"start":{"line":386,"column":30},"end":{"line":386,"column":58}},
+     "location": {"start":{"line":390,"column":30},"end":{"line":390,"column":58}},
      "reason": "Each written run's offset identifies bytes previously copied by WriteToChunks, whose chunk key and offset come from one nonnegative extent-validated address. The sum chunkStart + offset recovers a staged address strictly below a successfully checked write end, so it cannot exceed Int64.MaxValue. Removing checked preserves values and failures." },
     { "mutatorName": "Remove checked expression", "replacement": "start + length",
-     "location": {"start":{"line":400,"column":35},"end":{"line":400,"column":58}},
+     "location": {"start":{"line":404,"column":35},"end":{"line":404,"column":58}},
      "reason": "GetWrittenRuns returns only contiguous bytes marked by successful extent-validated writes. The exclusive end start + length is at most the greatest checked end of those writes, even when adjacent writes merge. Every write end is at most baselineLength and Int64.MaxValue. Removing checked from the recovered run end cannot overflow." }
    ]
   },
@@ -259,7 +259,7 @@
   },
   {
    "pattern": "CStructOperations.AsyncWrite.cs",
-   "sourceSha256": "d14fdeb31990cc3b59430f2d4565e5d5a29a8a0a68321f211271e39b047c24c5",
+   "sourceSha256": "82acce2f5248774598c0cac9eaa7952a551d96fd8456786a707b3fa798644371",
    "mutants": [
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?(options ?? new UpdateOptions()) with { CancellationToken = token, } :options)",
      "location": {"start":{"line":95,"column":40},"end":{"line":95,"column":140}},
@@ -310,10 +310,10 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/CompiledField.cs",
-   "sourceSha256": "1809ee390dfb8e6d76e543f1f4319b3d8981d94bb9309ca80708e58a150d0b2b",
+   "sourceSha256": "6f6b4d4f5621f2b0c4527f63766d9319f598c1a852945179b60df3acead49ccd",
    "mutants": [
     { "mutatorName": "Remove checked expression", "replacement": "elementSize * remainingCount",
-     "location": {"start":{"line":554,"column":43},"end":{"line":554,"column":80}},
+     "location": {"start":{"line":562,"column":43},"end":{"line":562,"column":80}},
      "reason": "This multiplication is reached only when peeling a multidimensional field with a known nonnegative element size. Multidimensional dimensions have dependency-free fixed counts; LayoutCompilation.Model and CompileSyntheticRootField already checked the complete count and element-size product when constructing such a field. All production SelectArrayElement callers are the read/address and write path resolvers, which first reject indices outside the current dimension. A reachable peeled dimension therefore has a positive outer count, so its remaining byte extent cannot exceed its already validated parent's extent. A zero outer count cannot be indexed; variable-sized elements skip this multiplication entirely. Repeated peeling preserves the bound, and pointer-target views are scalar. Removing only this checked wrapper cannot change a supported result; the separate checked total-count calculations remain required, including for arrays of variable-sized records." }
    ]
   },
@@ -334,7 +334,7 @@
   },
   {
    "pattern": "CStructOperations.Async.cs",
-   "sourceSha256": "5a0b99aa31c597bfea44afab9021c71ed8e67728a0e8caa032f92ca15767e55a",
+   "sourceSha256": "415fbc846072231c43c21b11ae9ac80c26d4a603021daf662a2c31ac8c9eb8ce",
    "mutants": [
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?origin :origin + consumed)",
      "location": {"start":{"line":421,"column":31},"end":{"line":421,"column":73}},
@@ -367,7 +367,7 @@
   },
   {
    "pattern": "CStructWriter.cs",
-   "sourceSha256": "73728b92fecfb59f37cec397a6b5c72d24a5cec30b2624af446d6977f2348b72",
+   "sourceSha256": "45be0b13e24e4ea27ee6c2c68c5e77b42b47400f7e487667800f0002dc1d528e",
    "mutants": [
     { "mutatorName": "Logical mutation", "replacement": "rootData is not null || !WriteDataBinding.IsMemberSource(rootData)",
      "location": {"start":{"line":340,"column":13},"end":{"line":340,"column":79}},
@@ -544,10 +544,10 @@
   },
   {
    "pattern": "Generated/ReadCursor.cs",
-   "sourceSha256": "abf43ddea8342d8c9b0daccfa473292827171a1b2280854520f14ecc0dbd5d66",
+   "sourceSha256": "b4694f8f67adabbe72cb61be90e0951670737de8dca9036da979283feeb4f7d1",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": "count < 0",
-     "location": {"start":{"line":228,"column":13},"end":{"line":228,"column":23}},
+     "location": {"start":{"line":232,"column":13},"end":{"line":232,"column":23}},
      "reason": "Only count zero newly reaches budget arithmetic. bytesRead starts at zero and only accepted charges update it, so it never exceeds the nonnegative fixed limit. Adding zero cannot overflow or fail the limit check and reassigns the same value; position is unchanged. Negative counts still return early." }
    ]
   },
@@ -577,7 +577,7 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.Model.cs",
-   "sourceSha256": "a2c129df997ea86b644feaa43ff98fcb35d62d267190ebe4af8fb3a425a13c53",
+   "sourceSha256": "1f22f1eb3ddaa6154d5773929b17b11627902e79c874007523c4fc3fe24be16b",
    "mutants": [
     { "mutatorName": "Logical mutation", "replacement": "exception.SourceOffset < 0 || exception.Message.StartsWith(\"Unknown field type: \", StringComparison.Ordinal)",
      "location": {"start":{"line":322,"column":56},"end":{"line":322,"column":164}},
@@ -598,16 +598,16 @@
   },
   {
    "pattern": "Generated/WriteCursor.cs",
-   "sourceSha256": "7e65e43782528aeeb2d6a8b96d6fc2525a24a6259927c1576d80ae3fe974f882",
+   "sourceSha256": "032d28f99fc7db061d702df0281c06517877ff4e7f87f0a6d9c07791a0e353b6",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":197,"column":13},"end":{"line":197,"column":20}},
+     "location": {"start":{"line":201,"column":13},"end":{"line":201,"column":20}},
      "reason": "A successful forward seek starts Reserve at the old length and reserves requested position minus that length, leaving position exactly equal to the requested position. Without the return, the following assignment writes that same value. A failing Reserve still throws before either path can continue." },
     { "mutatorName": "Arithmetic mutation", "replacement": "Math.Min(int.MaxValue / 2, this.destination.Length) / 2",
-     "location": {"start":{"line":537,"column":43},"end":{"line":537,"column":98}},
+     "location": {"start":{"line":541,"column":43},"end":{"line":541,"column":98}},
      "reason": "Grow is called only when required exceeds the old destination length. Math.Max still makes the requested rental at least required after this mutation; copying the written prefix, clearing the remaining capacity and replacing/returning buffers are unchanged. Future reservations remain capacity-checked. Only the private spare-capacity policy and resulting allocation frequency change, not encoded bytes, positions, limits or buffer ownership." },
     { "mutatorName": "Equality mutation", "replacement": "this.position >= this.length",
-     "location": {"start":{"line":163,"column":13},"end":{"line":163,"column":40}},
+     "location": {"start":{"line":167,"column":13},"end":{"line":167,"column":40}},
      "reason": "The only newly entered case is position equal to length. Its body only assigns length = position, leaving the same integer state. Both versions return the same reserved span and perform identical capacity and budget checks." }
    ]
   },
@@ -676,7 +676,7 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Parsing/LayoutParser.Declarations.cs",
-   "sourceSha256": "a12e992ffb3fccb9485eed5523d6d4bc4d2d3b612d7aa28070023a2e64a3bb0d",
+   "sourceSha256": "09410a8ad9d02e14531754de78a120ce08fbd0d840daeb84c42eeb22c9b2e732",
    "mutants": [
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?\"flag\" :\"enum\")",
      "location": {"start":{"line":192,"column":26},"end":{"line":192,"column":50}},
@@ -697,7 +697,7 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Parsing/LayoutParser.Expressions.cs",
-   "sourceSha256": "cdd08084af0e22deb36eddbd107d1186c855287033d6d3e7e704819d32a47a75",
+   "sourceSha256": "2824c93446fcb0e3641e1e27b34a70c83983920f51e426bea86e8d44f88f92bd",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": "length >= 0",
      "location": {"start":{"line":122,"column":16},"end":{"line":122,"column":26}},
@@ -706,7 +706,7 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Parsing/LayoutParser.Members.cs",
-   "sourceSha256": "e480d3c95ae3d1b2abe1c772dbb56aed5d2e0224f76c7e3fa7c24c961bf675b5",
+   "sourceSha256": "a1af9f1a5073961e325e53c77b13c559d2f36e89611cb722b155764aa58fd829",
    "mutants": [
     { "mutatorName": "Boolean mutation", "replacement": "true",
      "location": {"start":{"line":398,"column":20},"end":{"line":398,"column":25}},
@@ -727,7 +727,7 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Parsing/LayoutParser.Preprocessor.cs",
-   "sourceSha256": "9c6a8434cc7ad521fc7c1c1d17369dd3e6393ba3d46592c0b8f8dc5736853747",
+   "sourceSha256": "bbec3b1c1b9063e93b52e131a16d540e63c3de68dd22ad5c1028950dbbb20c9c",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":200,"column":13},"end":{"line":200,"column":37}},
@@ -754,7 +754,7 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.Capture.cs",
-   "sourceSha256": "433c74b40bf627acc41e53ecf4b469e49c77c6b77c64616c94eedca7d992183d",
+   "sourceSha256": "af428122cb781a54282aba46373a25bda140efd4856d333acf626f39a5563af5",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":118,"column":9},"end":{"line":118,"column":77}},
@@ -784,7 +784,7 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.Composites.cs",
-   "sourceSha256": "bfdcb86aa287abddfe1c57ef3e3d99e287432097e9e70e2d8f103e90990d5a50",
+   "sourceSha256": "a2d92b006cdc790e72a25dd7897230515421e20fc1a0e49eae693634cfc43737",
    "mutants": [
     { "mutatorName": "Remove checked expression", "replacement": "field.PointerDepth + type.PointerDepth",
      "location": {"start":{"line":315,"column":36},"end":{"line":315,"column":83}},
@@ -805,7 +805,7 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.Normalization.cs",
-   "sourceSha256": "a91e2a5eb80c7ab17e922358cd7565e2ce52a5496dccdb527d23b81b76c495f5",
+   "sourceSha256": "9b266bbdd93037559e2f425bc6f0d6fec7e64efbfda823a3c2d80b70f539143e",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": "remainingDeclarations-- >= 0",
      "location": {"start":{"line":181,"column":16},"end":{"line":181,"column":43}},
@@ -825,8 +825,8 @@
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":369,"column":17},"end":{"line":369,"column":61}},
      "reason": "RejectNonIntegerConstants is the immediate next call, and its first operation is expressionEvaluator.GetDependencies(dimension). That method obtains the same GetProgram used by Compile, so compilation and all syntax-tree limits still run before constant validation or evaluation, with no intervening state change. The same cached program, dependencies and exceptions result. This removes only a redundant cache warm-up, not dimension validation." },
-    { "mutatorName": "Conditional (false) mutation", "replacement": "(false?Array.Empty<ConditionalBranch>() :field.BranchConditions.Select(item =>\n                        new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray())",
-     "location": {"start":{"line":431,"column":40},"end":{"line":432,"column":145}},
+    { "mutatorName": "Conditional (false) mutation", "replacement": "(false?Array.Empty<ConditionalBranch>()\n:field.BranchConditions.Select(item =>\n                            new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray())",
+     "location": {"start":{"line":431,"column":40},"end":{"line":434,"column":149}},
      "reason": "Only the empty branch list changes arms. Selecting and materializing an empty list produces another empty branch array without invoking the projection, so NormalizeConditionalGroup is not called and a null normalizedGroups value is never accessed. All consumers inspect branch contents/counts, not array reference identity. Nonempty lists execute the identical projection in both versions. No condition, selector, arm or field visibility changes." }
    ]
   },
@@ -916,7 +916,7 @@
   },
   {
    "pattern": "Generated/ReadCursor.Arrays.cs",
-   "sourceSha256": "b3421dc5908fc1a650c68c81dee07d33b0ed5f330c817c6e12f18f87e8df291e",
+   "sourceSha256": "5c7f92d2f6028fa56bb022de1d29f1f84330fede5f42c7c34231edd64b11afbe",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": "count < 0",
      "location": {"start":{"line":90,"column":13},"end":{"line":90,"column":23}},
@@ -925,7 +925,7 @@
   },
   {
    "pattern": "Generated/ReadCursor.Failures.cs",
-   "sourceSha256": "6b1498732813b3fed4222ef1b579256c6a8c24f5a5c4ac45857e782e8e195639",
+   "sourceSha256": "da5f7dc846eed507fb22be34a40e4f94ab28a5b79e0471440314c09daa908bcf",
    "mutants": [
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?new CStructReadException(message) :new CStructReadException(message, cause))",
      "location": {"start":{"line":214,"column":25},"end":{"line":214,"column":117}},
@@ -934,7 +934,7 @@
   },
   {
    "pattern": "Generated/ReadCursor.Nesting.cs",
-   "sourceSha256": "d1a749214bb888f4a4f3dc0b2e01969825c8fd3ed9b732661d22eba313495b4d",
+   "sourceSha256": "8346f4f6acb2b6485680a0bf51437bbaf842e104b40a24d80b4273276e0f8a13",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": ">= 0",
      "location": {"start":{"line":128,"column":48},"end":{"line":128,"column":51}},
@@ -943,7 +943,7 @@
   },
   {
    "pattern": "Generated/ReadCursor.Text.cs",
-   "sourceSha256": "ef815c190b782849ff14632da82ddf3e85ac078824281485416fd6adce695eb6",
+   "sourceSha256": "67793973fa970c2fbf7717b9cef3d3f1e287f459ebb303df81c7800407f223c0",
    "mutants": [
     { "mutatorName": "Arithmetic mutation", "replacement": "unitSize + (encodedByteCount % unitSize)",
      "location": {"start":{"line":176,"column":42},"end":{"line":176,"column":82}},
@@ -958,7 +958,7 @@
   },
   {
    "pattern": "Codecs/PrimitiveCodecs.IO.cs",
-   "sourceSha256": "3048cf11cbc4bac7338e9430006a23f7c4f1685d04c9bd069dc1634e778e73a1",
+   "sourceSha256": "6373f028b55df088a2b9b9b53a77c4110fafed111c41dc80548a9e79fb937b0d",
    "mutants": [
     { "mutatorName": "Remove checked expression", "replacement": "(long)valueBytes + terminatorBytes",
      "location": {"start":{"line":384,"column":37},"end":{"line":384,"column":80}},

@@ -161,9 +161,9 @@ public static class MemoryWalker
         internal static SourceAddressComparer Instance { get; } = new();
 
         /// <inheritdoc/>
-        public bool Equals((IMemorySource Source, ulong Address) left, (IMemorySource Source, ulong Address) right) => ReferenceEquals(left.Source, right.Source) && left.Address == right.Address;
+        public bool Equals((IMemorySource Source, ulong Address) x, (IMemorySource Source, ulong Address) y) => ReferenceEquals(x.Source, y.Source) && x.Address == y.Address;
 
         /// <inheritdoc/>
-        public int GetHashCode((IMemorySource Source, ulong Address) value) => HashCode.Combine(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(value.Source), value.Address);
+        public int GetHashCode((IMemorySource Source, ulong Address) obj) => HashCode.Combine(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.Source), obj.Address);
     }
 }

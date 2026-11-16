@@ -4,7 +4,7 @@ using System.Text.Json;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 
-/// <summary>Imports immutable field-directed ISF schemas without walking unrequested pointer graphs.</summary>
+/// <content>Imports immutable field-directed ISF schemas without walking unrequested pointer graphs.</content>
 public sealed partial class IsfMetadata
 {
     /// <summary>Imports the union of selected member/index/pointer paths, preserving the root size and recorded placement.</summary>

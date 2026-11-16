@@ -10,7 +10,7 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 using Enum = System.Enum;
 
-/// <summary>Validates untrusted browser inputs and categorizes failures for the result envelope.</summary>
+/// <content>Validates untrusted browser inputs and categorizes failures for the result envelope.</content>
 public partial class CStructExports
 {
     private const int InteropContractVersion = 10;

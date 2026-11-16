@@ -98,13 +98,13 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
     }
 
     /// <summary>Returns the member value, or <see langword="false"/> when the member is absent.</summary>
-    /// <param name="name">The member name, case-sensitive.</param>
+    /// <param name="key">The member name, case-sensitive.</param>
     /// <param name="value">The member value when present; otherwise <see langword="null"/>.</param>
     /// <returns><see langword="true"/> when the member is present.</returns>
-    public bool TryGetValue(string name, out object? value)
+    public bool TryGetValue(string key, out object? value)
     {
-        ArgumentNullException.ThrowIfNull(name);
-        if (this.shape.TryGetIndex(name, out int index))
+        ArgumentNullException.ThrowIfNull(key);
+        if (this.shape.TryGetIndex(key, out int index))
         {
             object? slot = this.slots[index];
             if (!ReferenceEquals(slot, Unset))
@@ -119,7 +119,7 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
 
         if (this.extra is not null)
         {
-            return this.extra.TryGetValue(name, out value);
+            return this.extra.TryGetValue(key, out value);
         }
 
         value = null;
@@ -223,47 +223,47 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
         => this.TryGet(path, out T? value, out _) ? value! : fallback;
 
     /// <summary>Returns whether a member is present.</summary>
-    /// <param name="name">The member name, case-sensitive.</param>
+    /// <param name="key">The member name, case-sensitive.</param>
     /// <returns><see langword="true"/> when the member is present.</returns>
-    public bool ContainsKey(string name)
+    public bool ContainsKey(string key)
     {
-        return this.TryGetValue(name, out _);
+        return this.TryGetValue(key, out _);
     }
 
     /// <summary>Adds a member; throws when it is already present.</summary>
-    /// <param name="name">The member name, case-sensitive.</param>
+    /// <param name="key">The member name, case-sensitive.</param>
     /// <param name="value">The member value.</param>
-    public void Add(string name, object? value)
+    public void Add(string key, object? value)
     {
-        if (this.ContainsKey(name))
+        if (this.ContainsKey(key))
         {
-            throw new ArgumentException($"The parsed struct already has a member '{name}'.", nameof(name));
+            throw new ArgumentException($"The parsed struct already has a member '{key}'.", nameof(key));
         }
 
-        this.Set(name, value);
+        this.Set(key, value);
     }
 
     /// <summary>Removes a member; returns whether it was present.</summary>
-    /// <param name="name">The member name, case-sensitive.</param>
+    /// <param name="key">The member name, case-sensitive.</param>
     /// <returns><see langword="true"/> when the member was present and has been removed.</returns>
-    public bool Remove(string name)
+    public bool Remove(string key)
     {
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(key);
         bool removed;
-        if (this.shape.TryGetIndex(name, out int index))
+        if (this.shape.TryGetIndex(key, out int index))
         {
             removed = !ReferenceEquals(this.slots[index], Unset);
             this.slots[index] = Unset;
         }
         else
         {
-            removed = this.extra?.Remove(name) ?? false;
+            removed = this.extra?.Remove(key) ?? false;
         }
 
         if (removed)
         {
             this.count--;
-            this.insertionOrder?.Remove(name);
+            this.insertionOrder?.Remove(key);
         }
 
         return removed;

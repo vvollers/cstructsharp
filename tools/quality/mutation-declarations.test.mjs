@@ -133,7 +133,8 @@ test("source changes, tool upgrades, duplicates and out-of-scope policy entries 
   policy.strykerVersion = "different";
   fs.writeFileSync(policyPath, JSON.stringify(policy));
   assert.throws(() => loadNonMutableDeclarations(f.root, f.config.mutate), /Stryker version change/);
-  policy.strykerVersion = "5.0.0";
+  // Restore agreement with the copied tool manifest so the next assertion exercises only the duplicate check.
+  policy.strykerVersion = JSON.parse(fs.readFileSync(path.join(f.root, ".config/dotnet-tools.json"), "utf8")).tools["dotnet-stryker"].version;
   policy.declarations.push(policy.declarations[0]);
   fs.writeFileSync(policyPath, JSON.stringify(policy));
   assert.throws(() => loadNonMutableDeclarations(f.root, f.config.mutate), /Duplicate non-mutable/);

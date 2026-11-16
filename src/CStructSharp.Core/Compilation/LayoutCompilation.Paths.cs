@@ -9,7 +9,7 @@ using CStructSharp.Compilation.Programs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 
-/// <summary>Contains the small lookup helpers that connect parsed layout declarations to public paths.</summary>
+/// <content>Contains the small lookup helpers that connect parsed layout declarations to public paths.</content>
 internal sealed partial class LayoutCompilation
 {
     /// <summary>Returns a struct selected during path traversal or raises the caller's focused path error.</summary>

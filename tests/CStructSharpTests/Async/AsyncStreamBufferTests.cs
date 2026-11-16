@@ -159,6 +159,7 @@ public class AsyncStreamBufferTests
     }
 
     /// <summary>A forward-only stream over an array that can fail after a number of bytes.</summary>
+    /// <param name="bytes">The bytes the stream reads, from the first; not copied.</param>
     internal sealed class NonSeekableStream(byte[] bytes) : Stream
     {
         private int position;

@@ -4,11 +4,11 @@ using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using static CStructSharp.Generators.Emit;
 
-/// <summary>
+/// <content>
 ///     Deferred pointers in the struct readers: a pointer field's address is read in declaration order, and its
 ///     target is followed after the struct's last field, as the runtime does. Following last lets a target's
 ///     <c>@count(N)</c> name a field declared after the pointer, and keeps the first failure the same as the runtime's.
-/// </summary>
+/// </content>
 internal sealed partial class LayoutEmitter
 {
     /// <summary>

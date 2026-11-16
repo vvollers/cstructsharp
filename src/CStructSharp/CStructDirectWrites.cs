@@ -9,12 +9,12 @@ using CStructSharp.Reading;
 using CStructSharp.Values;
 using CStructSharp.Writing;
 
-/// <summary>
+/// <content>
 ///     The direct write of a whole fixed-layout root into caller memory: <c>Serialize(span, "header", value)</c> for a
 ///     struct whose every member has a fixed offset. The write engine would build the per-operation state and a
 ///     budgeted destination over the span, stage the struct in a block through its static write plan, and copy the
 ///     block out; this path runs the same plan over the same kind of staging block without the destination and state.
-/// </summary>
+/// </content>
 /// <remarks>
 ///     The direct path is taken only when it cannot behave differently from the write engine: no caller variables,
 ///     a value that is not null, valid limits that the plan is known to satisfy, and a destination large enough for

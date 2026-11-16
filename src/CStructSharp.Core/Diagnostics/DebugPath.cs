@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using CStructSharp.Syntax;
 
 /// <summary>A persistent debug path shares parent segments without cloning declarations or path arrays.</summary>
+/// <param name="parent">The path this segment extends, or <see langword="null"/> for a first segment.</param>
+/// <param name="name">The segment's field name.</param>
 internal sealed class DebugPath(DebugPath? parent, string name)
 {
     private readonly string name = name;

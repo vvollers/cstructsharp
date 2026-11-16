@@ -40,7 +40,7 @@ internal static class DevelopmentEnvironment
                 if (requested == "auto")
                 {
                     var cpus = new List<int>();
-                    for (int cpu = 0; cpu < (IntPtr.Size * 8) - 1; cpu++)
+                    for (int cpu = 0; cpu < (nint.Size * 8) - 1; cpu++)
                     {
                         if ((allowed & (1UL << cpu)) != 0)
                         {
@@ -56,7 +56,7 @@ internal static class DevelopmentEnvironment
                     selectedCpu = cpus[cpus.Count / 2];
                 }
                 else if (int.TryParse(requested, NumberStyles.None, CultureInfo.InvariantCulture, out int cpu) &&
-                         cpu >= 0 && cpu < (IntPtr.Size * 8) - 1 && (allowed & (1UL << cpu)) != 0)
+                         cpu >= 0 && cpu < (nint.Size * 8) - 1 && (allowed & (1UL << cpu)) != 0)
                 {
                     selectedCpu = cpu;
                 }

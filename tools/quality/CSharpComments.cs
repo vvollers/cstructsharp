@@ -43,7 +43,7 @@ internal static class CSharpComments
                     int line = node.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
                     issues.Add(node is LocalFunctionStatementSyntax
                         ? $"{file}:{line}: {node.Kind()} needs a comment above it stating its purpose."
-                        : $"{file}:{line}: {node.Kind()} needs a non-empty XML summary or accurate inheritdoc.");
+                        : $"{file}:{line}: {node.Kind()} needs a non-empty XML summary (content on a secondary partial type) or accurate inheritdoc.");
                 }
             }
         }
@@ -55,7 +55,9 @@ internal static class CSharpComments
     /// <summary>
     ///     Recognizes a non-empty XML summary or explicit inherited documentation immediately on a declaration. A local
     ///     function cannot carry XML documentation (the compiler reports CS1587), so a non-empty <c>//</c> comment
-    ///     directly above it documents it instead.
+    ///     directly above it documents it instead. A partial type keeps its one <c>summary</c> on its main declaration
+    ///     (StyleCop SA1653), so a non-empty <c>content</c> element, describing that file's part, documents any other
+    ///     declaration of it.
     /// </summary>
     /// <param name="node">The named type, method, constructor, operator or local function to inspect.</param>
     /// <returns>Whether documentation is present; contract correctness still needs human review.</returns>
@@ -66,6 +68,7 @@ internal static class CSharpComments
             return node.GetLeadingTrivia().Any(trivia => trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) && trivia.ToString().TrimStart('/').Trim().Length > 0);
         }
 
+        bool isPartialType = node is TypeDeclarationSyntax type && type.Modifiers.Any(SyntaxKind.PartialKeyword);
         foreach (SyntaxTrivia trivia in node.GetLeadingTrivia())
         {
             if (trivia.GetStructure() is not DocumentationCommentTriviaSyntax documentation)
@@ -81,7 +84,8 @@ internal static class CSharpComments
                 }
 
                 // Inspect token values, not exterior "///" trivia that can make an empty multiline summary look non-empty.
-                if (content is XmlElementSyntax element && element.StartTag.Name.LocalName.Text == "summary" &&
+                if (content is XmlElementSyntax element &&
+                    (element.StartTag.Name.LocalName.Text == "summary" || (isPartialType && element.StartTag.Name.LocalName.Text == "content")) &&
                     element.Content.SelectMany(part => part.DescendantTokens()).Any(token => !string.IsNullOrWhiteSpace(token.ValueText)))
                 {
                     return true;

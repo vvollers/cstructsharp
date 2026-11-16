@@ -12,13 +12,13 @@ using CStructSharp.Reading;
 using CStructSharp.Streams;
 using CStructSharp.Values;
 
-/// <summary>
+/// <content>
 ///     The path operations of the compiled engine: a selected read (<c>ReadValue</c> of a path, and
 ///     <c>ReadValueWithDebug</c>, which records what it reads), a parse of a nested
 ///     struct (<c>Parse</c> and the debug parses of a path), <c>ResolveAddress</c> and <c>GetArrayLength</c>. Each
 ///     resolves its path with the <see cref="TargetResolver"/> on the operation's cursor and slots, then reads what the
 ///     path selects: from its exact address, standalone, at the nesting and pointer depth the path reached.
-/// </summary>
+/// </content>
 internal static partial class ReadEngine
 {
     /// <summary>

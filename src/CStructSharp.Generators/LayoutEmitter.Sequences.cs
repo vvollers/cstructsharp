@@ -4,13 +4,13 @@ using System.Globalization;
 using CStructSharp.Diagnostics;
 using static CStructSharp.Generators.Emit;
 
-/// <summary>
+/// <content>
 ///     Record sequences: <c>Records&lt;Name&gt;</c> over memory, a segmented sequence, or a stream and
 ///     <c>Records&lt;Name&gt;Async</c> over a stream (the root forms <c>Records</c>/<c>RecordsAsync</c>), each an
 ///     enumeration of one composite after another until the input ends, driven by the runtime's
 ///     <c>RecordSequence</c> over a generated reader that parses one record as its own region; and, for a composite
 ///     with a static size, the <c>foreach</c>-able <c>&lt;Name&gt;View.Enumerate</c> over views with no allocation.
-/// </summary>
+/// </content>
 internal sealed partial class LayoutEmitter
 {
     private const string Sequence = "global::CStructSharp.Generated.RecordSequence";

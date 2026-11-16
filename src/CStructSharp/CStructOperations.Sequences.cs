@@ -15,7 +15,7 @@ using CStructSharp.Reading;
 using CStructSharp.Streams;
 using CStructSharp.Values;
 
-/// <summary>
+/// <content>
 ///     The <see cref="ReadOnlySequence{T}"/> forms of the read operations, for input that arrives in segments (a
 ///     <c>PipeReader</c>, a chain of pooled buffers). A single-segment sequence takes the span path with no copy; a
 ///     multi-segment one is copied into a pooled buffer - first at most <see cref="ReadOptions.MaxTotalBytesRead"/>
@@ -32,7 +32,7 @@ using CStructSharp.Values;
 ///         address counts from the record's first byte; the synchronous stream form parses each record from the caller's
 ///         stream as <c>Parse(Stream)</c> does, so there it counts from the stream's first byte.
 ///     </para>
-/// </summary>
+/// </content>
 public sealed partial class CStruct
 {
     /// <summary>The span form of a read operation that a sequence form runs over its buffered copy.</summary>

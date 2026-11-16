@@ -718,10 +718,10 @@ internal sealed class ReadProgramCompiler : StructProgramCompiler<ReadProgramBui
 
             // The engine takes an element struct's block path over the whole array only for one dimension, and never
             // for union elements.
-            ReadOpCode read = nested.IsUnion ? this.debug ? ReadOpCode.DebugUnionArray : ReadOpCode.ReadUnionArray
-                              : this.debug ? ReadOpCode.DebugStructArray
-                              : table ? ReadOpCode.ReadStructElements
-                              : ReadOpCode.ReadStructArray;
+            ReadOpCode read = nested.IsUnion ? (this.debug ? ReadOpCode.DebugUnionArray : ReadOpCode.ReadUnionArray) :
+                              this.debug ? ReadOpCode.DebugStructArray :
+                              table ? ReadOpCode.ReadStructElements :
+                              ReadOpCode.ReadStructArray;
             builder.Emit(read, index, builder.AddNested(program), 0);
             EmitReshape(builder, index, table);
             return null;
@@ -775,11 +775,11 @@ internal sealed class ReadProgramCompiler : StructProgramCompiler<ReadProgramBui
         // A debug parse reads every numeric element on its own, with a record, whoever places the array. A row of a
         // multidimensional array that a path selected is a list like every row, never a typed array.
         bool list = table || field.IsArrayRow;
-        ReadOpCode op = !field.Codec.IsFixedWidthNumeric ? this.debug ? ReadOpCode.DebugCodecArray : ReadOpCode.ReadCodecArray
-                        : this.debug ? list ? ReadOpCode.DebugNumericElementList : ReadOpCode.DebugNumericElements
-                        : table ? standalone ? ReadOpCode.ReadNumericElementList : ReadOpCode.ReadNumericList
-                        : standalone ? field.IsArrayRow ? ReadOpCode.ReadNumericElementList : ReadOpCode.ReadNumericElements
-                        : ReadOpCode.ReadNumericArray;
+        ReadOpCode op = !field.Codec.IsFixedWidthNumeric ? (this.debug ? ReadOpCode.DebugCodecArray : ReadOpCode.ReadCodecArray) :
+                        this.debug ? (list ? ReadOpCode.DebugNumericElementList : ReadOpCode.DebugNumericElements) :
+                        table ? (standalone ? ReadOpCode.ReadNumericElementList : ReadOpCode.ReadNumericList) :
+                        standalone ? (field.IsArrayRow ? ReadOpCode.ReadNumericElementList : ReadOpCode.ReadNumericElements) :
+                        ReadOpCode.ReadNumericArray;
         builder.Emit(op, index, codec, 0);
         EmitReshape(builder, index, table);
         return null;
@@ -956,9 +956,9 @@ internal sealed class ReadProgramCompiler : StructProgramCompiler<ReadProgramBui
             else
             {
                 builder.Emit(
-                    field.Enum is not null ? ReadOpCode.CaptureEnum
-                    : field.Codec.Kind == PrimitiveCodecKind.UInt128 ? ReadOpCode.CaptureUInt128
-                    : ReadOpCode.CaptureInteger,
+                    field.Enum is not null ? ReadOpCode.CaptureEnum :
+                    field.Codec.Kind == PrimitiveCodecKind.UInt128 ? ReadOpCode.CaptureUInt128 :
+                    ReadOpCode.CaptureInteger,
                     index,
                     slot,
                     0);

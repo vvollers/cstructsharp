@@ -13,7 +13,7 @@ using CStructSharp.Introspection;
 using CStructSharp.Syntax;
 using CStructSharpEnum = CStructSharp.Syntax.Enum;
 
-/// <summary>Layout expressions and integer literals: operators by precedence, <c>sizeof</c>/<c>alignof</c>, and radix literals with digit separators and suffixes.</summary>
+/// <content>Layout expressions and integer literals: operators by precedence, <c>sizeof</c>/<c>alignof</c>, and radix literals with digit separators and suffixes.</content>
 internal sealed partial class LayoutParser
 {
     // The binary precedence rows, from the loosest to the unary row that ends ParseBinary's recursion.

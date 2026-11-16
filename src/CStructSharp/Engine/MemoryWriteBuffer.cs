@@ -119,7 +119,11 @@ internal sealed unsafe class MemoryWriteBuffer : Stream, IWriteBudget
     /// </summary>
     public override long Position
     {
-        get => this.position;
+        get
+        {
+            return this.position;
+        }
+
         set
         {
             if (this.span)

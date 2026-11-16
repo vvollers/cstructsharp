@@ -188,6 +188,8 @@
   ok 12
 @hash 5c5fa412739787556f82d8185444110c97dc5eca05ed73fc3e3f064a04fa962b 833 detected-cab
   ok 496, CStructLayoutException 14, CStructReadException 323
+@hash 7edcf9da16b06cfd779507a66556bf8704eaf0ad3330be25c72e3c4a74332ab2 9 detected-caf
+  ok 9
 @hash 66269ebda564e0dbc49503079dc706ec26504be7022c2a72c82388dce71233cf 9 detected-cfb
   ok 9
 @hash e0cd8aae41a4c01c885679a79ff18989595ba810d6e8060d347b38526cc8502d 3 detected-chm
@@ -208,6 +210,8 @@
   ok 8132, CStructLayoutException 234, CStructReadException 5314
 @hash 4ed76cf62f1d4f787e3db91675953e42db05a43b13dcb7ddbbe7c09209da0d48 24 detected-deb
   ok 24
+@hash 7edcf9da16b06cfd779507a66556bf8704eaf0ad3330be25c72e3c4a74332ab2 9 detected-dff
+  ok 9
 @hash de1f838a2886c4f19c74bde7ced3ccbf4bed9e41f1794644e1628966bf961f94 568 detected-dng
   ok 356, CStructLayoutException 10, CStructReadException 202
 @hash 03ddd3acfa3be2e1c7161482f6362d8e6be148f3a511245adb832f8eba7f01eb 2751 detected-docm

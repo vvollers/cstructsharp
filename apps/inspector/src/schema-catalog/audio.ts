@@ -84,6 +84,38 @@ uint64 file_size;
 uint64 metadata_offset;`,
   },
   {
+    extensions: ["dff"],
+    family: "DSDIFF",
+    scope:
+      "DSDIFF FRM8 form header and the required first FVER version chunk. Later property and sound-data chunks are not followed.",
+    fields: `char signature[4];
+uint64 form_size;
+char form_type[4];
+char version_chunk_type[4];
+uint64 version_chunk_size;
+uint32 format_version;`,
+    littleEndian: false,
+  },
+  {
+    extensions: ["caf"],
+    family: "Core Audio Format",
+    scope:
+      "CAF file header and the required first audio description chunk. Later chunks and audio packets are not followed.",
+    fields: `char signature[4];
+uint16 file_version;
+uint16 file_flags;
+char description_chunk_type[4];
+int64 description_chunk_size;
+float64 sample_rate;
+char format_id[4];
+uint32 format_flags;
+uint32 bytes_per_packet;
+uint32 frames_per_packet;
+uint32 channels_per_frame;
+uint32 bits_per_channel;`,
+    littleEndian: false,
+  },
+  {
     extensions: ["wv"],
     family: "WavPack",
     scope: "WavPack block header. Encoded samples are not decoded.",

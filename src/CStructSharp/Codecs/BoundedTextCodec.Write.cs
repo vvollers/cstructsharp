@@ -2,7 +2,7 @@ namespace CStructSharp.Codecs;
 
 using System;
 
-/// <summary>Encodes validated bounded text into storage owned by the calling writer.</summary>
+/// <content>Encodes validated bounded text into storage owned by the calling writer.</content>
 internal static partial class BoundedTextCodec
 {
     /// <summary>Encodes an immutable string after its complete encoding and capacity validation.</summary>

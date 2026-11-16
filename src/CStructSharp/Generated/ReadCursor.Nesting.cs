@@ -3,7 +3,7 @@ namespace CStructSharp.Generated;
 using System;
 using CStructSharp.Diagnostics;
 
-/// <summary>Nesting: entering and leaving composites and unions, and following pointers to their targets with the depth, size and cycle rules.</summary>
+/// <content>Nesting: entering and leaving composites and unions, and following pointers to their targets with the depth, size and cycle rules.</content>
 public ref partial struct ReadCursor
 {
     /// <summary>Enters a nested struct or union, enforcing <c>MaxNestingDepth</c>.</summary>

@@ -3,7 +3,7 @@ namespace CStructSharp.Codecs;
 using System;
 using System.Text;
 
-/// <summary>Decodes already buffered text without copying valid input into a temporary byte array.</summary>
+/// <content>Decodes already buffered text without copying valid input into a temporary byte array.</content>
 internal static partial class BoundedTextCodec
 {
     /// <summary>Decodes the field's complete bytes while retaining the array decoder's exact failures.</summary>

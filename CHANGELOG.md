@@ -6,6 +6,28 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 headings in this order and omits the empty ones: *Breaking changes* (each with its
 migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and tooling*.
 
+## Unreleased
+
+### Breaking changes
+
+- `StructValue.Add`, `ContainsKey`, `Remove` and `TryGetValue` name their first parameter `key`, matching the
+  dictionary interfaces they implement and `UnionValue`. Migration: callers that pass it as a named argument write
+  `key:` instead of `name:`; positional calls are unchanged.
+
+### Added
+
+- The Inspector recognizes Apple Core Audio Format (`.caf`) and DSDIFF (`.dff`) files, newly detected by `file-type`
+  22.3.0, and shows each file header with its required first chunk (`desc` and `FVER`).
+
+### Documentation and tooling
+
+- Update build, test, documentation, benchmark and app dependencies to their latest compatible releases, including
+  StyleCop.Analyzers 1.3.180, MSTest 4.5.3, Stryker.NET 5.1.0, Vite 8.3.8, Vitest 5.1.0, ESLint 10.15.0, Playwright
+  1.65.1, cspell 10.5.1, markdownlint-cli2 0.24.1 and `actions/setup-dotnet` 6.1.0. Source documentation now meets
+  StyleCop 1.3's rules for record parameters and partial types; the changed-documentation check accepts `<content>`
+  on secondary partial declarations. The markdownlint-cli2 update removes a high-severity `re2js` advisory
+  (GHSA-gg6h-894w-4m9c) from the documentation toolchain.
+
 ## 0.18.0 — 2026-10-28
 
 ### Added

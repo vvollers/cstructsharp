@@ -9,13 +9,13 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 using CStructSharp.Writing;
 
-/// <summary>
+/// <content>
 ///     The unions of the compiled engine's writer and the end of a struct with bitfields. A union is written in two
 ///     steps: its whole storage is staged away from the destination - zeroes (or, under update semantics
 ///     that keep union storage, the union's existing bytes) with the selected member written over them from the union's
 ///     first byte, with a budget of its own and a copy of the variables - and then written to the destination once, so a
 ///     member that cannot be written leaves the destination unchanged.
-/// </summary>
+/// </content>
 internal static partial class WriteEngine
 {
     /// <summary>

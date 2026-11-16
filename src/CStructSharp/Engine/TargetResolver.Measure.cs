@@ -12,7 +12,7 @@ using CStructSharp.Reading;
 using CStructSharp.Syntax;
 using CstructEnum = CStructSharp.Syntax.Enum;
 
-/// <summary>The resolver's measuring half: where a member, a struct or a composite the walk passes ends, reading only what its size depends on, and the traversal limits a walk into a composite checks first.</summary>
+/// <content>The resolver's measuring half: where a member, a struct or a composite the walk passes ends, reading only what its size depends on, and the traversal limits a walk into a composite checks first.</content>
 internal static partial class TargetResolver
 {
     /// <summary>

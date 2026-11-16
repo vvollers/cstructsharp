@@ -14,7 +14,7 @@ public enum MemoryArrayReadMode
     Bulk,
 }
 
-/// <summary>Caller-owned arrays and explicitly bounded transport operations.</summary>
+/// <content>Caller-owned arrays and explicitly bounded transport operations.</content>
 public sealed partial class MemorySession
 {
     /// <summary>Copies a declared byte or signed-byte array directly to caller-owned raw storage.</summary>

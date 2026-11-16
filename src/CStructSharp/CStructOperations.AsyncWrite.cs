@@ -10,14 +10,14 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
 using CStructSharp.Streams;
 
-/// <summary>
+/// <content>
 ///     The awaitable write forms. <see cref="WriteAsync"/> serializes the value first (the validation the synchronous
 ///     writer performs, nothing written on a failure) and writes the bytes with one
 ///     <see cref="Stream.WriteAsync(ReadOnlyMemory{byte}, CancellationToken)"/>. <see cref="UpdateAsync"/> needs a
 ///     seekable stream: the region from the current position is read into a buffer, the in-place update runs over it,
 ///     and only the byte ranges that changed are written back; the position is the origin afterwards. As in the
 ///     span form, a stored absolute pointer address counts from the region's origin.
-/// </summary>
+/// </content>
 public sealed partial class CStruct
 {
     /// <summary>Serializes a root or selected value and writes it at the stream's current position.</summary>
