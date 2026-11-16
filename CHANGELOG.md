@@ -21,23 +21,25 @@ migration), *Added*, *Changed*, *Fixed*, *Performance*, and *Documentation and t
 
 ### Added
 
-- Import native ISF 6.1.0 documents alongside 6.2.0 without changing their declared version.
-- Preserve flattened native member aliases. Only members whose physical bits overlap are grouped into a generated
-  union, held by a promoted `__overlay_{offset}` member, so every original member path still resolves and unrelated
-  members keep struct semantics. A whole-value write supplies each group as a `UnionValue`. Native descriptions keep
-  their original kind and fields. Ordinary struct validation remains strict.
-- Prepare native MSF 7/CodeView V70 and V80 Windows PDB metadata as deterministic ISF 6.2.0 with `PdbMetadata`, without
-  a debugger or network dependency. Selected stream reads and per-table record limits bound loading; `WriteIsf` has its
-  own `maxTraversalSteps` limit. Public/global/file-local image-relative addresses, absolute symbol values, both native
-  age fields and ambiguous type identities stay distinct; file-local names with several addresses are reported in
-  `Diagnostics` instead of being exported. C++ classes export their instance members and skip methods, base classes,
-  nested types, static members and vtable entries. A PDB without a symbol stream still provides its types.
-- `PdbMetadata` reads pointer storage from CodeView itself: explicit 32-bit and 64-bit pointers keep their own widths
-  (also when legacy records omit the size bits), and the ISF `pointer` base records the target machine's width. When
-  the DBI machine is zero, construction requires an explicit `targetMachine`; `Machine` keeps the original value and
-  a nonzero original machine cannot be overridden.
-- Keep every original complete type when a forward declaration has several same-extent definitions. Prepared metadata
-  exposes an explicit union of those views instead of silently selecting a definition by its display name.
+- `PdbMetadata` prepares the type and symbol metadata of a native Windows PDB (an MSF 7 container with CodeView V70
+  or V80 records) as a deterministic ISF 6.2.0 profile that `IsfMetadata` imports, with no debugger, symbol server or
+  network access. It reads only the metadata streams, bounds loading with `maxMetadataBytes` and a per-table
+  `maxRecords` limit, and gives `WriteIsf` its own `maxTraversalSteps` limit.
+  - Types: structs, classes, unions, enums, arrays, bitfields and flat pointers. Each pointer keeps its own recorded
+    32-bit or 64-bit width, also when a legacy record omits the size bits, and the ISF `pointer` base has the target
+    machine's width. C++ classes export their instance members and skip methods, base classes, nested types, static
+    members and vtable entries.
+  - Identity: the GUID, both native age fields and the original DBI machine. When that machine is zero, construction
+    requires an explicit `targetMachine`; a nonzero machine cannot be overridden.
+  - Symbols: public, global and file-local image-relative addresses after OMAP remapping, with absolute values kept
+    separately. A file-local name with several addresses is reported in `Diagnostics` instead of being exported, and a
+    PDB without a symbol stream still provides its types.
+  - When a forward declaration has several complete definitions of the same size, every definition stays available
+    through an explicit union instead of one being chosen by its display name.
+- ISF import accepts format 6.1.0 as well as 6.2.0 and preserves flattened native member aliases. Members whose
+  physical bits overlap are grouped into a generated union, held by a promoted `__overlay_{offset}` member, so every
+  original member path still resolves and unrelated members keep struct semantics. A whole-value write supplies each
+  group as a `UnionValue`. Ordinary struct validation remains strict.
 - The Inspector recognizes Apple Core Audio Format (`.caf`) and DSDIFF (`.dff`) files, newly detected by `file-type`
   22.3.0, and shows each file header with its required first chunk (`desc` and `FVER`).
 
