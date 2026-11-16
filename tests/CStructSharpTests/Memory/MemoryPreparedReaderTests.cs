@@ -196,14 +196,27 @@ public class MemoryPreparedReaderTests
             session.ReadArray<int>(region, "i", array, context);
         }
 
-        long allocated = GC.GetAllocatedBytesForCurrentThread();
-        for (int index = 0; index < 1000; index++)
+        // A per-value allocation costs bytes in every round of 1000 reads. A one-off runtime event, such as tiered
+        // compilation's bookkeeping on the calling thread, can land in one round only, so one clean round proves the
+        // reads themselves allocate nothing.
+        long[] rounds = new long[3];
+        for (int round = 0; round < rounds.Length; round++)
         {
-            _ = reader.Read(session, region, context);
-            session.ReadArray<int>(region, "i", array, context);
+            long allocated = GC.GetAllocatedBytesForCurrentThread();
+            for (int index = 0; index < 1000; index++)
+            {
+                _ = reader.Read(session, region, context);
+                session.ReadArray<int>(region, "i", array, context);
+            }
+
+            rounds[round] = GC.GetAllocatedBytesForCurrentThread() - allocated;
+            if (rounds[round] == 0)
+            {
+                return;
+            }
         }
 
-        Assert.AreEqual(0L, GC.GetAllocatedBytesForCurrentThread() - allocated);
+        Assert.Fail($"Every round of 1000 reads allocated: {string.Join(", ", rounds)} bytes.");
     }
 
     /// <summary>Promotion, ambiguity, signed enum slices, depth limits and concurrent contexts keep the ordinary reader's meaning.</summary>
