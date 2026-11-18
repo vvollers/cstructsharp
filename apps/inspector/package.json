@@ -28,7 +28,7 @@
     "file-type": "22.3.0",
     "json-editor-vue": "^0.19.2",
     "monaco-editor": "^0.57.0",
-    "vanilla-jsoneditor": "^3.13.0",
+    "vanilla-jsoneditor": "^3.13.1",
     "vue": "^3.5.45",
     "vuehex": "^0.7.0"
   }
